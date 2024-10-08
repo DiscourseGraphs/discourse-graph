@@ -22,8 +22,8 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import { render as renderToast } from "roamjs-components/components/Toast";
 
 import { render as queryRender } from "./components/QueryDrawer";
-import { renderTldrawCanvas } from "./components/tldraw/Tldraw";
-import { openCanvasDrawer } from "./components/tldraw/CanvasDrawer";
+import { renderTldrawCanvas } from "./components/Tldraw/Tldraw";
+import { openCanvasDrawer } from "./components/Tldraw/CanvasDrawer";
 import DefaultFilters from "./components/DefaultFilters";
 import { render as exportRender } from "./components/Export";
 import {
