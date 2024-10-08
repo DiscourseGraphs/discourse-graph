@@ -24,6 +24,7 @@ import {
   findReferencedNodeInText,
   getReferencedNodeInFormat,
 } from "./formatUtils";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/settings/configPages";
 
 export const updateExportProgress = (detail: {
   progress: number;
@@ -434,7 +435,7 @@ const getExportTypes = ({
   };
   const getExportSettings = () => {
     const configTree = getBasicTreeByParentUid(
-      getPageUidByPageTitle("roam/js/discourse-graph")
+      getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE)
     );
     const exportTree = getSubTree({
       tree: configTree,

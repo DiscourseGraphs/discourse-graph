@@ -15,7 +15,9 @@ import MultiTextPanel from "roamjs-components/components/ConfigPanels/MultiTextP
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import DEFAULT_RELATION_VALUES from "./data/defaultDiscourseRelations";
 import { OnloadArgs } from "roamjs-components/types";
-import getDiscourseNodes from "./utils/getDiscourseNodes";
+import getDiscourseNodes, {
+  excludeDefaultNodes,
+} from "./utils/getDiscourseNodes";
 import refreshConfigTree from "./utils/refreshConfigTree";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
@@ -43,6 +45,7 @@ import CanvasReferences from "./components/Tldraw/CanvasReferences";
 import { render as renderGraphOverviewExport } from "./components/ExportDiscourseContext";
 import { Condition, QBClause } from "./utils/types";
 import styles from "./styles/discourseGraphStyles.css";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "./settings/configPages";
 
 export const SETTING = "discourse-graphs";
 
@@ -161,7 +164,7 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
   };
 
   const { pageUid, observer } = await createConfigObserver({
-    title: "roam/js/discourse-graph",
+    title: DISCOURSE_CONFIG_PAGE_TITLE,
     config: {
       tabs: [
         {
@@ -320,7 +323,7 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
   });
 
   refreshConfigTree();
-  const nodes = getDiscourseNodes().filter((n) => n.backedBy !== "default");
+  const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   if (nodes.length === 0) {
     await Promise.all(
       INITIAL_NODE_VALUES.map(

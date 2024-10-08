@@ -5,6 +5,10 @@ import getDiscourseRelations from "./getDiscourseRelations";
 import parseQuery from "./parseQuery";
 import { Condition } from "./types";
 
+export const excludeDefaultNodes = (node: DiscourseNode) => {
+  return node.backedBy !== "default";
+};
+
 // TODO - only text and type should be required
 export type DiscourseNode = {
   text: string;

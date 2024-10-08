@@ -3,6 +3,7 @@ import CustomPanel from "roamjs-components/components/ConfigPanels/CustomPanel";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
+import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import {
   Field,
   CustomField,
@@ -23,6 +24,8 @@ import {
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { render as configPageRender } from "roamjs-components/components/ConfigPage";
 
+export const DISCOURSE_CONFIG_PAGE_TITLE = "roam/js/discourse-graph";
+export const NODE_CONFIG_PAGE_TITLE = "discourse-graph/nodes/";
 export const renderDiscourseNodeTypeConfigPage = ({
   title,
   h1,
@@ -38,7 +41,7 @@ export const renderDiscourseNodeTypeConfigPage = ({
   if (node) {
     const renderNode = () =>
       configPageRender({
-        h1,
+        h: h1,
         title,
         config: [
           // @ts-ignore

@@ -5,6 +5,7 @@ import discourseConfigRef from "./discourseConfigRef";
 import registerDiscourseDatalogTranslators from "./registerDiscourseDatalogTranslators";
 import { unregisterDatalogTranslator } from "./conditionToDatalog";
 import type { PullBlock } from "roamjs-components/types/native";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/settings/configPages";
 
 const getPagesStartingWithPrefix = (prefix: string) =>
   (
@@ -12,8 +13,8 @@ const getPagesStartingWithPrefix = (prefix: string) =>
       `[:find (pull ?b [:block/uid :node/title]) :where [?b :node/title ?title] [(clojure.string/starts-with? ?title  "${prefix}")]]`
     ) as [PullBlock][]
   ).map((r) => ({
-    title: r[0][":node/title"] || '',
-    uid: r[0][":block/uid"] || '',
+    title: r[0][":node/title"] || "",
+    uid: r[0][":block/uid"] || "",
   }));
 
 const refreshConfigTree = () => {
@@ -21,7 +22,7 @@ const refreshConfigTree = () => {
     unregisterDatalogTranslator({ key })
   );
   discourseConfigRef.tree = getBasicTreeByParentUid(
-    getPageUidByPageTitle("roam/js/discourse-graph")
+    getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE)
   );
   const pages = getPagesStartingWithPrefix("discourse-graph/nodes");
   discourseConfigRef.nodes = Object.fromEntries(

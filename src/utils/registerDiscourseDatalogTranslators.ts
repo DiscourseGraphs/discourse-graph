@@ -9,7 +9,7 @@ import conditionToDatalog, {
   registerDatalogTranslator,
 } from "./conditionToDatalog";
 import { ANY_RELATION_REGEX } from "./deriveDiscourseNodeAttribute";
-import getDiscourseNodes from "./getDiscourseNodes";
+import getDiscourseNodes, { excludeDefaultNodes } from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
 import matchDiscourseNode from "./matchDiscourseNode";
 import replaceDatalogVariables from "./replaceDatalogVariables";
@@ -74,15 +74,13 @@ const registerDiscourseDatalogTranslators = () => {
           {
             type: "or-join-clause" as const,
             variables: [{ type: "variable" as const, value: `${source}-any` }],
-            clauses: discourseNodes
-              .filter((dn) => dn.backedBy !== "default")
-              .map((dn) => ({
-                type: "and-clause" as const,
-                clauses: discourseNodeFormatToDatalog({
-                  freeVar: `${source}-any`,
-                  ...dn,
-                }),
-              })),
+            clauses: discourseNodes.filter(excludeDefaultNodes).map((dn) => ({
+              type: "and-clause" as const,
+              clauses: discourseNodeFormatToDatalog({
+                freeVar: `${source}-any`,
+                ...dn,
+              }),
+            })),
           },
         ]
       : nodeByTypeOrText[target]
