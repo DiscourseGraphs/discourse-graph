@@ -21,6 +21,7 @@ import ExtensionApiContextProvider from "roamjs-components/components/ExtensionA
 import QueryEditor from "./QueryEditor";
 import { Column } from "../utils/types";
 import Export from "./Export";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 type Props = {
   blockUid: string;
@@ -362,6 +363,18 @@ const QueryDrawer = ({
   </ResizableDrawer>
 );
 
+export const openQueryDrawer = (onloadArgs: OnloadArgs) =>
+  Promise.resolve(
+    getPageUidByPageTitle("roam/js/query-builder/drawer") ||
+      createPage({
+        title: "roam/js/query-builder/drawer",
+      })
+  ).then((blockUid) =>
+    render({
+      blockUid,
+      onloadArgs,
+    })
+  );
 export const render = (props: Props) =>
   renderOverlay({ Overlay: QueryDrawer, props });
 
