@@ -134,7 +134,7 @@ Enable search by clicking on the Menu button, then Search.
 
 This will allow you to search across all columns, case-insensitive.
 
-https://github.com/RoamJS/query-builder/assets/3792666/6499147d-4d03-4767-b7e7-d1ea925697b5
+https://github.com/DiscourseGraph/discourse-graph/assets/3792666/6499147d-4d03-4767-b7e7-d1ea925697b5
 
 ### View Type<!-- omit in toc -->
 
