@@ -47,7 +47,7 @@ import initializeDiscourseGraphsMode, {
   renderDiscourseNodeTypeConfigPage,
   SETTING,
 } from "./discourseGraphsMode";
-import styles from "./styles.css";
+import styles from "./styles/styles.css";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
