@@ -22,6 +22,7 @@ import ExtensionApiContextProvider, {
   useExtensionAPI,
 } from "roamjs-components/components/ExtensionApiContext";
 import { Column, ExportTypes } from "../utils/types";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 type QueryPageComponent = (props: {
   pageUid: string;
@@ -31,7 +32,7 @@ type QueryPageComponent = (props: {
 
 type Props = Parameters<QueryPageComponent>[0];
 
-const QueryPage = ({ pageUid, isEditBlock, showAlias }: Props) => {
+const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
   const extensionAPI = useExtensionAPI();
   const hideMetadata = useMemo(
     () => !!extensionAPI && !!extensionAPI.settings.get("hide-metadata"),
@@ -191,20 +192,40 @@ const QueryPage = ({ pageUid, isEditBlock, showAlias }: Props) => {
 };
 
 export const renderQueryBlock = createComponentRender(
-  ({ blockUid }) => <QueryPage pageUid={blockUid} isEditBlock showAlias />,
+  ({ blockUid }) => <QueryBuilder pageUid={blockUid} isEditBlock showAlias />,
   "roamjs-query-builder-parent"
 );
 
-export const render = ({
-  parent,
+export const renderQueryPage = ({
+  title,
+  h1,
   onloadArgs,
-  ...props
-}: { parent: HTMLElement; onloadArgs: OnloadArgs } & Props) =>
-  ReactDOM.render(
-    <ExtensionApiContextProvider {...onloadArgs}>
-      <QueryPage {...props} />
-    </ExtensionApiContextProvider>,
-    parent
-  );
+}: {
+  title: string;
+  h1: HTMLHeadingElement;
+  onloadArgs: OnloadArgs;
+}) => {
+  const uid = getPageUidByPageTitle(title);
+  const attribute = `data-roamjs-${uid}`;
+  const containerParent = h1.parentElement?.parentElement;
 
-export default QueryPage;
+  if (containerParent && !containerParent.hasAttribute(attribute)) {
+    containerParent.setAttribute(attribute, "true");
+    const parent = document.createElement("div");
+    const configPageId = title.split("/").slice(-1)[0];
+    parent.id = `${configPageId}-config`;
+    containerParent.insertBefore(
+      parent,
+      h1.parentElement?.nextElementSibling || null
+    );
+
+    ReactDOM.render(
+      <ExtensionApiContextProvider {...onloadArgs}>
+        <QueryBuilder pageUid={uid} />
+      </ExtensionApiContextProvider>,
+      parent
+    );
+  }
+};
+
+export default QueryBuilder;

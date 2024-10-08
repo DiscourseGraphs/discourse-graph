@@ -14,7 +14,7 @@ export { default as LivePreview } from "./LivePreview";
 export { render as renderQueryDrawer } from "./QueryDrawer";
 export { default as QueryDrawer } from "./QueryDrawer";
 export { default as QueryEditor } from "./QueryEditor";
-export { default as QueryPage } from "./QueryPage";
+export { default as QueryBuilder } from "./QueryBuilder";
 export { default as QueryPagesPanel } from "./settings/QueryPagesPanel";
 export { default as ReferenceContext } from "./ReferenceContext";
 export { default as ResizableDrawer } from "./ResizableDrawer";
