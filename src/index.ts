@@ -12,10 +12,6 @@ import { createBlock, createPage, updateBlock } from "roamjs-components/writes";
 
 import { runExtension, extractRef } from "roamjs-components/util";
 import registerSmartBlocksCommand from "roamjs-components/util/registerSmartBlocksCommand";
-import localStorageSet from "roamjs-components/util/localStorageSet";
-import localStorageGet from "roamjs-components/util/localStorageGet";
-import localStorageRemove from "roamjs-components/util/localStorageRemove";
-import { getNodeEnv } from "roamjs-components/util/env";
 
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -45,7 +41,6 @@ import parseQuery from "./utils/parseQuery";
 
 import initializeDiscourseGraphsMode, {
   renderDiscourseNodeTypeConfigPage,
-  SETTING,
 } from "./discourseGraphsMode";
 import styles from "./styles/styles.css";
 
@@ -55,13 +50,9 @@ export default runExtension(async (onloadArgs) => {
   const { extensionAPI } = onloadArgs;
   const style = addStyle(styles);
 
-  const toggleDiscourseGraphsMode = await initializeDiscourseGraphsMode(
+  const cleanupDiscourseGraphs = await initializeDiscourseGraphsMode(
     onloadArgs
   );
-  if (getNodeEnv() === "development" && localStorageGet(SETTING)) {
-    extensionAPI.settings.set(SETTING, true);
-    toggleDiscourseGraphsMode(true);
-  }
 
   // Observers and Listeners
   const isCanvasPage = (title: string) => {
@@ -435,32 +426,6 @@ export default runExtension(async (onloadArgs) => {
           placeholder: DEFAULT_CANVAS_PAGE_FORMAT,
         },
       },
-      {
-        id: SETTING,
-        name: "Discourse Graphs Enabled",
-        description:
-          "Includes the ability to construct higher level discourse graph nodes and relations for higher order reasoning.",
-        action: {
-          type: "switch",
-          onChange: (e) => {
-            const flag = e.target.checked;
-            toggleDiscourseGraphsMode(flag).then(() => {
-              if (flag) {
-                document
-                  .querySelectorAll<HTMLHeadingElement>(`h1.rm-title-display`)
-                  .forEach(h1ObserverCallback);
-              }
-              if (getNodeEnv() === "development") {
-                if (flag) {
-                  localStorageSet(SETTING, "true");
-                } else {
-                  localStorageRemove(SETTING);
-                }
-              }
-            });
-          },
-        },
-      },
     ],
   });
 
@@ -469,7 +434,7 @@ export default runExtension(async (onloadArgs) => {
     observers: [h1Observer, editQueryBuilderObserver, queryBlockObserver],
     unload: () => {
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
-      toggleDiscourseGraphsMode(false);
+      cleanupDiscourseGraphs();
       // @ts-ignore - tldraw throws a warning on multiple loads
       delete window[Symbol.for("__signia__")];
       document.removeEventListener(
