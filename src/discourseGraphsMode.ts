@@ -10,8 +10,8 @@ import {
   SelectField,
   TextField,
 } from "roamjs-components/components/ConfigPanels/types";
-import DiscourseNodeConfigPanel from "./components/DiscourseNodeConfigPanel";
-import DiscourseRelationConfigPanel from "./components/DiscourseRelationConfigPanel";
+import DiscourseNodeConfigPanel from "./components/settings/DiscourseNodeConfigPanel";
+import DiscourseRelationConfigPanel from "./components/settings/DiscourseRelationConfigPanel";
 import CustomPanel from "roamjs-components/components/ConfigPanels/CustomPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
@@ -43,14 +43,14 @@ import deriveNodeAttribute from "./utils/deriveDiscourseNodeAttribute";
 import matchDiscourseNode from "./utils/matchDiscourseNode";
 import getPageTitleValueByHtmlElement from "roamjs-components/dom/getPageTitleValueByHtmlElement";
 import React from "react";
-import DiscourseNodeIndex from "./components/DiscourseNodeIndex";
-import DiscourseNodeSpecification from "./components/DiscourseNodeSpecification";
-import DiscourseNodeAttributes from "./components/DiscourseNodeAttributes";
+import DiscourseNodeIndex from "./components/settings/DiscourseNodeIndex";
+import DiscourseNodeSpecification from "./components/settings/DiscourseNodeSpecification";
+import DiscourseNodeAttributes from "./components/settings/DiscourseNodeAttributes";
 import getSubTree from "roamjs-components/util/getSubTree";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import createPage from "roamjs-components/writes/createPage";
 import INITIAL_NODE_VALUES from "./data/defaultDiscourseNodes";
-import DiscourseNodeCanvasSettings from "./components/DiscourseNodeCanvasSettings";
+import DiscourseNodeCanvasSettings from "./components/settings/DiscourseNodeCanvasSettings";
 import CanvasReferences from "./components/Tldraw/CanvasReferences";
 import fireQuery from "./utils/fireQuery";
 import { render as renderGraphOverviewExport } from "./components/ExportDiscourseContext";

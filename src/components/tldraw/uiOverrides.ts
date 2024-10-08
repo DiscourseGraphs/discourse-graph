@@ -14,7 +14,7 @@ import {
 } from "@tldraw/tldraw";
 import { DiscourseNode } from "../../utils/getDiscourseNodes";
 import { COLOR_ARRAY, discourseContext } from "./Tldraw";
-import { formatHexColor } from "../DiscourseNodeCanvasSettings";
+import { formatHexColor } from "../settings/DiscourseNodeCanvasSettings";
 import { openCanvasDrawer } from "./CanvasDrawer";
 import { OnloadArgs } from "roamjs-components/types";
 import { getNewDiscourseNodeText } from "../../utils/formatUtils";

@@ -4,7 +4,7 @@ import { OnloadArgs, RoamBasicNode } from "roamjs-components/types/native";
 import getSettingIntFromTree from "roamjs-components/util/getSettingIntFromTree";
 import getSubTree from "roamjs-components/util/getSubTree";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
-import { StoredFilters } from "../components/DefaultFilters";
+import { StoredFilters } from "../components/settings/DefaultFilters";
 import { Column } from "./types";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import getSettingValuesFromTree from "roamjs-components/util/getSettingValuesFromTree";

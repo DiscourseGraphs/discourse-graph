@@ -34,16 +34,16 @@ import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import setInputSetting from "roamjs-components/util/setInputSetting";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
 import useSubTree from "roamjs-components/hooks/useSubTree";
-import refreshConfigTree from "../utils/refreshConfigTree";
-import triplesToBlocks from "../utils/triplesToBlocks";
+import refreshConfigTree from "~/utils/refreshConfigTree";
+import triplesToBlocks from "~/utils/triplesToBlocks";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import { CustomField } from "roamjs-components/components/ConfigPanels/types";
-import getDiscourseNodes from "../utils/getDiscourseNodes";
-import { getConditionLabels } from "../utils/conditionToDatalog";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import { getConditionLabels } from "~/utils/conditionToDatalog";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",

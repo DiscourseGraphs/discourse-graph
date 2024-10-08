@@ -24,13 +24,15 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import { render as queryRender } from "./components/QueryDrawer";
 import { renderTldrawCanvas } from "./components/Tldraw/Tldraw";
 import { openCanvasDrawer } from "./components/Tldraw/CanvasDrawer";
-import DefaultFilters from "./components/DefaultFilters";
+import DefaultFilters from "./components/settings/DefaultFilters";
 import { render as exportRender } from "./components/Export";
 import {
   render as renderQueryPage,
   renderQueryBlock,
 } from "./components/QueryPage";
-import QueryPagesPanel, { getQueryPages } from "./components/QueryPagesPanel";
+import QueryPagesPanel, {
+  getQueryPages,
+} from "./components/settings/QueryPagesPanel";
 
 import runQuery from "./utils/runQuery";
 import resolveQueryBuilderRef from "./utils/resolveQueryBuilderRef";

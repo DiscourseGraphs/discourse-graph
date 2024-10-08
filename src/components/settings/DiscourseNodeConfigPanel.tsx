@@ -1,7 +1,7 @@
 import { Button, H6, InputGroup, Intent, Label } from "@blueprintjs/core";
 import React, { useState } from "react";
-import getDiscourseNodes from "../utils/getDiscourseNodes";
-import refreshConfigTree from "../utils/refreshConfigTree";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import refreshConfigTree from "~/utils/refreshConfigTree";
 import createPage from "roamjs-components/writes/createPage";
 import type { CustomField } from "roamjs-components/components/ConfigPanels/types";
 
