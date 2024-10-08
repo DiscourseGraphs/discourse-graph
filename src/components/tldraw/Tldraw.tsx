@@ -907,7 +907,13 @@ const TldrawCanvas = ({ title }: Props) => {
   );
 };
 
-export const renderTldrawCanvas = (title: string, onloadArgs: OnloadArgs) => {
+export const renderTldrawCanvas = ({
+  title,
+  onloadArgs,
+}: {
+  title: string;
+  onloadArgs: OnloadArgs;
+}) => {
   const children = document.querySelector<HTMLDivElement>(
     ".roam-article .rm-block-children"
   );

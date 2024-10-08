@@ -1,4 +1,8 @@
-import type { InputTextNode, PullBlock } from "roamjs-components/types/native";
+import type {
+  InputTextNode,
+  OnloadArgs,
+  PullBlock,
+} from "roamjs-components/types/native";
 import {
   addStyle,
   createHTMLObserver,
@@ -26,10 +30,7 @@ import { renderTldrawCanvas } from "./components/Tldraw/Tldraw";
 import { openCanvasDrawer } from "./components/Tldraw/CanvasDrawer";
 import DefaultFilters from "./components/settings/DefaultFilters";
 import { render as exportRender } from "./components/Export";
-import {
-  render as renderQueryPage,
-  renderQueryBlock,
-} from "./components/QueryPage";
+import { renderQueryPage, renderQueryBlock } from "./components/QueryBuilder";
 import QueryPagesPanel, {
   getQueryPages,
 } from "./components/settings/QueryPagesPanel";
@@ -45,6 +46,7 @@ import styles from "./styles/styles.css";
 import { registerCommandPaletteCommands } from "./settings/commandPalette";
 import { createSettingsPanel } from "./settings/settingsPanel";
 import { renderDiscourseNodeTypeConfigPage } from "./settings/configPages";
+import { isCanvasPage } from "./utils/isCanvasPage";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -57,55 +59,42 @@ export default runExtension(async (onloadArgs) => {
   );
 
   // Observers and Listeners
-  const isCanvasPage = (title: string) => {
-    const canvasPageFormat =
-      (extensionAPI.settings.get("canvas-page-format") as string) ||
-      DEFAULT_CANVAS_PAGE_FORMAT;
-    return new RegExp(`^${canvasPageFormat}$`.replace(/\*/g, ".+")).test(title);
+  const isDiscourseNodePage = (title: string) =>
+    title.startsWith("discourse-graph/nodes/");
+
+  const isCanvasPageInArticle = ({
+    title,
+    h1,
+  }: {
+    title: string;
+    h1: HTMLHeadingElement;
+  }) => isCanvasPage({ title, extensionAPI }) && !!h1.closest(".roam-article");
+  const isQueryPage = (title: string): boolean => {
+    return getQueryPages(extensionAPI)
+      .map(
+        (t) =>
+          new RegExp(`^${t.replace(/\*/g, ".*").replace(/([()])/g, "\\$1")}$`)
+      )
+      .some((r) => r.test(title));
   };
-  const h1ObserverCallback = (h1: HTMLHeadingElement) => {
+  const renderPageContent = (h1: HTMLHeadingElement) => {
     const title = getPageTitleValueByHtmlElement(h1);
-    if (title.startsWith("discourse-graph/nodes/")) {
-      renderDiscourseNodeTypeConfigPage({ title, h: h1, onloadArgs });
-    } else if (
-      getQueryPages(extensionAPI)
-        .map(
-          (t) =>
-            new RegExp(`^${t.replace(/\*/g, ".*").replace(/([()])/g, "\\$1")}$`)
-        )
-        .some((r) => r.test(title))
-    ) {
-      const uid = getPageUidByPageTitle(title);
-      const attribute = `data-roamjs-${uid}`;
-      const containerParent = h1.parentElement?.parentElement;
-      if (containerParent && !containerParent.hasAttribute(attribute)) {
-        containerParent.setAttribute(attribute, "true");
-        const parent = document.createElement("div");
-        const configPageId = title.split("/").slice(-1)[0];
-        parent.id = `${configPageId}-config`;
-        containerParent.insertBefore(
-          parent,
-          h1.parentElement?.nextElementSibling || null
-        );
-        renderQueryPage({
-          pageUid: uid,
-          parent,
-          onloadArgs,
-        });
-      }
-    } else if (isCanvasPage(title) && !!h1.closest(".roam-article")) {
-      renderTldrawCanvas(title, onloadArgs);
-    }
+    const props = { title, h1, onloadArgs };
+    if (isDiscourseNodePage(title)) renderDiscourseNodeTypeConfigPage(props);
+    else if (isQueryPage(title)) renderQueryPage(props);
+    else if (isCanvasPageInArticle(props)) renderTldrawCanvas(props);
   };
-  const h1Observer = createHTMLObserver({
+  const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
-    callback: (e) => h1ObserverCallback(e as HTMLHeadingElement),
+    callback: (e) => renderPageContent(e as HTMLHeadingElement),
   });
+
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
   });
+
   const pageActionListener = ((
     e: CustomEvent<{
       action: string;
@@ -244,7 +233,7 @@ export default runExtension(async (onloadArgs) => {
 
   return {
     elements: [style],
-    observers: [h1Observer, queryBlockObserver],
+    observers: [pageTitleObserver, queryBlockObserver],
     unload: () => {
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       cleanupDiscourseGraphs();

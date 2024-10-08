@@ -50,6 +50,7 @@ import localStorageSet from "roamjs-components/util/localStorageSet";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import createPage from "roamjs-components/writes/createPage";
 import { createInitialTldrawProps } from "../utils/createInitialTldrawProps";
+import { isCanvasPage as checkIfCanvasPage } from "~/utils/isCanvasPage";
 
 const ExportProgress = ({ id }: { id: string }) => {
   const [progress, setProgress] = useState(0);
@@ -147,18 +148,15 @@ const ExportDialog: ExportDialogComponent = ({
     useState<string>(EXPORT_DESTINATIONS[0].id);
   const [isSamePageEnabled, setIsSamePageEnabled] = useState(false);
 
-  const checkForCanvasPage = (title: string) => {
-    const canvasPageFormat =
-      (getExtensionAPI().settings.get("canvas-page-format") as string) ||
-      DEFAULT_CANVAS_PAGE_FORMAT;
-    return new RegExp(`^${canvasPageFormat}$`.replace(/\*/g, ".+")).test(title);
-  };
   const firstColumnKey = columns?.[0]?.key || "text";
   const currentPageUid = getCurrentPageUid();
   const currentPageTitle = getPageTitleByPageUid(currentPageUid);
   const [selectedPageTitle, setSelectedPageTitle] = useState(currentPageTitle);
   const [selectedPageUid, setSelectedPageUid] = useState(currentPageUid);
-  const isCanvasPage = checkForCanvasPage(selectedPageTitle);
+  const isCanvasPage = checkIfCanvasPage({
+    title: selectedPageTitle,
+    extensionAPI: getExtensionAPI(),
+  });
   const [activeSendToDestination, setActiveSendToDestination] =
     useState<(typeof SEND_TO_DESTINATIONS)[number]>("page");
   const isSendToGraph = activeSendToDestination === "graph";

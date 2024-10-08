@@ -25,11 +25,11 @@ import { render as configPageRender } from "roamjs-components/components/ConfigP
 
 export const renderDiscourseNodeTypeConfigPage = ({
   title,
-  h,
+  h1,
   onloadArgs,
 }: {
   title: string;
-  h: HTMLHeadingElement;
+  h1: HTMLHeadingElement;
   onloadArgs: OnloadArgs;
 }) => {
   const nodeText = title.substring("discourse-graph/nodes/".length);
@@ -38,7 +38,7 @@ export const renderDiscourseNodeTypeConfigPage = ({
   if (node) {
     const renderNode = () =>
       configPageRender({
-        h,
+        h1,
         title,
         config: [
           // @ts-ignore
