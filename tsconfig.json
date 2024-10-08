@@ -1,5 +1,11 @@
 {
   "extends": "./node_modules/@samepage/scripts/tsconfig",
   "include": ["src", "src/types.d.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["src/*"]
+    }
+  }
 }

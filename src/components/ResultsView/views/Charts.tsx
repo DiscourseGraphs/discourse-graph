@@ -1,7 +1,7 @@
 import React from "react";
 import { Chart, AxisOptions, AxisOptionsBase } from "react-charts";
 import { Result } from "roamjs-components/types/query-builder";
-import { Column } from "../utils/types";
+import { Column } from "~/utils/types";
 
 type ChartData = [Result[string], Result[string]];
 

@@ -20,7 +20,7 @@ import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeB
 import { Result } from "roamjs-components/types/query-builder";
 import nanoId from "nanoid";
 import getDiscourseContextResults from "../utils/getDiscourseContextResults";
-import ResultsView from "./ResultsView";
+import ResultsView from "./ResultsView/ResultsView";
 import { OnloadArgs } from "roamjs-components/types";
 import Description from "roamjs-components/components/Description";
 

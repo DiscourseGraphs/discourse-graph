@@ -13,8 +13,8 @@ import {
   InputGroup,
 } from "@blueprintjs/core";
 import { IconNames } from "@blueprintjs/icons";
-import { Column, Result } from "../utils/types";
-import type { FilterData, Sorts, Views } from "../utils/parseResultSettings";
+import { Column, Result } from "~/utils/types";
+import type { FilterData, Sorts, Views } from "~/utils/parseResultSettings";
 import Filter, { Filters } from "roamjs-components/components/Filter";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -24,9 +24,9 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import setInputSettings from "roamjs-components/util/setInputSettings";
-import toCellValue from "../utils/toCellValue";
+import toCellValue from "~/utils/toCellValue";
 import nanoId from "nanoid";
-import { ContextContent } from "./DiscourseContext";
+import { ContextContent } from "~/components/DiscourseContext";
 
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;
 type ExtraRowType = (typeof EXTRA_ROW_TYPES)[number] | null;

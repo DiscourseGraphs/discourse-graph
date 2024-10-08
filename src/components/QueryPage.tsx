@@ -9,7 +9,7 @@ import React, {
 import fireQuery from "../utils/fireQuery";
 import parseQuery from "../utils/parseQuery";
 import type { Result } from "roamjs-components/types/query-builder";
-import ResultsView from "./ResultsView";
+import ResultsView from "./ResultsView/ResultsView";
 import ReactDOM from "react-dom";
 import QueryEditor from "./QueryEditor";
 import getSubTree from "roamjs-components/util/getSubTree";

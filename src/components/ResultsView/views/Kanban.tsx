@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Column, Result } from "../utils/types";
+import { Column, Result } from "~/utils/types";
 import {
   Button,
   HTMLTable,
@@ -21,13 +21,13 @@ import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import setInputSetting from "roamjs-components/util/setInputSetting";
 import { z } from "zod";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
-import predefinedSelections from "../utils/predefinedSelections";
-import toCellValue from "../utils/toCellValue";
+import predefinedSelections from "~/utils/predefinedSelections";
+import toCellValue from "~/utils/toCellValue";
 import extractTag from "roamjs-components/util/extractTag";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getSubTree from "roamjs-components/util/getSubTree";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import { Sorts } from "../utils/parseResultSettings";
+import { Sorts } from "~/utils/parseResultSettings";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 
 const zPriority = z.record(z.number().min(0).max(1));
