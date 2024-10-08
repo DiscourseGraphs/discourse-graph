@@ -53,6 +53,7 @@ const postProcessResults = (
                 !excludeValues.has(extractTag(r[filterKey] as string))) &&
               (r[filterKey] instanceof Date ||
                 !excludeValues.has(
+                  // @ts-ignore FIX LATER
                   window.roamAlphaAPI.util.dateToPageTitle(r[filterKey] as Date)
                 )) &&
               !excludeValues.has(r[filterKey] as string)) ||

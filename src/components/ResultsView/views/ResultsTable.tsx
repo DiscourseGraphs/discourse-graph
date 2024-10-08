@@ -25,7 +25,6 @@ import deleteBlock from "roamjs-components/writes/deleteBlock";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import setInputSettings from "roamjs-components/util/setInputSettings";
 import toCellValue from "~/utils/toCellValue";
-import nanoId from "nanoid";
 import { ContextContent } from "~/components/DiscourseContext";
 
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;

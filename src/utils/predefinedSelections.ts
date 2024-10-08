@@ -1,4 +1,3 @@
-import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import type { DatalogClause, PullBlock } from "roamjs-components/types";
 import { DAILY_NOTE_PAGE_REGEX } from "roamjs-components/date/constants";
 import differenceInSeconds from "date-fns/differenceInSeconds";
@@ -12,7 +11,6 @@ import datefnsFormat from "date-fns/format";
 import type { QBClause, Result as QueryResult } from "./types";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
-import { IconNames } from "@blueprintjs/icons";
 import parseQuery from "./parseQuery";
 import toCellValue from "./toCellValue";
 import createBlock from "roamjs-components/writes/createBlock";

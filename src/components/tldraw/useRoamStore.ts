@@ -9,7 +9,7 @@ import createBlock from "roamjs-components/writes/createBlock";
 import { AddPullWatch } from "roamjs-components/types";
 import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 import nanoid from "nanoid";
-import getBlockProps, { json, normalizeProps } from "../../utils/getBlockProps";
+import getBlockProps, { json, normalizeProps } from "~/utils/getBlockProps";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 const THROTTLE = 350;

@@ -20,7 +20,6 @@ import ResultsView from "./ResultsView/ResultsView";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import QueryEditor from "./QueryEditor";
 import { Column } from "../utils/types";
-import Export from "./Export";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 type Props = {

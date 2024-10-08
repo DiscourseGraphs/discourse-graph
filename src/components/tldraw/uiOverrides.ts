@@ -12,14 +12,14 @@ import {
   menuItem,
   SubMenu,
 } from "@tldraw/tldraw";
-import { DiscourseNode } from "../../utils/getDiscourseNodes";
+import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { COLOR_ARRAY, discourseContext } from "./Tldraw";
 import { formatHexColor } from "../settings/DiscourseNodeCanvasSettings";
 import { openCanvasDrawer } from "./CanvasDrawer";
 import { OnloadArgs } from "roamjs-components/types";
-import { getNewDiscourseNodeText } from "../../utils/formatUtils";
-import createDiscourseNode from "../../utils/createDiscourseNode";
-import calcCanvasNodeSizeAndImg from "../../utils/calcCanvasNodeSizeAndImg";
+import { getNewDiscourseNodeText } from "~/utils/formatUtils";
+import createDiscourseNode from "~/utils/createDiscourseNode";
+import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import renderToast from "roamjs-components/components/Toast";
 import { AddReferencedNodeType } from "./DiscourseRelationsUtil";
 

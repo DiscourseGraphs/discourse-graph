@@ -22,7 +22,6 @@ import nanoId from "nanoid";
 import getDiscourseContextResults from "../utils/getDiscourseContextResults";
 import ResultsView from "./ResultsView/ResultsView";
 import { OnloadArgs } from "roamjs-components/types";
-import Description from "roamjs-components/components/Description";
 
 export type DiscourseContextResults = Awaited<
   ReturnType<typeof getDiscourseContextResults>

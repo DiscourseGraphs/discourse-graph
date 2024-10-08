@@ -35,7 +35,6 @@ import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 import findDiscourseNode from "../utils/findDiscourseNode";
-import { DEFAULT_CANVAS_PAGE_FORMAT } from "../index";
 import { createShapeId } from "@tldraw/tlschema";
 import { MAX_WIDTH } from "./Tldraw/Tldraw";
 import calcCanvasNodeSizeAndImg from "../utils/calcCanvasNodeSizeAndImg";

@@ -16,14 +16,14 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import { useValue } from "signia-react";
-import calcCanvasNodeSizeAndImg from "../../utils/calcCanvasNodeSizeAndImg";
-import createDiscourseNode from "../../utils/createDiscourseNode";
-import getDiscourseContextResults from "../../utils/getDiscourseContextResults";
-import { measureCanvasNodeText } from "../../utils/measureCanvasNodeText";
+import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
+import createDiscourseNode from "~/utils/createDiscourseNode";
+import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
+import { measureCanvasNodeText } from "~/utils/measureCanvasNodeText";
 import { COLOR_ARRAY, DEFAULT_STYLE_PROPS, discourseContext } from "./Tldraw";
 import LabelDialog from "./LabelDialog";
-import { isPageUid } from "../../utils/isPageUid";
-import { loadImage } from "../../utils/loadImage";
+import { isPageUid } from "~/utils/isPageUid";
+import { loadImage } from "~/utils/loadImage";
 import { DiscourseRelationShape } from "./DiscourseRelationsUtil";
 
 // from @tldraw/editor/editor.css

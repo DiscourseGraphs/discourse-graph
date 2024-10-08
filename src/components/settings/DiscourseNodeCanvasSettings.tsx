@@ -8,7 +8,7 @@ import {
   Icon,
   ControlGroup,
 } from "@blueprintjs/core";
-import React, { useRef, useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import setInputSetting from "roamjs-components/util/setInputSetting";

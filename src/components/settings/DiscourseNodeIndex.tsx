@@ -2,9 +2,9 @@ import React, { useEffect } from "react";
 import { Spinner } from "@blueprintjs/core";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import type { OnloadArgs } from "roamjs-components/types/native";
-import type { DiscourseNode } from "../../utils/getDiscourseNodes";
+import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import QueryBuilder from "../QueryBuilder";
-import parseQuery, { DEFAULT_RETURN_NODE } from "../../utils/parseQuery";
+import parseQuery, { DEFAULT_RETURN_NODE } from "~/utils/parseQuery";
 import createBlock from "roamjs-components/writes/createBlock";
 
 const NodeIndex = ({

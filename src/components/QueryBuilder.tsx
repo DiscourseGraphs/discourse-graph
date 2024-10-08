@@ -21,7 +21,7 @@ import { OnloadArgs } from "roamjs-components/types/native";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
 } from "roamjs-components/components/ExtensionApiContext";
-import { Column, ExportTypes } from "../utils/types";
+import { Column } from "../utils/types";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 type QueryPageComponent = (props: {

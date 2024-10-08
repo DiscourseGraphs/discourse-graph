@@ -1,11 +1,9 @@
 // TODO POST MIGRATE - Merge into a single query
 import { Result } from "roamjs-components/types/query-builder";
 import findDiscourseNode from "./findDiscourseNode";
-import fireQuery, { FireQueryArgs } from "./fireQuery";
-import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
-import getDiscourseRelations, {
-  DiscourseRelation,
-} from "./getDiscourseRelations";
+import fireQuery from "./fireQuery";
+import getDiscourseNodes from "./getDiscourseNodes";
+import getDiscourseRelations from "./getDiscourseRelations";
 import { OnloadArgs } from "roamjs-components/types";
 
 const resultCache: Record<string, Awaited<ReturnType<typeof fireQuery>>> = {};

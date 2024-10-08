@@ -4,28 +4,25 @@ import {
   Callout,
   Classes,
   Dialog,
-  // Icon,
-  // InputGroup,
   Intent,
-  // Position,
   Spinner,
   SpinnerSize,
   Checkbox,
   Label,
 } from "@blueprintjs/core";
 import { IconName, IconNames } from "@blueprintjs/icons";
-import fireQuery from "../../utils/fireQuery";
+import fireQuery from "~/utils/fireQuery";
 import fuzzy from "fuzzy";
 import { RoamOverlayProps } from "roamjs-components/util/renderOverlay";
-import { Result } from "../../utils/types";
+import { Result } from "~/utils/types";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import { DiscourseContextType } from "./Tldraw";
 import { getPlainTitleFromSpecification } from "../../discourseGraphsMode";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import { getReferencedNodeInFormat } from "../../utils/formatUtils";
-import { DiscourseNode } from "../../utils/getDiscourseNodes";
+import { getReferencedNodeInFormat } from "~/utils/formatUtils";
+import { DiscourseNode } from "~/utils/getDiscourseNodes";
 
 const LabelDialogAutocomplete = ({
   setLabel,

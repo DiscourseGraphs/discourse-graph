@@ -9,15 +9,12 @@ import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromT
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import nanoid from "nanoid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { getNodeEnv } from "roamjs-components/util/env";
 import getDiscourseContextResults from "../utils/getDiscourseContextResults";
 import findDiscourseNode from "../utils/findDiscourseNode";
 import getDiscourseNodes from "../utils/getDiscourseNodes";
 import getDiscourseRelations from "../utils/getDiscourseRelations";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
-// import localStorageGet from "roamjs-components/util/localStorageGet";
-// import fireWorkerQuery from "../utils/fireWorkerQuery";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;

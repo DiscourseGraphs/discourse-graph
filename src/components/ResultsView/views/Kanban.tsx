@@ -7,14 +7,7 @@ import React, {
   useState,
 } from "react";
 import { Column, Result } from "~/utils/types";
-import {
-  Button,
-  HTMLTable,
-  Icon,
-  InputGroup,
-  Popover,
-  Tooltip,
-} from "@blueprintjs/core";
+import { Button, Icon, InputGroup, Popover } from "@blueprintjs/core";
 import Draggable, { DraggableData, DraggableEvent } from "react-draggable";
 import setInputSettings from "roamjs-components/util/setInputSettings";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";

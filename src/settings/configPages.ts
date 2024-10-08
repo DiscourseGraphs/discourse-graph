@@ -26,7 +26,8 @@ import { render as configPageRender } from "roamjs-components/components/ConfigP
 
 export const DISCOURSE_CONFIG_PAGE_TITLE = "roam/js/discourse-graph";
 export const NODE_CONFIG_PAGE_TITLE = "discourse-graph/nodes/";
-export const renderDiscourseNodeTypeConfigPage = ({
+
+export const renderNodeConfigPage = ({
   title,
   h1,
   onloadArgs,

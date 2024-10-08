@@ -7,7 +7,6 @@ import endOfDay from "date-fns/endOfDay";
 import type {
   DatalogAndClause,
   DatalogClause,
-  DatalogFnExpr,
   PullBlock,
 } from "roamjs-components/types";
 import { Condition } from "./types";

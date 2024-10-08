@@ -1,39 +1,21 @@
-import type {
-  InputTextNode,
-  OnloadArgs,
-  PullBlock,
-} from "roamjs-components/types/native";
+import type { InputTextNode } from "roamjs-components/types/native";
 import {
   addStyle,
   createHTMLObserver,
   createButtonObserver,
-  getUidsFromId,
   getPageTitleValueByHtmlElement,
-  getBlockUidFromTarget,
-  getCurrentPageUid,
 } from "roamjs-components/dom";
-import { createBlock, createPage, updateBlock } from "roamjs-components/writes";
+import { createBlock } from "roamjs-components/writes";
 
 import { runExtension, extractRef } from "roamjs-components/util";
 import registerSmartBlocksCommand from "roamjs-components/util/registerSmartBlocksCommand";
 
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
-import { render as renderToast } from "roamjs-components/components/Toast";
-
-import { render as queryRender } from "./components/QueryDrawer";
 import { renderTldrawCanvas } from "./components/Tldraw/Tldraw";
-import { openCanvasDrawer } from "./components/Tldraw/CanvasDrawer";
-import DefaultFilters from "./components/settings/DefaultFilters";
-import { render as exportRender } from "./components/Export";
 import { renderQueryPage, renderQueryBlock } from "./components/QueryBuilder";
-import QueryPagesPanel, {
-  getQueryPages,
-} from "./components/settings/QueryPagesPanel";
 
 import runQuery from "./utils/runQuery";
 import resolveQueryBuilderRef from "./utils/resolveQueryBuilderRef";
@@ -45,8 +27,10 @@ import initializeDiscourseGraphsMode from "./discourseGraphsMode";
 import styles from "./styles/styles.css";
 import { registerCommandPaletteCommands } from "./settings/commandPalette";
 import { createSettingsPanel } from "./settings/settingsPanel";
-import { renderDiscourseNodeTypeConfigPage } from "./settings/configPages";
-import { isCanvasPage } from "./utils/isCanvasPage";
+import { renderNodeConfigPage } from "./settings/configPages";
+import { isCanvasPage as checkIfCanvasPage } from "./utils/isCanvasPage";
+import { isQueryPage } from "./utils/isQueryPage";
+import { listActiveQueries } from "./utils/listActiveQueries";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -61,33 +45,27 @@ export default runExtension(async (onloadArgs) => {
   // Observers and Listeners
   const isDiscourseNodePage = (title: string) =>
     title.startsWith("discourse-graph/nodes/");
-
-  const isCanvasPageInArticle = ({
+  const isCanvasPage = ({
     title,
     h1,
   }: {
     title: string;
     h1: HTMLHeadingElement;
-  }) => isCanvasPage({ title, extensionAPI }) && !!h1.closest(".roam-article");
-  const isQueryPage = (title: string): boolean => {
-    return getQueryPages(extensionAPI)
-      .map(
-        (t) =>
-          new RegExp(`^${t.replace(/\*/g, ".*").replace(/([()])/g, "\\$1")}$`)
-      )
-      .some((r) => r.test(title));
-  };
-  const renderPageContent = (h1: HTMLHeadingElement) => {
-    const title = getPageTitleValueByHtmlElement(h1);
-    const props = { title, h1, onloadArgs };
-    if (isDiscourseNodePage(title)) renderDiscourseNodeTypeConfigPage(props);
-    else if (isQueryPage(title)) renderQueryPage(props);
-    else if (isCanvasPageInArticle(props)) renderTldrawCanvas(props);
-  };
+  }) =>
+    checkIfCanvasPage({ title, extensionAPI }) && !!h1.closest(".roam-article");
+
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
-    callback: (e) => renderPageContent(e as HTMLHeadingElement),
+    callback: (e) => {
+      const h1 = e as HTMLHeadingElement;
+      const title = getPageTitleValueByHtmlElement(h1);
+      const props = { title, h1, onloadArgs };
+
+      if (isDiscourseNodePage(title)) renderNodeConfigPage(props);
+      else if (isQueryPage(props)) renderQueryPage(props);
+      else if (isCanvasPage(props)) renderTldrawCanvas(props);
+    },
   });
 
   const queryBlockObserver = createButtonObserver({
@@ -209,21 +187,7 @@ export default runExtension(async (onloadArgs) => {
       const queryArgs = parseQuery(parentUid);
       return fireQuerySync(queryArgs);
     },
-    listActiveQueries: () =>
-      (
-        window.roamAlphaAPI.data.fast.q(
-          `[:find (pull ?b [:block/uid]) :where [or-join [?b] 
-                 [and [?b :block/string ?s] [[clojure.string/includes? ?s "{{query block}}"]] ]
-                 ${getQueryPages(extensionAPI).map(
-                   (p) =>
-                     `[and [?b :node/title ?t] [[re-pattern "^${p.replace(
-                       /\*/,
-                       ".*"
-                     )}$"] ?regex] [[re-find ?regex ?t]]]`
-                 )}
-            ]]`
-        ) as [PullBlock][]
-      ).map((b) => ({ uid: b[0][":block/uid"] || "" })),
+    listActiveQueries: () => listActiveQueries(extensionAPI),
     isDiscourseNode: isDiscourseNode,
   };
 

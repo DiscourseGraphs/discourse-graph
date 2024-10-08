@@ -46,10 +46,7 @@ import {
 } from "../utils/types";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import getSamePageAPI from "@samepage/external/getSamePageAPI";
-import {
-  ALL_SELECTION_SUGGESTIONS,
-  SelectionSuggestion,
-} from "../utils/predefinedSelections";
+import { ALL_SELECTION_SUGGESTIONS } from "../utils/predefinedSelections";
 
 const getSourceCandidates = (cs: Condition[]): string[] =>
   cs.flatMap((c) =>

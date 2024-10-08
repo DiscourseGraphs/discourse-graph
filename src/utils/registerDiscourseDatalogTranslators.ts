@@ -1,5 +1,4 @@
 import getPageTitlesStartingWithPrefix from "roamjs-components/queries/getPageTitlesStartingWithPrefix";
-import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import { DatalogAndClause, DatalogClause } from "roamjs-components/types";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -14,7 +13,7 @@ import getDiscourseRelations from "./getDiscourseRelations";
 import matchDiscourseNode from "./matchDiscourseNode";
 import replaceDatalogVariables from "./replaceDatalogVariables";
 import parseQuery from "./parseQuery";
-import fireQuery, { fireQuerySync, getWhereClauses } from "./fireQuery";
+import { fireQuerySync, getWhereClauses } from "./fireQuery";
 
 const collectVariables = (
   clauses: (DatalogClause | DatalogAndClause)[]
