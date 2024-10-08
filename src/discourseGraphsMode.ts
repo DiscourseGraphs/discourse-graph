@@ -47,7 +47,6 @@ import DiscourseNodeIndex from "./components/DiscourseNodeIndex";
 import DiscourseNodeSpecification from "./components/DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./components/DiscourseNodeAttributes";
 import getSubTree from "roamjs-components/util/getSubTree";
-import { render as cyRender } from "./components/CytoscapePlayground";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import createPage from "roamjs-components/writes/createPage";
 import INITIAL_NODE_VALUES from "./data/defaultDiscourseNodes";
@@ -109,32 +108,6 @@ const previewPageRefHandler = (s: HTMLSpanElement) => {
 };
 
 let enabled = false;
-
-export const renderPlayground = (
-  title: string,
-  globalRefs: Parameters<typeof cyRender>[0]["globalRefs"]
-) => {
-  if (!enabled) return;
-  const children = document.querySelector<HTMLDivElement>(
-    ".roam-article .rm-block-children"
-  );
-  if (
-    children &&
-    children.parentElement &&
-    !children.hasAttribute("data-roamjs-discourse-playground")
-  ) {
-    children.setAttribute("data-roamjs-discourse-playground", "true");
-    const parent = document.createElement("div");
-    children.parentElement.appendChild(parent);
-    parent.style.height = "500px";
-    cyRender({
-      parent,
-      title,
-      previewEnabled: isFlagEnabled("preview"),
-      globalRefs,
-    });
-  }
-};
 
 export const renderDiscourseNodeTypeConfigPage = ({
   title,
@@ -435,10 +408,6 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
   background: #888;
   }
   
-  .roamjs-discourse-playground-dialog .bp3-popover-wrapper,
-  .roamjs-discourse-playground-dialog .roamjs-autocomplete-input-target,
-  .roamjs-discourse-playground-dialog textarea,
-  .roamjs-discourse-playground-dialog input,
   .roamjs-canvas-dialog .bp3-popover-wrapper,
   .roamjs-canvas-dialog .roamjs-autocomplete-input-target,
   .roamjs-canvas-dialog textarea,
@@ -447,7 +416,6 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
   width: 100%;
   }
   
-  .roamjs-discourse-playground-dialog textarea,
   .roamjs-canvas-dialog textarea {
   min-height: 96px;
   }

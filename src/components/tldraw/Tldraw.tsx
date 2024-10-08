@@ -914,9 +914,9 @@ export const renderTldrawCanvas = (title: string, onloadArgs: OnloadArgs) => {
   if (
     children &&
     children.parentElement &&
-    !children.hasAttribute("data-roamjs-discourse-playground")
+    !children.hasAttribute("data-roamjs-discourse-canvas")
   ) {
-    children.setAttribute("data-roamjs-discourse-playground", "true");
+    children.setAttribute("data-roamjs-discourse-canvas", "true");
     const parent = document.createElement("div");
     children.parentElement.appendChild(parent);
     parent.style.height = "500px";

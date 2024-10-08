@@ -18,11 +18,9 @@ import type { InputTextNode, PullBlock } from "roamjs-components/types/native";
 import QueryPagesPanel, { getQueryPages } from "./components/QueryPagesPanel";
 import runQuery from "./utils/runQuery";
 import updateBlock from "roamjs-components/writes/updateBlock";
-import getChildrenLengthByPageUid from "roamjs-components/queries/getChildrenLengthByPageUid";
 import createBlock from "roamjs-components/writes/createBlock";
 import initializeDiscourseGraphsMode, {
   renderDiscourseNodeTypeConfigPage,
-  renderPlayground,
   SETTING,
 } from "./discourseGraphsMode";
 import { render as queryRender } from "./components/QueryDrawer";
@@ -30,7 +28,6 @@ import createPage from "roamjs-components/writes/createPage";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import { renderTldrawCanvas } from "./components/tldraw/Tldraw";
-import { QBGlobalRefs } from "./utils/types";
 import localStorageSet from "roamjs-components/util/localStorageSet";
 import localStorageGet from "roamjs-components/util/localStorageGet";
 import localStorageRemove from "roamjs-components/util/localStorageRemove";
@@ -220,11 +217,6 @@ svg.rs-svg-container {
           onloadArgs,
         });
       }
-    } else if (
-      title.startsWith("Playground") &&
-      !!h1.closest(".roam-article")
-    ) {
-      renderPlayground(title, globalRefs);
     } else if (isCanvasPage(title) && !!h1.closest(".roam-article")) {
       renderTldrawCanvas(title, onloadArgs);
     }
@@ -313,32 +305,6 @@ svg.rs-svg-container {
     extensionAPI.settings.set(SETTING, true);
     toggleDiscourseGraphsMode(true);
   }
-
-  const globalRefs: QBGlobalRefs = {
-    clearOnClick: ({ parentUid, text }) => {
-      const order = getChildrenLengthByPageUid(parentUid);
-      createBlock({ parentUid, node: { text }, order });
-    },
-  };
-
-  const clearOnClick = async (tag: string) => {
-    const uid = window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"] || "";
-    const text = `[[${tag}]]`;
-    if (uid) {
-      const currentText = getTextByBlockUid(uid);
-      updateBlock({
-        text: `${currentText} ${text}`,
-        uid,
-      });
-    } else {
-      const parentUid = await window.roamAlphaAPI.ui.mainWindow
-        .getOpenPageOrBlockUid()
-        .then(
-          (uid) => uid || window.roamAlphaAPI.util.dateToPageTitle(new Date())
-        );
-      globalRefs.clearOnClick({ parentUid, text });
-    }
-  };
 
   const h1Observer = createHTMLObserver({
     tag: "H1",
@@ -503,7 +469,6 @@ svg.rs-svg-container {
       ).then((blockUid) =>
         queryRender({
           blockUid,
-          clearOnClick,
           onloadArgs,
         })
       ),
