@@ -12,3 +12,8 @@ declare module "react-in-viewport/dist/es/lib/useInViewport" {
   import { useInViewport } from "react-in-viewport";
   export default useInViewport;
 }
+
+declare module "*.css" {
+  const content: string;
+  export default content;
+}

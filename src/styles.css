@@ -1,0 +1,136 @@
+.bp3-button:focus {
+  outline-width: 2px;
+}
+
+.roamjs-item-dirty,
+.roamjs-item-dirty.bp3-menu-item .bp3-icon,
+.roamjs-item-dirty.bp3-button .bp3-icon {
+  color: #a82a2a;
+}
+
+.roamjs-query-condition-type,
+.roamjs-query-condition-source,
+.roamjs-query-condition-relation,
+.roamjs-query-return-node {
+  min-width: 144px;
+  max-width: 144px;
+}
+
+.roamjs-query-condition-relation,
+.roamjs-query-return-node,
+.roamjs-query-condition-target {
+  padding-right: 8px;
+}
+
+.roamjs-query-condition-target {
+  flex-grow: 1;
+  min-width: 240px;
+}
+
+.roamjs-query-condition-relation .bp3-popover-target,
+.roamjs-query-condition-target .roamjs-autocomplete-input-target {
+  width: 100%;
+}
+
+.roamjs-query-hightlighted-result {
+  background: #ffff00;
+}
+
+.roamjs-query-embed .rm-block-separator {
+  display: none;
+}
+
+.roamjs-query-embed span.bp3-popover-target {
+  display: inline-block;
+}
+
+.roamjs-query-embed > .page-embed {
+  margin-left: 24px;
+}
+
+/* width */
+.roamjs-query-results-view ul::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* Handle */
+.roamjs-query-results-view ul::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+.roamjs-query-builder-parent .roamjs-edit-component {
+  display: none;
+}
+
+.roamjs-query-results-view thead td .bp3-button,
+.roamjs-query-results-view thead td .bp3-button svg,
+.roamjs-query-results-view thead td .bp3-icon svg {
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+}
+
+.roamjs-query-results-view table.bp3-html-table td {
+  padding: 8px;
+}
+
+.roamjs-view-select button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.roamjs-view-select {
+  flex: 1;
+}
+
+.roamjs-view-select > span {
+  width: 100%;
+}
+
+svg.rs-svg-container {
+  overflow: visible;
+}
+
+.roamjs-tldraw-node .rm-api-render--block .rm-block__controls,
+.rs-shape .rm-api-render--block .rm-block__ref-count {
+  display: none;
+}
+
+.roamjs-kanban-container .roamjs-kanban-column {
+  width: inherit;
+}
+
+.roamjs-kanban-container .roamjs-kanban-column .rm-block-separator {
+  display: none;
+}
+.roamjs-extra-row td {
+  position: relative;
+  background-color: #f5f8fa;
+  padding: 16px;
+  max-height: 240px;
+  overflow-y: scroll;
+}
+
+.roamjs-export-dialog-body .bp3-tab-list {
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(16, 22, 26, 0.15);
+}
+
+.roamjs-kanban-card .card-selections tr:first-child td {
+  box-shadow: none;
+}
+.roamjs-query-results-view
+  .roamjs-kanban-card
+  .card-selections
+  table.bp3-html-table
+  td {
+  padding: 0.5rem;
+}
+.roamjs-query-column-views .bp3-running-text table th,
+.roamjs-query-column-views table.bp3-html-table th,
+.roamjs-query-column-views .bp3-running-text table td,
+.roamjs-query-column-views table.bp3-html-table td {
+  vertical-align: initial;
+}

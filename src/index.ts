@@ -1,186 +1,69 @@
-import createButtonObserver from "roamjs-components/dom/createButtonObserver";
-import createHTMLObserver from "roamjs-components/dom/createHTMLObserver";
-import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import getUidsFromId from "roamjs-components/dom/getUidsFromId";
-import { renderQueryBuilder } from "./components/QueryBuilder";
-import runExtension from "roamjs-components/util/runExtension";
-import addStyle from "roamjs-components/dom/addStyle";
-import getPageTitleValueByHtmlElement from "roamjs-components/dom/getPageTitleValueByHtmlElement";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import {
-  render as renderQueryPage,
-  renderQueryBlock,
-} from "./components/QueryPage";
-import DefaultFilters from "./components/DefaultFilters";
-import registerSmartBlocksCommand from "roamjs-components/util/registerSmartBlocksCommand";
-import extractRef from "roamjs-components/util/extractRef";
 import type { InputTextNode, PullBlock } from "roamjs-components/types/native";
-import QueryPagesPanel, { getQueryPages } from "./components/QueryPagesPanel";
-import runQuery from "./utils/runQuery";
-import updateBlock from "roamjs-components/writes/updateBlock";
-import createBlock from "roamjs-components/writes/createBlock";
-import initializeDiscourseGraphsMode, {
-  renderDiscourseNodeTypeConfigPage,
-  SETTING,
-} from "./discourseGraphsMode";
-import { render as queryRender } from "./components/QueryDrawer";
-import createPage from "roamjs-components/writes/createPage";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import isLiveBlock from "roamjs-components/queries/isLiveBlock";
-import { renderTldrawCanvas } from "./components/tldraw/Tldraw";
+import {
+  addStyle,
+  createHTMLObserver,
+  createButtonObserver,
+  getUidsFromId,
+  getPageTitleValueByHtmlElement,
+  getBlockUidFromTarget,
+  getCurrentPageUid,
+} from "roamjs-components/dom";
+import { createBlock, createPage, updateBlock } from "roamjs-components/writes";
+
+import { runExtension, extractRef } from "roamjs-components/util";
+import registerSmartBlocksCommand from "roamjs-components/util/registerSmartBlocksCommand";
 import localStorageSet from "roamjs-components/util/localStorageSet";
 import localStorageGet from "roamjs-components/util/localStorageGet";
 import localStorageRemove from "roamjs-components/util/localStorageRemove";
 import { getNodeEnv } from "roamjs-components/util/env";
-import resolveQueryBuilderRef from "./utils/resolveQueryBuilderRef";
-import getBlockUidFromTarget from "roamjs-components/dom/getBlockUidFromTarget";
+
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import isLiveBlock from "roamjs-components/queries/isLiveBlock";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+
 import { render as renderToast } from "roamjs-components/components/Toast";
-import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
+
+import { render as queryRender } from "./components/QueryDrawer";
+import { renderTldrawCanvas } from "./components/tldraw/Tldraw";
 import { openCanvasDrawer } from "./components/tldraw/CanvasDrawer";
+import DefaultFilters from "./components/DefaultFilters";
+import { renderQueryBuilder } from "./components/QueryBuilder";
+import { render as exportRender } from "./components/Export";
+import {
+  render as renderQueryPage,
+  renderQueryBlock,
+} from "./components/QueryPage";
+import QueryPagesPanel, { getQueryPages } from "./components/QueryPagesPanel";
+
+import runQuery from "./utils/runQuery";
+import resolveQueryBuilderRef from "./utils/resolveQueryBuilderRef";
 import isDiscourseNode from "./utils/isDiscourseNode";
 import { fireQuerySync } from "./utils/fireQuery";
 import parseQuery from "./utils/parseQuery";
-import { render as exportRender } from "./components/Export";
-import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+
+import initializeDiscourseGraphsMode, {
+  renderDiscourseNodeTypeConfigPage,
+  SETTING,
+} from "./discourseGraphsMode";
+import styles from "./styles.css";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
   const { extensionAPI } = onloadArgs;
-  const style = addStyle(`.bp3-button:focus {
-    outline-width: 2px;
-}
+  const style = addStyle(styles);
 
-.roamjs-item-dirty, 
-.roamjs-item-dirty.bp3-menu-item .bp3-icon, 
-.roamjs-item-dirty.bp3-button .bp3-icon {
-  color: #a82a2a;
-}
+  const toggleDiscourseGraphsMode = await initializeDiscourseGraphsMode(
+    onloadArgs
+  );
+  if (getNodeEnv() === "development" && localStorageGet(SETTING)) {
+    extensionAPI.settings.set(SETTING, true);
+    toggleDiscourseGraphsMode(true);
+  }
 
-.roamjs-query-condition-type,
-.roamjs-query-condition-source, 
-.roamjs-query-condition-relation,
-.roamjs-query-return-node {
-  min-width: 144px;
-  max-width: 144px;
-}
-
-.roamjs-query-condition-relation,
-.roamjs-query-return-node,
-.roamjs-query-condition-target {
-  padding-right: 8px;
-}
-
-.roamjs-query-condition-target { 
-  flex-grow: 1;
-  min-width: 240px;
-}
-
-.roamjs-query-condition-relation .bp3-popover-target,
-.roamjs-query-condition-target .roamjs-autocomplete-input-target { 
-  width: 100%
-}
-
-.roamjs-query-hightlighted-result {
-  background: #FFFF00;
-}
-
-.roamjs-query-embed .rm-block-separator {
-  display: none;
-}
-
-.roamjs-query-embed span.bp3-popover-target {
-  display: inline-block;
-}
-
-.roamjs-query-embed > .page-embed {
-  margin-left: 24px;
-}
-
-/* width */
-.roamjs-query-results-view ul::-webkit-scrollbar {
-  width: 6px;
-}
-
-/* Handle */
-.roamjs-query-results-view ul::-webkit-scrollbar-thumb {
-  background: #888;
-}
-
-.roamjs-query-builder-parent .roamjs-edit-component {
-  display: none;
-}
-
-.roamjs-query-results-view thead td .bp3-button,
-.roamjs-query-results-view thead td .bp3-button svg,
-.roamjs-query-results-view thead td .bp3-icon svg  {
-  width: 12px;
-  height: 12px;
-  min-width: 12px;
-  min-height: 12px;
-}
-
-.roamjs-query-results-view table.bp3-html-table td {
-  padding: 8px;
-}
-
-.roamjs-view-select button {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-}
-
-.roamjs-view-select {
-  flex: 1;
-}
-
-.roamjs-view-select > span {
-  width: 100%;
-}
-
-svg.rs-svg-container {
-  overflow: visible;
-}
-
-.roamjs-tldraw-node .rm-api-render--block .rm-block__controls,
-.rs-shape .rm-api-render--block .rm-block__ref-count {
-  display: none;
-}
-
-
-.roamjs-kanban-container .roamjs-kanban-column {
-  width: inherit;
-}
-
-.roamjs-kanban-container .roamjs-kanban-column .rm-block-separator {
-  display:none;
-}
-.roamjs-extra-row td {
-  position: relative;
-  background-color: #F5F8FA;
-  padding: 16px;
-  max-height: 240px;
-  overflow-y: scroll;
-}
-
-.roamjs-export-dialog-body .bp3-tab-list {
-  padding: 10px 20px;
-  border-bottom: 1px solid rgba(16,22,26,0.15);
-}
-
-.roamjs-kanban-card .card-selections tr:first-child td {
-  box-shadow: none;
-}
-.roamjs-query-results-view .roamjs-kanban-card .card-selections table.bp3-html-table td {
-  padding: 0.50rem;
-}
-.roamjs-query-column-views .bp3-running-text table th,
-.roamjs-query-column-views table.bp3-html-table th, 
-.roamjs-query-column-views .bp3-running-text table td, 
-.roamjs-query-column-views table.bp3-html-table td {
-  vertical-align: initial;
-}
-`);
+  // Observers and Listeners
   const isCanvasPage = (title: string) => {
     const canvasPageFormat =
       (extensionAPI.settings.get("canvas-page-format") as string) ||
@@ -221,102 +104,15 @@ svg.rs-svg-container {
       renderTldrawCanvas(title, onloadArgs);
     }
   };
-  extensionAPI.settings.panel.create({
-    tabTitle: "Query Builder",
-    settings: [
-      {
-        id: "query-pages",
-        name: "Query Pages",
-        description:
-          "The title formats of pages that you would like to serve as pages that generate queries",
-        action: {
-          type: "reactComponent",
-          component: QueryPagesPanel(extensionAPI),
-        },
-      },
-      {
-        id: "hide-metadata",
-        name: "Hide Query Metadata",
-        description: "Hide the Roam blocks that are used to power each query",
-        action: {
-          type: "switch",
-        },
-      },
-      {
-        id: "default-filters",
-        name: "Default Filters",
-        description:
-          "Any filters that should be applied to your results by default",
-        action: {
-          type: "reactComponent",
-          component: DefaultFilters(extensionAPI),
-        },
-      },
-      {
-        id: "default-page-size",
-        name: "Default Page Size",
-        description: "The default page size used for query results",
-        action: {
-          type: "input",
-          placeholder: "10",
-        },
-      },
-      {
-        id: "canvas-page-format",
-        name: "Canvas Page Format",
-        description: "The page format for canvas pages",
-        action: {
-          type: "input",
-          placeholder: DEFAULT_CANVAS_PAGE_FORMAT,
-        },
-      },
-      {
-        id: SETTING,
-        name: "Discourse Graphs Enabled",
-        description:
-          "Includes the ability to construct higher level discourse graph nodes and relations for higher order reasoning.",
-        action: {
-          type: "switch",
-          onChange: (e) => {
-            const flag = e.target.checked;
-            toggleDiscourseGraphsMode(flag).then(() => {
-              if (flag) {
-                document
-                  .querySelectorAll<HTMLHeadingElement>(`h1.rm-title-display`)
-                  .forEach(h1ObserverCallback);
-              }
-              if (getNodeEnv() === "development") {
-                if (flag) {
-                  localStorageSet(SETTING, "true");
-                } else {
-                  localStorageRemove(SETTING);
-                }
-              }
-            });
-          },
-        },
-      },
-    ],
-  });
-  const toggleDiscourseGraphsMode = await initializeDiscourseGraphsMode(
-    onloadArgs
-  );
-  if (getNodeEnv() === "development" && localStorageGet(SETTING)) {
-    extensionAPI.settings.set(SETTING, true);
-    toggleDiscourseGraphsMode(true);
-  }
-
   const h1Observer = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
     callback: (e) => h1ObserverCallback(e as HTMLHeadingElement),
   });
-
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
   });
-
   const dataAttribute = "data-roamjs-edit-query";
   const editQueryBuilderObserver = createHTMLObserver({
     callback: (b) => {
@@ -345,7 +141,29 @@ svg.rs-svg-container {
     tag: "DIV",
     className: "rm-query-title",
   });
+  const pageActionListener = ((
+    e: CustomEvent<{
+      action: string;
+      uid: string;
+      val: string;
+      onRefresh: () => void;
+    }>
+  ) => {
+    if (!/page/i.test(e.detail.action)) return;
+    window.roamAlphaAPI.ui.mainWindow
+      .getOpenPageOrBlockUid()
+      .then((u) => u || window.roamAlphaAPI.util.dateToPageUid(new Date()))
+      .then((parentUid) => {
+        createBlock({
+          parentUid,
+          order: Number.MAX_VALUE,
+          node: { text: `[[${e.detail.val}]]` },
+        });
+      });
+  }) as EventListener;
+  document.addEventListener("roamjs:query-builder:action", pageActionListener);
 
+  // SmartBlocks Command
   registerSmartBlocksCommand({
     text: "QUERYBUILDER",
     delayArgs: true,
@@ -426,6 +244,7 @@ svg.rs-svg-container {
       },
   });
 
+  // Window
   // @ts-ignore
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>
@@ -454,6 +273,7 @@ svg.rs-svg-container {
     isDiscourseNode: isDiscourseNode,
   };
 
+  // Command Palette and Roam Settings
   extensionAPI.ui.commandPalette.addCommand({
     label: "Open Canvas Drawer",
     callback: openCanvasDrawer,
@@ -566,28 +386,83 @@ svg.rs-svg-container {
       );
     },
   });
-
-  const pageActionListener = ((
-    e: CustomEvent<{
-      action: string;
-      uid: string;
-      val: string;
-      onRefresh: () => void;
-    }>
-  ) => {
-    if (!/page/i.test(e.detail.action)) return;
-    window.roamAlphaAPI.ui.mainWindow
-      .getOpenPageOrBlockUid()
-      .then((u) => u || window.roamAlphaAPI.util.dateToPageUid(new Date()))
-      .then((parentUid) => {
-        createBlock({
-          parentUid,
-          order: Number.MAX_VALUE,
-          node: { text: `[[${e.detail.val}]]` },
-        });
-      });
-  }) as EventListener;
-  document.addEventListener("roamjs:query-builder:action", pageActionListener);
+  extensionAPI.settings.panel.create({
+    tabTitle: "Query Builder",
+    settings: [
+      {
+        id: "query-pages",
+        name: "Query Pages",
+        description:
+          "The title formats of pages that you would like to serve as pages that generate queries",
+        action: {
+          type: "reactComponent",
+          component: QueryPagesPanel(extensionAPI),
+        },
+      },
+      {
+        id: "hide-metadata",
+        name: "Hide Query Metadata",
+        description: "Hide the Roam blocks that are used to power each query",
+        action: {
+          type: "switch",
+        },
+      },
+      {
+        id: "default-filters",
+        name: "Default Filters",
+        description:
+          "Any filters that should be applied to your results by default",
+        action: {
+          type: "reactComponent",
+          component: DefaultFilters(extensionAPI),
+        },
+      },
+      {
+        id: "default-page-size",
+        name: "Default Page Size",
+        description: "The default page size used for query results",
+        action: {
+          type: "input",
+          placeholder: "10",
+        },
+      },
+      {
+        id: "canvas-page-format",
+        name: "Canvas Page Format",
+        description: "The page format for canvas pages",
+        action: {
+          type: "input",
+          placeholder: DEFAULT_CANVAS_PAGE_FORMAT,
+        },
+      },
+      {
+        id: SETTING,
+        name: "Discourse Graphs Enabled",
+        description:
+          "Includes the ability to construct higher level discourse graph nodes and relations for higher order reasoning.",
+        action: {
+          type: "switch",
+          onChange: (e) => {
+            const flag = e.target.checked;
+            toggleDiscourseGraphsMode(flag).then(() => {
+              if (flag) {
+                document
+                  .querySelectorAll<HTMLHeadingElement>(`h1.rm-title-display`)
+                  .forEach(h1ObserverCallback);
+              }
+              if (getNodeEnv() === "development") {
+                if (flag) {
+                  localStorageSet(SETTING, "true");
+                } else {
+                  localStorageRemove(SETTING);
+                }
+              }
+            });
+          },
+        },
+      },
+    ],
+  });
 
   return {
     elements: [style],
