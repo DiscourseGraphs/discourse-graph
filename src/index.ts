@@ -40,10 +40,11 @@ import isDiscourseNode from "./utils/isDiscourseNode";
 import { fireQuerySync } from "./utils/fireQuery";
 import parseQuery from "./utils/parseQuery";
 
-import initializeDiscourseGraphsMode, {
-  renderDiscourseNodeTypeConfigPage,
-} from "./discourseGraphsMode";
+import initializeDiscourseGraphsMode from "./discourseGraphsMode";
 import styles from "./styles/styles.css";
+import { registerCommandPaletteCommands } from "./settings/commandPalette";
+import { createSettingsPanel } from "./settings/settingsPanel";
+import { renderDiscourseNodeTypeConfigPage } from "./settings/configPages";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -238,169 +239,8 @@ export default runExtension(async (onloadArgs) => {
   };
 
   // Command Palette and Roam Settings
-  extensionAPI.ui.commandPalette.addCommand({
-    label: "Open Canvas Drawer",
-    callback: openCanvasDrawer,
-  });
-  extensionAPI.ui.commandPalette.addCommand({
-    label: "Open Query Drawer",
-    callback: () =>
-      Promise.resolve(
-        getPageUidByPageTitle("roam/js/query-builder/drawer") ||
-          createPage({
-            title: "roam/js/query-builder/drawer",
-          })
-      ).then((blockUid) =>
-        queryRender({
-          blockUid,
-          onloadArgs,
-        })
-      ),
-  });
-  extensionAPI.ui.commandPalette.addCommand({
-    label: "Create Query Block",
-    callback: async () => {
-      const uid = window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
-      if (!uid) {
-        renderToast({
-          id: "query-builder-create-block",
-          content: "Must be focused on a block to create a Query Block",
-        });
-        return;
-      }
-
-      // setTimeout is needed because sometimes block is left blank
-      setTimeout(async () => {
-        await updateBlock({
-          uid,
-          text: "{{query block}}",
-          open: false,
-        });
-      }, 200);
-
-      await createBlock({
-        node: {
-          text: "scratch",
-          children: [
-            {
-              text: "custom",
-            },
-            {
-              text: "selections",
-            },
-            {
-              text: "conditions",
-              children: [
-                {
-                  text: "clause",
-                  children: [
-                    {
-                      text: "source",
-                      children: [{ text: "node" }],
-                    },
-                    {
-                      text: "relation",
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-        parentUid: uid,
-      });
-      document.querySelector("body")?.click();
-      // TODO replace with document.body.dispatchEvent(new CustomEvent)
-      setTimeout(() => {
-        const el = document.querySelector(`.roam-block[id*="${uid}"]`);
-        const conditionEl = el?.querySelector(
-          ".roamjs-query-condition-relation"
-        );
-        const conditionInput = conditionEl?.querySelector(
-          "input"
-        ) as HTMLInputElement;
-        conditionInput?.focus();
-      }, 200);
-    },
-  });
-  extensionAPI.ui.commandPalette.addCommand({
-    label: "Export Current Page",
-    callback: () => {
-      const pageUid = getCurrentPageUid();
-      const pageTitle = getPageTitleByPageUid(pageUid);
-      exportRender({
-        results: [
-          {
-            uid: pageUid,
-            text: pageTitle,
-          },
-        ],
-        title: "Export Current Page",
-        initialPanel: "export",
-      });
-    },
-  });
-  extensionAPI.ui.commandPalette.addCommand({
-    label: "Preview Current Query Builder Results",
-    callback: () => {
-      const target = document.activeElement as HTMLElement;
-      const uid = getBlockUidFromTarget(target);
-      document.body.dispatchEvent(
-        new CustomEvent("roamjs-query-builder:fire-query", { detail: uid })
-      );
-    },
-  });
-  extensionAPI.settings.panel.create({
-    tabTitle: "Query Builder",
-    settings: [
-      {
-        id: "query-pages",
-        name: "Query Pages",
-        description:
-          "The title formats of pages that you would like to serve as pages that generate queries",
-        action: {
-          type: "reactComponent",
-          component: QueryPagesPanel(extensionAPI),
-        },
-      },
-      {
-        id: "hide-metadata",
-        name: "Hide Query Metadata",
-        description: "Hide the Roam blocks that are used to power each query",
-        action: {
-          type: "switch",
-        },
-      },
-      {
-        id: "default-filters",
-        name: "Default Filters",
-        description:
-          "Any filters that should be applied to your results by default",
-        action: {
-          type: "reactComponent",
-          component: DefaultFilters(extensionAPI),
-        },
-      },
-      {
-        id: "default-page-size",
-        name: "Default Page Size",
-        description: "The default page size used for query results",
-        action: {
-          type: "input",
-          placeholder: "10",
-        },
-      },
-      {
-        id: "canvas-page-format",
-        name: "Canvas Page Format",
-        description: "The page format for canvas pages",
-        action: {
-          type: "input",
-          placeholder: DEFAULT_CANVAS_PAGE_FORMAT,
-        },
-      },
-    ],
-  });
+  registerCommandPaletteCommands(onloadArgs);
+  createSettingsPanel(extensionAPI);
 
   return {
     elements: [style],

@@ -1,14 +1,9 @@
-import {
-  createConfigObserver,
-  render as configPageRender,
-} from "roamjs-components/components/ConfigPage";
+import { createConfigObserver } from "roamjs-components/components/ConfigPage";
 import {
   CustomField,
   Field,
-  FieldPanel,
   FlagField,
   SelectField,
-  TextField,
 } from "roamjs-components/components/ConfigPanels/types";
 import DiscourseNodeConfigPanel from "./components/settings/DiscourseNodeConfigPanel";
 import DiscourseRelationConfigPanel from "./components/settings/DiscourseRelationConfigPanel";
@@ -18,7 +13,6 @@ import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
 import MultiTextPanel from "roamjs-components/components/ConfigPanels/MultiTextPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
-import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import DEFAULT_RELATION_VALUES from "./data/defaultDiscourseRelations";
 import { OnloadArgs } from "roamjs-components/types";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
@@ -37,25 +31,17 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import isDiscourseNode from "./utils/isDiscourseNode";
 import isFlagEnabled from "./utils/isFlagEnabled";
 import addStyle from "roamjs-components/dom/addStyle";
-import { render as exportRender } from "./components/Export";
 import { registerSelection } from "./utils/predefinedSelections";
 import deriveNodeAttribute from "./utils/deriveDiscourseNodeAttribute";
 import matchDiscourseNode from "./utils/matchDiscourseNode";
 import getPageTitleValueByHtmlElement from "roamjs-components/dom/getPageTitleValueByHtmlElement";
 import React from "react";
-import DiscourseNodeIndex from "./components/settings/DiscourseNodeIndex";
-import DiscourseNodeSpecification from "./components/settings/DiscourseNodeSpecification";
-import DiscourseNodeAttributes from "./components/settings/DiscourseNodeAttributes";
-import getSubTree from "roamjs-components/util/getSubTree";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import createPage from "roamjs-components/writes/createPage";
 import INITIAL_NODE_VALUES from "./data/defaultDiscourseNodes";
-import DiscourseNodeCanvasSettings from "./components/settings/DiscourseNodeCanvasSettings";
 import CanvasReferences from "./components/Tldraw/CanvasReferences";
-import fireQuery from "./utils/fireQuery";
 import { render as renderGraphOverviewExport } from "./components/ExportDiscourseContext";
 import { Condition, QBClause } from "./utils/types";
-import { DiscourseExportResult } from "./utils/getExportTypes";
 import styles from "./styles/discourseGraphStyles.css";
 
 export const SETTING = "discourse-graphs";
@@ -105,128 +91,6 @@ const previewPageRefHandler = (s: HTMLSpanElement) => {
       },
     });
     s.appendChild(parent);
-  }
-};
-
-let enabled = false;
-
-export const renderDiscourseNodeTypeConfigPage = ({
-  title,
-  h,
-  onloadArgs,
-}: {
-  title: string;
-  h: HTMLHeadingElement;
-  onloadArgs: OnloadArgs;
-}) => {
-  if (!enabled) return;
-  const nodeText = title.substring("discourse-graph/nodes/".length);
-  const allNodes = getDiscourseNodes();
-  const node = allNodes.find(({ text }) => text === nodeText);
-  if (node) {
-    const renderNode = () =>
-      configPageRender({
-        h,
-        title,
-        config: [
-          // @ts-ignore
-          {
-            title: "Index",
-            description: "Index of all of the pages in your graph of this type",
-            Panel: CustomPanel,
-            options: {
-              component: ({ uid }) =>
-                React.createElement(DiscourseNodeIndex, {
-                  node,
-                  parentUid: uid,
-                  onloadArgs,
-                }),
-            },
-          } as Field<CustomField>,
-          // @ts-ignore
-          {
-            title: "Format",
-            description: `DEPRACATED - Use specification instead. The format ${nodeText} pages should have.`,
-            defaultValue: "\\",
-            Panel: TextPanel,
-            options: {
-              placeholder: `Include "{content}" in format`,
-            },
-          } as Field<TextField>,
-          // @ts-ignore
-          {
-            title: "Specification",
-            description: `The conditions specified to identify a ${nodeText} node.`,
-            Panel: CustomPanel,
-            options: {
-              component: ({ uid }) =>
-                React.createElement(DiscourseNodeSpecification, {
-                  node,
-                  parentUid: uid,
-                }),
-            },
-          } as Field<CustomField>,
-          {
-            title: "Shortcut",
-            description: `The trigger to quickly create a ${nodeText} page from the node menu.`,
-            defaultValue: "\\",
-            // @ts-ignore
-            Panel: TextPanel,
-          },
-          {
-            title: "Description",
-            description: `Describing what the ${nodeText} node represents in your graph.`,
-            // @ts-ignore
-            Panel: TextPanel,
-          },
-          {
-            title: "Template",
-            description: `The template that auto fills ${nodeText} page when generated.`,
-            // @ts-ignore
-            Panel: BlocksPanel,
-          },
-          // @ts-ignore
-          {
-            title: "Attributes",
-            description: `A set of derived properties about the node based on queryable data.`,
-            Panel: CustomPanel,
-            options: {
-              component: DiscourseNodeAttributes,
-            },
-          } as Field<CustomField>,
-          // @ts-ignore
-          {
-            title: "Overlay",
-            description: `Select which attribute is used for the Discourse Overlay`,
-            Panel: SelectPanel,
-            options: {
-              items: () =>
-                getSubTree({
-                  parentUid: getPageUidByPageTitle(title),
-                  key: "Attributes",
-                }).children.map((c) => c.text),
-            },
-          } as Field<SelectField>,
-          // @ts-ignore
-          {
-            title: "Canvas",
-            description: `Various options for this node in the Discourse Canvas`,
-            Panel: CustomPanel,
-            options: {
-              component: DiscourseNodeCanvasSettings,
-            },
-          } as Field<CustomField>,
-          // @ts-ignore
-          {
-            title: "Graph Overview",
-            Panel: FlagPanel,
-            description: `Whether to color the node in the graph overview based on canvas color`,
-            defaultValue: true,
-          } as FieldPanel<FlagField>,
-        ],
-      });
-
-    renderNode();
   }
 };
 
@@ -702,47 +566,6 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
       label: "discourse-node-styling",
     });
     unloads.delete(removeGraphViewCallback);
-  });
-
-  window.roamAlphaAPI.ui.commandPalette.addCommand({
-    label: "Export Discourse Graph",
-    callback: () => {
-      const discourseNodes = getDiscourseNodes().filter(
-        (r) => r.backedBy !== "default"
-      );
-      const results: (
-        isSamePageEnabled: boolean
-      ) => Promise<DiscourseExportResult[]> = (isSamePageEnabled: boolean) =>
-        Promise.all(
-          discourseNodes.map((d) =>
-            fireQuery({
-              returnNode: "node",
-              conditions: [
-                {
-                  relation: "is a",
-                  source: "node",
-                  target: d.type,
-                  uid: window.roamAlphaAPI.util.generateUID(),
-                  type: "clause",
-                },
-              ],
-              selections: [],
-              isSamePageEnabled,
-            }).then((queryResults) =>
-              queryResults.map((result) => ({
-                ...result,
-                type: d.type,
-              }))
-            )
-          )
-        ).then((r) => r.flat());
-      exportRender({
-        results,
-        title: "Export Discourse Graph",
-        isExportDiscourseGraph: true,
-        initialPanel: "export",
-      });
-    },
   });
 
   if (isFlagEnabled("render references")) {
