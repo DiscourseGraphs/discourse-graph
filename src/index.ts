@@ -25,7 +25,6 @@ import { render as queryRender } from "./components/QueryDrawer";
 import { renderTldrawCanvas } from "./components/tldraw/Tldraw";
 import { openCanvasDrawer } from "./components/tldraw/CanvasDrawer";
 import DefaultFilters from "./components/DefaultFilters";
-import { renderQueryBuilder } from "./components/QueryBuilder";
 import { render as exportRender } from "./components/Export";
 import {
   render as renderQueryPage,
@@ -103,34 +102,6 @@ export default runExtension(async (onloadArgs) => {
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
-  });
-  const dataAttribute = "data-roamjs-edit-query";
-  const editQueryBuilderObserver = createHTMLObserver({
-    callback: (b) => {
-      if (!b.getAttribute(dataAttribute)) {
-        b.setAttribute(dataAttribute, "true");
-        const editButtonRoot = document.createElement("div");
-        b.appendChild(editButtonRoot);
-        const blockId = b.closest(".roam-block")?.id;
-        const initialValue = getTextByBlockUid(getUidsFromId(blockId).blockUid);
-        if (blockId) {
-          renderQueryBuilder({
-            blockId,
-            parent: editButtonRoot,
-            initialValue,
-          });
-          const editButton = document.getElementById(
-            `roamjs-query-builder-button-${blockId}`
-          );
-          if (editButton)
-            editButton.addEventListener("mousedown", (e) =>
-              e.stopPropagation()
-            );
-        }
-      }
-    },
-    tag: "DIV",
-    className: "rm-query-title",
   });
   const pageActionListener = ((
     e: CustomEvent<{
@@ -431,7 +402,7 @@ export default runExtension(async (onloadArgs) => {
 
   return {
     elements: [style],
-    observers: [h1Observer, editQueryBuilderObserver, queryBlockObserver],
+    observers: [h1Observer, queryBlockObserver],
     unload: () => {
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       cleanupDiscourseGraphs();
