@@ -1,0 +1,20 @@
+.bp3-tab-copy {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-wrap: normal;
+  color: #182026;
+  cursor: pointer;
+  -webkit-box-flex: 0;
+  -ms-flex: 0 0 auto;
+  flex: 0 0 auto;
+  font-size: 14px;
+  line-height: 30px;
+  max-width: 100%;
+  position: relative;
+  vertical-align: top;
+
+  border-radius: 3px;
+  padding: 0 10px;
+  width: 100%;
+}

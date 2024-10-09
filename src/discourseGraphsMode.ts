@@ -46,6 +46,7 @@ import { render as renderGraphOverviewExport } from "./components/ExportDiscours
 import { Condition, QBClause } from "./utils/types";
 import styles from "./styles/discourseGraphStyles.css";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "./settings/configPages";
+import { formatHexColor } from "./components/settings/DiscourseNodeCanvasSettings";
 
 export const SETTING = "discourse-graphs";
 
@@ -333,8 +334,18 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
             title: `discourse-graph/nodes/${n.text}`,
             uid: n.type,
             tree: [
-              { text: "Format", children: [{ text: n.format }] },
-              { text: "Shortcut", children: [{ text: n.shortcut }] },
+              { text: "Format", children: [{ text: n.format || "" }] },
+              { text: "Shortcut", children: [{ text: n.shortcut || "" }] },
+              { text: "Graph Overview" },
+              {
+                text: "Canvas",
+                children: [
+                  {
+                    text: "color",
+                    children: [{ text: n.canvasSettings?.color || "" }],
+                  },
+                ],
+              },
             ],
           })
       )
@@ -531,10 +542,7 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
           specification: n.specification,
           text: n.text,
         });
-        const formattedBackgroundColor =
-          n.canvasSettings.color && !n.canvasSettings.color.startsWith("#")
-            ? `#${n.canvasSettings.color}`
-            : n.canvasSettings.color;
+        const formattedBackgroundColor = formatHexColor(n.canvasSettings.color);
 
         return {
           prefix: formattedTitle,

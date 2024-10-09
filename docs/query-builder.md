@@ -1,4 +1,4 @@
-# RoamJS Query Builder
+# Query Builder
 
 Query Builder can be used to create queries via a [Query Block](#query-blocks), [Query Pages](#query-pages), or the [Query Drawer](#query-drawer).
 

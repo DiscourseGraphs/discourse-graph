@@ -4,6 +4,8 @@ import discourseConfigRef from "./discourseConfigRef";
 import getDiscourseRelations from "./getDiscourseRelations";
 import parseQuery from "./parseQuery";
 import { Condition } from "./types";
+import { InputTextNode } from "roamjs-components/types";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 
 export const excludeDefaultNodes = (node: DiscourseNode) => {
   return node.backedBy !== "default";
@@ -22,6 +24,8 @@ export type DiscourseNode = {
   // @deprecated - use specification instead
   format: string;
   graphOverview?: boolean;
+  description?: string;
+  template?: InputTextNode[];
 };
 
 const DEFAULT_NODES: DiscourseNode[] = [
@@ -85,6 +89,11 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
         ),
         graphOverview:
           children.filter((c) => c.text === "Graph Overview").length > 0,
+        description: getSettingValueFromTree({
+          tree: children,
+          key: "description",
+        }),
+        template: getSubTree({ tree: children, key: "template" }).children,
       };
     })
     .concat(

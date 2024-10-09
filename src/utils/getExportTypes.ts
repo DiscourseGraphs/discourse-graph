@@ -1,16 +1,11 @@
 import { BLOCK_REF_REGEX } from "roamjs-components/dom/constants";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { PullBlock, TreeNode, ViewType } from "roamjs-components/types";
 import { Result } from "roamjs-components/types/query-builder";
-import getSettingIntFromTree from "roamjs-components/util/getSettingIntFromTree";
-import getSubTree from "roamjs-components/util/getSubTree";
 import XRegExp from "xregexp";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import getDiscourseNodes from "./getDiscourseNodes";
 import isFlagEnabled from "./isFlagEnabled";
 import matchDiscourseNode from "./matchDiscourseNode";
@@ -24,7 +19,7 @@ import {
   findReferencedNodeInText,
   getReferencedNodeInFormat,
 } from "./formatUtils";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/settings/configPages";
+import { getExportSettings } from "./getExportSettings";
 
 export const updateExportProgress = (detail: {
   progress: number;
@@ -432,59 +427,6 @@ const getExportTypes = ({
       );
       return { grammar, nodes, relations };
     });
-  };
-  const getExportSettings = () => {
-    const configTree = getBasicTreeByParentUid(
-      getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE)
-    );
-    const exportTree = getSubTree({
-      tree: configTree,
-      key: "export",
-    });
-    const maxFilenameLength = getSettingIntFromTree({
-      tree: exportTree.children,
-      key: "max filename length",
-      defaultValue: 64,
-    });
-    const linkType = getSettingValueFromTree({
-      tree: exportTree.children,
-      key: "link type",
-      defaultValue: "alias",
-    });
-    const removeSpecialCharacters = !!getSubTree({
-      tree: exportTree.children,
-      key: "remove special characters",
-    }).uid;
-    const simplifiedFilename = !!getSubTree({
-      tree: exportTree.children,
-      key: "simplified filename",
-    }).uid;
-    const frontmatter = getSubTree({
-      tree: exportTree.children,
-      key: "frontmatter",
-    }).children.map((t) => t.text);
-    const optsRefs = !!getSubTree({
-      tree: exportTree.children,
-      key: "resolve block references",
-    }).uid;
-    const optsEmbeds = !!getSubTree({
-      tree: exportTree.children,
-      key: "resolve block embeds",
-    }).uid;
-    const appendRefNodeContext = !!getSubTree({
-      tree: exportTree.children,
-      key: "append referenced node",
-    }).uid;
-    return {
-      frontmatter,
-      optsRefs,
-      optsEmbeds,
-      simplifiedFilename,
-      maxFilenameLength,
-      removeSpecialCharacters,
-      linkType,
-      appendRefNodeContext,
-    };
   };
 
   return [

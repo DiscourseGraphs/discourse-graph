@@ -5,7 +5,17 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import createPage from "roamjs-components/writes/createPage";
 import type { CustomField } from "roamjs-components/components/ConfigPanels/types";
 
-const DiscourseNodeConfigPanel: CustomField["options"]["component"] = ({}) => {
+type DiscourseNodeConfigPanelProps = React.ComponentProps<
+  CustomField["options"]["component"]
+> & {
+  isPopup?: boolean;
+  setSelectedTabId: (id: string) => void;
+};
+
+const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
+  isPopup,
+  setSelectedTabId,
+}) => {
   const [nodes, setNodes] = useState(() =>
     getDiscourseNodes().filter((n) => n.backedBy === "user")
   );
@@ -78,11 +88,15 @@ const DiscourseNodeConfigPanel: CustomField["options"]["component"] = ({}) => {
               <div className="flex justify-between items-center">
                 <H6
                   className={"flex-grow m-0 cursor-pointer"}
-                  onClick={() =>
-                    window.roamAlphaAPI.ui.mainWindow.openPage({
-                      page: { uid: n.type },
-                    })
-                  }
+                  onClick={() => {
+                    if (isPopup) {
+                      setSelectedTabId(n.type);
+                    } else {
+                      window.roamAlphaAPI.ui.mainWindow.openPage({
+                        page: { uid: n.type },
+                      });
+                    }
+                  }}
                 >
                   {n.text}
                 </H6>
