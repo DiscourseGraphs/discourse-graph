@@ -25,6 +25,7 @@ import LabelDialog from "./LabelDialog";
 import { isPageUid } from "~/utils/isPageUid";
 import { loadImage } from "~/utils/loadImage";
 import { DiscourseRelationShape } from "./DiscourseRelationsUtil";
+import { formatHexColor } from "../settings/DiscourseNodeCanvasSettings";
 
 // from @tldraw/editor/editor.css
 const COLOR_PALETTE: Record<string, string> = {
@@ -244,10 +245,7 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
           ? discourseNodeIndex
           : 0
       ];
-    const formattedBackgroundColor =
-      backgroundColor && !backgroundColor.startsWith("#")
-        ? `#${backgroundColor}`
-        : backgroundColor;
+    const formattedBackgroundColor = formatHexColor(backgroundColor);
 
     const backgroundInfo = formattedBackgroundColor
       ? {

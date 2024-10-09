@@ -16,7 +16,11 @@ export const getQueryPages = (extensionAPI: OnloadArgs["extensionAPI"]) => {
     : ["queries/*"];
 };
 
-const QueryPagesPanel = (extensionAPI: OnloadArgs["extensionAPI"]) => () => {
+const QueryPagesPanel = ({
+  extensionAPI,
+}: {
+  extensionAPI: OnloadArgs["extensionAPI"];
+}) => {
   const [texts, setTexts] = useState(() => getQueryPages(extensionAPI));
   const [value, setValue] = useState("");
   return (

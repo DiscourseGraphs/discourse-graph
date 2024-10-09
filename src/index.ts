@@ -25,8 +25,11 @@ import parseQuery from "./utils/parseQuery";
 
 import initializeDiscourseGraphsMode from "./discourseGraphsMode";
 import styles from "./styles/styles.css";
+import settingsStyles from "./styles/settingsStyles.css";
+
 import { registerCommandPaletteCommands } from "./settings/commandPalette";
 import { createSettingsPanel } from "./settings/settingsPanel";
+
 import { renderNodeConfigPage } from "./settings/configPages";
 import { isCanvasPage as checkIfCanvasPage } from "./utils/isCanvasPage";
 import { isQueryPage } from "./utils/isQueryPage";
@@ -37,6 +40,7 @@ export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 export default runExtension(async (onloadArgs) => {
   const { extensionAPI } = onloadArgs;
   const style = addStyle(styles);
+  const settingsStyle = addStyle(settingsStyles);
 
   const cleanupDiscourseGraphs = await initializeDiscourseGraphsMode(
     onloadArgs
@@ -196,7 +200,7 @@ export default runExtension(async (onloadArgs) => {
   createSettingsPanel(extensionAPI);
 
   return {
-    elements: [style],
+    elements: [style, settingsStyle],
     observers: [pageTitleObserver, queryBlockObserver],
     unload: () => {
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");

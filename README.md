@@ -1,6 +1,6 @@
-# Query Builder
+# Discourse Graphs
 
-Introduces new user interfaces for building queries in Roam.
+The Discourse Graph extension enables Roam users to seamlessly add additional semantic structure to their notes, including specified page types and link types that model scientific discourse, to enable more complex and structured knowledge synthesis work, such as a complex interdisciplinary literature review, and enhanced collaboration with others on this work.
 
 ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Froamjs%2FYERyR8FnXO.png?alt=media&token=7522a921-3e17-424f-b141-08e4109f9b75)
 

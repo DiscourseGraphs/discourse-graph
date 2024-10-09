@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import { openCanvasDrawer } from "../components/Tldraw/CanvasDrawer";
 import { openQueryDrawer } from "../components/QueryDrawer";
 import { render as exportRender } from "../components/Export";
@@ -13,12 +12,9 @@ import { OnloadArgs } from "roamjs-components/types";
 import getDiscourseNodes from "../utils/getDiscourseNodes";
 import { DiscourseExportResult } from "../utils/getExportTypes";
 import fireQuery from "../utils/fireQuery";
-import { renderSelectDialog } from "~/components/SelectDialog";
-import {
-  DISCOURSE_CONFIG_PAGE_TITLE,
-  NODE_CONFIG_PAGE_TITLE,
-} from "./configPages";
+
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
+import { render as renderSettings } from "~/components/settings/Settings";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
@@ -146,48 +142,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     );
   };
 
-  const openDiscourseConfig = () => {
-    window.roamAlphaAPI.ui.mainWindow.openPage({
-      page: {
-        title: DISCOURSE_CONFIG_PAGE_TITLE,
-      },
-    });
-  };
-
-  const openDiscourseNodeConfig = () => {
-    renderSelectDialog({
-      title: "Select Node",
-      isOpen: true,
-      onClose: () => {},
-      items: getDiscourseNodes()
-        .filter(excludeDefaultNodes)
-        .map((d) => {
-          const color =
-            d.canvasSettings.color && !d.canvasSettings.color.startsWith("#")
-              ? `#${d.canvasSettings.color}`
-              : d.canvasSettings.color;
-          const icon = createElement("div", {
-            className: "w-4 h-4 rounded-full mr-2 select-none",
-            style: {
-              backgroundColor: color || "#000",
-            },
-          });
-          return {
-            id: d.type,
-            text: d.text,
-            icon,
-            onClick: () => {
-              console.log("onclick", `${NODE_CONFIG_PAGE_TITLE}${d.type}`);
-              window.roamAlphaAPI.ui.mainWindow.openPage({
-                page: {
-                  title: `${NODE_CONFIG_PAGE_TITLE}${d.text}`,
-                },
-              });
-            },
-          };
-        }),
-    });
-  };
+  const renderSettingsPopup = () => renderSettings({ extensionAPI });
 
   const addCommand = (label: string, callback: () => void) => {
     return extensionAPI.ui.commandPalette.addCommand({
@@ -201,6 +156,5 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   addCommand("Export Current Page", exportCurrentPage);
   addCommand("Export Discourse Graph", exportDiscourseGraph);
   addCommand("Refresh Current Query Builder", refreshCurrentQueryBuilder);
-  addCommand("Open Discourse Config", openDiscourseConfig);
-  addCommand("Open Discourse Node Config", openDiscourseNodeConfig);
+  addCommand("Open Discourse Settings / Config", renderSettingsPopup);
 };

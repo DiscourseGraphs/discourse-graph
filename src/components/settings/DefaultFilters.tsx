@@ -3,6 +3,9 @@ import React, { useEffect, useState } from "react";
 import type { OnloadArgs } from "roamjs-components/types";
 import type { Filters } from "roamjs-components/components/Filter";
 
+//
+// TODO - REWORK THIS COMPONENT
+//
 export type StoredFilters = {
   includes: { values: string[] };
   excludes: { values: string[] };
@@ -92,7 +95,11 @@ const Filter = ({
   );
 };
 
-const DefaultFilters = (extensionAPI: OnloadArgs["extensionAPI"]) => () => {
+const DefaultFilters = ({
+  extensionAPI,
+}: {
+  extensionAPI: OnloadArgs["extensionAPI"];
+}) => {
   const [newColumn, setNewColumn] = useState("");
   const [filters, setFilters] = useState(() =>
     Object.fromEntries(
@@ -123,10 +130,16 @@ const DefaultFilters = (extensionAPI: OnloadArgs["extensionAPI"]) => () => {
           k,
           {
             includes: Object.fromEntries(
-              Object.entries(v.includes || {}).map(([k, v]) => [k, Array.from(v)])
+              Object.entries(v.includes || {}).map(([k, v]) => [
+                k,
+                Array.from(v),
+              ])
             ),
             excludes: Object.fromEntries(
-              Object.entries(v.excludes || {}).map(([k, v]) => [k, Array.from(v)])
+              Object.entries(v.excludes || {}).map(([k, v]) => [
+                k,
+                Array.from(v),
+              ])
             ),
           },
         ])
@@ -185,7 +198,7 @@ const DefaultFilters = (extensionAPI: OnloadArgs["extensionAPI"]) => () => {
               },
             };
             setFilters(newFilters);
-            extensionAPI.settings.set("default-filters", newFilters);
+            // extensionAPI.settings.set("default-filters", newFilters);
             setNewColumn("");
           }}
         />

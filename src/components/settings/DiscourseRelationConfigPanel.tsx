@@ -11,6 +11,9 @@ import {
   Tab,
   Tabs,
   Tooltip,
+  HTMLTable,
+  ControlGroup,
+  FocusStyleManager,
 } from "@blueprintjs/core";
 import type cytoscape from "cytoscape";
 import React, {
@@ -44,6 +47,7 @@ import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import { CustomField } from "roamjs-components/components/ConfigPanels/types";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { getConditionLabels } from "~/utils/conditionToDatalog";
+import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",
@@ -74,7 +78,7 @@ const edgeDisplayByUid = (uid: string) =>
     : getPageTitleByPageUid(uid).replace(/^discourse-graph\/nodes\//, "") ||
       getTextByBlockUid(uid);
 
-const RelationEditPanel = ({
+export const RelationEditPanel = ({
   editingRelationInfo,
   nodes,
   back,
@@ -83,7 +87,7 @@ const RelationEditPanel = ({
 }: {
   editingRelationInfo: TreeNode;
   back: () => void;
-  nodes: Record<string, { label: string; format: string }>;
+  nodes: Record<string, { label: string; format: string; color: string }>;
   translatorKeys: string[];
   previewUid: string;
 }) => {
@@ -150,12 +154,14 @@ const RelationEditPanel = ({
     [initialDestinationUid]
   );
   const [destination, setDestination] = useState(initialDestinationUid);
+  const [label, setLabel] = useState(editingRelationInfo.text);
   const [complement, setComplement] = useState(
     getSettingValueFromTree({
       tree: editingRelationInfo.children,
       key: "complement",
     })
   );
+
   const edgeCallback = useCallback(
     (edge: cytoscape.EdgeSingular) => {
       edge.on("click", (e) => {
@@ -513,38 +519,188 @@ const RelationEditPanel = ({
         })(triples)();
       });
   }, [previewUid, tab, elementsRef, nodeFormatsByLabel]);
+
+  const transformItem = (u: string) => {
+    return (
+      <div className="flex items-center">
+        <div
+          className="w-4 h-4 rounded-full mr-2 select-none"
+          style={{ backgroundColor: nodes[u]?.color || "#000" }}
+        />
+        <span>{nodes[u]?.label}</span>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    if (!label) {
+      const relationEl = document.getElementById("relation-label");
+      relationEl?.focus();
+    }
+  }, []);
+
   return (
     <>
-      <h3
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        {editingRelationInfo.text}
+      <div className="flex space-x-2 mb-4">
         <Button
-          icon={"arrow-left"}
-          disabled={loading}
-          minimal
+          className=" select-none"
           onClick={() =>
             showBackWarning.current ? setBackWarningOpen(true) : back()
           }
+          icon={"arrow-left"}
+          text={"Back"}
+          disabled={loading}
+          outlined
         />
-        <Alert
-          cancelButtonText={"Cancel"}
-          confirmButtonText={"Confirm"}
-          onConfirm={back}
-          intent={Intent.WARNING}
-          isOpen={backWarningOpen}
-          onCancel={() => setBackWarningOpen(false)}
-        >
-          <b>Warning:</b> You have unsaved changes. Are you sure you want to go
-          back and discard these changes?
-        </Alert>
-      </h3>
-      <div style={{ display: "flex" }}>
-        <Label style={{ flexGrow: 1, color: "darkblue" }}>
+        <Button
+          icon={"floppy-disk"}
+          text={"Save"}
+          intent={Intent.PRIMARY}
+          disabled={loading || !showBackWarning.current}
+          className="select-none"
+          onClick={() => {
+            setLoading(true);
+            setTimeout(async () => {
+              const rootUid = editingRelationInfo.uid;
+              setInputSetting({
+                blockUid: rootUid,
+                key: "source",
+                value: source,
+              });
+              setInputSetting({
+                blockUid: rootUid,
+                key: "destination",
+                value: destination,
+                index: 1,
+              });
+              setInputSetting({
+                blockUid: rootUid,
+                key: "complement",
+                value: complement,
+                index: 2,
+              });
+              updateBlock({
+                uid: rootUid,
+                text: label,
+              });
+              const ifUid =
+                editingRelationInfo.children.find((t) =>
+                  toFlexRegex("if").test(t.text)
+                )?.uid ||
+                (await createBlock({
+                  node: { text: "If" },
+                  parentUid: rootUid,
+                  order: 3,
+                }));
+              saveCyToElementRef(tab);
+              const blocks = tabs
+                .map((t) => elementsRef.current[t])
+                .map((elements) => ({
+                  text: "And",
+                  children: elements
+                    .filter((e) => e.data.id.includes("-"))
+                    .map((e) => {
+                      const { source, target, relation } = e.data as {
+                        source: string;
+                        target: string;
+                        relation: string;
+                      };
+                      return {
+                        text: (
+                          elements.find((e) => e.data.id === source)?.data as {
+                            node: string;
+                          }
+                        )?.node,
+                        children: [
+                          {
+                            text: relation,
+                            children: [
+                              {
+                                text: ["source", "destination"].includes(target)
+                                  ? target
+                                  : (
+                                      elements.find((e) => e.data.id === target)
+                                        ?.data as { node: string }
+                                    )?.node,
+                              },
+                            ],
+                          },
+                        ],
+                      };
+                    })
+                    .concat([
+                      {
+                        text: "node positions",
+                        children: elements
+                          .filter(
+                            (
+                              e
+                            ): e is {
+                              data: { id: string; node: unknown };
+                              position: { x: number; y: number };
+                            } => Object.keys(e).includes("position")
+                          )
+                          .map((e) => ({
+                            text: e.data.id,
+                            children: [
+                              { text: `${e.position.x} ${e.position.y}` },
+                            ],
+                          })),
+                      },
+                    ]),
+                }));
+              await Promise.all(
+                getShallowTreeByParentUid(ifUid).map(({ uid }) =>
+                  deleteBlock(uid)
+                )
+              );
+              await Promise.all(
+                blocks.map((block, order) =>
+                  createBlock({ parentUid: ifUid, node: block, order })
+                )
+              );
+              refreshConfigTree();
+              back();
+            }, 1);
+          }}
+        />
+      </div>
+      <Alert
+        cancelButtonText={"Cancel"}
+        confirmButtonText={"Confirm"}
+        onConfirm={back}
+        intent={Intent.WARNING}
+        isOpen={backWarningOpen}
+        onCancel={() => setBackWarningOpen(false)}
+      >
+        <b>Warning:</b> You have unsaved changes. Are you sure you want to go
+        back and discard these changes?
+      </Alert>
+      <ControlGroup className="flex space-x-2" fill={true}>
+        <Label>
+          Label
+          <InputGroup
+            id="relation-label"
+            value={label}
+            style={{ caretColor: "initial" }}
+            onChange={(e) => {
+              unsavedChanges();
+              setLabel(e.target.value);
+            }}
+          />
+        </Label>
+        <Label>
+          Complement
+          <InputGroup
+            value={complement}
+            style={{ caretColor: "initial" }}
+            onChange={(e) => {
+              unsavedChanges();
+              setComplement(e.target.value);
+            }}
+          />
+        </Label>
+        <Label>
           Source
           <MenuItemSelect
             activeItem={source}
@@ -559,11 +715,10 @@ const RelationEditPanel = ({
               }
             }}
             items={Object.keys(nodes)}
-            transformItem={(u) => nodes[u]?.label}
-            ButtonProps={{ style: { color: "darkblue" } }}
+            transformItem={transformItem}
           />
         </Label>
-        <Label style={{ flexGrow: 1, color: "darkred" }}>
+        <Label>
           Destination
           <MenuItemSelect
             activeItem={destination}
@@ -577,62 +732,49 @@ const RelationEditPanel = ({
               }
             }}
             items={Object.keys(nodes)}
-            transformItem={(u) => nodes[u]?.label}
-            ButtonProps={{ style: { color: "darkred" } }}
+            transformItem={transformItem}
           />
         </Label>
-        <Label style={{ flexGrow: 1 }}>
-          Complement
-          <InputGroup
-            value={complement}
-            onChange={(e) => {
-              unsavedChanges();
-              setComplement(e.target.value);
-            }}
-          />
-        </Label>
-      </div>
-      <div>
-        <Tabs
-          selectedTabId={tab}
-          onChange={(id) => {
+      </ControlGroup>
+      <Tabs
+        selectedTabId={tab}
+        onChange={(id) => {
+          saveCyToElementRef(tab);
+          setTab(id as number);
+        }}
+      >
+        {tabs.map((i) => (
+          <Tab key={i} id={i} title={i} />
+        ))}
+        <Button
+          icon={"plus"}
+          minimal
+          disabled={loading}
+          onClick={() => {
+            const newId = (tabs.slice(-1)[0] || 0) + 1;
             saveCyToElementRef(tab);
-            setTab(id as number);
+            elementsRef.current.push([
+              {
+                data: { id: "source", node: initialSource },
+                position: {
+                  x: 200,
+                  y: 50,
+                },
+              },
+              {
+                data: { id: "destination", node: initialDestination },
+                position: {
+                  x: 200,
+                  y: 350,
+                },
+              },
+            ]);
+            setTabs([...tabs, newId]);
+            setTab(newId);
+            unsavedChanges();
           }}
-        >
-          {tabs.map((i) => (
-            <Tab key={i} id={i} title={i} />
-          ))}
-          <Button
-            icon={"plus"}
-            minimal
-            disabled={loading}
-            onClick={() => {
-              const newId = (tabs.slice(-1)[0] || 0) + 1;
-              saveCyToElementRef(tab);
-              elementsRef.current.push([
-                {
-                  data: { id: "source", node: initialSource },
-                  position: {
-                    x: 200,
-                    y: 50,
-                  },
-                },
-                {
-                  data: { id: "destination", node: initialDestination },
-                  position: {
-                    x: 200,
-                    y: 350,
-                  },
-                },
-              ]);
-              setTabs([...tabs, newId]);
-              setTab(newId);
-              unsavedChanges();
-            }}
-          />
-        </Tabs>
-      </div>
+        />
+      </Tabs>
       <div className={"roamjs-discourse-edit-relations"}>
         <div
           tabIndex={-1}
@@ -779,120 +921,17 @@ const RelationEditPanel = ({
           </Tooltip>
         </div>
       </div>
-      <div style={{ display: "flex" }}>
-        <Button
-          text={"Save"}
-          intent={Intent.PRIMARY}
-          disabled={loading}
-          style={{ marginTop: 10, marginRight: 16 }}
-          onClick={() => {
-            setLoading(true);
-            setTimeout(async () => {
-              const rootUid = editingRelationInfo.uid;
-              setInputSetting({
-                blockUid: rootUid,
-                key: "source",
-                value: source,
-              });
-              setInputSetting({
-                blockUid: rootUid,
-                key: "destination",
-                value: destination,
-                index: 1,
-              });
-              setInputSetting({
-                blockUid: rootUid,
-                key: "complement",
-                value: complement,
-                index: 2,
-              });
-              const ifUid =
-                editingRelationInfo.children.find((t) =>
-                  toFlexRegex("if").test(t.text)
-                )?.uid ||
-                (await createBlock({
-                  node: { text: "If" },
-                  parentUid: rootUid,
-                  order: 3,
-                }));
-              saveCyToElementRef(tab);
-              const blocks = tabs
-                .map((t) => elementsRef.current[t])
-                .map((elements) => ({
-                  text: "And",
-                  children: elements
-                    .filter((e) => e.data.id.includes("-"))
-                    .map((e) => {
-                      const { source, target, relation } = e.data as {
-                        source: string;
-                        target: string;
-                        relation: string;
-                      };
-                      return {
-                        text: (
-                          elements.find((e) => e.data.id === source)?.data as {
-                            node: string;
-                          }
-                        )?.node,
-                        children: [
-                          {
-                            text: relation,
-                            children: [
-                              {
-                                text: ["source", "destination"].includes(target)
-                                  ? target
-                                  : (
-                                      elements.find((e) => e.data.id === target)
-                                        ?.data as { node: string }
-                                    )?.node,
-                              },
-                            ],
-                          },
-                        ],
-                      };
-                    })
-                    .concat([
-                      {
-                        text: "node positions",
-                        children: elements
-                          .filter(
-                            (
-                              e
-                            ): e is {
-                              data: { id: string; node: unknown };
-                              position: { x: number; y: number };
-                            } => Object.keys(e).includes("position")
-                          )
-                          .map((e) => ({
-                            text: e.data.id,
-                            children: [
-                              { text: `${e.position.x} ${e.position.y}` },
-                            ],
-                          })),
-                      },
-                    ]),
-                }));
-              await Promise.all(
-                getShallowTreeByParentUid(ifUid).map(({ uid }) =>
-                  deleteBlock(uid)
-                )
-              );
-              await Promise.all(
-                blocks.map((block, order) =>
-                  createBlock({ parentUid: ifUid, node: block, order })
-                )
-              );
-              refreshConfigTree();
-              back();
-            }, 1);
-          }}
-        />
-        {loading && <Spinner size={SpinnerSize.SMALL} />}
-      </div>
+
+      {loading && <Spinner size={SpinnerSize.SMALL} />}
     </>
   );
 };
-
+type Relation = {
+  uid: string;
+  text: string;
+  source: string | undefined;
+  destination: string | undefined;
+};
 const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   uid,
   parentUid,
@@ -916,13 +955,13 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   );
   const nodes = useMemo(() => {
     const nodes = Object.fromEntries(
-      getDiscourseNodes().map((n) => [
-        n.type,
-        { label: n.text, format: n.format },
-      ])
+      getDiscourseNodes().map((n) => {
+        const color = formatHexColor(n.canvasSettings.color);
+        return [n.type, { label: n.text, format: n.format, color }];
+      })
     );
     // TypeError: Iterator value * is not an entry object
-    nodes["*"] = { label: "Any", format: ".+" };
+    nodes["*"] = { label: "Any", format: ".+", color: "#000" };
     return nodes;
   }, []);
   const previewUid = useSubTree({ parentUid, key: "preview" }).uid;
@@ -930,6 +969,9 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   const [relations, setRelations] = useState(refreshRelations);
   const [editingRelation, setEditingRelation] = useState("");
   const [newRelation, setNewRelation] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
+    null
+  );
   const editingRelationInfo = useMemo(
     () =>
       editingRelation ? getFullTreeByParentUid(editingRelation) : undefined,
@@ -939,12 +981,12 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
     createBlock({
       parentUid: uid,
       order: relations.length,
-      node: { text: newRelation },
+      node: { text: "" },
     }).then((relationUid) => {
       setRelations([
         ...relations,
         {
-          text: newRelation,
+          text: "",
           uid: relationUid,
           source: "?",
           destination: "?",
@@ -954,130 +996,154 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
       setEditingRelation(relationUid);
     });
   };
-  return editingRelationInfo ? (
-    <RelationEditPanel
-      nodes={nodes}
-      editingRelationInfo={editingRelationInfo}
-      back={() => {
-        setEditingRelation("");
-        setRelations(refreshRelations());
-      }}
-      translatorKeys={translatorKeys}
-      previewUid={previewUid}
-    />
-  ) : (
-    <>
-      <div>
-        <div style={{ display: "flex" }}>
-          <InputGroup
-            value={newRelation}
-            onChange={(e) => setNewRelation(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" && !!newRelation && onNewRelation()
-            }
-          />
-          <Button
-            onClick={onNewRelation}
-            text={"Add Relation"}
-            style={{ maxWidth: 120, marginLeft: 8 }}
-            intent={Intent.PRIMARY}
-            disabled={!newRelation}
-          />
-        </div>
+
+  const handleEdit = (rel: Relation) => {
+    setEditingRelation(rel.uid);
+  };
+
+  const handleDelete = (rel: Relation) => {
+    deleteBlock(rel.uid);
+    setRelations(relations.filter((r) => r.uid !== rel.uid));
+  };
+  const handleDuplicate = (rel: Relation) => {
+    const baseText = rel.text
+      .split(" ")
+      .filter((s) => !/^\(\d+\)$/.test(s))
+      .join(" ");
+    const copy = relations.reduce((p, c) => {
+      if (c.text.startsWith(baseText)) {
+        const copyIndex = Number(/\((\d+)\)$/.exec(c.text)?.[1]);
+        if (copyIndex && copyIndex > p) {
+          return copyIndex;
+        }
+      }
+      return p;
+    }, 0);
+    const text = `${rel.text} (${copy + 1})`;
+    const copyTree = getBasicTreeByParentUid(rel.uid);
+    const stripUid = (n: RoamBasicNode[]): InputTextNode[] =>
+      n.map((c) => ({
+        text: c.text,
+        children: stripUid(c.children),
+      }));
+    createBlock({
+      parentUid: uid,
+      order: relations.length,
+      node: {
+        text,
+        children: stripUid(copyTree),
+      },
+    }).then((newUid) =>
+      setRelations([
+        ...relations,
+        {
+          uid: newUid,
+          source: rel.source,
+          destination: rel.destination,
+          text,
+        },
+      ])
+    );
+  };
+  const handleBack = () => {
+    setEditingRelation("");
+    setRelations(refreshRelations());
+  };
+
+  useEffect(() => {
+    FocusStyleManager.onlyShowFocusOnTabs();
+  }, []);
+
+  if (editingRelationInfo)
+    return (
+      <div style={{ caretColor: "transparent" }}>
+        <RelationEditPanel
+          nodes={nodes}
+          editingRelationInfo={editingRelationInfo}
+          back={handleBack}
+          translatorKeys={translatorKeys}
+          previewUid={previewUid}
+        />
       </div>
-      <ul style={{ listStyle: "none", paddingInlineStart: 16 }}>
-        {relations.map((rel) => (
-          <li key={rel.uid}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span>
-                <span style={{ display: "inline-block", width: 96 }}>
-                  {rel.text}
-                </span>
-                <span style={{ fontSize: 10 }}>
-                  ({nodes[rel.source || ""]?.label}) {"=>"} (
-                  {nodes[rel.destination || ""]?.label})
-                </span>
-              </span>
-              <span>
-                <Tooltip content={"Duplicate"}>
+    );
+
+  return (
+    <div style={{ caretColor: "transparent" }}>
+      <Button
+        className="mb-4 select-none"
+        onClick={onNewRelation}
+        icon={"plus"}
+        text={"Add Relation"}
+        intent={Intent.PRIMARY}
+      />
+
+      <HTMLTable striped interactive className="w-full cursor-none">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Relation</th>
+            <th>Destination</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {relations.map((rel) => (
+            <tr key={rel.uid} onClick={() => handleEdit(rel)}>
+              <td>{nodes[rel.source || ""]?.label}</td>
+              <td>{rel.text}</td>
+              <td>{nodes[rel.destination || ""]?.label}</td>
+              <td>
+                <Tooltip content="Edit" hoverOpenDelay={500}>
+                  <Button icon="edit" minimal onClick={() => handleEdit(rel)} />
+                </Tooltip>
+                <Tooltip content="Duplicate" hoverOpenDelay={500}>
                   <Button
-                    icon={"duplicate"}
+                    icon="duplicate"
                     minimal
-                    onClick={() => {
-                      const baseText = rel.text
-                        .split(" ")
-                        .filter((s) => !/^\(\d+\)$/.test(s))
-                        .join(" ");
-                      const copy = relations.reduce((p, c) => {
-                        if (c.text.startsWith(baseText)) {
-                          const copyIndex = Number(
-                            /\((\d+)\)$/.exec(c.text)?.[1]
-                          );
-                          if (copyIndex && copyIndex > p) {
-                            return copyIndex;
-                          }
-                        }
-                        return p;
-                      }, 0);
-                      const text = `${rel.text} (${copy + 1})`;
-                      const copyTree = getBasicTreeByParentUid(rel.uid);
-                      const stripUid = (n: RoamBasicNode[]): InputTextNode[] =>
-                        n.map((c) => ({
-                          text: c.text,
-                          children: stripUid(c.children),
-                        }));
-                      createBlock({
-                        parentUid: uid,
-                        order: relations.length,
-                        node: {
-                          text,
-                          children: stripUid(copyTree),
-                        },
-                      }).then((newUid) =>
-                        setRelations([
-                          ...relations,
-                          {
-                            uid: newUid,
-                            source: rel.source,
-                            destination: rel.destination,
-                            text,
-                          },
-                        ])
-                      );
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDuplicate(rel);
                     }}
                   />
                 </Tooltip>
-                <Tooltip content={"Edit"}>
+                <Tooltip content="Delete" hoverOpenDelay={500}>
                   <Button
-                    icon={"edit"}
+                    icon="trash"
                     minimal
-                    onClick={() => {
-                      setEditingRelation(rel.uid);
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (deleteConfirmation) setDeleteConfirmation(null);
+                      else setDeleteConfirmation(rel.uid);
                     }}
                   />
                 </Tooltip>
-                <Tooltip content={"Delete"}>
-                  <Button
-                    icon={"delete"}
-                    minimal
-                    onClick={() => {
-                      deleteBlock(rel.uid);
-                      setRelations(relations.filter((r) => r.uid !== rel.uid));
-                    }}
-                  />
-                </Tooltip>
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </>
+                <Button
+                  children="Confirm"
+                  intent={Intent.DANGER}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(rel);
+                  }}
+                  className={`mx-1 ${
+                    deleteConfirmation !== rel.uid ? "opacity-0" : ""
+                  }`}
+                />
+                <Button
+                  children="Cancel"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteConfirmation(null);
+                  }}
+                  className={`mx-1 ${
+                    deleteConfirmation !== rel.uid ? "opacity-0" : ""
+                  }`}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </HTMLTable>
+    </div>
   );
 };
 

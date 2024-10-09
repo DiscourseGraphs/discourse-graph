@@ -8,6 +8,10 @@ import { StoredFilters } from "../components/settings/DefaultFilters";
 import { Column } from "./types";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import getSettingValuesFromTree from "roamjs-components/util/getSettingValuesFromTree";
+import {
+  DEFAULT_FILTERS_KEY,
+  DEFAULT_PAGE_SIZE_KEY,
+} from "~/data/userSettings";
 
 export type Sorts = { key: string; descending: boolean }[];
 export type FilterData = Record<string, Filters>;
@@ -41,11 +45,11 @@ const getFilterEntries = (
     },
   ]);
 
-const getSettings = (extensionAPI?: OnloadArgs["extensionAPI"]) => {
+export const getSettings = (extensionAPI?: OnloadArgs["extensionAPI"]) => {
   return {
     globalFiltersData: Object.fromEntries(
       Object.entries(
-        (extensionAPI?.settings.get("default-filters") as Record<
+        (extensionAPI?.settings.get(DEFAULT_FILTERS_KEY) as Record<
           string,
           StoredFilters
         >) || {}
@@ -62,7 +66,7 @@ const getSettings = (extensionAPI?: OnloadArgs["extensionAPI"]) => {
       ])
     ),
     globalPageSize:
-      Number(extensionAPI?.settings.get("default-page-size")) || 10,
+      Number(extensionAPI?.settings.get(DEFAULT_PAGE_SIZE_KEY)) || 10,
   };
 };
 
