@@ -36,7 +36,15 @@
     "react-in-viewport": "^1.0.0-alpha.20",
     "react-vertical-timeline-component": "^3.5.2",
     "roamjs-components": "^0.83.4",
-    "signia-react": "^0.1.1"
+    "signia-react": "^0.1.1",
+    "@blueprintjs/icons": "^5.13.0",
+    "@samepage/scripts": "^0.75.7",
+    "@tldraw/tlschema": "^3.3.2",
+    "date-fns": "^4.1.0",
+    "fuzzy": "^0.1.3",
+    "use-sync-external-store": "^1.2.2",
+    "xregexp": "^5.1.1",
+    "zod": "^3.23.8"
   },
   "overrides": {
     "@tldraw/tldraw": {
