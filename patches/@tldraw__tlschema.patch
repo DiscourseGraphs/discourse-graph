@@ -1,0 +1,16 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+deleted file mode 100644
+index a90235c27d49823864b3cc7d5ebcde06c2500a23..0000000000000000000000000000000000000000
+diff --git a/dist/esm/shapes/TLEmbedShape.mjs b/dist/esm/shapes/TLEmbedShape.mjs
+index 0c0783af0867009c4a95210d1738b29bd9b78b6c..1136d46ed4e4151d78fc8baf1d24c3309d76fd8b 100644
+--- a/dist/esm/shapes/TLEmbedShape.mjs
++++ b/dist/esm/shapes/TLEmbedShape.mjs
+@@ -78,7 +78,7 @@ const EMBED_DEFINITIONS = [
+   {
+     type: "tldraw",
+     title: "tldraw",
+-    hostnames: ["beta.tldraw.com", "lite.tldraw.com"],
++    hostnames: ["tldraw.com", "beta.tldraw.com", "lite.tldraw.com"],
+     minWidth: 300,
+     minHeight: 300,
+     width: 720,

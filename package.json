@@ -54,5 +54,13 @@
   },
   "samepage": {
     "extends": "node_modules/roamjs-components/package.json"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "@tldraw/primitives": "patches/@tldraw__primitives.patch",
+      "@tldraw/editor": "patches/@tldraw__editor.patch",
+      "@tldraw/ui": "patches/@tldraw__ui.patch",
+      "@tldraw/tlschema": "patches/@tldraw__tlschema.patch"
+    }
   }
 }

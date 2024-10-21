@@ -1,7 +1,10 @@
-diff --git a/node_modules/@tldraw/primitives/dist/esm/lib/freehand/setStrokePointRadii.mjs b/node_modules/@tldraw/primitives/dist/esm/lib/freehand/setStrokePointRadii.mjs
-index 0bbfddb..ea8a571 100644
---- a/node_modules/@tldraw/primitives/dist/esm/lib/freehand/setStrokePointRadii.mjs
-+++ b/node_modules/@tldraw/primitives/dist/esm/lib/freehand/setStrokePointRadii.mjs
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+deleted file mode 100644
+index a490350b0af1cb320e8ecca6ea0665727d349c2b..0000000000000000000000000000000000000000
+diff --git a/dist/esm/lib/freehand/setStrokePointRadii.mjs b/dist/esm/lib/freehand/setStrokePointRadii.mjs
+index 0bbfddb32e7f3ab96e1c78310b7b9967e8becaf0..ea8a57119f742e10e6d916d5ebd45fd816483a2a 100644
+--- a/dist/esm/lib/freehand/setStrokePointRadii.mjs
++++ b/dist/esm/lib/freehand/setStrokePointRadii.mjs
 @@ -12,7 +12,8 @@ function setStrokePointRadii(strokePoints, options) {
    } = options;
    const { easing: taperStartEase = EASINGS.easeOutQuad } = start;
