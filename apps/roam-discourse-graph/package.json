@@ -10,6 +10,7 @@
   "scripts": {
     "postinstall": "patch-package",
     "start": "samepage dev",
+    "dev": "samepage dev",
     "prebuild:roam": "npm install",
     "build:roam": "samepage build --dry",
     "test": "samepage test"
