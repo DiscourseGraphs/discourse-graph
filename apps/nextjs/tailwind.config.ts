@@ -9,6 +9,18 @@ export default {
   theme: {
     extend: {
       colors: {
+        primary: {
+          DEFAULT: "#073CD6",
+          rgb: "7, 60, 214",
+        },
+        secondary: {
+          DEFAULT: "#DCE4FF",
+          rgb: "220, 228, 255",
+        },
+        neutral: {
+          dark: "#1F1F1F",
+          light: "#F1F1F1",
+        },
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
