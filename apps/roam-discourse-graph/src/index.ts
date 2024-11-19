@@ -43,9 +43,8 @@ export default runExtension(async (onloadArgs) => {
   const style = addStyle(styles);
   const settingsStyle = addStyle(settingsStyles);
 
-  const cleanupDiscourseGraphs = await initializeDiscourseGraphsMode(
-    onloadArgs
-  );
+  const cleanupDiscourseGraphs =
+    await initializeDiscourseGraphsMode(onloadArgs);
 
   // Observers and Listeners
   const isDiscourseNodePage = (title: string) =>

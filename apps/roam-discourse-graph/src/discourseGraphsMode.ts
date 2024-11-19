@@ -41,7 +41,7 @@ import React from "react";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import createPage from "roamjs-components/writes/createPage";
 import INITIAL_NODE_VALUES from "./data/defaultDiscourseNodes";
-import CanvasReferences from "./components/Tldraw/CanvasReferences";
+import CanvasReferences from "./components/tldraw/CanvasReferences";
 import { render as renderGraphOverviewExport } from "./components/ExportDiscourseContext";
 import { Condition, QBClause } from "./utils/types";
 import styles from "./styles/discourseGraphStyles.css";
@@ -501,10 +501,10 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
   const queryPageArray = Array.isArray(queryPages)
     ? queryPages
     : typeof queryPages === "object"
-    ? []
-    : typeof queryPages === "string" && queryPages
-    ? [queryPages]
-    : [];
+      ? []
+      : typeof queryPages === "string" && queryPages
+        ? [queryPages]
+        : [];
   if (!queryPageArray.includes("discourse-graph/queries/*")) {
     args.extensionAPI.settings.set("query-pages", [
       ...queryPageArray,
