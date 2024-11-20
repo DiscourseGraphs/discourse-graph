@@ -406,7 +406,7 @@ export default function Home() {
                 </Link>{" "}
                 if you're interested in helping to{" "}
                 <Link
-                  href="https://github.com/DiscourseGraph"
+                  href="https://github.com/DiscourseGraphs"
                   className="text-primary"
                 >
                   develop
@@ -429,7 +429,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <p className="text-secondary">© 2024 Discourse Graphs</p>
           <Link
-            href="https://github.com/DiscourseGraph"
+            href="https://github.com/DiscourseGraphs"
             className="text-secondary hover:text-neutral-dark"
             aria-label="GitHub Repository"
           >

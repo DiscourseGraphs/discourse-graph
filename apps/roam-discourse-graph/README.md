@@ -4,25 +4,25 @@ The Discourse Graph extension enables Roam users to seamlessly add additional se
 
 ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Froamjs%2FYERyR8FnXO.png?alt=media&token=7522a921-3e17-424f-b141-08e4109f9b75)
 
-For more information, check out our docs at [https://github.com/DiscourseGraph/discourse-graph](https://github.com/DiscourseGraph/discourse-graph)
+For more information, check out our docs at [https://github.com/DiscourseGraphs/discourse-graph](https://github.com/DiscourseGraphs/discourse-graph)
 
 ## Table of Contents
 
-- [Query Builder](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#roamjs-query-builder)
-  - [Query Blocks](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#query-blocks)
-  - [Query Pages](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#query-pages)
-  - [Query Drawer](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#query-drawer)
-  - [Usage](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#usage)
-  - [Conditions](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#conditions)
-  - [Selections](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#selections)
-  - [Manipulating Results](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#manipulating-results)
-  - [Layouts](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#layouts)
-  - [Exporting](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#exporting)
-  - [Styling](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#styling)
-  - [SmartBlocks Integration](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#smartblocks-integration)
-  - [Developer API](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#developer-api)
-  - [Examples](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/query-builder.md#examples)
-- [Discourse Graphs](https://github.com/DiscourseGraph/discourse-graph/blob/main/docs/discourse-graphs.md)
+- [Query Builder](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#roamjs-query-builder)
+  - [Query Blocks](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#query-blocks)
+  - [Query Pages](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#query-pages)
+  - [Query Drawer](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#query-drawer)
+  - [Usage](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#usage)
+  - [Conditions](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#conditions)
+  - [Selections](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#selections)
+  - [Manipulating Results](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#manipulating-results)
+  - [Layouts](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#layouts)
+  - [Exporting](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#exporting)
+  - [Styling](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#styling)
+  - [SmartBlocks Integration](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#smartblocks-integration)
+  - [Developer API](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#developer-api)
+  - [Examples](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#examples)
+- [Discourse Graphs](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/discourse-graphs.md)
 
 ## Nomenclature
 
