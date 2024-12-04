@@ -36,12 +36,23 @@ export default function Home() {
         </nav>
       </header>
 
-      <section className="bg-neutral-dark text-center py-24 px-6">
-        <h1 className="text-5xl font-bold text-white mb-6">Discourse Graphs</h1>
-        <p className="text-xl text-white/90 max-w-2xl mx-auto">
-          Discourse Graphs are a tool and ecosystem for collaborative knowledge
-          synthesis.
-        </p>
+      <section className="relative bg-neutral-dark text-center py-24 px-6 overflow-hidden">
+        <Image
+          src="/matsu_lab_journal_club_graph_view.png"
+          alt="Discourse Graph Network Visualization"
+          fill
+          priority
+          className="object-cover opacity-20"
+          quality={85}
+        />
+        <div className="relative z-10">
+          <h1 className="text-5xl font-bold text-white mb-6">
+            Discourse Graphs
+          </h1>
+          <p className="text-xl text-white/90 max-w-2xl mx-auto">
+            A tool and ecosystem for collaborative knowledge synthesis
+          </p>
+        </div>
       </section>
 
       <main className="space-y-12 px-6 py-12 max-w-6xl mx-auto">
@@ -56,10 +67,6 @@ export default function Home() {
                 researchers and communicators to map their ideas and arguments
                 in a modular, composable graph format.
               </p>
-              <p>
-                Distinguishing evidence (the empirical observation) from claim
-                (the proposed answer) leaves space for multiple interpretations.
-              </p>
             </div>
             <div>
               <Image
@@ -72,16 +79,7 @@ export default function Home() {
             </div>
           </section>
           <section className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <Image
-                src="/section2.webp"
-                alt="Synthesize and Update"
-                width={1682}
-                height={1020}
-                className="rounded-lg"
-              />
-            </div>
-            <div>
+            <div className="order-1 md:order-2">
               <h3 className="text-2xl font-bold text-primary mb-4">
                 Better Infra for Communication
               </h3>
@@ -90,10 +88,19 @@ export default function Home() {
                 research process into its atomic elements in a way that can be
                 shared, remixed, and updated.
               </p>
-              <p>
+              <p className="mb-4 text-neutral-dark">
                 Distinguishing evidence (the empirical observation) from claim
                 (the proposed answer) leaves space for multiple interpretations.
               </p>
+            </div>
+            <div className="order-2 md:order-1">
+              <Image
+                src="/section2.webp"
+                alt="Synthesize and Update"
+                width={1682}
+                height={1020}
+                className="rounded-lg"
+              />
             </div>
           </section>
 
@@ -107,7 +114,7 @@ export default function Home() {
                 form that makes it straightforward to construct, update, and
                 find.
               </p>
-              <p>
+              <p className="mb-4 text-neutral-dark">
                 Like Lego™️ bricks, the modular components of the Discourse
                 Graphs data model make it easy to choose which parts of a
                 scientific project you wish to share and build upon.
@@ -126,16 +133,7 @@ export default function Home() {
           </section>
 
           <section className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <Image
-                src="/section4.webp"
-                alt="Client-Agnostic & Researcher-aligned"
-                width={2056}
-                height={874}
-                className="rounded-lg"
-              />
-            </div>
-            <div>
+            <div className="order-1 md:order-2">
               <h3 className="text-2xl font-bold text-primary mb-4">
                 Liberate your findings
               </h3>
@@ -149,10 +147,19 @@ export default function Home() {
                 signal" findings as "the minimal shareable insight" for others
                 to build on.
               </p>
-              <p>
+              <p className="mb-4 text-neutral-dark">
                 As such, discourse graphs provide a needed coordination layer
                 for decentralized science.
               </p>
+            </div>
+            <div className="order-2 md:order-1">
+              <Image
+                src="/section4.webp"
+                alt="Client-Agnostic & Researcher-aligned"
+                width={2056}
+                height={874}
+                className="rounded-lg"
+              />
             </div>
           </section>
 
@@ -179,7 +186,7 @@ export default function Home() {
                 making it easy to push to and pull from a shared knowledge graph
                 — and to claim credit for many more types of contributions.
               </p>
-              <p>
+              <p className="mb-4 text-neutral-dark">
                 Discourse Graphs are like github for scientific communication.
               </p>
             </div>
@@ -202,23 +209,7 @@ export default function Home() {
           </section>
 
           <section className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <Image
-                src="/section6.webp"
-                alt="Cloud Laboratory Workflow"
-                width={828}
-                height={740}
-                className="rounded-lg mx-auto"
-              />
-              <p className="text-neutral-dark text-right">
-                Snapshot of{" "}
-                <Link href="https://matsulab.com/" className="text-primary">
-                  MATSU lab
-                </Link>{" "}
-                Discourse Graph
-              </p>
-            </div>
-            <div>
+            <div className="order-1 md:order-2">
               <h3 className="text-2xl font-bold text-primary mb-4">
                 The natural OS for a Cloud Laboratory
               </h3>
@@ -254,6 +245,22 @@ export default function Home() {
                 </p>
               </div>
             </div>
+            <div className="order-2 md:order-1">
+              <Image
+                src="/section6.webp"
+                alt="Cloud Laboratory Workflow"
+                width={828}
+                height={740}
+                className="rounded-lg mx-auto"
+              />
+              <p className="text-neutral-dark text-right">
+                Snapshot of{" "}
+                <Link href="https://matsulab.com/" className="text-primary">
+                  MATSU lab
+                </Link>{" "}
+                Discourse Graph
+              </p>
+            </div>
           </section>
         </div>
         <div id="resources" className="space-y-12">
@@ -275,16 +282,18 @@ export default function Home() {
                   href="https://experiment.com/projects/sustainable-coordination-in-research-labs-via-graph-enabled-idea-boards/"
                   className="text-primary"
                 >
-                  Project notes: discourse graphs for research lab coordination
-                </Link>
+                  Project notes:
+                </Link>{" "}
+                discourse graphs for research lab coordination
               </li>
               <li className="text-neutral-dark">
                 <Link
                   href="https://arxiv.org/html/2407.20666v2"
                   className="text-primary"
                 >
-                  Preprint on discourse graph plugin design and use cases
-                </Link>
+                  Preprint
+                </Link>{" "}
+                on discourse graph plugin design and use cases
               </li>
               <li className="text-neutral-dark">
                 <Link
@@ -295,12 +304,13 @@ export default function Home() {
                 </Link>
               </li>
               <li className="text-neutral-dark">
+                Joel Chan on{" "}
                 <Link
                   href="https://commonplace.knowledgefutures.org/pub/m76tk163/release/1"
                   className="text-primary"
                 >
-                  Joel Chan on Sustainable Authorship Models for a
-                  Discourse-Based Scholarly Communication Infrastructure
+                  Sustainable Authorship Models for a Discourse-Based Scholarly
+                  Communication Infrastructure
                 </Link>
               </li>
               <li className="text-neutral-dark">
@@ -308,15 +318,17 @@ export default function Home() {
                   href="https://oasis-lab.gitbook.io/roamresearch-discourse-graph-extension"
                   className="text-primary"
                 >
-                  Discourse Graph plugin documentation for Roam Research
-                </Link>
+                  Discourse Graph plugin documentation
+                </Link>{" "}
+                for Roam Research
               </li>
               <li className="text-neutral-dark">
+                Roam Research{" "}
                 <Link
                   href="https://roamresearch.com/#/app/DiscourseGraphTemplate/page/ChgjmeLuR"
                   className="text-primary"
                 >
-                  Cybrarian Michael Gartner's Discourse Graph template
+                  Discourse Graph Template
                 </Link>{" "}
                 - get cracking building your graphs!
               </li>
