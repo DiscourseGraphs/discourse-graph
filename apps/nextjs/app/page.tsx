@@ -38,7 +38,7 @@ export default function Home() {
 
       <section className="relative bg-neutral-dark text-center py-24 px-6 overflow-hidden">
         <Image
-          src="/matsu_lab_journal_club_graph_view.png"
+          src="/MATSU_lab_journal_club_graph_view.png"
           alt="Discourse Graph Network Visualization"
           fill
           priority
