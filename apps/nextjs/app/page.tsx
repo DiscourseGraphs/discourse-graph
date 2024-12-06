@@ -334,11 +334,58 @@ export default function Home() {
               </li>
             </ul>
           </section>
+
+          <section className="bg-white/50 rounded-xl p-8 shadow-sm">
+            <h2 className="text-4xl font-bold text-primary mb-8">
+              Future Events
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold text-neutral-dark mb-2">
+                  IOSP '25 Winter Workshop: Discourse Graphs
+                </h3>
+                <p className="text-neutral-dark mb-2">
+                  February 23-24, 2025 | Denver Museum of Nature and Science
+                </p>
+                {/* <p className="text-neutral-dark mb-4">
+                  Join us for a workshop on discourse graphs as part of the
+                  Institute of Open Science Practices winter conference. The
+                  workshop will explore experiences using discourse graph tools,
+                  researcher data needs, and future developments in open science
+                  infrastructure.
+                </p> */}
+                <Link
+                  href="https://iosp.io/schedule"
+                  className="text-primary hover:text-primary/80 transition-colors"
+                >
+                  View full schedule →
+                </Link>
+              </div>
+            </div>
+          </section>
         </div>
         <div id="talks" className="space-y-12">
           <section className="bg-white/50 rounded-xl p-8 shadow-sm">
             <h2 className="text-4xl font-bold text-primary mb-8">Past Talks</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="space-y-4">
+                <div className="relative aspect-video">
+                  <iframe
+                    className="absolute inset-0 w-full h-full rounded-lg"
+                    src="https://www.youtube-nocookie.com/embed/Fm-lzNhVMKs"
+                    title="Discourse Graphs: A New Model for Scientific Communication"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+                <h3 className="text-xl font-semibold text-neutral-dark">
+                  Discourse Graphs: A New Model for Scientific Communication
+                </h3>
+                <p className="text-neutral-dark">
+                  Matt Akamatsu, Topos Institute
+                </p>
+              </div>
+
               <div className="space-y-4">
                 <div className="relative aspect-video">
                   <iframe
