@@ -13,8 +13,8 @@ const roamNodeToCondition = ({
     isNaN(Number(text))
       ? text
       : !!getSubTree({ tree: children, key: "not" }).uid
-      ? "not"
-      : "clause"
+        ? "not"
+        : "clause"
   ) as Condition["type"];
   return type === "clause" || type === "not"
     ? {
@@ -49,7 +49,6 @@ type ParseQuery = (q: RoamBasicNode | string) => {
   selectionsNodesUid: string;
   customNodeUid: string;
   isCustomEnabled: boolean;
-  isSamePageEnabled: boolean;
   columns: Column[];
 };
 
@@ -88,7 +87,6 @@ export const parseQuery: ParseQuery = (parentUidOrNode) => {
 
   const customBlock = getSubTree({ tree: children, key: "custom" });
   const customNodeUid = getOrCreateUid(customBlock, "custom");
-  const samePageBlock = getSubTree({ tree: children, key: "samepage" });
   const returnNodeUid = `returnuid`;
   return {
     returnNode: DEFAULT_RETURN_NODE,
@@ -100,7 +98,6 @@ export const parseQuery: ParseQuery = (parentUidOrNode) => {
     selectionsNodesUid,
     customNodeUid,
     isCustomEnabled: customBlock.children[1]?.text === "enabled",
-    isSamePageEnabled: !!samePageBlock.uid,
     columns: [
       {
         key:

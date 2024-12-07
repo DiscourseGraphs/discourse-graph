@@ -226,20 +226,17 @@ const handleDiscourseContext = async ({
   includeDiscourseContext,
   uid,
   pageTitle,
-  isSamePageEnabled,
   appendRefNodeContext,
 }: {
   includeDiscourseContext: boolean;
   uid: string;
   pageTitle: string;
-  isSamePageEnabled: boolean;
   appendRefNodeContext: boolean;
 }) => {
   if (!includeDiscourseContext) return [];
 
   const discourseResults = await getDiscourseContextResults({
     uid,
-    isSamePageEnabled,
   });
   if (!appendRefNodeContext) return discourseResults;
 
@@ -315,13 +312,9 @@ const getExportTypes = ({
   );
   nodeLabelByType["*"] = "Any";
   const getPageData = async (
-    isSamePageEnabled: boolean,
     isExportDiscourseGraph?: boolean
   ): Promise<(Result & { type: string })[]> => {
-    const allResults =
-      typeof results === "function"
-        ? await results(isSamePageEnabled)
-        : results || [];
+    const allResults = results || [];
 
     if (isExportDiscourseGraph) return allResults as DiscourseExportResult[];
 
@@ -360,7 +353,7 @@ const getExportTypes = ({
         .map((node) => ({ ...node, type: n.text }))
     );
   };
-  const getRelationData = (isSamePageEnabled: boolean) =>
+  const getRelationData = () =>
     Promise.all(
       allRelations
         .filter(
@@ -391,7 +384,6 @@ const getExportTypes = ({
                     label: "target",
                   },
                 ],
-                isSamePageEnabled,
               }).then((results) =>
                 results.map((result) => ({
                   source: result.uid,
@@ -401,27 +393,25 @@ const getExportTypes = ({
               );
         })
     ).then((r) => r.flat());
-  const getJsonData = async (isSamePageEnabled: boolean) => {
+  const getJsonData = async () => {
     const grammar = allRelations.map(({ label, destination, source }) => ({
       label,
       destination: nodeLabelByType[destination],
       source: nodeLabelByType[source],
     }));
-    const nodes = (await getPageData(isSamePageEnabled)).map(
-      ({ text, uid }) => {
-        const { date, displayName } = getPageMetadata(text);
-        const { children } = getFullTreeByParentUid(uid);
-        return {
-          uid,
-          title: text,
-          children,
-          date: date.toJSON(),
-          createdBy: displayName,
-        };
-      }
-    );
+    const nodes = (await getPageData()).map(({ text, uid }) => {
+      const { date, displayName } = getPageMetadata(text);
+      const { children } = getFullTreeByParentUid(uid);
+      return {
+        uid,
+        title: text,
+        children,
+        date: date.toJSON(),
+        createdBy: displayName,
+      };
+    });
     const nodeSet = new Set(nodes.map((n) => n.uid));
-    return getRelationData(isSamePageEnabled).then((rels) => {
+    return getRelationData().then((rels) => {
       const relations = uniqJsonArray(
         rels.filter((r) => nodeSet.has(r.source) && nodeSet.has(r.target))
       );
@@ -432,10 +422,7 @@ const getExportTypes = ({
   return [
     {
       name: "Markdown",
-      callback: async ({
-        isSamePageEnabled,
-        includeDiscourseContext = false,
-      }) => {
+      callback: async ({ includeDiscourseContext = false }) => {
         const {
           frontmatter,
           optsRefs,
@@ -446,10 +433,7 @@ const getExportTypes = ({
           linkType,
           appendRefNodeContext,
         } = getExportSettings();
-        const allPages = await getPageData(
-          isSamePageEnabled,
-          isExportDiscourseGraph
-        );
+        const allPages = await getPageData(isExportDiscourseGraph);
         const gatherings = allPages.map(
           ({ text, uid, context: _, type, ...rest }, i, all) =>
             async function getMarkdownData() {
@@ -464,7 +448,6 @@ const getExportTypes = ({
                 includeDiscourseContext,
                 pageTitle: text,
                 uid,
-                isSamePageEnabled,
                 appendRefNodeContext,
               });
 
@@ -594,8 +577,8 @@ const getExportTypes = ({
     },
     {
       name: "JSON",
-      callback: async ({ filename, isSamePageEnabled }) => {
-        const data = await getJsonData(isSamePageEnabled);
+      callback: async ({ filename }) => {
+        const data = await getJsonData();
         return [
           {
             title: `${filename.replace(/\.json$/, "")}.json`,
@@ -606,9 +589,9 @@ const getExportTypes = ({
     },
     {
       name: "Neo4j",
-      callback: async ({ filename, isSamePageEnabled }) => {
+      callback: async ({ filename }) => {
         const nodeHeader = "uid:ID,label:LABEL,title,author,date\n";
-        const nodeData = (await getPageData(isSamePageEnabled))
+        const nodeData = (await getPageData())
           .map(({ text, uid, type }) => {
             const value = text.replace(new RegExp(`^\\[\\[\\w*\\]\\] - `), "");
             const { displayName, date } = getPageMetadata(text);
@@ -618,7 +601,7 @@ const getExportTypes = ({
           })
           .join("\n");
         const relationHeader = "start:START_ID,end:END_ID,label:TYPE\n";
-        return getRelationData(isSamePageEnabled).then((rels) => {
+        return getRelationData().then((rels) => {
           const relationData = rels.map(
             ({ source, target, label }) =>
               `${source},${target},${label.toUpperCase()}`
@@ -639,17 +622,11 @@ const getExportTypes = ({
     },
     {
       name: "CSV",
-      callback: async ({ filename, isSamePageEnabled }) => {
-        const resolvedResults =
-          typeof results === "function"
-            ? await results(isSamePageEnabled)
-            : results;
-        if (!resolvedResults) return [];
-        const keys = Object.keys(resolvedResults[0]).filter(
-          (u) => !/uid/i.test(u)
-        );
+      callback: async ({ filename }) => {
+        if (!results) return [];
+        const keys = Object.keys(results[0]).filter((u) => !/uid/i.test(u));
         const header = `${keys.join(",")}\n`;
-        const data = resolvedResults
+        const data = results
           .map((r) =>
             keys
               .map((k) => r[k].toString())
@@ -666,10 +643,7 @@ const getExportTypes = ({
     },
     {
       name: "PDF",
-      callback: async ({
-        isSamePageEnabled,
-        includeDiscourseContext = false,
-      }) => {
+      callback: async ({ includeDiscourseContext = false }) => {
         const {
           optsRefs,
           optsEmbeds,
@@ -678,10 +652,7 @@ const getExportTypes = ({
           removeSpecialCharacters,
           linkType,
         } = getExportSettings();
-        const allPages = await getPageData(
-          isSamePageEnabled,
-          isExportDiscourseGraph
-        );
+        const allPages = await getPageData(isExportDiscourseGraph);
         const gatherings = allPages.map(
           ({ text, uid }, i, all) =>
             async function getMarkdownDataForPdf() {
@@ -715,7 +686,6 @@ const getExportTypes = ({
                 const discourseResults = includeDiscourseContext
                   ? await getDiscourseContextResults({
                       uid,
-                      isSamePageEnabled,
                     })
                   : [];
                 if (discourseResults.length === 0) return "";

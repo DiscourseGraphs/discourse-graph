@@ -4,7 +4,6 @@ import findDiscourseNode from "./findDiscourseNode";
 import fireQuery from "./fireQuery";
 import getDiscourseNodes from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
-import { OnloadArgs } from "roamjs-components/types";
 
 const resultCache: Record<string, Awaited<ReturnType<typeof fireQuery>>> = {};
 const CACHE_TIMEOUT = 1000 * 60 * 5;
@@ -14,21 +13,12 @@ const getDiscourseContextResults = async ({
   relations = getDiscourseRelations(),
   nodes = getDiscourseNodes(relations),
   ignoreCache,
-  isSamePageEnabled: isSamePageEnabledExternal,
-  args,
 }: {
   uid: string;
   nodes?: ReturnType<typeof getDiscourseNodes>;
   relations?: ReturnType<typeof getDiscourseRelations>;
   ignoreCache?: true;
-  isSamePageEnabled?: boolean;
-  args?: OnloadArgs;
 }) => {
-  const useSamePageFlag = !!args?.extensionAPI.settings.get(
-    "use-backend-samepage-discourse-context"
-  );
-  const isSamePageEnabled =
-    isSamePageEnabledExternal ?? useSamePageFlag ?? false;
   const discourseNode = findDiscourseNode(uid);
   if (!discourseNode) return [];
   const nodeType = discourseNode?.type;
@@ -54,7 +44,7 @@ const getDiscourseContextResults = async ({
         }
         return queries;
       })
-      .map(({ r, complement: isComplement }) => {
+      .map(async ({ r, complement: isComplement }) => {
         const target = isComplement ? r.source : r.destination;
         const text = isComplement ? r.complement : r.label;
         const returnNode = nodeTextByType[target];
@@ -96,7 +86,6 @@ const getDiscourseContextResults = async ({
                   },
                 ],
                 selections,
-                isSamePageEnabled,
                 context: {
                   relationsInQuery: [relation],
                   customNodes: nodes,

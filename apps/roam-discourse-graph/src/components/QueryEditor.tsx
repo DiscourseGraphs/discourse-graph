@@ -45,7 +45,6 @@ import {
   Selection,
 } from "../utils/types";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
-import getSamePageAPI from "@samepage/external/getSamePageAPI";
 import { ALL_SELECTION_SUGGESTIONS } from "../utils/predefinedSelections";
 
 const getSourceCandidates = (cs: Condition[]): string[] =>
@@ -471,7 +470,6 @@ const QueryEditor: QueryEditorComponent = ({
     customNodeUid,
     customNode: initialCustom,
     isCustomEnabled: initialIsCustomEnabled,
-    isSamePageEnabled: initialIsSamePageEnabled,
   } = useMemo(() => parseQuery(parentUid), [parentUid]);
   const debounceRef = useRef(0);
   const [conditions, _setConditions] = useState(initialConditions);
@@ -555,9 +553,7 @@ const QueryEditor: QueryEditorComponent = ({
   const [isCustomEnabled, setIsCustomEnabled] = useState(
     initialIsCustomEnabled
   );
-  const [isSamePageEnabled, setIsSamePageEnabled] = useState(
-    initialIsSamePageEnabled
-  );
+
   const [isEditingLabel, setIsEditingLabel] = useState(false);
   const [label, setLabel] = useState(() => {
     const aliasMatch = getTextByBlockUid(parentUid).match(
@@ -566,26 +562,6 @@ const QueryEditor: QueryEditorComponent = ({
     return !!aliasMatch && aliasMatch[1] !== "" ? aliasMatch[1] : "";
   });
   const [showDisabledMessage, setShowDisabledMessage] = useState(false);
-  useEffect(() => {
-    if (
-      !conditionLabels.has("is in notebook") &&
-      typeof window.samepage !== "undefined"
-    ) {
-      getSamePageAPI()
-        .then(async (api) => {
-          const { notebooks } = await api.listNotebooks();
-          registerDatalogTranslator({
-            key: "is in notebook",
-            callback: () => [],
-            isVariable: true,
-            placeholder: `Roam ${window.roamAlphaAPI.graph.name}`,
-            targetOptions: notebooks.map((n) => `${n.appName} ${n.workspace}`),
-          });
-          setConditionLabels(new Set(getConditionLabels()));
-        })
-        .catch(console.error);
-    }
-  }, [conditionLabels, setConditionLabels]);
   const getAvailableVariables = useCallback(
     (index: number) =>
       Array.from(
@@ -943,45 +919,6 @@ const QueryEditor: QueryEditorComponent = ({
             <span className="text-red-700 inline-block text-xs">
               {disabledMessage}
             </span>
-          )}
-          {window.samepage && (
-            <Checkbox
-              labelElement={
-                <Tooltip
-                  content={
-                    "Use SamePage's backend to fire this query [EXPERIMENTAL]."
-                  }
-                >
-                  <img
-                    src="https://samepage.network/images/logo.png"
-                    height={24}
-                    width={24}
-                  />
-                </Tooltip>
-              }
-              style={{ marginBottom: 0, minWidth: 64, textAlign: "right" }}
-              checked={isSamePageEnabled}
-              onChange={(e) => {
-                const enabled = (e.target as HTMLInputElement).checked;
-                const scratchNode = getSubTree({ parentUid, key: "scratch" });
-                const enabledUid = getSubTree({
-                  tree: scratchNode.children,
-                  key: "samepage",
-                }).uid;
-                if (enabled && !enabledUid) {
-                  createBlock({
-                    parentUid: scratchNode.uid,
-                    order: 0,
-                    node: {
-                      text: "samepage",
-                    },
-                  });
-                } else if (!enabled && enabledUid) {
-                  deleteBlock(enabledUid);
-                }
-                setIsSamePageEnabled(enabled);
-              }}
-            />
           )}
         </span>
       </div>

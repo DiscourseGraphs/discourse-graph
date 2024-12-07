@@ -21,7 +21,6 @@ import { Result } from "roamjs-components/types/query-builder";
 import nanoId from "nanoid";
 import getDiscourseContextResults from "../utils/getDiscourseContextResults";
 import ResultsView from "./ResultsView/ResultsView";
-import { OnloadArgs } from "roamjs-components/types";
 
 export type DiscourseContextResults = Awaited<
   ReturnType<typeof getDiscourseContextResults>
@@ -30,7 +29,6 @@ export type DiscourseContextResults = Awaited<
 type Props = {
   uid: string;
   results?: DiscourseContextResults;
-  args?: OnloadArgs;
 };
 
 const ExtraColumnRow = (r: Result) => {
@@ -311,7 +309,7 @@ const ContextTab = ({
   );
 };
 
-export const ContextContent = ({ uid, results, args }: Props) => {
+export const ContextContent = ({ uid, results }: Props) => {
   const [rawQueryResults, setRawQueryResults] = useState(results || []);
   const queryResults = useMemo(
     () => rawQueryResults.filter((r) => !!Object.keys(r.results).length),
@@ -319,7 +317,7 @@ export const ContextContent = ({ uid, results, args }: Props) => {
   );
   const [loading, setLoading] = useState(true);
   const onRefresh = useCallback(() => {
-    getDiscourseContextResults({ uid, args })
+    getDiscourseContextResults({ uid })
       .then(setRawQueryResults)
       .finally(() => setLoading(false));
   }, [uid, results, setRawQueryResults, setLoading]);
@@ -384,28 +382,7 @@ export const ContextContent = ({ uid, results, args }: Props) => {
   );
 };
 
-export const DiscourseContextBackendConfig: React.FC<{
-  args: OnloadArgs;
-}> = ({ args }) => {
-  const useBackend = args.extensionAPI.settings.get(
-    "use-backend-samepage-discourse-context"
-  );
-  return (
-    <Checkbox
-      defaultChecked={!!useBackend}
-      onChange={(e) => {
-        const { checked } = e.target as HTMLInputElement;
-        args.extensionAPI.settings.set(
-          "use-backend-samepage-discourse-context",
-          checked
-        );
-      }}
-      labelElement={<>Discourse Context</>}
-    />
-  );
-};
-
-const DiscourseContext = ({ uid, args }: Props) => {
+const DiscourseContext = ({ uid }: Props) => {
   const [caretShown, setCaretShown] = useState(false);
   const [caretOpen, setCaretOpen] = useState(false);
   return (
@@ -430,7 +407,7 @@ const DiscourseContext = ({ uid, args }: Props) => {
         </div>
       </div>
       <div style={{ paddingLeft: 16 }}>
-        {caretOpen && <ContextContent uid={uid} args={args} />}
+        {caretOpen && <ContextContent uid={uid} />}
       </div>
     </>
   );

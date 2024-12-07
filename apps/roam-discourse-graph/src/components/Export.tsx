@@ -83,7 +83,7 @@ const ExportProgress = ({ id }: { id: string }) => {
 };
 
 export type ExportDialogProps = {
-  results?: Result[] | ((isSamePageEnabled: boolean) => Promise<Result[]>);
+  results?: Result[];
   title?: string;
   columns?: Column[];
   isExportDiscourseGraph?: boolean;
@@ -97,7 +97,6 @@ type ExportDialogComponent = (
 const EXPORT_DESTINATIONS = [
   { id: "local", label: "Download Locally", active: true },
   { id: "app", label: "Store in Roam", active: false },
-  { id: "samepage", label: "Store with SamePage", active: false },
   { id: "github", label: "Send to GitHub", active: true },
 ];
 const SEND_TO_DESTINATIONS = ["page", "graph"];
@@ -145,7 +144,6 @@ const ExportDialog: ExportDialogComponent = ({
   );
   const [activeExportDestination, setActiveExportDestination] =
     useState<string>(EXPORT_DESTINATIONS[0].id);
-  const [isSamePageEnabled, setIsSamePageEnabled] = useState(false);
 
   const firstColumnKey = columns?.[0]?.key || "text";
   const currentPageUid = getCurrentPageUid();
@@ -592,32 +590,6 @@ const ExportDialog: ExportDialogComponent = ({
                 }
               />
             </FormGroup>
-            {window.samepage && (
-              <FormGroup className="m-0 " inline>
-                <Checkbox
-                  alignIndicator={"right"}
-                  checked={isSamePageEnabled}
-                  onChange={(e) =>
-                    setIsSamePageEnabled((e.target as HTMLInputElement).checked)
-                  }
-                  style={{ marginBottom: 0 }}
-                  labelElement={
-                    <Tooltip
-                      className="m-0"
-                      content={
-                        "Use SamePage's backend to gather this export [EXPERIMENTAL]."
-                      }
-                    >
-                      <img
-                        src="https://samepage.network/images/logo.png"
-                        height={24}
-                        width={24}
-                      />
-                    </Tooltip>
-                  }
-                />
-              </FormGroup>
-            )}
           </div>
         </div>
       </div>
@@ -652,7 +624,6 @@ const ExportDialog: ExportDialogComponent = ({
                     });
                     const files = await exportType.callback({
                       filename,
-                      isSamePageEnabled,
                       includeDiscourseContext,
                       isExportDiscourseGraph,
                     });

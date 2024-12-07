@@ -7,7 +7,6 @@ import type {
 import compileDatalog from "./compileDatalog";
 import { getNodeEnv } from "roamjs-components/util/env";
 import type { Condition, Result as QueryResult, Selection } from "./types";
-import getSamePageAPI from "@samepage/external/getSamePageAPI";
 import gatherDatalogVariablesFromClause from "./gatherDatalogVariablesFromClause";
 import predefinedSelections, {
   PredefinedSelection,
@@ -28,7 +27,6 @@ type RelationInQuery = {
   isComplement: boolean;
 };
 export type FireQueryArgs = QueryArgs & {
-  isSamePageEnabled?: boolean;
   isCustomEnabled?: boolean;
   customNode?: string;
   context?: {
@@ -270,8 +268,8 @@ export const getDatalogQuery = ({
                 label: c.label,
               }))
             : typeof pullResult === "string" || typeof pullResult === "number"
-            ? Promise.resolve({ output: pullResult, label: c.label })
-            : Promise.resolve({ output: "", label: c.label });
+              ? Promise.resolve({ output: pullResult, label: c.label })
+              : Promise.resolve({ output: "", label: c.label });
         })
         .reduce(
           (prev, c) =>
@@ -304,17 +302,8 @@ export const fireQuerySync = (args: FireQueryArgs): QueryResult[] => {
 };
 
 const fireQuery: FireQuery = async (_args) => {
-  const { isCustomEnabled, customNode, isSamePageEnabled, ...args } = _args;
-  if (isSamePageEnabled) {
-    return getSamePageAPI()
-      .then((api) => api.postToAppBackend({ path: "query", data: { ...args } }))
-      .then((r) => r.results as QueryResult[])
-      .catch((e) => {
-        console.error("Error from SamePage:");
-        console.error(e.message);
-        return [];
-      });
-  }
+  const { isCustomEnabled, customNode, ...args } = _args;
+
   const { query, formatResult, inputs } = isCustomEnabled
     ? {
         query: customNode as string,

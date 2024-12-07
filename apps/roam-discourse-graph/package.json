@@ -2,7 +2,6 @@
   "name": "roam-discourse-graph",
   "version": "0.0.1",
   "description": "Roam Discourse Graph",
-  "main": "./build/main.js",
   "scripts": {
     "postinstall": "patch-package",
     "dev": "tsx dev.ts",
@@ -22,7 +21,6 @@
     "widgets"
   ],
   "dependencies": {
-    "@samepage/external": "^0.71.10",
     "@tldraw/tldraw": "^2.0.0-alpha.12",
     "contrast-color": "^1.0.1",
     "cytoscape-navigator": "^2.0.1",
@@ -39,8 +37,5 @@
       "react": "^17.0.2",
       "react-dom": "^17.0.2"
     }
-  },
-  "samepage": {
-    "extends": "node_modules/roamjs-components/package.json"
   }
 }

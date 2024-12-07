@@ -10,7 +10,6 @@ import {
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { OnloadArgs } from "roamjs-components/types";
 import getDiscourseNodes from "../utils/getDiscourseNodes";
-import { DiscourseExportResult } from "../utils/getExportTypes";
 import fireQuery from "../utils/fireQuery";
 
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
@@ -98,36 +97,29 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     });
   };
 
-  const exportDiscourseGraph = () => {
+  const exportDiscourseGraph = async () => {
     const discourseNodes = getDiscourseNodes().filter(excludeDefaultNodes);
-    const results: (
-      isSamePageEnabled: boolean
-    ) => Promise<DiscourseExportResult[]> = (isSamePageEnabled: boolean) =>
-      Promise.all(
-        discourseNodes.map((d) =>
-          fireQuery({
-            returnNode: "node",
-            conditions: [
-              {
-                relation: "is a",
-                source: "node",
-                target: d.type,
-                uid: window.roamAlphaAPI.util.generateUID(),
-                type: "clause",
-              },
-            ],
-            selections: [],
-            isSamePageEnabled,
-          }).then((queryResults) =>
-            queryResults.map((result) => ({
-              ...result,
-              type: d.type,
-            }))
-          )
-        )
-      ).then((r) => r.flat());
+    const results = await Promise.all(
+      discourseNodes.map(async (d) => {
+        const queryResults = await fireQuery({
+          returnNode: "node",
+          conditions: [
+            {
+              relation: "is a",
+              source: "node",
+              target: d.type,
+              uid: window.roamAlphaAPI.util.generateUID(),
+              type: "clause",
+            },
+          ],
+          selections: [],
+        });
+        return queryResults.map((result) => ({ ...result, type: d.type }));
+      })
+    );
+
     exportRender({
-      results,
+      results: results.flat(),
       title: "Export Discourse Graph",
       isExportDiscourseGraph: true,
       initialPanel: "export",

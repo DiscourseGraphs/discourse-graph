@@ -196,23 +196,6 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
                 onChange: onPageRefObserverChange(previewPageRefHandler),
               },
             } as Field<FlagField>,
-            // @ts-ignore
-            ...(window.samepage
-              ? [
-                  {
-                    title: "Use Backend",
-                    description:
-                      "Select individual features to query via SamePage backend.  Note: These settings are per user, not per graph.",
-                    Panel: CustomPanel,
-                    options: {
-                      component: () =>
-                        React.createElement(DiscourseContextBackendConfig, {
-                          args,
-                        }),
-                    },
-                  } as Field<CustomField>,
-                ]
-              : []),
           ],
         },
         {
