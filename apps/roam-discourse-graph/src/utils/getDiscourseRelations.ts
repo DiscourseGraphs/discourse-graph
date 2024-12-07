@@ -32,7 +32,7 @@ export const getRelationsNode = (grammarNode = getGrammarNode()) => {
 };
 
 const getDiscourseRelations = () => {
-  const grammarNode = getRelationsNode();
+  const grammarNode = getGrammarNode();
   const relationsNode = getRelationsNode(grammarNode);
   const relationNodes = relationsNode?.children || DEFAULT_RELATION_VALUES;
   const discourseRelations = relationNodes.flatMap(
