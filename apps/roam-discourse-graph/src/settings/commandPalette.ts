@@ -1,4 +1,4 @@
-import { openCanvasDrawer } from "../components/Tldraw/CanvasDrawer";
+import { openCanvasDrawer } from "../components/canvas/CanvasDrawer";
 import { openQueryDrawer } from "../components/QueryDrawer";
 import { render as exportRender } from "../components/Export";
 import { render as renderToast } from "roamjs-components/components/Toast";

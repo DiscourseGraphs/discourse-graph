@@ -41,7 +41,7 @@ import React from "react";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import createPage from "roamjs-components/writes/createPage";
 import INITIAL_NODE_VALUES from "./data/defaultDiscourseNodes";
-import CanvasReferences from "./components/tldraw/CanvasReferences";
+import CanvasReferences from "./components/canvas/CanvasReferences";
 import { render as renderGraphOverviewExport } from "./components/ExportDiscourseContext";
 import { Condition, QBClause } from "./utils/types";
 import styles from "./styles/discourseGraphStyles.css";

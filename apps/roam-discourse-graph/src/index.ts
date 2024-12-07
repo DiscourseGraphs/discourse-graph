@@ -14,7 +14,7 @@ import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 
-import { renderTldrawCanvas } from "./components/Tldraw/Tldraw";
+import { renderTldrawCanvas } from "./components/canvas/Tldraw";
 import { renderQueryPage, renderQueryBlock } from "./components/QueryBuilder";
 
 import runQuery from "./utils/runQuery";
