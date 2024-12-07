@@ -1,6 +1,6 @@
 {
   "extends": "./node_modules/@samepage/scripts/tsconfig",
-  "include": ["src", "src/types.d.ts", "tailwind.config.ts"],
+  "include": ["src", "src/types.d.ts", "tailwind.config.ts", "dev.ts"],
   "exclude": ["node_modules"],
   "compilerOptions": {
     "baseUrl": ".",

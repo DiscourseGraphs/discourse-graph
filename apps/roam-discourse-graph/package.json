@@ -1,25 +1,20 @@
 {
-  "name": "query-builder",
-  "version": "1.33.1",
-  "description": "Introduces new user interfaces for building queries in Roam",
+  "name": "roam-discourse-graph",
+  "version": "0.0.1",
+  "description": "Roam Discourse Graph",
   "main": "./build/main.js",
-  "author": {
-    "name": "David Vargas",
-    "email": "support@roamjs.com"
-  },
   "scripts": {
     "postinstall": "patch-package",
-    "start": "samepage dev",
-    "dev": "samepage dev",
-    "prebuild:roam": "npm install",
-    "build:roam": "samepage build --dry",
-    "test": "samepage test"
+    "dev": "tsx dev.ts",
+    "prebuild:roam": "npm install"
   },
   "license": "MIT",
   "devDependencies": {
     "@types/contrast-color": "^1.0.0",
     "@types/react-vertical-timeline-component": "^3.3.3",
-    "axios": "^0.27.2"
+    "axios": "^0.27.2",
+    "esbuild": "0.17.14",
+    "tsx": "^4.19.2"
   },
   "//": "axios dep temporary - need to fix the dep in underlying libraries",
   "tags": [
