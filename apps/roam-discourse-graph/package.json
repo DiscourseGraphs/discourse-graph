@@ -4,7 +4,7 @@
   "description": "Roam Discourse Graph",
   "scripts": {
     "postinstall": "patch-package",
-    "dev": "tsx dev.ts",
+    "dev": "tsx scripts/dev.ts",
     "deploy": "tsx scripts/deploy.ts"
   },
   "license": "MIT",
