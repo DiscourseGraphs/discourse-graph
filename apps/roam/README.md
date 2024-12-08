@@ -36,7 +36,7 @@ There are some important terms to know and have exact definitions on since they 
 
 While in development, you can load the extension by using the `Load Developer Extensions from URL` option:
 
-https://www.discoursegraphs.com/releases/roam
+https://discoursegraphs.com/releases/roam
 
 ![image](https://github.com/user-attachments/assets/60bf48ae-ec94-4581-9ae3-8af90fb7bb88)
 

@@ -14,7 +14,10 @@ Here’s how to contribute:
 
 1. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and [clone](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) the repository.
 2. [Create a new branch](https://docs.github.com/en/desktop/contributing-and-collaborating-using-github-desktop/managing-branches) for your updates.
-3. Implement your changes, making sure your code is formatted with [Prettier](https://prettier.io) and passes all [TypeScript](https://www.typescriptlang.org/) type checks.
+3. Implement your changes, making sure your code:
+   - Is formatted with [Prettier](https://prettier.io)
+   - Follows our [Style Guide](./STYLE_GUIDE.md)
+   - Passes all [TypeScript](https://www.typescriptlang.org/) type checks
 4. Write tests that validate your change and/or fix.
 <!-- 5. Run `turbo build` followed by `turbo test` to confirm everything works. -->
 5. Push your branch and open a pull request. 🚀

@@ -39,11 +39,16 @@ Using Turborepo simplifies managing your design system monorepo, as you can have
 
 This Turborepo includes the following packages and applications:
 
-- [apps/website](https://github.com/DiscourseGraphs/discourse-graph/tree/main/apps/website): The public-facing website for Discourse Graphs, available at [discoursegraphs.com](https://discoursegraphs.com). Uses Next.js.
-- [apps/roam](https://github.com/DiscourseGraphs/discourse-graph/tree/main/apps/roam): The Roam Research extension that implements the Discourse Graph protocol.
-- [packages/typescript-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/typescript-config): Shared tsconfig.jsons used throughout the Turborepo
-- [packages/eslint-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/eslint-config): ESLint preset
-- [packages/ui](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/ui): Core React components
+`apps`
+
+- [website](https://github.com/DiscourseGraphs/discourse-graph/tree/main/apps/website): The public-facing website for Discourse Graphs, available at [discoursegraphs.com](https://discoursegraphs.com). Uses Next.js.
+- [roam](https://github.com/DiscourseGraphs/discourse-graph/tree/main/apps/roam): The Roam Research extension that implements the Discourse Graph protocol.
+
+`packages`
+
+- [typescript-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/typescript-config): Shared tsconfig.jsons used throughout the Turborepo
+- [eslint-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/eslint-config): ESLint preset
+- [ui](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/ui): Core React components
 
 ### Deployment
 
@@ -52,7 +57,11 @@ This Turborepo includes the following packages and applications:
 
 ## Contributing
 
-Please see our [contributing guide](CONTRIBUTING.md). Found a bug? Please [submit an issue](https://github.com/DiscourseGraphs/discourse-graph/issues).
+Please see our [contributing guide](CONTRIBUTING.md).
+
+Also see our [style guide](STYLE_GUIDE.md) for more information on the specifics of our coding standards.
+
+Found a bug? Please [submit an issue](https://github.com/DiscourseGraphs/discourse-graph/issues).
 
 ## Community
 
