@@ -1,5 +1,5 @@
 {
-  "name": "basic-example",
+  "name": "discourse-graph",
   "private": true,
   "scripts": {
     "build": "turbo build",
