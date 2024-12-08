@@ -96,6 +96,15 @@ const importAsGlobals = (
 
 const DEFAULT_FILES_INCLUDED = ["package.json", "README.md"];
 
+const addPlaceholderChangelogPlugin = (outdir: string): esbuild.Plugin => ({
+  name: "add-changelog",
+  setup(build) {
+    build.onEnd(async () => {
+      fs.writeFileSync(path.join(outdir, "CHANGELOG.md"), "placeholder");
+    });
+  },
+});
+
 const cliArgs = z.object({
   out: z.string().optional(),
   root: z.string().optional(),
@@ -146,6 +155,7 @@ const compile = ({
             });
           },
         },
+        addPlaceholderChangelogPlugin(outdir),
         {
           name: "onFinish",
           setup(build) {
