@@ -26,7 +26,7 @@ turbo dev
 You can use the `--filter` flag to run a single application:
 
 ```bash
-turbo dev --filter roam-discourse-graph
+turbo dev --filter roam
 ```
 
 ### Turborepo
@@ -40,7 +40,7 @@ Using Turborepo simplifies managing your design system monorepo, as you can have
 This Turborepo includes the following packages and applications:
 
 - [apps/nextjs](https://github.com/DiscourseGraphs/discourse-graph/tree/main/apps/nextjs): The public-facing website for Discourse Graphs, available at [discoursegraphs.com](https://discoursegraphs.com). Uses Next.js.
-- [apps/roam-discourse-graph](https://github.com/DiscourseGraphs/discourse-graph/tree/main/apps/roam-discourse-graph): The Roam Research extension that implements the Discourse Graph protocol.
+- [apps/roam](https://github.com/DiscourseGraphs/discourse-graph/tree/main/apps/roam): The Roam Research extension that implements the Discourse Graph protocol.
 - [packages/typescript-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/typescript-config): Shared tsconfig.jsons used throughout the Turborepo
 - [packages/eslint-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/eslint-config): ESLint preset
 - [packages/ui](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/ui): Core React components

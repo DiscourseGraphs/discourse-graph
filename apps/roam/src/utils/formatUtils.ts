@@ -2,7 +2,7 @@
 // https://github.com/RoamJS/query-builder/issues/189
 
 import { PullBlock } from "roamjs-components/types";
-import getDiscourseNodes, { DiscourseNode } from "../utils/getDiscourseNodes";
+import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
 import compileDatalog from "./compileDatalog";
 import discourseNodeFormatToDatalog from "./discourseNodeFormatToDatalog";
 import createOverlayRender from "roamjs-components/util/createOverlayRender";

@@ -5,7 +5,7 @@ import "dotenv/config";
 
 const deploy = async () => {
   try {
-    const resolvedWorkspace = "roam-discourse-graph";
+    const resolvedWorkspace = "roam";
     if (!resolvedWorkspace) throw new Error("Workspace is required");
     const resolvedBranch =
       process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || "main";

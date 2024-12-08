@@ -1,4 +1,4 @@
-import conditionToDatalog from "../utils/conditionToDatalog";
+import conditionToDatalog from "./conditionToDatalog";
 import type {
   PullBlock,
   DatalogAndClause,
