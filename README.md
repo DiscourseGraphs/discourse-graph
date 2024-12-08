@@ -66,3 +66,7 @@ Found a bug? Please [submit an issue](https://github.com/DiscourseGraphs/discour
 ## Community
 
 Have questions, comments or feedback? Join our [discord](https://discord.gg/atWk6gJyjE).
+
+## Acknowledgement
+
+This project builds upon the foundational work of [David Vargas](https://github.com/dvargas92495) and his suite of [RoamJS](https://github.com/RoamJS) plugins. His innovative contributions laid the groundwork for what Discourse Graphs has become today. We are deeply grateful for his vision and dedication, which have been instrumental in shaping this project.
