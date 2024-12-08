@@ -1,6 +1,6 @@
 {
   "name": "roam-discourse-graph",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Roam Discourse Graph",
   "scripts": {
     "postinstall": "patch-package",
