@@ -1,5 +1,5 @@
 {
-  "include": ["src", "src/types.d.ts", "tailwind.config.ts", "dev.ts", "tests"],
+  "include": ["src", "src/types.d.ts", "tailwind.config.ts", "tests"],
   "exclude": ["node_modules"],
   "compilerOptions": {
     "baseUrl": ".",
