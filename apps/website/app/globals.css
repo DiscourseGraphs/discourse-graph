@@ -6,6 +6,10 @@ a {
   @apply text-secondary hover:text-secondary/60 transition-colors;
 }
 
+html {
+  @apply scroll-smooth;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

@@ -6,7 +6,9 @@ const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
   return (
-    <div className={`min-h-screen bg-neutral-light ${inter.className}`}>
+    <div
+      className={`min-h-screen bg-neutral-light scroll-smooth ${inter.className}`}
+    >
       <header className="flex flex-col md:flex-row items-center justify-between px-6 py-4 space-y-4 md:space-y-0">
         <Link href="/" className="flex items-center space-x-2">
           <Image
