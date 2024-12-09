@@ -1,14 +1,18 @@
 import { Inter } from "next/font/google";
 import Link from "next/link";
 import Image from "next/image";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/ui/card";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
   return (
-    <div
-      className={`min-h-screen bg-neutral-light scroll-smooth ${inter.className}`}
-    >
+    <div className={`min-h-screen bg-neutral-light ${inter.className}`}>
       <header className="flex flex-col md:flex-row items-center justify-between px-6 py-4 space-y-4 md:space-y-0">
         <Link href="/" className="flex items-center space-x-2">
           <Image
@@ -24,22 +28,28 @@ export default function Home() {
         </Link>
         <nav className="w-full md:w-auto">
           <ul className="flex flex-wrap justify-center md:flex-nowrap space-x-4 md:space-x-8">
-            {["About", "Resources", "Talks", "Supporters", "Contact"].map(
-              (item) => (
-                <li key={item}>
-                  <Link
-                    href={`#${item.toLowerCase()}`}
-                    className="text-neutral-dark hover:text-neutral-dark/60"
-                  >
-                    {item}
-                  </Link>
-                </li>
-              )
-            )}
+            {[
+              "About",
+              "Resources",
+              "Events",
+              "Talks",
+              "Supporters",
+              "Contact",
+            ].map((item) => (
+              <li key={item}>
+                <Link
+                  href={`#${item.toLowerCase()}`}
+                  className="text-neutral-dark hover:text-neutral-dark/60"
+                >
+                  {item}
+                </Link>
+              </li>
+            ))}
           </ul>
         </nav>
       </header>
 
+      {/* Hero */}
       <section className="relative bg-neutral-dark text-center py-24 px-6 overflow-hidden">
         <Image
           src="/MATSU_lab_journal_club_graph_view.png"
@@ -57,6 +67,7 @@ export default function Home() {
       </section>
 
       <main className="space-y-12 px-6 py-12 max-w-6xl mx-auto">
+        {/* About */}
         <div className="space-y-12" id="about">
           <section className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -191,22 +202,24 @@ export default function Home() {
                 Discourse Graphs are like github for scientific communication.
               </p>
             </div>
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <Image
-                src="/section5a.webp"
-                alt="Client-Agnostic & Researcher-Aligned"
-                width={400}
-                height={400}
-                className="rounded-lg object-contain h-52 w-auto" // h-24 = 96px
-              />
-              <Image
-                src="/section5b.webp"
-                alt="Client-Agnostic & Researcher-Aligned"
-                width={400}
-                height={400}
-                className="rounded-lg object-contain h-52 w-auto" // h-24 = 96px
-              />
-            </div>
+            <Card className="bg-white/50 rounded-lg p-8">
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <Image
+                  src="/section5a.webp"
+                  alt="Client-Agnostic & Researcher-Aligned"
+                  width={400}
+                  height={400}
+                  className="rounded-lg object-contain h-52 w-auto"
+                />
+                <Image
+                  src="/section5b.webp"
+                  alt="Client-Agnostic & Researcher-Aligned"
+                  width={400}
+                  height={400}
+                  className="rounded-lg object-contain h-52 w-auto"
+                />
+              </div>
+            </Card>
           </section>
 
           <section className="grid md:grid-cols-2 gap-12 items-center">
@@ -261,9 +274,18 @@ export default function Home() {
             </div>
           </section>
         </div>
-        <div id="resources" className="space-y-12">
-          <section className="bg-white/50 rounded-xl p-8 shadow-sm">
-            <h2 className="text-4xl font-bold text-primary mb-8">Resources</h2>
+
+        {/* Resources */}
+        <Card id="resources" className="bg-white/50 rounded-xl p-8 shadow-md">
+          <CardHeader>
+            <CardTitle className="text-4xl font-bold text-primary mb-8">
+              Resources
+            </CardTitle>
+          </CardHeader>
+
+          {/* <h2 ></h2> */}
+
+          <CardContent>
             <ul className="list-disc list-inside space-y-2">
               <li className="text-neutral-dark">
                 <Link href="https://research.protocol.ai/blog/2023/discourse-graphs-and-the-future-of-science/">
@@ -308,12 +330,17 @@ export default function Home() {
                 - get cracking building your graphs!
               </li>
             </ul>
-          </section>
+          </CardContent>
+        </Card>
 
-          <section className="bg-white/50 rounded-xl p-8 shadow-sm">
-            <h2 className="text-4xl font-bold text-primary mb-8">
-              Future Events
-            </h2>
+        {/* Events */}
+        <Card id="events" className="bg-white/50 rounded-xl p-8 shadow-md">
+          <CardHeader>
+            <CardTitle className="text-4xl font-bold text-primary mb-8">
+              Events
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-6">
               <div>
                 <h3 className="text-xl font-semibold text-neutral-dark mb-2">
@@ -322,13 +349,6 @@ export default function Home() {
                 <p className="text-neutral-dark mb-2">
                   February 23-24, 2025 | Denver Museum of Nature and Science
                 </p>
-                {/* <p className="text-neutral-dark mb-4">
-                  Join us for a workshop on discourse graphs as part of the
-                  Institute of Open Science Practices winter conference. The
-                  workshop will explore experiences using discourse graph tools,
-                  researcher data needs, and future developments in open science
-                  infrastructure.
-                </p> */}
                 <Link
                   href="https://iosp.io/schedule"
                   className="text-primary hover:text-primary/80 transition-colors"
@@ -337,11 +357,17 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-          </section>
-        </div>
-        <div id="talks" className="space-y-12">
-          <section className="bg-white/50 rounded-xl p-8 shadow-sm">
-            <h2 className="text-4xl font-bold text-primary mb-8">Past Talks</h2>
+          </CardContent>
+        </Card>
+
+        {/* Talks */}
+        <Card id="talks" className="bg-white/50 rounded-xl p-8 shadow-md">
+          <CardHeader>
+            <CardTitle className="text-4xl font-bold text-primary mb-8">
+              Talks
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div className="space-y-4">
                 <div className="relative aspect-video">
@@ -415,12 +441,17 @@ export default function Home() {
                 </p>
               </div>
             </div>
-          </section>
-        </div>
-        <div id="supporters" className="space-y-12">
-          <section className="bg-white/50 rounded-xl p-8 shadow-sm">
-            <h2 className="text-4xl font-bold text-primary mb-8">Supporters</h2>
+          </CardContent>
+        </Card>
 
+        {/* Supporters */}
+        <Card id="supporters" className="bg-white/50 rounded-xl p-8 shadow-md">
+          <CardHeader>
+            <CardTitle className="text-4xl font-bold text-primary mb-8">
+              Supporters
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-[800px] mx-auto">
               <Link
                 href="https://research.protocol.ai/"
@@ -486,13 +517,17 @@ export default function Home() {
                 />
               </Link>
             </div>
-          </section>
-        </div>
-        <div id="contact" className="space-y-12">
-          <section className="bg-white/50 rounded-xl p-8 shadow-sm">
-            <h2 className="text-3xl font-bold text-primary mb-8">
-              The Ecosystem
-            </h2>
+          </CardContent>
+        </Card>
+
+        {/* Contact */}
+        <Card id="contact" className="bg-white/50 rounded-xl p-8 shadow-md">
+          <CardHeader>
+            <CardTitle className="text-4xl font-bold text-primary mb-8">
+              Ecosystem
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-4">
               <p className="text-neutral-dark">
                 Are you interested in generating grassroots knowledge with
@@ -520,8 +555,8 @@ export default function Home() {
                 <Link href="https://discord.gg/vq83RRk2tg">Discord 🗣️</Link>!
               </p>
             </div>
-          </section>
-        </div>
+          </CardContent>
+        </Card>
       </main>
 
       <footer className="bg-neutral-dark border-t border-neutral-light/10 mt-12 py-6 px-6">
