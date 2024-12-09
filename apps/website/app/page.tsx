@@ -136,7 +136,7 @@ export default function Home() {
           <section className="grid md:grid-cols-2 gap-12 items-center">
             <div className="order-1 md:order-2">
               <h3 className="text-2xl font-bold text-primary mb-4">
-                Liberate your findings
+                Liberate your Findings
               </h3>
               <p className="mb-4 text-neutral-dark">
                 Rather than being organized hierarchically, discourse graphs
@@ -212,7 +212,7 @@ export default function Home() {
           <section className="grid md:grid-cols-2 gap-12 items-center">
             <div className="order-1 md:order-2">
               <h3 className="text-2xl font-bold text-primary mb-4">
-                The natural OS for a Cloud Laboratory
+                The Natural OS for a Cloud Laboratory
               </h3>
               <p className="mb-4 text-neutral-dark">
                 The flexible Discourse Graph framework has been adapted to
@@ -417,11 +417,8 @@ export default function Home() {
             </div>
           </section>
         </div>
-        <div id="support" className="space-y-12">
-          <section
-            className="bg-white/50 rounded-xl p-8 shadow-sm"
-            id="support"
-          >
+        <div id="supporters" className="space-y-12">
+          <section className="bg-white/50 rounded-xl p-8 shadow-sm">
             <h2 className="text-4xl font-bold text-primary mb-8">Supporters</h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-[800px] mx-auto">
@@ -494,16 +491,17 @@ export default function Home() {
         <div id="contact" className="space-y-12">
           <section className="bg-white/50 rounded-xl p-8 shadow-sm">
             <h2 className="text-3xl font-bold text-primary mb-8">
-              Get Involved: The Discourse Graph Ecosystem
+              The Ecosystem
             </h2>
             <div className="space-y-4">
               <p className="text-neutral-dark">
                 Are you interested in generating grassroots knowledge with
-                Discourse Graphs?
+                Discourse Graphs?{" "}
+                <span className="font-bold">Get Involved! 🚀</span>
               </p>
               <p className="text-neutral-dark">
-                We're building user-friendly discourse graph plugins in your
-                favorite tool for thought!
+                We're building user-friendly Discourse Graph plugins in your
+                favorite Tool for Thought and would love to hear from you.
               </p>
               <p className="text-neutral-dark">
                 <Link href="mailto:discoursegraphs@protocol.ai">
@@ -517,6 +515,10 @@ export default function Home() {
                 </Link>{" "}
                 these knowledge generation and synthesis tools.
               </p>
+              <p className="text-neutral-dark">
+                And stay up to date by joining us on{" "}
+                <Link href="https://discord.gg/vq83RRk2tg">Discord 🗣️</Link>!
+              </p>
             </div>
           </section>
         </div>
@@ -525,27 +527,37 @@ export default function Home() {
       <footer className="bg-neutral-dark border-t border-neutral-light/10 mt-12 py-6 px-6">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <p className="text-secondary">© 2024 Discourse Graphs</p>
-          <Link
-            href="https://github.com/DiscourseGraphs"
-            className="text-secondary hover:text-neutral-dark"
-            aria-label="GitHub Repository"
-          >
-            <Image
-              src="/github.svg"
-              alt="GitHub"
-              width={24}
-              height={24}
-              className="opacity-80 hover:opacity-100 transition-opacity"
-            />
-          </Link>
+          <div className="flex space-x-4 items-center">
+            <Link
+              href="https://github.com/DiscourseGraphs"
+              aria-label="GitHub Repository"
+            >
+              <Image
+                src="/github.svg"
+                alt="GitHub"
+                width={24}
+                height={24}
+                className="opacity-80 hover:opacity-100 transition-opacity"
+              />
+            </Link>
+            <Link href="https://discord.gg/vq83RRk2tg" aria-label="Discord">
+              <Image
+                src="/discord.svg"
+                alt="Discord"
+                width={24}
+                height={24}
+                className="opacity-80 hover:opacity-100 transition-opacity"
+              />
+            </Link>
+          </div>
           {/* <div className="flex space-x-4">
-            <Link href="#" className="text-secondary hover:text-neutral-dark">
-              Privacy Policy
-            </Link>
-            <Link href="#" className="text-secondary hover:text-neutral-dark">
-              Terms of Service
-            </Link>
-          </div> */}
+              <Link href="#" className="text-secondary hover:text-neutral-dark">
+                Privacy Policy
+              </Link>
+              <Link href="#" className="text-secondary hover:text-neutral-dark">
+                Terms of Service
+              </Link>
+            </div> */}
         </div>
       </footer>
     </div>
