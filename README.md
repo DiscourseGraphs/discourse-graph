@@ -67,6 +67,14 @@ Found a bug? Please [submit an issue](https://github.com/DiscourseGraphs/discour
 
 Have questions, comments or feedback? Join our [discord](https://discord.gg/atWk6gJyjE).
 
+## Supporters
+
+- [Protocol Labs Research](https://research.protocol.ai/)
+- [Chan Zuckerberg Initiative](https://cziscience.medium.com/request-for-information-pathways-to-ai-enabled-research-55c52124def4)
+- [Metagov](https://www.metagov.org/)
+- [Schmidt Futures](https://experiment.com/grants/metascience)
+- [The Navigation Fund](https://www.navigation.org/grants/open-science)
+
 ## Acknowledgement
 
 This project builds upon the foundational work of [David Vargas](https://github.com/dvargas92495) and his suite of [RoamJS](https://github.com/RoamJS) plugins. His innovative contributions laid the groundwork for what Discourse Graphs has become today. We are deeply grateful for his vision and dedication, which have been instrumental in shaping this project.
