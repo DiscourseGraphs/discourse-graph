@@ -16,7 +16,7 @@ export default function Home() {
             height={48}
           />
 
-          <span className="text-xl font-bold text-neutral-dark">
+          <span className="text-3xl font-bold text-neutral-dark">
             Discourse Graphs
           </span>
         </Link>
@@ -26,7 +26,7 @@ export default function Home() {
               <li key={item}>
                 <Link
                   href={`#${item.toLowerCase()}`}
-                  className="text-neutral-dark hover:text-secondary transition-colors"
+                  className="text-neutral-dark hover:text-neutral-dark/60"
                 >
                   {item}
                 </Link>
@@ -46,12 +46,9 @@ export default function Home() {
           quality={85}
         />
         <div className="relative z-10">
-          <h1 className="text-5xl font-bold text-white mb-6">
-            Discourse Graphs
-          </h1>
-          <p className="text-xl text-white/90 max-w-2xl mx-auto">
+          <h2 className="text-2xl md:text-3xl lg:text-5xl font-semibold max-w-5xl mx-auto text-white">
             A tool and ecosystem for collaborative knowledge synthesis
-          </p>
+          </h2>
         </div>
       </section>
 
@@ -254,10 +251,7 @@ export default function Home() {
                 className="rounded-lg mx-auto"
               />
               <p className="text-neutral-dark text-right">
-                Snapshot of{" "}
-                <Link href="https://matsulab.com/" className="text-primary">
-                  MATSU lab
-                </Link>{" "}
+                Snapshot of <Link href="https://matsulab.com/">MATSU lab</Link>{" "}
                 Discourse Graph
               </p>
             </div>
@@ -268,66 +262,43 @@ export default function Home() {
             <h2 className="text-4xl font-bold text-primary mb-8">Resources</h2>
             <ul className="list-disc list-inside space-y-2">
               <li className="text-neutral-dark">
-                <Link
-                  href="https://research.protocol.ai/blog/2023/discourse-graphs-and-the-future-of-science/"
-                  className="text-primary"
-                >
+                <Link href="https://research.protocol.ai/blog/2023/discourse-graphs-and-the-future-of-science/">
                   Discourse Graphs and the Future of Science
                 </Link>{" "}
                 by Matt Akamatsu and Evan Miyazono, in conversation with Tom
                 Kalil
               </li>
               <li className="text-neutral-dark">
-                <Link
-                  href="https://experiment.com/projects/sustainable-coordination-in-research-labs-via-graph-enabled-idea-boards/"
-                  className="text-primary"
-                >
+                <Link href="https://experiment.com/projects/sustainable-coordination-in-research-labs-via-graph-enabled-idea-boards/">
                   Project notes:
                 </Link>{" "}
                 discourse graphs for research lab coordination
               </li>
               <li className="text-neutral-dark">
-                <Link
-                  href="https://arxiv.org/html/2407.20666v2"
-                  className="text-primary"
-                >
-                  Preprint
-                </Link>{" "}
+                <Link href="https://arxiv.org/html/2407.20666v2">Preprint</Link>{" "}
                 on discourse graph plugin design and use cases
               </li>
               <li className="text-neutral-dark">
-                <Link
-                  href="https://oasislab.pubpub.org/pub/54t0y9mk/release/3"
-                  className="text-primary"
-                >
+                <Link href="https://oasislab.pubpub.org/pub/54t0y9mk/release/3">
                   Knowledge synthesis: A conceptual model and practical guide
                 </Link>
               </li>
               <li className="text-neutral-dark">
                 Joel Chan on{" "}
-                <Link
-                  href="https://commonplace.knowledgefutures.org/pub/m76tk163/release/1"
-                  className="text-primary"
-                >
+                <Link href="https://commonplace.knowledgefutures.org/pub/m76tk163/release/1">
                   Sustainable Authorship Models for a Discourse-Based Scholarly
                   Communication Infrastructure
                 </Link>
               </li>
               <li className="text-neutral-dark">
-                <Link
-                  href="https://oasis-lab.gitbook.io/roamresearch-discourse-graph-extension"
-                  className="text-primary"
-                >
+                <Link href="https://oasis-lab.gitbook.io/roamresearch-discourse-graph-extension">
                   Discourse Graph plugin documentation
                 </Link>{" "}
                 for Roam Research
               </li>
               <li className="text-neutral-dark">
                 Roam Research{" "}
-                <Link
-                  href="https://roamresearch.com/#/app/DiscourseGraphTemplate/page/ChgjmeLuR"
-                  className="text-primary"
-                >
+                <Link href="https://roamresearch.com/#/app/DiscourseGraphTemplate/page/ChgjmeLuR">
                   Discourse Graph Template
                 </Link>{" "}
                 - get cracking building your graphs!
@@ -457,24 +428,13 @@ export default function Home() {
                 favorite tool for thought!
               </p>
               <p className="text-neutral-dark">
-                <Link
-                  href="mailto:discoursegraphs@protocol.ai"
-                  className="text-primary"
-                >
+                <Link href="mailto:discoursegraphs@protocol.ai">
                   Send us a line
                 </Link>{" "}
                 if you're interested in helping to{" "}
-                <Link
-                  href="https://github.com/DiscourseGraphs"
-                  className="text-primary"
-                >
-                  develop
-                </Link>{" "}
+                <Link href="https://github.com/DiscourseGraphs">develop</Link>{" "}
                 or{" "}
-                <Link
-                  href="https://experiment.com/projects/sustainable-coordination-in-research-labs-via-graph-enabled-idea-boards/"
-                  className="text-primary"
-                >
+                <Link href="https://experiment.com/projects/sustainable-coordination-in-research-labs-via-graph-enabled-idea-boards/">
                   beta test
                 </Link>{" "}
                 these knowledge generation and synthesis tools.

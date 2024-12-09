@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+a {
+  @apply text-secondary hover:text-secondary/60 transition-colors;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

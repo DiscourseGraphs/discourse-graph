@@ -10,12 +10,12 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#073CD6",
-          rgb: "7, 60, 214",
+          DEFAULT: "#FF8C4B",
+          rgb: "255, 140, 75",
         },
         secondary: {
-          DEFAULT: "#DCE4FF",
-          rgb: "220, 228, 255",
+          DEFAULT: "#5F57C0",
+          rgb: "95, 87, 192",
         },
         neutral: {
           dark: "#1F1F1F",
