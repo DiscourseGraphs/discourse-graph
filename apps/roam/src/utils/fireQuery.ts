@@ -39,7 +39,7 @@ export type FireQueryArgs = QueryArgs & {
 type FireQuery = (query: FireQueryArgs) => Promise<QueryResult[]>;
 
 const firstVariable = (
-  clause: DatalogClause | DatalogAndClause
+  clause: DatalogClause | DatalogAndClause,
 ): string | undefined => {
   if (
     clause.type === "data-pattern" ||
@@ -65,7 +65,7 @@ const firstVariable = (
 
 const optimizeQuery = (
   clauses: (DatalogClause | DatalogAndClause)[],
-  capturedVariables: Set<string>
+  capturedVariables: Set<string>,
 ): (DatalogClause | DatalogAndClause)[] => {
   const marked = clauses.map(() => false);
   const orderedClauses: (DatalogClause | DatalogAndClause)[] = [];
@@ -121,7 +121,7 @@ const optimizeQuery = (
       ) {
         if (
           [...c.arguments].every(
-            (a) => a.type !== "variable" || capturedVariables.has(a.value)
+            (a) => a.type !== "variable" || capturedVariables.has(a.value),
           )
         ) {
           score = 1000;
@@ -148,7 +148,7 @@ const optimizeQuery = (
     ) {
       bestClause.clauses = optimizeQuery(
         bestClause.clauses,
-        new Set(capturedVariables)
+        new Set(capturedVariables),
       );
     } else if (bestClause.type === "data-pattern") {
       bestClause.arguments
@@ -179,7 +179,7 @@ const getConditionTargets = (conditions: Condition[]): string[] =>
   conditions.flatMap((c) =>
     c.type === "clause" || c.type === "not"
       ? [c.target]
-      : getConditionTargets(c.conditions.flat())
+      : getConditionTargets(c.conditions.flat()),
   );
 
 export const getDatalogQuery = ({
@@ -194,7 +194,7 @@ export const getDatalogQuery = ({
     .filter((c) => !!inputs[c]);
   const whereClauses = optimizeQuery(
     getWhereClauses({ conditions, returnNode }),
-    new Set([])
+    new Set([]),
   ) as DatalogClause[];
 
   const defaultSelections: {
@@ -230,7 +230,7 @@ export const getDatalogQuery = ({
         s,
       }))
       .filter(
-        (p): p is { defined: PredefinedSelection; s: Selection } => !!p.defined
+        (p): p is { defined: PredefinedSelection; s: Selection } => !!p.defined,
       )
       .map((p) => ({
         mapper: p.defined.mapper,
@@ -242,7 +242,7 @@ export const getDatalogQuery = ({
         label: p.s.label || p.s.text,
         key: p.s.text,
       }))
-      .filter((p) => !!p.pull)
+      .filter((p) => !!p.pull),
   );
   const find = definedSelections.map((p) => p.pull).join("\n  ");
   const where = whereClauses.map((c) => compileDatalog(c, 1)).join("\n");
@@ -262,7 +262,7 @@ export const getDatalogQuery = ({
           const pullResult = result[i];
           return typeof pullResult === "object" && pullResult !== null
             ? Promise.resolve(
-                c.mapper(pullResult as PullBlock, c.key, prev)
+                c.mapper(pullResult as PullBlock, c.key, prev),
               ).then((output) => ({
                 output,
                 label: c.label,
@@ -285,9 +285,9 @@ export const getDatalogQuery = ({
                   p[label] = output;
                 }
                 return p;
-              })
+              }),
             ),
-          Promise.resolve({} as QueryResult)
+          Promise.resolve({} as QueryResult),
         ),
     inputs: expectedInputs.map((i) => inputs[i]),
   };
@@ -315,8 +315,8 @@ const fireQuery: FireQuery = async (_args) => {
               r.flatMap((p, index) =>
                 typeof p === "object" && p !== null
                   ? Object.entries(p)
-                  : [[index.toString(), p]]
-              )
+                  : [[index.toString(), p]],
+              ),
             ),
           }),
         inputs: [],
@@ -329,7 +329,7 @@ const fireQuery: FireQuery = async (_args) => {
       if (inputs.length) console.log("Inputs:", ...inputs);
     }
     return Promise.all(
-      window.roamAlphaAPI.data.fast.q(query, ...inputs).map(formatResult)
+      window.roamAlphaAPI.data.fast.q(query, ...inputs).map(formatResult),
     );
   } catch (e) {
     console.error("Error from Roam:");

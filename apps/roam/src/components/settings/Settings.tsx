@@ -20,7 +20,7 @@ type SectionHeaderProps = {
 };
 const SectionHeader = ({ children }: SectionHeaderProps) => {
   return (
-    <div className="bp3-tab-copy font-bold cursor-default select-none mt-4">
+    <div className="bp3-tab-copy mt-4 cursor-default select-none font-bold">
       {children}
     </div>
   );
@@ -66,7 +66,7 @@ export const SettingsDialog = ({
   const settings = getFormattedConfigTree();
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   const [selectedTabId, setSelectedTabId] = useState<TabId>(
-    "discourse-graph-home"
+    "discourse-graph-home",
   );
   return (
     <Dialog
@@ -74,7 +74,7 @@ export const SettingsDialog = ({
       onClose={onClose}
       isCloseButtonShown={false}
       style={{ width: "80vw", height: "80vh" }}
-      className="bg-white relative "
+      className="relative bg-white"
     >
       <div className={Classes.DIALOG_BODY}>
         <Tabs

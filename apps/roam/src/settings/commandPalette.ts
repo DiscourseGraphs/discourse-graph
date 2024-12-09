@@ -68,10 +68,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
       setTimeout(() => {
         const el = document.querySelector(`.roam-block[id*="${uid}"]`);
         const conditionEl = el?.querySelector(
-          ".roamjs-query-condition-relation"
+          ".roamjs-query-condition-relation",
         );
         const conditionInput = conditionEl?.querySelector(
-          "input"
+          "input",
         ) as HTMLInputElement;
         conditionInput?.focus();
       }, 200);
@@ -115,7 +115,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
           selections: [],
         });
         return queryResults.map((result) => ({ ...result, type: d.type }));
-      })
+      }),
     );
 
     exportRender({
@@ -130,7 +130,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     const target = document.activeElement as HTMLElement;
     const uid = getBlockUidFromTarget(target);
     document.body.dispatchEvent(
-      new CustomEvent("roamjs-query-builder:fire-query", { detail: uid })
+      new CustomEvent("roamjs-query-builder:fire-query", { detail: uid }),
     );
   };
 

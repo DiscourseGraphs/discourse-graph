@@ -19,7 +19,7 @@ const importDiscourseGraph = ({
   relations: { source: string; label: string; target: string }[];
 }) => {
   const pagesByUids = Object.fromEntries(
-    nodes.map(({ uid, text }) => [uid, text])
+    nodes.map(({ uid, text }) => [uid, text]),
   );
   return createPage({
     title,
@@ -39,9 +39,9 @@ const importDiscourseGraph = ({
   }).then(() =>
     Promise.all(
       pruneNodes(nodes).map((node) =>
-        createPage({ title: node.text, tree: node.children, uid: node.uid })
-      )
-    )
+        createPage({ title: node.text, tree: node.children, uid: node.uid }),
+      ),
+    ),
   );
 };
 

@@ -22,7 +22,7 @@ export type Views = {
 }[];
 
 const getFilterEntries = (
-  n: Pick<RoamBasicNode, "children">
+  n: Pick<RoamBasicNode, "children">,
 ): [string, Filters][] =>
   n.children.map((c) => [
     c.text,
@@ -30,15 +30,15 @@ const getFilterEntries = (
       includes: {
         values: new Set(
           getSubTree({ tree: c.children, key: "includes" }).children.map(
-            (t) => t.text
-          )
+            (t) => t.text,
+          ),
         ),
       },
       excludes: {
         values: new Set(
           getSubTree({ tree: c.children, key: "excludes" }).children.map(
-            (t) => t.text
-          )
+            (t) => t.text,
+          ),
         ),
       },
       uid: c.uid,
@@ -52,18 +52,18 @@ export const getSettings = (extensionAPI?: OnloadArgs["extensionAPI"]) => {
         (extensionAPI?.settings.get(DEFAULT_FILTERS_KEY) as Record<
           string,
           StoredFilters
-        >) || {}
+        >) || {},
       ).map(([k, v]) => [
         k,
         {
           includes: Object.fromEntries(
-            Object.entries(v.includes || {}).map(([k, v]) => [k, new Set(v)])
+            Object.entries(v.includes || {}).map(([k, v]) => [k, new Set(v)]),
           ),
           excludes: Object.fromEntries(
-            Object.entries(v.excludes || {}).map(([k, v]) => [k, new Set(v)])
+            Object.entries(v.excludes || {}).map(([k, v]) => [k, new Set(v)]),
           ),
         },
-      ])
+      ]),
     ),
     globalPageSize:
       Number(extensionAPI?.settings.get(DEFAULT_PAGE_SIZE_KEY)) || 10,
@@ -74,7 +74,7 @@ const parseResultSettings = (
   // TODO - this should be the resultNode uid
   parentUid: string,
   columns: Column[],
-  extensionAPI?: OnloadArgs["extensionAPI"]
+  extensionAPI?: OnloadArgs["extensionAPI"],
 ) => {
   const { globalFiltersData, globalPageSize } = getSettings(extensionAPI);
   const tree = getBasicTreeByParentUid(parentUid);
@@ -112,7 +112,7 @@ const parseResultSettings = (
         mode: c.children[0]?.text,
         value: c.children[0]?.children?.[0]?.text || "",
       },
-    ])
+    ]),
   );
   const layoutNode = getSubTree({
     tree: resultNode.children,
@@ -126,7 +126,7 @@ const parseResultSettings = (
         c.children.length === 1
           ? c.children[0].text
           : c.children.map((cc) => cc.text),
-      ])
+      ]),
   );
   if (!layout.mode)
     layout.mode =
@@ -149,7 +149,7 @@ const parseResultSettings = (
           includes: { values: new Set<string>() },
           excludes: { values: new Set<string>() },
         },
-      ])
+      ]),
     ),
     columnFilters: columnFiltersNode.children.map((c) => {
       return {

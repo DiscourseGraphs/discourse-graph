@@ -18,10 +18,10 @@ const NodeIndex = ({
 }) => {
   const initialQueryArgs = React.useMemo(
     () => parseQuery(parentUid),
-    [parentUid]
+    [parentUid],
   );
   const [showQuery, setShowQuery] = React.useState(
-    !!initialQueryArgs.conditions.length
+    !!initialQueryArgs.conditions.length,
   );
   useEffect(() => {
     if (!showQuery) {

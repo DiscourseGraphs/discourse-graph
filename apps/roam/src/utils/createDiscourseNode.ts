@@ -33,10 +33,10 @@ const createDiscourseNode = async ({
     openBlockInSidebar(uid);
     setTimeout(() => {
       const sidebarTitle = document.querySelector(
-        ".rm-sidebar-outline .rm-title-display"
+        ".rm-sidebar-outline .rm-title-display",
       );
       sidebarTitle?.dispatchEvent(
-        new MouseEvent("mousedown", { bubbles: true })
+        new MouseEvent("mousedown", { bubbles: true }),
       );
       setTimeout(() => {
         const ta = document.activeElement as HTMLTextAreaElement;
@@ -50,13 +50,13 @@ const createDiscourseNode = async ({
 
   const discourseNodes = getDiscourseNodes();
   const specification = discourseNodes?.find(
-    (n) => n.type === configPageUid
+    (n) => n.type === configPageUid,
   )?.specification;
   // This handles blck-type and creates block in the DNP
   // but could have unintended consequences for other defined discourse nodes
   if (
     specification?.find(
-      (spec) => spec.type === "clause" && spec.relation === "is in page"
+      (spec) => spec.type === "clause" && spec.relation === "is in page",
     )
   ) {
     const blockUid = await createBlock({
@@ -90,8 +90,8 @@ const createDiscourseNode = async ({
           node,
           order,
           parentUid: pageUid,
-        })
-      )
+        }),
+      ),
     );
 
     // Add image to page if imageUrl is provided
@@ -111,7 +111,7 @@ const createDiscourseNode = async ({
       }
     };
     const canvasSettings = Object.fromEntries(
-      discourseNodes.map((n) => [n.type, { ...n.canvasSettings }])
+      discourseNodes.map((n) => [n.type, { ...n.canvasSettings }]),
     );
     const {
       "query-builder-alias": qbAlias = "",

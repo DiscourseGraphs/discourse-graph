@@ -110,7 +110,7 @@ export const getPlainTitleFromSpecification = ({
   // - There is a 'has title' condition somewhere
   const titleCondition = specification.find(
     (s): s is QBClause =>
-      s.type === "clause" && s.relation === "has title" && s.source === text
+      s.type === "clause" && s.relation === "has title" && s.source === text,
   );
   if (!titleCondition) return "";
   return titleCondition.target
@@ -330,8 +330,8 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
                 ],
               },
             ],
-          })
-      )
+          }),
+      ),
     );
   }
 
@@ -377,7 +377,7 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
             matchDiscourseNode({
               ...n,
               title,
-            })
+            }),
           )?.text || (r[":block/string"] ? "block" : "page")
         );
       },
@@ -441,7 +441,7 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
               args,
             }),
             p,
-            args
+            args,
           );
 
           const canvasP = document.createElement("div");
@@ -451,7 +451,7 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
               uid,
             }),
             canvasP,
-            args
+            args,
           );
         }
       }
@@ -499,7 +499,7 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
       "query-pages",
       (
         (args.extensionAPI.settings.get("query-pages") as string[]) || []
-      ).filter((s) => s !== "discourse-graph/queries/*")
+      ).filter((s) => s !== "discourse-graph/queries/*"),
     );
     unloads.delete(removeQueryPage);
   });
@@ -568,7 +568,7 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
       tag: "div",
       callback: (d) => {
         const label = d.querySelector<HTMLSpanElement>(
-          ".window-headers div span"
+          ".window-headers div span",
         );
         if (label && label.innerText.startsWith("Outline")) {
           const titleEl =

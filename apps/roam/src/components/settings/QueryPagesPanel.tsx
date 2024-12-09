@@ -10,10 +10,10 @@ export const getQueryPages = (extensionAPI: OnloadArgs["extensionAPI"]) => {
   return typeof value === "string"
     ? [value]
     : Array.isArray(value)
-    ? value
-    : typeof value === "object" && value !== null
-    ? Object.keys(value)
-    : ["queries/*"];
+      ? value
+      : typeof value === "object" && value !== null
+        ? Object.keys(value)
+        : ["queries/*"];
 };
 
 const QueryPagesPanel = ({

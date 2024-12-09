@@ -37,8 +37,8 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
     const allTypes = new Set(["All"]);
     Object.values(groupedShapes).forEach((shapes) =>
       shapes.forEach((shape) =>
-        allTypes.add(typeToTitleMap[shape.type] || shape.type)
-      )
+        allTypes.add(typeToTitleMap[shape.type] || shape.type),
+      ),
     );
     return Array.from(allTypes);
   }, [groupedShapes, typeToTitleMap]);
@@ -51,7 +51,7 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
       (acc, [uid, shapes]) => {
         const filteredShapes = shapes.filter(
           (shape) =>
-            filterType === "All" || typeToTitleMap[shape.type] === filterType
+            filterType === "All" || typeToTitleMap[shape.type] === filterType,
         );
         if (
           filteredShapes.length > 0 &&
@@ -61,7 +61,7 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
         }
         return acc;
       },
-      {}
+      {},
     );
     setFilteredShapes(filtered);
   }, [groupedShapes, showDuplicates, filterType, typeToTitleMap]);
@@ -79,13 +79,13 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
           action: "move-camera-to-shape",
           shapeId,
         },
-      })
+      }),
     );
   };
 
   return (
     <div>
-      <div className="flex items-baseline justify-around my-4">
+      <div className="my-4 flex items-baseline justify-around">
         <MenuItemSelect
           onItemSelect={(type) => setFilterType(type)}
           activeItem={filterType}
@@ -126,7 +126,7 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
                 {title}
               </Button>
               <Collapse isOpen={openSections[uid]}>
-                <div className="pt-2 " style={{ background: "#eeeeee80" }}>
+                <div className="pt-2" style={{ background: "#eeeeee80" }}>
                   {shapes.map((shape) => (
                     <Button
                       key={shape.id}

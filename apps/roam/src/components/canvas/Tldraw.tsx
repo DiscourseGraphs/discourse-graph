@@ -100,14 +100,17 @@ export const DEFAULT_STYLE_PROPS = {
 const TldrawCanvas = ({ title }: Props) => {
   const allRelations = useMemo(() => {
     const relations = getDiscourseRelations();
-    discourseContext.relations = relations.reduce((acc, r) => {
-      if (acc[r.label]) {
-        acc[r.label].push(r);
-      } else {
-        acc[r.label] = [r];
-      }
-      return acc;
-    }, {} as Record<string, DiscourseRelation[]>);
+    discourseContext.relations = relations.reduce(
+      (acc, r) => {
+        if (acc[r.label]) {
+          acc[r.label].push(r);
+        } else {
+          acc[r.label] = [r];
+        }
+        return acc;
+      },
+      {} as Record<string, DiscourseRelation[]>,
+    );
     return relations;
   }, []);
   const allRelationsById = useMemo(() => {
@@ -125,7 +128,7 @@ const TldrawCanvas = ({ title }: Props) => {
   const allNodes = useMemo(() => {
     const allNodes = getDiscourseNodes(allRelations);
     discourseContext.nodes = Object.fromEntries(
-      allNodes.map((n, index) => [n.type, { ...n, index }])
+      allNodes.map((n, index) => [n.type, { ...n, index }]),
     );
     return allNodes;
   }, [allRelations]);
@@ -148,7 +151,7 @@ const TldrawCanvas = ({ title }: Props) => {
     // with migration from format to specification
     allNodes.forEach((n) => {
       const referencedNodes = [...n.format.matchAll(/{([\w\d-]+)}/g)].filter(
-        (match) => match[1] !== "content"
+        (match) => match[1] !== "content",
       );
 
       if (referencedNodes.length > 0) {
@@ -185,7 +188,7 @@ const TldrawCanvas = ({ title }: Props) => {
   }
 
   const isBindingType = (
-    binding: TLArrowTerminal
+    binding: TLArrowTerminal,
   ): binding is TLArrowTerminal & {
     boundShapeId: TLShapeId;
   } => {
@@ -233,7 +236,7 @@ const TldrawCanvas = ({ title }: Props) => {
                 static initial = "idle";
                 shapeType = n.type;
                 override styles = ["opacity" as const];
-              }
+              },
           )
           .concat(
             allRelationNames.map(
@@ -266,9 +269,9 @@ const TldrawCanvas = ({ title }: Props) => {
                                 name
                               ]
                                 .map(
-                                  (r) => discourseContext.nodes[r.source].text
+                                  (r) => discourseContext.nodes[r.source].text,
                                 )
-                                .join(", ")}`
+                                .join(", ")}`,
                             );
                           } else {
                             (this.parent as TLArrowTool).shapeType =
@@ -282,8 +285,8 @@ const TldrawCanvas = ({ title }: Props) => {
                   };
                   shapeType = name;
                   override styles = ["opacity" as const];
-                }
-            )
+                },
+            ),
           )
           .concat(
             Object.keys(allAddReferencedNodeByAction).map(
@@ -313,12 +316,11 @@ const TldrawCanvas = ({ title }: Props) => {
                             allAddReferencedNodeByAction[action][0].sourceName;
                           if (info.shape.type !== sourceType) {
                             return cancelAndWarn(
-                              `Starting node must be one of ${sourceName}`
+                              `Starting node must be one of ${sourceName}`,
                             );
                           } else {
-                            (
-                              this.parent as TLArrowTool
-                            ).shapeType = `${action}`;
+                            (this.parent as TLArrowTool).shapeType =
+                              `${action}`;
                           }
                           this.parent.transition("pointing", info);
                         };
@@ -328,8 +330,8 @@ const TldrawCanvas = ({ title }: Props) => {
                   };
                   shapeType = `${action}`;
                   override styles = ["opacity" as const];
-                }
-            )
+                },
+            ),
           )
           .concat([
             class extends TLSelectTool {
@@ -345,7 +347,7 @@ const TldrawCanvas = ({ title }: Props) => {
                           name: "complete",
                         });
                         const shape = this.app.getShapeById(
-                          this.info.shape?.id // sometimes undefined?
+                          this.info.shape?.id, // sometimes undefined?
                         );
                         if (!shape) return;
                         if (!isCustomArrowShape(shape)) return;
@@ -376,7 +378,7 @@ const TldrawCanvas = ({ title }: Props) => {
                     const Handle = c as unknown as typeof DraggingHandle;
                     const allRelationIdSet = new Set(allRelationIds);
                     const allAddReferencedNodeActionsSet = new Set(
-                      allAddReferencedNodeActions
+                      allAddReferencedNodeActions,
                     );
                     return class extends Handle {
                       override onPointerUp: TLPointerEvent = async () => {
@@ -435,17 +437,17 @@ const TldrawCanvas = ({ title }: Props) => {
                           end.type !== "binding"
                         ) {
                           return deleteAndWarn(
-                            "Relation must connect two nodes."
+                            "Relation must connect two nodes.",
                           );
                         }
                         const source = this.app.getShapeById(
-                          start.boundShapeId
+                          start.boundShapeId,
                         ) as DiscourseNodeShape;
                         if (!source) {
                           return deleteAndWarn("Failed to find source node.");
                         }
                         const target = this.app.getShapeById(
-                          end.boundShapeId
+                          end.boundShapeId,
                         ) as DiscourseNodeShape;
                         if (!target) {
                           return deleteAndWarn("Failed to find target node.");
@@ -460,7 +462,7 @@ const TldrawCanvas = ({ title }: Props) => {
                             return deleteAndWarn(
                               `Target node must be of type ${possibleTargets
                                 .map((t) => discourseContext.nodes[t].text)
-                                .join(", ")}`
+                                .join(", ")}`,
                             );
                           }
 
@@ -476,7 +478,7 @@ const TldrawCanvas = ({ title }: Props) => {
                             sourceTitle.trim();
                           if (!isTargetTitleCurrent || !isSourceTitleCurrent) {
                             return deleteAndWarn(
-                              "Either the source or target node has been renamed. Please update the nodes and try again."
+                              "Either the source or target node has been renamed. Please update the nodes and try again.",
                             );
                           }
 
@@ -493,7 +495,7 @@ const TldrawCanvas = ({ title }: Props) => {
 
                           if (!extensionAPI) {
                             return deleteAndWarn(
-                              `Failed to update node title.`
+                              `Failed to update node title.`,
                             );
                           }
 
@@ -540,7 +542,7 @@ const TldrawCanvas = ({ title }: Props) => {
                             discourseContext.nodes[relation.source].text;
                           if (source.type !== relation.source) {
                             return deleteAndWarn(
-                              `Source node must be of type ${sourceLabel}`
+                              `Source node must be of type ${sourceLabel}`,
                             );
                           }
                           const possibleTargets = discourseContext.relations[
@@ -552,7 +554,7 @@ const TldrawCanvas = ({ title }: Props) => {
                             return deleteAndWarn(
                               `Target node must be of type ${possibleTargets
                                 .map((t) => discourseContext.nodes[t].text)
-                                .join(", ")}`
+                                .join(", ")}`,
                             );
                           }
                           if (arrow.type !== target.type) {
@@ -596,7 +598,7 @@ const TldrawCanvas = ({ title }: Props) => {
                             defaultPageTitle: `Auto generated from ${title}`,
                             toPage: async (
                               title: string,
-                              blocks: InputTextNode[]
+                              blocks: InputTextNode[],
                             ) => {
                               const parentUid =
                                 getPageUidByPageTitle(title) ||
@@ -612,11 +614,11 @@ const TldrawCanvas = ({ title }: Props) => {
                                         `Failed to create block: ${JSON.stringify(
                                           { node, order, parentUid },
                                           null,
-                                          4
-                                        )}`
-                                      )
-                                  )
-                                )
+                                          4,
+                                        )}`,
+                                      ),
+                                  ),
+                                ),
                               );
                               await openBlockInSidebar(parentUid);
                             },
@@ -624,7 +626,7 @@ const TldrawCanvas = ({ title }: Props) => {
                               Object.values(discourseContext.nodes).map((n) => [
                                 n.text,
                                 n.specification,
-                              ])
+                              ]),
                             ),
                           })(newTriples)();
                         }
@@ -646,7 +648,7 @@ const TldrawCanvas = ({ title }: Props) => {
                     super(app, n.type);
                   }
                 },
-            })
+            }),
           ),
           ...allRelationIds.map((id) =>
             defineShape<DiscourseRelationShape>({
@@ -657,7 +659,7 @@ const TldrawCanvas = ({ title }: Props) => {
                     super(app, id);
                   }
                 },
-            })
+            }),
           ),
           ...allAddReferencedNodeActions.map((action) =>
             defineShape<DiscourseReferencedNodeShape>({
@@ -668,12 +670,12 @@ const TldrawCanvas = ({ title }: Props) => {
                     super(app, action);
                   }
                 },
-            })
+            }),
           ),
         ],
         allowUnknownShapes: true,
       }),
-    [allNodes, allRelationIds, allRelationsById, allAddReferencedNodeActions]
+    [allNodes, allRelationIds, allRelationsById, allAddReferencedNodeActions],
   );
   const appRef = useRef<TldrawApp>();
   const lastInsertRef = useRef<Vec2dModel>();
@@ -750,7 +752,7 @@ const TldrawCanvas = ({ title }: Props) => {
         val?: string;
         shapeId?: TLShapeId;
         onRefresh?: () => void;
-      }>
+      }>,
     ) => {
       if (e.detail.action === "move-camera-to-shape") {
         if (!e.detail.shapeId) return;
@@ -769,7 +771,7 @@ const TldrawCanvas = ({ title }: Props) => {
     return () => {
       document.removeEventListener(
         "roamjs:query-builder:action",
-        actionListener
+        actionListener,
       );
     };
   }, [appRef, allNodes]);
@@ -785,7 +787,7 @@ const TldrawCanvas = ({ title }: Props) => {
   });
   return (
     <div
-      className={`border border-gray-300 rounded-md bg-white h-full w-full z-10 overflow-hidden ${
+      className={`z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white ${
         maximized ? "absolute inset-0" : "relative"
       }`}
       id={`roamjs-tldraw-canvas-container`}
@@ -913,7 +915,7 @@ export const renderTldrawCanvas = ({
   onloadArgs: OnloadArgs;
 }) => {
   const children = document.querySelector<HTMLDivElement>(
-    ".roam-article .rm-block-children"
+    ".roam-article .rm-block-children",
   );
   if (
     children &&
@@ -928,7 +930,7 @@ export const renderTldrawCanvas = ({
       <ExtensionApiContextProvider {...onloadArgs}>
         <TldrawCanvas title={title} previewEnabled={isFlagEnabled("preview")} />
       </ExtensionApiContextProvider>,
-      parent
+      parent,
     );
   }
 };

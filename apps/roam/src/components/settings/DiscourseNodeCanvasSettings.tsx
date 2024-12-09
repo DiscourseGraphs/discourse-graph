@@ -32,16 +32,16 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
     return formatHexColor(color);
   });
   const [alias, setAlias] = useState<string>(() =>
-    getSettingValueFromTree({ tree, key: "alias" })
+    getSettingValueFromTree({ tree, key: "alias" }),
   );
   const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(() =>
-    getSettingValueFromTree({ tree, key: "query-builder-alias" })
+    getSettingValueFromTree({ tree, key: "query-builder-alias" }),
   );
   const [isKeyImage, setIsKeyImage] = useState(
-    () => getSettingValueFromTree({ tree, key: "key-image" }) === "true"
+    () => getSettingValueFromTree({ tree, key: "key-image" }) === "true",
   );
   const [keyImageOption, setKeyImageOption] = useState(() =>
-    getSettingValueFromTree({ tree, key: "key-image-option" })
+    getSettingValueFromTree({ tree, key: "key-image-option" }),
   );
   return (
     <div>
@@ -63,7 +63,7 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
           />
           <Tooltip content={color ? "Unset" : "Color not set"}>
             <Icon
-              className={"align-middle opacity-80 ml-2"}
+              className={"ml-2 align-middle opacity-80"}
               icon={color ? "delete" : "info-sign"}
               onClick={() => {
                 setColor("");
@@ -119,7 +119,7 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
           <Icon
             icon={"info-sign"}
             iconSize={12}
-            className={"align-middle opacity-80 ml-2"}
+            className={"ml-2 align-middle opacity-80"}
           />
         </Tooltip>
       </Switch>
@@ -145,7 +145,7 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
             <Icon
               icon={"info-sign"}
               iconSize={12}
-              className={"align-middle opacity-80 ml-2"}
+              className={"ml-2 align-middle opacity-80"}
             />
           </Tooltip>
         </Radio>

@@ -70,7 +70,7 @@ export const getUidAndStringSetting = (props: Props): StringSetting => {
 
 export const getExportSettingsAndUids = (): ExportConfigWithUids => {
   const configTree = getBasicTreeByParentUid(
-    getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE)
+    getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
   );
   const exportNode = getSubTree({ tree: configTree, key: "export" });
   const tree = exportNode.children;
@@ -82,7 +82,7 @@ export const getExportSettingsAndUids = (): ExportConfigWithUids => {
 
   // max filename length default to 64
   const { uid: maxFilenameLengthUid, value: maxFilenameLength = 64 } = getInt(
-    "max filename length"
+    "max filename length",
   );
   const frontmatterNode = getSubTree({
     tree,

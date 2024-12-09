@@ -28,7 +28,7 @@ export const updateExportProgress = (detail: {
   document.body.dispatchEvent?.(
     new CustomEvent("roamjs:export:progress", {
       detail,
-    })
+    }),
   );
 
 const pullBlockToTreeNode = (n: PullBlock, v: `:${ViewType}`): TreeNode => ({
@@ -55,7 +55,7 @@ const getContentFromNodes = ({
   allNodes: ReturnType<typeof getDiscourseNodes>;
 }) => {
   const nodeFormat = allNodes.find((a) =>
-    matchDiscourseNode({ title, ...a })
+    matchDiscourseNode({ title, ...a }),
   )?.format;
   if (!nodeFormat) return title;
   const regex = new RegExp(
@@ -63,7 +63,7 @@ const getContentFromNodes = ({
       .replace(/\[/g, "\\[")
       .replace(/]/g, "\\]")
       .replace("{content}", "(.*?)")
-      .replace(/{[^}]+}/g, "(?:.*?)")}$`
+      .replace(/{[^}]+}/g, "(?:.*?)")}$`,
   );
   return regex.exec(title)?.[1] || title;
 };
@@ -95,7 +95,7 @@ const getFilename = ({
   return name.length > maxFilenameLength
     ? `${name.substring(
         0,
-        Math.ceil((maxFilenameLength - 3) / 2)
+        Math.ceil((maxFilenameLength - 3) / 2),
       )}...${name.slice(-Math.floor((maxFilenameLength - 3) / 2))}`
     : name;
 };
@@ -105,10 +105,10 @@ const uniqJsonArray = <T extends Record<string, unknown>>(arr: T[]) =>
     new Set(
       arr.map((r) =>
         JSON.stringify(
-          Object.entries(r).sort(([k], [k2]) => k.localeCompare(k2))
-        )
-      )
-    )
+          Object.entries(r).sort(([k], [k2]) => k.localeCompare(k2)),
+        ),
+      ),
+    ),
   ).map((entries) => Object.fromEntries(JSON.parse(entries))) as T[];
 const viewTypeToPrefix = {
   bullet: "- ",
@@ -285,7 +285,7 @@ const handleFrontmatter = ({
           return `"${escapedText}"`;
         }
         return result[capt].toString();
-      })
+      }),
     )
     .join("\n");
   const output = `---\n${content}\n---`;
@@ -308,11 +308,11 @@ const getExportTypes = ({
   const allRelations = getDiscourseRelations();
   const allNodes = getDiscourseNodes(allRelations);
   const nodeLabelByType = Object.fromEntries(
-    allNodes.map((a) => [a.type, a.text])
+    allNodes.map((a) => [a.type, a.text]),
   );
   nodeLabelByType["*"] = "Any";
   const getPageData = async (
-    isExportDiscourseGraph?: boolean
+    isExportDiscourseGraph?: boolean,
   ): Promise<(Result & { type: string })[]> => {
     const allResults = results || [];
 
@@ -332,11 +332,11 @@ const getExportTypes = ({
               .concat({
                 text: r.text,
                 uid: r.uid,
-              })
+              }),
           )
         : (
             window.roamAlphaAPI.q(
-              "[:find (pull ?e [:block/uid :node/title]) :where [?e :node/title _]]"
+              "[:find (pull ?e [:block/uid :node/title]) :where [?e :node/title _]]",
             ) as [Record<string, string>][]
           ).map(([{ title, uid }]) => ({
             text: title,
@@ -350,7 +350,7 @@ const getExportTypes = ({
 
           return isMatch;
         })
-        .map((node) => ({ ...node, type: n.text }))
+        .map((node) => ({ ...node, type: n.text })),
     );
   };
   const getRelationData = () =>
@@ -359,7 +359,7 @@ const getExportTypes = ({
         .filter(
           (s) =>
             s.triples.some((t) => t[2] === "source") &&
-            s.triples.some((t) => t[2] === "destination")
+            s.triples.some((t) => t[2] === "destination"),
         )
         .flatMap((s) => {
           const sourceLabel = nodeLabelByType[s.source];
@@ -389,9 +389,9 @@ const getExportTypes = ({
                   source: result.uid,
                   target: result["target-uid"],
                   label: s.label,
-                }))
+                })),
               );
-        })
+        }),
     ).then((r) => r.flat());
   const getJsonData = async () => {
     const grammar = allRelations.map(({ label, destination, source }) => ({
@@ -413,7 +413,7 @@ const getExportTypes = ({
     const nodeSet = new Set(nodes.map((n) => n.uid));
     return getRelationData().then((rels) => {
       const relations = uniqJsonArray(
-        rels.filter((r) => nodeSet.has(r.source) && nodeSet.has(r.target))
+        rels.filter((r) => nodeSet.has(r.source) && nodeSet.has(r.target)),
       );
       return { grammar, nodes, relations };
     });
@@ -455,12 +455,12 @@ const getExportTypes = ({
                 ? (
                     window.roamAlphaAPI.data.fast.q(
                       `[:find (pull ?pr [:node/title]) (pull ?r [:block/heading [:block/string :as "text"] [:children/view-type :as "viewType"] {:block/children ...}]) :where [?p :node/title "${normalizePageTitle(
-                        text
-                      )}"] [?r :block/refs ?p] [?r :block/page ?pr]]`
+                        text,
+                      )}"] [?r :block/refs ?p] [?r :block/page ?pr]]`,
                     ) as [PullBlock, PullBlock][]
                   ).filter(
                     ([, { [":block/children"]: children }]) =>
-                      Array.isArray(children) && children.length
+                      Array.isArray(children) && children.length,
                   )
                 : [];
 
@@ -493,7 +493,7 @@ const getExportTypes = ({
                       removeSpecialCharacters,
                       linkType,
                     },
-                  })
+                  }),
                 )
                 .join("\n")}\n${
                 discourseResults.length
@@ -510,9 +510,9 @@ const getExportTypes = ({
                                 removeSpecialCharacters,
                               }),
                               t.uid,
-                              linkType
-                            )}`
-                        )
+                              linkType,
+                            )}`,
+                        ),
                       )
                       .join("\n")}\n`
                   : ""
@@ -530,7 +530,7 @@ const getExportTypes = ({
                               removeSpecialCharacters,
                             }),
                             r_1[0][":block/uid"] || "",
-                            linkType
+                            linkType,
                           )}\n\n${toMarkdown({
                             c: pullBlockToTreeNode(r_1[1], ":bullet"),
                             opts: {
@@ -542,14 +542,14 @@ const getExportTypes = ({
                               removeSpecialCharacters,
                               linkType,
                             },
-                          })}`
+                          })}`,
                       )
                       .join("\n")}\n`
                   : ""
               }`;
               const uids = new Set(collectUids(treeNode));
               return { title: text, content, uids };
-            }
+            },
         );
         const pages = await gatherings.reduce(
           (p, c) =>
@@ -557,11 +557,11 @@ const getExportTypes = ({
               c().then((item) => {
                 arr.push(item);
                 return arr;
-              })
+              }),
             ),
           Promise.resolve(
-            [] as Awaited<ReturnType<(typeof gatherings)[number]>>[]
-          )
+            [] as Awaited<ReturnType<(typeof gatherings)[number]>>[],
+          ),
         );
         return pages.map(({ title, content }) => ({
           title: getFilename({
@@ -604,7 +604,7 @@ const getExportTypes = ({
         return getRelationData().then((rels) => {
           const relationData = rels.map(
             ({ source, target, label }) =>
-              `${source},${target},${label.toUpperCase()}`
+              `${source},${target},${label.toUpperCase()}`,
           );
           const relations = relationData.join("\n");
           return [
@@ -630,7 +630,7 @@ const getExportTypes = ({
           .map((r) =>
             keys
               .map((k) => r[k].toString())
-              .map((v) => (v.includes(",") ? `"${v}"` : v))
+              .map((v) => (v.includes(",") ? `"${v}"` : v)),
           )
           .join("\n");
         return [
@@ -703,7 +703,7 @@ const getExportTypes = ({
                       const uid = t.uid || "";
                       const link = toLink(filename, uid, linkType);
                       return `**${r.label}::** ${link}`;
-                    })
+                    }),
                   )
                   .join("\n");
 
@@ -723,11 +723,11 @@ const getExportTypes = ({
                         :where 
                           [?p :node/title "${normalizedTitle}"] 
                           [?r :block/refs ?p] 
-                          [?r :block/page ?pr]]`
+                          [?r :block/page ?pr]]`,
                       ) as [PullBlock, PullBlock][]
                     ).filter(
                       ([, { [":block/children"]: children }]) =>
-                        Array.isArray(children) && children.length
+                        Array.isArray(children) && children.length,
                     )
                   : [];
                 if (referenceResults.length === 0) return "";
@@ -744,7 +744,7 @@ const getExportTypes = ({
                     const uid = r[0][":block/uid"] || "";
                     const link = toLink(filename, uid, linkType);
                     const node = treeNodeToMarkdown(
-                      pullBlockToTreeNode(r[1], ":bullet")
+                      pullBlockToTreeNode(r[1], ":bullet"),
                     );
                     return `${link}${node}`;
                   })
@@ -765,7 +765,7 @@ const getExportTypes = ({
               const uids = new Set(collectUids(treeNode));
 
               return { title: text, content, uids };
-            }
+            },
         );
         const pages = await gatherings.reduce(
           (p, c) =>
@@ -773,11 +773,11 @@ const getExportTypes = ({
               c().then((item) => {
                 arr.push(item);
                 return arr;
-              })
+              }),
             ),
           Promise.resolve(
-            [] as Awaited<ReturnType<(typeof gatherings)[number]>>[]
-          )
+            [] as Awaited<ReturnType<(typeof gatherings)[number]>>[],
+          ),
         );
 
         return pages.map(({ title, content }) => ({

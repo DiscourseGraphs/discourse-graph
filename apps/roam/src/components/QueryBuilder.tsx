@@ -36,14 +36,14 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
   const extensionAPI = useExtensionAPI();
   const hideMetadata = useMemo(
     () => !!extensionAPI && !!extensionAPI.settings.get("hide-metadata"),
-    [extensionAPI]
+    [extensionAPI],
   );
   const tree = useMemo(() => getBasicTreeByParentUid(pageUid), [pageUid]);
   const [isEdit, _setIsEdit] = useState(
-    () => !!getSubTree({ tree, key: "editing" }).uid
+    () => !!getSubTree({ tree, key: "editing" }).uid,
   );
   const [hasResults, setHasResults] = useState(
-    () => !!getSubTree({ tree, key: "results" }).uid
+    () => !!getSubTree({ tree, key: "results" }).uid,
   );
   const setIsEdit = useCallback(
     (b: boolean) => {
@@ -56,7 +56,7 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
           })
         : deleteBlock(getSubTree({ parentUid: pageUid, key: "editing" }).uid);
     },
-    [pageUid]
+    [pageUid],
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -76,7 +76,7 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
           })
           .catch(() => {
             setError(
-              `Query failed to run. Try running a new query from the editor.`
+              `Query failed to run. Try running a new query from the editor.`,
             );
           })
           .finally(() => {
@@ -95,7 +95,7 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
           });
       }, 1);
     },
-    [setResults, pageUid, setLoading, setColumns]
+    [setResults, pageUid, setLoading, setColumns],
   );
   useEffect(() => {
     if (!isEdit) {
@@ -110,7 +110,7 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
     const roamBlock = containerRef.current?.closest(".rm-block-main");
     if (roamBlock) {
       const sep = roamBlock.querySelector<HTMLDivElement>(
-        ".rm-block-separator"
+        ".rm-block-separator",
       );
       if (sep) {
         sep.style.minWidth = "0";
@@ -129,7 +129,7 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
       main.nextElementSibling.classList.add("roamjs-query-builder-metadata");
     }
     const container = containerRef.current?.closest<HTMLDivElement>(
-      "div.roamjs-query-builder-parent"
+      "div.roamjs-query-builder-parent",
     );
     if (container) {
       container.style.width = "unset";
@@ -138,7 +138,7 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
   return (
     <Card
       id={`roamjs-query-page-${pageUid}`}
-      className={"roamjs-query-page p-0 overflow-auto"}
+      className={"roamjs-query-page overflow-auto p-0"}
     >
       <div ref={containerRef}>
         {hideMetadata && (
@@ -174,7 +174,7 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
             onEdit={() => setIsEdit(true)}
             header={
               error ? (
-                <div className="text-red-700 mb-4">{error}</div>
+                <div className="mb-4 text-red-700">{error}</div>
               ) : undefined
             }
             columns={columns}
@@ -193,7 +193,7 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
 
 export const renderQueryBlock = createComponentRender(
   ({ blockUid }) => <QueryBuilder pageUid={blockUid} isEditBlock showAlias />,
-  "roamjs-query-builder-parent"
+  "roamjs-query-builder-parent",
 );
 
 export const renderQueryPage = ({
@@ -216,14 +216,14 @@ export const renderQueryPage = ({
     parent.id = `${configPageId}-config`;
     containerParent.insertBefore(
       parent,
-      h1.parentElement?.nextElementSibling || null
+      h1.parentElement?.nextElementSibling || null,
     );
 
     ReactDOM.render(
       <ExtensionApiContextProvider {...onloadArgs}>
         <QueryBuilder pageUid={uid} />
       </ExtensionApiContextProvider>,
-      parent
+      parent,
     );
   }
 };

@@ -62,14 +62,14 @@ const Filter = ({
           ))}
         </ul>
       </div>
-      <div className="justify-end items-center flex gap-1">
+      <div className="flex items-center justify-end gap-1">
         <InputGroup
           style={{ minWidth: "initial" }}
           value={newFilter}
           onChange={(e) => setNewFilter(e.target.value)}
         />
         <div
-          className="items-center gap-1 flex-shrink-0"
+          className="flex-shrink-0 items-center gap-1"
           style={{ display: "flex" }}
         >
           <Button
@@ -107,19 +107,19 @@ const DefaultFilters = ({
         (extensionAPI.settings.get("default-filters") as Record<
           string,
           StoredFilters
-        >) || {}
+        >) || {},
       ).map(([k, v]) => [
         k,
         {
           includes: Object.fromEntries(
-            Object.entries(v.includes || {}).map(([k, v]) => [k, new Set(v)])
+            Object.entries(v.includes || {}).map(([k, v]) => [k, new Set(v)]),
           ),
           excludes: Object.fromEntries(
-            Object.entries(v.excludes || {}).map(([k, v]) => [k, new Set(v)])
+            Object.entries(v.excludes || {}).map(([k, v]) => [k, new Set(v)]),
           ),
         },
-      ])
-    )
+      ]),
+    ),
   );
 
   useEffect(() => {
@@ -133,17 +133,17 @@ const DefaultFilters = ({
               Object.entries(v.includes || {}).map(([k, v]) => [
                 k,
                 Array.from(v),
-              ])
+              ]),
             ),
             excludes: Object.fromEntries(
               Object.entries(v.excludes || {}).map(([k, v]) => [
                 k,
                 Array.from(v),
-              ])
+              ]),
             ),
           },
-        ])
-      )
+        ]),
+      ),
     );
   }, [filters]);
   return (
@@ -173,13 +173,13 @@ const DefaultFilters = ({
           }}
           onRemove={() => {
             const newFilters = Object.fromEntries(
-              Object.entries(filters).filter(([col]) => col !== column)
+              Object.entries(filters).filter(([col]) => col !== column),
             );
             setFilters(newFilters);
           }}
         />
       ))}
-      <div className="flex justify-end items-center gap-2">
+      <div className="flex items-center justify-end gap-2">
         <InputGroup
           style={{ minWidth: "initial" }}
           value={newColumn}

@@ -42,7 +42,7 @@ const ExtraColumnRow = (r: Result) => {
   const contextPageTitle = useMemo(
     () =>
       r["context-uid"] && getPageTitleByPageUid(r["context-uid"].toString()),
-    [r["context-uid"]]
+    [r["context-uid"]],
   );
   const contextBreadCrumbs = useMemo(
     () =>
@@ -52,23 +52,23 @@ const ExtraColumnRow = (r: Result) => {
               `[:find (pull ?p [:node/title :block/string :block/uid]) :where 
               [?b :block/uid "${r["context-uid"]}"]
               [?b :block/parents ?p]
-            ]`
+            ]`,
             )
             .map(
-              (a) => a[0] as { string?: string; title?: string; uid: string }
+              (a) => a[0] as { string?: string; title?: string; uid: string },
             )
             .map((a) => ({ uid: a.uid, text: a.string || a.title || "" }))
         : [],
-    [r["context-uid"]]
+    [r["context-uid"]],
   );
   const contextChildren = useMemo(
     () =>
       r["context-uid"] && contextPageTitle
         ? getShallowTreeByParentUid(r["context-uid"].toString()).map(
-            ({ uid }) => uid
+            ({ uid }) => uid,
           )
         : [r["context-uid"].toString()],
-    [r["context-uid"], contextPageTitle, r.uid]
+    [r["context-uid"], contextPageTitle, r.uid],
   );
   useEffect(() => {
     if (contextOpen && containerRef.current) {
@@ -90,7 +90,7 @@ const ExtraColumnRow = (r: Result) => {
       setTimeout(() => {
         contextChildren.forEach((uid) => {
           const el = document.querySelector<HTMLElement>(
-            `tr#${contextId} div[data-uid="${uid}"]`
+            `tr#${contextId} div[data-uid="${uid}"]`,
           );
           if (el)
             window.roamAlphaAPI.ui.components.renderBlock({
@@ -233,22 +233,22 @@ const ContextTab = ({
     () =>
       groupByTarget
         ? Array.from(
-            new Set(Object.values(r.results).map((res) => res.target))
+            new Set(Object.values(r.results).map((res) => res.target)),
           ).sort()
         : [],
-    [groupByTarget, r.results]
+    [groupByTarget, r.results],
   );
   const getFilteredResults = useCallback(
     (id) =>
       Object.entries(r.results).filter(([, res]) => res.target === subTabs[id]),
-    [subTabs, r.results]
+    [subTabs, r.results],
   );
   const results = useMemo(
     () =>
       groupByTarget
         ? Object.fromEntries(getFilteredResults(subTabId))
         : r.results,
-    [groupByTarget, r.results, subTabId, getFilteredResults]
+    [groupByTarget, r.results, subTabId, getFilteredResults],
   );
   const columns = useMemo(
     () => [
@@ -259,7 +259,7 @@ const ContextTab = ({
         selection: "text",
       },
     ],
-    []
+    [],
   );
   const resultsView = (
     <ResultsView
@@ -267,7 +267,7 @@ const ContextTab = ({
       preventSavingSettings
       parentUid={parentUid}
       results={Object.values(results).map(
-        ({ target, complement, id, ...a }) => a as Result
+        ({ target, complement, id, ...a }) => a as Result,
       )}
       columns={columns}
       onRefresh={onRefresh}
@@ -313,7 +313,7 @@ export const ContextContent = ({ uid, results }: Props) => {
   const [rawQueryResults, setRawQueryResults] = useState(results || []);
   const queryResults = useMemo(
     () => rawQueryResults.filter((r) => !!Object.keys(r.results).length),
-    [rawQueryResults]
+    [rawQueryResults],
   );
   const [loading, setLoading] = useState(true);
   const onRefresh = useCallback(() => {

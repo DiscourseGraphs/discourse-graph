@@ -11,7 +11,7 @@ const isFlagEnabled = (flag: string, inputTree?: RoamBasicNode[]): boolean => {
   else
     return isFlagEnabled(
       flagParts.slice(1).join("."),
-      getSubTree({ tree, key: flagParts[0] }).children
+      getSubTree({ tree, key: flagParts[0] }).children,
     );
 };
 

@@ -16,7 +16,7 @@ import parseQuery from "./parseQuery";
 import { fireQuerySync, getWhereClauses } from "./fireQuery";
 
 const collectVariables = (
-  clauses: (DatalogClause | DatalogAndClause)[]
+  clauses: (DatalogClause | DatalogAndClause)[],
 ): Set<string> =>
   new Set(
     clauses.flatMap((c) => {
@@ -37,7 +37,7 @@ const collectVariables = (
         default:
           return [];
       }
-    })
+    }),
   );
 
 const ANY_DISCOURSE_NODE = "Any Discourse Node";
@@ -83,11 +83,11 @@ const registerDiscourseDatalogTranslators = () => {
           },
         ]
       : nodeByTypeOrText[target]
-      ? discourseNodeFormatToDatalog({
-          freeVar: source,
-          ...nodeByTypeOrText[target],
-        })
-      : [];
+        ? discourseNodeFormatToDatalog({
+            freeVar: source,
+            ...nodeByTypeOrText[target],
+          })
+        : [];
   };
   const unregisters = new Set<() => void>();
   unregisters.add(
@@ -98,25 +98,25 @@ const registerDiscourseDatalogTranslators = () => {
         .map((d) => d.text)
         .concat(ANY_DISCOURSE_NODE),
       placeholder: "Enter a discourse node",
-    })
+    }),
   );
   unregisters.add(
     registerDatalogTranslator({
       key: "self",
       callback: ({ source, uid }) =>
         isACallback({ source, target: source, uid }),
-    })
+    }),
   );
   unregisters.add(
     registerDatalogTranslator({
       key: "is involved with query",
       targetOptions: () =>
         getPageTitlesStartingWithPrefix("discourse-graph/queries/").map((q) =>
-          q.substring("discourse-graph/queries/".length)
+          q.substring("discourse-graph/queries/".length),
         ),
       callback: ({ source, target }) => {
         const queryUid = getPageUidByPageTitle(
-          `discourse-graph/queries/${target}`
+          `discourse-graph/queries/${target}`,
         );
         const queryMetadataTree = getBasicTreeByParentUid(queryUid);
         const queryData = getSubTree({
@@ -129,7 +129,7 @@ const registerDiscourseDatalogTranslators = () => {
         const orClause: DatalogClause = {
           type: "or-join-clause",
           variables: [{ type: "variable" as const, value: source }].concat(
-            variables.map((value) => ({ value, type: "variable" }))
+            variables.map((value) => ({ value, type: "variable" })),
           ),
           clauses: variables.map((v) => ({
             type: "and-clause",
@@ -156,19 +156,19 @@ const registerDiscourseDatalogTranslators = () => {
         return clauses.concat(orClause);
       },
       placeholder: "Enter query label",
-    })
+    }),
   );
 
   const nodeLabelByType = Object.fromEntries(
-    discourseNodes.map((n) => [n.type, n.text])
+    discourseNodes.map((n) => [n.type, n.text]),
   );
   const nodeByType = Object.fromEntries(discourseNodes.map((n) => [n.type, n]));
   const nodeTypeByLabel = Object.fromEntries(
-    discourseNodes.map((n) => [n.text.toLowerCase(), n.type])
+    discourseNodes.map((n) => [n.text.toLowerCase(), n.type]),
   );
   const doesDiscourseRelationMatchCondition = (
     relation: { source: string; destination: string },
-    condition: { source: string; target: string }
+    condition: { source: string; target: string },
   ) => {
     const sourceType = nodeLabelByType[relation.source];
     const targetType = nodeLabelByType[relation.destination];
@@ -199,7 +199,7 @@ const registerDiscourseDatalogTranslators = () => {
               matchDiscourseNode({
                 ...node,
                 uid: condition.target,
-              })
+              }),
           ))
       );
     }
@@ -210,7 +210,7 @@ const registerDiscourseDatalogTranslators = () => {
     return false; // !nodeLabelByType[condition.source] && !nodeLabelByType[condition.target]
   };
   const relationLabels = new Set(
-    discourseRelations.flatMap((d) => [d.label, d.complement].filter(Boolean))
+    discourseRelations.flatMap((d) => [d.label, d.complement].filter(Boolean)),
   );
   relationLabels.add(ANY_RELATION_REGEX.source);
   relationLabels.forEach((label) => {
@@ -224,19 +224,19 @@ const registerDiscourseDatalogTranslators = () => {
               doesDiscourseRelationMatchCondition(r, { source, target })
                 ? { ...r, forward: true }
                 : doesDiscourseRelationMatchCondition(
-                    { source: r.destination, destination: r.source },
-                    { source, target }
-                  ) &&
-                  (r.complement === label || ANY_RELATION_REGEX.test(label))
-                ? { ...r, forward: false }
-                : undefined
+                      { source: r.destination, destination: r.source },
+                      { source, target },
+                    ) &&
+                    (r.complement === label || ANY_RELATION_REGEX.test(label))
+                  ? { ...r, forward: false }
+                  : undefined,
             )
             .filter(
               (
-                r
+                r,
               ): r is ReturnType<typeof getDiscourseRelations>[number] & {
                 forward: boolean;
-              } => !!r
+              } => !!r,
             );
           if (!filteredRelations.length) return [];
           const andParts = filteredRelations.map(
@@ -248,7 +248,7 @@ const registerDiscourseDatalogTranslators = () => {
             }) => {
               const sourceTriple = triples.find((t) => t[2] === "source");
               const targetTriple = triples.find(
-                (t) => t[2] === "destination" || t[2] === "target"
+                (t) => t[2] === "destination" || t[2] === "target",
               );
               if (!sourceTriple || !targetTriple) return [];
               const computeEdgeTriple = ({
@@ -317,7 +317,7 @@ const registerDiscourseDatalogTranslators = () => {
                         value: target,
                         triple: targetTriple,
                         nodeType: relationTarget,
-                      })
+                      }),
                     )
                     .concat([
                       {
@@ -363,7 +363,7 @@ const registerDiscourseDatalogTranslators = () => {
                         value: source,
                         triple: targetTriple,
                         nodeType: relationTarget,
-                      })
+                      }),
                     )
                     .concat([
                       {
@@ -409,7 +409,7 @@ const registerDiscourseDatalogTranslators = () => {
                     not: false,
                     uid,
                     type: "clause",
-                  })
+                  }),
                 );
               return replaceDatalogVariables(
                 [
@@ -417,9 +417,9 @@ const registerDiscourseDatalogTranslators = () => {
                   { from: target, to: target },
                   { from: true, to: (v) => `${uid}-${v}` },
                 ],
-                edgeTriples.concat(subQuery)
+                edgeTriples.concat(subQuery),
               );
-            }
+            },
           );
           if (andParts.length === 1) return andParts[0];
 
@@ -460,10 +460,10 @@ const registerDiscourseDatalogTranslators = () => {
           const relevantRelations = ANY_RELATION_REGEX.test(label)
             ? allRelations
             : allRelations.filter(
-                (dr) => dr.relation === label && nodeByType[dr.target]
+                (dr) => dr.relation === label && nodeByType[dr.target],
               );
           const relevantTargets = Array.from(
-            new Set(relevantRelations.map((rr) => rr.target))
+            new Set(relevantRelations.map((rr) => rr.target)),
           );
           if (relevantTargets.length === 0) return [];
           try {
@@ -494,7 +494,7 @@ const registerDiscourseDatalogTranslators = () => {
           }
         },
         placeholder: "Enter a valid target",
-      })
+      }),
     );
   });
   return Array.from(unregisters);

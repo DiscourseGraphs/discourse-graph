@@ -22,11 +22,11 @@ type Props = {
 const NodeMenu = ({ onClose, textarea }: { onClose: () => void } & Props) => {
   const discourseNodes = useMemo(
     () => getDiscourseNodes().filter((n) => n.backedBy === "user"),
-    []
+    [],
   );
   const indexBySC = useMemo(
     () => Object.fromEntries(discourseNodes.map((mi, i) => [mi.shortcut, i])),
-    [discourseNodes]
+    [discourseNodes],
   );
   const shortcuts = useMemo(() => new Set(Object.keys(indexBySC)), [indexBySC]);
   const blockUid = useMemo(() => getUids(textarea).blockUid, [textarea]);
@@ -40,7 +40,7 @@ const NodeMenu = ({ onClose, textarea }: { onClose: () => void } & Props) => {
       const nodeUid = menuItem.getAttribute("data-node") || "";
       const highlighted = textarea.value.substring(
         textarea.selectionStart,
-        textarea.selectionEnd
+        textarea.selectionEnd,
       );
       setTimeout(async () => {
         const pageName = await getNewDiscourseNodeText({
@@ -51,7 +51,7 @@ const NodeMenu = ({ onClose, textarea }: { onClose: () => void } & Props) => {
         const currentBlockText = getTextByBlockUid(blockUid);
         const newText = `${currentBlockText.substring(
           0,
-          textarea.selectionStart
+          textarea.selectionStart,
         )}[[${pageName}]]${currentBlockText.substring(textarea.selectionEnd)}`;
 
         updateBlock({ text: newText, uid: blockUid });
@@ -62,25 +62,25 @@ const NodeMenu = ({ onClose, textarea }: { onClose: () => void } & Props) => {
       });
       onClose();
     },
-    [menuRef, blockUid, onClose]
+    [menuRef, blockUid, onClose],
   );
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === "ArrowDown") {
         const index = Number(
-          menuRef.current?.getAttribute("data-active-index")
+          menuRef.current?.getAttribute("data-active-index"),
         );
         const count = menuRef.current?.childElementCount || 0;
         setActiveIndex((index + 1) % count);
       } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
         const index = Number(
-          menuRef.current?.getAttribute("data-active-index")
+          menuRef.current?.getAttribute("data-active-index"),
         );
         const count = menuRef.current?.childElementCount || 0;
         setActiveIndex((index - 1 + count) % count);
       } else if (e.key === "Enter") {
         const index = Number(
-          menuRef.current?.getAttribute("data-active-index")
+          menuRef.current?.getAttribute("data-active-index"),
         );
         onSelect(index);
       } else if (shortcuts.has(e.key.toUpperCase())) {
@@ -91,7 +91,7 @@ const NodeMenu = ({ onClose, textarea }: { onClose: () => void } & Props) => {
       e.stopPropagation();
       e.preventDefault();
     },
-    [menuRef, setActiveIndex]
+    [menuRef, setActiveIndex],
   );
   useEffect(() => {
     textarea.addEventListener("keydown", keydownListener);
@@ -150,7 +150,7 @@ export const render = (props: Props) => {
         parent.remove();
       }}
     />,
-    parent
+    parent,
   );
 };
 

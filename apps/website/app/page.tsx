@@ -13,7 +13,7 @@ const inter = Inter({ subsets: ["latin"] });
 export default function Home() {
   return (
     <div className={`min-h-screen bg-neutral-light ${inter.className}`}>
-      <header className="flex flex-col md:flex-row items-center justify-between px-6 py-4 space-y-4 md:space-y-0">
+      <header className="flex flex-col items-center justify-between space-y-4 px-6 py-4 md:flex-row md:space-y-0">
         <Link href="/" className="flex items-center space-x-2">
           <Image
             src="/logo-screenshot-48.png"
@@ -27,7 +27,7 @@ export default function Home() {
           </span>
         </Link>
         <nav className="w-full md:w-auto">
-          <ul className="flex flex-wrap justify-center md:flex-nowrap space-x-4 md:space-x-8">
+          <ul className="flex flex-wrap justify-center space-x-4 md:flex-nowrap md:space-x-8">
             {[
               "About",
               "Resources",
@@ -50,7 +50,7 @@ export default function Home() {
       </header>
 
       {/* Hero */}
-      <section className="relative bg-neutral-dark text-center py-24 px-6 overflow-hidden">
+      <section className="relative overflow-hidden bg-neutral-dark px-6 py-24 text-center">
         <Image
           src="/MATSU_lab_journal_club_graph_view.png"
           alt="Discourse Graph Network Visualization"
@@ -60,18 +60,18 @@ export default function Home() {
           quality={85}
         />
         <div className="relative z-10">
-          <h2 className="text-2xl md:text-3xl lg:text-5xl font-semibold max-w-5xl mx-auto text-white">
+          <h2 className="mx-auto max-w-5xl text-2xl font-semibold text-white md:text-3xl lg:text-5xl">
             A tool and ecosystem for collaborative knowledge synthesis
           </h2>
         </div>
       </section>
 
-      <main className="space-y-12 px-6 py-12 max-w-6xl mx-auto">
+      <main className="mx-auto max-w-6xl space-y-12 px-6 py-12">
         {/* About */}
         <div className="space-y-12" id="about">
-          <section className="grid md:grid-cols-2 gap-12 items-center">
+          <section className="grid items-center gap-12 md:grid-cols-2">
             <div>
-              <h3 className="text-2xl font-bold text-primary mb-4">
+              <h3 className="mb-4 text-2xl font-bold text-primary">
                 Information Model
               </h3>
               <p className="mb-4 text-neutral-dark">
@@ -90,9 +90,9 @@ export default function Home() {
               />
             </div>
           </section>
-          <section className="grid md:grid-cols-2 gap-12 items-center">
+          <section className="grid items-center gap-12 md:grid-cols-2">
             <div className="order-1 md:order-2">
-              <h3 className="text-2xl font-bold text-primary mb-4">
+              <h3 className="mb-4 text-2xl font-bold text-primary">
                 Better Infra for Communication
               </h3>
               <p className="mb-4 text-neutral-dark">
@@ -116,9 +116,9 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="grid md:grid-cols-2 gap-12 items-center">
+          <section className="grid items-center gap-12 md:grid-cols-2">
             <div>
-              <h3 className="text-2xl font-bold text-primary mb-4">
+              <h3 className="mb-4 text-2xl font-bold text-primary">
                 Synthesize and Update
               </h3>
               <p className="mb-4 text-neutral-dark">
@@ -144,9 +144,9 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="grid md:grid-cols-2 gap-12 items-center">
+          <section className="grid items-center gap-12 md:grid-cols-2">
             <div className="order-1 md:order-2">
-              <h3 className="text-2xl font-bold text-primary mb-4">
+              <h3 className="mb-4 text-2xl font-bold text-primary">
                 Liberate your Findings
               </h3>
               <p className="mb-4 text-neutral-dark">
@@ -175,9 +175,9 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="grid md:grid-cols-2 gap-12 items-center">
+          <section className="grid items-center gap-12 md:grid-cols-2">
             <div>
-              <h3 className="text-2xl font-bold text-primary mb-4">
+              <h3 className="mb-4 text-2xl font-bold text-primary">
                 Client-Agnostic & Researcher-Aligned
               </h3>
               <p className="mb-4 text-neutral-dark">
@@ -202,29 +202,29 @@ export default function Home() {
                 Discourse Graphs are like github for scientific communication.
               </p>
             </div>
-            <Card className="bg-white/50 rounded-lg p-8">
+            <Card className="rounded-lg bg-white/50 p-8">
               <div className="flex flex-col items-center justify-center space-y-4">
                 <Image
                   src="/section5a.webp"
                   alt="Client-Agnostic & Researcher-Aligned"
                   width={400}
                   height={400}
-                  className="rounded-lg object-contain h-52 w-auto"
+                  className="h-52 w-auto rounded-lg object-contain"
                 />
                 <Image
                   src="/section5b.webp"
                   alt="Client-Agnostic & Researcher-Aligned"
                   width={400}
                   height={400}
-                  className="rounded-lg object-contain h-52 w-auto"
+                  className="h-52 w-auto rounded-lg object-contain"
                 />
               </div>
             </Card>
           </section>
 
-          <section className="grid md:grid-cols-2 gap-12 items-center">
+          <section className="grid items-center gap-12 md:grid-cols-2">
             <div className="order-1 md:order-2">
-              <h3 className="text-2xl font-bold text-primary mb-4">
+              <h3 className="mb-4 text-2xl font-bold text-primary">
                 The Natural OS for a Cloud Laboratory
               </h3>
               <p className="mb-4 text-neutral-dark">
@@ -235,7 +235,7 @@ export default function Home() {
               <p className="mb-4 text-neutral-dark">
                 Lab Discourse Graphs can be used to support:
               </p>
-              <ul className="list-disc list-inside mb-4 space-y-2">
+              <ul className="mb-4 list-inside list-disc space-y-2">
                 <li className="text-neutral-dark">
                   identifying gaps in knowledge and tractable "starter projects"
                   for new researchers
@@ -265,9 +265,9 @@ export default function Home() {
                 alt="Cloud Laboratory Workflow"
                 width={828}
                 height={740}
-                className="rounded-lg mx-auto"
+                className="mx-auto rounded-lg"
               />
-              <p className="text-neutral-dark text-right">
+              <p className="text-right text-neutral-dark">
                 Snapshot of <Link href="https://matsulab.com/">MATSU lab</Link>{" "}
                 Discourse Graph
               </p>
@@ -276,9 +276,9 @@ export default function Home() {
         </div>
 
         {/* Resources */}
-        <Card id="resources" className="bg-white/50 rounded-xl p-8 shadow-md">
+        <Card id="resources" className="rounded-xl bg-white/50 p-8 shadow-md">
           <CardHeader>
-            <CardTitle className="text-4xl font-bold text-primary mb-8">
+            <CardTitle className="mb-8 text-4xl font-bold text-primary">
               Resources
             </CardTitle>
           </CardHeader>
@@ -286,7 +286,7 @@ export default function Home() {
           {/* <h2 ></h2> */}
 
           <CardContent>
-            <ul className="list-disc list-inside space-y-2">
+            <ul className="list-inside list-disc space-y-2">
               <li className="text-neutral-dark">
                 <Link href="https://research.protocol.ai/blog/2023/discourse-graphs-and-the-future-of-science/">
                   Discourse Graphs and the Future of Science
@@ -334,24 +334,24 @@ export default function Home() {
         </Card>
 
         {/* Events */}
-        <Card id="events" className="bg-white/50 rounded-xl p-8 shadow-md">
+        <Card id="events" className="rounded-xl bg-white/50 p-8 shadow-md">
           <CardHeader>
-            <CardTitle className="text-4xl font-bold text-primary mb-8">
+            <CardTitle className="mb-8 text-4xl font-bold text-primary">
               Events
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-semibold text-neutral-dark mb-2">
+                <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
                   IOSP '25 Winter Workshop: Discourse Graphs
                 </h3>
-                <p className="text-neutral-dark mb-2">
+                <p className="mb-2 text-neutral-dark">
                   February 23-24, 2025 | Denver Museum of Nature and Science
                 </p>
                 <Link
                   href="https://iosp.io/schedule"
-                  className="text-primary hover:text-primary/80 transition-colors"
+                  className="text-primary transition-colors hover:text-primary/80"
                 >
                   View full schedule →
                 </Link>
@@ -361,18 +361,18 @@ export default function Home() {
         </Card>
 
         {/* Talks */}
-        <Card id="talks" className="bg-white/50 rounded-xl p-8 shadow-md">
+        <Card id="talks" className="rounded-xl bg-white/50 p-8 shadow-md">
           <CardHeader>
-            <CardTitle className="text-4xl font-bold text-primary mb-8">
+            <CardTitle className="mb-8 text-4xl font-bold text-primary">
               Talks
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-4">
                 <div className="relative aspect-video">
                   <iframe
-                    className="absolute inset-0 w-full h-full rounded-lg"
+                    className="absolute inset-0 h-full w-full rounded-lg"
                     src="https://www.youtube-nocookie.com/embed/Fm-lzNhVMKs"
                     title="Discourse Graphs: A New Model for Scientific Communication"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -390,7 +390,7 @@ export default function Home() {
               <div className="space-y-4">
                 <div className="relative aspect-video">
                   <iframe
-                    className="absolute inset-0 w-full h-full rounded-lg"
+                    className="absolute inset-0 h-full w-full rounded-lg"
                     src="https://www.youtube-nocookie.com/embed/2xGQepp-f-8"
                     title="Open Sourcing Scientific Research with Lab Discourse Graphs"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -408,7 +408,7 @@ export default function Home() {
               <div className="space-y-4">
                 <div className="relative aspect-video">
                   <iframe
-                    className="absolute inset-0 w-full h-full rounded-lg"
+                    className="absolute inset-0 h-full w-full rounded-lg"
                     src="https://www.youtube-nocookie.com/embed/53kLyq7PceQ"
                     title="Accelerating Scientific Discovery with Discourse Graphs"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -426,7 +426,7 @@ export default function Home() {
               <div className="space-y-4">
                 <div className="relative aspect-video">
                   <iframe
-                    className="absolute inset-0 w-full h-full rounded-lg"
+                    className="absolute inset-0 h-full w-full rounded-lg"
                     src="https://www.youtube-nocookie.com/embed/P0KUt2yrUkw"
                     title="Research roadmapping with discourse graphs"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -445,41 +445,41 @@ export default function Home() {
         </Card>
 
         {/* Supporters */}
-        <Card id="supporters" className="bg-white/50 rounded-xl p-8 shadow-md">
+        <Card id="supporters" className="rounded-xl bg-white/50 p-8 shadow-md">
           <CardHeader>
-            <CardTitle className="text-4xl font-bold text-primary mb-8">
+            <CardTitle className="mb-8 text-4xl font-bold text-primary">
               Supporters
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-[800px] mx-auto">
+            <div className="mx-auto grid max-w-[800px] grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
               <Link
                 href="https://research.protocol.ai/"
-                className="hover:opacity-80 transition-opacity w-[200px] h-[88px] flex items-center justify-center mx-auto"
+                className="mx-auto flex h-[88px] w-[200px] items-center justify-center transition-opacity hover:opacity-80"
               >
                 <Image
                   src="/supporter-logos/PL_Research.svg"
                   alt="Protocol Labs Research"
                   width={406}
                   height={176}
-                  className="w-full h-full object-contain"
+                  className="h-full w-full object-contain"
                 />
               </Link>
               <Link
                 href="https://cziscience.medium.com/request-for-information-pathways-to-ai-enabled-research-55c52124def4"
-                className="hover:opacity-80 transition-opacity w-[160px] h-[88px] flex items-center justify-center mx-auto"
+                className="mx-auto flex h-[88px] w-[160px] items-center justify-center transition-opacity hover:opacity-80"
               >
                 <Image
                   src="/supporter-logos/Chan_Zuckerberg_Initiative.svg"
                   alt="Chan Zuckerberg Initiative"
                   width={112}
                   height={62}
-                  className="w-full h-full object-contain"
+                  className="h-full w-full object-contain"
                 />
               </Link>
               <Link
                 href="https://www.metagov.org/"
-                className="hover:opacity-80 hover:text-[rgb(0,204,153)] transition-opacity flex items-center justify-center mx-auto gap-4 w-[160px] h-[88px]"
+                className="mx-auto flex h-[88px] w-[160px] items-center justify-center gap-4 transition-opacity hover:text-[rgb(0,204,153)] hover:opacity-80"
               >
                 <div className="h-[42px] w-[42px] flex-shrink-0">
                   <Image
@@ -487,33 +487,33 @@ export default function Home() {
                     alt="Metagov"
                     width={42}
                     height={42}
-                    className="w-full h-full object-contain"
+                    className="h-full w-full object-contain"
                   />
                 </div>
                 <span className="text-[rgb(0,204,153)]">Metagov</span>
               </Link>
               <Link
                 href="https://experiment.com/grants/metascience"
-                className="hover:opacity-80 transition-opacity w-[200px] h-[88px] flex items-center justify-center mx-auto"
+                className="mx-auto flex h-[88px] w-[200px] items-center justify-center transition-opacity hover:opacity-80"
               >
                 <Image
                   src="/supporter-logos/Schmidt_Futures.svg"
                   alt="Schmidt Futures"
                   width={267}
                   height={20}
-                  className="w-full h-full object-contain"
+                  className="h-full w-full object-contain"
                 />
               </Link>
               <Link
                 href="https://www.navigation.org/grants/open-science"
-                className="hover:opacity-80 transition-opacity w-[200px] h-[88px] flex items-center justify-center mx-auto"
+                className="mx-auto flex h-[88px] w-[200px] items-center justify-center transition-opacity hover:opacity-80"
               >
                 <Image
                   src="/supporter-logos/The_Navigation_Fund.svg"
                   alt="The Navigation Fund"
                   width={546}
                   height={262}
-                  className="w-full h-full object-contain"
+                  className="h-full w-full object-contain"
                 />
               </Link>
             </div>
@@ -521,9 +521,9 @@ export default function Home() {
         </Card>
 
         {/* Contact */}
-        <Card id="contact" className="bg-white/50 rounded-xl p-8 shadow-md">
+        <Card id="contact" className="rounded-xl bg-white/50 p-8 shadow-md">
           <CardHeader>
-            <CardTitle className="text-4xl font-bold text-primary mb-8">
+            <CardTitle className="mb-8 text-4xl font-bold text-primary">
               Ecosystem
             </CardTitle>
           </CardHeader>
@@ -559,10 +559,10 @@ export default function Home() {
         </Card>
       </main>
 
-      <footer className="bg-neutral-dark border-t border-neutral-light/10 mt-12 py-6 px-6">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
+      <footer className="mt-12 border-t border-neutral-light/10 bg-neutral-dark px-6 py-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
           <p className="text-secondary">© 2024 Discourse Graphs</p>
-          <div className="flex space-x-4 items-center">
+          <div className="flex items-center space-x-4">
             <Link
               href="https://github.com/DiscourseGraphs"
               aria-label="GitHub Repository"
@@ -572,7 +572,7 @@ export default function Home() {
                 alt="GitHub"
                 width={24}
                 height={24}
-                className="opacity-80 hover:opacity-100 transition-opacity"
+                className="opacity-80 transition-opacity hover:opacity-100"
               />
             </Link>
             <Link href="https://discord.gg/vq83RRk2tg" aria-label="Discord">
@@ -581,7 +581,7 @@ export default function Home() {
                 alt="Discord"
                 width={24}
                 height={24}
-                className="opacity-80 hover:opacity-100 transition-opacity"
+                className="opacity-80 transition-opacity hover:opacity-100"
               />
             </Link>
           </div>

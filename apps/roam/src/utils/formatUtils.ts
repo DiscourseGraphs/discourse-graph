@@ -16,7 +16,7 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 type FormDialogProps = Parameters<typeof FormDialog>[0];
 const renderFormDialog = createOverlayRender<FormDialogProps>(
   "form-dialog",
-  FormDialog
+  FormDialog,
 );
 
 export const getNewDiscourseNodeText = async ({
@@ -61,14 +61,14 @@ export const getNewDiscourseNodeText = async ({
   }
 
   const indexedByType = Object.fromEntries(
-    discourseNodes.map((mi, i) => [mi.type, mi])
+    discourseNodes.map((mi, i) => [mi.type, mi]),
   );
 
   const format = indexedByType[nodeType]?.format || "";
   const formattedText = format.replace(/{([\w\d-]*)}/g, (_, val) => {
     if (/content/i.test(val)) return newText;
     const referencedNode = discourseNodes.find(({ text: newText }) =>
-      new RegExp(newText, "i").test(val)
+      new RegExp(newText, "i").test(val),
     );
     if (referencedNode) {
       const referenced = window.roamAlphaAPI.data.fast.q(
@@ -76,10 +76,10 @@ export const getNewDiscourseNodeText = async ({
           {
             freeVar: "r",
             ...referencedNode,
-          }
+          },
         )
           .map((c) => compileDatalog(c, 0))
-          .join(" ")}]`
+          .join(" ")}]`,
       )?.[0]?.[0] as PullBlock;
       return referenced?.[":node/title"]
         ? `[[${referenced?.[":node/title"]}]]`
@@ -114,7 +114,7 @@ export const getReferencedNodeInFormat = ({
     if (val.toLowerCase() === "context") continue;
 
     const referencedNode = Object.values(discourseNodes).find(({ text }) =>
-      new RegExp(text, "i").test(val)
+      new RegExp(text, "i").test(val),
     );
 
     if (referencedNode) return referencedNode;
@@ -138,7 +138,7 @@ export const findReferencedNodeInText = ({
 
   const specification = discourseNode.specification;
   const titleCondition = specification.find(
-    (s): s is QBClause => s.type === "clause" && s.relation === "has title"
+    (s): s is QBClause => s.type === "clause" && s.relation === "has title",
   );
   if (!titleCondition) return null;
 

@@ -53,7 +53,7 @@ const getSourceCandidates = (cs: Condition[]): string[] =>
       ? isTargetVariable({ relation: c.relation })
         ? [c.target]
         : []
-      : getSourceCandidates(c.conditions.flat())
+      : getSourceCandidates(c.conditions.flat()),
   );
 
 const QueryClause = ({
@@ -71,17 +71,17 @@ const QueryClause = ({
   const conditionLabels = useMemo(getConditionLabels, []);
   const targetOptions = useMemo(
     () => sourceToTargetOptions({ source: con.source, relation: con.relation }),
-    [con.source, con.relation]
+    [con.source, con.relation],
   );
   const targetPlaceholder = useMemo(
     () => sourceToTargetPlaceholder({ relation: con.relation }),
-    [con.source, con.relation]
+    [con.source, con.relation],
   );
   const setConditionRelation = useCallback(
     (e: string, timeout: boolean = true) => {
       window.clearTimeout(debounceRef.current);
       setConditions((_conditions) =>
-        _conditions.map((c) => (c.uid === con.uid ? { ...c, relation: e } : c))
+        _conditions.map((c) => (c.uid === con.uid ? { ...c, relation: e } : c)),
       );
       debounceRef.current = window.setTimeout(
         () => {
@@ -92,16 +92,16 @@ const QueryClause = ({
             index: 1,
           });
         },
-        timeout ? 1000 : 0
+        timeout ? 1000 : 0,
       );
     },
-    [setConditions, con.uid]
+    [setConditions, con.uid],
   );
   const setConditionTarget = useCallback(
     (e, timeout: boolean = true) => {
       window.clearTimeout(debounceRef.current);
       setConditions((_conditions) =>
-        _conditions.map((c) => (c.uid === con.uid ? { ...c, target: e } : c))
+        _conditions.map((c) => (c.uid === con.uid ? { ...c, target: e } : c)),
       );
       debounceRef.current = window.setTimeout(
         () => {
@@ -112,14 +112,14 @@ const QueryClause = ({
             index: 2,
           });
         },
-        timeout ? 1000 : 0
+        timeout ? 1000 : 0,
       );
     },
-    [setConditions, con.uid]
+    [setConditions, con.uid],
   );
   const availableSources = useMemo(
     () => getAvailableVariables(index),
-    [getAvailableVariables, index]
+    [getAvailableVariables, index],
   );
   return (
     <>
@@ -140,8 +140,8 @@ const QueryClause = ({
           });
           setConditions((_conditions) =>
             _conditions.map((c) =>
-              c.uid === con.uid ? { ...con, source: value } : c
-            )
+              c.uid === con.uid ? { ...con, source: value } : c,
+            ),
           );
         }}
       />
@@ -236,8 +236,8 @@ const QueryCondition = ({
             (con.type === "clause" || con.type === "not"))
             ? Promise.all(
                 getShallowTreeByParentUid(con.uid).map((c) =>
-                  deleteBlock(c.uid)
-                )
+                  deleteBlock(c.uid),
+                ),
               ).then(() => updateBlock({ uid: con.uid, text: value }))
             : updateBlock({
                 uid: con.uid,
@@ -260,8 +260,8 @@ const QueryCondition = ({
                         type: value,
                         conditions: (c as QBNestedData).conditions || [],
                       }
-                  : c
-              )
+                  : c,
+              ),
             );
           });
         }}
@@ -282,7 +282,7 @@ const QueryCondition = ({
         onClick={() => {
           deleteBlock(con.uid);
           setConditions((_conditions) =>
-            _conditions.filter((c) => c.uid !== con.uid)
+            _conditions.filter((c) => c.uid !== con.uid),
           );
         }}
         minimal
@@ -307,7 +307,7 @@ const QuerySelection = ({
       window.clearTimeout(debounceRef.current);
       const label = e.target.value;
       setSelections((selections) =>
-        selections.map((s) => (s.uid === sel.uid ? { ...s, label } : s))
+        selections.map((s) => (s.uid === sel.uid ? { ...s, label } : s)),
       );
       debounceRef.current = window.setTimeout(
         () => {
@@ -315,31 +315,31 @@ const QuerySelection = ({
           if (firstChild) updateBlock({ uid: firstChild, text: label });
           else createBlock({ parentUid: sel.uid, node: { text: label } });
         },
-        timeout ? 1000 : 0
+        timeout ? 1000 : 0,
       );
     },
-    [setSelections, sel.uid]
+    [setSelections, sel.uid],
   );
   const setSelectionData = useCallback(
     (text: string, timeout: boolean = true) => {
       window.clearTimeout(debounceRef.current);
       setSelections((selections) =>
-        selections.map((s) => (s.uid === sel.uid ? { ...s, text } : s))
+        selections.map((s) => (s.uid === sel.uid ? { ...s, text } : s)),
       );
       debounceRef.current = window.setTimeout(
         () => {
           updateBlock({ uid: sel.uid, text });
         },
-        timeout ? 1000 : 0
+        timeout ? 1000 : 0,
       );
     },
-    [setSelections, sel.uid]
+    [setSelections, sel.uid],
   );
   const setSelectionDataOnBlur = useCallback(
     (e: string) => {
       setSelectionData(e, false);
     },
-    [setSelectionData]
+    [setSelectionData],
   );
   const selectionOptions = useMemo(() => {
     const variables = getAvailableVariables(Number.MAX_VALUE);
@@ -402,8 +402,8 @@ const QuerySelection = ({
         onClick={() => {
           deleteBlock(sel.uid).then(() =>
             setSelections((selections) =>
-              selections.filter((c) => c.uid !== sel.uid)
-            )
+              selections.filter((c) => c.uid !== sel.uid),
+            ),
           );
         }}
         minimal
@@ -415,7 +415,7 @@ const QuerySelection = ({
 
 const getConditionByUid = (
   uid: string,
-  conditions: Condition[]
+  conditions: Condition[],
 ): Condition | undefined => {
   for (const con of conditions) {
     if (con.uid === uid) return con;
@@ -449,18 +449,18 @@ const QueryEditor: QueryEditorComponent = ({
     }) as EventListener;
     document.body.addEventListener(
       "roamjs-query-builder:fire-query",
-      previewQuery
+      previewQuery,
     );
 
     return () => {
       document.body.removeEventListener(
         "roamjs-query-builder:fire-query",
-        previewQuery
+        previewQuery,
       );
     };
   }, [setHasResults, parentUid]);
   const [conditionLabels, setConditionLabels] = useState(
-    () => new Set(getConditionLabels())
+    () => new Set(getConditionLabels()),
   );
   const {
     conditionsNodesUid,
@@ -495,7 +495,7 @@ const QueryEditor: QueryEditorComponent = ({
       view.uid === parentUid
         ? undefined
         : (getConditionByUid(view.uid, conditions) as QBNestedData),
-    [view, conditions]
+    [view, conditions],
   );
   const setConditions = useMemo<
     React.Dispatch<React.SetStateAction<Condition[]>>
@@ -505,7 +505,7 @@ const QueryEditor: QueryEditorComponent = ({
       if (!viewCondition) return;
       if (typeof nestedConditions === "function") {
         viewCondition.conditions[view.branch] = nestedConditions(
-          viewCondition.conditions[view.branch]
+          viewCondition.conditions[view.branch],
         );
       } else {
         viewCondition.conditions[view.branch] = nestedConditions;
@@ -518,7 +518,7 @@ const QueryEditor: QueryEditorComponent = ({
       view.uid === parentUid
         ? conditions
         : viewCondition?.conditions?.[view.branch] || [],
-    [view, viewCondition, conditions]
+    [view, viewCondition, conditions],
   );
   const disabledMessage = useMemo(() => {
     for (let index = 0; index < conditions.length; index++) {
@@ -551,13 +551,13 @@ const QueryEditor: QueryEditorComponent = ({
     return "";
   }, [selections, conditionLabels, conditions]);
   const [isCustomEnabled, setIsCustomEnabled] = useState(
-    initialIsCustomEnabled
+    initialIsCustomEnabled,
   );
 
   const [isEditingLabel, setIsEditingLabel] = useState(false);
   const [label, setLabel] = useState(() => {
     const aliasMatch = getTextByBlockUid(parentUid).match(
-      /{{query block:(.*?)}}/
+      /{{query block:(.*?)}}/,
     );
     return !!aliasMatch && aliasMatch[1] !== "" ? aliasMatch[1] : "";
   });
@@ -565,9 +565,9 @@ const QueryEditor: QueryEditorComponent = ({
   const getAvailableVariables = useCallback(
     (index: number) =>
       Array.from(
-        new Set(getSourceCandidates(viewConditions.slice(0, index)))
+        new Set(getSourceCandidates(viewConditions.slice(0, index))),
       ).concat(DEFAULT_RETURN_NODE),
-    [viewConditions]
+    [viewConditions],
   );
   const addCondition = useCallback(
     ({ parentUid, order }: { parentUid: string; order: number }) => {
@@ -594,7 +594,7 @@ const QueryEditor: QueryEditorComponent = ({
         document.getElementById(`${uid}-relation`)?.focus();
       });
     },
-    [setConditions, setInputSetting]
+    [setConditions, setInputSetting],
   );
   const createBranch = useCallback(() => {
     createBlock({
@@ -611,7 +611,7 @@ const QueryEditor: QueryEditorComponent = ({
         vs.slice(0, -1).concat({
           uid: view.uid,
           branch: newBranch,
-        })
+        }),
       );
     });
   }, [view.uid, viewCondition, setViewStack]);
@@ -652,7 +652,7 @@ const QueryEditor: QueryEditorComponent = ({
               uid: view.uid,
               branch: view.branch - 1,
             },
-          ])
+          ]),
         );
         event.preventDefault();
       }
@@ -660,7 +660,7 @@ const QueryEditor: QueryEditorComponent = ({
         setViewStack(
           viewStack
             .slice(0, -1)
-            .concat([{ uid: view.uid, branch: view.branch + 1 }])
+            .concat([{ uid: view.uid, branch: view.branch + 1 }]),
         );
         event.preventDefault();
       }
@@ -670,7 +670,7 @@ const QueryEditor: QueryEditorComponent = ({
   }, [view, viewCondition]);
 
   return view.uid === parentUid ? (
-    <div className={"p-4 overflow-auto"}>
+    <div className={"overflow-auto p-4"}>
       <H6
         style={{
           display: "flex",
@@ -771,7 +771,7 @@ const QueryEditor: QueryEditorComponent = ({
               tabIndex={-1}
               onClick={() => setIsEditingLabel(true)}
               className={`${
-                !!label ? "" : "italic opacity-25 text-sm"
+                !!label ? "" : "text-sm italic opacity-25"
               } inline-block flex-grow`}
             >
               {!!label ? label : "edit alias"}
@@ -832,7 +832,7 @@ const QueryEditor: QueryEditorComponent = ({
         <TextArea
           value={custom}
           onChange={(e) => customNodeOnChange(e.target.value)}
-          className={"w-full mb-8"}
+          className={"mb-8 w-full"}
           style={{ resize: "vertical", fontFamily: "monospace" }}
           rows={8}
         />
@@ -912,11 +912,11 @@ const QueryEditor: QueryEditorComponent = ({
           />
         </span>
         <span
-          className="flex-grow flex gap-4 justify-end items-center"
+          className="flex flex-grow items-center justify-end gap-4"
           style={{ minWidth: 240 }}
         >
           {showDisabledMessage && (
-            <span className="text-red-700 inline-block text-xs">
+            <span className="inline-block text-xs text-red-700">
               {disabledMessage}
             </span>
           )}
@@ -934,7 +934,7 @@ const QueryEditor: QueryEditorComponent = ({
             setViewStack(
               viewStack
                 .slice(0, -1)
-                .concat([{ uid: view.uid, branch: Number(e) }])
+                .concat([{ uid: view.uid, branch: Number(e) }]),
             )
           }
         >
@@ -1010,14 +1010,14 @@ const QueryEditor: QueryEditorComponent = ({
                   getNthChildUidByBlockUid({
                     blockUid: view.uid,
                     order: view.branch,
-                  })
+                  }),
                 );
                 viewCondition?.conditions.splice(view.branch, 1);
                 setViewStack(
                   viewStack.slice(0, -1).concat({
                     uid: view.uid,
                     branch: view.branch === 0 ? 0 : view.branch - 1,
-                  })
+                  }),
                 );
               }}
             />

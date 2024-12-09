@@ -22,7 +22,7 @@ const triplesToBlocks =
       source: string;
       target: string;
       relation: string;
-    }[]
+    }[],
   ) =>
   () => {
     const relationToTitle = (source: string) => {
@@ -30,8 +30,8 @@ const triplesToBlocks =
         (h) =>
           h.source === source &&
           [/is a/i, /has title/i, /with text/i, /with uid/i].some((r) =>
-            r.test(h.relation)
-          )
+            r.test(h.relation),
+          ),
       ) || {
         relation: "",
         target: "",
@@ -44,12 +44,12 @@ const triplesToBlocks =
             isPage: true,
           }
         : /has title/i.test(rel.relation)
-        ? { text: rel.target, isPage: true }
-        : /with text/i.test(rel.relation)
-        ? { text: rel.target, isPage: false }
-        : /with uid/i.test(rel.relation)
-        ? { text: rel.target, isPage: false }
-        : { text: source, isPage: true };
+          ? { text: rel.target, isPage: true }
+          : /with text/i.test(rel.relation)
+            ? { text: rel.target, isPage: false }
+            : /with uid/i.test(rel.relation)
+              ? { text: rel.target, isPage: false }
+              : { text: source, isPage: true };
     };
     const blockReferences = new Set<{
       uid: string;
@@ -67,7 +67,7 @@ const triplesToBlocks =
             if (target.isPage && target.text) return `[[${target.text}]]`;
             else if (target.text) return `((${target.text}))`;
             const text = triples.find(
-              (h) => h.source === e.target && /with text/i.test(h.relation)
+              (h) => h.source === e.target && /with text/i.test(h.relation),
             )?.target;
             if (text) {
               const uid = window.roamAlphaAPI.util.generateUID();
@@ -82,13 +82,13 @@ const triplesToBlocks =
           .filter(
             (c) =>
               [/has child/i, /has descendant/i].some((r) =>
-                r.test(c.relation)
-              ) && c.source === source
+                r.test(c.relation),
+              ) && c.source === source,
           )
           .map((c) => toBlock(c.target)),
         ...triples
           .filter(
-            (c) => /has ancestor/i.test(c.relation) && c.target === source
+            (c) => /has ancestor/i.test(c.relation) && c.target === source,
           )
           .map((c) => toBlock(c.source)),
       ],
@@ -100,15 +100,15 @@ const triplesToBlocks =
           ...prev,
           [cur.target]: [...(prev[cur.target] || []), cur.source],
         }),
-        {} as Record<string, string[]>
+        {} as Record<string, string[]>,
       );
       return Promise.all(
         Object.entries(pages).map((p) =>
           toPage(
             relationToTitle(p[0]).text || p[0],
-            p[1].map(toBlock).concat(Array.from(blockReferences))
-          )
-        )
+            p[1].map(toBlock).concat(Array.from(blockReferences)),
+          ),
+        ),
       ).then(() => Promise.resolve());
     } else {
       return toPage(
@@ -142,11 +142,11 @@ const triplesToBlocks =
             {
               roots: new Set<string>(),
               leaves: new Set<string>(),
-            }
-          ).roots
+            },
+          ).roots,
         )
           .map(toBlock)
-          .concat(Array.from(blockReferences))
+          .concat(Array.from(blockReferences)),
       );
     }
   };

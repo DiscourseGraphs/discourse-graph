@@ -34,7 +34,7 @@ const roamNodeToCondition = ({
         uid,
         type,
         conditions: children.map((node) =>
-          node.children.map(roamNodeToCondition)
+          node.children.map(roamNodeToCondition),
         ),
       };
 };
@@ -109,7 +109,7 @@ export const parseQuery: ParseQuery = (parentUidOrNode) => {
     ].concat(
       selections
         .filter((s) => s.text !== DEFAULT_RETURN_NODE)
-        .map((s) => ({ uid: s.uid, key: s.label, selection: s.text }))
+        .map((s) => ({ uid: s.uid, key: s.label, selection: s.text })),
     ),
   };
 };

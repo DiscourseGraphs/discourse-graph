@@ -41,9 +41,9 @@ const SelectDialog = ({
       className="roamjs-canvas-dialog"
       style={{ width }}
     >
-      <div className={`${Classes.DIALOG_BODY} py-4 px-0 m-0`}>
+      <div className={`${Classes.DIALOG_BODY} m-0 px-0 py-4`}>
         <div className="flex flex-col">
-          <div className="text-lg font-bold p-2 mb-2 mx-5 mt-0">{title}</div>
+          <div className="mx-5 mb-2 mt-0 p-2 text-lg font-bold">{title}</div>
           <button
             // Visually hidden button to catch initial focus
             // this allows the Dialog to be called via command palette WITH the keyboard
@@ -58,7 +58,7 @@ const SelectDialog = ({
                 <Button
                   minimal
                   text={item.text}
-                  className="p-2 px-7 focus:outline-none focus:bg-gray-300 justify-start flex-grow"
+                  className="flex-grow justify-start p-2 px-7 focus:bg-gray-300 focus:outline-none"
                   icon={item.icon}
                   style={{
                     caretColor: "transparent",

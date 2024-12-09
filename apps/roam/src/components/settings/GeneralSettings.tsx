@@ -20,7 +20,7 @@ const DiscourseGraphHome = ({
   }, []);
   const getInitCanvasPage = () => {
     const savedFormat = extensionAPI.settings.get(
-      CANVAS_PAGE_FORMAT_KEY
+      CANVAS_PAGE_FORMAT_KEY,
     ) as string;
     return savedFormat || DEFAULT_CANVAS_PAGE_FORMAT;
   };

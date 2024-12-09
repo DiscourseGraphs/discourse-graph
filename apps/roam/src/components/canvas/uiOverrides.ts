@@ -56,7 +56,7 @@ export const createUiOverrides = ({
     });
     shapeEl?.dispatchEvent(contextMenu);
     const menuItem = document.querySelector(
-      'button[data-wd="menu-item.convert-to"]'
+      'button[data-wd="menu-item.convert-to"]',
     ) as HTMLMenuElement;
     if (menuItem) {
       setTimeout(() => {
@@ -66,10 +66,10 @@ export const createUiOverrides = ({
   };
   const addFullScreenToggle = (mainMenu: MenuGroup) => {
     const viewSubMenu = mainMenu.children.find(
-      (m): m is SubMenu => m.type === "submenu" && m.id === "view"
+      (m): m is SubMenu => m.type === "submenu" && m.id === "view",
     );
     const viewActionsGroup = viewSubMenu?.children.find(
-      (m): m is MenuGroup => m.type === "group" && m.id === "view-actions"
+      (m): m is MenuGroup => m.type === "group" && m.id === "view-actions",
     );
     if (!viewActionsGroup) return;
     viewActionsGroup.children.push({
@@ -91,22 +91,22 @@ export const createUiOverrides = ({
   };
   const editCopyAsShortcuts = (mainMenu: MenuGroup) => {
     const editSubMenu = mainMenu.children.find(
-      (m): m is SubMenu => m.type === "submenu" && m.id === "edit"
+      (m): m is SubMenu => m.type === "submenu" && m.id === "edit",
     );
     const conversionsGroup = editSubMenu?.children.find(
-      (m): m is MenuGroup => m.type === "group" && m.id === "conversions"
+      (m): m is MenuGroup => m.type === "group" && m.id === "conversions",
     );
     const copyAsSubMenu = conversionsGroup?.children.find(
-      (m): m is SubMenu => m.type === "submenu" && m.id === "copy-as"
+      (m): m is SubMenu => m.type === "submenu" && m.id === "copy-as",
     );
     const copyAsGroup = copyAsSubMenu?.children.find(
-      (m): m is MenuGroup => m.type === "group" && m.id === "copy-as-group"
+      (m): m is MenuGroup => m.type === "group" && m.id === "copy-as-group",
     );
     const copyAsPngItem = copyAsGroup?.children.find(
-      (m): m is MenuItem => m.type === "item" && m.id === "copy-as-png"
+      (m): m is MenuItem => m.type === "item" && m.id === "copy-as-png",
     );
     const copyAsSvgItem = copyAsGroup?.children.find(
-      (m): m is MenuItem => m.type === "item" && m.id === "copy-as-svg"
+      (m): m is MenuItem => m.type === "item" && m.id === "copy-as-svg",
     );
     if (!copyAsPngItem || !copyAsSvgItem) return;
     copyAsPngItem.actionItem.kbd = "$!C";
@@ -153,7 +153,7 @@ export const createUiOverrides = ({
           (key) => ({
             text: discourseContext.nodes[key].text,
             color: discourseContext.nodes[key].canvasSettings.color,
-          })
+          }),
         );
         const color =
           nodeColorArray.find((n) => n.text === action[0].sourceName)?.color ||
@@ -179,8 +179,8 @@ export const createUiOverrides = ({
         ...allNodes.map((n) => toolbarItem(tools[n.type])),
         ...allRelationNames.map((name) => toolbarItem(tools[name])),
         ...Object.keys(allAddReferencedNodeByAction).map((action) =>
-          toolbarItem(tools[action])
-        )
+          toolbarItem(tools[action]),
+        ),
       );
       return toolbar;
     },
@@ -220,7 +220,7 @@ export const createUiOverrides = ({
         const convertToDiscourseNode = async (
           text: string,
           type: string,
-          imageShapeUrl?: string
+          imageShapeUrl?: string,
         ) => {
           if (!extensionAPI) {
             renderToast({
@@ -316,7 +316,7 @@ export const createUiOverrides = ({
           const filteredItems =
             shape.type === "image"
               ? nodeMenuItems.filter(
-                  (item) => item.id !== "convert-to-page-node"
+                  (item) => item.id !== "convert-to-page-node",
                 )
               : nodeMenuItems;
 
@@ -364,13 +364,13 @@ export const createUiOverrides = ({
     },
     keyboardShortcutsMenu(_app, keyboardShortcutsMenu, { tools, actions }) {
       const toolsGroup = keyboardShortcutsMenu.find(
-        (group) => group.id === "shortcuts-dialog.tools"
+        (group) => group.id === "shortcuts-dialog.tools",
       ) as MenuGroup;
       const viewGroup = keyboardShortcutsMenu.find(
-        (group) => group.id === "shortcuts-dialog.view"
+        (group) => group.id === "shortcuts-dialog.view",
       ) as MenuGroup;
       const transformGroup = keyboardShortcutsMenu.find(
-        (group) => group.id === "shortcuts-dialog.transform"
+        (group) => group.id === "shortcuts-dialog.transform",
       ) as MenuGroup;
 
       toolsGroup.children.push(...allNodes.map((n) => menuItem(tools[n.type])));
@@ -381,7 +381,7 @@ export const createUiOverrides = ({
     },
     menu(_app, menu) {
       const mainMenu = menu.find(
-        (m): m is MenuGroup => m.type === "group" && m.id === "menu"
+        (m): m is MenuGroup => m.type === "group" && m.id === "menu",
       );
       if (mainMenu) {
         addFullScreenToggle(mainMenu);
@@ -392,16 +392,16 @@ export const createUiOverrides = ({
     translations: {
       en: {
         ...Object.fromEntries(
-          allNodes.map((node) => [`shape.node.${node.type}`, node.text])
+          allNodes.map((node) => [`shape.node.${node.type}`, node.text]),
         ),
         ...Object.fromEntries(
-          allRelationNames.map((name) => [`shape.relation.${name}`, name])
+          allRelationNames.map((name) => [`shape.relation.${name}`, name]),
         ),
         ...Object.fromEntries(
           Object.keys(allAddReferencedNodeByAction).map((name) => [
             `shape.referenced.${name}`,
             name,
-          ])
+          ]),
         ),
         "action.toggle-full-screen": "Toggle Full Screen",
         "action.convert-to": "Convert to",
@@ -410,7 +410,7 @@ export const createUiOverrides = ({
           allNodes.map((node) => [
             `action.convert-to-${node.type}`,
             `${node.text}`,
-          ])
+          ]),
         ),
       },
     },

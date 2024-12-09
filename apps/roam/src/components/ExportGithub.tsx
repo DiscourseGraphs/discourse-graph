@@ -19,7 +19,7 @@ type UserReposResponse = {
     {
       name: string;
       full_name: string;
-    }
+    },
   ];
   status: number;
 };
@@ -83,7 +83,7 @@ export const ExportGithub = ({
       const installations = res.installations;
       const APP_ID = isDev ? 882491 : 312167; // TODO - pull from process.env.GITHUB_APP_ID
       const isAppInstalled = installations.some(
-        (installation) => installation.app_id === APP_ID
+        (installation) => installation.app_id === APP_ID,
       );
       setIsGitHubAppInstalled(isAppInstalled);
       return isAppInstalled;
@@ -158,7 +158,7 @@ export const ExportGithub = ({
 
   if (!isVisible) return null;
   return (
-    <div className="flex mb-4">
+    <div className="mb-4 flex">
       <div className="flex flex-col">
         {!isGitHubAppInstalled && (
           <Button
@@ -173,7 +173,7 @@ export const ExportGithub = ({
                   ? "https://github.com/apps/samepage-network-dev"
                   : "https://github.com/apps/samepage-network",
                 "_blank",
-                `width=${WINDOW_WIDTH}, height=${WINDOW_HEIGHT}, top=${WINDOW_TOP}, left=${WINDOW_LEFT}`
+                `width=${WINDOW_WIDTH}, height=${WINDOW_HEIGHT}, top=${WINDOW_TOP}, left=${WINDOW_LEFT}`,
               );
               setClickedInstall(true);
               document.getElementById("qb-install-button")?.blur();
@@ -204,7 +204,7 @@ export const ExportGithub = ({
             authWindow.current = window.open(
               `https://github.com/login/oauth/authorize?${params}`,
               "_blank",
-              `width=${WINDOW_WIDTH}, height=${WINDOW_HEIGHT}, top=${WINDOW_TOP}, left=${WINDOW_LEFT}`
+              `width=${WINDOW_WIDTH}, height=${WINDOW_HEIGHT}, top=${WINDOW_TOP}, left=${WINDOW_LEFT}`,
             );
 
             let attemptCount = 0;

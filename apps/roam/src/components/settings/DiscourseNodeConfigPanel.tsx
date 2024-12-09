@@ -17,7 +17,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
   setSelectedTabId,
 }) => {
   const [nodes, setNodes] = useState(() =>
-    getDiscourseNodes().filter((n) => n.backedBy === "user")
+    getDiscourseNodes().filter((n) => n.backedBy === "user"),
   );
   const [label, setLabel] = useState("");
   return (
@@ -85,9 +85,9 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
               style={{ border: "1px dashed #80808080" }}
               className={"p-2"}
             >
-              <div className="flex justify-between items-center">
+              <div className="flex items-center justify-between">
                 <H6
-                  className={"flex-grow m-0 cursor-pointer"}
+                  className={"m-0 flex-grow cursor-pointer"}
                   onClick={() => {
                     if (isPopup) {
                       setSelectedTabId(n.type);

@@ -216,7 +216,7 @@ const SUPPORTED_LAYOUTS = [
   },
 ] as const;
 const settingsById = Object.fromEntries(
-  SUPPORTED_LAYOUTS.map((l) => [l.id, l.settings])
+  SUPPORTED_LAYOUTS.map((l) => [l.id, l.settings]),
 );
 
 type ResultsViewComponent = (props: {
@@ -252,7 +252,7 @@ const MenuHeading: FC<MenuHeadingProps> = ({
 }) => {
   return (
     <h4
-      className={`font-bold flex justify-between items-center mt-0 ${classNames}`}
+      className={`mt-0 flex items-center justify-between font-bold ${classNames}`}
     >
       {text}
       <Button icon="small-cross" onClick={onClear} minimal small />
@@ -278,7 +278,7 @@ const ResultsView: ResultsViewComponent = ({
   const extensionAPI = useExtensionAPI();
   const settings = useMemo(
     () => parseResultSettings(parentUid, columns, extensionAPI),
-    [parentUid]
+    [parentUid],
   );
   const [activeSort, setActiveSort] = useState(settings.activeSort);
   const resultViewSetActiveSort = React.useCallback(
@@ -298,10 +298,10 @@ const ResultsView: ResultsViewComponent = ({
           parentUid: sortsNode.uid,
           node,
           order,
-        })
+        }),
       );
     },
-    [setActiveSort, preventSavingSettings, parentUid]
+    [setActiveSort, preventSavingSettings, parentUid],
   );
 
   // @deprecated - use columnFilters
@@ -364,7 +364,7 @@ const ResultsView: ResultsViewComponent = ({
   const [layout, setLayout] = useState(settings.layout);
   const layoutMode = useMemo(
     () => (Array.isArray(layout.mode) ? layout.mode[0] : layout.mode),
-    [layout]
+    [layout],
   );
   const isMenuIconDirty = useMemo(
     () =>
@@ -372,7 +372,7 @@ const ResultsView: ResultsViewComponent = ({
       columnFilters.length ||
       random.count ||
       (activeSort.length && layout.mode !== "table"), // indicator is on ResultHeader
-    [searchFilter, columnFilters, random, activeSort, layout.mode]
+    [searchFilter, columnFilters, random, activeSort, layout.mode],
   );
   const onViewChange = (view: (typeof views)[number], i: number) => {
     const newViews = views.map((v, j) => (i === j ? view : v));
@@ -397,24 +397,24 @@ const ResultsView: ResultsViewComponent = ({
           node,
           order,
           parentUid: viewsNode.uid,
-        })
+        }),
       );
   };
   const debounceRef = useRef(0);
   const showColumnViewOptions = views.some(
-    (view) => VIEWS[view.mode]?.value === true
+    (view) => VIEWS[view.mode]?.value === true,
   );
 
   return (
     <div
-      className={`roamjs-query-results-view w-full relative mode-${layout.mode}`}
+      className={`roamjs-query-results-view relative w-full mode-${layout.mode}`}
       ref={containerRef}
       onMouseEnter={() => setShowMenuIcons(true)}
       onMouseLeave={() => setShowMenuIcons(false)}
     >
       {isEditSearchFilter && (
         <div
-          className="p-4 w-full"
+          className="w-full p-4"
           style={{
             background: "#eeeeee80",
           }}
@@ -510,7 +510,7 @@ const ResultsView: ResultsViewComponent = ({
                     type={"number"}
                     min={0}
                     value={random.count.toString()}
-                    className="w-20 inline-block pr-2"
+                    className="inline-block w-20 pr-2"
                     onChange={(e) => {
                       setRandom({ count: Number(e.target.value) });
                       if (preventSavingSettings) return;
@@ -542,10 +542,10 @@ const ResultsView: ResultsViewComponent = ({
                     onClear={() => setIsEditLayout(false)}
                     text="Layout"
                   />
-                  <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="mb-4 grid grid-cols-3 gap-4">
                     {SUPPORTED_LAYOUTS.map((l) => (
                       <div
-                        className={`rounded-sm border p-2 flex flex-col gap-2 items-center justify-center cursor-pointer ${
+                        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-sm border p-2 ${
                           l.id === layoutMode
                             ? "border-blue-800 border-opacity-75 text-blue-800"
                             : "border-gray-800 border-opacity-25 text-gray-800"
@@ -568,7 +568,7 @@ const ResultsView: ResultsViewComponent = ({
                         }}
                       >
                         <Icon icon={l.icon} />
-                        <span className="capitalize text-sm">{l.id}</span>
+                        <span className="text-sm capitalize">{l.id}</span>
                       </div>
                     ))}
                   </div>
@@ -614,7 +614,7 @@ const ResultsView: ResultsViewComponent = ({
                 </div>
               ) : isEditColumnSort ? (
                 <div className="relative p-4">
-                  <h4 className="font-bold flex justify-between items-center p-2">
+                  <h4 className="flex items-center justify-between p-2 font-bold">
                     Set Sort
                     <Button
                       icon={"small-cross"}
@@ -623,11 +623,11 @@ const ResultsView: ResultsViewComponent = ({
                       small
                     />
                   </h4>
-                  <div className="flex flex-col gap-4 items-start overflow-auto p-2">
+                  <div className="flex flex-col items-start gap-4 overflow-auto p-2">
                     {activeSort.map(({ key, descending }) => (
                       <div key={key}>
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <div className="w-24 mr-3 truncate">{key}</div>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <div className="mr-3 w-24 truncate">{key}</div>
                           {/* TODO: change to checkbox */}
                           <MenuItemSelect
                             items={["Ascending", "Descending"]}
@@ -636,8 +636,8 @@ const ResultsView: ResultsViewComponent = ({
                               const descending = value === "Descending";
                               resultViewSetActiveSort(
                                 activeSort.map((s) =>
-                                  s.key === key ? { key, descending } : s
-                                )
+                                  s.key === key ? { key, descending } : s,
+                                ),
                               );
                             }}
                           />
@@ -646,7 +646,7 @@ const ResultsView: ResultsViewComponent = ({
                             minimal
                             onClick={() => {
                               resultViewSetActiveSort(
-                                activeSort.filter((s) => s.key !== key)
+                                activeSort.filter((s) => s.key !== key),
                               );
                             }}
                           />
@@ -676,17 +676,17 @@ const ResultsView: ResultsViewComponent = ({
                 </div>
               ) : isEditColumnFilter ? (
                 <div
-                  className="relative p-4 max-w-2xl"
+                  className="relative max-w-2xl p-4"
                   style={{ minWidth: "320px" }}
                 >
                   <MenuHeading
                     onClear={() => setIsEditColumnFilter(false)}
                     text="Filters"
                   />
-                  <div className="flex flex-col gap-4 items-start py-2">
+                  <div className="flex flex-col items-start gap-4 py-2">
                     {columnFilters.map(({ key, type, value, uid }) => (
                       <div key={uid}>
-                        <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="mb-2 flex items-center justify-between gap-2">
                           <MenuItemSelect
                             className="roamjs-column-filter-key"
                             items={columns.map((c) => c.key)}
@@ -697,8 +697,8 @@ const ResultsView: ResultsViewComponent = ({
                             onItemSelect={(newKey) => {
                               setColumnFilters(
                                 columnFilters.map((f) =>
-                                  f.uid === uid ? { ...f, key: newKey } : f
-                                )
+                                  f.uid === uid ? { ...f, key: newKey } : f,
+                                ),
                               );
                               updateBlock({ uid, text: newKey });
                             }}
@@ -706,14 +706,14 @@ const ResultsView: ResultsViewComponent = ({
                           <MenuItemSelect
                             className="roamjs-column-filter-type flex-grow"
                             items={SUPPORTED_COLUMN_FILTER_TYPES.map(
-                              (c) => c.id
+                              (c) => c.id,
                             )}
                             activeItem={type}
                             onItemSelect={(newType) => {
                               setColumnFilters(
                                 columnFilters.map((f) =>
-                                  f.uid === uid ? { ...f, type: newType } : f
-                                )
+                                  f.uid === uid ? { ...f, type: newType } : f,
+                                ),
                               );
                               setInputSetting({
                                 blockUid: uid,
@@ -727,7 +727,7 @@ const ResultsView: ResultsViewComponent = ({
                             minimal
                             onClick={() => {
                               setColumnFilters(
-                                columnFilters.filter((f) => f.uid !== uid)
+                                columnFilters.filter((f) => f.uid !== uid),
                               );
                               deleteBlock(uid);
                             }}
@@ -758,8 +758,8 @@ const ResultsView: ResultsViewComponent = ({
                                 new Set(
                                   results
                                     .map((r) => r[key].toString())
-                                    .filter((v) => !value.includes(v))
-                                )
+                                    .filter((v) => !value.includes(v)),
+                                ),
                               )}
                               onRemove={(newValue) => {
                                 setColumnFilters(
@@ -768,11 +768,11 @@ const ResultsView: ResultsViewComponent = ({
                                       ? {
                                           ...f,
                                           value: value.filter(
-                                            (v) => v !== newValue
+                                            (v) => v !== newValue,
                                           ),
                                         }
-                                      : f
-                                  )
+                                      : f,
+                                  ),
                                 );
                                 setInputSettings({
                                   blockUid: uid,
@@ -785,8 +785,8 @@ const ResultsView: ResultsViewComponent = ({
                                   columnFilters.map((f) =>
                                     f.uid === uid
                                       ? { ...f, value: [...value, newValue] }
-                                      : f
-                                  )
+                                      : f,
+                                  ),
                                 );
                                 setInputSettings({
                                   blockUid: uid,
@@ -806,8 +806,8 @@ const ResultsView: ResultsViewComponent = ({
                                   columnFilters.map((f) =>
                                     f.uid === uid
                                       ? { ...f, value: [newValue] }
-                                      : f
-                                  )
+                                      : f,
+                                  ),
                                 );
                                 setInputSettings({
                                   blockUid: uid,
@@ -861,7 +861,7 @@ const ResultsView: ResultsViewComponent = ({
               ) : isEditViews ? (
                 <div
                   style={{ minWidth: "26rem" }}
-                  className="relative max-w-md p-4 roamjs-query-column-views"
+                  className="roamjs-query-column-views relative max-w-md p-4"
                 >
                   <MenuHeading
                     onClear={() => setIsEditViews(false)}
@@ -870,20 +870,20 @@ const ResultsView: ResultsViewComponent = ({
                   <HTMLTable className="min-w-full">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="text-xs font-medium !text-gray-500 uppercase tracking-wider">
+                        <th className="text-xs font-medium uppercase tracking-wider !text-gray-500">
                           Column
                         </th>
-                        <th className="text-xs font-medium !text-gray-500 uppercase tracking-wider">
+                        <th className="text-xs font-medium uppercase tracking-wider !text-gray-500">
                           View
                         </th>
                         {showColumnViewOptions && (
-                          <th className="text-xs font-medium !text-gray-500 uppercase tracking-wider">
+                          <th className="text-xs font-medium uppercase tracking-wider !text-gray-500">
                             Options
                           </th>
                         )}
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200 bg-white">
                       {views.map(({ column, mode, value }, i) => (
                         <tr key={i}>
                           <td className="whitespace-nowrap">{column}</td>
@@ -909,7 +909,7 @@ const ResultsView: ResultsViewComponent = ({
                                         column,
                                         value: e.target.value,
                                       },
-                                      i
+                                      i,
                                     )
                                   }
                                 />
@@ -1045,8 +1045,8 @@ const ResultsView: ResultsViewComponent = ({
                       onClick={() => {
                         const location = getUids(
                           containerRef.current?.closest(
-                            ".roam-block"
-                          ) as HTMLDivElement
+                            ".roam-block",
+                          ) as HTMLDivElement,
                         );
                         window.roamAlphaAPI.ui.setBlockFocusAndSelection({
                           location: {
@@ -1063,7 +1063,7 @@ const ResultsView: ResultsViewComponent = ({
                     onClick={() => {
                       const getTextFromTreeToPaste = (
                         items: RoamBasicNode[],
-                        indentLevel = 0
+                        indentLevel = 0,
                       ): string => {
                         const indentation = "    ".repeat(indentLevel);
 
@@ -1073,7 +1073,7 @@ const ResultsView: ResultsViewComponent = ({
                               item.children.length > 0
                                 ? getTextFromTreeToPaste(
                                     item.children,
-                                    indentLevel + 1
+                                    indentLevel + 1,
                                   )
                                 : "";
                             return `${indentation}- ${item.text}\n${childrenText}`;
@@ -1082,7 +1082,7 @@ const ResultsView: ResultsViewComponent = ({
                       };
                       const tree = getBasicTreeByParentUid(parentUid);
                       navigator.clipboard.writeText(
-                        "- {{query block}}\n" + getTextFromTreeToPaste(tree, 1)
+                        "- {{query block}}\n" + getTextFromTreeToPaste(tree, 1),
                       );
                       renderToast({
                         id: "query-copy",
@@ -1186,7 +1186,7 @@ const ResultsView: ResultsViewComponent = ({
               )
             ) : (
               <div
-                className="flex justify-between items-center mb-0"
+                className="mb-0 flex items-center justify-between"
                 style={{ padding: "16px 8px" }}
               >
                 <i>No Results Found</i>
@@ -1200,7 +1200,7 @@ const ResultsView: ResultsViewComponent = ({
               }
             >
               <div
-                className="flex justify-between items-center text-xs px-1"
+                className="flex items-center justify-between px-1 text-xs"
                 style={{
                   opacity: 0.8,
                   padding: 4,

@@ -116,7 +116,7 @@ const LivePreview = ({ tag, registerMouseEvents }: Props) => {
         }, 100);
       }
     },
-    [setIsOpen, timeoutRef, openRef]
+    [setIsOpen, timeoutRef, openRef],
   );
   const close = useCallback(() => {
     clearTimeout(timeoutRef.current);

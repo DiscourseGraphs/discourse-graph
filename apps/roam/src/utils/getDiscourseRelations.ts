@@ -55,7 +55,7 @@ const getDiscourseRelations = () => {
             return [t.text, t.children[0]?.text, target] as const;
           }),
       }));
-    }
+    },
   );
 
   return discourseRelations;

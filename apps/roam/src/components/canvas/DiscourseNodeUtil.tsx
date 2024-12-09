@@ -64,8 +64,8 @@ export type DiscourseNodeShape = TLBaseShape<
 const getRelationIds = () =>
   new Set(
     Object.values(discourseContext.relations).flatMap((rs) =>
-      rs.map((r) => r.id)
-    )
+      rs.map((r) => r.id),
+    ),
   );
 
 export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
@@ -93,7 +93,7 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
     {
       allRecords = this.app.store.allRecords(),
       relationIds = getRelationIds(),
-    }: { allRecords?: TLRecord[]; relationIds?: Set<string> } = {}
+    }: { allRecords?: TLRecord[]; relationIds?: Set<string> } = {},
   ) {
     const toDelete = allRecords
       .filter((r): r is DiscourseRelationShape => {
@@ -119,10 +119,10 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
       allRecords?: TLRecord[];
       relationIds?: Set<string>;
       finalUid?: string;
-    } = {}
+    } = {},
   ) {
     const isDiscourseRelationShape = (
-      shape: TLShape
+      shape: TLShape,
     ): shape is DiscourseRelationShape => {
       return relationIds.has(shape.type);
     };
@@ -133,7 +133,7 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
         .filter((r): r is DiscourseNodeShape => {
           return r.typeName === "shape" && nodeIds.has(r.type);
         })
-        .map((r) => [r.props.uid, r] as const)
+        .map((r) => [r.props.uid, r] as const),
     );
     const currentShapeRelations = allRecords
       .filter(isShape)
@@ -160,7 +160,7 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
             relationId: v.id!,
             complement: v.complement,
             nodeId: k,
-          }))
+          })),
       )
       .filter(({ relationId, complement, nodeId }) => {
         const startId = complement ? nodesInCanvas[nodeId].id : shape.id;
@@ -171,7 +171,7 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
             r.props.start.type === "binding" &&
             r.props.end.type === "binding" &&
             r.props.start.boundShapeId === startId &&
-            r.props.end.boundShapeId === endId
+            r.props.end.boundShapeId === endId,
         );
         return !relationAlreadyExists;
       })
@@ -219,8 +219,8 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
         document.body.dispatchEvent(
           new CustomEvent("roamjs:query-builder:created-canvas-node", {
             detail: shape.id,
-          })
-        )
+          }),
+        ),
       );
     }
   };
@@ -270,7 +270,7 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
     const isEditing = useValue(
       "isEditing",
       () => this.app.editingId === shape.id,
-      [this.app, shape.id]
+      [this.app, shape.id],
     );
     const [isLabelEditOpen, setIsEditLabelOpen] = useState(false);
     useEffect(() => {
@@ -302,12 +302,12 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
       };
       document.body.addEventListener(
         "roamjs:query-builder:created-canvas-node",
-        listener as EventListener
+        listener as EventListener,
       );
       return () => {
         document.body.removeEventListener(
           "roamjs:query-builder:created-canvas-node",
-          listener as EventListener
+          listener as EventListener,
         );
       };
     }, [setIsEditLabelOpen]);
@@ -340,7 +340,7 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
     return (
       <HTMLContainer
         id={shape.id}
-        className="flex items-center justify-center pointer-events-auto rounded-2xl roamjs-tldraw-node overflow-hidden"
+        className="roamjs-tldraw-node pointer-events-auto flex items-center justify-center overflow-hidden rounded-2xl"
         style={{
           background: backgroundCss,
           color: textColor,
@@ -350,7 +350,7 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
           {shape.props.imageUrl && isKeyImage ? (
             <img
               src={shape.props.imageUrl}
-              className="w-full object-cover h-auto"
+              className="h-auto w-full object-cover"
               draggable="false"
               style={{ pointerEvents: "none" }}
             />
@@ -484,7 +484,7 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
     textLines.forEach((line, index) => {
       const tspan = document.createElementNS(
         "http://www.w3.org/2000/svg",
-        "tspan"
+        "tspan",
       );
       tspan.setAttribute("x", textX.toString());
       tspan.setAttribute("dy", (index === 0 ? 0 : lineHeight).toString());
@@ -509,7 +509,7 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
     if (shape.props.imageUrl) {
       const image = document.createElementNS(
         "http://www.w3.org/2000/svg",
-        "image"
+        "image",
       );
       const src = (await getDataURIFromURL(shape.props.imageUrl)) || "";
       image.setAttribute("href", src);
@@ -549,7 +549,7 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
 
   updateProps(
     id: DiscourseNodeShape["id"],
-    props: Partial<DiscourseNodeShape["props"]>
+    props: Partial<DiscourseNodeShape["props"]>,
   ) {
     // @ts-ignore
     this.app.updateShapes([{ id, props }]);

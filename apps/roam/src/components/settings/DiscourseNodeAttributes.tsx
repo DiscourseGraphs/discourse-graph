@@ -59,7 +59,7 @@ const NodeAttributes = ({ uid }: { uid: string }) => {
       uid: t.uid,
       label: t.text,
       value: t.children[0]?.text,
-    }))
+    })),
   );
   const [newAttribute, setNewAttribute] = useState("");
   return (
@@ -72,13 +72,13 @@ const NodeAttributes = ({ uid }: { uid: string }) => {
             onChange={(v) =>
               setAttributes(
                 attributes.map((aa) =>
-                  a.uid === aa.uid ? { ...a, value: v } : aa
-                )
+                  a.uid === aa.uid ? { ...a, value: v } : aa,
+                ),
               )
             }
             onDelete={() =>
               deleteBlock(a.uid).then(() =>
-                setAttributes(attributes.filter((aa) => a.uid !== aa.uid))
+                setAttributes(attributes.filter((aa) => a.uid !== aa.uid)),
               )
             }
           />

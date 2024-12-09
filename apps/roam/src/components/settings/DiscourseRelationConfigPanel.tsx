@@ -94,9 +94,9 @@ export const RelationEditPanel = ({
   const nodeFormatsByLabel = useMemo(
     () =>
       Object.fromEntries(
-        Object.values(nodes).map(({ label, format }) => [label, format])
+        Object.values(nodes).map(({ label, format }) => [label, format]),
       ),
-    [nodes]
+    [nodes],
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
@@ -107,7 +107,7 @@ export const RelationEditPanel = ({
   const showBackWarning = useRef(false);
   const unsavedChanges = useCallback(
     () => (showBackWarning.current = true),
-    [showBackWarning]
+    [showBackWarning],
   );
   const [backWarningOpen, setBackWarningOpen] = useState(false);
   const clearEditingRef = useCallback(() => {
@@ -125,7 +125,7 @@ export const RelationEditPanel = ({
     }
   }, [sourceRef]);
   const [selectedRelation, setSelectedRelation] = useState(
-    DEFAULT_SELECTED_RELATION
+    DEFAULT_SELECTED_RELATION,
   );
   const [tab, setTab] = useState(0);
   const initialSourceUid = useMemo(
@@ -134,11 +134,11 @@ export const RelationEditPanel = ({
         tree: editingRelationInfo.children,
         key: "source",
       }),
-    []
+    [],
   );
   const initialSource = useMemo(
     () => edgeDisplayByUid(initialSourceUid),
-    [initialSourceUid]
+    [initialSourceUid],
   );
   const [source, setSource] = useState(initialSourceUid);
   const initialDestinationUid = useMemo(
@@ -147,11 +147,11 @@ export const RelationEditPanel = ({
         tree: editingRelationInfo.children,
         key: "destination",
       }),
-    []
+    [],
   );
   const initialDestination = useMemo(
     () => edgeDisplayByUid(initialDestinationUid),
-    [initialDestinationUid]
+    [initialDestinationUid],
   );
   const [destination, setDestination] = useState(initialDestinationUid);
   const [label, setLabel] = useState(editingRelationInfo.text);
@@ -159,7 +159,7 @@ export const RelationEditPanel = ({
     getSettingValueFromTree({
       tree: editingRelationInfo.children,
       key: "complement",
-    })
+    }),
   );
 
   const edgeCallback = useCallback(
@@ -192,7 +192,7 @@ export const RelationEditPanel = ({
       cyRef,
       blockClickRef,
       unsavedChanges,
-    ]
+    ],
   );
   const nodeCallback = useCallback(
     (n: cytoscape.NodeSingular) => {
@@ -263,13 +263,13 @@ export const RelationEditPanel = ({
       clearSourceRef,
       blockClickRef,
       unsavedChanges,
-    ]
+    ],
   );
   const ifTree = useMemo(
     () =>
       editingRelationInfo.children.find((t) => toFlexRegex("if").test(t.text))
         ?.children || [],
-    [editingRelationInfo]
+    [editingRelationInfo],
   );
   const initialElements = useMemo(
     () =>
@@ -288,7 +288,7 @@ export const RelationEditPanel = ({
                 nodes,
                 edges,
                 positions: Object.fromEntries(
-                  node.children.map((c) => [c.text, c.children[0]?.text])
+                  node.children.map((c) => [c.text, c.children[0]?.text]),
                 ),
               };
             } else {
@@ -311,7 +311,7 @@ export const RelationEditPanel = ({
               relation: string;
             }>(),
             positions: {} as Record<string, string>,
-          }
+          },
         );
         const elementNodes = Array.from(nodes)
           .map((node) => ({ id: (idRef.current++).toString(), node }))
@@ -350,7 +350,7 @@ export const RelationEditPanel = ({
           }),
         ];
       }),
-    [ifTree, initialDestination, initialSource]
+    [ifTree, initialDestination, initialSource],
   );
   const elementsRef = useRef(
     initialElements.length
@@ -378,7 +378,7 @@ export const RelationEditPanel = ({
               },
             },
           ],
-        ]
+        ],
   );
   const saveCyToElementRef = useCallback(
     (t: number) => {
@@ -389,10 +389,10 @@ export const RelationEditPanel = ({
         ...edges.map((n) => ({ data: n.data() })),
       ];
     },
-    [cyRef, elementsRef]
+    [cyRef, elementsRef],
   );
   const [tabs, setTabs] = useState(
-    initialElements.length ? initialElements.map((_, i) => i) : [0]
+    initialElements.length ? initialElements.map((_, i) => i) : [0],
   );
 
   const loadCytoscape = useCallback(async () => {
@@ -488,7 +488,7 @@ export const RelationEditPanel = ({
         (d) =>
           d as {
             data: { relation: string; source: string; target: string };
-          }
+          },
       )
       .map((d) => ({
         relation: d.data.relation,
@@ -502,7 +502,7 @@ export const RelationEditPanel = ({
         )?.node,
       }));
     Promise.all(
-      getShallowTreeByParentUid(previewUid).map(({ uid }) => deleteBlock(uid))
+      getShallowTreeByParentUid(previewUid).map(({ uid }) => deleteBlock(uid)),
     )
       .then(() => updateBlock({ uid: previewUid, open: true }))
       .then(() => {
@@ -524,7 +524,7 @@ export const RelationEditPanel = ({
     return (
       <div className="flex items-center">
         <div
-          className="w-4 h-4 rounded-full mr-2 select-none"
+          className="mr-2 h-4 w-4 select-none rounded-full"
           style={{ backgroundColor: nodes[u]?.color || "#000" }}
         />
         <span>{nodes[u]?.label}</span>
@@ -541,9 +541,9 @@ export const RelationEditPanel = ({
 
   return (
     <>
-      <div className="flex space-x-2 mb-4">
+      <div className="mb-4 flex space-x-2">
         <Button
-          className=" select-none"
+          className="select-none"
           onClick={() =>
             showBackWarning.current ? setBackWarningOpen(true) : back()
           }
@@ -585,7 +585,7 @@ export const RelationEditPanel = ({
               });
               const ifUid =
                 editingRelationInfo.children.find((t) =>
-                  toFlexRegex("if").test(t.text)
+                  toFlexRegex("if").test(t.text),
                 )?.uid ||
                 (await createBlock({
                   node: { text: "If" },
@@ -634,11 +634,11 @@ export const RelationEditPanel = ({
                         children: elements
                           .filter(
                             (
-                              e
+                              e,
                             ): e is {
                               data: { id: string; node: unknown };
                               position: { x: number; y: number };
-                            } => Object.keys(e).includes("position")
+                            } => Object.keys(e).includes("position"),
                           )
                           .map((e) => ({
                             text: e.data.id,
@@ -651,13 +651,13 @@ export const RelationEditPanel = ({
                 }));
               await Promise.all(
                 getShallowTreeByParentUid(ifUid).map(({ uid }) =>
-                  deleteBlock(uid)
-                )
+                  deleteBlock(uid),
+                ),
               );
               await Promise.all(
                 blocks.map((block, order) =>
-                  createBlock({ parentUid: ifUid, node: block, order })
-                )
+                  createBlock({ parentUid: ifUid, node: block, order }),
+                ),
               );
               refreshConfigTree();
               back();
@@ -710,7 +710,7 @@ export const RelationEditPanel = ({
                 setSource(e);
                 (cyRef.current.nodes("#source") as cytoscape.NodeSingular).data(
                   "node",
-                  nodes[e]?.label
+                  nodes[e]?.label,
                 );
               }
             }}
@@ -789,12 +789,12 @@ export const RelationEditPanel = ({
               } else if (e.key === "Backspace") {
                 editingRef.current.data(
                   "node",
-                  editingRef.current.data("node").slice(0, -1)
+                  editingRef.current.data("node").slice(0, -1),
                 );
               } else if (/\w/.test(e.key) && e.key.length === 1) {
                 editingRef.current.data(
                   "node",
-                  `${editingRef.current.data("node")}${e.key}`
+                  `${editingRef.current.data("node")}${e.key}`,
                 );
               } else if (e.key === " ") {
                 e.preventDefault();
@@ -824,7 +824,7 @@ export const RelationEditPanel = ({
                     blockClickRef.current = false;
                     (
                       cyRef.current.edges(
-                        `#${selectedRelation.id}`
+                        `#${selectedRelation.id}`,
                       ) as cytoscape.EdgeSingular
                     ).data("relation", k);
                     setSelectedRelation(DEFAULT_SELECTED_RELATION);
@@ -875,7 +875,7 @@ export const RelationEditPanel = ({
                 onClick={() => {
                   elementsRef.current[tab] = JSON.parse(
                     localStorage.getItem("roamjs:discourse-relation-copy") ||
-                      "{}"
+                      "{}",
                   ).map((n: { data: { id: string } }) =>
                     n.data.id === "source"
                       ? {
@@ -886,14 +886,14 @@ export const RelationEditPanel = ({
                           },
                         }
                       : n.data.id === "destination"
-                      ? {
-                          ...n,
-                          data: {
-                            ...n.data,
-                            node: destination,
-                          },
-                        }
-                      : n
+                        ? {
+                            ...n,
+                            data: {
+                              ...n.data,
+                              node: destination,
+                            },
+                          }
+                        : n,
                   );
                   loadCytoscape();
                 }}
@@ -909,7 +909,7 @@ export const RelationEditPanel = ({
                 saveCyToElementRef(tab);
                 localStorage.setItem(
                   "roamjs:discourse-relation-copy",
-                  JSON.stringify(elementsRef.current[tab])
+                  JSON.stringify(elementsRef.current[tab]),
                 );
                 renderToast({
                   id: "relation-copy",
@@ -946,19 +946,19 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
               source: fieldTree.find((t) => toFlexRegex("source").test(t.text))
                 ?.children?.[0]?.text,
               destination: fieldTree.find((t) =>
-                toFlexRegex("destination").test(t.text)
+                toFlexRegex("destination").test(t.text),
               )?.children?.[0]?.text,
             };
           })
         : [],
-    [uid]
+    [uid],
   );
   const nodes = useMemo(() => {
     const nodes = Object.fromEntries(
       getDiscourseNodes().map((n) => {
         const color = formatHexColor(n.canvasSettings.color);
         return [n.type, { label: n.text, format: n.format, color }];
-      })
+      }),
     );
     // TypeError: Iterator value * is not an entry object
     nodes["*"] = { label: "Any", format: ".+", color: "#000" };
@@ -970,12 +970,12 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   const [editingRelation, setEditingRelation] = useState("");
   const [newRelation, setNewRelation] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
-    null
+    null,
   );
   const editingRelationInfo = useMemo(
     () =>
       editingRelation ? getFullTreeByParentUid(editingRelation) : undefined,
-    [editingRelation]
+    [editingRelation],
   );
   const onNewRelation = () => {
     createBlock({
@@ -1042,7 +1042,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
           destination: rel.destination,
           text,
         },
-      ])
+      ]),
     );
   };
   const handleBack = () => {

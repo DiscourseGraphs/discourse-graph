@@ -68,9 +68,9 @@ const KanbanCard = (card: {
   const isDragHandle = useMemo(
     () =>
       Object.values(card.viewsByColumn).some(
-        (v) => v.mode === "embed" || v.mode === "link"
+        (v) => v.mode === "embed" || v.mode === "link",
       ),
-    [card.viewsByColumn]
+    [card.viewsByColumn],
   );
   const displayKey = card.$displayKey;
   const cardView = card.viewsByColumn[displayKey];
@@ -130,11 +130,11 @@ const KanbanCard = (card: {
       >
         <Icon
           icon="drag-handle-horizontal"
-          className="absolute right-2 top-2 text-gray-400 embed-handle cursor-move z-30"
+          className="embed-handle absolute right-2 top-2 z-30 cursor-move text-gray-400"
           hidden={!isDragHandle}
         />
         <div
-          className={`rounded-xl bg-white p-4 mb-3 ${
+          className={`mb-3 rounded-xl bg-white p-4 ${
             isDragHandle ? "" : "cursor-pointer hover:bg-gray-200"
           }`}
         >
@@ -189,11 +189,11 @@ const KanbanCard = (card: {
                 return (
                   <React.Fragment key={sv}>
                     {!uid && card.viewsByColumn[sv].mode === "embed" ? (
-                      <div className="col-span-2 text-sm p-2">
+                      <div className="col-span-2 p-2 text-sm">
                         [block is blank]
                       </div>
                     ) : card.viewsByColumn[sv].mode === "embed" ? (
-                      <div className="col-span-2 text-sm -ml-4">
+                      <div className="col-span-2 -ml-4 text-sm">
                         <BlockEmbed
                           uid={uid}
                           viewValue={card.viewsByColumn[sv].value}
@@ -201,8 +201,8 @@ const KanbanCard = (card: {
                       </div>
                     ) : uid && card.viewsByColumn[sv].mode === "link" ? (
                       <>
-                        <div className="font-semibold text-sm p-2">{sv}:</div>
-                        <div className="text-sm p-2 text-left">
+                        <div className="p-2 text-sm font-semibold">{sv}:</div>
+                        <div className="p-2 text-left text-sm">
                           <a
                             className={"rm-page-ref"}
                             data-link-title={getPageTitleByPageUid(uid) || ""}
@@ -221,8 +221,8 @@ const KanbanCard = (card: {
                       </>
                     ) : (
                       <>
-                        <div className="font-semibold text-sm p-2">{sv}:</div>
-                        <div className="text-sm p-2 text-left">{value}</div>
+                        <div className="p-2 text-sm font-semibold">{sv}:</div>
+                        <div className="p-2 text-left text-sm">{value}</div>
                       </>
                     )}
                   </React.Fragment>
@@ -313,17 +313,17 @@ const Kanban = ({
   };
   const byUid = useMemo(
     () => Object.fromEntries(data.map((d) => [d.uid, d] as const)),
-    [data]
+    [data],
   );
   const columnKey = useMemo(() => {
     const configuredKey = Array.isArray(layout.key)
       ? layout.key[0]
       : typeof layout.key === "string"
-      ? layout.key
-      : "";
+        ? layout.key
+        : "";
     if (configuredKey) return configuredKey;
     const keySets = Object.fromEntries(
-      resultKeys.map((rk) => [rk.key, new Set()])
+      resultKeys.map((rk) => [rk.key, new Set()]),
     );
     data.forEach((d) => {
       resultKeys.forEach((rk) => {
@@ -332,7 +332,7 @@ const Kanban = ({
     });
     const defaultColumnKey = Object.entries(keySets).reduce(
       (prev, [k, v]) => (v.size < prev[1] ? ([k, v.size] as const) : prev),
-      ["" as string, data.length + 1] as const
+      ["" as string, data.length + 1] as const,
     )[0];
     setInputSetting({
       key: "key",
@@ -346,8 +346,8 @@ const Kanban = ({
     const configuredDisplay = Array.isArray(layout.display)
       ? layout.display[0]
       : typeof layout.display === "string"
-      ? layout.display
-      : undefined;
+        ? layout.display
+        : undefined;
     if (configuredDisplay) return configuredDisplay;
     const defaultDisplayKey = resultKeys[0].key;
     setInputSetting({
@@ -363,26 +363,29 @@ const Kanban = ({
     const configuredCols = Array.isArray(layout.columns)
       ? layout.columns
       : typeof layout.columns === "string"
-      ? [layout.columns]
-      : undefined;
+        ? [layout.columns]
+        : undefined;
     if (configuredCols) return setColumns(configuredCols);
 
-    const valueCounts = data.reduce((prev, d) => {
-      const key =
-        d[`${columnKey}-display`]?.toString() ||
-        d[columnKey]?.toString() ||
-        DEFAULT_FORMAT;
-      if (!prev[key]) {
-        prev[key] = 0;
-      }
-      prev[key] += 1;
-      return prev;
-    }, {} as Record<string, number>);
+    const valueCounts = data.reduce(
+      (prev, d) => {
+        const key =
+          d[`${columnKey}-display`]?.toString() ||
+          d[columnKey]?.toString() ||
+          DEFAULT_FORMAT;
+        if (!prev[key]) {
+          prev[key] = 0;
+        }
+        prev[key] += 1;
+        return prev;
+      },
+      {} as Record<string, number>,
+    );
     const cleanedValueCounts = Object.fromEntries(
       Object.entries(valueCounts).map(([key, value]) => [
         extractTag(key),
         value,
-      ])
+      ]),
     );
     const columns = Object.entries(cleanedValueCounts)
       .sort((a, b) => b[1] - a[1])
@@ -396,11 +399,11 @@ const Kanban = ({
     const base64 = Array.isArray(layout.prioritization)
       ? layout.prioritization[0]
       : typeof layout.prioritization === "string"
-      ? layout.prioritization
-      : "e30="; // base64 of {}
+        ? layout.prioritization
+        : "e30="; // base64 of {}
     const stored = inlineTry(
       () => zPriority.parse(JSON.parse(window.atob(base64))),
-      {}
+      {},
     );
     data.forEach((d) => {
       if (!stored[d.uid]) {
@@ -413,8 +416,8 @@ const Kanban = ({
     return Array.isArray(layout.uid)
       ? layout.uid[0]
       : typeof layout.uid === "string"
-      ? layout.uid
-      : ""; // should we throw an error here? Should never happen in practice...
+        ? layout.uid
+        : ""; // should we throw an error here? Should never happen in practice...
   }, [layout.uid]);
   const [isAdding, setIsAdding] = useState(false);
   const [newColumn, setNewColumn] = useState("");
@@ -435,7 +438,7 @@ const Kanban = ({
     if (activeSort.length) return cards;
     Object.keys(cards).forEach((k) => {
       cards[k] = cards[k].sort(
-        (a, b) => prioritization[a.uid] - prioritization[b.uid]
+        (a, b) => prioritization[a.uid] - prioritization[b.uid],
       );
     });
     return cards;
@@ -457,7 +460,7 @@ const Kanban = ({
     (x: number) => {
       if (!containerRef.current) return;
       const columnEls = Array.from<HTMLDivElement>(
-        containerRef.current.querySelectorAll(".roamjs-kanban-column")
+        containerRef.current.querySelectorAll(".roamjs-kanban-column"),
       ).reverse();
       columnEls.forEach((el) => (el.style.background = ""));
       return columnEls.find((el) => {
@@ -465,7 +468,7 @@ const Kanban = ({
         return x >= left;
       });
     },
-    [containerRef]
+    [containerRef],
   );
   const reprioritizeAndUpdateBlock = useCallback<Reprioritize>(
     ({ uid, x, y }) => {
@@ -486,8 +489,8 @@ const Kanban = ({
       // Get card priority
       const _cardIndex = Array.from(
         targetColumnEl.querySelectorAll(
-          ".roamjs-kanban-card:not(.react-draggable-dragging)"
-        )
+          ".roamjs-kanban-card:not(.react-draggable-dragging)",
+        ),
       )
         .map((el, index) => ({ el, index }))
         .reverse()
@@ -512,7 +515,7 @@ const Kanban = ({
             prioritization[uid] = index;
             return prioritization;
           },
-          {} as Record<string, number>
+          {} as Record<string, number>,
         );
         newPrioritization[uid] = priority;
         setPrioritization(newPrioritization);
@@ -524,11 +527,11 @@ const Kanban = ({
       // Update block
       if (!draggedToSameColumn) {
         const columnKeySelection = resultKeys.find(
-          (rk) => rk.key === columnKey
+          (rk) => rk.key === columnKey,
         )?.selection;
         if (!columnKeySelection) return;
         const predefinedSelection = predefinedSelections.find((ps) =>
-          ps.test.test(columnKeySelection)
+          ps.test.test(columnKeySelection),
         );
         if (!predefinedSelection?.update) return;
 
@@ -547,19 +550,19 @@ const Kanban = ({
           .then(onQuery);
       }
     },
-    [setPrioritization, cards, containerRef, byUid, columnKey, parentUid]
+    [setPrioritization, cards, containerRef, byUid, columnKey, parentUid],
   );
   const showLegend = useMemo(
     () => (Array.isArray(layout.legend) ? layout.legend[0] : layout.legend),
-    [layout.legend]
+    [layout.legend],
   );
   const [openedPopoverIndex, setOpenedPopoverIndex] = useState<number | null>(
-    null
+    null,
   );
 
   const moveColumn = async (
     direction: "left" | "right",
-    columnIndex: number
+    columnIndex: number,
   ) => {
     const offset = direction === "left" ? -1 : 1;
     const newColumns = [...columns];
@@ -586,7 +589,7 @@ const Kanban = ({
 
   const viewsByColumn = useMemo(
     () => Object.fromEntries(views.map((v) => [v.column, v])),
-    [views]
+    [views],
   );
 
   const PSEUDO_CARD_WIDTH = 250;
@@ -594,7 +597,7 @@ const Kanban = ({
     <div className="relative" ref={parentRef}>
       <div
         aria-label="pseudo-dragging-card"
-        className={`absolute cursor-move z-30 ${
+        className={`absolute z-30 cursor-move ${
           isDragging ? "block" : "hidden"
         }`}
         style={{
@@ -603,18 +606,18 @@ const Kanban = ({
           width: PSEUDO_CARD_WIDTH,
         }}
       >
-        <div className="rounded-xl bg-white p-4 mb-3 shadow-lg cursor-move">
-          <div className="text-gray-800 font-semibold">Card</div>
+        <div className="mb-3 cursor-move rounded-xl bg-white p-4 shadow-lg">
+          <div className="font-semibold text-gray-800">Card</div>
         </div>
       </div>
       {showLegend === "Yes" && (
         <div
-          className="p-4 w-full"
+          className="w-full p-4"
           style={{
             background: "#eeeeee80",
           }}
         >
-          <div className="inline-block mr-4">
+          <div className="mr-4 inline-block">
             <span className="font-bold">Group By:</span>
             <span> {columnKey}</span>
           </div>
@@ -626,7 +629,7 @@ const Kanban = ({
       )}
       <div className="flex w-full p-4">
         <div
-          className="gap-2 items-start relative roamjs-kanban-container overflow-x-scroll flex w-full"
+          className="roamjs-kanban-container relative flex w-full items-start gap-2 overflow-x-scroll"
           style={{ minHeight: "500px" }}
           ref={containerRef}
         >
@@ -636,12 +639,12 @@ const Kanban = ({
             return (
               <div
                 key={col}
-                className="p-4 rounded-2xl flex flex-col gap-2 bg-gray-100 flex-shrink-1 roamjs-kanban-column max-w-2xl"
+                className="flex-shrink-1 roamjs-kanban-column flex max-w-2xl flex-col gap-2 rounded-2xl bg-gray-100 p-4"
                 data-column={col}
                 style={{ minWidth: "24rem" }}
               >
                 <div
-                  className="justify-between items-center mb-4"
+                  className="mb-4 items-center justify-between"
                   style={{ display: "flex" }}
                 >
                   <span className="font-bold">{col}</span>
@@ -699,7 +702,7 @@ const Kanban = ({
                   </Popover>
                 </div>
                 <div
-                  className="overscroll-y-contain overflow-y-scroll relative"
+                  className="relative overflow-y-scroll overscroll-y-contain"
                   style={{ maxHeight: "70vh", overflowX: "clip" }}
                 >
                   {(cards[col] || [])?.map((d, i) => {
@@ -781,7 +784,7 @@ const Kanban = ({
                   options={potentialColumns}
                 />
                 <div
-                  className="justify-between items-center mt-2"
+                  className="mt-2 items-center justify-between"
                   style={{ display: "flex" }}
                 >
                   <Button
@@ -812,7 +815,7 @@ const Kanban = ({
               <Button
                 minimal
                 text="Add column"
-                className="p-2 cursor-pointer ml-auto"
+                className="ml-auto cursor-pointer p-2"
                 rightIcon={"plus"}
                 onClick={() => setIsAdding(true)}
               />

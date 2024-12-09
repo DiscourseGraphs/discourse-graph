@@ -48,7 +48,7 @@ const calcCanvasNodeSizeAndImg = async ({
 }) => {
   const allNodes = getDiscourseNodes();
   const canvasSettings = Object.fromEntries(
-    allNodes.map((n) => [n.type, { ...n.canvasSettings }])
+    allNodes.map((n) => [n.type, { ...n.canvasSettings }]),
   );
   const {
     "query-builder-alias": qbAlias = "",

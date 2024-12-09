@@ -13,7 +13,7 @@ const getNamespaceSetting = () => {
   const value =
     (
       window.roamAlphaAPI.data.fast.q(
-        `[:find [pull ?u [:user/settings]] :where [?u :user/uid "${user}"]]`
+        `[:find [pull ?u [:user/settings]] :where [?u :user/uid "${user}"]]`,
       )?.[0]?.[0] as {
         ":user/settings": {
           ":namespace-options": ("partial" | "none" | "full")[];
@@ -47,8 +47,8 @@ const toCellValue = ({
     value instanceof Date
       ? window.roamAlphaAPI.util.dateToPageTitle(value)
       : typeof value === "undefined" || value === null
-      ? defaultValue
-      : extractTag(resolveRefs(value.toString()));
+        ? defaultValue
+        : extractTag(resolveRefs(value.toString()));
   const namespaceSetting = getNamespaceSetting();
 
   const formattedValue =
@@ -56,11 +56,11 @@ const toCellValue = ({
       ? namespaceSetting === "full"
         ? initialValue.split("/").slice(-1)[0]
         : namespaceSetting === "partial"
-        ? initialValue
-            .split("/")
-            .map((v, i, a) => (i === a.length - 1 ? v : v.slice(0, 1)))
-            .join("/")
-        : initialValue
+          ? initialValue
+              .split("/")
+              .map((v, i, a) => (i === a.length - 1 ? v : v.slice(0, 1)))
+              .join("/")
+          : initialValue
       : initialValue;
   return formattedValue;
 };

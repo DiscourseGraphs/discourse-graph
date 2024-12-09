@@ -59,8 +59,8 @@ const getOverlayInfo = (tag: string, id: string): Promise<DiscourseData> => {
             results,
             refs: window.roamAlphaAPI.data.fast.q(
               `[:find ?a :where [?b :node/title "${normalizePageTitle(
-                tag
-              )}"] [?a :block/refs ?b]]`
+                tag,
+              )}"] [?a :block/refs ?b]]`,
             ).length,
           });
           const runTime = (self.end = new Date().valueOf() - start);
@@ -146,7 +146,7 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
           }
         })
         .finally(() => setLoading(false)),
-    [tag, setResults, setLoading, setRefs, setScore]
+    [tag, setResults, setLoading, setRefs, setScore],
   );
   const refresh = useCallback(() => {
     setLoading(true);
@@ -205,7 +205,7 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
     { current: parent },
     {},
     { disconnectOnLeave: false },
-    {}
+    {},
   );
   return inViewport ? (
     <DiscourseContextOverlay tag={tag} id={id} />
@@ -237,7 +237,7 @@ export const render = ({
     <ExtensionApiContextProvider {...onloadArgs}>
       <Wrapper tag={tag} parent={parent} />
     </ExtensionApiContextProvider>,
-    parent
+    parent,
   );
 };
 

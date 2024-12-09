@@ -8,8 +8,8 @@ const transform = (_val: Result[string]) =>
     ? DAILY_NOTE_PAGE_TITLE_REGEX.test(extractTag(_val))
       ? window.roamAlphaAPI.util.pageTitleToDate(extractTag(_val)) || new Date()
       : /^(-)?\d+(\.\d*)?$/.test(_val)
-      ? Number(_val)
-      : _val
+        ? Number(_val)
+        : _val
     : _val;
 const sortFunction =
   (key: string, descending?: boolean) => (a: Result, b: Result) => {
@@ -37,7 +37,7 @@ const postProcessResults = (
   settings: Omit<
     ReturnType<typeof parseResultSettings>,
     "views" | "layout" | "resultNodeUid"
-  >
+  >,
 ) => {
   const sortedResults = results
     .filter((r) => {
@@ -54,18 +54,20 @@ const postProcessResults = (
               (r[filterKey] instanceof Date ||
                 !excludeValues.has(
                   // @ts-ignore FIX LATER
-                  window.roamAlphaAPI.util.dateToPageTitle(r[filterKey] as Date)
+                  window.roamAlphaAPI.util.dateToPageTitle(
+                    r[filterKey] as Date,
+                  ),
                 )) &&
               !excludeValues.has(r[filterKey] as string)) ||
             (typeof r[filterKey] === "string" &&
               includeValues.has(extractTag(r[filterKey] as string))) ||
             (r[filterKey] instanceof Date &&
               includeValues.has(
-                window.roamAlphaAPI.util.dateToPageTitle(r[filterKey] as Date)
+                window.roamAlphaAPI.util.dateToPageTitle(r[filterKey] as Date),
               )) ||
             includeValues.has(r[filterKey] as string)
           );
-        }
+        },
       );
       if (!deprecatedFilter) return false;
       return settings.columnFilters.every((columnFilter) => {
@@ -103,7 +105,7 @@ const postProcessResults = (
             .some((key) =>
               String(r[key])
                 .toLowerCase()
-                .includes(settings.searchFilter.toLowerCase())
+                .includes(settings.searchFilter.toLowerCase()),
             )
         : true;
     })
@@ -120,7 +122,7 @@ const postProcessResults = (
       : sortedResults;
   const paginatedResults = allProcessedResults.slice(
     (settings.page - 1) * settings.pageSize,
-    settings.page * settings.pageSize
+    settings.page * settings.pageSize,
   );
   return { results, allProcessedResults, paginatedResults };
 };

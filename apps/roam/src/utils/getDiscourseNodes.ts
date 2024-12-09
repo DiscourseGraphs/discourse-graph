@@ -84,8 +84,8 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
         backedBy: "user",
         canvasSettings: Object.fromEntries(
           getSubTree({ tree: children, key: "canvas" }).children.map(
-            (c) => [c.text, c.children[0]?.text || ""] as const
-          )
+            (c) => [c.text, c.children[0]?.text || ""] as const,
+          ),
         ),
         graphOverview:
           children.filter((c) => c.text === "Graph Overview").length > 0,
@@ -112,19 +112,19 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
               target === "source"
                 ? r.source
                 : target === "destination"
-                ? r.destination
-                : /anchor/i.test(target)
-                ? r.label
-                : target,
+                  ? r.destination
+                  : /anchor/i.test(target)
+                    ? r.label
+                    : target,
             uid: window.roamAlphaAPI.util.generateUID(),
           })),
           backedBy: "relation",
           canvasSettings: {},
-        }))
+        })),
     );
   const configuredNodeTexts = new Set(configuredNodes.map((n) => n.text));
   const defaultNodes = DEFAULT_NODES.filter(
-    (n) => !configuredNodeTexts.has(n.text)
+    (n) => !configuredNodeTexts.has(n.text),
   );
   return configuredNodes.concat(defaultNodes);
 };

@@ -6,8 +6,8 @@ const getDiscourseRelationTriples = (relations = getDiscourseRelations()) =>
       relations.flatMap((r) => [
         JSON.stringify([r.label, r.source, r.destination]),
         JSON.stringify([r.complement, r.destination, r.source]),
-      ])
-    )
+      ]),
+    ),
   )
     .map((s) => JSON.parse(s))
     .map(([relation, source, target]: string[]) => ({

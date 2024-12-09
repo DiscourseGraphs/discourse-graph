@@ -546,7 +546,7 @@ const translator: Record<string, Translator> = {
     targetOptions: () =>
       (
         window.roamAlphaAPI.data.fast.q(
-          `[:find (pull ?n [:node/title]) :where [?u :user/display-page ?n]]`
+          `[:find (pull ?n [:node/title]) :where [?u :user/display-page ?n]]`,
         ) as [PullBlock][]
       )
         .map((d) => d[0][":node/title"] || "")
@@ -576,7 +576,7 @@ const translator: Record<string, Translator> = {
     targetOptions: () =>
       (
         window.roamAlphaAPI.data.fast.q(
-          `[:find (pull ?n [:node/title]) :where [?u :user/display-page ?n]]`
+          `[:find (pull ?n [:node/title]) :where [?u :user/display-page ?n]]`,
         ) as [PullBlock][]
       )
         .map((d) => d[0][":node/title"] || "")
@@ -996,7 +996,7 @@ const conditionToDatalog: ConditionToDatalog = (con) => {
   const datalogTranslator =
     translator[relation] ||
     Object.entries(translator).find(([k]) =>
-      new RegExp(relation, "i").test(k)
+      new RegExp(relation, "i").test(k),
     )?.[1];
   const datalog = datalogTranslator?.callback?.(condition) || [];
   if (datalog.length && (con.type === "not" || con.not))

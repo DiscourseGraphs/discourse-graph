@@ -27,24 +27,24 @@ const ContextContent = ({ title }: Props) => {
     () =>
       (
         window.roamAlphaAPI.data.fast.q(
-          `[:find (pull ?pr [:node/title]) (pull ?r [:block/uid :block/children :create/time]) :where [?p :node/title "${title}"] [?r :block/refs ?p] [?r :block/page ?pr]]`
+          `[:find (pull ?pr [:node/title]) (pull ?r [:block/uid :block/children :create/time]) :where [?p :node/title "${title}"] [?r :block/refs ?p] [?r :block/page ?pr]]`,
         ) as [PullBlock, PullBlock][]
       )
         .filter(
-          ([, { [":block/children"]: children = [] }]) => !!children.length
+          ([, { [":block/children"]: children = [] }]) => !!children.length,
         )
         .sort(
           ([, { [":create/time"]: a = 0 }], [, { [":create/time"]: b = 0 }]) =>
-            a - b
+            a - b,
         ),
-    [title]
+    [title],
   );
   return (
     <>
       {queryResults.map(
         ([{ [":node/title"]: title = "" }, { [":block/uid"]: uid = "" }]) => (
           <Content title={title} uid={uid} />
-        )
+        ),
       )}
     </>
   );

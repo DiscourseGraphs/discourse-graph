@@ -10,7 +10,7 @@ const toVar = (v = "undefined") => v.replace(/[\s"()[\]{}/\\^@,~`]/g, "");
 
 const compileDatalog = (
   d: DatalogClause | DatalogArgument | DatalogBinding,
-  level = 0
+  level = 0,
 ): string => {
   switch (d.type) {
     case "data-pattern":

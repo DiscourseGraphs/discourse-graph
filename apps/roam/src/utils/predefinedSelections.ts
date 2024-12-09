@@ -34,7 +34,7 @@ const getArgValue = (key: string, result: QueryResult) => {
   if (typeof val === "string" && DAILY_NOTE_PAGE_REGEX.test(val))
     return (
       window.roamAlphaAPI.util.pageTitleToDate(
-        DAILY_NOTE_PAGE_REGEX.exec(val)?.[0] || ""
+        DAILY_NOTE_PAGE_REGEX.exec(val)?.[0] || "",
       ) || new Date()
     );
   return val;
@@ -119,11 +119,11 @@ const getBlockAttribute = (key: string, r: PullBlock) => {
   const blocks = flatten(
     window.roamAlphaAPI.pull(
       "[:block/string :block/uid {:block/children ...}]",
-      [":block/uid", r[":block/uid"] || ""]
-    )?.[":block/children"]
+      [":block/uid", r[":block/uid"] || ""],
+    )?.[":block/children"],
   );
   const block = blocks.find((blk) =>
-    (blk[":block/string"] || "").startsWith(key + "::")
+    (blk[":block/string"] || "").startsWith(key + "::"),
   );
   return {
     "": (block?.[":block/string"] || "").slice(key.length + 2).trim(),
@@ -133,7 +133,7 @@ const getBlockAttribute = (key: string, r: PullBlock) => {
 
 const isVariableExposed = (
   clauses: DatalogClause[],
-  variable: string
+  variable: string,
 ): boolean =>
   clauses.some((c) => {
     switch (c.type) {
@@ -169,7 +169,7 @@ export type PredefinedSelection = {
   mapper: (
     r: PullBlock,
     key: string,
-    result: QueryResult
+    result: QueryResult,
   ) =>
     | QueryResult[string]
     | Record<string, QueryResult[string]>
@@ -221,7 +221,7 @@ const EDIT_BY_SUGGESTIONS: SelectionSuggestion[] = [{ text: "edited by" }];
 //   children: [],
 // }));
 const LEAF_SUGGESTIONS: SelectionSuggestion[] = CREATE_DATE_SUGGESTIONS.concat(
-  EDIT_DATE_SUGGESTIONS
+  EDIT_DATE_SUGGESTIONS,
 )
   .concat(CREATE_BY_SUGGESTIONS)
   .concat(EDIT_BY_SUGGESTIONS);
@@ -276,16 +276,16 @@ const predefinedSelections: PredefinedSelection[] = [
       const fields = CREATE_BY_TEST.test(field)
         ? `[:create/user]`
         : EDIT_BY_TEST.test(field)
-        ? `[:edit/user]`
-        : CREATE_DATE_TEST.test(field)
-        ? `[:create/time]`
-        : EDIT_DATE_TEST.test(field)
-        ? `[:edit/time]`
-        : REGEX_TEST.test(field)
-        ? `[:node/title :block/string :block/uid]`
-        : field
-        ? `[:block/uid]`
-        : `[:node/title :block/uid :block/string]`;
+          ? `[:edit/user]`
+          : CREATE_DATE_TEST.test(field)
+            ? `[:create/time]`
+            : EDIT_DATE_TEST.test(field)
+              ? `[:edit/time]`
+              : REGEX_TEST.test(field)
+                ? `[:node/title :block/string :block/uid]`
+                : field
+                  ? `[:block/uid]`
+                  : `[:node/title :block/uid :block/string]`;
 
       return isVariableExposed(where, node) ? `(pull ?${node} ${fields})` : "";
     },
@@ -299,29 +299,29 @@ const predefinedSelections: PredefinedSelection[] = [
             value: r?.[":create/time"],
           })
         : field === ":edit/time"
-        ? formatDate({
-            regex: EDIT_DATE_TEST,
-            key: match,
-            value: r?.[":edit/time"],
-          })
-        : field === ":create/user"
-        ? getUserDisplayNameById(r?.[":create/user"]?.[":db/id"])
-        : field === ":edit/user"
-        ? getUserDisplayNameById(r?.[":edit/user"]?.[":db/id"])
-        : REGEX_TEST.test(match)
-        ? {
-            "":
-              new RegExp(match.slice(1, -1))
-                .exec(r?.[":block/string"] || r?.[":node/title"] || "")
-                ?.slice(-1)[0] || "",
-            "-uid": r?.[":block/uid"] || "",
-          }
-        : match
-        ? getBlockAttribute(match, r)
-        : {
-            "": r?.[":node/title"] || r[":block/string"] || "",
-            "-uid": r?.[":block/uid"] || "",
-          };
+          ? formatDate({
+              regex: EDIT_DATE_TEST,
+              key: match,
+              value: r?.[":edit/time"],
+            })
+          : field === ":create/user"
+            ? getUserDisplayNameById(r?.[":create/user"]?.[":db/id"])
+            : field === ":edit/user"
+              ? getUserDisplayNameById(r?.[":edit/user"]?.[":db/id"])
+              : REGEX_TEST.test(match)
+                ? {
+                    "":
+                      new RegExp(match.slice(1, -1))
+                        .exec(r?.[":block/string"] || r?.[":node/title"] || "")
+                        ?.slice(-1)[0] || "",
+                    "-uid": r?.[":block/uid"] || "",
+                  }
+                : match
+                  ? getBlockAttribute(match, r)
+                  : {
+                      "": r?.[":node/title"] || r[":block/string"] || "",
+                      "-uid": r?.[":block/uid"] || "",
+                    };
     },
     update: async ({ uid, value, selection, parentUid, result }) => {
       const match = (NODE_TEST.exec(selection)?.[2] || "").substring(1);
@@ -347,7 +347,7 @@ const predefinedSelections: PredefinedSelection[] = [
         const { conditions } = parseQuery(parentUid);
         const selectedVar = selection.replace(/^\s*node:/, "");
         const introducedCondition = conditions.find(
-          (c): c is QBClause => c.type === "clause" && c.target === selectedVar
+          (c): c is QBClause => c.type === "clause" && c.target === selectedVar,
         );
         if (introducedCondition?.relation === "references") {
           const sourceUid = result[
@@ -362,7 +362,7 @@ const predefinedSelections: PredefinedSelection[] = [
                   value: result[selectedVar],
                   uid: result[`${selectedVar}-uid`],
                 }),
-                value
+                value,
               ),
             });
           }
@@ -399,11 +399,11 @@ const predefinedSelections: PredefinedSelection[] = [
       const val1 = getArgValue(arg1, result);
       if (val0 instanceof Date && val1 instanceof Date) {
         return Math.floor(
-          (val0.valueOf() - val1.valueOf()) / MILLISECONDS_IN_DAY
+          (val0.valueOf() - val1.valueOf()) / MILLISECONDS_IN_DAY,
         );
       } else if (val0 instanceof Date) {
         return new Date(
-          val0.valueOf() - MILLISECONDS_IN_DAY * (Number(val1) || 0)
+          val0.valueOf() - MILLISECONDS_IN_DAY * (Number(val1) || 0),
         );
       } else {
         return (Number(val0) || 0) - (Number(val1) || 0);
@@ -424,11 +424,11 @@ const predefinedSelections: PredefinedSelection[] = [
         return val1;
       } else if (val0 instanceof Date) {
         return new Date(
-          val0.valueOf() + MILLISECONDS_IN_DAY * (Number(val1) || 0)
+          val0.valueOf() + MILLISECONDS_IN_DAY * (Number(val1) || 0),
         );
       } else if (val1 instanceof Date) {
         return new Date(
-          val1.valueOf() + MILLISECONDS_IN_DAY * (Number(val0) || 0)
+          val1.valueOf() + MILLISECONDS_IN_DAY * (Number(val0) || 0),
         );
       } else {
         return (Number(val0) || 0) + (Number(val1) || 0);
@@ -448,7 +448,7 @@ const predefinedSelections: PredefinedSelection[] = [
       const arg0 =
         typeof rawArg0 === "string" && DAILY_NOTE_PAGE_REGEX.test(rawArg0)
           ? window.roamAlphaAPI.util.pageTitleToDate(
-              DAILY_NOTE_PAGE_REGEX.exec(rawArg0)?.[0] || ""
+              DAILY_NOTE_PAGE_REGEX.exec(rawArg0)?.[0] || "",
             ) || new Date()
           : rawArg0;
       const arg1 = exec?.[2] || "";
@@ -556,7 +556,7 @@ export const ALL_SELECTION_SUGGESTIONS = flattenSuggestions(
   predefinedSelections
     .map((s) => s.suggestions)
     .filter((s): s is SelectionSuggestion[] => !!s?.length)
-    .flat()
+    .flat(),
 );
 
 export const registerSelection = (args: PredefinedSelection) => {

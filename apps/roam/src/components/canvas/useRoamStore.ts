@@ -64,7 +64,7 @@ export const useRoamStore = ({
         .concat(Object.keys(rec.changes.updated))
         .filter(
           (k) =>
-            !/^(user_presence|camera|instance|instance_page_state):/.test(k)
+            !/^(user_presence|camera|instance|instance_page_state):/.test(k),
         );
       if (!validChanges.length) return;
       clearTimeout(serializeRef.current);
@@ -110,16 +110,16 @@ export const useRoamStore = ({
   const pruneState = (state: StoreSnapshot<TLRecord>) =>
     Object.fromEntries(
       Object.entries(state).filter(
-        ([_, record]) => !personalRecordTypes.has(record.typeName)
-      )
+        ([_, record]) => !personalRecordTypes.has(record.typeName),
+      ),
     );
 
   const diffObjects = (
     oldRecord: Record<string, any>,
-    newRecord: Record<string, any>
+    newRecord: Record<string, any>,
   ): Record<string, any> => {
     const allKeys = Array.from(
-      new Set(Object.keys(oldRecord).concat(Object.keys(newRecord)))
+      new Set(Object.keys(oldRecord).concat(Object.keys(newRecord))),
     );
     return Object.fromEntries(
       allKeys
@@ -145,12 +145,12 @@ export const useRoamStore = ({
           }
           return null;
         })
-        .filter((e): e is [string, any] => !!e)
+        .filter((e): e is [string, any] => !!e),
     );
   };
   const calculateDiff = (
     _newState: StoreSnapshot<TLRecord>,
-    _oldState: StoreSnapshot<TLRecord>
+    _oldState: StoreSnapshot<TLRecord>,
   ) => {
     const newState = pruneState(_newState);
     const oldState = pruneState(_oldState);
@@ -158,12 +158,12 @@ export const useRoamStore = ({
       added: Object.fromEntries(
         Object.keys(newState)
           .filter((id) => !oldState[id])
-          .map((id) => [id, newState[id]])
+          .map((id) => [id, newState[id]]),
       ),
       removed: Object.fromEntries(
         Object.keys(oldState)
           .filter((id) => !newState[id])
-          .map((key) => [key, oldState[key]])
+          .map((key) => [key, oldState[key]]),
       ),
       updated: Object.fromEntries(
         Object.keys(newState)
@@ -180,7 +180,7 @@ export const useRoamStore = ({
             }
             return null;
           })
-          .filter((e): e is [string, any] => !!e)
+          .filter((e): e is [string, any] => !!e),
       ),
     };
   };
@@ -191,7 +191,7 @@ export const useRoamStore = ({
       `[:block/uid "${pageUid}"]`,
       (_, after) => {
         const props = normalizeProps(
-          (after?.[":block/props"] || {}) as json
+          (after?.[":block/props"] || {}) as json,
         ) as Record<string, json>;
         const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
         const propsStateId = rjsqb?.stateId as string;

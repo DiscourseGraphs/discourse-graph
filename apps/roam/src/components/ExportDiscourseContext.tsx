@@ -46,7 +46,7 @@ const getOutboundReferences = async (uid: string) => {
   // https://github.com/RoamJS/query-builder/pull/165
   const refPageTitles = getLinkedPageTitlesUnderUid(uid);
   const refPageUids = refPageTitles.map((title) =>
-    getPageUidByPageTitle(title)
+    getPageUidByPageTitle(title),
   );
   return refPageUids;
 };
@@ -54,7 +54,7 @@ const getOutboundReferences = async (uid: string) => {
 const getReferencesByDegree = async (
   initialUids: string[],
   degrees: number,
-  getReferences: (uid: string) => Promise<string[]>
+  getReferences: (uid: string) => Promise<string[]>,
 ): Promise<Set<string>> => {
   let currentUids = [...initialUids];
   const visitedUids = new Set<string>();
@@ -76,17 +76,17 @@ const getReferencesByDegree = async (
 const getAllReferencesByDegree = async (
   initialUids: string[],
   degreesIn: number,
-  degreesOut: number
+  degreesOut: number,
 ): Promise<Set<string>> => {
   const inboundUids = await getReferencesByDegree(
     initialUids,
     degreesIn,
-    getInboundReferences
+    getInboundReferences,
   );
   const outboundUids = await getReferencesByDegree(
     initialUids,
     degreesOut,
-    getOutboundReferences
+    getOutboundReferences,
   );
 
   return new Set([...inboundUids, ...outboundUids, ...initialUids]);
@@ -149,7 +149,7 @@ const getAllDiscourseContext = async (
   initialUids: string[],
   discourseContextDepth = 1,
   updateProgressWithDelay: UpdateProgressWithDelay,
-  visitedUids = new Set<string>()
+  visitedUids = new Set<string>(),
 ) => {
   await updateProgressWithDelay({
     progress: 0.01,
@@ -197,20 +197,20 @@ const getAllDiscourseContext = async (
 
 const getGraphOverviewDepthValues = () => {
   const controlPanelEl = document.querySelector(
-    "div.rm-graph-view-control-panel__main-options"
+    "div.rm-graph-view-control-panel__main-options",
   );
   if (!controlPanelEl) return { degreesIn: 0, degreesOut: 0 };
 
   const getSliderValueByText = (parentElement: Element, text: string) => {
     const element = Array.from(parentElement.querySelectorAll("strong")).find(
-      (el) => el.textContent?.trim() === text
+      (el) => el.textContent?.trim() === text,
     );
     if (element) {
       const sliderDiv =
         element.parentElement?.parentElement?.nextElementSibling;
       if (sliderDiv) {
         const sliderLabel = sliderDiv.querySelector(
-          ".bp3-slider-handle .bp3-slider-label"
+          ".bp3-slider-handle .bp3-slider-label",
         );
         return sliderLabel ? parseInt(sliderLabel.textContent || "0", 10) : 0;
       }
@@ -234,7 +234,7 @@ type GraphExportDialogProps = {
 };
 
 type GraphExportDialogComponent = (
-  props: RoamOverlayProps<GraphExportDialogProps>
+  props: RoamOverlayProps<GraphExportDialogProps>,
 ) => JSX.Element;
 
 const GraphExportDialog: GraphExportDialogComponent = ({
@@ -265,7 +265,7 @@ const GraphExportDialog: GraphExportDialogComponent = ({
   const [degreesIn, setDegreesIn] = useState(initialDegreesIn);
   const [degreesOut, setDegreesOut] = useState(initialDegreesOut);
   const [discourseContextDepth, setDiscourseContextDepth] = useState(
-    initialDiscourseContextDepth || Math.max(degreesIn, degreesOut)
+    initialDiscourseContextDepth || Math.max(degreesIn, degreesOut),
   );
 
   const onTabOrDegreeChange = () => {
@@ -409,7 +409,7 @@ const GraphExportDialog: GraphExportDialogComponent = ({
       const referenceUids = await getAllReferencesByDegree(
         initialUids,
         degreesIn,
-        degreesOut
+        degreesOut,
       );
 
       await updateProgressWithDelay({
@@ -417,7 +417,7 @@ const GraphExportDialog: GraphExportDialogComponent = ({
         message: "Filtering Discourse Nodes",
       });
       const discourseNodeUids = Array.from(referenceUids).filter((uid) =>
-        isDiscourseNode(uid)
+        isDiscourseNode(uid),
       );
 
       await updateProgressWithDelay({
@@ -448,7 +448,7 @@ const GraphExportDialog: GraphExportDialogComponent = ({
       return await getAllDiscourseContext(
         initialUids,
         discourseContextDepth,
-        updateProgressWithDelay
+        updateProgressWithDelay,
       );
     }
     return [];

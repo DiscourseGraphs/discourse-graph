@@ -101,16 +101,16 @@ const Timeline: React.FunctionComponent<TimelineProps> = ({
                   ? window.roamAlphaAPI.util.pageTitleToDate(v)
                   : new Date(v)
                 : v,
-            ])
-          )
+            ]),
+          ),
         )
         .filter(
-          (t): t is Result & { date: Date } => !!t.date && !!t.date.valueOf()
+          (t): t is Result & { date: Date } => !!t.date && !!t.date.valueOf(),
         ),
-    [timelineElements]
+    [timelineElements],
   );
   return datedTimelineElements.length < timelineElements.length ? (
-    <p className="p-2 pr-16 m-0">
+    <p className="m-0 p-2 pr-16">
       Some of the results in this query are missing a <code>Date</code> column.
       To use the Timeline layout, make sure that you add a selections labelled{" "}
       <code>Date</code> and that all results return a valid date value for that

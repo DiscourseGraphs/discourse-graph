@@ -23,7 +23,7 @@ const getDiscourseContextResults = async ({
   if (!discourseNode) return [];
   const nodeType = discourseNode?.type;
   const nodeTextByType = Object.fromEntries(
-    nodes.map(({ type, text }) => [type, text])
+    nodes.map(({ type, text }) => [type, text]),
   );
   nodeTextByType["*"] = "Any";
   const resultsWithRelation = await Promise.all(
@@ -107,7 +107,7 @@ const getDiscourseContextResults = async ({
           },
           results,
         }));
-      })
+      }),
   ).catch((e) => {
     console.error(e);
     return [] as const;
@@ -119,7 +119,7 @@ const getDiscourseContextResults = async ({
         string,
         Partial<Result & { target: string; complement: number; id: string }>
       >,
-    ])
+    ]),
   );
   resultsWithRelation.forEach((r) =>
     r.results
@@ -132,8 +132,8 @@ const getDiscourseContextResults = async ({
             target: nodeTextByType[r.relation.target],
             complement: r.relation.isComplement ? 1 : 0,
             id: r.relation.id,
-          })
-      )
+          }),
+      ),
   );
   return Object.entries(groupedResults).map(([label, results]) => ({
     label,

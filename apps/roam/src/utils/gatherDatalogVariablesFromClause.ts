@@ -1,7 +1,7 @@
 import { DatalogClause } from "roamjs-components/types/native";
 
 const gatherDatalogVariablesFromClause = (
-  clause: DatalogClause
+  clause: DatalogClause,
 ): Set<string> => {
   if (
     clause.type === "data-pattern" ||
@@ -12,7 +12,7 @@ const gatherDatalogVariablesFromClause = (
     return new Set(
       [...clause.arguments]
         .filter((v) => v.type === "variable")
-        .map((v) => v.value)
+        .map((v) => v.value),
     );
   } else if (
     clause.type === "not-clause" ||
@@ -21,8 +21,8 @@ const gatherDatalogVariablesFromClause = (
   ) {
     return new Set(
       clause.clauses.flatMap((c) =>
-        Array.from(gatherDatalogVariablesFromClause(c))
-      )
+        Array.from(gatherDatalogVariablesFromClause(c)),
+      ),
     );
   } else if (
     clause.type === "not-join-clause" ||

@@ -8,11 +8,11 @@ const replaceDatalogVariables = (
     | { from: string; to: string }
     | { from: true; to: (v: string) => string }
   )[] = [],
-  clauses: DatalogClause[]
+  clauses: DatalogClause[],
 ): DatalogClause[] => {
   const replaceDatalogVariable = (a: DatalogVariable): DatalogVariable => {
     const rep = replacements.find(
-      (rep) => a.value === rep.from || rep.from === true
+      (rep) => a.value === rep.from || rep.from === true,
     );
     if (!rep) {
       return { ...a };

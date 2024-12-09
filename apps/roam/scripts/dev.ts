@@ -45,7 +45,7 @@ const dev = () => {
 
 // https://github.com/evanw/esbuild/issues/337#issuecomment-954633403
 const importAsGlobals = (
-  mapping: Record<string, string> = {}
+  mapping: Record<string, string> = {},
 ): esbuild.Plugin => {
   const escRe = (s: string) => s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
   const filter = new RegExp(
@@ -53,7 +53,7 @@ const importAsGlobals = (
       ? Object.keys(mapping)
           .map((mod) => `^${escRe(mod)}$`)
           .join("|")
-      : /$^/
+      : /$^/,
   );
 
   return {
@@ -88,7 +88,7 @@ const importAsGlobals = (
             loader: "js",
             resolveDir: process.cwd(),
           };
-        }
+        },
       );
     },
   };
@@ -144,8 +144,8 @@ const compile = ({
           Object.fromEntries(
             externalModules
               .filter((e) => e.length > 1)
-              .map(([e, ...g]) => [e, g.join("=")])
-          )
+              .map(([e, ...g]) => [e, g.join("=")]),
+          ),
         ),
         {
           name: "log",
@@ -174,7 +174,7 @@ const compile = ({
         ".woff2": "file",
         ".yaml": "text",
       },
-    })
+    }),
   );
   return Promise.all(buildPromises);
 };

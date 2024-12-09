@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const getPixelValue = (
   el: HTMLElement | null,
-  field: "width" | "paddingLeft"
+  field: "width" | "paddingLeft",
 ) =>
   el ? Number((getComputedStyle(el)[field] || "0px").replace(/px$/, "")) : 0;
 
@@ -22,7 +22,7 @@ const ResizableDrawer = ({
     const width = getPixelValue(drawerRef.current, "width");
     const paddingLeft = getPixelValue(
       document.querySelector(".rm-article-wrapper"),
-      "paddingLeft"
+      "paddingLeft",
     );
     setWidth(width - paddingLeft);
   }, [setWidth, drawerRef]);
@@ -34,11 +34,11 @@ const ResizableDrawer = ({
       if (drawerRef.current?.parentElement)
         drawerRef.current.parentElement.style.width = `${Math.max(
           e.clientX,
-          100
+          100,
         )}px`;
       calculateWidth();
     },
-    [calculateWidth, drawerRef]
+    [calculateWidth, drawerRef],
   );
   const onMouseUp = useCallback(() => {
     document.removeEventListener("mousemove", onMouseMove);

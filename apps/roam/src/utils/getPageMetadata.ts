@@ -15,8 +15,8 @@ const getDisplayName = (s: string) => {
 const getPageMetadata = (title: string, cacheKey?: string) => {
   const results = window.roamAlphaAPI.q(
     `[:find (pull ?p [:create/time :block/uid]) (pull ?cu [:user/uid]) :where [?p :node/title "${normalizePageTitle(
-      title
-    )}"] [?p :create/user ?cu]]`
+      title,
+    )}"] [?p :create/user ?cu]]`,
   ) as [[{ time: number; uid: string }, { uid: string }]];
   if (results.length) {
     const [[{ time: createdTime, uid: id }, { uid }]] = results;

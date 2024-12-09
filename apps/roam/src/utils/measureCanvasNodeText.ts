@@ -33,7 +33,7 @@ export const measureCanvasNodeText = (opts: DefaultStyles) => {
     elm.style.setProperty("font-size", opts.fontSize + "px");
     elm.style.setProperty(
       "line-height",
-      opts.lineHeight * opts.fontSize + "px"
+      opts.lineHeight * opts.fontSize + "px",
     );
     elm.style.setProperty("width", opts.width);
     elm.style.setProperty("min-width", opts.minWidth ?? null);

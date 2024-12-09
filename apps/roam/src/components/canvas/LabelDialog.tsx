@@ -52,7 +52,7 @@ const LabelDialogAutocomplete = ({
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<Result[]>([]);
   const [referencedNodeOptions, setReferencedNodeOptions] = useState<Result[]>(
-    []
+    [],
   );
   const [referencedNodeValue, setReferencedNodeValue] = useState("");
   const [isAddReferencedNode, setAddReferencedNode] = useState(false);
@@ -133,7 +133,7 @@ const LabelDialogAutocomplete = ({
       setUid(r.uid);
       setContent(r.text);
     },
-    [setLabel, setUid, isAddReferencedNode, referencedNode]
+    [setLabel, setUid, isAddReferencedNode, referencedNode],
   );
   const setValueFromReferencedNode = React.useCallback(
     (r: Result) => {
@@ -159,15 +159,15 @@ const LabelDialogAutocomplete = ({
       }
       setReferencedNodeValue(r.text);
     },
-    [setLabel, referencedNode, content, referencedNodeValue]
+    [setLabel, referencedNode, content, referencedNodeValue],
   );
   const onNewItem = React.useCallback(
     (text: string) => ({ text, uid: initialUid }),
-    [initialUid]
+    [initialUid],
   );
   const itemToQuery = React.useCallback(
     (result?: Result) => result?.text || "",
-    []
+    [],
   );
   const filterOptions = React.useCallback(
     (o: Result[], q: string) =>
@@ -175,14 +175,14 @@ const LabelDialogAutocomplete = ({
         .filter(q, o, { extract: itemToQuery })
         .map((f) => f.original)
         .filter((f): f is Result => !!f),
-    [itemToQuery]
+    [itemToQuery],
   );
 
   return (
     <>
       {!isCreateCanvasNode ? (
         <div className="m-6">
-          <div className="font-semibold mb-1">Current Title</div>
+          <div className="mb-1 font-semibold">Current Title</div>
           <div>{initialValue.text}</div>
         </div>
       ) : (
@@ -190,7 +190,7 @@ const LabelDialogAutocomplete = ({
       )}
       {(isAddReferencedNode || isEditExistingLabel || isCreateCanvasNode) && (
         <div className="m-6">
-          <div className="font-semibold mb-1">
+          <div className="mb-1 font-semibold">
             {!isCreateCanvasNode ? "New Title" : "Preview"}
           </div>
           <div>{label}</div>
@@ -437,7 +437,7 @@ const LabelDialog = ({
         </div>
         <div className={Classes.DIALOG_FOOTER}>
           <div
-            className={`${Classes.DIALOG_FOOTER_ACTIONS} items-center flex-row-reverse`}
+            className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
           >
             <Button
               text={"Confirm"}
@@ -454,7 +454,7 @@ const LabelDialog = ({
               disabled={loading}
               className="flex-shrink-0"
             />
-            <span className={"text-red-800 flex-grow"}>{error}</span>
+            <span className={"flex-grow text-red-800"}>{error}</span>
             {loading && <Spinner size={SpinnerSize.SMALL} />}
           </div>
         </div>

@@ -29,9 +29,9 @@ const runQuery = ({
           key: s.label,
           uid: s.uid,
           selection: s.text,
-        }))
+        })),
       ),
-      extensionAPI
+      extensionAPI,
     );
     return postProcessResults(results, settings);
   });

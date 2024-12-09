@@ -20,7 +20,7 @@ const NodeSpecification = ({
   const [enabled, setEnabled] = React.useState(
     () =>
       getSubTree({ tree: getBasicTreeByParentUid(parentUid), key: "enabled" })
-        ?.uid
+        ?.uid,
   );
   React.useEffect(() => {
     if (enabled) {
@@ -64,7 +64,7 @@ const NodeSpecification = ({
                   },
                 ],
               },
-            })
+            }),
           )
           .then(() => setMigrated(true));
       }
@@ -85,7 +85,7 @@ const NodeSpecification = ({
       <p>
         <Switch
           checked={!!enabled}
-          className={"inline-block ml-8"}
+          className={"ml-8 inline-block"}
           onChange={(e) => {
             const flag = (e.target as HTMLInputElement).checked;
             if (flag) {

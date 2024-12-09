@@ -22,7 +22,7 @@ const Charts = ({
           data: data.map((d) => [d[columns[0].key], d[col.key]] as ChartData),
         };
       }),
-    [data, columns]
+    [data, columns],
   );
   const primaryAxis = React.useMemo<AxisOptions<ChartData>>(
     () => ({
@@ -33,10 +33,10 @@ const Charts = ({
         d instanceof Date
           ? d
           : typeof d === "string"
-          ? window.roamAlphaAPI.util.pageTitleToDate(d)
-          : new Date(d),
+            ? window.roamAlphaAPI.util.pageTitleToDate(d)
+            : new Date(d),
     }),
-    []
+    [],
   );
   const secondaryAxes = React.useMemo<AxisOptions<ChartData>[]>(
     () =>
@@ -46,11 +46,11 @@ const Charts = ({
         getValue: (d) => Number(d[1]) || 0,
         elementType: type,
       })),
-    [type]
+    [type],
   );
 
   return Object.keys(primaryAxis).length !== 0 && !secondaryAxes.length ? (
-    <p className="p-2 pr-16 m-0">
+    <p className="m-0 p-2 pr-16">
       You need to have at least <strong>two selections</strong> for this layout
       to work, where the first is a selection that returns{" "}
       <strong>date values</strong> and all subsequent selections return{" "}

@@ -27,7 +27,7 @@ const CanvasReferencesList = ({
       results.map((res) => ({
         uid: res[0][":block/uid"] || "",
         text: res[0][":block/string"] || res[0][":node/title"] || "",
-      }))
+      })),
     );
     setReferenceCount(results.length);
   }, [setReferences, uid, setReferenceCount]);

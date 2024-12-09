@@ -21,18 +21,16 @@ const matchDiscourseNode = ({
   if (specification.length) {
     const where = replaceDatalogVariables(
       [{ from: text, to: "node" }],
-      specification.flatMap((c) =>
-        conditionToDatalog(c)
-      )
+      specification.flatMap((c) => conditionToDatalog(c)),
     ).map((c) => compileDatalog(c, 0));
     const firstClause =
       "title" in rest
         ? `[or-join [?node] [?node :node/title "${normalizePageTitle(
-            rest.title
+            rest.title,
           )}"] [?node :block/string "${normalizePageTitle(rest.title)}"]]`
         : `[?node :block/uid "${rest.uid}"]`;
     return !!window.roamAlphaAPI.data.fast.q(
-      `[:find ?node :where ${firstClause} ${where.join(" ")}]`
+      `[:find ?node :where ${firstClause} ${where.join(" ")}]`,
     ).length;
   }
   const title = "title" in rest ? rest.title : getPageTitleByPageUid(rest.uid);

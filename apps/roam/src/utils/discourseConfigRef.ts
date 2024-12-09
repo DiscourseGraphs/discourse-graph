@@ -30,10 +30,10 @@ type FormattedConfigTree = {
 export const getFormattedConfigTree = (): FormattedConfigTree => {
   const settingsUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
   const grammarNode = configTreeRef.tree.find(
-    (node) => node.text === "grammar"
+    (node) => node.text === "grammar",
   );
   const relationsNode = grammarNode?.children.find(
-    (node) => node.text === "relations"
+    (node) => node.text === "relations",
   );
   const nodesNode = grammarNode?.children.find((node) => node.text === "nodes");
 

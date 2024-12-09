@@ -42,7 +42,7 @@ This document outlines the coding standards and best practices for contributing 
 ```typescript
 // ❌ Unclear and inline
 const result = items.filter(
-  (x) => x.date > now && x.status === "active" && !x.isArchived
+  (x) => x.date > now && x.status === "active" && !x.isArchived,
 );
 
 // ✅ Clear and reusable

@@ -11,9 +11,9 @@ export const listActiveQueries = (extensionAPI: OnloadArgs["extensionAPI"]) =>
                  (p) =>
                    `[and [?b :node/title ?t] [[re-pattern "^${p.replace(
                      /\*/,
-                     ".*"
-                   )}$"] ?regex] [[re-find ?regex ?t]]]`
+                     ".*",
+                   )}$"] ?regex] [[re-find ?regex ?t]]]`,
                )}
-          ]]`
+          ]]`,
     ) as [PullBlock][]
   ).map((b) => ({ uid: b[0][":block/uid"] || "" }));

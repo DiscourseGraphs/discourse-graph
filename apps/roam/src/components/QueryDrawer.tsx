@@ -64,7 +64,7 @@ const SavedQuery = ({
       })
       .catch(() => {
         setError(
-          `Query failed to run. Try running a new query from the editor.`
+          `Query failed to run. Try running a new query from the editor.`,
         );
       });
   }, [uid, setResults, setError, setColumns, setMinimized]);
@@ -84,7 +84,7 @@ const SavedQuery = ({
         onRefresh={refresh}
         header={
           error ? (
-            <div className="text-red-700 mb-4">{error}</div>
+            <div className="mb-4 text-red-700">{error}</div>
           ) : (
             <>
               {isEditingLabel ? (
@@ -152,8 +152,8 @@ const SavedQuery = ({
                                 .then(() =>
                                   window.roamAlphaAPI.ui.mainWindow.openPage({
                                     page: { uid: pageUid },
-                                  })
-                                )
+                                  }),
+                                ),
                             )
                             .then(onDelete);
                         }}
@@ -191,7 +191,7 @@ const SavedQuery = ({
               createBlock({
                 parentUid,
                 node: { text: "scratch" },
-              })
+              }),
             )
             .then((newUid) =>
               Promise.all(
@@ -199,14 +199,14 @@ const SavedQuery = ({
                   getSubTree({
                     key: "scratch",
                     parentUid: uid,
-                  }).uid
+                  }).uid,
                 ).map((c, order) =>
                   window.roamAlphaAPI.moveBlock({
                     location: { "parent-uid": newUid, order },
                     block: { uid: c.uid },
-                  })
-                )
-              )
+                  }),
+                ),
+              ),
             )
             .then(() => {
               editSavedQuery(label);
@@ -268,7 +268,7 @@ const QueryDrawerContent = ({
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>(
     tree
       .filter((t) => !toFlexRegex("scratch").test(t.text))
-      .map((t) => ({ text: t.text, uid: t.uid }))
+      .map((t) => ({ text: t.text, uid: t.uid })),
   );
   const [savedQueryLabel, setSavedQueryLabel] = useState(
     `Query ${
@@ -277,9 +277,9 @@ const QueryDrawerContent = ({
           prev < Number(cur.text.split(" ")[1])
             ? Number(cur.text.split(" ")[1])
             : prev,
-        0
+        0,
       ) + 1
-    }`
+    }`,
   );
 
   const [query, setQuery] = useState(savedQueryLabel);
@@ -302,7 +302,7 @@ const QueryDrawerContent = ({
                   text: "scratch",
                 },
                 parentUid: newSavedUid,
-              }).then((scratchUid) => ({ newSavedUid, scratchUid }))
+              }).then((scratchUid) => ({ newSavedUid, scratchUid })),
             ),
             fireQuery(args),
           ]).then(([{ newSavedUid, scratchUid }, results]) =>
@@ -315,8 +315,8 @@ const QueryDrawerContent = ({
                       order,
                     },
                     block: { uid: c.uid },
-                  })
-              )
+                  }),
+              ),
             ).then(() => {
               setSavedQueries([
                 {
@@ -333,7 +333,7 @@ const QueryDrawerContent = ({
                 .join(" ");
               setSavedQueryLabel(nextQueryLabel);
               setQuery(nextQueryLabel);
-            })
+            }),
           );
         }}
       />
@@ -367,12 +367,12 @@ export const openQueryDrawer = (onloadArgs: OnloadArgs) =>
     getPageUidByPageTitle("roam/js/query-builder/drawer") ||
       createPage({
         title: "roam/js/query-builder/drawer",
-      })
+      }),
   ).then((blockUid) =>
     render({
       blockUid,
       onloadArgs,
-    })
+    }),
   );
 export const render = (props: Props) =>
   renderOverlay({ Overlay: QueryDrawer, props });

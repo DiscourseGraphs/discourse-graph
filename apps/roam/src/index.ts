@@ -83,7 +83,7 @@ export default runExtension(async (onloadArgs) => {
       uid: string;
       val: string;
       onRefresh: () => void;
-    }>
+    }>,
   ) => {
     if (!/page/i.test(e.detail.action)) return;
     window.roamAlphaAPI.ui.mainWindow
@@ -106,7 +106,7 @@ export default runExtension(async (onloadArgs) => {
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>
       runQuery({ parentUid, extensionAPI }).then(
-        ({ allProcessedResults }) => allProcessedResults
+        ({ allProcessedResults }) => allProcessedResults,
       ),
     runQuerySync: (parentUid: string) => {
       const queryArgs = parseQuery(parentUid);
@@ -130,7 +130,7 @@ export default runExtension(async (onloadArgs) => {
       delete window[Symbol.for("__signia__")];
       document.removeEventListener(
         "roamjs:query-builder:action",
-        pageActionListener
+        pageActionListener,
       );
     },
   };

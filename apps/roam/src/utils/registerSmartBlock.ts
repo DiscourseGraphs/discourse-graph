@@ -40,7 +40,7 @@ export const registerSmartBlock = (extensionAPI: OnloadArgs["extensionAPI"]) =>
           inputs: Object.fromEntries(
             inputArgs
               .map((i) => i.split("=").slice(0, 2) as [string, string])
-              .map(([k, v]) => [k, variables[v] || v])
+              .map(([k, v]) => [k, variables[v] || v]),
           ),
         }).then(({ allProcessedResults }) => {
           const results = limit
@@ -54,12 +54,12 @@ export const registerSmartBlock = (extensionAPI: OnloadArgs["extensionAPI"]) =>
                   typeof v === "string"
                     ? v
                     : typeof v === "number"
-                    ? v.toString()
-                    : v instanceof Date
-                    ? window.roamAlphaAPI.util.dateToPageTitle(v)
-                    : "",
-                ])
-              )
+                      ? v.toString()
+                      : v instanceof Date
+                        ? window.roamAlphaAPI.util.dateToPageTitle(v)
+                        : "",
+                ]),
+              ),
             )
             .flatMap((r) => {
               if (processBlock && format.uid) {
@@ -76,13 +76,13 @@ export const registerSmartBlock = (extensionAPI: OnloadArgs["extensionAPI"]) =>
 
               const s = format.text.replace(
                 /{([^}]+)}/g,
-                (_, i: string) => r[i.toLowerCase()]
+                (_, i: string) => r[i.toLowerCase()],
               );
               return [() => proccessBlockText(s)];
             })
             .reduce(
               (prev, cur) => prev.then((p) => cur().then((c) => p.concat(c))),
-              Promise.resolve([] as InputTextNode[])
+              Promise.resolve([] as InputTextNode[]),
             );
         });
       },

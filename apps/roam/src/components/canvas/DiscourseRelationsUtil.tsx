@@ -78,7 +78,7 @@ export class DiscourseRelationUtil extends TLArrowUtil<DiscourseRelationShape> {
     const relations = Object.values(discourseContext.relations);
     // TODO - add canvas settings to relations config
     const relationIndex = relations.findIndex((rs) =>
-      rs.some((r) => r.id === this.type)
+      rs.some((r) => r.id === this.type),
     );
     const isValid = relationIndex >= 0 && relationIndex < relations.length;
     const color = isValid ? COLOR_ARRAY[relationIndex + 1] : COLOR_ARRAY[0];
@@ -104,7 +104,7 @@ export class DiscourseRelationUtil extends TLArrowUtil<DiscourseRelationShape> {
     // TODO - propsForNextShape is clobbering our choice of color
     const relations = Object.values(discourseContext.relations);
     const relationIndex = relations.findIndex((rs) =>
-      rs.some((r) => r.id === this.type)
+      rs.some((r) => r.id === this.type),
     );
     const isValid = relationIndex >= 0 && relationIndex < relations.length;
     const color = isValid ? COLOR_ARRAY[relationIndex + 1] : COLOR_ARRAY[0];

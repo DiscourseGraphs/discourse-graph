@@ -81,29 +81,29 @@ const ResultHeader = React.forwardRef<
       initialFilter,
       columnWidth,
     },
-    ref
+    ref,
   ) => {
     const filterData = useMemo(
       () => ({
         values: Array.from(
           new Set(
             allResults.map((r) =>
-              toCellValue({ value: r[c.key], uid: r[`${c.key}-uid`] })
-            )
-          )
+              toCellValue({ value: r[c.key], uid: r[`${c.key}-uid`] }),
+            ),
+          ),
         ),
       }),
-      [allResults, c]
+      [allResults, c],
     );
     const sortIndex = useMemo(
       () => activeSort.findIndex((s) => s.key === c.key),
-      [c.key, activeSort]
+      [c.key, activeSort],
     );
     const refCallback = useCallback(
       (r: HTMLTableDataCellElement) => {
         if (ref && "current" in ref && ref.current) ref.current[c.uid] = r;
       },
-      [ref, c.uid]
+      [ref, c.uid],
     );
     return (
       <td
@@ -122,8 +122,8 @@ const ResultHeader = React.forwardRef<
             } else {
               setActiveSort(
                 activeSort.map((s) =>
-                  s.key === c.key ? { key: c.key, descending: true } : s
-                )
+                  s.key === c.key ? { key: c.key, descending: true } : s,
+                ),
               );
             }
           } else {
@@ -132,7 +132,7 @@ const ResultHeader = React.forwardRef<
         }}
       >
         <div className="flex items-center">
-          <span className="inline-block mr-4">{c.key}</span>
+          <span className="mr-4 inline-block">{c.key}</span>
           <span>
             <Filter
               data={filterData}
@@ -160,7 +160,7 @@ const ResultHeader = React.forwardRef<
         </div>
       </td>
     );
-  }
+  },
 );
 
 const CellEmbed = ({ uid, viewValue }: { uid: string; viewValue: string }) => {
@@ -234,7 +234,7 @@ const ResultRow = ({
                   onRefresh,
                   queryUid: parentUid,
                 },
-              })
+              }),
             );
           }}
         />
@@ -255,7 +255,7 @@ const ResultRow = ({
   };
   const viewsByColumn = useMemo(
     () => Object.fromEntries(views.map((v) => [v.column, v])),
-    [views]
+    [views],
   );
   const trRef = useRef<HTMLTableRowElement>(null);
   const dragHandler = useCallback(
@@ -282,7 +282,7 @@ const ResultRow = ({
           save,
         });
     },
-    [onWidthUpdate]
+    [onWidthUpdate],
   );
   return (
     <>
@@ -423,7 +423,7 @@ const ResultsTable = ({
         .filter((m): m is RegExpExecArray => !!m)
         .map((match) => {
           return [match[1], match[2]];
-        })
+        }),
     );
   }, [layout]);
   const thRefs = useRef<Record<string, HTMLTableCellElement>>({});
@@ -445,7 +445,7 @@ const ResultsTable = ({
           });
       }
     },
-    [thRefs, parentUid]
+    [thRefs, parentUid],
   );
   const resultHeaderSetFilters = React.useCallback(
     (fs: FilterData) => {
@@ -459,7 +459,7 @@ const ResultsTable = ({
       filtersNode.children.forEach((c) => deleteBlock(c.uid));
       Object.entries(fs)
         .filter(
-          ([, data]) => data.includes.values.size || data.excludes.values.size
+          ([, data]) => data.includes.values.size || data.excludes.values.size,
         )
         .map(([column, data]) => ({
           text: column,
@@ -483,15 +483,15 @@ const ResultsTable = ({
             parentUid: filtersNode.uid,
             node,
             order,
-          })
+          }),
         );
     },
-    [setFilters, preventSavingSettings, parentUid]
+    [setFilters, preventSavingSettings, parentUid],
   );
   const tableProps = useMemo(
     () =>
       layout.rowStyle !== "Bare" ? { striped: true, interactive: true } : {},
-    [layout.rowStyle]
+    [layout.rowStyle],
   );
 
   const [extraRowUid, setExtraRowUid] = useState<string | null>(null);
@@ -501,12 +501,12 @@ const ResultsTable = ({
       if (parentUid !== e.detail.queryUid) return;
 
       const row = document.querySelector(
-        `table[data-parent-uid="${parentUid}"] tr[data-uid="${e.detail.uid}"]`
+        `table[data-parent-uid="${parentUid}"] tr[data-uid="${e.detail.uid}"]`,
       );
       if (!row || !row.parentElement) return;
 
       const actionRowType = EXTRA_ROW_TYPES.find((ert) =>
-        new RegExp(ert, "i").test(e.detail.action)
+        new RegExp(ert, "i").test(e.detail.action),
       );
       if (!actionRowType) return;
 
@@ -523,7 +523,7 @@ const ResultsTable = ({
     return () => {
       document.removeEventListener(
         "roamjs:query-builder:action",
-        actionListener
+        actionListener,
       );
     };
   }, [parentUid, setExtraRowType]);
@@ -592,7 +592,7 @@ const ResultsTable = ({
             style={{ padding: 0, background: "#eeeeee80" }}
           >
             <div
-              className="flex justify-between items-center"
+              className="flex items-center justify-between"
               style={{ padding: 4 }}
             >
               <div

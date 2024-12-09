@@ -91,7 +91,7 @@ export type ExportDialogProps = {
 };
 
 type ExportDialogComponent = (
-  props: RoamOverlayProps<ExportDialogProps>
+  props: RoamOverlayProps<ExportDialogProps>,
 ) => JSX.Element;
 
 const EXPORT_DESTINATIONS = [
@@ -102,7 +102,7 @@ const EXPORT_DESTINATIONS = [
 const SEND_TO_DESTINATIONS = ["page", "graph"];
 
 const exportDestinationById = Object.fromEntries(
-  EXPORT_DESTINATIONS.map((ed) => [ed.id, ed])
+  EXPORT_DESTINATIONS.map((ed) => [ed.id, ed]),
 );
 
 const ExportDialog: ExportDialogComponent = ({
@@ -115,7 +115,7 @@ const ExportDialog: ExportDialogComponent = ({
   initialPanel,
 }) => {
   const [selectedRepo, setSelectedRepo] = useState(
-    localStorageGet("selected-repo")
+    localStorageGet("selected-repo"),
   );
   const exportId = useMemo(() => nanoid(), []);
   useEffect(() => {
@@ -124,7 +124,7 @@ const ExportDialog: ExportDialogComponent = ({
   const [dialogOpen, setDialogOpen] = useState(isOpen);
   const exportTypes = useMemo(
     () => getExportTypes({ results, exportId, isExportDiscourseGraph }),
-    [results, exportId]
+    [results, exportId],
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -137,10 +137,10 @@ const ExportDialog: ExportDialogComponent = ({
       .padStart(2, "0")}${today.getDate().toString().padStart(2, "0")}${today
       .getHours()
       .toString()
-      .padStart(2, "0")}${today.getMinutes().toString().padStart(2, "0")}`}`
+      .padStart(2, "0")}${today.getMinutes().toString().padStart(2, "0")}`}`,
   );
   const [activeExportType, setActiveExportType] = useState<string>(
-    exportTypes[0].name
+    exportTypes[0].name,
   );
   const [activeExportDestination, setActiveExportDestination] =
     useState<string>(EXPORT_DESTINATIONS[0].id);
@@ -166,10 +166,10 @@ const ExportDialog: ExportDialogComponent = ({
     return getExtensionAPI().settings.get("discourse-graphs");
   });
   const [includeDiscourseContext, setIncludeDiscourseContext] = useState(
-    discourseGraphEnabled as boolean
+    discourseGraphEnabled as boolean,
   );
   const [gitHubAccessToken, setGitHubAccessToken] = useState<string | null>(
-    localStorageGet("oauth-github")
+    localStorageGet("oauth-github"),
   );
   const [canSendToGitHub, setCanSendToGitHub] = useState(false);
 
@@ -387,7 +387,7 @@ const ExportDialog: ExportDialogComponent = ({
     if (typeof results === "object") {
       window.roamAlphaAPI.ui.graphView.wholeGraph.setMode("Explore");
       window.roamAlphaAPI.ui.graphView.wholeGraph.setExplorePages(
-        livePages.map((r) => String(r[firstColumnKey]))
+        livePages.map((r) => String(r[firstColumnKey])),
       );
       window.location.href = `${getRoamUrl()}/graph`;
     }
@@ -473,7 +473,7 @@ const ExportDialog: ExportDialogComponent = ({
       title: string;
       content: string;
     }[],
-    filename: string
+    filename: string,
   ) => {
     const preparedFiles = files.map((f) => ({
       title: JSON.stringify(f.title),
@@ -513,7 +513,7 @@ const ExportDialog: ExportDialogComponent = ({
   const ExportPanel = (
     <>
       <div className={Classes.DIALOG_BODY}>
-        <div className="flex justify-between items-start gap-16">
+        <div className="flex items-start justify-between gap-16">
           <Label className="flex-grow">
             Export Type
             <MenuItemSelect
@@ -530,7 +530,7 @@ const ExportDialog: ExportDialogComponent = ({
                   results.length === 1 && activeExportType === "Markdown" // TODO handle more github exports
                     ? EXPORT_DESTINATIONS.map((ed) => ed.id)
                     : EXPORT_DESTINATIONS.map((ed) => ed.id).filter(
-                        (ed) => ed !== "github"
+                        (ed) => ed !== "github",
                       )
                 }
                 transformItem={(s) => exportDestinationById[s].label}
@@ -559,7 +559,7 @@ const ExportDialog: ExportDialogComponent = ({
           />
         </Label>
 
-        <div className="flex justify-between items-end">
+        <div className="flex items-end justify-between">
           <span>
             {typeof results === "function"
               ? "Calculating number of results..."
@@ -575,7 +575,7 @@ const ExportDialog: ExportDialogComponent = ({
                 checked={includeDiscourseContext}
                 onChange={(e) => {
                   setIncludeDiscourseContext(
-                    (e.target as HTMLInputElement).checked
+                    (e.target as HTMLInputElement).checked,
                   );
                 }}
                 labelElement={
@@ -603,7 +603,7 @@ const ExportDialog: ExportDialogComponent = ({
             onClick={() => {
               if (!exportDestinationById[activeExportDestination].active) {
                 setError(
-                  `Export destination ${exportDestinationById[activeExportDestination].label} is not yet supported.`
+                  `Export destination ${exportDestinationById[activeExportDestination].label} is not yet supported.`,
                 );
                 return;
               }
@@ -613,7 +613,7 @@ const ExportDialog: ExportDialogComponent = ({
               setTimeout(async () => {
                 try {
                   const exportType = exportTypes.find(
-                    (e) => e.name === activeExportType
+                    (e) => e.name === activeExportType,
                   );
                   if (exportType && window.RoamLazy) {
                     setDialogOpen(true);
@@ -673,10 +673,10 @@ const ExportDialog: ExportDialogComponent = ({
                     }
 
                     const zip = await window.RoamLazy.JSZip().then(
-                      (j) => new j()
+                      (j) => new j(),
                     );
                     files.forEach(({ title, content }) =>
-                      zip.file(title, content)
+                      zip.file(title, content),
                     );
                     zip.generateAsync({ type: "blob" }).then((content) => {
                       saveAs(content, `${filename}.zip`);
