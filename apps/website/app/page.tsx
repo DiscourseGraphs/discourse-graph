@@ -24,16 +24,18 @@ export default function Home() {
         </Link>
         <nav className="w-full md:w-auto">
           <ul className="flex flex-wrap justify-center md:flex-nowrap space-x-4 md:space-x-8">
-            {["About", "Resources", "Talks", "Contact"].map((item) => (
-              <li key={item}>
-                <Link
-                  href={`#${item.toLowerCase()}`}
-                  className="text-neutral-dark hover:text-neutral-dark/60"
-                >
-                  {item}
-                </Link>
-              </li>
-            ))}
+            {["About", "Resources", "Talks", "Supporters", "Contact"].map(
+              (item) => (
+                <li key={item}>
+                  <Link
+                    href={`#${item.toLowerCase()}`}
+                    className="text-neutral-dark hover:text-neutral-dark/60"
+                  >
+                    {item}
+                  </Link>
+                </li>
+              )
+            )}
           </ul>
         </nav>
       </header>
@@ -412,6 +414,80 @@ export default function Home() {
                   Karola Kirsanow, NYC Protocol Labs Research Seminar
                 </p>
               </div>
+            </div>
+          </section>
+        </div>
+        <div id="support" className="space-y-12">
+          <section
+            className="bg-white/50 rounded-xl p-8 shadow-sm"
+            id="support"
+          >
+            <h2 className="text-4xl font-bold text-primary mb-8">Supporters</h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-[800px] mx-auto">
+              <Link
+                href="https://research.protocol.ai/"
+                className="hover:opacity-80 transition-opacity w-[200px] h-[88px] flex items-center justify-center mx-auto"
+              >
+                <Image
+                  src="/supporter-logos/PL_Research.svg"
+                  alt="Protocol Labs Research"
+                  width={406}
+                  height={176}
+                  className="w-full h-full object-contain"
+                />
+              </Link>
+              <Link
+                href="https://cziscience.medium.com/request-for-information-pathways-to-ai-enabled-research-55c52124def4"
+                className="hover:opacity-80 transition-opacity w-[160px] h-[88px] flex items-center justify-center mx-auto"
+              >
+                <Image
+                  src="/supporter-logos/Chan_Zuckerberg_Initiative.svg"
+                  alt="Chan Zuckerberg Initiative"
+                  width={112}
+                  height={62}
+                  className="w-full h-full object-contain"
+                />
+              </Link>
+              <Link
+                href="https://www.metagov.org/"
+                className="hover:opacity-80 hover:text-[rgb(0,204,153)] transition-opacity flex items-center justify-center mx-auto gap-4 w-[160px] h-[88px]"
+              >
+                <div className="h-[42px] w-[42px] flex-shrink-0">
+                  <Image
+                    src="/supporter-logos/Metagov.svg"
+                    alt="Metagov"
+                    width={42}
+                    height={42}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <span className="text-[rgb(0,204,153)]">Metagov</span>
+              </Link>
+              <Link
+                href="https://experiment.com/grants/metascience"
+                className="hover:opacity-80 transition-opacity w-[200px] h-[88px] flex items-center justify-center mx-auto"
+              >
+                <Image
+                  src="/supporter-logos/Schmidt_Futures.svg"
+                  alt="Schmidt Futures"
+                  width={267}
+                  height={20}
+                  className="w-full h-full object-contain"
+                />
+              </Link>
+              <Link
+                href="https://www.navigation.org/grants/open-science"
+                className="hover:opacity-80 transition-opacity w-[200px] h-[88px] flex items-center justify-center mx-auto"
+              >
+                <Image
+                  src="/supporter-logos/The_Navigation_Fund.svg"
+                  alt="The Navigation Fund"
+                  width={546}
+                  height={262}
+                  className="w-full h-full object-contain"
+                />
+              </Link>
             </div>
           </section>
         </div>
