@@ -64,9 +64,9 @@ export default function Home() {
                 Information Model
               </h3>
               <p className="mb-4 text-neutral-dark">
-                Discourse Graphs are an information model that enables
-                researchers and communicators to map their ideas and arguments
-                in a modular, composable graph format.
+                Discourse Graphs are an information model that enables everyone
+                to map their ideas and arguments in a modular, composable graph
+                format.
               </p>
             </div>
             <div>
