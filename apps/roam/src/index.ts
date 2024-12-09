@@ -6,6 +6,7 @@ import {
   getPageTitleValueByHtmlElement,
 } from "roamjs-components/dom";
 import { createBlock } from "roamjs-components/writes";
+import { render as renderToast } from "roamjs-components/components/Toast";
 
 import { runExtension, extractRef } from "roamjs-components/util";
 import registerSmartBlocksCommand from "roamjs-components/util/registerSmartBlocksCommand";
@@ -39,6 +40,14 @@ import { registerSmartBlock } from "./utils/registerSmartBlock";
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
+  if (process.env.NODE_ENV === "development") {
+    renderToast({
+      id: "discourse-graph-loaded",
+      content: "Successfully loaded",
+      intent: "success",
+      timeout: 500,
+    });
+  }
   const { extensionAPI } = onloadArgs;
   const style = addStyle(styles);
   const settingsStyle = addStyle(settingsStyles);
