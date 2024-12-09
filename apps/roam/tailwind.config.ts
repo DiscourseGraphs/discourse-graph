@@ -1,9 +1,11 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}
+// tailwind config is required for editor support
 
+import type { Config } from "tailwindcss";
+// import sharedConfig from "@repo/tailwind-config";
+
+const config: Pick<Config, "content" | "presets"> = {
+  content: [],
+  // presets: [sharedConfig],
+};
+
+export default config;

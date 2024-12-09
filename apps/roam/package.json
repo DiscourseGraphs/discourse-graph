@@ -9,6 +9,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@repo/tailwind-config": "*",
     "@types/contrast-color": "^1.0.0",
     "@types/react-vertical-timeline-component": "^3.3.3",
     "axios": "^0.27.2",
