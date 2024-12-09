@@ -1,4 +1,11 @@
-import { Button, H6, InputGroup, Intent, Label } from "@blueprintjs/core";
+import {
+  Button,
+  ControlGroup,
+  InputGroup,
+  Intent,
+  HTMLTable,
+  Tooltip,
+} from "@blueprintjs/core";
 import React, { useState } from "react";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import refreshConfigTree from "~/utils/refreshConfigTree";
@@ -20,89 +27,106 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
     getDiscourseNodes().filter((n) => n.backedBy === "user"),
   );
   const [label, setLabel] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
+    null,
+  );
+
+  const navigateToNode = (uid: string) => {
+    if (isPopup) {
+      setSelectedTabId(uid);
+    } else {
+      window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
+    }
+  };
+
   return (
     <>
-      <Label>
-        Label
+      <ControlGroup className="mb-4 mt-1 flex space-x-2">
         <InputGroup
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           className={"roamjs-discourse-config-label"}
         />
-      </Label>
-      <Button
-        text={"Add Node"}
-        intent={Intent.PRIMARY}
-        rightIcon={"plus"}
-        minimal
-        style={{ marginBottom: 8 }}
-        disabled={!label}
-        onClick={() => {
-          createPage({
-            title: `discourse-graph/nodes/${label}`,
-            tree: [
-              {
-                text: "Shortcut",
-                children: [{ text: label.slice(0, 1).toUpperCase() }],
-              },
-              {
-                text: "Format",
-                children: [
-                  {
-                    text: `[[${label.slice(0, 3).toUpperCase()}]] - {content}`,
-                  },
-                ],
-              },
-            ],
-          }).then((valueUid) => {
-            setNodes([
-              ...nodes,
-              {
-                format: "",
-                type: valueUid,
-                text: label,
-                shortcut: "",
-                specification: [],
-                backedBy: "user",
-                canvasSettings: {},
-              },
-            ]);
-            refreshConfigTree();
-            setLabel("");
-          });
-        }}
-      />
-      <ul
-        style={{
-          listStyle: "none",
-          paddingInlineStart: 0,
-        }}
-      >
-        {nodes.map((n) => {
-          return (
-            <li
-              key={n.type}
-              style={{ border: "1px dashed #80808080" }}
-              className={"p-2"}
-            >
-              <div className="flex items-center justify-between">
-                <H6
-                  className={"m-0 flex-grow cursor-pointer"}
-                  onClick={() => {
-                    if (isPopup) {
-                      setSelectedTabId(n.type);
-                    } else {
-                      window.roamAlphaAPI.ui.mainWindow.openPage({
-                        page: { uid: n.type },
-                      });
-                    }
-                  }}
-                >
-                  {n.text}
-                </H6>
+        <Button
+          text={"Add Node"}
+          intent={Intent.PRIMARY}
+          icon={"plus"}
+          className="select-none"
+          disabled={!label}
+          onClick={() => {
+            createPage({
+              title: `discourse-graph/nodes/${label}`,
+              tree: [
+                {
+                  text: "Shortcut",
+                  children: [{ text: label.slice(0, 1).toUpperCase() }],
+                },
+                {
+                  text: "Format",
+                  children: [
+                    {
+                      text: `[[${label.slice(0, 3).toUpperCase()}]] - {content}`,
+                    },
+                  ],
+                },
+              ],
+            }).then((valueUid) => {
+              setNodes([
+                ...nodes,
+                {
+                  format: "",
+                  type: valueUid,
+                  text: label,
+                  shortcut: "",
+                  specification: [],
+                  backedBy: "user",
+                  canvasSettings: {},
+                },
+              ]);
+              refreshConfigTree();
+              setLabel("");
+            });
+          }}
+        />
+      </ControlGroup>
+
+      <HTMLTable striped interactive className="w-full cursor-none">
+        <thead>
+          <tr>
+            <th>Node</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {nodes.map((n) => (
+            <tr key={n.type}>
+              <td
+                onClick={() => navigateToNode(n.type)}
+                style={{ verticalAlign: "middle" }}
+              >
+                {n.text}
+              </td>
+              <td>
+                <Tooltip content="Edit" hoverOpenDelay={500}>
+                  <Button
+                    icon="edit"
+                    minimal
+                    onClick={() => navigateToNode(n.type)}
+                  />
+                </Tooltip>
+                <Tooltip content="Delete" hoverOpenDelay={500}>
+                  <Button
+                    icon="trash"
+                    minimal
+                    onClick={() => {
+                      if (deleteConfirmation) setDeleteConfirmation(null);
+                      else setDeleteConfirmation(n.type);
+                    }}
+                  />
+                </Tooltip>
                 <Button
-                  icon={"trash"}
-                  minimal
+                  children="Confirm"
+                  intent={Intent.DANGER}
                   onClick={() => {
                     window.roamAlphaAPI
                       .deletePage({ page: { uid: n.type } })
@@ -111,13 +135,22 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                         refreshConfigTree();
                       });
                   }}
-                  style={{ minWidth: 30 }}
+                  className={`mx-1 ${
+                    deleteConfirmation !== n.type ? "opacity-0" : ""
+                  }`}
                 />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                <Button
+                  children="Cancel"
+                  onClick={() => setDeleteConfirmation(null)}
+                  className={`mx-1 ${
+                    deleteConfirmation !== n.type ? "opacity-0" : ""
+                  }`}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </HTMLTable>
     </>
   );
 };

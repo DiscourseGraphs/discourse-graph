@@ -1089,9 +1089,13 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
         <tbody>
           {relations.map((rel) => (
             <tr key={rel.uid} onClick={() => handleEdit(rel)}>
-              <td>{nodes[rel.source || ""]?.label}</td>
-              <td>{rel.text}</td>
-              <td>{nodes[rel.destination || ""]?.label}</td>
+              <td style={{ verticalAlign: "middle" }}>
+                {nodes[rel.source || ""]?.label}
+              </td>
+              <td style={{ verticalAlign: "middle" }}>{rel.text}</td>
+              <td style={{ verticalAlign: "middle" }}>
+                {nodes[rel.destination || ""]?.label}
+              </td>
               <td>
                 <Tooltip content="Edit" hoverOpenDelay={500}>
                   <Button icon="edit" minimal onClick={() => handleEdit(rel)} />
