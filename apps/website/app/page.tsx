@@ -279,7 +279,7 @@ export default function Home() {
               />
             </svg>
           </div>
-          <div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-start">
+          <div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-start lg:gap-0">
             <div className="lg:col-span-2 lg:col-start-1 lg:row-start-1 lg:mx-auto lg:grid lg:w-full lg:max-w-7xl lg:grid-cols-2 lg:gap-x-8 lg:px-8">
               <div className="lg:pr-4">
                 <div className="lg:max-w-lg">
@@ -294,7 +294,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="-ml-12 -mt-12 p-12 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:overflow-hidden">
+            <div className="m-0 p-0 md:-ml-12 md:-mt-12 md:p-12 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:overflow-hidden">
               <Image
                 src="/section6.webp"
                 alt="Cloud Laboratory Workflow"
@@ -349,7 +349,7 @@ export default function Home() {
                     </li>
                   </ul>
                   <div className="mt-16 flex flex-col gap-4 lg:items-center">
-                    <p className="flex items-center gap-2 text-xl text-neutral-dark">
+                    <p className="flex items-center gap-4 text-xl text-neutral-dark sm:gap-2">
                       <ArrowBigDownDash className="min-w-6 border-2 border-primary text-primary" />
                       <span>
                         which leads to{" "}
@@ -358,7 +358,7 @@ export default function Home() {
                         </span>
                       </span>
                     </p>
-                    <p className="flex items-center gap-2 text-xl text-neutral-dark">
+                    <p className="flex items-center gap-4 text-xl text-neutral-dark sm:gap-2">
                       <CircleGauge className="min-w-6 border-2 border-primary text-primary" />
                       <span>
                         and a{" "}
