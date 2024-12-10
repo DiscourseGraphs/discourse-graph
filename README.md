@@ -31,9 +31,16 @@ turbo dev --filter roam
 
 ### Turborepo
 
-This repository uses [Turborepo](https://turbo.build/repo/docs) as a build system. Turborepo is a high-performance build system for JavaScript and TypeScript codebases. It was designed after the workflows used by massive software engineering organizations to ship code at scale. Turborepo abstracts the complex configuration needed for monorepos and provides fast, incremental builds with zero-configuration remote caching.
+This repository uses [Turborepo](https://turbo.build/repo/docs) as a build system, enabling a streamlined and efficient workflow for managing multiple applications and shared packages in a monorepo setup.
 
-Using Turborepo simplifies managing your design system monorepo, as you can have a single lint, build, test, and release process for all packages. Learn more about how [monorepos](https://vercel.com/blog/monorepos) improve your development workflow.
+Using Turborepo allows for things like:
+
+- Centralize shared resources: Shared configurations, utilities, and components are maintained in a single place, reducing duplication and inconsistency.
+- Incremental builds: Only changes in code are rebuilt, which speeds up development.
+- Parallel processing: Tasks across applications and packages run concurrently, saving time.
+- Dependency graph management: Turborepo tracks relationships between projects, ensuring that tasks run in the correct order.
+
+Learn more about how monorepos improve development workflows [here](https://vercel.com/blog/monorepos) and [here](https://github.com/babel/babel/blob/master/doc/design/monorepo.md).
 
 ### Apps & Packages
 
@@ -46,7 +53,8 @@ This Turborepo includes the following packages and applications:
 
 `packages`
 
-- [typescript-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/typescript-config): Shared tsconfig.jsons used throughout the Turborepo
+- [tailwind-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/tailwind-config): Shared tailwind config
+- [typescript-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/typescript-config): Shared tsconfig.jsons
 - [eslint-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/eslint-config): ESLint preset
 - [ui](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/ui): Core React components
 
