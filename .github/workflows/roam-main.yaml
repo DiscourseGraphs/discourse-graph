@@ -1,9 +1,8 @@
 name: Main - Roam To Blob Storage
 on:
-  pull_request:
-    types:
-      - opened
-      - synchronize
+  workflow_dispatch:
+  push:
+    branches: main
     paths:
       - "apps/roam/**"
       - "packages/tailwind-config/**"
