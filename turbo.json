@@ -25,7 +25,8 @@
     "debug": {
       "cache": false,
       "dependsOn": ["^debug"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "passThroughEnv": ["NODE_ENV", "BLOB_READ_WRITE_TOKEN"]
     }
   }
 }
