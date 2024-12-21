@@ -21,13 +21,13 @@ jobs:
 
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
-
         with:
           node-version: 20
           cache: "npm"
 
       - name: Install Dependencies
         run: npm install
+
       - name: Debug environment with basic echo
         run: |
           echo "NODE_ENV=$NODE_ENV"
