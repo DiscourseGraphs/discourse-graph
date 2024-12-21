@@ -8,9 +8,6 @@ on:
       - "packages/tailwind-config/**"
       - "packages/ui/**"
 
-env:
-  BLOB_READ_WRITE_TOKEN: 123
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -30,6 +27,12 @@ jobs:
 
       - name: Build
         run: npx turbo run build --filter=roam-discourse-graph
+
+      - name: Debug Environment Variables
+        run: |
+          echo "BLOB_READ_WRITE_TOKEN=${BLOB_READ_WRITE_TOKEN}"
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
 
       - name: Deploy
         run: npx turbo run deploy --filter=roam-discourse-graph
