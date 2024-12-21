@@ -27,13 +27,8 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Debug environment with basic echo
-        run: |
-          echo "NODE_ENV=$NODE_ENV"
-          echo "BLOB_READ_WRITE_TOKEN length is ${#BLOB_READ_WRITE_TOKEN}"
-
       - name: Build
         run: npx turbo run build --filter=roam-discourse-graph
 
-      - name: Debug
-        run: npx turbo run debug --filter=roam-discourse-graph
+      - name: Deploy
+        run: npx turbo run deploy --filter=roam-discourse-graph

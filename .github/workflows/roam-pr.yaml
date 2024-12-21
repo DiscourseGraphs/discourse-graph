@@ -8,6 +8,8 @@ on:
       - "apps/roam/**"
       - "packages/tailwind-config/**"
       - "packages/ui/**"
+env:
+  BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
 
 jobs:
   deploy:
@@ -30,6 +32,3 @@ jobs:
 
       - name: Deploy
         run: npx turbo run deploy --filter=roam-discourse-graph
-        env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-          NODE_ENV: production

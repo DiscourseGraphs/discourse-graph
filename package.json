@@ -6,7 +6,6 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "deploy": "turbo deploy",
-    "debug": "npx turbo debug",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {

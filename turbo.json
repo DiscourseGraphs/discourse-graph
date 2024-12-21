@@ -20,13 +20,8 @@
     },
     "deploy": {
       "dependsOn": ["^deploy"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"]
-    },
-    "debug": {
-      "cache": false,
-      "dependsOn": ["^debug"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "passThroughEnv": ["NODE_ENV", "BLOB_READ_WRITE_TOKEN"]
+      "passThroughEnv": ["BLOB_READ_WRITE_TOKEN"]
     }
   }
 }

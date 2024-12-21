@@ -6,8 +6,7 @@
     "postinstall": "patch-package",
     "dev": "tsx scripts/dev.ts",
     "build": "tsx scripts/compile.ts",
-    "deploy": "tsx scripts/deploy.ts",
-    "debug": "tsx scripts/debug.ts"
+    "deploy": "tsx scripts/deploy.ts"
   },
   "license": "MIT",
   "devDependencies": {
