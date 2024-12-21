@@ -6,7 +6,6 @@ import {
   Tabs,
   Tab,
   Tooltip,
-  Checkbox,
 } from "@blueprintjs/core";
 import React, {
   useCallback,
