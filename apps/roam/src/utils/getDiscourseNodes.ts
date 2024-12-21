@@ -5,7 +5,6 @@ import getDiscourseRelations from "./getDiscourseRelations";
 import parseQuery from "./parseQuery";
 import { Condition } from "./types";
 import { InputTextNode } from "roamjs-components/types";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 
 export const excludeDefaultNodes = (node: DiscourseNode) => {
   return node.backedBy !== "default";
