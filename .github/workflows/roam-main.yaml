@@ -1,4 +1,4 @@
-name: Publish Roam Extension To Vercel Blob Storage on Main
+name: Main - Roam To Blob Storage
 on:
   workflow_dispatch:
   push:
@@ -28,11 +28,8 @@ jobs:
       - name: Build
         run: npx turbo run build --filter=roam-discourse-graph
 
-      - name: Debug Environment Variables
-        run: |
-          echo "BLOB_READ_WRITE_TOKEN=${BLOB_READ_WRITE_TOKEN}"
-        env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-
       - name: Deploy
         run: npx turbo run deploy --filter=roam-discourse-graph
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          NODE_ENV: production

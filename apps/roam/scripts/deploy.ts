@@ -1,12 +1,28 @@
 import { put } from "@vercel/blob";
 import fs, { readFileSync } from "fs";
 import { join } from "path";
-import "dotenv/config";
+
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
 
 const deploy = async () => {
   try {
     const resolvedWorkspace = "roam";
     if (!resolvedWorkspace) throw new Error("Workspace is required");
+
+    console.log("Environment:", {
+      NODE_ENV: process.env.NODE_ENV,
+      hasToken: !!process.env.BLOB_READ_WRITE_TOKEN,
+      tokenLength: process.env.BLOB_READ_WRITE_TOKEN?.length,
+    });
+
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!token) {
+      throw new Error(
+        "BLOB_READ_WRITE_TOKEN is required but not found in environment variables",
+      );
+    }
 
     const resolvedBranch =
       // 1. GitHub Actions environment variable for Pull Requests
@@ -20,9 +36,6 @@ const deploy = async () => {
         .trim() ||
       // 4. Final fallback
       "main";
-
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-    if (!token) throw new Error("BLOB_READ_WRITE_TOKEN is required");
 
     const distPath = join(process.cwd(), "dist");
     const files = [

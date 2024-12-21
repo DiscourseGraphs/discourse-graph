@@ -1,4 +1,4 @@
-name: Publish Roam Extension To Vercel Blob Storage on PR
+name: PR - Roam To Blob Storage
 on:
   pull_request:
     types:
@@ -33,3 +33,4 @@ jobs:
         run: npx turbo run deploy --filter=roam-discourse-graph
         env:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          NODE_ENV: production
