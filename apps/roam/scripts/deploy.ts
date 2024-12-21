@@ -37,6 +37,12 @@ const deploy = async () => {
       // 4. Final fallback
       "main";
 
+    console.log("Environment:", {
+      GITHUB_HEAD_REF: process.env.GITHUB_HEAD_REF,
+      GITHUB_REF_NAME: process.env.GITHUB_REF_NAME,
+      resolvedBranch,
+    });
+
     const distPath = join(process.cwd(), "dist");
     const files = [
       "extension.js",
