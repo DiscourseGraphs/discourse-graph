@@ -2,7 +2,6 @@ import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
-import dotenv from "dotenv";
 
 // https://github.com/evanw/esbuild/issues/337#issuecomment-954633403
 const importAsGlobals = (
