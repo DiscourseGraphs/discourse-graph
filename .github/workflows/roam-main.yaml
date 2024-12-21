@@ -9,7 +9,6 @@ on:
       - "packages/ui/**"
 
 env:
-  NODE_ENV: production
   BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
 
 jobs:
