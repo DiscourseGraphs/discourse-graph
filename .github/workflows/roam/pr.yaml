@@ -1,0 +1,36 @@
+name: Publish Roam Extension To Vercel Blob Storage on PR
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    paths:
+      - "apps/roam/**"
+      - "packages/tailwind-config/**"
+      - "packages/ui/**"
+
+env:
+  BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build
+        run: npx turbo run build --filter=roam-discourse-graph
+
+      - name: Deploy
+        run: npx turbo run deploy --filter=roam-discourse-graph
