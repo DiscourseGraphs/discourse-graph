@@ -25,9 +25,7 @@ import { render } from "./components/DiscourseNodeMenu";
 import { render as discourseOverlayRender } from "./components/DiscourseContextOverlay";
 import { render as previewRender } from "./components/LivePreview";
 import { render as renderReferenceContext } from "./components/ReferenceContext";
-import DiscourseContext, {
-  DiscourseContextBackendConfig,
-} from "./components/DiscourseContext";
+import DiscourseContext from "./components/DiscourseContext";
 import createHTMLObserver from "roamjs-components/dom/createHTMLObserver";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import isDiscourseNode from "./utils/isDiscourseNode";

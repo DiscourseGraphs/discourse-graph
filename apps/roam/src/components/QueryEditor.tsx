@@ -25,7 +25,6 @@ import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import {
   getConditionLabels,
   isTargetVariable,
-  registerDatalogTranslator,
   sourceToTargetOptions,
   sourceToTargetPlaceholder,
 } from "../utils/conditionToDatalog";
