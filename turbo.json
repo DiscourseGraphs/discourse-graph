@@ -22,7 +22,11 @@
       "dependsOn": ["build"],
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "passThroughEnv": ["BLOB_READ_WRITE_TOKEN"]
+      "passThroughEnv": [
+        "BLOB_READ_WRITE_TOKEN",
+        "GITHUB_REF_NAME",
+        "GITHUB_HEAD_REF"
+      ]
     }
   }
 }
