@@ -12,13 +12,30 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-      - name: Debug environment
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Debug environment with basic echo
         run: |
           echo "NODE_ENV=$NODE_ENV"
           echo "BLOB_READ_WRITE_TOKEN length is ${#BLOB_READ_WRITE_TOKEN}"
+        env:
+          NODE_ENV: production
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+
+      - name: Run debug script
+        run: npm run debug-env
         env:
           NODE_ENV: production
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
