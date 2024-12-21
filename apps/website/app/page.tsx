@@ -8,10 +8,32 @@ import {
   CardTitle,
 } from "@repo/ui/components/ui/card";
 import { ArrowBigDownDash, CircleGauge } from "lucide-react";
+import path from 'path';
+import fs from 'fs';
+import matter from 'gray-matter';
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function Home() {
+async function getLatestBlogs() {
+  const blogDirectory = path.join(process.cwd(), '/blogs');
+  const files = fs.readdirSync(blogDirectory);
+
+  return files
+    .map((filename) => {
+      const filePath = path.join(blogDirectory, filename);
+      const fileContent = fs.readFileSync(filePath, 'utf-8');
+      const { data } = matter(fileContent);
+
+      return {
+        slug: filename.replace('.md', ''),
+        ...data,
+      };
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date)) // Sort by date
+    .slice(0, 3); // Get the first 3 blogs
+}
+export default async function Home() {
+  const blogs = await getLatestBlogs();
   return (
     <div className={`min-h-screen bg-neutral-light ${inter.className}`}>
       <header className="flex flex-col items-center justify-between space-y-4 px-6 py-4 md:flex-row md:space-y-0">
@@ -33,6 +55,7 @@ export default function Home() {
               "About",
               "Resources",
               "Events",
+              "Blog",
               "Talks",
               "Supporters",
               "Contact",
@@ -460,6 +483,45 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
+
+
+          {/* Blog Section */}
+          <Card id="blog" className="rounded-xl bg-white/50 p-8 shadow-md">
+            <CardHeader>
+              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+                Latest Blog Posts
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <ul className="space-y-4">
+                  {blogs.map((blog) => (
+                    <li key={blog.slug} className="flex flex-col space-y-2">
+                      <Link
+                        href={`/blog/${blog.slug}`}
+                        className="text-2xl font-semibold text-secondary hover:underline"
+                      >
+                        {blog.title}
+                      </Link>
+                      <p className="text-sm text-neutral-dark italic">
+                        {blog.date}
+                      </p>
+                      <p className="text-neutral-dark">{blog.description}</p>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-6 text-center">
+                  <Link
+                    href="/blog"
+                    className="inline-block rounded-md bg-primary px-4 py-2 text-lg font-semibold text-white transition hover:bg-primary/80"
+                  >
+                    See All Blogs →
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
 
           {/* Talks */}
           <Card id="talks" className="rounded-xl bg-white/50 p-8 shadow-md">
