@@ -2,7 +2,7 @@ if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
-const debugEnv = () => {
+const debug = () => {
   console.log("Environment Variables Debug:");
   console.log({
     NODE_ENV: process.env.NODE_ENV,
@@ -17,7 +17,7 @@ const debugEnv = () => {
 };
 
 if (require.main === module) {
-  debugEnv();
+  debug();
 }
 
-export default debugEnv;
+export default debug;

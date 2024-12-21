@@ -22,9 +22,9 @@
       "dependsOn": ["^deploy"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
-    "debug-env": {
+    "debug": {
       "cache": false,
-      "dependsOn": ["^debug-env"],
+      "dependsOn": ["^debug"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
     }
   }

@@ -7,7 +7,7 @@
     "dev": "tsx scripts/dev.ts",
     "build": "tsx scripts/compile.ts",
     "deploy": "tsx scripts/deploy.ts",
-    "debug-env": "tsx scripts/temp-deploy.ts"
+    "debug": "tsx scripts/debug.ts"
   },
   "license": "MIT",
   "devDependencies": {
