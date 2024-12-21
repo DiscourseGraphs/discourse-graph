@@ -17,6 +17,10 @@
       "cache": false,
       "persistent": true,
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
+    },
+    "deploy": {
+      "dependsOn": ["^deploy"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
     }
   }
 }

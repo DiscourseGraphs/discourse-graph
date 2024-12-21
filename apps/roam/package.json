@@ -5,6 +5,7 @@
   "scripts": {
     "postinstall": "patch-package",
     "dev": "tsx scripts/dev.ts",
+    "build": "tsx scripts/compile.ts",
     "deploy": "tsx scripts/deploy.ts"
   },
   "license": "MIT",
