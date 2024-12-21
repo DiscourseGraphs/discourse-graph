@@ -118,7 +118,10 @@ export const compile = ({
   const externalModules = external.map((e) => e.split("="));
   const srcRoot = path.join(root, "src");
   const entryTs = "index.ts";
-  const outdir = path.join(root, "dist");
+  const outdir = path.resolve(process.cwd(), root, "dist");
+
+  fs.mkdirSync(outdir, { recursive: true });
+
   const buildPromises = [] as Promise<void>[];
   buildPromises.push(
     builder({

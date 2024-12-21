@@ -19,7 +19,8 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
     "deploy": {
-      "dependsOn": ["^deploy"],
+      "dependsOn": ["build"],
+      "cache": false,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "passThroughEnv": ["BLOB_READ_WRITE_TOKEN"]
     }
