@@ -321,6 +321,7 @@ export const ContextContent = ({ uid, results }: Props) => {
     [rawQueryResults],
   );
   const [loading, setLoading] = useState(true);
+  const debouncedLoading = useDebounce(loading, 150);
 
   const onRefresh = useCallback(() => {
     setRawQueryResults({});
@@ -382,14 +383,14 @@ export const ContextContent = ({ uid, results }: Props) => {
             }
           />
         ))}
-        {loading && (
+        {debouncedLoading && (
           <div className="text-muted-foreground m-auto flex items-center gap-2 text-sm">
             <Spinner />
           </div>
         )}
       </Tabs>
     </>
-  ) : loading && !results ? (
+  ) : debouncedLoading && !results ? (
     <Tabs selectedTabId={0} onChange={() => {}} vertical>
       <Tab
         id={0}
@@ -436,6 +437,23 @@ const DiscourseContext = ({ uid }: Props) => {
       </div>
     </>
   );
+};
+
+// used here to prevent the loading spinner from flashing briefly when queries resolve quickly
+const useDebounce = <T,>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 };
 
 export default DiscourseContext;
