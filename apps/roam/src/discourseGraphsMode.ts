@@ -222,8 +222,10 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
             {
               title: "overlay",
               Panel: FlagPanel,
-              description:
-                "Whether to overlay discourse context information over node references",
+              // description:
+              //   "Whether to overlay discourse context information over node references",
+              description: "Currently disabled. Being reworked.",
+              disabled: true,
               options: {
                 onChange: (val) => {
                   onPageRefObserverChange(overlayPageRefHandler)(val);
@@ -473,9 +475,9 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
   });
 
   if (isFlagEnabled("preview")) pageRefObservers.add(previewPageRefHandler);
-  if (isFlagEnabled("grammar.overlay")) {
-    pageRefObservers.add(overlayPageRefHandler);
-  }
+  // if (isFlagEnabled("grammar.overlay")) {
+  //   pageRefObservers.add(overlayPageRefHandler);
+  // }
   if (pageRefObservers.size) enablePageRefObserver();
 
   const queryPages = args.extensionAPI.settings.get("query-pages");

@@ -32,7 +32,7 @@
     "react-draggable": "^4.4.5",
     "react-in-viewport": "^1.0.0-alpha.20",
     "react-vertical-timeline-component": "^3.5.2",
-    "roamjs-components": "^0.83.4",
+    "roamjs-components": "^0.84.0",
     "signia-react": "^0.1.1"
   },
   "overrides": {
