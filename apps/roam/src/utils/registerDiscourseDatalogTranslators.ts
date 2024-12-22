@@ -204,7 +204,9 @@ const registerDiscourseDatalogTranslators = () => {
       );
     }
     if (targetMatches) {
-      return sourceMatches || !nodeTypeByLabel[condition.source.toLowerCase()];
+      return (
+        sourceMatches || !nodeTypeByLabel[condition?.source?.toLowerCase()]
+      );
     }
     // if both are placeholders, sourceType and targetType will both be null, meaning we could match any condition
     return false; // !nodeLabelByType[condition.source] && !nodeLabelByType[condition.target]
@@ -260,7 +262,7 @@ const registerDiscourseDatalogTranslators = () => {
                 value: string;
                 triple: readonly [string, string, string];
               }): DatalogClause[] => {
-                const possibleNodeType = nodeTypeByLabel[value.toLowerCase()];
+                const possibleNodeType = nodeTypeByLabel[value?.toLowerCase()];
                 if (possibleNodeType) {
                   return conditionToDatalog({
                     uid,
@@ -284,7 +286,7 @@ const registerDiscourseDatalogTranslators = () => {
                     },
                   ];
                 } else if (
-                  value.toLowerCase() !== "node" &&
+                  value?.toLowerCase() !== "node" &&
                   !!window.roamAlphaAPI.pull("[:db/id]", [":node/title", value])
                 ) {
                   return conditionToDatalog({

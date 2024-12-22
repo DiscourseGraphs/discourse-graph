@@ -31,7 +31,7 @@ const matchDiscourseNode = ({
   }
 
   // Handle any other specification
-  if (specification.length) {
+  if (specification?.length) {
     const where = replaceDatalogVariables(
       [{ from: text, to: "node" }],
       specification.flatMap((c) => conditionToDatalog(c)),
