@@ -164,11 +164,19 @@ const registerDiscourseDatalogTranslators = () => {
   );
   const nodeByType = Object.fromEntries(discourseNodes.map((n) => [n.type, n]));
   const nodeTypeByLabel = Object.fromEntries(
-    discourseNodes.map((n) => [n.text.toLowerCase(), n.type]),
+    discourseNodes.map((n) => [n.text?.toLowerCase(), n.type]),
   );
+  type matchRelation = {
+    source: string;
+    destination: string;
+  };
+  type matchCondition = {
+    source: string;
+    target: string;
+  };
   const doesDiscourseRelationMatchCondition = (
-    relation: { source: string; destination: string },
-    condition: { source: string; target: string },
+    relation: matchRelation,
+    condition: matchCondition,
   ) => {
     const sourceType = nodeLabelByType[relation.source];
     const targetType = nodeLabelByType[relation.destination];
@@ -211,6 +219,62 @@ const registerDiscourseDatalogTranslators = () => {
     // if both are placeholders, sourceType and targetType will both be null, meaning we could match any condition
     return false; // !nodeLabelByType[condition.source] && !nodeLabelByType[condition.target]
   };
+
+  const getFilteredRelations = ({
+    discourseRelations,
+    label,
+    source,
+    target,
+  }: {
+    discourseRelations: ReturnType<typeof getDiscourseRelations>;
+    label: string;
+    source: string;
+    target: string;
+  }) => {
+    const matchCache = new Map<string, boolean>();
+
+    const getCacheKey = (rel: matchRelation, cond: matchCondition) =>
+      `${rel.source}:${rel.destination}:${cond.source}:${cond.target}`;
+
+    const cachedMatchCondition = (rel: matchRelation, cond: matchCondition) => {
+      const cacheKey = getCacheKey(rel, cond);
+      if (!matchCache.has(cacheKey)) {
+        matchCache.set(
+          cacheKey,
+          doesDiscourseRelationMatchCondition(rel, cond),
+        );
+      }
+      return matchCache.get(cacheKey)!;
+    };
+
+    return discourseRelations
+      .map((r) => {
+        const forwardMatch =
+          (r.label === label || ANY_RELATION_REGEX.test(label)) &&
+          cachedMatchCondition(r, { source, target });
+
+        if (forwardMatch) return { ...r, forward: true };
+
+        const reverseMatch =
+          cachedMatchCondition(
+            { source: r.destination, destination: r.source },
+            { source, target },
+          ) &&
+          (r.complement === label || ANY_RELATION_REGEX.test(label));
+
+        if (reverseMatch) return { ...r, forward: false };
+
+        return undefined;
+      })
+      .filter(
+        (
+          r,
+        ): r is ReturnType<typeof getDiscourseRelations>[number] & {
+          forward: boolean;
+        } => !!r,
+      );
+  };
+
   const relationLabels = new Set(
     discourseRelations.flatMap((d) => [d.label, d.complement].filter(Boolean)),
   );
@@ -220,26 +284,12 @@ const registerDiscourseDatalogTranslators = () => {
       registerDatalogTranslator({
         key: label,
         callback: ({ source, target, uid }) => {
-          const filteredRelations = discourseRelations
-            .map((r) =>
-              (r.label === label || ANY_RELATION_REGEX.test(label)) &&
-              doesDiscourseRelationMatchCondition(r, { source, target })
-                ? { ...r, forward: true }
-                : doesDiscourseRelationMatchCondition(
-                      { source: r.destination, destination: r.source },
-                      { source, target },
-                    ) &&
-                    (r.complement === label || ANY_RELATION_REGEX.test(label))
-                  ? { ...r, forward: false }
-                  : undefined,
-            )
-            .filter(
-              (
-                r,
-              ): r is ReturnType<typeof getDiscourseRelations>[number] & {
-                forward: boolean;
-              } => !!r,
-            );
+          const filteredRelations = getFilteredRelations({
+            discourseRelations,
+            label,
+            source,
+            target,
+          });
           if (!filteredRelations.length) return [];
           const andParts = filteredRelations.map(
             ({

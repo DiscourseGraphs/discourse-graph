@@ -328,9 +328,13 @@ const fireQuery: FireQuery = async (_args) => {
       console.log(query);
       if (inputs.length) console.log("Inputs:", ...inputs);
     }
-    return Promise.all(
-      window.roamAlphaAPI.data.fast.q(query, ...inputs).map(formatResult),
+
+    //@ts-ignore - todo add async q to roamjs-components
+    const queryResults = await window.roamAlphaAPI.data.async.q(
+      query,
+      ...inputs,
     );
+    return Promise.all(queryResults.map(formatResult));
   } catch (e) {
     console.error("Error from Roam:");
     console.error((e as Error).message);
