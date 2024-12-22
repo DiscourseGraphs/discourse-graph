@@ -50,11 +50,13 @@ const DiscourseGraphHome = ({
         />
         <FlagPanel
           title="overlay"
-          description="Whether or not to overlay discourse context information over node references"
+          // description="Whether or not to overlay discourse context information over node references"
+          description="Currently disabled. Being reworked."
           order={3}
           uid={settings.overlay.uid}
           parentUid={settings.grammarUid}
           value={settings.overlay.value || false}
+          disabled={true}
         />
       </div>
       <TextPanel
