@@ -364,6 +364,7 @@ export const ContextContent = ({ uid, results }: Props) => {
         selectedTabId={tabId}
         onChange={(e) => setTabId(Number(e))}
         vertical
+        renderActiveTabPanelOnly
       >
         {queryResults.map((r, i) => (
           <Tab
