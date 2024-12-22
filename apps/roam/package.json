@@ -1,7 +1,7 @@
 {
-  "name": "roam-discourse-graph",
+  "name": "roam",
   "version": "0.1.0",
-  "description": "Roam Discourse Graph",
+  "description": "Discourse Graph Plugin for roamresearch.com",
   "scripts": {
     "postinstall": "patch-package",
     "dev": "tsx scripts/dev.ts",

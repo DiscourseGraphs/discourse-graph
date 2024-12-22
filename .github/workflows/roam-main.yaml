@@ -28,7 +28,7 @@ jobs:
         run: npm install
 
       - name: Build
-        run: npx turbo run build --filter=roam-discourse-graph
+        run: npx turbo run build --filter=roam
 
       - name: Deploy
-        run: npx turbo run deploy --filter=roam-discourse-graph
+        run: npx turbo run deploy --filter=roam
