@@ -6,6 +6,7 @@ import {
   Tabs,
   Tab,
   Tooltip,
+  Spinner,
 } from "@blueprintjs/core";
 import React, {
   useCallback,
@@ -309,17 +310,37 @@ const ContextTab = ({
 };
 
 export const ContextContent = ({ uid, results }: Props) => {
-  const [rawQueryResults, setRawQueryResults] = useState(results || []);
+  const [rawQueryResults, setRawQueryResults] = useState<
+    Record<string, DiscourseContextResults[number]>
+  >({});
   const queryResults = useMemo(
-    () => rawQueryResults.filter((r) => !!Object.keys(r.results).length),
+    () =>
+      Object.values(rawQueryResults).filter(
+        (r) => !!Object.keys(r.results).length,
+      ),
     [rawQueryResults],
   );
   const [loading, setLoading] = useState(true);
+
   const onRefresh = useCallback(() => {
-    getDiscourseContextResults({ uid })
-      .then(setRawQueryResults)
-      .finally(() => setLoading(false));
-  }, [uid, results, setRawQueryResults, setLoading]);
+    setRawQueryResults({});
+    getDiscourseContextResults({
+      uid,
+      onResult: (result) => {
+        setRawQueryResults((prev) => ({
+          ...prev,
+          [result.label]: {
+            label: result.label,
+            results: {
+              ...(prev[result.label]?.results || {}),
+              ...result.results,
+            },
+          },
+        }));
+      },
+    }).finally(() => setLoading(false));
+  }, [uid, setRawQueryResults, setLoading]);
+
   useEffect(() => {
     if (!results) {
       onRefresh();
@@ -361,9 +382,14 @@ export const ContextContent = ({ uid, results }: Props) => {
             }
           />
         ))}
+        {loading && (
+          <div className="text-muted-foreground m-auto flex items-center gap-2 text-sm">
+            <Spinner />
+          </div>
+        )}
       </Tabs>
     </>
-  ) : loading ? (
+  ) : loading && !results ? (
     <Tabs selectedTabId={0} onChange={() => {}} vertical>
       <Tab
         id={0}

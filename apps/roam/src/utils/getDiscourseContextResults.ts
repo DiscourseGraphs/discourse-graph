@@ -61,13 +61,45 @@ const buildSelections = ({
   return selections;
 };
 
-const executeQueries = async (queryConfigs: QueryConfig[]) => {
-  const results = await Promise.all(
-    queryConfigs.map(async ({ relation, queryPromise }) => ({
-      relation,
-      results: await queryPromise(),
-    })),
-  );
+type onResult = (result: {
+  label: string;
+  results: Record<
+    string,
+    Partial<Result & { target: string; complement: number; id: string }>
+  >;
+}) => void;
+
+const executeQueries = async (
+  queryConfigs: QueryConfig[],
+  targetUid: string,
+  nodeTextByType: Record<string, string>,
+  onResult?: onResult,
+) => {
+  const promises = queryConfigs.map(async ({ relation, queryPromise }) => {
+    const results = await queryPromise();
+    if (onResult) {
+      const groupedResult = {
+        label: relation.text,
+        results: Object.fromEntries(
+          results
+            .filter((a) => a.uid !== targetUid)
+            .map((res) => [
+              res.uid,
+              {
+                ...res,
+                target: nodeTextByType[relation.target],
+                complement: relation.isComplement ? 1 : 0,
+                id: relation.id,
+              },
+            ]),
+        ),
+      };
+      onResult(groupedResult);
+    }
+    return { relation, results };
+  });
+
+  const results = await Promise.all(promises);
   return results;
 };
 
@@ -135,19 +167,21 @@ const buildQueryConfig = ({
 };
 
 const getDiscourseContextResults = async ({
-  uid,
+  uid: targetUid,
   relations = getDiscourseRelations(),
   nodes = getDiscourseNodes(relations),
   ignoreCache,
+  onResult,
 }: {
   uid: string;
   nodes?: ReturnType<typeof getDiscourseNodes>;
   relations?: ReturnType<typeof getDiscourseRelations>;
   ignoreCache?: true;
+  onResult?: onResult;
 }) => {
   const args = { ignoreCache };
 
-  const discourseNode = findDiscourseNode(uid);
+  const discourseNode = findDiscourseNode(targetUid);
   if (!discourseNode) return [];
   const nodeType = discourseNode?.type;
   const nodeTextByType = Object.fromEntries(
@@ -185,7 +219,7 @@ const getDiscourseContextResults = async ({
   const queryConfigs = relationsWithComplement.map((relation) =>
     buildQueryConfig({
       args,
-      targetUid: uid,
+      targetUid,
       nodeTextByType,
       fireQueryContext: {
         ...context,
@@ -195,7 +229,12 @@ const getDiscourseContextResults = async ({
     }),
   );
 
-  const resultsWithRelation = await executeQueries(queryConfigs);
+  const resultsWithRelation = await executeQueries(
+    queryConfigs,
+    targetUid,
+    nodeTextByType,
+    onResult,
+  );
   const groupedResults = Object.fromEntries(
     resultsWithRelation.map((r) => [
       r.relation.text,
@@ -208,7 +247,7 @@ const getDiscourseContextResults = async ({
 
   resultsWithRelation.forEach((r) =>
     r.results
-      .filter((a) => a.uid !== uid)
+      .filter((a) => a.uid !== targetUid)
       .forEach(
         (res) =>
           // TODO POST MIGRATE - set result to its own field
