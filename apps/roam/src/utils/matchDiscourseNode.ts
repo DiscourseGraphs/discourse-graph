@@ -18,7 +18,20 @@ const matchDiscourseNode = ({
       }
     | { uid: string }
   )) => {
-  if (specification.length) {
+  // Handle specification with single "has title" clause
+  if (
+    specification.length === 1 &&
+    specification[0].type === "clause" &&
+    specification[0].relation === "has title"
+  ) {
+    const title =
+      "title" in rest ? rest.title : getPageTitleByPageUid(rest.uid);
+    const regex = new RegExp(specification[0].target.slice(1, -1));
+    return !specification[0].not && regex.test(title);
+  }
+
+  // Handle any other specification
+  if (specification?.length) {
     const where = replaceDatalogVariables(
       [{ from: text, to: "node" }],
       specification.flatMap((c) => conditionToDatalog(c)),
@@ -33,6 +46,8 @@ const matchDiscourseNode = ({
       `[:find ?node :where ${firstClause} ${where.join(" ")}]`,
     ).length;
   }
+
+  // Fallback to format expression
   const title = "title" in rest ? rest.title : getPageTitleByPageUid(rest.uid);
   return getDiscourseNodeFormatExpression(format).test(title);
 };

@@ -579,12 +579,14 @@ const TldrawCanvas = ({ title }: Props) => {
                                   (t[2] === "destination" && !isOriginal)
                                     ? source
                                     : target;
-                                const { title, uid } =
+                                const { uid } =
                                   targetNode.props as DiscourseNodeShape["props"];
                                 return [
                                   t[0],
                                   isPageUid(uid) ? "has title" : "with uid",
-                                  isPageUid(uid) ? title : uid,
+                                  isPageUid(uid)
+                                    ? getPageTitleByPageUid(uid)
+                                    : uid,
                                 ];
                               }
                               return t.slice(0);
@@ -926,6 +928,7 @@ export const renderTldrawCanvas = ({
     const parent = document.createElement("div");
     children.parentElement.appendChild(parent);
     parent.style.height = "500px";
+    parent.style.height = "70vh";
     renderWithUnmount(
       <ExtensionApiContextProvider {...onloadArgs}>
         <TldrawCanvas title={title} previewEnabled={isFlagEnabled("preview")} />

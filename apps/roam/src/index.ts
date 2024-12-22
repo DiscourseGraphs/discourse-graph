@@ -1,4 +1,3 @@
-import type { InputTextNode } from "roamjs-components/types/native";
 import {
   addStyle,
   createHTMLObserver,
@@ -8,18 +7,12 @@ import {
 import { createBlock } from "roamjs-components/writes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 
-import { runExtension, extractRef } from "roamjs-components/util";
-import registerSmartBlocksCommand from "roamjs-components/util/registerSmartBlocksCommand";
-
-import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import isLiveBlock from "roamjs-components/queries/isLiveBlock";
+import { runExtension } from "roamjs-components/util";
 
 import { renderTldrawCanvas } from "./components/canvas/Tldraw";
 import { renderQueryPage, renderQueryBlock } from "./components/QueryBuilder";
 
 import runQuery from "./utils/runQuery";
-import resolveQueryBuilderRef from "./utils/resolveQueryBuilderRef";
 import isDiscourseNode from "./utils/isDiscourseNode";
 import { fireQuerySync } from "./utils/fireQuery";
 import parseQuery from "./utils/parseQuery";

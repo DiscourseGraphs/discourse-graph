@@ -25,9 +25,7 @@ import { render } from "./components/DiscourseNodeMenu";
 import { render as discourseOverlayRender } from "./components/DiscourseContextOverlay";
 import { render as previewRender } from "./components/LivePreview";
 import { render as renderReferenceContext } from "./components/ReferenceContext";
-import DiscourseContext, {
-  DiscourseContextBackendConfig,
-} from "./components/DiscourseContext";
+import DiscourseContext from "./components/DiscourseContext";
 import createHTMLObserver from "roamjs-components/dom/createHTMLObserver";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import isDiscourseNode from "./utils/isDiscourseNode";
@@ -224,8 +222,10 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
             {
               title: "overlay",
               Panel: FlagPanel,
-              description:
-                "Whether to overlay discourse context information over node references",
+              // description:
+              //   "Whether to overlay discourse context information over node references",
+              description: "Currently disabled. Being reworked.",
+              disabled: true,
               options: {
                 onChange: (val) => {
                   onPageRefObserverChange(overlayPageRefHandler)(val);
@@ -475,9 +475,9 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
   });
 
   if (isFlagEnabled("preview")) pageRefObservers.add(previewPageRefHandler);
-  if (isFlagEnabled("grammar.overlay")) {
-    pageRefObservers.add(overlayPageRefHandler);
-  }
+  // if (isFlagEnabled("grammar.overlay")) {
+  //   pageRefObservers.add(overlayPageRefHandler);
+  // }
   if (pageRefObservers.size) enablePageRefObserver();
 
   const queryPages = args.extensionAPI.settings.get("query-pages");
@@ -543,7 +543,7 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
         const { label } = modifiedData;
 
         for (const { prefix, color, showInGraphOverview } of prefixColors) {
-          if (showInGraphOverview && label.startsWith(prefix)) {
+          if (prefix && showInGraphOverview && label.startsWith(prefix)) {
             return {
               ...modifiedData,
               color,

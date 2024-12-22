@@ -14,6 +14,7 @@ import predefinedSelections, {
 import { DEFAULT_RETURN_NODE } from "./parseQuery";
 import { DiscourseNode } from "./getDiscourseNodes";
 import { DiscourseRelation } from "./getDiscourseRelations";
+import nanoid from "nanoid";
 
 export type QueryArgs = {
   returnNode?: string;
@@ -323,17 +324,33 @@ const fireQuery: FireQuery = async (_args) => {
       }
     : getDatalogQuery(args);
   try {
-    if (getNodeEnv() === "development") {
-      console.log("Query to Roam:");
-      console.log(query);
+    const nodeEnv = getNodeEnv();
+    const queryId = nodeEnv === "development" ? nanoid(4) : "";
+
+    if (nodeEnv === "development") {
+      console.groupCollapsed(`🔍 Roam Query - ${queryId}`);
+      console.log("%c" + query, "color: #94a3b8; font-family: monospace;");
       if (inputs.length) console.log("Inputs:", ...inputs);
+      console.time(`Query - ${queryId}`);
+      console.groupEnd();
     }
-    return Promise.all(
-      window.roamAlphaAPI.data.fast.q(query, ...inputs).map(formatResult),
+
+    //@ts-ignore - todo add async q to roamjs-components
+    const queryResults = await window.roamAlphaAPI.data.async.q(
+      query,
+      ...inputs,
     );
+
+    if (nodeEnv === "development") {
+      console.timeEnd(`Query - ${queryId}`);
+      console.groupEnd();
+    }
+
+    return Promise.all(queryResults.map(formatResult));
   } catch (e) {
-    console.error("Error from Roam:");
+    console.group("🚨 Roam Query Error");
     console.error((e as Error).message);
+    console.groupEnd();
     return [];
   }
 };

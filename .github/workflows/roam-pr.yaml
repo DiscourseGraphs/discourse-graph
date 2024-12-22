@@ -1,0 +1,33 @@
+name: PR - Roam To Blob Storage
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    paths:
+      - "apps/roam/**"
+      - "packages/tailwind-config/**"
+      - "packages/ui/**"
+env:
+  BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+  GITHUB_HEAD_REF: ${{ github.head_ref }}
+  GITHUB_REF_NAME: ${{ github.ref_name }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Deploy
+        run: npx turbo run deploy --filter=roam

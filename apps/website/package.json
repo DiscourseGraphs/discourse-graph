@@ -1,6 +1,7 @@
 {
-  "name": "discourse-graphs-website",
+  "name": "website",
   "version": "0.1.0",
+  "description": "https://discoursegraphs.com NextJs Website",
   "private": true,
   "scripts": {
     "dev": "next dev",

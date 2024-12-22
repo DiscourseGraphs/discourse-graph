@@ -47,6 +47,52 @@ const createDiscourseNode = async ({
       }, 1);
     }, 100);
   };
+  const handleImageCreation = async (pageUid: string) => {
+    const canvasSettings = Object.fromEntries(
+      discourseNodes.map((n) => [n.type, { ...n.canvasSettings }]),
+    );
+    const {
+      "query-builder-alias": qbAlias = "",
+      "key-image": isKeyImage = "",
+      "key-image-option": keyImageOption = "",
+    } = canvasSettings[configPageUid] || {};
+
+    if (isKeyImage && imageUrl) {
+      const createOrUpdateImageBlock = async (imagePlaceholderUid?: string) => {
+        const imageMarkdown = `![](${imageUrl})`;
+        if (imagePlaceholderUid) {
+          await updateBlock({
+            uid: imagePlaceholderUid,
+            text: imageMarkdown,
+          });
+        } else {
+          await createBlock({
+            node: { text: imageMarkdown },
+            order: 0,
+            parentUid: pageUid,
+          });
+        }
+      };
+
+      if (keyImageOption === "query-builder") {
+        if (!extensionAPI) return;
+
+        const parentUid = resolveQueryBuilderRef({
+          queryRef: qbAlias,
+          extensionAPI,
+        });
+        const results = await runQuery({
+          extensionAPI,
+          parentUid,
+          inputs: { NODETEXT: text, NODEUID: pageUid },
+        });
+        const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
+        await createOrUpdateImageBlock(imagePlaceholderUid);
+      } else {
+        await createOrUpdateImageBlock();
+      }
+    }
+  };
 
   const discourseNodes = getDiscourseNodes();
   const specification = discourseNodes?.find(
@@ -95,49 +141,7 @@ const createDiscourseNode = async ({
     );
 
     // Add image to page if imageUrl is provided
-    const createOrUpdateImageBlock = async (imagePlaceholderUid?: string) => {
-      const imageMarkdown = `![](${imageUrl})`;
-      if (imagePlaceholderUid) {
-        await updateBlock({
-          uid: imagePlaceholderUid,
-          text: imageMarkdown,
-        });
-      } else {
-        await createBlock({
-          node: { text: imageMarkdown },
-          order: 0,
-          parentUid: pageUid,
-        });
-      }
-    };
-    const canvasSettings = Object.fromEntries(
-      discourseNodes.map((n) => [n.type, { ...n.canvasSettings }]),
-    );
-    const {
-      "query-builder-alias": qbAlias = "",
-      "key-image": isKeyImage = "",
-      "key-image-option": keyImageOption = "",
-    } = canvasSettings[configPageUid] || {};
-
-    if (isKeyImage && imageUrl) {
-      if (keyImageOption === "query-builder") {
-        if (!extensionAPI) return;
-
-        const parentUid = resolveQueryBuilderRef({
-          queryRef: qbAlias,
-          extensionAPI,
-        });
-        const results = await runQuery({
-          extensionAPI,
-          parentUid,
-          inputs: { NODETEXT: text, NODEUID: pageUid },
-        });
-        const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
-        await createOrUpdateImageBlock(imagePlaceholderUid);
-      } else if (imageUrl) {
-        await createOrUpdateImageBlock();
-      }
-    }
+    await handleImageCreation(pageUid);
   };
 
   const hasSmartBlockSyntax = (node: RoamBasicNode) => {
@@ -160,6 +164,7 @@ const createDiscourseNode = async ({
       srcUid: templateNode.uid,
       targetUid: pageUid,
     });
+    await handleImageCreation(pageUid);
   } else {
     await createBlocksFromTemplate();
   }

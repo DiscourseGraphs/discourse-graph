@@ -6,7 +6,7 @@ import {
   Tabs,
   Tab,
   Tooltip,
-  Checkbox,
+  Spinner,
 } from "@blueprintjs/core";
 import React, {
   useCallback,
@@ -310,17 +310,38 @@ const ContextTab = ({
 };
 
 export const ContextContent = ({ uid, results }: Props) => {
-  const [rawQueryResults, setRawQueryResults] = useState(results || []);
+  const [rawQueryResults, setRawQueryResults] = useState<
+    Record<string, DiscourseContextResults[number]>
+  >({});
   const queryResults = useMemo(
-    () => rawQueryResults.filter((r) => !!Object.keys(r.results).length),
+    () =>
+      Object.values(rawQueryResults).filter(
+        (r) => !!Object.keys(r.results).length,
+      ),
     [rawQueryResults],
   );
   const [loading, setLoading] = useState(true);
+  const debouncedLoading = useDebounce(loading, 150);
+
   const onRefresh = useCallback(() => {
-    getDiscourseContextResults({ uid })
-      .then(setRawQueryResults)
-      .finally(() => setLoading(false));
-  }, [uid, results, setRawQueryResults, setLoading]);
+    setRawQueryResults({});
+    getDiscourseContextResults({
+      uid,
+      onResult: (result) => {
+        setRawQueryResults((prev) => ({
+          ...prev,
+          [result.label]: {
+            label: result.label,
+            results: {
+              ...(prev[result.label]?.results || {}),
+              ...result.results,
+            },
+          },
+        }));
+      },
+    }).finally(() => setLoading(false));
+  }, [uid, setRawQueryResults, setLoading]);
+
   useEffect(() => {
     if (!results) {
       onRefresh();
@@ -343,6 +364,7 @@ export const ContextContent = ({ uid, results }: Props) => {
         selectedTabId={tabId}
         onChange={(e) => setTabId(Number(e))}
         vertical
+        renderActiveTabPanelOnly
       >
         {queryResults.map((r, i) => (
           <Tab
@@ -362,9 +384,14 @@ export const ContextContent = ({ uid, results }: Props) => {
             }
           />
         ))}
+        {debouncedLoading && (
+          <div className="text-muted-foreground m-auto flex items-center gap-2 text-sm">
+            <Spinner />
+          </div>
+        )}
       </Tabs>
     </>
-  ) : loading ? (
+  ) : debouncedLoading && !results ? (
     <Tabs selectedTabId={0} onChange={() => {}} vertical>
       <Tab
         id={0}
@@ -411,6 +438,23 @@ const DiscourseContext = ({ uid }: Props) => {
       </div>
     </>
   );
+};
+
+// used here to prevent the loading spinner from flashing briefly when queries resolve quickly
+const useDebounce = <T,>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 };
 
 export default DiscourseContext;
