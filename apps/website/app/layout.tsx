@@ -30,9 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased`}>
-        <div
-          className={`flex min-h-screen flex-col bg-neutral-light ${inter.className}`}
-        >
+        <div className={`min-h-screen bg-neutral-light ${inter.className}`}>
           <header className="flex flex-col items-center justify-between space-y-4 px-6 py-4 md:flex-row md:space-y-0">
             <Link href="/" className="flex items-center space-x-2">
               <Image
@@ -52,7 +50,7 @@ export default function RootLayout({
                   "About",
                   "Resources",
                   "Events",
-                  "Blog",
+                  "Updates",
                   "Talks",
                   "Supporters",
                   "Contact",

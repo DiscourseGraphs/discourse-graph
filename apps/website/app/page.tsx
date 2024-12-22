@@ -454,7 +454,7 @@ export default async function Home() {
           <Card id="blog" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
               <CardTitle className="mb-8 text-4xl font-bold text-primary">
-                Latest Blog Posts
+                Latest Updates
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -488,7 +488,7 @@ export default async function Home() {
                     href="/blog"
                     className="inline-block rounded-md bg-primary px-4 py-2 text-lg font-semibold text-white transition hover:bg-primary/80"
                   >
-                    See All Blogs →
+                    See All Updates →
                   </Link>
                 </div>
               </div>

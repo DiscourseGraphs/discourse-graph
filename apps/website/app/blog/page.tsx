@@ -29,16 +29,14 @@ export default async function BlogIndex() {
       <div className="mx-auto max-w-6xl space-y-12 px-6 py-12">
         <div className="rounded-xl bg-white p-8 shadow-md">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 text-primary">
-              All Blog Posts
-            </h1>
+            <h1 className="text-4xl font-bold text-primary">All Updates</h1>
           </div>
           <div>
             <ul className="space-y-6">
               {blogs.map((blog) => (
                 <li
                   key={blog.slug}
-                  className="flex items-start justify-between border-b border-gray-200 pb-4"
+                  className="flex items-start justify-between border-b border-gray-200 pb-4 last:border-b-0"
                 >
                   <div className="w-4/5">
                     <Link

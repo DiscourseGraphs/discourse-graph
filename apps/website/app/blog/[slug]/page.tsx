@@ -48,7 +48,7 @@ export default async function BlogPost({ params }: Params) {
       <div className="flex flex-1 flex-col items-center bg-gray-50 px-6 py-12">
         <div className="w-full max-w-4xl">
           <header className="mb-8 text-center">
-            <h1 className="mb-4 text-5xl font-bold leading-tight text-gray-800 text-primary">
+            <h1 className="mb-4 text-5xl font-bold leading-tight text-primary">
               {data.title}
             </h1>
             <p className="text-sm italic text-gray-500">
