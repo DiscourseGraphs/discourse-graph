@@ -11,12 +11,6 @@ const deploy = async () => {
     const resolvedWorkspace = "roam";
     if (!resolvedWorkspace) throw new Error("Workspace is required");
 
-    console.log("Environment:", {
-      NODE_ENV: process.env.NODE_ENV,
-      hasToken: !!process.env.BLOB_READ_WRITE_TOKEN,
-      tokenLength: process.env.BLOB_READ_WRITE_TOKEN?.length,
-    });
-
     const token = process.env.BLOB_READ_WRITE_TOKEN;
     if (!token) {
       throw new Error(
@@ -36,12 +30,6 @@ const deploy = async () => {
         .trim() ||
       // 4. Final fallback
       "main";
-
-    console.log("Environment:", {
-      GITHUB_HEAD_REF: process.env.GITHUB_HEAD_REF,
-      GITHUB_REF_NAME: process.env.GITHUB_REF_NAME,
-      resolvedBranch,
-    });
 
     const distPath = join(process.cwd(), "dist");
     const files = [
