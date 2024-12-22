@@ -541,7 +541,7 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
         const { label } = modifiedData;
 
         for (const { prefix, color, showInGraphOverview } of prefixColors) {
-          if (showInGraphOverview && label.startsWith(prefix)) {
+          if (prefix && showInGraphOverview && label.startsWith(prefix)) {
             return {
               ...modifiedData,
               color,

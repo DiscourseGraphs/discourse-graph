@@ -131,7 +131,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
               <DiscourseNodeCanvasSettings uid={canvasUid} />
               <FlagPanel
                 title="Graph Overview"
-                description="Whether to color the node in the graph overview based on canvas color"
+                description="Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification."
                 order={0}
                 parentUid={node.type}
                 uid={graphOverviewUid}

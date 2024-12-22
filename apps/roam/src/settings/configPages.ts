@@ -136,7 +136,7 @@ export const renderNodeConfigPage = ({
           {
             title: "Graph Overview",
             Panel: FlagPanel,
-            description: `Whether to color the node in the graph overview based on canvas color`,
+            description: `Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification.`,
             defaultValue: true,
           } as FieldPanel<FlagField>,
         ],
