@@ -178,7 +178,7 @@ index 57cb723..4be6ebd 100644
  export * from "./app/types/event-types.mjs";
  export * from "./app/types/history-types.mjs";
 diff --git a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs
-index bc63c45..8c97b7b 100644
+index bc63c45..221a390 100644
 --- a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs
 +++ b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs
 @@ -54,41 +54,70 @@ async function getResizedImageDataUrl(dataURLForImage, width, height) {
@@ -285,3 +285,27 @@ index bc63c45..8c97b7b 100644
  }
  async function getFileMetaData(file) {
    if (file.type === "image/gif") {
+@@ -287,12 +316,21 @@ async function createBookmarkShapeAtPoint(app, url, point) {
+     }
+   });
+ }
+-function createAssetShapeAtPoint(app, svgString, point) {
++async function createAssetShapeAtPoint(app, svgString, point) {
+   const svg = new DOMParser().parseFromString(svgString, "image/svg+xml").querySelector("svg");
+   if (!svg) {
+     throw new Error("No <svg/> element present");
+   }
+-  const dataUrl = getSvgAsDataUrlSync(svg);
++
++  const svgBlob = new Blob([svgString], { type: "image/svg+xml" });
++  const file = new File([svgBlob], "image.svg", { type: "image/svg+xml" });
++  
++  const url = await window.roamAlphaAPI.file.upload({
++    file,
++  });
++  // const dataUrl = getSvgAsDataUrlSync(svg);
++  const dataUrl = url.replace(/^!\[\]\(/, "").replace(/\)$/, "");
++
+   let width = parseFloat(svg.getAttribute("width") || "0");
+   let height = parseFloat(svg.getAttribute("height") || "0");
+   if (!(width && height)) {
