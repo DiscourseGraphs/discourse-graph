@@ -4,50 +4,52 @@ import matter from "gray-matter";
 import Link from "next/link";
 import { BlogSchema, type Blog } from "./schema";
 
-
-
 async function getAllBlogs(): Promise<Blog[]> {
   const blogDirectory = path.join(process.cwd(), "app/blog/posts");
   const files = fs.readdirSync(blogDirectory);
-  
+
   return files.map((filename) => {
     const filePath = path.join(blogDirectory, filename);
     const fileContent = fs.readFileSync(filePath, "utf-8");
     const { data } = matter(fileContent);
-    
+
     const validatedData = BlogSchema.parse(data);
-    
+
     return {
       slug: filename.replace(".md", ""),
       ...validatedData,
     };
   });
 }
+
 export default async function BlogIndex() {
   const blogs = await getAllBlogs();
-
   return (
     <div className="flex-1 bg-gray-50">
       <div className="mx-auto max-w-6xl space-y-12 px-6 py-12">
         <div className="rounded-xl bg-white p-8 shadow-md">
           <div className="mb-8">
-            <h1 className="text-4xl text-primary font-bold text-gray-800">All Blog Posts</h1>
+            <h1 className="text-4xl font-bold text-gray-800 text-primary">
+              All Blog Posts
+            </h1>
           </div>
           <div>
             <ul className="space-y-6">
               {blogs.map((blog) => (
                 <li
                   key={blog.slug}
-                  className="flex justify-between items-start border-b border-gray-200 pb-4"
+                  className="flex items-start justify-between border-b border-gray-200 pb-4"
                 >
                   <div className="w-4/5">
                     <Link
                       href={`/blog/${blog.slug}`}
-                      className="text-2xl font-semibold text-blue-600 hover:underline block"
+                      className="block text-2xl font-semibold text-blue-600 hover:underline"
                     >
                       {blog.title}
                     </Link>
-                    <p className="text-sm text-gray-500 italic mt-2">{blog.date}</p>
+                    <p className="mt-2 text-sm italic text-gray-500">
+                      {blog.date}
+                    </p>
                   </div>
                   <div className="w-1/5 text-right text-gray-600">
                     by {blog.author}
@@ -61,4 +63,3 @@ export default async function BlogIndex() {
     </div>
   );
 }
-

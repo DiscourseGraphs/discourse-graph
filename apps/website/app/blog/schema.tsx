@@ -11,4 +11,3 @@ export type BlogFrontmatter = z.infer<typeof BlogSchema>;
 export type Blog = BlogFrontmatter & {
   slug: string;
 };
-

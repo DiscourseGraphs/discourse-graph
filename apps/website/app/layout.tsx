@@ -7,7 +7,7 @@ import { Inter } from "next/font/google";
 export const metadata: Metadata = {
   title: "Discourse Graphs | A Tool for Collaborative Knowledge Synthesis",
   description:
-  "Discourse Graphs are a tool and ecosystem for collaborative knowledge synthesis, enabling researchers to map ideas and arguments in a modular, composable graph format.",
+    "Discourse Graphs are a tool and ecosystem for collaborative knowledge synthesis, enabling researchers to map ideas and arguments in a modular, composable graph format.",
   openGraph: {
     title: "Discourse Graphs",
     description: "A tool and ecosystem for collaborative knowledge synthesis",
@@ -20,18 +20,19 @@ export const metadata: Metadata = {
   },
 };
 
-
 const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
   children,
 }: Readonly<{
-    children: React.ReactNode;
-  }>) {
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en">
       <body className={`antialiased`}>
-        <div className={`flex flex-col min-h-screen bg-neutral-light ${inter.className}`}>
+        <div
+          className={`flex min-h-screen flex-col bg-neutral-light ${inter.className}`}
+        >
           <header className="flex flex-col items-center justify-between space-y-4 px-6 py-4 md:flex-row md:space-y-0">
             <Link href="/" className="flex items-center space-x-2">
               <Image
@@ -56,22 +57,21 @@ export default function RootLayout({
                   "Supporters",
                   "Contact",
                 ].map((item) => (
-                    <li key={item}>
-                      <Link
-                        href={`/#${item.toLowerCase()}`} // Ensures absolute path with root `/`
-                        className="text-neutral-dark hover:text-neutral-dark/60"
-                      >
-                        {item}
-                      </Link>
-                    </li>
-                  ))}
+                  <li key={item}>
+                    <Link
+                      href={`/#${item.toLowerCase()}`} // Ensures absolute path with root `/`
+                      className="text-neutral-dark hover:text-neutral-dark/60"
+                    >
+                      {item}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </nav>
           </header>
           {children}
         </div>
       </body>
-
     </html>
   );
 }

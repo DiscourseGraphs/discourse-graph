@@ -7,26 +7,25 @@ import {
   CardTitle,
 } from "@repo/ui/components/ui/card";
 import { ArrowBigDownDash, CircleGauge } from "lucide-react";
-import path from 'path';
-import fs from 'fs';
-import matter from 'gray-matter';
+import path from "path";
+import fs from "fs";
+import matter from "gray-matter";
 import { BlogSchema, type Blog } from "./blog/schema";
 
-
 async function getLatestBlogs(): Promise<Blog[]> {
-  const blogDirectory = path.join(process.cwd(), 'app/blog/posts');
+  const blogDirectory = path.join(process.cwd(), "app/blog/posts");
   const files = fs.readdirSync(blogDirectory);
-  
+
   return files
     .map((filename) => {
       const filePath = path.join(blogDirectory, filename);
-      const fileContent = fs.readFileSync(filePath, 'utf-8');
+      const fileContent = fs.readFileSync(filePath, "utf-8");
       const { data } = matter(fileContent);
-      
+
       const validatedData = BlogSchema.parse(data);
-      
+
       return {
-        slug: filename.replace('.md', ''),
+        slug: filename.replace(".md", ""),
         ...validatedData,
       };
     })
@@ -36,12 +35,10 @@ async function getLatestBlogs(): Promise<Blog[]> {
     .slice(0, 3);
 }
 
-
-
 export default async function Home() {
   const blogs = await getLatestBlogs();
   return (
-    <div> 
+    <div>
       {/* Hero */}
       <section className="relative overflow-hidden bg-neutral-dark px-6 py-24 text-center">
         <Image
@@ -453,7 +450,6 @@ export default async function Home() {
             </CardContent>
           </Card>
 
-
           {/* Blog Section */}
           <Card id="blog" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
@@ -467,16 +463,18 @@ export default async function Home() {
                   {blogs.map((blog) => (
                     <li
                       key={blog.slug}
-                      className="flex justify-between items-start border-b border-gray-200 pb-4"
+                      className="flex items-start justify-between border-b border-gray-200 pb-4"
                     >
                       <div className="w-4/5">
                         <Link
                           href={`/blog/${blog.slug}`}
-                          className="text-2xl font-semibold text-blue-600 hover:underline block"
+                          className="block text-2xl font-semibold text-blue-600 hover:underline"
                         >
                           {blog.title}
                         </Link>
-                        <p className="text-sm text-gray-500 italic mt-2">{blog.date}</p>
+                        <p className="mt-2 text-sm italic text-gray-500">
+                          {blog.date}
+                        </p>
                       </div>
                       <div className="w-1/5 text-right text-gray-600">
                         by {blog.author}
@@ -496,7 +494,6 @@ export default async function Home() {
               </div>
             </CardContent>
           </Card>
-
 
           {/* Talks */}
           <Card id="talks" className="rounded-xl bg-white/50 p-8 shadow-md">
