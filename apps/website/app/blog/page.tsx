@@ -2,23 +2,27 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import Link from "next/link";
+import { BlogSchema, type Blog } from "./schema";
 
-async function getAllBlogs() {
+
+
+async function getAllBlogs(): Promise<Blog[]> {
   const blogDirectory = path.join(process.cwd(), "app/blog/posts");
   const files = fs.readdirSync(blogDirectory);
-
+  
   return files.map((filename) => {
     const filePath = path.join(blogDirectory, filename);
     const fileContent = fs.readFileSync(filePath, "utf-8");
     const { data } = matter(fileContent);
-
+    
+    const validatedData = BlogSchema.parse(data);
+    
     return {
       slug: filename.replace(".md", ""),
-      ...data,
+      ...validatedData,
     };
   });
 }
-
 export default async function BlogIndex() {
   const blogs = await getAllBlogs();
 
@@ -34,16 +38,20 @@ export default async function BlogIndex() {
               {blogs.map((blog) => (
                 <li
                   key={blog.slug}
-                  className="flex flex-col space-y-2 border-b border-gray-200 pb-4"
+                  className="flex justify-between items-start border-b border-gray-200 pb-4"
                 >
-                  <Link
-                    href={`/blog/${blog.slug}`}
-                    className="text-2xl font-semibold text-blue-600 hover:underline"
-                  >
-                    {blog.title}
-                  </Link>
-                  <p className="text-sm text-gray-500 italic">{blog.date}</p>
-                  <p className="text-gray-700">{blog.description}</p>
+                  <div className="w-4/5">
+                    <Link
+                      href={`/blog/${blog.slug}`}
+                      className="text-2xl font-semibold text-blue-600 hover:underline block"
+                    >
+                      {blog.title}
+                    </Link>
+                    <p className="text-sm text-gray-500 italic mt-2">{blog.date}</p>
+                  </div>
+                  <div className="w-1/5 text-right text-gray-600">
+                    by {blog.author}
+                  </div>
                 </li>
               ))}
             </ul>

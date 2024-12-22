@@ -1,4 +1,3 @@
-import { Inter } from "next/font/google";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -11,27 +10,34 @@ import { ArrowBigDownDash, CircleGauge } from "lucide-react";
 import path from 'path';
 import fs from 'fs';
 import matter from 'gray-matter';
+import { BlogSchema, type Blog } from "./blog/schema";
 
-const inter = Inter({ subsets: ["latin"] });
 
-async function getLatestBlogs() {
+async function getLatestBlogs(): Promise<Blog[]> {
   const blogDirectory = path.join(process.cwd(), 'app/blog/posts');
   const files = fs.readdirSync(blogDirectory);
-
+  
   return files
     .map((filename) => {
       const filePath = path.join(blogDirectory, filename);
       const fileContent = fs.readFileSync(filePath, 'utf-8');
       const { data } = matter(fileContent);
-
+      
+      const validatedData = BlogSchema.parse(data);
+      
       return {
         slug: filename.replace('.md', ''),
-        ...data,
+        ...validatedData,
       };
     })
-    .sort((a, b) => new Date(b.date) - new Date(a.date)) // Sort by date
-    .slice(0, 3); // Get the first 3 blogs
+    .sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    })
+    .slice(0, 3);
 }
+
+
+
 export default async function Home() {
   const blogs = await getLatestBlogs();
   return (
@@ -457,22 +463,28 @@ export default async function Home() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <ul className="space-y-4">
+                <ul className="space-y-6">
                   {blogs.map((blog) => (
-                    <li key={blog.slug} className="flex flex-col space-y-2">
-                      <Link
-                        href={`/blog/${blog.slug}`}
-                        className="text-2xl font-semibold text-secondary hover:underline"
-                      >
-                        {blog.title}
-                      </Link>
-                      <p className="text-sm text-neutral-dark italic">
-                        {blog.date}
-                      </p>
-                      <p className="text-neutral-dark">{blog.description}</p>
+                    <li
+                      key={blog.slug}
+                      className="flex justify-between items-start border-b border-gray-200 pb-4"
+                    >
+                      <div className="w-4/5">
+                        <Link
+                          href={`/blog/${blog.slug}`}
+                          className="text-2xl font-semibold text-blue-600 hover:underline block"
+                        >
+                          {blog.title}
+                        </Link>
+                        <p className="text-sm text-gray-500 italic mt-2">{blog.date}</p>
+                      </div>
+                      <div className="w-1/5 text-right text-gray-600">
+                        by {blog.author}
+                      </div>
                     </li>
                   ))}
                 </ul>
+
                 <div className="mt-6 text-center">
                   <Link
                     href="/blog"

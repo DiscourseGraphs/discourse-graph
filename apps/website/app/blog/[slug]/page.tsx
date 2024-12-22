@@ -2,46 +2,88 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { remark } from "remark";
-import html from "remark-html";
+import html from "remark-html"; 
+import { notFound } from "next/navigation";
+import { Metadata } from "next";
+import { BlogSchema, BlogFrontmatter } from "../schema";
 
-async function getBlog(slug) {
-  const blogDirectory = path.join(process.cwd(), "app/blog/posts");
-  const filePath = path.join(blogDirectory, `${slug}.md`);
-  const fileContent = fs.readFileSync(filePath, "utf-8");
-  const { data, content } = matter(fileContent);
+async function getBlog(slug: string): Promise<{ data: BlogFrontmatter; contentHtml: string }> {
+  try {
+    const blogDirectory = path.join(process.cwd(), "app/blog/posts");
+    const filePath = path.join(blogDirectory, `${slug}.md`);
+    
+    if (!fs.existsSync(filePath)) {
+      return notFound();
+    }
 
-  // Convert Markdown content to HTML
-  const processedContent = await remark().use(html).process(content);
-  const contentHtml = processedContent.toString();
+    const fileContent = fs.readFileSync(filePath, "utf-8");
+    const { data: rawData, content } = matter(fileContent);
+    
+    const data = BlogSchema.parse(rawData);
 
-  return { data, contentHtml };
+    const processedContent = await remark()
+      .use(html)
+      .process(content);
+    const contentHtml = processedContent.toString();
+    
+    return { data, contentHtml };
+  } catch (error) {
+    console.error("Error loading blog post:", error);
+    return notFound();
+  }
 }
 
-export default async function BlogPost({ params }) {
-  const { slug } = await params;
-  const { data, contentHtml } = await getBlog(slug);
+type Params = {
+  params: Promise<{
+    slug: string;
+  }>;
+};
 
-  return (
-    <div className="flex-1 bg-gray-50 flex flex-col items-center px-6 py-12">
-      <div className="max-w-4xl w-full">
-        <header className="mb-8 text-center">
-          <h1 className="text-5xl text-primary font-bold leading-tight text-gray-800 mb-4">
-            {data.title}
-          </h1>
-          <p className="text-gray-500 text-sm italic">
-            {new Date(data.date).toLocaleDateString(undefined, {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
-        </header>
-        <article
-          className="prose prose-lg lg:prose-xl prose-gray mx-auto text-gray-700 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: contentHtml }}
-        />
+export default async function BlogPost({ params }: Params) {
+  try {
+    const { slug } = await params;
+    const { data, contentHtml } = await getBlog(slug);
+
+    return (
+      <div className="flex-1 bg-gray-50 flex flex-col items-center px-6 py-12">
+        <div className="max-w-4xl w-full">
+          <header className="mb-8 text-center">
+            <h1 className="text-5xl text-primary font-bold leading-tight text-gray-800 mb-4">
+              {data.title}
+            </h1>
+            <p className="text-gray-500 text-sm italic">
+              By {data.author} • {data.date}
+            </p>
+          </header>
+          <article
+            className="prose prose-lg lg:prose-xl prose-gray mx-auto text-gray-700 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: contentHtml }}
+          />
+        </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    return notFound();
+  }
+}
+
+export async function generateStaticParams() {
+  const posts = fs.readdirSync(path.join(process.cwd(), "app/blog/posts"))
+    .filter(filename => filename.endsWith('.md'))
+    .map(filename => ({
+      slug: filename.replace(/\.md$/, '')
+    }));
+  
+  return posts;
+}
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { slug } = await params;
+  const { data } = await getBlog(slug);
+  
+  return {
+    title: data.title,
+    authors: [{ name: data.author }],
+  };
 }
 
