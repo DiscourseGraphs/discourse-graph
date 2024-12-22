@@ -928,6 +928,7 @@ export const renderTldrawCanvas = ({
     const parent = document.createElement("div");
     children.parentElement.appendChild(parent);
     parent.style.height = "500px";
+    parent.style.height = "70vh";
     renderWithUnmount(
       <ExtensionApiContextProvider {...onloadArgs}>
         <TldrawCanvas title={title} previewEnabled={isFlagEnabled("preview")} />
