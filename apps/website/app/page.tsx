@@ -15,7 +15,7 @@ import matter from 'gray-matter';
 const inter = Inter({ subsets: ["latin"] });
 
 async function getLatestBlogs() {
-  const blogDirectory = path.join(process.cwd(), '/blogs');
+  const blogDirectory = path.join(process.cwd(), 'app/blog/posts');
   const files = fs.readdirSync(blogDirectory);
 
   return files
@@ -35,44 +35,7 @@ async function getLatestBlogs() {
 export default async function Home() {
   const blogs = await getLatestBlogs();
   return (
-    <div className={`min-h-screen bg-neutral-light ${inter.className}`}>
-      <header className="flex flex-col items-center justify-between space-y-4 px-6 py-4 md:flex-row md:space-y-0">
-        <Link href="/" className="flex items-center space-x-2">
-          <Image
-            src="/logo-screenshot-48.png"
-            alt="Discourse Graphs Logo"
-            width={48}
-            height={48}
-          />
-
-          <span className="text-3xl font-bold text-neutral-dark">
-            Discourse Graphs
-          </span>
-        </Link>
-        <nav className="w-full md:w-auto">
-          <ul className="flex flex-wrap justify-center space-x-4 md:flex-nowrap md:space-x-8">
-            {[
-              "About",
-              "Resources",
-              "Events",
-              "Blog",
-              "Talks",
-              "Supporters",
-              "Contact",
-            ].map((item) => (
-              <li key={item}>
-                <Link
-                  href={`#${item.toLowerCase()}`}
-                  className="text-neutral-dark hover:text-neutral-dark/60"
-                >
-                  {item}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </header>
-
+    <div> 
       {/* Hero */}
       <section className="relative overflow-hidden bg-neutral-dark px-6 py-24 text-center">
         <Image

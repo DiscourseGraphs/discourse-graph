@@ -4,7 +4,7 @@ import matter from "gray-matter";
 import Link from "next/link";
 
 async function getAllBlogs() {
-  const blogDirectory = path.join(process.cwd(), "/blogs");
+  const blogDirectory = path.join(process.cwd(), "app/blog/posts");
   const files = fs.readdirSync(blogDirectory);
 
   return files.map((filename) => {
@@ -23,11 +23,11 @@ export default async function BlogIndex() {
   const blogs = await getAllBlogs();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex-1 bg-gray-50">
       <div className="mx-auto max-w-6xl space-y-12 px-6 py-12">
         <div className="rounded-xl bg-white p-8 shadow-md">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-800">All Blog Posts</h1>
+            <h1 className="text-4xl text-primary font-bold text-gray-800">All Blog Posts</h1>
           </div>
           <div>
             <ul className="space-y-6">

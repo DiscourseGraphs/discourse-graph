@@ -5,7 +5,7 @@ import { remark } from "remark";
 import html from "remark-html";
 
 async function getBlog(slug) {
-  const blogDirectory = path.join(process.cwd(), "/blogs");
+  const blogDirectory = path.join(process.cwd(), "app/blog/posts");
   const filePath = path.join(blogDirectory, `${slug}.md`);
   const fileContent = fs.readFileSync(filePath, "utf-8");
   const { data, content } = matter(fileContent);
@@ -22,10 +22,10 @@ export default async function BlogPost({ params }) {
   const { data, contentHtml } = await getBlog(slug);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center px-6 py-12">
+    <div className="flex-1 bg-gray-50 flex flex-col items-center px-6 py-12">
       <div className="max-w-4xl w-full">
         <header className="mb-8 text-center">
-          <h1 className="text-5xl font-bold leading-tight text-gray-800 mb-4">
+          <h1 className="text-5xl text-primary font-bold leading-tight text-gray-800 mb-4">
             {data.title}
           </h1>
           <p className="text-gray-500 text-sm italic">
