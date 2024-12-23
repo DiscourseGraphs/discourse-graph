@@ -81,7 +81,7 @@ Have questions, comments or feedback? Join our [discord](https://discord.gg/atWk
 - [Chan Zuckerberg Initiative](https://cziscience.medium.com/request-for-information-pathways-to-ai-enabled-research-55c52124def4)
 - [Metagov](https://www.metagov.org/)
 - [Schmidt Futures](https://experiment.com/grants/metascience)
-- [The Navigation Fund](https://www.navigation.org/grants/open-science)
+- [The Navigation Fund](https://commons.datacite.org/doi.org/10.71707/cx83-dh41)
 
 ## Acknowledgement
 
