@@ -23,6 +23,7 @@
     "widgets"
   ],
   "dependencies": {
+    "@repo/types": "*",
     "@tldraw/tldraw": "^2.0.0-alpha.12",
     "@vercel/blob": "^0.27.0",
     "contrast-color": "^1.0.1",
