@@ -8,7 +8,6 @@ import { BlogSchema, type Blog, BlogFrontmatter } from "./schema";
 
 const BLOG_DIRECTORY = path.join(process.cwd(), "app/blog/posts");
 
-// Utility to check if blog directory exists
 async function validateBlogDirectory(): Promise<boolean> {
   try {
     const stats = await fs.stat(BLOG_DIRECTORY);
@@ -19,7 +18,6 @@ async function validateBlogDirectory(): Promise<boolean> {
   }
 }
 
-// Utility to process a single blog file
 async function processBlogFile(filename: string): Promise<Blog | null> {
   try {
     const filePath = path.join(BLOG_DIRECTORY, filename);
@@ -37,7 +35,6 @@ async function processBlogFile(filename: string): Promise<Blog | null> {
   }
 }
 
-// Utility to get markdown content as HTML
 async function getMarkdownContent(content: string): Promise<string> {
   const processedContent = await remark().use(html).process(content);
   return processedContent.toString();
@@ -52,8 +49,8 @@ export async function getAllBlogs(): Promise<Blog[]> {
     const blogs = await Promise.all(
       files.filter((filename) => filename.endsWith(".md")).map(processBlogFile),
     );
-
-    return blogs.filter(Boolean) as Blog[];
+    const validBlogs = blogs.filter(Boolean) as Blog[];
+    return validBlogs.filter((blog) => blog.published);
   } catch (error) {
     console.error("Error reading blog directory:", error);
     return [];
@@ -70,6 +67,12 @@ export async function getBlog(
     const fileContent = await fs.readFile(filePath, "utf-8");
     const { data: rawData, content } = matter(fileContent);
     const data = BlogSchema.parse(rawData);
+
+    if (!data.published) {
+      console.log(`Post ${slug} is not published`);
+      return notFound();
+    }
+
     const contentHtml = await getMarkdownContent(content);
 
     return { data, contentHtml };
