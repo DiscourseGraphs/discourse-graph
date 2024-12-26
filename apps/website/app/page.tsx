@@ -1,4 +1,3 @@
-import { Inter } from "next/font/google";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -8,48 +7,12 @@ import {
   CardTitle,
 } from "@repo/ui/components/ui/card";
 import { ArrowBigDownDash, CircleGauge } from "lucide-react";
+import { getLatestBlogs } from "./blog/readBlogs";
 
-const inter = Inter({ subsets: ["latin"] });
-
-export default function Home() {
+export default async function Home() {
+  const blogs = await getLatestBlogs();
   return (
-    <div className={`min-h-screen bg-neutral-light ${inter.className}`}>
-      <header className="flex flex-col items-center justify-between space-y-4 px-6 py-4 md:flex-row md:space-y-0">
-        <Link href="/" className="flex items-center space-x-2">
-          <Image
-            src="/logo-screenshot-48.png"
-            alt="Discourse Graphs Logo"
-            width={48}
-            height={48}
-          />
-
-          <span className="text-3xl font-bold text-neutral-dark">
-            Discourse Graphs
-          </span>
-        </Link>
-        <nav className="w-full md:w-auto">
-          <ul className="flex flex-wrap justify-center space-x-4 md:flex-nowrap md:space-x-8">
-            {[
-              "About",
-              "Resources",
-              "Events",
-              "Talks",
-              "Supporters",
-              "Contact",
-            ].map((item) => (
-              <li key={item}>
-                <Link
-                  href={`#${item.toLowerCase()}`}
-                  className="text-neutral-dark hover:text-neutral-dark/60"
-                >
-                  {item}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </header>
-
+    <div>
       {/* Hero */}
       <section className="relative overflow-hidden bg-neutral-dark px-6 py-24 text-center">
         <Image
@@ -433,7 +396,6 @@ export default function Home() {
               </ul>
             </CardContent>
           </Card>
-
           {/* Events */}
           <Card id="events" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
@@ -457,6 +419,58 @@ export default function Home() {
                     View full schedule →
                   </Link>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Blog Section */}
+          <Card id="updates" className="rounded-xl bg-white/50 p-8 shadow-md">
+            <CardHeader>
+              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+                Latest Updates
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {blogs.length > 0 ? (
+                  <>
+                    <ul className="space-y-6">
+                      {blogs.map((blog) => (
+                        <li
+                          key={blog.slug}
+                          className="flex items-start justify-between border-b border-gray-200 pb-4 last:border-b-0"
+                        >
+                          <div className="w-4/5">
+                            <Link
+                              href={`/blog/${blog.slug}`}
+                              className="block text-2xl font-semibold text-blue-600 hover:underline"
+                            >
+                              {blog.title}
+                            </Link>
+                            <p className="mt-2 text-sm italic text-gray-500">
+                              {blog.date}
+                            </p>
+                          </div>
+                          <div className="w-1/5 text-right text-gray-600">
+                            by {blog.author}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="mt-6 text-center">
+                      <Link
+                        href="/blog"
+                        className="inline-block rounded-md bg-primary px-4 py-2 text-lg font-semibold text-white transition hover:text-white"
+                      >
+                        See All Updates →
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-left text-lg text-gray-600">
+                    No updates yet! Check back soon. 😊
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -544,7 +558,6 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
-
           {/* Supporters */}
           <Card
             id="supporters"
@@ -623,7 +636,6 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
-
           {/* Contact */}
           <Card id="contact" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
