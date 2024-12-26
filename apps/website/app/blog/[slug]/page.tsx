@@ -1,35 +1,8 @@
 import fs from "fs/promises";
 import path from "path";
-import matter from "gray-matter";
-import { remark } from "remark";
-import html from "remark-html";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import { BlogSchema, BlogFrontmatter } from "../schema";
-
-async function getBlog(
-  slug: string,
-): Promise<{ data: BlogFrontmatter; contentHtml: string }> {
-  try {
-    const blogDirectory = path.join(process.cwd(), "app/blog/posts");
-    const filePath = path.join(blogDirectory, `${slug}.md`);
-
-    await fs.access(filePath);
-
-    const fileContent = await fs.readFile(filePath, "utf-8");
-    const { data: rawData, content } = matter(fileContent);
-
-    const data = BlogSchema.parse(rawData);
-
-    const processedContent = await remark().use(html).process(content);
-    const contentHtml = processedContent.toString();
-
-    return { data, contentHtml };
-  } catch (error) {
-    console.error("Error loading blog post:", error);
-    return notFound();
-  }
-}
+import { getBlog } from "../readBlogs";
 
 type Params = {
   params: Promise<{
@@ -68,7 +41,25 @@ export default async function BlogPost({ params }: Params) {
 
 export async function generateStaticParams() {
   try {
-    const files = await fs.readdir(path.join(process.cwd(), "app/blog/posts"));
+    const blogPath = path.join(process.cwd(), "app/blog/posts");
+    // 1) Check if the directory exists
+    const directoryExists = await fs
+      .stat(blogPath)
+      .then((stats) => stats.isDirectory())
+      .catch(() => false);
+
+    // 2) If it's missing, return empty
+    if (!directoryExists) {
+      console.log(
+        "No app/blog/posts directory found. Returning empty params...",
+      );
+      return [];
+    }
+
+    // 3) If it exists, read it
+    const files = await fs.readdir(blogPath);
+
+    // 4) Filter .md files to build the slug array
     return files
       .filter((filename) => filename.endsWith(".md"))
       .map((filename) => ({

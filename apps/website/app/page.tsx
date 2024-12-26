@@ -7,33 +7,7 @@ import {
   CardTitle,
 } from "@repo/ui/components/ui/card";
 import { ArrowBigDownDash, CircleGauge } from "lucide-react";
-import path from "path";
-import fs from "fs";
-import matter from "gray-matter";
-import { BlogSchema, type Blog } from "./blog/schema";
-
-async function getLatestBlogs(): Promise<Blog[]> {
-  const blogDirectory = path.join(process.cwd(), "app/blog/posts");
-  const files = fs.readdirSync(blogDirectory);
-
-  return files
-    .map((filename) => {
-      const filePath = path.join(blogDirectory, filename);
-      const fileContent = fs.readFileSync(filePath, "utf-8");
-      const { data } = matter(fileContent);
-
-      const validatedData = BlogSchema.parse(data);
-
-      return {
-        slug: filename.replace(".md", ""),
-        ...validatedData,
-      };
-    })
-    .sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    })
-    .slice(0, 3);
-}
+import { getLatestBlogs } from "./blog/readBlogs";
 
 export default async function Home() {
   const blogs = await getLatestBlogs();
