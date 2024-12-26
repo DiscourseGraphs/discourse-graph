@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "fs/promises";
 import path from "path";
 import matter from "gray-matter";
 import { remark } from "remark";
@@ -14,11 +14,9 @@ async function getBlog(
     const blogDirectory = path.join(process.cwd(), "app/blog/posts");
     const filePath = path.join(blogDirectory, `${slug}.md`);
 
-    if (!fs.existsSync(filePath)) {
-      return notFound();
-    }
+    await fs.access(filePath);
 
-    const fileContent = fs.readFileSync(filePath, "utf-8");
+    const fileContent = await fs.readFile(filePath, "utf-8");
     const { data: rawData, content } = matter(fileContent);
 
     const data = BlogSchema.parse(rawData);
@@ -63,27 +61,38 @@ export default async function BlogPost({ params }: Params) {
       </div>
     );
   } catch (error) {
+    console.error("Error rendering blog post:", error);
     return notFound();
   }
 }
 
 export async function generateStaticParams() {
-  const posts = fs
-    .readdirSync(path.join(process.cwd(), "app/blog/posts"))
-    .filter((filename) => filename.endsWith(".md"))
-    .map((filename) => ({
-      slug: filename.replace(/\.md$/, ""),
-    }));
-
-  return posts;
+  try {
+    const files = await fs.readdir(path.join(process.cwd(), "app/blog/posts"));
+    return files
+      .filter((filename) => filename.endsWith(".md"))
+      .map((filename) => ({
+        slug: filename.replace(/\.md$/, ""),
+      }));
+  } catch (error) {
+    console.error("Error generating static params:", error);
+    return [];
+  }
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const { slug } = await params;
-  const { data } = await getBlog(slug);
+  try {
+    const { slug } = await params;
+    const { data } = await getBlog(slug);
 
-  return {
-    title: data.title,
-    authors: [{ name: data.author }],
-  };
+    return {
+      title: data.title,
+      authors: [{ name: data.author }],
+    };
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+    return {
+      title: "Blog Post",
+    };
+  }
 }
