@@ -648,7 +648,7 @@ export default async function Home() {
                   />
                 </Link>
                 <Link
-                  href="https://www.navigation.org/grants/open-science"
+                  href="https://commons.datacite.org/doi.org/10.71707/cx83-dh41"
                   className="mx-auto flex h-[88px] w-[200px] items-center justify-center transition-opacity hover:opacity-80"
                 >
                   <Image
