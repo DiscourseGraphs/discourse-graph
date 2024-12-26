@@ -422,7 +422,6 @@ export default async function Home() {
               </ul>
             </CardContent>
           </Card>
-
           {/* Events */}
           <Card id="events" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
@@ -449,9 +448,8 @@ export default async function Home() {
               </div>
             </CardContent>
           </Card>
-
           {/* Blog Section */}
-          <Card id="blog" className="rounded-xl bg-white/50 p-8 shadow-md">
+          <Card id="updates" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
               <CardTitle className="mb-8 text-4xl font-bold text-primary">
                 Latest Updates
@@ -459,38 +457,46 @@ export default async function Home() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <ul className="space-y-6">
-                  {blogs.map((blog) => (
-                    <li
-                      key={blog.slug}
-                      className="flex items-start justify-between border-b border-gray-200 pb-4"
-                    >
-                      <div className="w-4/5">
-                        <Link
-                          href={`/blog/${blog.slug}`}
-                          className="block text-2xl font-semibold text-blue-600 hover:underline"
+                {blogs.length > 0 ? (
+                  <>
+                    <ul className="space-y-6">
+                      {blogs.map((blog) => (
+                        <li
+                          key={blog.slug}
+                          className="flex items-start justify-between border-b border-gray-200 pb-4 last:border-b-0"
                         >
-                          {blog.title}
-                        </Link>
-                        <p className="mt-2 text-sm italic text-gray-500">
-                          {blog.date}
-                        </p>
-                      </div>
-                      <div className="w-1/5 text-right text-gray-600">
-                        by {blog.author}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                          <div className="w-4/5">
+                            <Link
+                              href={`/blog/${blog.slug}`}
+                              className="block text-2xl font-semibold text-blue-600 hover:underline"
+                            >
+                              {blog.title}
+                            </Link>
+                            <p className="mt-2 text-sm italic text-gray-500">
+                              {blog.date}
+                            </p>
+                          </div>
+                          <div className="w-1/5 text-right text-gray-600">
+                            by {blog.author}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
 
-                <div className="mt-6 text-center">
-                  <Link
-                    href="/blog"
-                    className="inline-block rounded-md bg-primary px-4 py-2 text-lg font-semibold text-white transition hover:bg-primary/80"
-                  >
-                    See All Updates →
-                  </Link>
-                </div>
+                    <div className="mt-6 text-center">
+                      <Link
+                        href="/blog"
+                        className="inline-block rounded-md bg-primary px-4 py-2 text-lg font-semibold text-white transition hover:text-white"
+                      >
+                        See All Updates →
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-left text-lg text-gray-600">
+                    No updates yet! Check back soon. 😊
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -578,7 +584,6 @@ export default async function Home() {
               </div>
             </CardContent>
           </Card>
-
           {/* Supporters */}
           <Card
             id="supporters"
@@ -657,7 +662,6 @@ export default async function Home() {
               </div>
             </CardContent>
           </Card>
-
           {/* Contact */}
           <Card id="contact" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
