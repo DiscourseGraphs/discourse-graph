@@ -1,25 +1,43 @@
-import fs from "fs";
+import fs from "fs/promises"; // Using promises for non-blocking operations
 import path from "path";
 import matter from "gray-matter";
 import Link from "next/link";
 import { BlogSchema, type Blog } from "./schema";
 
+// Directory path moved to a constant for reusability and configuration
+const BLOG_DIRECTORY = path.join(process.cwd(), "app/blog/posts");
+
 async function getAllBlogs(): Promise<Blog[]> {
-  const blogDirectory = path.join(process.cwd(), "app/blog/posts");
-  const files = fs.readdirSync(blogDirectory);
+  try {
+    const files = await fs.readdir(BLOG_DIRECTORY); // Non-blocking file read
 
-  return files.map((filename) => {
-    const filePath = path.join(blogDirectory, filename);
-    const fileContent = fs.readFileSync(filePath, "utf-8");
-    const { data } = matter(fileContent);
+    const blogs = await Promise.all(
+      files
+        .filter((filename) => filename.endsWith(".md")) // Ensure valid filenames
+        .map(async (filename) => {
+          const filePath = path.join(BLOG_DIRECTORY, filename);
+          const fileContent = await fs.readFile(filePath, "utf-8"); // Non-blocking file read
+          const { data } = matter(fileContent);
 
-    const validatedData = BlogSchema.parse(data);
+          try {
+            const validatedData = BlogSchema.parse(data);
 
-    return {
-      slug: filename.replace(".md", ""),
-      ...validatedData,
-    };
-  });
+            return {
+              slug: filename.replace(".md", ""),
+              ...validatedData,
+            };
+          } catch (error) {
+            console.error(`Invalid front matter in file: ${filename}`, error);
+            return null; // Skip invalid blogs
+          }
+        }),
+    );
+
+    return blogs.filter(Boolean) as Blog[]; // Filter out null values
+  } catch (error) {
+    console.error("Error reading blog directory:", error);
+    return []; // Return an empty array on failure
+  }
 }
 
 export default async function BlogIndex() {
