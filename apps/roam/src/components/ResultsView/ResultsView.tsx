@@ -39,6 +39,7 @@ import { Condition } from "~/utils/types";
 import ResultsTable from "./views/ResultsTable";
 import { render as renderSimpleAlert } from "roamjs-components/components/SimpleAlert";
 import setInputSettings from "roamjs-components/util/setInputSettings";
+import posthog from "posthog-js";
 
 const VIEWS: Record<string, { value: boolean }> = {
   link: { value: false },
@@ -551,6 +552,12 @@ const ResultsView: ResultsViewComponent = ({
                             : "border-gray-800 border-opacity-25 text-gray-800"
                         }`}
                         onClick={() => {
+                          posthog.capture("query_view_type_changed", {
+                            pageUid: parentUid,
+                            oldLayout: layoutMode,
+                            newLayout: l.id,
+                          });
+
                           setLayout({ ...layout, mode: l.id });
                           const resultNode = getSubTree({
                             key: "results",
@@ -892,9 +899,15 @@ const ResultsView: ResultsViewComponent = ({
                               className="roamjs-view-select"
                               items={Object.keys(VIEWS)}
                               activeItem={mode}
-                              onItemSelect={(m) =>
-                                onViewChange({ mode: m, column, value }, i)
-                              }
+                              onItemSelect={(m) => {
+                                posthog.capture("query_column_view_changed", {
+                                  pageUid: parentUid,
+                                  oldMode: mode,
+                                  newMode: m,
+                                });
+
+                                onViewChange({ mode: m, column, value }, i);
+                              }}
                             />
                           </td>
                           {showColumnViewOptions && (
@@ -1030,6 +1043,12 @@ const ResultsView: ResultsViewComponent = ({
                     icon={"export"}
                     text={"Share Data"}
                     onClick={async () => {
+                      posthog.capture("query_results_export_clicked", {
+                        parentUid: parentUid,
+                        resultCount: results.length,
+                        columnCount: columns.length,
+                        layout: layoutMode,
+                      });
                       if (!results.length) {
                         onRefresh();
                       }
