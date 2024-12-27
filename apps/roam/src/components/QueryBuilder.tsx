@@ -194,8 +194,6 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
 export const renderQueryBlock = createComponentRender(({ blockUid }) => {
   posthog.capture("query_block_rendered", {
     blockUid,
-    source: "block_render",
-    componentType: "query_builder",
   });
 
   return <QueryBuilder pageUid={blockUid} isEditBlock showAlias />;

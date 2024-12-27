@@ -58,6 +58,7 @@ import {
   DiscourseRelationUtil,
 } from "./DiscourseRelationsUtil";
 import { isPageUid } from "~/utils/isPageUid";
+import posthog from "posthog-js";
 
 declare global {
   interface Window {
@@ -839,6 +840,9 @@ const TldrawCanvas = ({ title }: Props) => {
             tldrawApps[title] = app;
           }
           appRef.current = app;
+          posthog.capture("Canvas-mounted", {
+            title: title,
+          });
           // TODO - this should move to one of DiscourseNodeTool's children classes instead
           app.on("event", (e) => {
             discourseContext.lastAppEvent = e.name;
