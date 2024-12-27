@@ -22,8 +22,6 @@ import refreshConfigTree from "./utils/refreshConfigTree";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import { render } from "./components/DiscourseNodeMenu";
-import { render as discourseOverlayRender } from "./components/DiscourseContextOverlay";
-import { render as previewRender } from "./components/LivePreview";
 import { render as renderReferenceContext } from "./components/ReferenceContext";
 import DiscourseContext from "./components/DiscourseContext";
 import createHTMLObserver from "roamjs-components/dom/createHTMLObserver";
@@ -45,56 +43,11 @@ import { Condition, QBClause } from "./utils/types";
 import styles from "./styles/discourseGraphStyles.css";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "./settings/configPages";
 import { formatHexColor } from "./components/settings/DiscourseNodeCanvasSettings";
-
-export const SETTING = "discourse-graphs";
-
-// TODO POST MIGRATE - move this logic within the toggle
-const pageRefObservers = new Set<(s: HTMLSpanElement) => void>();
-const pageRefObserverRef: { current?: MutationObserver } = {
-  current: undefined,
-};
-const enablePageRefObserver = () =>
-  (pageRefObserverRef.current = createHTMLObserver({
-    useBody: true,
-    tag: "SPAN",
-    className: "rm-page-ref",
-    callback: (s: HTMLSpanElement) => {
-      pageRefObservers.forEach((f) => f(s));
-    },
-  }));
-const disablePageRefObserver = () => {
-  pageRefObserverRef.current?.disconnect();
-  pageRefObserverRef.current = undefined;
-};
-const onPageRefObserverChange =
-  (handler: (s: HTMLSpanElement) => void) => (b: boolean) => {
-    if (b) {
-      if (!pageRefObservers.size) enablePageRefObserver();
-      pageRefObservers.add(handler);
-    } else {
-      pageRefObservers.delete(handler);
-      if (!pageRefObservers.size) disablePageRefObserver();
-    }
-  };
-
-const previewPageRefHandler = (s: HTMLSpanElement) => {
-  const tag =
-    s.getAttribute("data-tag") ||
-    s.parentElement?.getAttribute("data-link-title");
-  if (tag && !s.getAttribute("data-roamjs-discourse-augment-tag")) {
-    s.setAttribute("data-roamjs-discourse-augment-tag", "true");
-    const parent = document.createElement("span");
-    previewRender({
-      parent,
-      tag,
-      registerMouseEvents: ({ open, close }) => {
-        s.addEventListener("mouseenter", (e) => open(e.ctrlKey));
-        s.addEventListener("mouseleave", close);
-      },
-    });
-    s.appendChild(parent);
-  }
-};
+import {
+  onPageRefObserverChange,
+  overlayPageRefHandler,
+  previewPageRefHandler,
+} from "./utils/pageRefObserverHandlers";
 
 export const getPlainTitleFromSpecification = ({
   specification,
@@ -135,32 +88,6 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
     style.remove();
     unloads.delete(removeStyle);
   });
-
-  const overlayPageRefHandler = (s: HTMLSpanElement) => {
-    if (s.parentElement && !s.parentElement.closest(".rm-page-ref")) {
-      const tag =
-        s.getAttribute("data-tag") ||
-        s.parentElement.getAttribute("data-link-title");
-      if (
-        tag &&
-        !s.getAttribute("data-roamjs-discourse-overlay") &&
-        isDiscourseNode(getPageUidByPageTitle(tag))
-      ) {
-        s.setAttribute("data-roamjs-discourse-overlay", "true");
-        const parent = document.createElement("span");
-        discourseOverlayRender({
-          parent,
-          tag: tag.replace(/\\"/g, '"'),
-          onloadArgs: args,
-        });
-        if (s.hasAttribute("data-tag")) {
-          s.appendChild(parent);
-        } else {
-          s.parentElement.appendChild(parent);
-        }
-      }
-    }
-  };
 
   const { pageUid, observer } = await createConfigObserver({
     title: DISCOURSE_CONFIG_PAGE_TITLE,
@@ -228,7 +155,9 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
               disabled: true,
               options: {
                 onChange: (val) => {
-                  onPageRefObserverChange(overlayPageRefHandler)(val);
+                  onPageRefObserverChange((s) =>
+                    overlayPageRefHandler(s, args),
+                  )(val);
                 },
               },
             } as Field<FlagField>,
@@ -473,12 +402,6 @@ const initializeDiscourseGraphsMode = async (args: OnloadArgs) => {
 
     unloads.delete(removeObservers);
   });
-
-  if (isFlagEnabled("preview")) pageRefObservers.add(previewPageRefHandler);
-  // if (isFlagEnabled("grammar.overlay")) {
-  //   pageRefObservers.add(overlayPageRefHandler);
-  // }
-  if (pageRefObservers.size) enablePageRefObserver();
 
   const queryPages = args.extensionAPI.settings.get("query-pages");
   const queryPageArray = Array.isArray(queryPages)
