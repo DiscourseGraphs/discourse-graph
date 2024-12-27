@@ -4,6 +4,7 @@ import { PostHogProvider } from "./providers";
 import Link from "next/link";
 import Image from "next/image";
 import { Inter } from "next/font/google";
+import { getAllBlogs } from "./blog/readBlogs";
 
 export const metadata: Metadata = {
   title: "Discourse Graphs | A Tool for Collaborative Knowledge Synthesis",
@@ -23,11 +24,12 @@ export const metadata: Metadata = {
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const hasUpdates = !!(await getAllBlogs()).length;
   return (
     <html lang="en">
       <body className={`antialiased`}>
@@ -54,20 +56,22 @@ export default function RootLayout({
                     "About",
                     "Resources",
                     "Events",
-                    "Updates",
+                    hasUpdates && "Updates",
                     "Talks",
                     "Supporters",
                     "Contact",
-                  ].map((item) => (
-                    <li key={item}>
-                      <Link
-                        href={`/#${item.toLowerCase()}`} // Ensures absolute path with root `/`
-                        className="text-neutral-dark hover:text-neutral-dark/60"
-                      >
-                        {item}
-                      </Link>
-                    </li>
-                  ))}
+                  ]
+                    .filter((item): item is string => Boolean(item))
+                    .map((item) => (
+                      <li key={item}>
+                        <Link
+                          href={`/#${item.toLowerCase()}`} // Ensures absolute path with root `/`
+                          className="text-neutral-dark hover:text-neutral-dark/60"
+                        >
+                          {item}
+                        </Link>
+                      </li>
+                    ))}
                 </ul>
               </nav>
             </header>

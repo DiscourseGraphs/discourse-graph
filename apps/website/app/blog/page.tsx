@@ -12,27 +12,33 @@ export default async function BlogIndex() {
           </div>
           <div>
             <ul className="space-y-6">
-              {blogs.map((blog) => (
-                <li
-                  key={blog.slug}
-                  className="flex items-start justify-between border-b border-gray-200 pb-4 last:border-b-0"
-                >
-                  <div className="w-4/5">
-                    <Link
-                      href={`/blog/${blog.slug}`}
-                      className="block text-2xl font-semibold text-blue-600 hover:underline"
-                    >
-                      {blog.title}
-                    </Link>
-                    <p className="mt-2 text-sm italic text-gray-500">
-                      {blog.date}
-                    </p>
-                  </div>
-                  <div className="w-1/5 text-right text-gray-600">
-                    by {blog.author}
-                  </div>
-                </li>
-              ))}
+              {blogs.length === 0 ? (
+                <p className="text-left text-lg text-gray-600">
+                  No updates yet! Check back soon. 😊
+                </p>
+              ) : (
+                blogs.map((blog) => (
+                  <li
+                    key={blog.slug}
+                    className="flex items-start justify-between border-b border-gray-200 pb-4 last:border-b-0"
+                  >
+                    <div className="w-4/5">
+                      <Link
+                        href={`/blog/${blog.slug}`}
+                        className="block text-2xl font-semibold text-blue-600 hover:underline"
+                      >
+                        {blog.title}
+                      </Link>
+                      <p className="mt-2 text-sm italic text-gray-500">
+                        {blog.date}
+                      </p>
+                    </div>
+                    <div className="w-1/5 text-right text-gray-600">
+                      by {blog.author}
+                    </div>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
         </div>
