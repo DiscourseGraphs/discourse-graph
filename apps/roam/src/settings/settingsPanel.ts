@@ -1,4 +1,5 @@
 import { OnloadArgs } from "roamjs-components/types";
+import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import { SettingsPanel } from "~/components/settings/Settings";
 
 export const createSettingsPanel = (onloadArgs: OnloadArgs) => {
@@ -14,6 +15,17 @@ export const createSettingsPanel = (onloadArgs: OnloadArgs) => {
           type: "reactComponent",
           component: () => SettingsPanel({ onloadArgs }),
         },
+      },
+      {
+        id: "discourse-node-menu-trigger",
+        name: "Personal Node Menu Trigger",
+        action: {
+          type: "reactComponent",
+          component: () => NodeMenuTriggerComponent(extensionAPI),
+        },
+
+        description:
+          "Override the global trigger for the Discourse Node Menu. Must refresh after editing.",
       },
     ],
   });

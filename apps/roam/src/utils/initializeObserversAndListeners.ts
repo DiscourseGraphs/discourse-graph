@@ -29,7 +29,11 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import { render as renderGraphOverviewExport } from "~/components/ExportDiscourseContext";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import { getSettingValueFromTree } from "roamjs-components/util";
-import { render as renderDiscourseNodeMenu } from "~/components/DiscourseNodeMenu";
+import {
+  getModifiersFromCombo,
+  render as renderDiscourseNodeMenu,
+} from "~/components/DiscourseNodeMenu";
+import { IKeyCombo } from "@blueprintjs/core";
 
 export const initObservers = async ({
   onloadArgs,
@@ -127,23 +131,49 @@ export const initObservers = async ({
   };
 
   const configTree = getBasicTreeByParentUid(configPageUid);
-  const trigger = getSettingValueFromTree({
+  const globalTrigger = getSettingValueFromTree({
     tree: configTree,
     key: "trigger",
     defaultValue: "\\",
   }).trim();
+  const personalTriggerCombo =
+    (onloadArgs.extensionAPI.settings.get(
+      "personal-node-menu-trigger",
+    ) as IKeyCombo) || undefined;
+  const personalTrigger = personalTriggerCombo?.key;
+  const personalModifiers = getModifiersFromCombo(personalTriggerCombo);
+  const handleNodeMenuRender = (target: HTMLElement, evt: KeyboardEvent) => {
+    if (
+      target.tagName === "TEXTAREA" &&
+      target.classList.contains("rm-block-input")
+    ) {
+      renderDiscourseNodeMenu({ textarea: target as HTMLTextAreaElement });
+      evt.preventDefault();
+      evt.stopPropagation();
+    }
+  };
+
   const nodeMenuTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
-    if (evt.key === trigger) {
-      const target = evt.target as HTMLElement;
+    const target = evt.target as HTMLElement;
+
+    // Personal Trigger overrides Global Trigger
+    if (personalTrigger) {
+      if (evt.key !== personalTrigger) return;
       if (
-        target.tagName === "TEXTAREA" &&
-        target.classList.contains("rm-block-input")
+        (personalModifiers.includes("ctrl") && !evt.ctrlKey) ||
+        (personalModifiers.includes("shift") && !evt.shiftKey) ||
+        (personalModifiers.includes("alt") && !evt.altKey) ||
+        (personalModifiers.includes("meta") && !evt.metaKey)
       ) {
-        renderDiscourseNodeMenu({ textarea: target as HTMLTextAreaElement });
-        evt.preventDefault();
-        evt.stopPropagation();
+        return;
       }
+      handleNodeMenuRender(target, evt);
+      return;
+    }
+
+    if (evt.key === globalTrigger) {
+      handleNodeMenuRender(target, evt);
     }
   };
 
