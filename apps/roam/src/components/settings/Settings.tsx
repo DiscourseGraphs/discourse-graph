@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Classes, Dialog, Tabs, Tab, Button, TabId } from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
@@ -69,6 +69,20 @@ export const SettingsDialog = ({
   const [selectedTabId, setSelectedTabId] = useState<TabId>(
     "discourse-graph-home",
   );
+
+  // Secret Dev Panel
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === "D") {
+        e.stopPropagation();
+        e.preventDefault();
+        setSelectedTabId("secret-dev-panel");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, []);
   return (
     <Dialog
       isOpen={isOpen}
@@ -141,6 +155,7 @@ export const SettingsDialog = ({
               panel={<NodeConfig node={n} />}
             />
           ))}
+
           <Tabs.Expander />
 
           <Button
@@ -153,14 +168,20 @@ export const SettingsDialog = ({
           >
             Discourse Graph Config
           </Button>
-
-          {/* TEMP LIVE EMAIL TEST */}
           <Tab
-            id="dev"
-            title="Dev"
+            hidden={true}
+            id="secret-dev-panel"
+            title="Secret Dev Panel"
             className="overflow-y-auto"
             panel={
-              <div>
+              <div className="flex gap-4 p-4">
+                <Button
+                  onClick={() => {
+                    console.log("NODE_ENV:", process.env.NODE_ENV);
+                  }}
+                >
+                  Log Node Env
+                </Button>
                 <Button
                   onClick={() => {
                     console.log("sending error email");
@@ -170,7 +191,7 @@ export const SettingsDialog = ({
                     });
                   }}
                 >
-                  Send Error Email
+                  sendErrorEmail()
                 </Button>
               </div>
             }
