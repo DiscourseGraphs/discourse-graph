@@ -40,10 +40,19 @@ import {
   previewPageRefHandler,
   overlayPageRefHandler,
 } from "./utils/pageRefObserverHandlers";
+import posthog from "posthog-js";
+
+const initPostHog = () => {
+  posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
+    api_host: "https://us.i.posthog.com",
+    person_profiles: "identified_only",
+  });
+};
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
+  initPostHog();
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
       timeout: 10000,
