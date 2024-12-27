@@ -30,7 +30,7 @@ const DiscourseGraphHome = ({
     setCanvasPage(e);
   };
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 p-1">
       <div>
         <FlagPanel
           title="disable sidebar open"

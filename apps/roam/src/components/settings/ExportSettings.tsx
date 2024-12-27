@@ -11,7 +11,7 @@ const DiscourseGraphExport = ({}: {}) => {
   const exportSettings = settings.export;
   const parentUid = settings.export.exportUid;
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 p-1">
       <div>
         <FlagPanel
           title="remove special characters"

@@ -50,7 +50,7 @@ const NodeConfig = ({
           id="main"
           title="Main"
           panel={
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 p-1">
               <TextPanel
                 title="Description"
                 description={`Describing what the ${node.text} node represents in your graph.`}
@@ -87,7 +87,7 @@ const NodeConfig = ({
           id="format"
           title="Format"
           panel={
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 p-1">
               <TextPanel
                 title="Format"
                 description={`DEPRACATED - Use specification instead. The format ${node.text} pages should have.`}
@@ -112,7 +112,7 @@ const NodeConfig = ({
           id="template"
           title="Template"
           panel={
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 p-1">
               <BlocksPanel
                 title="Template"
                 description={`The template that auto fills ${node.text} page when generated.`}
@@ -128,7 +128,7 @@ const NodeConfig = ({
           id="attributes"
           title="Attributes"
           panel={
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 p-1">
               <DiscourseNodeAttributes uid={attributeNode.uid} />
               <SelectPanel
                 title="Overlay"
@@ -147,8 +147,7 @@ const NodeConfig = ({
           id="canvas"
           title="Canvas"
           panel={
-            <div className="flex flex-col gap-4">
-              {" "}
+            <div className="flex flex-col gap-4 p-1">
               <DiscourseNodeCanvasSettings uid={canvasUid} />
               <FlagPanel
                 title="Graph Overview"
