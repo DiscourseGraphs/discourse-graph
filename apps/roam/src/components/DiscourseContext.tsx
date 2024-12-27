@@ -21,6 +21,12 @@ import { Result } from "roamjs-components/types/query-builder";
 import nanoId from "nanoid";
 import getDiscourseContextResults from "../utils/getDiscourseContextResults";
 import ResultsView from "./ResultsView/ResultsView";
+import { getPageTitleValueByHtmlElement } from "roamjs-components/dom";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
+import isDiscourseNode from "~/utils/isDiscourseNode";
+import CanvasReferences from "./canvas/CanvasReferences";
+import { OnloadArgs } from "roamjs-components/types/native";
 
 export type DiscourseContextResults = Awaited<
   ReturnType<typeof getDiscourseContextResults>
@@ -455,6 +461,49 @@ const useDebounce = <T,>(value: T, delay: number): T => {
   }, [value, delay]);
 
   return debouncedValue;
+};
+
+export const observerCallback = async (
+  div: HTMLDivElement,
+  args: OnloadArgs,
+) => {
+  const isMainWindow = !!div.closest(".roam-article");
+  const uid = isMainWindow
+    ? await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid()
+    : getPageUidByPageTitle(getPageTitleValueByHtmlElement(div));
+  if (
+    uid &&
+    isDiscourseNode(uid) &&
+    !div.getAttribute("data-roamjs-discourse-context")
+  ) {
+    div.setAttribute("data-roamjs-discourse-context", "true");
+    const parent = div.firstElementChild;
+    if (parent) {
+      const insertBefore = parent.firstElementChild;
+
+      const p = document.createElement("div");
+      parent.insertBefore(p, insertBefore);
+      renderWithUnmount(
+        React.createElement(DiscourseContext, {
+          uid,
+          results: [],
+          args,
+        }),
+        p,
+        args,
+      );
+
+      const canvasP = document.createElement("div");
+      parent.insertBefore(canvasP, insertBefore);
+      renderWithUnmount(
+        React.createElement(CanvasReferences, {
+          uid,
+        }),
+        canvasP,
+        args,
+      );
+    }
+  }
 };
 
 export default DiscourseContext;

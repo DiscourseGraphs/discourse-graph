@@ -14,6 +14,9 @@ import updateBlock from "roamjs-components/writes/updateBlock";
 import parseQuery from "./parseQuery";
 import toCellValue from "./toCellValue";
 import createBlock from "roamjs-components/writes/createBlock";
+import deriveNodeAttribute from "./deriveDiscourseNodeAttribute";
+import matchDiscourseNode from "./matchDiscourseNode";
+import getDiscourseNodes from "./getDiscourseNodes";
 
 const ALIAS_TEST = /^node$/i;
 const REGEX_TEST = /\/([^}]*)\//;
@@ -512,6 +515,31 @@ const predefinedSelections: PredefinedSelection[] = [
         ],
       },
     ],
+  },
+  {
+    test: /^discourse:(.*)$/,
+    pull: ({ returnNode }) => `(pull ?${returnNode} [:block/uid])`,
+    mapper: (r, key) => {
+      const attribute = key.substring("discourse:".length);
+      const uid = r[":block/uid"] || "";
+      return deriveNodeAttribute({ uid, attribute });
+    },
+  },
+  {
+    test: /^\s*type\s*$/i,
+    pull: ({ returnNode }) =>
+      `(pull ?${returnNode} [:node/title :block/string])`,
+    mapper: (r) => {
+      const title = r[":node/title"] || "";
+      return (
+        getDiscourseNodes().find((n) =>
+          matchDiscourseNode({
+            ...n,
+            title,
+          }),
+        )?.text || (r[":block/string"] ? "block" : "page")
+      );
+    },
   },
   {
     test: /.*/,

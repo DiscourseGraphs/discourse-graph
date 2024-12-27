@@ -7,7 +7,8 @@ import registerSmartBlocksCommand from "roamjs-components/util/registerSmartBloc
 import resolveQueryBuilderRef from "./resolveQueryBuilderRef";
 import runQuery from "./runQuery";
 
-export const registerSmartBlock = (extensionAPI: OnloadArgs["extensionAPI"]) =>
+export const registerSmartBlock = (onloadArgs: OnloadArgs) => {
+  const { extensionAPI } = onloadArgs;
   registerSmartBlocksCommand({
     text: "QUERYBUILDER",
     delayArgs: true,
@@ -87,3 +88,4 @@ export const registerSmartBlock = (extensionAPI: OnloadArgs["extensionAPI"]) =>
         });
       },
   });
+};
