@@ -10,8 +10,15 @@ import { Label, Tabs, Tab, TabId } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
+import { OnloadArgs } from "roamjs-components/types";
 
-const NodeConfig = ({ node }: { node: DiscourseNode }) => {
+const NodeConfig = ({
+  node,
+  onloadArgs,
+}: {
+  node: DiscourseNode;
+  onloadArgs: OnloadArgs;
+}) => {
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,

@@ -134,7 +134,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     );
   };
 
-  const renderSettingsPopup = () => renderSettings({ extensionAPI });
+  const renderSettingsPopup = () => renderSettings({ onloadArgs });
 
   const addCommand = (label: string, callback: () => void) => {
     return extensionAPI.ui.commandPalette.addCommand({
