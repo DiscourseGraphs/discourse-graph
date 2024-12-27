@@ -100,6 +100,7 @@ export const initObservers = async ({
   });
 
   if (isFlagEnabled("preview")) addPageRefObserver(previewPageRefHandler);
+  // TODO: grammar overlay being refactored
   // if (isFlagEnabled("grammar.overlay")) {
   //   addPageRefObserver((s) => overlayPageRefHandler(s, onloadArgs));
   // }
