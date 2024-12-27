@@ -14,6 +14,7 @@ import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import getDiscourseNodes from "../utils/getDiscourseNodes";
 import createDiscourseNode from "../utils/createDiscourseNode";
 import { getNewDiscourseNodeText } from "../utils/formatUtils";
+import posthog from "posthog-js";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -55,6 +56,11 @@ const NodeMenu = ({ onClose, textarea }: { onClose: () => void } & Props) => {
         )}[[${pageName}]]${currentBlockText.substring(textarea.selectionEnd)}`;
 
         updateBlock({ text: newText, uid: blockUid });
+        posthog.capture("new_discourse_node_type_created", {
+          nodeType: nodeUid,
+          text: pageName,
+        });
+
         createDiscourseNode({
           text: pageName,
           configPageUid: nodeUid,

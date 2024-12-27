@@ -21,6 +21,7 @@ import { Result } from "roamjs-components/types/query-builder";
 import nanoId from "nanoid";
 import getDiscourseContextResults from "../utils/getDiscourseContextResults";
 import ResultsView from "./ResultsView/ResultsView";
+import posthog from "posthog-js";
 
 export type DiscourseContextResults = Awaited<
   ReturnType<typeof getDiscourseContextResults>
@@ -338,6 +339,9 @@ export const ContextContent = ({ uid, results }: Props) => {
             },
           },
         }));
+        posthog.capture("show_discourse_context_result", {
+          uid: uid,
+        });
       },
     }).finally(() => setLoading(false));
   }, [uid, setRawQueryResults, setLoading]);
