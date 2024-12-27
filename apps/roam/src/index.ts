@@ -30,9 +30,21 @@ import { isQueryPage } from "./utils/isQueryPage";
 import { listActiveQueries } from "./utils/listActiveQueries";
 import { registerSmartBlock } from "./utils/registerSmartBlock";
 
+import { QueryBuilderLoadedToast } from "./components/toastMessages";
+
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
+  if (window?.roamjs?.loaded?.has("query-builder")) {
+    renderToast({
+      timeout: 10000,
+      id: "query-builder-loaded",
+      content: QueryBuilderLoadedToast(),
+      intent: "danger",
+    });
+    return;
+  }
+
   if (process.env.NODE_ENV === "development") {
     renderToast({
       id: "discourse-graph-loaded",
