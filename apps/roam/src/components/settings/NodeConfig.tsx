@@ -10,6 +10,7 @@ import { Label, Tabs, Tab, TabId } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
+import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
 
 const NodeConfig = ({
@@ -65,6 +66,19 @@ const NodeConfig = ({
                 parentUid={node.type}
                 uid={shortcutUid}
                 defaultValue={node.shortcut}
+              />
+            </div>
+          }
+        />
+        <Tab
+          id="index"
+          title="Index"
+          panel={
+            <div className="flex flex-col gap-4 p-1">
+              <DiscourseNodeIndex
+                node={node}
+                parentUid={node.type}
+                onloadArgs={onloadArgs}
               />
             </div>
           }
