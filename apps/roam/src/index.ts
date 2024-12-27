@@ -132,7 +132,7 @@ export default runExtension(async (onloadArgs) => {
 
   // Command Palette and Roam Settings
   registerCommandPaletteCommands(onloadArgs);
-  createSettingsPanel(extensionAPI);
+  createSettingsPanel(onloadArgs);
 
   return {
     elements: [style, settingsStyle],

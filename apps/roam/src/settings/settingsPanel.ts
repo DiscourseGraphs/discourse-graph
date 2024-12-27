@@ -1,9 +1,8 @@
 import { OnloadArgs } from "roamjs-components/types";
 import { SettingsPanel } from "~/components/settings/Settings";
 
-export const createSettingsPanel = (
-  extensionAPI: OnloadArgs["extensionAPI"],
-) => {
+export const createSettingsPanel = (onloadArgs: OnloadArgs) => {
+  const { extensionAPI } = onloadArgs;
   extensionAPI.settings.panel.create({
     tabTitle: "Discourse Graphs",
     settings: [
@@ -13,7 +12,7 @@ export const createSettingsPanel = (
         description: "",
         action: {
           type: "reactComponent",
-          component: () => SettingsPanel({ extensionAPI }),
+          component: () => SettingsPanel({ onloadArgs }),
         },
       },
     ],
