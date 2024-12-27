@@ -463,47 +463,4 @@ const useDebounce = <T,>(value: T, delay: number): T => {
   return debouncedValue;
 };
 
-export const observerCallback = async (
-  div: HTMLDivElement,
-  args: OnloadArgs,
-) => {
-  const isMainWindow = !!div.closest(".roam-article");
-  const uid = isMainWindow
-    ? await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid()
-    : getPageUidByPageTitle(getPageTitleValueByHtmlElement(div));
-  if (
-    uid &&
-    isDiscourseNode(uid) &&
-    !div.getAttribute("data-roamjs-discourse-context")
-  ) {
-    div.setAttribute("data-roamjs-discourse-context", "true");
-    const parent = div.firstElementChild;
-    if (parent) {
-      const insertBefore = parent.firstElementChild;
-
-      const p = document.createElement("div");
-      parent.insertBefore(p, insertBefore);
-      renderWithUnmount(
-        React.createElement(DiscourseContext, {
-          uid,
-          results: [],
-          args,
-        }),
-        p,
-        args,
-      );
-
-      const canvasP = document.createElement("div");
-      parent.insertBefore(canvasP, insertBefore);
-      renderWithUnmount(
-        React.createElement(CanvasReferences, {
-          uid,
-        }),
-        canvasP,
-        args,
-      );
-    }
-  }
-};
-
 export default DiscourseContext;
