@@ -15,7 +15,7 @@ const QuerySettings = ({
 }) => {
   const { globalPageSize } = getSettings(extensionAPI);
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 p-1">
       <Checkbox
         defaultChecked={extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean}
         onChange={(e) => {

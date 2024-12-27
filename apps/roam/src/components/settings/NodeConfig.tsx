@@ -10,8 +10,16 @@ import { Label, Tabs, Tab, TabId } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
+import DiscourseNodeIndex from "./DiscourseNodeIndex";
+import { OnloadArgs } from "roamjs-components/types";
 
-const NodeConfig = ({ node }: { node: DiscourseNode }) => {
+const NodeConfig = ({
+  node,
+  onloadArgs,
+}: {
+  node: DiscourseNode;
+  onloadArgs: OnloadArgs;
+}) => {
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,
@@ -42,7 +50,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           id="main"
           title="Main"
           panel={
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 p-1">
               <TextPanel
                 title="Description"
                 description={`Describing what the ${node.text} node represents in your graph.`}
@@ -63,10 +71,23 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           }
         />
         <Tab
+          id="index"
+          title="Index"
+          panel={
+            <div className="flex flex-col gap-4 p-1">
+              <DiscourseNodeIndex
+                node={node}
+                parentUid={node.type}
+                onloadArgs={onloadArgs}
+              />
+            </div>
+          }
+        />
+        <Tab
           id="format"
           title="Format"
           panel={
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 p-1">
               <TextPanel
                 title="Format"
                 description={`DEPRACATED - Use specification instead. The format ${node.text} pages should have.`}
@@ -91,7 +112,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           id="template"
           title="Template"
           panel={
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 p-1">
               <BlocksPanel
                 title="Template"
                 description={`The template that auto fills ${node.text} page when generated.`}
@@ -107,7 +128,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           id="attributes"
           title="Attributes"
           panel={
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 p-1">
               <DiscourseNodeAttributes uid={attributeNode.uid} />
               <SelectPanel
                 title="Overlay"
@@ -126,8 +147,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           id="canvas"
           title="Canvas"
           panel={
-            <div className="flex flex-col gap-4">
-              {" "}
+            <div className="flex flex-col gap-4 p-1">
               <DiscourseNodeCanvasSettings uid={canvasUid} />
               <FlagPanel
                 title="Graph Overview"

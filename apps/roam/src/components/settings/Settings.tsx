@@ -35,17 +35,13 @@ const openPage = (title: string) => {
   });
 };
 
-export const SettingsPanel = ({
-  extensionAPI,
-}: {
-  extensionAPI: OnloadArgs["extensionAPI"];
-}) => {
+export const SettingsPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   return (
     <div className="m-4">
       <Button
         onClick={() => {
           render({
-            extensionAPI,
+            onloadArgs,
           });
         }}
       >
@@ -56,14 +52,15 @@ export const SettingsPanel = ({
 };
 
 export const SettingsDialog = ({
-  extensionAPI,
+  onloadArgs,
   isOpen,
   onClose,
 }: {
-  extensionAPI: OnloadArgs["extensionAPI"];
+  onloadArgs: OnloadArgs;
   isOpen?: boolean;
   onClose?: () => void;
 }) => {
+  const extensionAPI = onloadArgs.extensionAPI;
   const settings = getFormattedConfigTree();
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   const [selectedTabId, setSelectedTabId] = useState<TabId>(
@@ -152,7 +149,7 @@ export const SettingsDialog = ({
               id={n.type}
               title={n.text}
               className="overflow-y-auto"
-              panel={<NodeConfig node={n} />}
+              panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
             />
           ))}
 
@@ -210,12 +207,12 @@ export const SettingsDialog = ({
 };
 
 type Props = {
-  extensionAPI: OnloadArgs["extensionAPI"];
+  onloadArgs: OnloadArgs;
 };
 export const render = (props: Props) =>
   renderOverlay({
     Overlay: SettingsDialog,
     props: {
-      extensionAPI: props.extensionAPI,
+      onloadArgs: props.onloadArgs,
     },
   });
