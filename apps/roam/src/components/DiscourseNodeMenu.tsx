@@ -1,4 +1,13 @@
-import { Menu, MenuItem, Popover, Position } from "@blueprintjs/core";
+import {
+  Menu,
+  MenuItem,
+  Popover,
+  Position,
+  Button,
+  InputGroup,
+  getKeyCombo,
+  IKeyCombo,
+} from "@blueprintjs/core";
 import React, {
   useCallback,
   useEffect,
@@ -14,6 +23,8 @@ import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import getDiscourseNodes from "../utils/getDiscourseNodes";
 import createDiscourseNode from "../utils/createDiscourseNode";
 import { getNewDiscourseNodeText } from "../utils/formatUtils";
+import { OnloadArgs } from "roamjs-components/types";
+import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -118,14 +129,28 @@ const NodeMenu = ({ onClose, textarea }: { onClose: () => void } & Props) => {
       content={
         <Menu ulRef={menuRef} data-active-index={activeIndex}>
           {discourseNodes.map((item, i) => {
+            const nodeColor =
+              formatHexColor(item?.canvasSettings?.color) || "#000";
             return (
               <MenuItem
                 key={item.text}
                 data-node={item.type}
-                text={`${item.text} - (${item.shortcut})`}
+                text={item.text}
                 active={i === activeIndex}
                 onMouseEnter={() => setActiveIndex(i)}
                 onClick={() => onSelect(i)}
+                className="flex items-center"
+                icon={
+                  <div
+                    className="mr-2 h-4 w-4 select-none rounded-full"
+                    style={{
+                      backgroundColor: nodeColor,
+                    }}
+                  />
+                }
+                labelElement={
+                  <span className="font-mono">{item.shortcut}</span>
+                }
               />
             );
           })}
