@@ -36,7 +36,7 @@ const refreshConfigTree = () => {
       ];
     }),
   );
-  return registerDiscourseDatalogTranslators();
+  registerDiscourseDatalogTranslators();
 };
 
 export default refreshConfigTree;

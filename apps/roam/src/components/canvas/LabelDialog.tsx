@@ -17,7 +17,7 @@ import { RoamOverlayProps } from "roamjs-components/util/renderOverlay";
 import { Result } from "~/utils/types";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import { DiscourseContextType } from "./Tldraw";
-import { getPlainTitleFromSpecification } from "../../discourseGraphsMode";
+import { getPlainTitleFromSpecification } from "~/utils/getPlainTitleFromSpecification";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";

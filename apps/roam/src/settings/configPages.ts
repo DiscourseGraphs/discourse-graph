@@ -4,6 +4,8 @@ import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
+import MultiTextPanel from "roamjs-components/components/ConfigPanels/MultiTextPanel";
+import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
 import {
   Field,
   CustomField,
@@ -23,6 +25,15 @@ import {
 } from "~/components";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { render as configPageRender } from "roamjs-components/components/ConfigPage";
+import DiscourseNodeConfigPanel from "~/components/settings/DiscourseNodeConfigPanel";
+import DiscourseRelationConfigPanel from "~/components/settings/DiscourseRelationConfigPanel";
+import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
+import {
+  onPageRefObserverChange,
+  previewPageRefHandler,
+  overlayPageRefHandler,
+} from "~/utils/pageRefObserverHandlers";
+import { ConfigTab } from "roamjs-components/components/ConfigPage";
 
 export const DISCOURSE_CONFIG_PAGE_TITLE = "roam/js/discourse-graph";
 export const NODE_CONFIG_PAGE_TITLE = "discourse-graph/nodes/";
@@ -145,3 +156,136 @@ export const renderNodeConfigPage = ({
     renderNode();
   }
 };
+
+export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
+  {
+    id: "home",
+    fields: [
+      {
+        title: "trigger",
+        description:
+          "The trigger to create the node menu. Must refresh after editing",
+        defaultValue: "\\",
+        // @ts-ignore
+        Panel: TextPanel,
+      },
+      // @ts-ignore
+      {
+        title: "disable sidebar open",
+        description: "Disable opening new nodes in the sidebar when created",
+        Panel: FlagPanel,
+      } as Field<FlagField>,
+      // @ts-ignore
+      {
+        title: "preview",
+        description:
+          "Whether or not to display page previews when hovering over page refs",
+        Panel: FlagPanel,
+        options: {
+          onChange: onPageRefObserverChange(previewPageRefHandler),
+        },
+      } as Field<FlagField>,
+    ],
+  },
+  {
+    id: "grammar",
+    fields: [
+      // @ts-ignore
+      {
+        title: "nodes",
+        Panel: CustomPanel,
+        description: "The types of nodes in your discourse graph",
+        options: {
+          component: DiscourseNodeConfigPanel,
+        },
+      } as Field<CustomField>,
+      // @ts-ignore
+      {
+        title: "relations",
+        Panel: CustomPanel,
+        description: "The types of relations in your discourse graph",
+        defaultValue: DEFAULT_RELATION_VALUES,
+        options: {
+          component: DiscourseRelationConfigPanel,
+        },
+      } as Field<CustomField>,
+      // @ts-ignore
+      {
+        title: "overlay",
+        Panel: FlagPanel,
+        // description:
+        //   "Whether to overlay discourse context information over node references",
+        description: "Currently disabled. Being reworked.",
+        disabled: true,
+        options: {
+          onChange: (val) => {
+            onPageRefObserverChange((s) => overlayPageRefHandler(s, args))(val);
+          },
+        },
+      } as Field<FlagField>,
+    ],
+  },
+  {
+    id: "export",
+    fields: [
+      {
+        title: "max filename length",
+        // @ts-ignore
+        Panel: NumberPanel,
+        description: "Set the maximum name length for markdown file exports",
+        defaultValue: 64,
+      },
+      {
+        title: "remove special characters",
+        // @ts-ignore
+        Panel: FlagPanel,
+        description:
+          "Whether or not to remove the special characters in a file name",
+      },
+      {
+        title: "simplified filename",
+        // @ts-ignore
+        Panel: FlagPanel,
+        description:
+          "For discourse nodes, extract out the {content} from the page name to become the file name",
+      },
+      {
+        title: "frontmatter",
+        // @ts-ignore
+        Panel: MultiTextPanel,
+        description:
+          "Specify all the lines that should go to the Frontmatter of the markdown file",
+      },
+      {
+        title: "resolve block references",
+        // @ts-ignore
+        Panel: FlagPanel,
+        description:
+          "Replaces block references in the markdown content with the block's content",
+      },
+      {
+        title: "resolve block embeds",
+        // @ts-ignore
+        Panel: FlagPanel,
+        description:
+          "Replaces block embeds in the markdown content with the block's content tree",
+      },
+      // @ts-ignore
+      {
+        title: "link type",
+        Panel: SelectPanel,
+        description: "How to format links that appear in your export.",
+        options: {
+          items: ["alias", "wikilinks", "roam url"],
+        },
+      } as Field<SelectField>,
+      {
+        title: "append referenced node",
+        // @ts-ignore
+        Panel: FlagPanel,
+        description:
+          "If a referenced node is defined in a node's format, it will be appended to the discourse context",
+      },
+    ],
+  },
+];
