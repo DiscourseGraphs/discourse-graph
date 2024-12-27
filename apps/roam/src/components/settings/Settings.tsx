@@ -14,6 +14,7 @@ import getDiscourseNodes, {
   excludeDefaultNodes,
 } from "~/utils/getDiscourseNodes";
 import NodeConfig from "./NodeConfig";
+import sendErrorEmail from "~/utils/sendErrorEmail";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -152,6 +153,28 @@ export const SettingsDialog = ({
           >
             Discourse Graph Config
           </Button>
+
+          {/* TEMP LIVE EMAIL TEST */}
+          <Tab
+            id="dev"
+            title="Dev"
+            className="overflow-y-auto"
+            panel={
+              <div>
+                <Button
+                  onClick={() => {
+                    console.log("sending error email");
+                    sendErrorEmail({
+                      error: new Error("test"),
+                      type: "Test",
+                    });
+                  }}
+                >
+                  Send Error Email
+                </Button>
+              </div>
+            }
+          />
         </Tabs>
       </div>
       {/* <Button
