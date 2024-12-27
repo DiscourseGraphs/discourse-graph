@@ -13,3 +13,16 @@ export const isCanvasPage = ({
   const canvasRegex = new RegExp(`^${format}$`.replace(/\*/g, ".+"));
   return canvasRegex.test(title);
 };
+
+export const isCurrentPageCanvas = ({
+  title,
+  h1,
+  onloadArgs,
+}: {
+  title: string;
+  h1: HTMLHeadingElement;
+  onloadArgs: OnloadArgs;
+}) => {
+  const { extensionAPI } = onloadArgs;
+  return isCanvasPage({ title, extensionAPI }) && !!h1.closest(".roam-article");
+};

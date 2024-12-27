@@ -11,6 +11,7 @@ import { runExtension } from "roamjs-components/util";
 
 import { renderTldrawCanvas } from "./components/canvas/Tldraw";
 import { renderQueryPage, renderQueryBlock } from "./components/QueryBuilder";
+import { QueryBuilderLoadedToast } from "./components/toastMessages";
 
 import runQuery from "./utils/runQuery";
 import isDiscourseNode from "./utils/isDiscourseNode";
@@ -25,12 +26,20 @@ import { registerCommandPaletteCommands } from "./settings/commandPalette";
 import { createSettingsPanel } from "./settings/settingsPanel";
 
 import { renderNodeConfigPage } from "./settings/configPages";
-import { isCanvasPage as checkIfCanvasPage } from "./utils/isCanvasPage";
+import { isCurrentPageCanvas as isCanvasPage } from "./utils/isCanvasPage";
+import { isDiscourseNodeConfigPage as isNodeConfigPage } from "./utils/isDiscourseNodeConfigPage";
 import { isQueryPage } from "./utils/isQueryPage";
 import { listActiveQueries } from "./utils/listActiveQueries";
 import { registerSmartBlock } from "./utils/registerSmartBlock";
+import isFlagEnabled from "./utils/isFlagEnabled";
 
-import { QueryBuilderLoadedToast } from "./components/toastMessages";
+import {
+  enablePageRefObserver,
+  addPageRefObserver,
+  getPageRefObserversSize,
+  previewPageRefHandler,
+  overlayPageRefHandler,
+} from "./utils/pageRefObserverHandlers";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -61,17 +70,6 @@ export default runExtension(async (onloadArgs) => {
     await initializeDiscourseGraphsMode(onloadArgs);
 
   // Observers and Listeners
-  const isDiscourseNodePage = (title: string) =>
-    title.startsWith("discourse-graph/nodes/");
-  const isCanvasPage = ({
-    title,
-    h1,
-  }: {
-    title: string;
-    h1: HTMLHeadingElement;
-  }) =>
-    checkIfCanvasPage({ title, extensionAPI }) && !!h1.closest(".roam-article");
-
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
@@ -80,7 +78,7 @@ export default runExtension(async (onloadArgs) => {
       const title = getPageTitleValueByHtmlElement(h1);
       const props = { title, h1, onloadArgs };
 
-      if (isDiscourseNodePage(title)) renderNodeConfigPage(props);
+      if (isNodeConfigPage(title)) renderNodeConfigPage(props);
       else if (isQueryPage(props)) renderQueryPage(props);
       else if (isCanvasPage(props)) renderTldrawCanvas(props);
     },
@@ -113,7 +111,11 @@ export default runExtension(async (onloadArgs) => {
   }) as EventListener;
   document.addEventListener("roamjs:query-builder:action", pageActionListener);
 
-  registerSmartBlock(extensionAPI);
+  if (isFlagEnabled("preview")) addPageRefObserver(previewPageRefHandler);
+  if (isFlagEnabled("grammar.overlay")) {
+    addPageRefObserver((s) => overlayPageRefHandler(s, onloadArgs));
+  }
+  if (!!getPageRefObserversSize()) enablePageRefObserver();
 
   // Window
   // @ts-ignore
@@ -130,9 +132,9 @@ export default runExtension(async (onloadArgs) => {
     isDiscourseNode: isDiscourseNode,
   };
 
-  // Command Palette and Roam Settings
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
+  registerSmartBlock(extensionAPI);
 
   return {
     elements: [style, settingsStyle],
