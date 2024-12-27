@@ -344,9 +344,6 @@ export default async function Home() {
                 Resources
               </CardTitle>
             </CardHeader>
-
-            {/* <h2 ></h2> */}
-
             <CardContent>
               <ul className="list-inside list-disc space-y-2">
                 <li className="text-neutral-dark">
@@ -423,58 +420,51 @@ export default async function Home() {
             </CardContent>
           </Card>
           {/* Blog Section */}
-          <Card id="updates" className="rounded-xl bg-white/50 p-8 shadow-md">
-            <CardHeader>
-              <CardTitle className="mb-8 text-4xl font-bold text-primary">
-                Latest Updates
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {blogs.length > 0 ? (
-                  <>
-                    <ul className="space-y-6">
-                      {blogs.map((blog) => (
-                        <li
-                          key={blog.slug}
-                          className="flex items-start justify-between border-b border-gray-200 pb-4 last:border-b-0"
-                        >
-                          <div className="w-4/5">
-                            <Link
-                              href={`/blog/${blog.slug}`}
-                              className="block text-2xl font-semibold text-blue-600 hover:underline"
-                            >
-                              {blog.title}
-                            </Link>
-                            <p className="mt-2 text-sm italic text-gray-500">
-                              {blog.date}
-                            </p>
-                          </div>
-                          <div className="w-1/5 text-right text-gray-600">
-                            by {blog.author}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <div className="mt-6 text-center">
-                      <Link
-                        href="/blog"
-                        className="inline-block rounded-md bg-primary px-4 py-2 text-lg font-semibold text-white transition hover:text-white"
+          {blogs.length > 0 && (
+            <Card id="updates" className="rounded-xl bg-white/50 p-8 shadow-md">
+              <CardHeader>
+                <CardTitle className="mb-8 text-4xl font-bold text-primary">
+                  Latest Updates
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <ul className="space-y-6">
+                    {blogs.map((blog) => (
+                      <li
+                        key={blog.slug}
+                        className="flex items-start justify-between border-b border-gray-200 pb-4 last:border-b-0"
                       >
-                        See All Updates →
-                      </Link>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-left text-lg text-gray-600">
-                    No updates yet! Check back soon. 😊
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                        <div className="w-4/5">
+                          <Link
+                            href={`/blog/${blog.slug}`}
+                            className="block text-2xl font-semibold text-blue-600 hover:underline"
+                          >
+                            {blog.title}
+                          </Link>
+                          <p className="mt-2 text-sm italic text-gray-500">
+                            {blog.date}
+                          </p>
+                        </div>
+                        <div className="w-1/5 text-right text-gray-600">
+                          by {blog.author}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
 
+                  <div className="mt-6 text-center">
+                    <Link
+                      href="/blog"
+                      className="inline-block rounded-md bg-primary px-4 py-2 text-lg font-semibold text-white transition hover:text-white"
+                    >
+                      See All Updates →
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {/* Talks */}
           <Card id="talks" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
