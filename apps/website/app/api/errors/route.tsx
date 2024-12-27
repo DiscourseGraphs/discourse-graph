@@ -11,11 +11,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   try {
-    // Add CORS headers
     const origin = request.headers.get("origin");
     const isAllowedOrigin = origin && allowedOrigins.includes(origin);
 
-    // Handle the request
     const body = await request.json();
     const {
       errorMessage,
@@ -49,10 +47,8 @@ export async function POST(request: Request) {
       return Response.json({ error: resendError }, { status: 500 });
     }
 
-    // Create response with data and add CORS headers
     const response = NextResponse.json({ success: true, data });
 
-    // Set CORS headers
     if (isAllowedOrigin) {
       response.headers.set("Access-Control-Allow-Origin", origin);
       response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -68,7 +64,6 @@ export async function POST(request: Request) {
   }
 }
 
-// Add OPTIONS handler for preflight requests
 export async function OPTIONS(request: Request) {
   const origin = request.headers.get("origin");
 
