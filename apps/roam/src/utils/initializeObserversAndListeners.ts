@@ -53,8 +53,7 @@ export const initObservers = async ({
     },
   });
 
-  // TODO: sidebar references don't work
-  // TODO: contains roam query
+  // TODO: contains roam query: https://github.com/DiscourseGraphs/discourse-graph/issues/39
   const linkedReferencesObserver = createHTMLObserver({
     tag: "DIV",
     useBody: true,
