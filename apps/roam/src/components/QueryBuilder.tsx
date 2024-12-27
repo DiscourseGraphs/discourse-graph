@@ -23,6 +23,7 @@ import ExtensionApiContextProvider, {
 } from "roamjs-components/components/ExtensionApiContext";
 import { Column } from "../utils/types";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import posthog from "posthog-js";
 
 type QueryPageComponent = (props: {
   pageUid: string;
@@ -190,11 +191,17 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
     </Card>
   );
 };
+export const renderQueryBlock = createComponentRender(({ blockUid }) => {
+  // Add PostHog capture here
+  console.log("renderQueryBlock", blockUid);
+  posthog.capture("query_block_rendered", {
+    blockUid,
+    source: "block_render",
+    componentType: "query_builder",
+  });
 
-export const renderQueryBlock = createComponentRender(
-  ({ blockUid }) => <QueryBuilder pageUid={blockUid} isEditBlock showAlias />,
-  "roamjs-query-builder-parent",
-);
+  return <QueryBuilder pageUid={blockUid} isEditBlock showAlias />;
+}, "roamjs-query-builder-parent");
 
 export const renderQueryPage = ({
   title,
