@@ -47,7 +47,13 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-  const { extensionAPI } = onloadArgs;
+  initializeDiscourseNodes();
+  refreshConfigTree();
+  addGraphViewNodeStyling();
+  registerCommandPaletteCommands(onloadArgs);
+  createSettingsPanel(onloadArgs);
+  registerSmartBlock(onloadArgs);
+  setQueryPages(onloadArgs);
 
   const style = addStyle(styles);
   const dgraphStyles = addStyle(discourseGraphStyles);
@@ -60,6 +66,7 @@ export default runExtension(async (onloadArgs) => {
   window.addEventListener("hashchange", hashChangeListener);
   document.addEventListener("keydown", nodeMenuTriggerListener);
 
+  const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>
       runQuery({ parentUid, extensionAPI }).then(
@@ -72,14 +79,6 @@ export default runExtension(async (onloadArgs) => {
     listActiveQueries: () => listActiveQueries(extensionAPI),
     isDiscourseNode: isDiscourseNode,
   };
-
-  initializeDiscourseNodes();
-  refreshConfigTree();
-  addGraphViewNodeStyling();
-  registerCommandPaletteCommands(onloadArgs);
-  createSettingsPanel(onloadArgs);
-  registerSmartBlock(onloadArgs);
-  setQueryPages(onloadArgs);
 
   return {
     elements: [style, settingsStyle, dgraphStyles],
