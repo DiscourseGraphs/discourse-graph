@@ -23,9 +23,17 @@ export const createSettingsPanel = (onloadArgs: OnloadArgs) => {
           type: "reactComponent",
           component: () => NodeMenuTriggerComponent(extensionAPI),
         },
-
         description:
           "Override the global trigger for the Discourse Node Menu. Must refresh after editing.",
+      },
+      {
+        id: "async-q",
+        name: "Use Backend Query (Beta)",
+        description:
+          "This will use Roam's Backend Query. It helps prevent the UI from freezing during large queries but is still in beta and may occasionally produce inaccurate results.",
+        action: {
+          type: "switch",
+        },
       },
     ],
   });
