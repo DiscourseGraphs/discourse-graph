@@ -8,21 +8,8 @@ For more information about Discourse Graphs, check out our website at [https://d
 
 **WIP** as we transition from the Query Builder plugin to the new Discourse Graphs extension.
 
-- [Query Builder](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#roamjs-query-builder)
-  - [Query Blocks](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#query-blocks)
-  - [Query Pages](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#query-pages)
-  - [Query Drawer](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#query-drawer)
-  - [Usage](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#usage)
-  - [Conditions](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#conditions)
-  - [Selections](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#selections)
-  - [Manipulating Results](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#manipulating-results)
-  - [Layouts](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#layouts)
-  - [Exporting](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#exporting)
-  - [Styling](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#styling)
-  - [SmartBlocks Integration](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#smartblocks-integration)
-  - [Developer API](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#developer-api)
-  - [Examples](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md#examples)
-- [Discourse Graphs](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/discourse-graphs.md)
+- [Discourse Graphs](https://oasis-lab.gitbook.io/roamresearch-discourse-graph-extension) documentation
+- [Query Builder](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md) documentation
 
 ## Nomenclature
 
