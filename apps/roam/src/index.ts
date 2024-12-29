@@ -3,7 +3,7 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 
 import { runExtension } from "roamjs-components/util";
 
-import { QueryBuilderLoadedToast } from "./components/toastMessages";
+import { queryBuilderLoadedToast } from "./data/toastMessages";
 
 import runQuery from "./utils/runQuery";
 import isDiscourseNode from "./utils/isDiscourseNode";
@@ -32,7 +32,7 @@ export default runExtension(async (onloadArgs) => {
     renderToast({
       timeout: 10000,
       id: "query-builder-loaded",
-      content: QueryBuilderLoadedToast(),
+      content: queryBuilderLoadedToast,
       intent: "danger",
     });
     return;

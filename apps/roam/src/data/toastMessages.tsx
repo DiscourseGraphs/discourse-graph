@@ -1,7 +1,7 @@
 import React from "react";
 
-export const QueryBuilderLoadedToast = () => (
-  <div className="p-4">
+export const queryBuilderLoadedToast = (
+  <div className="-mr-4 -mt-4 p-4 pr-0 pt-0">
     <h3 className="text-center text-xl font-bold">
       Discourse Graph Not Loaded
     </h3>
