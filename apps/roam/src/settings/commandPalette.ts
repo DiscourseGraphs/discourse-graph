@@ -142,11 +142,13 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
       callback,
     });
   };
-  addCommand("Open Canvas Drawer", openCanvasDrawer);
-  addCommand("Open Query Drawer", openQueryDrawerWithArgs);
-  addCommand("Create Query Block", createQueryBlock);
-  addCommand("Export Current Page", exportCurrentPage);
-  addCommand("Export Discourse Graph", exportDiscourseGraph);
-  addCommand("Refresh Current Query Builder", refreshCurrentQueryBuilder);
-  addCommand("Open Discourse Settings / Config", renderSettingsPopup);
+
+  // Roam organizes commands by alphabetically
+  addCommand("DG: Export - Current Page", exportCurrentPage);
+  addCommand("DG: Export - Discourse Graph", exportDiscourseGraph);
+  addCommand("DG: Open - Canvas Drawer", openCanvasDrawer);
+  addCommand("DG: Open - Discourse Settings", renderSettingsPopup);
+  addCommand("DG: Open - Query Drawer", openQueryDrawerWithArgs);
+  addCommand("DG: Query Block - Create", createQueryBlock);
+  addCommand("DG: Query Block - Refresh", refreshCurrentQueryBuilder);
 };
