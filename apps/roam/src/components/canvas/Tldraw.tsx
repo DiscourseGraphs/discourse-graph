@@ -597,6 +597,9 @@ const TldrawCanvas = ({ title }: Props) => {
                               relation,
                               target,
                             }));
+                          posthog.capture("Canvas Relations Created", {
+                            triples: newTriples,
+                          });
                           triplesToBlocks({
                             defaultPageTitle: `Auto generated from ${title}`,
                             toPage: async (
@@ -724,6 +727,11 @@ const TldrawCanvas = ({ title }: Props) => {
             ...position,
           },
         ]);
+        posthog.capture("Canvas node created", {
+          type: nodeType.type,
+          title: val,
+          uid: uid,
+        });
         lastInsertRef.current = position;
         onRefresh();
       }

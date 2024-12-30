@@ -22,6 +22,7 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { Sorts } from "~/utils/parseResultSettings";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
+import posthog from "posthog-js";
 
 const zPriority = z.record(z.number().min(0).max(1));
 
@@ -278,6 +279,8 @@ const Kanban = ({
   const parentRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+
+  posthog.capture("kanban_created", { page: page });
 
   const handleDragStart = (event: DraggableEvent, data: DraggableData) => {
     const e = event as MouseEvent;
