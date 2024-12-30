@@ -900,7 +900,7 @@ const ResultsView: ResultsViewComponent = ({
                               items={Object.keys(VIEWS)}
                               activeItem={mode}
                               onItemSelect={(m) => {
-                                posthog.capture("Query view: column_view_changed", {
+                                posthog.capture("Query view: column view changed", {
                                   pageUid: parentUid,
                                   oldMode: mode,
                                   newMode: m,

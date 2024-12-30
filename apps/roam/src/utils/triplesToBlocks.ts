@@ -27,7 +27,7 @@ const triplesToBlocks =
   ) =>
   () => {
     triples.forEach((t) => {
-      posthog.capture("New Relation Created", {
+      posthog.capture("New Relation: Created", {
         relation: t.relation,
       });
     });
