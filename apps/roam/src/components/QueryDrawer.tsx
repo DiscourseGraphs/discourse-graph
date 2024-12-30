@@ -71,6 +71,10 @@ const SavedQuery = ({
         setError(
           `Query failed to run. Try running a new query from the editor.`,
         );
+        posthog.capture("Query drawer: Query failed to run", {
+          queryUid: uid,
+          isSavedToPage: isSavedToPage,
+        });
       });
   }, [uid, setResults, setError, setColumns, setMinimized]);
   return (
