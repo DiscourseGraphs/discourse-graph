@@ -27,8 +27,6 @@ import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
 import posthog from "posthog-js";
 
 const initPostHog = () => {
-  console.log("PostHog initialized");
-
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
     api_host: "https://us.i.posthog.com",
     person_profiles: "identified_only",

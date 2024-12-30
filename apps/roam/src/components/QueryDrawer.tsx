@@ -56,7 +56,7 @@ const SavedQuery = ({
   };
   const resultsInViewRef = useRef<Result[]>([]);
   const refresh = useCallback(() => {
-    posthog.capture("query_drawer_view_saved_query", {
+    posthog.capture("Query drawer: view saved query", {
       queryUid: uid,
       isSavedToPage: isSavedToPage,
     });
@@ -294,7 +294,7 @@ const QueryDrawerContent = ({
         key={query}
         parentUid={blockUid}
         onQuery={() => {
-          posthog.capture("query_drawer_create_query", {
+          posthog.capture("Query drawer: create query", {
             queryLabel: savedQueryLabel,
             parentUid: blockUid,
           });
@@ -373,7 +373,7 @@ const QueryDrawer = ({
 );
 
 export const openQueryDrawer = (onloadArgs: OnloadArgs) => {
-  posthog.capture("query_drawer_opened", {
+  posthog.capture("Query drawer: opened", {
     source: "drawer_open",
   });
 
@@ -391,9 +391,8 @@ export const openQueryDrawer = (onloadArgs: OnloadArgs) => {
 };
 
 export const render = (props: Props) => {
-  posthog.capture("query_drawer_rendered", {
+  posthog.capture("Query drawer: rendered", {
     blockUid: props.blockUid,
-    source: "drawer_render",
   });
 
   return renderOverlay({ Overlay: QueryDrawer, props });

@@ -67,7 +67,7 @@ const NodeMenu = ({ onClose, textarea }: { onClose: () => void } & Props) => {
         )}[[${pageName}]]${currentBlockText.substring(textarea.selectionEnd)}`;
 
         updateBlock({ text: newText, uid: blockUid });
-        posthog.capture("new_discourse_node_type_created", {
+        posthog.capture("New Discourse node type: created", {
           nodeType: nodeUid,
           text: pageName,
         });

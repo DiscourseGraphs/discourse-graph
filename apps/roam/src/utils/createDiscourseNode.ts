@@ -29,7 +29,7 @@ const createDiscourseNode = async ({
   imageUrl,
   extensionAPI,
 }: Props) => {
-  posthog.capture("new_discourse_node_created", {
+  posthog.capture("New discourse node: created", {
     text: text,
     configPageUid: configPageUid,
     newPageUid: newPageUid,
