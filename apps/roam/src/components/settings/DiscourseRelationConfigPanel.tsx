@@ -105,10 +105,11 @@ export const RelationEditPanel = ({
   const editingRef = useRef<cytoscape.NodeSingular>();
   const blockClickRef = useRef(false);
   const showBackWarning = useRef(false);
-  const unsavedChanges = useCallback(
-    () => (showBackWarning.current = true),
-    [showBackWarning],
-  );
+  const [hasChanges, setHasChanges] = useState(false);
+  const unsavedChanges = useCallback(() => {
+    showBackWarning.current = true;
+    setHasChanges(true);
+  }, []);
   const [backWarningOpen, setBackWarningOpen] = useState(false);
   const clearEditingRef = useCallback(() => {
     if (editingRef.current) {
@@ -556,7 +557,7 @@ export const RelationEditPanel = ({
           icon={"floppy-disk"}
           text={"Save"}
           intent={Intent.PRIMARY}
-          disabled={loading || !showBackWarning.current}
+          disabled={loading || !hasChanges}
           className="select-none"
           onClick={() => {
             setLoading(true);
@@ -672,6 +673,7 @@ export const RelationEditPanel = ({
         intent={Intent.WARNING}
         isOpen={backWarningOpen}
         onCancel={() => setBackWarningOpen(false)}
+        className="bg-white"
       >
         <b>Warning:</b> You have unsaved changes. Are you sure you want to go
         back and discard these changes?
