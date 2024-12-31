@@ -5,6 +5,7 @@ import { compile, args } from "./compile";
 dotenv.config();
 
 const dev = () => {
+  process.env.NODE_ENV = process.env.NODE_ENV || "development";
   return new Promise<number>((resolve) => {
     compile({
       opts: args,
