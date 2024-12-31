@@ -104,12 +104,12 @@ export const args = {
 } as CliOpts;
 
 export const compile = ({
+  opts = args,
   builder = async (opts) => {
     await esbuild.build(opts);
   },
-  opts,
 }: {
-  opts: CliOpts;
+  opts?: CliOpts;
   builder?: Builder;
 }) => {
   const { root = ".", out, format, external } = cliArgs.parse(opts);
@@ -130,6 +130,7 @@ export const compile = ({
       bundle: true,
       format,
       sourcemap: process.env.NODE_ENV === "production" ? undefined : "inline",
+      minify: process.env.NODE_ENV === "production",
       entryNames: out,
       external: externalModules.map(([e]) => e).concat(["crypto"]),
       plugins: [

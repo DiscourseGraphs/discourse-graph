@@ -20,7 +20,6 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
     "deploy": {
-      "dependsOn": ["build"],
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "passThroughEnv": [
