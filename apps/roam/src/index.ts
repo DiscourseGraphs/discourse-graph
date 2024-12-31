@@ -33,7 +33,6 @@ const initPostHog = () => {
     property_denylist: [
       "$ip", // Still seeing ip in the event
       "$device_id",
-      "$initial_person_info",
       "$geoip_city_name",
       "$geoip_latitude",
       "$geoip_longitude",
