@@ -1,6 +1,7 @@
 {
   "include": ["src", "src/types.d.ts", "tailwind.config.ts", "tests"],
   "exclude": ["node_modules"],
+  "extends": "@repo/typescript-config/react-library.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
@@ -10,16 +11,13 @@
     "target": "ESNext",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": false,
-    "skipLibCheck": true,
     "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "Node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react"
+    "forceConsistentCasingInFileNames": true,
+
+    "jsx": "react",
+    "noUncheckedIndexedAccess": false
   }
 }
