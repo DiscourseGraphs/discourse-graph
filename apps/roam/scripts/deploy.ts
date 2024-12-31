@@ -1,15 +1,18 @@
 import { put } from "@vercel/blob";
 import fs, { readFileSync } from "fs";
 import { join } from "path";
-import { compile, args } from "./compile";
-import esbuild from "esbuild";
+import { compile } from "./compile";
 
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
 const deploy = async () => {
-  process.env.NODE_ENV = process.env.NODE_ENV || "production";
+  process.env = {
+    ...process.env,
+    NODE_ENV: process.env.NODE_ENV || "production",
+  };
+
   console.log("Deploying...");
   try {
     compile({});
