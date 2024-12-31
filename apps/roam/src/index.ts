@@ -120,6 +120,7 @@ export default runExtension(async (onloadArgs) => {
       window.roamAlphaAPI.ui.graphView.wholeGraph.removeCallback({
         label: "discourse-node-styling",
       });
+      posthog.shutdown();
     },
   };
 });
