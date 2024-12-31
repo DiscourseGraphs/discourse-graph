@@ -1,12 +1,22 @@
 import { put } from "@vercel/blob";
 import fs, { readFileSync } from "fs";
 import { join } from "path";
+import { compile, args } from "./compile";
+import esbuild from "esbuild";
 
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
 const deploy = async () => {
+  process.env.NODE_ENV = process.env.NODE_ENV || "production";
+  console.log("Deploying...");
+  try {
+    compile({});
+  } catch (error) {
+    console.error("Deployment failed on compile:", error);
+    process.exit(1);
+  }
   try {
     const resolvedWorkspace = "roam";
     if (!resolvedWorkspace) throw new Error("Workspace is required");
@@ -65,9 +75,8 @@ const deploy = async () => {
     }
 
     console.log("Deploy completed successfully!");
-    console.log(
-      `https://discoursegraphs.com/releases/${resolvedWorkspace}/${resolvedBranch}`,
-    );
+    const url = `https://discoursegraphs.com/releases/${resolvedWorkspace}/${resolvedBranch}`;
+    console.log(`\x1b]8;;${url}\x1b\\🔗 Click to copy: ${url}\x1b]8;;\x1b\\`);
   } catch (error) {
     console.error("Deploy failed:", error);
     process.exit(1);
