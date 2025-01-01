@@ -1,14 +1,14 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Navigation } from "~/(docs)/docs/page";
+import { NavigationList } from "./Navigation";
 
 export function DocsHeader({
   title,
   navigation = [],
 }: {
   title?: string;
-  navigation?: Navigation[];
+  navigation?: NavigationList;
 }) {
   let pathname = usePathname();
   let section = navigation.find((section) =>

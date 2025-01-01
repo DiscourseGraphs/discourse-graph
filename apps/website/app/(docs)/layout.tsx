@@ -3,8 +3,8 @@ import { Inter } from "next/font/google";
 
 import clsx from "clsx";
 
-import { DESCRIPTION } from "~/(home)/layout";
 import { customScrollbar } from "~/components/Layout";
+import { DESCRIPTION } from "~/data/constants";
 
 const inter = Inter({
   subsets: ["latin"],
