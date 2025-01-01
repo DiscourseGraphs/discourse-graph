@@ -378,7 +378,7 @@ export default async function Home() {
                   </Link>
                 </li>
                 <li className="text-neutral-dark">
-                  <Link href="https://oasis-lab.gitbook.io/roamresearch-discourse-graph-extension">
+                  <Link href="/docs/roam">
                     Discourse Graph plugin documentation
                   </Link>{" "}
                   for Roam Research
