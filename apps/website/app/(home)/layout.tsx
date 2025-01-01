@@ -5,11 +5,8 @@ import Link from "next/link";
 import { Inter } from "next/font/google";
 import { getAllBlogs } from "./blog/readBlogs";
 import { Logo } from "~/components/Logo";
-
-export const DESCRIPTION =
-  "Discourse Graphs are a tool and ecosystem for collaborative knowledge synthesis, enabling researchers to map ideas and arguments in a modular, composable graph format.";
-export const SHORT_DESCRIPTION =
-  "A tool and ecosystem for collaborative knowledge synthesis";
+import { SHORT_DESCRIPTION } from "~/data/constants";
+import { DESCRIPTION } from "~/data/constants";
 
 export const metadata: Metadata = {
   title: "Discourse Graphs | A Tool for Collaborative Knowledge Synthesis",
