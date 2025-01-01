@@ -1,12 +1,16 @@
-import { remark } from "remark";
-import html from "remark-html";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import rehypeStringify from "rehype-stringify";
+import { toString } from "mdast-util-to-string";
+import { visit } from "unist-util-visit";
 import { notFound } from "next/navigation";
 import path from "path";
 import fs from "fs/promises";
 import matter from "gray-matter";
 import { BlogSchema, type Blog, BlogFrontmatter } from "./schema";
 
-const BLOG_DIRECTORY = path.join(process.cwd(), "app/blog/posts");
+const BLOG_DIRECTORY = path.join(process.cwd(), "app/(home)/blog/posts");
 
 async function validateBlogDirectory(): Promise<boolean> {
   try {
@@ -35,8 +39,31 @@ async function processBlogFile(filename: string): Promise<Blog | null> {
   }
 }
 
+function remarkHeadingId() {
+  return (tree: any) => {
+    visit(tree, "heading", (node) => {
+      const text = toString(node);
+      const id = text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+      node.data = {
+        hName: `h${node.depth}`,
+        hProperties: { id },
+      };
+    });
+  };
+}
+
 async function getMarkdownContent(content: string): Promise<string> {
-  const processedContent = await remark().use(html).process(content);
+  const processedContent = await unified()
+    .use(remarkParse)
+    .use(remarkHeadingId)
+    .use(remarkRehype)
+    .use(rehypeStringify)
+    .process(content);
+  console.log(processedContent.toString());
   return processedContent.toString();
 }
 
@@ -57,11 +84,21 @@ export async function getAllBlogs(): Promise<Blog[]> {
   }
 }
 
+export async function getFileContent(
+  filename: string,
+  directory: string,
+): Promise<string> {
+  const filePath = path.join(directory, filename);
+  const fileContent = await fs.readFile(filePath, "utf-8");
+  return fileContent;
+}
+
 export async function getBlog(
   slug: string,
+  directory: string = BLOG_DIRECTORY,
 ): Promise<{ data: BlogFrontmatter; contentHtml: string }> {
   try {
-    const filePath = path.join(BLOG_DIRECTORY, `${slug}.md`);
+    const filePath = path.join(directory, `${slug}.md`);
     await fs.access(filePath);
 
     const fileContent = await fs.readFile(filePath, "utf-8");

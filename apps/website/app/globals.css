@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 a {
-  @apply text-secondary hover:text-secondary/60 transition-colors;
+  @apply text-secondary transition-colors hover:text-secondary/60;
 }
 
 html {
