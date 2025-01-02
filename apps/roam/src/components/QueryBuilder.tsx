@@ -192,7 +192,7 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
   );
 };
 export const renderQueryBlock = createComponentRender(({ blockUid }) => {
-  posthog.capture("Query block: rendered", {
+  posthog.capture("Query Block: Rendered", {
     blockUid,
   });
 
@@ -213,7 +213,7 @@ export const renderQueryPage = ({
   const containerParent = h1.parentElement?.parentElement;
 
   if (containerParent && !containerParent.hasAttribute(attribute)) {
-    posthog.capture("Query builder: page rendered", {
+    posthog.capture("Query Page: Rendered", {
       pageUid: uid,
       pageTitle: title,
     });

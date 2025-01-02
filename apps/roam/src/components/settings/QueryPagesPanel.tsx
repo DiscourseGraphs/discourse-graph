@@ -47,7 +47,9 @@ const QueryPagesPanel = ({
             setTexts(newTexts);
             extensionAPI.settings.set("query-pages", newTexts);
             setValue("");
-            posthog.capture("Query builder Page: Created", { newType: value });
+            posthog.capture("Query Page: Page Format Added", {
+              newType: value,
+            });
           }}
         />
       </div>

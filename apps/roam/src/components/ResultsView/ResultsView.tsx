@@ -552,7 +552,7 @@ const ResultsView: ResultsViewComponent = ({
                             : "border-gray-800 border-opacity-25 text-gray-800"
                         }`}
                         onClick={() => {
-                          posthog.capture("Query view: type changed", {
+                          posthog.capture("Results View: Layout Changed", {
                             pageUid: parentUid,
                             oldLayout: layoutMode,
                             newLayout: l.id,
@@ -900,11 +900,14 @@ const ResultsView: ResultsViewComponent = ({
                               items={Object.keys(VIEWS)}
                               activeItem={mode}
                               onItemSelect={(m) => {
-                                posthog.capture("Query view: column view changed", {
-                                  pageUid: parentUid,
-                                  oldMode: mode,
-                                  newMode: m,
-                                });
+                                posthog.capture(
+                                  "Results View: Column View Changed",
+                                  {
+                                    pageUid: parentUid,
+                                    oldMode: mode,
+                                    newMode: m,
+                                  },
+                                );
 
                                 onViewChange({ mode: m, column, value }, i);
                               }}
@@ -1043,7 +1046,7 @@ const ResultsView: ResultsViewComponent = ({
                     icon={"export"}
                     text={"Share Data"}
                     onClick={async () => {
-                      posthog.capture("Query results: export clicked", {
+                      posthog.capture("Results View: Share Data Clicked", {
                         parentUid: parentUid,
                         resultCount: results.length,
                         columnCount: columns.length,

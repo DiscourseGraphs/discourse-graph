@@ -162,7 +162,7 @@ const CanvasDrawer = ({
 
 export const openCanvasDrawer = () => {
   const pageUid = getCurrentPageUid();
-  posthog.capture("Canvas drawer: opened", { pageUid: pageUid });
+  posthog.capture("Canvas Drawer: Opened", { pageUid: pageUid });
 
   const props = getBlockProps(pageUid) as Record<string, unknown>;
   const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;

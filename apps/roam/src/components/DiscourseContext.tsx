@@ -345,7 +345,7 @@ export const ContextContent = ({ uid, results }: Props) => {
             },
           },
         }));
-        posthog.capture("Discourse context: Show result", {
+        posthog.capture("Discourse Context: Show Results", {
           uid: uid,
         });
       },

@@ -56,7 +56,7 @@ const SavedQuery = ({
   };
   const resultsInViewRef = useRef<Result[]>([]);
   const refresh = useCallback(() => {
-    posthog.capture("Query drawer: view saved query", {
+    posthog.capture("Query Drawer: View Saved Query", {
       queryUid: uid,
       isSavedToPage: isSavedToPage,
     });
@@ -71,7 +71,7 @@ const SavedQuery = ({
         setError(
           `Query failed to run. Try running a new query from the editor.`,
         );
-        posthog.capture("Query drawer: Query failed to run", {
+        posthog.capture("Query Drawer: Query Failed to Run", {
           queryUid: uid,
           isSavedToPage: isSavedToPage,
         });
@@ -298,7 +298,7 @@ const QueryDrawerContent = ({
         key={query}
         parentUid={blockUid}
         onQuery={() => {
-          posthog.capture("Query drawer: create query", {
+          posthog.capture("Query Drawer: Create Query", {
             queryLabel: savedQueryLabel,
             parentUid: blockUid,
           });
@@ -377,7 +377,7 @@ const QueryDrawer = ({
 );
 
 export const openQueryDrawer = (onloadArgs: OnloadArgs) => {
-  posthog.capture("Query drawer: opened", {
+  posthog.capture("Query Drawer: Opened", {
     source: "drawer_open",
   });
 

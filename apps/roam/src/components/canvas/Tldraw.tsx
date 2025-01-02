@@ -597,7 +597,7 @@ const TldrawCanvas = ({ title }: Props) => {
                               relation,
                               target,
                             }));
-                          posthog.capture("Canvas Relations: Created", {
+                          posthog.capture("Canvas Relation: Created", {
                             relation: relationLabel,
                           });
                           triplesToBlocks({
@@ -843,7 +843,7 @@ const TldrawCanvas = ({ title }: Props) => {
             tldrawApps[title] = app;
           }
           appRef.current = app;
-          posthog.capture("Canvas: mounted", {
+          posthog.capture("Canvas: Mounted", {
             title: title,
           });
           // TODO - this should move to one of DiscourseNodeTool's children classes instead

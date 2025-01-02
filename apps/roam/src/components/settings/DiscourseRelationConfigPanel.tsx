@@ -997,8 +997,8 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
       ]);
       setNewRelation("");
       setEditingRelation(relationUid);
-      posthog.capture("Discourse Relation: created in config panel", {
-        relationUid: relationUid
+      posthog.capture("Discourse Relation: Created", {
+        relationUid: relationUid,
       });
     });
   };

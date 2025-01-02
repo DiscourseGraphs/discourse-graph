@@ -29,7 +29,7 @@ const createDiscourseNode = async ({
   imageUrl,
   extensionAPI,
 }: Props) => {
-  posthog.capture("New discourse node: created", {
+  posthog.capture("Discourse Node: Created", {
     text: text,
   });
   const handleOpenInSidebar = (uid: string) => {

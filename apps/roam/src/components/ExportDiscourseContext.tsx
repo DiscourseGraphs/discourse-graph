@@ -554,7 +554,7 @@ const GraphExportButton = () => {
       icon="export"
       onClick={() => {
         const { degreesIn, degreesOut } = getGraphOverviewDepthValues();
-        posthog.capture("Discourse graph: export button clicked", {
+        posthog.capture("Graph Overview: Export", {
           degreesIn: degreesIn,
           degreesOut: degreesOut,
         });
