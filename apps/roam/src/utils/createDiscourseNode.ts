@@ -31,8 +31,6 @@ const createDiscourseNode = async ({
 }: Props) => {
   posthog.capture("New discourse node: created", {
     text: text,
-    configPageUid: configPageUid,
-    newPageUid: newPageUid,
   });
   const handleOpenInSidebar = (uid: string) => {
     if (isFlagEnabled("disable sidebar open")) return;

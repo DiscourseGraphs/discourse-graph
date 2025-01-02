@@ -26,6 +26,7 @@ import { isPageUid } from "~/utils/isPageUid";
 import { loadImage } from "~/utils/loadImage";
 import { DiscourseRelationShape } from "./DiscourseRelationsUtil";
 import { formatHexColor } from "../settings/DiscourseNodeCanvasSettings";
+import posthog from "posthog-js";
 
 // from @tldraw/editor/editor.css
 const COLOR_PALETTE: Record<string, string> = {
@@ -386,6 +387,12 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
                   });
                 else await updateBlock({ uid: shape.props.uid, text });
               }
+              posthog.capture("Canvas node: created", {
+                uid: uid,
+                text: text,
+                action: action
+              });
+
 
               if (action === "creating" && !getPageUidByPageTitle(text)) {
                 createDiscourseNode({
