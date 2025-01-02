@@ -40,15 +40,21 @@ async function getCurrentCommitHash() {
 
 // Clone repository safely
 async function cloneRepository() {
-  const authUrl = `https://x-access-token:${process.env.GITHUB_TOKEN}@github.com/DiscourseGraphs/roam-depot.git`;
-  await execGitCommand(`git clone ${config.repoUrl} ${config.tempDir}`, {
-    env: {
-      ...process.env,
-      // Use credential helper to avoid token in command
-      GIT_CONFIG_KEY_0: 'credential.helper',
-      GIT_CONFIG_VALUE_0: '!f() { echo "username=x-access-token"; echo "password=$GITHUB_TOKEN"; }; f'
-    }
-  });
+  // First clone without authentication
+  await execGitCommand(`git clone ${config.repoUrl} ${config.tempDir}`);
+  
+  // Then set up the remote with credentials via git config
+  await execGitCommand('git config --local credential.helper store', { cwd: config.tempDir });
+  
+  // Configure the credentials file separately to avoid command line exposure
+  await fs.writeFile(
+    path.join(process.env.HOME || process.env.USERPROFILE, '.git-credentials'),
+    `https://x-access-token:${process.env.GITHUB_TOKEN}@github.com\n`,
+    { mode: 0o600 } // Secure file permissions
+  );
+  
+  // Verify remote access
+  await execGitCommand('git fetch origin', { cwd: config.tempDir });
 }
 
 // Update JSON file with new commit hash
