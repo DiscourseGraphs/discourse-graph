@@ -48,6 +48,7 @@ import { CustomField } from "roamjs-components/components/ConfigPanels/types";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
+import posthog from "posthog-js";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",
@@ -996,6 +997,9 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
       ]);
       setNewRelation("");
       setEditingRelation(relationUid);
+      posthog.capture("Discourse Relation: created in config panel", {
+        relationUid: relationUid
+      });
     });
   };
 

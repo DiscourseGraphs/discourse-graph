@@ -26,11 +26,6 @@ const triplesToBlocks =
     }[],
   ) =>
   () => {
-    triples.forEach((t) => {
-      posthog.capture("New Relation: Created", {
-        relation: t.relation,
-      });
-    });
 
     const relationToTitle = (source: string) => {
       const rel = triples.find(
