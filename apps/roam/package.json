@@ -6,7 +6,8 @@
     "postinstall": "patch-package",
     "dev": "tsx scripts/dev.ts",
     "build": "tsx scripts/compile.ts",
-    "deploy": "tsx scripts/deploy.ts"
+    "deploy": "tsx scripts/deploy.ts",
+    "update:extension": "tsx scripts/updateExtension.ts"
   },
   "license": "MIT",
   "devDependencies": {
@@ -23,6 +24,7 @@
     "widgets"
   ],
   "dependencies": {
+    "@octokit/rest": "^21.0.2",
     "@repo/types": "*",
     "@tldraw/tldraw": "^2.0.0-alpha.12",
     "@vercel/blob": "^0.27.0",

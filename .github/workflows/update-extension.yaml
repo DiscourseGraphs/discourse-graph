@@ -1,0 +1,27 @@
+name: Update Roam Extension Metadata
+on:
+  pull_request:
+    types:
+      - closed
+    paths:
+      - "apps/roam/**"
+
+jobs:
+  update-extension:
+    # Only run if the PR was merged to main
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update Roam Depot Extension
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
+        working-directory: apps/roam
+        run: npm run update:extension
