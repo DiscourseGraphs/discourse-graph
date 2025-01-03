@@ -25,6 +25,7 @@ import { addGraphViewNodeStyling } from "./utils/graphViewNodeStyling";
 import { setQueryPages } from "./utils/setQueryPages";
 import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
 import posthog from "posthog-js";
+import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -52,6 +53,10 @@ export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
   initPostHog();
+  posthog.capture("Extension Loaded", {
+    graphName: window.roamAlphaAPI.graph.name,
+    userUid: getCurrentUserUid(), // roamjs-components
+  });
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
       timeout: 10000,
