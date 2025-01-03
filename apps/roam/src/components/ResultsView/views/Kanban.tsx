@@ -22,7 +22,6 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { Sorts } from "~/utils/parseResultSettings";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
-import posthog from "posthog-js";
 
 const zPriority = z.record(z.number().min(0).max(1));
 
