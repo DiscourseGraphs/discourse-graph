@@ -1,6 +1,5 @@
 import type { InputTextNode } from "roamjs-components/types";
 import { Condition } from "./types";
-import posthog from "posthog-js";
 
 // TODO - this needs to be massively reworked to incorporate inverse functions on the conditionToDatalog mapping itself
 // similar to `update` on defaultSelections.ts. Something like:
@@ -26,7 +25,6 @@ const triplesToBlocks =
     }[],
   ) =>
   () => {
-
     const relationToTitle = (source: string) => {
       const rel = triples.find(
         (h) =>

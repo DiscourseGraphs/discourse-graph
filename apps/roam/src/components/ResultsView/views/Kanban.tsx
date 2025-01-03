@@ -280,8 +280,6 @@ const Kanban = ({
   const [isDragging, setIsDragging] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
 
-  posthog.capture("Kanban: created", { page: page });
-
   const handleDragStart = (event: DraggableEvent, data: DraggableData) => {
     const e = event as MouseEvent;
     setIsDragging(true);

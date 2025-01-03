@@ -345,9 +345,6 @@ export const ContextContent = ({ uid, results }: Props) => {
             },
           },
         }));
-        posthog.capture("Discourse Context: Show Results", {
-          uid: uid,
-        });
       },
     }).finally(() => setLoading(false));
   }, [uid, setRawQueryResults, setLoading]);
@@ -436,7 +433,14 @@ const DiscourseContext = ({ uid }: Props) => {
           } ${
             caretShown ? "rm-caret-showing" : "rm-caret-hidden"
           } dont-focus-block`}
-          onClick={() => setCaretOpen(!caretOpen)}
+          onClick={() => {
+            setCaretOpen(!caretOpen);
+            if (!caretOpen) {
+              posthog.capture("Discourse Context: Show Results", {
+                uid: uid,
+              });
+            }
+          }}
         />
         <div style={{ flex: "0 1 2px" }} />
         <div style={{ color: "rgb(206, 217, 224)" }}>

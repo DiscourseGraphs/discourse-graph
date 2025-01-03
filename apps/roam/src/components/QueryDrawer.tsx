@@ -377,10 +377,7 @@ const QueryDrawer = ({
 );
 
 export const openQueryDrawer = (onloadArgs: OnloadArgs) => {
-  posthog.capture("Query Drawer: Opened", {
-    source: "drawer_open",
-  });
-
+  posthog.capture("Query Drawer: Opened", {});
   return Promise.resolve(
     getPageUidByPageTitle("roam/js/query-builder/drawer") ||
       createPage({
@@ -395,9 +392,5 @@ export const openQueryDrawer = (onloadArgs: OnloadArgs) => {
 };
 
 export const render = (props: Props) => {
-  posthog.capture("Query drawer: rendered", {
-    blockUid: props.blockUid,
-  });
-
   return renderOverlay({ Overlay: QueryDrawer, props });
 };

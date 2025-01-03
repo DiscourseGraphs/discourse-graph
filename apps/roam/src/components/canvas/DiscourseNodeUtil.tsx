@@ -387,13 +387,12 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
                   });
                 else await updateBlock({ uid: shape.props.uid, text });
               }
-              posthog.capture("Canvas Node: Created", {
-                uid: uid,
-                text: text,
-                action: action,
-              });
-
               if (action === "creating" && !getPageUidByPageTitle(text)) {
+                posthog.capture("Canvas Node: Created", {
+                  uid: uid,
+                  text: text,
+                  action: action,
+                });
                 createDiscourseNode({
                   configPageUid: shape.type,
                   text,
