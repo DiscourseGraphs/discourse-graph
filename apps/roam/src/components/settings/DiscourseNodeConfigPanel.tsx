@@ -11,6 +11,7 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import createPage from "roamjs-components/writes/createPage";
 import type { CustomField } from "roamjs-components/components/ConfigPanels/types";
+import posthog from "posthog-js";
 
 type DiscourseNodeConfigPanelProps = React.ComponentProps<
   CustomField["options"]["component"]
@@ -54,6 +55,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
           className="select-none"
           disabled={!label}
           onClick={() => {
+            posthog.capture("Discourse Node: Type Created", { label: label });
             createPage({
               title: `discourse-graph/nodes/${label}`,
               tree: [

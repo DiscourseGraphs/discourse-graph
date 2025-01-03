@@ -9,6 +9,7 @@ import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getBlockProps from "~/utils/getBlockProps";
 import { TLBaseShape } from "@tldraw/tldraw";
 import { DiscourseNodeShape } from "./DiscourseNodeUtil";
+import posthog from "posthog-js";
 
 export type GroupedShapes = Record<string, DiscourseNodeShape[]>;
 
@@ -161,6 +162,8 @@ const CanvasDrawer = ({
 
 export const openCanvasDrawer = () => {
   const pageUid = getCurrentPageUid();
+  posthog.capture("Canvas Drawer: Opened", { pageUid: pageUid });
+
   const props = getBlockProps(pageUid) as Record<string, unknown>;
   const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
   const tldraw = (rjsqb?.tldraw as Record<string, unknown>) || {};

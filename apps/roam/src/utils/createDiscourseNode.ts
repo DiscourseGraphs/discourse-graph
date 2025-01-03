@@ -12,6 +12,7 @@ import resolveQueryBuilderRef from "./resolveQueryBuilderRef";
 import { OnloadArgs, RoamBasicNode } from "roamjs-components/types";
 import runQuery from "./runQuery";
 import updateBlock from "roamjs-components/writes/updateBlock";
+import posthog from "posthog-js";
 
 type Props = {
   text: string;
@@ -28,6 +29,9 @@ const createDiscourseNode = async ({
   imageUrl,
   extensionAPI,
 }: Props) => {
+  posthog.capture("Discourse Node: Created", {
+    text: text,
+  });
   const handleOpenInSidebar = (uid: string) => {
     if (isFlagEnabled("disable sidebar open")) return;
     openBlockInSidebar(uid);

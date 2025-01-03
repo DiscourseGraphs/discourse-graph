@@ -25,6 +25,7 @@ import createDiscourseNode from "../utils/createDiscourseNode";
 import { getNewDiscourseNodeText } from "../utils/formatUtils";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
+import posthog from "posthog-js";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -66,6 +67,11 @@ const NodeMenu = ({ onClose, textarea }: { onClose: () => void } & Props) => {
         )}[[${pageName}]]${currentBlockText.substring(textarea.selectionEnd)}`;
 
         updateBlock({ text: newText, uid: blockUid });
+        posthog.capture("Discourse Node: Created via Node Menu", {
+          nodeType: nodeUid,
+          text: pageName,
+        });
+
         createDiscourseNode({
           text: pageName,
           configPageUid: nodeUid,
