@@ -70,16 +70,19 @@ const cliArgs = z.object({
   root: z.string().optional(),
   format: z.enum(["esm"]).optional(),
   external: z.array(z.string()),
+  buildExtension: z.boolean().optional(),
 });
 
 type Builder = (opts: esbuild.BuildOptions) => Promise<void>;
-export type CliOpts = Record<string, string | string[] | boolean>;
+export type CliOpts = Record<string, string | string[] | boolean | boolean>;
+const hasBuildExtensionFlag = process.argv.includes("--build-extension");
 
 export const args = {
   out: "extension",
   format: "esm",
   root: ".",
   mirror: ".",
+  buildExtension: hasBuildExtensionFlag,
   external: [
     "react-dom/client",
     "@blueprintjs/core=window.Blueprint.Core",
@@ -112,7 +115,13 @@ export const compile = ({
   opts?: CliOpts;
   builder?: Builder;
 }) => {
-  const { root = ".", out, format, external } = cliArgs.parse(opts);
+  const {
+    root = ".",
+    out,
+    format,
+    external,
+    buildExtension,
+  } = cliArgs.parse(opts);
 
   const externalModules = external.map((e) => e.split("="));
   const srcRoot = path.join(root, "src");
@@ -159,6 +168,33 @@ export const compile = ({
                 .forEach((f) => {
                   fs.cpSync(f, path.join(outdir, path.basename(f)));
                 });
+            });
+          },
+        },
+        {
+          name: "copy-on-end",
+          setup(build) {
+            build.onEnd(async () => {
+              if (buildExtension) {
+                const extensionOutdir = path.resolve(process.cwd(), "../../");
+                fs.mkdirSync(extensionOutdir, { recursive: true });
+
+                // List of specific files to copy
+                const filesToCopy = ["extension.js", "extension.css"];
+
+                filesToCopy.forEach((file) => {
+                  const sourcePath = path.join(outdir, file);
+                  const destPath = path.join(extensionOutdir, file);
+
+                  if (fs.existsSync(sourcePath)) {
+                    fs.copyFileSync(sourcePath, destPath);
+                  }
+                });
+
+                console.log(
+                  `Finished copying build artifacts to ${extensionOutdir}`,
+                );
+              }
             });
           },
         },
