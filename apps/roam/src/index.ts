@@ -31,6 +31,8 @@ const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
     api_host: "https://us.i.posthog.com",
     person_profiles: "identified_only",
+    capture_pageview: false,
+    autocapture: false,
     property_denylist: [
       "$ip", // Still seeing ip in the event
       "$device_id",
