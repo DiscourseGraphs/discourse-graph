@@ -24,10 +24,39 @@ import { initObservers } from "./utils/initializeObserversAndListeners";
 import { addGraphViewNodeStyling } from "./utils/graphViewNodeStyling";
 import { setQueryPages } from "./utils/setQueryPages";
 import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
+import posthog from "posthog-js";
+import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
+
+const initPostHog = () => {
+  posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
+    api_host: "https://us.i.posthog.com",
+    person_profiles: "identified_only",
+    property_denylist: [
+      "$ip", // Still seeing ip in the event
+      "$device_id",
+      "$geoip_city_name",
+      "$geoip_latitude",
+      "$geoip_longitude",
+      "$geoip_postal_code",
+      "$geoip_subdivision_1_name",
+      "$raw_user_agent",
+      "$current_url",
+      "$referrer",
+      "$referring_domain",
+      "$initial_current_url",
+      "$pathname",
+    ],
+  });
+};
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
+  initPostHog();
+  posthog.capture("Extension Loaded", {
+    graphName: window.roamAlphaAPI.graph.name,
+    userUid: getCurrentUserUid(),
+  });
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
       timeout: 10000,

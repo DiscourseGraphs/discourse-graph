@@ -1,4 +1,5 @@
 import { Button, InputGroup } from "@blueprintjs/core";
+import posthog from "posthog-js";
 import React, { useState } from "react";
 import type { OnloadArgs } from "roamjs-components/types";
 
@@ -46,6 +47,9 @@ const QueryPagesPanel = ({
             setTexts(newTexts);
             extensionAPI.settings.set("query-pages", newTexts);
             setValue("");
+            posthog.capture("Query Page: Page Format Added", {
+              newType: value,
+            });
           }}
         />
       </div>

@@ -25,6 +25,7 @@ import isDiscourseNode from "../utils/isDiscourseNode";
 import getDiscourseContextResults from "../utils/getDiscourseContextResults";
 import { render as exportRender } from "./Export";
 import { Result } from "../utils/types";
+import posthog from "posthog-js";
 
 type UpdateProgressWithDelay = (params: {
   progress: number;
@@ -553,6 +554,11 @@ const GraphExportButton = () => {
       icon="export"
       onClick={() => {
         const { degreesIn, degreesOut } = getGraphOverviewDepthValues();
+        posthog.capture("Graph Overview: Export", {
+          degreesIn: degreesIn,
+          degreesOut: degreesOut,
+        });
+
         renderOverlay({
           id: "graph-export",
           Overlay: GraphExportDialog,
