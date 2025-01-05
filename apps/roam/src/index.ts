@@ -55,7 +55,7 @@ export default runExtension(async (onloadArgs) => {
   initPostHog();
   posthog.capture("Extension Loaded", {
     graphName: window.roamAlphaAPI.graph.name,
-    userUid: getCurrentUserUid(), // roamjs-components
+    userUid: getCurrentUserUid(),
   });
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
@@ -125,7 +125,6 @@ export default runExtension(async (onloadArgs) => {
       window.roamAlphaAPI.ui.graphView.wholeGraph.removeCallback({
         label: "discourse-node-styling",
       });
-      posthog.shutdown();
     },
   };
 });
