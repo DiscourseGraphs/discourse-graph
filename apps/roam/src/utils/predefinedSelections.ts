@@ -118,6 +118,15 @@ const formatDate = ({
 const flatten = (blocks: PullBlock[] = []): PullBlock[] =>
   blocks.flatMap((b) => [b, ...flatten(b[":block/children"])]);
 
+const isValidUrl = (value: string): boolean => {
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const getBlockAttribute = (key: string, r: PullBlock) => {
   const blocks = flatten(
     window.roamAlphaAPI.pull(
@@ -128,9 +137,12 @@ const getBlockAttribute = (key: string, r: PullBlock) => {
   const block = blocks.find((blk) =>
     (blk[":block/string"] || "").startsWith(key + "::"),
   );
+  const value = (block?.[":block/string"] || "").slice(key.length + 2).trim();
+
   return {
-    "": (block?.[":block/string"] || "").slice(key.length + 2).trim(),
+    "": value,
     "-uid": block?.[":block/uid"] || "",
+    ...(isValidUrl(value) && { "-url": value }),
   };
 };
 
