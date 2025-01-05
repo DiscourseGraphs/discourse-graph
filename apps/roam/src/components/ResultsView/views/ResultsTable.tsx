@@ -306,7 +306,7 @@ const ResultRow = ({
                 <a
                   className={"rm-page-ref"}
                   data-link-title={getPageTitleByPageUid(uid) || ""}
-                  href={getRoamUrl(uid)}
+                  href={(r[`${key}-url`] as string) || getRoamUrl(uid)}
                   onMouseDown={(e) => {
                     if (e.shiftKey) {
                       openBlockInSidebar(uid);
