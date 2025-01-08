@@ -1,7 +1,7 @@
 import { getHtmlFromMarkdown } from "~/utils/getHtmlFromMarkdown";
 import { getFileContent } from "~/utils/getFileContent";
 import { notFound } from "next/navigation";
-import { DocumentFrontmatter, DocumentSchema } from "~/types/schema";
+import { PageFrontmatter, PageSchema } from "~/types/schema";
 import matter from "gray-matter";
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
 };
 
 type ProcessedMarkdownPage = {
-  data: DocumentFrontmatter;
+  data: PageFrontmatter;
   contentHtml: string;
 };
 
@@ -24,7 +24,7 @@ export const getMarkdownPage = async ({
       directory,
     });
     const { data: rawData, content } = matter(fileContent);
-    const data = DocumentSchema.parse(rawData);
+    const data = PageSchema.parse(rawData);
 
     if (!data.published) {
       console.log(`Post ${slug} is not published`);

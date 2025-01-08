@@ -1,8 +1,8 @@
 import path from "path";
 import fs from "fs/promises";
 import matter from "gray-matter";
-import { BlogSchema, type Blog } from "~/types/schema";
 import { BLOG_PATH } from "~/data/constants";
+import { PageSchema, type PageData } from "~/types/schema";
 
 const BLOG_DIRECTORY = path.join(process.cwd(), BLOG_PATH);
 
@@ -16,12 +16,12 @@ async function validateBlogDirectory(): Promise<boolean> {
   }
 }
 
-async function processBlogFile(filename: string): Promise<Blog | null> {
+async function processBlogFile(filename: string): Promise<PageData | null> {
   try {
     const filePath = path.join(BLOG_DIRECTORY, filename);
     const fileContent = await fs.readFile(filePath, "utf-8");
     const { data } = matter(fileContent);
-    const validatedData = BlogSchema.parse(data);
+    const validatedData = PageSchema.parse(data);
 
     return {
       slug: filename.replace(/\.md$/, ""),
@@ -33,7 +33,7 @@ async function processBlogFile(filename: string): Promise<Blog | null> {
   }
 }
 
-export async function getAllBlogs(): Promise<Blog[]> {
+export async function getAllBlogs(): Promise<PageData[]> {
   try {
     const directoryExists = await validateBlogDirectory();
     if (!directoryExists) return [];
@@ -42,7 +42,7 @@ export async function getAllBlogs(): Promise<Blog[]> {
     const blogs = await Promise.all(
       files.filter((filename) => filename.endsWith(".md")).map(processBlogFile),
     );
-    const validBlogs = blogs.filter(Boolean) as Blog[];
+    const validBlogs = blogs.filter(Boolean) as PageData[];
     return validBlogs.filter((blog) => blog.published);
   } catch (error) {
     console.error("Error reading blog directory:", error);
@@ -50,7 +50,7 @@ export async function getAllBlogs(): Promise<Blog[]> {
   }
 }
 
-export async function getLatestBlogs(): Promise<Blog[]> {
+export async function getLatestBlogs(): Promise<PageData[]> {
   const blogs = await getAllBlogs();
   return blogs
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
