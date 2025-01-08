@@ -1,12 +1,10 @@
-import { remark } from "remark";
-import html from "remark-html";
-import { notFound } from "next/navigation";
 import path from "path";
 import fs from "fs/promises";
 import matter from "gray-matter";
-import { BlogSchema, type Blog, BlogFrontmatter } from "./schema";
+import { BlogSchema, type Blog } from "./schema";
+import { BLOG_PATH } from "~/data/constants";
 
-const BLOG_DIRECTORY = path.join(process.cwd(), "app/blog/posts");
+const BLOG_DIRECTORY = path.join(process.cwd(), BLOG_PATH);
 
 async function validateBlogDirectory(): Promise<boolean> {
   try {
@@ -35,11 +33,6 @@ async function processBlogFile(filename: string): Promise<Blog | null> {
   }
 }
 
-async function getMarkdownContent(content: string): Promise<string> {
-  const processedContent = await remark().use(html).process(content);
-  return processedContent.toString();
-}
-
 export async function getAllBlogs(): Promise<Blog[]> {
   try {
     const directoryExists = await validateBlogDirectory();
@@ -54,31 +47,6 @@ export async function getAllBlogs(): Promise<Blog[]> {
   } catch (error) {
     console.error("Error reading blog directory:", error);
     return [];
-  }
-}
-
-export async function getBlog(
-  slug: string,
-): Promise<{ data: BlogFrontmatter; contentHtml: string }> {
-  try {
-    const filePath = path.join(BLOG_DIRECTORY, `${slug}.md`);
-    await fs.access(filePath);
-
-    const fileContent = await fs.readFile(filePath, "utf-8");
-    const { data: rawData, content } = matter(fileContent);
-    const data = BlogSchema.parse(rawData);
-
-    if (!data.published) {
-      console.log(`Post ${slug} is not published`);
-      return notFound();
-    }
-
-    const contentHtml = await getMarkdownContent(content);
-
-    return { data, contentHtml };
-  } catch (error) {
-    console.error("Error loading blog post:", error);
-    return notFound();
   }
 }
 
