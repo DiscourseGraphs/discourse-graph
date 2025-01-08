@@ -11,4 +11,4 @@ Lukas Kawerau (aka Cortex Futura) has a course that integrates the extension int
 
 Lukas gives a short overview of how in this tweet thread:
 
-https://x.com/cortexfutura/status/1441795897680011276
+[https://x.com/cortexfutura/status/1441795897680011276](https://x.com/cortexfutura/status/1441795897680011276)

@@ -1,13 +1,13 @@
 import { NavigationList } from "~/components/Navigation";
 
-const root = "/docs/roam";
+const ROOT = "/docs/roam";
 
 export const navigation: NavigationList = [
   {
     title: "🏠 Welcome!",
     links: [
-      { title: "Getting Started", href: `${root}/getting-started` },
-      { title: "Installation", href: `${root}/installation` },
+      { title: "Getting Started", href: `${ROOT}/getting-started` },
+      { title: "Installation", href: `${ROOT}/installation` },
     ],
   },
   {
@@ -15,27 +15,27 @@ export const navigation: NavigationList = [
     links: [
       {
         title: "Creating Nodes",
-        href: `${root}/creating-discourse-nodes`,
+        href: `${ROOT}/creating-discourse-nodes`,
       },
       {
         title: "Creating Relationships",
-        href: `${root}/creating-discourse-relationships`,
+        href: `${ROOT}/creating-discourse-relationships`,
       },
       {
         title: "Exploring",
-        href: `${root}/exploring-discourse-graph`,
+        href: `${ROOT}/exploring-discourse-graph`,
       },
       {
         title: "Querying",
-        href: `${root}/querying-discourse-graph`,
+        href: `${ROOT}/querying-discourse-graph`,
       },
       {
         title: "Extending",
-        href: `${root}/extending-personalizing-graph`,
+        href: `${ROOT}/extending-personalizing-graph`,
       },
       {
         title: "Sharing",
-        href: `${root}/sharing-discourse-graph`,
+        href: `${ROOT}/sharing-discourse-graph`,
       },
     ],
   },
@@ -44,15 +44,11 @@ export const navigation: NavigationList = [
     links: [
       {
         title: "What is a Discourse Graph?",
-        href: `${root}/what-is-discourse-graph`,
+        href: `${ROOT}/what-is-discourse-graph`,
       },
       {
         title: "Grammar",
-        href: `${root}/extension-grammar`,
-      },
-      {
-        title: "The Base Grammar",
-        href: `${root}/base-grammar`,
+        href: `${ROOT}/grammar`,
       },
     ],
   },
@@ -61,23 +57,23 @@ export const navigation: NavigationList = [
     links: [
       {
         title: "Literature Reviewing",
-        href: `${root}/literature-reviewing`,
+        href: `${ROOT}/literature-reviewing`,
       },
       {
         title: "Zettelkasten",
-        href: `${root}/enhanced-zettelkasten`,
+        href: `${ROOT}/enhanced-zettelkasten`,
       },
       {
         title: "Reading Clubs / Seminars",
-        href: `${root}/reading-clubs`,
+        href: `${ROOT}/reading-clubs`,
       },
       {
         title: "Lab notebooks",
-        href: `${root}/lab-notebooks`,
+        href: `${ROOT}/lab-notebooks`,
       },
       {
         title: "Product / Research Roadmapping",
-        href: `${root}/research-roadmapping`,
+        href: `${ROOT}/research-roadmapping`,
       },
     ],
   },
