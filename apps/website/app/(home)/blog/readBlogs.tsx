@@ -18,7 +18,7 @@ async function validateBlogDirectory(): Promise<boolean> {
 
 async function processBlogFile(filename: string): Promise<PageData | null> {
   try {
-    const filePath = path.join(BLOG_DIRECTORY, filename);
+    const filePath = path.resolve(BLOG_DIRECTORY, filename);
     const fileContent = await fs.readFile(filePath, "utf-8");
     const { data } = matter(fileContent);
     const validatedData = PageSchema.parse(data);
@@ -42,7 +42,7 @@ export async function getAllBlogs(): Promise<PageData[]> {
     const blogs = await Promise.all(
       files.filter((filename) => filename.endsWith(".md")).map(processBlogFile),
     );
-    const validBlogs = blogs.filter(Boolean) as PageData[];
+    const validBlogs = blogs.filter((blog): blog is PageData => blog !== null);
     return validBlogs.filter((blog) => blog.published);
   } catch (error) {
     console.error("Error reading blog directory:", error);

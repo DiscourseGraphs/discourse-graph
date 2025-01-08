@@ -11,12 +11,15 @@ export const getFileContent = async ({
   directory,
 }: Props): Promise<string> => {
   try {
-    const filePath = path.join(directory, filename);
+    const safeFilename = path.basename(filename);
+    const filePath = path.join(directory, safeFilename);
     const fileContent = await fs.readFile(filePath, "utf-8");
     return fileContent;
   } catch (error) {
-    throw new Error(
-      `Failed to read file ${filename}: ${error instanceof Error ? error.message : "Unknown error"}`,
-    );
+    throw error instanceof Error
+      ? new Error(`Failed to read file ${filename}: ${error.message}`, {
+          cause: error,
+        })
+      : new Error(`Failed to read file ${filename}: Unknown error`);
   }
 };

@@ -4,9 +4,10 @@ import remarkRehype from "remark-rehype";
 import rehypeStringify from "rehype-stringify";
 import { toString } from "mdast-util-to-string";
 import { visit } from "unist-util-visit";
+import type { Root } from "mdast";
 
 function remarkHeadingId() {
-  return (tree: any) => {
+  return (tree: Root) => {
     visit(tree, "heading", (node) => {
       const text = toString(node);
       const id = text

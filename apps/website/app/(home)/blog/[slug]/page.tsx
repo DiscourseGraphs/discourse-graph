@@ -45,7 +45,7 @@ export default async function BlogPost({ params }: Params) {
 
 export async function generateStaticParams() {
   try {
-    const blogPath = path.join(process.cwd(), BLOG_PATH);
+    const blogPath = path.resolve(process.cwd(), BLOG_PATH);
     // 1) Check if the directory exists
     const directoryExists = await fs
       .stat(blogPath)
