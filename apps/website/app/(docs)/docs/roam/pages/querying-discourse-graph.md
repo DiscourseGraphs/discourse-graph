@@ -1,5 +1,5 @@
 ---
-title: "Querying Discourse Graph"
+title: "Querying Your Discourse Graph"
 date: "2025-01-01"
 author: ""
 published: true

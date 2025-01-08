@@ -1,5 +1,5 @@
 ---
-title: "Sharing Discourse Graph"
+title: "Sharing Your Discourse Graph"
 date: "2025-01-01"
 author: ""
 published: true
