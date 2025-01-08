@@ -23,11 +23,20 @@ function remarkHeadingId() {
 }
 
 export async function getHtmlFromMarkdown(markdown: string): Promise<string> {
-  const htmlString = await unified()
-    .use(remarkParse)
-    .use(remarkHeadingId)
-    .use(remarkRehype)
-    .use(rehypeStringify)
-    .process(markdown);
-  return htmlString.toString();
+  if (!markdown) {
+    throw new Error('Markdown content is required');
+  }
+
+  try {
+    const htmlString = await unified()
+      .use(remarkParse)
+      .use(remarkHeadingId)
+      .use(remarkRehype)
+      .use(rehypeStringify)
+      .process(markdown);
+    return htmlString.toString();
+  } catch (error) {
+    console.error('Error processing markdown:', error);
+    throw new Error('Failed to process markdown content');
+  }
 }
