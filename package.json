@@ -29,7 +29,6 @@
     "tailwindConfig": "./packages/tailwind-config/tailwind.config.ts"
   },
   "dependencies": {
-    "posthog-js": "^1.203.1",
-    "rehype-parse": "^9.0.1"
+    "posthog-js": "^1.203.1"
   }
 }
