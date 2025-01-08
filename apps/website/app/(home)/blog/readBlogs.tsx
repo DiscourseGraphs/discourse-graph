@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs/promises";
 import matter from "gray-matter";
-import { BlogSchema, type Blog } from "./schema";
+import { BlogSchema, type Blog } from "~/types/schema";
 import { BLOG_PATH } from "~/data/constants";
 
 const BLOG_DIRECTORY = path.join(process.cwd(), BLOG_PATH);

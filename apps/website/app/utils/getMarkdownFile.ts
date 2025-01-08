@@ -1,7 +1,7 @@
 import { getHtmlFromMarkdown } from "~/utils/getHtmlFromMarkdown";
 import { getFileContent } from "~/utils/getFileContent";
 import { notFound } from "next/navigation";
-import { BlogFrontmatter, BlogSchema } from "~/(home)/blog/schema";
+import { DocumentFrontmatter, DocumentSchema } from "~/types/schema";
 import matter from "gray-matter";
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
 };
 
 type ProcessedMarkdownPage = {
-  data: BlogFrontmatter;
+  data: DocumentFrontmatter;
   contentHtml: string;
 };
 
@@ -24,7 +24,7 @@ export const getMarkdownPage = async ({
       directory,
     });
     const { data: rawData, content } = matter(fileContent);
-    const data = BlogSchema.parse(rawData);
+    const data = DocumentSchema.parse(rawData);
 
     if (!data.published) {
       console.log(`Post ${slug} is not published`);
