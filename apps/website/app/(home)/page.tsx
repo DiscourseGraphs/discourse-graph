@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@repo/ui/components/ui/card";
 import { ArrowBigDownDash, CircleGauge } from "lucide-react";
-import { getLatestBlogs } from "./blog/readBlogs";
+import { getLatestBlogs } from "~/(home)/blog/readBlogs";
 
 export default async function Home() {
   const blogs = await getLatestBlogs();
