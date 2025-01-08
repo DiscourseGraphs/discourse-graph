@@ -630,7 +630,7 @@ export default async function Home() {
           <Card id="contact" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
               <CardTitle className="mb-8 text-4xl font-bold text-primary">
-                Ecosystem
+                Contact
               </CardTitle>
             </CardHeader>
             <CardContent>
