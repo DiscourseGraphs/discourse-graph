@@ -18,38 +18,6 @@ type Params = {
 const PATH = "app/(docs)/docs/roam/pages";
 const DIRECTORY = path.join(process.cwd(), PATH);
 
-// export default async function Page({ params }: Params) {
-//   try {
-//     const { slug } = await params;
-//     const { data, contentHtml } = await getBlog(slug, DIRECTORY);
-
-//     return (
-//       <div className="flex flex-1 flex-col items-center bg-gray-50 px-6 py-12">
-//         <div className="w-full max-w-4xl">
-//           <header className="mb-8 text-center">
-//             <h1 className="mb-4 text-5xl font-bold leading-tight text-primary">
-//               {data.title}
-//             </h1>
-//           </header>
-//           <article
-//             className="prose prose-lg lg:prose-xl prose-gray mx-auto leading-relaxed text-gray-700"
-//             dangerouslySetInnerHTML={{ __html: contentHtml }}
-//           />
-//         </div>
-//       </div>
-//     );
-//   } catch (error) {
-//     console.error("Error rendering docs page:", error);
-//     return notFound();
-//   }
-// }
-
-// import { DocsHeader } from '@/components/DocsHeader'
-// import { PrevNextLinks } from '@/components/PrevNextLinks'
-// import { Prose } from '@/components/Prose'
-// import { TableOfContents } from '@/components/TableOfContents'
-// import { collectSections } from '@/lib/sections'
-
 export default async function Page({ params }: Params) {
   const { slug } = await params;
   const fileContent = await getFileContent(`${slug}.md`, DIRECTORY);
@@ -57,20 +25,7 @@ export default async function Page({ params }: Params) {
   const nodes = await extractHeadings(fileContent);
   const tableOfContents = collectSections(nodes);
 
-  return (
-    <>
-      <div className="min-w-0 max-w-2xl flex-auto px-4 py-8 lg:max-w-none lg:pl-8 lg:pr-0 xl:px-16">
-        <article className="[&::-webkit-scrollbar]:hidden">
-          <DocsHeader title={data.title} />
-          <Prose>
-            <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
-          </Prose>
-        </article>
-        {/* <PrevNextLinks /> */}
-      </div>
-      <TableOfContents tableOfContents={tableOfContents} />
-    </>
-  );
+          {/* <PrevNextLinks /> */}
 }
 
 export async function generateStaticParams() {
