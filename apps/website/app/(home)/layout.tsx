@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import "./globals.css";
-import { PostHogProvider } from "./providers";
+import "~/globals.css";
+import { PostHogProvider } from "../providers";
 import Link from "next/link";
 import Image from "next/image";
 import { Inter } from "next/font/google";
-import { getAllBlogs } from "./blog/readBlogs";
+import { getAllBlogs } from "~/(home)/blog/readBlogs";
 
 export const metadata: Metadata = {
   title: "Discourse Graphs | A Tool for Collaborative Knowledge Synthesis",
