@@ -63,7 +63,6 @@ async function getMarkdownContent(content: string): Promise<string> {
     .use(remarkRehype)
     .use(rehypeStringify)
     .process(content);
-  console.log(processedContent.toString());
   return processedContent.toString();
 }
 
