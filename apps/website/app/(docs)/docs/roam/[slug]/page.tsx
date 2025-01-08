@@ -2,12 +2,11 @@ import fs from "fs/promises";
 import path from "path";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import { getBlog, getFileContent } from "~/(home)/blog/readBlogs";
 import { DocsHeader } from "~/components/DocsHeader";
 import { Prose } from "~/components/Prose";
 import { collectSections } from "~/utils/sections";
-import { extractHeadings } from "~/utils/getNodes";
 import { TableOfContents } from "~/components/TableOfContents";
+import { getMarkdownPage } from "~/utils/getMarkdownFile";
 
 type Params = {
   params: Promise<{
@@ -19,13 +18,32 @@ const PATH = "app/(docs)/docs/roam/pages";
 const DIRECTORY = path.join(process.cwd(), PATH);
 
 export default async function Page({ params }: Params) {
-  const { slug } = await params;
-  const fileContent = await getFileContent(`${slug}.md`, DIRECTORY);
-  const { data, contentHtml } = await getBlog(slug, DIRECTORY);
-  const nodes = await extractHeadings(fileContent);
-  const tableOfContents = collectSections(nodes);
+  try {
+    const { slug } = await params;
+    const { data, contentHtml } = await getMarkdownPage({
+      slug,
+      directory: DIRECTORY,
+    });
+    const tableOfContents = await collectSections(contentHtml);
 
+    return (
+      <>
+        <div className="min-w-0 max-w-2xl flex-auto px-4 py-8 lg:max-w-none lg:pl-8 lg:pr-0 xl:px-16">
+          <article className="[&::-webkit-scrollbar]:hidden">
+            <DocsHeader title={data.title} />
+            <Prose>
+              <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
+            </Prose>
+          </article>
           {/* <PrevNextLinks /> */}
+        </div>
+        <TableOfContents tableOfContents={tableOfContents} />
+      </>
+    );
+  } catch (error) {
+    console.error("Error rendering docs page:", error);
+    return notFound();
+  }
 }
 
 export async function generateStaticParams() {
@@ -56,7 +74,10 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   try {
     const { slug } = await params;
-    const { data } = await getBlog(slug, DIRECTORY);
+    const { data } = await getMarkdownPage({
+      slug,
+      directory: DIRECTORY,
+    });
 
     return {
       title: data.title,

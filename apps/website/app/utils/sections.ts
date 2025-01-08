@@ -1,4 +1,7 @@
 import { slugifyWithCounter } from "@sindresorhus/slugify";
+import { unified } from "unified";
+import rehypeParse from "rehype-parse";
+import { Element, Text } from "hast";
 
 export type Node = {
   type: string;
@@ -56,10 +59,47 @@ export type Section = H2Node["attributes"] & {
   children: Array<Subsection>;
 };
 
-export function collectSections(
-  nodes: Array<Node>,
-  slugify = slugifyWithCounter(),
-) {
+const extractHeadings = async (html: string): Promise<Node[]> => {
+  const parsedHtml = unified().use(rehypeParse).parse(html);
+
+  const extractedHeadings: Node[] = [];
+
+  const traverse = (node: Element | Text): void => {
+    if (
+      node.type === "element" &&
+      /^h[1-6]$/.test(node.tagName) &&
+      node.children
+    ) {
+      extractedHeadings.push({
+        type: "heading",
+        attributes: {
+          level: parseInt(node.tagName[1] ?? "1", 10),
+          content: node.children
+            .map((child) =>
+              child.type === "text" ? (child as Text).value : "",
+            )
+            .join(""),
+        },
+        children: [],
+      });
+    }
+
+    if ("children" in node && Array.isArray(node.children)) {
+      node.children.forEach((child) => traverse(child as Element | Text));
+    }
+  };
+
+  if ("children" in parsedHtml && Array.isArray(parsedHtml.children)) {
+    parsedHtml.children.forEach((child) => traverse(child as Element | Text));
+  }
+
+  return extractedHeadings;
+};
+
+export async function collectSections(html: string) {
+  const nodes = await extractHeadings(html);
+  const slugify = slugifyWithCounter();
+
   let sections: Array<Section> = [];
 
   for (let node of nodes) {
@@ -84,8 +124,6 @@ export function collectSections(
         }
       }
     }
-
-    sections.push(...collectSections(node.children ?? [], slugify));
   }
 
   return sections;

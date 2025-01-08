@@ -2,7 +2,8 @@ import fs from "fs/promises";
 import path from "path";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import { getBlog } from "../readBlogs";
+import { getMarkdownPage } from "~/utils/getMarkdownFile";
+import { BLOG_PATH } from "~/data/constants";
 
 type Params = {
   params: Promise<{
@@ -13,7 +14,10 @@ type Params = {
 export default async function BlogPost({ params }: Params) {
   try {
     const { slug } = await params;
-    const { data, contentHtml } = await getBlog(slug);
+    const { data, contentHtml } = await getMarkdownPage({
+      slug,
+      directory: BLOG_PATH,
+    });
 
     return (
       <div className="flex flex-1 flex-col items-center bg-gray-50 px-6 py-12">
@@ -41,7 +45,7 @@ export default async function BlogPost({ params }: Params) {
 
 export async function generateStaticParams() {
   try {
-    const blogPath = path.join(process.cwd(), "app/blog/posts");
+    const blogPath = path.join(process.cwd(), BLOG_PATH);
     // 1) Check if the directory exists
     const directoryExists = await fs
       .stat(blogPath)
@@ -74,7 +78,10 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   try {
     const { slug } = await params;
-    const { data } = await getBlog(slug);
+    const { data } = await getMarkdownPage({
+      slug,
+      directory: BLOG_PATH,
+    });
 
     return {
       title: data.title,
