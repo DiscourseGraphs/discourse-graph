@@ -31,7 +31,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex min-h-full bg-white dark:bg-slate-900 [&::-webkit-scrollbar]:hidden">
-        {children}
+        <div className="w-full pt-[64px]">{children}</div>
       </body>
     </html>
   );
