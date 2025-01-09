@@ -7,6 +7,7 @@ import { Prose } from "~/components/Prose";
 import { TableOfContents } from "~/components/TableOfContents";
 import { getProcessedMarkdownFile } from "~/utils/getProcessedMarkdownFile";
 import { collectSections } from "~/utils/getSections";
+import { PrevNextLinks } from "~/components/PrevNextLinks";
 
 type Params = {
   params: Promise<{
@@ -35,6 +36,7 @@ export default async function Page({ params }: Params) {
               <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
             </Prose>
           </article>
+          <PrevNextLinks />
         </div>
         <TableOfContents tableOfContents={tableOfContents} />
       </>
