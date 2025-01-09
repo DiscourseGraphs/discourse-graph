@@ -15,7 +15,7 @@ const deploy = async () => {
 
   console.log("Deploying...");
   try {
-    compile({});
+    await compile({});
   } catch (error) {
     console.error("Deployment failed on compile:", error);
     process.exit(1);
