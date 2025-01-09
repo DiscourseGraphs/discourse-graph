@@ -55,7 +55,10 @@ export function Layout({
           <div className="absolute bottom-0 right-0 top-16 hidden h-12 w-px bg-gradient-to-t from-slate-800 dark:block" />
           <div className="absolute bottom-0 right-0 top-28 hidden w-px bg-slate-800 dark:block" />
           <div
-            className={`${customScrollbar} sticky top-[4.75rem] -ml-0.5 h-[calc(100vh-5rem)] w-64 overflow-y-auto overflow-x-hidden py-8 pl-0.5 pr-8 xl:w-72 xl:pr-16`}
+            // h-[calc(100vh-5rem)] gives proper scrollbar for tablet size (lg width, short height)
+            // but causes a slight jerk when navigating from a page length <100vh to >100vh
+            // h-fit will do for now
+            className={`${customScrollbar} sticky top-[4.75rem] -ml-0.5 h-fit w-64 overflow-y-auto overflow-x-hidden py-8 pl-0.5 pr-8 xl:w-72 xl:pr-16`}
           >
             <Navigation navigation={navigationList} />
           </div>
