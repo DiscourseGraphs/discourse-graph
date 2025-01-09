@@ -1,0 +1,12 @@
+diff --git a/node_modules/@tldraw/tldraw/dist/cjs/lib/Tldraw.js b/node_modules/@tldraw/tldraw/dist/cjs/lib/Tldraw.js
+index 64fa95f..accf671 100644
+--- a/node_modules/@tldraw/tldraw/dist/cjs/lib/Tldraw.js
++++ b/node_modules/@tldraw/tldraw/dist/cjs/lib/Tldraw.js
+@@ -25,6 +25,7 @@ var import_jsx_runtime = require("react/jsx-runtime");
+ var import_editor = require("@tldraw/editor");
+ var import_tlsync_client = require("@tldraw/tlsync-client");
+ var import_ui = require("@tldraw/ui");
++console.log("Tldraw");
+ function Tldraw(props) {
+   const { children, persistenceKey = import_tlsync_client.DEFAULT_DOCUMENT_NAME, instanceId = import_tlsync_client.TAB_ID, ...rest } = props;
+   const userData = (0, import_tlsync_client.getUserData)();
