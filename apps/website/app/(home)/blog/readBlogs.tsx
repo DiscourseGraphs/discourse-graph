@@ -1,12 +1,10 @@
-import { remark } from "remark";
-import html from "remark-html";
-import { notFound } from "next/navigation";
 import path from "path";
 import fs from "fs/promises";
 import matter from "gray-matter";
-import { BlogSchema, type Blog, BlogFrontmatter } from "./schema";
+import { BLOG_PATH } from "~/data/constants";
+import { PageSchema, type PageData } from "~/types/schema";
 
-const BLOG_DIRECTORY = path.join(process.cwd(), "app/blog/posts");
+const BLOG_DIRECTORY = path.join(process.cwd(), BLOG_PATH);
 
 async function validateBlogDirectory(): Promise<boolean> {
   try {
@@ -18,12 +16,12 @@ async function validateBlogDirectory(): Promise<boolean> {
   }
 }
 
-async function processBlogFile(filename: string): Promise<Blog | null> {
+async function processBlogFile(filename: string): Promise<PageData | null> {
   try {
-    const filePath = path.join(BLOG_DIRECTORY, filename);
+    const filePath = path.resolve(BLOG_DIRECTORY, filename);
     const fileContent = await fs.readFile(filePath, "utf-8");
     const { data } = matter(fileContent);
-    const validatedData = BlogSchema.parse(data);
+    const validatedData = PageSchema.parse(data);
 
     return {
       slug: filename.replace(/\.md$/, ""),
@@ -35,12 +33,7 @@ async function processBlogFile(filename: string): Promise<Blog | null> {
   }
 }
 
-async function getMarkdownContent(content: string): Promise<string> {
-  const processedContent = await remark().use(html).process(content);
-  return processedContent.toString();
-}
-
-export async function getAllBlogs(): Promise<Blog[]> {
+export async function getAllBlogs(): Promise<PageData[]> {
   try {
     const directoryExists = await validateBlogDirectory();
     if (!directoryExists) return [];
@@ -49,7 +42,7 @@ export async function getAllBlogs(): Promise<Blog[]> {
     const blogs = await Promise.all(
       files.filter((filename) => filename.endsWith(".md")).map(processBlogFile),
     );
-    const validBlogs = blogs.filter(Boolean) as Blog[];
+    const validBlogs = blogs.filter((blog): blog is PageData => blog !== null);
     return validBlogs.filter((blog) => blog.published);
   } catch (error) {
     console.error("Error reading blog directory:", error);
@@ -57,32 +50,7 @@ export async function getAllBlogs(): Promise<Blog[]> {
   }
 }
 
-export async function getBlog(
-  slug: string,
-): Promise<{ data: BlogFrontmatter; contentHtml: string }> {
-  try {
-    const filePath = path.join(BLOG_DIRECTORY, `${slug}.md`);
-    await fs.access(filePath);
-
-    const fileContent = await fs.readFile(filePath, "utf-8");
-    const { data: rawData, content } = matter(fileContent);
-    const data = BlogSchema.parse(rawData);
-
-    if (!data.published) {
-      console.log(`Post ${slug} is not published`);
-      return notFound();
-    }
-
-    const contentHtml = await getMarkdownContent(content);
-
-    return { data, contentHtml };
-  } catch (error) {
-    console.error("Error loading blog post:", error);
-    return notFound();
-  }
-}
-
-export async function getLatestBlogs(): Promise<Blog[]> {
+export async function getLatestBlogs(): Promise<PageData[]> {
   const blogs = await getAllBlogs();
   return blogs
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
