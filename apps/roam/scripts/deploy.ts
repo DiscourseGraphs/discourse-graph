@@ -15,7 +15,7 @@ const deploy = async () => {
 
   console.log("Deploying...");
   try {
-    compile({});
+    await compile({});
   } catch (error) {
     console.error("Deployment failed on compile:", error);
     process.exit(1);
@@ -79,7 +79,7 @@ const deploy = async () => {
 
     console.log("Deploy completed successfully!");
     const url = `https://discoursegraphs.com/releases/${resolvedWorkspace}/${resolvedBranch}`;
-    console.log(`\x1b]8;;${url}\x1b\\🔗 Click to copy: ${url}\x1b]8;;\x1b\\`);
+    console.log(`🔗 ${url}`);
   } catch (error) {
     console.error("Deploy failed:", error);
     process.exit(1);
