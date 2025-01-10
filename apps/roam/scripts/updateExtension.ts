@@ -57,6 +57,7 @@ function getHomeDir(): string {
 }
 
 // Execute git commands safely without exposing tokens
+
 async function execGitCommand(
   command: string,
   options: Record<string, any> = {},
@@ -71,6 +72,14 @@ async function execGitCommand(
         GIT_TERMINAL_PROMPT: "0",
       },
     });
+
+    // Log both stdout and stderr
+    console.log(`Command: ${command}`);
+    console.log(`stdout: ${stdout.trim()}`);
+    if (stderr) {
+      console.log(`stderr: ${stderr.trim()}`);
+    }
+
     return stdout.trim();
   } catch (error) {
     const sanitizedError = new Error(
@@ -79,7 +88,6 @@ async function execGitCommand(
     throw sanitizedError;
   }
 }
-
 // Clone repository safely
 async function cloneRepository(): Promise<void> {
   const token = getRequiredEnvVar("GITHUB_TOKEN");
