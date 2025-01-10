@@ -27,6 +27,10 @@
         "GITHUB_REF_NAME",
         "GITHUB_HEAD_REF"
       ]
+    },
+    "update:extension": {
+      "cache": false,
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
     }
   }
 }
