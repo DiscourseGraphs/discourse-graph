@@ -124,15 +124,23 @@ async function updateExtensionFile(commitHash: string): Promise<void> {
   }
 }
 
-// Create and push PR branch
+// Commit
 async function updateSourceCommit(commitHash: string): Promise<void> {
   const commands = [
     `cd ${config.tempDir}`,
     `git config user.name "GitHub Actions"`,
     `git config user.email "actions@github.com"`,
+
+    `git checkout main`,
+
+    // Pull to ensure you're up to date
+    `git pull origin main --rebase`,
+    `git remote add origin https://github.com/${config.owner}/${config.repo}.git`,
+
     `git add .`,
     `git commit -m "Update source_commit to ${commitHash}"`,
-    `git push origin main`, // Push directly to main instead of creating PR
+    // Force push to overwrite the branch
+    `git push -f origin main`,
   ];
 
   // Execute git commands with detailed error reporting
