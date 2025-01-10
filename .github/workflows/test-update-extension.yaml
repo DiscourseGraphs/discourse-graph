@@ -7,8 +7,7 @@ on:
   push:
     branches:
       - update-roam-depot-extension
-    paths:
-      - "apps/roam/**"
+    
 
 jobs:
   update-extension:
