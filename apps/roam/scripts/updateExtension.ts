@@ -128,6 +128,8 @@ async function updateExtensionFile(commitHash: string): Promise<void> {
 async function updateSourceCommit(commitHash: string): Promise<void> {
   const commands = [
     `cd ${config.tempDir}`,
+    `pwd`,
+    `ls`,
     `git config user.name "GitHub Actions"`,
     `git config user.email "actions@github.com"`,
 
