@@ -33,5 +33,5 @@ jobs:
 
       - name: Update Roam Depot Extension
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx turbo run --filter=roam update:extension

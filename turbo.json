@@ -30,7 +30,8 @@
     },
     "update:extension": {
       "cache": false,
-      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "passThroughEnv": ["GITHUB_TOKEN"]
     }
   }
 }
