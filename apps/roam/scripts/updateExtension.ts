@@ -90,6 +90,7 @@ async function cloneRepository(): Promise<void> {
     cwd: config.tempDir,
   });
 
+  const token = process.env.GITHUB_TOKEN;
   const credentialsContent = `https://${token}:x-oauth-basic@github.com`;
   await fs.writeFile(
     path.join(config.tempDir, ".git-credentials"),
