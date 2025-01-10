@@ -1,0 +1,32 @@
+name: Test Update Roam Extension Metadata
+on:
+  # Manual trigger
+  workflow_dispatch:
+
+  # This will run on any commit to your PR branch
+  push:
+    branches:
+      - update-roam-depot-extension
+    paths:
+      - "apps/roam/**"
+
+jobs:
+  update-extension:
+    runs-on: ubuntu-latest
+     permissions: 
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update Roam Depot Extension
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        working-directory: apps/roam
+        run: npx turbo run update:extension
