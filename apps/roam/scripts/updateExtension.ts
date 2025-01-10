@@ -23,14 +23,8 @@ function generateBranchName(commitHash: string): string {
   return `update-source-commit-${timestamp}-${shortHash}`;
 }
 
-function generateTempDir(): string {
-  const timestamp = generateTimestamp();
-  const random = generateRandomString();
-  return `temp_roam_depot_${timestamp}_${random}`;
-}
-
 const config = {
-  tempDir: generateTempDir(),
+  tempDir: "/tmp/test-roam-depot",
   repoUrl: "https://github.com/DiscourseGraphs/test-roam-depot.git",
   targetFile: "extension/DiscourseGraphs/discourseGraph.json",
   owner: "DiscourseGraphs",
@@ -90,8 +84,6 @@ async function execGitCommand(
 }
 // Clone repository safely
 async function cloneRepository(): Promise<void> {
-  const token = getRequiredEnvVar("GITHUB_TOKEN");
-
   await execGitCommand(`git clone ${config.repoUrl} ${config.tempDir}`);
   await execGitCommand(`pwd`);
 }
