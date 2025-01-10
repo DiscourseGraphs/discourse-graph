@@ -117,26 +117,46 @@ async function updateExtensionFile(commitHash: string): Promise<void> {
 
 // Commit
 async function updateSourceCommit(commitHash: string): Promise<void> {
+  const token = getRequiredEnvVar("GITHUB_TOKEN");
+
   const commands = [
     `pwd`,
     `git config user.name "GitHub Actions"`,
     `git config user.email "actions@github.com"`,
     `git add .`,
     `git commit -m "Update source_commit to ${commitHash}"`,
+    // Set the remote URL with authentication before pushing
+    `git remote set-url origin https://x-access-token:${token}@github.com/${config.owner}/${config.repo}.git`,
     `git push origin main`,
   ];
 
   // Execute git commands with detailed error reporting
   for (const command of commands) {
     try {
+      // Don't log the command if it contains the token
+      if (!command.includes(token)) {
+        console.log(`Executing: ${command}`);
+      }
       await execGitCommand(command, { cwd: config.tempDir });
-      console.log(`Successfully executed: ${command}`);
+      if (!command.includes(token)) {
+        console.log(`Successfully executed: ${command}`);
+      }
     } catch (error) {
+      // Sanitize error message if it contains the token
+      const sanitizedCommand = command.includes(token)
+        ? command.replace(token, "***")
+        : command;
       throw new Error(
-        `Failed at step "${command}": ${(error as Error).message}`,
+        `Failed at step "${sanitizedCommand}": ${(error as Error).message}`,
       );
     }
   }
+
+  // Reset the remote URL to remove the token
+  await execGitCommand(
+    `git remote set-url origin https://github.com/${config.owner}/${config.repo}.git`,
+    { cwd: config.tempDir },
+  );
 }
 
 // Cleanup temporary directory
