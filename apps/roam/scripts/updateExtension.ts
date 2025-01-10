@@ -125,44 +125,26 @@ async function updateExtensionFile(commitHash: string): Promise<void> {
 }
 
 // Create and push PR branch
-async function createPullRequest(commitHash: string): Promise<void> {
-  const branchName = config.getBranchName(commitHash);
+async function updateSourceCommit(commitHash: string): Promise<void> {
   const commands = [
     `cd ${config.tempDir}`,
     `git config user.name "GitHub Actions"`,
     `git config user.email "actions@github.com"`,
-    `git checkout -b ${branchName}`,
     `git add .`,
     `git commit -m "Update source_commit to ${commitHash}"`,
-    `git push origin ${branchName}`,
+    `git push origin main`, // Push directly to main instead of creating PR
   ];
 
   // Execute git commands with detailed error reporting
   for (const command of commands) {
     try {
       await execGitCommand(command);
+      console.log(`Successfully executed: ${command}`);
     } catch (error) {
       throw new Error(
         `Failed at step "${command}": ${(error as Error).message}`,
       );
     }
-  }
-
-  // Create PR using GitHub API
-  try {
-    const octokit = new Octokit({ auth: getRequiredEnvVar("GITHUB_TOKEN") });
-    const { data: pr } = await octokit.pulls.create({
-      owner: config.owner,
-      repo: config.repo,
-      title: `Update source_commit to ${commitHash}`,
-      head: branchName,
-      base: "main",
-      body: `Automated PR to update source_commit reference to ${commitHash}`,
-    });
-
-    console.log(`Created PR #${pr.number}: ${pr.html_url}`);
-  } catch (error) {
-    throw new Error(`Failed to create PR: ${(error as Error).message}`);
   }
 }
 
@@ -170,7 +152,6 @@ async function createPullRequest(commitHash: string): Promise<void> {
 async function cleanup(): Promise<void> {
   try {
     await fs.rm(config.tempDir, { recursive: true, force: true });
-    // Also clean up credentials file
     const credentialsPath = path.join(getHomeDir(), ".git-credentials");
     await fs.unlink(credentialsPath).catch(() => {}); // Ignore if file doesn't exist
   } catch (error) {
@@ -186,7 +167,7 @@ export async function updateExtension(): Promise<void> {
 
     await cloneRepository();
     await updateExtensionFile(commitHash);
-    await createPullRequest(commitHash);
+    await updateSourceCommit(commitHash);
 
     console.log("Successfully created PR with updated source_commit");
   } catch (error) {
