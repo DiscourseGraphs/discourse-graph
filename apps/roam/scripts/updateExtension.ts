@@ -85,7 +85,6 @@ async function execGitCommand(
 // Clone repository safely
 async function cloneRepository(): Promise<void> {
   await execGitCommand(`git clone ${config.repoUrl} ${config.tempDir}`);
-  await execGitCommand(`pwd`);
 }
 
 // Get current commit hash
@@ -111,7 +110,6 @@ async function updateExtensionFile(commitHash: string): Promise<void> {
 // Commit
 async function updateSourceCommit(commitHash: string): Promise<void> {
   const commands = [
-    `cd ${config.tempDir}`,
     `pwd`,
     `ls`,
     `git config user.name "GitHub Actions"`,
@@ -132,7 +130,7 @@ async function updateSourceCommit(commitHash: string): Promise<void> {
   // Execute git commands with detailed error reporting
   for (const command of commands) {
     try {
-      await execGitCommand(command);
+      await execGitCommand(command, { cwd: config.tempDir });
       console.log(`Successfully executed: ${command}`);
     } catch (error) {
       throw new Error(
