@@ -111,20 +111,11 @@ async function updateExtensionFile(commitHash: string): Promise<void> {
 async function updateSourceCommit(commitHash: string): Promise<void> {
   const commands = [
     `pwd`,
-    `ls`,
     `git config user.name "GitHub Actions"`,
     `git config user.email "actions@github.com"`,
-
-    `git checkout main`,
-
-    // Pull to ensure you're up to date
-    `git pull origin main --rebase`,
-    `git remote add origin https://github.com/${config.owner}/${config.repo}.git`,
-
     `git add .`,
     `git commit -m "Update source_commit to ${commitHash}"`,
-    // Force push to overwrite the branch
-    `git push -f origin main`,
+    `git push origin main`,
   ];
 
   // Execute git commands with detailed error reporting
