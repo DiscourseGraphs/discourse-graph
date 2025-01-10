@@ -87,9 +87,7 @@ async function cloneRepository(): Promise<void> {
   const token = getRequiredEnvVar("GITHUB_TOKEN");
 
   // Use git config instead of embedding token in URL
-  await execGitCommand(
-    `git clone https://github.com/${config.repoUrl} ${config.tempDir}`,
-  );
+  await execGitCommand(`git clone ${config.repoUrl} ${config.tempDir}`);
   await execGitCommand(
     `git -C ${config.tempDir} config http.https://github.com/.extraheader "AUTHORIZATION: basic ${Buffer.from(`x-access-token:${token}`).toString("base64")}"`,
   );
