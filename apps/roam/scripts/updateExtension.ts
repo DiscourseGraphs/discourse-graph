@@ -92,24 +92,8 @@ async function execGitCommand(
 async function cloneRepository(): Promise<void> {
   const token = getRequiredEnvVar("GITHUB_TOKEN");
 
-  // First clone without authentication
   await execGitCommand(`git clone ${config.repoUrl} ${config.tempDir}`);
-
-  // Set up the remote with credentials via git config
-  await execGitCommand("git config --local credential.helper store", {
-    cwd: config.tempDir,
-  });
-
-  // Configure the credentials file separately
-  const credentialsPath = path.join(getHomeDir(), ".git-credentials");
-  await fs.writeFile(
-    credentialsPath,
-    `https://x-access-token:${token}@github.com\n`,
-    { mode: 0o600 },
-  );
-
-  // Verify remote access
-  await execGitCommand("git fetch origin", { cwd: config.tempDir });
+  await execGitCommand(`pwd`);
 }
 
 // Get current commit hash
