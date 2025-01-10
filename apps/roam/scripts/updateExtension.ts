@@ -85,6 +85,19 @@ async function execGitCommand(
 // Clone repository safely
 async function cloneRepository(): Promise<void> {
   await execGitCommand(`git clone ${config.repoUrl} ${config.tempDir}`);
+
+  await execGitCommand(`git config credential.helper store`, {
+    cwd: config.tempDir,
+  });
+
+  const credentialsContent = `https://${token}:x-oauth-basic@github.com`;
+  await fs.writeFile(
+    path.join(config.tempDir, ".git-credentials"),
+    credentialsContent,
+    "utf8",
+  );
+
+  // Now Git will read .git-credentials for pushing to GitHub
 }
 
 // Get current commit hash
