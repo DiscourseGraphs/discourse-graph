@@ -17,6 +17,7 @@ const config = {
 // Safe way to get environment variable with type checking
 function getRequiredEnvVar(name: string): string {
   const value = process.env[name];
+  console.log(`Env var ${name}: ${value}`);
   if (!value) {
     throw new Error(`${name} environment variable is required`);
   }

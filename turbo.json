@@ -31,7 +31,7 @@
     "update:extension": {
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "passThroughEnv": ["GITHUB_TOKEN"]
+      "passThroughEnv": ["GITHUB_TOKEN", "DG_GITHUB_APP_PRIVATE_KEY"]
     }
   }
 }
