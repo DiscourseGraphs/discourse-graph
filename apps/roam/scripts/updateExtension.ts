@@ -3,6 +3,7 @@ import path from "path";
 import util from "util";
 import axios from "axios";
 import apiPut from "roamjs-components/util/apiPut";
+import apiGet from "roamjs-components/util/apiGet";
 
 const execPromise = util.promisify(exec);
 
@@ -78,9 +79,26 @@ const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
   const encoder = new TextEncoder();
   const uint8Array = encoder.encode(content);
   const base64Content = btoa(String.fromCharCode(...uint8Array));
+  let sha = "";
+
+  try {
+    // get sha of the file use github app token
+    const getResponse = await apiGet<{ data: { sha: string } }>({
+      domain: "https://api.github.com",
+      path: `repos/${selectedRepo}/contents/${config.targetFile}`,
+      headers: {
+        Authorization: `token ${gitHubAccessToken}`,
+      },
+    });
+    sha = getResponse.data.sha;
+  } catch (error) {
+    console.error("Failed to get sha of the file:", (error as Error).message);
+    throw error;
+  }
 
   try {
     // https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-or-update-file-contents
+
     const response = await apiPut({
       domain: "https://api.github.com",
       path: `repos/${selectedRepo}/contents/${config.targetFile}`,
@@ -90,6 +108,7 @@ const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
       data: {
         message: `Add ${config.targetFile}`,
         content: base64Content,
+        sha: sha,
       },
     });
     if (response.status === 401) {
