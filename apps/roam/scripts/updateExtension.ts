@@ -3,6 +3,8 @@ import util from "util";
 import apiPut from "roamjs-components/util/apiPut";
 import apiGet from "roamjs-components/util/apiGet";
 import axios from "axios";
+import { Octokit } from "octokit";
+import { createAppAuth } from "@octokit/auth-app";
 
 const execPromise = util.promisify(exec);
 
@@ -56,39 +58,27 @@ async function execGitCommand(
     throw sanitizedError;
   }
 }
-
 // Get current commit hash
 async function getCurrentCommitHash(): Promise<string> {
   return await execGitCommand("git rev-parse HEAD");
 }
 
-const writeFileToRepo = async (): Promise<{ status: number }> => {
-  const gitHubAccessToken = getRequiredEnvVar("GITHUB_TOKEN");
-  const privateKey = getRequiredEnvVar("APP_PRIVATE_KEY");
-  const selectedRepo = `${config.owner}/${config.repo}`;
+async function updateFileInOtherRepo() {
+  // 1) Initialize Octokit using GitHub App credentials
+  const octokit = new Octokit({
+    authStrategy: createAppAuth,
+    auth: {
+      appId: parseInt(getRequiredEnvVar("APP_ID"), 10),
+      privateKey: getRequiredEnvVar("APP_PRIVATE_KEY"),
+      installationId: 59416220,
+    },
+  });
+  // 2) (Optional) get commit hash from current repo
+  const commitHash = await getCurrentCommitHash();
+  console.log(`Current commit hash: ${commitHash}`);
 
-  let sha = "";
-  console.log("Getting sha of the file");
-  try {
-    // get sha of the file use github app token
-    const getResponse = await axios.get<{ sha: string }>(
-      `https://api.github.com/repos/${selectedRepo}/contents/${config.targetFile}`,
-      {
-        headers: {
-          Authorization: `Bearer ${gitHubAccessToken}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      },
-    );
-    sha = getResponse.data.sha;
-  } catch (error) {
-    console.error("Failed to get sha of the file:", (error as Error).message);
-    // console.error("Error:", error);
-    throw error;
-  }
-
-  const content = JSON.stringify({
+  // 3) Build new file content
+  const newContent = JSON.stringify({
     name: "Test Extension",
     short_description: "Prints 'Test message 1'",
     author: "Nikita Prokopov",
@@ -98,45 +88,58 @@ const writeFileToRepo = async (): Promise<{ status: number }> => {
     source_commit: getCurrentCommitHash(),
   });
 
-  const encoder = new TextEncoder();
-  const uint8Array = encoder.encode(content);
-  const base64Content = btoa(String.fromCharCode(...uint8Array));
-  console.log("sha", sha);
+  const contentBase64 = Buffer.from(newContent).toString("base64");
+
+  // 4) Get existing file’s SHA (so we can update it)
+  let sha = "";
   try {
-    // https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-or-update-file-contents
-    const response = await axios.put(
-      `https://api.github.com/repos/${selectedRepo}/contents/${config.targetFile}`,
+    const getResponse = await octokit.request(
+      "GET /repos/{owner}/{repo}/contents/{path}",
       {
-        message: `Add ${config.targetFile}`,
-        content: base64Content,
-        sha: sha,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${privateKey}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
+        owner: config.owner,
+        repo: config.repo,
+        path: config.targetFile,
       },
     );
-    if (response.status === 401) {
-      throw new Error("Authentication failed");
+    // The response data shape can differ, but typically { sha, content, ... }
+    sha = (getResponse.data as { sha: string }).sha;
+    console.log("File exists. Current SHA:", sha);
+  } catch (error: any) {
+    if (error.status === 404) {
+      // File not found -> you could create it new
+      console.log(
+        `File not found. Will create a new one: ${config.targetFile}`,
+      );
+    } else {
+      throw new Error(`Could not retrieve file: ${error.message}`);
     }
-    return { status: response.status };
-  } catch (error) {
-    const e = error as Error;
-    console.error("final error", error);
-    if (e.message.includes('"sha" wasn\'t supplied.')) {
-      throw new Error("File already exists");
-    }
-    throw new Error("File already exists");
   }
-};
+
+  // 5) Update (or create) the file
+  try {
+    const response = await octokit.request(
+      "PUT /repos/{owner}/{repo}/contents/{path}",
+      {
+        owner: config.owner,
+        repo: config.repo,
+        path: config.targetFile,
+        message: `Update ${config.targetFile} from current repo`,
+        content: contentBase64,
+        sha, // omit `sha` if you want to create a file that doesn't exist yet
+      },
+    );
+
+    console.log("Successfully updated/created file in other repo!");
+    console.log("Response:", response.status);
+  } catch (error: any) {
+    throw new Error(`Failed to update file: ${error.message}`);
+  }
+}
 
 // Main function with proper error handling
 export async function updateExtension(): Promise<void> {
   try {
-    await writeFileToRepo();
+    await updateFileInOtherRepo();
 
     console.log("Successfully created PR with updated source_commit");
   } catch (error) {
