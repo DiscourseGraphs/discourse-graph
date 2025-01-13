@@ -1,0 +1,29 @@
+name: Test Update Roam Extension Metadata
+on:
+  workflow_dispatch:
+
+env:
+  MG_PAT: ${{ secrets.MG_PAT }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  update-extension:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Update Roam Depot Extension
+        run: npx turbo run publish --filter=roam

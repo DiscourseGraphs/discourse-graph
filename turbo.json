@@ -27,6 +27,11 @@
         "GITHUB_REF_NAME",
         "GITHUB_HEAD_REF"
       ]
+    },
+    "publish": {
+      "cache": false,
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "passThroughEnv": ["GITHUB_TOKEN", "MG_PAT"]
     }
   }
 }

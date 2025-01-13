@@ -1,10 +1,10 @@
-import esbuild from "esbuild";
 import dotenv from "dotenv";
-import { compile, args } from "./compile";
+import { compile } from "./compile";
 import * as path from "path";
 import * as fs from "fs";
-import { execSync } from "child_process";
+import { exec } from "child_process";
 import axios from "axios";
+import util from "util";
 
 dotenv.config();
 
@@ -29,28 +29,89 @@ const getVersion = (root = "."): string => {
   return json.version;
 };
 
+function getRequiredEnvVar(name: string): string {
+  const value = process.env[name];
+  console.log(`Env var ${name}: ${value}`);
+  if (!value) {
+    throw new Error(`${name} environment variable is required`);
+  }
+  return value;
+}
+
+const execPromise = util.promisify(exec);
+
+async function execGitCommand(
+  command: string,
+  options: Record<string, any> = {},
+): Promise<string> {
+  const token = getRequiredEnvVar("GITHUB_TOKEN");
+  try {
+    const { stdout, stderr } = await execPromise(command, {
+      ...options,
+      env: {
+        ...process.env,
+        GIT_ASKPASS: "echo",
+        GIT_TERMINAL_PROMPT: "0",
+      },
+    });
+
+    // Log both stdout and stderr
+    console.log(`Command: ${command}`);
+    console.log(`stdout: ${stdout.trim()}`);
+    if (stderr) {
+      console.log(`stderr: ${stderr.trim()}`);
+    }
+
+    return stdout.trim();
+  } catch (error) {
+    const sanitizedError = new Error(
+      (error as Error).message.replace(token, "***"),
+    );
+    throw sanitizedError;
+  }
+}
+
+// Get current commit hash
+async function getCurrentCommitHash(): Promise<string> {
+  return await execGitCommand("git rev-parse HEAD");
+}
+
 const publish = async () => {
   process.env = {
     ...process.env,
-    NODE_ENV: process.env.NODE_ENV || "production",
+    NODE_ENV: "production",
   };
+  const username = "DiscourseGraphs";
+  const publishRepo = "roam-depot";
+  const destPath = `extensions/${username}/discourse-graph`;
 
-  console.log("Compiling ...");
+  let sha = "";
+  console.log("Getting sha of the file");
   try {
-    await compile({});
+    const gitHubAccessToken = getRequiredEnvVar("GITHUB_TOKEN");
+    if (!gitHubAccessToken) throw new Error("GITHUB_TOKEN is not set");
+    const getResponse = await axios.get<{ sha: string }>(
+      `https://api.github.com/repos/${username}/${publishRepo}/contents/${destPath}.json`,
+      {
+        headers: {
+          Authorization: `Bearer ${gitHubAccessToken}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      },
+    );
+    sha = getResponse.data.sha;
   } catch (error) {
-    console.error("Compile failed:", error);
-    process.exit(1);
+    console.error("Failed to get sha of the file:", (error as Error).message);
+    // console.error("Error:", error);
+    throw error;
   }
 
   console.log("Publishing ...");
   try {
-    const token = process.env.GITHUB_TOKEN;
-    if (!token) throw new Error("GITHUB_TOKEN is not set");
+    const privateKey = getRequiredEnvVar("MG_PAT");
+    if (!privateKey) throw new Error("MG_PAT is not set");
 
-    const username = "DiscourseGraphs";
-    const publishRepo = "roam-depot";
-    const destPath = `extensions/${username}/discourse-graph`;
     const version = getVersion();
     const message = "Release " + version;
 
@@ -69,7 +130,7 @@ const publish = async () => {
 
     const opts = {
       headers: {
-        Authorization: `token ${token}`,
+        Authorization: `Bearer ${privateKey}`,
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
       },
@@ -77,6 +138,7 @@ const publish = async () => {
     const url = `https://api.github.com/repos/${username}/${publishRepo}/contents/${destPath}.json`;
     const data = {
       message,
+      sha,
       content: base64Content,
     };
 
