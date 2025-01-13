@@ -63,7 +63,7 @@ export const renderNodeConfigPage = ({
           // @ts-ignore
           {
             title: "Format",
-            description: `DEPRACATED - Use specification instead. The format ${nodeText} pages should have.`,
+            description: `DEPRECATED - Use specification instead. The format ${nodeText} pages should have.`,
             defaultValue: "\\",
             Panel: TextPanel,
             options: {
