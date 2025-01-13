@@ -2,8 +2,9 @@ import dotenv from "dotenv";
 import * as path from "path";
 import * as fs from "fs";
 import { exec } from "child_process";
-import axios from "axios";
 import util from "util";
+import { Octokit } from "@octokit/core";
+import { createAppAuth } from "@octokit/auth-app";
 
 dotenv.config();
 
@@ -79,72 +80,79 @@ const publish = async () => {
   };
   const username = "DiscourseGraphs";
   const publishRepo = "roam-depot";
-  const destPath = `extensions/${username}/discourse-graph`;
+  const destPath = `extensions/${username}/discourse-graph.json`;
+
+  // 1) Initialize Octokit using GitHub App credentials
+  const octokit = new Octokit({
+    authStrategy: createAppAuth,
+    auth: {
+      appId: parseInt(getRequiredEnvVar("APP_ID"), 10),
+      privateKey: getRequiredEnvVar("APP_PRIVATE_KEY"),
+      installationId: 59416220,
+    },
+  });
+
+  // 2) get commit hash from current repo
+  const commitHash = await getCurrentCommitHash();
+  console.log(`Current commit hash: ${commitHash}`);
+
+  const metadata: ExtensionMetadata = {
+    name: "Discourse Graph",
+    short_description:
+      "A tool and ecosystem for collaborative knowledge synthesis",
+    author: "The Discourse Graphs Project",
+    source_url: `https://github.com/DiscourseGraphs/discourse-graph`,
+    source_repo: `https://github.com/DiscourseGraphs/discourse-graph.git`,
+    source_commit: commitHash,
+    source_subdir: "apps/roam",
+  };
+
+  const fileContent = JSON.stringify(metadata, null, 2);
+  const base64Content = Buffer.from(fileContent).toString("base64");
 
   let sha = "";
   console.log("Getting sha of the file");
   try {
-    const gitHubAccessToken = getRequiredEnvVar("GITHUB_TOKEN");
-    const getResponse = await axios.get<{ sha: string }>(
-      `https://api.github.com/repos/${username}/${publishRepo}/contents/${destPath}.json`,
+    const getResponse = await octokit.request(
+      "GET /repos/{owner}/{repo}/contents/{path}",
       {
-        headers: {
-          Authorization: `Bearer ${gitHubAccessToken}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
+        owner: username,
+        repo: publishRepo,
+        path: destPath,
       },
     );
-    sha = getResponse.data.sha;
-  } catch (error) {
-    console.error("Failed to get sha of the file:", (error as Error).message);
-    throw error;
+    sha = (getResponse.data as { sha: string }).sha;
+    console.log("File exists. Current SHA:", sha);
+  } catch (error: any) {
+    if (error.status === 404) {
+      // File not found -> you could create it new
+      console.log(`File not found. Will create a new one: ${destPath}`);
+    } else {
+      throw new Error(`Could not retrieve file: ${error.message}`);
+    }
   }
 
   console.log("Publishing ...");
+  // 5) Update (or create) the file
   try {
-    const privateKey = getRequiredEnvVar("MG_PAT");
-
     const version = getVersion();
     const message = "Release " + version;
 
-    const metadata: ExtensionMetadata = {
-      name: "Discourse Graph",
-      short_description:
-        "A tool and ecosystem for collaborative knowledge synthesis",
-      author: "The Discourse Graphs Project",
-      source_url: `https://github.com/DiscourseGraphs/discourse-graph`,
-      source_repo: `https://github.com/DiscourseGraphs/discourse-graph.git`,
-      source_commit: await getCurrentCommitHash(),
-      source_subdir: "apps/roam",
-    };
-    const fileContent = JSON.stringify(metadata, null, 2);
-    const base64Content = Buffer.from(fileContent).toString("base64");
-
-    const opts = {
-      headers: {
-        Authorization: `Bearer ${privateKey}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
+    const response = await octokit.request(
+      "PUT /repos/{owner}/{repo}/contents/{path}",
+      {
+        owner: username,
+        repo: publishRepo,
+        path: destPath,
+        message: message,
+        content: base64Content,
+        sha,
       },
-    };
-    const url = `https://api.github.com/repos/${username}/${publishRepo}/contents/${destPath}.json`;
-    const data = {
-      message,
-      sha,
-      content: base64Content,
-    };
-
+    );
     console.log(`Updating json at ${publishRepo}/${destPath} to github`);
-    try {
-      await axios.put(url, data, opts);
-    } catch (error) {
-      console.error("Failed to post to github", error);
-      process.exit(1);
-    }
-  } catch (error) {
-    console.error("Failed", error);
-    process.exit(1);
+    console.log("Response:", response.status);
+  } catch (error: any) {
+    throw new Error(`Failed to post to github: ${error}`);
   }
 };
 

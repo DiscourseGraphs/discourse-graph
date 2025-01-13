@@ -3,8 +3,9 @@ on:
   workflow_dispatch:
 
 env:
-  MG_PAT: ${{ secrets.MG_PAT }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+  APP_ID: ${{ secrets.APP_ID }}
 
 jobs:
   update-extension:
