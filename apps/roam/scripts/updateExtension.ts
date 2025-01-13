@@ -62,10 +62,32 @@ async function getCurrentCommitHash(): Promise<string> {
   return await execGitCommand("git rev-parse HEAD");
 }
 
-const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
+const writeFileToRepo = async (): Promise<{ status: number }> => {
   const gitHubAccessToken = getRequiredEnvVar("DG_GITHUB_APP_PRIVATE_KEY");
   const selectedRepo = `${config.owner}/${config.repo}`;
-  console.log(`access token: ${gitHubAccessToken.slice(0, 10)}...`);
+
+  let sha = "";
+  console.log("Getting sha of the file");
+  try {
+    // get sha of the file use github app token
+    const getResponse = await axios.get<{ sha: string }>(
+      `https://api.github.com/repos/${selectedRepo}/contents/${config.targetFile}`,
+      {
+        headers: {
+          Authorization: `Bearer ${gitHubAccessToken}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      },
+    );
+    console.log("Get response:", getResponse.data);
+    sha = getResponse.data.sha;
+  } catch (error) {
+    console.error("Failed to get sha of the file:", (error as Error).message);
+    // console.error("Error:", error);
+    throw error;
+  }
+
   const content = JSON.stringify({
     name: "Test Extension",
     short_description: "Prints 'Test message 1'",
@@ -79,33 +101,9 @@ const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
   const encoder = new TextEncoder();
   const uint8Array = encoder.encode(content);
   const base64Content = btoa(String.fromCharCode(...uint8Array));
-  let sha = "";
-
-  try {
-    // get sha of the file use github app token
-
-    console.log("selected repo", selectedRepo);
-    const getResponse = await axios.get<{ sha: string }>(
-      `https://api.github.com/repos/${selectedRepo}/contents/${config.targetFile}`,
-      {
-        headers: {
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-          Authorization: "Bearer ${gitHubAccessToken}",
-        },
-      },
-    );
-    console.log("Get response:", getResponse.data);
-    sha = getResponse.data.sha;
-  } catch (error) {
-    console.error("Failed to get sha of the file:", (error as Error).message);
-    // console.error("Error:", error);
-    throw error;
-  }
 
   try {
     // https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-or-update-file-contents
-
     const response = await apiPut({
       domain: "https://api.github.com",
       path: `repos/${selectedRepo}/contents/${config.targetFile}`,
@@ -134,10 +132,7 @@ const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
 // Main function with proper error handling
 export async function updateExtension(): Promise<void> {
   try {
-    const commitHash = await getCurrentCommitHash();
-    console.log(`Current commit hash: ${commitHash}`);
-
-    await writeFileToRepo({ commitHash });
+    await writeFileToRepo();
 
     console.log("Successfully created PR with updated source_commit");
   } catch (error) {
