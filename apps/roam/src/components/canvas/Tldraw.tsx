@@ -47,8 +47,8 @@ import ExtensionApiContextProvider, {
 } from "roamjs-components/components/ExtensionApiContext";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import { useRoamStore } from "./useRoamStore";
-import { createUiOverrides } from "./uiOverrides";
+import { useRoamStore } from "~/utils/useRoamStore";
+import { createUiOverrides } from "~/utils/canvasUiOverrides";
 import { DiscourseNodeShape, DiscourseNodeUtil } from "./DiscourseNodeUtil";
 import {
   AddReferencedNodeType,

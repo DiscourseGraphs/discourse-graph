@@ -5,7 +5,7 @@ import discourseConfigRef from "./discourseConfigRef";
 import registerDiscourseDatalogTranslators from "./registerDiscourseDatalogTranslators";
 import { unregisterDatalogTranslator } from "./conditionToDatalog";
 import type { PullBlock } from "roamjs-components/types/native";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/settings/configPages";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 
 const getPagesStartingWithPrefix = (prefix: string) =>
   (

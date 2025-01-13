@@ -1,31 +1,25 @@
 import { addStyle } from "roamjs-components/dom";
 import { render as renderToast } from "roamjs-components/components/Toast";
-
+import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 import { runExtension } from "roamjs-components/util";
-
 import { queryBuilderLoadedToast } from "./data/toastMessages";
-
 import runQuery from "./utils/runQuery";
 import isDiscourseNode from "./utils/isDiscourseNode";
 import { fireQuerySync } from "./utils/fireQuery";
 import parseQuery from "./utils/parseQuery";
 import refreshConfigTree from "./utils/refreshConfigTree";
-
-import styles from "./styles/styles.css";
-import settingsStyles from "./styles/settingsStyles.css";
-import discourseGraphStyles from "./styles/discourseGraphStyles.css";
-
-import { registerCommandPaletteCommands } from "./settings/commandPalette";
-import { createSettingsPanel } from "./settings/settingsPanel";
-
+import { registerCommandPaletteCommands } from "./utils/registerCommandPaletteCommands";
+import { createSettingsPanel } from "~/utils/createSettingsPanel";
 import { listActiveQueries } from "./utils/listActiveQueries";
 import { registerSmartBlock } from "./utils/registerSmartBlock";
 import { initObservers } from "./utils/initializeObserversAndListeners";
 import { addGraphViewNodeStyling } from "./utils/graphViewNodeStyling";
 import { setQueryPages } from "./utils/setQueryPages";
 import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
+import styles from "./styles/styles.css";
+import settingsStyles from "./styles/settingsStyles.css";
+import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
-import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -87,7 +81,7 @@ export default runExtension(async (onloadArgs) => {
   setQueryPages(onloadArgs);
 
   const style = addStyle(styles);
-  const dgraphStyles = addStyle(discourseGraphStyles);
+  const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
 
   const { observers, listeners } = await initObservers({ onloadArgs });
@@ -112,7 +106,7 @@ export default runExtension(async (onloadArgs) => {
   };
 
   return {
-    elements: [style, settingsStyle, dgraphStyles],
+    elements: [style, settingsStyle, discourseGraphStyle],
     observers: observers,
     unload: () => {
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");

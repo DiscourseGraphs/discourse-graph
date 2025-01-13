@@ -6,7 +6,7 @@ import DiscourseRelationConfigPanel from "./DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import DiscourseGraphHome from "./GeneralSettings";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/settings/configPages";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
 import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";

@@ -90,7 +90,7 @@ const NodeConfig = ({
             <div className="flex flex-col gap-4 p-1">
               <TextPanel
                 title="Format"
-                description={`DEPRACATED - Use specification instead. The format ${node.text} pages should have.`}
+                description={`DEPRECATED - Use specification instead. The format ${node.text} pages should have.`}
                 order={0}
                 parentUid={node.type}
                 uid={formatUid}
