@@ -2,8 +2,12 @@ import fs from "fs/promises";
 import path from "path";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { DocsHeader } from "~/components/DocsHeader";
+import { Prose } from "~/components/Prose";
+import { TableOfContents } from "~/components/TableOfContents";
 import { getProcessedMarkdownFile } from "~/utils/getProcessedMarkdownFile";
-import { BLOG_PATH } from "~/data/constants";
+import { collectSections } from "~/utils/getSections";
+import { PrevNextLinks } from "~/components/PrevNextLinks";
 
 type Params = {
   params: Promise<{
@@ -11,59 +15,52 @@ type Params = {
   }>;
 };
 
-export default async function BlogPost({ params }: Params) {
+const PATH = "app/(docs)/docs/roam/pages";
+const DIRECTORY = path.join(process.cwd(), PATH);
+
+export default async function Page({ params }: Params) {
   try {
     const { slug } = await params;
     const { data, contentHtml } = await getProcessedMarkdownFile({
       slug,
-      directory: BLOG_PATH,
+      directory: DIRECTORY,
     });
+    const tableOfContents = await collectSections(contentHtml);
 
     return (
-      <div className="flex flex-1 flex-col items-center bg-gray-50 px-6 py-12">
-        <div className="w-full max-w-4xl">
-          <header className="mb-8 text-center">
-            <h1 className="mb-4 text-5xl font-bold leading-tight text-primary">
-              {data.title}
-            </h1>
-            <p className="text-sm italic text-gray-500">
-              By {data.author} • {data.date}
-            </p>
-          </header>
-          <article
-            className="prose prose-lg lg:prose-xl prose-gray mx-auto leading-relaxed text-gray-700"
-            dangerouslySetInnerHTML={{ __html: contentHtml }}
-          />
+      <>
+        <div className="min-w-0 max-w-2xl flex-auto px-4 py-8 lg:max-w-none lg:pl-8 lg:pr-0 xl:px-16">
+          <article className="[&::-webkit-scrollbar]:hidden">
+            <DocsHeader title={data.title} />
+            <Prose>
+              <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
+            </Prose>
+          </article>
+          <PrevNextLinks />
         </div>
-      </div>
+        <TableOfContents tableOfContents={tableOfContents} />
+      </>
     );
   } catch (error) {
-    console.error("Error rendering blog post:", error);
+    console.error("Error rendering docs page:", error);
     return notFound();
   }
 }
 
 export async function generateStaticParams() {
   try {
-    const blogPath = path.resolve(process.cwd(), BLOG_PATH);
-    // 1) Check if the directory exists
     const directoryExists = await fs
-      .stat(blogPath)
+      .stat(DIRECTORY)
       .then((stats) => stats.isDirectory())
       .catch(() => false);
 
-    // 2) If it's missing, return empty
     if (!directoryExists) {
-      console.log(
-        "No app/blog/posts directory found. Returning empty params...",
-      );
+      console.log("No docs directory found");
       return [];
     }
 
-    // 3) If it exists, read it
-    const files = await fs.readdir(blogPath);
+    const files = await fs.readdir(DIRECTORY);
 
-    // 4) Filter .md files to build the slug array
     return files
       .filter((filename) => filename.endsWith(".md"))
       .map((filename) => ({
@@ -80,7 +77,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     const { slug } = await params;
     const { data } = await getProcessedMarkdownFile({
       slug,
-      directory: BLOG_PATH,
+      directory: DIRECTORY,
     });
 
     return {
@@ -90,7 +87,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   } catch (error) {
     console.error("Error generating metadata:", error);
     return {
-      title: "Blog Post",
+      title: "Docs",
     };
   }
 }

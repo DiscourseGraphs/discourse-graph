@@ -14,18 +14,18 @@ type ProcessedMarkdownPage = {
   contentHtml: string;
 };
 
-export const getMarkdownPage = async ({
+export const getProcessedMarkdownFile = async ({
   slug,
   directory,
 }: Props): Promise<ProcessedMarkdownPage> => {
   try {
     if (!slug || !directory) {
-      throw new Error('Both slug and directory are required');
+      throw new Error("Both slug and directory are required");
     }
 
     // Prevent directory traversal
-    if (slug.includes('..') || directory.includes('..')) {
-      throw new Error('Invalid path');
+    if (slug.includes("..") || directory.includes("..")) {
+      throw new Error("Invalid path");
     }
 
     const fileContent = await getFileContent({
