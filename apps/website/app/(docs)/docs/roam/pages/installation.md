@@ -5,10 +5,12 @@ author: ""
 published: true
 ---
 
-The Discourse Graphs extension can be installed via Roam Depot:
+The Discourse Graphs extension will soon be available for installation via Roam Depot.
 
-![](/docs/roam/roam-depot-sidebar.png)
+While in development, you can load the extension by using the Load Developer Extensions from URL option:
 
-![](/docs/roam/roam-depot-settings.png)
+https://discoursegraphs.com/releases/roam
 
-Then type in "Discourse Graphs" in the search bar and click install.
+![](/docs/roam/load-from-url1.png)
+
+![](/docs/roam/load-from-url2.png)

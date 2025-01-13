@@ -8,7 +8,7 @@ For more information about Discourse Graphs, check out our website at [https://d
 
 **WIP** as we transition from the Query Builder plugin to the new Discourse Graphs extension.
 
-- [Discourse Graphs](https://oasis-lab.gitbook.io/roamresearch-discourse-graph-extension) documentation
+- [Discourse Graphs](https://discoursegraphs.com/docs/roam) documentation
 - [Query Builder](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md) documentation
 
 ## Nomenclature
