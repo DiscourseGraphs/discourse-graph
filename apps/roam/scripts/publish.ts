@@ -79,7 +79,7 @@ const publish = async () => {
     NODE_ENV: "production",
   };
   const username = "DiscourseGraphs";
-  const publishRepo = "roam-depot";
+  const publishRepo = "test-roam-depot";
   const destPath = `extension/${username}/discourseGraph.json`;
 
   // 1) Initialize Octokit using GitHub App credentials
