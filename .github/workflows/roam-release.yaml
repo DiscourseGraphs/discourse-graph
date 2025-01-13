@@ -1,4 +1,4 @@
-name: Test Update Roam Extension Metadata
+name: Update Roam Extension Metadata
 on:
   workflow_dispatch:
 
