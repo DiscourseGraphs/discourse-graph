@@ -80,7 +80,6 @@ const writeFileToRepo = async (): Promise<{ status: number }> => {
         },
       },
     );
-    console.log("Get response:", getResponse.data);
     sha = getResponse.data.sha;
   } catch (error) {
     console.error("Failed to get sha of the file:", (error as Error).message);
@@ -101,7 +100,7 @@ const writeFileToRepo = async (): Promise<{ status: number }> => {
   const encoder = new TextEncoder();
   const uint8Array = encoder.encode(content);
   const base64Content = btoa(String.fromCharCode(...uint8Array));
-
+  console.log("sha", sha);
   try {
     // https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-or-update-file-contents
     const response = await apiPut({
@@ -122,6 +121,7 @@ const writeFileToRepo = async (): Promise<{ status: number }> => {
     return { status: response.status };
   } catch (error) {
     const e = error as Error;
+    console.error("final error", error);
     if (e.message.includes('"sha" wasn\'t supplied.')) {
       throw new Error("File already exists");
     }
