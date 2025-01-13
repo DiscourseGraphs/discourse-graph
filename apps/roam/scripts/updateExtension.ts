@@ -64,6 +64,7 @@ async function getCurrentCommitHash(): Promise<string> {
 
 const writeFileToRepo = async (): Promise<{ status: number }> => {
   const gitHubAccessToken = getRequiredEnvVar("GITHUB_TOKEN");
+  const privateKey = getRequiredEnvVar("APP_PRIVATE_KEY");
   const selectedRepo = `${config.owner}/${config.repo}`;
 
   let sha = "";
@@ -112,7 +113,7 @@ const writeFileToRepo = async (): Promise<{ status: number }> => {
       },
       {
         headers: {
-          Authorization: `token ${getRequiredEnvVar("DG_GITHUB_APP_PRIVATE_KEY")}`,
+          Authorization: `token ${privateKey}`,
           Accept: "application/vnd.github+json",
           "X-GitHub-Api-Version": "2022-11-28",
         },

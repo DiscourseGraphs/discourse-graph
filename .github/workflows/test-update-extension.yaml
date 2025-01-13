@@ -9,6 +9,7 @@ on:
       - update-roam-depot-extension
 env:
   DG_GITHUB_APP_PRIVATE_KEY: ${{ secrets.DG_GITHUB_APP_PRIVATE_KEY }}
+  APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
 jobs:
   update-extension:
