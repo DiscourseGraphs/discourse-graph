@@ -17,7 +17,7 @@ type ExtensionMetadata = {
   source_repo: string;
   source_commit: string;
   source_subdir?: string;
-  stripe_account?: string; // for payouts from Roam
+  stripe_account?: string;
 };
 
 const getVersion = (root = "."): string => {
@@ -82,7 +82,6 @@ const publish = async () => {
   const publishRepo = "roam-depot";
   const destPath = `extensions/${username}/discourse-graph.json`;
 
-  // 1) Initialize Octokit using GitHub App credentials
   const octokit = new Octokit({
     authStrategy: createAppAuth,
     auth: {
@@ -92,7 +91,6 @@ const publish = async () => {
     },
   });
 
-  // 2) get commit hash from current repo
   const commitHash = await getCurrentCommitHash();
   console.log(`Current commit hash: ${commitHash}`);
 
@@ -125,7 +123,6 @@ const publish = async () => {
     console.log("File exists. Current SHA:", sha);
   } catch (error: any) {
     if (error.status === 404) {
-      // File not found -> you could create it new
       console.log(`File not found. Will create a new one: ${destPath}`);
     } else {
       throw new Error(`Could not retrieve file: ${error.message}`);
@@ -133,7 +130,6 @@ const publish = async () => {
   }
 
   console.log("Publishing ...");
-  // 5) Update (or create) the file
   try {
     const version = getVersion();
     const message = "Release " + version;
