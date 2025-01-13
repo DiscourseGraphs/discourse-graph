@@ -9,10 +9,9 @@ import { createConfigObserver } from "roamjs-components/components/ConfigPage";
 import { renderTldrawCanvas } from "~/components/canvas/Tldraw";
 import { renderQueryPage, renderQueryBlock } from "~/components/QueryBuilder";
 import {
-  configPageTabs,
   DISCOURSE_CONFIG_PAGE_TITLE,
   renderNodeConfigPage,
-} from "~/settings/configPages";
+} from "~/utils/renderNodeConfigPage";
 import isFlagEnabled from "~/utils/isFlagEnabled";
 import { isCurrentPageCanvas as isCanvasPage } from "~/utils/isCanvasPage";
 import { isDiscourseNodeConfigPage as isNodeConfigPage } from "~/utils/isDiscourseNodeConfigPage";
@@ -34,6 +33,7 @@ import {
   render as renderDiscourseNodeMenu,
 } from "~/components/DiscourseNodeMenu";
 import { IKeyCombo } from "@blueprintjs/core";
+import { configPageTabs } from "~/utils/configPageTabs";
 
 export const initObservers = async ({
   onloadArgs,

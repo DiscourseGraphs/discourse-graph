@@ -9,8 +9,8 @@ import {
 } from "roamjs-components/dom";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { OnloadArgs } from "roamjs-components/types";
-import getDiscourseNodes from "../utils/getDiscourseNodes";
-import fireQuery from "../utils/fireQuery";
+import getDiscourseNodes from "./getDiscourseNodes";
+import fireQuery from "./fireQuery";
 
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";

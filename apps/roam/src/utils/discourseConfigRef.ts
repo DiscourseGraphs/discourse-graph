@@ -7,7 +7,7 @@ import {
   getUidAndStringSetting,
   getUidAndBooleanSetting,
 } from "./getExportSettings";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/settings/configPages";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 const configTreeRef: {
