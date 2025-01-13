@@ -112,7 +112,7 @@ const writeFileToRepo = async (): Promise<{ status: number }> => {
       },
       {
         headers: {
-          Authorization: `token ${gitHubAccessToken}`,
+          Authorization: `token ${getRequiredEnvVar("DG_GITHUB_APP_PRIVATE_KEY")}`,
           Accept: "application/vnd.github+json",
           "X-GitHub-Api-Version": "2022-11-28",
         },
