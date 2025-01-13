@@ -19,7 +19,7 @@ import { Filters } from "roamjs-components/components/Filter";
 import getSubTree from "roamjs-components/util/getSubTree";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import createBlock from "roamjs-components/writes/createBlock";
-import Export from "../Export";
+import Export from "~/components/Export";
 import parseQuery from "~/utils/parseQuery";
 import { getDatalogQuery } from "~/utils/fireQuery";
 import parseResultSettings, { Sorts } from "~/utils/parseResultSettings";

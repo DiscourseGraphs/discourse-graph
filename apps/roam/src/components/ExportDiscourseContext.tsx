@@ -21,10 +21,10 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getLinkedPageTitlesUnderUid from "roamjs-components/queries/getLinkedPageTitlesUnderUid";
 import getPageTitlesAndBlockUidsReferencingPage from "roamjs-components/queries/getPageTitlesAndBlockUidsReferencingPage";
-import isDiscourseNode from "../utils/isDiscourseNode";
-import getDiscourseContextResults from "../utils/getDiscourseContextResults";
+import isDiscourseNode from "~/utils/isDiscourseNode";
+import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import { render as exportRender } from "./Export";
-import { Result } from "../utils/types";
+import { Result } from "~/utils/types";
 import posthog from "posthog-js";
 
 type UpdateProgressWithDelay = (params: {

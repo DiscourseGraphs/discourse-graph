@@ -1,6 +1,5 @@
 import {
   Button,
-  Checkbox,
   H6,
   InputGroup,
   Switch,
@@ -27,13 +26,12 @@ import {
   isTargetVariable,
   sourceToTargetOptions,
   sourceToTargetPlaceholder,
-} from "../utils/conditionToDatalog";
-import getSubTree from "roamjs-components/util/getSubTree";
+} from "~/utils/conditionToDatalog";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getNthChildUidByBlockUid from "roamjs-components/queries/getNthChildUidByBlockUid";
 import getChildrenLengthByPageUid from "roamjs-components/queries/getChildrenLengthByPageUid";
-import parseQuery, { DEFAULT_RETURN_NODE } from "../utils/parseQuery";
-import { getDatalogQuery } from "../utils/fireQuery";
+import parseQuery, { DEFAULT_RETURN_NODE } from "~/utils/parseQuery";
+import { getDatalogQuery } from "~/utils/fireQuery";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import {
   Condition,
@@ -42,9 +40,9 @@ import {
   QBNestedData,
   QBClauseData,
   Selection,
-} from "../utils/types";
+} from "~/utils/types";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
-import { ALL_SELECTION_SUGGESTIONS } from "../utils/predefinedSelections";
+import { ALL_SELECTION_SUGGESTIONS } from "~/utils/predefinedSelections";
 
 const getSourceCandidates = (cs: Condition[]): string[] =>
   cs.flatMap((c) =>

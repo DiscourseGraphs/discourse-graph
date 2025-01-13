@@ -5,7 +5,7 @@ import type {
 } from "roamjs-components/types/native";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
-import DEFAULT_RELATION_VALUES from "../data/defaultDiscourseRelations";
+import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import discourseConfigRef from "./discourseConfigRef";
 
 export type Triple = readonly [string, string, string];

@@ -7,7 +7,7 @@ import deleteBlock from "roamjs-components/writes/deleteBlock";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
-import QueryEditor from "../QueryEditor";
+import QueryEditor from "~/components/QueryEditor";
 
 const NodeSpecification = ({
   parentUid,

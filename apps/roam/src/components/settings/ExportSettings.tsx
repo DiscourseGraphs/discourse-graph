@@ -1,6 +1,5 @@
 import React from "react";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
-
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
 import MultiTextPanel from "roamjs-components/components/ConfigPanels/MultiTextPanel";

@@ -14,12 +14,12 @@ import createPage from "roamjs-components/writes/createPage";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import getParentUidByBlockUid from "roamjs-components/queries/getParentUidByBlockUid";
 import renderOverlay from "roamjs-components/util/renderOverlay";
-import fireQuery from "../utils/fireQuery";
-import parseQuery from "../utils/parseQuery";
+import fireQuery from "~/utils/fireQuery";
+import parseQuery from "~/utils/parseQuery";
 import ResultsView from "./results-view/ResultsView";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import QueryEditor from "./QueryEditor";
-import { Column } from "../utils/types";
+import { Column } from "~/utils/types";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import posthog from "posthog-js";
 

@@ -6,8 +6,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import fireQuery from "../utils/fireQuery";
-import parseQuery from "../utils/parseQuery";
+import fireQuery from "~/utils/fireQuery";
+import parseQuery from "~/utils/parseQuery";
 import type { Result } from "roamjs-components/types/query-builder";
 import ResultsView from "./results-view/ResultsView";
 import ReactDOM from "react-dom";
@@ -21,7 +21,7 @@ import { OnloadArgs } from "roamjs-components/types/native";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
 } from "roamjs-components/components/ExtensionApiContext";
-import { Column } from "../utils/types";
+import { Column } from "~/utils/types";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import posthog from "posthog-js";
 

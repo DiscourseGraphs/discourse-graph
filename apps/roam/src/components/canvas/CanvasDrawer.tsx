@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import ResizableDrawer from "../ResizableDrawer";
+import ResizableDrawer from "~/components/ResizableDrawer";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import { Button, Collapse, Checkbox } from "@blueprintjs/core";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";

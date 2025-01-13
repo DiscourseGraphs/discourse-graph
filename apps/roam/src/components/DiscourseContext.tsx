@@ -19,14 +19,8 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import { Result } from "roamjs-components/types/query-builder";
 import nanoId from "nanoid";
-import getDiscourseContextResults from "../utils/getDiscourseContextResults";
+import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import ResultsView from "./results-view/ResultsView";
-import { getPageTitleValueByHtmlElement } from "roamjs-components/dom";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
-import isDiscourseNode from "~/utils/isDiscourseNode";
-import CanvasReferences from "./canvas/CanvasReferences";
-import { OnloadArgs } from "roamjs-components/types/native";
 import posthog from "posthog-js";
 
 export type DiscourseContextResults = Awaited<

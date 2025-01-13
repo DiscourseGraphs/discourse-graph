@@ -11,7 +11,7 @@ import React, { useMemo, useState } from "react";
 import createBlock from "roamjs-components/writes/createBlock";
 import getChildrenLengthByPageUid from "roamjs-components/queries/getChildrenLengthByPageUid";
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
-import importDiscourseGraph from "../utils/importDiscourseGraph";
+import importDiscourseGraph from "~/utils/importDiscourseGraph";
 
 const ImportDialog = ({ onClose }: { onClose: () => void }) => {
   const [loading, setLoading] = useState(false);

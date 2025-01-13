@@ -1,6 +1,5 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { Label, NumericInput, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { getSettings } from "~/utils/parseResultSettings";
