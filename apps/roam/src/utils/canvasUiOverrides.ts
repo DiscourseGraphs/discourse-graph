@@ -13,15 +13,15 @@ import {
   SubMenu,
 } from "@tldraw/tldraw";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import { COLOR_ARRAY, discourseContext } from "./Tldraw";
-import { formatHexColor } from "../settings/DiscourseNodeCanvasSettings";
-import { openCanvasDrawer } from "./CanvasDrawer";
+import { COLOR_ARRAY, discourseContext } from "~/components/canvas/Tldraw";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
+import { openCanvasDrawer } from "~/components/canvas/CanvasDrawer";
 import { OnloadArgs } from "roamjs-components/types";
 import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import renderToast from "roamjs-components/components/Toast";
-import { AddReferencedNodeType } from "./DiscourseRelationsUtil";
+import { AddReferencedNodeType } from "~/components/canvas/DiscourseRelationsUtil";
 
 type TldrawAppRef = React.MutableRefObject<TldrawApp | undefined>;
 type CreateUiOverridesProps = {
