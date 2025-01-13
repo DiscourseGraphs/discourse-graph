@@ -645,7 +645,7 @@ export default async function Home() {
                   favorite Tool for Thought and would love to hear from you.
                 </p>
                 <p className="text-neutral-dark">
-                  <Link href="mailto:discoursegraphs@protocol.ai">
+                  <Link href="mailto:discoursegraphs@homeworld.bio">
                     Send us a line
                   </Link>{" "}
                   if you're interested in helping to{" "}
