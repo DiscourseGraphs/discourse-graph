@@ -1,10 +1,7 @@
 name: Update Roam Extension Metadata
 on:
   workflow_dispatch:
-  pull_request:
-    types:
-      - opened
-      - synchronize
+
 env:
   MG_PAT: ${{ secrets.MG_PAT }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
