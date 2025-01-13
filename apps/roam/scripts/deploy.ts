@@ -13,13 +13,14 @@ const deploy = async () => {
     NODE_ENV: process.env.NODE_ENV || "production",
   };
 
-  console.log("Deploying...");
+  console.log("Deploying ...");
   try {
     await compile({});
   } catch (error) {
     console.error("Deployment failed on compile:", error);
     process.exit(1);
   }
+
   try {
     const resolvedWorkspace = "roam";
     if (!resolvedWorkspace) throw new Error("Workspace is required");
@@ -94,9 +95,6 @@ const main = async () => {
     process.exit(1);
   }
 };
-
-if (require.main === module) {
-  main();
-}
+if (require.main === module) main();
 
 export default deploy;
