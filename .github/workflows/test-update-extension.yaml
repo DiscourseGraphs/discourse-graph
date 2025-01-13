@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - update-roam-depot-extension
+env:
+  DG_GITHUB_APP_PRIVATE_KEY: ${{ secrets.DG_GITHUB_APP_PRIVATE_KEY }}
 
 jobs:
   update-extension:
@@ -32,6 +34,4 @@ jobs:
         run: npm install
 
       - name: Update Roam Depot Extension
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx turbo run --filter=roam update:extension
