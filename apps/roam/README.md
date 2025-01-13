@@ -6,7 +6,7 @@ For more information about Discourse Graphs, check out our website at [https://d
 
 ## Table of Contents
 
-**WIP** as we transition from the Query Builder plugin to the new Discourse Graphs extension.
+**WIP**
 
 - [Discourse Graphs](https://discoursegraphs.com/docs/roam) documentation
 - [Query Builder](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md) documentation
@@ -18,13 +18,3 @@ There are some important terms to know and have exact definitions on since they 
 - `Page` - A Page is anything in Roam that was created with `[[brackets]]`, `#hashtag`, `#[[hashtag with brackets]]`, or `Attribute::`. Clicking on these links in your graph takes you to its designated page, each with its own unique title, and they have no parent.
 - `Block` - A bullet or line of text in Roam. While you can also go to pages that have a zoomed in block view, their content is not unique, and they always have one parent.
 - `Node` - A superset of `Block`s and `Page`s.
-
-## Load Extension
-
-While in development, you can load the extension by using the `Load Developer Extensions from URL` option:
-
-https://discoursegraphs.com/releases/roam
-
-![image](https://github.com/user-attachments/assets/60bf48ae-ec94-4581-9ae3-8af90fb7bb88)
-
-![image](https://github.com/user-attachments/assets/a890641d-1f6a-47a6-aceb-e18fda388b5d)

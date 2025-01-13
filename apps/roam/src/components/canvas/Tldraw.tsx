@@ -29,8 +29,6 @@ import {
 } from "@tldraw/tldraw";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import createBlock from "roamjs-components/writes/createBlock";
-import "@tldraw/tldraw/editor.css";
-import "@tldraw/tldraw/ui.css";
 import { InputTextNode, OnloadArgs } from "roamjs-components/types";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
@@ -59,7 +57,8 @@ import {
 } from "./DiscourseRelationsUtil";
 import { isPageUid } from "~/utils/isPageUid";
 import posthog from "posthog-js";
-
+import "@tldraw/tldraw/editor.css";
+import "@tldraw/tldraw/ui.css";
 declare global {
   interface Window {
     tldrawApps: Record<string, TldrawApp>;

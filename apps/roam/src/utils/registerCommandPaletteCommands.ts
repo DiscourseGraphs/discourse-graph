@@ -1,6 +1,6 @@
-import { openCanvasDrawer } from "../components/canvas/CanvasDrawer";
-import { openQueryDrawer } from "../components/QueryDrawer";
-import { render as exportRender } from "../components/Export";
+import { openCanvasDrawer } from "~/components/canvas/CanvasDrawer";
+import { openQueryDrawer } from "~/components/QueryDrawer";
+import { render as exportRender } from "~/components/Export";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { createBlock, updateBlock } from "roamjs-components/writes";
 import {
@@ -11,7 +11,6 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { OnloadArgs } from "roamjs-components/types";
 import getDiscourseNodes from "./getDiscourseNodes";
 import fireQuery from "./fireQuery";
-
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
 

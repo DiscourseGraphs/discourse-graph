@@ -10,7 +10,7 @@ import getDiscourseNodes from "./getDiscourseNodes";
 import isFlagEnabled from "./isFlagEnabled";
 import matchDiscourseNode from "./matchDiscourseNode";
 import getDiscourseRelations from "./getDiscourseRelations";
-import type { ExportDialogProps } from "../components/Export";
+import type { ExportDialogProps } from "~/components/Export";
 import getPageMetadata from "./getPageMetadata";
 import getDiscourseContextResults from "./getDiscourseContextResults";
 import fireQuery from "./fireQuery";

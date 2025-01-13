@@ -25,7 +25,7 @@ import LabelDialog from "./LabelDialog";
 import { isPageUid } from "~/utils/isPageUid";
 import { loadImage } from "~/utils/loadImage";
 import { DiscourseRelationShape } from "./DiscourseRelationsUtil";
-import { formatHexColor } from "../settings/DiscourseNodeCanvasSettings";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 
 // from @tldraw/editor/editor.css

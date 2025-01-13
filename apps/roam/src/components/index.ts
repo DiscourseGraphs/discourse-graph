@@ -12,7 +12,7 @@ export { ExportGithub as ExportGithub } from "./ExportGithub";
 export { default as ImportDialog } from "./ImportDialog";
 export { default as LivePreview } from "./LivePreview";
 export { render as renderQueryDrawer } from "./QueryDrawer";
-export { default as QueryDrawer } from "./QueryDrawer";
+export { openQueryDrawer as QueryDrawer } from "./QueryDrawer";
 export { default as QueryEditor } from "./QueryEditor";
 export { default as QueryBuilder } from "./QueryBuilder";
 export { default as QueryPagesPanel } from "./settings/QueryPagesPanel";

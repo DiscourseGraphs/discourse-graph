@@ -1,6 +1,6 @@
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import extractRef from "roamjs-components/util/extractRef";
-import { getQueryPages } from "../components/settings/QueryPagesPanel";
+import { getQueryPages } from "~/components/settings/QueryPagesPanel";
 import { OnloadArgs } from "roamjs-components/types";
 
 const resolveQueryBuilderRef = ({

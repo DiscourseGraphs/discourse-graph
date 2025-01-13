@@ -1,5 +1,6 @@
 import { getNodeEnv } from "roamjs-components/util/env";
 import { ErrorEmailProps } from "@repo/types";
+
 const sendErrorEmail = async ({
   error,
   type,

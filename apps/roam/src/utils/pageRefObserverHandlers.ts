@@ -1,8 +1,8 @@
 import { createHTMLObserver } from "roamjs-components/dom";
-import { render as previewRender } from "../components/LivePreview";
+import { render as previewRender } from "~/components/LivePreview";
 import isDiscourseNode from "./isDiscourseNode";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { render as discourseOverlayRender } from "../components/DiscourseContextOverlay";
+import { render as discourseOverlayRender } from "~/components/DiscourseContextOverlay";
 import { OnloadArgs } from "roamjs-components/types";
 
 const pageRefObservers = new Set<(s: HTMLSpanElement) => void>();
