@@ -86,10 +86,13 @@ const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
       `https://api.github.com/repos/${selectedRepo}/contents/${config.targetFile}`,
       {
         headers: {
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
           Authorization: `token ${gitHubAccessToken}`,
         },
       },
     );
+    console.log("Get response:", getResponse.data);
     sha = getResponse.data.sha;
   } catch (error) {
     console.error("Failed to get sha of the file:", (error as Error).message);
