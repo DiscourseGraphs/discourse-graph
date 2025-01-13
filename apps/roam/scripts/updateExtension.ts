@@ -3,7 +3,7 @@ import util from "util";
 import apiPut from "roamjs-components/util/apiPut";
 import apiGet from "roamjs-components/util/apiGet";
 import axios from "axios";
-import { Octokit } from "octokit";
+import { Octokit } from "@octokit/core";
 import { createAppAuth } from "@octokit/auth-app";
 
 const execPromise = util.promisify(exec);

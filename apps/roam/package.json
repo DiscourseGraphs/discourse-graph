@@ -24,6 +24,8 @@
     "widgets"
   ],
   "dependencies": {
+    "@octokit/auth-app": "^7.1.4",
+    "@octokit/core": "^6.1.3",
     "@octokit/rest": "^21.0.2",
     "@repo/types": "*",
     "@tldraw/tldraw": "^2.0.0-alpha.12",
@@ -31,7 +33,6 @@
     "contrast-color": "^1.0.1",
     "cytoscape-navigator": "^2.0.1",
     "nanoid": "2.0.4",
-    "octokit": "^4.1.0",
     "react-charts": "^3.0.0-beta.48",
     "react-draggable": "^4.4.5",
     "react-in-viewport": "^1.0.0-alpha.20",
