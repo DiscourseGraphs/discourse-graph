@@ -10,6 +10,7 @@ on:
 env:
   DG_GITHUB_APP_PRIVATE_KEY: ${{ secrets.DG_GITHUB_APP_PRIVATE_KEY }}
   APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+  MG_PAT: ${{ secrets.MG_PAT }}
 
 jobs:
   update-extension:

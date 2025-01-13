@@ -34,7 +34,8 @@
       "passThroughEnv": [
         "GITHUB_TOKEN",
         "DG_GITHUB_APP_PRIVATE_KEY",
-        "APP_PRIVATE_KEY"
+        "APP_PRIVATE_KEY",
+        "MG_PAT"
       ]
     }
   }
