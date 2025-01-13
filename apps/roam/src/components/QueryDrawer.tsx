@@ -16,7 +16,7 @@ import getParentUidByBlockUid from "roamjs-components/queries/getParentUidByBloc
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import fireQuery from "../utils/fireQuery";
 import parseQuery from "../utils/parseQuery";
-import ResultsView from "./ResultsView/ResultsView";
+import ResultsView from "./results-view/ResultsView";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import QueryEditor from "./QueryEditor";
 import { Column } from "../utils/types";

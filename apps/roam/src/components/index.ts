@@ -17,5 +17,5 @@ export { default as QueryEditor } from "./QueryEditor";
 export { default as QueryBuilder } from "./QueryBuilder";
 export { default as QueryPagesPanel } from "./settings/QueryPagesPanel";
 export { default as ResizableDrawer } from "./ResizableDrawer";
-export { default as ResultsView } from "./ResultsView/ResultsView";
-export { default as Timeline } from "./ResultsView/views/Timeline";
+export { default as ResultsView } from "./results-view/ResultsView";
+export { default as Timeline } from "./results-view/Timeline";
