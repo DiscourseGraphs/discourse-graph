@@ -1,9 +1,8 @@
 import { exec } from "child_process";
-import path from "path";
 import util from "util";
-import axios from "axios";
 import apiPut from "roamjs-components/util/apiPut";
 import apiGet from "roamjs-components/util/apiGet";
+import axios from "axios";
 
 const execPromise = util.promisify(exec);
 
@@ -83,13 +82,14 @@ const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
 
   try {
     // get sha of the file use github app token
-    const getResponse = await apiGet<{ data: { sha: string } }>({
-      domain: "https://api.github.com",
-      path: `repos/${selectedRepo}/contents/${config.targetFile}`,
-      headers: {
-        Authorization: `token ${gitHubAccessToken}`,
+    const getResponse = await axios.get<{ sha: string }>(
+      `https://api.github.com/repos/${selectedRepo}/contents/${config.targetFile}`,
+      {
+        headers: {
+          Authorization: `token ${gitHubAccessToken}`,
+        },
       },
-    });
+    );
     sha = getResponse.data.sha;
   } catch (error) {
     console.error("Failed to get sha of the file:", (error as Error).message);
