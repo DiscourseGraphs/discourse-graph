@@ -85,27 +85,27 @@ const publish = async () => {
   const publishRepo = "roam-depot";
   const destPath = `extensions/${username}/discourse-graph`;
 
-  let sha = "";
-  console.log("Getting sha of the file");
-  try {
-    const gitHubAccessToken = getRequiredEnvVar("GITHUB_TOKEN");
-    if (!gitHubAccessToken) throw new Error("GITHUB_TOKEN is not set");
-    const getResponse = await axios.get<{ sha: string }>(
-      `https://api.github.com/repos/${username}/${publishRepo}/contents/${destPath}.json`,
-      {
-        headers: {
-          Authorization: `Bearer ${gitHubAccessToken}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      },
-    );
-    sha = getResponse.data.sha;
-  } catch (error) {
-    console.error("Failed to get sha of the file:", (error as Error).message);
-    // console.error("Error:", error);
-    throw error;
-  }
+  //   let sha = "";
+  //   console.log("Getting sha of the file");
+  //   try {
+  //     const gitHubAccessToken = getRequiredEnvVar("GITHUB_TOKEN");
+  //     if (!gitHubAccessToken) throw new Error("GITHUB_TOKEN is not set");
+  //     const getResponse = await axios.get<{ sha: string }>(
+  //       `https://api.github.com/repos/${username}/${publishRepo}/contents/${destPath}.json`,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${gitHubAccessToken}`,
+  //           Accept: "application/vnd.github+json",
+  //           "X-GitHub-Api-Version": "2022-11-28",
+  //         },
+  //       },
+  //     );
+  //     sha = getResponse.data.sha;
+  //   } catch (error) {
+  //     console.error("Failed to get sha of the file:", (error as Error).message);
+  //     // console.error("Error:", error);
+  //     throw error;
+  //   }
 
   console.log("Publishing ...");
   try {
@@ -138,7 +138,7 @@ const publish = async () => {
     const url = `https://api.github.com/repos/${username}/${publishRepo}/contents/${destPath}.json`;
     const data = {
       message,
-      sha,
+      //   sha,
       content: base64Content,
     };
 
