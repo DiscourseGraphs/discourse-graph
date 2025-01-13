@@ -83,13 +83,15 @@ const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
 
   try {
     // get sha of the file use github app token
+    const sanitizedToken = gitHubAccessToken.trim();
+
     const getResponse = await axios.get<{ sha: string }>(
       `https://api.github.com/repos/${selectedRepo}/contents/${config.targetFile}`,
       {
         headers: {
           Accept: "application/vnd.github+json",
           "X-GitHub-Api-Version": "2022-11-28",
-          Authorization: `Bearer ${gitHubAccessToken}`,
+          Authorization: `Bearer ${sanitizedToken}`,
         },
       },
     );
