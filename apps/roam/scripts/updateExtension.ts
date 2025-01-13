@@ -65,6 +65,7 @@ async function getCurrentCommitHash(): Promise<string> {
 const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
   const gitHubAccessToken = getRequiredEnvVar("DG_GITHUB_APP_PRIVATE_KEY");
   const selectedRepo = `${config.owner}/${config.repo}`;
+  console.log(`access token: ${gitHubAccessToken.slice(0, 10)}...`);
   const content = JSON.stringify({
     name: "Test Extension",
     short_description: "Prints 'Test message 1'",
