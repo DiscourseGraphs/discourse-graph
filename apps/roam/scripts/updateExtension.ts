@@ -83,15 +83,15 @@ const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
 
   try {
     // get sha of the file use github app token
-    const sanitizedToken = gitHubAccessToken.trim();
 
+    console.log("selected repo", selectedRepo);
     const getResponse = await axios.get<{ sha: string }>(
       `https://api.github.com/repos/${selectedRepo}/contents/${config.targetFile}`,
       {
         headers: {
           Accept: "application/vnd.github+json",
           "X-GitHub-Api-Version": "2022-11-28",
-          Authorization: `Bearer ${sanitizedToken}`,
+          Authorization: "Bearer ${gitHubAccessToken}",
         },
       },
     );
@@ -99,7 +99,7 @@ const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
     sha = getResponse.data.sha;
   } catch (error) {
     console.error("Failed to get sha of the file:", (error as Error).message);
-    console.error("Error:", error);
+    // console.error("Error:", error);
     throw error;
   }
 
