@@ -63,7 +63,7 @@ async function getCurrentCommitHash(): Promise<string> {
 }
 
 const writeFileToRepo = async (): Promise<{ status: number }> => {
-  const gitHubAccessToken = getRequiredEnvVar("DG_GITHUB_APP_PRIVATE_KEY");
+  const gitHubAccessToken = getRequiredEnvVar("GITHUB_TOKEN");
   const selectedRepo = `${config.owner}/${config.repo}`;
 
   let sha = "";
