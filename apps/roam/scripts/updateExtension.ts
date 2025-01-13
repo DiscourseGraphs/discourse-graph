@@ -97,6 +97,7 @@ const writeFileToRepo = async ({}: {}): Promise<{ status: number }> => {
     sha = getResponse.data.sha;
   } catch (error) {
     console.error("Failed to get sha of the file:", (error as Error).message);
+    console.error("Error:", error);
     throw error;
   }
 
