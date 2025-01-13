@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import { compile } from "./compile";
 import * as path from "path";
 import * as fs from "fs";
 import { exec } from "child_process";
@@ -55,7 +54,6 @@ async function execGitCommand(
       },
     });
 
-    // Log both stdout and stderr
     console.log(`Command: ${command}`);
     console.log(`stdout: ${stdout.trim()}`);
     if (stderr) {
@@ -71,7 +69,6 @@ async function execGitCommand(
   }
 }
 
-// Get current commit hash
 async function getCurrentCommitHash(): Promise<string> {
   return await execGitCommand("git rev-parse HEAD");
 }
@@ -103,7 +100,6 @@ const publish = async () => {
     sha = getResponse.data.sha;
   } catch (error) {
     console.error("Failed to get sha of the file:", (error as Error).message);
-    // console.error("Error:", error);
     throw error;
   }
 
