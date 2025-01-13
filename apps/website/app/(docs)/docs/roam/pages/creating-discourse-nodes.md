@@ -5,7 +5,7 @@ author: ""
 published: true
 ---
 
-The extension makes it easy to factor parts of your notes into formal of a discourse graph (claims, evidence, etc.).
+The extension makes it easy to factor parts of your notes into formal nodes of a discourse graph (claims, evidence, etc.).
 
 Steps to create a discourse graph node:
 
