@@ -85,11 +85,12 @@ async function updateFileInOtherRepo() {
     tags: ["print", "test"],
     source_url: "https://github.com/tonsky/roam-calculator",
     source_repo: "https://github.com/tonsky/roam-calculator.git",
-    source_commit: getCurrentCommitHash(),
+    source_commit: commitHash,
   });
 
   const contentBase64 = Buffer.from(newContent).toString("base64");
-
+  console.log("New content:", newContent);
+  console.log("Base64 content:", contentBase64);
   // 4) Get existing file’s SHA (so we can update it)
   let sha = "";
   try {
