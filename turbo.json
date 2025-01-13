@@ -31,7 +31,7 @@
     "publish": {
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "passThroughEnv": ["GITHUB_TOKEN", "MG_PAT"]
+      "passThroughEnv": ["GITHUB_TOKEN", "APP_PRIVATE_KEY", "APP_ID"]
     }
   }
 }
