@@ -30,7 +30,6 @@ const getVersion = (root = "."): string => {
 
 function getRequiredEnvVar(name: string): string {
   const value = process.env[name];
-  console.log(`Env var ${name}: ${value}`);
   if (!value) {
     throw new Error(`${name} environment variable is required`);
   }
@@ -86,7 +85,6 @@ const publish = async () => {
   console.log("Getting sha of the file");
   try {
     const gitHubAccessToken = getRequiredEnvVar("GITHUB_TOKEN");
-    if (!gitHubAccessToken) throw new Error("GITHUB_TOKEN is not set");
     const getResponse = await axios.get<{ sha: string }>(
       `https://api.github.com/repos/${username}/${publishRepo}/contents/${destPath}.json`,
       {
@@ -106,7 +104,6 @@ const publish = async () => {
   console.log("Publishing ...");
   try {
     const privateKey = getRequiredEnvVar("MG_PAT");
-    if (!privateKey) throw new Error("MG_PAT is not set");
 
     const version = getVersion();
     const message = "Release " + version;
@@ -122,7 +119,7 @@ const publish = async () => {
       source_subdir: "apps/roam",
     };
     const fileContent = JSON.stringify(metadata, null, 2);
-    const base64Content = btoa(fileContent);
+    const base64Content = Buffer.from(fileContent).toString("base64");
 
     const opts = {
       headers: {
