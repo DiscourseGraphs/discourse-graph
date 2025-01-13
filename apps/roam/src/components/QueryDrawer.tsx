@@ -21,6 +21,7 @@ import ExtensionApiContextProvider from "roamjs-components/components/ExtensionA
 import QueryEditor from "./QueryEditor";
 import { Column } from "../utils/types";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import posthog from "posthog-js";
 
 type Props = {
   blockUid: string;
@@ -55,6 +56,10 @@ const SavedQuery = ({
   };
   const resultsInViewRef = useRef<Result[]>([]);
   const refresh = useCallback(() => {
+    posthog.capture("Query Drawer: View Saved Query", {
+      queryUid: uid,
+      isSavedToPage: isSavedToPage,
+    });
     const args = parseQuery(uid);
     return fireQuery(args)
       .then((r) => {
@@ -66,6 +71,10 @@ const SavedQuery = ({
         setError(
           `Query failed to run. Try running a new query from the editor.`,
         );
+        posthog.capture("Query Drawer: Query Failed to Run", {
+          queryUid: uid,
+          isSavedToPage: isSavedToPage,
+        });
       });
   }, [uid, setResults, setError, setColumns, setMinimized]);
   return (
@@ -289,6 +298,11 @@ const QueryDrawerContent = ({
         key={query}
         parentUid={blockUid}
         onQuery={() => {
+          posthog.capture("Query Drawer: Create Query", {
+            queryLabel: savedQueryLabel,
+            parentUid: blockUid,
+          });
+
           const args = parseQuery(blockUid);
           return Promise.all([
             createBlock({
@@ -362,8 +376,9 @@ const QueryDrawer = ({
   </ResizableDrawer>
 );
 
-export const openQueryDrawer = (onloadArgs: OnloadArgs) =>
-  Promise.resolve(
+export const openQueryDrawer = (onloadArgs: OnloadArgs) => {
+  posthog.capture("Query Drawer: Opened", {});
+  return Promise.resolve(
     getPageUidByPageTitle("roam/js/query-builder/drawer") ||
       createPage({
         title: "roam/js/query-builder/drawer",
@@ -374,7 +389,8 @@ export const openQueryDrawer = (onloadArgs: OnloadArgs) =>
       onloadArgs,
     }),
   );
-export const render = (props: Props) =>
-  renderOverlay({ Overlay: QueryDrawer, props });
+};
 
-export default QueryDrawer;
+export const render = (props: Props) => {
+  return renderOverlay({ Overlay: QueryDrawer, props });
+};

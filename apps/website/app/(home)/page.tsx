@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@repo/ui/components/ui/card";
 import { ArrowBigDownDash, CircleGauge } from "lucide-react";
-import { getLatestBlogs } from "./blog/readBlogs";
+import { getLatestBlogs } from "~/(home)/blog/readBlogs";
 
 export default async function Home() {
   const blogs = await getLatestBlogs();
@@ -378,7 +378,7 @@ export default async function Home() {
                   </Link>
                 </li>
                 <li className="text-neutral-dark">
-                  <Link href="https://oasis-lab.gitbook.io/roamresearch-discourse-graph-extension">
+                  <Link href="/docs/roam">
                     Discourse Graph plugin documentation
                   </Link>{" "}
                   for Roam Research
@@ -630,7 +630,7 @@ export default async function Home() {
           <Card id="contact" className="rounded-xl bg-white/50 p-8 shadow-md">
             <CardHeader>
               <CardTitle className="mb-8 text-4xl font-bold text-primary">
-                Ecosystem
+                Contact
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -645,7 +645,7 @@ export default async function Home() {
                   favorite Tool for Thought and would love to hear from you.
                 </p>
                 <p className="text-neutral-dark">
-                  <Link href="mailto:discoursegraphs@protocol.ai">
+                  <Link href="mailto:discoursegraphs@homeworld.bio">
                     Send us a line
                   </Link>{" "}
                   if you're interested in helping to{" "}

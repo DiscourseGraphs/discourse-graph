@@ -7,6 +7,7 @@
     "dev": "tsx scripts/dev.ts",
     "build": "tsx scripts/compile.ts",
     "deploy": "tsx scripts/deploy.ts",
+    "publish": "tsx scripts/publish.ts",
     "update:extension": "tsx scripts/updateExtension.ts"
   },
   "license": "MIT",
@@ -16,6 +17,7 @@
     "@types/react-vertical-timeline-component": "^3.3.3",
     "axios": "^0.27.2",
     "esbuild": "0.17.14",
+    "patch-package": "^6.5.1",
     "tsx": "^4.19.2"
   },
   "//": "axios dep temporary - need to fix the dep in underlying libraries",
@@ -33,6 +35,7 @@
     "contrast-color": "^1.0.1",
     "cytoscape-navigator": "^2.0.1",
     "nanoid": "2.0.4",
+    "posthog-js": "^1.203.2",
     "react-charts": "^3.0.0-beta.48",
     "react-draggable": "^4.4.5",
     "react-in-viewport": "^1.0.0-alpha.20",

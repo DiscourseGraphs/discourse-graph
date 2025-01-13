@@ -28,15 +28,10 @@
         "GITHUB_HEAD_REF"
       ]
     },
-    "update:extension": {
+    "publish": {
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "passThroughEnv": [
-        "GITHUB_TOKEN",
-        "DG_GITHUB_APP_PRIVATE_KEY",
-        "APP_PRIVATE_KEY",
-        "APP_ID"
-      ]
+      "passThroughEnv": ["GITHUB_TOKEN", "APP_PRIVATE_KEY", "APP_ID"]
     }
   }
 }
