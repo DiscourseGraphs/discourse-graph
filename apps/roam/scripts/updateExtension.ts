@@ -103,18 +103,21 @@ const writeFileToRepo = async (): Promise<{ status: number }> => {
   console.log("sha", sha);
   try {
     // https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-or-update-file-contents
-    const response = await apiPut({
-      domain: "https://api.github.com",
-      path: `repos/${selectedRepo}/contents/${config.targetFile}`,
-      headers: {
-        Authorization: `token ${gitHubAccessToken}`,
-      },
-      data: {
+    const response = await axios.put(
+      `https://api.github.com/repos/${selectedRepo}/contents/${config.targetFile}`,
+      {
         message: `Add ${config.targetFile}`,
         content: base64Content,
         sha: sha,
       },
-    });
+      {
+        headers: {
+          Authorization: `token ${gitHubAccessToken}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      },
+    );
     if (response.status === 401) {
       throw new Error("Authentication failed");
     }
