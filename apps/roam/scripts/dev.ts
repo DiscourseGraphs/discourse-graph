@@ -16,9 +16,9 @@ const dev = () => {
   });
 };
 
-const main = () => {
+const main = async () => {
   try {
-    dev();
+    await dev();
   } catch (error) {
     console.error(error);
     process.exit(1);

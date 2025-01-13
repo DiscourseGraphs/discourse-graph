@@ -184,9 +184,9 @@ export const compile = ({
   return Promise.all(buildPromises);
 };
 
-const main = () => {
+const main = async () => {
   try {
-    compile({});
+    await compile({});
   } catch (error) {
     console.error(error);
     process.exit(1);
