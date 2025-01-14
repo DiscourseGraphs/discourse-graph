@@ -16,6 +16,12 @@ const dev = () => {
   });
 };
 
-if (require.main === module) {
-  dev().catch(console.error);
-}
+const main = async () => {
+  try {
+    await dev();
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
+};
+if (require.main === module) main();

@@ -5,7 +5,7 @@
   "scripts": {
     "postinstall": "patch-package",
     "dev": "tsx scripts/dev.ts",
-    "build": "tsx scripts/compile.ts",
+    "build": "tsx scripts/build.ts",
     "deploy": "tsx scripts/deploy.ts",
     "publish": "tsx scripts/publish.ts"
   },
