@@ -20,6 +20,8 @@ import styles from "./styles/styles.css";
 import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
+import { OnloadArgs } from "roamjs-components/types";
+import { render as renderShowRecordingPermissionPopup, renderEye } from "~/components/settings/PosthogPermissionAlert";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -44,6 +46,7 @@ const initPostHog = () => {
     ],
   });
 };
+
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -79,6 +82,12 @@ export default runExtension(async (onloadArgs) => {
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
+  console.log(onloadArgs.extensionAPI.settings.get("posthog-session-recording"));
+  if (onloadArgs.extensionAPI.settings.get("posthog-session-recording") === "indeterminate") {
+    console.log("Showing popup");
+    renderShowRecordingPermissionPopup({ onloadArgs });
+  }
+  renderEye ({onloadArgs});
 
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);

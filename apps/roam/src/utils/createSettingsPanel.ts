@@ -1,6 +1,7 @@
 import { OnloadArgs } from "roamjs-components/types";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import { SettingsPanel } from "~/components/settings/Settings";
+import { ThreeStateSwitch } from "~/components/settings/PosthogPermissionAlert";
 
 export const createSettingsPanel = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
@@ -25,6 +26,16 @@ export const createSettingsPanel = (onloadArgs: OnloadArgs) => {
         },
         description:
           "Override the global trigger for the Discourse Node Menu. Must refresh after editing.",
+      },
+      {
+        id: "posthog-session-recording",
+        name: "Permission to screen record Roam for a Week?",
+        description:
+          "We would like to screen record your usage of Roam for a week. We would use this data strictly for internal purposes like using it to improve the onboarding process, fixing usability issues and areas where user might need additional guidance. The data won't be shared with anybody, and will be automatically switched off after a week. You can also opt out anytime you want or extend the time period. To start or turn off the analytics you can use the Eye icon in the topbar.",
+        action: {
+          type: "reactComponent",
+          component: () => ThreeStateSwitch({ onloadArgs }),
+        },
       },
       {
         id: "async-q",
