@@ -21,7 +21,7 @@ import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import { OnloadArgs } from "roamjs-components/types";
-import { render as renderShowRecordingPermissionPopup, renderEye } from "~/components/settings/PosthogPermissionAlert";
+import { render as renderShowRecordingPermissionPopup } from "~/components/settings/PosthogPermissionAlert";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -87,7 +87,6 @@ export default runExtension(async (onloadArgs) => {
     console.log("Showing popup");
     renderShowRecordingPermissionPopup({ onloadArgs });
   }
-  renderEye ({onloadArgs});
 
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
