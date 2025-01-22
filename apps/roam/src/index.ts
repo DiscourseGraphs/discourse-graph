@@ -1,6 +1,5 @@
 import { addStyle } from "roamjs-components/dom";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 import { runExtension } from "roamjs-components/util";
 import { queryBuilderLoadedToast } from "./data/toastMessages";
 import runQuery from "./utils/runQuery";
@@ -19,40 +18,13 @@ import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
 import styles from "./styles/styles.css";
 import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
-import posthog from "posthog-js";
-
-const initPostHog = () => {
-  posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
-    api_host: "https://us.i.posthog.com",
-    person_profiles: "identified_only",
-    capture_pageview: false,
-    autocapture: false,
-    property_denylist: [
-      "$ip", // Still seeing ip in the event
-      "$device_id",
-      "$geoip_city_name",
-      "$geoip_latitude",
-      "$geoip_longitude",
-      "$geoip_postal_code",
-      "$geoip_subdivision_1_name",
-      "$raw_user_agent",
-      "$current_url",
-      "$referrer",
-      "$referring_domain",
-      "$initial_current_url",
-      "$pathname",
-    ],
-  });
-};
+import { OnloadArgs } from "roamjs-components/types";
+import { initializePosthogBasedOnSetting } from "./components/settings/PosthogPermissionAlert";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
-  initPostHog();
-  posthog.capture("Extension Loaded", {
-    graphName: window.roamAlphaAPI.graph.name,
-    userUid: getCurrentUserUid(),
-  });
+  initializePosthogBasedOnSetting(onloadArgs);
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
       timeout: 10000,
