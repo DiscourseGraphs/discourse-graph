@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Alert, Intent, Checkbox } from "@blueprintjs/core";
 import { OnloadArgs } from "roamjs-components/types";
 import renderOverlay from "roamjs-components/util/renderOverlay";
+import { initPostHog } from "~/utils/posthogInit";
+import posthog from "posthog-js";
+import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 
 type Props = {
   onloadArgs: OnloadArgs;
@@ -46,7 +49,7 @@ export const ThreeStateSwitch = ({
   );
 };
 
-export function ShowRecordingPermissionPopup({
+function ShowRecordingPermissionPopup({
   onloadArgs,
 }: {
   onloadArgs: OnloadArgs;
@@ -58,11 +61,13 @@ export function ShowRecordingPermissionPopup({
 
   const handleConfirm = () => {
     extensionAPI.settings.set("posthog-session-recording", true);
+    initPostHog(true);
     setIsOpen(false);
   };
 
   const handleCancel = () => {
     extensionAPI.settings.set("posthog-session-recording", false);
+    initPostHog(false);
     setIsOpen(false);
   };
 
@@ -112,10 +117,27 @@ export function ShowRecordingPermissionPopup({
   );
 }
 
-export const render = (props: Props) =>
+const render = (props: Props) =>
   renderOverlay({
     Overlay: ShowRecordingPermissionPopup,
     props: {
       onloadArgs: props.onloadArgs,
     },
   });
+
+export const initializePosthogBasedOnSetting = (onloadArgs: OnloadArgs) => {
+  const { extensionAPI } = onloadArgs;
+  const posthogSessionRecordingSetting = extensionAPI.settings.get(
+    "posthog-session-recording",
+  ) as boolean | "indeterminate";
+
+  if (posthogSessionRecordingSetting === "indeterminate") {
+    render({ onloadArgs });
+  } else {
+    initPostHog(posthogSessionRecordingSetting);
+  }
+  posthog.capture("Extension Loaded", {
+    graphName: window.roamAlphaAPI.graph.name,
+    userUid: getCurrentUserUid(),
+  });
+};
