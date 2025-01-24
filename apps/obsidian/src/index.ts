@@ -1,6 +1,6 @@
 import { Plugin } from "obsidian";
 import { registerCommands } from "~/utils/registerCommands";
-import { SettingsTab } from "~/components/SampleSettings";
+import { SettingsTab } from "~/components/Settings";
 
 type Settings = {
   mySetting: string;
