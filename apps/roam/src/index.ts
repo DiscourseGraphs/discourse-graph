@@ -20,6 +20,7 @@ import styles from "./styles/styles.css";
 import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
+import getDiscourseNodes from "./utils/getDiscourseNodes";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -103,6 +104,8 @@ export default runExtension(async (onloadArgs) => {
     },
     listActiveQueries: () => listActiveQueries(extensionAPI),
     isDiscourseNode: isDiscourseNode,
+    // @ts-ignore - we are still using roamjs-components global definition
+    getDiscourseNodes: getDiscourseNodes,
   };
 
   return {
