@@ -10,7 +10,17 @@ const dev = () => {
     compile({
       opts: args,
       builder: (opts: esbuild.BuildOptions) =>
-        esbuild.context(opts).then((esb) => esb.watch()),
+        esbuild.context(opts).then((esb) => {
+          esb.watch();
+          // Cleanup on process termination
+          const cleanup = () => {
+            esb.dispose();
+            resolve(0);
+          };
+          process.on('SIGINT', cleanup);
+          process.on('SIGTERM', cleanup);
+          return esb;
+        }),
     });
     process.on("exit", resolve);
   });
