@@ -38,12 +38,7 @@ export function TeamPerson({ member }: { member: TeamMember }) {
               className="text-neutral-dark/60 transition-colors hover:text-primary"
               aria-label={`${member.name}'s Twitter`}
             >
-              <Image
-                src="/social/twitter.svg"
-                alt="Twitter"
-                width={20}
-                height={20}
-              />
+              <Image src="/social/x.png" alt="Twitter" width={20} height={20} />
             </Link>
           )}
           {member.links.github && (
@@ -67,7 +62,7 @@ export function TeamPerson({ member }: { member: TeamMember }) {
               aria-label={`${member.name}'s Website`}
             >
               <Image
-                src="/social/website.svg"
+                src="/social/website.png"
                 alt="Website"
                 width={20}
                 height={20}
