@@ -273,6 +273,7 @@ export const NodeMenuTriggerComponent = (
           icon={"remove"}
           onClick={() => {
             setComboKey({ modifiers: 0, key: "" });
+            // personal settings
             extensionAPI.settings.set("personal-node-menu-trigger", "");
           }}
           minimal

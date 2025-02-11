@@ -162,8 +162,20 @@ export const SettingsDialog = ({
               openPage(DISCOURSE_CONFIG_PAGE_TITLE);
               onClose?.();
             }}
+            className="mb-2"
           >
-            Discourse Graph Config
+            Personal Settings
+          </Button>
+
+          <Button
+            minimal
+            outlined
+            onClick={() => {
+              openPage(DISCOURSE_CONFIG_PAGE_TITLE);
+              onClose?.();
+            }}
+          >
+            Global Settings
           </Button>
           <Tab
             hidden={true}
