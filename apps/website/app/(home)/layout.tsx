@@ -47,6 +47,7 @@ export default async function RootLayout({
                     "Events",
                     hasUpdates && "Updates",
                     "Talks",
+                    "Team",
                     "Supporters",
                     "Contact",
                   ]
