@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Switch, FormGroup, Classes } from "@blueprintjs/core";
-import getExtensionApi from "roamjs-components/util/extensionApiContext";
+import { OnloadArgs } from "roamjs-components/types";
 
-export function AsyncQuerySettings() {
+export function AsyncQuerySettings({
+  extensionApi,
+}: {
+  extensionApi: OnloadArgs["extensionAPI"];
+}) {
   const [isEnabled, setIsEnabled] = useState(false);
-  const extensionApi = getExtensionApi();
 
   // Load initial state from settings
   useEffect(() => {
@@ -28,7 +31,6 @@ export function AsyncQuerySettings() {
       setIsEnabled(!newValue);
     }
   };
-
 
   return (
     <div className="p-4">

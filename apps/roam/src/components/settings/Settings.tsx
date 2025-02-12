@@ -164,7 +164,7 @@ export const SettingsDialog = ({
           <Tab
             id="backend-query"
             title="Use Backend Query (Beta)"
-            panel={<AsyncQuerySettings />}
+            panel={<AsyncQuerySettings extensionApi={extensionAPI} />}
           />
         </Tabs>
       </div>
