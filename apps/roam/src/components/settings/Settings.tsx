@@ -159,7 +159,7 @@ export const SettingsDialog = ({
           <Tab
             id="discourse-node-menu-trigger"
             title="Personal Node Menu Trigger"
-            panel={NodeMenuTriggerComponent(extensionAPI)}
+            panel={<NodeMenuTriggerComponent extensionAPI={extensionAPI} />}
           />
           <Tab
             id="backend-query"

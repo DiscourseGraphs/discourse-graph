@@ -226,9 +226,11 @@ export const getModifiersFromCombo = (comboKey: IKeyCombo) => {
   ].filter(Boolean);
 };
 
-export const NodeMenuTriggerComponent = (
-  extensionAPI: OnloadArgs["extensionAPI"],
-) => {
+export const NodeMenuTriggerComponent = ({
+  extensionAPI,
+}: {
+  extensionAPI: OnloadArgs["extensionAPI"];
+}) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isActive, setIsActive] = useState(false);
   const [comboKey, setComboKey] = useState<IKeyCombo>(

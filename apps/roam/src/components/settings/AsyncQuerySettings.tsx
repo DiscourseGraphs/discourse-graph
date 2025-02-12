@@ -8,17 +8,27 @@ export function AsyncQuerySettings() {
 
   // Load initial state from settings
   useEffect(() => {
-    const savedSetting = extensionApi.settings.get("async-q");
-    setIsEnabled(!!savedSetting);
+    try {
+      const savedSetting = extensionApi.settings.get("async-q");
+      setIsEnabled(!!savedSetting);
+    } catch (error) {
+      console.error("Failed to load async query setting:", error);
+      setIsEnabled(false);
+    }
   }, []);
 
   const handleToggle = async (event: React.FormEvent<HTMLInputElement>) => {
     const newValue = event.currentTarget.checked;
     // Update state first
     setIsEnabled(newValue);
-    // Then update settings
-    extensionApi.settings.set("async-q", newValue);
+    try {
+      extensionApi.settings.set("async-q", newValue);
+    } catch (error) {
+      console.error("Failed to save async query setting:", error);
+      setIsEnabled(!newValue);
+    }
   };
+
 
   return (
     <div className="p-4">
