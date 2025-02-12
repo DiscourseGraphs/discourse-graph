@@ -15,6 +15,8 @@ import getDiscourseNodes, {
 } from "~/utils/getDiscourseNodes";
 import NodeConfig from "./NodeConfig";
 import sendErrorEmail from "~/utils/sendErrorEmail";
+import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
+import { AsyncQuerySettings } from "./AsyncQuerySettings";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -25,14 +27,6 @@ const SectionHeader = ({ children }: SectionHeaderProps) => {
       {children}
     </div>
   );
-};
-
-const openPage = (title: string) => {
-  window.roamAlphaAPI.ui.mainWindow.openPage({
-    page: {
-      title,
-    },
-  });
 };
 
 export const SettingsPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
@@ -94,8 +88,11 @@ export const SettingsDialog = ({
           selectedTabId={selectedTabId}
           vertical={true}
           renderActiveTabPanelOnly={true}
-          className="h-full"
         >
+          <div className="mb-6 text-lg font-semibold text-neutral-dark">
+            Global Settings
+          </div>
+
           <Tab
             id="discourse-graph-home"
             title="Home"
@@ -155,55 +152,19 @@ export const SettingsDialog = ({
 
           <Tabs.Expander />
 
-          <Button
-            minimal
-            outlined
-            onClick={() => {
-              openPage(DISCOURSE_CONFIG_PAGE_TITLE);
-              onClose?.();
-            }}
-            className="mb-2"
-          >
+          <div className="mb-2 mt-6 text-lg font-semibold text-neutral-dark">
             Personal Settings
-          </Button>
+          </div>
 
-          <Button
-            minimal
-            outlined
-            onClick={() => {
-              openPage(DISCOURSE_CONFIG_PAGE_TITLE);
-              onClose?.();
-            }}
-          >
-            Global Settings
-          </Button>
           <Tab
-            hidden={true}
-            id="secret-dev-panel"
-            title="Secret Dev Panel"
-            className="overflow-y-auto"
-            panel={
-              <div className="flex gap-4 p-4">
-                <Button
-                  onClick={() => {
-                    console.log("NODE_ENV:", process.env.NODE_ENV);
-                  }}
-                >
-                  Log Node Env
-                </Button>
-                <Button
-                  onClick={() => {
-                    console.log("sending error email");
-                    sendErrorEmail({
-                      error: new Error("test"),
-                      type: "Test",
-                    });
-                  }}
-                >
-                  sendErrorEmail()
-                </Button>
-              </div>
-            }
+            id="discourse-node-menu-trigger"
+            title="Personal Node Menu Trigger"
+            panel={NodeMenuTriggerComponent(extensionAPI)}
+          />
+          <Tab
+            id="backend-query"
+            title="Use Backend Query (Beta)"
+            panel={<AsyncQuerySettings />}
           />
         </Tabs>
       </div>

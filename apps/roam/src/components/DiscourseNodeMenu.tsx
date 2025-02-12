@@ -260,26 +260,32 @@ export const NodeMenuTriggerComponent = (
   }, [comboKey]);
 
   return (
-    <InputGroup
-      inputRef={inputRef}
-      placeholder={isActive ? "Press keys ..." : "Click to set trigger"}
-      value={shortcut}
-      onKeyDown={handleKeyDown}
-      onFocus={() => setIsActive(true)}
-      onBlur={() => setIsActive(false)}
-      rightElement={
-        <Button
-          hidden={!comboKey.key}
-          icon={"remove"}
-          onClick={() => {
-            setComboKey({ modifiers: 0, key: "" });
-            // personal settings
-            extensionAPI.settings.set("personal-node-menu-trigger", "");
-          }}
-          minimal
-        />
-      }
-    />
+    <div>
+      <p className="mb-2 text-neutral-dark/80">
+        Override the global trigger for the Discourse Node Menu. Must refresh
+        after editing.
+      </p>
+      <InputGroup
+        inputRef={inputRef}
+        placeholder={isActive ? "Press keys ..." : "Click to set trigger"}
+        value={shortcut}
+        onKeyDown={handleKeyDown}
+        onFocus={() => setIsActive(true)}
+        onBlur={() => setIsActive(false)}
+        rightElement={
+          <Button
+            hidden={!comboKey.key}
+            icon={"remove"}
+            onClick={() => {
+              setComboKey({ modifiers: 0, key: "" });
+              // personal settings
+              extensionAPI.settings.set("personal-node-menu-trigger", "");
+            }}
+            minimal
+          />
+        }
+      />
+    </div>
   );
 };
 export default NodeMenu;
