@@ -8,6 +8,8 @@ import {
 } from "@repo/ui/components/ui/card";
 import { ArrowBigDownDash, CircleGauge } from "lucide-react";
 import { getLatestBlogs } from "~/(home)/blog/readBlogs";
+import { TeamPerson } from "~/components/TeamPerson";
+import { TEAM_MEMBERS } from "~/data/constants";
 
 export default async function Home() {
   const blogs = await getLatestBlogs();
@@ -548,6 +550,22 @@ export default async function Home() {
               </div>
             </CardContent>
           </Card>
+          {/* Team */}
+          <Card id="team" className="rounded-xl bg-white/50 p-8 shadow-md">
+            <CardHeader>
+              <CardTitle className="mb-8 text-4xl font-bold text-primary">
+                Team
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                {TEAM_MEMBERS.map((member) => (
+                  <TeamPerson key={member.name} member={member} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Supporters */}
           <Card
             id="supporters"
