@@ -92,24 +92,11 @@ export const SettingsDialog = ({
           <div className="mb-6 text-lg font-semibold text-neutral-dark">
             Global Settings
           </div>
-
-          <Tab
-            id="discourse-graph-home"
-            title="Home"
-            className="overflow-y-auto"
-            panel={<DiscourseGraphHome extensionAPI={extensionAPI} />}
-          />
           <Tab
             id="discourse-graph-export"
             title="Export"
             className="overflow-y-auto"
             panel={<DiscourseGraphExport />}
-          />
-          <Tab
-            id="query-settings"
-            title="Queries"
-            className="overflow-y-auto"
-            panel={<QuerySettings extensionAPI={extensionAPI} />}
           />
           <SectionHeader>Grammar</SectionHeader>
           <Tab
@@ -155,7 +142,18 @@ export const SettingsDialog = ({
           <div className="mb-2 mt-6 text-lg font-semibold text-neutral-dark">
             Personal Settings
           </div>
-
+          <Tab
+            id="discourse-graph-home"
+            title="Home"
+            className="overflow-y-auto"
+            panel={<DiscourseGraphHome extensionAPI={extensionAPI} />}
+          />
+          <Tab
+            id="query-settings"
+            title="Queries"
+            className="overflow-y-auto"
+            panel={<QuerySettings extensionAPI={extensionAPI} />}
+          />
           <Tab
             id="discourse-node-menu-trigger"
             title="Personal Node Menu Trigger"
