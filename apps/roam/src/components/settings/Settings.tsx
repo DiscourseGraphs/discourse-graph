@@ -15,6 +15,9 @@ import getDiscourseNodes, {
 } from "~/utils/getDiscourseNodes";
 import NodeConfig from "./NodeConfig";
 import sendErrorEmail from "~/utils/sendErrorEmail";
+import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
+import { AsyncQuerySettings } from "./AsyncQuerySettings";
+import HomePersonalSettings from "./HomePersonalSettings";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -25,14 +28,6 @@ const SectionHeader = ({ children }: SectionHeaderProps) => {
       {children}
     </div>
   );
-};
-
-const openPage = (title: string) => {
-  window.roamAlphaAPI.ui.mainWindow.openPage({
-    page: {
-      title,
-    },
-  });
 };
 
 export const SettingsPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
@@ -64,7 +59,7 @@ export const SettingsDialog = ({
   const settings = getFormattedConfigTree();
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   const [selectedTabId, setSelectedTabId] = useState<TabId>(
-    "discourse-graph-home",
+    "discourse-graph-home-personal",
   );
 
   // Secret Dev Panel
@@ -94,25 +89,37 @@ export const SettingsDialog = ({
           selectedTabId={selectedTabId}
           vertical={true}
           renderActiveTabPanelOnly={true}
-          className="h-full"
         >
+          <div className="mb-2 mt-6 text-lg font-semibold text-neutral-dark">
+            Personal Settings
+          </div>
+          <Tab
+            id="discourse-graph-home-personal"
+            title="Home"
+            className="overflow-y-auto"
+            panel={<HomePersonalSettings extensionAPI={extensionAPI} />}
+          />
+          <Tab
+            id="query-settings"
+            title="Queries"
+            className="mb-8 overflow-y-auto"
+            panel={<QuerySettings extensionAPI={extensionAPI} />}
+          />
+
+          <div className="text-lg font-semibold text-neutral-dark">
+            Global Settings
+          </div>
           <Tab
             id="discourse-graph-home"
             title="Home"
             className="overflow-y-auto"
-            panel={<DiscourseGraphHome extensionAPI={extensionAPI} />}
+            panel={<DiscourseGraphHome />}
           />
           <Tab
             id="discourse-graph-export"
             title="Export"
             className="overflow-y-auto"
             panel={<DiscourseGraphExport />}
-          />
-          <Tab
-            id="query-settings"
-            title="Queries"
-            className="overflow-y-auto"
-            panel={<QuerySettings extensionAPI={extensionAPI} />}
           />
           <SectionHeader>Grammar</SectionHeader>
           <Tab
@@ -154,45 +161,6 @@ export const SettingsDialog = ({
           ))}
 
           <Tabs.Expander />
-
-          <Button
-            minimal
-            outlined
-            onClick={() => {
-              openPage(DISCOURSE_CONFIG_PAGE_TITLE);
-              onClose?.();
-            }}
-          >
-            Discourse Graph Config
-          </Button>
-          <Tab
-            hidden={true}
-            id="secret-dev-panel"
-            title="Secret Dev Panel"
-            className="overflow-y-auto"
-            panel={
-              <div className="flex gap-4 p-4">
-                <Button
-                  onClick={() => {
-                    console.log("NODE_ENV:", process.env.NODE_ENV);
-                  }}
-                >
-                  Log Node Env
-                </Button>
-                <Button
-                  onClick={() => {
-                    console.log("sending error email");
-                    sendErrorEmail({
-                      error: new Error("test"),
-                      type: "Test",
-                    });
-                  }}
-                >
-                  sendErrorEmail()
-                </Button>
-              </div>
-            }
-          />
         </Tabs>
       </div>
       {/* <Button
