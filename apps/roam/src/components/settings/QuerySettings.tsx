@@ -6,6 +6,7 @@ import { getSettings } from "~/utils/parseResultSettings";
 import { DEFAULT_PAGE_SIZE_KEY, HIDE_METADATA_KEY } from "~/data/userSettings";
 import DefaultFilters from "./DefaultFilters";
 import QueryPagesPanel from "./QueryPagesPanel";
+import { AsyncQuerySettings } from "./AsyncQuerySettings";
 
 const QuerySettings = ({
   extensionAPI,
@@ -62,6 +63,7 @@ const QuerySettings = ({
         />
         <DefaultFilters extensionAPI={extensionAPI} />
       </Label>
+      <AsyncQuerySettings extensionApi={extensionAPI} />
     </div>
   );
 };

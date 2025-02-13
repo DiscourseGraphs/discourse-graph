@@ -17,6 +17,7 @@ import NodeConfig from "./NodeConfig";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
 import { AsyncQuerySettings } from "./AsyncQuerySettings";
+import HomePersonalSettings from "./HomePersonalSettings";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -58,7 +59,7 @@ export const SettingsDialog = ({
   const settings = getFormattedConfigTree();
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   const [selectedTabId, setSelectedTabId] = useState<TabId>(
-    "discourse-graph-home",
+    "discourse-graph-home-personal",
   );
 
   // Secret Dev Panel
@@ -89,9 +90,31 @@ export const SettingsDialog = ({
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
-          <div className="mb-6 text-lg font-semibold text-neutral-dark">
+          <div className="mb-2 mt-6 text-lg font-semibold text-neutral-dark">
+            Personal Settings
+          </div>
+          <Tab
+            id="discourse-graph-home-personal"
+            title="Home"
+            className="overflow-y-auto"
+            panel={<HomePersonalSettings extensionAPI={extensionAPI} />}
+          />
+          <Tab
+            id="query-settings"
+            title="Queries"
+            className="mb-8 overflow-y-auto"
+            panel={<QuerySettings extensionAPI={extensionAPI} />}
+          />
+
+          <div className="text-lg font-semibold text-neutral-dark">
             Global Settings
           </div>
+          <Tab
+            id="discourse-graph-home"
+            title="Home"
+            className="overflow-y-auto"
+            panel={<DiscourseGraphHome />}
+          />
           <Tab
             id="discourse-graph-export"
             title="Export"
@@ -138,32 +161,6 @@ export const SettingsDialog = ({
           ))}
 
           <Tabs.Expander />
-
-          <div className="mb-2 mt-6 text-lg font-semibold text-neutral-dark">
-            Personal Settings
-          </div>
-          <Tab
-            id="discourse-graph-home"
-            title="Home"
-            className="overflow-y-auto"
-            panel={<DiscourseGraphHome extensionAPI={extensionAPI} />}
-          />
-          <Tab
-            id="query-settings"
-            title="Queries"
-            className="overflow-y-auto"
-            panel={<QuerySettings extensionAPI={extensionAPI} />}
-          />
-          <Tab
-            id="discourse-node-menu-trigger"
-            title="Personal Node Menu Trigger"
-            panel={<NodeMenuTriggerComponent extensionAPI={extensionAPI} />}
-          />
-          <Tab
-            id="backend-query"
-            title="Use Backend Query (Beta)"
-            panel={<AsyncQuerySettings extensionApi={extensionAPI} />}
-          />
         </Tabs>
       </div>
       {/* <Button
