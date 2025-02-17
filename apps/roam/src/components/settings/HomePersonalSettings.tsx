@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label, InputGroup } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
@@ -35,7 +35,9 @@ const HomePersonalSettings = ({
       <Label>
         Personal Node Menu Trigger
         <Description
-          description={"The personal trigger to create the node menu."}
+          description={
+            "Override the global trigger for the Discourse Node Menu. Must refresh after editing."
+          }
         />
         <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
       </Label>

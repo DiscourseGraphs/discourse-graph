@@ -1,11 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
-import { OnloadArgs } from "roamjs-components/types";
-import { Label, InputGroup } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
-import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 
 const DiscourseGraphHome = () => {

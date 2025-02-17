@@ -6,7 +6,6 @@ import DiscourseRelationConfigPanel from "./DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import DiscourseGraphHome from "./GeneralSettings";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
 import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
@@ -15,8 +14,6 @@ import getDiscourseNodes, {
 } from "~/utils/getDiscourseNodes";
 import NodeConfig from "./NodeConfig";
 import sendErrorEmail from "~/utils/sendErrorEmail";
-import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
-import { AsyncQuerySettings } from "./AsyncQuerySettings";
 import HomePersonalSettings from "./HomePersonalSettings";
 
 type SectionHeaderProps = {
@@ -62,7 +59,6 @@ export const SettingsDialog = ({
     "discourse-graph-home-personal",
   );
 
-  // Secret Dev Panel
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === "D") {
@@ -90,7 +86,7 @@ export const SettingsDialog = ({
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
-          <div className="mb-2 mt-6 text-lg font-semibold text-neutral-dark">
+          <div className="mb-2 text-lg font-semibold text-neutral-dark">
             Personal Settings
           </div>
           <Tab
@@ -105,7 +101,6 @@ export const SettingsDialog = ({
             className="mb-8 overflow-y-auto"
             panel={<QuerySettings extensionAPI={extensionAPI} />}
           />
-
           <div className="text-lg font-semibold text-neutral-dark">
             Global Settings
           </div>
@@ -159,8 +154,36 @@ export const SettingsDialog = ({
               panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
             />
           ))}
-
           <Tabs.Expander />
+          {/* Secret Dev Panel */}
+          <Tab
+            hidden={true}
+            id="secret-dev-panel"
+            title="Secret Dev Panel"
+            className="overflow-y-auto"
+            panel={
+              <div className="flex gap-4 p-4">
+                <Button
+                  onClick={() => {
+                    console.log("NODE_ENV:", process.env.NODE_ENV);
+                  }}
+                >
+                  Log Node Env
+                </Button>
+                <Button
+                  onClick={() => {
+                    console.log("sending error email");
+                    sendErrorEmail({
+                      error: new Error("test"),
+                      type: "Test",
+                    });
+                  }}
+                >
+                  sendErrorEmail()
+                </Button>
+              </div>
+            }
+          />
         </Tabs>
       </div>
       {/* <Button
