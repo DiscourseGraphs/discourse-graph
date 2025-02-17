@@ -22,6 +22,8 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     },
   });
 
+  console.log(plugin.settings);
+
   // This adds a complex command that can check whether the current state of the app allows execution of the command
   plugin.addCommand({
     id: "open-sample-modal-complex",
