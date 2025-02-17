@@ -13,8 +13,8 @@ export const loadImage = (
     };
 
     setTimeout(() => {
-      reject(new Error("Image load timeout"));
-    }, 5000);
+      reject(new Error("Failed to load image: timeout"));
+    }, 10000);
 
     img.src = url;
   });
