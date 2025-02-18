@@ -171,16 +171,6 @@ export const compile = ({
     }),
   );
 
-  if (process.env.NODE_ENV === "production") {
-    console.log("Saving to root for build.sh publishing to Roam Depot");
-    const distFiles = fs.readdirSync(outdir);
-    distFiles.forEach((file) => {
-      const srcPath = path.join(outdir, file);
-      const destPath = path.join(root, file);
-      if (!fs.existsSync(destPath)) fs.cpSync(srcPath, destPath);
-    });
-  }
-
   return Promise.all(buildPromises);
 };
 
