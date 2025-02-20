@@ -570,7 +570,8 @@ const translator: Record<string, Translator> = {
           `[:find (pull ?n [:node/title]) :where [?u :user/display-page ?n]]`,
         ) as [PullBlock][]
       )
-        .map((d) => d[0][":node/title"] || "")
+        .map((d) => d[0]?.[":node/title"] || "")
+        .filter(Boolean)
         .concat(["{current user}"]),
     placeholder: "Enter the display name of any user with access to this graph",
   },
@@ -600,7 +601,8 @@ const translator: Record<string, Translator> = {
           `[:find (pull ?n [:node/title]) :where [?u :user/display-page ?n]]`,
         ) as [PullBlock][]
       )
-        .map((d) => d[0][":node/title"] || "")
+        .map((d) => d[0]?.[":node/title"] || "")
+        .filter(Boolean)
         .concat(["{current user}"]),
     placeholder: "Enter the display name of any user with access to this graph",
   },
