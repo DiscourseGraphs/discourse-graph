@@ -16,6 +16,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import getPageTitlesStartingWithPrefix from "roamjs-components/queries/getPageTitlesStartingWithPrefix";
 import extractRef from "roamjs-components/util/extractRef";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
+import getPageTitleByBlockUid from "roamjs-components/queries/getPageTitleByBlockUid";
 
 type ConditionToDatalog = (condition: Condition) => DatalogClause[];
 
@@ -31,9 +32,11 @@ const regexRePatternValue = (str: string) => {
 const getTitleDatalog = ({
   source,
   target,
+  uid,
 }: {
   source: string;
   target: string;
+  uid?: string;
 }): DatalogClause[] => {
   const dateMatch = /^\s*{date(?::([^}]+))?}\s*$/i.exec(target);
   if (dateMatch) {
@@ -92,7 +95,7 @@ const getTitleDatalog = ({
   if (currentMatch) {
     // Can't use this, since it's async
     // window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
-    const uid = getCurrentPageUid();
+    const mainWindowUid = getCurrentPageUid();
     return [
       {
         type: "data-pattern",
@@ -101,7 +104,23 @@ const getTitleDatalog = ({
           { type: "constant", value: ":node/title" },
           {
             type: "constant",
-            value: `"${getPageTitleByPageUid(uid)}"`,
+            value: `"${getPageTitleByPageUid(mainWindowUid)}"`,
+          },
+        ],
+      },
+    ];
+  }
+  const thisPageMatch = /^\s*{this page}\s*$/i.test(target);
+  if (thisPageMatch && uid) {
+    return [
+      {
+        type: "data-pattern",
+        arguments: [
+          { type: "variable", value: source },
+          { type: "constant", value: ":node/title" },
+          {
+            type: "constant",
+            value: `"${getPageTitleByBlockUid(uid)}"`,
           },
         ],
       },
@@ -232,7 +251,7 @@ const translator: Record<string, Translator> = {
     isVariable: true,
   },
   "is referenced by block in page with title": {
-    callback: ({ source, target }) => [
+    callback: ({ source, target, uid }) => [
       {
         type: "data-pattern",
         arguments: [
@@ -249,7 +268,7 @@ const translator: Record<string, Translator> = {
           { type: "variable", value: target },
         ],
       },
-      ...getTitleDatalog({ source: target, target }),
+      ...getTitleDatalog({ source: target, target, uid }),
     ],
     placeholder: "Enter any placeholder for the node",
     targetOptions: () =>
@@ -258,6 +277,7 @@ const translator: Record<string, Translator> = {
         "{date:today}",
         "{current}",
         "{current user}",
+        "{this page}",
       ]),
   },
   "is in page": {
@@ -282,6 +302,7 @@ const translator: Record<string, Translator> = {
         "{date:today}",
         "{current}",
         "{current user}",
+        "{this page}",
       ]),
     placeholder: "Enter a page name or {date} for any DNP",
   },
@@ -584,7 +605,7 @@ const translator: Record<string, Translator> = {
     placeholder: "Enter the display name of any user with access to this graph",
   },
   "references title": {
-    callback: ({ source, target }) => [
+    callback: ({ source, target, uid }) => [
       {
         type: "data-pattern",
         arguments: [
@@ -593,7 +614,7 @@ const translator: Record<string, Translator> = {
           { type: "variable", value: `${target}-Ref` },
         ],
       },
-      ...getTitleDatalog({ source: `${target}-Ref`, target }),
+      ...getTitleDatalog({ source: `${target}-Ref`, target, uid }),
     ],
     targetOptions: () =>
       getAllPageNames().concat([
@@ -601,6 +622,7 @@ const translator: Record<string, Translator> = {
         "{date:today}",
         "{current}",
         "{current user}",
+        "{this page}",
       ]),
     placeholder: "Enter a page name or {date} for any DNP",
   },
@@ -619,7 +641,7 @@ const translator: Record<string, Translator> = {
     placeholder: "Enter a heading value (0, 1, 2, 3)",
   },
   "is in page with title": {
-    callback: ({ source, target }) => [
+    callback: ({ source, target, uid }) => [
       {
         type: "data-pattern",
         arguments: [
@@ -628,7 +650,7 @@ const translator: Record<string, Translator> = {
           { type: "variable", value: target },
         ],
       },
-      ...getTitleDatalog({ source: target, target }),
+      ...getTitleDatalog({ source: target, target, uid }),
     ],
     targetOptions: () =>
       getAllPageNames().concat([
@@ -636,6 +658,7 @@ const translator: Record<string, Translator> = {
         "{date:today}",
         "{current}",
         "{current user}",
+        "{this page}",
       ]),
     placeholder: "Enter a page name or {date} for any DNP",
   },
