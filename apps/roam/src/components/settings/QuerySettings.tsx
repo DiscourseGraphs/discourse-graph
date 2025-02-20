@@ -62,23 +62,6 @@ const QuerySettings = ({
         />
         <DefaultFilters extensionAPI={extensionAPI} />
       </Label>
-      <Checkbox
-        defaultChecked={extensionAPI.settings.get("async-q") as boolean}
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("async-q", target.checked);
-        }}
-        labelElement={
-          <>
-            Use Backend Query (Beta)
-            <Description
-              description={
-                "This will use Roam's Backend Query. It helps prevent the UI from freezing during large queries but is still in beta and may occasionally produce inaccurate results."
-              }
-            />
-          </>
-        }
-      />
     </div>
   );
 };

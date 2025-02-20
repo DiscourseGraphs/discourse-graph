@@ -15,7 +15,6 @@ import { DEFAULT_RETURN_NODE } from "./parseQuery";
 import { DiscourseNode } from "./getDiscourseNodes";
 import { DiscourseRelation } from "./getDiscourseRelations";
 import nanoid from "nanoid";
-import getExtensionApi from "roamjs-components/util/extensionApiContext";
 
 export type QueryArgs = {
   returnNode?: string;
@@ -327,22 +326,20 @@ const fireQuery: FireQuery = async (_args) => {
   try {
     const nodeEnv = getNodeEnv();
     const queryId = nodeEnv === "development" ? nanoid(4) : "";
-    const isAsyncQ = getExtensionApi().settings.get("async-q");
 
     if (nodeEnv === "development") {
-      console.groupCollapsed(
-        `🔍 Roam Query - ${queryId} - ${isAsyncQ ? "async.q" : "fast.q"}`,
-      );
+      console.groupCollapsed(`🔍 Roam Query - ${queryId}`);
       console.log("%c" + query, "color: #94a3b8; font-family: monospace;");
       if (inputs.length) console.log("Inputs:", ...inputs);
       console.time(`Query - ${queryId}`);
       console.groupEnd();
     }
 
-    const queryResults = await (isAsyncQ
-      ? //@ts-ignore - todo add async q to roamjs-components
-        window.roamAlphaAPI.data.async.q(query, ...inputs)
-      : window.roamAlphaAPI.data.fast.q(query, ...inputs));
+    //@ts-ignore - todo add async q to roamjs-components
+    const queryResults = await window.roamAlphaAPI.data.async.q(
+      query,
+      ...inputs,
+    );
 
     if (nodeEnv === "development") {
       console.timeEnd(`Query - ${queryId}`);
