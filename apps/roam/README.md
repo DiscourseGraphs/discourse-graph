@@ -9,7 +9,7 @@ For more information about Discourse Graphs, check out our website at [https://d
 **WIP**
 
 - [Discourse Graphs](https://discoursegraphs.com/docs/roam) documentation
-- [Query Builder](https://github.com/DiscourseGraphs/discourse-graph/blob/main/docs/query-builder.md) documentation
+- [Query Builder](https://github.com/DiscourseGraphs/discourse-graph/blob/main/apps/roam/docs/query-builder.md) documentation
 
 ## Nomenclature
 
