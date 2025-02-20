@@ -95,6 +95,16 @@ You can use a combination of multiple **conditions** to select the data you want
 | `with text`             | The `source` block or page has the exact text `target` somewhere in its block text or page title.                                           | [Link](examples.md#with-text)             |
 | `with text in title`    | The `source` page has the exact text `target` somewhere in its page title.                                                                  | [Link](examples.md#with-title-in-text)    |
 
+### Target Options
+
+Some relationships have a `target` field that supports the following options:
+
+- `{date}` - matches any Daily Note Page
+- `{date:today}` - matches the current date
+- `{current}` - matches the page currently open in the main window
+- `{this page}` - matches the page in which the query is run
+- `{current user}` - matches the current user
+
 ## Selections
 
 **Selections** specify what data from the blocks that match your conditions get returned. They determine the **columns** of the table. By default, the block text or page title is always returned and hyperlinked. Every selection is made up of two parts: the `label` and the `data`:
