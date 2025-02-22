@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, useState, useEffect } from "react";
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type DiscourseGraphPlugin from "../index";
 import { Root, createRoot } from "react-dom/client";
@@ -8,6 +8,7 @@ const NodeTypeSettings = ({
   nodeTypes,
   onNodeTypeChange,
   onAddNodeType,
+  onDeleteNodeType,
 }: {
   nodeTypes: Array<{ name: string; format: string }>;
   onNodeTypeChange: (
@@ -16,6 +17,7 @@ const NodeTypeSettings = ({
     value: string,
   ) => Promise<void>;
   onAddNodeType: () => Promise<void>;
+  onDeleteNodeType: (index: number) => Promise<void>;
 }) => {
   return (
     <div className="discourse-node-types">
@@ -39,6 +41,12 @@ const NodeTypeSettings = ({
               }
               style={{ flex: 2 }}
             />
+            <button
+              onClick={() => onDeleteNodeType(index)}
+              className="mod-warning"
+            >
+              Delete
+            </button>
           </div>
         </div>
       ))}
@@ -51,9 +59,7 @@ const NodeTypeSettings = ({
 
 const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
   const app = useApp();
-  if (!app) {
-    return <div>An error occurred</div>;
-  }
+  const [nodeTypes, setNodeTypes] = useState(plugin.settings.nodeTypes || []);
 
   // Initialize nodeTypes if undefined
   if (!plugin.settings.nodeTypes) {
@@ -73,46 +79,36 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
   };
 
   const handleAddNodeType = async () => {
-    plugin.settings.nodeTypes.push({
-      name: "",
-      format: "",
-    });
+    const updatedNodeTypes = [
+      ...nodeTypes,
+      {
+        name: "",
+        format: "",
+      },
+    ];
+    setNodeTypes(updatedNodeTypes);
+    plugin.settings.nodeTypes = updatedNodeTypes;
     await plugin.saveSettings();
   };
-);
 
-
-
+  // Add delete handler
+  const handleDeleteNodeType = async (index: number) => {
+    const updatedNodeTypes = nodeTypes.filter((_, i) => i !== index);
+    setNodeTypes(updatedNodeTypes);
+    plugin.settings.nodeTypes = updatedNodeTypes;
+    await plugin.saveSettings();
+  };
   return (
     <div>
       <h2>Discourse Graph Settings</h2>
-      {/* Original setting */}
-      <Setting>
-        <div className="setting-item">
-          <div className="setting-item-info">
-            <div className="setting-item-name">Setting #1</div>
-            <div className="setting-item-description">It's a secret</div>
-          </div>
-          <div className="setting-item-control">
-            <input
-              type="text"
-              placeholder="Enter your secret"
-              value={plugin.settings.mySetting}
-              onChange={async (e) => {
-                plugin.settings.mySetting = e.target.value;
-                await plugin.saveSettings();
-              }}
-            />
-          </div>
-        </div>
-      </Setting>
       {/* Node Type Settings */}
       <NodeTypeSettings
-        nodeTypes={plugin.settings.nodeTypes}
+        nodeTypes={nodeTypes}
         onNodeTypeChange={handleNodeTypeChange}
         onAddNodeType={handleAddNodeType}
+        onDeleteNodeType={handleDeleteNodeType}
       />
-      <h4>Settings for {app.vault.getName()}</h4>;
+      <h4>Settings for {app?.vault.getName()}</h4>;
     </div>
   );
 };
@@ -131,20 +127,19 @@ export class SettingsTab extends PluginSettingTab {
     containerEl.empty();
 
     // Example obsidian settings
-const obsidianSettingsEl = containerEl.createDiv();
-new Setting(obsidianSettingsEl)
-  .setName("Setting #1")
-  .setDesc("It's a secret")
-  .addText((text) =>
-    text
-      .setPlaceholder("Enter your secret")
-      .setValue(this.plugin.settings.mySetting)
-      .onChange(async (value) => {
-        this.plugin.settings.mySetting = value;
-        await this.plugin.saveSettings();
-      }),
-  );
-
+    const obsidianSettingsEl = containerEl.createDiv();
+    new Setting(obsidianSettingsEl)
+      .setName("Setting #1222")
+      .setDesc("It's a secret")
+      .addText((text) =>
+        text
+          .setPlaceholder("Enter your secret")
+          .setValue(this.plugin.settings.mySetting)
+          .onChange(async (value) => {
+            this.plugin.settings.mySetting = value;
+            await this.plugin.saveSettings();
+          }),
+      );
 
     const settingsComponentEl = containerEl.createDiv();
     this.root = createRoot(settingsComponentEl);
