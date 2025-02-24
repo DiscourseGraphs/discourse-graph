@@ -1,12 +1,7 @@
 import { Plugin } from "obsidian";
 import { registerCommands } from "~/utils/registerCommands";
 import { SettingsTab } from "~/components/Settings";
-import { DiscourseNodeType } from "./types";
-
-type Settings = {
-  mySetting: string;
-  nodeTypes: DiscourseNodeType[];
-};
+import { Settings } from "./types";
 
 const DEFAULT_SETTINGS: Settings = {
   mySetting: "default",
@@ -30,10 +25,21 @@ const DEFAULT_SETTINGS: Settings = {
       color: "#DB134A",
     },
   ],
+  nodeTypeHotkey: {
+    modifiers: ["Mod", "Shift"],
+    key: "Backslash",
+  },
 };
 
 export default class DiscourseGraphPlugin extends Plugin {
-  settings: Settings = { mySetting: "default", nodeTypes: [] };
+  settings: Settings = {
+    mySetting: "default",
+    nodeTypes: [],
+    nodeTypeHotkey: {
+      modifiers: ["Mod", "Shift"],
+      key: "Backslash",
+    },
+  };
 
   async onload() {
     await this.loadSettings();

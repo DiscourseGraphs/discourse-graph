@@ -1,5 +1,5 @@
 import { StrictMode, useState, useEffect } from "react";
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Hotkey, Modifier, PluginSettingTab, Setting } from "obsidian";
 import type DiscourseGraphPlugin from "../index";
 import { Root, createRoot } from "react-dom/client";
 import { ContextProvider, useApp } from "./AppContext";
@@ -57,13 +57,102 @@ const NodeTypeSettings = ({
   );
 };
 
+const HotkeyInput = ({
+  value,
+  onChange,
+}: {
+  value: Hotkey;
+  onChange: (hotkey: Hotkey) => void;
+}) => {
+  console.log("HotkeyInput value:", value); // Debug log
+
+  const [isListening, setIsListening] = useState(false);
+  const [currentHotkey, setCurrentHotkey] = useState<Hotkey>(value);
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    e.preventDefault();
+
+    // Only proceed if at least one modifier is pressed
+    if (!(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey)) return;
+
+    const modifiers: Modifier[] = [];
+    if (e.ctrlKey) modifiers.push("Ctrl");
+    if (e.metaKey) modifiers.push("Meta");
+    if (e.altKey) modifiers.push("Alt");
+    if (e.shiftKey) modifiers.push("Shift");
+
+    const newHotkey: Hotkey = {
+      modifiers,
+      key: e.key.toUpperCase(),
+    };
+
+    setCurrentHotkey(newHotkey);
+  };
+
+  useEffect(() => {
+    if (isListening) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [isListening]);
+
+  const formatHotkey = (hotkey: Hotkey) => {
+    if (!hotkey || !hotkey.modifiers) return "";
+
+    const formattedModifiers = hotkey.modifiers.map((mod) => {
+      switch (mod) {
+        case "Mod":
+          return "Cmd/Ctrl";
+        case "Meta":
+          return "Cmd/Win";
+        default:
+          return mod;
+      }
+    });
+
+    return [...formattedModifiers, hotkey.key].join(" + ");
+  };
+
+  return (
+    <div>
+      <input type="text" value={formatHotkey(currentHotkey)} readOnly />
+      <button
+        onClick={() => setIsListening(!isListening)}
+        className={isListening ? "mod-warning" : ""}
+      >
+        {isListening ? "Listening..." : "Edit"}
+      </button>
+      {isListening && (
+        <button
+          onClick={() => {
+            onChange(currentHotkey);
+            setIsListening(false);
+          }}
+        >
+          Save
+        </button>
+      )}
+    </div>
+  );
+};
+
 const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
   const app = useApp();
   const [nodeTypes, setNodeTypes] = useState(plugin.settings.nodeTypes || []);
-
+  const [nodeTypeHotkey, setNodeTypeHotkey] = useState(
+    plugin.settings.nodeTypeHotkey,
+  );
   // Initialize nodeTypes if undefined
   if (!plugin.settings.nodeTypes) {
     plugin.settings.nodeTypes = [];
+  }
+
+  // Initialize nodeTypeHotkey if undefined
+  if (!plugin.settings.nodeTypeHotkey) {
+    plugin.settings.nodeTypeHotkey = {
+      modifiers: ["Ctrl"],
+      key: "\\",
+    };
   }
 
   const handleNodeTypeChange = async (
@@ -95,17 +184,34 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
     await plugin.saveSettings();
   };
 
-  // Add delete handler
   const handleDeleteNodeType = async (index: number) => {
     const updatedNodeTypes = nodeTypes.filter((_, i) => i !== index);
     setNodeTypes(updatedNodeTypes);
     plugin.settings.nodeTypes = updatedNodeTypes;
     await plugin.saveSettings();
   };
+
   return (
     <div>
       <h2>Discourse Graph Settings</h2>
-      {/* Node Type Settings */}
+
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">Node Type Hotkey</div>
+          <div className="setting-item-description">
+            Click Edit and press a modifier + key combination
+          </div>
+        </div>
+        <HotkeyInput
+          value={nodeTypeHotkey}
+          onChange={async (newHotkey) => {
+            setNodeTypeHotkey(newHotkey);
+            plugin.settings.nodeTypeHotkey = newHotkey;
+            await plugin.saveSettings();
+          }}
+        />
+      </div>
+
       <NodeTypeSettings
         nodeTypes={nodeTypes}
         onNodeTypeChange={handleNodeTypeChange}

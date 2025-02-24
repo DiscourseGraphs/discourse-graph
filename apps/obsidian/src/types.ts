@@ -1,3 +1,5 @@
+import { Hotkey } from "obsidian";
+
 export type DiscourseNodeType = {
   name: string;
   format: string;
@@ -5,6 +7,8 @@ export type DiscourseNodeType = {
   color?: string;
 };
 
-export type PluginSettings = {
+export type Settings = {
+  mySetting: string;
   nodeTypes: DiscourseNodeType[];
+  nodeTypeHotkey: Hotkey;
 };
