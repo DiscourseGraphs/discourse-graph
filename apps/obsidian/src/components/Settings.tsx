@@ -71,10 +71,14 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
     field: "name" | "format",
     value: string,
   ) => {
-    if (!plugin.settings.nodeTypes[index]) {
-      plugin.settings.nodeTypes[index] = { name: "", format: "" };
+    const updatedNodeTypes = [...nodeTypes];
+    if (!updatedNodeTypes[index]) {
+      updatedNodeTypes[index] = { name: "", format: "" };
     }
-    plugin.settings.nodeTypes[index][field] = value;
+    updatedNodeTypes[index][field] = value;
+
+    setNodeTypes(updatedNodeTypes);
+    plugin.settings.nodeTypes = updatedNodeTypes;
     await plugin.saveSettings();
   };
 
@@ -108,7 +112,6 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
         onAddNodeType={handleAddNodeType}
         onDeleteNodeType={handleDeleteNodeType}
       />
-      <h4>Settings for {app?.vault.getName()}</h4>;
     </div>
   );
 };
@@ -127,19 +130,19 @@ export class SettingsTab extends PluginSettingTab {
     containerEl.empty();
 
     // Example obsidian settings
-    const obsidianSettingsEl = containerEl.createDiv();
-    new Setting(obsidianSettingsEl)
-      .setName("Setting #1222")
-      .setDesc("It's a secret")
-      .addText((text) =>
-        text
-          .setPlaceholder("Enter your secret")
-          .setValue(this.plugin.settings.mySetting)
-          .onChange(async (value) => {
-            this.plugin.settings.mySetting = value;
-            await this.plugin.saveSettings();
-          }),
-      );
+    // const obsidianSettingsEl = containerEl.createDiv();
+    // new Setting(obsidianSettingsEl)
+    //   .setName("Setting #1222")
+    //   .setDesc("It's a secret")
+    //   .addText((text) =>
+    //     text
+    //       .setPlaceholder("Enter your secret")
+    //       .setValue(this.plugin.settings.mySetting)
+    //       .onChange(async (value) => {
+    //         this.plugin.settings.mySetting = value;
+    //         await this.plugin.saveSettings();
+    //       }),
+    //   );
 
     const settingsComponentEl = containerEl.createDiv();
     this.root = createRoot(settingsComponentEl);
