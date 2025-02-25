@@ -273,7 +273,7 @@ const ContextTab = ({
       columns={columns}
       onRefresh={onRefresh}
       header={
-        <>
+        <h4 className="m-0 mb-2 flex items-center justify-between">
           <span>{r.label}</span>
           <span style={{ display: "flex", alignItems: "center" }}>
             <Switch
@@ -285,7 +285,7 @@ const ContextTab = ({
               }
             />
           </span>
-        </>
+        </h4>
       }
     />
   );
@@ -409,7 +409,7 @@ export const ContextContent = ({ uid, results }: Props) => {
       />
     </Tabs>
   ) : (
-    <div className="ml-8">No discourse relations found.</div>
+    <div className="text-center">No discourse relations found.</div>
   );
 };
 
