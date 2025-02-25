@@ -324,32 +324,35 @@ export const ContextContent = ({ uid, results }: Props) => {
   const [loading, setLoading] = useState(true);
   const debouncedLoading = useDebounce(loading, 150);
 
+  const addLabels = useCallback((result: DiscourseContextResults[number]) => {
+    setRawQueryResults((prev) => ({
+      ...prev,
+      [result.label]: {
+        label: result.label,
+        results: {
+          ...(prev[result.label]?.results || {}),
+          ...result.results,
+        },
+      },
+    }));
+  }, []);
+
   const onRefresh = useCallback(() => {
     setRawQueryResults({});
     getDiscourseContextResults({
       uid,
-      onResult: (result) => {
-        setRawQueryResults((prev) => ({
-          ...prev,
-          [result.label]: {
-            label: result.label,
-            results: {
-              ...(prev[result.label]?.results || {}),
-              ...result.results,
-            },
-          },
-        }));
-      },
+      onResult: addLabels,
     }).finally(() => setLoading(false));
-  }, [uid, setRawQueryResults, setLoading]);
+  }, [uid, setRawQueryResults, setLoading, addLabels]);
 
   useEffect(() => {
     if (!results) {
       onRefresh();
     } else {
+      results.forEach(addLabels);
       setLoading(false);
     }
-  }, [onRefresh, results, setLoading]);
+  }, [onRefresh, results, setLoading, loading, addLabels]);
   const [tabId, setTabId] = useState(0);
   const [groupByTarget, setGroupByTarget] = useState(false);
   return queryResults.length ? (
