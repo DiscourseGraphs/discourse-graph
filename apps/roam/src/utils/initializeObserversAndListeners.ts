@@ -21,6 +21,7 @@ import {
   addPageRefObserver,
   getPageRefObserversSize,
   previewPageRefHandler,
+  overlayPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
@@ -104,10 +105,9 @@ export const initObservers = async ({
   });
 
   if (isFlagEnabled("preview")) addPageRefObserver(previewPageRefHandler);
-  // TODO: grammar overlay being refactored
-  // if (isFlagEnabled("grammar.overlay")) {
-  //   addPageRefObserver((s) => overlayPageRefHandler(s, onloadArgs));
-  // }
+  if (isFlagEnabled("grammar.overlay")) {
+    addPageRefObserver((s) => overlayPageRefHandler(s, onloadArgs));
+  }
   if (!!getPageRefObserversSize()) enablePageRefObserver();
 
   const { pageUid: configPageUid, observer: configPageObserver } =

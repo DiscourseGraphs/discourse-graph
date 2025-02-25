@@ -77,10 +77,8 @@ export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
       {
         title: "overlay",
         Panel: FlagPanel,
-        // description:
-        //   "Whether to overlay discourse context information over node references",
-        description: "Currently disabled. Being reworked.",
-        disabled: true,
+        description:
+          "Whether to overlay discourse context information over node references",
         options: {
           onChange: (val) => {
             onPageRefObserverChange((s) => overlayPageRefHandler(s, args))(val);
