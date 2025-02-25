@@ -166,7 +166,6 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
   );
   const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
 
-  // Initialize settings if needed
   useEffect(() => {
     const initializeSettings = async () => {
       let needsSave = false;
@@ -261,7 +260,11 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
         <div className="setting-item-info">
           <div className="setting-item-name">Node Type Hotkey</div>
           <div className="setting-item-description">
-            Click Edit and press a modifier + key combination
+            <p>
+              This hotkey will open the node type menu to instantly create a new
+              node.
+            </p>
+            <p>Click Edit and press a modifier + key combination</p>
           </div>
         </div>
         <HotkeyInput
