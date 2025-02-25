@@ -1,4 +1,4 @@
-import { Button, Popover, Position, Tooltip } from "@blueprintjs/core";
+import { Button, Icon, Popover, Position, Tooltip } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
 import { ContextContent } from "./DiscourseContext";
@@ -38,6 +38,7 @@ const getOverlayInfo = (tag: string, id: string): Promise<DiscourseData> => {
   if (cache[tag]) return Promise.resolve(cache[tag]);
   const relations = getDiscourseRelations();
   const nodes = getDiscourseNodes(relations);
+
   return new Promise((resolve) => {
     const triggerNow = overlayQueue.length === 0;
     overlayQueue.push({
@@ -161,38 +162,34 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
       autoFocus={false}
       content={
         <div
-          className="roamjs-discourse-context-popover"
-          style={{
-            padding: 16,
-            maxWidth: 720,
-            position: "relative",
-          }}
+          className={`roamjs-discourse-context-popover relative max-w-3xl p-4 ${
+            results.length === 0 ? "flex items-center justify-center" : ""
+          }`}
         >
           <ContextContent uid={tagUid} results={results} />
-          <span style={{ position: "absolute", bottom: "8px", left: "8px" }}>
-            <Tooltip content={"Refresh Overlay"}>
-              <Button
-                icon={"refresh"}
-                minimal
-                onClick={() => {
-                  delete cache[tag];
-                  refresh();
-                }}
-              />
-            </Tooltip>
-          </span>
         </div>
       }
       target={
         <Button
+          small
           id={id}
+          loading={loading}
           className={"roamjs-discourse-context-overlay"}
+          style={{
+            minHeight: "initial",
+            paddingTop: ".25rem",
+            paddingBottom: ".25rem",
+          }}
           minimal
-          text={`${score} | ${refs}`}
-          icon={"diagram-tree"}
-          rightIcon={"link"}
           disabled={loading}
-        />
+        >
+          <div className="flex items-center gap-1.5">
+            <Icon icon={"diagram-tree"} />
+            <span className="mr-1 leading-none">{score}</span>
+            <Icon icon={"link"} />
+            <span className="leading-none">{refs}</span>
+          </div>
+        </Button>
       }
       position={Position.BOTTOM}
     />
@@ -211,14 +208,21 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
     <DiscourseContextOverlay tag={tag} id={id} />
   ) : (
     <Button
+      small
       id={id}
       minimal
-      text={`0 | 0`}
       icon={"diagram-tree"}
       rightIcon={"link"}
       className={"roamjs-discourse-context-overlay"}
       disabled={true}
-    />
+    >
+      <div className="flex items-center gap-1.5">
+        <Icon icon={"diagram-tree"} />
+        <span className="mr-1">0</span>
+        <Icon icon={"link"} />
+        <span>0</span>
+      </div>
+    </Button>
   );
 };
 
