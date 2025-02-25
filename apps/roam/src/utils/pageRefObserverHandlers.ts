@@ -83,19 +83,6 @@ export const onPageRefObserverChange =
 
 export const addPageRefObserver = (handler: (s: HTMLSpanElement) => void) => {
   pageRefObservers.add(handler);
-  if (pageRefObservers.size === 1) enablePageRefObserver();
-};
-
-export const removePageRefObserver = (
-  handler: (s: HTMLSpanElement) => void,
-) => {
-  pageRefObservers.delete(handler);
-  if (pageRefObservers.size === 0) disablePageRefObserver();
-};
-
-export const clearPageRefObservers = () => {
-  disablePageRefObserver();
-  pageRefObservers.clear();
 };
 
 export const getPageRefObserversSize = () => pageRefObservers.size;
