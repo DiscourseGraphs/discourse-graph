@@ -9,6 +9,7 @@ const NodeTypeSettings = ({
   onNodeTypeChange,
   onAddNodeType,
   onDeleteNodeType,
+  formatErrors,
 }: {
   nodeTypes: Array<{ name: string; format: string }>;
   onNodeTypeChange: (
@@ -18,9 +19,8 @@ const NodeTypeSettings = ({
   ) => Promise<void>;
   onAddNodeType: () => Promise<void>;
   onDeleteNodeType: (index: number) => Promise<void>;
+  formatErrors: Record<number, string>;
 }) => {
-  const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
-
   return (
     <div className="discourse-node-types">
       <h3>Node Types</h3>
@@ -41,26 +41,11 @@ const NodeTypeSettings = ({
               />
               <input
                 type="text"
-                placeholder="Format (e.g., [CLM]-{content})"
+                placeholder="Format (e.g., [CLM] - {content})"
                 value={nodeType.format}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  const isValid = /^\[([A-Z-]+)\]\s-\s\{content\}$/.test(value);
-                  if (!isValid && value !== "") {
-                    setFormatErrors((prev) => ({
-                      ...prev,
-                      [index]:
-                        "Format must be [KEYWORD] - {content} with uppercase keyword",
-                    }));
-                  } else {
-                    setFormatErrors((prev) => {
-                      const newErrors = { ...prev };
-                      delete newErrors[index];
-                      return newErrors;
-                    });
-                  }
-                  onNodeTypeChange(index, "format", value);
-                }}
+                onChange={(e) =>
+                  onNodeTypeChange(index, "format", e.target.value)
+                }
                 style={{ flex: 2 }}
               />
               <button
@@ -98,15 +83,12 @@ const HotkeyInput = ({
   value: Hotkey;
   onChange: (hotkey: Hotkey) => void;
 }) => {
-  console.log("HotkeyInput value:", value); // Debug log
-
   const [isListening, setIsListening] = useState(false);
   const [currentHotkey, setCurrentHotkey] = useState<Hotkey>(value);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     e.preventDefault();
 
-    // Only proceed if at least one modifier is pressed
     if (!(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey)) return;
 
     const modifiers: Modifier[] = [];
@@ -172,22 +154,43 @@ const HotkeyInput = ({
 
 const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
   const app = useApp();
-  const [nodeTypes, setNodeTypes] = useState(plugin.settings.nodeTypes || []);
-  const [nodeTypeHotkey, setNodeTypeHotkey] = useState(
-    plugin.settings.nodeTypeHotkey,
+  const [nodeTypes, setNodeTypes] = useState(
+    () => plugin.settings.nodeTypes ?? [],
   );
-  // Initialize nodeTypes if undefined
-  if (!plugin.settings.nodeTypes) {
-    plugin.settings.nodeTypes = [];
-  }
+  const [nodeTypeHotkey, setNodeTypeHotkey] = useState(
+    () =>
+      plugin.settings.nodeTypeHotkey ?? {
+        modifiers: ["Ctrl"],
+        key: "\\",
+      },
+  );
+  const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
 
-  // Initialize nodeTypeHotkey if undefined
-  if (!plugin.settings.nodeTypeHotkey) {
-    plugin.settings.nodeTypeHotkey = {
-      modifiers: ["Ctrl"],
-      key: "\\",
+  // Initialize settings if needed
+  useEffect(() => {
+    const initializeSettings = async () => {
+      let needsSave = false;
+
+      if (!plugin.settings.nodeTypes) {
+        plugin.settings.nodeTypes = [];
+        needsSave = true;
+      }
+
+      if (!plugin.settings.nodeTypeHotkey) {
+        plugin.settings.nodeTypeHotkey = {
+          modifiers: ["Ctrl"],
+          key: "\\",
+        };
+        needsSave = true;
+      }
+
+      if (needsSave) {
+        await plugin.saveSettings();
+      }
     };
-  }
+
+    initializeSettings();
+  }, [plugin]);
 
   const validateFormat = (format: string): boolean => {
     const formatRegex = /^\[([A-Z-]+)\]\s-\s\{content\}$/;
@@ -207,9 +210,20 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
     updatedNodeTypes[index][field] = value;
     setNodeTypes(updatedNodeTypes);
 
-    // Only save if format is valid or empty
     if (field === "format") {
-      if (value === "" || validateFormat(value)) {
+      const isValid = value === "" || validateFormat(value);
+      if (!isValid) {
+        setFormatErrors((prev) => ({
+          ...prev,
+          [index]:
+            "Format must be [KEYWORD] - {content} with uppercase keyword",
+        }));
+      } else {
+        setFormatErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[index];
+          return newErrors;
+        });
         plugin.settings.nodeTypes = updatedNodeTypes;
         await plugin.saveSettings();
       }
@@ -265,6 +279,7 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
         onNodeTypeChange={handleNodeTypeChange}
         onAddNodeType={handleAddNodeType}
         onDeleteNodeType={handleDeleteNodeType}
+        formatErrors={formatErrors}
       />
     </div>
   );
@@ -282,22 +297,6 @@ export class SettingsTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-
-    // Example obsidian settings
-    // const obsidianSettingsEl = containerEl.createDiv();
-    // new Setting(obsidianSettingsEl)
-    //   .setName("Setting #1222")
-    //   .setDesc("It's a secret")
-    //   .addText((text) =>
-    //     text
-    //       .setPlaceholder("Enter your secret")
-    //       .setValue(this.plugin.settings.mySetting)
-    //       .onChange(async (value) => {
-    //         this.plugin.settings.mySetting = value;
-    //         await this.plugin.saveSettings();
-    //       }),
-    //   );
-
     const settingsComponentEl = containerEl.createDiv();
     this.root = createRoot(settingsComponentEl);
     this.root.render(

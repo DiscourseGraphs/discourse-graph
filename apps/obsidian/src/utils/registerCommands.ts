@@ -81,7 +81,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
     id: "open-node-type-menu",
     name: "Open Node Type Menu",
-    hotkeys: [plugin.settings.nodeTypeHotkey],
+    hotkeys: [plugin.settings.nodeTypeHotkey].filter(Boolean),
     editorCallback: (editor: Editor) => {
       if (!plugin.settings.nodeTypes.length) {
         new Notice("No node types configured!");

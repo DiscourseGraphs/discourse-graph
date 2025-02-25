@@ -14,8 +14,6 @@ export class SettingsTab extends PluginSettingTab {
     containerEl.empty();
 
     containerEl.createEl("h2", { text: "Discourse Graph Settings" });
-
-    // Node Types Section
     containerEl.createEl("h3", { text: "Node Types" });
 
     this.plugin.settings.nodeTypes.forEach((nodeType, index) => {
@@ -41,7 +39,6 @@ export class SettingsTab extends PluginSettingTab {
         );
     });
 
-    // Add New Node Type Button
     new Setting(containerEl).addButton((btn) =>
       btn.setButtonText("Add Node Type").onClick(async () => {
         this.plugin.settings.nodeTypes.push({

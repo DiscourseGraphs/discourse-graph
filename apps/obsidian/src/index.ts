@@ -32,18 +32,10 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 export default class DiscourseGraphPlugin extends Plugin {
-  settings: Settings = {
-    mySetting: "default",
-    nodeTypes: [],
-    nodeTypeHotkey: {
-      modifiers: ["Mod", "Shift"],
-      key: "Backslash",
-    },
-  };
+  settings: Settings = { ...DEFAULT_SETTINGS };
 
   async onload() {
     await this.loadSettings();
-    console.log("DiscourseGraphPlugin loaded");
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
   }
