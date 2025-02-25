@@ -19,34 +19,68 @@ const NodeTypeSettings = ({
   onAddNodeType: () => Promise<void>;
   onDeleteNodeType: (index: number) => Promise<void>;
 }) => {
+  const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
+
   return (
     <div className="discourse-node-types">
       <h3>Node Types</h3>
       {nodeTypes.map((nodeType, index) => (
         <div key={index} className="setting-item">
-          <div style={{ display: "flex", gap: "10px", width: "100%" }}>
-            <input
-              type="text"
-              placeholder="Name"
-              value={nodeType.name}
-              onChange={(e) => onNodeTypeChange(index, "name", e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <input
-              type="text"
-              placeholder="Format (e.g., [[CLM]] - {content})"
-              value={nodeType.format}
-              onChange={(e) =>
-                onNodeTypeChange(index, "format", e.target.value)
-              }
-              style={{ flex: 2 }}
-            />
-            <button
-              onClick={() => onDeleteNodeType(index)}
-              className="mod-warning"
-            >
-              Delete
-            </button>
+          <div
+            style={{ display: "flex", flexDirection: "column", width: "100%" }}
+          >
+            <div style={{ display: "flex", gap: "10px" }}>
+              <input
+                type="text"
+                placeholder="Name"
+                value={nodeType.name}
+                onChange={(e) =>
+                  onNodeTypeChange(index, "name", e.target.value)
+                }
+                style={{ flex: 1 }}
+              />
+              <input
+                type="text"
+                placeholder="Format (e.g., [CLM]-{content})"
+                value={nodeType.format}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const isValid = /^\[([A-Z-]+)\]\s-\s\{content\}$/.test(value);
+                  if (!isValid && value !== "") {
+                    setFormatErrors((prev) => ({
+                      ...prev,
+                      [index]:
+                        "Format must be [KEYWORD] - {content} with uppercase keyword",
+                    }));
+                  } else {
+                    setFormatErrors((prev) => {
+                      const newErrors = { ...prev };
+                      delete newErrors[index];
+                      return newErrors;
+                    });
+                  }
+                  onNodeTypeChange(index, "format", value);
+                }}
+                style={{ flex: 2 }}
+              />
+              <button
+                onClick={() => onDeleteNodeType(index)}
+                className="mod-warning"
+              >
+                Delete
+              </button>
+            </div>
+            {formatErrors[index] && (
+              <div
+                style={{
+                  color: "var(--text-error)",
+                  fontSize: "12px",
+                  marginTop: "4px",
+                }}
+              >
+                {formatErrors[index]}
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -155,6 +189,11 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
     };
   }
 
+  const validateFormat = (format: string): boolean => {
+    const formatRegex = /^\[([A-Z-]+)\]\s-\s\{content\}$/;
+    return formatRegex.test(format);
+  };
+
   const handleNodeTypeChange = async (
     index: number,
     field: "name" | "format",
@@ -164,11 +203,20 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
     if (!updatedNodeTypes[index]) {
       updatedNodeTypes[index] = { name: "", format: "" };
     }
-    updatedNodeTypes[index][field] = value;
 
+    updatedNodeTypes[index][field] = value;
     setNodeTypes(updatedNodeTypes);
-    plugin.settings.nodeTypes = updatedNodeTypes;
-    await plugin.saveSettings();
+
+    // Only save if format is valid or empty
+    if (field === "format") {
+      if (value === "" || validateFormat(value)) {
+        plugin.settings.nodeTypes = updatedNodeTypes;
+        await plugin.saveSettings();
+      }
+    } else {
+      plugin.settings.nodeTypes = updatedNodeTypes;
+      await plugin.saveSettings();
+    }
   };
 
   const handleAddNodeType = async () => {
