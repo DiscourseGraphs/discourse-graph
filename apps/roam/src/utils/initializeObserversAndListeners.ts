@@ -105,7 +105,7 @@ export const initObservers = async ({
   });
 
   if (isFlagEnabled("preview")) addPageRefObserver(previewPageRefHandler);
-  if (isFlagEnabled("grammar.overlay")) {
+  if (onloadArgs.extensionAPI.settings.get("discourse-context-overlay")) {
     addPageRefObserver((s) => overlayPageRefHandler(s, onloadArgs));
   }
   if (!!getPageRefObserversSize()) enablePageRefObserver();

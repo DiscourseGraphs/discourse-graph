@@ -11,7 +11,6 @@ import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import {
   onPageRefObserverChange,
   previewPageRefHandler,
-  overlayPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
 import { ConfigTab } from "roamjs-components/components/ConfigPage";
 import {
@@ -73,18 +72,6 @@ export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
           component: DiscourseRelationConfigPanel,
         },
       } as Field<CustomField>,
-      // @ts-ignore
-      {
-        title: "overlay",
-        Panel: FlagPanel,
-        description:
-          "Whether to overlay discourse context information over node references",
-        options: {
-          onChange: (val) => {
-            onPageRefObserverChange((s) => overlayPageRefHandler(s, args))(val);
-          },
-        },
-      } as Field<FlagField>,
     ],
   },
   {

@@ -10,7 +10,17 @@ const pageRefObserverRef: { current?: MutationObserver } = {
   current: undefined,
 };
 
-export const overlayPageRefHandler = (s: HTMLSpanElement, args: OnloadArgs) => {
+// Public handler (stable reference)
+let cachedHandler: ((s: HTMLSpanElement) => void) | undefined;
+export const getOverlayHandler = (onloadArgs: OnloadArgs) =>
+  cachedHandler ||
+  (cachedHandler = (s: HTMLSpanElement) =>
+    overlayPageRefHandler(s, onloadArgs));
+
+export const overlayPageRefHandler = (
+  s: HTMLSpanElement,
+  onloadArgs: OnloadArgs,
+) => {
   if (s.parentElement && !s.parentElement.closest(".rm-page-ref")) {
     const tag =
       s.getAttribute("data-tag") ||
@@ -25,7 +35,7 @@ export const overlayPageRefHandler = (s: HTMLSpanElement, args: OnloadArgs) => {
       discourseOverlayRender({
         parent,
         tag: tag.replace(/\\"/g, '"'),
-        onloadArgs: args,
+        onloadArgs,
       });
       if (s.hasAttribute("data-tag")) {
         s.appendChild(parent);
@@ -54,6 +64,7 @@ export const previewPageRefHandler = (s: HTMLSpanElement) => {
     s.appendChild(parent);
   }
 };
+export const previewHandler = previewPageRefHandler;
 
 export const enablePageRefObserver = () =>
   (pageRefObserverRef.current = createHTMLObserver({
