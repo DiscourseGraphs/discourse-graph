@@ -2,9 +2,9 @@ import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromT
 import getSubTree from "roamjs-components/util/getSubTree";
 import discourseConfigRef from "./discourseConfigRef";
 import getDiscourseRelations from "./getDiscourseRelations";
-import parseQuery from "./parseQuery";
+import { roamNodeToCondition } from "./parseQuery";
 import { Condition } from "./types";
-import { InputTextNode } from "roamjs-components/types";
+import { InputTextNode, RoamBasicNode } from "roamjs-components/types";
 
 export const excludeDefaultNodes = (node: DiscourseNode) => {
   return node.backedBy !== "default";
@@ -64,22 +64,29 @@ const DEFAULT_NODES: DiscourseNode[] = [
   },
 ];
 
+const getSpecification = (children: RoamBasicNode[] | undefined) => {
+  const spec = getSubTree({
+    tree: children,
+    key: "specification",
+  });
+  const scratchNode = getSubTree({ tree: spec.children, key: "scratch" });
+  const conditionsNode = getSubTree({
+    tree: scratchNode.children,
+    key: "conditions",
+  });
+  const specs = conditionsNode.children.map(roamNodeToCondition);
+  return specs;
+};
+
 const getDiscourseNodes = (relations = getDiscourseRelations()) => {
   const configuredNodes = Object.entries(discourseConfigRef.nodes)
     .map(([type, { text, children }]): DiscourseNode => {
-      const spec = getSubTree({
-        tree: children,
-        key: "specification",
-      });
-      const specTree = spec.children;
       return {
         format: getSettingValueFromTree({ tree: children, key: "format" }),
         text,
         shortcut: getSettingValueFromTree({ tree: children, key: "shortcut" }),
         type,
-        specification: !!getSubTree({ tree: specTree, key: "enabled" }).uid
-          ? parseQuery(spec.uid).conditions
-          : [],
+        specification: getSpecification(children),
         backedBy: "user",
         canvasSettings: Object.fromEntries(
           getSubTree({ tree: children, key: "canvas" }).children.map(

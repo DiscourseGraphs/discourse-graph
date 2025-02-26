@@ -4,7 +4,7 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import createBlock from "roamjs-components/writes/createBlock";
 import { Column, Condition, Selection } from "./types";
 
-const roamNodeToCondition = ({
+export const roamNodeToCondition = ({
   uid,
   children,
   text,

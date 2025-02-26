@@ -93,7 +93,7 @@ export const SettingsDialog = ({
             id="discourse-graph-home-personal"
             title="Home"
             className="overflow-y-auto"
-            panel={<HomePersonalSettings extensionAPI={extensionAPI} />}
+            panel={<HomePersonalSettings onloadArgs={onloadArgs} />}
           />
           <Tab
             id="query-settings"

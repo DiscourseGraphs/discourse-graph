@@ -23,7 +23,6 @@ type FormattedConfigTree = {
   trigger: StringSetting;
   preview: BooleanSetting;
   disableSidebarOpen: BooleanSetting;
-  overlay: BooleanSetting;
   export: ExportConfigWithUids;
 };
 
@@ -54,10 +53,7 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
       tree: configTreeRef.tree,
       text: "preview",
     }),
-    overlay: getUidAndBooleanSetting({
-      tree: grammarNode?.children || [],
-      text: "overlay",
-    }),
+
     export: getExportSettingsAndUids(),
   };
 };
