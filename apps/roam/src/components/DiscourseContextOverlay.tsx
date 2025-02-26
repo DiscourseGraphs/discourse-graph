@@ -177,7 +177,6 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
         <Button
           small
           id={id}
-          loading={loading}
           className={"roamjs-discourse-context-overlay"}
           style={{
             minHeight: "initial",
