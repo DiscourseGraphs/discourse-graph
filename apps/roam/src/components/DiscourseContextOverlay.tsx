@@ -47,9 +47,16 @@ const getOverlayInfo = (tag: string, id: string): Promise<DiscourseData> => {
       end: 0,
       mid: 0,
       queued: new Date().valueOf(),
-      callback() {
+      async callback() {
         const self = this;
         const start = (self.start = new Date().valueOf());
+        // @ts-ignore
+        const queryResult = await window.roamAlphaAPI.data.async.q(
+          `[:find ?a :where [?b :node/title "${normalizePageTitle(
+            tag,
+          )}"] [?a :block/refs ?b]]`,
+        );
+        const refs = queryResult.length;
         return getDiscourseContextResults({
           uid: getPageUidByPageTitle(tag),
           nodes,
@@ -58,11 +65,8 @@ const getOverlayInfo = (tag: string, id: string): Promise<DiscourseData> => {
           self.mid = new Date().valueOf();
           const output = (cache[tag] = {
             results,
-            refs: window.roamAlphaAPI.data.fast.q(
-              `[:find ?a :where [?b :node/title "${normalizePageTitle(
-                tag,
-              )}"] [?a :block/refs ?b]]`,
-            ).length,
+
+            refs,
           });
           const runTime = (self.end = new Date().valueOf() - start);
           setTimeout(() => {
