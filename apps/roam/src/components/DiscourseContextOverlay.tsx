@@ -214,8 +214,6 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
       small
       id={id}
       minimal
-      icon={"diagram-tree"}
-      rightIcon={"link"}
       className={"roamjs-discourse-context-overlay"}
       disabled={true}
     >
