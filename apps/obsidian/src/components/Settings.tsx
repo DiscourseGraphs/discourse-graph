@@ -3,6 +3,7 @@ import { App, Hotkey, Modifier, PluginSettingTab, Setting } from "obsidian";
 import type DiscourseGraphPlugin from "../index";
 import { Root, createRoot } from "react-dom/client";
 import { ContextProvider, useApp } from "./AppContext";
+import { getDiscourseNodeFormatExpression } from "../utils/getDiscourseNodeFormatExpression";
 
 const NodeTypeSettings = ({
   nodeTypes,
@@ -81,7 +82,7 @@ const HotkeyInput = ({
   onChange,
 }: {
   value: Hotkey;
-  onChange: (hotkey: Hotkey) => void;
+  onChange: (hotkey: Hotkey) => Promise<void>;
 }) => {
   const [isListening, setIsListening] = useState(false);
   const [currentHotkey, setCurrentHotkey] = useState<Hotkey>(value);
@@ -129,6 +130,15 @@ const HotkeyInput = ({
     return [...formattedModifiers, hotkey.key].join(" + ");
   };
 
+  const handleSave = async () => {
+    try {
+      await onChange(currentHotkey);
+      setIsListening(false);
+    } catch (error) {
+      console.error("Failed to save hotkey:", error);
+    }
+  };
+
   return (
     <div>
       <input type="text" value={formatHotkey(currentHotkey)} readOnly />
@@ -138,16 +148,7 @@ const HotkeyInput = ({
       >
         {isListening ? "Listening..." : "Edit"}
       </button>
-      {isListening && (
-        <button
-          onClick={() => {
-            onChange(currentHotkey);
-            setIsListening(false);
-          }}
-        >
-          Save
-        </button>
-      )}
+      {isListening && <button onClick={handleSave}>Save</button>}
     </div>
   );
 };
@@ -192,8 +193,15 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
   }, [plugin]);
 
   const validateFormat = (format: string): boolean => {
-    const formatRegex = /^\[([A-Z-]+)\]\s-\s\{content\}$/;
-    return formatRegex.test(format);
+    // TODO: fix validation format
+    if (!format) return true; // Empty format is valid
+    try {
+      const regex = getDiscourseNodeFormatExpression(format);
+      // Test with a sample string to make sure it's a valid format
+      return regex.test("[TEST] - Sample content");
+    } catch (e) {
+      return false;
+    }
   };
 
   const handleNodeTypeChange = async (
@@ -215,7 +223,7 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
         setFormatErrors((prev) => ({
           ...prev,
           [index]:
-            "Format must be [KEYWORD] - {content} with uppercase keyword",
+            "Invalid format. You can use any {variable} in your format, e.g., [TYPE] - {content}",
         }));
       } else {
         setFormatErrors((prev) => {
@@ -252,6 +260,17 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
     await plugin.saveSettings();
   };
 
+  const handleHotkeyChange = async (newHotkey: Hotkey) => {
+    try {
+      plugin.settings.nodeTypeHotkey = newHotkey;
+      await plugin.saveSettings();
+      setNodeTypeHotkey(newHotkey);
+      setNodeTypeHotkey(plugin.settings.nodeTypeHotkey);
+    } catch (error) {
+      console.error("Failed to save hotkey:", error);
+    }
+  };
+
   return (
     <div>
       <h2>Discourse Graph Settings</h2>
@@ -270,9 +289,7 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
         <HotkeyInput
           value={nodeTypeHotkey}
           onChange={async (newHotkey) => {
-            setNodeTypeHotkey(newHotkey);
-            plugin.settings.nodeTypeHotkey = newHotkey;
-            await plugin.saveSettings();
+            await handleHotkeyChange(newHotkey);
           }}
         />
       </div>

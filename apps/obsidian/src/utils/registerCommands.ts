@@ -10,31 +10,6 @@ import { SampleModal } from "~/components/SampleModal";
 import type DiscourseGraphPlugin from "~/index";
 import { DiscourseNodeType } from "~/types";
 
-class NodeTypeModal extends SuggestModal<{ name: string; format: string }> {
-  constructor(
-    app: App,
-    private editor: Editor,
-    private nodeTypes: DiscourseNodeType[],
-  ) {
-    super(app);
-  }
-
-  getSuggestions(): DiscourseNodeType[] {
-    return this.nodeTypes;
-  }
-
-  renderSuggestion(nodeType: DiscourseNodeType, el: HTMLElement) {
-    el.createEl("div", { text: nodeType.name });
-  }
-
-  onChooseSuggestion(nodeType: DiscourseNodeType) {
-    const selectedText = this.editor.getSelection();
-    const heading = nodeType.format.split(" ")[0];
-    const nodeFormat = `[[${heading} - ${selectedText}]]`;
-    this.editor.replaceSelection(nodeFormat);
-  }
-}
-
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   // This adds a simple command that can be triggered anywhere
   plugin.addCommand({
@@ -75,20 +50,6 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         // This command will only show up in Command Palette when the check function returns true
         return true;
       }
-    },
-  });
-
-  plugin.addCommand({
-    id: "open-node-type-menu",
-    name: "Open Node Type Menu",
-    hotkeys: [plugin.settings.nodeTypeHotkey].filter(Boolean),
-    editorCallback: (editor: Editor) => {
-      if (!plugin.settings.nodeTypes.length) {
-        new Notice("No node types configured!");
-        return;
-      }
-
-      new NodeTypeModal(plugin.app, editor, plugin.settings.nodeTypes).open();
     },
   });
 };
