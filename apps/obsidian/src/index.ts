@@ -1,6 +1,7 @@
 import { App, Editor, Notice, Plugin, SuggestModal } from "obsidian";
 import { SettingsTab } from "~/components/Settings";
 import { DiscourseNodeType, Settings } from "./types";
+import { getDiscourseNodeFormatExpression } from "./utils/getDiscourseNodeFormatExpression";
 
 const DEFAULT_SETTINGS: Settings = {
   mySetting: "default",
@@ -38,10 +39,18 @@ class NodeTypeModal extends SuggestModal<DiscourseNodeType> {
 
   onChooseSuggestion(nodeType: DiscourseNodeType) {
     const selectedText = this.editor.getSelection();
-    // TODO: get the regex from the nodeType
-    const heading = nodeType.format.split(" ")[0];
-    const nodeFormat = `[[${heading} - ${selectedText}]]`;
-    this.editor.replaceSelection(nodeFormat);
+    const regex = getDiscourseNodeFormatExpression(nodeType.format);
+
+    const nodeFormat = regex.source.match(/^\^(.*?)\(\.\*\?\)(.*?)\$$/);
+    if (!nodeFormat) return;
+
+    const formattedNodeName =
+      nodeFormat[1]?.replace(/\\/g, "") +
+      selectedText +
+      nodeFormat[2]?.replace(/\\/g, "");
+    if (!nodeFormat) return;
+
+    this.editor.replaceSelection(`[[${formattedNodeName}]]`);
   }
 }
 

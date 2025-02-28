@@ -3,7 +3,7 @@ import { App, Hotkey, Modifier, PluginSettingTab, Setting } from "obsidian";
 import type DiscourseGraphPlugin from "../index";
 import { Root, createRoot } from "react-dom/client";
 import { ContextProvider, useApp } from "./AppContext";
-import { getDiscourseNodeFormatExpression } from "../utils/getDiscourseNodeFormatExpression";
+import { validateNodeFormat } from "../utils/validateNodeFormat";
 
 const NodeTypeSettings = ({
   nodeTypes,
@@ -192,18 +192,6 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
     initializeSettings();
   }, [plugin]);
 
-  const validateFormat = (format: string): boolean => {
-    // TODO: fix validation format
-    if (!format) return true; // Empty format is valid
-    try {
-      const regex = getDiscourseNodeFormatExpression(format);
-      // Test with a sample string to make sure it's a valid format
-      return regex.test("[TEST] - Sample content");
-    } catch (e) {
-      return false;
-    }
-  };
-
   const handleNodeTypeChange = async (
     index: number,
     field: "name" | "format",
@@ -218,12 +206,11 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
     setNodeTypes(updatedNodeTypes);
 
     if (field === "format") {
-      const isValid = value === "" || validateFormat(value);
+      const { isValid, error } = validateNodeFormat(value);
       if (!isValid) {
         setFormatErrors((prev) => ({
           ...prev,
-          [index]:
-            "Invalid format. You can use any {variable} in your format, e.g., [TYPE] - {content}",
+          [index]: error ?? "Invalid format",
         }));
       } else {
         setFormatErrors((prev) => {
