@@ -1,6 +1,14 @@
-import { Editor, MarkdownFileInfo, MarkdownView } from "obsidian";
+import {
+  Editor,
+  MarkdownFileInfo,
+  MarkdownView,
+  App,
+  Notice,
+  SuggestModal,
+} from "obsidian";
 import { SampleModal } from "~/components/SampleModal";
 import type DiscourseGraphPlugin from "~/index";
+import { DiscourseNodeType } from "~/types";
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   // This adds a simple command that can be triggered anywhere
@@ -21,6 +29,8 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       editor.replaceSelection("Sample Editor Command");
     },
   });
+
+  console.log(plugin.settings);
 
   // This adds a complex command that can check whether the current state of the app allows execution of the command
   plugin.addCommand({
