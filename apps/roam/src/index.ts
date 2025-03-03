@@ -21,7 +21,7 @@ import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
-import { initBirdEatsBug } from "./components/BirdEatsBugs";
+import { initFeedbackWidget } from "./components/BirdEatsBugs";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -62,7 +62,7 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-  initBirdEatsBug();
+  initFeedbackWidget();
 
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
