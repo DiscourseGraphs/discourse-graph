@@ -69,7 +69,6 @@ export const initFeedbackWidget = (): void => {
   }
   
   birdeatsbug.load = () => {
-    // Create an async script element
     const script = document.createElement('script');
     script.type = 'module';
     script.async = true;
@@ -92,25 +91,21 @@ export const initFeedbackWidget = (): void => {
   const customStyles = document.createElement('style');
   customStyles.textContent = `
    
-    /* Target the specific Bird Eats Bug container */
     #birdeatsbug-sdk {
       --distance-to-window-edge-vertical: 50px;
       --distance-to-window-edge-horizontal: 20px;
     }
     
-    /* Override specific elements */
     #birdeatsbug-sdk .form-error {
       font-size: 1.2rem;
     }
     
-    /* Disable default screen container styles */
     #birdeatsbug-sdk:has(.screen) {
       box-shadow: none !important;
       border-radius: 0 !important;
       border: none !important;
     }
     
-    /* Change colors for dark theme */
     #birdeatsbug-sdk.dark {
       --button-primary-bg-color: #1976d2;
     }
