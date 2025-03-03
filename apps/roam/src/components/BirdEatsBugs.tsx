@@ -103,6 +103,13 @@ export const initFeedbackWidget = (): void => {
       font-size: 1.2rem;
     }
     
+    /* Disable default screen container styles */
+    #birdeatsbug-sdk:has(.screen) {
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      border: none !important;
+    }
+    
     /* Change colors for dark theme */
     #birdeatsbug-sdk.dark {
       --button-primary-bg-color: #1976d2;
