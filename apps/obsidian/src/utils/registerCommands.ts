@@ -8,7 +8,7 @@ import {
 } from "obsidian";
 import { SampleModal } from "~/components/SampleModal";
 import type DiscourseGraphPlugin from "~/index";
-import { DiscourseNodeType } from "~/types";
+import { NodeTypeModal } from "~/components/NodeTypeModal";
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   // This adds a simple command that can be triggered anywhere
@@ -50,6 +50,15 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         // This command will only show up in Command Palette when the check function returns true
         return true;
       }
+    },
+  });
+
+  plugin.addCommand({
+    id: "open-node-type-menu",
+    name: "Open Node Type Menu",
+    hotkeys: [{ modifiers: ["Mod"], key: "\\" }],
+    editorCallback: (editor: Editor) => {
+      new NodeTypeModal(plugin.app, editor, plugin.settings.nodeTypes).open();
     },
   });
 };
