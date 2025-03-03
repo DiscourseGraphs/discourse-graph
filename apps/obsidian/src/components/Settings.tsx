@@ -10,6 +10,7 @@ const NodeTypeSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
     () => plugin.settings.nodeTypes ?? [],
   );
   const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     const initializeSettings = async () => {
@@ -40,6 +41,7 @@ const NodeTypeSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
 
     updatedNodeTypes[index][field] = value;
     setNodeTypes(updatedNodeTypes);
+    setHasUnsavedChanges(true);
 
     if (field === "format") {
       const { isValid, error } = validateNodeFormat(value);
@@ -54,16 +56,11 @@ const NodeTypeSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
           delete newErrors[index];
           return newErrors;
         });
-        plugin.settings.nodeTypes = updatedNodeTypes;
-        await plugin.saveSettings();
       }
-    } else {
-      plugin.settings.nodeTypes = updatedNodeTypes;
-      await plugin.saveSettings();
     }
   };
 
-  const handleAddNodeType = async (): Promise<void> => {
+  const handleAddNodeType = (): void => {
     const updatedNodeTypes = [
       ...nodeTypes,
       {
@@ -72,8 +69,7 @@ const NodeTypeSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
       },
     ];
     setNodeTypes(updatedNodeTypes);
-    plugin.settings.nodeTypes = updatedNodeTypes;
-    await plugin.saveSettings();
+    setHasUnsavedChanges(true);
   };
 
   const handleDeleteNodeType = async (index: number): Promise<void> => {
@@ -82,6 +78,29 @@ const NodeTypeSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
     plugin.settings.nodeTypes = updatedNodeTypes;
     await plugin.saveSettings();
   };
+
+  const handleSave = async (): Promise<void> => {
+    let hasErrors = false;
+    for (let i = 0; i < nodeTypes.length; i++) {
+      const { isValid, error } = validateNodeFormat(nodeTypes[i]?.format ?? "");
+      if (!isValid) {
+        setFormatErrors((prev) => ({
+          ...prev,
+          [i]: error ?? "Invalid format",
+        }));
+        hasErrors = true;
+      }
+    }
+
+    if (hasErrors) {
+      return;
+    }
+
+    plugin.settings.nodeTypes = nodeTypes;
+    await plugin.saveSettings();
+    setHasUnsavedChanges(false);
+  };
+
   return (
     <div className="discourse-node-types">
       <h3>Node Types</h3>
@@ -131,8 +150,24 @@ const NodeTypeSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
         </div>
       ))}
       <div className="setting-item">
-        <button onClick={handleAddNodeType}>Add Node Type</button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={handleAddNodeType}>Add Node Type</button>
+          <button
+            onClick={handleSave}
+            className={hasUnsavedChanges ? "mod-cta" : ""}
+            disabled={
+              !hasUnsavedChanges || Object.keys(formatErrors).length > 0
+            }
+          >
+            Save Changes
+          </button>
+        </div>
       </div>
+      {hasUnsavedChanges && (
+        <div style={{ marginTop: "8px", color: "var(--text-muted)" }}>
+          You have unsaved changes
+        </div>
+      )}
     </div>
   );
 };

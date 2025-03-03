@@ -12,8 +12,7 @@ export function validateNodeFormat(format: string): {
   if (format.includes("[[") || format.includes("]]")) {
     return {
       isValid: false,
-      error:
-        "Format should not contain double brackets [[ or ]], these will be added automatically",
+      error: "Format should not contain double brackets [[ or ]]",
     };
   }
 

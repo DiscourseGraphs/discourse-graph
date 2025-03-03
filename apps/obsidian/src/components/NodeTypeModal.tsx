@@ -15,7 +15,6 @@ export class NodeTypeModal extends SuggestModal<DiscourseNodeType> {
     return item.name;
   }
 
-  // Get all available items
   getSuggestions() {
     const query = this.inputEl.value.toLowerCase();
     return this.nodeTypes.filter((node) =>
