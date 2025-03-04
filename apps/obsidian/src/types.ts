@@ -1,4 +1,4 @@
-export type DiscourseNodeType = {
+export type DiscourseNode = {
   name: string;
   format: string;
   shortcut?: string;
@@ -6,5 +6,5 @@ export type DiscourseNodeType = {
 };
 
 export type Settings = {
-  nodeTypes: DiscourseNodeType[];
+  nodeTypes: DiscourseNode[];
 };
