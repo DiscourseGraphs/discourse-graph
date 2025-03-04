@@ -1,9 +1,11 @@
 import { StrictMode, useState, useEffect } from "react";
-import { App, PluginSettingTab } from "obsidian";
+import { App, PluginSettingTab, Notice } from "obsidian";
 import type DiscourseGraphPlugin from "../index";
 import { Root, createRoot } from "react-dom/client";
 import { ContextProvider, useApp } from "./AppContext";
 import { validateNodeFormat } from "../utils/validateNodeFormat";
+import RelationshipTypeSettings from "./RelationshipTypeSettings";
+import RelationshipSettings from "./RelationshipSettings";
 
 const NodeTypeSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
   const [nodeTypes, setNodeTypes] = useState(
@@ -173,9 +175,85 @@ const NodeTypeSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
 };
 
 const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
+  const [activeTab, setActiveTab] = useState("nodeTypes");
+
   return (
     <div>
-      <NodeTypeSettings plugin={plugin} />
+      <h2>Discourse Graph Settings</h2>
+
+      <div
+        className="discourse-tabs"
+        style={{
+          marginBottom: "20px",
+          borderBottom: "1px solid var(--background-modifier-border)",
+        }}
+      >
+        <button
+          onClick={() => setActiveTab("nodeTypes")}
+          className={`discourse-tab ${activeTab === "nodeTypes" ? "active" : ""}`}
+          style={{
+            padding: "8px 16px",
+            background:
+              activeTab === "nodeTypes"
+                ? "var(--background-modifier-hover)"
+                : "transparent",
+            border: "none",
+            borderBottom:
+              activeTab === "nodeTypes"
+                ? "2px solid var(--interactive-accent)"
+                : "none",
+            marginRight: "8px",
+            cursor: "pointer",
+          }}
+        >
+          Node Types
+        </button>
+        <button
+          onClick={() => setActiveTab("relationTypes")}
+          className={`discourse-tab ${activeTab === "relationTypes" ? "active" : ""}`}
+          style={{
+            padding: "8px 16px",
+            background:
+              activeTab === "relationTypes"
+                ? "var(--background-modifier-hover)"
+                : "transparent",
+            border: "none",
+            borderBottom:
+              activeTab === "relationTypes"
+                ? "2px solid var(--interactive-accent)"
+                : "none",
+            marginRight: "8px",
+            cursor: "pointer",
+          }}
+        >
+          Relation Types
+        </button>
+        <button
+          onClick={() => setActiveTab("relations")}
+          className={`discourse-tab ${activeTab === "relations" ? "active" : ""}`}
+          style={{
+            padding: "8px 16px",
+            background:
+              activeTab === "relations"
+                ? "var(--background-modifier-hover)"
+                : "transparent",
+            border: "none",
+            borderBottom:
+              activeTab === "relations"
+                ? "2px solid var(--interactive-accent)"
+                : "none",
+            cursor: "pointer",
+          }}
+        >
+          Relations
+        </button>
+      </div>
+
+      {activeTab === "nodeTypes" && <NodeTypeSettings plugin={plugin} />}
+      {activeTab === "relationTypes" && (
+        <RelationshipTypeSettings plugin={plugin} />
+      )}
+      {activeTab === "relations" && <RelationshipSettings plugin={plugin} />}
     </div>
   );
 };

@@ -1,17 +1,17 @@
 import { App, Editor, SuggestModal } from "obsidian";
-import { DiscourseNodeType } from "../types";
+import { DiscourseNode } from "../types";
 import { getDiscourseNodeFormatExpression } from "../utils/getDiscourseNodeFormatExpression";
 
-export class NodeTypeModal extends SuggestModal<DiscourseNodeType> {
+export class NodeTypeModal extends SuggestModal<DiscourseNode> {
   constructor(
     app: App,
     private editor: Editor,
-    private nodeTypes: DiscourseNodeType[],
+    private nodeTypes: DiscourseNode[],
   ) {
     super(app);
   }
 
-  getItemText(item: DiscourseNodeType): string {
+  getItemText(item: DiscourseNode): string {
     return item.name;
   }
 
@@ -22,11 +22,11 @@ export class NodeTypeModal extends SuggestModal<DiscourseNodeType> {
     );
   }
 
-  renderSuggestion(nodeType: DiscourseNodeType, el: HTMLElement) {
+  renderSuggestion(nodeType: DiscourseNode, el: HTMLElement) {
     el.createEl("div", { text: nodeType.name });
   }
 
-  onChooseSuggestion(nodeType: DiscourseNodeType) {
+  onChooseSuggestion(nodeType: DiscourseNode) {
     const selectedText = this.editor.getSelection();
     const regex = getDiscourseNodeFormatExpression(nodeType.format);
 
