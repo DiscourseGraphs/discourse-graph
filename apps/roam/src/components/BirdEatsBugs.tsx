@@ -121,7 +121,7 @@ export const initFeedbackWidget = (): void => {
       --button-primary-bg-color: #1976d2;
     }
 
-    button#birdeatsbug-default-button .button {
+    button#birdeatsbug-default-button.button {
       font-weight: 600;
       font-size: 15px;
     }
