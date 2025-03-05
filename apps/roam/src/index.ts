@@ -21,6 +21,7 @@ import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
+import { initFeedbackWidget } from "./components/BirdEatsBugs";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -61,6 +62,8 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
+  initFeedbackWidget();
+
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
       timeout: 10000,
@@ -87,7 +90,6 @@ export default runExtension(async (onloadArgs) => {
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
-
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
