@@ -274,10 +274,89 @@ const RelationshipSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
                         style={{
                           marginTop: "8px",
                           color: "var(--text-normal)",
+                          border: "1px solid var(--background-modifier-border)",
+                          borderRadius: "4px",
+                          padding: "8px",
+                          background: "var(--background-secondary)",
                         }}
+                        className="relationship-visualization"
                       >
-                        <div>Forward: {getRelationLabel(relation)}</div>
-                        <div>Reverse: {getComplementLabel(relation)}</div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <div className="relationship-node">
+                            {relation.source.name}
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              padding: "0 12px",
+                            }}
+                          >
+                            <div
+                              style={{ display: "flex", alignItems: "center" }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: "0.85em",
+                                  color: "var(--text-accent)",
+                                }}
+                              >
+                                {relation.relationshipType.label}
+                              </div>
+                              <div
+                                style={{
+                                  margin: "0 4px",
+                                  fontSize: "1.2em",
+                                  color: "var(--text-accent)",
+                                }}
+                              >
+                                →
+                              </div>
+                            </div>
+                            <div
+                              style={{
+                                width: "100%",
+                                textAlign: "center",
+                                borderTop:
+                                  "1px solid var(--background-modifier-border)",
+                                margin: "4px 0",
+                              }}
+                            ></div>
+                            <div
+                              style={{ display: "flex", alignItems: "center" }}
+                            >
+                              <div
+                                style={{
+                                  margin: "0 4px",
+                                  fontSize: "1.2em",
+                                  color: "var(--text-accent)",
+                                }}
+                              >
+                                ←
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "0.85em",
+                                  color: "var(--text-accent)",
+                                }}
+                              >
+                                {relation.relationshipType.complement}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="relationship-node">
+                            {relation.destination.name}
+                          </div>
+                        </div>
                       </div>
                     )}
                 </div>

@@ -1,21 +1,34 @@
 import { useState, useEffect } from "react";
-import { useSettingsContext } from "./SettingsContext";
+import type DiscourseGraphPlugin from "../index";
 import { validateNodeFormat } from "../utils/validateNodeFormat";
 
-const NodeTypeSettings = () => {
-  const {
-    nodeTypes,
-    setNodeTypes,
-    hasUnsavedChanges,
-    setHasUnsavedChanges,
-    saveSettings,
-  } = useSettingsContext();
-
+const NodeTypeSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
+  const [nodeTypes, setNodeTypes] = useState(
+    () => plugin.settings.nodeTypes ?? [],
+  );
   const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  useEffect(() => {
+    const initializeSettings = async () => {
+      let needsSave = false;
+
+      if (!plugin.settings.nodeTypes) {
+        plugin.settings.nodeTypes = [];
+        needsSave = true;
+      }
+
+      if (needsSave) {
+        await plugin.saveSettings();
+      }
+    };
+
+    initializeSettings();
+  }, [plugin]);
 
   const handleNodeTypeChange = async (
     index: number,
-    field: "name" | "format" | "shortcut" | "color",
+    field: "name" | "format",
     value: string,
   ): Promise<void> => {
     const updatedNodeTypes = [...nodeTypes];
@@ -59,7 +72,8 @@ const NodeTypeSettings = () => {
   const handleDeleteNodeType = async (index: number): Promise<void> => {
     const updatedNodeTypes = nodeTypes.filter((_, i) => i !== index);
     setNodeTypes(updatedNodeTypes);
-    setHasUnsavedChanges(true);
+    plugin.settings.nodeTypes = updatedNodeTypes;
+    await plugin.saveSettings();
   };
 
   const handleSave = async (): Promise<void> => {
@@ -79,7 +93,9 @@ const NodeTypeSettings = () => {
       return;
     }
 
-    await saveSettings("nodeTypes");
+    plugin.settings.nodeTypes = nodeTypes;
+    await plugin.saveSettings();
+    setHasUnsavedChanges(false);
   };
 
   return (
