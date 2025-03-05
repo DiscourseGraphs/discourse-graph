@@ -1,17 +1,14 @@
 import { Plugin } from "obsidian";
-import { registerCommands } from "~/utils/registerCommands";
 import { SettingsTab } from "~/components/Settings";
-
-type Settings = {
-  mySetting: string;
-};
+import { Settings } from "./types";
+import { registerCommands } from "./utils/registerCommands";
 
 const DEFAULT_SETTINGS: Settings = {
-  mySetting: "default",
+  nodeTypes: [],
 };
 
 export default class DiscourseGraphPlugin extends Plugin {
-  settings: Settings = { mySetting: "default" };
+  settings: Settings = { ...DEFAULT_SETTINGS };
 
   async onload() {
     await this.loadSettings();

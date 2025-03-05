@@ -1,6 +1,14 @@
-import { Editor, MarkdownFileInfo, MarkdownView } from "obsidian";
+import {
+  Editor,
+  MarkdownFileInfo,
+  MarkdownView,
+  App,
+  Notice,
+  SuggestModal,
+} from "obsidian";
 import { SampleModal } from "~/components/SampleModal";
 import type DiscourseGraphPlugin from "~/index";
+import { NodeTypeModal } from "~/components/NodeTypeModal";
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   // This adds a simple command that can be triggered anywhere
@@ -22,6 +30,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     },
   });
 
+
   // This adds a complex command that can check whether the current state of the app allows execution of the command
   plugin.addCommand({
     id: "open-sample-modal-complex",
@@ -40,6 +49,15 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         // This command will only show up in Command Palette when the check function returns true
         return true;
       }
+    },
+  });
+
+  plugin.addCommand({
+    id: "open-node-type-menu",
+    name: "Open Node Type Menu",
+    hotkeys: [{ modifiers: ["Mod"], key: "\\" }],
+    editorCallback: (editor: Editor) => {
+      new NodeTypeModal(plugin.app, editor, plugin.settings.nodeTypes).open();
     },
   });
 };
