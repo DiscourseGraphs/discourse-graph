@@ -6,9 +6,10 @@ import { ContextProvider, useApp } from "./AppContext";
 import RelationshipTypeSettings from "./RelationshipTypeSettings";
 import RelationshipSettings from "./RelationshipSettings";
 import NodeTypeSettings from "./NodeTypeSettings";
-import React from "react";
+import { PluginProvider, usePlugin } from "./PluginContext";
 
-const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
+const Settings = () => {
+  const plugin = usePlugin();
   const [activeTab, setActiveTab] = useState("nodeTypes");
 
   return (
@@ -83,11 +84,9 @@ const Settings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
         </button>
       </div>
 
-      {activeTab === "nodeTypes" && <NodeTypeSettings plugin={plugin} />}
-      {activeTab === "relationTypes" && (
-        <RelationshipTypeSettings plugin={plugin} />
-      )}
-      {activeTab === "relations" && <RelationshipSettings plugin={plugin} />}
+      {activeTab === "nodeTypes" && <NodeTypeSettings />}
+      {activeTab === "relationTypes" && <RelationshipTypeSettings />}
+      {activeTab === "relations" && <RelationshipSettings />}
     </div>
   );
 };
@@ -109,7 +108,9 @@ export class SettingsTab extends PluginSettingTab {
     this.root.render(
       <StrictMode>
         <ContextProvider app={this.app}>
-          <Settings plugin={this.plugin} />
+          <PluginProvider plugin={this.plugin}>
+            <Settings />
+          </PluginProvider>
         </ContextProvider>
       </StrictMode>,
     );

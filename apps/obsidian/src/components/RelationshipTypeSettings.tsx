@@ -1,14 +1,10 @@
 import { useState, useEffect } from "react";
-import type DiscourseGraphPlugin from "../index";
 import { DiscourseRelationType } from "../types";
-import { useApp } from "./AppContext";
 import { Notice } from "obsidian";
+import { usePlugin } from "./PluginContext";
 
-const RelationshipTypeSettings = ({
-  plugin,
-}: {
-  plugin: DiscourseGraphPlugin;
-}) => {
+const RelationshipTypeSettings = () => {
+  const plugin = usePlugin();
   const [relationTypes, setRelationTypes] = useState<DiscourseRelationType[]>(
     () => plugin.settings.relationTypes ?? [],
   );

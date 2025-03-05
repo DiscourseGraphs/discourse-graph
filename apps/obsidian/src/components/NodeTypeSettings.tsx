@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import type DiscourseGraphPlugin from "../index";
 import { validateNodeFormat } from "../utils/validateNodeFormat";
+import { usePlugin } from "./PluginContext";
 
-const NodeTypeSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
+const NodeTypeSettings = () => {
+  const plugin = usePlugin();
   const [nodeTypes, setNodeTypes] = useState(
     () => plugin.settings.nodeTypes ?? [],
   );
