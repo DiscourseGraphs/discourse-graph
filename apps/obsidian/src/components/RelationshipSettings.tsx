@@ -5,7 +5,6 @@ import {
   DiscourseNode,
   DiscourseRelationType,
 } from "../types";
-import { useApp } from "./AppContext";
 import { Notice } from "obsidian";
 
 const RelationshipSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
@@ -39,15 +38,42 @@ const RelationshipSettings = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
     const updatedRelations = [...discourseRelations];
     if (!updatedRelations[index]) {
       updatedRelations[index] = {
-        source: { name: value, format: "markdown" },
-        destination: { name: value, format: "markdown" },
-        relationshipType: { id: value, label: "", complement: "" },
+        source: { name: "", format: "markdown" },
+        destination: { name: "", format: "markdown" },
+        relationshipType: { id: "", label: "", complement: "" },
       };
-    } else {
-      updatedRelations[index] = {
-        ...updatedRelations[index],
-        [field]: value,
+    }
+
+    // Handle each field type appropriately
+    if (field === "source" || field === "destination") {
+      // For source and destination, update the node's name
+      // Find the matching node type to get its format
+      const nodeType = plugin.settings.nodeTypes.find(
+        (nt) => nt.name === value,
+      );
+      updatedRelations[index][field] = {
+        name: value,
+        format: nodeType?.format || "markdown",
       };
+    } else if (field === "relationshipType") {
+      // For relationshipType, we get an ID and need to find the complete relation type
+      const relationType = plugin.settings.relationTypes.find(
+        (rt) => rt.id === value,
+      );
+      if (relationType) {
+        updatedRelations[index].relationshipType = {
+          id: relationType.id,
+          label: relationType.label,
+          complement: relationType.complement,
+        };
+      } else {
+        // If not found, just update the ID
+        updatedRelations[index].relationshipType = {
+          id: value,
+          label: "",
+          complement: "",
+        };
+      }
     }
 
     setDiscourseRelations(updatedRelations);
