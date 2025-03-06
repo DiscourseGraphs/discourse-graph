@@ -3,7 +3,7 @@ import {
   validateAllNodes,
   validateNodeFormat,
   validateNodeName,
-} from "../utils/validateNodeFormat";
+} from "../utils/validateNodeType";
 import { usePlugin } from "./PluginContext";
 import { Notice } from "obsidian";
 import generateUid from "~/utils/generateUid";
