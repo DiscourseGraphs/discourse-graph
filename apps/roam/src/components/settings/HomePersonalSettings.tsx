@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label, InputGroup, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";

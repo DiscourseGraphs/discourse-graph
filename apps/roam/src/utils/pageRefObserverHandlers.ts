@@ -64,7 +64,6 @@ export const previewPageRefHandler = (s: HTMLSpanElement) => {
     s.appendChild(parent);
   }
 };
-export const previewHandler = previewPageRefHandler;
 
 export const enablePageRefObserver = () =>
   (pageRefObserverRef.current = createHTMLObserver({
