@@ -17,6 +17,24 @@ const NodeTypeSettings = () => {
   const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  const updateErrors = (
+    index: number,
+    validation: { isValid: boolean; error?: string },
+  ) => {
+    if (!validation.isValid) {
+      setFormatErrors((prev) => ({
+        ...prev,
+        [index]: validation.error || "Invalid input",
+      }));
+    } else {
+      setFormatErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[index];
+        return newErrors;
+      });
+    }
+  };
+
   const handleNodeTypeChange = async (
     index: number,
     field: keyof DiscourseNode,
@@ -32,32 +50,10 @@ const NodeTypeSettings = () => {
 
     if (field === "format") {
       const { isValid, error } = validateNodeFormat(value, updatedNodeTypes);
-      if (!isValid) {
-        setFormatErrors((prev) => ({
-          ...prev,
-          [index]: error || "Invalid format",
-        }));
-      } else {
-        setFormatErrors((prev) => {
-          const newErrors = { ...prev };
-          delete newErrors[index];
-          return newErrors;
-        });
-      }
+      updateErrors(index, { isValid, error });
     } else if (field === "name") {
       const nameValidation = validateNodeName(value, updatedNodeTypes);
-      if (!nameValidation.isValid) {
-        setFormatErrors((prev) => ({
-          ...prev,
-          [index]: nameValidation.error || "Invalid name",
-        }));
-      } else {
-        setFormatErrors((prev) => {
-          const newErrors = { ...prev };
-          delete newErrors[index];
-          return newErrors;
-        });
-      }
+      updateErrors(index, nameValidation);
     }
 
     setNodeTypes(updatedNodeTypes);

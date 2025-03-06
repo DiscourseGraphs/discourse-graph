@@ -58,7 +58,6 @@ const RelationshipTypeSettings = () => {
     setRelationTypes(updatedRelationTypes);
     plugin.settings.relationTypes = updatedRelationTypes;
     await plugin.saveSettings();
-    await plugin.loadSettings();
   };
 
   const handleSave = async (): Promise<void> => {

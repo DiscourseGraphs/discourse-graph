@@ -1,8 +1,8 @@
-import { StrictMode, useState, useEffect } from "react";
-import { App, PluginSettingTab, Notice } from "obsidian";
+import { StrictMode, useState } from "react";
+import { App, PluginSettingTab } from "obsidian";
 import type DiscourseGraphPlugin from "../index";
 import { Root, createRoot } from "react-dom/client";
-import { ContextProvider, useApp } from "./AppContext";
+import { ContextProvider } from "./AppContext";
 import RelationshipTypeSettings from "./RelationshipTypeSettings";
 import RelationshipSettings from "./RelationshipSettings";
 import NodeTypeSettings from "./NodeTypeSettings";

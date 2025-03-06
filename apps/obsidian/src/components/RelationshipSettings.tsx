@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   DiscourseRelation,
   DiscourseNode,
@@ -26,7 +26,7 @@ const RelationshipSettings = () => {
 
   const handleRelationChange = async (
     index: number,
-    field: "sourceId" | "destinationId" | "relationshipTypeId",
+    field: keyof DiscourseRelation,
     value: string,
   ): Promise<void> => {
     const updatedRelations = [...discourseRelations];
