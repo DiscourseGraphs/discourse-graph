@@ -1,4 +1,11 @@
-import React, { FC, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Button,
   Icon,
@@ -22,7 +29,10 @@ import createBlock from "roamjs-components/writes/createBlock";
 import Export from "~/components/Export";
 import parseQuery from "~/utils/parseQuery";
 import { getDatalogQuery } from "~/utils/fireQuery";
-import parseResultSettings, { Sorts } from "~/utils/parseResultSettings";
+import parseResultSettings, {
+  Sorts,
+  InputValues,
+} from "~/utils/parseResultSettings";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import postProcessResults from "~/utils/postProcessResults";
 import setInputSetting from "roamjs-components/util/setInputSetting";
@@ -40,6 +50,8 @@ import ResultsTable from "./ResultsTable";
 import { render as renderSimpleAlert } from "roamjs-components/components/SimpleAlert";
 import setInputSettings from "roamjs-components/util/setInputSettings";
 import posthog from "posthog-js";
+import getAllPageNames from "roamjs-components/queries/getAllPageNames";
+import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 
 const VIEWS: Record<string, { value: boolean }> = {
   link: { value: false },
@@ -306,6 +318,47 @@ const ResultsView: ResultsViewComponent = ({
     },
     [setActiveSort, preventSavingSettings, parentUid],
   );
+  const [inputs, setInputs] = useState(settings.inputs);
+  const setInputValues = useCallback(
+    (inputs: InputValues) => {
+      setInputs(inputs);
+      if (preventSavingSettings) return;
+      const inputsNode = getSubTree({
+        key: "inputs",
+        parentUid: settings.resultNodeUid,
+      });
+      const inputsToCreate = inputs
+        .map((input) => ({
+          text: input.key,
+          children: [{ text: `${input.inputValue}` }],
+        }))
+        .filter(
+          (input) => !inputsNode.children.find((c) => c.text === input.text),
+        );
+
+      inputsToCreate.forEach((node) =>
+        createBlock({
+          parentUid: inputsNode.uid,
+          node,
+        }),
+      );
+    },
+    [setInputs, preventSavingSettings, parentUid],
+  );
+  const getExpectedInputs = useCallback(() => {
+    return parseQuery(parentUid)
+      .conditions.flatMap((c) =>
+        c.type === "clause" || c.type === "not"
+          ? [c.target]
+          : c.conditions
+              .flat()
+              .map((cc) =>
+                cc.type === "clause" || cc.type === "not" ? cc.target : "",
+              ),
+      )
+      .filter((t) => /^:in /.test(t))
+      .map((t) => t.substring(4));
+  }, [inputs]);
 
   // @deprecated - use columnFilters
   const [filters, setFilters] = useState(settings.filters);
@@ -318,6 +371,7 @@ const ResultsView: ResultsViewComponent = ({
   const [searchFilter, setSearchFilter] = useState(settings.searchFilter);
   const [showInterface, setShowInterface] = useState(settings.showInterface);
   const [revealMenuIcons, setRevealMenuIcons] = useState(false);
+  const [showInputs, setShowInputs] = useState(settings.showInputs);
   const hideMenuIcons = hideMenu || (!revealMenuIcons && !showInterface);
 
   const { allProcessedResults, paginatedResults } = useMemo(() => {
@@ -454,6 +508,41 @@ const ResultsView: ResultsViewComponent = ({
               />
             }
           />
+        </div>
+      )}
+      {showInputs && (
+        <div
+          className="w-full p-4"
+          style={{
+            background: "#eeeeee80",
+          }}
+        >
+          {inputs.map((input) => (
+            <div key={input.key} className="mb-2">
+              <Label>
+                {input.key}
+                <InputGroup
+                  value={input.inputValue}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") onRefresh();
+                  }}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    const newInputs: InputValues = inputs.map((i) =>
+                      i.key === input.key ? { ...i, inputValue: newValue } : i,
+                    );
+                    setInputs(newInputs);
+                    if (preventSavingSettings) return;
+                    setInputSetting({
+                      blockUid: settings.inputsNodeUid,
+                      key: input.key,
+                      value: newValue,
+                    });
+                  }}
+                />
+              </Label>
+            </div>
+          ))}
         </div>
       )}
       <Export
@@ -1002,6 +1091,37 @@ const ResultsView: ResultsViewComponent = ({
                       onClick={() => {
                         setMoreMenuOpen(false);
                         setIsEditSearchFilter((prevState) => !prevState);
+                      }}
+                    />
+                    <MenuItem
+                      icon={showInputs ? "minus" : "plus"}
+                      text={showInputs ? "Hide Inputs" : "Inputs"}
+                      onClick={() => {
+                        if (!showInputs) {
+                          const expectedInputs = getExpectedInputs();
+                          const newInputs = [
+                            ...inputs
+                              .filter((i) => expectedInputs.includes(i.key))
+                              .filter(
+                                (i, index, self) =>
+                                  self.findIndex((s) => s.key === i.key) ===
+                                  index,
+                              ),
+                            ...expectedInputs
+                              .filter(
+                                (key) => !inputs.some((i) => i.key === key),
+                              )
+                              .map((key) => ({ key, inputValue: "" })),
+                          ];
+                          setInputValues(newInputs);
+                        }
+                        setMoreMenuOpen(false);
+                        setShowInputs(!showInputs);
+                        setInputSetting({
+                          blockUid: settings.resultNodeUid,
+                          key: "showInputs",
+                          value: showInputs ? "hide" : "show",
+                        });
                       }}
                     />
                     <MenuItem
