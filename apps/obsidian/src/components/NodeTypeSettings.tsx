@@ -1,7 +1,13 @@
-import { useState, useEffect } from "react";
-import type DiscourseGraphPlugin from "../index";
-import { validateNodeFormat } from "../utils/validateNodeFormat";
+import { useState } from "react";
+import {
+  validateAllNodes,
+  validateNodeFormat,
+  validateNodeName,
+} from "../utils/validateNodeFormat";
 import { usePlugin } from "./PluginContext";
+import { Notice } from "obsidian";
+import generateUid from "~/utils/generateUid";
+import { DiscourseNode } from "~/types";
 
 const NodeTypeSettings = () => {
   const plugin = usePlugin();
@@ -11,43 +17,39 @@ const NodeTypeSettings = () => {
   const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  useEffect(() => {
-    const initializeSettings = async () => {
-      let needsSave = false;
-
-      if (!plugin.settings.nodeTypes) {
-        plugin.settings.nodeTypes = [];
-        needsSave = true;
-      }
-
-      if (needsSave) {
-        await plugin.saveSettings();
-      }
-    };
-
-    initializeSettings();
-  }, [plugin]);
-
   const handleNodeTypeChange = async (
     index: number,
-    field: "name" | "format",
+    field: keyof DiscourseNode,
     value: string,
   ): Promise<void> => {
     const updatedNodeTypes = [...nodeTypes];
     if (!updatedNodeTypes[index]) {
-      updatedNodeTypes[index] = { name: "", format: "" };
+      const newId = generateUid("node");
+      updatedNodeTypes[index] = { id: newId, name: "", format: "" };
     }
 
     updatedNodeTypes[index][field] = value;
-    setNodeTypes(updatedNodeTypes);
-    setHasUnsavedChanges(true);
 
     if (field === "format") {
-      const { isValid, error } = validateNodeFormat(value);
+      const { isValid, error } = validateNodeFormat(value, updatedNodeTypes);
       if (!isValid) {
         setFormatErrors((prev) => ({
           ...prev,
-          [index]: error ?? "Invalid format",
+          [index]: error || "Invalid format",
+        }));
+      } else {
+        setFormatErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[index];
+          return newErrors;
+        });
+      }
+    } else if (field === "name") {
+      const nameValidation = validateNodeName(value, updatedNodeTypes);
+      if (!nameValidation.isValid) {
+        setFormatErrors((prev) => ({
+          ...prev,
+          [index]: nameValidation.error || "Invalid name",
         }));
       } else {
         setFormatErrors((prev) => {
@@ -57,12 +59,17 @@ const NodeTypeSettings = () => {
         });
       }
     }
+
+    setNodeTypes(updatedNodeTypes);
+    setHasUnsavedChanges(true);
   };
 
   const handleAddNodeType = (): void => {
+    const newId = generateUid("node");
     const updatedNodeTypes = [
       ...nodeTypes,
       {
+        id: newId,
         name: "",
         format: "",
       },
@@ -72,31 +79,42 @@ const NodeTypeSettings = () => {
   };
 
   const handleDeleteNodeType = async (index: number): Promise<void> => {
+    const nodeId = nodeTypes[index]?.id;
+    const isUsed = plugin.settings.discourseRelations?.some(
+      (rel) => rel.sourceId === nodeId || rel.destinationId === nodeId,
+    );
+
+    if (isUsed) {
+      new Notice(
+        "Cannot delete this node type as it is used in one or more relations.",
+      );
+      return;
+    }
+
     const updatedNodeTypes = nodeTypes.filter((_, i) => i !== index);
     setNodeTypes(updatedNodeTypes);
     plugin.settings.nodeTypes = updatedNodeTypes;
     await plugin.saveSettings();
+    if (formatErrors[index]) {
+      setFormatErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[index];
+        return newErrors;
+      });
+    }
   };
 
   const handleSave = async (): Promise<void> => {
-    let hasErrors = false;
-    for (let i = 0; i < nodeTypes.length; i++) {
-      const { isValid, error } = validateNodeFormat(nodeTypes[i]?.format ?? "");
-      if (!isValid) {
-        setFormatErrors((prev) => ({
-          ...prev,
-          [i]: error ?? "Invalid format",
-        }));
-        hasErrors = true;
-      }
-    }
+    const { hasErrors, errorMap } = validateAllNodes(nodeTypes);
 
     if (hasErrors) {
+      setFormatErrors(errorMap);
+      new Notice("Please fix the errors before saving");
       return;
     }
-
     plugin.settings.nodeTypes = nodeTypes;
     await plugin.saveSettings();
+    new Notice("Node types saved");
     setHasUnsavedChanges(false);
   };
 

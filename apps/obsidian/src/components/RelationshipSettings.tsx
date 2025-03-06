@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { DiscourseRelation } from "../types";
+import {
+  DiscourseRelation,
+  DiscourseNode,
+  DiscourseRelationType,
+} from "../types";
 import { Notice } from "obsidian";
 import { usePlugin } from "./PluginContext";
 
@@ -10,69 +14,32 @@ const RelationshipSettings = () => {
   >(() => plugin.settings.discourseRelations ?? []);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  useEffect(() => {
-    const initializeSettings = async () => {
-      let needsSave = false;
+  const findNodeById = (id: string): DiscourseNode | undefined => {
+    return plugin.settings.nodeTypes.find((node) => node.id === id);
+  };
 
-      if (!plugin.settings.discourseRelations) {
-        plugin.settings.discourseRelations = [];
-        needsSave = true;
-      }
-
-      if (needsSave) {
-        await plugin.saveSettings();
-      }
-    };
-
-    initializeSettings();
-  }, [plugin]);
+  const findRelationTypeById = (
+    id: string,
+  ): DiscourseRelationType | undefined => {
+    return plugin.settings.relationTypes.find((relType) => relType.id === id);
+  };
 
   const handleRelationChange = async (
     index: number,
-    field: keyof DiscourseRelation,
+    field: "sourceId" | "destinationId" | "relationshipTypeId",
     value: string,
   ): Promise<void> => {
     const updatedRelations = [...discourseRelations];
+
     if (!updatedRelations[index]) {
       updatedRelations[index] = {
-        source: { name: "", format: "markdown" },
-        destination: { name: "", format: "markdown" },
-        relationshipType: { id: "", label: "", complement: "" },
+        sourceId: "",
+        destinationId: "",
+        relationshipTypeId: "",
       };
     }
 
-    // Handle each field type appropriately
-    if (field === "source" || field === "destination") {
-      // For source and destination, update the node's name
-      // Find the matching node type to get its format
-      const nodeType = plugin.settings.nodeTypes.find(
-        (nt) => nt.name === value,
-      );
-      updatedRelations[index][field] = {
-        name: value,
-        format: nodeType?.format || "markdown",
-      };
-    } else if (field === "relationshipType") {
-      // For relationshipType, we get an ID and need to find the complete relation type
-      const relationType = plugin.settings.relationTypes.find(
-        (rt) => rt.id === value,
-      );
-      if (relationType) {
-        updatedRelations[index].relationshipType = {
-          id: relationType.id,
-          label: relationType.label,
-          complement: relationType.complement,
-        };
-      } else {
-        // If not found, just update the ID
-        updatedRelations[index].relationshipType = {
-          id: value,
-          label: "",
-          complement: "",
-        };
-      }
-    }
-
+    updatedRelations[index][field] = value;
     setDiscourseRelations(updatedRelations);
     setHasUnsavedChanges(true);
   };
@@ -81,9 +48,9 @@ const RelationshipSettings = () => {
     const updatedRelations = [
       ...discourseRelations,
       {
-        source: { name: "", format: "markdown" },
-        destination: { name: "", format: "markdown" },
-        relationshipType: { id: "", label: "", complement: "" },
+        sourceId: "",
+        destinationId: "",
+        relationshipTypeId: "",
       },
     ];
     setDiscourseRelations(updatedRelations);
@@ -95,65 +62,23 @@ const RelationshipSettings = () => {
     setDiscourseRelations(updatedRelations);
     plugin.settings.discourseRelations = updatedRelations;
     await plugin.saveSettings();
-    await plugin.loadSettings();
-  };
-
-  const getRelationLabel = (relation: DiscourseRelation): string => {
-    const relationType = plugin.settings.relationTypes.find(
-      (rt) => rt.id === relation.relationshipType.id,
-    );
-
-    if (!relationType) return "Invalid relation";
-
-    const sourceType = plugin.settings.nodeTypes.find(
-      (nt) => nt.name === relation.source.name,
-    );
-
-    const targetType = plugin.settings.nodeTypes.find(
-      (nt) => nt.name === relation.destination.name,
-    );
-
-    if (!sourceType || !targetType) return "Invalid node types";
-
-    return `${sourceType.name} ${relationType.label} ${targetType.name}`;
-  };
-
-  const getComplementLabel = (relation: DiscourseRelation): string => {
-    const relationType = plugin.settings.relationTypes.find(
-      (rt) => rt.id === relation.relationshipType.id,
-    );
-
-    if (!relationType) return "Invalid relation";
-
-    const sourceType = plugin.settings.nodeTypes.find(
-      (nt) => nt.name === relation.source.name,
-    );
-
-    const targetType = plugin.settings.nodeTypes.find(
-      (nt) => nt.name === relation.destination.name,
-    );
-
-    if (!sourceType || !targetType) return "Invalid node types";
-
-    return `${targetType.name} ${relationType.complement} ${sourceType.name}`;
+    new Notice("Relation deleted");
   };
 
   const handleSave = async (): Promise<void> => {
-    // Validate relations
     for (const relation of discourseRelations) {
       if (
-        !relation.relationshipType.id ||
-        !relation.source.name ||
-        !relation.destination.name
+        !relation.relationshipTypeId ||
+        !relation.sourceId ||
+        !relation.destinationId
       ) {
         new Notice("All fields are required for relations.");
         return;
       }
     }
 
-    // Check for duplicate relations
     const relationKeys = discourseRelations.map(
-      (r) => `${r.relationshipType.id}-${r.source.name}-${r.destination.name}`,
+      (r) => `${r.relationshipTypeId}-${r.sourceId}-${r.destinationId}`,
     );
     if (new Set(relationKeys).size !== relationKeys.length) {
       new Notice("Duplicate relations are not allowed.");
@@ -162,7 +87,7 @@ const RelationshipSettings = () => {
 
     plugin.settings.discourseRelations = discourseRelations;
     await plugin.saveSettings();
-    await plugin.loadSettings();
+    new Notice("Relations saved");
     setHasUnsavedChanges(false);
   };
 
@@ -204,26 +129,26 @@ const RelationshipSettings = () => {
                 >
                   <div style={{ display: "flex", gap: "10px" }}>
                     <select
-                      value={relation.source.name}
+                      value={relation.sourceId}
                       onChange={(e) =>
-                        handleRelationChange(index, "source", e.target.value)
+                        handleRelationChange(index, "sourceId", e.target.value)
                       }
                       style={{ flex: 1 }}
                     >
                       <option value="">Source Node Type</option>
                       {plugin.settings.nodeTypes.map((nodeType) => (
-                        <option key={nodeType.name} value={nodeType.name}>
+                        <option key={nodeType.id} value={nodeType.id}>
                           {nodeType.name}
                         </option>
                       ))}
                     </select>
 
                     <select
-                      value={relation.relationshipType.id}
+                      value={relation.relationshipTypeId}
                       onChange={(e) =>
                         handleRelationChange(
                           index,
-                          "relationshipType",
+                          "relationshipTypeId",
                           e.target.value,
                         )
                       }
@@ -238,11 +163,11 @@ const RelationshipSettings = () => {
                     </select>
 
                     <select
-                      value={relation.destination.name}
+                      value={relation.destinationId}
                       onChange={(e) =>
                         handleRelationChange(
                           index,
-                          "destination",
+                          "destinationId",
                           e.target.value,
                         )
                       }
@@ -250,7 +175,7 @@ const RelationshipSettings = () => {
                     >
                       <option value="">Target Node Type</option>
                       {plugin.settings.nodeTypes.map((nodeType) => (
-                        <option key={nodeType.name} value={nodeType.name}>
+                        <option key={nodeType.id} value={nodeType.id}>
                           {nodeType.name}
                         </option>
                       ))}
@@ -264,9 +189,9 @@ const RelationshipSettings = () => {
                     </button>
                   </div>
 
-                  {relation.source.name &&
-                    relation.relationshipType.id &&
-                    relation.destination.name && (
+                  {relation.sourceId &&
+                    relation.relationshipTypeId &&
+                    relation.destinationId && (
                       <div
                         style={{
                           marginTop: "8px",
@@ -286,7 +211,8 @@ const RelationshipSettings = () => {
                           }}
                         >
                           <div className="relationship-node">
-                            {relation.source.name}
+                            {findNodeById(relation.sourceId)?.name ||
+                              "Unknown Node"}
                           </div>
 
                           <div
@@ -306,12 +232,13 @@ const RelationshipSettings = () => {
                                   color: "var(--text-accent)",
                                 }}
                               >
-                                {relation.relationshipType.label}
+                                {findRelationTypeById(
+                                  relation.relationshipTypeId,
+                                )?.label || "Unknown Relation"}
                               </div>
                               <div
                                 style={{
                                   margin: "0 4px",
-                                  fontSize: "1.2em",
                                   color: "var(--text-accent)",
                                 }}
                               >
@@ -320,38 +247,22 @@ const RelationshipSettings = () => {
                             </div>
                             <div
                               style={{
-                                width: "100%",
-                                textAlign: "center",
-                                borderTop:
-                                  "1px solid var(--background-modifier-border)",
-                                margin: "4px 0",
+                                fontSize: "0.85em",
+                                color: "var(--text-muted)",
                               }}
-                            ></div>
-                            <div
-                              style={{ display: "flex", alignItems: "center" }}
                             >
-                              <div
-                                style={{
-                                  margin: "0 4px",
-                                  fontSize: "1.2em",
-                                  color: "var(--text-accent)",
-                                }}
-                              >
-                                ←
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "0.85em",
-                                  color: "var(--text-accent)",
-                                }}
-                              >
-                                {relation.relationshipType.complement}
-                              </div>
+                              ←{" "}
+                              <span style={{ color: "var(--text-accent)" }}>
+                                {findRelationTypeById(
+                                  relation.relationshipTypeId,
+                                )?.complement || "Unknown Complement"}
+                              </span>
                             </div>
                           </div>
 
                           <div className="relationship-node">
-                            {relation.destination.name}
+                            {findNodeById(relation.destinationId)?.name ||
+                              "Unknown Node"}
                           </div>
                         </div>
                       </div>
@@ -359,7 +270,6 @@ const RelationshipSettings = () => {
                 </div>
               </div>
             ))}
-
             <div className="setting-item">
               <div style={{ display: "flex", gap: "10px" }}>
                 <button onClick={handleAddRelation}>Add Relation</button>
@@ -372,7 +282,6 @@ const RelationshipSettings = () => {
                 </button>
               </div>
             </div>
-
             {hasUnsavedChanges && (
               <div style={{ marginTop: "8px", color: "var(--text-muted)" }}>
                 You have unsaved changes

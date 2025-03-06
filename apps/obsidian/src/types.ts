@@ -1,4 +1,5 @@
 export type DiscourseNode = {
+  id: string;
   name: string;
   format: string;
   shortcut?: string;
@@ -12,9 +13,9 @@ export type DiscourseRelationType = {
 };
 
 export type DiscourseRelation = {
-  source: DiscourseNode;
-  destination: DiscourseNode;
-  relationshipType: DiscourseRelationType;
+  sourceId: string;
+  destinationId: string;
+  relationshipTypeId: string;
 };
 
 export type Settings = {

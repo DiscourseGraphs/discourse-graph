@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DiscourseRelationType } from "../types";
 import { Notice } from "obsidian";
 import { usePlugin } from "./PluginContext";
+import generateUid from "../utils/generateUid";
 
 const RelationshipTypeSettings = () => {
   const plugin = usePlugin();
@@ -10,23 +11,6 @@ const RelationshipTypeSettings = () => {
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  useEffect(() => {
-    const initializeSettings = async () => {
-      let needsSave = false;
-
-      if (!plugin.settings.relationTypes) {
-        plugin.settings.relationTypes = [];
-        needsSave = true;
-      }
-
-      if (needsSave) {
-        await plugin.saveSettings();
-      }
-    };
-
-    initializeSettings();
-  }, [plugin]);
-
   const handleRelationTypeChange = async (
     index: number,
     field: keyof DiscourseRelationType,
@@ -34,7 +18,8 @@ const RelationshipTypeSettings = () => {
   ): Promise<void> => {
     const updatedRelationTypes = [...relationTypes];
     if (!updatedRelationTypes[index]) {
-      updatedRelationTypes[index] = { id: "", label: "", complement: "" };
+      const newId = generateUid("rel");
+      updatedRelationTypes[index] = { id: newId, label: "", complement: "" };
     }
 
     updatedRelationTypes[index][field] = value;
@@ -43,10 +28,12 @@ const RelationshipTypeSettings = () => {
   };
 
   const handleAddRelationType = (): void => {
+    const newId = generateUid("rel");
+
     const updatedRelationTypes = [
       ...relationTypes,
       {
-        id: "",
+        id: newId,
         label: "",
         complement: "",
       },
@@ -56,9 +43,8 @@ const RelationshipTypeSettings = () => {
   };
 
   const handleDeleteRelationType = async (index: number): Promise<void> => {
-    // Check if this relation type is used in any relations
     const isUsed = plugin.settings.discourseRelations?.some(
-      (rel) => rel.relationshipType.id === relationTypes[index]?.id,
+      (rel) => rel.relationshipTypeId === relationTypes[index]?.id,
     );
 
     if (isUsed) {
@@ -76,7 +62,6 @@ const RelationshipTypeSettings = () => {
   };
 
   const handleSave = async (): Promise<void> => {
-    // Validate relation types
     for (const relType of relationTypes) {
       if (!relType.id || !relType.label || !relType.complement) {
         new Notice("All fields are required for relation types.");
@@ -84,18 +69,16 @@ const RelationshipTypeSettings = () => {
       }
     }
 
-    // Check for duplicate IDs
-    const ids = relationTypes.map((rt) => rt.id);
-    if (new Set(ids).size !== ids.length) {
-      new Notice("Relation type IDs must be unique.");
+    const labels = relationTypes.map((rt) => rt.label);
+    if (new Set(labels).size !== labels.length) {
+      new Notice("Relation type labels must be unique.");
       return;
     }
 
     plugin.settings.relationTypes = relationTypes;
     await plugin.saveSettings();
-    console.log("new relations type", plugin.settings.relationTypes);
-    // await plugin.loadSettings();
     setHasUnsavedChanges(false);
+    new Notice("Relation types saved.");
   };
 
   return (
@@ -107,15 +90,6 @@ const RelationshipTypeSettings = () => {
             style={{ display: "flex", flexDirection: "column", width: "100%" }}
           >
             <div style={{ display: "flex", gap: "10px" }}>
-              <input
-                type="text"
-                placeholder="ID (e.g., supports)"
-                value={relationType.id}
-                onChange={(e) =>
-                  handleRelationTypeChange(index, "id", e.target.value)
-                }
-                style={{ flex: 1 }}
-              />
               <input
                 type="text"
                 placeholder="Label (e.g., supports)"
