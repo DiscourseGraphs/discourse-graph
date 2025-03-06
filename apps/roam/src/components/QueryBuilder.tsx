@@ -24,6 +24,7 @@ import ExtensionApiContextProvider, {
 import { Column } from "~/utils/types";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import posthog from "posthog-js";
+import parseResultSettings from "~/utils/parseResultSettings";
 
 type QueryPageComponent = (props: {
   pageUid: string;
@@ -69,8 +70,12 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
       setError("");
       setLoading(!loadInBackground);
       const args = parseQuery(pageUid);
+      const { inputs } = parseResultSettings(pageUid, args.columns);
+      const transformedInputs = Object.fromEntries(
+        inputs.map(({ key, inputValue }) => [key, inputValue]),
+      );
       setTimeout(() => {
-        fireQuery(args)
+        fireQuery({ ...args, inputs: transformedInputs })
           .then((results) => {
             setColumns(args.columns);
             setResults(results);
