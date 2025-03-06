@@ -75,6 +75,12 @@ const RelationshipTypeSettings = () => {
       return;
     }
 
+    const complements = relationTypes.map((rt) => rt.complement);
+    if (new Set(complements).size !== complements.length) {
+      new Notice("Relation type complements must be unique.");
+      return;
+    }
+
     plugin.settings.relationTypes = relationTypes;
     await plugin.saveSettings();
     setHasUnsavedChanges(false);
