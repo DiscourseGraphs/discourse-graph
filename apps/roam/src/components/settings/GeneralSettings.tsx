@@ -2,6 +2,8 @@ import React, { useMemo } from "react";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import { onPageRefObserverChange } from "~/utils/pageRefObserverHandlers";
+import { previewPageRefHandler } from "~/utils/pageRefObserverHandlers";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 
 const DiscourseGraphHome = () => {
@@ -28,16 +30,9 @@ const DiscourseGraphHome = () => {
           uid={settings.preview.uid}
           parentUid={settings.settingsUid}
           value={settings.preview.value || false}
-        />
-        <FlagPanel
-          title="overlay"
-          // description="Whether or not to overlay discourse context information over node references"
-          description="Currently disabled. Being reworked."
-          order={3}
-          uid={settings.overlay.uid}
-          parentUid={settings.grammarUid}
-          value={settings.overlay.value || false}
-          disabled={true}
+          options={{
+            onChange: onPageRefObserverChange(previewPageRefHandler),
+          }}
         />
       </div>
       <TextPanel

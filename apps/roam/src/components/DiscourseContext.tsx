@@ -273,7 +273,7 @@ const ContextTab = ({
       columns={columns}
       onRefresh={onRefresh}
       header={
-        <>
+        <h4 className="m-0 mb-2 flex items-center justify-between">
           <span>{r.label}</span>
           <span style={{ display: "flex", alignItems: "center" }}>
             <Switch
@@ -285,7 +285,7 @@ const ContextTab = ({
               }
             />
           </span>
-        </>
+        </h4>
       }
     />
   );
@@ -324,32 +324,35 @@ export const ContextContent = ({ uid, results }: Props) => {
   const [loading, setLoading] = useState(true);
   const debouncedLoading = useDebounce(loading, 150);
 
+  const addLabels = useCallback((result: DiscourseContextResults[number]) => {
+    setRawQueryResults((prev) => ({
+      ...prev,
+      [result.label]: {
+        label: result.label,
+        results: {
+          ...(prev[result.label]?.results || {}),
+          ...result.results,
+        },
+      },
+    }));
+  }, []);
+
   const onRefresh = useCallback(() => {
     setRawQueryResults({});
     getDiscourseContextResults({
       uid,
-      onResult: (result) => {
-        setRawQueryResults((prev) => ({
-          ...prev,
-          [result.label]: {
-            label: result.label,
-            results: {
-              ...(prev[result.label]?.results || {}),
-              ...result.results,
-            },
-          },
-        }));
-      },
+      onResult: addLabels,
     }).finally(() => setLoading(false));
-  }, [uid, setRawQueryResults, setLoading]);
+  }, [uid, setRawQueryResults, setLoading, addLabels]);
 
   useEffect(() => {
     if (!results) {
       onRefresh();
     } else {
+      results.forEach(addLabels);
       setLoading(false);
     }
-  }, [onRefresh, results, setLoading]);
+  }, [onRefresh, results, setLoading, loading, addLabels]);
   const [tabId, setTabId] = useState(0);
   const [groupByTarget, setGroupByTarget] = useState(false);
   return queryResults.length ? (
@@ -406,7 +409,7 @@ export const ContextContent = ({ uid, results }: Props) => {
       />
     </Tabs>
   ) : (
-    <div className="ml-8">No discourse relations found.</div>
+    <div className="text-center">No discourse relations found.</div>
   );
 };
 

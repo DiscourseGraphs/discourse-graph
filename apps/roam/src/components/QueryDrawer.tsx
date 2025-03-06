@@ -87,15 +87,18 @@ const SavedQuery = ({
       }}
     >
       <ResultsView
+        hideMenu={minimized}
         exportIsOpen={isExportOpen}
         toggleExport={toggleExport}
         parentUid={uid}
         onRefresh={refresh}
         header={
           error ? (
-            <div className="mb-4 text-red-700">{error}</div>
+            <h4 className="m-0 flex items-center justify-between">
+              <div className="mb-4 text-red-700">{error}</div>
+            </h4>
           ) : (
-            <>
+            <h4 className="m-0 flex items-center justify-between">
               {isEditingLabel ? (
                 <InputGroup
                   value={label}
@@ -123,7 +126,7 @@ const SavedQuery = ({
                   {label}
                 </span>
               )}
-              <div className="mr-16 mt-2">
+              <div>
                 {!isSavedToPage && (
                   <>
                     <Tooltip content={"Insert Results"}>
@@ -185,7 +188,7 @@ const SavedQuery = ({
                   </>
                 )}
               </div>
-            </>
+            </h4>
           )
         }
         onDeleteQuery={onDelete}
