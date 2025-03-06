@@ -8,6 +8,7 @@ import getDiscourseNodes from "./getDiscourseNodes";
 import resolveRefs from "roamjs-components/dom/resolveRefs";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { loadImage } from "./loadImage";
+import sendErrorEmail from "./sendErrorEmail";
 
 const extractFirstImageUrl = (text: string): string | null => {
   const regex = /!\[.*?\]\((https:\/\/[^)]+)\)/;
@@ -96,10 +97,20 @@ const calcCanvasNodeSizeAndImg = async ({
       h: h + nodeImageHeight + padding * 2,
       imageUrl,
     };
-  } catch {
+  } catch (e) {
+    const error = e as Error;
+    sendErrorEmail({
+      error,
+      type: "Canvas Node Image Load Failed",
+      context: {
+        uid,
+        nodeType,
+        imageUrl,
+      },
+    });
     renderToast({
       id: "tldraw-image-load-fail",
-      content: "Failed to load image",
+      content: error.message,
       intent: "warning",
     });
     return { w, h, imageUrl: "" };

@@ -21,6 +21,7 @@ import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
+import { initFeedbackWidget } from "./components/BirdEatsBugs";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -49,11 +50,20 @@ const initPostHog = () => {
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
-  initPostHog();
-  posthog.capture("Extension Loaded", {
-    graphName: window.roamAlphaAPI.graph.name,
-    userUid: getCurrentUserUid(),
-  });
+  const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
+  const isOffline = window.roamAlphaAPI.graph.type === "offline";
+  console.log("isEncrypted", isEncrypted);
+  console.log("isOffline", isOffline);
+  if (!isEncrypted && !isOffline) {
+    initPostHog();
+    posthog.capture("Extension Loaded", {
+      graphName: window.roamAlphaAPI.graph.name,
+      userUid: getCurrentUserUid(),
+    });
+  }
+
+  initFeedbackWidget();
+
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
       timeout: 10000,
@@ -80,7 +90,6 @@ export default runExtension(async (onloadArgs) => {
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
-
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);

@@ -6,7 +6,6 @@ import DiscourseRelationConfigPanel from "./DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import DiscourseGraphHome from "./GeneralSettings";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
 import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
@@ -15,6 +14,7 @@ import getDiscourseNodes, {
 } from "~/utils/getDiscourseNodes";
 import NodeConfig from "./NodeConfig";
 import sendErrorEmail from "~/utils/sendErrorEmail";
+import HomePersonalSettings from "./HomePersonalSettings";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -25,14 +25,6 @@ const SectionHeader = ({ children }: SectionHeaderProps) => {
       {children}
     </div>
   );
-};
-
-const openPage = (title: string) => {
-  window.roamAlphaAPI.ui.mainWindow.openPage({
-    page: {
-      title,
-    },
-  });
 };
 
 export const SettingsPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
@@ -64,10 +56,9 @@ export const SettingsDialog = ({
   const settings = getFormattedConfigTree();
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
   const [selectedTabId, setSelectedTabId] = useState<TabId>(
-    "discourse-graph-home",
+    "discourse-graph-home-personal",
   );
 
-  // Secret Dev Panel
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === "D") {
@@ -94,25 +85,36 @@ export const SettingsDialog = ({
           selectedTabId={selectedTabId}
           vertical={true}
           renderActiveTabPanelOnly={true}
-          className="h-full"
         >
+          <div className="mb-2 text-lg font-semibold text-neutral-dark">
+            Personal Settings
+          </div>
+          <Tab
+            id="discourse-graph-home-personal"
+            title="Home"
+            className="overflow-y-auto"
+            panel={<HomePersonalSettings extensionAPI={extensionAPI} />}
+          />
+          <Tab
+            id="query-settings"
+            title="Queries"
+            className="mb-8 overflow-y-auto"
+            panel={<QuerySettings extensionAPI={extensionAPI} />}
+          />
+          <div className="text-lg font-semibold text-neutral-dark">
+            Global Settings
+          </div>
           <Tab
             id="discourse-graph-home"
             title="Home"
             className="overflow-y-auto"
-            panel={<DiscourseGraphHome extensionAPI={extensionAPI} />}
+            panel={<DiscourseGraphHome />}
           />
           <Tab
             id="discourse-graph-export"
             title="Export"
             className="overflow-y-auto"
             panel={<DiscourseGraphExport />}
-          />
-          <Tab
-            id="query-settings"
-            title="Queries"
-            className="overflow-y-auto"
-            panel={<QuerySettings extensionAPI={extensionAPI} />}
           />
           <SectionHeader>Grammar</SectionHeader>
           <Tab
@@ -152,19 +154,8 @@ export const SettingsDialog = ({
               panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
             />
           ))}
-
           <Tabs.Expander />
-
-          <Button
-            minimal
-            outlined
-            onClick={() => {
-              openPage(DISCOURSE_CONFIG_PAGE_TITLE);
-              onClose?.();
-            }}
-          >
-            Discourse Graph Config
-          </Button>
+          {/* Secret Dev Panel */}
           <Tab
             hidden={true}
             id="secret-dev-panel"

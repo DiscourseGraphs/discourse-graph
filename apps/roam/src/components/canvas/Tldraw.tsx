@@ -59,6 +59,8 @@ import { isPageUid } from "~/utils/isPageUid";
 import posthog from "posthog-js";
 import "@tldraw/tldraw/editor.css";
 import "@tldraw/tldraw/ui.css";
+import sendErrorEmail from "~/utils/sendErrorEmail";
+
 declare global {
   interface Window {
     tldrawApps: Record<string, TldrawApp>;
@@ -790,6 +792,34 @@ const TldrawCanvas = ({ title }: Props) => {
     maximized,
     setMaximized,
   });
+
+  // Catch a custom event we used patch-package to add
+  useEffect(() => {
+    const handleTldrawError = (e: CustomEvent<Error>) => {
+      sendErrorEmail({
+        error: e.detail,
+        type: "Tldraw Error",
+        context: {
+          title,
+        },
+      }).catch(() => {});
+
+      console.error("Tldraw Error:", e.detail);
+    };
+
+    document.addEventListener(
+      "tldraw:error",
+      handleTldrawError as EventListener,
+    );
+
+    return () => {
+      document.removeEventListener(
+        "tldraw:error",
+        handleTldrawError as EventListener,
+      );
+    };
+  }, []);
+
   return (
     <div
       className={`z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white ${
