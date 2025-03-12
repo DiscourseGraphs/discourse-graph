@@ -35,14 +35,26 @@ export const Inputs = ({
       if (preventSavingSettings) return;
       const inputsToCreate = inputs
         .map((input) => ({
+          uid: input.uid,
           text: input.key,
-          children: [{ text: `${input.inputValue}` }],
+          children: [
+            {
+              text: `value`,
+              children: [{ text: input.inputValue }],
+            },
+            {
+              text: `config`,
+              children: [
+                { text: `options`, children: [{ text: input.options }] },
+              ],
+            },
+          ],
         }))
         .filter(
-          (input) => !inputsNode.children.find((c) => c.text === input.text),
+          (input) => !inputsNode.children.find((c) => c.uid === input.uid),
         );
       const inputsToDelete = inputsNode.children.filter(
-        (node) => !inputs.find((input) => input.key === node.text),
+        (node) => !inputs.find((input) => input.uid === node.uid),
       );
 
       inputsToDelete.forEach((node) => deleteBlock(node.uid));
@@ -76,7 +88,14 @@ export const Inputs = ({
 
     const newInputs = getExpectedInputs().map((key) => {
       const existingInput = inputs.find((i) => i.key === key);
-      return existingInput || { key, inputValue: "" };
+      return (
+        existingInput || {
+          uid: window.roamAlphaAPI.util.generateUID(),
+          key,
+          inputValue: "",
+          options: "text",
+        }
+      );
     });
     createConfigBlocks(newInputs);
     setInputs(newInputs);
@@ -102,8 +121,8 @@ export const Inputs = ({
                 setInputs(newInputs);
                 if (preventSavingSettings) return;
                 setInputSetting({
-                  blockUid: inputsNode.uid,
-                  key: input.key,
+                  blockUid: input.uid,
+                  key: "value",
                   value: newValue,
                 });
               }}
