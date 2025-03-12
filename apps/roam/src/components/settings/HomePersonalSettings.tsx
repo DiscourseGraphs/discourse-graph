@@ -7,11 +7,10 @@ import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
+  previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
-import {} from "~/utils/pageRefObserverHandlers";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
-import { previewPageRefHandler } from "~/utils/pageRefObserverHandlers";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 
 const CANVAS_PAGE_FORMAT_KEY = "canvas-page-format";
