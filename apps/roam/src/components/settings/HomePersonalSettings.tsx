@@ -77,24 +77,43 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
-      <FlagPanel
-        title="disable sidebar open"
-        description="Disable opening new nodes in the sidebar when created"
-        order={1}
-        uid={settings.disableSidebarOpen.uid}
-        parentUid={settings.settingsUid}
-        value={settings.disableSidebarOpen.value || false}
-      />
-      <FlagPanel
-        title="preview"
-        description="Whether or not to display page previews when hovering over page refs"
-        order={2}
-        uid={settings.preview.uid}
-        parentUid={settings.settingsUid}
-        value={settings.preview.value || false}
-        options={{
-          onChange: onPageRefObserverChange(previewPageRefHandler),
+      <Checkbox
+        defaultChecked={
+          extensionAPI.settings.get("disable-sidebar-open") as boolean
+        }
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          extensionAPI.settings.set("disable-sidebar-open", target.checked);
+          onPageRefObserverChange(overlayHandler)(target.checked);
         }}
+        labelElement={
+          <>
+            Overlay
+            <Description
+              description={
+                "Disable opening new nodes in the sidebar when created"
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={extensionAPI.settings.get("page-preview") as boolean}
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          extensionAPI.settings.set("page-preview", target.checked);
+          onPageRefObserverChange(previewPageRefHandler)(target.checked);
+        }}
+        labelElement={
+          <>
+            Overlay
+            <Description
+              description={
+                "Whether or not to display page previews when hovering over page refs"
+              }
+            />
+          </>
+        }
       />
     </div>
   );
