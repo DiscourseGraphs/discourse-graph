@@ -1,11 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label, InputGroup, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
-import { getOverlayHandler } from "~/utils/pageRefObserverHandlers";
-import { onPageRefObserverChange } from "~/utils/pageRefObserverHandlers";
+import {
+  getOverlayHandler,
+  onPageRefObserverChange,
+} from "~/utils/pageRefObserverHandlers";
+import {} from "~/utils/pageRefObserverHandlers";
+import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
+import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import { previewPageRefHandler } from "~/utils/pageRefObserverHandlers";
+import refreshConfigTree from "~/utils/refreshConfigTree";
 
 const CANVAS_PAGE_FORMAT_KEY = "canvas-page-format";
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
@@ -22,6 +29,11 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     setCanvasPage(e);
   };
   const overlayHandler = getOverlayHandler(onloadArgs);
+
+  const settings = useMemo(() => {
+    refreshConfigTree();
+    return getFormattedConfigTree();
+  }, []);
 
   return (
     <div className="flex flex-col gap-4 p-1">
@@ -65,6 +77,25 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             />
           </>
         }
+      />
+      <FlagPanel
+        title="disable sidebar open"
+        description="Disable opening new nodes in the sidebar when created"
+        order={1}
+        uid={settings.disableSidebarOpen.uid}
+        parentUid={settings.settingsUid}
+        value={settings.disableSidebarOpen.value || false}
+      />
+      <FlagPanel
+        title="preview"
+        description="Whether or not to display page previews when hovering over page refs"
+        order={2}
+        uid={settings.preview.uid}
+        parentUid={settings.settingsUid}
+        value={settings.preview.value || false}
+        options={{
+          onChange: onPageRefObserverChange(previewPageRefHandler),
+        }}
       />
     </div>
   );
