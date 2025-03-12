@@ -33,7 +33,7 @@ const createDiscourseNode = async ({
     text: text,
   });
   const handleOpenInSidebar = (uid: string) => {
-    if (isFlagEnabled("disable sidebar open")) return;
+    if (extensionAPI?.settings.get("disable-sidebar-open")) return;
     openBlockInSidebar(uid);
     setTimeout(() => {
       const sidebarTitle = document.querySelector(

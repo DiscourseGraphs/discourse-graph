@@ -21,8 +21,6 @@ type FormattedConfigTree = {
   relationsUid: string;
   nodesUid: string;
   trigger: StringSetting;
-  preview: BooleanSetting;
-  disableSidebarOpen: BooleanSetting;
   export: ExportConfigWithUids;
 };
 
@@ -45,15 +43,6 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
       tree: configTreeRef.tree,
       text: "trigger",
     }),
-    disableSidebarOpen: getUidAndBooleanSetting({
-      tree: configTreeRef.tree,
-      text: "disable sidebar open",
-    }),
-    preview: getUidAndBooleanSetting({
-      tree: configTreeRef.tree,
-      text: "preview",
-    }),
-
     export: getExportSettingsAndUids(),
   };
 };
