@@ -5,6 +5,8 @@ import { registerCommands } from "./utils/registerCommands";
 
 const DEFAULT_SETTINGS: Settings = {
   nodeTypes: [],
+  discourseRelations: [],
+  relationTypes: [],
 };
 
 export default class DiscourseGraphPlugin extends Plugin {
