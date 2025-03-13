@@ -84,7 +84,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
           extensionAPI.settings.set("disable-sidebar-open", target.checked);
-          onPageRefObserverChange(overlayHandler)(target.checked);
         }}
         labelElement={
           <>
