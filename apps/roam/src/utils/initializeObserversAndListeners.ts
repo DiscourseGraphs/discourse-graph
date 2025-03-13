@@ -147,7 +147,10 @@ export const initObservers = async ({
       target.tagName === "TEXTAREA" &&
       target.classList.contains("rm-block-input")
     ) {
-      renderDiscourseNodeMenu({ textarea: target as HTMLTextAreaElement });
+      renderDiscourseNodeMenu({
+        textarea: target as HTMLTextAreaElement,
+        extensionAPI: onloadArgs.extensionAPI,
+      });
       evt.preventDefault();
       evt.stopPropagation();
     }

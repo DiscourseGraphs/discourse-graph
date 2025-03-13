@@ -29,9 +29,14 @@ import posthog from "posthog-js";
 
 type Props = {
   textarea: HTMLTextAreaElement;
+  extensionAPI: OnloadArgs["extensionAPI"];
 };
 
-const NodeMenu = ({ onClose, textarea }: { onClose: () => void } & Props) => {
+const NodeMenu = ({
+  onClose,
+  textarea,
+  extensionAPI,
+}: { onClose: () => void } & Props) => {
   const discourseNodes = useMemo(
     () => getDiscourseNodes().filter((n) => n.backedBy === "user"),
     [],
@@ -75,6 +80,7 @@ const NodeMenu = ({ onClose, textarea }: { onClose: () => void } & Props) => {
         createDiscourseNode({
           text: pageName,
           configPageUid: nodeUid,
+          extensionAPI,
         });
       });
       onClose();

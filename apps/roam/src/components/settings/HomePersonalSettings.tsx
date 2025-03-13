@@ -88,7 +88,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }}
         labelElement={
           <>
-            Overlay
+            Disable Sidebar Open
             <Description
               description={
                 "Disable opening new nodes in the sidebar when created"
@@ -106,7 +106,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }}
         labelElement={
           <>
-            Overlay
+            Preview
             <Description
               description={
                 "Whether or not to display page previews when hovering over page refs"
