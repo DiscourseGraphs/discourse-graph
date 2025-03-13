@@ -104,7 +104,8 @@ export const initObservers = async ({
     },
   });
 
-  if (isFlagEnabled("preview")) addPageRefObserver(previewPageRefHandler);
+  if (onloadArgs.extensionAPI.settings.get("page-preview"))
+    addPageRefObserver(previewPageRefHandler);
   if (onloadArgs.extensionAPI.settings.get("discourse-context-overlay")) {
     addPageRefObserver((s) => overlayPageRefHandler(s, onloadArgs));
   }
