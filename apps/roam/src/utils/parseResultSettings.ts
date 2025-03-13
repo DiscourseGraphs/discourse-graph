@@ -149,7 +149,7 @@ const parseResultSettings = (
     const configNode = getSubTree({ tree: c.children, key: "config" });
     const options = getSettingValueFromTree({
       tree: configNode.children,
-      key: "value",
+      key: "options",
     });
 
     return {

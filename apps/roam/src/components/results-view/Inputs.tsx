@@ -4,7 +4,8 @@ import { type InputValues } from "~/utils/parseResultSettings";
 import { InputGroup, Label } from "@blueprintjs/core";
 import parseQuery from "~/utils/parseQuery";
 import { createBlock, deleteBlock } from "roamjs-components/writes";
-// import getAllPageNames from "roamjs-components/queries/getAllPageNames";
+import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
+import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 
 type InputProps = {
   show: boolean;
@@ -24,7 +25,9 @@ export const Inputs = ({
   resultsNodeUid,
 }: InputProps) => {
   const [inputs, setInputs] = useState(initialInputs);
-  // const allPages = useMemo(() => getAllPageNames(), []);
+  const allPages = useMemo(() => {
+    return getAllPageNames();
+  }, []);
   const inputsNode = useMemo(
     () => getSubTree({ key: "inputs", parentUid: resultsNodeUid }),
     [resultsNodeUid],
@@ -100,7 +103,6 @@ export const Inputs = ({
     createConfigBlocks(newInputs);
     setInputs(newInputs);
   }, [show]);
-
   if (!show) return null;
   return (
     <div className="w-full p-4" style={{ backgroundColor: "#EEE" }}>
@@ -108,25 +110,62 @@ export const Inputs = ({
         <div key={input.key} className="mb-2">
           <Label>
             {input.key}
-            <InputGroup
-              value={input.inputValue}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") onRefresh();
-              }}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const newInputs: InputValues = inputs.map((i) =>
-                  i.key === input.key ? { ...i, inputValue: newValue } : i,
-                );
-                setInputs(newInputs);
-                if (preventSavingSettings) return;
-                setInputSetting({
-                  blockUid: input.uid,
-                  key: "value",
-                  value: newValue,
-                });
-              }}
-            />
+            {input.options === "pages" ? (
+              <MenuItemSelect
+                activeItem={input.inputValue}
+                itemListPredicate={(query: string, items: string[]) => {
+                  let filtered = items;
+                  if (query) {
+                    filtered = items.filter((item) => {
+                      return String(item)
+                        .toLowerCase()
+                        .includes(query.toLowerCase());
+                    });
+                  }
+                  if (filtered.length > 50) {
+                    return filtered
+                      .slice(0, 50)
+                      .concat("Only first 50 shown ...");
+                  }
+                  return filtered;
+                }}
+                items={allPages}
+                filterable={true}
+                fill={true}
+                onItemSelect={(item) => {
+                  const newInputs: InputValues = inputs.map((i) =>
+                    i.key === input.key ? { ...i, inputValue: item } : i,
+                  );
+                  setInputs(newInputs);
+                  if (preventSavingSettings) return;
+                  setInputSetting({
+                    blockUid: input.uid,
+                    key: "value",
+                    value: item,
+                  });
+                }}
+              />
+            ) : (
+              <InputGroup
+                value={input.inputValue}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onRefresh();
+                }}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  const newInputs: InputValues = inputs.map((i) =>
+                    i.key === input.key ? { ...i, inputValue: newValue } : i,
+                  );
+                  setInputs(newInputs);
+                  if (preventSavingSettings) return;
+                  setInputSetting({
+                    blockUid: input.uid,
+                    key: "value",
+                    value: newValue,
+                  });
+                }}
+              />
+            )}
           </Label>
         </div>
       ))}
