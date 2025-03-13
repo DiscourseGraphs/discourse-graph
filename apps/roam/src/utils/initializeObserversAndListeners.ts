@@ -12,7 +12,6 @@ import {
   DISCOURSE_CONFIG_PAGE_TITLE,
   renderNodeConfigPage,
 } from "~/utils/renderNodeConfigPage";
-import isFlagEnabled from "~/utils/isFlagEnabled";
 import { isCurrentPageCanvas as isCanvasPage } from "~/utils/isCanvasPage";
 import { isDiscourseNodeConfigPage as isNodeConfigPage } from "~/utils/isDiscourseNodeConfigPage";
 import { isQueryPage } from "~/utils/isQueryPage";
@@ -104,7 +103,8 @@ export const initObservers = async ({
     },
   });
 
-  if (isFlagEnabled("preview")) addPageRefObserver(previewPageRefHandler);
+  if (onloadArgs.extensionAPI.settings.get("page-preview"))
+    addPageRefObserver(previewPageRefHandler);
   if (onloadArgs.extensionAPI.settings.get("discourse-context-overlay")) {
     addPageRefObserver((s) => overlayPageRefHandler(s, onloadArgs));
   }
@@ -147,7 +147,10 @@ export const initObservers = async ({
       target.tagName === "TEXTAREA" &&
       target.classList.contains("rm-block-input")
     ) {
-      renderDiscourseNodeMenu({ textarea: target as HTMLTextAreaElement });
+      renderDiscourseNodeMenu({
+        textarea: target as HTMLTextAreaElement,
+        extensionAPI: onloadArgs.extensionAPI,
+      });
       evt.preventDefault();
       evt.stopPropagation();
     }

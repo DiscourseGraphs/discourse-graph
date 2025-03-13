@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label, InputGroup, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
-import { getOverlayHandler } from "~/utils/pageRefObserverHandlers";
-import { onPageRefObserverChange } from "~/utils/pageRefObserverHandlers";
+import {
+  getOverlayHandler,
+  onPageRefObserverChange,
+  previewPageRefHandler,
+} from "~/utils/pageRefObserverHandlers";
 
 const CANVAS_PAGE_FORMAT_KEY = "canvas-page-format";
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
@@ -61,6 +64,43 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             <Description
               description={
                 "Whether or not to overlay Discourse Context information over Discourse Node references."
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={
+          extensionAPI.settings.get("disable-sidebar-open") as boolean
+        }
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          extensionAPI.settings.set("disable-sidebar-open", target.checked);
+        }}
+        labelElement={
+          <>
+            Disable Sidebar Open
+            <Description
+              description={
+                "Disable opening new nodes in the sidebar when created"
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={extensionAPI.settings.get("page-preview") as boolean}
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          extensionAPI.settings.set("page-preview", target.checked);
+          onPageRefObserverChange(previewPageRefHandler)(target.checked);
+        }}
+        labelElement={
+          <>
+            Preview
+            <Description
+              description={
+                "Whether or not to display page previews when hovering over page refs"
               }
             />
           </>

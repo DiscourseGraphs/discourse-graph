@@ -2,10 +2,8 @@ import type { RoamBasicNode } from "roamjs-components/types";
 import {
   getExportSettingsAndUids,
   StringSetting,
-  BooleanSetting,
   ExportConfigWithUids,
   getUidAndStringSetting,
-  getUidAndBooleanSetting,
 } from "./getExportSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -21,8 +19,6 @@ type FormattedConfigTree = {
   relationsUid: string;
   nodesUid: string;
   trigger: StringSetting;
-  preview: BooleanSetting;
-  disableSidebarOpen: BooleanSetting;
   export: ExportConfigWithUids;
 };
 
@@ -45,15 +41,6 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
       tree: configTreeRef.tree,
       text: "trigger",
     }),
-    disableSidebarOpen: getUidAndBooleanSetting({
-      tree: configTreeRef.tree,
-      text: "disable sidebar open",
-    }),
-    preview: getUidAndBooleanSetting({
-      tree: configTreeRef.tree,
-      text: "preview",
-    }),
-
     export: getExportSettingsAndUids(),
   };
 };
