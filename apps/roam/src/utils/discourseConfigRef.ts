@@ -2,10 +2,8 @@ import type { RoamBasicNode } from "roamjs-components/types";
 import {
   getExportSettingsAndUids,
   StringSetting,
-  BooleanSetting,
   ExportConfigWithUids,
   getUidAndStringSetting,
-  getUidAndBooleanSetting,
 } from "./getExportSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";

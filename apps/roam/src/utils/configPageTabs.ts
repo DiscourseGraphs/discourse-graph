@@ -8,16 +8,11 @@ import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import DiscourseNodeConfigPanel from "~/components/settings/DiscourseNodeConfigPanel";
 import DiscourseRelationConfigPanel from "~/components/settings/DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
-import {
-  onPageRefObserverChange,
-  previewPageRefHandler,
-} from "~/utils/pageRefObserverHandlers";
 import { ConfigTab } from "roamjs-components/components/ConfigPage";
 import {
   Field,
   CustomField,
   SelectField,
-  FlagField,
 } from "roamjs-components/components/ConfigPanels/types";
 
 export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [

@@ -12,7 +12,6 @@ import {
   DISCOURSE_CONFIG_PAGE_TITLE,
   renderNodeConfigPage,
 } from "~/utils/renderNodeConfigPage";
-import isFlagEnabled from "~/utils/isFlagEnabled";
 import { isCurrentPageCanvas as isCanvasPage } from "~/utils/isCanvasPage";
 import { isDiscourseNodeConfigPage as isNodeConfigPage } from "~/utils/isDiscourseNodeConfigPage";
 import { isQueryPage } from "~/utils/isQueryPage";

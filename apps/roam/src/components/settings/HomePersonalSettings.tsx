@@ -9,9 +9,6 @@ import {
   onPageRefObserverChange,
   previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
-import refreshConfigTree from "~/utils/refreshConfigTree";
 
 const CANVAS_PAGE_FORMAT_KEY = "canvas-page-format";
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
@@ -28,11 +25,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     setCanvasPage(e);
   };
   const overlayHandler = getOverlayHandler(onloadArgs);
-
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
 
   return (
     <div className="flex flex-col gap-4 p-1">
