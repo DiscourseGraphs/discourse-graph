@@ -29,10 +29,7 @@ import createBlock from "roamjs-components/writes/createBlock";
 import Export from "~/components/Export";
 import parseQuery from "~/utils/parseQuery";
 import { getDatalogQuery } from "~/utils/fireQuery";
-import parseResultSettings, {
-  Sorts,
-  InputValues,
-} from "~/utils/parseResultSettings";
+import parseResultSettings, { Sorts } from "~/utils/parseResultSettings";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import postProcessResults from "~/utils/postProcessResults";
 import setInputSetting from "roamjs-components/util/setInputSetting";
@@ -468,13 +465,22 @@ const ResultsView: ResultsViewComponent = ({
           />
         </div>
       )}
-      <Inputs
-        show={showInputs}
-        parentUid={parentUid}
-        resultsNodeUid={settings.resultNodeUid}
-        initialInputs={settings.inputs}
-        onRefresh={onRefresh}
-      />
+      {showInputs && (
+        <Inputs
+          parentUid={parentUid}
+          resultsNodeUid={settings.resultNodeUid}
+          initialInputs={settings.inputs}
+          onRefresh={onRefresh}
+          close={() => {
+            setShowInputs(!showInputs);
+            setInputSetting({
+              blockUid: settings.resultNodeUid,
+              key: "showInputs",
+              value: showInputs ? "hide" : "show",
+            });
+          }}
+        />
+      )}
       <Export
         title="Share Query Results"
         isOpen={isExportOpen}

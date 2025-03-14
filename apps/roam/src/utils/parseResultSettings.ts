@@ -156,7 +156,7 @@ const parseResultSettings = (
       uid: c.uid,
       key: c.text,
       inputValue,
-      options,
+      options: options.includes("<%") ? "smartblock" : options,
     };
   });
   const showInputsNode = getSubTree({

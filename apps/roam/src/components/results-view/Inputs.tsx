@@ -1,36 +1,123 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { getSubTree, setInputSetting } from "roamjs-components/util";
 import { type InputValues } from "~/utils/parseResultSettings";
-import { InputGroup, Label } from "@blueprintjs/core";
+import {
+  Button,
+  ControlGroup,
+  InputGroup,
+  Label,
+  Tooltip,
+} from "@blueprintjs/core";
 import parseQuery from "~/utils/parseQuery";
 import { createBlock, deleteBlock } from "roamjs-components/writes";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
+import { CellEmbed } from "./ResultsTable";
+import { InputTextNode } from "roamjs-components/types";
+
+const INPUT_TYPES = ["text", "pages", "smartblock"];
 
 type InputProps = {
-  show: boolean;
   initialInputs: InputValues;
   onRefresh: () => void;
   preventSavingSettings?: boolean;
   parentUid: string;
   resultsNodeUid: string;
+  close: () => void;
+};
+
+const getOptionsNode = (inputUid: string) => {
+  const configNode = getSubTree({ key: "config", parentUid: inputUid });
+  const optionsNode = getSubTree({ key: "options", parentUid: configNode.uid });
+  return optionsNode;
+};
+
+const EmbedOptions = ({ inputUid }: { inputUid: string }) => {
+  const optionsNode = getOptionsNode(inputUid);
+
+  const css = `
+    .block-embed .block-expand {
+      display: none;
+    }
+    .block-embed .controls.rm-block__controls {
+      flex: initial;
+      margin-right: 10px;
+    }
+  `;
+
+  return (
+    <div className="pt-4">
+      <style>{css}</style>
+      <CellEmbed uid={optionsNode.children[0].uid} />
+    </div>
+  );
 };
 
 export const Inputs = ({
-  show,
   initialInputs,
   onRefresh,
   preventSavingSettings = false,
   parentUid,
   resultsNodeUid,
+  close,
 }: InputProps) => {
   const [inputs, setInputs] = useState(initialInputs);
+  const [showSettings, setShowSettings] = useState(false);
+  const [smartBlockOptions, setSmartBlockOptions] = useState<
+    Record<string, string[]>
+  >({});
   const allPages = useMemo(() => {
     return getAllPageNames();
   }, []);
   const inputsNode = useMemo(
     () => getSubTree({ key: "inputs", parentUid: resultsNodeUid }),
     [resultsNodeUid],
+  );
+  const hasSpacesInKeys = useMemo(() => {
+    return inputs.some((input) => input.key.includes(" "));
+  }, [inputs]);
+
+  const getSmartBlockOptions = async (inputUid: string): Promise<string[]> => {
+    const optionsNode = getOptionsNode(inputUid);
+    if (!window.roamjs?.extension?.smartblocks)
+      return ["SmartBlocks not enabled."];
+
+    const results =
+      (await window.roamjs.extension.smartblocks.triggerSmartblock({
+        srcUid: optionsNode.uid,
+      })) as InputTextNode[];
+
+    const options = results.map((t) => t.text || "");
+
+    setSmartBlockOptions((prev) => ({
+      ...prev,
+      [inputUid]: options,
+    }));
+
+    return options;
+  };
+
+  const handleInputTypeChange = useCallback(
+    (inputKey: string, newType: string) => {
+      const newInputs: InputValues = inputs.map((i) =>
+        i.key === inputKey ? { ...i, options: newType } : i,
+      );
+      setInputs(newInputs);
+
+      if (preventSavingSettings) return;
+
+      const input = newInputs.find((i) => i.key === inputKey);
+      const configNode = getSubTree({ key: "config", parentUid: input?.uid });
+      if (input) {
+        setInputSetting({
+          blockUid: configNode.uid,
+          key: "options",
+          value:
+            newType === "smartblock" ? "<%QUERYBUILDER:someQuery%>" : newType,
+        });
+      }
+    },
+    [inputs, preventSavingSettings],
   );
 
   const createConfigBlocks = useCallback(
@@ -71,9 +158,8 @@ export const Inputs = ({
     [setInputs, preventSavingSettings, parentUid],
   );
 
+  // create initial blocks, set initial inputs
   useEffect(() => {
-    if (!show) return;
-
     const getExpectedInputs = () => {
       return parseQuery(parentUid)
         .conditions.flatMap((c) =>
@@ -102,15 +188,81 @@ export const Inputs = ({
     });
     createConfigBlocks(newInputs);
     setInputs(newInputs);
-  }, [show]);
-  if (!show) return null;
+  }, []);
+
+  // load smart block options for all inputs when settings change
+  useEffect(() => {
+    if (showSettings) return;
+
+    const loadAllSmartBlockOptions = async () => {
+      const smartBlockInputs = inputs.filter(
+        (input) => input.options === "smartblock",
+      );
+
+      const newCache: Record<string, string[]> = {};
+
+      await Promise.all(
+        smartBlockInputs.map(async (input) => {
+          const options = await getSmartBlockOptions(input.uid);
+          newCache[input.uid] = options;
+        }),
+      );
+
+      setSmartBlockOptions(newCache);
+    };
+
+    loadAllSmartBlockOptions();
+  }, [showSettings]);
+
   return (
-    <div className="w-full p-4" style={{ backgroundColor: "#EEE" }}>
-      {inputs.map((input) => (
-        <div key={input.key} className="mb-2">
-          <Label>
-            {input.key}
-            {input.options === "pages" ? (
+    <div className="relative w-full">
+      <div className="absolute right-2 top-2 z-10">
+        <Tooltip content={showSettings ? "Hide Settings" : "Settings"}>
+          <Button
+            icon={showSettings ? "edit" : "cog"}
+            minimal
+            small
+            onClick={() => setShowSettings(!showSettings)}
+            disabled={!inputs.length}
+          />
+        </Tooltip>
+        <Tooltip content="Close">
+          <Button icon="cross" minimal small onClick={close} />
+        </Tooltip>
+      </div>
+
+      <div className="w-full p-4" style={{ backgroundColor: "#EEE" }}>
+        {hasSpacesInKeys && (
+          <div className="mx-auto mb-4 w-4/5 rounded border border-red-400 bg-red-100 p-2 text-center text-red-700">
+            <strong>Warning:</strong> Some input variables contain spaces, which
+            will cause issues. Please rename your input variables to remove
+            spaces.
+          </div>
+        )}
+        {inputs.length === 0 && <>No Inputs Found</>}
+        {inputs.map((input) => (
+          <ControlGroup
+            key={input.uid}
+            className="mb-4"
+            fill={false}
+            vertical={true}
+          >
+            <Label>{input.key}</Label>
+
+            {showSettings ? (
+              <>
+                <MenuItemSelect
+                  activeItem={input.options}
+                  items={INPUT_TYPES}
+                  onItemSelect={(item) =>
+                    handleInputTypeChange(input.key, item)
+                  }
+                />
+                {input.options === "smartblock" && (
+                  <EmbedOptions inputUid={input.uid} />
+                )}
+              </>
+            ) : input.options === "pages" || input.options === "smartblock" ? (
               <MenuItemSelect
                 activeItem={input.inputValue}
                 itemListPredicate={(query: string, items: string[]) => {
@@ -129,23 +281,28 @@ export const Inputs = ({
                   }
                   return filtered;
                 }}
-                items={allPages}
+                items={
+                  input.options === "pages"
+                    ? allPages
+                    : smartBlockOptions[input.uid] || ["An Error Occured"]
+                }
                 filterable={true}
                 fill={true}
-                onItemSelect={(item) => {
+                onItemSelect={async (item) => {
                   const newInputs: InputValues = inputs.map((i) =>
                     i.key === input.key ? { ...i, inputValue: item } : i,
                   );
                   setInputs(newInputs);
                   if (preventSavingSettings) return;
-                  setInputSetting({
+                  await setInputSetting({
                     blockUid: input.uid,
                     key: "value",
                     value: item,
                   });
+                  onRefresh();
                 }}
               />
-            ) : (
+            ) : input.options === "text" ? (
               <InputGroup
                 value={input.inputValue}
                 onKeyDown={(e) => {
@@ -165,10 +322,10 @@ export const Inputs = ({
                   });
                 }}
               />
-            )}
-          </Label>
-        </div>
-      ))}
+            ) : null}
+          </ControlGroup>
+        ))}
+      </div>
     </div>
   );
 };

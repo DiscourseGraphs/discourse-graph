@@ -32,7 +32,7 @@ export const registerSmartBlock = (onloadArgs: OnloadArgs) => {
               children: getBasicTreeByParentUid(formatArgAsUid),
               uid: formatArgAsUid,
             }
-          : { text: formatArg, children: [], uid: "" };
+          : { text: formatArg || "{text}", children: [], uid: "" };
         const queryRef = variables[arg] || arg;
         const parentUid = resolveQueryBuilderRef({ queryRef, extensionAPI });
         return runQuery({
