@@ -258,13 +258,26 @@ For example, in a task management setup, you might have a query that retrieves t
 
 To pass a value to the query builder instance, use this format: `variable=value`. See example 4 below.
 
-Then in the query builder instance, you can reference it by entering `:in variable` in supported conditions.
+Then in the query builder instance, you can reference it by entering `:in variable` in supported conditions. The variable cannot contain spaces or special characters.
 
 Here is an example of this in action:
 
 <video src="https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Froamjs%2F5ZN7oVnQea.mp4?alt=media&token=bc094fad-f677-4e76-a6d1-eaaf572c5fb1"></video>
 
 [Direct Video Link](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Froamjs%2F5ZN7oVnQea.mp4?alt=media&token=bc094fad-f677-4e76-a6d1-eaaf572c5fb1)
+
+#### Conditions that Support Input Variables
+
+- "has title"
+- "references title"
+- "is in page with title"
+- "is referenced by block in page with title"
+- "titled before"
+- "titled after"
+- "created by"
+- "edited by"
+- "has block reference"
+- "is in canvas"
 
 ### Examples
 
