@@ -1,4 +1,11 @@
-import React, { FC, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Button,
   Icon,
@@ -40,6 +47,7 @@ import ResultsTable from "./ResultsTable";
 import { render as renderSimpleAlert } from "roamjs-components/components/SimpleAlert";
 import setInputSettings from "roamjs-components/util/setInputSettings";
 import posthog from "posthog-js";
+import { Inputs } from "./Inputs";
 
 const VIEWS: Record<string, { value: boolean }> = {
   link: { value: false },
@@ -318,6 +326,7 @@ const ResultsView: ResultsViewComponent = ({
   const [searchFilter, setSearchFilter] = useState(settings.searchFilter);
   const [showInterface, setShowInterface] = useState(settings.showInterface);
   const [revealMenuIcons, setRevealMenuIcons] = useState(false);
+  const [showInputs, setShowInputs] = useState(settings.showInputs);
   const hideMenuIcons = hideMenu || (!revealMenuIcons && !showInterface);
 
   const { allProcessedResults, paginatedResults } = useMemo(() => {
@@ -455,6 +464,22 @@ const ResultsView: ResultsViewComponent = ({
             }
           />
         </div>
+      )}
+      {showInputs && (
+        <Inputs
+          parentUid={parentUid}
+          resultsNodeUid={settings.resultNodeUid}
+          initialInputs={settings.inputs}
+          onRefresh={onRefresh}
+          close={() => {
+            setShowInputs(!showInputs);
+            setInputSetting({
+              blockUid: settings.resultNodeUid,
+              key: "showInputs",
+              value: showInputs ? "hide" : "show",
+            });
+          }}
+        />
       )}
       <Export
         title="Share Query Results"
@@ -1002,6 +1027,19 @@ const ResultsView: ResultsViewComponent = ({
                       onClick={() => {
                         setMoreMenuOpen(false);
                         setIsEditSearchFilter((prevState) => !prevState);
+                      }}
+                    />
+                    <MenuItem
+                      icon={showInputs ? "minus" : "plus"}
+                      text={showInputs ? "Hide Inputs" : "Inputs"}
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        setShowInputs(!showInputs);
+                        setInputSetting({
+                          blockUid: settings.resultNodeUid,
+                          key: "showInputs",
+                          value: showInputs ? "hide" : "show",
+                        });
                       }}
                     />
                     <MenuItem

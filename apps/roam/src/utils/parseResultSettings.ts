@@ -14,6 +14,12 @@ import {
 } from "~/data/userSettings";
 
 export type Sorts = { key: string; descending: boolean }[];
+export type InputValues = {
+  uid: string;
+  key: string;
+  inputValue: string;
+  options: string;
+}[];
 export type FilterData = Record<string, Filters>;
 export type Views = {
   column: string;
@@ -134,8 +140,33 @@ const parseResultSettings = (
         ? layoutNode.children[0].text
         : "table";
   layout.uid = layoutNode.uid;
+  const inputsNode = getSubTree({ tree: resultNode.children, key: "inputs" });
+  const inputs: InputValues = inputsNode.children.map((c) => {
+    const inputValue = getSettingValueFromTree({
+      tree: c.children,
+      key: "value",
+    });
+    const configNode = getSubTree({ tree: c.children, key: "config" });
+    const options = getSettingValueFromTree({
+      tree: configNode.children,
+      key: "options",
+    });
+
+    return {
+      uid: c.uid,
+      key: c.text,
+      inputValue,
+      options: options.includes("<%") ? "smartblock" : options,
+    };
+  });
+  const showInputsNode = getSubTree({
+    tree: resultNode.children,
+    key: "showInputs",
+  });
+
   return {
     resultNodeUid: resultNode.uid,
+    inputsNodeUid: inputsNode.uid,
     activeSort: sortsNode.children.map((s) => ({
       key: s.text,
       descending: toFlexRegex("true").test(s.children[0]?.text || ""),
@@ -169,6 +200,8 @@ const parseResultSettings = (
     pageSize,
     layout,
     page: 1, // TODO save in roam data
+    inputs,
+    showInputs: showInputsNode.children[0]?.text === "show",
   };
 };
 
