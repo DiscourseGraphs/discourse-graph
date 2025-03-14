@@ -82,19 +82,22 @@ export const Inputs = ({
     if (!window.roamjs?.extension?.smartblocks)
       return ["SmartBlocks not enabled."];
 
-    const results =
-      (await window.roamjs.extension.smartblocks.triggerSmartblock({
-        srcUid: optionsNode.uid,
-      })) as InputTextNode[];
+    try {
+      const results =
+        (await window.roamjs.extension.smartblocks.triggerSmartblock({
+          srcUid: optionsNode.uid,
+        })) as InputTextNode[];
 
-    const options = results.map((t) => t.text || "");
-
-    setSmartBlockOptions((prev) => ({
-      ...prev,
-      [inputUid]: options,
-    }));
-
-    return options;
+      const options = results.map((t) => t.text || "");
+      setSmartBlockOptions((prev) => ({
+        ...prev,
+        [inputUid]: options,
+      }));
+      return options;
+    } catch (error) {
+      console.error("Error loading SmartBlock options:", error);
+      return ["Error loading SmartBlock options"];
+    }
   };
 
   const handleInputTypeChange = useCallback(
