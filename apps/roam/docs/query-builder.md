@@ -105,6 +105,38 @@ Some relationships have a `target` field that supports the following options:
 - `{this page}` - matches the page in which the query is run
 - `{current user}` - matches the current user
 
+#### Input Variables
+
+Some relationships support Input Variables.
+
+Input Variables are a way to pass in values into your query, allowing for dynamic adjustments based on things like user input. This feature is particularly useful in scenarios where you want to reuse a single query template with different parameters.
+
+For example, in a task management setup, you might have a query that retrieves tasks for a specific client. Instead of creating multiple query instances for each client, you can create one query and use an input variable to specify the client name dynamically.
+
+Add an input variable to a query by entering `:in {variable}` in supported conditions. The variable cannot contain spaces or special characters.
+
+Examples:
+
+- `:in client`
+- `:in project`
+- `:in task`
+- `:in reference`
+
+![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Froamjs%2Ftpxc3_Mlcc.png?alt=media&token=a6dc66fd-093d-40c1-a6b8-01024e7d62d6)
+
+**Conditions that Support Input Variables**
+
+- `has title`
+- `references title`
+- `is in page with title`
+- `is referenced by block in page with title`
+- `titled before`
+- `titled after`
+- `created by`
+- `edited by`
+- `has block reference`
+- `is in canvas`
+
 ## Selections
 
 **Selections** specify what data from the blocks that match your conditions get returned. They determine the **columns** of the table. By default, the block text or page title is always returned and hyperlinked. Every selection is made up of two parts: the `label` and the `data`:
@@ -250,34 +282,15 @@ Where `((ITe51brrn))` looks like this:
   - Description:: <%GET:description%>
 ```
 
-### Input Variables
+### Passing Input Variables
 
-Input Variables are a way to pass in values into your query, allowing for dynamic adjustments based on things like user input. This feature is particularly useful in scenarios where you want to reuse a single query template with different parameters.
-
-For example, in a task management setup, you might have a query that retrieves tasks for a specific client. Instead of creating multiple query instances for each client, you can create one query and use an input variable to specify the client name dynamically.
-
-To pass a value to the query builder instance, use this format: `variable=value`. See example 4 below.
-
-Then in the query builder instance, you can reference it by entering `:in variable` in supported conditions. The variable cannot contain spaces or special characters.
+To pass a value to an [input variable](#input-variables), use this format: `variable=value`. See example 4 below.
 
 Here is an example of this in action:
 
 <video src="https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Froamjs%2F5ZN7oVnQea.mp4?alt=media&token=bc094fad-f677-4e76-a6d1-eaaf572c5fb1"></video>
 
 [Direct Video Link](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Froamjs%2F5ZN7oVnQea.mp4?alt=media&token=bc094fad-f677-4e76-a6d1-eaaf572c5fb1)
-
-#### Conditions that Support Input Variables
-
-- "has title"
-- "references title"
-- "is in page with title"
-- "is referenced by block in page with title"
-- "titled before"
-- "titled after"
-- "created by"
-- "edited by"
-- "has block reference"
-- "is in canvas"
 
 ### Examples
 
