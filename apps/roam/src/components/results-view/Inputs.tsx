@@ -222,20 +222,43 @@ export const Inputs = ({
   return (
     <div className="relative w-full">
       <div className="absolute right-2 top-2 z-10">
-        <Tooltip content={showSettings ? "Save Options" : "Options"}>
+        <Tooltip
+          content={showSettings ? "" : "Input Options"}
+          hoverOpenDelay={500}
+        >
           <Button
             className="focus:outline-none"
-            icon={showSettings ? "tick-circle" : "cog"}
+            rightIcon={showSettings ? "tick-circle" : "cog"}
             intent={showSettings ? "success" : "none"}
+            text={showSettings ? "Save Options" : ""}
             minimal
             small
-            onClick={() => setShowSettings(!showSettings)}
+            onClick={() => {
+              setShowSettings(!showSettings);
+            }}
             disabled={!inputs.length}
           />
         </Tooltip>
         <Tooltip content="Close">
-          <Button icon="cross" minimal small onClick={close} />
+          <Button
+            icon="cross"
+            minimal
+            small
+            onClick={close}
+            hidden={!!inputs.length}
+          />
         </Tooltip>
+      </div>
+      <div className="absolute bottom-2 right-2 z-10">
+        <Button
+          hidden={!showSettings}
+          rightIcon="cross"
+          text={"Close Inputs Panel"}
+          minimal
+          small
+          intent="danger"
+          onClick={close}
+        />
       </div>
 
       <div className="w-full p-4" style={{ backgroundColor: "#EEE" }}>
