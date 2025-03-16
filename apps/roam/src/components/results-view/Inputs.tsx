@@ -6,6 +6,8 @@ import {
   ControlGroup,
   InputGroup,
   Label,
+  Radio,
+  RadioGroup,
   Tooltip,
 } from "@blueprintjs/core";
 import parseQuery from "~/utils/parseQuery";
@@ -220,9 +222,11 @@ export const Inputs = ({
   return (
     <div className="relative w-full">
       <div className="absolute right-2 top-2 z-10">
-        <Tooltip content={showSettings ? "Hide Settings" : "Settings"}>
+        <Tooltip content={showSettings ? "Save Options" : "Options"}>
           <Button
-            icon={showSettings ? "edit" : "cog"}
+            className="focus:outline-none"
+            icon={showSettings ? "tick-circle" : "cog"}
+            intent={showSettings ? "success" : "none"}
             minimal
             small
             onClick={() => setShowSettings(!showSettings)}
@@ -254,13 +258,24 @@ export const Inputs = ({
 
             {showSettings ? (
               <>
-                <MenuItemSelect
-                  activeItem={input.options}
-                  items={INPUT_TYPES}
-                  onItemSelect={(item) =>
-                    handleInputTypeChange(input.key, item)
-                  }
-                />
+                <RadioGroup
+                  className="flex items-center gap-4"
+                  selectedValue={input.options}
+                  onChange={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    handleInputTypeChange(input.key, target.value);
+                  }}
+                >
+                  {INPUT_TYPES.map((type) => (
+                    <Radio
+                      key={type}
+                      label={type}
+                      value={type}
+                      className="font-normal"
+                    />
+                  ))}
+                </RadioGroup>
+
                 {input.options === "smartblock" && (
                   <EmbedOptions inputUid={input.uid} />
                 )}
