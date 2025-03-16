@@ -328,6 +328,16 @@ const ResultsView: ResultsViewComponent = ({
   const [revealMenuIcons, setRevealMenuIcons] = useState(false);
   const [showInputs, setShowInputs] = useState(settings.showInputs);
   const hideMenuIcons = hideMenu || (!revealMenuIcons && !showInterface);
+  const [showAlias, setShowAlias] = useState(settings.showAlias);
+  const [isEditAlias, setIsEditAlias] = useState(false);
+  const [alias, setAlias] = useState(settings.alias);
+  const updateAlias = useCallback(() => {
+    updateBlock({
+      uid: parentUid,
+      text: `{{query block:${alias}}}`,
+    });
+    setIsEditAlias(false);
+  }, [parentUid]);
 
   const { allProcessedResults, paginatedResults } = useMemo(() => {
     return postProcessResults(results, {
@@ -425,6 +435,47 @@ const ResultsView: ResultsViewComponent = ({
       onMouseEnter={() => setRevealMenuIcons(true)}
       onMouseLeave={() => setRevealMenuIcons(false)}
     >
+      {showAlias && (
+        <div
+          className="w-full p-4"
+          style={{
+            background: "#EEE",
+          }}
+        >
+          {isEditAlias ? (
+            <InputGroup
+              fill={true}
+              placeholder="edit alias"
+              value={alias}
+              autoFocus
+              onChange={(e) => setAlias(e.target.value)}
+              onBlur={updateAlias}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") updateAlias();
+              }}
+              rightElement={
+                <Button
+                  hidden={!isEditAlias}
+                  icon={"confirm"}
+                  onClick={updateAlias}
+                  minimal
+                />
+              }
+            />
+          ) : (
+            <h5
+              tabIndex={-1}
+              onClick={() => setIsEditAlias(true)}
+              className={`${
+                !!alias ? "" : "text-sm italic opacity-25"
+              } inline-block flex-grow`}
+            >
+              {!!alias ? alias : "edit alias"}
+            </h5>
+          )}
+        </div>
+      )}
+
       {isEditSearchFilter && (
         <div
           className="w-full p-4"
@@ -1067,6 +1118,19 @@ const ResultsView: ResultsViewComponent = ({
                       onClick={() => setIsEditRandom(true)}
                     />
                   </MenuItem>
+                  <MenuItem
+                    icon={"tag"}
+                    text={showAlias ? "Hide Alias" : "Alias"}
+                    onClick={() => {
+                      setInputSetting({
+                        blockUid: settings.resultNodeUid,
+                        key: "showAlias",
+                        value: showAlias ? "hide" : "show",
+                      });
+                      setShowAlias(!showAlias);
+                      setMoreMenuOpen(false);
+                    }}
+                  />
                   <MenuItem
                     icon={showInterface ? "th-disconnect" : "th"}
                     text={showInterface ? "Hide Interface" : "Show Interface"}

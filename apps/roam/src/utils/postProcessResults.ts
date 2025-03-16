@@ -42,6 +42,8 @@ const postProcessResults = (
     | "inputsNodeUid"
     | "inputs"
     | "showInputs"
+    | "alias"
+    | "showAlias"
   >,
 ) => {
   const sortedResults = results

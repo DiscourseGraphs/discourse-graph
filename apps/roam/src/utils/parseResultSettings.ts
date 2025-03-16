@@ -12,6 +12,7 @@ import {
   DEFAULT_FILTERS_KEY,
   DEFAULT_PAGE_SIZE_KEY,
 } from "~/data/userSettings";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 
 export type Sorts = { key: string; descending: boolean }[];
 export type InputValues = {
@@ -26,6 +27,13 @@ export type Views = {
   mode: string;
   value: string;
 }[];
+
+export const getAlias = (parentUid: string) => {
+  const aliasMatch = getTextByBlockUid(parentUid).match(
+    /{{query block:(.*?)}}/,
+  );
+  return !!aliasMatch && aliasMatch[1] !== "" ? aliasMatch[1] : "";
+};
 
 const getFilterEntries = (
   n: Pick<RoamBasicNode, "children">,
@@ -163,6 +171,11 @@ const parseResultSettings = (
     tree: resultNode.children,
     key: "showInputs",
   });
+  const showAliasNode = getSubTree({
+    tree: resultNode.children,
+    key: "showAlias",
+  });
+  const alias = getAlias(parentUid);
 
   return {
     resultNodeUid: resultNode.uid,
@@ -202,6 +215,8 @@ const parseResultSettings = (
     page: 1, // TODO save in roam data
     inputs,
     showInputs: showInputsNode.children[0]?.text === "show",
+    showAlias: showAliasNode.children[0]?.text === "show",
+    alias,
   };
 };
 
