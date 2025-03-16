@@ -437,42 +437,50 @@ const ResultsView: ResultsViewComponent = ({
     >
       {showAlias && (
         <div
-          className="w-full p-4"
+          className="flex w-full gap-4 p-4"
           style={{
             background: "#EEE",
           }}
         >
-          {isEditAlias ? (
-            <InputGroup
-              fill={true}
-              placeholder="edit alias"
-              value={alias}
-              autoFocus
-              onChange={(e) => setAlias(e.target.value)}
-              onBlur={updateAlias}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") updateAlias();
-              }}
-              rightElement={
-                <Button
-                  hidden={!isEditAlias}
-                  icon={"confirm"}
-                  onClick={updateAlias}
-                  minimal
-                />
+          <InputGroup
+            className="flex-1"
+            inputRef={(input) => {
+              if (!input) return;
+              input.classList.add("text-lg", "font-semibold");
+              if (isEditAlias) {
+                input.classList.remove("bg-transparent", "shadow-none");
+                input.style.boxShadow = "";
+              } else {
+                input.classList.add("bg-transparent", "shadow-none");
+                input.style.boxShadow = "none";
               }
-            />
-          ) : (
-            <h5
-              tabIndex={-1}
-              onClick={() => setIsEditAlias(true)}
-              className={`${
-                !!alias ? "" : "text-sm italic opacity-25"
-              } inline-block flex-grow`}
-            >
-              {!!alias ? alias : "edit alias"}
-            </h5>
-          )}
+            }}
+            readOnly={!isEditAlias}
+            placeholder="edit alias"
+            value={alias}
+            autoFocus
+            onClick={() => setIsEditAlias(true)}
+            onChange={(e) => setAlias(e.target.value)}
+            // onBlur={updateAlias}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") updateAlias();
+            }}
+            rightElement={
+              <Button
+                hidden={!isEditAlias}
+                icon={"tick"}
+                onClick={updateAlias}
+                minimal
+              />
+            }
+          />
+          {/* <Button
+            hidden={!isEditAlias} // causes layout shift
+            rightIcon={"remove"}
+            minimal
+            text={"Hide Alias"}
+            onClick={() => setShowAlias(false)}
+          /> */}
         </div>
       )}
 
