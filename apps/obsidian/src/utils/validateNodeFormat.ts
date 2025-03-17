@@ -1,7 +1,9 @@
-export function validateNodeFormat(format: string): {
+export const validateNodeFormat = (
+  format: string,
+): {
   isValid: boolean;
   error?: string;
-} {
+} => {
   if (!format) {
     return {
       isValid: false,
@@ -25,4 +27,4 @@ export function validateNodeFormat(format: string): {
   }
 
   return { isValid: true };
-}
+};

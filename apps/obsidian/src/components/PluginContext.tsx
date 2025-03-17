@@ -1,5 +1,5 @@
-import React, { createContext, useContext, ReactNode } from "react";
-import type DiscourseGraphPlugin from "../index";
+import { createContext, useContext, ReactNode } from "react";
+import type DiscourseGraphPlugin from "~/index";
 
 export const PluginContext = createContext<DiscourseGraphPlugin | undefined>(
   undefined,

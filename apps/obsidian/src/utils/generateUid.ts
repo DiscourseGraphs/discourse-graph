@@ -1,5 +1,7 @@
+import { nanoid } from "nanoid";
+
 const generateUid = (prefix = "dg") => {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  return `${prefix}_${nanoid()}`;
 };
 
 export default generateUid;

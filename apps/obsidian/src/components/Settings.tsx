@@ -1,15 +1,14 @@
 import { StrictMode, useState } from "react";
 import { App, PluginSettingTab } from "obsidian";
-import type DiscourseGraphPlugin from "../index";
+import type DiscourseGraphPlugin from "~/index";
 import { Root, createRoot } from "react-dom/client";
 import { ContextProvider } from "./AppContext";
 import RelationshipTypeSettings from "./RelationshipTypeSettings";
 import RelationshipSettings from "./RelationshipSettings";
 import NodeTypeSettings from "./NodeTypeSettings";
-import { PluginProvider, usePlugin } from "./PluginContext";
+import { PluginProvider } from "./PluginContext";
 
 const Settings = () => {
-  const plugin = usePlugin();
   const [activeTab, setActiveTab] = useState("nodeTypes");
 
   return (

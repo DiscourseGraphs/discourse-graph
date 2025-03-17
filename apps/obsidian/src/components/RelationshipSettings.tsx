@@ -3,7 +3,7 @@ import {
   DiscourseRelation,
   DiscourseNode,
   DiscourseRelationType,
-} from "../types";
+} from "~/types";
 import { Notice } from "obsidian";
 import { usePlugin } from "./PluginContext";
 
@@ -13,6 +13,9 @@ const RelationshipSettings = () => {
     DiscourseRelation[]
   >(() => plugin.settings.discourseRelations ?? []);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(
+    null,
+  );
 
   const findNodeById = (id: string): DiscourseNode | undefined => {
     return plugin.settings.nodeTypes.find((node) => node.id === id);
@@ -54,7 +57,16 @@ const RelationshipSettings = () => {
       },
     ];
     setDiscourseRelations(updatedRelations);
+    console.log("updatedRelations", updatedRelations);
     setHasUnsavedChanges(true);
+  };
+
+  const confirmDeleteRelation = (index: number): void => {
+    setPendingDeleteIndex(index);
+  };
+
+  const cancelDelete = (): void => {
+    setPendingDeleteIndex(null);
   };
 
   const handleDeleteRelation = async (index: number): Promise<void> => {
@@ -62,6 +74,7 @@ const RelationshipSettings = () => {
     setDiscourseRelations(updatedRelations);
     plugin.settings.discourseRelations = updatedRelations;
     await plugin.saveSettings();
+    setPendingDeleteIndex(null);
     new Notice("Relation deleted");
   };
 
@@ -96,23 +109,7 @@ const RelationshipSettings = () => {
       <h3>Node Type Relations</h3>
 
       {plugin.settings.nodeTypes.length === 0 && (
-        <div className="setting-item">
-          <div className="setting-item-info">
-            <div className="setting-item-description">
-              You need to create some node types first.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {plugin.settings.relationTypes.length === 0 && (
-        <div className="setting-item">
-          <div className="setting-item-info">
-            <div className="setting-item-description">
-              You need to create some relation types first.
-            </div>
-          </div>
-        </div>
+        <div>You need to create some node types first.</div>
       )}
 
       {plugin.settings.nodeTypes.length > 0 &&
@@ -181,12 +178,24 @@ const RelationshipSettings = () => {
                       ))}
                     </select>
 
-                    <button
-                      onClick={() => handleDeleteRelation(index)}
-                      className="mod-warning"
-                    >
-                      Delete
-                    </button>
+                    {pendingDeleteIndex === index ? (
+                      <>
+                        <button
+                          onClick={() => handleDeleteRelation(index)}
+                          className="mod-warning"
+                        >
+                          Confirm
+                        </button>
+                        <button onClick={cancelDelete}>Cancel</button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => confirmDeleteRelation(index)}
+                        className="mod-warning"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
 
                   {relation.sourceId &&
