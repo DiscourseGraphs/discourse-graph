@@ -1,16 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label, InputGroup } from "@blueprintjs/core";
+import { Label, InputGroup, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
+import {
+  getOverlayHandler,
+  onPageRefObserverChange,
+  previewPageRefHandler,
+} from "~/utils/pageRefObserverHandlers";
 
 const CANVAS_PAGE_FORMAT_KEY = "canvas-page-format";
-const HomePersonalSettings = ({
-  extensionAPI,
-}: {
-  extensionAPI: OnloadArgs[`extensionAPI`];
-}) => {
+const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
+  const extensionAPI = onloadArgs.extensionAPI;
   const getInitCanvasPage = () => {
     const savedFormat = extensionAPI.settings.get(
       CANVAS_PAGE_FORMAT_KEY,
@@ -22,6 +24,8 @@ const HomePersonalSettings = ({
     extensionAPI.settings.set(CANVAS_PAGE_FORMAT_KEY, e);
     setCanvasPage(e);
   };
+  const overlayHandler = getOverlayHandler(onloadArgs);
+
   return (
     <div className="flex flex-col gap-4 p-1">
       <Label>
@@ -41,6 +45,67 @@ const HomePersonalSettings = ({
         />
         <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
       </Label>
+      <Checkbox
+        defaultChecked={
+          extensionAPI.settings.get("discourse-context-overlay") as boolean
+        }
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          extensionAPI.settings.set(
+            "discourse-context-overlay",
+            target.checked,
+          );
+
+          onPageRefObserverChange(overlayHandler)(target.checked);
+        }}
+        labelElement={
+          <>
+            Overlay
+            <Description
+              description={
+                "Whether or not to overlay Discourse Context information over Discourse Node references."
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={
+          extensionAPI.settings.get("disable-sidebar-open") as boolean
+        }
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          extensionAPI.settings.set("disable-sidebar-open", target.checked);
+        }}
+        labelElement={
+          <>
+            Disable Sidebar Open
+            <Description
+              description={
+                "Disable opening new nodes in the sidebar when created"
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={extensionAPI.settings.get("page-preview") as boolean}
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          extensionAPI.settings.set("page-preview", target.checked);
+          onPageRefObserverChange(previewPageRefHandler)(target.checked);
+        }}
+        labelElement={
+          <>
+            Preview
+            <Description
+              description={
+                "Whether or not to display page previews when hovering over page refs"
+              }
+            />
+          </>
+        }
+      />
     </div>
   );
 };

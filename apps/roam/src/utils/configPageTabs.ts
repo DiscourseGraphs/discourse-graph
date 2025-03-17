@@ -8,17 +8,11 @@ import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import DiscourseNodeConfigPanel from "~/components/settings/DiscourseNodeConfigPanel";
 import DiscourseRelationConfigPanel from "~/components/settings/DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
-import {
-  onPageRefObserverChange,
-  previewPageRefHandler,
-  overlayPageRefHandler,
-} from "~/utils/pageRefObserverHandlers";
 import { ConfigTab } from "roamjs-components/components/ConfigPage";
 import {
   Field,
   CustomField,
   SelectField,
-  FlagField,
 } from "roamjs-components/components/ConfigPanels/types";
 
 export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
@@ -33,22 +27,6 @@ export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
         // @ts-ignore
         Panel: TextPanel,
       },
-      // @ts-ignore
-      {
-        title: "disable sidebar open",
-        description: "Disable opening new nodes in the sidebar when created",
-        Panel: FlagPanel,
-      } as Field<FlagField>,
-      // @ts-ignore
-      {
-        title: "preview",
-        description:
-          "Whether or not to display page previews when hovering over page refs",
-        Panel: FlagPanel,
-        options: {
-          onChange: onPageRefObserverChange(previewPageRefHandler),
-        },
-      } as Field<FlagField>,
     ],
   },
   {
@@ -73,20 +51,6 @@ export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
           component: DiscourseRelationConfigPanel,
         },
       } as Field<CustomField>,
-      // @ts-ignore
-      {
-        title: "overlay",
-        Panel: FlagPanel,
-        // description:
-        //   "Whether to overlay discourse context information over node references",
-        description: "Currently disabled. Being reworked.",
-        disabled: true,
-        options: {
-          onChange: (val) => {
-            onPageRefObserverChange((s) => overlayPageRefHandler(s, args))(val);
-          },
-        },
-      } as Field<FlagField>,
     ],
   },
   {

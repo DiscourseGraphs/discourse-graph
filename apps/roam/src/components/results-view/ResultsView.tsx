@@ -226,6 +226,7 @@ type ResultsViewComponent = (props: {
   header?: React.ReactNode;
   results: Result[];
   hideResults?: boolean;
+  hideMenu?: boolean;
   preventSavingSettings?: boolean;
   onEdit?: () => void;
   onDeleteQuery?: () => void;
@@ -267,6 +268,7 @@ const ResultsView: ResultsViewComponent = ({
   header,
   results,
   hideResults = false,
+  hideMenu = false,
   preventSavingSettings = false,
   onEdit,
   onDeleteQuery,
@@ -315,7 +317,8 @@ const ResultsView: ResultsViewComponent = ({
   const [columnFilters, setColumnFilters] = useState(settings.columnFilters);
   const [searchFilter, setSearchFilter] = useState(settings.searchFilter);
   const [showInterface, setShowInterface] = useState(settings.showInterface);
-  const [showMenuIcons, setShowMenuIcons] = useState(false);
+  const [revealMenuIcons, setRevealMenuIcons] = useState(false);
+  const hideMenuIcons = hideMenu || (!revealMenuIcons && !showInterface);
 
   const { allProcessedResults, paginatedResults } = useMemo(() => {
     return postProcessResults(results, {
@@ -410,8 +413,8 @@ const ResultsView: ResultsViewComponent = ({
     <div
       className={`roamjs-query-results-view relative w-full mode-${layout.mode}`}
       ref={containerRef}
-      onMouseEnter={() => setShowMenuIcons(true)}
-      onMouseLeave={() => setShowMenuIcons(false)}
+      onMouseEnter={() => setRevealMenuIcons(true)}
+      onMouseLeave={() => setRevealMenuIcons(false)}
     >
       {isEditSearchFilter && (
         <div
@@ -460,9 +463,10 @@ const ResultsView: ResultsViewComponent = ({
         results={allProcessedResults}
         columns={columns}
       />
+      {header}
       <div className="relative">
         <div
-          style={!showMenuIcons && !showInterface ? { display: "none" } : {}}
+          style={hideMenuIcons ? { display: "none" } : {}}
           className="absolute right-0 z-10 p-1"
         >
           {onRefresh && (
@@ -1134,18 +1138,7 @@ const ResultsView: ResultsViewComponent = ({
             }
           />
         </div>
-        {header && (
-          <h4
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              margin: 4,
-            }}
-          >
-            {header}
-          </h4>
-        )}
+
         {!hideResults && (
           <>
             {results.length !== 0 ? (

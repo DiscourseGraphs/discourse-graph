@@ -52,8 +52,6 @@ export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 export default runExtension(async (onloadArgs) => {
   const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
-  console.log("isEncrypted", isEncrypted);
-  console.log("isOffline", isOffline);
   if (!isEncrypted && !isOffline) {
     initPostHog();
     posthog.capture("Extension Loaded", {

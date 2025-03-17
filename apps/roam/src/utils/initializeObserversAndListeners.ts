@@ -12,7 +12,6 @@ import {
   DISCOURSE_CONFIG_PAGE_TITLE,
   renderNodeConfigPage,
 } from "~/utils/renderNodeConfigPage";
-import isFlagEnabled from "~/utils/isFlagEnabled";
 import { isCurrentPageCanvas as isCanvasPage } from "~/utils/isCanvasPage";
 import { isDiscourseNodeConfigPage as isNodeConfigPage } from "~/utils/isDiscourseNodeConfigPage";
 import { isQueryPage } from "~/utils/isQueryPage";
@@ -21,6 +20,7 @@ import {
   addPageRefObserver,
   getPageRefObserversSize,
   previewPageRefHandler,
+  overlayPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
@@ -103,11 +103,11 @@ export const initObservers = async ({
     },
   });
 
-  if (isFlagEnabled("preview")) addPageRefObserver(previewPageRefHandler);
-  // TODO: grammar overlay being refactored
-  // if (isFlagEnabled("grammar.overlay")) {
-  //   addPageRefObserver((s) => overlayPageRefHandler(s, onloadArgs));
-  // }
+  if (onloadArgs.extensionAPI.settings.get("page-preview"))
+    addPageRefObserver(previewPageRefHandler);
+  if (onloadArgs.extensionAPI.settings.get("discourse-context-overlay")) {
+    addPageRefObserver((s) => overlayPageRefHandler(s, onloadArgs));
+  }
   if (!!getPageRefObserversSize()) enablePageRefObserver();
 
   const { pageUid: configPageUid, observer: configPageObserver } =
@@ -147,7 +147,10 @@ export const initObservers = async ({
       target.tagName === "TEXTAREA" &&
       target.classList.contains("rm-block-input")
     ) {
-      renderDiscourseNodeMenu({ textarea: target as HTMLTextAreaElement });
+      renderDiscourseNodeMenu({
+        textarea: target as HTMLTextAreaElement,
+        extensionAPI: onloadArgs.extensionAPI,
+      });
       evt.preventDefault();
       evt.stopPropagation();
     }
