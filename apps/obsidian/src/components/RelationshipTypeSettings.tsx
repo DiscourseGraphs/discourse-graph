@@ -3,6 +3,7 @@ import { DiscourseRelationType } from "~/types";
 import { Notice } from "obsidian";
 import { usePlugin } from "./PluginContext";
 import generateUid from "~/utils/generateUid";
+import { ConfirmationModal } from "./ConfirmationModal";
 
 const RelationshipTypeSettings = () => {
   const plugin = usePlugin();
@@ -10,9 +11,6 @@ const RelationshipTypeSettings = () => {
     () => plugin.settings.relationTypes ?? [],
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(
-    null,
-  );
 
   const handleRelationTypeChange = async (
     index: number,
@@ -46,11 +44,16 @@ const RelationshipTypeSettings = () => {
   };
 
   const confirmDeleteRelationType = (index: number): void => {
-    setPendingDeleteIndex(index);
-  };
-
-  const cancelDelete = (): void => {
-    setPendingDeleteIndex(null);
+    const relationType = relationTypes[index] || {
+      label: "Unnamed",
+      complement: "",
+    };
+    const modal = new ConfirmationModal(plugin.app, {
+      title: "Delete Relation Type",
+      message: `Are you sure you want to delete the relation type "${relationType.label}"?`,
+      onConfirm: () => handleDeleteRelationType(index),
+    });
+    modal.open();
   };
 
   const handleDeleteRelationType = async (index: number): Promise<void> => {
@@ -62,7 +65,6 @@ const RelationshipTypeSettings = () => {
       new Notice(
         "Cannot delete this relation type as it is used in one or more relations.",
       );
-      setPendingDeleteIndex(null);
       return;
     }
 
@@ -70,7 +72,6 @@ const RelationshipTypeSettings = () => {
     setRelationTypes(updatedRelationTypes);
     plugin.settings.relationTypes = updatedRelationTypes;
     await plugin.saveSettings();
-    setPendingDeleteIndex(null);
     new Notice("Relation type deleted successfully");
   };
 
@@ -127,24 +128,12 @@ const RelationshipTypeSettings = () => {
                 }
                 style={{ flex: 2 }}
               />
-              {pendingDeleteIndex === index ? (
-                <>
-                  <button
-                    onClick={() => handleDeleteRelationType(index)}
-                    className="mod-warning"
-                  >
-                    Confirm
-                  </button>
-                  <button onClick={cancelDelete}>Cancel</button>
-                </>
-              ) : (
-                <button
-                  onClick={() => confirmDeleteRelationType(index)}
-                  className="mod-warning"
-                >
-                  Delete
-                </button>
-              )}
+              <button
+                onClick={() => confirmDeleteRelationType(index)}
+                className="mod-warning"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>

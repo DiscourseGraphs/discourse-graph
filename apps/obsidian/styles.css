@@ -1,14 +1,3 @@
-.relationship-node {
-  background-color: var(--background-primary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 4px;
-  padding: 6px 10px;
-  font-weight: 500;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  min-width: 100px;
-  text-align: center;
-}
-
 .discourse-relations .relationship-visualization {
   transition: all 0.2s ease;
 }

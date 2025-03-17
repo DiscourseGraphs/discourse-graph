@@ -8,6 +8,7 @@ import { usePlugin } from "./PluginContext";
 import { Notice } from "obsidian";
 import generateUid from "~/utils/generateUid";
 import { DiscourseNode } from "~/types";
+import { ConfirmationModal } from "./ConfirmationModal";
 
 const NodeTypeSettings = () => {
   const plugin = usePlugin();
@@ -16,9 +17,6 @@ const NodeTypeSettings = () => {
   );
   const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(
-    null,
-  );
 
   const updateErrors = (
     index: number,
@@ -78,11 +76,13 @@ const NodeTypeSettings = () => {
   };
 
   const confirmDeleteNodeType = (index: number): void => {
-    setPendingDeleteIndex(index);
-  };
-
-  const cancelDelete = (): void => {
-    setPendingDeleteIndex(null);
+    const nodeType = nodeTypes[index] || { name: "Unnamed" };
+    const modal = new ConfirmationModal(plugin.app, {
+      title: "Delete Node Type",
+      message: `Are you sure you want to delete the node type "${nodeType.name}"?`,
+      onConfirm: () => handleDeleteNodeType(index),
+    });
+    modal.open();
   };
 
   const handleDeleteNodeType = async (index: number): Promise<void> => {
@@ -95,7 +95,6 @@ const NodeTypeSettings = () => {
       new Notice(
         "Cannot delete this node type as it is used in one or more relations.",
       );
-      setPendingDeleteIndex(null);
       return;
     }
 
@@ -110,7 +109,6 @@ const NodeTypeSettings = () => {
         return newErrors;
       });
     }
-    setPendingDeleteIndex(null);
     new Notice("Node type deleted successfully");
   };
 
@@ -155,24 +153,12 @@ const NodeTypeSettings = () => {
                 }
                 style={{ flex: 2 }}
               />
-              {pendingDeleteIndex === index ? (
-                <>
-                  <button
-                    onClick={() => handleDeleteNodeType(index)}
-                    className="mod-warning"
-                  >
-                    Confirm
-                  </button>
-                  <button onClick={cancelDelete}>Cancel</button>
-                </>
-              ) : (
-                <button
-                  onClick={() => confirmDeleteNodeType(index)}
-                  className="mod-warning"
-                >
-                  Delete
-                </button>
-              )}
+              <button
+                onClick={() => confirmDeleteNodeType(index)}
+                className="mod-warning"
+              >
+                Delete
+              </button>
             </div>
             {formatErrors[index] && (
               <div
