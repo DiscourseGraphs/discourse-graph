@@ -19,6 +19,14 @@ const DiscourseGraphHome = () => {
         parentUid={settings.settingsUid}
         value={settings.trigger.value || ""}
       />
+      <TextPanel
+        title="Canvas Page Format"
+        description="The page format for canvas pages"
+        order={1}
+        uid={settings.canvasPageFormat.uid}
+        parentUid={settings.settingsUid}
+        value={settings.canvasPageFormat.value || ""}
+      />
     </div>
   );
 };

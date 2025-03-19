@@ -20,6 +20,7 @@ type FormattedConfigTree = {
   nodesUid: string;
   trigger: StringSetting;
   export: ExportConfigWithUids;
+  canvasPageFormat: StringSetting;
 };
 
 export const getFormattedConfigTree = (): FormattedConfigTree => {
@@ -42,6 +43,10 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
       text: "trigger",
     }),
     export: getExportSettingsAndUids(),
+    canvasPageFormat: getUidAndStringSetting({
+      tree: configTreeRef.tree,
+      text: "Canvas Page Format",
+    }),
   };
 };
 export default configTreeRef;

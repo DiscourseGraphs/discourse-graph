@@ -29,14 +29,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   return (
     <div className="flex flex-col gap-4 p-1">
       <Label>
-        Canvas Page Format
-        <Description description={"The page format for canvas pages"} />
-        <InputGroup
-          value={canvasPage}
-          onChange={(e) => handleSetCanvasPage(e.target.value)}
-        />
-      </Label>
-      <Label>
         Personal Node Menu Trigger
         <Description
           description={
