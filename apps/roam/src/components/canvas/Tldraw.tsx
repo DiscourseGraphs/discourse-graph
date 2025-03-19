@@ -60,6 +60,7 @@ import posthog from "posthog-js";
 import "@tldraw/tldraw/editor.css";
 import "@tldraw/tldraw/ui.css";
 import sendErrorEmail from "~/utils/sendErrorEmail";
+import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 
 declare global {
   interface Window {
@@ -801,6 +802,7 @@ const TldrawCanvas = ({ title }: Props) => {
         type: "Tldraw Error",
         context: {
           title,
+          user: getCurrentUserDisplayName(),
         },
       }).catch(() => {});
 
