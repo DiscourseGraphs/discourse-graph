@@ -27,13 +27,6 @@ export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
         // @ts-ignore
         Panel: TextPanel,
       },
-      {
-        title: "Canvas Page Format",
-        description: "The page format for canvas pages",
-        defaultValue: "Canvas/*",
-        // @ts-ignore
-        Panel: TextPanel,
-      },
     ],
   },
   {

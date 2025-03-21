@@ -1,20 +1,9 @@
-import { OnloadArgs } from "roamjs-components/types";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "..";
-import type { RoamBasicNode } from "roamjs-components/types";
-import { getUidAndStringSetting } from "./getExportSettings";
-
-const configTreeRef: {
-  tree: RoamBasicNode[];
-  nodes: { [uid: string]: { text: string; children: RoamBasicNode[] } };
-} = { tree: [], nodes: {} };
+import { getFormattedConfigTree } from "./discourseConfigRef";
 
 export const isCanvasPage = ({ title }: { title: string }) => {
-  const formatInSettings = getUidAndStringSetting({
-    tree: configTreeRef.tree,
-    text: "Canvas Page Format",
-  });
-  console.log("formatInSettings", formatInSettings);
-  const format = formatInSettings || DEFAULT_CANVAS_PAGE_FORMAT;
+  const { canvasPageFormat } = getFormattedConfigTree();
+  const format = canvasPageFormat.value || DEFAULT_CANVAS_PAGE_FORMAT;
   const canvasRegex = new RegExp(`^${format}$`.replace(/\*/g, ".+"));
   return canvasRegex.test(title);
 };
