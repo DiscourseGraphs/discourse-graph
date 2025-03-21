@@ -19,11 +19,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     ) as string;
     return savedFormat || DEFAULT_CANVAS_PAGE_FORMAT;
   };
-  const [canvasPage, setCanvasPage] = useState(getInitCanvasPage);
-  const handleSetCanvasPage = (e: string) => {
-    extensionAPI.settings.set(CANVAS_PAGE_FORMAT_KEY, e);
-    setCanvasPage(e);
-  };
   const overlayHandler = getOverlayHandler(onloadArgs);
 
   return (
