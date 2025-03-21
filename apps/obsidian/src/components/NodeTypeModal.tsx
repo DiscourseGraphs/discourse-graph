@@ -29,19 +29,15 @@ export class NodeTypeModal extends SuggestModal<DiscourseNode> {
     nodeType: DiscourseNode,
     title: string,
   ): Promise<TFile> {
-    // Generate unique instance ID
     const instanceId = `${nodeType.id}-${Date.now()}`;
-    const filename = `${title}.md`;
-
-    // Create frontmatter with node type and instance ID
     const frontmatter = `---
-nodeTypeId: ${nodeType.id}
-nodeInstanceId: ${instanceId}
----
+    nodeTypeId: ${nodeType.id}
+    nodeInstanceId: ${instanceId}
+    ---
+    
+    `;
 
-`;
-
-    // Create the file in vault
+    const filename = `${title}.md`;
     const file = await this.app.vault.create(filename, frontmatter);
 
     return file;
