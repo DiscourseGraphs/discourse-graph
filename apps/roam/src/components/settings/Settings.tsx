@@ -15,6 +15,7 @@ import getDiscourseNodes, {
 import NodeConfig from "./NodeConfig";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import HomePersonalSettings from "./HomePersonalSettings";
+import refreshConfigTree from "~/utils/refreshConfigTree";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -74,7 +75,10 @@ export const SettingsDialog = ({
   return (
     <Dialog
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => {
+        refreshConfigTree();
+        onClose?.();
+      }}
       isCloseButtonShown={false}
       style={{ width: "80vw", height: "80vh" }}
       className="relative bg-white"

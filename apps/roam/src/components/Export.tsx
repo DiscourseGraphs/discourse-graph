@@ -153,7 +153,6 @@ const ExportDialog: ExportDialogComponent = ({
   const [selectedPageUid, setSelectedPageUid] = useState(currentPageUid);
   const isCanvasPage = checkIfCanvasPage({
     title: selectedPageTitle,
-    extensionAPI: getExtensionAPI(),
   });
   const [activeSendToDestination, setActiveSendToDestination] =
     useState<(typeof SEND_TO_DESTINATIONS)[number]>("page");
