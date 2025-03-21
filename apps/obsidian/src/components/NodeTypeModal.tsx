@@ -1,4 +1,4 @@
-import { App, Editor, SuggestModal } from "obsidian";
+import { App, Editor, SuggestModal, TFile } from "obsidian";
 import { DiscourseNode } from "../types";
 import { getDiscourseNodeFormatExpression } from "../utils/getDiscourseNodeFormatExpression";
 
@@ -25,8 +25,25 @@ export class NodeTypeModal extends SuggestModal<DiscourseNode> {
   renderSuggestion(nodeType: DiscourseNode, el: HTMLElement) {
     el.createEl("div", { text: nodeType.name });
   }
+  async createDiscourseNode(
+    nodeType: DiscourseNode,
+    title: string,
+  ): Promise<TFile> {
+    const instanceId = `${nodeType.id}-${Date.now()}`;
+    const frontmatter = `---
+    nodeTypeId: ${nodeType.id}
+    nodeInstanceId: ${instanceId}
+    ---
+    
+    `;
 
-  onChooseSuggestion(nodeType: DiscourseNode) {
+    const filename = `${title}.md`;
+    const file = await this.app.vault.create(filename, frontmatter);
+
+    return file;
+  }
+
+  async onChooseSuggestion(nodeType: DiscourseNode) {
     const selectedText = this.editor.getSelection();
     const regex = getDiscourseNodeFormatExpression(nodeType.format);
 
@@ -39,6 +56,7 @@ export class NodeTypeModal extends SuggestModal<DiscourseNode> {
       nodeFormat[2]?.replace(/\\/g, "");
     if (!nodeFormat) return;
 
+    await this.createDiscourseNode(nodeType, formattedNodeName);
     this.editor.replaceSelection(`[[${formattedNodeName}]]`);
   }
 }
