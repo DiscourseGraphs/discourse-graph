@@ -1,0 +1,9 @@
+---
+description: 
+globs: apps/website/**
+alwaysApply: false
+---
+You are working on the public-facing website for Discourse Graph.
+
+## dependencies
+prefer existing depedencies from [package.json](mdc:apps/website/package.json)
