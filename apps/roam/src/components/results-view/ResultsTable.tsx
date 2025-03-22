@@ -163,7 +163,13 @@ const ResultHeader = React.forwardRef<
   },
 );
 
-const CellEmbed = ({ uid, viewValue }: { uid: string; viewValue: string }) => {
+export const CellEmbed = ({
+  uid,
+  viewValue,
+}: {
+  uid: string;
+  viewValue?: string;
+}) => {
   const title = getPageTitleByPageUid(uid);
   const contentRef = useRef(null);
   useEffect(() => {

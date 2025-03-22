@@ -1,4 +1,11 @@
-import React, { FC, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Button,
   Icon,
@@ -40,6 +47,7 @@ import ResultsTable from "./ResultsTable";
 import { render as renderSimpleAlert } from "roamjs-components/components/SimpleAlert";
 import setInputSettings from "roamjs-components/util/setInputSettings";
 import posthog from "posthog-js";
+import { Inputs } from "./Inputs";
 
 const VIEWS: Record<string, { value: boolean }> = {
   link: { value: false },
@@ -318,7 +326,18 @@ const ResultsView: ResultsViewComponent = ({
   const [searchFilter, setSearchFilter] = useState(settings.searchFilter);
   const [showInterface, setShowInterface] = useState(settings.showInterface);
   const [revealMenuIcons, setRevealMenuIcons] = useState(false);
+  const [showInputs, setShowInputs] = useState(settings.showInputs);
   const hideMenuIcons = hideMenu || (!revealMenuIcons && !showInterface);
+  const [showAlias, setShowAlias] = useState(settings.showAlias);
+  const [isEditAlias, setIsEditAlias] = useState(false);
+  const [alias, setAlias] = useState(settings.alias);
+  const updateAlias = useCallback(() => {
+    updateBlock({
+      uid: parentUid,
+      text: `{{query block:${alias}}}`,
+    });
+    setIsEditAlias(false);
+  }, [parentUid, alias]);
 
   const { allProcessedResults, paginatedResults } = useMemo(() => {
     return postProcessResults(results, {
@@ -416,6 +435,61 @@ const ResultsView: ResultsViewComponent = ({
       onMouseEnter={() => setRevealMenuIcons(true)}
       onMouseLeave={() => setRevealMenuIcons(false)}
     >
+      {showAlias && (
+        <div
+          className="flex h-16 w-full gap-4 p-4"
+          style={{
+            background: "#EEE",
+          }}
+        >
+          <InputGroup
+            className="flex-1"
+            inputRef={(input) => {
+              if (!input) return;
+              input.classList.add("text-xl", "font-semibold");
+              if (isEditAlias) {
+                input.classList.remove("bg-transparent", "shadow-none");
+                input.style.boxShadow = "";
+              } else {
+                input.classList.add("bg-transparent", "shadow-none");
+                input.style.boxShadow = "none";
+              }
+            }}
+            readOnly={!isEditAlias}
+            placeholder="edit alias"
+            value={alias}
+            onClick={() => setIsEditAlias(true)}
+            onChange={(e) => setAlias(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") updateAlias();
+            }}
+            rightElement={
+              <Button
+                hidden={!isEditAlias}
+                icon={"tick"}
+                onClick={updateAlias}
+                minimal
+              />
+            }
+          />
+          <Button
+            hidden={!isEditAlias}
+            rightIcon={"remove"}
+            minimal
+            text={"Hide Alias"}
+            onClick={() => {
+              setInputSetting({
+                blockUid: settings.resultNodeUid,
+                key: "showAlias",
+                value: showAlias ? "hide" : "show",
+              });
+              setIsEditAlias(false);
+              setShowAlias(false);
+            }}
+          />
+        </div>
+      )}
+
       {isEditSearchFilter && (
         <div
           className="w-full p-4"
@@ -455,6 +529,22 @@ const ResultsView: ResultsViewComponent = ({
             }
           />
         </div>
+      )}
+      {showInputs && (
+        <Inputs
+          parentUid={parentUid}
+          resultsNodeUid={settings.resultNodeUid}
+          initialInputs={settings.inputs}
+          onRefresh={onRefresh}
+          close={() => {
+            setShowInputs(!showInputs);
+            setInputSetting({
+              blockUid: settings.resultNodeUid,
+              key: "showInputs",
+              value: showInputs ? "hide" : "show",
+            });
+          }}
+        />
       )}
       <Export
         title="Share Query Results"
@@ -1005,6 +1095,19 @@ const ResultsView: ResultsViewComponent = ({
                       }}
                     />
                     <MenuItem
+                      icon={showInputs ? "minus" : "plus"}
+                      text={showInputs ? "Hide Inputs" : "Inputs"}
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        setShowInputs(!showInputs);
+                        setInputSetting({
+                          blockUid: settings.resultNodeUid,
+                          key: "showInputs",
+                          value: showInputs ? "hide" : "show",
+                        });
+                      }}
+                    />
+                    <MenuItem
                       icon={"filter"}
                       text={"Filters"}
                       className={
@@ -1029,6 +1132,19 @@ const ResultsView: ResultsViewComponent = ({
                       onClick={() => setIsEditRandom(true)}
                     />
                   </MenuItem>
+                  <MenuItem
+                    icon={"tag"}
+                    text={showAlias ? "Hide Alias" : "Alias"}
+                    onClick={() => {
+                      setInputSetting({
+                        blockUid: settings.resultNodeUid,
+                        key: "showAlias",
+                        value: showAlias ? "hide" : "show",
+                      });
+                      setShowAlias(!showAlias);
+                      setMoreMenuOpen(false);
+                    }}
+                  />
                   <MenuItem
                     icon={showInterface ? "th-disconnect" : "th"}
                     text={showInterface ? "Hide Interface" : "Show Interface"}

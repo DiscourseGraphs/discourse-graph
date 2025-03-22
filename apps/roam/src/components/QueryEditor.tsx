@@ -43,6 +43,7 @@ import {
 } from "~/utils/types";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import { ALL_SELECTION_SUGGESTIONS } from "~/utils/predefinedSelections";
+import { getAlias } from "~/utils/parseResultSettings";
 
 const getSourceCandidates = (cs: Condition[]): string[] =>
   cs.flatMap((c) =>
@@ -551,13 +552,8 @@ const QueryEditor: QueryEditorComponent = ({
     initialIsCustomEnabled,
   );
 
-  const [isEditingLabel, setIsEditingLabel] = useState(false);
-  const [label, setLabel] = useState(() => {
-    const aliasMatch = getTextByBlockUid(parentUid).match(
-      /{{query block:(.*?)}}/,
-    );
-    return !!aliasMatch && aliasMatch[1] !== "" ? aliasMatch[1] : "";
-  });
+  const [isEditAlias, setIsEditAlias] = useState(false);
+  const [alias, setAlias] = useState(getAlias(parentUid));
   const [showDisabledMessage, setShowDisabledMessage] = useState(false);
   const getAvailableVariables = useCallback(
     (index: number) =>
@@ -734,18 +730,18 @@ const QueryEditor: QueryEditorComponent = ({
         >
           {!showAlias ? (
             <div />
-          ) : isEditingLabel ? (
+          ) : isEditAlias ? (
             <InputGroup
               placeholder={"Enter Alias"}
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
+              value={alias}
+              onChange={(e) => setAlias(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   updateBlock({
                     uid: parentUid,
-                    text: `{{query block:${label}}}`,
+                    text: `{{query block:${alias}}}`,
                   });
-                  setIsEditingLabel(false);
+                  setIsEditAlias(false);
                 }
               }}
               autoFocus
@@ -756,9 +752,9 @@ const QueryEditor: QueryEditorComponent = ({
                   onClick={() => {
                     updateBlock({
                       uid: parentUid,
-                      text: `{{query block:${label}}}`,
+                      text: `{{query block:${alias}}}`,
                     });
-                    setIsEditingLabel(false);
+                    setIsEditAlias(false);
                   }}
                 />
               }
@@ -766,12 +762,12 @@ const QueryEditor: QueryEditorComponent = ({
           ) : (
             <span
               tabIndex={-1}
-              onClick={() => setIsEditingLabel(true)}
+              onClick={() => setIsEditAlias(true)}
               className={`${
-                !!label ? "" : "text-sm italic opacity-25"
+                !!alias ? "" : "text-sm italic opacity-25"
               } inline-block flex-grow`}
             >
-              {!!label ? label : "edit alias"}
+              {!!alias ? alias : "edit alias"}
             </span>
           )}
           {!hideCustomSwitch && (

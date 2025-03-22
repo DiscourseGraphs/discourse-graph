@@ -12,14 +12,28 @@ import {
   DEFAULT_FILTERS_KEY,
   DEFAULT_PAGE_SIZE_KEY,
 } from "~/data/userSettings";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 
 export type Sorts = { key: string; descending: boolean }[];
+export type InputValues = {
+  uid: string;
+  key: string;
+  inputValue: string;
+  options: string;
+}[];
 export type FilterData = Record<string, Filters>;
 export type Views = {
   column: string;
   mode: string;
   value: string;
 }[];
+
+export const getAlias = (parentUid: string) => {
+  const aliasMatch = getTextByBlockUid(parentUid).match(
+    /{{query block:(.*?)}}/,
+  );
+  return !!aliasMatch && aliasMatch[1] !== "" ? aliasMatch[1] : "";
+};
 
 const getFilterEntries = (
   n: Pick<RoamBasicNode, "children">,
@@ -134,8 +148,38 @@ const parseResultSettings = (
         ? layoutNode.children[0].text
         : "table";
   layout.uid = layoutNode.uid;
+  const inputsNode = getSubTree({ tree: resultNode.children, key: "inputs" });
+  const inputs: InputValues = inputsNode.children.map((c) => {
+    const inputValue = getSettingValueFromTree({
+      tree: c.children,
+      key: "value",
+    });
+    const configNode = getSubTree({ tree: c.children, key: "config" });
+    const options = getSettingValueFromTree({
+      tree: configNode.children,
+      key: "options",
+    });
+
+    return {
+      uid: c.uid,
+      key: c.text,
+      inputValue,
+      options: options.includes("<%") ? "smartblock" : options,
+    };
+  });
+  const showInputsNode = getSubTree({
+    tree: resultNode.children,
+    key: "showInputs",
+  });
+  const showAliasNode = getSubTree({
+    tree: resultNode.children,
+    key: "showAlias",
+  });
+  const alias = getAlias(parentUid);
+
   return {
     resultNodeUid: resultNode.uid,
+    inputsNodeUid: inputsNode.uid,
     activeSort: sortsNode.children.map((s) => ({
       key: s.text,
       descending: toFlexRegex("true").test(s.children[0]?.text || ""),
@@ -169,6 +213,10 @@ const parseResultSettings = (
     pageSize,
     layout,
     page: 1, // TODO save in roam data
+    inputs,
+    showInputs: showInputsNode.children[0]?.text === "show",
+    showAlias: showAliasNode.children[0]?.text === "show",
+    alias,
   };
 };
 
