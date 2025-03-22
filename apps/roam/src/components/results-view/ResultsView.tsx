@@ -337,7 +337,7 @@ const ResultsView: ResultsViewComponent = ({
       text: `{{query block:${alias}}}`,
     });
     setIsEditAlias(false);
-  }, [parentUid]);
+  }, [parentUid, alias]);
 
   const { allProcessedResults, paginatedResults } = useMemo(() => {
     return postProcessResults(results, {
@@ -437,7 +437,7 @@ const ResultsView: ResultsViewComponent = ({
     >
       {showAlias && (
         <div
-          className="flex w-full gap-4 p-4"
+          className="flex h-16 w-full gap-4 p-4"
           style={{
             background: "#EEE",
           }}
@@ -446,7 +446,7 @@ const ResultsView: ResultsViewComponent = ({
             className="flex-1"
             inputRef={(input) => {
               if (!input) return;
-              input.classList.add("text-lg", "font-semibold");
+              input.classList.add("text-xl", "font-semibold");
               if (isEditAlias) {
                 input.classList.remove("bg-transparent", "shadow-none");
                 input.style.boxShadow = "";
@@ -458,10 +458,8 @@ const ResultsView: ResultsViewComponent = ({
             readOnly={!isEditAlias}
             placeholder="edit alias"
             value={alias}
-            autoFocus
             onClick={() => setIsEditAlias(true)}
             onChange={(e) => setAlias(e.target.value)}
-            // onBlur={updateAlias}
             onKeyDown={(e) => {
               if (e.key === "Enter") updateAlias();
             }}
@@ -474,13 +472,21 @@ const ResultsView: ResultsViewComponent = ({
               />
             }
           />
-          {/* <Button
-            hidden={!isEditAlias} // causes layout shift
+          <Button
+            hidden={!isEditAlias}
             rightIcon={"remove"}
             minimal
             text={"Hide Alias"}
-            onClick={() => setShowAlias(false)}
-          /> */}
+            onClick={() => {
+              setInputSetting({
+                blockUid: settings.resultNodeUid,
+                key: "showAlias",
+                value: showAlias ? "hide" : "show",
+              });
+              setIsEditAlias(false);
+              setShowAlias(false);
+            }}
+          />
         </div>
       )}
 
