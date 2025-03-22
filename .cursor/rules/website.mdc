@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs: apps/website/**
 alwaysApply: false
 ---
 You are working on the public-facing website for Discourse Graph.
