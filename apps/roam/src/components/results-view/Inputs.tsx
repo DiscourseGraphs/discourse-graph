@@ -16,6 +16,7 @@ import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import { CellEmbed } from "./ResultsTable";
 import { InputTextNode } from "roamjs-components/types";
+import fuzzy from "fuzzy";
 
 const INPUT_TYPES = ["text", "pages", "smartblock"];
 
@@ -309,11 +310,10 @@ export const Inputs = ({
                 itemListPredicate={(query: string, items: string[]) => {
                   let filtered = items;
                   if (query) {
-                    filtered = items.filter((item) => {
-                      return String(item)
-                        .toLowerCase()
-                        .includes(query.toLowerCase());
-                    });
+                    filtered = fuzzy
+                      .filter(query, items, { extract: (item) => String(item) })
+                      .map((f) => f.original)
+                      .filter((f): f is string => !!f);
                   }
                   if (filtered.length > 50) {
                     return filtered
