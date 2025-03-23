@@ -179,15 +179,15 @@ const DefaultFilters = ({
           }}
         />
       ))}
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center gap-2">
         <InputGroup
           style={{ minWidth: "initial" }}
           value={newColumn}
           onChange={(e) => setNewColumn(e.target.value)}
         />
         <Button
-          icon={"add"}
-          intent={Intent.PRIMARY}
+          icon={"plus"}
+          minimal
           disabled={!newColumn}
           onClick={() => {
             const newFilters = {
