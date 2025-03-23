@@ -1,15 +1,9 @@
-import { OnloadArgs } from "roamjs-components/types";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "..";
+import { getFormattedConfigTree } from "./discourseConfigRef";
 
-export const isCanvasPage = ({
-  title,
-  extensionAPI,
-}: {
-  title: string;
-  extensionAPI: OnloadArgs["extensionAPI"];
-}) => {
-  const formatInSettings = extensionAPI.settings.get("canvas-page-format");
-  const format = formatInSettings || DEFAULT_CANVAS_PAGE_FORMAT;
+export const isCanvasPage = ({ title }: { title: string }) => {
+  const { canvasPageFormat } = getFormattedConfigTree();
+  const format = canvasPageFormat.value || DEFAULT_CANVAS_PAGE_FORMAT;
   const canvasRegex = new RegExp(`^${format}$`.replace(/\*/g, ".+"));
   return canvasRegex.test(title);
 };
@@ -17,12 +11,9 @@ export const isCanvasPage = ({
 export const isCurrentPageCanvas = ({
   title,
   h1,
-  onloadArgs,
 }: {
   title: string;
   h1: HTMLHeadingElement;
-  onloadArgs: OnloadArgs;
 }) => {
-  const { extensionAPI } = onloadArgs;
-  return isCanvasPage({ title, extensionAPI }) && !!h1.closest(".roam-article");
+  return isCanvasPage({ title }) && !!h1.closest(".roam-article");
 };

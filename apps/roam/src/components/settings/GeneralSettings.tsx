@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
+import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {
@@ -17,7 +18,16 @@ const DiscourseGraphHome = () => {
         order={0}
         uid={settings.trigger.uid}
         parentUid={settings.settingsUid}
-        value={settings.trigger.value || ""}
+        value={settings.trigger.value}
+      />
+      <TextPanel
+        title="Canvas Page Format"
+        description="The page format for canvas pages"
+        order={1}
+        uid={settings.canvasPageFormat.uid}
+        parentUid={settings.settingsUid}
+        value={settings.canvasPageFormat.value}
+        defaultValue={DEFAULT_CANVAS_PAGE_FORMAT}
       />
     </div>
   );
