@@ -1,6 +1,6 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label, NumericInput, Checkbox } from "@blueprintjs/core";
+import { Label, NumericInput, Switch } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { getSettings } from "~/utils/parseResultSettings";
 import { DEFAULT_PAGE_SIZE_KEY, HIDE_METADATA_KEY } from "~/data/userSettings";
@@ -15,7 +15,7 @@ const QuerySettings = ({
   const { globalPageSize } = getSettings(extensionAPI);
   return (
     <div className="flex flex-col gap-4 p-1">
-      <Checkbox
+      <Switch
         defaultChecked={extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean}
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
