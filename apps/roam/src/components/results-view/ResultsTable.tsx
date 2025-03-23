@@ -176,11 +176,13 @@ export const CellEmbed = ({
     const el = contentRef.current;
     const open =
       viewValue === "open" ? true : viewValue === "closed" ? false : null;
+    const zoomPath = viewValue === "On" ? true : false; // temp
     if (el) {
       window.roamAlphaAPI.ui.components.renderBlock({
         uid,
         el,
         // "open?": open, // waiting for roamAlphaAPI to add a open/close to renderBlock
+        "zoom-path?": zoomPath, // TODO update roamjs-components
       });
     }
   }, [contentRef]);

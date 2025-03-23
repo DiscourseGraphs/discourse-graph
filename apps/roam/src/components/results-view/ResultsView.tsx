@@ -52,7 +52,7 @@ import { Inputs } from "./Inputs";
 const VIEWS: Record<string, { value: boolean }> = {
   link: { value: false },
   plain: { value: false },
-  embed: { value: false },
+  embed: { value: true },
   alias: { value: true },
 };
 
@@ -1040,11 +1040,32 @@ const ResultsView: ResultsViewComponent = ({
                                     <Icon
                                       icon="info-sign"
                                       iconSize={12}
-                                      className="opacity-80 ml-2 align-middle"
+                                      className="ml-2 align-middle opacity-80"
                                     />
                                   </Tooltip>
                                 </div>
                               )} */}
+                              {/* TEMP JUST FOR USER TESTING */}
+                              {/* view.value shape has to change */}
+                              {mode === "embed" && (
+                                <div className="flex items-center">
+                                  <MenuItemSelect
+                                    className="roamjs-view-select"
+                                    items={["Off", "On"]}
+                                    activeItem={!!value ? value : "Off"}
+                                    onItemSelect={(value) => {
+                                      onViewChange({ mode, column, value }, i);
+                                    }}
+                                  />
+                                  <Tooltip content="Include zoom-path">
+                                    <Icon
+                                      icon="info-sign"
+                                      iconSize={12}
+                                      className="ml-2 align-middle opacity-80"
+                                    />
+                                  </Tooltip>
+                                </div>
+                              )}
                             </td>
                           )}
                         </tr>
