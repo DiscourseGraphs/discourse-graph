@@ -84,36 +84,36 @@ const NodeAttributes = ({ uid }: { uid: string }) => {
           />
         ))}
       </div>
-      <div style={{ display: "flex", alignItems: "center" }}>
-        <Label style={{ width: 120, marginBottom: 0 }}>
-          Attribute Label
+      <div>
+        <Label style={{ marginBottom: 8 }}>Attribute Label</Label>
+        <div style={{ display: "flex", alignItems: "center" }}>
           <InputGroup
             value={newAttribute}
             onChange={(e) => setNewAttribute(e.target.value)}
           />
-        </Label>
-        <Button
-          text={"Add"}
-          rightIcon={"plus"}
-          style={{ marginLeft: 16 }}
-          onClick={() => {
-            const DEFAULT = "{count:Has Any Relation To:any}";
-            createBlock({
-              node: {
-                text: newAttribute,
-                children: [{ text: DEFAULT }],
-              },
-              parentUid: uid,
-              order: attributes.length,
-            }).then((uid) => {
-              setAttributes([
-                ...attributes,
-                { uid, label: newAttribute, value: DEFAULT },
-              ]);
-              setNewAttribute("");
-            });
-          }}
-        />
+          <Button
+            text={"Add"}
+            rightIcon={"plus"}
+            style={{ marginLeft: 16 }}
+            onClick={() => {
+              const DEFAULT = "{count:Has Any Relation To:any}";
+              createBlock({
+                node: {
+                  text: newAttribute,
+                  children: [{ text: DEFAULT }],
+                },
+                parentUid: uid,
+                order: attributes.length,
+              }).then((uid) => {
+                setAttributes([
+                  ...attributes,
+                  { uid, label: newAttribute, value: DEFAULT },
+                ]);
+                setNewAttribute("");
+              });
+            }}
+          />
+        </div>
       </div>
     </div>
   );
