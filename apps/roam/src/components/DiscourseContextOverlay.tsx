@@ -51,7 +51,7 @@ const getOverlayInfo = (tag: string, id: string): Promise<DiscourseData> => {
         const self = this;
         const start = (self.start = new Date().valueOf());
         // @ts-ignore
-        const queryResult = await window.roamAlphaAPI.data.async.q(
+        const queryResult = await window.roamAlphaAPI.data.backend.q(
           `[:find ?a :where [?b :node/title "${normalizePageTitle(
             tag,
           )}"] [?a :block/refs ?b]]`,
