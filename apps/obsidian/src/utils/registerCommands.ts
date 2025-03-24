@@ -56,7 +56,6 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
     id: "toggle-discourse-context",
     name: "Toggle Discourse Context",
-    hotkeys: [{ modifiers: ["Mod", "Shift"], key: "i" }],
     callback: () => {
       plugin.toggleDiscourseContextView();
     },

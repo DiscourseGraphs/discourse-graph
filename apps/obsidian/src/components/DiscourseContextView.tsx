@@ -1,16 +1,15 @@
 import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
-import DiscourseGraphPlugin from "../index";
-import { getDiscourseNodeFormatExpression } from "../utils/getDiscourseNodeFormatExpression";
-
-export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";
+import DiscourseGraphPlugin from "~/index";
+import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
+import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 
 interface DiscourseContextProps {
   activeFile: TFile | null;
   plugin: DiscourseGraphPlugin;
 }
 
-function DiscourseContext({ activeFile, plugin }: DiscourseContextProps) {
+const DiscourseContext = ({ activeFile, plugin }: DiscourseContextProps) => {
   const extractContentFromTitle = (
     format: string | undefined,
     title: string,
@@ -26,12 +25,12 @@ function DiscourseContext({ activeFile, plugin }: DiscourseContextProps) {
       return <div>No file is open</div>;
     }
 
-    const cache = plugin.app.metadataCache.getFileCache(activeFile);
-    if (!cache) {
+    const fileMetadata = plugin.app.metadataCache.getFileCache(activeFile);
+    if (!fileMetadata) {
       return <div>File metadata not available</div>;
     }
 
-    const frontmatter = cache.frontmatter;
+    const frontmatter = fileMetadata.frontmatter;
     if (!frontmatter) {
       return <div>No discourse node data found</div>;
     }
@@ -48,26 +47,24 @@ function DiscourseContext({ activeFile, plugin }: DiscourseContextProps) {
       return <div>Unknown node type: {frontmatter.nodeTypeId}</div>;
     }
     return (
-      <>
-        <div>
-          <div
-            style={{
-              fontSize: "1.2em",
-              fontWeight: "bold",
-              marginBottom: "8px",
-            }}
-          >
-            {nodeType.name || "Unnamed Node Type"}
-          </div>
-
-          {nodeType.format && (
-            <div style={{ marginBottom: "4px" }}>
-              <span style={{ fontWeight: "bold" }}>Content: </span>
-              {extractContentFromTitle(nodeType.format, activeFile.basename)}
-            </div>
-          )}
+      <div>
+        <div
+          style={{
+            fontSize: "1.2em",
+            fontWeight: "bold",
+            marginBottom: "8px",
+          }}
+        >
+          {nodeType.name || "Unnamed Node Type"}
         </div>
-      </>
+
+        {nodeType.format && (
+          <div style={{ marginBottom: "4px" }}>
+            <span style={{ fontWeight: "bold" }}>Content: </span>
+            {extractContentFromTitle(nodeType.format, activeFile.basename)}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -77,7 +74,7 @@ function DiscourseContext({ activeFile, plugin }: DiscourseContextProps) {
       {renderContent()}
     </div>
   );
-}
+};
 
 export class DiscourseContextView extends ItemView {
   private plugin: DiscourseGraphPlugin;

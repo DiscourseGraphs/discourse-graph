@@ -1,11 +1,9 @@
-import { Plugin, Notice, WorkspaceLeaf } from "obsidian";
-import { SettingsTab } from "./components/Settings";
-import { Settings } from "./types";
-import { registerCommands } from "./utils/registerCommands";
-import {
-  DiscourseContextView,
-  VIEW_TYPE_DISCOURSE_CONTEXT,
-} from "./components/DiscourseContextView";
+import { Plugin } from "obsidian";
+import { SettingsTab } from "~/components/Settings";
+import { Settings } from "~/types";
+import { registerCommands } from "~/utils/registerCommands";
+import { DiscourseContextView } from "~/components/DiscourseContextView";
+import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 
 const DEFAULT_SETTINGS: Settings = {
   nodeTypes: [],
