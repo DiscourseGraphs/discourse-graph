@@ -15,7 +15,6 @@ import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContex
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
-import { useValue } from "signia-react";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -268,11 +267,12 @@ export class DiscourseNodeUtil extends TLBoxUtil<DiscourseNodeShape> {
     const {
       canvasSettings: { alias = "", "key-image": isKeyImage = "" } = {},
     } = discourseContext.nodes[this.type] || {};
-    const isEditing = useValue(
-      "isEditing",
-      () => this.app.editingId === shape.id,
-      [this.app, shape.id],
-    );
+    // const isEditing = useValue(
+    //   "isEditing",
+    //   () => this.app.editingId === shape.id,
+    //   [this.app, shape.id],
+    // );
+    const isEditing = false;
     const [isLabelEditOpen, setIsEditLabelOpen] = useState(false);
     useEffect(() => {
       if (isEditing) setIsEditLabelOpen(true);

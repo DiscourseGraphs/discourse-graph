@@ -38,7 +38,6 @@
     "react-draggable": "^4.4.5",
     "react-in-viewport": "^1.0.0-alpha.20",
     "react-vertical-timeline-component": "^3.5.2",
-    "roamjs-components": "^0.85.1",
-    "signia-react": "^0.1.1"
+    "roamjs-components": "^0.85.1"
   }
 }
