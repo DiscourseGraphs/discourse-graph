@@ -869,6 +869,7 @@ const TldrawCanvas = ({ title }: Props) => {
         config={customTldrawConfig}
         store={store}
         onMount={(app) => {
+          setTimeout(() => {}, 500); // TEMP HACK for useSyncExternalStore error
           if (process.env.NODE_ENV !== "production") {
             if (!window.tldrawApps) window.tldrawApps = {};
             const { tldrawApps } = window;
@@ -880,7 +881,6 @@ const TldrawCanvas = ({ title }: Props) => {
           });
           // TODO - this should move to one of DiscourseNodeTool's children classes instead
           app.on("event", (e) => {
-            setTimeout(() => {}, 500); // TEMP HACK for useSyncExternalStore error
             discourseContext.lastAppEvent = e.name;
 
             const validModifier = e.shiftKey || e.ctrlKey || e.metaKey;
