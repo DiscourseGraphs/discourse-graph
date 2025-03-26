@@ -1,8 +1,8 @@
 diff --git a/node_modules/signia-react/dist/esm/useStateTracking.mjs b/node_modules/signia-react/dist/esm/useStateTracking.mjs
-index c8aeb39..2886edf 100644
+index c8aeb39..8076db9 100644
 --- a/node_modules/signia-react/dist/esm/useStateTracking.mjs
 +++ b/node_modules/signia-react/dist/esm/useStateTracking.mjs
-@@ -2,31 +2,45 @@
+@@ -2,31 +2,49 @@
  import React from "react";
  import { EffectScheduler } from "signia";
  function useStateTracking(name, render) {
@@ -10,28 +10,29 @@ index c8aeb39..2886edf 100644
    const renderRef = React.useRef(render);
    renderRef.current = render;
    const [scheduler, subscribe, getSnapshot] = React.useMemo(() => {
-+    console.log('[useStateTracking] Creating new scheduler and handlers');
++    // console.log('[useStateTracking] Creating new scheduler and handlers');
      let scheduleUpdate = null;
      const subscribe2 = (cb) => {
-+      console.log('[subscribe] Setting scheduleUpdate callback');
++      // console.log('[subscribe] Setting scheduleUpdate callback');
        scheduleUpdate = cb;
        return () => {
-+        console.log('[subscribe] Cleanup - removing scheduleUpdate');
++        // console.log('[subscribe] Cleanup - removing scheduleUpdate');
          scheduleUpdate = null;
        };
      };
++
      const scheduler2 = new EffectScheduler(
        `useStateTracking(${name})`,
        // this is what `scheduler.execute()` will call
 -      () => renderRef.current?.(),
 +      () => {
-+        console.log('[scheduler] Executing render');
++        // console.log('[scheduler] Executing render');
 +        return renderRef.current?.();
 +      },
        // this is what will be invoked when signia detects a change in an upstream reactive value
        {
          scheduleEffect() {
-+          console.log('[scheduleEffect] Calling scheduleUpdate:', !!scheduleUpdate);
++          // console.log('[scheduleEffect] Calling scheduleUpdate:', !!scheduleUpdate);
            scheduleUpdate?.();
          }
        }
@@ -39,12 +40,15 @@ index c8aeb39..2886edf 100644
 -    const getSnapshot2 = () => scheduler2.scheduleCount;
 +    const getSnapshot2 = () => {
 +      const count = scheduler2.scheduleCount;
-+      console.log('[getSnapshot] Current schedule count:', count);
++      // console.log('[getSnapshot] Current schedule count:', count);
 +      return count;
 +    };
      return [scheduler2, subscribe2, getSnapshot2];
    }, [name]);
 +  console.log('[useStateTracking] Before useSyncExternalStore');
++  console.log('[useStateTracking] subscribe:', subscribe);
++  console.log('[useStateTracking] getSnapshot:', getSnapshot);
++  console.log('[useStateTracking] scheduler:', scheduler);
    React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 +  console.log('[useStateTracking] After useSyncExternalStore');
    React.useEffect(() => {
