@@ -797,7 +797,7 @@ const TldrawCanvas = ({ title }: Props) => {
   const signiaKey = Symbol.for("__signia__");
   const global = globalThis as { [signiaKey]?: true };
   const hasMultipleSignia = global[signiaKey];
-  if (!hasMultipleSignia) {
+  if (hasMultipleSignia) {
     console.error("Multiple Signia versions detected");
   }
   global[signiaKey] = true;

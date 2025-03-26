@@ -3,7 +3,7 @@ import { compile } from "./compile";
 const build = async () => {
   process.env = {
     ...process.env,
-    NODE_ENV: process.env.NODE_ENV || "production",
+    NODE_ENV: "development",
   };
 
   console.log("Compiling ...");
