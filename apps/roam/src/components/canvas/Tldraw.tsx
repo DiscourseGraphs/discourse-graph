@@ -874,7 +874,9 @@ const TldrawCanvas = ({ title }: Props) => {
       }`}
       </style>
       {isLoading ? (
-        <Spinner />
+        <div className="flex h-full w-full items-center justify-center">
+          <Spinner size={200} />
+        </div>
       ) : (
         <TldrawEditor
           baseUrl="https://samepage.network/assets/tldraw/"
