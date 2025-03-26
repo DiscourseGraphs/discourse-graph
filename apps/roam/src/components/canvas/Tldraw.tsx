@@ -794,6 +794,14 @@ const TldrawCanvas = ({ title }: Props) => {
     setMaximized,
   });
 
+  const signiaKey = Symbol.for("__signia__");
+  const global = globalThis as { [signiaKey]?: true };
+  const hasMultipleSignia = global[signiaKey];
+  if (!hasMultipleSignia) {
+    console.error("Multiple Signia versions detected");
+  }
+  global[signiaKey] = true;
+
   // Catch a custom event we used patch-package to add
   useEffect(() => {
     const handleTldrawError = (e: CustomEvent<Error>) => {
@@ -803,6 +811,7 @@ const TldrawCanvas = ({ title }: Props) => {
         context: {
           title,
           user: getCurrentUserDisplayName(),
+          multipleSigniaVersions: hasMultipleSignia ? "Yes" : "No",
         },
       }).catch(() => {});
 
