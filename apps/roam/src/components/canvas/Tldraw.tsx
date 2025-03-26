@@ -823,17 +823,6 @@ const TldrawCanvas = ({ title }: Props) => {
     };
   }, []);
 
-  const [isLoading, setIsLoading] = useState(true);
-
-  // TEMP HACK for useSyncExternalStore error on direct load
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <div
       className={`z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white ${
@@ -873,93 +862,89 @@ const TldrawCanvas = ({ title }: Props) => {
         font-family: var(--rs-font-sans);
       }`}
       </style>
-      {isLoading ? (
-        <></>
-      ) : (
-        <TldrawEditor
-          baseUrl="https://samepage.network/assets/tldraw/"
-          instanceId={instanceId}
-          userId={userId}
-          config={customTldrawConfig}
-          store={store}
-          onMount={(app) => {
-            if (process.env.NODE_ENV !== "production") {
-              if (!window.tldrawApps) window.tldrawApps = {};
-              const { tldrawApps } = window;
-              tldrawApps[title] = app;
+      <TldrawEditor
+        baseUrl="https://samepage.network/assets/tldraw/"
+        instanceId={instanceId}
+        userId={userId}
+        config={customTldrawConfig}
+        store={store}
+        onMount={(app) => {
+          if (process.env.NODE_ENV !== "production") {
+            if (!window.tldrawApps) window.tldrawApps = {};
+            const { tldrawApps } = window;
+            tldrawApps[title] = app;
+          }
+          appRef.current = app;
+          posthog.capture("Canvas: Mounted", {
+            title: title,
+          });
+          // TODO - this should move to one of DiscourseNodeTool's children classes instead
+          app.on("event", (e) => {
+            setTimeout(() => {}, 500); // TEMP HACK for useSyncExternalStore error
+            discourseContext.lastAppEvent = e.name;
+
+            const validModifier = e.shiftKey || e.ctrlKey || e.metaKey;
+            if (!(e.name === "pointer_up" && e.shape && validModifier)) return;
+            if (app.selectedIds.length) return; // User is positioning selected shape
+
+            const shapeUid = e.shape?.props.uid;
+            if (!isLiveBlock(shapeUid)) {
+              if (!e.shape.props.title) return;
+              renderToast({
+                id: "tldraw-warning",
+                intent: "warning",
+                content: `Not a valid UID. Cannot Open.`,
+              });
             }
-            appRef.current = app;
-            posthog.capture("Canvas: Mounted", {
-              title: title,
-            });
-            // TODO - this should move to one of DiscourseNodeTool's children classes instead
-            app.on("event", (e) => {
-              discourseContext.lastAppEvent = e.name;
 
-              const validModifier = e.shiftKey || e.ctrlKey || e.metaKey;
-              if (!(e.name === "pointer_up" && e.shape && validModifier))
-                return;
-              if (app.selectedIds.length) return; // User is positioning selected shape
-
-              const shapeUid = e.shape?.props.uid;
-              if (!isLiveBlock(shapeUid)) {
-                if (!e.shape.props.title) return;
-                renderToast({
-                  id: "tldraw-warning",
-                  intent: "warning",
-                  content: `Not a valid UID. Cannot Open.`,
+            if (e.shiftKey) {
+              // TODO - do not openBlockInSidebar if user is using shift to select
+              openBlockInSidebar(e.shape.props.uid);
+            }
+            if (e.ctrlKey || e.metaKey) {
+              const isPage = !!getPageTitleByPageUid(shapeUid);
+              if (isPage) {
+                window.roamAlphaAPI.ui.mainWindow.openPage({
+                  page: { uid: shapeUid },
+                });
+              } else {
+                window.roamAlphaAPI.ui.mainWindow.openBlock({
+                  block: { uid: shapeUid },
                 });
               }
-
-              if (e.shiftKey) {
-                // TODO - do not openBlockInSidebar if user is using shift to select
-                openBlockInSidebar(e.shape.props.uid);
+            }
+          });
+          const oldOnBeforeDelete = app.store.onBeforeDelete;
+          app.store.onBeforeDelete = (record) => {
+            oldOnBeforeDelete?.(record);
+            if (record.typeName === "shape") {
+              const util = app.getShapeUtil(record);
+              if (util instanceof DiscourseNodeUtil) {
+                util.onBeforeDelete(record as DiscourseNodeShape);
               }
-              if (e.ctrlKey || e.metaKey) {
-                const isPage = !!getPageTitleByPageUid(shapeUid);
-                if (isPage) {
-                  window.roamAlphaAPI.ui.mainWindow.openPage({
-                    page: { uid: shapeUid },
-                  });
-                } else {
-                  window.roamAlphaAPI.ui.mainWindow.openBlock({
-                    block: { uid: shapeUid },
-                  });
-                }
+            }
+          };
+          const oldOnAfterCreate = app.store.onAfterCreate;
+          app.store.onAfterCreate = (record) => {
+            oldOnAfterCreate?.(record);
+            if (record.typeName === "shape") {
+              const util = app.getShapeUtil(record);
+              if (util instanceof DiscourseNodeUtil) {
+                util.onAfterCreate(record as DiscourseNodeShape);
               }
-            });
-            const oldOnBeforeDelete = app.store.onBeforeDelete;
-            app.store.onBeforeDelete = (record) => {
-              oldOnBeforeDelete?.(record);
-              if (record.typeName === "shape") {
-                const util = app.getShapeUtil(record);
-                if (util instanceof DiscourseNodeUtil) {
-                  util.onBeforeDelete(record as DiscourseNodeShape);
-                }
-              }
-            };
-            const oldOnAfterCreate = app.store.onAfterCreate;
-            app.store.onAfterCreate = (record) => {
-              oldOnAfterCreate?.(record);
-              if (record.typeName === "shape") {
-                const util = app.getShapeUtil(record);
-                if (util instanceof DiscourseNodeUtil) {
-                  util.onAfterCreate(record as DiscourseNodeShape);
-                }
-              }
-            };
-          }}
+            }
+          };
+        }}
+      >
+        <TldrawUi
+          assetBaseUrl="https://samepage.network/assets/tldraw/"
+          overrides={uiOverrides}
         >
-          <TldrawUi
-            assetBaseUrl="https://samepage.network/assets/tldraw/"
-            overrides={uiOverrides}
-          >
-            <ContextMenu>
-              <Canvas />
-            </ContextMenu>
-          </TldrawUi>
-        </TldrawEditor>
-      )}
+          <ContextMenu>
+            <Canvas />
+          </ContextMenu>
+        </TldrawUi>
+      </TldrawEditor>
     </div>
   );
 };
