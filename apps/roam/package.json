@@ -40,5 +40,11 @@
     "react-vertical-timeline-component": "^3.5.2",
     "roamjs-components": "^0.85.1",
     "signia-react": "^0.1.1"
+  },
+  "overrides": {
+    "@tldraw/tldraw": {
+      "react": "^17.0.2",
+      "react-dom": "^17.0.2"
+    }
   }
 }
