@@ -1,8 +1,8 @@
 diff --git a/node_modules/signia-react/dist/esm/useStateTracking.mjs b/node_modules/signia-react/dist/esm/useStateTracking.mjs
-index c8aeb39..ae6998d 100644
+index c8aeb39..78c555c 100644
 --- a/node_modules/signia-react/dist/esm/useStateTracking.mjs
 +++ b/node_modules/signia-react/dist/esm/useStateTracking.mjs
-@@ -2,31 +2,49 @@
+@@ -2,31 +2,48 @@
  import React from "react";
  import { EffectScheduler } from "signia";
  function useStateTracking(name, render) {
@@ -39,21 +39,29 @@ index c8aeb39..ae6998d 100644
      );
 -    const getSnapshot2 = () => scheduler2.scheduleCount;
 +    const getSnapshot2 = () => {
++      console.log('[getSnapshot2] Current schedule count:', scheduler2.scheduleCount);
 +      const count = scheduler2.scheduleCount;
 +      // console.log('[getSnapshot] Current schedule count:', count);
 +      return count;
 +    };
      return [scheduler2, subscribe2, getSnapshot2];
    }, [name]);
-+  console.log('[useStateTracking] Before useSyncExternalStore');
-+  console.log('[useStateTracking] subscribe:', !!subscribe);
-+  console.log('[useStateTracking] getSnapshot:', getSnapshot);
-+  console.log('[useStateTracking] scheduler:', scheduler);
++  console.log('[useStateTracking] ');
++  console.log('[useStateTracking] Before useSyncExternalStore', "subscribe", !!subscribe, "getSnapshot", !!getSnapshot);
    React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 +  console.log('[useStateTracking] After useSyncExternalStore');
    React.useEffect(() => {
      scheduler.attach();
      scheduler.maybeScheduleEffect();
+@@ -34,6 +51,8 @@ function useStateTracking(name, render) {
+       scheduler.detach();
+     };
+   }, [scheduler]);
++  console.log('[useStateTracking] Before execute');
++  console.log('[useStateTracking] scheduler:', scheduler);
+   return scheduler.execute();
+ }
+ export {
 diff --git a/node_modules/signia-react/src/useStateTracking.ts b/node_modules/signia-react/src/useStateTracking.ts
 index affd561..9d5e946 100644
 --- a/node_modules/signia-react/src/useStateTracking.ts
