@@ -129,8 +129,8 @@ export const compile = ({
       outdir,
       bundle: true,
       format,
-      sourcemap: process.env.NODE_ENV === "production" ? undefined : "inline",
-      minify: process.env.NODE_ENV === "production",
+      sourcemap: "inline",
+      minify: false,
       entryNames: out,
       external: externalModules.map(([e]) => e).concat(["crypto"]),
       plugins: [
