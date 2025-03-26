@@ -1,0 +1,64 @@
+diff --git a/node_modules/signia-react/dist/esm/useStateTracking.mjs b/node_modules/signia-react/dist/esm/useStateTracking.mjs
+index c8aeb39..2886edf 100644
+--- a/node_modules/signia-react/dist/esm/useStateTracking.mjs
++++ b/node_modules/signia-react/dist/esm/useStateTracking.mjs
+@@ -2,31 +2,45 @@
+ import React from "react";
+ import { EffectScheduler } from "signia";
+ function useStateTracking(name, render) {
++  console.log('[useStateTracking] Starting with name:', name, 'render fn:', !!render);
+   const renderRef = React.useRef(render);
+   renderRef.current = render;
+   const [scheduler, subscribe, getSnapshot] = React.useMemo(() => {
++    console.log('[useStateTracking] Creating new scheduler and handlers');
+     let scheduleUpdate = null;
+     const subscribe2 = (cb) => {
++      console.log('[subscribe] Setting scheduleUpdate callback');
+       scheduleUpdate = cb;
+       return () => {
++        console.log('[subscribe] Cleanup - removing scheduleUpdate');
+         scheduleUpdate = null;
+       };
+     };
+     const scheduler2 = new EffectScheduler(
+       `useStateTracking(${name})`,
+       // this is what `scheduler.execute()` will call
+-      () => renderRef.current?.(),
++      () => {
++        console.log('[scheduler] Executing render');
++        return renderRef.current?.();
++      },
+       // this is what will be invoked when signia detects a change in an upstream reactive value
+       {
+         scheduleEffect() {
++          console.log('[scheduleEffect] Calling scheduleUpdate:', !!scheduleUpdate);
+           scheduleUpdate?.();
+         }
+       }
+     );
+-    const getSnapshot2 = () => scheduler2.scheduleCount;
++    const getSnapshot2 = () => {
++      const count = scheduler2.scheduleCount;
++      console.log('[getSnapshot] Current schedule count:', count);
++      return count;
++    };
+     return [scheduler2, subscribe2, getSnapshot2];
+   }, [name]);
++  console.log('[useStateTracking] Before useSyncExternalStore');
+   React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
++  console.log('[useStateTracking] After useSyncExternalStore');
+   React.useEffect(() => {
+     scheduler.attach();
+     scheduler.maybeScheduleEffect();
+diff --git a/node_modules/signia-react/src/useStateTracking.ts b/node_modules/signia-react/src/useStateTracking.ts
+index affd561..9d5e946 100644
+--- a/node_modules/signia-react/src/useStateTracking.ts
++++ b/node_modules/signia-react/src/useStateTracking.ts
+@@ -3,6 +3,7 @@ import { EffectScheduler } from 'signia'
+ 
+ /** @internal */
+ export function useStateTracking<T>(name: string, render: () => T): T {
++	console.log("useStateTracking.ts");
+ 	// user render is only called at the bottom of this function, indirectly via scheduler.execute()
+ 	// we need it to always be up-to-date when calling scheduler.execute() but it'd be wasteful to
+ 	// instantiate a new EffectScheduler on every render, so we use an immediately-updated ref
