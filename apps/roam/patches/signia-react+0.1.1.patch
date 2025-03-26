@@ -1,5 +1,5 @@
 diff --git a/node_modules/signia-react/dist/esm/useStateTracking.mjs b/node_modules/signia-react/dist/esm/useStateTracking.mjs
-index c8aeb39..904ffd5 100644
+index c8aeb39..ea32a54 100644
 --- a/node_modules/signia-react/dist/esm/useStateTracking.mjs
 +++ b/node_modules/signia-react/dist/esm/useStateTracking.mjs
 @@ -2,30 +2,51 @@
@@ -26,7 +26,7 @@ index c8aeb39..904ffd5 100644
        // this is what `scheduler.execute()` will call
 -      () => renderRef.current?.(),
 +      () => {
-+        // console.log('[scheduler] Executing render');
++        console.log('[scheduler] Executing render');
 +        return renderRef.current?.();
 +      },
        // this is what will be invoked when signia detects a change in an upstream reactive value
@@ -39,7 +39,7 @@ index c8aeb39..904ffd5 100644
      );
 -    const getSnapshot2 = () => scheduler2.scheduleCount;
 +    const getSnapshot2 = () => {
-+      console.log('[getSnapshot2] Current schedule count:', scheduler2);
++      console.log(`[getSnapshot2] ${name} schedule count:`, {scheduler2});
 +      const count = scheduler2.scheduleCount;
 +      // console.log('[getSnapshot] Current schedule count:', count);
 +      return count;
