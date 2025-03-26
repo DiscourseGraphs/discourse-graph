@@ -868,8 +868,8 @@ const TldrawCanvas = ({ title }: Props) => {
         userId={userId}
         config={customTldrawConfig}
         store={store}
-        onMount={(app) => {
-          setTimeout(() => {}, 500); // TEMP HACK for useSyncExternalStore error
+        onMount={async (app) => {
+          await new Promise((resolve) => setTimeout(resolve, 500)); // TEMP HACK for useSyncExternalStore error
           if (process.env.NODE_ENV !== "production") {
             if (!window.tldrawApps) window.tldrawApps = {};
             const { tldrawApps } = window;
