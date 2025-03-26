@@ -1,5 +1,5 @@
 diff --git a/node_modules/signia-react/dist/esm/useStateTracking.mjs b/node_modules/signia-react/dist/esm/useStateTracking.mjs
-index c8aeb39..8076db9 100644
+index c8aeb39..ae6998d 100644
 --- a/node_modules/signia-react/dist/esm/useStateTracking.mjs
 +++ b/node_modules/signia-react/dist/esm/useStateTracking.mjs
 @@ -2,31 +2,49 @@
@@ -46,7 +46,7 @@ index c8aeb39..8076db9 100644
      return [scheduler2, subscribe2, getSnapshot2];
    }, [name]);
 +  console.log('[useStateTracking] Before useSyncExternalStore');
-+  console.log('[useStateTracking] subscribe:', subscribe);
++  console.log('[useStateTracking] subscribe:', !!subscribe);
 +  console.log('[useStateTracking] getSnapshot:', getSnapshot);
 +  console.log('[useStateTracking] scheduler:', scheduler);
    React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
