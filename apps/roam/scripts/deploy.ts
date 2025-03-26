@@ -10,7 +10,7 @@ if (process.env.NODE_ENV !== "production") {
 const deploy = async () => {
   process.env = {
     ...process.env,
-    NODE_ENV: process.env.NODE_ENV || "production",
+    NODE_ENV: "development",
   };
 
   console.log("Deploying ...");
