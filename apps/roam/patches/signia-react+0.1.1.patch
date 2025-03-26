@@ -1,8 +1,8 @@
 diff --git a/node_modules/signia-react/dist/esm/useStateTracking.mjs b/node_modules/signia-react/dist/esm/useStateTracking.mjs
-index c8aeb39..114d511 100644
+index c8aeb39..904ffd5 100644
 --- a/node_modules/signia-react/dist/esm/useStateTracking.mjs
 +++ b/node_modules/signia-react/dist/esm/useStateTracking.mjs
-@@ -2,30 +2,50 @@
+@@ -2,30 +2,51 @@
  import React from "react";
  import { EffectScheduler } from "signia";
  function useStateTracking(name, render) {
@@ -14,10 +14,6 @@ index c8aeb39..114d511 100644
      let scheduleUpdate = null;
      const subscribe2 = (cb) => {
 +      // console.log('[subscribe] Setting scheduleUpdate callback');
-+      console.log('[getSnapshot2] Scheduler state:', {
-+        scheduleCount: scheduler2?.scheduleCount,
-+        isAttached: scheduler2?.isActivelyListening
-+      });
        scheduleUpdate = cb;
        return () => {
 +        // console.log('[subscribe] Cleanup - removing scheduleUpdate');
@@ -52,6 +48,11 @@ index c8aeb39..114d511 100644
    }, [name]);
 +  const isFalse = !!subscribe === false || !!getSnapshot === false || !!scheduler === false
 +  if (isFalse) console.log('[useStateTracking] Before useSyncExternalStore', !!subscribe, !!getSnapshot, !!scheduler);
++  console.log('[useStateTracking] Pre-useSyncExternalStore:', {
++    hasSubscribe: subscribe,
++    hasGetSnapshot: getSnapshot,
++    hasScheduler: scheduler
++  });
    React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
    React.useEffect(() => {
      scheduler.attach();
