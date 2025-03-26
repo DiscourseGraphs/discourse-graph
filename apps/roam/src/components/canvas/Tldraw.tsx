@@ -825,15 +825,14 @@ const TldrawCanvas = ({ title }: Props) => {
 
   const [isLoading, setIsLoading] = useState(true);
 
+  // TEMP HACK for useSyncExternalStore error on direct load
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 1000);
+    }, 250);
 
     return () => clearTimeout(timer);
   }, []);
-
-  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div
