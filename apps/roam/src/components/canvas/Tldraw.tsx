@@ -62,6 +62,17 @@ import "@tldraw/tldraw/ui.css";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 
+const signiaKey = Symbol.for("__signia__");
+const global = globalThis as { [signiaKey]?: true };
+
+if (global[signiaKey]) {
+  console.error(
+    'Multiple versions of signia detected. This will cause unexpected behavior. Please add "resolutions" (yarn/pnpm) or "overrides" (npm) in your package.json to ensure only one version of signia is loaded.',
+  );
+} else {
+  global[signiaKey] = true;
+}
+
 declare global {
   interface Window {
     tldrawApps: Record<string, TldrawApp>;
@@ -794,14 +805,6 @@ const TldrawCanvas = ({ title }: Props) => {
     setMaximized,
   });
 
-  const signiaKey = Symbol.for("__signia__");
-  const global = globalThis as { [signiaKey]?: true };
-  const hasMultipleSignia = global[signiaKey];
-  if (hasMultipleSignia) {
-    console.error("Multiple Signia versions detected");
-  }
-  global[signiaKey] = true;
-
   // Catch a custom event we used patch-package to add
   useEffect(() => {
     const handleTldrawError = (e: CustomEvent<Error>) => {
@@ -811,7 +814,7 @@ const TldrawCanvas = ({ title }: Props) => {
         context: {
           title,
           user: getCurrentUserDisplayName(),
-          multipleSigniaVersions: hasMultipleSignia ? "Yes" : "No",
+          multipleSigniaVersions: global[signiaKey] ? "Yes" : "No",
         },
       }).catch(() => {});
 
