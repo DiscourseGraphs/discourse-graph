@@ -1,6 +1,6 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Checkbox, Label } from "@blueprintjs/core";
+import { Label, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
 import {
