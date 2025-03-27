@@ -23,3 +23,5 @@ export type Settings = {
   discourseRelations: DiscourseRelation[];
   relationTypes: DiscourseRelationType[];
 };
+
+export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";

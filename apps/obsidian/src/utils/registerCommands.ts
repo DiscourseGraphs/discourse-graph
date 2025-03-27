@@ -52,4 +52,12 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       new NodeTypeModal(plugin.app, editor, plugin.settings.nodeTypes).open();
     },
   });
+
+  plugin.addCommand({
+    id: "toggle-discourse-context",
+    name: "Toggle Discourse Context",
+    callback: () => {
+      plugin.toggleDiscourseContextView();
+    },
+  });
 };
