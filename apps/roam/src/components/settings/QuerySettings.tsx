@@ -1,6 +1,6 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Checkbox, Label, NumericInput } from "@blueprintjs/core";
+import { Label, NumericInput, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { getSettings } from "~/utils/parseResultSettings";
 import { DEFAULT_PAGE_SIZE_KEY, HIDE_METADATA_KEY } from "~/data/userSettings";
