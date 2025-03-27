@@ -1,6 +1,6 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label, Switch } from "@blueprintjs/core";
+import { Checkbox, Label, Switch } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
 import {
@@ -24,7 +24,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         />
         <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
       </Label>
-      <Switch
+      <Checkbox
         defaultChecked={
           extensionAPI.settings.get("discourse-context-overlay") as boolean
         }
@@ -48,7 +48,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
-      <Switch
+      <Checkbox
         defaultChecked={
           extensionAPI.settings.get("disable-sidebar-open") as boolean
         }
@@ -67,7 +67,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
-      <Switch
+      <Checkbox
         defaultChecked={extensionAPI.settings.get("page-preview") as boolean}
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
