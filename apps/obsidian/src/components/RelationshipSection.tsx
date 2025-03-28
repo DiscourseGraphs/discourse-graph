@@ -82,9 +82,6 @@ export const RelationshipSection = ({
     if (!relationType) return;
 
     try {
-      const activeFileContent = await plugin.app.vault.read(activeFile);
-      const selectedNodeContent = await plugin.app.vault.read(selectedNode);
-
       const appendLinkToFrontmatter = async (file: TFile, link: string) => {
         await plugin.app.fileManager.processFrontMatter(file, (fm) => {
           const existingLinks = Array.isArray(fm[relationType.id])
@@ -94,15 +91,14 @@ export const RelationshipSection = ({
         });
       };
 
-      try {
-        await appendLinkToFrontmatter(activeFile, `[[${selectedNode.name}]]`);
-        await appendLinkToFrontmatter(selectedNode, `[[${activeFile.name}]]`);
-      } catch (innerError) {
-        // Rollback changes if necessary
-        await plugin.app.vault.modify(activeFile, activeFileContent);
-        await plugin.app.vault.modify(selectedNode, selectedNodeContent);
-        throw innerError;
-      }
+      await appendLinkToFrontmatter(
+        activeFile,
+        `"[[${selectedNode.name}]]"`.replace(/^['"]+|['"]+$/g, ""),
+      );
+      await appendLinkToFrontmatter(
+        selectedNode,
+        `"[[${activeFile.name}]]"`.replace(/^['"]+|['"]+$/g, ""),
+      );
 
       new Notice(
         `Successfully added ${relationType.label} with ${selectedNode.name}`,
