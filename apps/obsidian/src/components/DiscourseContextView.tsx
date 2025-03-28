@@ -2,12 +2,13 @@ import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import DiscourseGraphPlugin from "~/index";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
+import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 
-interface DiscourseContextProps {
+type DiscourseContextProps = {
   activeFile: TFile | null;
   plugin: DiscourseGraphPlugin;
-}
+};
 
 const DiscourseContext = ({ activeFile, plugin }: DiscourseContextProps) => {
   const extractContentFromTitle = (
@@ -47,24 +48,42 @@ const DiscourseContext = ({ activeFile, plugin }: DiscourseContextProps) => {
       return <div>Unknown node type: {frontmatter.nodeTypeId}</div>;
     }
     return (
-      <div>
-        <div
-          style={{
-            fontSize: "1.2em",
-            fontWeight: "bold",
-            marginBottom: "8px",
-          }}
-        >
-          {nodeType.name || "Unnamed Node Type"}
+      <>
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div
+            style={{
+              fontSize: "1.2em",
+              fontWeight: "bold",
+              marginBottom: "8px",
+            }}
+          >
+            {nodeType.name || "Unnamed Node Type"}
+          </div>
+
+          {nodeType.format && (
+            <div style={{ marginBottom: "4px" }}>
+              <span style={{ fontWeight: "bold" }}>Content: </span>
+              {extractContentFromTitle(nodeType.format, activeFile.basename)}
+            </div>
+          )}
         </div>
 
-        {nodeType.format && (
-          <div style={{ marginBottom: "4px" }}>
-            <span style={{ fontWeight: "bold" }}>Content: </span>
-            {extractContentFromTitle(nodeType.format, activeFile.basename)}
-          </div>
-        )}
-      </div>
+        <div className="relationships-section">
+          <h5
+            style={{
+              marginTop: "1rem",
+              marginBottom: "0.75rem",
+              borderBottom: "1px solid var(--background-modifier-border)",
+              paddingBottom: "0.25rem",
+            }}
+          >
+            Relationships
+          </h5>
+          {activeFile && (
+            <RelationshipSection plugin={plugin} activeFile={activeFile} />
+          )}
+        </div>
+      </>
     );
   };
 

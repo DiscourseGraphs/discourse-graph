@@ -67,4 +67,8 @@ export default class DiscourseGraphPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
   }
+
+  async onunload() {
+    this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT);
+  }
 }
