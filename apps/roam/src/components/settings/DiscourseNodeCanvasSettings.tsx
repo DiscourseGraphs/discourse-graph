@@ -3,10 +3,10 @@ import {
   Label,
   Radio,
   RadioGroup,
-  Switch,
   Tooltip,
   Icon,
   ControlGroup,
+  Checkbox,
 } from "@blueprintjs/core";
 import React, { useState, useMemo } from "react";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
@@ -91,7 +91,7 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
           }}
         />
       </Label>
-      <Switch
+      <Checkbox
         style={{ width: 240, lineHeight: "normal" }}
         alignIndicator="right"
         checked={isKeyImage}
@@ -122,7 +122,7 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
             className={"ml-2 align-middle opacity-80"}
           />
         </Tooltip>
-      </Switch>
+      </Checkbox>
       {/* </Tooltip> */}
       <RadioGroup
         disabled={!isKeyImage}
