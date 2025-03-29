@@ -1,7 +1,7 @@
 import React from "react";
 import getSubTree from "roamjs-components/util/getSubTree";
 import createBlock from "roamjs-components/writes/createBlock";
-import { Switch } from "@blueprintjs/core";
+import { Checkbox } from "@blueprintjs/core";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import refreshConfigTree from "~/utils/refreshConfigTree";
@@ -83,7 +83,7 @@ const NodeSpecification = ({
         {`.roamjs-node-specification .bp3-button.bp3-intent-primary { display: none; }`}
       </style>
       <p>
-        <Switch
+        <Checkbox
           checked={!!enabled}
           className={"ml-8 inline-block"}
           onChange={(e) => {

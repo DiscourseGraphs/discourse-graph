@@ -134,3 +134,8 @@ svg.rs-svg-container {
 .roamjs-query-column-views table.bp3-html-table td {
   vertical-align: initial;
 }
+
+.link-type-select-wrapper .bp3-button {
+  width: 100px;
+  justify-content: space-between;
+}

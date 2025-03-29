@@ -47,17 +47,19 @@ const DiscourseGraphExport = ({}: {}) => {
           value={exportSettings.appendRefNodeContext.value || false}
         />
       </div>
-      <SelectPanel
-        title="link type"
-        description="How to format links that appear in your export."
-        order={5}
-        options={{
-          items: ["alias", "wikilinks", "roam url"],
-        }}
-        uid={exportSettings.linkType.uid}
-        parentUid={parentUid}
-        value={exportSettings.linkType.value || "alias"}
-      />
+      <div className="link-type-select-wrapper">
+        <SelectPanel
+          title="link type"
+          description="How to format links that appear in your export."
+          order={5}
+          options={{
+            items: ["alias", "wikilinks", "roam url"],
+          }}
+          uid={exportSettings.linkType.uid}
+          parentUid={parentUid}
+          value={exportSettings.linkType.value || "alias"}
+        />
+      </div>
       <NumberPanel
         title="max filename length"
         description="Set the maximum name length for markdown file exports"
