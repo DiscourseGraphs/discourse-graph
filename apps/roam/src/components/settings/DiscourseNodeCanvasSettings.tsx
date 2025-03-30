@@ -93,7 +93,6 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
       </Label>
       <Checkbox
         style={{ width: 240, lineHeight: "normal" }}
-        alignIndicator="right"
         checked={isKeyImage}
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
