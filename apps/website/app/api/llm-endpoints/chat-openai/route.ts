@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 type Message = {
   role: string;
@@ -19,6 +19,7 @@ type RequestBody = {
 
 const CONTENT_TYPE_JSON = "application/json";
 const CONTENT_TYPE_TEXT = "text/plain";
+const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000"];
 
 export const runtime = "nodejs";
 export const preferredRegion = "auto";
@@ -93,6 +94,18 @@ export async function POST(request: NextRequest): Promise<Response> {
       500,
     );
   }
+}
+
+export async function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin");
+  const isAllowedOrigin = origin && allowedOrigins.includes(origin);
+  const response = new NextResponse(null, { status: 204 });
+  if (isAllowedOrigin) {
+    response.headers.set("Access-Control-Allow-Origin", origin);
+    response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  }
+  return response;
 }
 
 function createErrorResponse(message: string, status: number): Response {
