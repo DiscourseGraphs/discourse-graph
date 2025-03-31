@@ -79,9 +79,11 @@ const DiscourseContext = ({ activeFile, plugin }: DiscourseContextProps) => {
           >
             Relationships
           </h5>
-          {activeFile && (
-            <RelationshipSection plugin={plugin} activeFile={activeFile} />
-          )}
+          <RelationshipSection
+            key={activeFile.path}
+            plugin={plugin}
+            activeFile={activeFile}
+          />
         </div>
       </>
     );

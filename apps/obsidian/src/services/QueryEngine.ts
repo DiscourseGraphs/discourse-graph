@@ -1,11 +1,6 @@
 import { TFile, App } from "obsidian";
 import { getAPI } from "obsidian-dataview";
 
-export type SearchNodeOptions = {
-  excludeFile?: TFile;
-  minQueryLength?: number;
-};
-
 export class QueryEngine {
   private dv: any;
   private app: App;
@@ -15,18 +10,12 @@ export class QueryEngine {
     this.app = app;
   }
 
-  /**
-   * Search for nodes by title or nodeTypeId
-   * @param query The search query string
-   * @param options Search options including file to exclude and minimum query length
-   * @returns Array of matching TFile objects
-   */
-  async searchNodeByTitle(
+  async searchCompatibleNodeByTitle(
     query: string,
-    options: SearchNodeOptions = {},
+    minQueryLength: number = 2,
+    compatibleNodeTypeIds: string[],
+    excludeFile?: TFile,
   ): Promise<TFile[]> {
-    const { excludeFile, minQueryLength = 2 } = options;
-
     if (!query || query.length < minQueryLength) {
       return [];
     }
@@ -38,9 +27,15 @@ export class QueryEngine {
     }
 
     try {
+      // More efficient query by adding the nodeTypeId filter directly in the dataview query
       const potentialNodes = this.dv
         .pages()
-        .where((p: any) => p.nodeTypeId != null).values;
+        .where(
+          (p: any) =>
+            p.nodeTypeId != null &&
+            compatibleNodeTypeIds.includes(p.nodeTypeId),
+        ).values;
+
       const searchResults = potentialNodes.filter((p: any) => {
         return this.fuzzySearch(p.file.name, query);
       });
