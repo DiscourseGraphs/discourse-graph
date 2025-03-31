@@ -13,7 +13,7 @@ type Settings = {
 
 type RequestBody = {
   documents: Message[];
-  passphrase: string;
+  passphrase?: string;
   settings: Settings;
 };
 
@@ -30,6 +30,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     const requestData: RequestBody = await request.json();
     const { documents: messages, settings } = requestData;
     const { model, maxTokens, temperature } = settings;
+
+    // Validate origin for CORS
+    const origin = request.headers.get("origin");
+    const isAllowedOrigin = origin && allowedOrigins.includes(origin);
 
     // Get API key from environment variable
     const apiKey = process.env.OPENAI_API_KEY;
@@ -84,9 +88,19 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
 
-    return new Response(replyText, {
+    // Create response with proper CORS headers
+    const apiResponse = new Response(replyText, {
       headers: { "Content-Type": CONTENT_TYPE_TEXT },
     });
+
+    // Add CORS headers if origin is allowed
+    if (isAllowedOrigin) {
+      apiResponse.headers.set("Access-Control-Allow-Origin", origin);
+      apiResponse.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+      apiResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
+    }
+
+    return apiResponse;
   } catch (error) {
     console.error("Error processing request:", error);
     return createErrorResponse(
@@ -109,8 +123,16 @@ export async function OPTIONS(request: Request) {
 }
 
 function createErrorResponse(message: string, status: number): Response {
-  return new Response(JSON.stringify({ error: message }), {
+  const errorResponse = new Response(JSON.stringify({ error: message }), {
     status,
     headers: { "Content-Type": CONTENT_TYPE_JSON },
   });
+
+  // Add CORS headers if needed (origin check may not be available in this context)
+  const allowedOriginsStr = allowedOrigins.join(", ");
+  errorResponse.headers.set("Access-Control-Allow-Origin", allowedOriginsStr);
+  errorResponse.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  errorResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
+
+  return errorResponse;
 }
