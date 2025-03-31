@@ -1,224 +1,185 @@
-import { App, debounce } from "obsidian";
-import React, { useEffect, useState, useMemo, ReactNode } from "react";
-import { QueryEngine } from "~/services/QueryEngine";
+import { AbstractInputSuggest, App } from "obsidian";
+import { useEffect, useRef, useState } from "react";
 
-type SearchBarBaseProps<T> = {
-  app: App;
-  placeholder?: string;
-  onNodeSelect: (item: T | null) => void;
-  debounceMs?: number;
-  minQueryLength?: number;
-  getItemText: (item: T) => string;
-  getItemKey: (item: T) => string;
-  renderItemContent?: (item: T, isSelected?: boolean) => ReactNode;
-  itemStyle?: React.CSSProperties;
-  containerStyle?: React.CSSProperties;
-  inputStyle?: React.CSSProperties;
-  resultsContainerStyle?: React.CSSProperties;
-};
+class GenericSuggest<T> extends AbstractInputSuggest<T> {
+  private options: T[];
+  private getItemTextFn: (item: T) => string;
+  private renderItemFn: (item: T, el: HTMLElement) => void;
+  private onSelectCallback: (item: T) => void;
+  private asyncSearchFn?: (query: string) => Promise<T[]>;
+  private minQueryLength: number;
+  private debounceTimeout: number | null = null;
 
-type OptionsSearchBarProps<T> = SearchBarBaseProps<T> & {
-  options: T[];
-  searchFunction?: (query: string) => Promise<T[]>;
-};
+  constructor(
+    app: App,
+    private textInputEl: HTMLInputElement,
+    options: T[],
+    onSelectCallback: (item: T) => void,
+    config: {
+      getItemText: (item: T) => string;
+      renderItem?: (item: T, el: HTMLElement) => void;
+      asyncSearch?: (query: string) => Promise<T[]>;
+      minQueryLength?: number;
+    },
+  ) {
+    super(app, textInputEl);
+    this.options = options;
+    this.onSelectCallback = onSelectCallback;
+    this.getItemTextFn = config.getItemText;
+    this.renderItemFn = config.renderItem || this.defaultRenderItem.bind(this);
+    this.asyncSearchFn = config.asyncSearch;
+    this.minQueryLength = config.minQueryLength || 0;
+  }
 
-type FunctionSearchBarProps<T> = SearchBarBaseProps<T> & {
-  options?: never;
-  searchFunction: (query: string) => Promise<T[]>;
-};
+  async getSuggestions(inputStr: string): Promise<T[]> {
+    const query = inputStr.trim();
+    if (query.length < this.minQueryLength) {
+      return [];
+    }
 
-export type SearchBarProps<T> =
-  | OptionsSearchBarProps<T>
-  | FunctionSearchBarProps<T>;
-
-export function SearchBar<T extends {}>({
-  app,
-  placeholder = "Search (type at least 2 characters)...",
-  searchFunction,
-  onNodeSelect,
-  debounceMs = 250,
-  minQueryLength = 2,
-  options,
-  getItemText,
-  getItemKey,
-  renderItemContent,
-  itemStyle = {},
-  containerStyle = {},
-  inputStyle = {},
-  resultsContainerStyle = {},
-}: SearchBarProps<T>) {
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [searchResults, setSearchResults] = useState<T[]>(options || []);
-  const [selectedItem, setSelectedItem] = useState<T | null>(null);
-  const [isSearching, setIsSearching] = useState(true);
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const [isInputFocused, setIsInputFocused] = useState(false);
-
-  const queryEngine = new QueryEngine(app);
-  const defaultFuzzySearch = (query: string) => {
-    if (!options) return [];
-    return options.filter((item) =>
-      queryEngine.fuzzySearch(getItemText(item), query),
-    );
-  };
-
-  const effectiveSearchFunction = searchFunction
-    ? searchFunction
-    : defaultFuzzySearch;
-
-  const debouncedSearch = useMemo(
-    () =>
-      debounce(async (query: string) => {
-        if (!effectiveSearchFunction) return;
-
-        if (!query || query.length < minQueryLength) {
-          setSearchResults(options || []);
-          return;
+    if (this.asyncSearchFn && query.length >= this.minQueryLength) {
+      return new Promise((resolve) => {
+        if (this.debounceTimeout) {
+          clearTimeout(this.debounceTimeout);
         }
 
-        const results = await effectiveSearchFunction(query);
-        setSearchResults(results);
-      }, debounceMs),
-    [effectiveSearchFunction, minQueryLength, debounceMs, options],
-  );
+        this.debounceTimeout = window.setTimeout(async () => {
+          try {
+            const results = await this.asyncSearchFn!(query);
+            resolve(results);
+          } catch (error) {
+            console.error(`[GenericSuggest] Error in async search:`, error);
+            resolve([]);
+          }
+        }, 250);
+      });
+    }
+
+    const lowerCaseQuery = query.toLowerCase();
+
+    const results = this.options.filter((item) => {
+      const itemText = this.getItemTextFn(item).toLowerCase();
+      return itemText.includes(lowerCaseQuery);
+    });
+
+    return results;
+  }
+
+  private defaultRenderItem(item: T, el: HTMLElement): void {
+    el.setText(this.getItemTextFn(item));
+  }
+
+  renderSuggestion(item: T, el: HTMLElement): void {
+    this.renderItemFn(item, el);
+  }
+
+  selectSuggestion(item: T, evt: MouseEvent | KeyboardEvent): void {
+    this.textInputEl.value = this.getItemTextFn(item);
+    this.onSelectCallback(item);
+    this.close();
+  }
+}
+
+const SearchBar = <T,>({
+  options = [],
+  onSelect,
+  placeholder,
+  app,
+  getItemText,
+  renderItem,
+  asyncSearch,
+  minQueryLength = 0,
+}: {
+  options?: T[];
+  onSelect: (item: T | null) => void;
+  placeholder?: string;
+  app: App;
+  getItemText: (item: T) => string;
+  renderItem?: (item: T, el: HTMLElement) => void;
+  asyncSearch?: (query: string) => Promise<T[]>;
+  minQueryLength?: number;
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [selected, setSelected] = useState<T | null>(null);
 
   useEffect(() => {
-    if (isSearching) {
-      debouncedSearch(searchQuery);
+    if (inputRef.current && app) {
+      const suggest = new GenericSuggest(
+        app,
+        inputRef.current,
+        options,
+        (item) => {
+          setSelected(item);
+          onSelect(item);
+        },
+        {
+          getItemText,
+          renderItem,
+          asyncSearch,
+          minQueryLength,
+        },
+      );
+
+      return () => suggest.close();
     }
-    return () => {
-      debouncedSearch.cancel();
-    };
-  }, [searchQuery, debouncedSearch, isSearching]);
+  }, [
+    options,
+    onSelect,
+    app,
+    getItemText,
+    renderItem,
+    asyncSearch,
+    minQueryLength,
+  ]);
 
-  useEffect(() => {
-    if (options) {
-      setSearchResults(options);
+  const clearSelection = () => {
+    if (inputRef.current) {
+      inputRef.current.value = "";
+      setSelected(null);
+      onSelect(null);
     }
-  }, [options]);
-
-  const handleItemSelect = (item: T) => {
-    setSelectedItem(item);
-    setSearchQuery(getItemText(item));
-    setIsSearching(false);
-    onNodeSelect(item);
   };
-
-  const handleClearSelection = () => {
-    setSelectedItem(null);
-    setSearchQuery("");
-    setIsSearching(true);
-    onNodeSelect(null);
-  };
-
-  const defaultRenderItemContent = (item: T, isSelected: boolean) => (
-    <div>{getItemText(item)}</div>
-  );
-
-  const shouldShowResults =
-    isSearching &&
-    (searchResults.length > 0 || (isInputFocused && minQueryLength === 0));
 
   return (
-    <div
-      className="search-container"
-      style={{
-        marginBottom: "1rem",
-        ...containerStyle,
-      }}
-    >
-      <div style={{ position: "relative" }}>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            if (!isSearching) {
-              setIsSearching(true);
-              setSelectedItem(null);
-              onNodeSelect(null);
-            }
-          }}
-          onFocus={() => setIsInputFocused(true)}
-          onBlur={() => setIsInputFocused(false)}
-          placeholder={isSearching ? placeholder : "Selected item"}
-          readOnly={!isSearching && selectedItem !== null}
+    <div style={{ position: "relative" }}>
+      <input
+        ref={inputRef}
+        type="text"
+        placeholder={placeholder || "Search..."}
+        style={{
+          width: "100%",
+          padding: "8px",
+          paddingRight: selected ? "36px" : "8px",
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "4px",
+          backgroundColor: selected
+            ? "var(--background-secondary)"
+            : "var(--background-primary)",
+        }}
+        readOnly={!!selected}
+      />
+      {selected && (
+        <button
+          onClick={clearSelection}
           style={{
-            width: "100%",
-            padding: "8px",
-            paddingRight: selectedItem ? "36px" : "8px",
-            border: "1px solid var(--background-modifier-border)",
+            position: "absolute",
+            right: "4px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            background: "none",
+            border: "none",
+            color: "var(--text-muted)",
+            cursor: "pointer",
+            padding: "4px",
             borderRadius: "4px",
-            backgroundColor: !isSearching
-              ? "var(--background-secondary)"
-              : "var(--background-primary)",
-            ...inputStyle,
           }}
-        />
-        {selectedItem && (
-          <button
-            onClick={handleClearSelection}
-            style={{
-              position: "absolute",
-              right: "4px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "none",
-              border: "none",
-              color: "var(--text-muted)",
-              cursor: "pointer",
-              padding: "4px",
-              borderRadius: "4px",
-            }}
-            aria-label="Clear selection"
-          >
-            ✕
-          </button>
-        )}
-      </div>
-
-      {shouldShowResults && (
-        <div
-          className="search-results"
-          style={{
-            maxHeight: "200px",
-            overflowY: "auto",
-            marginTop: "4px",
-            border: "1px solid var(--background-modifier-border)",
-            borderRadius: "4px",
-            ...resultsContainerStyle,
-          }}
+          aria-label="Clear selection"
         >
-          {searchResults.map((item, index) => {
-            const isSelected = selectedItem === item;
-            const isHovered = hoverIndex === index;
-
-            return (
-              <div
-                key={getItemKey(item)}
-                className="search-item"
-                style={{
-                  padding: "0.5rem",
-                  cursor: "pointer",
-                  borderBottom: "1px solid var(--background-modifier-border)",
-                  backgroundColor:
-                    isSelected || isHovered
-                      ? "var(--background-modifier-hover)"
-                      : undefined,
-                  ...itemStyle,
-                }}
-                onMouseEnter={() => setHoverIndex(index)}
-                onMouseLeave={() => setHoverIndex(null)}
-                onClick={() => handleItemSelect(item)}
-              >
-                {renderItemContent
-                  ? renderItemContent(item, isSelected)
-                  : defaultRenderItemContent(item, isSelected)}
-              </div>
-            );
-          })}
-        </div>
+          ✕
+        </button>
       )}
     </div>
   );
-}
+};
+
+export default SearchBar;

@@ -35,24 +35,37 @@ export class QueryEngine {
       return [];
     }
 
-    const searchResults = this.dv
-      .pages()
-      .where(
-        (p: any) =>
-          p.nodeTypeId != null &&
-          (this.fuzzySearch(p.file.name, query) ||
-            this.fuzzySearch(p.nodeTypeId.toString(), query)),
-      );
+    try {
+      const potentialNodes = this.dv
+        .pages()
+        .where((p: any) => p.nodeTypeId != null).values;
+      const searchResults = potentialNodes.filter((p: any) => {
+        const nameMatch = this.fuzzySearch(p.file.name, query);
+        const idMatch = this.fuzzySearch(p.nodeTypeId.toString(), query);
 
-    return searchResults.values
-      .map((val: any) => val.file as TFile)
-      .filter((file: TFile) => !excludeFile || file.path !== excludeFile.path);
+        if (nameMatch || idMatch) {
+          return true;
+        }
+        return false;
+      });
+
+      const finalResults = searchResults
+        .map((val: any) => val.file as TFile)
+        .filter(
+          (file: TFile) => !excludeFile || file.path !== excludeFile.path,
+        );
+
+      return finalResults;
+    } catch (error) {
+      console.error("Error in searchNodeByTitle:", error);
+      return [];
+    }
   }
 
   /**
-   * Simple fuzzy search implementation
+   * Enhanced fuzzy search implementation
    * Returns true if the search term is found within the target string
-   * with some tolerance for typos and partial matches
+   * with tolerance for typos and partial matches
    */
   fuzzySearch(target: string, search: string): boolean {
     if (!search || !target) return false;
@@ -60,11 +73,22 @@ export class QueryEngine {
     const targetLower = target.toLowerCase();
     const searchLower = search.toLowerCase();
 
-    if (searchLower.length > targetLower.length) return false;
+    if (targetLower.includes(searchLower)) {
+      return true;
+    }
 
-    if (targetLower.includes(searchLower)) return true;
+    if (searchLower.length > targetLower.length) {
+      return false;
+    }
+
+    if (targetLower.startsWith(searchLower)) {
+      return true;
+    }
 
     let searchIndex = 0;
+    let consecutiveMatches = 0;
+    const MIN_CONSECUTIVE = Math.min(2, searchLower.length);
+
     for (
       let i = 0;
       i < targetLower.length && searchIndex < searchLower.length;
@@ -72,8 +96,19 @@ export class QueryEngine {
     ) {
       if (targetLower[i] === searchLower[searchIndex]) {
         searchIndex++;
+        consecutiveMatches++;
+
+        if (
+          consecutiveMatches >= MIN_CONSECUTIVE &&
+          searchIndex >= searchLower.length * 0.7
+        ) {
+          return true;
+        }
+      } else {
+        consecutiveMatches = 0;
       }
     }
+
     return searchIndex === searchLower.length;
   }
 }
