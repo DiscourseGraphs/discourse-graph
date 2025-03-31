@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
 import SearchBar from "./SearchBar";
-
+import { DiscourseNode } from "~/types";
 type RelationTypeOption = {
   id: string;
   label: string;
@@ -20,8 +20,16 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
   const [selectedNode, setSelectedNode] = useState<TFile | null>(null);
   const [isAddingRelation, setIsAddingRelation] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [compatibleNodeTypes, setCompatibleNodeTypes] = useState<
+    DiscourseNode[]
+  >([]);
 
   const queryEngineRef = useRef<QueryEngine | null>(null);
+
+  const activeNodeTypeId = (() => {
+    const fileCache = plugin.app.metadataCache.getFileCache(activeFile);
+    return fileCache?.frontmatter?.nodeTypeId;
+  })();
 
   useEffect(() => {
     if (!queryEngineRef.current) {
@@ -29,10 +37,36 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
     }
   }, [plugin.app]);
 
-  const activeNodeTypeId = (() => {
-    const fileCache = plugin.app.metadataCache.getFileCache(activeFile);
-    return fileCache?.frontmatter?.nodeTypeId;
-  })();
+  useEffect(() => {
+    if (!selectedRelationType || !activeNodeTypeId) {
+      setCompatibleNodeTypes([]);
+      return;
+    }
+
+    const relations = plugin.settings.discourseRelations.filter(
+      (relation) =>
+        relation.relationshipTypeId === selectedRelationType &&
+        (relation.sourceId === activeNodeTypeId ||
+          relation.destinationId === activeNodeTypeId),
+    );
+
+    const compatibleNodeTypeIds = relations.map((relation) =>
+      relation.sourceId === activeNodeTypeId
+        ? relation.destinationId
+        : relation.sourceId,
+    );
+
+    const compatibleNodeTypes = compatibleNodeTypeIds
+      .map((id) => {
+        const nodeType = plugin.settings.nodeTypes.find(
+          (type) => type.id === id,
+        );
+        return nodeType;
+      })
+      .filter(Boolean) as DiscourseNode[];
+
+    setCompatibleNodeTypes(compatibleNodeTypes);
+  }, [selectedRelationType, activeNodeTypeId, plugin.settings]);
 
   const getAvailableRelationTypes = () => {
     if (!activeNodeTypeId) return [];
@@ -80,12 +114,42 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
 
     setSearchError(null);
     try {
-      const results = await queryEngineRef.current.searchNodeByTitle(query, {
-        excludeFile: activeFile,
-        minQueryLength: 2,
+      if (!activeNodeTypeId) {
+        setSearchError("Active file does not have a node type");
+        return [];
+      }
+
+      const relationTypeIds = availableRelationTypes.map((option) => option.id);
+      const allCompatibleNodeTypeIds: string[] = [];
+
+      const filteredRelations = plugin.settings.discourseRelations.filter(
+        (relation) =>
+          relationTypeIds.includes(relation.relationshipTypeId) &&
+          (relation.sourceId === activeNodeTypeId ||
+            relation.destinationId === activeNodeTypeId),
+      );
+
+      // Extract the compatible node types (either source or destination, depending on the relation)
+      filteredRelations.forEach((relation) => {
+        const compatibleNodeTypeId =
+          relation.sourceId === activeNodeTypeId
+            ? relation.destinationId
+            : relation.sourceId;
+
+        if (!allCompatibleNodeTypeIds.includes(compatibleNodeTypeId)) {
+          allCompatibleNodeTypeIds.push(compatibleNodeTypeId);
+        }
       });
 
+      const results = await queryEngineRef.current?.searchCompatibleNodeByTitle(
+        query,
+        2,
+        allCompatibleNodeTypeIds,
+        activeFile,
+      );
+
       if (results.length === 0 && query.length >= 2) {
+        setSearchError("No matching nodes found. Try a different search term.");
       }
 
       return results;
@@ -214,6 +278,42 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
           renderItem={renderRelationTypeItem}
         />
       </div>
+
+      {compatibleNodeTypes.length > 0 && (
+        <div style={{ marginBottom: "0.75rem" }}>
+          <div
+            style={{
+              fontSize: "0.85rem",
+              color: "var(--text-muted)",
+              background: "var(--background-secondary)",
+              padding: "0.5rem",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <span style={{ marginRight: "0.5rem" }}>💡</span>
+            <span>
+              You can link with:{" "}
+              {compatibleNodeTypes.map((type) => (
+                <span
+                  key={type.id}
+                  style={{
+                    background: "var(--background-modifier-border)",
+                    padding: "0.15rem 0.4rem",
+                    borderRadius: "4px",
+                    marginRight: "0.25rem",
+                    fontSize: "0.8rem",
+                    display: "inline-block",
+                  }}
+                >
+                  {type.name}
+                </span>
+              ))}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div style={{ marginBottom: "1rem" }}>
         <label style={{ display: "block", marginBottom: "0.5rem" }}>
