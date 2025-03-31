@@ -125,7 +125,7 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
       attr: { style: "margin-right: 8px;" },
     });
 
-    suggestionEl.createEl("div", { text: file.name });
+    suggestionEl.createEl("div", { text: file.basename });
   };
 
   const addRelationship = async () => {
@@ -224,7 +224,7 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
           asyncSearch={searchNodes}
           onSelect={setSelectedNode}
           placeholder="Search nodes (type at least 2 characters)..."
-          getItemText={(node) => node.name}
+          getItemText={(node) => node.basename}
           renderItem={renderNodeItem}
           minQueryLength={2}
         />

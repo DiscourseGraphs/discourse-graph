@@ -8,9 +8,11 @@ export type SearchNodeOptions = {
 
 export class QueryEngine {
   private dv: any;
+  private app: App;
 
   constructor(app: App) {
     this.dv = getAPI(app);
+    this.app = app;
   }
 
   /**
@@ -40,17 +42,23 @@ export class QueryEngine {
         .pages()
         .where((p: any) => p.nodeTypeId != null).values;
       const searchResults = potentialNodes.filter((p: any) => {
-        const nameMatch = this.fuzzySearch(p.file.name, query);
-        const idMatch = this.fuzzySearch(p.nodeTypeId.toString(), query);
-
-        if (nameMatch || idMatch) {
-          return true;
-        }
-        return false;
+        return this.fuzzySearch(p.file.name, query);
       });
 
       const finalResults = searchResults
-        .map((val: any) => val.file as TFile)
+        .map((val: any) => {
+          const dataviewFile = val.file;
+
+          if (dataviewFile && dataviewFile.path) {
+            const realFile = this.app.vault.getAbstractFileByPath(
+              dataviewFile.path,
+            );
+            if (realFile && realFile instanceof TFile) {
+              return realFile;
+            }
+          }
+          return dataviewFile as TFile;
+        })
         .filter(
           (file: TFile) => !excludeFile || file.path !== excludeFile.path,
         );
