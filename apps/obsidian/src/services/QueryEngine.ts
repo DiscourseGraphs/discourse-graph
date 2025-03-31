@@ -6,6 +6,7 @@ export class QueryEngine {
   private app: App;
 
   constructor(app: App) {
+    // TODO: replace this with datacore when the npm is ready
     this.dv = getAPI(app);
     this.app = app;
   }
@@ -27,7 +28,6 @@ export class QueryEngine {
     }
 
     try {
-      // More efficient query by adding the nodeTypeId filter directly in the dataview query
       const potentialNodes = this.dv
         .pages()
         .where(
