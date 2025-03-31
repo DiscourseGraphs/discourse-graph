@@ -1,8 +1,8 @@
 import { TFile, Notice } from "obsidian";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
-import { SearchBar } from "~/components/SearchBar";
+import SearchBar from "./SearchBar";
 
 type RelationTypeOption = {
   id: string;
@@ -15,14 +15,19 @@ type RelationshipSectionProps = {
   activeFile: TFile;
 };
 
-export const RelationshipSection = ({
-  plugin,
-  activeFile,
-}: RelationshipSectionProps) => {
+const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
   const [selectedRelationType, setSelectedRelationType] = useState<string>("");
   const [selectedNode, setSelectedNode] = useState<TFile | null>(null);
   const [isAddingRelation, setIsAddingRelation] = useState(false);
-  const queryEngine = new QueryEngine(plugin.app);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const queryEngineRef = useRef<QueryEngine | null>(null);
+
+  useEffect(() => {
+    if (!queryEngineRef.current) {
+      queryEngineRef.current = new QueryEngine(plugin.app);
+    }
+  }, [plugin.app]);
 
   const activeNodeTypeId = (() => {
     const fileCache = plugin.app.metadataCache.getFileCache(activeFile);
@@ -68,9 +73,59 @@ export const RelationshipSection = ({
   const availableRelationTypes = getAvailableRelationTypes();
 
   const searchNodes = async (query: string): Promise<TFile[]> => {
-    return queryEngine.searchNodeByTitle(query, {
-      excludeFile: activeFile,
+    if (!queryEngineRef.current) {
+      setSearchError("Search engine not initialized");
+      return [];
+    }
+
+    setSearchError(null);
+    try {
+      const results = await queryEngineRef.current.searchNodeByTitle(query, {
+        excludeFile: activeFile,
+        minQueryLength: 2,
+      });
+
+      if (results.length === 0 && query.length >= 2) {
+      }
+
+      return results;
+    } catch (error) {
+      setSearchError(
+        error instanceof Error ? error.message : "Unknown search error",
+      );
+      return [];
+    }
+  };
+
+  const renderRelationTypeItem = (
+    option: RelationTypeOption,
+    el: HTMLElement,
+  ) => {
+    const suggestionEl = el.createEl("div", {
+      cls: "relationship-suggestion",
+      attr: { style: "display: flex; align-items: center;" },
     });
+
+    suggestionEl.createEl("div", {
+      text: option.isSource ? "➡️" : "⬅️",
+      attr: { style: "margin-right: 8px;" },
+    });
+
+    suggestionEl.createEl("div", { text: option.label });
+  };
+
+  const renderNodeItem = (file: TFile, el: HTMLElement) => {
+    const suggestionEl = el.createEl("div", {
+      cls: "file-suggestion",
+      attr: { style: "display: flex; align-items: center;" },
+    });
+
+    suggestionEl.createEl("div", {
+      text: "📄",
+      attr: { style: "margin-right: 8px;" },
+    });
+
+    suggestionEl.createEl("div", { text: file.name });
   };
 
   const addRelationship = async () => {
@@ -117,6 +172,7 @@ export const RelationshipSection = ({
     setIsAddingRelation(false);
     setSelectedRelationType("");
     setSelectedNode(null);
+    setSearchError(null);
   };
 
   if (!isAddingRelation) {
@@ -150,22 +206,12 @@ export const RelationshipSection = ({
           Relationship Type:
         </label>
         <SearchBar<RelationTypeOption>
-          app={plugin.app}
-          onNodeSelect={(option) =>
-            option && setSelectedRelationType(option.id)
-          }
-          placeholder="Search available relationship types..."
-          getItemText={(option) => option.label}
-          getItemKey={(option) => `${option.id}-${option.isSource}`}
           options={availableRelationTypes}
-          renderItemContent={(option) => (
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <div style={{ marginRight: "8px" }}>
-                {option.isSource ? "➡️" : "⬅️"}
-              </div>
-              <div>{option.label}</div>
-            </div>
-          )}
+          onSelect={(option) => option && setSelectedRelationType(option.id)}
+          placeholder="Search available relationship types..."
+          app={plugin.app}
+          getItemText={(option) => option.label}
+          renderItem={renderRelationTypeItem}
         />
       </div>
 
@@ -175,18 +221,24 @@ export const RelationshipSection = ({
         </label>
         <SearchBar<TFile>
           app={plugin.app}
-          searchFunction={searchNodes}
-          onNodeSelect={setSelectedNode}
+          asyncSearch={searchNodes}
+          onSelect={setSelectedNode}
           placeholder="Search nodes (type at least 2 characters)..."
           getItemText={(node) => node.name}
-          getItemKey={(node) => node.path}
-          renderItemContent={(node) => (
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <div style={{ marginRight: "8px" }}>📄</div>
-              <div>{node.name}</div>
-            </div>
-          )}
+          renderItem={renderNodeItem}
+          minQueryLength={2}
         />
+        {searchError && (
+          <div
+            style={{
+              color: "var(--text-error)",
+              fontSize: "12px",
+              marginTop: "4px",
+            }}
+          >
+            Search error: {searchError}
+          </div>
+        )}
       </div>
 
       <div className="buttons" style={{ display: "flex", gap: "8px" }}>
@@ -226,6 +278,17 @@ export const RelationshipSection = ({
           Cancel
         </button>
       </div>
+    </div>
+  );
+};
+
+export const RelationshipSection = ({
+  plugin,
+  activeFile,
+}: RelationshipSectionProps) => {
+  return (
+    <div className="relationship-manager">
+      <AddRelationship plugin={plugin} activeFile={activeFile} />
     </div>
   );
 };
