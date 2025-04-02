@@ -6,50 +6,63 @@ type Message = {
   content: string;
 };
 
-type SafetySetting = {
-  category: string;
-  threshold: number;
-};
-
 type Settings = {
   model: string;
   maxTokens: number;
   temperature: number;
-  safetySettings?: SafetySetting[];
+  safetySettings?: Array<{
+    category: string;
+    threshold: string;
+  }>;
 };
 
 type RequestBody = {
   documents: Message[];
-  passphrase: string;
+  passphrase?: string;
   settings: Settings;
 };
 
 type GeminiMessage = {
   role: string;
-  parts: { text: string }[];
+  parts: Array<{
+    text: string;
+  }>;
 };
 
-function convertToGeminiFormat(messages: Message[]): GeminiMessage[] {
-  return messages.map(convertMessageToGeminiFormat);
-}
-
-function convertMessageToGeminiFormat(message: Message): GeminiMessage {
-  return {
-    role: message.role === "user" ? "user" : "model",
-    parts: [{ text: message.content }],
-  };
-}
-
-const DEFAULT_MODEL = "gemini-2.0-flash-exp";
 const CONTENT_TYPE_JSON = "application/json";
 const CONTENT_TYPE_TEXT = "text/plain";
+
+const DEFAULT_MODEL = "gemini-2.0-flash-exp";
 
 export const runtime = "nodejs";
 export const preferredRegion = "auto";
 export const maxDuration = 300;
 
+// Convert standard messages to Gemini format
+function convertToGeminiFormat(messages: Message[]): GeminiMessage[] {
+  return messages.map((msg) => ({
+    role: msg.role === "user" ? "user" : "model",
+    parts: [{ text: msg.content }],
+  }));
+}
+
 export async function POST(request: NextRequest): Promise<Response> {
   try {
+    // Verify the bypass token
+    const bypassToken = request.headers.get("x-vercel-protection-bypass");
+    const expectedToken = process.env.VERCEL_PROTECTION_BYPASS;
+
+    // Only check token if it's set in environment variables
+    if (expectedToken && bypassToken !== expectedToken) {
+      return cors(
+        request,
+        new Response(JSON.stringify({ error: "Unauthorized access" }), {
+          status: 401,
+          headers: { "Content-Type": CONTENT_TYPE_JSON },
+        }),
+      );
+    }
+
     const requestData: RequestBody = await request.json();
     const { documents: messages, settings } = requestData;
     const { model, maxTokens, temperature } = settings;

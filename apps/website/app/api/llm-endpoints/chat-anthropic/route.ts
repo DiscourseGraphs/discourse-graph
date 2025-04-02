@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import cors from "../../../../lib/cors";
 
 type Message = {
   role: string;
@@ -11,15 +12,15 @@ type Settings = {
   temperature: number;
 };
 
-type RequestBody = {
-  documents: Message[];
-  passphrase: string;
-  settings: Settings;
-};
-
 type AnthropicUsage = {
   input_tokens: number;
   output_tokens: number;
+};
+
+type RequestBody = {
+  documents: Message[];
+  passphrase?: string;
+  settings: Settings;
 };
 
 const CONTENT_TYPE_JSON = "application/json";
@@ -32,6 +33,21 @@ export const maxDuration = 300;
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
+    // Verify the bypass token
+    const bypassToken = request.headers.get("x-vercel-protection-bypass");
+    const expectedToken = process.env.VERCEL_PROTECTION_BYPASS;
+
+    // Only check token if it's set in environment variables
+    if (expectedToken && bypassToken !== expectedToken) {
+      return cors(
+        request,
+        new Response(JSON.stringify({ error: "Unauthorized access" }), {
+          status: 401,
+          headers: { "Content-Type": CONTENT_TYPE_JSON },
+        }),
+      );
+    }
+
     const requestData: RequestBody = await request.json();
     const { documents: messages, settings } = requestData;
     const { model, maxTokens, temperature } = settings;
@@ -41,9 +57,18 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     if (!apiKey) {
       console.error("ANTHROPIC_API_KEY environment variable is not set");
-      return createErrorResponse(
-        "API key not configured. Please set the ANTHROPIC_API_KEY environment variable in your Vercel project settings.",
-        500,
+      return cors(
+        request,
+        new Response(
+          JSON.stringify({
+            error:
+              "API key not configured. Please set the ANTHROPIC_API_KEY environment variable in your Vercel project settings.",
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": CONTENT_TYPE_JSON },
+          },
+        ),
       );
     }
 
@@ -72,23 +97,36 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     if (!response.ok) {
       console.error("Anthropic API error:", responseData);
-      return createErrorResponse(
-        `Anthropic API error: ${responseData.error?.message || "Unknown error"}`,
-        response.status,
+      return cors(
+        request,
+        new Response(
+          JSON.stringify({
+            error: `Anthropic API error: ${responseData.error?.message || "Unknown error"}`,
+          }),
+          {
+            status: response.status,
+            headers: { "Content-Type": CONTENT_TYPE_JSON },
+          },
+        ),
       );
     }
 
     // Log token usage information
     const usage: AnthropicUsage = responseData.usage;
-    const inputTokens = usage.input_tokens;
-    const outputTokens = usage.output_tokens;
-    const totalTokens = inputTokens + outputTokens;
+    if (usage) {
+      const inputTokens = usage.input_tokens;
+      const outputTokens = usage.output_tokens;
+      const totalTokens = inputTokens + outputTokens;
+
+      console.log(
+        `input-token: ${inputTokens}, output-token: ${outputTokens}, total-token: ${totalTokens}`,
+      );
+    }
 
     console.log(
-      `input-token: ${inputTokens}, output-token: ${outputTokens}, total-token: ${totalTokens}`,
-    );
-    console.log(
-      `status: ${response.status} -- ${responseData.error || ""} -- ${responseData.stop_reason || ""} -- ${responseData.content?.[0]?.text || ""}`,
+      `status: ${response.status} -- ${responseData.error || ""} -- ${
+        responseData.stop_reason || ""
+      } -- ${responseData.content?.[0]?.text || ""}`,
     );
 
     // Extract the response text
@@ -99,27 +137,44 @@ export async function POST(request: NextRequest): Promise<Response> {
         "Invalid response format from Anthropic API:",
         responseData,
       );
-      return createErrorResponse(
-        "Invalid response format from Anthropic API. Check server logs for details.",
-        500,
+      return cors(
+        request,
+        new Response(
+          JSON.stringify({
+            error:
+              "Invalid response format from Anthropic API. Check server logs for details.",
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": CONTENT_TYPE_JSON },
+          },
+        ),
       );
     }
 
-    return new Response(replyText, {
-      headers: { "Content-Type": CONTENT_TYPE_TEXT },
-    });
+    return cors(
+      request,
+      new Response(replyText, {
+        headers: { "Content-Type": CONTENT_TYPE_TEXT },
+      }),
+    );
   } catch (error) {
     console.error("Error processing request:", error);
-    return createErrorResponse(
-      `Internal Server Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-      500,
+    return cors(
+      request,
+      new Response(
+        JSON.stringify({
+          error: `Internal Server Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": CONTENT_TYPE_JSON },
+        },
+      ),
     );
   }
 }
 
-function createErrorResponse(message: string, status: number): Response {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { "Content-Type": CONTENT_TYPE_JSON },
-  });
+export async function OPTIONS(request: NextRequest) {
+  return cors(request, new Response(null, { status: 204 }));
 }
