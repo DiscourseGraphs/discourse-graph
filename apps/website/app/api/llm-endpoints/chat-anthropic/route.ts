@@ -35,7 +35,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   try {
     // Verify the bypass token
     const bypassToken = request.headers.get("x-vercel-protection-bypass");
-    const expectedToken = process.env.VERCEL_PROTECTION_BYPASS;
+    const expectedToken = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
     // Only check token if it's set in environment variables
     if (expectedToken && bypassToken !== expectedToken) {

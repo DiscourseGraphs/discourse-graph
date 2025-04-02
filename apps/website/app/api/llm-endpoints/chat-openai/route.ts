@@ -29,7 +29,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   try {
     // Verify the bypass token
     const bypassToken = request.headers.get("x-vercel-protection-bypass");
-    const expectedToken = process.env.VERCEL_PROTECTION_BYPASS;
+    const expectedToken = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
     // Only check token if it's set in environment variables
     if (expectedToken && bypassToken !== expectedToken) {
@@ -41,7 +41,6 @@ export async function POST(request: NextRequest): Promise<Response> {
         }),
       );
     }
-
     const requestData: RequestBody = await request.json();
     const { documents: messages, settings } = requestData;
     const { model, maxTokens, temperature } = settings;
