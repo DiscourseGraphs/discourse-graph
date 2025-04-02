@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import cors from "../../../../lib/cors";
 
 type Message = {
   role: string;
@@ -19,7 +20,6 @@ type RequestBody = {
 
 const CONTENT_TYPE_JSON = "application/json";
 const CONTENT_TYPE_TEXT = "text/plain";
-const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000"];
 
 export const runtime = "nodejs";
 export const preferredRegion = "auto";
@@ -31,18 +31,23 @@ export async function POST(request: NextRequest): Promise<Response> {
     const { documents: messages, settings } = requestData;
     const { model, maxTokens, temperature } = settings;
 
-    // Validate origin for CORS
-    const origin = request.headers.get("origin");
-    const isAllowedOrigin = origin && allowedOrigins.includes(origin);
-
     // Get API key from environment variable
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
       console.error("OPENAI_API_KEY environment variable is not set");
-      return createErrorResponse(
-        "API key not configured. Please set the OPENAI_API_KEY environment variable in your Vercel project settings.",
-        500,
+      return cors(
+        request,
+        new Response(
+          JSON.stringify({
+            error:
+              "API key not configured. Please set the OPENAI_API_KEY environment variable in your Vercel project settings.",
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": CONTENT_TYPE_JSON },
+          },
+        ),
       );
     }
 
@@ -72,9 +77,17 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     if (!response.ok) {
       console.error("OpenAI API error:", responseData);
-      return createErrorResponse(
-        `OpenAI API error: ${responseData.error?.message || "Unknown error"}`,
-        response.status,
+      return cors(
+        request,
+        new Response(
+          JSON.stringify({
+            error: `OpenAI API error: ${responseData.error?.message || "Unknown error"}`,
+          }),
+          {
+            status: response.status,
+            headers: { "Content-Type": CONTENT_TYPE_JSON },
+          },
+        ),
       );
     }
 
@@ -82,57 +95,44 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     if (!replyText) {
       console.error("Invalid response format from OpenAI API:", responseData);
-      return createErrorResponse(
-        "Invalid response format from OpenAI API. Check server logs for details.",
-        500,
+      return cors(
+        request,
+        new Response(
+          JSON.stringify({
+            error:
+              "Invalid response format from OpenAI API. Check server logs for details.",
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": CONTENT_TYPE_JSON },
+          },
+        ),
       );
     }
 
-    // Create response with proper CORS headers
-    const apiResponse = new Response(replyText, {
-      headers: { "Content-Type": CONTENT_TYPE_TEXT },
-    });
-
-    // Add CORS headers if origin is allowed
-    if (isAllowedOrigin) {
-      apiResponse.headers.set("Access-Control-Allow-Origin", origin);
-      apiResponse.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-      apiResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
-    }
-
-    return apiResponse;
+    return cors(
+      request,
+      new Response(replyText, {
+        headers: { "Content-Type": CONTENT_TYPE_TEXT },
+      }),
+    );
   } catch (error) {
     console.error("Error processing request:", error);
-    return createErrorResponse(
-      `Internal Server Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-      500,
+    return cors(
+      request,
+      new Response(
+        JSON.stringify({
+          error: `Internal Server Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": CONTENT_TYPE_JSON },
+        },
+      ),
     );
   }
 }
 
-export async function OPTIONS(request: Request) {
-  const origin = request.headers.get("origin");
-  const isAllowedOrigin = origin && allowedOrigins.includes(origin);
-  const response = new NextResponse(null, { status: 204 });
-  if (isAllowedOrigin) {
-    response.headers.set("Access-Control-Allow-Origin", origin);
-    response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type");
-  }
-  return response;
-}
-
-function createErrorResponse(message: string, status: number): Response {
-  const errorResponse = new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { "Content-Type": CONTENT_TYPE_JSON },
-  });
-
-  // Add CORS headers if needed (origin check may not be available in this context)
-  const allowedOriginsStr = allowedOrigins.join(", ");
-  errorResponse.headers.set("Access-Control-Allow-Origin", allowedOriginsStr);
-  errorResponse.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  errorResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
-
-  return errorResponse;
+export async function OPTIONS(request: NextRequest) {
+  return cors(request, new Response(null, { status: 204 }));
 }

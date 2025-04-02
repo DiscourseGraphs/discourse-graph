@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import cors from "../../../../lib/cors";
 
 type Message = {
   role: string;
@@ -60,9 +61,18 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     if (!apiKey) {
       console.error("GEMINI_API_KEY environment variable is not set");
-      return createErrorResponse(
-        "API key not configured. Please set the GEMINI_API_KEY environment variable in your Vercel project settings.",
-        500,
+      return cors(
+        request,
+        new Response(
+          JSON.stringify({
+            error:
+              "API key not configured. Please set the GEMINI_API_KEY environment variable in your Vercel project settings.",
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": CONTENT_TYPE_JSON },
+          },
+        ),
       );
     }
 
@@ -91,9 +101,17 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     if (!response.ok) {
       console.error("Gemini API error:", responseData);
-      return createErrorResponse(
-        `Gemini API error: ${responseData.error?.message || "Unknown error"}`,
-        response.status,
+      return cors(
+        request,
+        new Response(
+          JSON.stringify({
+            error: `Gemini API error: ${responseData.error?.message || "Unknown error"}`,
+          }),
+          {
+            status: response.status,
+            headers: { "Content-Type": CONTENT_TYPE_JSON },
+          },
+        ),
       );
     }
 
@@ -101,27 +119,44 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     if (!replyText) {
       console.error("Invalid response format from Gemini API:", responseData);
-      return createErrorResponse(
-        "Invalid response format from Gemini API. Check server logs for details.",
-        500,
+      return cors(
+        request,
+        new Response(
+          JSON.stringify({
+            error:
+              "Invalid response format from Gemini API. Check server logs for details.",
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": CONTENT_TYPE_JSON },
+          },
+        ),
       );
     }
 
-    return new Response(replyText, {
-      headers: { "Content-Type": CONTENT_TYPE_TEXT },
-    });
+    return cors(
+      request,
+      new Response(replyText, {
+        headers: { "Content-Type": CONTENT_TYPE_TEXT },
+      }),
+    );
   } catch (error) {
     console.error("Error processing request:", error);
-    return createErrorResponse(
-      `Internal Server Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-      500,
+    return cors(
+      request,
+      new Response(
+        JSON.stringify({
+          error: `Internal Server Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": CONTENT_TYPE_JSON },
+        },
+      ),
     );
   }
 }
 
-function createErrorResponse(message: string, status: number): Response {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { "Content-Type": CONTENT_TYPE_JSON },
-  });
+export async function OPTIONS(request: NextRequest) {
+  return cors(request, new Response(null, { status: 204 }));
 }
