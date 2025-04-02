@@ -33,21 +33,6 @@ export const maxDuration = 300;
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
-    // Verify the bypass token
-    const bypassToken = request.headers.get("x-vercel-protection-bypass");
-    const expectedToken = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-
-    // Only check token if it's set in environment variables
-    if (expectedToken && bypassToken !== expectedToken) {
-      return cors(
-        request,
-        new Response(JSON.stringify({ error: "Unauthorized access" }), {
-          status: 401,
-          headers: { "Content-Type": CONTENT_TYPE_JSON },
-        }),
-      );
-    }
-
     const requestData: RequestBody = await request.json();
     const { documents: messages, settings } = requestData;
     const { model, maxTokens, temperature } = settings;
