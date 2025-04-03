@@ -4,6 +4,8 @@ import DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
 import SearchBar from "./SearchBar";
 import { DiscourseNode } from "~/types";
+import DropdownSelect from "./DropdownSelect";
+
 type RelationTypeOption = {
   id: string;
   label: string;
@@ -269,7 +271,7 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
         <label style={{ display: "block", marginBottom: "0.5rem" }}>
           Relationship Type:
         </label>
-        <SearchBar<RelationTypeOption>
+        <DropdownSelect<RelationTypeOption>
           options={availableRelationTypes}
           onSelect={(option) => option && setSelectedRelationType(option.id)}
           placeholder="Search available relationship types..."

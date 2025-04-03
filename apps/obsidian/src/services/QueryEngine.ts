@@ -1,13 +1,23 @@
 import { TFile, App } from "obsidian";
 import { getAPI } from "obsidian-dataview";
 
+interface AppWithPlugins extends App {
+  plugins: {
+    plugins: {
+      [key: string]: {
+        api: any;
+      };
+    };
+  };
+}
+
 export class QueryEngine {
-  private dv: any;
   private app: App;
+  private dc: any;
 
   constructor(app: App) {
-    // TODO: replace this with datacore when the npm is ready
-    this.dv = getAPI(app);
+    const appWithPlugins = app as AppWithPlugins;
+    this.dc = appWithPlugins.plugins?.plugins?.["datacore"]?.api;
     this.app = app;
   }
 
@@ -20,39 +30,31 @@ export class QueryEngine {
     if (!query || query.length < minQueryLength) {
       return [];
     }
-    if (!this.dv) {
+    if (!this.dc) {
       console.warn(
-        "Dataview API not available. Search functionality is limited.",
+        "Datacore API not available. Search functionality is limited.",
       );
       return [];
     }
 
     try {
-      const potentialNodes = this.dv
-        .pages()
-        .where(
-          (p: any) =>
-            p.nodeTypeId != null &&
-            compatibleNodeTypeIds.includes(p.nodeTypeId),
-        ).values;
+      const dcQuery = `@page and exists(nodeTypeId) and ${compatibleNodeTypeIds
+        .map((id) => `nodeTypeId = "${id}"`)
+        .join(" or ")}`;
 
+      const potentialNodes = this.dc.query(dcQuery);
       const searchResults = potentialNodes.filter((p: any) => {
-        return this.fuzzySearch(p.file.name, query);
+        return this.fuzzySearch(p.$name, query);
       });
-
       const finalResults = searchResults
-        .map((val: any) => {
-          const dataviewFile = val.file;
-
-          if (dataviewFile && dataviewFile.path) {
-            const realFile = this.app.vault.getAbstractFileByPath(
-              dataviewFile.path,
-            );
+        .map((dcFile: any) => {
+          if (dcFile && dcFile.$path) {
+            const realFile = this.app.vault.getAbstractFileByPath(dcFile.$path);
             if (realFile && realFile instanceof TFile) {
               return realFile;
             }
           }
-          return dataviewFile as TFile;
+          return dcFile as TFile;
         })
         .filter(
           (file: TFile) => !excludeFile || file.path !== excludeFile.path,

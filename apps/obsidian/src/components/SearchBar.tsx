@@ -2,28 +2,25 @@ import { AbstractInputSuggest, App } from "obsidian";
 import { useEffect, useRef, useState } from "react";
 
 class GenericSuggest<T> extends AbstractInputSuggest<T> {
-  private options: T[];
   private getItemTextFn: (item: T) => string;
   private renderItemFn: (item: T, el: HTMLElement) => void;
   private onSelectCallback: (item: T) => void;
-  private asyncSearchFn?: (query: string) => Promise<T[]>;
+  private asyncSearchFn: (query: string) => Promise<T[]>;
   private minQueryLength: number;
   private debounceTimeout: number | null = null;
 
   constructor(
     app: App,
     private textInputEl: HTMLInputElement,
-    options: T[],
     onSelectCallback: (item: T) => void,
     config: {
       getItemText: (item: T) => string;
       renderItem?: (item: T, el: HTMLElement) => void;
-      asyncSearch?: (query: string) => Promise<T[]>;
+      asyncSearch: (query: string) => Promise<T[]>;
       minQueryLength?: number;
     },
   ) {
     super(app, textInputEl);
-    this.options = options;
     this.onSelectCallback = onSelectCallback;
     this.getItemTextFn = config.getItemText;
     this.renderItemFn = config.renderItem || this.defaultRenderItem.bind(this);
@@ -37,32 +34,21 @@ class GenericSuggest<T> extends AbstractInputSuggest<T> {
       return [];
     }
 
-    if (this.asyncSearchFn && query.length >= this.minQueryLength) {
-      return new Promise((resolve) => {
-        if (this.debounceTimeout) {
-          clearTimeout(this.debounceTimeout);
+    return new Promise((resolve) => {
+      if (this.debounceTimeout) {
+        clearTimeout(this.debounceTimeout);
+      }
+
+      this.debounceTimeout = window.setTimeout(async () => {
+        try {
+          const results = await this.asyncSearchFn(query);
+          resolve(results);
+        } catch (error) {
+          console.error(`[GenericSuggest] Error in async search:`, error);
+          resolve([]);
         }
-
-        this.debounceTimeout = window.setTimeout(async () => {
-          try {
-            const results = await this.asyncSearchFn!(query);
-            resolve(results);
-          } catch (error) {
-            console.error(`[GenericSuggest] Error in async search:`, error);
-            resolve([]);
-          }
-        }, 250);
-      });
-    }
-
-    const lowerCaseQuery = query.toLowerCase();
-
-    const results = this.options.filter((item) => {
-      const itemText = this.getItemTextFn(item).toLowerCase();
-      return itemText.includes(lowerCaseQuery);
+      }, 250);
     });
-
-    return results;
   }
 
   private defaultRenderItem(item: T, el: HTMLElement): void {
@@ -81,7 +67,6 @@ class GenericSuggest<T> extends AbstractInputSuggest<T> {
 }
 
 const SearchBar = <T,>({
-  options = [],
   onSelect,
   placeholder,
   app,
@@ -90,13 +75,12 @@ const SearchBar = <T,>({
   asyncSearch,
   minQueryLength = 0,
 }: {
-  options?: T[];
   onSelect: (item: T | null) => void;
   placeholder?: string;
   app: App;
   getItemText: (item: T) => string;
   renderItem?: (item: T, el: HTMLElement) => void;
-  asyncSearch?: (query: string) => Promise<T[]>;
+  asyncSearch: (query: string) => Promise<T[]>;
   minQueryLength?: number;
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -107,7 +91,6 @@ const SearchBar = <T,>({
       const suggest = new GenericSuggest(
         app,
         inputRef.current,
-        options,
         (item) => {
           setSelected(item);
           onSelect(item);
@@ -119,18 +102,9 @@ const SearchBar = <T,>({
           minQueryLength,
         },
       );
-
       return () => suggest.close();
     }
-  }, [
-    options,
-    onSelect,
-    app,
-    getItemText,
-    renderItem,
-    asyncSearch,
-    minQueryLength,
-  ]);
+  }, [onSelect, app, getItemText, renderItem, asyncSearch, minQueryLength]);
 
   const clearSelection = () => {
     if (inputRef.current) {
