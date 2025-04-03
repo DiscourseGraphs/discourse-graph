@@ -2,11 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    serverActions: {
-      allowedOrigins: ["localhost:3000", "discoursegraphs.com"],
-    },
-  },
   serverRuntimeConfig: {
     maxDuration: 300,
   },
