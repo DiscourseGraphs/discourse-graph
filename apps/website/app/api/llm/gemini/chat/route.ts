@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import cors from "../../../../lib/cors";
+import cors from "../../../../../lib/cors";
 
 type Message = {
   role: string;
@@ -32,13 +32,10 @@ type GeminiMessage = {
 const CONTENT_TYPE_JSON = "application/json";
 const CONTENT_TYPE_TEXT = "text/plain";
 
-const DEFAULT_MODEL = "gemini-2.0-flash-exp";
-
 export const runtime = "nodejs";
 export const preferredRegion = "auto";
 export const maxDuration = 300;
 
-// Convert standard messages to Gemini format
 function convertToGeminiFormat(messages: Message[]): GeminiMessage[] {
   return messages.map((msg) => ({
     role: msg.role === "user" ? "user" : "model",
@@ -52,9 +49,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     const { documents: messages, settings } = requestData;
     const { model, maxTokens, temperature } = settings;
 
-    const modelId = model === "gemini" ? DEFAULT_MODEL : model;
-
-    // Get API key from environment variable
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -74,7 +68,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const body = JSON.stringify({
       contents: convertToGeminiFormat(messages),
@@ -84,8 +78,6 @@ export async function POST(request: NextRequest): Promise<Response> {
       },
       safetySettings: settings.safetySettings,
     });
-
-    console.log(`Making request to Gemini API with model: ${modelId}`);
 
     const response = await fetch(url, {
       method: "POST",

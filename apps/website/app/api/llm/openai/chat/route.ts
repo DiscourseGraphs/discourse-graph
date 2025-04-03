@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import cors from "../../../../lib/cors";
+import cors from "../../../../../lib/cors";
 
 type Message = {
   role: string;
@@ -12,11 +12,6 @@ type Settings = {
   temperature: number;
 };
 
-type AnthropicUsage = {
-  input_tokens: number;
-  output_tokens: number;
-};
-
 type RequestBody = {
   documents: Message[];
   passphrase?: string;
@@ -25,7 +20,6 @@ type RequestBody = {
 
 const CONTENT_TYPE_JSON = "application/json";
 const CONTENT_TYPE_TEXT = "text/plain";
-const ANTHROPIC_API_VERSION = "2023-06-01";
 
 export const runtime = "nodejs";
 export const preferredRegion = "auto";
@@ -37,17 +31,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     const { documents: messages, settings } = requestData;
     const { model, maxTokens, temperature } = settings;
 
-    // Get API key from environment variable
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
-      console.error("ANTHROPIC_API_KEY environment variable is not set");
+      console.error("OPENAI_API_KEY environment variable is not set");
       return cors(
         request,
         new Response(
           JSON.stringify({
             error:
-              "API key not configured. Please set the ANTHROPIC_API_KEY environment variable in your Vercel project settings.",
+              "API key not configured. Please set the OPENAI_API_KEY environment variable in your Vercel project settings.",
           }),
           {
             status: 500,
@@ -57,23 +50,20 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
 
-    const url = "https://api.anthropic.com/v1/messages";
+    const url = "https://api.openai.com/v1/chat/completions";
 
     const body = JSON.stringify({
       model: model,
-      max_tokens: maxTokens,
       messages: messages,
       temperature: temperature,
+      max_completion_tokens: maxTokens,
     });
-
-    console.log(`Making request to Anthropic API with model: ${model}`);
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": CONTENT_TYPE_JSON,
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_API_VERSION,
+        Authorization: `Bearer ${apiKey}`,
       },
       body,
     });
@@ -81,12 +71,12 @@ export async function POST(request: NextRequest): Promise<Response> {
     const responseData = await response.json();
 
     if (!response.ok) {
-      console.error("Anthropic API error:", responseData);
+      console.error("OpenAI API error:", responseData);
       return cors(
         request,
         new Response(
           JSON.stringify({
-            error: `Anthropic API error: ${responseData.error?.message || "Unknown error"}`,
+            error: `OpenAI API error: ${responseData.error?.message || "Unknown error"}`,
           }),
           {
             status: response.status,
@@ -96,38 +86,16 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
 
-    // Log token usage information
-    const usage: AnthropicUsage = responseData.usage;
-    if (usage) {
-      const inputTokens = usage.input_tokens;
-      const outputTokens = usage.output_tokens;
-      const totalTokens = inputTokens + outputTokens;
-
-      console.log(
-        `input-token: ${inputTokens}, output-token: ${outputTokens}, total-token: ${totalTokens}`,
-      );
-    }
-
-    console.log(
-      `status: ${response.status} -- ${responseData.error || ""} -- ${
-        responseData.stop_reason || ""
-      } -- ${responseData.content?.[0]?.text || ""}`,
-    );
-
-    // Extract the response text
-    const replyText = responseData.content?.[0]?.text;
+    const replyText = responseData.choices?.[0]?.message?.content;
 
     if (!replyText) {
-      console.error(
-        "Invalid response format from Anthropic API:",
-        responseData,
-      );
+      console.error("Invalid response format from OpenAI API:", responseData);
       return cors(
         request,
         new Response(
           JSON.stringify({
             error:
-              "Invalid response format from Anthropic API. Check server logs for details.",
+              "Invalid response format from OpenAI API. Check server logs for details.",
           }),
           {
             status: 500,
