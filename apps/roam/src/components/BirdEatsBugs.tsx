@@ -23,6 +23,10 @@ type FeedbackWidget = {
           title?: string;
         };
       };
+      previewScreen?: {
+        title?: "required" | "optional" | boolean;
+        description?: "required" | "optional" | boolean;
+      };
       watermark?: boolean;
     };
   }) => void;
@@ -161,6 +165,10 @@ export const initFeedbackWidget = (): void => {
           previewScreen: {
             title: "Discourse Graphs feedback",
           },
+        },
+        previewScreen: {
+          title: "required",
+          description: "required",
         },
         watermark: false,
       },
