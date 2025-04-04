@@ -60,7 +60,7 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-  initFeedbackWidget();
+  initFeedbackWidget(onloadArgs.extensionAPI);
 
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({

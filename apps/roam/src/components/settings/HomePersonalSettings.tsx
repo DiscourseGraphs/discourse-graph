@@ -8,6 +8,7 @@ import {
   onPageRefObserverChange,
   previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
+import { hideFeedbackButton, showFeedbackButton } from "../BirdEatsBugs";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -80,6 +81,40 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             <Description
               description={
                 "Whether or not to display page previews when hovering over page refs"
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={
+          extensionAPI.settings.get("hide-feedback-button") as boolean
+        }
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          extensionAPI.settings.set("hide-feedback-button", target.checked);
+
+          if (target.checked) {
+            hideFeedbackButton();
+          } else {
+            showFeedbackButton();
+          }
+
+          if (
+            !document.getElementById("birdeatsbug-default-button") &&
+            !document.getElementById("feedback-button-hiding-styles")
+          ) {
+            alert(
+              "Please refresh the page for this change to take full effect.",
+            );
+          }
+        }}
+        labelElement={
+          <>
+            Hide Feedback Button
+            <Description
+              description={
+                "Hide the 'Send feedback' button at the bottom right of the screen. Changes take full effect after page refresh."
               }
             />
           </>
