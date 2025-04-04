@@ -108,6 +108,17 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
 
   const availableRelationTypes = getAvailableRelationTypes();
 
+  // Auto-select the relation type if there's only one option
+  useEffect(() => {
+    if (
+      availableRelationTypes.length === 1 &&
+      !selectedRelationType &&
+      availableRelationTypes[0]
+    ) {
+      setSelectedRelationType(availableRelationTypes[0].id);
+    }
+  }, [availableRelationTypes, selectedRelationType]);
+
   const searchNodes = async (query: string): Promise<TFile[]> => {
     if (!queryEngineRef.current) {
       setSearchError("Search engine not initialized");
@@ -274,7 +285,7 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
         <DropdownSelect<RelationTypeOption>
           options={availableRelationTypes}
           onSelect={(option) => option && setSelectedRelationType(option.id)}
-          placeholder="Search available relationship types..."
+          placeholder="Select relation type"
           app={plugin.app}
           getItemText={(option) => option.label}
           renderItem={renderRelationTypeItem}

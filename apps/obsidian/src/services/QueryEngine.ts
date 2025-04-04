@@ -1,7 +1,9 @@
 import { TFile, App } from "obsidian";
 import { getAPI } from "obsidian-dataview";
 
-interface AppWithPlugins extends App {
+// This is a workaround to get the datacore API. 
+// TODO: Remove once we can use datacore npm package
+type AppWithPlugins = App & {
   plugins: {
     plugins: {
       [key: string]: {
@@ -9,7 +11,7 @@ interface AppWithPlugins extends App {
       };
     };
   };
-}
+};
 
 export class QueryEngine {
   private app: App;
@@ -32,7 +34,7 @@ export class QueryEngine {
     }
     if (!this.dc) {
       console.warn(
-        "Datacore API not available. Search functionality is limited.",
+        "Datacore API not available. Search functionality is not available.",
       );
       return [];
     }

@@ -1,14 +1,14 @@
 import { App, DropdownComponent } from "obsidian";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-interface DropdownSelectProps<T> {
+type DropdownSelectProps<T> = {
   options: T[];
   onSelect: (item: T | null) => void;
   placeholder?: string;
   app: App;
   getItemText: (item: T) => string;
   renderItem?: (item: T, el: HTMLElement) => void;
-}
+};
 
 const DropdownSelect = <T,>({
   options,
@@ -50,11 +50,15 @@ const DropdownSelect = <T,>({
     const onChangeHandler = (value: string) => {
       const selectedOption =
         options.find((opt) => getItemText(opt) === value) || null;
-      dropdown.setValue(value); // Set the dropdown's displayed value
+      dropdown.setValue(value);
       onSelect(selectedOption);
     };
 
     dropdown.onChange(onChangeHandler);
+
+    if (options && options.length === 1 && !currentValue) {
+      dropdown.setValue(getItemText(options[0] as T));
+    }
 
     return () => {
       dropdown.onChange(() => {});
