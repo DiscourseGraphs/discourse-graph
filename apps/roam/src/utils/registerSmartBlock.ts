@@ -1,7 +1,7 @@
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
-import { InputTextNode, OnloadArgs } from "roamjs-components/types";
+import { InputTextNode, OnloadArgs, TreeNode } from "roamjs-components/types";
 import { extractRef } from "roamjs-components/util";
 import registerSmartBlocksCommand from "roamjs-components/util/registerSmartBlocksCommand";
 import resolveQueryBuilderRef from "./resolveQueryBuilderRef";
@@ -111,41 +111,43 @@ export const registerSmartBlock = (onloadArgs: OnloadArgs) => {
           pageUid = getPageUidByPageTitle(homePageTitle);
         }
 
-        if (pageUid) {
-          const tree = getFullTreeByParentUid(pageUid);
+        const tree = getFullTreeByParentUid(pageUid);
 
-          const isPageContentEmpty = (node: any) => {
-            if (node.text && node.text.includes(`${currentUser}/Home`)) {
-              return (
-                node.children.length === 0 ||
-                node.children.every((childNode: any) => isChildEmpty(childNode))
-              );
-            }
-
-            return isChildEmpty(node);
-          };
-
-          const isChildEmpty = (node: any) => {
-            const isCurrentNodeEmpty = !node.text || node.text.trim() === "";
-            if (!node.children || node.children.length === 0) {
-              return isCurrentNodeEmpty;
-            }
+        const isPageContentEmpty = (node: TreeNode): boolean => {
+          if (node.text && node.text === homePageTitle) {
             return (
-              isCurrentNodeEmpty &&
-              node.children.every((childNode: any) => isChildEmpty(childNode))
+              node.children.length === 0 ||
+              node.children.every((childNode: TreeNode) =>
+                isChildEmpty(childNode),
+              )
             );
-          };
-
-          const isPageEmpty = isPageContentEmpty(tree);
-
-          if (isPageEmpty) {
-            await createBlock({
-              node: {
-                text: `{{Create Homepage:SmartBlock:InsertHomepageTemplate}}`,
-              },
-              parentUid: pageUid,
-            });
           }
+
+          return isChildEmpty(node);
+        };
+
+        const isChildEmpty = (node: TreeNode): boolean => {
+          const isCurrentNodeEmpty = !node.text || node.text.trim() === "";
+          if (!node.children || node.children.length === 0) {
+            return isCurrentNodeEmpty;
+          }
+          return (
+            isCurrentNodeEmpty &&
+            node.children.every((childNode: TreeNode) =>
+              isChildEmpty(childNode),
+            )
+          );
+        };
+
+        const isPageEmpty = isPageContentEmpty(tree);
+
+        if (isPageEmpty) {
+          await createBlock({
+            node: {
+              text: `{{Create Homepage:SmartBlock:InsertHomepageTemplate}}`,
+            },
+            parentUid: pageUid,
+          });
         }
 
         window.roamAlphaAPI.ui.mainWindow.openPage({
