@@ -5,8 +5,5 @@ const nextConfig = {
   serverRuntimeConfig: {
     maxDuration: 300,
   },
-  env: {
-    NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV || "development",
-  },
 };
 export default nextConfig;

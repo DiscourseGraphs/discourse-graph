@@ -1,15 +1,17 @@
 import { NextRequest } from "next/server";
-import cors from "../../lib/cors";
+import cors from "./cors";
 import {
   CONTENT_TYPE_JSON,
   CONTENT_TYPE_TEXT,
   RequestBody,
   LLMProviderConfig,
-} from "./types";
+} from "../../types/llm";
 
-export const runtime = "nodejs";
-export const preferredRegion = "auto";
-export const maxDuration = 300;
+function getNestedProperty(obj: any, path: string): any {
+  return path.split(".").reduce((prev, curr) => {
+    return prev && prev[curr] !== undefined ? prev[curr] : undefined;
+  }, obj);
+}
 
 export async function handleLLMRequest(
   request: NextRequest,
@@ -58,7 +60,7 @@ export async function handleLLMRequest(
         request,
         new Response(
           JSON.stringify({
-            error: `API error: ${eval(`responseData.${config.errorMessagePath}`) || "Unknown error"}`,
+            error: `API error: ${getNestedProperty(responseData, config.errorMessagePath) || "Unknown error"}`,
           }),
           {
             status: response.status,
