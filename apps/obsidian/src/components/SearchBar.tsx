@@ -73,12 +73,16 @@ const SearchBar = <T,>({
   getItemText,
   renderItem,
   asyncSearch,
+  minQueryLength = 0,
+  disabled = false,
 }: {
   onSelect: (item: T | null) => void;
   placeholder?: string;
   getItemText: (item: T) => string;
   renderItem?: (item: T, el: HTMLElement) => void;
   asyncSearch: (query: string) => Promise<T[]>;
+  minQueryLength?: number;
+  disabled?: boolean;
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<T | null>(null);
@@ -124,13 +128,17 @@ const SearchBar = <T,>({
           paddingRight: selected ? "36px" : "8px",
           border: "1px solid var(--background-modifier-border)",
           borderRadius: "4px",
-          backgroundColor: selected
-            ? "var(--background-secondary)"
-            : "var(--background-primary)",
+          backgroundColor:
+            selected || disabled
+              ? "var(--background-secondary)"
+              : "var(--background-primary)",
+          cursor: disabled ? "not-allowed" : "text",
+          opacity: disabled ? 0.7 : 1,
         }}
-        readOnly={!!selected}
+        readOnly={!!selected || disabled}
+        disabled={disabled}
       />
-      {selected && (
+      {selected && !disabled && (
         <button
           onClick={clearSelection}
           style={{
