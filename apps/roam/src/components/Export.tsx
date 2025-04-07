@@ -82,23 +82,26 @@ const ExportProgress = ({ id }: { id: string }) => {
   );
 };
 
+const EXPORT_DESTINATIONS = [
+  { id: "local", label: "Download Locally", active: true },
+  { id: "app", label: "Store in Roam", active: false },
+  { id: "github", label: "Send to GitHub", active: true },
+];
+
 export type ExportDialogProps = {
   results?: Result[];
   title?: string;
   columns?: Column[];
   isExportDiscourseGraph?: boolean;
   initialPanel?: "sendTo" | "export";
+  initialExportDestination?: (typeof EXPORT_DESTINATIONS)[number]["id"];
+  onClose?: () => void;
 };
 
 type ExportDialogComponent = (
   props: RoamOverlayProps<ExportDialogProps>,
 ) => JSX.Element;
 
-const EXPORT_DESTINATIONS = [
-  { id: "local", label: "Download Locally", active: true },
-  { id: "app", label: "Store in Roam", active: false },
-  { id: "github", label: "Send to GitHub", active: true },
-];
 const SEND_TO_DESTINATIONS = ["page", "graph"];
 
 const exportDestinationById = Object.fromEntries(
@@ -113,6 +116,7 @@ const ExportDialog: ExportDialogComponent = ({
   title = "Share Data",
   isExportDiscourseGraph = false,
   initialPanel,
+  initialExportDestination,
 }) => {
   const [selectedRepo, setSelectedRepo] = useState<string>(
     getSetting<string>("selected-repo", ""),
@@ -143,7 +147,11 @@ const ExportDialog: ExportDialogComponent = ({
     exportTypes[0].name,
   );
   const [activeExportDestination, setActiveExportDestination] =
-    useState<string>(EXPORT_DESTINATIONS[0].id);
+    useState<string>(
+      initialExportDestination
+        ? exportDestinationById[initialExportDestination].id
+        : EXPORT_DESTINATIONS[0].id,
+    );
 
   const firstColumnKey = columns?.[0]?.key || "text";
   const currentPageUid = getCurrentPageUid();
@@ -177,9 +185,15 @@ const ExportDialog: ExportDialogComponent = ({
     content: string;
     setError: (error: string) => void;
   }): Promise<{ status: number }> => {
-    const base64Content = btoa(content);
+    const gitHubAccessToken = localStorageGet("github-oauth");
+    const selectedRepo = localStorageGet("github-repo");
+
+    const encoder = new TextEncoder();
+    const uint8Array = encoder.encode(content);
+    const base64Content = btoa(String.fromCharCode(...uint8Array));
 
     try {
+      // https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#create-or-update-file-contents
       const response = await apiPut({
         domain: "https://api.github.com",
         path: `repos/${selectedRepo}/contents/${filename}`,
@@ -192,7 +206,6 @@ const ExportDialog: ExportDialogComponent = ({
         },
       });
       if (response.status === 401) {
-        setGitHubAccessToken(null);
         setError("Authentication failed. Please log in again.");
         setSetting("oauth-github", "");
         return { status: 401 };
@@ -205,6 +218,74 @@ const ExportDialog: ExportDialogComponent = ({
         return { status: 500 };
       }
       setError("Failed to upload file to repo");
+      return { status: 500 };
+    }
+  };
+
+  const writeFileToIssue = async ({
+    title,
+    body,
+    setError,
+    pageUid,
+  }: {
+    title: string;
+    body: string;
+    setError: (error: string) => void;
+    pageUid: string;
+  }): Promise<{ status: number }> => {
+    const gitHubAccessToken = localStorageGet("github-oauth");
+    const selectedRepo = localStorageGet("github-repo");
+    try {
+      // https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28#create-an-issue
+      const response = await apiPost({
+        domain: "https://api.github.com",
+        path: `repos/${selectedRepo}/issues`,
+        headers: {
+          Authorization: `token ${gitHubAccessToken}`,
+        },
+        data: {
+          title,
+          body,
+          // milestone,
+          // labels,
+          // assignees
+        },
+      });
+      if (response.status === 401) {
+        setError("Authentication failed. Please log in again.");
+        localStorageSet("github-oauth", "");
+        return { status: 401 };
+      }
+
+      if (response.status === 201) {
+        const props = getBlockProps(pageUid);
+        const newProps = {
+          ...props,
+          ["github-sync"]: {
+            issue: {
+              id: response.id,
+              number: response.number,
+              html_url: response.html_url,
+              state: response.state,
+              labels: response.labels,
+              createdAt: response.created_at,
+              updatedAt: response.updated_at,
+              repo: selectedRepo,
+            },
+          },
+        };
+        window.roamAlphaAPI.updateBlock({
+          block: {
+            uid: pageUid,
+            props: newProps,
+          },
+        });
+      }
+
+      return { status: response.status };
+    } catch (error) {
+      const e = error as Error;
+      setError("Failed to create issue");
       return { status: 500 };
     }
   };
@@ -521,15 +602,12 @@ const ExportDialog: ExportDialogComponent = ({
                 onItemSelect={(et) => setActiveExportDestination(et)}
               />
             </Label>
-            <ExportGithub
-              isVisible={activeExportDestination === "github"}
-              selectedRepo={selectedRepo}
-              setSelectedRepo={setSelectedRepo}
-              setError={setError}
-              gitHubAccessToken={gitHubAccessToken}
-              setGitHubAccessToken={setGitHubAccessToken}
-              setCanSendToGitHub={setCanSendToGitHub}
-            />
+            {activeExportDestination === "github" && (
+              <ExportGithub
+                setError={setError}
+                setCanSendToGitHub={setCanSendToGitHub}
+              />
+            )}
           </div>
         </div>
 
@@ -620,17 +698,40 @@ const ExportDialog: ExportDialogComponent = ({
 
                     if (activeExportDestination === "github") {
                       const { title, content } = files[0];
+                      const githubDestination =
+                        localStorageGet("github-destination");
                       try {
-                        const { status } = await writeFileToRepo({
-                          filename: title,
-                          content,
-                          setError,
-                        });
+                        let status;
+                        if (githubDestination === "File") {
+                          status = (
+                            await writeFileToRepo({
+                              filename: title,
+                              content,
+                              setError,
+                            })
+                          ).status;
+                        }
+                        if (githubDestination === "Issue") {
+                          const pageUid =
+                            typeof results === "function" ? "" : results[0].uid; // TODO handle multiple results
+                          if (!pageUid) {
+                            setError("No page UID found.");
+                            return;
+                          }
+                          status = (
+                            await writeFileToIssue({
+                              title: title.replace(/\.[^/.]+$/, ""), // remove extension
+                              body: content,
+                              setError,
+                              pageUid,
+                            })
+                          ).status;
+                        }
                         if (status === 201) {
                           // TODO: remove toast by prolonging ExportProgress
                           renderToast({
                             id: "export-success",
-                            content: "Upload Success",
+                            content: `Upload Success to ${githubDestination}`,
                             intent: "success",
                           });
                           onClose();

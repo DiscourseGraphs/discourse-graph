@@ -121,7 +121,7 @@ export const SettingsDialog = ({
             id="discourse-graph-home"
             title="Home"
             className="overflow-y-auto"
-            panel={<DiscourseGraphHome />}
+            panel={<DiscourseGraphHome onloadArgs={onloadArgs} />}
           />
           <Tab
             id="discourse-graph-export"
