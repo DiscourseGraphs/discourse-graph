@@ -4,6 +4,8 @@ import {
   StringSetting,
   ExportConfigWithUids,
   getUidAndStringSetting,
+  getUidAndBooleanSetting,
+  BooleanSetting,
 } from "./getExportSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -21,6 +23,7 @@ type FormattedConfigTree = {
   trigger: StringSetting;
   export: ExportConfigWithUids;
   canvasPageFormat: StringSetting;
+  githubSync: BooleanSetting;
 };
 
 export const getFormattedConfigTree = (): FormattedConfigTree => {
@@ -46,6 +49,10 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
     canvasPageFormat: getUidAndStringSetting({
       tree: configTreeRef.tree,
       text: "Canvas Page Format",
+    }),
+    githubSync: getUidAndBooleanSetting({
+      tree: configTreeRef.tree,
+      text: "GitHub Sync",
     }),
   };
 };
