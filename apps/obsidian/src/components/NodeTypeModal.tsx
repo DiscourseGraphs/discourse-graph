@@ -1,6 +1,7 @@
 import { App, Editor, SuggestModal, TFile, Notice } from "obsidian";
-import { DiscourseNode } from "../types";
-import { getDiscourseNodeFormatExpression } from "../utils/getDiscourseNodeFormatExpression";
+import { DiscourseNode } from "~/types";
+import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
+import { checkInvalidChars } from "~/utils/validateNodeType";
 
 export class NodeTypeModal extends SuggestModal<DiscourseNode> {
   constructor(
@@ -25,6 +26,7 @@ export class NodeTypeModal extends SuggestModal<DiscourseNode> {
   renderSuggestion(nodeType: DiscourseNode, el: HTMLElement) {
     el.createEl("div", { text: nodeType.name });
   }
+
   async createDiscourseNode(
     title: string,
     nodeType: DiscourseNode,
@@ -67,7 +69,12 @@ export class NodeTypeModal extends SuggestModal<DiscourseNode> {
       nodeFormat[1]?.replace(/\\/g, "") +
       selectedText +
       nodeFormat[2]?.replace(/\\/g, "");
-    if (!nodeFormat) return;
+
+    const isFilenameValid = checkInvalidChars(formattedNodeName);
+    if (!isFilenameValid.isValid) {
+      new Notice(`${isFilenameValid.error}`, 5000);
+      return;
+    }
 
     const newFile = await this.createDiscourseNode(formattedNodeName, nodeType);
     if (newFile) {

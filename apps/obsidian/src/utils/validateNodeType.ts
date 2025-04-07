@@ -1,12 +1,14 @@
 import { DiscourseNode } from "~/types";
 
+type ValidationResult = {
+  isValid: boolean;
+  error?: string;
+};
+
 export function validateNodeFormat(
   format: string,
   nodeTypes: DiscourseNode[],
-): {
-  isValid: boolean;
-  error?: string;
-} {
+): ValidationResult {
   if (!format) {
     return {
       isValid: false,
@@ -28,17 +30,35 @@ export function validateNodeFormat(
     };
   }
 
-  const { isValid, error } = validateFormatUniqueness(nodeTypes);
-  if (!isValid) {
-    return { isValid: false, error };
+  const invalidCharsResult = checkInvalidChars(format);
+  if (!invalidCharsResult.isValid) {
+    return invalidCharsResult;
+  }
+
+  const uniquenessResult = validateFormatUniqueness(nodeTypes);
+  if (!uniquenessResult.isValid) {
+    return uniquenessResult;
   }
 
   return { isValid: true };
 }
 
+export const checkInvalidChars = (format: string): ValidationResult => {
+  const INVALID_FILENAME_CHARS_REGEX = /[#^\[\]|]/;
+  const invalidCharMatch = format.match(INVALID_FILENAME_CHARS_REGEX);
+  if (invalidCharMatch) {
+    return {
+      isValid: false,
+      error: `Node contains invalid character: ${invalidCharMatch[0]}. Characters #, ^, [, ], | cannot be used in filenames.`,
+    };
+  }
+
+  return { isValid: true };
+};
+
 const validateFormatUniqueness = (
   nodeTypes: DiscourseNode[],
-): { isValid: boolean; error?: string } => {
+): ValidationResult => {
   const isDuplicate =
     new Set(nodeTypes.map((nodeType) => nodeType.format)).size !==
     nodeTypes.length;
@@ -53,7 +73,7 @@ const validateFormatUniqueness = (
 export const validateNodeName = (
   name: string,
   nodeTypes: DiscourseNode[],
-): { isValid: boolean; error?: string } => {
+): ValidationResult => {
   if (!name || name.trim() === "") {
     return { isValid: false, error: "Name is required" };
   }
