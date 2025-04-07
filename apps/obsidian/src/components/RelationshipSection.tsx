@@ -1,10 +1,10 @@
 import { TFile, Notice } from "obsidian";
-import { useState, useRef, useEffect } from "react";
-import DiscourseGraphPlugin from "~/index";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { QueryEngine } from "~/services/QueryEngine";
 import SearchBar from "./SearchBar";
 import { DiscourseNode } from "~/types";
 import DropdownSelect from "./DropdownSelect";
+import { usePlugin } from "./PluginContext";
 
 type RelationTypeOption = {
   id: string;
@@ -13,11 +13,12 @@ type RelationTypeOption = {
 };
 
 type RelationshipSectionProps = {
-  plugin: DiscourseGraphPlugin;
   activeFile: TFile;
 };
 
-const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
+const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
+  const plugin = usePlugin();
+
   const [selectedRelationType, setSelectedRelationType] = useState<string>("");
   const [selectedNode, setSelectedNode] = useState<TFile | null>(null);
   const [isAddingRelation, setIsAddingRelation] = useState(false);
@@ -70,7 +71,7 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
     setCompatibleNodeTypes(compatibleNodeTypes);
   }, [selectedRelationType, activeNodeTypeId, plugin.settings]);
 
-  const getAvailableRelationTypes = () => {
+  const getAvailableRelationTypes = useCallback(() => {
     if (!activeNodeTypeId) return [];
 
     const options: RelationTypeOption[] = [];
@@ -104,9 +105,12 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
     });
 
     return options;
-  };
+  }, [activeNodeTypeId, plugin.settings]);
 
-  const availableRelationTypes = getAvailableRelationTypes();
+  const availableRelationTypes = useMemo(
+    () => getAvailableRelationTypes(),
+    [getAvailableRelationTypes],
+  );
 
   // Auto-select the relation type if there's only one option
   useEffect(() => {
@@ -119,60 +123,67 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
     }
   }, [availableRelationTypes, selectedRelationType]);
 
-  const searchNodes = async (query: string): Promise<TFile[]> => {
-    if (!queryEngineRef.current) {
-      setSearchError("Search engine not initialized");
-      return [];
-    }
-
-    setSearchError(null);
-    try {
-      if (!activeNodeTypeId) {
-        setSearchError("Active file does not have a node type");
+  const searchNodes = useCallback(
+    async (query: string): Promise<TFile[]> => {
+      if (!queryEngineRef.current) {
+        setSearchError("Search engine not initialized");
         return [];
       }
 
-      const relationTypeIds = availableRelationTypes.map((option) => option.id);
-      const allCompatibleNodeTypeIds: string[] = [];
-
-      const filteredRelations = plugin.settings.discourseRelations.filter(
-        (relation) =>
-          relationTypeIds.includes(relation.relationshipTypeId) &&
-          (relation.sourceId === activeNodeTypeId ||
-            relation.destinationId === activeNodeTypeId),
-      );
-
-      // Extract the compatible node types (either source or destination, depending on the relation)
-      filteredRelations.forEach((relation) => {
-        const compatibleNodeTypeId =
-          relation.sourceId === activeNodeTypeId
-            ? relation.destinationId
-            : relation.sourceId;
-
-        if (!allCompatibleNodeTypeIds.includes(compatibleNodeTypeId)) {
-          allCompatibleNodeTypeIds.push(compatibleNodeTypeId);
+      setSearchError(null);
+      try {
+        if (!activeNodeTypeId) {
+          setSearchError("Active file does not have a node type");
+          return [];
         }
-      });
 
-      const results = await queryEngineRef.current?.searchCompatibleNodeByTitle(
-        query,
-        2,
-        allCompatibleNodeTypeIds,
-        activeFile,
-      );
+        const relationTypeIds = availableRelationTypes.map(
+          (option) => option.id,
+        );
+        const allCompatibleNodeTypeIds: string[] = [];
 
-      if (results.length === 0 && query.length >= 2) {
-        setSearchError("No matching nodes found. Try a different search term.");
+        const filteredRelations = plugin.settings.discourseRelations.filter(
+          (relation) =>
+            relationTypeIds.includes(relation.relationshipTypeId) &&
+            (relation.sourceId === activeNodeTypeId ||
+              relation.destinationId === activeNodeTypeId),
+        );
+
+        // Extract the compatible node types (either source or destination, depending on the relation)
+        filteredRelations.forEach((relation) => {
+          const compatibleNodeTypeId =
+            relation.sourceId === activeNodeTypeId
+              ? relation.destinationId
+              : relation.sourceId;
+
+          if (!allCompatibleNodeTypeIds.includes(compatibleNodeTypeId)) {
+            allCompatibleNodeTypeIds.push(compatibleNodeTypeId);
+          }
+        });
+
+        const results =
+          await queryEngineRef.current?.searchCompatibleNodeByTitle(
+            query,
+            allCompatibleNodeTypeIds,
+            activeFile,
+          );
+
+        if (results.length === 0 && query.length >= 2) {
+          setSearchError(
+            "No matching nodes found. Try a different search term.",
+          );
+        }
+
+        return results;
+      } catch (error) {
+        setSearchError(
+          error instanceof Error ? error.message : "Unknown search error",
+        );
+        return [];
       }
-
-      return results;
-    } catch (error) {
-      setSearchError(
-        error instanceof Error ? error.message : "Unknown search error",
-      );
-      return [];
-    }
-  };
+    },
+    [activeFile, activeNodeTypeId, availableRelationTypes, plugin.settings],
+  );
 
   const renderRelationTypeItem = (
     option: RelationTypeOption,
@@ -205,7 +216,7 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
     suggestionEl.createEl("div", { text: file.basename });
   };
 
-  const addRelationship = async () => {
+  const addRelationship = useCallback(async () => {
     if (!selectedRelationType || !selectedNode) return;
 
     const relationType = plugin.settings.relationTypes.find(
@@ -243,7 +254,13 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
         `Failed to add relationship: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
-  };
+  }, [
+    activeFile,
+    plugin.app.fileManager,
+    plugin.settings.relationTypes,
+    selectedNode,
+    selectedRelationType,
+  ]);
 
   const resetState = () => {
     setIsAddingRelation(false);
@@ -286,9 +303,7 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
           options={availableRelationTypes}
           onSelect={(option) => option && setSelectedRelationType(option.id)}
           placeholder="Select relation type"
-          app={plugin.app}
           getItemText={(option) => option.label}
-          renderItem={renderRelationTypeItem}
         />
       </div>
 
@@ -333,13 +348,11 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
           Node to link with:
         </label>
         <SearchBar<TFile>
-          app={plugin.app}
           asyncSearch={searchNodes}
           onSelect={setSelectedNode}
           placeholder="Search nodes (type at least 2 characters)..."
           getItemText={(node) => node.basename}
           renderItem={renderNodeItem}
-          minQueryLength={2}
         />
         {searchError && (
           <div
@@ -396,12 +409,11 @@ const AddRelationship = ({ plugin, activeFile }: RelationshipSectionProps) => {
 };
 
 export const RelationshipSection = ({
-  plugin,
   activeFile,
 }: RelationshipSectionProps) => {
   return (
     <div className="relationship-manager">
-      <AddRelationship plugin={plugin} activeFile={activeFile} />
+      <AddRelationship activeFile={activeFile} />
     </div>
   );
 };

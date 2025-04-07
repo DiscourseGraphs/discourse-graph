@@ -1,5 +1,6 @@
 import { AbstractInputSuggest, App } from "obsidian";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { usePlugin } from "./PluginContext";
 
 class GenericSuggest<T> extends AbstractInputSuggest<T> {
   private getItemTextFn: (item: T) => string;
@@ -69,22 +70,20 @@ class GenericSuggest<T> extends AbstractInputSuggest<T> {
 const SearchBar = <T,>({
   onSelect,
   placeholder,
-  app,
   getItemText,
   renderItem,
   asyncSearch,
-  minQueryLength = 0,
 }: {
   onSelect: (item: T | null) => void;
   placeholder?: string;
-  app: App;
   getItemText: (item: T) => string;
   renderItem?: (item: T, el: HTMLElement) => void;
   asyncSearch: (query: string) => Promise<T[]>;
-  minQueryLength?: number;
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<T | null>(null);
+  const plugin = usePlugin();
+  const app = plugin.app;
 
   useEffect(() => {
     if (inputRef.current && app) {
@@ -99,20 +98,19 @@ const SearchBar = <T,>({
           getItemText,
           renderItem,
           asyncSearch,
-          minQueryLength,
         },
       );
       return () => suggest.close();
     }
-  }, [onSelect, app, getItemText, renderItem, asyncSearch, minQueryLength]);
+  }, [onSelect, app, getItemText, renderItem, asyncSearch]);
 
-  const clearSelection = () => {
+  const clearSelection = useCallback(() => {
     if (inputRef.current) {
       inputRef.current.value = "";
       setSelected(null);
       onSelect(null);
     }
-  };
+  }, [onSelect]);
 
   return (
     <div style={{ position: "relative" }}>

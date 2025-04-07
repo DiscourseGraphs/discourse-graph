@@ -4,13 +4,15 @@ import DiscourseGraphPlugin from "~/index";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
+import { PluginProvider, usePlugin } from "~/components/PluginContext";
 
 type DiscourseContextProps = {
   activeFile: TFile | null;
-  plugin: DiscourseGraphPlugin;
 };
 
-const DiscourseContext = ({ activeFile, plugin }: DiscourseContextProps) => {
+const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
+  const plugin = usePlugin();
+
   const extractContentFromTitle = (
     format: string | undefined,
     title: string,
@@ -79,11 +81,7 @@ const DiscourseContext = ({ activeFile, plugin }: DiscourseContextProps) => {
           >
             Relationships
           </h5>
-          <RelationshipSection
-            key={activeFile.path}
-            plugin={plugin}
-            activeFile={activeFile}
-          />
+          <RelationshipSection key={activeFile.path} activeFile={activeFile} />
         </div>
       </>
     );
@@ -148,7 +146,9 @@ export class DiscourseContextView extends ItemView {
   updateView(): void {
     if (this.root) {
       this.root.render(
-        <DiscourseContext activeFile={this.activeFile} plugin={this.plugin} />,
+        <PluginProvider plugin={this.plugin}>
+          <DiscourseContext activeFile={this.activeFile} />
+        </PluginProvider>,
       );
     }
   }

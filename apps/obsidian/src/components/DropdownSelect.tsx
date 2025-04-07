@@ -1,22 +1,18 @@
-import { App, DropdownComponent } from "obsidian";
+import { DropdownComponent } from "obsidian";
 import { useEffect, useRef } from "react";
 
 type DropdownSelectProps<T> = {
   options: T[];
   onSelect: (item: T | null) => void;
   placeholder?: string;
-  app: App;
   getItemText: (item: T) => string;
-  renderItem?: (item: T, el: HTMLElement) => void;
 };
 
 const DropdownSelect = <T,>({
   options,
   onSelect,
   placeholder = "Select...",
-  app,
   getItemText,
-  renderItem,
 }: DropdownSelectProps<T>) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<DropdownComponent | null>(null);

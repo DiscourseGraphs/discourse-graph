@@ -1,7 +1,6 @@
 import { TFile, App } from "obsidian";
-import { getAPI } from "obsidian-dataview";
 
-// This is a workaround to get the datacore API. 
+// This is a workaround to get the datacore API.
 // TODO: Remove once we can use datacore npm package
 type AppWithPlugins = App & {
   plugins: {
@@ -16,6 +15,7 @@ type AppWithPlugins = App & {
 export class QueryEngine {
   private app: App;
   private dc: any;
+  private readonly MIN_QUERY_LENGTH = 2;
 
   constructor(app: App) {
     const appWithPlugins = app as AppWithPlugins;
@@ -25,11 +25,10 @@ export class QueryEngine {
 
   async searchCompatibleNodeByTitle(
     query: string,
-    minQueryLength: number = 2,
     compatibleNodeTypeIds: string[],
-    excludeFile?: TFile,
+    activeFile: TFile,
   ): Promise<TFile[]> {
-    if (!query || query.length < minQueryLength) {
+    if (!query || query.length < this.MIN_QUERY_LENGTH) {
       return [];
     }
     if (!this.dc) {
@@ -58,9 +57,7 @@ export class QueryEngine {
           }
           return dcFile as TFile;
         })
-        .filter(
-          (file: TFile) => !excludeFile || file.path !== excludeFile.path,
-        );
+        .filter((file: TFile) => file.path !== activeFile.path);
 
       return finalResults;
     } catch (error) {
