@@ -5,7 +5,7 @@ import {
   CONTENT_TYPE_TEXT,
   RequestBody,
   LLMProviderConfig,
-} from "../../types/llm";
+} from "~/types/llm";
 
 function getNestedProperty(obj: any, path: string): any {
   return path.split(".").reduce((prev, curr) => {

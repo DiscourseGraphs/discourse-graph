@@ -1,4 +1,4 @@
-import { LLMProviderConfig, Message, Settings } from "../../types/llm";
+import { LLMProviderConfig, Message, Settings } from "~/types/llm";
 
 export const openaiConfig: LLMProviderConfig = {
   apiKeyEnvVar: "OPENAI_API_KEY",
