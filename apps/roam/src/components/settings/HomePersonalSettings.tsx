@@ -9,6 +9,7 @@ import {
   previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
 import { hideFeedbackButton, showFeedbackButton } from "../BirdEatsBugs";
+import renderToast from "roamjs-components/components/Toast";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -99,22 +100,13 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           } else {
             showFeedbackButton();
           }
-
-          if (
-            !document.getElementById("birdeatsbug-default-button") &&
-            !document.getElementById("feedback-button-hiding-styles")
-          ) {
-            alert(
-              "Please refresh the page for this change to take full effect.",
-            );
-          }
         }}
         labelElement={
           <>
             Hide Feedback Button
             <Description
               description={
-                "Hide the 'Send feedback' button at the bottom right of the screen. Changes take full effect after page refresh."
+                "Hide the 'Send feedback' button at the bottom right of the screen."
               }
             />
           </>

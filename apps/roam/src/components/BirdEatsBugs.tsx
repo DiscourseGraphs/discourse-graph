@@ -41,15 +41,15 @@ declare global {
   }
 }
 
-const addFeedbackButtonHidingStyles = () => {
-  const styleId = "feedback-button-hiding-styles";
+const STYLE_ID = "feedback-button-hiding-styles";
 
-  if (document.getElementById(styleId)) {
+const addFeedbackButtonHidingStyles = () => {
+  if (document.getElementById(STYLE_ID)) {
     return;
   }
 
   const styleElement = document.createElement("style");
-  styleElement.id = styleId;
+  styleElement.id = STYLE_ID;
   styleElement.textContent = `
     #birdeatsbug-sdk,
     #birdeatsbug-default-button {
@@ -61,24 +61,21 @@ const addFeedbackButtonHidingStyles = () => {
 };
 
 const removeFeedbackButtonHidingStyles = () => {
-  const styleElement = document.getElementById("feedback-button-hiding-styles");
+  const styleElement = document.getElementById(STYLE_ID);
   if (styleElement) {
     styleElement.remove();
   }
 };
 
 export const initFeedbackWidget = (
-  extensionAPI?: OnloadArgs["extensionAPI"],
+  extensionAPI: OnloadArgs["extensionAPI"],
 ): void => {
-  if (
-    extensionAPI &&
-    (extensionAPI.settings.get("hide-feedback-button") as boolean)
-  ) {
+  if (extensionAPI.settings.get("hide-feedback-button") as boolean) {
     addFeedbackButtonHidingStyles();
     return;
-  } else if (extensionAPI) {
-    removeFeedbackButtonHidingStyles();
   }
+
+  removeFeedbackButtonHidingStyles();
 
   const birdeatsbug = (window.birdeatsbug =
     window.birdeatsbug || []) as FeedbackWidget;
