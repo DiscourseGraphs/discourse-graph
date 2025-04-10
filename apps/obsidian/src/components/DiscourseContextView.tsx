@@ -2,14 +2,17 @@ import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import DiscourseGraphPlugin from "~/index";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
+import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
+import { PluginProvider, usePlugin } from "~/components/PluginContext";
 
-interface DiscourseContextProps {
+type DiscourseContextProps = {
   activeFile: TFile | null;
-  plugin: DiscourseGraphPlugin;
-}
+};
 
-const DiscourseContext = ({ activeFile, plugin }: DiscourseContextProps) => {
+const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
+  const plugin = usePlugin();
+
   const extractContentFromTitle = (
     format: string | undefined,
     title: string,
@@ -47,24 +50,40 @@ const DiscourseContext = ({ activeFile, plugin }: DiscourseContextProps) => {
       return <div>Unknown node type: {frontmatter.nodeTypeId}</div>;
     }
     return (
-      <div>
-        <div
-          style={{
-            fontSize: "1.2em",
-            fontWeight: "bold",
-            marginBottom: "8px",
-          }}
-        >
-          {nodeType.name || "Unnamed Node Type"}
+      <>
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div
+            style={{
+              fontSize: "1.2em",
+              fontWeight: "bold",
+              marginBottom: "8px",
+            }}
+          >
+            {nodeType.name || "Unnamed Node Type"}
+          </div>
+
+          {nodeType.format && (
+            <div style={{ marginBottom: "4px" }}>
+              <span style={{ fontWeight: "bold" }}>Content: </span>
+              {extractContentFromTitle(nodeType.format, activeFile.basename)}
+            </div>
+          )}
         </div>
 
-        {nodeType.format && (
-          <div style={{ marginBottom: "4px" }}>
-            <span style={{ fontWeight: "bold" }}>Content: </span>
-            {extractContentFromTitle(nodeType.format, activeFile.basename)}
-          </div>
-        )}
-      </div>
+        <div className="relationships-section">
+          <h5
+            style={{
+              marginTop: "1rem",
+              marginBottom: "0.75rem",
+              borderBottom: "1px solid var(--background-modifier-border)",
+              paddingBottom: "0.25rem",
+            }}
+          >
+            Relationships
+          </h5>
+          <RelationshipSection key={activeFile.path} activeFile={activeFile} />
+        </div>
+      </>
     );
   };
 
@@ -127,7 +146,9 @@ export class DiscourseContextView extends ItemView {
   updateView(): void {
     if (this.root) {
       this.root.render(
-        <DiscourseContext activeFile={this.activeFile} plugin={this.plugin} />,
+        <PluginProvider plugin={this.plugin}>
+          <DiscourseContext activeFile={this.activeFile} />
+        </PluginProvider>,
       );
     }
   }
