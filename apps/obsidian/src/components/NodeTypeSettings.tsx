@@ -146,7 +146,7 @@ const NodeTypeSettings = () => {
               />
               <input
                 type="text"
-                placeholder="Format (e.g., [CLM] - {content})"
+                placeholder="Format (e.g., CLM - {content})"
                 value={nodeType.format}
                 onChange={(e) =>
                   handleNodeTypeChange(index, "format", e.target.value)
