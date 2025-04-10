@@ -2,12 +2,16 @@ import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
-import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
+import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
   previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
+import {
+  hideFeedbackButton,
+  showFeedbackButton,
+} from "~/components/BirdEatsBugs";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -80,6 +84,31 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             <Description
               description={
                 "Whether or not to display page previews when hovering over page refs"
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={
+          extensionAPI.settings.get("hide-feedback-button") as boolean
+        }
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          extensionAPI.settings.set("hide-feedback-button", target.checked);
+
+          if (target.checked) {
+            hideFeedbackButton();
+          } else {
+            showFeedbackButton();
+          }
+        }}
+        labelElement={
+          <>
+            Hide Feedback Button
+            <Description
+              description={
+                "Hide the 'Send feedback' button at the bottom right of the screen."
               }
             />
           </>

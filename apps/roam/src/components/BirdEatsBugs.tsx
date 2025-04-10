@@ -1,4 +1,5 @@
 import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
+import { OnloadArgs } from "roamjs-components/types";
 
 type FeedbackWidget = {
   initialize?: boolean;
@@ -40,7 +41,42 @@ declare global {
   }
 }
 
-export const initFeedbackWidget = (): void => {
+const STYLE_ID = "feedback-button-hiding-styles";
+
+const addFeedbackButtonHidingStyles = () => {
+  if (document.getElementById(STYLE_ID)) {
+    return;
+  }
+
+  const styleElement = document.createElement("style");
+  styleElement.id = STYLE_ID;
+  styleElement.textContent = `
+    #birdeatsbug-sdk,
+    #birdeatsbug-default-button {
+      display: none !important;
+    }
+  `;
+
+  document.head.appendChild(styleElement);
+};
+
+const removeFeedbackButtonHidingStyles = () => {
+  const styleElement = document.getElementById(STYLE_ID);
+  if (styleElement) {
+    styleElement.remove();
+  }
+};
+
+export const initFeedbackWidget = (
+  extensionAPI: OnloadArgs["extensionAPI"],
+): void => {
+  if (extensionAPI.settings.get("hide-feedback-button") as boolean) {
+    addFeedbackButtonHidingStyles();
+    return;
+  }
+
+  removeFeedbackButtonHidingStyles();
+
   const birdeatsbug = (window.birdeatsbug =
     window.birdeatsbug || []) as FeedbackWidget;
 
@@ -175,3 +211,6 @@ export const initFeedbackWidget = (): void => {
     });
   }
 };
+
+export const hideFeedbackButton = addFeedbackButtonHidingStyles;
+export const showFeedbackButton = removeFeedbackButtonHidingStyles;
