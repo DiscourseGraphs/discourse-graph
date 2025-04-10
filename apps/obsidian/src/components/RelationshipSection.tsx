@@ -142,7 +142,6 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
           return [];
         }
 
-        // Use the already calculated compatibleNodeTypes state
         if (compatibleNodeTypes.length === 0) {
           setSearchError(
             "No compatible node types available for the selected relation type",
@@ -150,7 +149,6 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
           return [];
         }
 
-        // Extract the IDs from the compatibleNodeTypes
         const nodeTypeIdsToSearch = compatibleNodeTypes.map((type) => type.id);
 
         const results =

@@ -73,7 +73,6 @@ const SearchBar = <T,>({
   getItemText,
   renderItem,
   asyncSearch,
-  minQueryLength = 0,
   disabled = false,
 }: {
   onSelect: (item: T | null) => void;
@@ -81,7 +80,6 @@ const SearchBar = <T,>({
   getItemText: (item: T) => string;
   renderItem?: (item: T, el: HTMLElement) => void;
   asyncSearch: (query: string) => Promise<T[]>;
-  minQueryLength?: number;
   disabled?: boolean;
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
