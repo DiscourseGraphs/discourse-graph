@@ -12,7 +12,7 @@ import apiGet from "roamjs-components/util/apiGet";
 import apiPost from "roamjs-components/util/apiPost";
 import { getNodeEnv } from "roamjs-components/util/env";
 import getExtensionApi from "roamjs-components/util/extensionApiContext";
-import { setSetting } from "~/utils/extensionSettings";
+import { getSetting, setSetting } from "~/utils/extensionSettings";
 
 export type UserReposResponse = {
   data: [
@@ -45,7 +45,7 @@ export const fetchInstallationStatus = async () => {
       domain: "https://api.github.com",
       path: "user/installations",
       headers: {
-        Authorization: `token ${localStorageGet("github-oauth")}`,
+        Authorization: `token ${getSetting("github-oauth")}`,
       },
     });
     const installations = res.installations;
@@ -75,14 +75,12 @@ export const ExportGithub = ({
   const [repos, setRepos] = useState<UserRepos>(initialRepos);
   const [state, setState] = useState("");
   const [gitHubAccessToken, _setGitHubAccessToken] = useState<string>(
-    localStorageGet("github-oauth"),
+    getSetting("github-oauth"),
   );
   const [githubDestination, _setGithubDestination] =
-    useState<GitHubDestination>(
-      (localStorageGet("github-destination") as GitHubDestination) || "File",
-    );
-  const [selectedRepo, _setSelectedRepo] = useState(
-    localStorageGet("github-repo"),
+    useState<GitHubDestination>(getSetting("github-destination") || "File");
+  const [selectedRepo, _setSelectedRepo] = useState<string>(
+    getSetting("github-repo"),
   );
   const showGitHubLogin = isGitHubAppInstalled && !gitHubAccessToken;
   const repoAndDestinationSelectEnabled =

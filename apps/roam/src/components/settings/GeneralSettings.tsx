@@ -40,7 +40,13 @@ const DiscourseGraphHome = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         uid={settings.githubSync.uid}
         value={settings.githubSync.value}
         options={{
-          onChange: (checked) => toggleGitHubSync(checked, onloadArgs),
+          onChange: async (checked) => {
+            await toggleGitHubSync(checked, onloadArgs);
+            setTimeout(() => {
+              // Wait for the GitHub Sync flag block to be updated
+              refreshConfigTree();
+            }, 250);
+          },
         }}
       />
     </div>

@@ -119,7 +119,7 @@ const ExportDialog: ExportDialogComponent = ({
   initialExportDestination,
 }) => {
   const [selectedRepo, setSelectedRepo] = useState<string>(
-    getSetting<string>("selected-repo", ""),
+    getSetting("selected-repo"),
   );
   const exportId = useMemo(() => nanoid(), []);
   useEffect(() => {
@@ -171,7 +171,7 @@ const ExportDialog: ExportDialogComponent = ({
   }, [initialPanel]);
   const [includeDiscourseContext, setIncludeDiscourseContext] = useState(false);
   const [gitHubAccessToken, setGitHubAccessToken] = useState<string | null>(
-    getSetting<string | null>("oauth-github", null),
+    getSetting<string>("oauth-github"),
   );
 
   const [canSendToGitHub, setCanSendToGitHub] = useState(false);
@@ -185,8 +185,8 @@ const ExportDialog: ExportDialogComponent = ({
     content: string;
     setError: (error: string) => void;
   }): Promise<{ status: number }> => {
-    const gitHubAccessToken = localStorageGet("github-oauth");
-    const selectedRepo = localStorageGet("github-repo");
+    const gitHubAccessToken = getSetting("github-oauth");
+    const selectedRepo = getSetting("github-repo");
 
     const encoder = new TextEncoder();
     const uint8Array = encoder.encode(content);
@@ -233,8 +233,8 @@ const ExportDialog: ExportDialogComponent = ({
     setError: (error: string) => void;
     pageUid: string;
   }): Promise<{ status: number }> => {
-    const gitHubAccessToken = localStorageGet("github-oauth");
-    const selectedRepo = localStorageGet("github-repo");
+    const gitHubAccessToken = getSetting("github-oauth");
+    const selectedRepo = getSetting("github-repo");
     try {
       // https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28#create-an-issue
       const response = await apiPost({
@@ -253,7 +253,7 @@ const ExportDialog: ExportDialogComponent = ({
       });
       if (response.status === 401) {
         setError("Authentication failed. Please log in again.");
-        localStorageSet("github-oauth", "");
+        setSetting("github-oauth", "");
         return { status: 401 };
       }
 
@@ -699,7 +699,7 @@ const ExportDialog: ExportDialogComponent = ({
                     if (activeExportDestination === "github") {
                       const { title, content } = files[0];
                       const githubDestination =
-                        localStorageGet("github-destination");
+                        getSetting("github-destination");
                       try {
                         let status;
                         if (githubDestination === "File") {
