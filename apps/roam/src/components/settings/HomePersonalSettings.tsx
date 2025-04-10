@@ -2,14 +2,16 @@ import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
-import { NodeMenuTriggerComponent } from "../DiscourseNodeMenu";
+import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
   previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
-import { hideFeedbackButton, showFeedbackButton } from "../BirdEatsBugs";
-import renderToast from "roamjs-components/components/Toast";
+import {
+  hideFeedbackButton,
+  showFeedbackButton,
+} from "~/components/BirdEatsBugs";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
