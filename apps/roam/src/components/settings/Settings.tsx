@@ -16,6 +16,7 @@ import NodeConfig from "./NodeConfig";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import HomePersonalSettings from "./HomePersonalSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
+import { FeedbackWidget } from "~/components/BirdEatsBugs";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -193,8 +194,8 @@ export const SettingsDialog = ({
       <Button
         style={{ backgroundColor: "#1976d2" }}
         onClick={() => {
-          // @ts-ignore - Directly trigger the feedback tool
-          window.birdeatsbug.trigger();
+          const birdeatsbug = window.birdeatsbug as FeedbackWidget;
+          birdeatsbug.trigger?.();
         }}
         className="absolute bottom-4 right-4"
         icon={

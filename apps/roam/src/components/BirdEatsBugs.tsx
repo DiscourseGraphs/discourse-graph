@@ -1,7 +1,7 @@
 import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
 import { OnloadArgs } from "roamjs-components/types";
 
-type FeedbackWidget = {
+export type FeedbackWidget = {
   initialize?: boolean;
   invoked?: boolean;
   methods?: string[];
@@ -33,6 +33,7 @@ type FeedbackWidget = {
   }) => void;
   [key: string]: any;
   length?: number;
+  trigger?: () => FeedbackWidget;
 };
 
 declare global {
