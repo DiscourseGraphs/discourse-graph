@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import {
-  Classes,
-  Dialog,
-  Tabs,
-  Tab,
-  Button,
-  TabId,
-  Intent,
-} from "@blueprintjs/core";
+import { Classes, Dialog, Tabs, Tab, Button, TabId } from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import DiscourseRelationConfigPanel from "./DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
@@ -199,7 +191,6 @@ export const SettingsDialog = ({
         </Tabs>
       </div>
       <Button
-        intent={Intent.PRIMARY}
         style={{ backgroundColor: "#1976d2" }}
         onClick={() => {
           // @ts-ignore - Directly trigger the feedback tool
