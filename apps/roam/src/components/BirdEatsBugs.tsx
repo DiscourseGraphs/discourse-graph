@@ -51,7 +51,6 @@ const addFeedbackButtonHidingStyles = () => {
   const styleElement = document.createElement("style");
   styleElement.id = STYLE_ID;
   styleElement.textContent = `
-    #birdeatsbug-sdk,
     #birdeatsbug-default-button {
       display: none !important;
     }
