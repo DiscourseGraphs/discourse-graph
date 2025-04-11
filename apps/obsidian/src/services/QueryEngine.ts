@@ -27,7 +27,7 @@ export class QueryEngine {
     query: string,
     compatibleNodeTypeIds: string[],
     activeFile: TFile,
-    selectedRelationTypeId: string,
+    selectedRelationType: string,
   ): Promise<TFile[]> {
     if (!query || query.length < this.MIN_QUERY_LENGTH) {
       return [];
@@ -49,12 +49,11 @@ export class QueryEngine {
         return this.fuzzySearch(p.$name, query);
       });
 
-      // Get files with existing relationships of the specified type
       let existingRelatedFiles: string[] = [];
-      if (selectedRelationTypeId) {
+      if (selectedRelationType) {
         const fileCache = this.app.metadataCache.getFileCache(activeFile);
         const existingRelations =
-          fileCache?.frontmatter?.[selectedRelationTypeId] || [];
+          fileCache?.frontmatter?.[selectedRelationType] || [];
 
         existingRelatedFiles = existingRelations.map((relation: string) => {
           const match = relation.match(/\[\[(.*?)(?:\|.*?)?\]\]/);
@@ -75,7 +74,7 @@ export class QueryEngine {
           if (file.path === activeFile.path) return false;
 
           if (
-            selectedRelationTypeId &&
+            selectedRelationType &&
             existingRelatedFiles.some((existingFile) => {
               return (
                 file.basename === existingFile.replace(/\.md$/, "") ||
