@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Classes, Dialog, Tabs, Tab, Button, TabId } from "@blueprintjs/core";
+import {
+  Classes,
+  Dialog,
+  Tabs,
+  Tab,
+  Button,
+  TabId,
+  Intent,
+} from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import DiscourseRelationConfigPanel from "./DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
@@ -16,6 +24,7 @@ import NodeConfig from "./NodeConfig";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import HomePersonalSettings from "./HomePersonalSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
+import { FeedbackWidget } from "~/components/BirdEatsBugs";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -190,6 +199,17 @@ export const SettingsDialog = ({
           />
         </Tabs>
       </div>
+      <Button
+        icon="send-message"
+        intent={Intent.PRIMARY}
+        onClick={() => {
+          const birdeatsbug = window.birdeatsbug as FeedbackWidget;
+          birdeatsbug.trigger?.();
+        }}
+        className="absolute bottom-4 left-4"
+      >
+        Send Feedback
+      </Button>
       {/* <Button
         icon="cross"
         minimal
