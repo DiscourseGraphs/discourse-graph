@@ -48,8 +48,7 @@ import {
 } from "roamjs-components/components/ConfigPanels/types";
 import CustomPanel from "roamjs-components/components/ConfigPanels/CustomPanel";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
-import CommentsQuery from "./GitHubSyncCommentsQuery";
-import getSubTree from "roamjs-components/util/getSubTree";
+
 import isFlagEnabled from "~/utils/isFlagEnabled";
 
 const CommentUidCache = new Set<string>();
@@ -110,22 +109,40 @@ const getRoamCommentsContainerUid = async ({
   extensionAPI: OnloadArgs["extensionAPI"];
 }) => {
   const pageTitle = getPageTitleByPageUid(pageUid);
-  const configUid = getPageUidByPageTitle(CONFIG_PAGE);
-  const configTree = getBasicTreeByParentUid(configUid);
-  const queryNode = getSubTree({
-    tree: configTree,
-    key: "Comments Block",
-  });
-  if (!queryNode) {
+
+  // Find the node type that matches this page
+  const discourseNodes = getDiscourseNodes();
+  let matchingNode;
+
+  for (const node of discourseNodes) {
+    if (node.githubSync) {
+      const isMatch = matchDiscourseNode({
+        format: node.format || "",
+        specification: node.specification || [],
+        text: node.text || "",
+        title: pageTitle,
+      });
+
+      if (isMatch) {
+        matchingNode = node;
+        break;
+      }
+    }
+  }
+
+  if (!matchingNode || !matchingNode.githubCommentsQueryUid) {
     renderToast({
       id: "github-issue-comments",
-      content: `Comments Block query not set. Set it in ${CONFIG_PAGE}`,
+      content:
+        "Comments Block query not set. Configure it in the Discourse Graph settings.",
     });
     return;
   }
+
+  // Use the node-specific query
   const results = await runQuery({
     extensionAPI,
-    parentUid: queryNode.uid,
+    parentUid: matchingNode.githubCommentsQueryUid,
     inputs: { NODETEXT: pageTitle, NODEUID: pageUid },
   });
 
@@ -250,30 +267,22 @@ export const insertNewCommentsFromGitHub = async ({
     });
   }
 };
+
 export const isGitHubSyncPage = (pageTitle: string) => {
-  if (!enabled) return;
-  const gitHubNodeResult = window.roamAlphaAPI.data.fast.q(`[:find
-    (pull ?node [:block/string])
-    :where
-      [?roamjsgithub-sync :node/title "roam/js/github-sync"]
-      [?node :block/page ?roamjsgithub-sync]
-      [?p :block/children ?node]
-    (or     [?p :block/string ?p-String]
-      [?p :node/title ?p-String])
-    [(clojure.string/includes? ?p-String "Node Select")]
-    ]`) as [PullBlock][];
-  const nodeText = gitHubNodeResult[0]?.[0]?.[":block/string"] || "";
-  if (!nodeText) return;
+  // Only check pages if the feature is globally enabled
+  if (!enabled) return false;
 
   const discourseNodes = getDiscourseNodes();
-  const selectedNode = discourseNodes.find((node) => node.text === nodeText);
-  const isPageTypeOfNode = matchDiscourseNode({
-    format: selectedNode?.format || "",
-    specification: selectedNode?.specification || [],
-    text: selectedNode?.text || "",
-    title: pageTitle,
-  });
-  return isPageTypeOfNode;
+  return discourseNodes.some(
+    (node) =>
+      node.githubSync &&
+      matchDiscourseNode({
+        format: node.format || "",
+        specification: node.specification || [],
+        text: node.text || "",
+        title: pageTitle,
+      }),
+  );
 };
 
 export const renderGitHubSyncPage = async ({
@@ -942,36 +951,6 @@ const initializeGitHubSync = async (onloadArgs: OnloadArgs) => {
                         </div>
                       );
                     },
-                  },
-                } as Field<CustomField>,
-                {
-                  // @ts-ignore
-                  Panel: SelectPanel,
-                  title: "Node Select",
-                  description:
-                    "Select the node type to sync with GitHub Issues",
-                  options: {
-                    items: [
-                      "None",
-                      ...getDiscourseNodes()
-                        .map((node) => node.text)
-                        .filter((text) => text !== "Block"),
-                    ],
-                  },
-                  defaultValue: "None",
-                },
-                // @ts-ignore
-                {
-                  Panel: CustomPanel,
-                  title: "Comments Block",
-                  description:
-                    "Where comments are synced to. This will fire when the node is loaded. You have access to ':in NODETEXT' and ':in NODEUID' as variables for the current node.",
-                  options: {
-                    component: ({ uid }) =>
-                      React.createElement(CommentsQuery, {
-                        parentUid: uid,
-                        onloadArgs,
-                      }),
                   },
                 } as Field<CustomField>,
               ],

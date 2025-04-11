@@ -12,6 +12,8 @@ import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
+import CommentsQuery from "../GitHubSyncCommentsQuery";
+import { getBlockUidIfExists } from "~/utils/getBlockIdIfExists";
 
 const NodeConfig = ({
   node,
@@ -31,7 +33,10 @@ const NodeConfig = ({
   const templateUid = getUid("Template");
   const overlayUid = getUid("Overlay");
   const canvasUid = getUid("Canvas");
-  const graphOverviewUid = getUid("Graph Overview");
+  const graphOverviewUid = getBlockUidIfExists(node.type, "Graph Overview");
+  const githubSyncUid = getBlockUidIfExists(node.type, "GitHub Sync");
+
+  const githubCommentsFormatUid = getUid("Comments Block");
   const attributeNode = getSubTree({
     parentUid: node.type,
     key: "Attributes",
@@ -45,12 +50,13 @@ const NodeConfig = ({
         onChange={(id) => setSelectedTabId(id)}
         selectedTabId={selectedTabId}
         renderActiveTabPanelOnly={true}
+        className="discourse-node-tabs overflow-x-auto"
       >
         <Tab
           id="main"
           title="Main"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <TextPanel
                 title="Description"
                 description={`Describing what the ${node.text} node represents in your graph.`}
@@ -74,7 +80,7 @@ const NodeConfig = ({
           id="index"
           title="Index"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <DiscourseNodeIndex
                 node={node}
                 parentUid={node.type}
@@ -87,7 +93,7 @@ const NodeConfig = ({
           id="format"
           title="Format"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <TextPanel
                 title="Format"
                 description={`DEPRECATED - Use specification instead. The format ${node.text} pages should have.`}
@@ -112,7 +118,7 @@ const NodeConfig = ({
           id="template"
           title="Template"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <BlocksPanel
                 title="Template"
                 description={`The template that auto fills ${node.text} page when generated.`}
@@ -128,7 +134,7 @@ const NodeConfig = ({
           id="attributes"
           title="Attributes"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <DiscourseNodeAttributes uid={attributeNode.uid} />
               <SelectPanel
                 title="Overlay"
@@ -147,7 +153,7 @@ const NodeConfig = ({
           id="canvas"
           title="Canvas"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <DiscourseNodeCanvasSettings uid={canvasUid} />
               <FlagPanel
                 title="Graph Overview"
@@ -157,6 +163,46 @@ const NodeConfig = ({
                 uid={graphOverviewUid}
                 value={node.graphOverview}
               />
+            </div>
+          }
+        />
+        <Tab
+          id="github"
+          title="GitHub"
+          panel={
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
+              <div className="mb-4 rounded bg-gray-50 p-4">
+                <p className="mb-2 text-sm text-gray-600">
+                  GitHub integration allows you to sync {node.text} pages with
+                  GitHub Issues. When enabled, you can:
+                </p>
+                <ul className="list-disc pl-5 text-sm text-gray-600">
+                  <li>Send pages to GitHub as issues</li>
+                  <li>Import and sync comments from GitHub</li>
+                  <li>Configure where comments appear in the page</li>
+                </ul>
+              </div>
+              <FlagPanel
+                title="GitHub Sync"
+                description={`When enabled, ${node.text} pages can be synced with GitHub Issues.`}
+                order={0}
+                parentUid={node.type}
+                uid={githubSyncUid}
+                value={node.githubSync}
+              />
+
+              <div className="mt-4 border-t pt-4">
+                <Label>
+                  <h3 className="mb-2 text-lg font-medium">
+                    Comments Configuration
+                  </h3>
+                  <Description description="Define where GitHub Issue comments should appear on this node type. This query will run when comments are imported." />
+                  <CommentsQuery
+                    parentUid={githubCommentsFormatUid}
+                    onloadArgs={onloadArgs}
+                  />
+                </Label>
+              </div>
             </div>
           }
         />
