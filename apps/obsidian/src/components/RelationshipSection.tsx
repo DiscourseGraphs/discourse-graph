@@ -19,7 +19,8 @@ type RelationshipSectionProps = {
 const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
   const plugin = usePlugin();
 
-  const [selectedRelationType, setSelectedRelationType] = useState<string>("");
+  const [selectedRelationTypeId, setSelectedRelationTypeId] =
+    useState<string>("");
   const [selectedNode, setSelectedNode] = useState<TFile | null>(null);
   const [isAddingRelation, setIsAddingRelation] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -41,14 +42,14 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
   }, [plugin.app]);
 
   useEffect(() => {
-    if (!selectedRelationType || !activeNodeTypeId) {
+    if (!selectedRelationTypeId || !activeNodeTypeId) {
       setCompatibleNodeTypes([]);
       return;
     }
 
     const relations = plugin.settings.discourseRelations.filter(
       (relation) =>
-        relation.relationshipTypeId === selectedRelationType &&
+        relation.relationshipTypeId === selectedRelationTypeId &&
         (relation.sourceId === activeNodeTypeId ||
           relation.destinationId === activeNodeTypeId),
     );
@@ -69,7 +70,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
       .filter(Boolean) as DiscourseNode[];
 
     setCompatibleNodeTypes(compatibleNodeTypes);
-  }, [selectedRelationType, activeNodeTypeId, plugin.settings]);
+  }, [selectedRelationTypeId, activeNodeTypeId, plugin.settings]);
 
   const getAvailableRelationTypes = useCallback(() => {
     if (!activeNodeTypeId) return [];
@@ -116,12 +117,12 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
   useEffect(() => {
     if (
       availableRelationTypes.length === 1 &&
-      !selectedRelationType &&
+      !selectedRelationTypeId &&
       availableRelationTypes[0]
     ) {
-      setSelectedRelationType(availableRelationTypes[0].id);
+      setSelectedRelationTypeId(availableRelationTypes[0].id);
     }
-  }, [availableRelationTypes, selectedRelationType]);
+  }, [availableRelationTypes, selectedRelationTypeId]);
 
   const searchNodes = useCallback(
     async (query: string): Promise<TFile[]> => {
@@ -137,7 +138,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
           return [];
         }
 
-        if (!selectedRelationType) {
+        if (!selectedRelationTypeId) {
           setSearchError("Please select a relationship type first");
           return [];
         }
@@ -156,6 +157,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
             query,
             nodeTypeIdsToSearch,
             activeFile,
+            selectedRelationTypeId,
           );
 
         if (results.length === 0 && query.length >= 2) {
@@ -172,7 +174,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
         return [];
       }
     },
-    [activeFile, activeNodeTypeId, compatibleNodeTypes, selectedRelationType],
+    [activeFile, activeNodeTypeId, compatibleNodeTypes, selectedRelationTypeId],
   );
 
   const renderNodeItem = (file: TFile, el: HTMLElement) => {
@@ -190,10 +192,10 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
   };
 
   const addRelationship = useCallback(async () => {
-    if (!selectedRelationType || !selectedNode) return;
+    if (!selectedRelationTypeId || !selectedNode) return;
 
     const relationType = plugin.settings.relationTypes.find(
-      (r) => r.id === selectedRelationType,
+      (r) => r.id === selectedRelationTypeId,
     );
     if (!relationType) return;
 
@@ -232,12 +234,12 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
     plugin.app.fileManager,
     plugin.settings.relationTypes,
     selectedNode,
-    selectedRelationType,
+    selectedRelationTypeId,
   ]);
 
   const resetState = () => {
     setIsAddingRelation(false);
-    setSelectedRelationType("");
+    setSelectedRelationTypeId("");
     setSelectedNode(null);
     setSearchError(null);
   };
@@ -274,7 +276,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
         </label>
         <DropdownSelect<RelationTypeOption>
           options={availableRelationTypes}
-          onSelect={(option) => option && setSelectedRelationType(option.id)}
+          onSelect={(option) => option && setSelectedRelationTypeId(option.id)}
           placeholder="Select relation type"
           getItemText={(option) => option.label}
         />
@@ -324,13 +326,13 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
           asyncSearch={searchNodes}
           onSelect={setSelectedNode}
           placeholder={
-            selectedRelationType
+            selectedRelationTypeId
               ? "Search nodes (type at least 2 characters)..."
               : "Select a relationship type first"
           }
           getItemText={(node) => node.basename}
           renderItem={renderNodeItem}
-          disabled={!selectedRelationType}
+          disabled={!selectedRelationTypeId}
         />
         {searchError && (
           <div
@@ -347,22 +349,24 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
 
       <div className="buttons" style={{ display: "flex", gap: "8px" }}>
         <button
-          disabled={!selectedNode || !selectedRelationType}
+          disabled={!selectedNode || !selectedRelationTypeId}
           style={{
             flex: 1,
             padding: "8px 12px",
             backgroundColor:
-              selectedNode && selectedRelationType
+              selectedNode && selectedRelationTypeId
                 ? "var(--interactive-accent)"
                 : "var(--background-modifier-border)",
             color:
-              selectedNode && selectedRelationType
+              selectedNode && selectedRelationTypeId
                 ? "var(--text-on-accent)"
                 : "var(--text-normal)",
             border: "none",
             borderRadius: "4px",
             cursor:
-              selectedNode && selectedRelationType ? "pointer" : "not-allowed",
+              selectedNode && selectedRelationTypeId
+                ? "pointer"
+                : "not-allowed",
           }}
           onClick={addRelationship}
         >
