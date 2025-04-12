@@ -54,9 +54,14 @@ export default runExtension(async (onloadArgs) => {
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
   if (!isEncrypted && !isOffline) {
     initPostHog();
+    const userUid = getCurrentUserUid();
+    const graphName = window.roamAlphaAPI.graph.name;
+    posthog.identify(userUid, {
+      graphName,
+    });
     posthog.capture("Extension Loaded", {
-      graphName: window.roamAlphaAPI.graph.name,
-      userUid: getCurrentUserUid(),
+      graphName,
+      userUid,
     });
   }
 
