@@ -57,32 +57,6 @@ const getOverlayInfo = async (tag: string): Promise<DiscourseData> => {
   }
 };
 
-// const experimentalGetOverlayInfo = (title: string) =>
-//   Promise.all([
-//     getDiscourseContextResults({ uid: getPageUidByPageTitle(title) }),
-//     fireWorkerQuery({
-//       where: [
-//         {
-//           type: "data-pattern",
-//           arguments: [
-//             { type: "variable", value: "b" },
-//             { type: "constant", value: ":node/title" },
-//             { type: "constant", value: `"${title}"` },
-//           ],
-//         },
-//         {
-//           type: "data-pattern",
-//           arguments: [
-//             { type: "variable", value: "a" },
-//             { type: "constant", value: ":block/refs" },
-//             { type: "variable", value: `b` },
-//           ],
-//         },
-//       ],
-//       pull: [],
-//     }),
-//   ]).then(([results, allrefs]) => ({ results, refs: allrefs.length }));
-
 export const refreshUi: { [k: string]: () => void } = {};
 const refreshAllUi = () =>
   Object.entries(refreshUi).forEach(([k, v]) => {
@@ -101,9 +75,6 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
   const [score, setScore] = useState<number | string>(0);
   const getInfo = useCallback(
     () =>
-      // localStorageGet("experimental") === "true"
-      // ? experimentalGetOverlayInfo(tag)
-      // :
       getOverlayInfo(tag)
         .then(({ refs, results }) => {
           const discourseNode = findDiscourseNode(tagUid);
