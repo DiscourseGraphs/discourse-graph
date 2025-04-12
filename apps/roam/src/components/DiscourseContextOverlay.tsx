@@ -22,66 +22,39 @@ type DiscourseData = {
 };
 
 const cache: {
-  [title: string]: DiscourseData;
+  [tag: string]: DiscourseData;
 } = {};
-const overlayQueue: {
-  tag: string;
-  callback: () => Promise<void>;
-  start: number;
-  queued: number;
-  end: number;
-  mid: number;
-  id: string;
-}[] = [];
 
-const getOverlayInfo = (tag: string, id: string): Promise<DiscourseData> => {
-  if (cache[tag]) return Promise.resolve(cache[tag]);
-  const relations = getDiscourseRelations();
-  const nodes = getDiscourseNodes(relations);
+const getOverlayInfo = async (tag: string): Promise<DiscourseData> => {
+  try {
+    if (cache[tag]) return cache[tag];
 
-  return new Promise((resolve) => {
-    const triggerNow = overlayQueue.length === 0;
-    overlayQueue.push({
-      id,
-      start: 0,
-      end: 0,
-      mid: 0,
-      queued: new Date().valueOf(),
-      async callback() {
-        const self = this;
-        const start = (self.start = new Date().valueOf());
-        // @ts-ignore
-        const queryResult = await window.roamAlphaAPI.data.backend.q(
-          `[:find ?a :where [?b :node/title "${normalizePageTitle(
-            tag,
-          )}"] [?a :block/refs ?b]]`,
-        );
-        const refs = queryResult.length;
-        return getDiscourseContextResults({
-          uid: getPageUidByPageTitle(tag),
-          nodes,
-          relations,
-        }).then(function resultCallback(results) {
-          self.mid = new Date().valueOf();
-          const output = (cache[tag] = {
-            results,
+    const relations = getDiscourseRelations();
+    const nodes = getDiscourseNodes(relations);
 
-            refs,
-          });
-          const runTime = (self.end = new Date().valueOf() - start);
-          setTimeout(() => {
-            overlayQueue.splice(0, 1);
-            if (overlayQueue.length) {
-              overlayQueue[0].callback();
-            }
-          }, runTime * 4);
-          resolve(output);
-        });
-      },
-      tag,
+    const [results, refs] = await Promise.all([
+      getDiscourseContextResults({
+        uid: getPageUidByPageTitle(tag),
+        nodes,
+        relations,
+      }),
+      // @ts-ignore - backend to be added to roamjs-components
+      window.roamAlphaAPI.data.backend.q(
+        `[:find ?a :where [?b :node/title "${normalizePageTitle(tag)}"] [?a :block/refs ?b]]`,
+      ),
+    ]);
+
+    return (cache[tag] = {
+      results,
+      refs: refs.length,
     });
-    if (triggerNow) overlayQueue[0].callback?.();
-  });
+  } catch (error) {
+    console.error(`Error getting overlay info for ${tag}:`, error);
+    return {
+      results: [],
+      refs: 0,
+    };
+  }
 };
 
 // const experimentalGetOverlayInfo = (title: string) =>
@@ -131,7 +104,7 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
       // localStorageGet("experimental") === "true"
       // ? experimentalGetOverlayInfo(tag)
       // :
-      getOverlayInfo(tag, id)
+      getOverlayInfo(tag)
         .then(({ refs, results }) => {
           const discourseNode = findDiscourseNode(tagUid);
           if (discourseNode) {
