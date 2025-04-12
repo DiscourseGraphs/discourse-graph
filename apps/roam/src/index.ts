@@ -1,8 +1,6 @@
 import { addStyle } from "roamjs-components/dom";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
-import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
-import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
 import { runExtension } from "roamjs-components/util";
 import { queryBuilderLoadedToast } from "./data/toastMessages";
 import runQuery from "./utils/runQuery";
@@ -61,8 +59,6 @@ export default runExtension(async (onloadArgs) => {
     posthog.identify(userUid, {
       graphName: graphName,
       userUid: userUid,
-      userDisplayName: getCurrentUserDisplayName(),
-      userEmail: getCurrentUserEmail(),
     });
     posthog.capture("Extension Loaded", {
       graphName: graphName,
