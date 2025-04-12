@@ -57,16 +57,6 @@ const getOverlayInfo = async (tag: string): Promise<DiscourseData> => {
   }
 };
 
-export const refreshUi: { [k: string]: () => void } = {};
-const refreshAllUi = () =>
-  Object.entries(refreshUi).forEach(([k, v]) => {
-    if (document.getElementById(k)) {
-      v();
-    } else {
-      delete refreshUi[k];
-    }
-  });
-
 const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
   const tagUid = useMemo(() => getPageUidByPageTitle(tag), [tag]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +92,6 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
     getInfo();
   }, [getInfo, setLoading]);
   useEffect(() => {
-    refreshUi[id] = refresh;
     getInfo();
   }, [refresh, getInfo]);
   return (
