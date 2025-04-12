@@ -57,12 +57,11 @@ export default runExtension(async (onloadArgs) => {
     const userUid = getCurrentUserUid();
     const graphName = window.roamAlphaAPI.graph.name;
     posthog.identify(userUid, {
-      graphName: graphName,
-      userUid: userUid,
+      graphName,
     });
     posthog.capture("Extension Loaded", {
-      graphName: graphName,
-      userUid: userUid,
+      graphName,
+      userUid,
     });
   }
 
