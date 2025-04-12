@@ -32,6 +32,8 @@ const NodeConfig = ({
   const overlayUid = getUid("Overlay");
   const canvasUid = getUid("Canvas");
   const graphOverviewUid = getUid("Graph Overview");
+  const specificationUid = getUid("Specification");
+  const indexUid = getUid("Index");
   const attributeNode = getSubTree({
     parentUid: node.type,
     key: "Attributes",
@@ -77,7 +79,7 @@ const NodeConfig = ({
             <div className="flex flex-col gap-4 p-1">
               <DiscourseNodeIndex
                 node={node}
-                parentUid={node.type}
+                parentUid={indexUid}
                 onloadArgs={onloadArgs}
               />
             </div>
@@ -103,7 +105,10 @@ const NodeConfig = ({
                     "The conditions specified to identify a ${nodeText} node."
                   }
                 />
-                <DiscourseNodeSpecification node={node} parentUid={node.type} />
+                <DiscourseNodeSpecification
+                  node={node}
+                  parentUid={specificationUid}
+                />
               </Label>
             </div>
           }
