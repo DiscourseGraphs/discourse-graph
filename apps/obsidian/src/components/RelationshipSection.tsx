@@ -474,8 +474,11 @@ const CurrentRelationships = ({
 
         if (!linkedFile) continue;
 
-        const group = tempRelationships.get(relationKey)!;
-        if (!group.linkedFiles.some((file) => file.path === linkedFile.path)) {
+        const group = tempRelationships.get(relationKey);
+        if (
+          group &&
+          !group.linkedFiles.some((file) => file.path === linkedFile.path)
+        ) {
           group.linkedFiles.push(linkedFile);
         }
       }
