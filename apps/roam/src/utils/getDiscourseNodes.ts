@@ -25,6 +25,8 @@ export type DiscourseNode = {
   graphOverview?: boolean;
   description?: string;
   template?: InputTextNode[];
+  githubSync?: boolean;
+  githubCommentsQueryUid?: string;
 };
 
 const DEFAULT_NODES: DiscourseNode[] = [
@@ -95,6 +97,11 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
         ),
         graphOverview:
           children.filter((c) => c.text === "Graph Overview").length > 0,
+        githubSync: children.filter((c) => c.text === "GitHub Sync").length > 0,
+        githubCommentsQueryUid: getSubTree({
+          tree: children,
+          key: "Comments Block",
+        }).uid,
         description: getSettingValueFromTree({
           tree: children,
           key: "description",
