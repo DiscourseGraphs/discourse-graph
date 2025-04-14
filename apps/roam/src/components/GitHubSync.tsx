@@ -110,7 +110,6 @@ const getRoamCommentsContainerUid = async ({
 }) => {
   const pageTitle = getPageTitleByPageUid(pageUid);
 
-  // Find the node type that matches this page
   const discourseNodes = getDiscourseNodes();
   let matchingNode;
 
@@ -131,15 +130,9 @@ const getRoamCommentsContainerUid = async ({
   }
 
   if (!matchingNode || !matchingNode.githubCommentsQueryUid) {
-    renderToast({
-      id: "github-issue-comments",
-      content:
-        "Comments Block query not set. Configure it in the Discourse Graph settings.",
-    });
     return;
   }
 
-  // Use the node-specific query
   const results = await runQuery({
     extensionAPI,
     parentUid: matchingNode.githubCommentsQueryUid,
@@ -269,7 +262,6 @@ export const insertNewCommentsFromGitHub = async ({
 };
 
 export const isGitHubSyncPage = (pageTitle: string) => {
-  // Only check pages if the feature is globally enabled
   if (!enabled) return false;
 
   const discourseNodes = getDiscourseNodes();

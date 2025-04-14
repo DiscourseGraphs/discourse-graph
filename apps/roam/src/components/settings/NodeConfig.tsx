@@ -43,6 +43,9 @@ const NodeConfig = ({
   });
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("main");
+  const [isGithubSyncEnabled, setIsGithubSyncEnabled] = useState<boolean>(
+    node.githubSync || false,
+  );
 
   return (
     <>
@@ -189,20 +192,27 @@ const NodeConfig = ({
                 parentUid={node.type}
                 uid={githubSyncUid}
                 value={node.githubSync}
+                options={{
+                  onChange: (checked) => setIsGithubSyncEnabled(checked),
+                }}
               />
 
-              <div className="mt-4 border-t pt-4">
-                <Label>
-                  <h3 className="mb-2 text-lg font-medium">
-                    Comments Configuration
-                  </h3>
-                  <Description description="Define where GitHub Issue comments should appear on this node type. This query will run when comments are imported." />
+              {isGithubSyncEnabled && (
+                <div className="mt-4 border-t pt-4">
+                  <Label>
+                    <div className="mb-2 flex items-center gap-2">
+                      <h3 className="text-lg font-medium">
+                        Comments Configuration
+                      </h3>
+                      <Description description="Define where GitHub Issue comments should appear on this node type. This query will run when comments are imported." />
+                    </div>
+                  </Label>
                   <CommentsQuery
                     parentUid={githubCommentsFormatUid}
                     onloadArgs={onloadArgs}
                   />
-                </Label>
-              </div>
+                </div>
+              )}
             </div>
           }
         />
