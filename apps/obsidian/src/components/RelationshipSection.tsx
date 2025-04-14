@@ -386,11 +386,193 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
   );
 };
 
+type GroupedRelation = {
+  relationTypeOptions: RelationTypeOption;
+  linkedFiles: TFile[];
+};
+
+const CurrentRelationships = ({
+  activeFile,
+}: RelationshipSectionProps) => {
+  const plugin = usePlugin();
+  const [groupedRelationships, setGroupedRelationships] = useState<
+    GroupedRelation[]
+  >([]);
+
+  useEffect(() => {
+    loadCurrentRelationships();
+
+    const onMetadataChange = (file: TFile) => {
+      if (file && file.path === activeFile.path) {
+        loadCurrentRelationships();
+      }
+    };
+
+    plugin.app.metadataCache.on("changed", onMetadataChange);
+
+    return () => {
+      plugin.app.metadataCache.off(
+        "changed",
+        onMetadataChange as (...data: unknown[]) => unknown,
+      );
+    };
+  }, [activeFile, plugin]);
+
+  const loadCurrentRelationships = async () => {
+    const fileCache = plugin.app.metadataCache.getFileCache(activeFile);
+    if (!fileCache?.frontmatter) return;
+
+    const tempRelationships = new Map<string, GroupedRelation>();
+    const activeNodeTypeId = fileCache.frontmatter.nodeTypeId;
+
+    if (!activeNodeTypeId) return;
+
+    for (const relationType of plugin.settings.relationTypes) {
+      const frontmatterLinks = fileCache.frontmatter[relationType.id];
+      if (!frontmatterLinks) continue;
+
+      const links = Array.isArray(frontmatterLinks)
+        ? frontmatterLinks
+        : [frontmatterLinks];
+
+      const relation = plugin.settings.discourseRelations.find(
+        (rel) =>
+          (rel.sourceId === activeNodeTypeId ||
+            rel.destinationId === activeNodeTypeId) &&
+          rel.relationshipTypeId === relationType.id,
+      );
+
+      if (!relation) continue;
+
+      const isSource = relation.sourceId === activeNodeTypeId;
+      const relationLabel = isSource
+        ? relationType.label
+        : relationType.complement;
+
+      const relationKey = `${relationType.id}-${isSource}`;
+
+      if (!tempRelationships.has(relationKey)) {
+        tempRelationships.set(relationKey, {
+          relationTypeOptions: {
+            id: relationType.id,
+            label: relationLabel,
+            isSource,
+          },
+          linkedFiles: [],
+        });
+      }
+
+      for (const link of links) {
+        const match = link.match(/\[\[(.*?)\]\]/);
+        if (!match) continue;
+
+        const linkedFileName = match[1];
+        const linkedFile = plugin.app.metadataCache.getFirstLinkpathDest(
+          linkedFileName,
+          activeFile.path,
+        );
+
+        if (!linkedFile) continue;
+
+        const group = tempRelationships.get(relationKey);
+        if (
+          group &&
+          !group.linkedFiles.some((file) => file.path === linkedFile.path)
+        ) {
+          group.linkedFiles.push(linkedFile);
+        }
+      }
+    }
+
+    setGroupedRelationships(Array.from(tempRelationships.values()));
+  };
+
+  if (groupedRelationships.length === 0) return null;
+
+  return (
+    <div className="current-relationships" style={{ marginBottom: "1.5rem" }}>
+      <h4 style={{ marginBottom: "0.5rem", fontSize: "1rem" }}>
+        Current Relationships
+      </h4>
+      <ul
+        style={{
+          listStyle: "none",
+          padding: 0,
+          margin: 0,
+          borderRadius: "4px",
+          border: "1px solid var(--background-modifier-border)",
+        }}
+      >
+        {groupedRelationships.map((group) => (
+          <li
+            key={`${group.relationTypeOptions.id}-${group.relationTypeOptions.isSource}`}
+            style={{
+              padding: "8px 12px",
+              borderBottom: "1px solid var(--background-modifier-border)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "4px",
+              }}
+            >
+              <div style={{ marginRight: "8px" }}>
+                {group.relationTypeOptions.isSource ? "→" : "←"}
+              </div>
+              <div style={{ fontWeight: "bold" }}>
+                {group.relationTypeOptions.label}
+              </div>
+            </div>
+
+            <ul
+              style={{
+                listStyle: "none",
+                padding: 0,
+                margin: 0,
+                marginLeft: "24px",
+              }}
+            >
+              {group.linkedFiles.map((file) => (
+                <li
+                  key={file.path}
+                  style={{
+                    marginTop: "4px",
+                  }}
+                >
+                  <a
+                    href="#"
+                    className="internal-link"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      plugin.app.workspace.openLinkText(
+                        file.path,
+                        activeFile.path,
+                      );
+                    }}
+                    style={{
+                      color: "var(--text-accent)",
+                    }}
+                  >
+                    {file.basename}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
 export const RelationshipSection = ({
   activeFile,
 }: RelationshipSectionProps) => {
   return (
     <div className="relationship-manager">
+      <CurrentRelationships activeFile={activeFile} />
       <AddRelationship activeFile={activeFile} />
     </div>
   );
