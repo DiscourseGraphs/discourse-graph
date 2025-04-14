@@ -27,6 +27,7 @@ export class QueryEngine {
     query: string,
     compatibleNodeTypeIds: string[],
     activeFile: TFile,
+    selectedRelationType: string,
   ): Promise<TFile[]> {
     if (!query || query.length < this.MIN_QUERY_LENGTH) {
       return [];
@@ -47,6 +48,18 @@ export class QueryEngine {
       const searchResults = potentialNodes.filter((p: any) => {
         return this.fuzzySearch(p.$name, query);
       });
+
+      let existingRelatedFiles: string[] = [];
+      if (selectedRelationType) {
+        const fileCache = this.app.metadataCache.getFileCache(activeFile);
+        const existingRelations =
+          fileCache?.frontmatter?.[selectedRelationType] || [];
+
+        existingRelatedFiles = existingRelations.map((relation: string) => {
+          const match = relation.match(/\[\[(.*?)(?:\|.*?)?\]\]/);
+          return match ? match[1] : relation.replace(/^\[\[|\]\]$/g, "");
+        });
+      }
       const finalResults = searchResults
         .map((dcFile: any) => {
           if (dcFile && dcFile.$path) {
@@ -57,7 +70,23 @@ export class QueryEngine {
           }
           return dcFile as TFile;
         })
-        .filter((file: TFile) => file.path !== activeFile.path);
+        .filter((file: TFile) => {
+          if (file.path === activeFile.path) return false;
+
+          if (
+            selectedRelationType &&
+            existingRelatedFiles.some((existingFile) => {
+              return (
+                file.basename === existingFile.replace(/\.md$/, "") ||
+                file.name === existingFile
+              );
+            })
+          ) {
+            return false;
+          }
+
+          return true;
+        });
 
       return finalResults;
     } catch (error) {

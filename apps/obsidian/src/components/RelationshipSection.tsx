@@ -156,6 +156,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
             query,
             nodeTypeIdsToSearch,
             activeFile,
+            selectedRelationType,
           );
 
         if (results.length === 0 && query.length >= 2) {
