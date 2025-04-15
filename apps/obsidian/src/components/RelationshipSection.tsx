@@ -245,17 +245,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
   if (!isAddingRelation) {
     return (
       <button
-        className="add-relation-button"
-        style={{
-          width: "100%",
-          padding: "8px 12px",
-          backgroundColor: "var(--interactive-accent)",
-          color: "var(--text-on-accent)",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-          marginTop: "1rem",
-        }}
+        className="!bg-accent !text-on-accent mt-4 w-full cursor-pointer rounded border-0 px-3 py-2"
         onClick={() => setIsAddingRelation(true)}
       >
         Add a new relation
@@ -265,13 +255,8 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
 
   return (
     <div className="relationship-manager">
-      <div
-        className="relationship-type-selector"
-        style={{ marginBottom: "1rem" }}
-      >
-        <label style={{ display: "block", marginBottom: "0.5rem" }}>
-          Relationship Type:
-        </label>
+      <div className="relationship-type-selector mb-4">
+        <label className="mb-2 block">Relationship Type:</label>
         <DropdownSelect<RelationTypeOption>
           options={availableRelationTypes}
           onSelect={(option) => option && setSelectedRelationType(option.id)}
@@ -281,32 +266,15 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
       </div>
 
       {compatibleNodeTypes.length > 0 && (
-        <div style={{ marginBottom: "0.75rem" }}>
-          <div
-            style={{
-              fontSize: "0.85rem",
-              color: "var(--text-muted)",
-              background: "var(--background-secondary)",
-              padding: "0.5rem",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <span style={{ marginRight: "0.5rem" }}>💡</span>
+        <div className="mb-3">
+          <div className="text-muted flex items-center gap-2 rounded bg-secondary p-2 text-sm">
+            <span className="mr-2">💡</span>
             <span>
               You can link with:{" "}
               {compatibleNodeTypes.map((type) => (
                 <span
                   key={type.id}
-                  style={{
-                    background: "var(--background-modifier-border)",
-                    padding: "0.15rem 0.4rem",
-                    borderRadius: "4px",
-                    marginRight: "0.25rem",
-                    fontSize: "0.8rem",
-                    display: "inline-block",
-                  }}
+                  className="bg-modifier-border mr-1 rounded px-2 py-1 text-sm"
                 >
                   {type.name}
                 </span>
@@ -316,10 +284,8 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
         </div>
       )}
 
-      <div style={{ marginBottom: "1rem" }}>
-        <label style={{ display: "block", marginBottom: "0.5rem" }}>
-          Node to link with:
-        </label>
+      <div className="mb-4">
+        <label className="mb-2 block">Node to link with:</label>
         <SearchBar<TFile>
           asyncSearch={searchNodes}
           onSelect={setSelectedNode}
@@ -333,50 +299,27 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
           disabled={!selectedRelationType}
         />
         {searchError && (
-          <div
-            style={{
-              color: "var(--text-error)",
-              fontSize: "12px",
-              marginTop: "4px",
-            }}
-          >
+          <div className="text-error mt-2 text-sm">
             Search error: {searchError}
           </div>
         )}
       </div>
 
-      <div className="buttons" style={{ display: "flex", gap: "8px" }}>
+      <div className="flex gap-2">
         <button
           disabled={!selectedNode || !selectedRelationType}
-          style={{
-            flex: 1,
-            padding: "8px 12px",
-            backgroundColor:
-              selectedNode && selectedRelationType
-                ? "var(--interactive-accent)"
-                : "var(--background-modifier-border)",
-            color:
-              selectedNode && selectedRelationType
-                ? "var(--text-on-accent)"
-                : "var(--text-normal)",
-            border: "none",
-            borderRadius: "4px",
-            cursor:
-              selectedNode && selectedRelationType ? "pointer" : "not-allowed",
-          }}
+          className={`flex-1 rounded border-0 px-3 py-2 ${
+            selectedNode && selectedRelationType
+              ? "!bg-accent !text-on-accent cursor-pointer"
+              : "!bg-modifier-border !text-normal cursor-not-allowed"
+          }`}
           onClick={addRelationship}
         >
           Confirm
         </button>
 
         <button
-          style={{
-            padding: "8px 12px",
-            backgroundColor: "var(--background-modifier-border)",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
+          className="!bg-modifier-border !text-normal cursor-pointer rounded border-0 px-3 py-2"
           onClick={resetState}
         >
           Cancel
@@ -391,9 +334,7 @@ type GroupedRelation = {
   linkedFiles: TFile[];
 };
 
-const CurrentRelationships = ({
-  activeFile,
-}: RelationshipSectionProps) => {
+const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
   const plugin = usePlugin();
   const [groupedRelationships, setGroupedRelationships] = useState<
     GroupedRelation[]
@@ -490,69 +431,33 @@ const CurrentRelationships = ({
   if (groupedRelationships.length === 0) return null;
 
   return (
-    <div className="current-relationships" style={{ marginBottom: "1.5rem" }}>
-      <h4 style={{ marginBottom: "0.5rem", fontSize: "1rem" }}>
-        Current Relationships
-      </h4>
-      <ul
-        style={{
-          listStyle: "none",
-          padding: 0,
-          margin: 0,
-          borderRadius: "4px",
-          border: "1px solid var(--background-modifier-border)",
-        }}
-      >
+    <div className="current-relationships mb-6">
+      <h4 className="mb-2 text-base font-medium">Current Relationships</h4>
+      <ul className="border-modifier-border m-0 list-none rounded border p-0">
         {groupedRelationships.map((group) => (
           <li
             key={`${group.relationTypeOptions.id}-${group.relationTypeOptions.isSource}`}
-            style={{
-              padding: "8px 12px",
-              borderBottom: "1px solid var(--background-modifier-border)",
-            }}
+            className="border-modifier-border border-b px-3 py-2"
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "4px",
-              }}
-            >
-              <div style={{ marginRight: "8px" }}>
+            <div className="mb-1 flex items-center">
+              <div className="mr-2">
                 {group.relationTypeOptions.isSource ? "→" : "←"}
               </div>
-              <div style={{ fontWeight: "bold" }}>
-                {group.relationTypeOptions.label}
-              </div>
+              <div className="font-bold">{group.relationTypeOptions.label}</div>
             </div>
 
-            <ul
-              style={{
-                listStyle: "none",
-                padding: 0,
-                margin: 0,
-                marginLeft: "24px",
-              }}
-            >
+            <ul className="m-0 ml-6 list-none p-0">
               {group.linkedFiles.map((file) => (
-                <li
-                  key={file.path}
-                  style={{
-                    marginTop: "4px",
-                  }}
-                >
+                <li key={file.path} className="mt-1">
                   <a
                     href="#"
-                    className="internal-link"
+                    className="text-accent-text"
                     onClick={(e) => {
                       e.preventDefault();
                       plugin.app.workspace.openLinkText(
                         file.path,
                         activeFile.path,
                       );
-                    }}
-                    style={{
-                      color: "var(--text-accent)",
                     }}
                   >
                     {file.basename}

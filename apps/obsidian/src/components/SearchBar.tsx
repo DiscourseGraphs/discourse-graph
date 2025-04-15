@@ -115,42 +115,23 @@ const SearchBar = <T,>({
   }, [onSelect]);
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <input
         ref={inputRef}
         type="text"
         placeholder={placeholder || "Search..."}
-        style={{
-          width: "100%",
-          padding: "8px",
-          paddingRight: selected ? "36px" : "8px",
-          border: "1px solid var(--background-modifier-border)",
-          borderRadius: "4px",
-          backgroundColor:
-            selected || disabled
-              ? "var(--background-secondary)"
-              : "var(--background-primary)",
-          cursor: disabled ? "not-allowed" : "text",
-          opacity: disabled ? 0.7 : 1,
-        }}
+        className={`w-full p-2 ${
+          selected ? "pr-9" : ""
+        } border-modifier-border rounded border bg-${
+          selected || disabled ? "secondary" : "primary"
+        } ${disabled ? "cursor-not-allowed opacity-70" : "cursor-text"}`}
         readOnly={!!selected || disabled}
         disabled={disabled}
       />
       {selected && !disabled && (
         <button
           onClick={clearSelection}
-          style={{
-            position: "absolute",
-            right: "4px",
-            top: "50%",
-            transform: "translateY(-50%)",
-            background: "none",
-            border: "none",
-            color: "var(--text-muted)",
-            cursor: "pointer",
-            padding: "4px",
-            borderRadius: "4px",
-          }}
+          className="text-muted absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer rounded border-0 bg-transparent p-1"
           aria-label="Clear selection"
         >
           ✕
