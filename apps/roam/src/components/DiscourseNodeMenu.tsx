@@ -65,6 +65,11 @@ const NodeMenu = ({
           nodeType: nodeUid,
           blockUid,
         });
+
+        if (!pageName) {
+          return;
+        }
+
         const currentBlockText = getTextByBlockUid(blockUid);
         const newText = `${currentBlockText.substring(
           0,

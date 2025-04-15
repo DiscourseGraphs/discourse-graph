@@ -43,21 +43,56 @@ export const getNewDiscourseNodeText = async ({
           },
         },
         onSubmit: (data: Record<string, unknown>) => {
-          resolve(data.textField as string);
+          const textValue = data.textField as string;
+          if (textValue?.trim()) {
+            resolve(textValue);
+          } else {
+            renderToast({
+              content: "Text field cannot be empty.",
+              id: "roamjs-create-discourse-node-dialog-error",
+              intent: "warning",
+            });
+            return false;
+          }
         },
         onClose: () => {
           resolve("");
         },
         isOpen: true,
       });
+
+      const setupButtonControl = () => {
+        const dialogs = document.querySelectorAll(".bp3-dialog");
+        const dialog = dialogs[dialogs.length - 1] as HTMLElement;
+
+        const input = dialog.querySelector(
+          'input[type="text"].bp3-input',
+        ) as HTMLInputElement;
+        const submitBtn = dialog.querySelector(
+          ".bp3-dialog-footer .bp3-button.bp3-intent-primary",
+        ) as HTMLButtonElement;
+
+        const updateButtonState = () => {
+          const currentValue = input.value;
+          const hasValue = currentValue.trim().length > 0;
+          const shouldBeDisabled = !hasValue;
+          submitBtn.disabled = shouldBeDisabled;
+        };
+
+        updateButtonState();
+
+        const listenerKey = "_discourseNodeListenerAttached";
+        if (!(input as any)[listenerKey]) {
+          input.addEventListener("input", updateButtonState);
+          (input as any)[listenerKey] = true;
+        }
+      };
+      requestAnimationFrame(setupButtonControl);
     });
   }
-  if (!newText) {
-    renderToast({
-      content: "No text provided.",
-      id: "roamjs-create-discourse-node-dialog-error",
-      intent: "warning",
-    });
+
+  if (!newText || !newText.trim()) {
+    return "";
   }
 
   const indexedByType = Object.fromEntries(
