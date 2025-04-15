@@ -62,7 +62,7 @@ export const getNewDiscourseNodeText = async ({
         },
         onSubmit: (data: Record<string, unknown>) => {
           const textValue = data.textField as string;
-          if (textValue && textValue.trim()) {
+          if (textValue?.trim()) {
             resolve(textValue);
           } else {
             renderToast({
@@ -108,7 +108,7 @@ export const getNewDiscourseNodeText = async ({
       }, 100);
     });
 
-    if (styleEl && styleEl.parentNode) {
+    if (styleEl?.parentNode) {
       styleEl.parentNode.removeChild(styleEl);
     }
   }
