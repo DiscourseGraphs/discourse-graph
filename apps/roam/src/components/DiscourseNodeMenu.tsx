@@ -88,6 +88,7 @@ const NodeMenu = ({
           extensionAPI,
         });
       });
+      onClose();
     },
     [menuRef, blockUid, onClose],
   );
