@@ -31,6 +31,24 @@ export const getNewDiscourseNodeText = async ({
   const discourseNodes = getDiscourseNodes();
   let newText = text;
   if (!text) {
+    const styleId = "discourse-node-text-validation";
+    let styleEl = document.getElementById(styleId) as HTMLStyleElement;
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = styleId;
+      styleEl.textContent = `
+        .bp3-dialog .bp3-button.bp3-intent-primary {
+          opacity: 0.5;
+          pointer-events: none;
+        }
+        .bp3-dialog.has-value .bp3-button.bp3-intent-primary {
+          opacity: 1;
+          pointer-events: all;
+        }
+      `;
+      document.head.appendChild(styleEl);
+    }
+
     newText = await new Promise<string>((resolve) => {
       const nodeName =
         discourseNodes.find((n) => n.type === nodeType)?.text || "Discourse";
@@ -43,21 +61,60 @@ export const getNewDiscourseNodeText = async ({
           },
         },
         onSubmit: (data: Record<string, unknown>) => {
-          resolve(data.textField as string);
+          const textValue = data.textField as string;
+          if (textValue && textValue.trim()) {
+            resolve(textValue);
+          } else {
+            renderToast({
+              content: "Text field cannot be empty.",
+              id: "roamjs-create-discourse-node-dialog-error",
+              intent: "warning",
+            });
+            return false;
+          }
         },
         onClose: () => {
           resolve("");
         },
         isOpen: true,
       });
+
+      setTimeout(() => {
+        const dialogs = document.querySelectorAll(".bp3-dialog");
+        const dialogEl = dialogs[dialogs.length - 1] as HTMLElement;
+        const inputEl = dialogEl?.querySelector(
+          ".bp3-input",
+        ) as HTMLInputElement;
+        const submitBtn = dialogEl?.querySelector(
+          ".bp3-dialog-footer-actions .bp3-button.bp3-intent-primary",
+        ) as HTMLButtonElement;
+
+        if (inputEl && submitBtn && dialogEl) {
+          if (!inputEl.value.trim()) {
+            submitBtn.disabled = true;
+          } else {
+            dialogEl.classList.add("has-value");
+          }
+
+          inputEl.addEventListener("input", () => {
+            submitBtn.disabled = !inputEl.value.trim();
+            if (inputEl.value.trim()) {
+              dialogEl.classList.add("has-value");
+            } else {
+              dialogEl.classList.remove("has-value");
+            }
+          });
+        }
+      }, 100);
     });
+
+    if (styleEl && styleEl.parentNode) {
+      styleEl.parentNode.removeChild(styleEl);
+    }
   }
-  if (!newText) {
-    renderToast({
-      content: "No text provided.",
-      id: "roamjs-create-discourse-node-dialog-error",
-      intent: "warning",
-    });
+
+  if (!newText || !newText.trim()) {
+    return "";
   }
 
   const indexedByType = Object.fromEntries(
