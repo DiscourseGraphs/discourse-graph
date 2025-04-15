@@ -59,21 +59,12 @@ const NodeMenu = ({
         textarea.selectionStart,
         textarea.selectionEnd,
       );
-
-      if (highlighted) {
-        onClose();
-      }
-
       setTimeout(async () => {
         const pageName = await getNewDiscourseNodeText({
           text: highlighted,
           nodeType: nodeUid,
           blockUid,
         });
-
-        if (!highlighted) {
-          onClose();
-        }
 
         if (!pageName) {
           return;
