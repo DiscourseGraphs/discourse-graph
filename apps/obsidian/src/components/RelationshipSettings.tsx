@@ -135,20 +135,14 @@ const RelationshipSettings = () => {
         <>
           {discourseRelations.map((relation, index) => (
             <div key={index} className="setting-item">
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  width: "100%",
-                }}
-              >
-                <div style={{ display: "flex", gap: "10px" }}>
+              <div className="flex w-full flex-col">
+                <div className="flex gap-2">
                   <select
                     value={relation.sourceId}
                     onChange={(e) =>
                       handleRelationChange(index, "sourceId", e.target.value)
                     }
-                    style={{ flex: 1 }}
+                    className="flex-1 pl-2"
                   >
                     <option value="">Source Node Type</option>
                     {plugin.settings.nodeTypes.map((nodeType) => (
@@ -167,7 +161,7 @@ const RelationshipSettings = () => {
                         e.target.value,
                       )
                     }
-                    style={{ flex: 1 }}
+                    className="flex-1 pl-2"
                   >
                     <option value="">Relation Type</option>
                     {plugin.settings.relationTypes.map((relType) => (
@@ -186,7 +180,7 @@ const RelationshipSettings = () => {
                         e.target.value,
                       )
                     }
-                    style={{ flex: 1 }}
+                    className="flex-1 pl-2"
                   >
                     <option value="">Target Node Type</option>
                     {plugin.settings.nodeTypes.map((nodeType) => (
@@ -198,7 +192,7 @@ const RelationshipSettings = () => {
 
                   <button
                     onClick={() => confirmDeleteRelation(index)}
-                    className="mod-warning"
+                    className="mod-warning p-2"
                   >
                     Delete
                   </button>
@@ -207,70 +201,31 @@ const RelationshipSettings = () => {
                 {relation.sourceId &&
                   relation.relationshipTypeId &&
                   relation.destinationId && (
-                    <div
-                      style={{
-                        marginTop: "8px",
-                        color: "var(--text-normal)",
-                        padding: "8px",
-                      }}
-                      className="relationship-visualization"
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <div>
+                    <div className="text-normal mt-2 p-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
                           {findNodeById(relation.sourceId)?.name ||
                             "Unknown Node"}
                         </div>
 
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            padding: "0 12px",
-                          }}
-                        >
-                          <div
-                            style={{ display: "flex", alignItems: "center" }}
-                          >
-                            <div
-                              style={{
-                                fontSize: "0.85em",
-                                color: "var(--text-accent)",
-                              }}
-                            >
+                        <div className="flex flex-1 flex-col items-center gap-2 px-4">
+                          <div className="flex items-center">
+                            <div className="text-accent-text text-sm">
                               {findRelationTypeById(relation.relationshipTypeId)
                                 ?.label || "Unknown Relation"}
                             </div>
-                            <div
-                              style={{
-                                margin: "0 4px",
-                                color: "var(--text-accent)",
-                              }}
-                            >
-                              →
-                            </div>
+                            <div className="text-accent-text mx-1">→</div>
                           </div>
-                          <div
-                            style={{
-                              fontSize: "0.85em",
-                              color: "var(--text-muted)",
-                            }}
-                          >
+                          <div className="text-muted text-sm">
                             ←{" "}
-                            <span style={{ color: "var(--text-accent)" }}>
+                            <span className="text-accent-text">
                               {findRelationTypeById(relation.relationshipTypeId)
                                 ?.complement || "Unknown Complement"}
                             </span>
                           </div>
                         </div>
 
-                        <div>
+                        <div className="flex-1 text-right">
                           {findNodeById(relation.destinationId)?.name ||
                             "Unknown Node"}
                         </div>
@@ -281,11 +236,13 @@ const RelationshipSettings = () => {
             </div>
           ))}
           <div className="setting-item">
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button onClick={handleAddRelation}>Add Relation</button>
+            <div className="flex gap-2">
+              <button onClick={handleAddRelation} className="p-2">
+                Add Relation
+              </button>
               <button
                 onClick={handleSave}
-                className={hasUnsavedChanges ? "mod-cta" : ""}
+                className={`p-2 ${hasUnsavedChanges ? "mod-cta" : ""}`}
                 disabled={!hasUnsavedChanges}
               >
                 Save Changes
@@ -293,9 +250,7 @@ const RelationshipSettings = () => {
             </div>
           </div>
           {hasUnsavedChanges && (
-            <div style={{ marginTop: "8px", color: "var(--text-muted)" }}>
-              You have unsaved changes
-            </div>
+            <div className="text-muted mt-2">You have unsaved changes</div>
           )}
         </>
       )}

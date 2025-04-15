@@ -2,11 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-.discourse-relations .relationship-visualization {
-  transition: all 0.2s ease;
-}
 
-.discourse-relations .relationship-visualization:hover {
-  background: var(--background-modifier-hover);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+@layer base {
+  h1 {
+    @apply text-3xl font-bold mb-4;
+  }
+  h2 {
+    @apply text-2xl font-bold mb-3;
+  }
+  h3 {
+    @apply text-xl font-semibold mb-2;
+  }
+  h4 {
+    @apply text-lg font-bold mb-2;
+  }
+}
+.accent-border-bottom {
+  border-bottom: 2px solid var(--interactive-accent) !important;
 }

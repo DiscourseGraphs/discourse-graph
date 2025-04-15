@@ -70,16 +70,7 @@ const DropdownSelect = <T,>({
     };
   }, []);
 
-  return (
-    <div
-      ref={containerRef}
-      className="dropdown-select"
-      style={{
-        width: "100%",
-        position: "relative",
-      }}
-    />
-  );
+  return <div ref={containerRef} className="dropdown-select relative w-full" />;
 };
 
 export default DropdownSelect;

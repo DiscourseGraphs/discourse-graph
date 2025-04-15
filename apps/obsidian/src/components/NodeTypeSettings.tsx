@@ -131,10 +131,8 @@ const NodeTypeSettings = () => {
       <h3>Node Types</h3>
       {nodeTypes.map((nodeType, index) => (
         <div key={index} className="setting-item">
-          <div
-            style={{ display: "flex", flexDirection: "column", width: "100%" }}
-          >
-            <div style={{ display: "flex", gap: "10px" }}>
+          <div className="flex w-full flex-col">
+            <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Name"
@@ -142,7 +140,7 @@ const NodeTypeSettings = () => {
                 onChange={(e) =>
                   handleNodeTypeChange(index, "name", e.target.value)
                 }
-                style={{ flex: 1 }}
+                className="flex-2"
               />
               <input
                 type="text"
@@ -151,23 +149,17 @@ const NodeTypeSettings = () => {
                 onChange={(e) =>
                   handleNodeTypeChange(index, "format", e.target.value)
                 }
-                style={{ flex: 2 }}
+                className="flex-1"
               />
               <button
                 onClick={() => confirmDeleteNodeType(index)}
-                className="mod-warning"
+                className="mod-warning p-2"
               >
                 Delete
               </button>
             </div>
             {formatErrors[index] && (
-              <div
-                style={{
-                  color: "var(--text-error)",
-                  fontSize: "12px",
-                  marginTop: "4px",
-                }}
-              >
+              <div className="text-error mt-1 text-xs">
                 {formatErrors[index]}
               </div>
             )}
@@ -175,11 +167,13 @@ const NodeTypeSettings = () => {
         </div>
       ))}
       <div className="setting-item">
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button onClick={handleAddNodeType}>Add Node Type</button>
+        <div className="flex gap-2">
+          <button onClick={handleAddNodeType} className="p-2">
+            Add Node Type
+          </button>
           <button
             onClick={handleSave}
-            className={hasUnsavedChanges ? "mod-cta" : ""}
+            className={`p-2 ${hasUnsavedChanges ? "mod-cta" : ""}`}
             disabled={
               !hasUnsavedChanges || Object.keys(formatErrors).length > 0
             }
@@ -189,9 +183,7 @@ const NodeTypeSettings = () => {
         </div>
       </div>
       {hasUnsavedChanges && (
-        <div style={{ marginTop: "8px", color: "var(--text-muted)" }}>
-          You have unsaved changes
-        </div>
+        <div className="text-muted mt-2">You have unsaved changes</div>
       )}
     </div>
   );
