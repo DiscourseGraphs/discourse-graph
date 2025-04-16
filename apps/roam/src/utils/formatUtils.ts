@@ -12,6 +12,7 @@ import { QBClause, Result } from "./types";
 import findDiscourseNode from "./findDiscourseNode";
 import extractTag from "roamjs-components/util/extractTag";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import updateBlock from "roamjs-components/writes/updateBlock";
 
 type FormDialogProps = Parameters<typeof FormDialog>[0];
 const renderFormDialog = createOverlayRender<FormDialogProps>(
@@ -42,7 +43,12 @@ export const getNewDiscourseNodeText = async ({
             label: `Create ${nodeName} Node`,
           },
         },
-        onSubmit: (data: Record<string, unknown>) => {
+        onSubmit: async (data: Record<string, unknown>) => {
+          console.log("data.textField", data.textField, blockUid);
+          await updateBlock({
+            text: text,
+            uid: blockUid || "",
+          });
           resolve(data.textField as string);
         },
         onClose: () => {
