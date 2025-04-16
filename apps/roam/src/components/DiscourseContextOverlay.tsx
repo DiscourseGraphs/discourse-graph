@@ -185,7 +185,8 @@ const DiscourseContextOverlay = ({
         };
       })
       .filter((node) => node !== null)
-      .filter((node) => validTypes.includes(node.type));
+      .filter((node) => validTypes.includes(node.type))
+      .filter((node) => !results.some((r) => Object.values(r.results).some((result) => result.uid === node.uid)));
 
     setSuggestedNodes(nodes);
   }, [selectedPage, discourseNode, relations]);
