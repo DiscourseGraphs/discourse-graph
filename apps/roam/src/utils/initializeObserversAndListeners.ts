@@ -34,6 +34,7 @@ import {
 } from "~/components/DiscourseNodeMenu";
 import { IKeyCombo } from "@blueprintjs/core";
 import { configPageTabs } from "~/utils/configPageTabs";
+import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchMenu";
 
 export const initObservers = async ({
   onloadArgs,
@@ -180,6 +181,33 @@ export const initObservers = async ({
     }
   };
 
+  // Discourse Node Search Menu triggered by @ symbol
+  const discourseNodeSearchTriggerListener = (e: Event) => {
+    const evt = e as KeyboardEvent;
+    const target = evt.target as HTMLElement;
+
+    if (evt.key === "@") {
+      if (
+        target.tagName === "TEXTAREA" &&
+        target.classList.contains("rm-block-input")
+      ) {
+        const textarea = target as HTMLTextAreaElement;
+        const cursorPos = textarea.selectionStart;
+        const isBeginningOrAfterSpace =
+          cursorPos === 0 ||
+          textarea.value.charAt(cursorPos - 1) === " " ||
+          textarea.value.charAt(cursorPos - 1) === "\n";
+
+        if (isBeginningOrAfterSpace) {
+          renderDiscourseNodeSearchMenu({
+            textarea: textarea,
+            extensionAPI: onloadArgs.extensionAPI,
+          });
+        }
+      }
+    }
+  };
+
   return {
     observers: [
       pageTitleObserver,
@@ -192,6 +220,7 @@ export const initObservers = async ({
       pageActionListener,
       hashChangeListener,
       nodeMenuTriggerListener,
+      discourseNodeSearchTriggerListener,
     ],
   };
 };
