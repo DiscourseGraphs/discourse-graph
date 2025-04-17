@@ -22,7 +22,6 @@ import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
-import migrateSettings from "./utils/migrateSettings";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -51,9 +50,6 @@ const initPostHog = () => {
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
-  // Migrate settings from localStorage to extension settings API
-  migrateSettings();
-
   const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
   if (!isEncrypted && !isOffline) {

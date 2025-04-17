@@ -1,12 +1,6 @@
 import { Button } from "@blueprintjs/core";
 import nanoid from "nanoid";
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useMemo,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import apiGet from "roamjs-components/util/apiGet";
 import apiPost from "roamjs-components/util/apiPost";
@@ -64,12 +58,7 @@ export const ExportGithub = ({
   };
 
   const handleReceivedAccessToken = (token: string) => {
-    console.log("Received GitHub token:", !!token);
-
-    // Store in both localStorage and extension settings for maximum compatibility
-    localStorage.setItem("oauth-github", token);
     setSetting("oauth-github", token);
-
     setGitHubAccessToken(token);
     setClickedInstall(false);
     authWindow.current?.close();
@@ -77,24 +66,7 @@ export const ExportGithub = ({
 
   const fetchAndSetInstallation = useCallback(async () => {
     try {
-      // Try to get token directly from both sources
-      const tokenFromSettings = getSetting<string>("oauth-github", "");
-      const tokenFromLocalStorage = localStorage.getItem("oauth-github");
-      const token = tokenFromSettings || tokenFromLocalStorage || "";
-
-      console.log(
-        "Using GitHub token from:",
-        tokenFromSettings
-          ? "extension settings"
-          : tokenFromLocalStorage
-            ? "localStorage"
-            : "nowhere",
-      );
-
-      if (!token) {
-        console.error("No GitHub token found in any storage location");
-        return false;
-      }
+      const token = getSetting("oauth-github");
 
       const res = await apiGet<{ installations: { app_id: number }[] }>({
         domain: "https://api.github.com",
@@ -110,22 +82,14 @@ export const ExportGithub = ({
         (installation) => installation.app_id === APP_ID,
       );
 
-      console.log(
-        "GitHub app installations:",
-        installations.length,
-        "App ID:",
-        APP_ID,
-      );
       setIsGitHubAppInstalled(isAppInstalled);
       return isAppInstalled;
     } catch (error) {
       const e = error as Error;
-      console.error("GitHub installation check error:", e.message);
 
       if (e.message === "Bad credentials") {
         setGitHubAccessToken(null);
         setSetting("oauth-github", "");
-        localStorage.removeItem("oauth-github");
       }
       return false;
     }
@@ -133,29 +97,15 @@ export const ExportGithub = ({
 
   // listen for messages from the auth window
   useEffect(() => {
-    // Create a stable state value that persists between renders
-    if (!state) {
-      const otp = nanoid().replace(/_/g, "-");
-      const key = nanoid().replace(/_/g, "-");
-      const newState = `github_${otp}_${key}`;
-      console.log("Setting GitHub OAuth state:", newState);
-      setState(newState);
-      // Store state in localStorage to preserve it across page refreshes
-      localStorage.setItem("github-oauth-state", newState);
-    }
+    const otp = nanoid().replace(/_/g, "-");
+    const key = nanoid().replace(/_/g, "-");
+    const state = `github_${otp}_${key}`;
+    setState(state);
 
     const handleGitHubAuthMessage = (event: MessageEvent) => {
       const targetOrigin = isDev
         ? "https://samepage.ngrok.io"
         : "https://samepage.network";
-      console.log(
-        "Received auth message:",
-        !!event.data,
-        "from:",
-        event.origin,
-        "expected:",
-        targetOrigin,
-      );
       if (event.data && event.origin === targetOrigin) {
         handleReceivedAccessToken(event.data);
       }
@@ -170,7 +120,7 @@ export const ExportGithub = ({
         window.removeEventListener("message", handleGitHubAuthMessage);
       }
     };
-  }, [isVisible, state]);
+  }, [isVisible]);
 
   // check for installation
   useEffect(() => {
@@ -206,14 +156,9 @@ export const ExportGithub = ({
   }, [gitHubAccessToken, isGitHubAppInstalled, selectedRepo]);
 
   const handleAuthButtonClick = async () => {
-    // Get the stored state or create a new one
-    const currentState =
-      state || localStorage.getItem("github-oauth-state") || "";
-    console.log("Using OAuth state:", currentState);
-
     const params = isDev
-      ? `client_id=Iv1.4bf062a6c6636672&state=${currentState}`
-      : `client_id=Iv1.e7e282a385b7b2da&state=${currentState}`;
+      ? `client_id=Iv1.4bf062a6c6636672&state=${state}`
+      : `client_id=Iv1.e7e282a385b7b2da&state=${state}`;
 
     authWindow.current = window.open(
       `https://github.com/login/oauth/authorize?${params}`,
@@ -235,13 +180,9 @@ export const ExportGithub = ({
         apiPost({
           path: "access-token",
           domain: apiDomain,
-          data: { state: currentState },
+          data: { state },
         })
           .then((r) => {
-            console.log(
-              "Token API response:",
-              r.accessToken ? "has token" : "no token",
-            );
             if (r.accessToken) {
               handleReceivedAccessToken(r.accessToken);
             } else {
