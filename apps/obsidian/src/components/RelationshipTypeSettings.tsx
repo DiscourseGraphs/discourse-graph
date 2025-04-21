@@ -106,10 +106,8 @@ const RelationshipTypeSettings = () => {
       <h3>Relation Types</h3>
       {relationTypes.map((relationType, index) => (
         <div key={index} className="setting-item">
-          <div
-            style={{ display: "flex", flexDirection: "column", width: "100%" }}
-          >
-            <div style={{ display: "flex", gap: "10px" }}>
+          <div className="flex w-full flex-col">
+            <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Label (e.g., supports)"
@@ -117,7 +115,7 @@ const RelationshipTypeSettings = () => {
                 onChange={(e) =>
                   handleRelationTypeChange(index, "label", e.target.value)
                 }
-                style={{ flex: 1 }}
+                className="flex-2"
               />
               <input
                 type="text"
@@ -126,11 +124,11 @@ const RelationshipTypeSettings = () => {
                 onChange={(e) =>
                   handleRelationTypeChange(index, "complement", e.target.value)
                 }
-                style={{ flex: 2 }}
+                className="flex-1"
               />
               <button
                 onClick={() => confirmDeleteRelationType(index)}
-                className="mod-warning"
+                className="mod-warning p-2"
               >
                 Delete
               </button>
@@ -139,11 +137,13 @@ const RelationshipTypeSettings = () => {
         </div>
       ))}
       <div className="setting-item">
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button onClick={handleAddRelationType}>Add Relation Type</button>
+        <div className="flex gap-2">
+          <button onClick={handleAddRelationType} className="p-2">
+            Add Relation Type
+          </button>
           <button
             onClick={handleSave}
-            className={hasUnsavedChanges ? "mod-cta" : ""}
+            className={`p-2 ${hasUnsavedChanges ? "mod-cta" : ""}`}
             disabled={!hasUnsavedChanges}
           >
             Save Changes
@@ -151,9 +151,7 @@ const RelationshipTypeSettings = () => {
         </div>
       </div>
       {hasUnsavedChanges && (
-        <div style={{ marginTop: "8px", color: "var(--text-muted)" }}>
-          You have unsaved changes
-        </div>
+        <div className="text-muted mt-2">You have unsaved changes</div>
       )}
     </div>
   );
