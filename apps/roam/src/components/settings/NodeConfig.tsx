@@ -56,9 +56,6 @@ const NodeConfig = ({
   const [isGithubSyncEnabled, setIsGithubSyncEnabled] = useState<boolean>(
     node.githubSync || false,
   );
-  const [isGraphOverviewEnabled, setIsGraphOverviewEnabled] = useState<boolean>(
-    node.graphOverview || false,
-  );
 
   return (
     <>
@@ -171,42 +168,14 @@ const NodeConfig = ({
           panel={
             <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <DiscourseNodeCanvasSettings uid={canvasUid} />
-              <div className="mb-4">
-                <Checkbox
-                  style={{ width: 240, lineHeight: "normal" }}
-                  checked={isGraphOverviewEnabled}
-                  onChange={(e) => {
-                    const target = e.target as HTMLInputElement;
-                    setIsGraphOverviewEnabled(target.checked);
-                    if (target.checked) {
-                      setInputSetting({
-                        blockUid: node.type,
-                        key: "Graph Overview",
-                        value: "true",
-                      });
-                    } else {
-                      setInputSetting({
-                        blockUid: node.type,
-                        key: "Graph Overview",
-                        value: "false",
-                      });
-                    }
-                  }}
-                >
-                  Graph Overview
-                  <Tooltip
-                    content={
-                      "Whether to color the node in the graph overview based on canvas color. This is based on the node's plain title as described by a `has title` condition in its specification."
-                    }
-                  >
-                    <Icon
-                      icon={"info-sign"}
-                      iconSize={12}
-                      className={"ml-2 align-middle opacity-80"}
-                    />
-                  </Tooltip>
-                </Checkbox>
-              </div>
+              <FlagPanel
+                title="Graph Overview"
+                description="Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification."
+                order={0}
+                parentUid={node.type}
+                uid={graphOverviewUid}
+                value={node.graphOverview}
+              />
             </div>
           }
         />
