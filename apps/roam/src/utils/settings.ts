@@ -11,12 +11,17 @@ export function getSetting<T>(key: string, defaultValue?: T): T {
 
   // Fall back to localStorage for backward compatibility then migrate to extension settings
   const roamjsKey = `roamjs:${key}`;
-  const localValue = localStorageGet(key) || localStorageGet(roamjsKey);
+  const roamjsKey2 = `roamjs:${key}:${window.roamAlphaAPI.graph.name}`;
+  const localValue =
+    localStorageGet(key) ||
+    localStorageGet(roamjsKey) ||
+    localStorageGet(roamjsKey2);
 
   if (localValue !== null && localValue !== undefined) {
     extensionAPI.settings.set(key, localValue);
     localStorage.removeItem(key);
     localStorage.removeItem(roamjsKey);
+    localStorage.removeItem(roamjsKey2);
     return localValue as T;
   }
 

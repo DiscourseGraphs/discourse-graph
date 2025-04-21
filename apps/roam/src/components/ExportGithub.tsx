@@ -1,6 +1,12 @@
 import { Button } from "@blueprintjs/core";
 import nanoid from "nanoid";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import apiGet from "roamjs-components/util/apiGet";
 import apiPost from "roamjs-components/util/apiPost";
@@ -51,8 +57,7 @@ export const ExportGithub = ({
   const showGitHubLogin = isGitHubAppInstalled && !gitHubAccessToken;
   const repoSelectEnabled = isGitHubAppInstalled && gitHubAccessToken;
 
-  // const isDev = useMemo(() => getNodeEnv() === "development", []);
-  const isDev = false;
+  const isDev = useMemo(() => getNodeEnv() === "development", []);
   const setRepo = (repo: string) => {
     setSelectedRepo(repo);
     setSetting("selected-repo", repo);
