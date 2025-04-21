@@ -5,20 +5,13 @@ import { PullBlock } from "roamjs-components/types";
 import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
 import compileDatalog from "./compileDatalog";
 import discourseNodeFormatToDatalog from "./discourseNodeFormatToDatalog";
-import createOverlayRender from "roamjs-components/util/createOverlayRender";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import FormDialog from "roamjs-components/components/FormDialog";
 import { QBClause, Result } from "./types";
 import findDiscourseNode from "./findDiscourseNode";
 import extractTag from "roamjs-components/util/extractTag";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import updateBlock from "roamjs-components/writes/updateBlock";
-
-type FormDialogProps = Parameters<typeof FormDialog>[0];
-const renderFormDialog = createOverlayRender<FormDialogProps>(
-  "form-dialog",
-  FormDialog,
-);
+import { renderMinimalFormDialog } from "../components/MinimalFormDialog";
 
 export const getNewDiscourseNodeText = async ({
   text,
@@ -35,26 +28,11 @@ export const getNewDiscourseNodeText = async ({
     newText = await new Promise<string>((resolve) => {
       const nodeName =
         discourseNodes.find((n) => n.type === nodeType)?.text || "Discourse";
-      renderFormDialog({
-        title: `Create ${nodeName} Node`,
-        fields: {
-          textField: {
-            type: "text",
-            label: `Create ${nodeName} Node`,
-          },
-        },
-        onSubmit: async (data: Record<string, unknown>) => {
-          console.log("data.textField", data.textField, blockUid);
-          await updateBlock({
-            text: text,
-            uid: blockUid || "",
-          });
-          resolve(data.textField as string);
-        },
-        onClose: () => {
-          resolve("");
-        },
-        isOpen: true,
+
+      renderMinimalFormDialog({
+        nodeName,
+        resolve,
+        blockUid,
       });
     });
   }
