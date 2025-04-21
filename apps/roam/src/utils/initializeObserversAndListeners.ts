@@ -56,7 +56,10 @@ export const initObservers = async ({
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
       else if (isQueryPage(props)) renderQueryPage(props);
       else if (isCanvasPage(props)) renderTldrawCanvas(props);
-      else if (isGitHubSyncPage(title)) renderGitHubSyncPage(props);
+      else {
+        const matchingNode = isGitHubSyncPage(title);
+        if (matchingNode) renderGitHubSyncPage({ ...props, matchingNode });
+      }
     },
   });
 

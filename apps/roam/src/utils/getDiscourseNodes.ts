@@ -83,6 +83,17 @@ const getSpecification = (children: RoamBasicNode[] | undefined) => {
 const getDiscourseNodes = (relations = getDiscourseRelations()) => {
   const configuredNodes = Object.entries(discourseConfigRef.nodes)
     .map(([type, { text, children }]): DiscourseNode => {
+      const githubSyncNode = getSubTree({ tree: children, key: "GitHub Sync" });
+      const githubSyncEnabledNode = getSubTree({
+        parentUid: githubSyncNode.uid,
+        key: "Enabled",
+      });
+
+      const graphOverviewNode = getSubTree({
+        tree: children,
+        key: "Graph Overview",
+      });
+
       return {
         format: getSettingValueFromTree({ tree: children, key: "format" }),
         text,
@@ -96,10 +107,13 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           ),
         ),
         graphOverview:
-          children.filter((c) => c.text === "Graph Overview").length > 0,
-        githubSync: children.filter((c) => c.text === "GitHub Sync").length > 0,
+          graphOverviewNode.children.filter((c) => c.text === "true").length >
+          0,
+        githubSync:
+          githubSyncEnabledNode.children.filter((c) => c.text === "true")
+            .length > 0,
         githubCommentsQueryUid: getSubTree({
-          tree: children,
+          parentUid: githubSyncNode.uid,
           key: "Comments Block",
         }).uid,
         description: getSettingValueFromTree({

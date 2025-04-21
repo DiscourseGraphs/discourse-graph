@@ -4,16 +4,23 @@ import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
-import { getSubTree } from "roamjs-components/util";
+import { getSubTree, setInputSetting } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
-import { Label, Tabs, Tab, TabId } from "@blueprintjs/core";
+import {
+  Label,
+  Tabs,
+  Tab,
+  TabId,
+  Checkbox,
+  Icon,
+  Tooltip,
+} from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
 import CommentsQuery from "../GitHubSyncCommentsQuery";
-import { getBlockUidIfExists } from "~/utils/getBlockIdIfExists";
 
 const NodeConfig = ({
   node,
@@ -33,10 +40,13 @@ const NodeConfig = ({
   const templateUid = getUid("Template");
   const overlayUid = getUid("Overlay");
   const canvasUid = getUid("Canvas");
-  const graphOverviewUid = getBlockUidIfExists(node.type, "Graph Overview");
-  const githubSyncUid = getBlockUidIfExists(node.type, "GitHub Sync");
+  const graphOverviewUid = getUid("Graph Overview");
+  const githubSyncUid = getUid("GitHub Sync");
+  const githubCommentsFormatUid = getSubTree({
+    parentUid: githubSyncUid || "",
+    key: "Comments Block",
+  }).uid;
 
-  const githubCommentsFormatUid = getUid("Comments Block");
   const attributeNode = getSubTree({
     parentUid: node.type,
     key: "Attributes",
@@ -45,6 +55,9 @@ const NodeConfig = ({
   const [selectedTabId, setSelectedTabId] = useState<TabId>("main");
   const [isGithubSyncEnabled, setIsGithubSyncEnabled] = useState<boolean>(
     node.githubSync || false,
+  );
+  const [isGraphOverviewEnabled, setIsGraphOverviewEnabled] = useState<boolean>(
+    node.graphOverview || false,
   );
 
   return (
@@ -158,14 +171,42 @@ const NodeConfig = ({
           panel={
             <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <DiscourseNodeCanvasSettings uid={canvasUid} />
-              <FlagPanel
-                title="Graph Overview"
-                description="Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification."
-                order={0}
-                parentUid={node.type}
-                uid={graphOverviewUid}
-                value={node.graphOverview}
-              />
+              <div className="mb-4">
+                <Checkbox
+                  style={{ width: 240, lineHeight: "normal" }}
+                  checked={isGraphOverviewEnabled}
+                  onChange={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    setIsGraphOverviewEnabled(target.checked);
+                    if (target.checked) {
+                      setInputSetting({
+                        blockUid: node.type,
+                        key: "Graph Overview",
+                        value: "true",
+                      });
+                    } else {
+                      setInputSetting({
+                        blockUid: node.type,
+                        key: "Graph Overview",
+                        value: "false",
+                      });
+                    }
+                  }}
+                >
+                  Graph Overview
+                  <Tooltip
+                    content={
+                      "Whether to color the node in the graph overview based on canvas color. This is based on the node's plain title as described by a `has title` condition in its specification."
+                    }
+                  >
+                    <Icon
+                      icon={"info-sign"}
+                      iconSize={12}
+                      className={"ml-2 align-middle opacity-80"}
+                    />
+                  </Tooltip>
+                </Checkbox>
+              </div>
             </div>
           }
         />
@@ -173,7 +214,7 @@ const NodeConfig = ({
           id="github"
           title="GitHub"
           panel={
-            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
+            <div className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto p-1">
               <div className="mb-4 rounded bg-gray-50 p-4">
                 <p className="mb-2 text-sm text-gray-600">
                   GitHub integration allows you to sync {node.text} pages with
@@ -185,20 +226,43 @@ const NodeConfig = ({
                   <li>Configure where comments appear in the page</li>
                 </ul>
               </div>
-              <FlagPanel
-                title="GitHub Sync"
-                description={`When enabled, ${node.text} pages can be synced with GitHub Issues.`}
-                order={0}
-                parentUid={node.type}
-                uid={githubSyncUid}
-                value={node.githubSync}
-                options={{
-                  onChange: (checked) => setIsGithubSyncEnabled(checked),
-                }}
-              />
+              <div className="mb-4">
+                <Checkbox
+                  style={{ width: 240, lineHeight: "normal" }}
+                  checked={isGithubSyncEnabled}
+                  onChange={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    setIsGithubSyncEnabled(target.checked);
+                    if (target.checked) {
+                      setInputSetting({
+                        blockUid: githubSyncUid,
+                        key: "Enabled",
+                        value: "true",
+                      });
+                    } else {
+                      setInputSetting({
+                        blockUid: githubSyncUid,
+                        key: "Enabled",
+                        value: "false",
+                      });
+                    }
+                  }}
+                >
+                  GitHub Sync Enabled
+                  <Tooltip
+                    content={`When enabled, ${node.text} pages can be synced with GitHub Issues.`}
+                  >
+                    <Icon
+                      icon={"info-sign"}
+                      iconSize={12}
+                      className={"ml-2 align-middle opacity-80"}
+                    />
+                  </Tooltip>
+                </Checkbox>
+              </div>
 
               {isGithubSyncEnabled && (
-                <div className="mt-4 border-t pt-4">
+                <div>
                   <Label>
                     <div className="mb-2 flex items-center gap-2">
                       <h3 className="text-lg font-medium">
