@@ -49,7 +49,7 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
-import { getSetting, setSetting } from "~/utils/settings";
+import { getSetting, setSetting } from "~/utils/extensionSettings";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",

@@ -49,7 +49,7 @@ import createPage from "roamjs-components/writes/createPage";
 import { createInitialTldrawProps } from "~/utils/createInitialTldrawProps";
 import { isCanvasPage as checkIfCanvasPage } from "~/utils/isCanvasPage";
 import sendErrorEmail from "~/utils/sendErrorEmail";
-import { getSetting, setSetting } from "~/utils/settings";
+import { getSetting, setSetting } from "~/utils/extensionSettings";
 
 const ExportProgress = ({ id }: { id: string }) => {
   const [progress, setProgress] = useState(0);
