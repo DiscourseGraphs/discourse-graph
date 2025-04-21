@@ -89,11 +89,6 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
         key: "Enabled",
       });
 
-      const graphOverviewNode = getSubTree({
-        tree: children,
-        key: "Graph Overview",
-      });
-
       return {
         format: getSettingValueFromTree({ tree: children, key: "format" }),
         text,
@@ -107,8 +102,7 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           ),
         ),
         graphOverview:
-          graphOverviewNode.children.filter((c) => c.text === "true").length >
-          0,
+          children.filter((c) => c.text === "Graph Overview").length > 0,
         githubSync:
           githubSyncEnabledNode.children.filter((c) => c.text === "true")
             .length > 0,
