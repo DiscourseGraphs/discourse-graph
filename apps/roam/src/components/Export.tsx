@@ -171,7 +171,6 @@ const ExportDialog: ExportDialogComponent = ({
     getSetting<string | null>("oauth-github", null),
   );
 
-  console.log("gitHubAccessToken", gitHubAccessToken);
   const [canSendToGitHub, setCanSendToGitHub] = useState(false);
 
   const writeFileToRepo = async ({
