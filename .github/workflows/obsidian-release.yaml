@@ -1,0 +1,98 @@
+name: Publish Obsidian Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 0.1.0-beta.1)'
+        required: true
+      create_release:
+        description: 'Create a GitHub release'
+        type: boolean
+        default: true
+      is_prerelease:
+        description: 'Mark as pre-release'
+        type: boolean
+        default: true
+env:
+  OBSIDIAN_PLUGIN_REPO_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Build Obsidian plugin
+        run: npm run build --filter=@discourse-graphs/obsidian
+        
+      - name: Update version in manifest.json
+        run: |
+          jq '.version = "${{ github.event.inputs.version }}"' apps/obsidian/manifest.json > temp.json && mv temp.json apps/obsidian/manifest.json
+          echo "Updated manifest.json with version ${{ github.event.inputs.version }}"
+        
+      - name: Prepare repository content
+        run: |
+          # Create temporary directory
+          mkdir -p temp-repo
+          
+          # Copy all files from apps/obsidian
+          cp -r apps/obsidian/* temp-repo/
+          
+          # Copy any shared dependencies
+          # Example: If you use shared UI components
+          if [ -d "packages/ui" ]; then
+            mkdir -p temp-repo/shared/ui
+            cp -r packages/ui/* temp-repo/shared/ui/
+          fi
+          
+          # Example: If you use shared utilities
+          if [ -d "packages/tailwind-config" ]; then
+            mkdir -p temp-repo/shared/tailwind-config
+            cp -r packages/tailwind-config/* temp-repo/shared/tailwind-config/
+          fi
+          
+          # Update import paths in source files if needed
+          find temp-repo -type f -name "*.ts" -o -name "*.tsx" | xargs sed -i 's|@discourse-graphs/ui|./shared/ui|g' || true
+          find temp-repo -type f -name "*.ts" -o -name "*.tsx" | xargs sed -i 's|@discourse-graphs/tailwind-config|./shared/tailwind-config|g' || true
+          
+          # Update package.json to be standalone
+          jq '.version = "${{ github.event.inputs.version }}" | 
+              .name = "discourse-graph-obsidian"' temp-repo/package.json > temp.json && mv temp.json temp-repo/package.json
+        
+      - name: Push to Obsidian plugin repository
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+        with:
+          source-directory: 'temp-repo'
+          destination-github-username: 'DiscourseGraphs'
+          destination-repository-name: 'discourse-graph-obsidian'
+          user-email: 'actions@github.com'
+          target-branch: main
+          
+      - name: Create Release
+        if: ${{ github.event.inputs.create_release == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          repository: 'DiscourseGraphs/discourse-graph-obsidian'
+          token: ${{ secrets.OBSIDIAN_PLUGIN_REPO_TOKEN }}
+          tag_name: v${{ github.event.inputs.version }}
+          name: Discourse Graph v${{ github.event.inputs.version }}
+          draft: false
+          prerelease: ${{ github.event.inputs.is_prerelease }}
+          files: |
+            temp-repo/dist/main.js
+            temp-repo/dist/manifest.json
+            temp-repo/dist/styles.css
+            temp-repo/dist/data/data.json

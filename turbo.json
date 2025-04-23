@@ -8,7 +8,8 @@
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "GEMINI_API_KEY",
-        "BLOB_READ_WRITE_TOKEN"
+        "BLOB_READ_WRITE_TOKEN",
+        "OBSIDIAN_PLUGIN_REPO_TOKEN"
       ],
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
@@ -32,7 +33,8 @@
       "passThroughEnv": [
         "BLOB_READ_WRITE_TOKEN",
         "GITHUB_REF_NAME",
-        "GITHUB_HEAD_REF"
+        "GITHUB_HEAD_REF",
+        "OBSIDIAN_PLUGIN_REPO_TOKEN"
       ]
     },
     "publish": {
