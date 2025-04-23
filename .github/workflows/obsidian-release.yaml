@@ -48,21 +48,21 @@ jobs:
           
           # Copy all files from apps/obsidian
           cp -r apps/obsidian/* temp-repo/
+
+          # Copy compiled files to the root (this is the key change)
+          cp apps/obsidian/dist/* temp-repo/
           
           # Copy any shared dependencies
-          # Example: If you use shared UI components
           if [ -d "packages/ui" ]; then
             mkdir -p temp-repo/shared/ui
             cp -r packages/ui/* temp-repo/shared/ui/
           fi
           
-          # Example: If you use shared utilities
           if [ -d "packages/tailwind-config" ]; then
             mkdir -p temp-repo/shared/tailwind-config
             cp -r packages/tailwind-config/* temp-repo/shared/tailwind-config/
           fi
           
-          # Update import paths in source files if needed
           find temp-repo -type f -name "*.ts" -o -name "*.tsx" | xargs sed -i 's|@discourse-graphs/ui|./shared/ui|g' || true
           find temp-repo -type f -name "*.ts" -o -name "*.tsx" | xargs sed -i 's|@discourse-graphs/tailwind-config|./shared/tailwind-config|g' || true
           
@@ -92,7 +92,6 @@ jobs:
           draft: false
           prerelease: ${{ github.event.inputs.is_prerelease }}
           files: |
-            temp-repo/dist/main.js
-            temp-repo/dist/manifest.json
-            temp-repo/dist/styles.css
-            temp-repo/dist/data/data.json
+            temp-repo/main.js
+            temp-repo/manifest.json
+            temp-repo/styles.css
