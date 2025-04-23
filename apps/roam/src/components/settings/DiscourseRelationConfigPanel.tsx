@@ -922,7 +922,6 @@ export const RelationEditPanel = ({
               }}
             />
           </Tooltip>
-          ;
         </div>
       </div>
 
