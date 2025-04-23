@@ -23,52 +23,109 @@ jobs:
     steps:
       - name: Checkout monorepo
         uses: actions/checkout@v3
-
+        
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
           cache: 'npm'
-
+          
       - name: Install dependencies
         run: npm install
-
+        
       - name: Build Obsidian plugin
-        run: npx turbo run deploy --filter=@discourse-graphs/obsidian
-
-      - name: Update version in manifest.json
         run: |
-          jq '.version = "${{ github.event.inputs.version }}"' apps/obsidian/manifest.json > temp.json && mv temp.json apps/obsidian/manifest.json
-          echo "Updated manifest.json with version ${{ github.event.inputs.version }}"
+          # Run the build using turbo
+          echo "Running Obsidian build with Turborepo..."
+          npx turbo run build --filter=@discourse-graphs/obsidian
+          
+          # Debug the current directory structure
+          echo "Current workspace directory: $(pwd)"
+          echo "Directory structure after build:"
+          find . -type d -name "dist" | sort
+          
+          # Find all main.js files to understand possible build outputs
+          echo "Finding potential build artifacts:"
+          find . -name "main.js" | sort
+          find . -name "styles.css" | sort
+          find . -name "manifest.json" | sort
         
       - name: Prepare repository content
         run: |
           # Create temporary directory
           mkdir -p temp-repo
           
-          # Copy all files from apps/obsidian
-          cp -r apps/obsidian/* temp-repo/
-          # Copy compiled files to the root (this is the key change)
-          cp apps/obsidian/dist/* temp-repo/
+          # Based on examining compile.ts, the build outputs should be in:
+          # - apps/obsidian/dist/main.js
+          # - apps/obsidian/dist/styles.css
+          # - apps/obsidian/dist/manifest.json
           
-          # Copy any shared dependencies
-          if [ -d "packages/ui" ]; then
-            mkdir -p temp-repo/shared/ui
-            cp -r packages/ui/* temp-repo/shared/ui/
+          # Debug the build output locations
+          echo "Build output locations:"
+          for file in main.js styles.css manifest.json; do
+            echo "Looking for $file in dist directories:"
+            find . -path "*/dist/$file" | sort
+          done
+          
+          # Find the most likely build output directory
+          BUILD_DIR=$(find . -path "*/dist/main.js" -exec dirname {} \; | head -n 1)
+          if [ -n "$BUILD_DIR" ]; then
+            echo "Found build directory: $BUILD_DIR"
+            echo "Contents of $BUILD_DIR:"
+            ls -la "$BUILD_DIR"
+            
+            # Copy files from the build directory
+            echo "Copying build files to temp-repo..."
+            cp "$BUILD_DIR"/main.js temp-repo/ || echo "Error copying main.js"
+            cp "$BUILD_DIR"/styles.css temp-repo/ || echo "Error copying styles.css (might not exist if no styles)"
+            cp "$BUILD_DIR"/manifest.json temp-repo/ || echo "Error copying manifest.json"
+          else
+            echo "No build directory with main.js found! Detailed search results:"
+            find . -name "main.js" -ls
+            
+            # Try to find the files individually as a fallback
+            echo "Attempting to locate files individually as fallback..."
+            MAIN_JS=$(find . -name "main.js" | grep -v "node_modules" | head -n 1)
+            STYLES_CSS=$(find . -name "styles.css" | grep -v "node_modules" | head -n 1)
+            MANIFEST_JSON=$(find . -name "manifest.json" | grep -v "node_modules" | head -n 1)
+            
+            if [ -n "$MAIN_JS" ]; then
+              echo "Found main.js at: $MAIN_JS"
+              cp "$MAIN_JS" temp-repo/
+            else
+              echo "ERROR: Could not find main.js!"
+              exit 1
+            fi
+            
+            if [ -n "$STYLES_CSS" ]; then
+              echo "Found styles.css at: $STYLES_CSS"
+              cp "$STYLES_CSS" temp-repo/
+            else
+              echo "Warning: Could not find styles.css (this might be ok if the plugin has no styles)"
+            fi
+            
+            if [ -n "$MANIFEST_JSON" ]; then
+              echo "Found manifest.json at: $MANIFEST_JSON"
+              cp "$MANIFEST_JSON" temp-repo/
+            else
+              echo "ERROR: Could not find manifest.json!"
+              exit 1
+            fi
           fi
           
-          if [ -d "packages/tailwind-config" ]; then
-            mkdir -p temp-repo/shared/tailwind-config
-            cp -r packages/tailwind-config/* temp-repo/shared/tailwind-config/
+          # Update version in manifest.json
+          if [ -f "temp-repo/manifest.json" ]; then
+            jq '.version = "${{ github.event.inputs.version }}"' temp-repo/manifest.json > temp.json && mv temp.json temp-repo/manifest.json
+            echo "Updated manifest.json with version ${{ github.event.inputs.version }}"
+          else
+            echo "ERROR: manifest.json not found in temp-repo!"
+            exit 1
           fi
           
-          find temp-repo -type f -name "*.ts" -o -name "*.tsx" | xargs sed -i 's|@discourse-graphs/ui|./shared/ui|g' || true
-          find temp-repo -type f -name "*.ts" -o -name "*.tsx" | xargs sed -i 's|@discourse-graphs/tailwind-config|./shared/tailwind-config|g' || true
-          
-          # Update package.json to be standalone
-          jq '.version = "${{ github.event.inputs.version }}" | 
-              .name = "discourse-graph-obsidian"' temp-repo/package.json > temp.json && mv temp.json temp-repo/package.json
-        
+          # Verify the final content
+          echo "Final contents of temp-repo:"
+          ls -la temp-repo
+      
       - name: Push to Obsidian plugin repository
         uses: cpina/github-action-push-to-another-repository@main
         env:
@@ -79,7 +136,7 @@ jobs:
           destination-repository-name: 'discourse-graph-obsidian'
           user-email: 'actions@github.com'
           target-branch: main
-
+          
       - name: Create Release
         if: ${{ github.event.inputs.create_release == 'true' }}
         uses: softprops/action-gh-release@v1
@@ -94,3 +151,8 @@ jobs:
             temp-repo/main.js
             temp-repo/manifest.json
             temp-repo/styles.css
+
+      - name: Update version in manifest.json
+        run: |
+          jq '.version = "${{ github.event.inputs.version }}"' apps/obsidian/manifest.json > temp.json && mv temp.json apps/obsidian/manifest.json
+          echo "Updated manifest.json with version ${{ github.event.inputs.version }}"
