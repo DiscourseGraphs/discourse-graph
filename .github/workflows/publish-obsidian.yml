@@ -34,7 +34,7 @@ jobs:
         run: npm install
 
       - name: Build Obsidian plugin
-        run: turbo dev --filter=@discourse-graphs/obsidian
+        run: npx turbo run deploy --filter=@discourse-graphs/obsidian
 
       - name: Update version in manifest.json
         run: |
