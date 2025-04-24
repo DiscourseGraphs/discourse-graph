@@ -68,7 +68,7 @@ jobs:
           done
           
           echo "Copying Obsidian files"
-          cp apps/obsidian/* temp-repo/ || echo "Error copying obsidian files"
+          cp apps/obsidian/$file temp-repo/ || echo "Error copying obsidian files"
 
           # Find the most likely build output directory
           BUILD_DIR=$(find . -path "*/dist/main.js" -exec dirname {} \; | head -n 1)
