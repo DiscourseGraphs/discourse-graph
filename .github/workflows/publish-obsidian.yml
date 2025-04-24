@@ -67,9 +67,6 @@ jobs:
             find . -path "*/dist/$file" | sort
           done
           
-          echo "Copying Obsidian files"
-          cp -r apps/obsidian/* temp-repo/ || echo "Warning: Some files could not be copied"
-
           # Find the most likely build output directory
           BUILD_DIR=$(find . -path "*/dist/main.js" -exec dirname {} \; | head -n 1)
           if [ -n "$BUILD_DIR" ]; then
@@ -115,6 +112,17 @@ jobs:
               exit 1
             fi
           fi
+
+          echo "Copying Obsidian files"
+          cp -r apps/obsidian/* temp-repo/ || echo "Warning: Some files could not be copied"
+
+          echo "Removing node_modules and dist directories from temp-repo..."
+          rm -rf temp-repo/node_modules temp-repo/dist
+          
+          # Display the directory structure after cleaning
+          echo "Directory structure in temp-repo after cleaning:"
+          find temp-repo -type d | sort
+
           
           # Update version in manifest.json
           if [ -f "temp-repo/manifest.json" ]; then
