@@ -1,6 +1,6 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label, Checkbox } from "@blueprintjs/core";
+import { Label, Checkbox, Button, Intent } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
@@ -12,6 +12,7 @@ import {
   hideFeedbackButton,
   showFeedbackButton,
 } from "~/components/BirdEatsBugs";
+import { runVectorDbDemo } from "../../components/vectordb";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -114,6 +115,22 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
+      <div className="mt-4">
+        <Button
+          intent={Intent.PRIMARY}
+          onClick={async () => {
+            try {
+              console.log("Button clicked: Running vector DB demo...");
+              await runVectorDbDemo();
+              console.log("Vector DB demo finished via button click.");
+            } catch (error) {
+              console.error("Error running vector DB demo from button:", error);
+            }
+          }}
+        >
+          Run VectorDB Demo
+        </Button>
+      </div>
     </div>
   );
 };

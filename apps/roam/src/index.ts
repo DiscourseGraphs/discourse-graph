@@ -22,6 +22,7 @@ import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
+import { getEmbedding, EmbeddingIndex } from "client-vector-search";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -52,6 +53,7 @@ export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 export default runExtension(async (onloadArgs) => {
   const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
+  console.log("initPostHog");
   if (!isEncrypted && !isOffline) {
     initPostHog();
     const userUid = getCurrentUserUid();
