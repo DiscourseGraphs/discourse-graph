@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Menu, MenuItem, Popover, Position } from "@blueprintjs/core";
 import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
@@ -48,6 +54,13 @@ const DISCOURSE_TYPES: DiscourseType[] = [
   },
 ];
 
+const waitForBlock = (uid: string, text: string): Promise<void> =>
+  getTextByBlockUid(uid) === text
+    ? Promise.resolve()
+    : new Promise((resolve) =>
+        setTimeout(() => resolve(waitForBlock(uid, text)), 10),
+      );
+
 const NodeSearchMenu = ({
   onClose,
   textarea,
@@ -55,6 +68,7 @@ const NodeSearchMenu = ({
 }: { onClose: () => void } & Props) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const menuRef = useRef<HTMLUListElement>(null);
   const blockUid = useMemo(() => getUids(textarea).blockUid, [textarea]);
 
   const handleTextAreaInput = useCallback(() => {
@@ -104,7 +118,7 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: { id: string; text: string }) => {
-      setTimeout(() => {
+      waitForBlock(blockUid, textarea.value).then(() => {
         const currentBlockText = getTextByBlockUid(blockUid);
         const atSymbolPos = textarea.value.lastIndexOf("@");
         // TODO: replace with actual search results
@@ -116,10 +130,11 @@ const NodeSearchMenu = ({
           id: item.id,
           text: item.text,
         });
+
+        onClose();
       });
-      onClose();
     },
-    [blockUid, onClose, searchTerm],
+    [blockUid, onClose, searchTerm, textarea],
   );
 
   const keydownListener = useCallback(
@@ -186,7 +201,7 @@ const NodeSearchMenu = ({
                 <div className="border-b border-gray-200 px-3 py-1 text-sm font-semibold text-gray-500">
                   {type.title}
                 </div>
-                <Menu>
+                <Menu ulRef={menuRef}>
                   {type.items.map((item, itemIndex) => {
                     currentGlobalIndex++;
                     const isActive = currentGlobalIndex === activeIndex;
@@ -235,3 +250,5 @@ export const renderDiscourseNodeSearchMenu = (props: Props) => {
     parent,
   );
 };
+
+export default NodeSearchMenu;
