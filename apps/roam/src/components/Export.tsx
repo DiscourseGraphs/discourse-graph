@@ -161,12 +161,7 @@ const ExportDialog: ExportDialogComponent = ({
   useEffect(() => {
     if (initialPanel === "export") setSelectedTabId("export");
   }, [initialPanel]);
-  const [discourseGraphEnabled, setDiscourseGraphEnabled] = useState(() => {
-    return getExtensionAPI().settings.get("discourse-graphs");
-  });
-  const [includeDiscourseContext, setIncludeDiscourseContext] = useState(
-    discourseGraphEnabled as boolean,
-  );
+  const [includeDiscourseContext, setIncludeDiscourseContext] = useState(false);
   const [gitHubAccessToken, setGitHubAccessToken] = useState<string | null>(
     getSetting<string | null>("oauth-github", null),
   );
@@ -554,10 +549,7 @@ const ExportDialog: ExportDialogComponent = ({
               : `Exporting ${results.length} results`}
           </span>
           <div className="flex flex-col items-end">
-            <FormGroup
-              className={`m-0 ${discourseGraphEnabled ? "" : "hidden"}`}
-              inline
-            >
+            <FormGroup className={`m-0`} inline>
               <Checkbox
                 alignIndicator={"right"}
                 checked={includeDiscourseContext}
