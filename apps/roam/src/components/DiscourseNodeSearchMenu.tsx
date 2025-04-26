@@ -54,12 +54,22 @@ const DISCOURSE_TYPES: DiscourseType[] = [
   },
 ];
 
-const waitForBlock = (uid: string, text: string): Promise<void> =>
+const waitForBlock = (
+  uid: string,
+  text: string,
+  retries = 0,
+  maxRetries = 30,
+): Promise<void> =>
   getTextByBlockUid(uid) === text
     ? Promise.resolve()
-    : new Promise((resolve) =>
-        setTimeout(() => resolve(waitForBlock(uid, text)), 10),
-      );
+    : retries >= maxRetries
+      ? Promise.resolve()
+      : new Promise((resolve) =>
+          setTimeout(
+            () => resolve(waitForBlock(uid, text, retries + 1, maxRetries)),
+            10,
+          ),
+        );
 
 const NodeSearchMenu = ({
   onClose,
@@ -120,7 +130,7 @@ const NodeSearchMenu = ({
     (item: { id: string; text: string }) => {
       waitForBlock(blockUid, textarea.value).then(() => {
         const currentBlockText = getTextByBlockUid(blockUid);
-        const atSymbolPos = textarea.value.lastIndexOf("@");
+        const atSymbolPos = currentBlockText.lastIndexOf("@");
         // TODO: replace with actual search results
         const pageRef = `[[${item.text}]]`;
         const newText = `${currentBlockText.substring(0, atSymbolPos)}${pageRef}${currentBlockText.substring(atSymbolPos + searchTerm.length + 1)}`;

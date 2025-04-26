@@ -98,12 +98,12 @@ export default runExtension(async (onloadArgs) => {
   const settingsStyle = addStyle(settingsStyles);
 
   const { observers, listeners } = await initObservers({ onloadArgs });
-  const [
+  const {
     pageActionListener,
     hashChangeListener,
     nodeMenuTriggerListener,
     discourseNodeSearchTriggerListener,
-  ] = listeners;
+  } = listeners;
   document.addEventListener("roamjs:query-builder:action", pageActionListener);
   window.addEventListener("hashchange", hashChangeListener);
   document.addEventListener("keydown", nodeMenuTriggerListener);

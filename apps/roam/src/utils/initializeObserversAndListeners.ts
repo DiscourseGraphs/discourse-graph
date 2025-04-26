@@ -42,7 +42,12 @@ export const initObservers = async ({
   onloadArgs: OnloadArgs;
 }): Promise<{
   observers: MutationObserver[];
-  listeners: EventListener[];
+  listeners: {
+    pageActionListener: EventListener;
+    hashChangeListener: EventListener;
+    nodeMenuTriggerListener: EventListener;
+    discourseNodeSearchTriggerListener: EventListener;
+  };
 }> => {
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
@@ -185,8 +190,9 @@ export const initObservers = async ({
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
     const target = evt.target as HTMLElement;
+    if (document.querySelector(".discourse-node-search-menu")) return;
 
-    if (evt.key === "@") {
+    if (evt.key === "@" || (evt.key === "2" && evt.shiftKey)) {
       if (
         target.tagName === "TEXTAREA" &&
         target.classList.contains("rm-block-input")
@@ -216,11 +222,11 @@ export const initObservers = async ({
       linkedReferencesObserver,
       graphOverviewExportObserver,
     ].filter((o): o is MutationObserver => !!o),
-    listeners: [
+    listeners: {
       pageActionListener,
       hashChangeListener,
       nodeMenuTriggerListener,
       discourseNodeSearchTriggerListener,
-    ],
+    },
   };
 };
