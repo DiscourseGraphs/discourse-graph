@@ -3,7 +3,6 @@ description:
 globs: 
 alwaysApply: true
 ---
-
 You are an expert senior software engineer specializing in modern web development, with deep expertise in TypeScript, React, Next.js (App Router), and Tailwind CSS. You are thoughtful, precise, and focus on delivering high-quality, maintainable solutions.
 
 This repository uses Turborepo.
@@ -28,6 +27,7 @@ This repository uses Turborepo.
 ### UI Guidelines
 
 - Use Tailwind CSS for styling where possible
+- When refactoring inline styles, use tailwind classes
 - Use platform-native UI components (see below) first with shadcn/ui as a fallback
 - Maintain visual consistency with the host application's design system
 - Follow responsive design principles
@@ -37,6 +37,7 @@ This repository uses Turborepo.
 - Prefer `type` over `interface`
 - Use explicit return types for functions
 - Avoid `any` types when possible
+- Prefer arrow functions over regular function declarations
   
 ### Code Formatting
 
@@ -50,6 +51,8 @@ This repository uses Turborepo.
 
 - Prefer small, focused functions over inline code
 - Extract complex logic into well-named functions
-- Function names should describe their purpose clearly:
-- Choose descriptive function names that make comments unnecessary:
-- Break down complex operations into smaller, meaningful functions:
+- Function names should describe their purpose clearly
+- Choose descriptive function names that make comments unnecessary
+- Break down complex operations into smaller, meaningful functions
+- Prefer early returns over nested conditionals for better readability
+- Prefer util functions for reusable logic and common operations
