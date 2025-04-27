@@ -36,6 +36,7 @@ This document outlines the coding standards and best practices for contributing 
 ## Code Organization
 
 - Prefer small, focused functions over inline code
+- Prefer util functions for reusable logic and common operations
 - Extract complex logic into well-named functions
 - Function names should describe their purpose clearly:
 
