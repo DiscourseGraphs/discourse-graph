@@ -27,6 +27,7 @@ This repository uses Turborepo.
 ### UI Guidelines
 
 - Use Tailwind CSS for styling where possible
+- When refactoring inline styles, use tailwind classes
 - Use platform-native UI components (see below) first with shadcn/ui as a fallback
 - Maintain visual consistency with the host application's design system
 - Follow responsive design principles
