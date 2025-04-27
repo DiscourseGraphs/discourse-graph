@@ -39,6 +39,7 @@ This document outlines the coding standards and best practices for contributing 
 - Prefer small, focused functions over inline code
 - Prefer util functions for reusable logic and common operations
 - Extract complex logic into well-named functions
+- Prefer early returns over nested conditionals for better readability
 - Function names should describe their purpose clearly:
 
 ```typescript
