@@ -36,6 +36,7 @@ This repository uses Turborepo.
 - Prefer `type` over `interface`
 - Use explicit return types for functions
 - Avoid `any` types when possible
+- Prefer arrow functions over regular function declarations
   
 ### Code Formatting
 

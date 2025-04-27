@@ -7,6 +7,7 @@ This document outlines the coding standards and best practices for contributing 
 - Prefer `type` over `interface`
 - Use explicit return types for functions
 - Avoid `any` types when possible
+- Prefer arrow functions over regular function declarations
 
 ## UI Guidelines
 
