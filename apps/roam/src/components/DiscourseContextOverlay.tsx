@@ -5,6 +5,7 @@ import {
   Position,
   Tooltip,
   ControlGroup,
+  Spinner,
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
@@ -27,6 +28,7 @@ import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import { Result } from "roamjs-components/types/query-builder";
 import createBlock from "roamjs-components/writes/createBlock";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
+import { findSimilarNodesUsingHyde, SuggestedNode } from "./hyde";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -102,6 +104,11 @@ const DiscourseContextOverlay = ({
   const [results, setResults] = useState<DiscourseData["results"]>([]);
   const [refs, setRefs] = useState(0);
   const [score, setScore] = useState<number | string>(0);
+  const [isSearchingHyde, setIsSearchingHyde] = useState(false);
+  const [suggestedNodes, setSuggestedNodes] = useState<SuggestedNode[]>([]);
+  const [hydeFilteredNodes, setHydeFilteredNodes] = useState<SuggestedNode[]>(
+    [],
+  );
 
   const discourseNode = useMemo(() => findDiscourseNode(tagUid), [tagUid]);
   const relations = useMemo(() => getDiscourseRelations(), []);
@@ -160,9 +167,11 @@ const DiscourseContextOverlay = ({
     return hasSelfRelation ? types : types.filter((type) => type !== selfType);
   }, [discourseNode, relations]);
 
-  const [suggestedNodes, setSuggestedNodes] = useState<Result[]>([]);
   const [currentPageInput, setCurrentPageInput] = useState("");
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
+  const [selectedRelationLabel, setSelectedRelationLabel] = useState<
+    string | null
+  >(null);
   const allPages = useMemo(() => getAllPageNames(), []);
   useEffect(() => {
     setSelectedPage(null);
@@ -171,6 +180,7 @@ const DiscourseContextOverlay = ({
   useEffect(() => {
     if (!selectedPage) {
       setSuggestedNodes([]);
+      setHydeFilteredNodes([]);
       return;
     }
     const nodesOnPage = getAllReferencesOnPage(selectedPage);
@@ -184,7 +194,7 @@ const DiscourseContextOverlay = ({
           type: node.type,
         };
       })
-      .filter((node) => node !== null)
+      .filter((node): node is SuggestedNode => node !== null)
       .filter((node) => validTypes.includes(node.type))
       .filter(
         (node) =>
@@ -194,18 +204,58 @@ const DiscourseContextOverlay = ({
       );
 
     setSuggestedNodes(nodes);
-  }, [selectedPage, discourseNode, relations]);
 
-  console.log("suggestedNodes", suggestedNodes);
-  console.log("discourseNode", discourseNode);
-  console.log("relations", relations);
+    if (selectedRelationLabel) {
+      runHydeSearch(nodes);
+    }
+  }, [
+    selectedPage,
+    discourseNode,
+    relations,
+    results,
+    validTypes,
+    tag,
+    selectedRelationLabel,
+  ]);
 
-  const handleCreateBlock = async (node: { uid: string; text: string }) => {
+  // Clarify with Michael what is the Relation Type where do we extract from, I am confused as to what that relates to
+
+  useEffect(() => {
+    if (suggestedNodes.length > 0 && !selectedRelationLabel) {
+      setSelectedRelationLabel(suggestedNodes[0].type);
+    } else if (suggestedNodes.length === 0) {
+      setSelectedRelationLabel(null);
+    }
+  }, [suggestedNodes, selectedRelationLabel]);
+
+  const handleCreateBlock = async (nodeText: string) => {
     await createBlock({
       parentUid: blockUid,
-      node: { text: `[[${node.text}]]` },
+      node: { text: `[[${nodeText}]]` },
     });
-    setSuggestedNodes(suggestedNodes.filter((n) => n.uid !== node.uid));
+  };
+
+  const runHydeSearch = async (currentSuggestions: SuggestedNode[]) => {
+    if (!currentSuggestions.length || !tag || !selectedRelationLabel) {
+      setHydeFilteredNodes([]);
+      return;
+    }
+    setIsSearchingHyde(true);
+    setHydeFilteredNodes([]);
+    try {
+      const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde(
+        currentSuggestions,
+        tag,
+        selectedRelationLabel,
+      );
+
+      setHydeFilteredNodes(foundNodes);
+    } catch (error) {
+      console.error("Error during HyDE search:", error);
+      setHydeFilteredNodes([]);
+    } finally {
+      setIsSearchingHyde(false);
+    }
   };
 
   return (
@@ -253,23 +303,27 @@ const DiscourseContextOverlay = ({
             {selectedPage && (
               <div className="mt-6">
                 <h3 className="mb-2 text-base font-semibold">
-                  Suggested Relationships
+                  Suggested Relationships (Ranked by HyDE)
                 </h3>
+                {isSearchingHyde && (
+                  <Spinner size={Spinner.SIZE_SMALL} className="mb-2" />
+                )}
                 <ul className="space-y-2">
-                  {suggestedNodes.length > 0 ? (
-                    suggestedNodes.map((node) => (
-                      <li key={node.uid} className="">
-                        <span>{node.text}</span>
-                        <Button
-                          minimal
-                          icon="add"
-                          onClick={() => handleCreateBlock(node)}
-                          className="ml-2"
-                        />
-                      </li>
-                    ))
-                  ) : (
-                    <li>No relations found</li>
+                  {!isSearchingHyde && hydeFilteredNodes.length > 0
+                    ? hydeFilteredNodes.map((node) => (
+                        <li key={node.uid} className="">
+                          <span>{node.text}</span>
+                          <Button
+                            minimal
+                            icon="add"
+                            onClick={() => handleCreateBlock(node.text)}
+                            className="ml-2"
+                          />
+                        </li>
+                      ))
+                    : null}
+                  {!isSearchingHyde && hydeFilteredNodes.length === 0 && (
+                    <li>No relevant relations found using HyDE.</li>
                   )}
                 </ul>
               </div>
