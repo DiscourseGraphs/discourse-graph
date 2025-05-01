@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
@@ -41,11 +41,24 @@ const NodeConfig = ({
   const overlayUid = getUid("Overlay");
   const canvasUid = getUid("Canvas");
   const graphOverviewUid = getUid("Graph Overview");
-  const githubSyncUid = getUid("GitHub Sync");
-  const githubCommentsFormatUid = getSubTree({
-    parentUid: githubSyncUid || "",
-    key: "Comments Block",
-  }).uid;
+
+  // Handle GitHub sync nodes safely
+  const [githubSyncUid, setGithubSyncUid] = useState<string>("");
+  const [githubCommentsFormatUid, setGithubCommentsFormatUid] =
+    useState<string>("");
+
+  useEffect(() => {
+    const syncUid = getUid("GitHub Sync");
+    setGithubSyncUid(syncUid);
+
+    if (syncUid) {
+      const commentsUid = getSubTree({
+        parentUid: syncUid,
+        key: "Comments Block",
+      }).uid;
+      setGithubCommentsFormatUid(commentsUid);
+    }
+  }, [node.type]);
 
   const attributeNode = getSubTree({
     parentUid: node.type,
