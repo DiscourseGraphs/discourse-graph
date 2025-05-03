@@ -41,23 +41,24 @@ const NodeConfig = ({
   const overlayUid = getUid("Overlay");
   const canvasUid = getUid("Canvas");
   const graphOverviewUid = getUid("Graph Overview");
+  const githubSyncUid = getUid("GitHub Sync");
 
   // Handle GitHub sync nodes safely
   const [githubSyncUid, setGithubSyncUid] = useState<string>("");
   const [githubCommentsFormatUid, setGithubCommentsFormatUid] =
     useState<string>("");
 
+  // TEMP FIX: This is a workaround to ensure the github comments format uid is set after the github sync node is created
   useEffect(() => {
-    const syncUid = getUid("GitHub Sync");
-    setGithubSyncUid(syncUid);
-
-    if (syncUid) {
+    const timeout = setTimeout(() => {
       const commentsUid = getSubTree({
-        parentUid: syncUid,
+        parentUid: githubSyncUid,
         key: "Comments Block",
       }).uid;
       setGithubCommentsFormatUid(commentsUid);
-    }
+    }, 250);
+
+    return () => clearTimeout(timeout);
   }, [node.type]);
 
   const attributeNode = getSubTree({
@@ -67,7 +68,7 @@ const NodeConfig = ({
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("main");
   const [isGithubSyncEnabled, setIsGithubSyncEnabled] = useState<boolean>(
-    node.githubSync || false,
+    node.githubSync?.enabled || false,
   );
 
   return (
