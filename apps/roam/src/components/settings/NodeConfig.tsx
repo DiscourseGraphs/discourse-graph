@@ -20,7 +20,7 @@ import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
-import CommentsQuery from "../GitHubSyncCommentsQuery";
+import CommentsQuery from "~/components/GitHubSyncCommentsQuery";
 
 const NodeConfig = ({
   node,
@@ -43,8 +43,6 @@ const NodeConfig = ({
   const graphOverviewUid = getUid("Graph Overview");
   const githubSyncUid = getUid("GitHub Sync");
 
-  // Handle GitHub sync nodes safely
-  const [githubSyncUid, setGithubSyncUid] = useState<string>("");
   const [githubCommentsFormatUid, setGithubCommentsFormatUid] =
     useState<string>("");
 
@@ -209,56 +207,50 @@ const NodeConfig = ({
                   <li>Configure where comments appear in the page</li>
                 </ul>
               </div>
-              <div className="mb-4">
-                <Checkbox
-                  style={{ width: 240, lineHeight: "normal" }}
-                  checked={isGithubSyncEnabled}
-                  onChange={(e) => {
-                    const target = e.target as HTMLInputElement;
-                    setIsGithubSyncEnabled(target.checked);
-                    if (target.checked) {
-                      setInputSetting({
-                        blockUid: githubSyncUid,
-                        key: "Enabled",
-                        value: "true",
-                      });
-                    } else {
-                      setInputSetting({
-                        blockUid: githubSyncUid,
-                        key: "Enabled",
-                        value: "false",
-                      });
-                    }
-                  }}
+              <Checkbox
+                style={{ width: 240, lineHeight: "normal" }}
+                checked={isGithubSyncEnabled}
+                onChange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  setIsGithubSyncEnabled(target.checked);
+                  if (target.checked) {
+                    setInputSetting({
+                      blockUid: githubSyncUid,
+                      key: "Enabled",
+                      value: "true",
+                    });
+                  } else {
+                    setInputSetting({
+                      blockUid: githubSyncUid,
+                      key: "Enabled",
+                      value: "false",
+                    });
+                  }
+                }}
+              >
+                GitHub Sync Enabled
+                <Tooltip
+                  content={`When enabled, ${node.text} pages can be synced with GitHub Issues.`}
                 >
-                  GitHub Sync Enabled
-                  <Tooltip
-                    content={`When enabled, ${node.text} pages can be synced with GitHub Issues.`}
-                  >
-                    <Icon
-                      icon={"info-sign"}
-                      iconSize={12}
-                      className={"ml-2 align-middle opacity-80"}
-                    />
-                  </Tooltip>
-                </Checkbox>
-              </div>
+                  <Icon
+                    icon={"info-sign"}
+                    iconSize={12}
+                    className={"ml-2 align-middle opacity-80"}
+                  />
+                </Tooltip>
+              </Checkbox>
 
               {isGithubSyncEnabled && (
-                <div>
+                <>
                   <Label>
-                    <div className="mb-2 flex items-center gap-2">
-                      <h3 className="text-lg font-medium">
-                        Comments Configuration
-                      </h3>
-                      <Description description="Define where GitHub Issue comments should appear on this node type. This query will run when comments are imported." />
-                    </div>
+                    Comments Configuration
+                    <Description description="Define where GitHub Issue comments should appear on this node type. This query will run when comments are imported." />
                   </Label>
                   <CommentsQuery
                     parentUid={githubCommentsFormatUid}
                     onloadArgs={onloadArgs}
                   />
-                </div>
+                </>
               )}
             </div>
           }
