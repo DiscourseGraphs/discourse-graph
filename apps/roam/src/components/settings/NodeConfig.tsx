@@ -1,17 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
-import { getSubTree } from "roamjs-components/util";
+import { getSubTree, setInputSetting } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
-import { Label, Tabs, Tab, TabId } from "@blueprintjs/core";
+import {
+  Label,
+  Tabs,
+  Tab,
+  TabId,
+  Checkbox,
+  Icon,
+  Tooltip,
+} from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
+import CommentsQuery from "~/components/GitHubSyncCommentsQuery";
 
 const NodeConfig = ({
   node,
@@ -32,12 +41,33 @@ const NodeConfig = ({
   const overlayUid = getUid("Overlay");
   const canvasUid = getUid("Canvas");
   const graphOverviewUid = getUid("Graph Overview");
+  const githubSyncUid = getUid("GitHub Sync");
+
+  const [githubCommentsFormatUid, setGithubCommentsFormatUid] =
+    useState<string>("");
+
+  // TEMP FIX: This is a workaround to ensure the github comments format uid is set after the github sync node is created
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const commentsUid = getSubTree({
+        parentUid: githubSyncUid,
+        key: "Comments Block",
+      }).uid;
+      setGithubCommentsFormatUid(commentsUid);
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [node.type]);
+
   const attributeNode = getSubTree({
     parentUid: node.type,
     key: "Attributes",
   });
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("main");
+  const [isGithubSyncEnabled, setIsGithubSyncEnabled] = useState<boolean>(
+    node.githubSync?.enabled || false,
+  );
 
   return (
     <>
@@ -45,12 +75,13 @@ const NodeConfig = ({
         onChange={(id) => setSelectedTabId(id)}
         selectedTabId={selectedTabId}
         renderActiveTabPanelOnly={true}
+        className="discourse-node-tabs overflow-x-auto"
       >
         <Tab
           id="main"
           title="Main"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <TextPanel
                 title="Description"
                 description={`Describing what the ${node.text} node represents in your graph.`}
@@ -74,7 +105,7 @@ const NodeConfig = ({
           id="index"
           title="Index"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <DiscourseNodeIndex
                 node={node}
                 parentUid={node.type}
@@ -87,7 +118,7 @@ const NodeConfig = ({
           id="format"
           title="Format"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <TextPanel
                 title="Format"
                 description={`DEPRECATED - Use specification instead. The format ${node.text} pages should have.`}
@@ -112,7 +143,7 @@ const NodeConfig = ({
           id="template"
           title="Template"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <BlocksPanel
                 title="Template"
                 description={`The template that auto fills ${node.text} page when generated.`}
@@ -128,7 +159,7 @@ const NodeConfig = ({
           id="attributes"
           title="Attributes"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <DiscourseNodeAttributes uid={attributeNode.uid} />
               <SelectPanel
                 title="Overlay"
@@ -147,7 +178,7 @@ const NodeConfig = ({
           id="canvas"
           title="Canvas"
           panel={
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto p-1">
               <DiscourseNodeCanvasSettings uid={canvasUid} />
               <FlagPanel
                 title="Graph Overview"
@@ -157,6 +188,70 @@ const NodeConfig = ({
                 uid={graphOverviewUid}
                 value={node.graphOverview}
               />
+            </div>
+          }
+        />
+        <Tab
+          id="github"
+          title="GitHub"
+          panel={
+            <div className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto p-1">
+              <div className="mb-4 rounded bg-gray-50 p-4">
+                <p className="mb-2 text-sm text-gray-600">
+                  GitHub integration allows you to sync {node.text} pages with
+                  GitHub Issues. When enabled, you can:
+                </p>
+                <ul className="list-disc pl-5 text-sm text-gray-600">
+                  <li>Send pages to GitHub as issues</li>
+                  <li>Import and sync comments from GitHub</li>
+                  <li>Configure where comments appear in the page</li>
+                </ul>
+              </div>
+              <Checkbox
+                style={{ width: 240, lineHeight: "normal" }}
+                checked={isGithubSyncEnabled}
+                onChange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  setIsGithubSyncEnabled(target.checked);
+                  if (target.checked) {
+                    setInputSetting({
+                      blockUid: githubSyncUid,
+                      key: "Enabled",
+                      value: "true",
+                    });
+                  } else {
+                    setInputSetting({
+                      blockUid: githubSyncUid,
+                      key: "Enabled",
+                      value: "false",
+                    });
+                  }
+                }}
+              >
+                GitHub Sync Enabled
+                <Tooltip
+                  content={`When enabled, ${node.text} pages can be synced with GitHub Issues.`}
+                >
+                  <Icon
+                    icon={"info-sign"}
+                    iconSize={12}
+                    className={"ml-2 align-middle opacity-80"}
+                  />
+                </Tooltip>
+              </Checkbox>
+
+              {isGithubSyncEnabled && (
+                <>
+                  <Label>
+                    Comments Configuration
+                    <Description description="Define where GitHub Issue comments should appear on this node type. This query will run when comments are imported." />
+                  </Label>
+                  <CommentsQuery
+                    parentUid={githubCommentsFormatUid}
+                    onloadArgs={onloadArgs}
+                  />
+                </>
+              )}
             </div>
           }
         />

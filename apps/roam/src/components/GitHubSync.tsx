@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import matchDiscourseNode from "~/utils/matchDiscourseNode";
 import { OnloadArgs, PullBlock, RoamBasicNode } from "roamjs-components/types";
 import { Button, Card, Classes, Dialog, Tag } from "@blueprintjs/core";
@@ -48,8 +48,6 @@ import {
 } from "roamjs-components/components/ConfigPanels/types";
 import CustomPanel from "roamjs-components/components/ConfigPanels/CustomPanel";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
-import CommentsQuery from "./GitHubSyncCommentsQuery";
-import getSubTree from "roamjs-components/util/getSubTree";
 import isFlagEnabled from "~/utils/isFlagEnabled";
 
 const CommentUidCache = new Set<string>();
@@ -105,27 +103,21 @@ const getPageGitHubPropsDetails = (pageUid: string) => {
 const getRoamCommentsContainerUid = async ({
   pageUid,
   extensionAPI,
+  matchingNode,
 }: {
   pageUid: string;
   extensionAPI: OnloadArgs["extensionAPI"];
+  matchingNode?: DiscourseNode;
 }) => {
   const pageTitle = getPageTitleByPageUid(pageUid);
-  const configUid = getPageUidByPageTitle(CONFIG_PAGE);
-  const configTree = getBasicTreeByParentUid(configUid);
-  const queryNode = getSubTree({
-    tree: configTree,
-    key: "Comments Block",
-  });
-  if (!queryNode) {
-    renderToast({
-      id: "github-issue-comments",
-      content: `Comments Block query not set. Set it in ${CONFIG_PAGE}`,
-    });
+
+  if (!matchingNode?.githubSync?.commentsQueryUid || !matchingNode) {
     return;
   }
+
   const results = await runQuery({
     extensionAPI,
-    parentUid: queryNode.uid,
+    parentUid: matchingNode.githubSync?.commentsQueryUid,
     inputs: { NODETEXT: pageTitle, NODEUID: pageUid },
   });
 
@@ -134,9 +126,11 @@ const getRoamCommentsContainerUid = async ({
 export const insertNewCommentsFromGitHub = async ({
   pageUid,
   extensionAPI,
+  matchingNode,
 }: {
   pageUid: string;
   extensionAPI: OnloadArgs["extensionAPI"];
+  matchingNode?: DiscourseNode;
 }) => {
   const getCommentsOnPage = (pageUid: string) => {
     const query = `[:find
@@ -171,6 +165,7 @@ export const insertNewCommentsFromGitHub = async ({
   const commentsContainerUid = await getRoamCommentsContainerUid({
     pageUid,
     extensionAPI,
+    matchingNode,
   });
 
   const gitHubAccessToken = localStorageGet("github-oauth");
@@ -250,40 +245,33 @@ export const insertNewCommentsFromGitHub = async ({
     });
   }
 };
+
 export const isGitHubSyncPage = (pageTitle: string) => {
-  if (!enabled) return;
-  const gitHubNodeResult = window.roamAlphaAPI.data.fast.q(`[:find
-    (pull ?node [:block/string])
-    :where
-      [?roamjsgithub-sync :node/title "roam/js/github-sync"]
-      [?node :block/page ?roamjsgithub-sync]
-      [?p :block/children ?node]
-    (or     [?p :block/string ?p-String]
-      [?p :node/title ?p-String])
-    [(clojure.string/includes? ?p-String "Node Select")]
-    ]`) as [PullBlock][];
-  const nodeText = gitHubNodeResult[0]?.[0]?.[":block/string"] || "";
-  if (!nodeText) return;
+  if (!enabled) return null;
 
   const discourseNodes = getDiscourseNodes();
-  const selectedNode = discourseNodes.find((node) => node.text === nodeText);
-  const isPageTypeOfNode = matchDiscourseNode({
-    format: selectedNode?.format || "",
-    specification: selectedNode?.specification || [],
-    text: selectedNode?.text || "",
-    title: pageTitle,
-  });
-  return isPageTypeOfNode;
+  return discourseNodes.find(
+    (node) =>
+      node.githubSync?.enabled &&
+      matchDiscourseNode({
+        format: node.format || "",
+        specification: node.specification || [],
+        text: node.text || "",
+        title: pageTitle,
+      }),
+  );
 };
 
 export const renderGitHubSyncPage = async ({
   title,
   h1,
   onloadArgs,
+  matchingNode,
 }: {
   title: string;
   h1: HTMLHeadingElement;
   onloadArgs: OnloadArgs;
+  matchingNode: DiscourseNode;
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const pageUid = getPageUidByPageTitle(title);
@@ -291,6 +279,7 @@ export const renderGitHubSyncPage = async ({
   const commentsContainerUid = await getRoamCommentsContainerUid({
     pageUid,
     extensionAPI,
+    matchingNode,
   });
   const commentHeaderEl = document.querySelector(
     `.rm-block__input[id$="${commentsContainerUid}"]`,
@@ -913,73 +902,6 @@ const initializeGitHubSync = async (onloadArgs: OnloadArgs) => {
   const unloads = new Set<() => void>();
   const toggle = async (flag: boolean) => {
     if (flag && !enabled) {
-      const { observer: configObserver } = await createConfigObserver({
-        title: "roam/js/github-sync",
-        config: {
-          tabs: [
-            {
-              id: "home",
-              fields: [
-                // @ts-ignore
-                {
-                  title: "Docs",
-                  description: `More information about the GitHub Sync Feature.`,
-                  Panel: CustomPanel,
-                  options: {
-                    component: () => {
-                      return (
-                        <div>
-                          <p>
-                            For more information about the GitHub Sync feature,
-                            visit the GitHub page:
-                          </p>
-                          <a
-                            href="https://github.com/RoamJS/query-builder/blob/main/docs/github-sync.md"
-                            target="_blank"
-                          >
-                            GitHub Sync Documentation
-                          </a>
-                        </div>
-                      );
-                    },
-                  },
-                } as Field<CustomField>,
-                {
-                  // @ts-ignore
-                  Panel: SelectPanel,
-                  title: "Node Select",
-                  description:
-                    "Select the node type to sync with GitHub Issues",
-                  options: {
-                    items: [
-                      "None",
-                      ...getDiscourseNodes()
-                        .map((node) => node.text)
-                        .filter((text) => text !== "Block"),
-                    ],
-                  },
-                  defaultValue: "None",
-                },
-                // @ts-ignore
-                {
-                  Panel: CustomPanel,
-                  title: "Comments Block",
-                  description:
-                    "Where comments are synced to. This will fire when the node is loaded. You have access to ':in NODETEXT' and ':in NODEUID' as variables for the current node.",
-                  options: {
-                    component: ({ uid }) =>
-                      React.createElement(CommentsQuery, {
-                        parentUid: uid,
-                        onloadArgs,
-                      }),
-                  },
-                } as Field<CustomField>,
-              ],
-            },
-          ],
-        },
-      });
-
       const commentObserver = createBlockObserver({
         onBlockLoad: (b) => {
           const { blockUid } = getUids(b);
@@ -1013,7 +935,6 @@ const initializeGitHubSync = async (onloadArgs: OnloadArgs) => {
         },
       });
 
-      unloads.add(() => configObserver?.disconnect());
       unloads.add(() => commentObserver.forEach((o) => o.disconnect()));
       unloads.add(() => CommentUidCache.clear());
       unloads.add(() => CommentContainerUidCache.clear());
@@ -1026,7 +947,6 @@ const initializeGitHubSync = async (onloadArgs: OnloadArgs) => {
   await toggle(isFlagEnabled(SETTING));
   return toggle;
 };
-
 export const toggleGitHubSync = async (
   flag: boolean,
   onloadArgs: OnloadArgs,
