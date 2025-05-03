@@ -111,13 +111,13 @@ const getRoamCommentsContainerUid = async ({
 }) => {
   const pageTitle = getPageTitleByPageUid(pageUid);
 
-  if (!matchingNode?.githubCommentsQueryUid || !matchingNode) {
+  if (!matchingNode?.githubSync?.commentsQueryUid || !matchingNode) {
     return;
   }
 
   const results = await runQuery({
     extensionAPI,
-    parentUid: matchingNode.githubCommentsQueryUid,
+    parentUid: matchingNode.githubSync?.commentsQueryUid,
     inputs: { NODETEXT: pageTitle, NODEUID: pageUid },
   });
 
@@ -252,7 +252,7 @@ export const isGitHubSyncPage = (pageTitle: string) => {
   const discourseNodes = getDiscourseNodes();
   return discourseNodes.find(
     (node) =>
-      node.githubSync &&
+      node.githubSync?.enabled &&
       matchDiscourseNode({
         format: node.format || "",
         specification: node.specification || [],
@@ -956,4 +956,3 @@ export const toggleGitHubSync = async (
 };
 
 export default initializeGitHubSync;
-

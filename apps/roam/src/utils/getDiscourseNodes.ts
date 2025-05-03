@@ -10,7 +10,11 @@ export const excludeDefaultNodes = (node: DiscourseNode) => {
   return node.backedBy !== "default";
 };
 
-// TODO - only text and type should be required
+type GitHubSyncConfig = {
+  enabled: boolean;
+  commentsQueryUid: string;
+};
+
 export type DiscourseNode = {
   text: string;
   type: string;
@@ -25,8 +29,7 @@ export type DiscourseNode = {
   graphOverview?: boolean;
   description?: string;
   template?: InputTextNode[];
-  githubSync?: boolean;
-  githubCommentsQueryUid?: string;
+  githubSync?: GitHubSyncConfig;
 };
 
 const DEFAULT_NODES: DiscourseNode[] = [
@@ -84,11 +87,18 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
   const configuredNodes = Object.entries(discourseConfigRef.nodes)
     .map(([type, { text, children }]): DiscourseNode => {
       const githubSyncNode = getSubTree({ tree: children, key: "GitHub Sync" });
-      const githubSyncEnabledNode = getSubTree({
-        parentUid: githubSyncNode.uid,
-        key: "Enabled",
-      });
 
+      const githubSync: GitHubSyncConfig = {
+        enabled:
+          getSettingValueFromTree({
+            tree: githubSyncNode.children,
+            key: "Enabled",
+          }) === "true",
+        commentsQueryUid: getSubTree({
+          parentUid: githubSyncNode.uid,
+          key: "Comments Block",
+        }).uid,
+      };
       return {
         format: getSettingValueFromTree({ tree: children, key: "format" }),
         text,
@@ -103,13 +113,7 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
         ),
         graphOverview:
           children.filter((c) => c.text === "Graph Overview").length > 0,
-        githubSync:
-          githubSyncEnabledNode.children.filter((c) => c.text === "true")
-            .length > 0,
-        githubCommentsQueryUid: getSubTree({
-          parentUid: githubSyncNode.uid,
-          key: "Comments Block",
-        }).uid,
+        githubSync,
         description: getSettingValueFromTree({
           tree: children,
           key: "description",
