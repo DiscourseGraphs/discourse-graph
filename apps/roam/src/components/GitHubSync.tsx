@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import matchDiscourseNode from "~/utils/matchDiscourseNode";
-import { OnloadArgs, PullBlock, RoamBasicNode } from "roamjs-components/types";
+import { OnloadArgs, RoamBasicNode } from "roamjs-components/types";
 import { Button, Card, Classes, Dialog, Tag } from "@blueprintjs/core";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -15,8 +15,6 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import createBlock from "roamjs-components/writes/createBlock";
 import runQuery from "~/utils/runQuery";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { createConfigObserver } from "roamjs-components/components/ConfigPage";
-import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import { render as exportRender } from "~/components/Export";
 import getBlockProps from "~/utils/getBlockProps";
 import localStorageGet from "roamjs-components/util/localStorageGet";
@@ -40,13 +38,7 @@ import {
   fetchInstallationStatus,
 } from "~/components/ExportGithub";
 import localStorageSet from "roamjs-components/util/localStorageSet";
-import { getNodeEnv } from "roamjs-components/util/env";
 import nanoid from "nanoid";
-import {
-  CustomField,
-  Field,
-} from "roamjs-components/components/ConfigPanels/types";
-import CustomPanel from "roamjs-components/components/ConfigPanels/CustomPanel";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import isFlagEnabled from "~/utils/isFlagEnabled";
 import getPageTitleByBlockUid from "roamjs-components/queries/getPageTitleByBlockUid";
