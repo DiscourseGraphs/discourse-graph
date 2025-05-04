@@ -1,9 +1,88 @@
 import { generateRandomSentences } from "../utils/textGeneration";
-import { EmbeddingIndex } from "client-vector-search";
+
+const EMBEDDING_BATCH_SIZE = 400;
+
+async function getEmbeddings(input: string | string[]): Promise<number[][]> {
+  // Determine API URL based on environment
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const apiUrl = isDevelopment
+    ? "http://localhost:3000/api/embeddings/openai/large" // Local dev URL
+    : "https://discoursegraphs.com/api/embeddings/openai/large"; // Production URL
+
+  const allEmbeddings: number[][] = [];
+
+  try {
+    if (Array.isArray(input)) {
+      for (let i = 0; i < input.length; i += EMBEDDING_BATCH_SIZE) {
+        const batch = input.slice(i, i + EMBEDDING_BATCH_SIZE);
+        console.log(
+          `Fetching embeddings for batch ${i / EMBEDDING_BATCH_SIZE + 1}... (size: ${batch.length}) to ${apiUrl}`, // Log the URL being used
+        );
+
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ input: batch }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            `API Error (${response.status}) processing batch starting at index ${i}: ${errorData.error || "Failed to fetch embeddings"}`,
+          );
+        }
+
+        const data = await response.json();
+        if (!data || !Array.isArray(data.data)) {
+          throw new Error(
+            `Invalid API response format for batch starting at index ${i}. Expected 'data' array.`,
+          );
+        }
+        const batchEmbeddings = data.data.map((item: any) => item.embedding);
+        console.log(batchEmbeddings.slice(0, 10));
+        console.log(
+          `Batch ${i / EMBEDDING_BATCH_SIZE + 1} embeddings fetched.`,
+        );
+        allEmbeddings.push(...batchEmbeddings);
+      }
+    } else {
+      console.log(`Fetching embedding for single input to ${apiUrl}...`); // Log the URL
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ input: input }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `API Error (${response.status}) processing single input: ${errorData.error || "Failed to fetch embeddings"}`,
+        );
+      }
+
+      const data = await response.json();
+      if (!data || !Array.isArray(data.data) || data.data.length === 0) {
+        throw new Error(
+          "Invalid API response format for single input. Expected 'data' array with one item.",
+        );
+      }
+      console.log(data.data[0].embedding);
+      allEmbeddings.push(data.data[0].embedding);
+    }
+
+    return allEmbeddings;
+  } catch (error) {
+    console.error("Error getting embeddings:", error);
+    throw error;
+  }
+}
 
 export async function runVectorDbDemo() {
   const overallStart = performance.now();
-  let stepStart = performance.now();
 
   // --- Generate Random Sentences ---
   const numberOfSentences = 500;
@@ -13,88 +92,33 @@ export async function runVectorDbDemo() {
     wordsPerSentence,
   );
 
-  // --- Import required modules dynamically ---
-  const { pipeline } = await import("@huggingface/transformers");
-
-  // --- Create text embeddings using transformers.js ---
-  const embeddingPipeline = await pipeline(
-    "feature-extraction",
-    "Xenova/all-MiniLM-L6-v2",
-  );
-
-  console.log("Generating embeddings..."); // Added start log
-  stepStart = performance.now();
-
-  // Generate embeddings for all sentences IN BATCH
-  const embeddingOutputs = await embeddingPipeline(initialStrings, {
-    pooling: "mean",
-    normalize: true,
-  });
-
-  // Extract the actual embedding arrays from the batched tensor output
-  const batchSize = initialStrings.length;
-  const embeddingDim = embeddingOutputs.dims[1];
-  const initialEmbeddings: number[][] = [];
-  for (let i = 0; i < batchSize; ++i) {
-    const start = i * embeddingDim;
-    const end = start + embeddingDim;
-    initialEmbeddings.push(Array.from(embeddingOutputs.data.slice(start, end)));
+  console.log("Generating BATCH embeddings via API...");
+  let initialEmbeddings: number[][] = [];
+  try {
+    initialEmbeddings = await getEmbeddings(initialStrings);
+    if (initialEmbeddings.length !== initialStrings.length) {
+      throw new Error(
+        "Mismatch between number of sentences and embeddings received.",
+      );
+    }
+  } catch (error) {
+    console.error("Failed to generate initial embeddings:", error);
+    return null;
   }
 
-  const initialEmbeddingsEnd = performance.now();
-  console.log(
-    `Embeddings generated. Total time: ${(initialEmbeddingsEnd - stepStart).toFixed(2)}ms`,
-  );
+  console.log("Generating SINGLE embedding via API...");
 
-  // --- Create Index Data for client-vector-search ---
-  const indexData = initialStrings.map((str, i) => ({
-    id: String(i + 1),
-    name: `Sentence ${i + 1}`,
-    text: str,
-    embedding: initialEmbeddings[i] as number[],
-  }));
-
-  console.log("Creating index...");
-  stepStart = performance.now();
-
-  const index = new EmbeddingIndex(indexData);
-
-  const indexCreationEnd = performance.now();
-  console.log(
-    `Index created. Time: ${(indexCreationEnd - stepStart).toFixed(2)}ms`,
-  );
-
-  // --- Generate Query Embedding ---
   const queryTerm = "way of work";
-  console.log("Generating query embedding...");
-  stepStart = performance.now();
 
-  const queryEmbeddingOutput = await embeddingPipeline(queryTerm, {
-    pooling: "mean",
-    normalize: true,
-  });
-  const queryEmbedding = new Float32Array(queryEmbeddingOutput.data);
-
-  const queryEmbeddingEnd = performance.now();
-  console.log(
-    `Query embedding obtained. Time: ${(queryEmbeddingEnd - stepStart).toFixed(2)}ms`,
-  );
-
-  // --- Search Index ---
-  console.log("Searching index...");
-  stepStart = performance.now();
-
-  const results = await index.search(Array.from(queryEmbedding), {
-    topK: 5,
-  });
-
-  const searchEnd = performance.now();
-  console.log(`Index searched. Time: ${(searchEnd - stepStart).toFixed(2)}ms`);
-
-  const overallEnd = performance.now();
-  console.log(
-    `Vector DB demo finished successfully. Total time: ${(overallEnd - overallStart).toFixed(2)}ms`,
-  );
-
-  return results;
+  let queryEmbeddingArray: number[] = [];
+  try {
+    const queryEmbeddingsResult = await getEmbeddings(queryTerm);
+    if (!queryEmbeddingsResult || queryEmbeddingsResult.length !== 1) {
+      throw new Error("Failed to get a single embedding for the query.");
+    }
+    queryEmbeddingArray = queryEmbeddingsResult[0];
+  } catch (error) {
+    console.error("Failed to generate query embedding:", error);
+    return null;
+  }
 }
