@@ -13,6 +13,7 @@ import {
   showFeedbackButton,
 } from "~/components/BirdEatsBugs";
 import { runVectorDbDemo } from "../../components/vectordb";
+import { runHydeTest } from "../../components/hyde";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -115,7 +116,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
-      <div className="mt-4">
+      <div className="mt-4 flex gap-2">
         <Button
           intent={Intent.PRIMARY}
           onClick={async () => {
@@ -129,6 +130,20 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           }}
         >
           Run VectorDB Demo
+        </Button>
+        <Button
+          intent={Intent.SUCCESS}
+          onClick={async () => {
+            try {
+              console.log("Button clicked: Running HyDE test...");
+              await runHydeTest();
+              console.log("HyDE test finished via button click.");
+            } catch (error) {
+              console.error("Error running HyDE test from button:", error);
+            }
+          }}
+        >
+          Run HyDE Test
         </Button>
       </div>
     </div>

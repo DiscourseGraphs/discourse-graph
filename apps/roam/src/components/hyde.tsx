@@ -1,7 +1,31 @@
-import { EmbeddingIndex, SearchResult } from "client-vector-search";
-import { createEmbedding, createBatchEmbedding } from "~/utils/createEmbedding";
+export interface CandidateNodeWithEmbedding {
+  text: string;
+  uid: string;
+  type: string;
+  embedding: EmbeddingVector;
+}
+export interface SuggestedNode {
+  text: string;
+  uid: string;
+  type: string;
+}
+type EmbeddingVector = number[];
+type HypotheticalNodeGenerator = (
+  node: string,
+  relationType: string,
+) => Promise<string>;
+type EmbeddingFunc = (text: string) => Promise<EmbeddingVector>;
+interface SearchResultItem {
+  object: SuggestedNode;
+  score: number;
+}
+type SearchFunc = (
+  queryEmbedding: EmbeddingVector,
+  indexData: CandidateNodeWithEmbedding[],
+  options: { topK: number },
+) => Promise<SearchResultItem[]>;
 
-export const generateHypotheticalNode = async (
+export const generateHypotheticalNode: HypotheticalNodeGenerator = async (
   node: string,
   relationType: string,
 ): Promise<string> => {
@@ -54,66 +78,236 @@ export const generateHypotheticalNode = async (
   }
 };
 
-export interface SuggestedNode {
-  text: string;
-  uid: string;
-  type: string;
+async function searchAgainstCandidates(
+  hypotheticalTexts: string[],
+  indexData: CandidateNodeWithEmbedding[],
+  embeddingFunction: EmbeddingFunc,
+  searchFunction: SearchFunc,
+): Promise<SearchResultItem[][]> {
+  const allSearchResults: SearchResultItem[][] = [];
+  for (const hypoText of hypotheticalTexts) {
+    try {
+      console.log("Creating embedding for hypothetical node:", hypoText);
+      const queryEmbedding = await embeddingFunction(hypoText);
+      const results = await searchFunction(queryEmbedding, indexData, {
+        topK: indexData.length,
+      });
+      console.log(`Search results for "${hypoText}":`, results);
+      allSearchResults.push(results);
+    } catch (error) {
+      console.error(
+        `Error searching for hypothetical node "${hypoText}":`,
+        error,
+      );
+    }
+  }
+  return allSearchResults;
 }
 
+function combineScores(
+  allSearchResults: SearchResultItem[][],
+): Map<string, number> {
+  const maxScores = new Map<string, number>();
+  for (const resultSet of allSearchResults) {
+    for (const result of resultSet) {
+      const currentMaxScore = maxScores.get(result.object.uid) ?? -Infinity;
+      if (result.score > currentMaxScore) {
+        maxScores.set(result.object.uid, result.score);
+      }
+    }
+  }
+  console.log("Max scores per node:", maxScores);
+  return maxScores;
+}
+
+function rankNodes(
+  maxScores: Map<string, number>,
+  candidateNodes: CandidateNodeWithEmbedding[],
+): SuggestedNode[] {
+  const nodeMap = new Map<string, CandidateNodeWithEmbedding>(
+    candidateNodes.map((node) => [node.uid, node]),
+  );
+  const combinedResults = Array.from(maxScores.entries()).map(
+    ([uid, score]) => ({
+      node: nodeMap.get(uid)!,
+      score: score,
+    }),
+  );
+  combinedResults.sort((a, b) => b.score - a.score);
+  console.log("Combined & Sorted Results:", combinedResults);
+  return combinedResults.map((item) => ({
+    text: item.node.text,
+    uid: item.node.uid,
+    type: item.node.type,
+  }));
+}
+
+// --- Main Orchestration Function (Production Code) ---
+
 export const findSimilarNodesUsingHyde = async (
-  suggestedNodes: SuggestedNode[],
+  candidateNodes: CandidateNodeWithEmbedding[],
   currentNodeText: string,
-  relationType: string,
+  relationTypes: string[],
+  options: {
+    numHypotheticalNodes?: number;
+    hypotheticalNodeGenerator: HypotheticalNodeGenerator;
+    embeddingFunction: EmbeddingFunc;
+    searchFunction: SearchFunc;
+  },
 ): Promise<SuggestedNode[]> => {
-  if (suggestedNodes.length === 0) {
+  const {
+    numHypotheticalNodes = 3,
+    hypotheticalNodeGenerator,
+    embeddingFunction,
+    searchFunction,
+  } = options;
+
+  if (candidateNodes.length === 0) {
     return [];
   }
-  console.log("suggestedNodes", suggestedNodes);
-  console.log("currentNodeText", currentNodeText);
-  console.log("relationType", relationType);
+  console.log("Candidate Nodes:", candidateNodes);
+  console.log("Current Node Text:", currentNodeText);
+  console.log("Relation Types:", relationTypes);
+  console.log("Num Hypothetical Nodes per Type:", numHypotheticalNodes);
 
   try {
-    const suggestedNodeTexts = suggestedNodes.map((node) => node.text);
-    const suggestedEmbeddings = await createBatchEmbedding(suggestedNodeTexts);
+    const indexData = candidateNodes;
 
-    const indexData = suggestedNodes.map((node, i) => ({
-      id: node.uid,
-      text: node.text,
-      type: node.type,
-      uid: node.uid,
-      embedding: suggestedEmbeddings[i],
-    }));
-
-    const index = new EmbeddingIndex(indexData);
-
-    const hypotheticalNodeText = await generateHypotheticalNode(
-      currentNodeText,
-      relationType,
-    );
-    if (hypotheticalNodeText.startsWith("Error:")) {
-      console.error(
-        "Failed to generate hypothetical node:",
-        hypotheticalNodeText,
+    const hypotheticalNodePromises = [];
+    for (const relationType of relationTypes) {
+      console.log(
+        `Generating ${numHypotheticalNodes} hypotheticals for relation: ${relationType}`,
       );
+      for (let i = 0; i < numHypotheticalNodes; i++) {
+        hypotheticalNodePromises.push(
+          hypotheticalNodeGenerator(currentNodeText, relationType),
+        );
+      }
+    }
+    const hypotheticalNodeTexts = (
+      await Promise.all(hypotheticalNodePromises)
+    ).filter((text) => !text.startsWith("Error:"));
+
+    if (hypotheticalNodeTexts.length === 0) {
+      console.error("Failed to generate any valid hypothetical nodes.");
       return [];
     }
-
     console.log(
-      "Creating embedding for hypothetical node...",
-      hypotheticalNodeText,
+      `Generated ${hypotheticalNodeTexts.length} total Hypothetical Nodes:`,
+      hypotheticalNodeTexts,
     );
-    const queryEmbedding = await createEmbedding(hypotheticalNodeText);
 
-    const results = await index.search(queryEmbedding, { topK: 10 });
-    console.log("Query results:", results);
+    const allSearchResults = await searchAgainstCandidates(
+      hypotheticalNodeTexts,
+      indexData,
+      embeddingFunction,
+      searchFunction,
+    );
 
-    return results.map((result) => ({
-      uid: result.object.uid,
-      text: result.object.text,
-      type: result.object.type,
-    }));
+    const maxScores = combineScores(allSearchResults);
+
+    const rankedNodes = rankNodes(maxScores, candidateNodes);
+
+    return rankedNodes;
   } catch (error) {
     console.error("Error in findSimilarNodesUsingHyde:", error);
     return [];
+  }
+};
+
+// --- TESTING CODE START ---
+// The following code is for testing purposes only and can be removed for production.
+
+interface MockSearchResult extends SearchResultItem {}
+
+const mockCreateEmbedding: EmbeddingFunc = async (text) => {
+  console.log(`MOCK createEmbedding used for: "${text}"`);
+  return Array.from({ length: 5 }, () => Math.random());
+};
+const mockVectorSearch: SearchFunc = async (
+  queryEmbedding,
+  indexData,
+  options,
+) => {
+  console.log(`MOCK searchFunction used.`);
+  const results: MockSearchResult[] = indexData.map((item) => ({
+    object: { uid: item.uid, text: item.text, type: item.type },
+    score: Math.random(),
+  }));
+  results.sort((a, b) => b.score - a.score);
+  return results.slice(0, options.topK);
+};
+
+export const runHydeTest = async () => {
+  console.log("\n--- Running HyDE Test ---");
+
+  const sampleCandidateNodes: CandidateNodeWithEmbedding[] = [
+    {
+      uid: "uid-a",
+      text: "Node A",
+      type: "test",
+      embedding: Array.from({ length: 5 }, () => Math.random()),
+    },
+    {
+      uid: "uid-b",
+      text: "Node B",
+      type: "test",
+      embedding: Array.from({ length: 5 }, () => Math.random()),
+    },
+    {
+      uid: "uid-c",
+      text: "Node C",
+      type: "test",
+      embedding: Array.from({ length: 5 }, () => Math.random()),
+    },
+    {
+      uid: "uid-d",
+      text: "Node D",
+      type: "test",
+      embedding: Array.from({ length: 5 }, () => Math.random()),
+    },
+  ];
+
+  const sampleCurrentNodeText = "Central Topic";
+  const sampleRelationTypes = ["explains", "supports", "refutes"];
+  const sampleNumHypothetical = 2;
+
+  const mockHypotheticalNodeGenerator: HypotheticalNodeGenerator = async (
+    node,
+    relation,
+  ) => {
+    console.log(
+      `MOCKED generateHypotheticalNode called with: ${node}, ${relation}`,
+    );
+    if (relation === "explains") return `Hypothetical explanation for ${node}`;
+    return `Hypothetical related node for ${node}`;
+  };
+
+  console.log(
+    "Input Candidates (without embeddings):",
+    sampleCandidateNodes.map((n) => n.text),
+  );
+
+  try {
+    const results = await findSimilarNodesUsingHyde(
+      sampleCandidateNodes,
+      sampleCurrentNodeText,
+      sampleRelationTypes,
+      {
+        numHypotheticalNodes: sampleNumHypothetical,
+        hypotheticalNodeGenerator: mockHypotheticalNodeGenerator,
+        embeddingFunction: mockCreateEmbedding,
+        searchFunction: mockVectorSearch,
+      },
+    );
+
+    console.log("\n--- HyDE Test Results ---");
+    console.log("Output Ranked Nodes (order depends on random mock scores):");
+    results.forEach((node, index) => {
+      console.log(`${index + 1}. ${node.text} (uid: ${node.uid})`);
+    });
+    console.log("-------------------------");
+  } catch (error) {
+    console.error("HyDE Test Failed:", error);
   }
 };
