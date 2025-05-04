@@ -15,7 +15,6 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import createBlock from "roamjs-components/writes/createBlock";
 import runQuery from "~/utils/runQuery";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { createConfigObserver } from "roamjs-components/components/ConfigPage";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import { render as exportRender } from "~/components/Export";
 import getBlockProps from "~/utils/getBlockProps";
