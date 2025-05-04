@@ -155,7 +155,13 @@ export const SettingsDialog = ({
               id={n.type}
               title={n.text}
               className="overflow-y-auto"
-              panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
+              panel={
+                <NodeConfig
+                  node={n}
+                  onloadArgs={onloadArgs}
+                  setMainTab={setSelectedTabId}
+                />
+              }
             />
           ))}
           <Tabs.Expander />

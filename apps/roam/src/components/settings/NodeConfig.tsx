@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
@@ -14,6 +14,7 @@ import {
   Checkbox,
   Icon,
   Tooltip,
+  Button,
 } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
@@ -21,13 +22,16 @@ import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
 import CommentsQuery from "~/components/GitHubSyncCommentsQuery";
+import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 
 const NodeConfig = ({
   node,
   onloadArgs,
+  setMainTab,
 }: {
   node: DiscourseNode;
   onloadArgs: OnloadArgs;
+  setMainTab: (tabId: TabId) => void;
 }) => {
   const getUid = (key: string) =>
     getSubTree({
@@ -69,6 +73,8 @@ const NodeConfig = ({
     node.githubSync?.enabled || false,
   );
 
+  const globalSettings = useMemo(() => getFormattedConfigTree(), []);
+  const globalGithubSyncEnabled = globalSettings.githubSync.value;
   return (
     <>
       <Tabs
@@ -207,49 +213,58 @@ const NodeConfig = ({
                   <li>Configure where comments appear in the page</li>
                 </ul>
               </div>
-              <Checkbox
-                style={{ width: 240, lineHeight: "normal" }}
-                checked={isGithubSyncEnabled}
-                onChange={(e) => {
-                  const target = e.target as HTMLInputElement;
-                  setIsGithubSyncEnabled(target.checked);
-                  if (target.checked) {
-                    setInputSetting({
-                      blockUid: githubSyncUid,
-                      key: "Enabled",
-                      value: "true",
-                    });
-                  } else {
-                    setInputSetting({
-                      blockUid: githubSyncUid,
-                      key: "Enabled",
-                      value: "false",
-                    });
-                  }
-                }}
-              >
-                GitHub Sync Enabled
-                <Tooltip
-                  content={`When enabled, ${node.text} pages can be synced with GitHub Issues.`}
-                >
-                  <Icon
-                    icon={"info-sign"}
-                    iconSize={12}
-                    className={"ml-2 align-middle opacity-80"}
-                  />
-                </Tooltip>
-              </Checkbox>
 
-              {isGithubSyncEnabled && (
-                <>
-                  <Label>
-                    Comments Configuration
-                    <Description description="Define where GitHub Issue comments should appear on this node type. This query will run when comments are imported." />
-                  </Label>
-                  <CommentsQuery
-                    parentUid={githubCommentsFormatUid}
-                    onloadArgs={onloadArgs}
+              {!globalGithubSyncEnabled && (
+                <div className="flex flex-col gap-2">
+                  <p>GitHub Sync is not enabled globally.</p>
+                  <Button
+                    intent="primary"
+                    className="max-w-xs"
+                    text="Navigate to global settings"
+                    onClick={() => setMainTab("discourse-graph-home")}
                   />
+                </div>
+              )}
+
+              {globalGithubSyncEnabled && (
+                <>
+                  <Checkbox
+                    style={{ width: 240, lineHeight: "normal" }}
+                    checked={isGithubSyncEnabled}
+                    onChange={(e) => {
+                      const target = e.target as HTMLInputElement;
+                      setIsGithubSyncEnabled(target.checked);
+                      setInputSetting({
+                        blockUid: githubSyncUid,
+                        key: "Enabled",
+                        value: target.checked ? "true" : "false",
+                      });
+                    }}
+                  >
+                    GitHub Sync Enabled
+                    <Tooltip
+                      content={`When enabled, ${node.text} pages can be synced with GitHub Issues.`}
+                    >
+                      <Icon
+                        icon={"info-sign"}
+                        iconSize={12}
+                        className={"ml-2 align-middle opacity-80"}
+                      />
+                    </Tooltip>
+                  </Checkbox>
+
+                  {isGithubSyncEnabled && (
+                    <>
+                      <Label>
+                        Comments Configuration
+                        <Description description="Define where GitHub Issue comments should appear on this node type. This query will run when comments are imported." />
+                      </Label>
+                      <CommentsQuery
+                        parentUid={githubCommentsFormatUid}
+                        onloadArgs={onloadArgs}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </div>
