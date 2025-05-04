@@ -49,6 +49,7 @@ import {
 import CustomPanel from "roamjs-components/components/ConfigPanels/CustomPanel";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import isFlagEnabled from "~/utils/isFlagEnabled";
+import getPageTitleByBlockUid from "roamjs-components/queries/getPageTitleByBlockUid";
 
 const CommentUidCache = new Set<string>();
 const CommentContainerUidCache = new Set<string>();
@@ -130,7 +131,7 @@ export const insertNewCommentsFromGitHub = async ({
 }: {
   pageUid: string;
   extensionAPI: OnloadArgs["extensionAPI"];
-  matchingNode?: DiscourseNode;
+  matchingNode: DiscourseNode;
 }) => {
   const getCommentsOnPage = (pageUid: string) => {
     const query = `[:find
@@ -314,6 +315,7 @@ export const renderGitHubSyncPage = async ({
         <CommentsContainerComponent
           commentsContainerUid={commentsContainerUid}
           extensionAPI={extensionAPI}
+          matchingNode={matchingNode}
         />,
         containerDiv,
       );
@@ -466,9 +468,11 @@ const CommentsComponent = ({ blockUid }: { blockUid: string }) => {
 const CommentsContainerComponent = ({
   commentsContainerUid,
   extensionAPI,
+  matchingNode,
 }: {
   commentsContainerUid: string;
   extensionAPI: OnloadArgs["extensionAPI"];
+  matchingNode: DiscourseNode;
 }) => {
   const [loadingComments, setLoadingComments] = useState(false);
   return (
@@ -523,7 +527,11 @@ const CommentsContainerComponent = ({
         onClick={async () => {
           setLoadingComments(true);
           const pageUid = getPageUidByBlockUid(commentsContainerUid);
-          await insertNewCommentsFromGitHub({ pageUid, extensionAPI });
+          await insertNewCommentsFromGitHub({
+            pageUid,
+            extensionAPI,
+            matchingNode,
+          });
           setLoadingComments(false);
         }}
       />
@@ -907,6 +915,12 @@ const initializeGitHubSync = async (onloadArgs: OnloadArgs) => {
           const { blockUid } = getUids(b);
           if (CommentContainerUidCache.has(blockUid)) {
             if (b.hasAttribute("github-sync-comment-container")) return;
+
+            // TODO: move this to renderGitHubSyncPage so we can pass in the matching node
+            const title = getPageTitleByBlockUid(blockUid);
+            const matchingNode = isGitHubSyncPage(title);
+            if (!matchingNode) return;
+
             b.setAttribute("github-sync-comment-container", "true");
             const containerDiv = document.createElement("div");
             containerDiv.className = "inline-block ml-2";
@@ -916,6 +930,7 @@ const initializeGitHubSync = async (onloadArgs: OnloadArgs) => {
               <CommentsContainerComponent
                 commentsContainerUid={blockUid}
                 extensionAPI={onloadArgs.extensionAPI}
+                matchingNode={matchingNode}
               />,
               containerDiv,
             );
