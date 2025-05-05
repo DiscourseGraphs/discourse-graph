@@ -16,8 +16,7 @@ import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 
 type Props = {
   textarea: HTMLTextAreaElement;
-  extensionAPI: OnloadArgs["extensionAPI"];
-  triggerPosition?: number;
+  triggerPosition: number;
   onClose: () => void;
 };
 
@@ -76,7 +75,6 @@ const waitForBlock = (
 const NodeSearchMenu = ({
   onClose,
   textarea,
-  extensionAPI,
   triggerPosition,
 }: { onClose: () => void } & Props) => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -90,35 +88,35 @@ const NodeSearchMenu = ({
       },
     [],
   );
-  const [cursorPos, setCursorPos] = useState(0);
-
-  console.log("blockUid", blockUid);
-  const triggerStartRef = useRef<number>(triggerPosition || -1);
-
-  const handleTextAreaInput = useCallback(() => {
-    const cursorPos = textarea.selectionStart;
-    setCursorPos(cursorPos);
-    if (triggerStartRef.current === -1) {
-      const textBeforeCursor = textarea.value.substring(0, cursorPos);
-      const lastAtPos = textBeforeCursor.lastIndexOf("@");
-
-      if (lastAtPos !== -1) {
-        triggerStartRef.current = lastAtPos;
-      }
-    }
-    const newSearchTerm = textarea.value.substring(
-      triggerStartRef.current + 1,
-      cursorPos,
-    );
-    setSearchTerm(newSearchTerm);
+  const [cursorPos, setCursorPos] = useState(-1);
+  useEffect(() => {
+    setCursorPos(textarea.selectionStart);
   }, [textarea]);
 
-  useEffect(() => {
-    textarea.addEventListener("input", handleTextAreaInput);
-    return () => {
-      textarea.removeEventListener("input", handleTextAreaInput);
-    };
-  }, [handleTextAreaInput, textarea]);
+  // const handleTextAreaInput = useCallback(() => {
+  //   const cursorPos = textarea.selectionStart;
+  //   setCursorPos(cursorPos);
+  //   if (triggerStartRef.current === -1) {
+  //     const textBeforeCursor = textarea.value.substring(0, cursorPos);
+  //     const lastAtPos = textBeforeCursor.lastIndexOf("@");
+
+  //     if (lastAtPos !== -1) {
+  //       triggerStartRef.current = lastAtPos;
+  //     }
+  //   }
+  //   const newSearchTerm = textarea.value.substring(
+  //     triggerStartRef.current + 1,
+  //     cursorPos,
+  //   );
+  //   setSearchTerm(newSearchTerm);
+  // }, [textarea]);
+
+  // useEffect(() => {
+  //   textarea.addEventListener("input", handleTextAreaInput);
+  //   return () => {
+  //     textarea.removeEventListener("input", handleTextAreaInput);
+  //   };
+  // }, [handleTextAreaInput, textarea]);
 
   const filteredTypes = useMemo(() => {
     if (!searchTerm.trim()) return DISCOURSE_TYPES;
@@ -149,43 +147,25 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: { id: string; text: string }) => {
-      // Wait for block to stabilize before making changes
       waitForBlock(blockUid, textarea.value).then(() => {
         onClose();
 
         setTimeout(() => {
-          // Get current block text directly from Roam
           const originalText = getTextByBlockUid(blockUid);
-          console.log("originalText textarea", textarea.value);
 
-          // Get the trigger start position (@ symbol position)
-          const triggerStart = triggerStartRef.current;
-          console.log("triggerStart", triggerStart);
+          const currentEnd =
+            cursorPos !== -1
+              ? cursorPos
+              : triggerPosition + searchTerm.length + 1;
 
-          // Get current cursor position for end of selection
-          const currentEnd = cursorPos
-            ? cursorPos
-            : triggerStart + searchTerm.length + 1;
-
-          // Split text into before trigger and after selection
-          const prefix = originalText.substring(0, triggerStart);
+          const prefix = originalText.substring(0, triggerPosition);
           const suffix = originalText.substring(currentEnd);
-          console.log("prefix", prefix);
-          console.log("suffix", suffix);
-          console.log("originalText", originalText);
-
-          // Create the page reference
           const pageRef = `[[${item.text}]]`;
 
-          // Create new text with reference inserted
           const newText = `${prefix}${pageRef}${suffix}`;
-          console.log("newText", newText);
-          // Update the block
           updateBlock({ uid: blockUid, text: newText }).then(() => {
-            // Calculate new cursor position (after the inserted reference)
-            const newCursorPosition = triggerStart + pageRef.length;
+            const newCursorPosition = triggerPosition + pageRef.length;
 
-            // Set focus and cursor position using Roam API when available
             if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
               window.roamAlphaAPI.ui.setBlockFocusAndSelection({
                 location: {
@@ -195,7 +175,6 @@ const NodeSearchMenu = ({
                 selection: { start: newCursorPosition },
               });
             } else {
-              // Fallback to DOM method if Roam API not available
               setTimeout(() => {
                 const textareaElements = document.querySelectorAll("textarea");
                 for (const el of textareaElements) {
@@ -213,7 +192,6 @@ const NodeSearchMenu = ({
               }, 50);
             }
           });
-          console.log("blockUid", blockUid);
 
           // Analytics
           posthog.capture("Discourse Node: Selected from Search Menu", {
@@ -226,27 +204,62 @@ const NodeSearchMenu = ({
     [blockUid, onClose, searchTerm, textarea],
   );
 
+  const handleTextAreaInput = useCallback(() => {
+    // Check if '@' and search term still exist in text before cursor
+    const atTriggerRegex = /@(.*)$/;
+    const textBeforeCursor = textarea.value.substring(
+      triggerPosition,
+      textarea.selectionStart,
+    );
+    console.log("textBeforeCursorrrrr", textBeforeCursor);
+    const match = atTriggerRegex.exec(textBeforeCursor);
+    console.log("matchhhh", match);
+    if (match) {
+      // @ trigger still exists, update the search term
+      setSearchTerm(match[1]);
+    } else {
+      // @ trigger is gone or cursor moved before it, close the menu
+      onClose();
+      return;
+    }
+  }, [textarea, onClose, setSearchTerm, triggerPosition]);
+
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") {
         setActiveIndex((prev) => (prev + 1) % allItems.length);
         e.preventDefault();
+        e.stopPropagation();
       } else if (e.key === "ArrowUp") {
         setActiveIndex(
           (prev) => (prev - 1 + allItems.length) % allItems.length,
         );
         e.preventDefault();
+        e.stopPropagation();
+      } else if (e.key == "ArrowLeft" || e.key === "ArrowRight") {
+        e.stopPropagation();
+        e.preventDefault();
       } else if (e.key === "Enter") {
         if (allItems.length > 0) {
+          e.preventDefault();
+          e.stopPropagation();
           onSelect(allItems[activeIndex].item);
         }
-        e.preventDefault();
       } else if (e.key === "Escape") {
         onClose();
         e.preventDefault();
+        e.stopPropagation();
       }
     },
-    [allItems, activeIndex, onSelect, onClose],
+    [
+      allItems,
+      setActiveIndex,
+      onSelect,
+      onClose,
+      textarea,
+      setSearchTerm,
+      menuRef,
+    ],
   );
 
   useEffect(() => {
@@ -259,6 +272,23 @@ const NodeSearchMenu = ({
     document.addEventListener("keydown", keydownListener);
     return () => {
       document.removeEventListener("keydown", keydownListener);
+    };
+  }, [keydownListener]);
+
+  useEffect(() => {
+    textarea.addEventListener("input", handleTextAreaInput);
+    return () => {
+      textarea.removeEventListener("input", handleTextAreaInput);
+    };
+  }, [handleTextAreaInput, textarea]);
+
+  useEffect(() => {
+    const listeningEl = !!textarea.closest(".rm-reference-item")
+      ? textarea.parentElement
+      : textarea;
+    listeningEl?.addEventListener("keydown", keydownListener);
+    return () => {
+      listeningEl?.removeEventListener("keydown", keydownListener);
     };
   }, [keydownListener]);
 
@@ -281,7 +311,7 @@ const NodeSearchMenu = ({
         preventOverflow: { enabled: true },
       }}
       autoFocus={false}
-      enforceFocus={false}
+      // enforceFocus={false}
       content={
         <div className="discourse-node-search-menu" style={{ width: "250px" }}>
           <div className="discourse-node-menu-content max-h-80 overflow-y-auto">
@@ -332,6 +362,7 @@ export const renderDiscourseNodeSearchMenu = (props: Props) => {
     <NodeSearchMenu
       {...props}
       onClose={() => {
+        props.onClose();
         ReactDOM.unmountComponentAtNode(parent);
         parent.remove();
       }}
