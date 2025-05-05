@@ -147,7 +147,7 @@ function rankNodes(
 export const findSimilarNodesUsingHyde = async (
   candidateNodes: CandidateNodeWithEmbedding[],
   currentNodeText: string,
-  relationTypes: string[],
+  relationTriplets: [string, string, string][],
   options: {
     numHypotheticalNodes?: number;
     hypotheticalNodeGenerator: HypotheticalNodeGenerator;
@@ -167,20 +167,20 @@ export const findSimilarNodesUsingHyde = async (
   }
   console.log("Candidate Nodes:", candidateNodes);
   console.log("Current Node Text:", currentNodeText);
-  console.log("Relation Types:", relationTypes);
+  console.log("Relation Types:", relationTriplets);
   console.log("Num Hypothetical Nodes per Type:", numHypotheticalNodes);
 
   try {
     const indexData = candidateNodes;
 
     const hypotheticalNodePromises = [];
-    for (const relationType of relationTypes) {
+    for (const relationType of relationTriplets) {
       console.log(
         `Generating ${numHypotheticalNodes} hypotheticals for relation: ${relationType}`,
       );
       for (let i = 0; i < numHypotheticalNodes; i++) {
         hypotheticalNodePromises.push(
-          hypotheticalNodeGenerator(currentNodeText, relationType),
+          hypotheticalNodeGenerator(currentNodeText, relationType[1]),
         );
       }
     }
@@ -220,11 +220,12 @@ export const findSimilarNodesUsingHyde = async (
 
 interface MockSearchResult extends SearchResultItem {}
 
-const mockCreateEmbedding: EmbeddingFunc = async (text) => {
+// Export the mock functions
+export const mockCreateEmbedding: EmbeddingFunc = async (text) => {
   console.log(`MOCK createEmbedding used for: "${text}"`);
   return Array.from({ length: 5 }, () => Math.random());
 };
-const mockVectorSearch: SearchFunc = async (
+export const mockVectorSearch: SearchFunc = async (
   queryEmbedding,
   indexData,
   options,
@@ -269,7 +270,11 @@ export const runHydeTest = async () => {
   ];
 
   const sampleCurrentNodeText = "Central Topic";
-  const sampleRelationTypes = ["explains", "supports", "refutes"];
+  const sampleRelationTriplets: [string, string, string][] = [
+    ["explains", "Explanation Node Text", "[[EXP]] - {content}"],
+    ["supports", "Supporting Evidence Text", "[[EVD]] - {content} - {Source}"],
+    ["refutes", "Contradictory Claim Text", "[[CLM]] - {content}"],
+  ];
   const sampleNumHypothetical = 2;
 
   const mockHypotheticalNodeGenerator: HypotheticalNodeGenerator = async (
@@ -292,7 +297,7 @@ export const runHydeTest = async () => {
     const results = await findSimilarNodesUsingHyde(
       sampleCandidateNodes,
       sampleCurrentNodeText,
-      sampleRelationTypes,
+      sampleRelationTriplets,
       {
         numHypotheticalNodes: sampleNumHypothetical,
         hypotheticalNodeGenerator: mockHypotheticalNodeGenerator,

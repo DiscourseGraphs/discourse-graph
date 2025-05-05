@@ -28,7 +28,17 @@ import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import { Result } from "roamjs-components/types/query-builder";
 import createBlock from "roamjs-components/writes/createBlock";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
-import { findSimilarNodesUsingHyde, SuggestedNode } from "./hyde";
+import {
+  findSimilarNodesUsingHyde,
+  SuggestedNode,
+  generateHypotheticalNode,
+  mockCreateEmbedding,
+  mockVectorSearch,
+  CandidateNodeWithEmbedding,
+  HypotheticalNodeGenerator,
+  EmbeddingFunc,
+  SearchFunc,
+} from "./hyde";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -270,6 +280,7 @@ const DiscourseContextOverlay = ({
       .map((n) => {
         const node = findDiscourseNode(n.uid);
         if (!node || node.backedBy === "default") return null;
+        if (!validTypes.includes(node.type)) return null;
         return {
           uid: n.uid,
           text: n.text,
@@ -277,7 +288,6 @@ const DiscourseContextOverlay = ({
         };
       })
       .filter((node): node is SuggestedNode => node !== null)
-      .filter((node) => validTypes.includes(node.type))
       .filter(
         (node) =>
           !results.some((r) =>
@@ -287,26 +297,10 @@ const DiscourseContextOverlay = ({
 
     setSuggestedNodes(nodes);
 
-    if (selectedRelationLabel) {
-      runHydeSearch(nodes);
+    if (nodes.length > 0 && uniqueRelationTypeTriplets.length > 0) {
+      runHydeSearch(nodes, tag, uniqueRelationTypeTriplets);
     }
-  }, [
-    selectedPage,
-    discourseNode,
-    relations,
-    results,
-    validTypes,
-    tag,
-    selectedRelationLabel,
-  ]);
-
-  useEffect(() => {
-    if (suggestedNodes.length > 0 && !selectedRelationLabel) {
-      setSelectedRelationLabel(suggestedNodes[0].type);
-    } else if (suggestedNodes.length === 0) {
-      setSelectedRelationLabel(null);
-    }
-  }, [suggestedNodes, selectedRelationLabel]);
+  }, [selectedPage, results, validTypes, tag, uniqueRelationTypeTriplets]);
 
   const handleCreateBlock = async (nodeText: string) => {
     await createBlock({
@@ -315,21 +309,60 @@ const DiscourseContextOverlay = ({
     });
   };
 
-  const runHydeSearch = async (currentSuggestions: SuggestedNode[]) => {
-    if (!currentSuggestions.length || !tag || !selectedRelationLabel) {
+  const runHydeSearch = async (
+    currentSuggestions: SuggestedNode[],
+    currentNodeText: string,
+    relationTriplets: [string, string, string][],
+  ) => {
+    if (
+      !currentSuggestions.length ||
+      !currentNodeText ||
+      !relationTriplets.length
+    ) {
       setHydeFilteredNodes([]);
       return;
     }
+
     setIsSearchingHyde(true);
     setHydeFilteredNodes([]);
-    try {
-      const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde(
-        currentSuggestions,
-        tag,
-        selectedRelationLabel,
-      );
 
-      setHydeFilteredNodes(foundNodes);
+    try {
+      const candidateNodesWithEmbeddings: CandidateNodeWithEmbedding[] =
+        currentSuggestions.map((node) => ({
+          ...node,
+          embedding: Array.from({ length: 5 }, () => Math.random()),
+        }));
+
+      const options = {
+        numHypotheticalNodes: 3,
+        hypotheticalNodeGenerator: generateHypotheticalNode,
+        embeddingFunction: mockCreateEmbedding,
+        searchFunction: mockVectorSearch,
+      };
+
+      console.log("Calling findSimilarNodesUsingHyde with:", {
+        candidateNodes: candidateNodesWithEmbeddings.map((n) => n.text),
+        currentNodeText,
+        relationTriplets,
+        options: {
+          ...options,
+          hypotheticalNodeGenerator: "[Function]",
+          embeddingFunction: "[Function]",
+          searchFunction: "[Function]",
+        },
+      });
+
+      // TODO: candidateNodesWithEmbeddings we fetch from the database
+
+      // const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde(
+      //   candidateNodesWithEmbeddings,
+      //   currentNodeText,
+      //   relationTypes,
+      //   options,
+      // );
+
+      // console.log("HyDE search completed. Found nodes:", foundNodes);
+      // setHydeFilteredNodes(foundNodes);
     } catch (error) {
       console.error("Error during HyDE search:", error);
       setHydeFilteredNodes([]);
