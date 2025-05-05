@@ -89,6 +89,71 @@ const getAllReferencesOnPage = (pageTitle: string) => {
   })) as Result[];
 };
 
+interface Relation {
+  label: string;
+  source: string;
+  destination: string;
+}
+
+interface DiscourseNodeInfo {
+  format: string;
+  text: string;
+  type: string;
+  [key: string]: any;
+}
+
+const getUniqueLabelTypeTriplets = (
+  relations: Relation[],
+  selfType: string,
+): [string, string, string][] => {
+  const uniquePairStrings = new Set<string>();
+  const separator = "::";
+
+  const allNodes = getDiscourseNodes();
+  const nodeMapByType = new Map<string, DiscourseNodeInfo>();
+  allNodes.forEach((node) => {
+    const discourseNode = node as DiscourseNodeInfo; // Cast for type safety
+    if (discourseNode.type) {
+      nodeMapByType.set(discourseNode.type, discourseNode);
+    }
+  });
+
+  for (const relation of relations) {
+    if (relation.label && relation.source && relation.source !== selfType) {
+      uniquePairStrings.add(`${relation.label}${separator}${relation.source}`);
+    }
+    if (
+      relation.label &&
+      relation.destination &&
+      relation.destination !== selfType
+    ) {
+      uniquePairStrings.add(
+        `${relation.label}${separator}${relation.destination}`,
+      );
+    }
+  }
+
+  const uniqueTriplets: [string, string, string][] = [];
+  Array.from(uniquePairStrings).forEach((pairString) => {
+    const parts = pairString.split(separator);
+    const label = parts[0];
+    const typeIdentifier = parts[1];
+
+    const node = nodeMapByType.get(typeIdentifier);
+
+    if (node) {
+      uniqueTriplets.push([label, node.text, node.format]);
+    } else {
+      console.warn(
+        `Discourse node type "${typeIdentifier}" not found for relation label "${label}".`,
+      );
+    }
+  });
+
+  console.log("uniqueTriplets", uniqueTriplets);
+  return uniqueTriplets;
+};
+
 const DiscourseContextOverlay = ({
   tag,
   id,
@@ -146,11 +211,17 @@ const DiscourseContextOverlay = ({
   }, [refresh, getInfo]);
 
   // Suggestive Mode
-  const validTypes = useMemo(() => {
-    if (!discourseNode) return [];
+  const memoizedData = useMemo(() => {
+    if (!discourseNode)
+      return {
+        validTypes: [] as string[],
+        uniqueRelationTypeTriplets: [] as [string, string, string][],
+      };
     const selfType = discourseNode.type;
     const validRelations = relations.filter((relation) =>
-      [relation.source, relation.destination].includes(selfType),
+      [relation.source, relation.destination, relation.label].includes(
+        selfType,
+      ),
     );
     const hasSelfRelation = validRelations.some(
       (relation) =>
@@ -164,8 +235,19 @@ const DiscourseContextOverlay = ({
         ]),
       ),
     );
-    return hasSelfRelation ? types : types.filter((type) => type !== selfType);
+    const filteredTypes = hasSelfRelation
+      ? types
+      : types.filter((type) => type !== selfType);
+
+    const uniqueTriplets = getUniqueLabelTypeTriplets(validRelations, selfType);
+    console.log("uniqueRelationTypeTriplets", uniqueTriplets);
+    return {
+      validTypes: filteredTypes,
+      uniqueRelationTypeTriplets: uniqueTriplets,
+    };
   }, [discourseNode, relations]);
+
+  const { validTypes, uniqueRelationTypeTriplets } = memoizedData;
 
   const [currentPageInput, setCurrentPageInput] = useState("");
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
@@ -217,8 +299,6 @@ const DiscourseContextOverlay = ({
     tag,
     selectedRelationLabel,
   ]);
-
-  // Clarify with Michael what is the Relation Type where do we extract from, I am confused as to what that relates to
 
   useEffect(() => {
     if (suggestedNodes.length > 0 && !selectedRelationLabel) {

@@ -9,17 +9,17 @@ export interface SuggestedNode {
   uid: string;
   type: string;
 }
-type EmbeddingVector = number[];
-type HypotheticalNodeGenerator = (
+export type EmbeddingVector = number[];
+export type HypotheticalNodeGenerator = (
   node: string,
   relationType: string,
 ) => Promise<string>;
-type EmbeddingFunc = (text: string) => Promise<EmbeddingVector>;
-interface SearchResultItem {
+export type EmbeddingFunc = (text: string) => Promise<EmbeddingVector>;
+export interface SearchResultItem {
   object: SuggestedNode;
   score: number;
 }
-type SearchFunc = (
+export type SearchFunc = (
   queryEmbedding: EmbeddingVector,
   indexData: CandidateNodeWithEmbedding[],
   options: { topK: number },
