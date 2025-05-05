@@ -11,7 +11,6 @@ import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
-import { OnloadArgs } from "roamjs-components/types/native";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 
 type Props = {
@@ -93,31 +92,6 @@ const NodeSearchMenu = ({
     setCursorPos(textarea.selectionStart);
   }, [textarea]);
 
-  // const handleTextAreaInput = useCallback(() => {
-  //   const cursorPos = textarea.selectionStart;
-  //   setCursorPos(cursorPos);
-  //   if (triggerStartRef.current === -1) {
-  //     const textBeforeCursor = textarea.value.substring(0, cursorPos);
-  //     const lastAtPos = textBeforeCursor.lastIndexOf("@");
-
-  //     if (lastAtPos !== -1) {
-  //       triggerStartRef.current = lastAtPos;
-  //     }
-  //   }
-  //   const newSearchTerm = textarea.value.substring(
-  //     triggerStartRef.current + 1,
-  //     cursorPos,
-  //   );
-  //   setSearchTerm(newSearchTerm);
-  // }, [textarea]);
-
-  // useEffect(() => {
-  //   textarea.addEventListener("input", handleTextAreaInput);
-  //   return () => {
-  //     textarea.removeEventListener("input", handleTextAreaInput);
-  //   };
-  // }, [handleTextAreaInput, textarea]);
-
   const filteredTypes = useMemo(() => {
     if (!searchTerm.trim()) return DISCOURSE_TYPES;
 
@@ -153,13 +127,8 @@ const NodeSearchMenu = ({
         setTimeout(() => {
           const originalText = getTextByBlockUid(blockUid);
 
-          const currentEnd =
-            cursorPos !== -1
-              ? cursorPos
-              : triggerPosition + searchTerm.length + 1;
-
           const prefix = originalText.substring(0, triggerPosition);
-          const suffix = originalText.substring(currentEnd);
+          const suffix = originalText.substring(textarea.selectionStart);
           const pageRef = `[[${item.text}]]`;
 
           const newText = `${prefix}${pageRef}${suffix}`;
@@ -205,20 +174,15 @@ const NodeSearchMenu = ({
   );
 
   const handleTextAreaInput = useCallback(() => {
-    // Check if '@' and search term still exist in text before cursor
     const atTriggerRegex = /@(.*)$/;
     const textBeforeCursor = textarea.value.substring(
       triggerPosition,
       textarea.selectionStart,
     );
-    console.log("textBeforeCursorrrrr", textBeforeCursor);
     const match = atTriggerRegex.exec(textBeforeCursor);
-    console.log("matchhhh", match);
     if (match) {
-      // @ trigger still exists, update the search term
       setSearchTerm(match[1]);
     } else {
-      // @ trigger is gone or cursor moved before it, close the menu
       onClose();
       return;
     }
@@ -293,7 +257,9 @@ const NodeSearchMenu = ({
   }, [keydownListener]);
 
   useEffect(() => {
-    handleTextAreaInput();
+    setTimeout(() => {
+      handleTextAreaInput();
+    }, 50);
   }, [handleTextAreaInput]);
 
   let currentGlobalIndex = -1;
@@ -311,7 +277,6 @@ const NodeSearchMenu = ({
         preventOverflow: { enabled: true },
       }}
       autoFocus={false}
-      // enforceFocus={false}
       content={
         <div className="discourse-node-search-menu" style={{ width: "250px" }}>
           <div className="discourse-node-menu-content max-h-80 overflow-y-auto">
