@@ -191,11 +191,13 @@ export const initObservers = async ({
     const target = evt.target as HTMLElement;
     if (document.querySelector(".discourse-node-search-menu")) return;
 
+    // if (!menuOpen && (evt.key === "@" || (evt.key === "2" && evt.shiftKey))) {
     if (evt.key === "@" || (evt.key === "2" && evt.shiftKey)) {
       if (
         target.tagName === "TEXTAREA" &&
         target.classList.contains("rm-block-input")
       ) {
+        // menuOpen = true;
         const textarea = target as HTMLTextAreaElement;
         const location = window.roamAlphaAPI.ui.getFocusedBlock();
         if (!location) return;
@@ -205,7 +207,7 @@ export const initObservers = async ({
           cursorPos === 0 ||
           textarea.value.charAt(cursorPos - 1) === " " ||
           textarea.value.charAt(cursorPos - 1) === "\n";
-
+        console.log("cursorPos", cursorPos);
         if (isBeginningOrAfterSpace) {
           renderDiscourseNodeSearchMenu({
             onClose: () => {},

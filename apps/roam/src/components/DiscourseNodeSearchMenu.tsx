@@ -135,6 +135,7 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: { id: string; text: string }) => {
+      // Wait for block to stabilize before making changes
       waitForBlock(blockUid, textarea.value).then(() => {
         onClose();
 
@@ -175,7 +176,6 @@ const NodeSearchMenu = ({
               }, 50);
             }
           });
-
           posthog.capture("Discourse Node: Selected from Search Menu", {
             id: item.id,
             text: item.text,
