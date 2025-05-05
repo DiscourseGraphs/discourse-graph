@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const body: RequestBody = await req.json();
     const {
       input,
-      model = "text-embedding-3-large",
+      model = "text-embedding-3-small",
       dimensions,
       encoding_format = "float",
     } = body;
