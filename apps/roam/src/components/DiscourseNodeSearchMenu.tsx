@@ -135,7 +135,6 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: { id: string; text: string }) => {
-      // Wait for block to stabilize before making changes
       waitForBlock(blockUid, textarea.value).then(() => {
         onClose();
 
