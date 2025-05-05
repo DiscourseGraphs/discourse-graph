@@ -35,9 +35,6 @@ import {
   mockCreateEmbedding,
   mockVectorSearch,
   CandidateNodeWithEmbedding,
-  HypotheticalNodeGenerator,
-  EmbeddingFunc,
-  SearchFunc,
 } from "./hyde";
 
 type DiscourseData = {
@@ -334,7 +331,6 @@ const DiscourseContextOverlay = ({
         }));
 
       const options = {
-        numHypotheticalNodes: 3,
         hypotheticalNodeGenerator: generateHypotheticalNode,
         embeddingFunction: mockCreateEmbedding,
         searchFunction: mockVectorSearch,
@@ -354,15 +350,15 @@ const DiscourseContextOverlay = ({
 
       // TODO: candidateNodesWithEmbeddings we fetch from the database
 
-      // const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde(
-      //   candidateNodesWithEmbeddings,
-      //   currentNodeText,
-      //   relationTypes,
-      //   options,
-      // );
+      const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde(
+        candidateNodesWithEmbeddings,
+        currentNodeText,
+        relationTriplets,
+        options,
+      );
 
-      // console.log("HyDE search completed. Found nodes:", foundNodes);
-      // setHydeFilteredNodes(foundNodes);
+      console.log("HyDE search completed. Found nodes:", foundNodes);
+      setHydeFilteredNodes(foundNodes);
     } catch (error) {
       console.error("Error during HyDE search:", error);
       setHydeFilteredNodes([]);

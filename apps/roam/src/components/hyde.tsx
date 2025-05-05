@@ -12,7 +12,7 @@ export interface SuggestedNode {
 export type EmbeddingVector = number[];
 export type HypotheticalNodeGenerator = (
   node: string,
-  relationType: string,
+  relationType: [string, string, string],
 ) => Promise<string>;
 export type EmbeddingFunc = (text: string) => Promise<EmbeddingVector>;
 export interface SearchResultItem {
@@ -27,11 +27,14 @@ export type SearchFunc = (
 
 export const generateHypotheticalNode: HypotheticalNodeGenerator = async (
   node: string,
-  relationType: string,
+  relationType: [string, string, string],
 ): Promise<string> => {
-  // TODO: Work on the prompt with Michael
+  const [relationLabel, relatedNodeText, relatedNodeFormat] = relationType;
 
-  const userPromptContent = `Given the discourse node "${node}" and the relation type "${relationType}", generate a hypothetical related discourse node. Only return the text of the hypothetical node.`;
+  const userPromptContent = `Given the source discourse node "${node}", and considering the relation 
+  "${relationLabel}" which typically connects to a node of type "${relatedNodeText}" 
+  (formatted like "${relatedNodeFormat}"), generate a hypothetical related discourse
+   node text that would plausibly fit this relationship. Only return the text of the hypothetical node.`;
 
   const requestBody = {
     documents: [{ role: "user", content: userPromptContent }],
@@ -149,18 +152,13 @@ export const findSimilarNodesUsingHyde = async (
   currentNodeText: string,
   relationTriplets: [string, string, string][],
   options: {
-    numHypotheticalNodes?: number;
     hypotheticalNodeGenerator: HypotheticalNodeGenerator;
     embeddingFunction: EmbeddingFunc;
     searchFunction: SearchFunc;
   },
 ): Promise<SuggestedNode[]> => {
-  const {
-    numHypotheticalNodes = 3,
-    hypotheticalNodeGenerator,
-    embeddingFunction,
-    searchFunction,
-  } = options;
+  const { hypotheticalNodeGenerator, embeddingFunction, searchFunction } =
+    options;
 
   if (candidateNodes.length === 0) {
     return [];
@@ -168,25 +166,21 @@ export const findSimilarNodesUsingHyde = async (
   console.log("Candidate Nodes:", candidateNodes);
   console.log("Current Node Text:", currentNodeText);
   console.log("Relation Types:", relationTriplets);
-  console.log("Num Hypothetical Nodes per Type:", numHypotheticalNodes);
 
   try {
     const indexData = candidateNodes;
 
     const hypotheticalNodePromises = [];
     for (const relationType of relationTriplets) {
-      console.log(
-        `Generating ${numHypotheticalNodes} hypotheticals for relation: ${relationType}`,
+      console.log(`Generating 1 hypothetical for relation: ${relationType}`);
+      hypotheticalNodePromises.push(
+        hypotheticalNodeGenerator(currentNodeText, relationType),
       );
-      for (let i = 0; i < numHypotheticalNodes; i++) {
-        hypotheticalNodePromises.push(
-          hypotheticalNodeGenerator(currentNodeText, relationType[1]),
-        );
-      }
     }
     const hypotheticalNodeTexts = (
       await Promise.all(hypotheticalNodePromises)
     ).filter((text) => !text.startsWith("Error:"));
+    console.log("Hypothetical Node Texts:", hypotheticalNodeTexts);
 
     if (hypotheticalNodeTexts.length === 0) {
       console.error("Failed to generate any valid hypothetical nodes.");
@@ -275,17 +269,18 @@ export const runHydeTest = async () => {
     ["supports", "Supporting Evidence Text", "[[EVD]] - {content} - {Source}"],
     ["refutes", "Contradictory Claim Text", "[[CLM]] - {content}"],
   ];
-  const sampleNumHypothetical = 2;
 
   const mockHypotheticalNodeGenerator: HypotheticalNodeGenerator = async (
     node,
-    relation,
+    relationTriplet,
   ) => {
+    const relationName = relationTriplet[0];
     console.log(
-      `MOCKED generateHypotheticalNode called with: ${node}, ${relation}`,
+      `MOCKED generateHypotheticalNode called with: ${node}, ${JSON.stringify(relationTriplet)}`,
     );
-    if (relation === "explains") return `Hypothetical explanation for ${node}`;
-    return `Hypothetical related node for ${node}`;
+    if (relationName === "explains")
+      return `Hypothetical explanation for ${node}`;
+    return `Hypothetical related node (${relationName}) for ${node}`;
   };
 
   console.log(
@@ -299,7 +294,6 @@ export const runHydeTest = async () => {
       sampleCurrentNodeText,
       sampleRelationTriplets,
       {
-        numHypotheticalNodes: sampleNumHypothetical,
         hypotheticalNodeGenerator: mockHypotheticalNodeGenerator,
         embeddingFunction: mockCreateEmbedding,
         searchFunction: mockVectorSearch,
