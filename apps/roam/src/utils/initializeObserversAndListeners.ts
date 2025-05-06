@@ -28,10 +28,8 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import { render as renderGraphOverviewExport } from "~/components/ExportDiscourseContext";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import { getSettingValueFromTree } from "roamjs-components/util";
-import {
-  getModifiersFromCombo,
-  render as renderDiscourseNodeMenu,
-} from "~/components/DiscourseNodeMenu";
+import { getModifiersFromCombo } from "~/components/DiscourseNodeMenu";
+import { render as renderDiscourseNodeMenu } from "~/components/MinimalReproduction";
 import { IKeyCombo } from "@blueprintjs/core";
 import { configPageTabs } from "~/utils/configPageTabs";
 
