@@ -186,22 +186,17 @@ export const initObservers = async ({
     }
   };
 
-  // let menuOpen = false;
-  // Discourse Node Search Menu triggered by @ symbol
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
     const target = evt.target as HTMLElement;
     if (document.querySelector(".discourse-node-search-menu")) return;
 
-    // if (!menuOpen && (evt.key === "@" || (evt.key === "2" && evt.shiftKey))) {
     if (evt.key === "@" || (evt.key === "2" && evt.shiftKey)) {
       if (
         target.tagName === "TEXTAREA" &&
         target.classList.contains("rm-block-input")
       ) {
-        // menuOpen = true;
         const textarea = target as HTMLTextAreaElement;
-        console.log("textarea from observer", textarea);
         const location = window.roamAlphaAPI.ui.getFocusedBlock();
         if (!location) return;
 
@@ -211,12 +206,9 @@ export const initObservers = async ({
           textarea.value.charAt(cursorPos - 1) === " " ||
           textarea.value.charAt(cursorPos - 1) === "\n";
 
-        console.log("cursorPos", cursorPos);
         if (isBeginningOrAfterSpace) {
           renderDiscourseNodeSearchMenu({
-            onClose: () => {
-              // menuOpen = false;
-            },
+            onClose: () => {},
             textarea: textarea,
             triggerPosition: cursorPos,
           });
