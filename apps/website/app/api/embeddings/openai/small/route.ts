@@ -10,9 +10,7 @@ if (!apiKey) {
   );
 }
 
-const openai = new OpenAI({
-  apiKey: apiKey,
-});
+const openai = apiKey ? new OpenAI({ apiKey }) : null;
 
 type RequestBody = {
   input: string | string[];
@@ -68,7 +66,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       options.dimensions = dimensions;
     }
 
-    const embeddingsPromise = openai.embeddings.create(options);
+    const embeddingsPromise = openai!.embeddings.create(options);
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(
         () => reject(new Error("OpenAI API request timeout")),

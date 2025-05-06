@@ -29,7 +29,6 @@
     "tailwindConfig": "./packages/tailwind-config/tailwind.config.ts"
   },
   "dependencies": {
-    "openai": "^4.97.0",
     "posthog-js": "^1.203.1"
   }
 }
