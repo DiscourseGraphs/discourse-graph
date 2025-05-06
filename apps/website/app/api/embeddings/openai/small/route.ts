@@ -36,10 +36,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    if (req.method === "OPTIONS") {
-      return cors(req, new NextResponse(null, { status: 204 })) as NextResponse;
-    }
-
     const body: RequestBody = await req.json();
     const {
       input,
