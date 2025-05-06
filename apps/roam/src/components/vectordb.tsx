@@ -6,8 +6,8 @@ async function getEmbeddings(input: string | string[]): Promise<number[][]> {
   // Determine API URL based on environment
   const isDevelopment = process.env.NODE_ENV === "development";
   const apiUrl = isDevelopment
-    ? "http://localhost:3000/api/embeddings/openai/large" // Local dev URL
-    : "https://discoursegraphs.com/api/embeddings/openai/large"; // Production URL
+    ? "http://localhost:3000/api/embeddings/openai/small" // Local dev URL
+    : "https://discoursegraphs.com/api/embeddings/openai/small"; // Production URL
 
   const allEmbeddings: number[][] = [];
 
