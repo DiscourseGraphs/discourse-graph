@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Menu, MenuItem, Popover, Position } from "@blueprintjs/core";
+import { Menu, MenuItem, Popover, Position, Checkbox } from "@blueprintjs/core";
 import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -78,6 +78,9 @@ const NodeSearchMenu = ({
 }: { onClose: () => void } & Props) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const [checkedTypes, setCheckedTypes] = useState<Record<string, boolean>>(
+    DISCOURSE_TYPES.reduce((acc, type) => ({ ...acc, [type.type]: true }), {}),
+  );
   const menuRef = useRef<HTMLUListElement>(null);
   const { ["block-uid"]: blockUid, ["window-id"]: windowId } = useMemo(
     () =>
@@ -87,21 +90,23 @@ const NodeSearchMenu = ({
       },
     [],
   );
-  const [cursorPos, setCursorPos] = useState(-1);
-  useEffect(() => {
-    setCursorPos(textarea.selectionStart);
-  }, [textarea]);
 
   const filteredTypes = useMemo(() => {
-    if (!searchTerm.trim()) return DISCOURSE_TYPES;
+    const typesToShow = DISCOURSE_TYPES.filter(
+      (type) => checkedTypes[type.type],
+    );
 
-    return DISCOURSE_TYPES.map((type) => ({
-      ...type,
-      items: type.items.filter((item) =>
-        item.text.toLowerCase().includes(searchTerm.toLowerCase()),
-      ),
-    })).filter((type) => type.items.length > 0);
-  }, [searchTerm]);
+    if (!searchTerm.trim()) return typesToShow;
+
+    return typesToShow
+      .map((type) => ({
+        ...type,
+        items: type.items.filter((item) =>
+          item.text.toLowerCase().includes(searchTerm.toLowerCase()),
+        ),
+      }))
+      .filter((type) => type.items.length > 0);
+  }, [searchTerm, checkedTypes]);
 
   const allItems = useMemo(() => {
     const items: {
@@ -264,6 +269,13 @@ const NodeSearchMenu = ({
 
   let currentGlobalIndex = -1;
 
+  const handleTypeCheckChange = useCallback((typeKey: string) => {
+    setCheckedTypes((prev) => ({
+      ...prev,
+      [typeKey]: !prev[typeKey],
+    }));
+  }, []);
+
   return (
     <Popover
       onClose={onClose}
@@ -279,14 +291,28 @@ const NodeSearchMenu = ({
       autoFocus={false}
       content={
         <div className="discourse-node-search-menu" style={{ width: "250px" }}>
-          <div className="discourse-node-menu-content max-h-80 overflow-y-auto">
+          <div className="border-b border-gray-200 p-2">
+            <div className="mb-2 text-sm font-semibold">Filter by type:</div>
+            <div className="flex flex-wrap gap-2">
+              {DISCOURSE_TYPES.map((type) => (
+                <Checkbox
+                  key={type.type}
+                  label={type.title}
+                  checked={checkedTypes[type.type]}
+                  onChange={() => handleTypeCheckChange(type.type)}
+                  className="m-0"
+                />
+              ))}
+            </div>
+          </div>
+          <div className="discourse-node-menu-content h-64 overflow-y-auto">
             {filteredTypes.map((type, typeIndex) => (
               <div key={type.type} className="mb-2">
                 <div className="border-b border-gray-200 px-3 py-1 text-sm font-semibold text-gray-500">
                   {type.title}
                 </div>
                 <Menu ulRef={menuRef}>
-                  {type.items.map((item, itemIndex) => {
+                  {type.items.map((item) => {
                     currentGlobalIndex++;
                     const isActive = currentGlobalIndex === activeIndex;
                     return (
