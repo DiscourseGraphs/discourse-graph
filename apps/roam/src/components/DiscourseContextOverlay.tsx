@@ -124,18 +124,18 @@ const getAllReferencesOnPage = (pageTitle: string) => {
   })) as Result[];
 };
 
-interface Relation {
+type Relation = {
   label: string;
   source: string;
   destination: string;
-}
+};
 
-interface DiscourseNodeInfo {
+type DiscourseNodeInfo = {
   format: string;
   text: string;
   type: string;
   [key: string]: any;
-}
+};
 
 const getUniqueLabelTypeTriplets = (
   relations: Relation[],
@@ -185,7 +185,6 @@ const getUniqueLabelTypeTriplets = (
     }
   });
 
-  console.log("uniqueTriplets", uniqueTriplets);
   return uniqueTriplets;
 };
 
@@ -308,8 +307,6 @@ const DiscourseContextOverlay = ({
           type: node.type,
         };
       })
-      .filter((node) => node !== null)
-      .filter((node) => validTypes.includes(node.type))
       .filter((node): node is SuggestedNode => node !== null)
       .filter(
         (node) =>
