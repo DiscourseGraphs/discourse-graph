@@ -269,11 +269,28 @@ const NodeSearchMenu = ({
 
   let currentGlobalIndex = -1;
 
-  const handleTypeCheckChange = useCallback((typeKey: string) => {
-    setCheckedTypes((prev) => ({
-      ...prev,
-      [typeKey]: !prev[typeKey],
-    }));
+  const handleTypeCheckChange = useCallback(
+    (typeKey: string, e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      setCheckedTypes((prev) => ({
+        ...prev,
+        [typeKey]: !prev[typeKey],
+      }));
+
+      setTimeout(() => {
+        textarea.focus();
+        const cursorPos = textarea.selectionStart;
+        textarea.setSelectionRange(cursorPos, cursorPos);
+      }, 0);
+    },
+    [textarea],
+  );
+
+  const handleFilterSectionMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
   }, []);
 
   return (
@@ -291,17 +308,25 @@ const NodeSearchMenu = ({
       autoFocus={false}
       content={
         <div className="discourse-node-search-menu" style={{ width: "250px" }}>
-          <div className="border-b border-gray-200 p-2">
+          <div
+            className="border-b border-gray-200 p-2"
+            onMouseDown={handleFilterSectionMouseDown}
+          >
             <div className="mb-2 text-sm font-semibold">Filter by type:</div>
             <div className="flex flex-wrap gap-2">
               {DISCOURSE_TYPES.map((type) => (
-                <Checkbox
+                <div
                   key={type.type}
-                  label={type.title}
-                  checked={checkedTypes[type.type]}
-                  onChange={() => handleTypeCheckChange(type.type)}
-                  className="m-0"
-                />
+                  className="inline-flex cursor-pointer items-center"
+                  onClick={(e) => handleTypeCheckChange(type.type, e)}
+                >
+                  <Checkbox
+                    label={type.title}
+                    checked={checkedTypes[type.type]}
+                    onChange={() => {}}
+                    className="m-0"
+                  />
+                </div>
               ))}
             </div>
           </div>
