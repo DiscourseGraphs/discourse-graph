@@ -20,6 +20,8 @@ import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
+import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
+import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -27,40 +29,11 @@ type Props = {
   onClose: () => void;
 };
 
-type DiscourseType = {
-  type: string;
-  title: string;
-  items: { id: string; text: string }[];
+type NodeSearchResult = {
+  id: string;
+  text: string;
+  uid?: string;
 };
-
-// Hardcoded discourse types for testing
-// TODO: replace with actual discourse types
-const DISCOURSE_TYPES: DiscourseType[] = [
-  {
-    type: "claims",
-    title: "Claims",
-    items: [
-      { id: "clm1", text: "[[CLM]] - Claim 1" },
-      { id: "clm2", text: "[[CLM]] - Claim 1" },
-    ],
-  },
-  {
-    type: "evidence",
-    title: "Evidence",
-    items: [
-      { id: "evd1", text: "[[EVD]] - Evidence 1" },
-      { id: "evd2", text: "[[EVD]] - Evidence 2" },
-    ],
-  },
-  {
-    type: "results",
-    title: "Results",
-    items: [
-      { id: "res1", text: "[[RES]] - Result 1" },
-      { id: "res2", text: "[[RES]] - Result 1" },
-    ],
-  },
-];
 
 const waitForBlock = (
   uid: string,
@@ -86,10 +59,91 @@ const NodeSearchMenu = ({
 }: { onClose: () => void } & Props) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [checkedTypes, setCheckedTypes] = useState<Record<string, boolean>>(
-    DISCOURSE_TYPES.reduce((acc, type) => ({ ...acc, [type.type]: true }), {}),
-  );
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [discourseTypes, setDiscourseTypes] = useState<DiscourseNode[]>([]);
+  const [checkedTypes, setCheckedTypes] = useState<Record<string, boolean>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState<
+    Record<string, NodeSearchResult[]>
+  >({});
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const searchNodesForType = (
+    node: DiscourseNode,
+    searchTerm: string,
+  ): NodeSearchResult[] => {
+    if (!node.format) return [];
+
+    try {
+      const regex = getDiscourseNodeFormatExpression(node.format);
+
+      const regexPattern = regex.source
+        .replace(/^\^/, "")
+        .replace(/\$$/, "")
+        .replace(/\\/g, "\\\\");
+
+      const query = `[
+      :find
+        (pull ?node [:block/string :node/title :block/uid])
+      :where
+        [(re-pattern "${regexPattern}") ?title-regex]
+        [?node :node/title ?node-title]
+        ${searchTerm ? `[(clojure.string/includes? ?node-title "${searchTerm.toLowerCase()}")]` : ""}
+        [(re-find ?title-regex ?node-title)]
+    ]`;
+      const results = window.roamAlphaAPI.q(query);
+
+      return results.map(([result]: any) => ({
+        id: result.uid,
+        text: result.title || result.string,
+        uid: result.uid,
+      }));
+    } catch (error) {
+      console.error(`Error querying for node type ${node.type}:`, error);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    const fetchNodes = async () => {
+      setIsLoading(true);
+
+      const allNodeTypes = getDiscourseNodes().filter(
+        (n) => n.backedBy === "user",
+      );
+
+      setDiscourseTypes(allNodeTypes);
+
+      const initialCheckedTypes = allNodeTypes.reduce(
+        (acc, type) => ({ ...acc, [type.type]: true }),
+        {},
+      );
+      setCheckedTypes(initialCheckedTypes);
+
+      const initialSearchResults = allNodeTypes.reduce(
+        (acc, type) => ({ ...acc, [type.type]: [] }),
+        {},
+      );
+      setSearchResults(initialSearchResults);
+
+      setIsLoading(false);
+    };
+
+    fetchNodes();
+  }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const newResults: Record<string, NodeSearchResult[]> = {};
+
+    discourseTypes.forEach((type) => {
+      newResults[type.type] = searchNodesForType(type, searchTerm);
+    });
+
+    setSearchResults(newResults);
+  }, [searchTerm, isLoading, discourseTypes]);
+
   const menuRef = useRef<HTMLUListElement>(null);
   const { ["block-uid"]: blockUid, ["window-id"]: windowId } = useMemo(
     () =>
@@ -101,40 +155,30 @@ const NodeSearchMenu = ({
   );
 
   const filteredTypes = useMemo(() => {
-    const typesToShow = DISCOURSE_TYPES.filter(
-      (type) => checkedTypes[type.type],
-    );
-
-    if (!searchTerm.trim()) return typesToShow;
-
-    return typesToShow
-      .map((type) => ({
-        ...type,
-        items: type.items.filter((item) =>
-          item.text.toLowerCase().includes(searchTerm.toLowerCase()),
-        ),
-      }))
-      .filter((type) => type.items.length > 0);
-  }, [searchTerm, checkedTypes]);
+    return discourseTypes
+      .filter((type) => checkedTypes[type.type])
+      .filter((type) => searchResults[type.type]?.length > 0);
+  }, [discourseTypes, checkedTypes, searchResults]);
 
   const allItems = useMemo(() => {
     const items: {
       typeIndex: number;
       itemIndex: number;
-      item: { id: string; text: string };
+      item: NodeSearchResult;
     }[] = [];
 
     filteredTypes.forEach((type, typeIndex) => {
-      type.items.forEach((item, itemIndex) => {
+      const typeResults = searchResults[type.type] || [];
+      typeResults.forEach((item, itemIndex) => {
         items.push({ typeIndex, itemIndex, item });
       });
     });
 
     return items;
-  }, [filteredTypes]);
+  }, [filteredTypes, searchResults]);
 
   const onSelect = useCallback(
-    (item: { id: string; text: string }) => {
+    (item: NodeSearchResult) => {
       waitForBlock(blockUid, textarea.value).then(() => {
         onClose();
 
@@ -182,7 +226,7 @@ const NodeSearchMenu = ({
         }, 10);
       });
     },
-    [blockUid, onClose, searchTerm, textarea],
+    [blockUid, onClose, textarea, triggerPosition, windowId],
   );
 
   const handleTextAreaInput = useCallback(() => {
@@ -248,13 +292,37 @@ const NodeSearchMenu = ({
     return () => {
       listeningEl?.removeEventListener("keydown", keydownListener);
     };
-  }, [keydownListener]);
+  }, [keydownListener, textarea]);
 
   useEffect(() => {
     setTimeout(() => {
       handleTextAreaInput();
     }, 50);
   }, [handleTextAreaInput]);
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      const activeItem = scrollContainerRef.current.querySelector(
+        '[data-active="true"]',
+      ) as HTMLElement;
+
+      if (activeItem) {
+        const container = scrollContainerRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const itemRect = activeItem.getBoundingClientRect();
+
+        if (
+          itemRect.bottom > containerRect.bottom ||
+          itemRect.top < containerRect.top
+        ) {
+          activeItem.scrollIntoView({
+            block: "nearest",
+            behavior: "auto",
+          });
+        }
+      }
+    }
+  }, [activeIndex]);
 
   let currentGlobalIndex = -1;
 
@@ -321,71 +389,88 @@ const NodeSearchMenu = ({
           onMouseDown={remainFocusOnTextarea}
           onClick={remainFocusOnTextarea}
         >
-          <div className="flex items-center justify-between border-b border-gray-200 p-2">
-            <div className="text-sm font-semibold">Search Results</div>
-            <Button
-              icon="filter"
-              minimal
-              small
-              active={isFilterMenuOpen}
-              onClick={toggleFilterMenu}
-              onMouseDown={remainFocusOnTextarea}
-              title="Filter by type"
-            />
-          </div>
+          {isLoading ? (
+            <div className="p-3 text-center text-gray-500">Loading...</div>
+          ) : (
+            <>
+              <div
+                className="discourse-node-search-menu"
+                style={{ width: "250px" }}
+                onMouseDown={remainFocusOnTextarea}
+                onClick={remainFocusOnTextarea}
+              >
+                <div className="flex items-center justify-between border-b border-gray-200 p-2">
+                  <div className="text-sm font-semibold">Search Results</div>
+                  <Button
+                    icon="filter"
+                    minimal
+                    small
+                    active={isFilterMenuOpen}
+                    onClick={toggleFilterMenu}
+                    onMouseDown={remainFocusOnTextarea}
+                    title="Filter by type"
+                  />
+                </div>
 
-          {isFilterMenuOpen && (
-            <div className="border-b border-gray-200 p-2">
-              <div className="mb-2 text-sm font-semibold">Filter by type:</div>
-              <div className="flex flex-wrap gap-2">
-                {DISCOURSE_TYPES.map((type) => (
-                  <div
-                    key={type.type}
-                    className="inline-flex cursor-pointer items-center"
-                    onClick={(e) => handleTypeCheckChange(type.type, e)}
-                  >
-                    <Checkbox
-                      label={type.title}
-                      checked={checkedTypes[type.type]}
-                      onChange={() => {}}
-                      className="m-0"
-                    />
+                {isFilterMenuOpen && (
+                  <div className="border-b border-gray-200 p-2">
+                    <div className="mb-2 text-sm font-semibold">
+                      Filter by type:
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {discourseTypes.map((type) => (
+                        <div
+                          key={type.type}
+                          className="inline-flex cursor-pointer items-center"
+                          onClick={(e) => handleTypeCheckChange(type.type, e)}
+                        >
+                          <Checkbox
+                            label={type.text}
+                            checked={checkedTypes[type.type]}
+                            onChange={() => {}}
+                            className="m-0"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="h-64 overflow-y-auto" ref={scrollContainerRef}>
+                {filteredTypes.map((type, typeIndex) => (
+                  <div key={type.type} className="mb-2">
+                    <div className="border-b border-gray-200 px-3 py-1 text-sm font-semibold text-gray-500">
+                      {type.text}
+                    </div>
+                    <Menu ulRef={menuRef}>
+                      {searchResults[type.type]?.map((item) => {
+                        currentGlobalIndex++;
+                        const isActive = currentGlobalIndex === activeIndex;
+                        return (
+                          <MenuItem
+                            key={item.id}
+                            text={item.text}
+                            data-active={isActive}
+                            active={isActive}
+                            onMouseEnter={() =>
+                              setActiveIndex(currentGlobalIndex)
+                            }
+                            onClick={() => onSelect(item)}
+                          />
+                        );
+                      })}
+                    </Menu>
                   </div>
                 ))}
+
+                {allItems.length === 0 && (
+                  <div className="p-3 text-center text-gray-500">
+                    No matches found
+                  </div>
+                )}
               </div>
-            </div>
+            </>
           )}
-
-          <div className="discourse-node-menu-content h-64 overflow-y-auto">
-            {filteredTypes.map((type, typeIndex) => (
-              <div key={type.type} className="mb-2">
-                <div className="border-b border-gray-200 px-3 py-1 text-sm font-semibold text-gray-500">
-                  {type.title}
-                </div>
-                <Menu ulRef={menuRef}>
-                  {type.items.map((item) => {
-                    currentGlobalIndex++;
-                    const isActive = currentGlobalIndex === activeIndex;
-                    return (
-                      <MenuItem
-                        key={item.id}
-                        text={item.text}
-                        active={isActive}
-                        onMouseEnter={() => setActiveIndex(currentGlobalIndex)}
-                        onClick={() => onSelect(item)}
-                      />
-                    );
-                  })}
-                </Menu>
-              </div>
-            ))}
-
-            {allItems.length === 0 && (
-              <div className="p-3 text-center text-gray-500">
-                No matches found
-              </div>
-            )}
-          </div>
         </div>
       }
     />
