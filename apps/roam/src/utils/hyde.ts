@@ -30,9 +30,11 @@ export type SearchFunc = (
   options: { topK: number },
 ) => Promise<SearchResultItem[]>;
 
-const ANTHROPIC_API_URL = "https://discoursegraphs.com/api/llm/anthropic/chat";
-const ANTHROPIC_MODEL = "claude-3-7-sonnet-latest";
-const ANTHROPIC_REQUEST_TIMEOUT_MS = 30000;
+export const ANTHROPIC_API_URL =
+  "https://discoursegraphs.com/api/llm/anthropic/chat";
+export const ANTHROPIC_MODEL =
+  process.env.ROAM_ANTHROPIC_MODEL ?? "claude-3-sonnet-20240229";
+export const ANTHROPIC_REQUEST_TIMEOUT_MS = 30_000;
 
 export const generateHypotheticalNode: HypotheticalNodeGenerator = async (
   node: string,
@@ -40,11 +42,7 @@ export const generateHypotheticalNode: HypotheticalNodeGenerator = async (
 ): Promise<string> => {
   const [relationLabel, relatedNodeText, relatedNodeFormat] = relationType;
 
-  const userPromptContent = `Given the source discourse node "${node}", and considering the relation 
-    "${relationLabel}" which typically connects to a node of type "${relatedNodeText}" 
-    (formatted like "${relatedNodeFormat}"), generate a hypothetical related discourse
-     node text that would plausibly fit this relationship. Only return the text of the hypothetical node.`;
-
+  const userPromptContent = `Given the source discourse node \\\`\\\`\\\`${node}\\\`\\\`\\\`, \nand considering the relation \\\`\\\`\\\`${relationLabel}\\\`\\\`\\\` \nwhich typically connects to a node of type \\\`\\\`\\\`${relatedNodeText}\\\`\\\`\\\` \n(formatted like \\\`\\\`\\\`${relatedNodeFormat}\\\`\\\`\\\`), \ngenerate a hypothetical related discourse node text that would plausibly fit this relationship. \nOnly return the text of the hypothetical node.`;
   const requestBody = {
     documents: [{ role: "user", content: userPromptContent }],
     passphrase: "",
@@ -77,11 +75,18 @@ export const generateHypotheticalNode: HypotheticalNodeGenerator = async (
       );
     }
 
-    const generatedText = await response.text();
+    const body = await response.json().catch(() => null);
+    if (!body || typeof body.completion !== "string") {
+      console.error("Claude API returned unexpected payload:", body);
+      throw new Error("Claude API returned unexpected payload");
+    }
 
-    return generatedText;
+    return body.completion.trim();
   } catch (error) {
-    if (error instanceof Error && error.name === "TimeoutError") {
+    if (
+      error instanceof Error &&
+      (error.name === "AbortError" || error.name === "TimeoutError")
+    ) {
       console.error(
         "Error during fetch for Claude API: Request timed out",
         error,
@@ -101,21 +106,22 @@ async function searchAgainstCandidates(
   embeddingFunction: EmbeddingFunc,
   searchFunction: SearchFunc,
 ): Promise<SearchResultItem[][]> {
-  const allSearchResults: SearchResultItem[][] = [];
-  for (const hypoText of hypotheticalTexts) {
-    try {
-      const queryEmbedding = await embeddingFunction(hypoText);
-      const results = await searchFunction(queryEmbedding, indexData, {
-        topK: indexData.length,
-      });
-      allSearchResults.push(results);
-    } catch (error) {
-      console.error(
-        `Error searching for hypothetical node "${hypoText}":`,
-        error,
-      );
-    }
-  }
+  const allSearchResults = await Promise.all(
+    hypotheticalTexts.map(async (hypoText) => {
+      try {
+        const queryEmbedding = await embeddingFunction(hypoText);
+        return await searchFunction(queryEmbedding, indexData, {
+          topK: indexData.length,
+        });
+      } catch (error) {
+        console.error(
+          `Error searching for hypothetical node "${hypoText}":`,
+          error,
+        );
+        return [];
+      }
+    }),
+  );
   return allSearchResults;
 }
 
@@ -141,12 +147,13 @@ function rankNodes(
   const nodeMap = new Map<string, CandidateNodeWithEmbedding>(
     candidateNodes.map((node) => [node.uid, node]),
   );
-  const combinedResults = Array.from(maxScores.entries()).map(
-    ([uid, score]) => ({
-      node: nodeMap.get(uid)!,
-      score: score,
-    }),
-  );
+  const combinedResults = Array.from(maxScores.entries())
+    .map(([uid, score]) => {
+      const node = nodeMap.get(uid);
+      return node ? { node, score } : undefined;
+    })
+    .filter(Boolean) as { node: CandidateNodeWithEmbedding; score: number }[];
+
   combinedResults.sort((a, b) => b.score - a.score);
   return combinedResults.map((item) => ({
     text: item.node.text,
