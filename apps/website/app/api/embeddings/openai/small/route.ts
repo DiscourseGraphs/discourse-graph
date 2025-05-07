@@ -14,9 +14,6 @@ const openai = apiKey ? new OpenAI({ apiKey }) : null;
 
 type RequestBody = {
   input: string | string[];
-  model?: string;
-  dimensions?: number;
-  encoding_format?: "float" | "base64";
 };
 
 const OPENAI_REQUEST_TIMEOUT_MS = 30000;
@@ -37,12 +34,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   try {
     const body: RequestBody = await req.json();
-    const {
-      input,
-      model = "text-embedding-3-small",
-      dimensions,
-      encoding_format = "float",
-    } = body;
+    const { input } = body;
 
     if (!input || (Array.isArray(input) && input.length === 0)) {
       response = NextResponse.json(
@@ -53,14 +45,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const options: OpenAI.EmbeddingCreateParams = {
-      model: model,
+      model: "text-embedding-3-small",
       input: input,
-      encoding_format: encoding_format,
+      encoding_format: "float",
+      dimensions: 1536,
     };
-
-    if (dimensions && model.startsWith("text-embedding-3")) {
-      options.dimensions = dimensions;
-    }
 
     const embeddingsPromise = openai!.embeddings.create(options);
     const timeoutPromise = new Promise((_, reject) =>
