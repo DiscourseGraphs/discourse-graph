@@ -74,18 +74,31 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
 
     setAlertMessage(dialogMessage);
     setAlertConfirmAction(() => async () => {
-      for (const rel of affectedRelations) {
-        await deleteBlock(rel.id);
-      }
-      await window.roamAlphaAPI
-        .deletePage({ page: { uid: nodeTypeIdToDelete } })
-        .then(() => {
-          setNodes((prevNodes) =>
-            prevNodes.filter((nn) => nn.type !== nodeTypeIdToDelete),
-          );
-          refreshConfigTree();
+      try {
+        for (const rel of affectedRelations) {
+          await deleteBlock(rel.id).catch((error) => {
+            console.error(
+              `Failed to delete relation: ${rel.id}, ${error.message}`,
+            );
+            throw error;
+          });
+        }
+        await window.roamAlphaAPI.deletePage({
+          page: { uid: nodeTypeIdToDelete },
         });
-      setDeleteConfirmation(null);
+
+        setNodes((prevNodes) =>
+          prevNodes.filter((nn) => nn.type !== nodeTypeIdToDelete),
+        );
+        refreshConfigTree();
+        setDeleteConfirmation(null);
+      } catch (error) {
+        console.error(
+          `Failed to complete deletion for Node Type ${nodeLabel} (UID: ${nodeTypeIdToDelete}): ${error instanceof Error ? error.message : String(error)}`,
+        );
+      } finally {
+        setIsAlertOpen(false);
+      }
     });
     setIsAlertOpen(true);
   };
@@ -208,7 +221,6 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
           if (alertConfirmAction) {
             await alertConfirmAction();
           }
-          setIsAlertOpen(false);
         }}
         onCancel={() => {
           setIsAlertOpen(false);
