@@ -150,10 +150,7 @@ const NodeMenu = ({
                 text={item.text}
                 active={i === activeIndex}
                 onMouseEnter={() => setActiveIndex(i)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelect(i);
-                }}
+                onClick={() => onSelect(i)}
                 className="flex items-center"
                 icon={
                   <div
