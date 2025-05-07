@@ -6,6 +6,7 @@ export type CandidateNodeWithEmbedding = {
   type: string;
   embedding: EmbeddingVector;
 };
+
 export type SuggestedNode = {
   text: string;
   uid: string;
@@ -18,6 +19,7 @@ export type HypotheticalNodeGenerator = (
   node: string,
   relationType: RelationTriplet,
 ) => Promise<string>;
+
 export type EmbeddingFunc = (text: string) => Promise<EmbeddingVector>;
 
 export type SearchResultItem = {
@@ -32,8 +34,7 @@ export type SearchFunc = (
 
 export const ANTHROPIC_API_URL =
   "https://discoursegraphs.com/api/llm/anthropic/chat";
-export const ANTHROPIC_MODEL =
-  process.env.ROAM_ANTHROPIC_MODEL ?? "claude-3-sonnet-20240229";
+export const ANTHROPIC_MODEL = "claude-3-sonnet-20240229";
 export const ANTHROPIC_REQUEST_TIMEOUT_MS = 30_000;
 
 export const generateHypotheticalNode: HypotheticalNodeGenerator = async (
