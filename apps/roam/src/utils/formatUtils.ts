@@ -195,3 +195,7 @@ export const findReferencedNodeInText = ({
     text: pageTitle,
   } as Result;
 };
+
+export const escapeCljString = (str: string) => {
+  return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').toLowerCase();
+};
