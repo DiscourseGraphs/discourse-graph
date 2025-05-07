@@ -22,6 +22,7 @@ import posthog from "posthog-js";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
+import { escapeCljString } from "~/utils/formatUtils";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -88,7 +89,7 @@ const NodeSearchMenu = ({
       :where
         [(re-pattern "${regexPattern}") ?title-regex]
         [?node :node/title ?node-title]
-        ${searchTerm ? `[(clojure.string/includes? ?node-title "${searchTerm.toLowerCase()}")]` : ""}
+        ${searchTerm ? `[(clojure.string/includes? ?node-title "${escapeCljString(searchTerm)}")]` : ""}
         [(re-find ?title-regex ?node-title)]
     ]`;
       const results = window.roamAlphaAPI.q(query);
@@ -114,10 +115,10 @@ const NodeSearchMenu = ({
 
       setDiscourseTypes(allNodeTypes);
 
-      const initialCheckedTypes = allNodeTypes.reduce(
-        (acc, type) => ({ ...acc, [type.type]: true }),
-        {},
-      );
+      const initialCheckedTypes: Record<string, boolean> = {};
+      allNodeTypes.forEach((t) => {
+        initialCheckedTypes[t.type] = true;
+      });
       setCheckedTypes(initialCheckedTypes);
 
       const initialSearchResults = allNodeTypes.reduce(
@@ -246,11 +247,11 @@ const NodeSearchMenu = ({
 
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "ArrowDown") {
+      if (e.key === "ArrowDown" && allItems.length) {
         setActiveIndex((prev) => (prev + 1) % allItems.length);
         e.preventDefault();
         e.stopPropagation();
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === "ArrowUp" && allItems.length) {
         setActiveIndex(
           (prev) => (prev - 1 + allItems.length) % allItems.length,
         );
@@ -285,14 +286,26 @@ const NodeSearchMenu = ({
   }, [handleTextAreaInput, textarea]);
 
   useEffect(() => {
-    const listeningEl = !!textarea.closest(".rm-reference-item")
+    const listeningEl = textarea.closest(".rm-reference-item")
       ? textarea.parentElement
       : textarea;
-    listeningEl?.addEventListener("keydown", keydownListener);
+
+    if (listeningEl) {
+      listeningEl.addEventListener("keydown", keydownListener);
+      listeningEl.addEventListener("input", handleTextAreaInput);
+      listeningEl.addEventListener("blur", handleTextAreaInput);
+      listeningEl.addEventListener("click", handleTextAreaInput);
+    }
+
     return () => {
-      listeningEl?.removeEventListener("keydown", keydownListener);
+      if (listeningEl) {
+        listeningEl.removeEventListener("keydown", keydownListener);
+        listeningEl.removeEventListener("input", handleTextAreaInput);
+        listeningEl.removeEventListener("blur", handleTextAreaInput);
+        listeningEl.removeEventListener("click", handleTextAreaInput);
+      }
     };
-  }, [keydownListener, textarea]);
+  }, [textarea, keydownListener, handleTextAreaInput]);
 
   useEffect(() => {
     setTimeout(() => {
