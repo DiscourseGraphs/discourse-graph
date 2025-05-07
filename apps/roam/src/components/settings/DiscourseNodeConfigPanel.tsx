@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   ControlGroup,
   InputGroup,
@@ -12,6 +13,8 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import createPage from "roamjs-components/writes/createPage";
 import type { CustomField } from "roamjs-components/components/ConfigPanels/types";
 import posthog from "posthog-js";
+import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import { deleteBlock } from "roamjs-components/writes";
 
 type DiscourseNodeConfigPanelProps = React.ComponentProps<
   CustomField["options"]["component"]
@@ -32,12 +35,59 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
     null,
   );
 
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertConfirmAction, setAlertConfirmAction] = useState<
+    () => Promise<void>
+  >(() => Promise.resolve());
+
   const navigateToNode = (uid: string) => {
     if (isPopup) {
       setSelectedTabId(uid);
     } else {
       window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
     }
+  };
+
+  const handleDeleteNodeTypeWithConfirmation = (
+    nodeTypeIdToDelete: string,
+    nodeLabel: string,
+  ) => {
+    const affectedRelations = getDiscourseRelations().filter(
+      (r) =>
+        r.source === nodeTypeIdToDelete || r.destination === nodeTypeIdToDelete,
+    );
+
+    let dialogMessage = `Are you sure you want to delete the Node Type "${nodeLabel}"?`;
+
+    if (affectedRelations.length > 0) {
+      dialogMessage = `The Node Type "${nodeLabel}" is used by the following relations, which will also be deleted:\n\n${affectedRelations
+        .map((r) => {
+          const sourceNodeDetails = nodes.find((s) => s.type === r.source);
+          const destinationNodeDetails = nodes.find(
+            (d) => d.type === r.destination,
+          );
+          return `- ${sourceNodeDetails?.text || r.source} ${r.label} ${destinationNodeDetails?.text || r.destination}`;
+        })
+        .join("\n")}\n\nProceed with deletion?`;
+    }
+
+    setAlertMessage(dialogMessage);
+    setAlertConfirmAction(() => async () => {
+      for (const rel of affectedRelations) {
+        await deleteBlock(rel.id);
+      }
+      await window.roamAlphaAPI
+        .deletePage({ page: { uid: nodeTypeIdToDelete } })
+        .then(() => {
+          setNodes((prevNodes) =>
+            prevNodes.filter((nn) => nn.type !== nodeTypeIdToDelete),
+          );
+          refreshConfigTree();
+        });
+      setDeleteConfirmation(null);
+    });
+    setIsAlertOpen(true);
   };
 
   return (
@@ -121,8 +171,11 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                     icon="trash"
                     minimal
                     onClick={() => {
-                      if (deleteConfirmation) setDeleteConfirmation(null);
-                      else setDeleteConfirmation(n.type);
+                      if (deleteConfirmation === n.type) {
+                        setDeleteConfirmation(null);
+                      } else {
+                        setDeleteConfirmation(n.type);
+                      }
                     }}
                   />
                 </Tooltip>
@@ -130,12 +183,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   children="Confirm"
                   intent={Intent.DANGER}
                   onClick={() => {
-                    window.roamAlphaAPI
-                      .deletePage({ page: { uid: n.type } })
-                      .then(() => {
-                        setNodes(nodes.filter((nn) => nn.type !== n.type));
-                        refreshConfigTree();
-                      });
+                    handleDeleteNodeTypeWithConfirmation(n.type, n.text);
                   }}
                   className={`mx-1 ${
                     deleteConfirmation !== n.type ? "opacity-0" : ""
@@ -153,6 +201,29 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
           ))}
         </tbody>
       </HTMLTable>
+
+      <Alert
+        isOpen={isAlertOpen}
+        onConfirm={async () => {
+          if (alertConfirmAction) {
+            await alertConfirmAction();
+          }
+          setIsAlertOpen(false);
+        }}
+        onCancel={() => {
+          setIsAlertOpen(false);
+          setDeleteConfirmation(null);
+        }}
+        intent={Intent.DANGER}
+        confirmButtonText="Delete"
+        cancelButtonText="Cancel"
+        canEscapeKeyCancel={true}
+        canOutsideClickCancel={true}
+      >
+        <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+          {alertMessage}
+        </div>
+      </Alert>
     </>
   );
 };
