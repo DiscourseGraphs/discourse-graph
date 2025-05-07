@@ -193,7 +193,6 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   />
                 </Tooltip>
                 <Button
-                  children="Confirm"
                   intent={Intent.DANGER}
                   onClick={() => {
                     handleDeleteNodeTypeWithConfirmation(n.type, n.text);
@@ -201,14 +200,17 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   className={`mx-1 ${
                     deleteConfirmation !== n.type ? "opacity-0" : ""
                   }`}
-                />
+                >
+                  Confirm
+                </Button>
                 <Button
-                  children="Cancel"
                   onClick={() => setDeleteConfirmation(null)}
                   className={`mx-1 ${
                     deleteConfirmation !== n.type ? "opacity-0" : ""
                   }`}
-                />
+                >
+                  Cancel
+                </Button>
               </td>
             </tr>
           ))}
