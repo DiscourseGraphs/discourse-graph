@@ -5,12 +5,12 @@ import cors from "~/utils/llm/cors";
 const apiKey = process.env.OPENAI_API_KEY;
 
 if (!apiKey) {
-  console.error(
+  throw new Error(
     "Missing OPENAI_API_KEY environment variable. The embeddings API will not function.",
   );
 }
 
-const openai = apiKey ? new OpenAI({ apiKey }) : null;
+const openai = new OpenAI({ apiKey });
 
 type RequestBody = {
   input: string | string[];
@@ -20,17 +20,6 @@ const OPENAI_REQUEST_TIMEOUT_MS = 30000;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   let response: NextResponse;
-
-  if (!apiKey) {
-    response = NextResponse.json(
-      {
-        error: "Server configuration error.",
-        details: "Embeddings service is not configured.",
-      },
-      { status: 500 },
-    );
-    return cors(req, response) as NextResponse;
-  }
 
   try {
     const body: RequestBody = await req.json();
@@ -51,7 +40,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       dimensions: 1536,
     };
 
-    const embeddingsPromise = openai!.embeddings.create(options);
+    const embeddingsPromise = openai.embeddings.create(options);
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(
         () => reject(new Error("OpenAI API request timeout")),
