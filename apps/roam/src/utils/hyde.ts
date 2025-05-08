@@ -1,15 +1,13 @@
 export type EmbeddingVector = number[];
 
-export type CandidateNodeWithEmbedding = {
-  text: string;
-  uid: string;
+import { Result } from "./types";
+
+export type CandidateNodeWithEmbedding = Result & {
   type: string;
   embedding: EmbeddingVector;
 };
 
-export type SuggestedNode = {
-  text: string;
-  uid: string;
+export type SuggestedNode = Result & {
   type: string;
 };
 
@@ -156,11 +154,10 @@ const rankNodes = (
     .filter(Boolean) as { node: CandidateNodeWithEmbedding; score: number }[];
 
   combinedResults.sort((a, b) => b.score - a.score);
-  return combinedResults.map((item) => ({
-    text: item.node.text,
-    uid: item.node.uid,
-    type: item.node.type,
-  }));
+  return combinedResults.map((item) => {
+    const { embedding, ...restNodeProps } = item.node;
+    return restNodeProps as SuggestedNode;
+  });
 };
 
 export const findSimilarNodesUsingHyde = async (
