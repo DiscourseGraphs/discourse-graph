@@ -145,10 +145,7 @@ export const initObservers = async ({
       target.tagName === "TEXTAREA" &&
       target.classList.contains("rm-block-input")
     ) {
-      renderDiscourseNodeMenu({
-        textarea: target as HTMLTextAreaElement,
-        extensionAPI: onloadArgs.extensionAPI,
-      });
+      renderDiscourseNodeMenu(target as HTMLTextAreaElement);
       evt.preventDefault();
       evt.stopPropagation();
     }
@@ -158,22 +155,7 @@ export const initObservers = async ({
     const evt = e as KeyboardEvent;
     const target = evt.target as HTMLElement;
 
-    // Personal Trigger overrides Global Trigger
-    if (personalTrigger) {
-      if (evt.key !== personalTrigger) return;
-      if (
-        (personalModifiers.includes("ctrl") && !evt.ctrlKey) ||
-        (personalModifiers.includes("shift") && !evt.shiftKey) ||
-        (personalModifiers.includes("alt") && !evt.altKey) ||
-        (personalModifiers.includes("meta") && !evt.metaKey)
-      ) {
-        return;
-      }
-      handleNodeMenuRender(target, evt);
-      return;
-    }
-
-    if (evt.key === globalTrigger) {
+    if (evt.key === "\\") {
       handleNodeMenuRender(target, evt);
     }
   };

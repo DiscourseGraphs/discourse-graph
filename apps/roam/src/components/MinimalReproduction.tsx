@@ -1,114 +1,13 @@
-import React, {
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-  useEffect,
-} from "react";
+import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import {
   Button,
-  Classes,
   Dialog,
   InputGroup,
-  Label,
   Menu,
   MenuItem,
   Popover,
-  Position,
 } from "@blueprintjs/core";
-import updateBlock from "roamjs-components/writes/updateBlock";
-import getUids from "roamjs-components/dom/getUids";
-import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
-
-interface MinimalFormDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (value: string) => void;
-  title: string;
-}
-
-const MinimalFormDialog = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  title,
-}: MinimalFormDialogProps): React.ReactElement => {
-  const [value, setValue] = useState("");
-
-  const handleSubmitClick = useCallback(() => {
-    onSubmit(value);
-  }, [onSubmit, value]);
-
-  return (
-    <Dialog
-      isOpen={isOpen}
-      onClose={onClose}
-      title={title}
-      autoFocus={true}
-      enforceFocus={true}
-      canEscapeKeyClose={true}
-      canOutsideClickClose={true}
-    >
-      <div className={Classes.DIALOG_BODY}>
-        <Label>
-          Enter value:
-          <InputGroup
-            value={value}
-            autoFocus={true}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setValue(e.target.value)
-            }
-          />
-        </Label>
-      </div>
-      <div className={Classes.DIALOG_FOOTER}>
-        <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-          <Button text="Cancel" onClick={onClose} />
-          <Button intent="primary" text="Submit" onClick={handleSubmitClick} />
-        </div>
-      </div>
-    </Dialog>
-  );
-};
-
-export const renderMinimalFormDialog = ({
-  title,
-  resolve,
-}: {
-  title: string;
-  resolve: (value: string) => void;
-}) => {
-  const container = document.createElement("div");
-  document.body.appendChild(container);
-
-  const unmount = () => {
-    ReactDOM.unmountComponentAtNode(container);
-    if (container.parentNode) {
-      container.parentNode.removeChild(container);
-    }
-  };
-
-  const handleDialogSubmit = (value: string) => {
-    unmount();
-    resolve(value);
-  };
-
-  const handleDialogClose = () => {
-    unmount();
-    resolve(""); // Resolve with empty string on cancel or close
-  };
-
-  ReactDOM.render(
-    <MinimalFormDialog
-      isOpen={true}
-      title={title}
-      onSubmit={handleDialogSubmit}
-      onClose={handleDialogClose}
-    />,
-    container,
-  );
-};
 
 const PRECONFIGURED_MENU_ITEMS = [
   { text: "Option Alpha", id: "alpha" },
@@ -116,100 +15,120 @@ const PRECONFIGURED_MENU_ITEMS = [
   { text: "Option Gamma", id: "gamma" },
 ];
 
+const MinimalFormDialog = ({
+  onSubmit,
+}: {
+  onSubmit: (value: string) => void;
+}) => {
+  const [value, setValue] = useState("");
+
+  return (
+    <Dialog isOpen={true} isCloseButtonShown={false}>
+      <div className="bp3-dialog-body">
+        <InputGroup
+          value={value}
+          autoFocus={true}
+          onChange={(e) => setValue(e.target.value)}
+        />
+      </div>
+      <div className="bp3-dialog-footer">
+        <Button text="Submit" onClick={() => onSubmit(value)} />
+      </div>
+    </Dialog>
+  );
+};
+
+export const renderMinimalFormDialog = ({
+  updateBlock,
+}: {
+  updateBlock: (value: string) => void;
+}) => {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+
+  ReactDOM.render(
+    <MinimalFormDialog
+      onSubmit={(value) => {
+        updateBlock(value);
+        ReactDOM.unmountComponentAtNode(container);
+        if (container.parentNode) {
+          container.parentNode.removeChild(container);
+        }
+      }}
+    />,
+    container,
+  );
+};
+
 export const NodeMenu = ({
   onClose,
   textarea,
-  extensionAPI,
-}: { onClose: () => void } & Props) => {
-  const menuItems = useMemo(() => PRECONFIGURED_MENU_ITEMS, []);
-  const blockUid = useMemo(() => getUids(textarea).blockUid, [textarea]);
-  const menuRef = useRef<HTMLUListElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+}: {
+  onClose: () => void;
+  textarea: HTMLTextAreaElement;
+}) => {
+  const id = textarea.id;
+  const blockUid = id.substring(id.length - 9, id.length);
 
-  const onSelectMenuItem = useCallback(
-    (index: number) => {
-      const selectedItem = menuItems[index];
-      if (!selectedItem) return;
+  const onSelectMenuItem = (index: number) => {
+    const selectedItem = PRECONFIGURED_MENU_ITEMS[index];
+    if (!selectedItem) return;
 
-      onClose();
+    onClose();
 
-      renderMinimalFormDialog({
-        title: `Input for ${selectedItem.text}`,
-        resolve: (dialogValue: string) => {
-          if (dialogValue && blockUid) {
-            updateBlock({ text: dialogValue, uid: blockUid });
-            console.log(
-              `Block ${blockUid} updated with: ${dialogValue} via ${selectedItem.text}`,
-            );
-          }
-        },
-      });
-    },
-    [menuItems, blockUid, onClose],
-  );
+    renderMinimalFormDialog({
+      updateBlock: (dialogValue: string) => {
+        if (dialogValue && blockUid) {
+          window.roamAlphaAPI.data.block.update({
+            block: {
+              string: dialogValue,
+              uid: blockUid,
+            },
+          });
+          console.log(
+            `window.roamAlphaAPI.data.block.update({
+              block: {
+                string: "${dialogValue}",
+                uid: "${blockUid}",
+              },
+            });`,
+          );
+        }
+      },
+    });
+  };
 
-  const keydownListener = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-        const count = menuItems.length;
-        setActiveIndex((prevIndex) => (prevIndex + 1) % count);
-        e.stopPropagation();
-        e.preventDefault();
-      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-        const count = menuItems.length;
-        setActiveIndex((prevIndex) => (prevIndex - 1 + count) % count);
-        e.stopPropagation();
-        e.preventDefault();
-      } else if (e.key === "Enter") {
-        onSelectMenuItem(activeIndex);
-        e.stopPropagation();
-        e.preventDefault();
-      } else if (e.key === "Escape") {
-        onClose();
-        e.stopPropagation();
-        e.preventDefault();
-      }
-    },
-    [menuItems, activeIndex, onSelectMenuItem, onClose, setActiveIndex],
-  );
+  const keydownListener = (e: KeyboardEvent) => {
+    if (e.key === "Enter") {
+      onSelectMenuItem(0);
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  };
 
   useEffect(() => {
     textarea.addEventListener("keydown", keydownListener, true);
-    textarea.addEventListener("input", onClose);
-    return () => {
-      textarea.removeEventListener("keydown", keydownListener);
-      textarea.removeEventListener("input", onClose);
-    };
-  }, [keydownListener, onClose, textarea]);
+    return () => textarea.removeEventListener("keydown", keydownListener);
+  }, [keydownListener]);
 
   return (
     <Popover
       onClose={onClose}
       isOpen={true}
-      canEscapeKeyClose
       minimal
       target={<span />}
-      position={Position.BOTTOM_LEFT}
-      modifiers={{
-        flip: { enabled: false },
-        preventOverflow: { enabled: false },
-      }}
+      position="bottom-left"
       autoFocus={false}
       enforceFocus={false}
       content={
-        <Menu ulRef={menuRef} data-active-index={activeIndex}>
-          {menuItems.map((item, i) => {
+        <Menu>
+          {PRECONFIGURED_MENU_ITEMS.map((item, i) => {
             return (
               <MenuItem
                 key={item.id}
                 text={item.text}
-                active={i === activeIndex}
-                onMouseEnter={() => setActiveIndex(i)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectMenuItem(i);
-                }}
-                className="flex items-center"
+                active={i === 0}
+                onClick={() => onSelectMenuItem(0)}
               />
             );
           })}
@@ -219,16 +138,12 @@ export const NodeMenu = ({
   );
 };
 
-export const render = (props: Props) => {
+export const render = (textarea: HTMLTextAreaElement) => {
   const parent = document.createElement("span");
-  const coords = getCoordsFromTextarea(props.textarea);
-  parent.style.position = "absolute";
-  parent.style.left = `${coords.left}px`;
-  parent.style.top = `${coords.top}px`;
-  props.textarea.parentElement?.insertBefore(parent, props.textarea);
+  textarea.parentElement?.insertBefore(parent, textarea);
   ReactDOM.render(
     <NodeMenu
-      {...props}
+      textarea={textarea}
       onClose={() => {
         ReactDOM.unmountComponentAtNode(parent);
         parent.remove();
@@ -237,3 +152,28 @@ export const render = (props: Props) => {
     parent,
   );
 };
+
+// export const initializeNodeMenuTrigger = () => {
+//   const handleNodeMenuRender = (target: HTMLElement, evt: KeyboardEvent) => {
+//     if (
+//       target.tagName === "TEXTAREA" &&
+//       target.classList.contains("rm-block-input")
+//     ) {
+//       render(target as HTMLTextAreaElement);
+//       evt.preventDefault();
+//       evt.stopPropagation();
+//     }
+//   };
+
+//   const nodeMenuTriggerListener = (e: Event) => {
+//     const evt = e as KeyboardEvent;
+//     const target = evt.target as HTMLElement;
+
+//     if (evt.key === "\\") {
+//       handleNodeMenuRender(target, evt);
+//     }
+//   };
+
+//   document.addEventListener("keydown", nodeMenuTriggerListener);
+//   return () => document.removeEventListener("keydown", nodeMenuTriggerListener);
+// };
