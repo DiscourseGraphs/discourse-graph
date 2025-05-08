@@ -101,12 +101,12 @@ export const generateHypotheticalNode: HypotheticalNodeGenerator = async (
   }
 };
 
-async function searchAgainstCandidates(
+const searchAgainstCandidates = async (
   hypotheticalTexts: string[],
   indexData: CandidateNodeWithEmbedding[],
   embeddingFunction: EmbeddingFunc,
   searchFunction: SearchFunc,
-): Promise<SearchResultItem[][]> {
+): Promise<SearchResultItem[][]> => {
   const allSearchResults = await Promise.all(
     hypotheticalTexts.map(async (hypoText) => {
       try {
@@ -124,11 +124,11 @@ async function searchAgainstCandidates(
     }),
   );
   return allSearchResults;
-}
+};
 
-function combineScores(
+const combineScores = (
   allSearchResults: SearchResultItem[][],
-): Map<string, number> {
+): Map<string, number> => {
   const maxScores = new Map<string, number>();
   for (const resultSet of allSearchResults) {
     for (const result of resultSet) {
@@ -139,12 +139,12 @@ function combineScores(
     }
   }
   return maxScores;
-}
+};
 
-function rankNodes(
+const rankNodes = (
   maxScores: Map<string, number>,
   candidateNodes: CandidateNodeWithEmbedding[],
-): SuggestedNode[] {
+): SuggestedNode[] => {
   const nodeMap = new Map<string, CandidateNodeWithEmbedding>(
     candidateNodes.map((node) => [node.uid, node]),
   );
@@ -161,7 +161,7 @@ function rankNodes(
     uid: item.node.uid,
     type: item.node.type,
   }));
-}
+};
 
 export const findSimilarNodesUsingHyde = async (
   candidateNodes: CandidateNodeWithEmbedding[],
