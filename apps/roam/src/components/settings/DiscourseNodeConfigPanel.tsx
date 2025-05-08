@@ -37,10 +37,8 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
 
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
-  const [alertConfirmAction, setAlertConfirmAction] = useState<
-    () => Promise<void>
-  >(() => Promise.resolve());
-
+  const [affectedRelations, setAffectedRelations] = useState<any[]>([]);
+  const [nodeTypeIdToDelete, setNodeTypeIdToDelete] = useState<string>("");
   const navigateToNode = (uid: string) => {
     if (isPopup) {
       setSelectedTabId(uid);
@@ -49,58 +47,13 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
     }
   };
 
-  const handleDeleteNodeTypeWithConfirmation = (
-    nodeTypeIdToDelete: string,
-    nodeLabel: string,
-  ) => {
-    const affectedRelations = getDiscourseRelations().filter(
-      (r) =>
-        r.source === nodeTypeIdToDelete || r.destination === nodeTypeIdToDelete,
-    );
-
-    let dialogMessage = `Are you sure you want to delete the Node Type "${nodeLabel}"?`;
-
-    if (affectedRelations.length > 0) {
-      dialogMessage = `The Node Type "${nodeLabel}" is used by the following relations, which will also be deleted:\n\n${affectedRelations
-        .map((r) => {
-          const sourceNodeDetails = nodes.find((s) => s.type === r.source);
-          const destinationNodeDetails = nodes.find(
-            (d) => d.type === r.destination,
-          );
-          return `- ${sourceNodeDetails?.text || r.source} ${r.label} ${destinationNodeDetails?.text || r.destination}`;
-        })
-        .join("\n")}\n\nProceed with deletion?`;
-    }
-
-    setAlertMessage(dialogMessage);
-    setAlertConfirmAction(() => async () => {
-      try {
-        for (const rel of affectedRelations) {
-          await deleteBlock(rel.id).catch((error) => {
-            console.error(
-              `Failed to delete relation: ${rel.id}, ${error.message}`,
-            );
-            throw error;
-          });
-        }
-        await window.roamAlphaAPI.deletePage({
-          page: { uid: nodeTypeIdToDelete },
-        });
-
-        setNodes((prevNodes) =>
-          prevNodes.filter((nn) => nn.type !== nodeTypeIdToDelete),
-        );
-        refreshConfigTree();
-        setDeleteConfirmation(null);
-      } catch (error) {
-        console.error(
-          `Failed to complete deletion for Node Type ${nodeLabel} (UID: ${nodeTypeIdToDelete}): ${error instanceof Error ? error.message : String(error)}`,
-        );
-      } finally {
-        setIsAlertOpen(false);
-      }
+  const deleteNodeType = async (uid: string) => {
+    await window.roamAlphaAPI.deletePage({
+      page: { uid },
     });
-    setIsAlertOpen(true);
+    setNodes((prevNodes) => prevNodes.filter((nn) => nn.type !== uid));
+    refreshConfigTree();
+    setDeleteConfirmation(null);
   };
 
   return (
@@ -195,7 +148,31 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                 <Button
                   intent={Intent.DANGER}
                   onClick={() => {
-                    handleDeleteNodeTypeWithConfirmation(n.type, n.text);
+                    const affectedRelations = getDiscourseRelations().filter(
+                      (r) => r.source === n.type || r.destination === n.type,
+                    );
+
+                    let dialogMessage = `Are you sure you want to delete the Node Type "${n.text}"?`;
+
+                    if (affectedRelations.length > 0) {
+                      dialogMessage = `The Node Type "${n.text}" is used by the following relations, which will also be deleted:\n\n${affectedRelations
+                        .map((r) => {
+                          const sourceNodeDetails = nodes.find(
+                            (s) => s.type === r.source,
+                          );
+                          const destinationNodeDetails = nodes.find(
+                            (d) => d.type === r.destination,
+                          );
+                          return `- ${sourceNodeDetails?.text || r.source} ${r.label} ${destinationNodeDetails?.text || r.destination}`;
+                        })
+                        .join("\n")}\n\nProceed with deletion?`;
+                      setIsAlertOpen(true);
+                      setAlertMessage(dialogMessage);
+                      setAffectedRelations(affectedRelations);
+                      setNodeTypeIdToDelete(n.type);
+                    } else {
+                      deleteNodeType(n.type);
+                    }
                   }}
                   className={`mx-1 ${
                     deleteConfirmation !== n.type ? "opacity-0" : ""
@@ -220,8 +197,24 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
       <Alert
         isOpen={isAlertOpen}
         onConfirm={async () => {
-          if (alertConfirmAction) {
-            await alertConfirmAction();
+          if (affectedRelations.length > 0) {
+            try {
+              for (const rel of affectedRelations) {
+                await deleteBlock(rel.id).catch((error) => {
+                  console.error(
+                    `Failed to delete relation: ${rel.id}, ${error.message}`,
+                  );
+                  throw error;
+                });
+              }
+              deleteNodeType(nodeTypeIdToDelete);
+            } catch (error) {
+              console.error(
+                `Failed to complete deletion for UID: ${nodeTypeIdToDelete}): ${error instanceof Error ? error.message : String(error)}`,
+              );
+            } finally {
+              setIsAlertOpen(false);
+            }
           }
         }}
         onCancel={() => {
