@@ -1,9 +1,12 @@
-import { Plugin } from "obsidian";
+import { Plugin, Editor, Menu, Notice, TFile } from "obsidian";
 import { SettingsTab } from "~/components/Settings";
 import { Settings } from "~/types";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
-import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
+import { VIEW_TYPE_DISCOURSE_CONTEXT, DiscourseNode } from "~/types";
+import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
+import { checkInvalidChars } from "~/utils/validateNodeType";
+import { processTextToDiscourseNode } from "./utils/createNodeFromSelectedText";
 
 const DEFAULT_SETTINGS: Settings = {
   nodeTypes: [],
@@ -27,6 +30,32 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.addRibbonIcon("telescope", "Toggle Discourse Context", () => {
       this.toggleDiscourseContextView();
     });
+
+    this.registerEvent(
+      this.app.workspace.on("editor-menu", (menu: Menu, editor: Editor) => {
+        if (!editor.getSelection()) return;
+
+        menu.addItem((menuItem) => {
+          menuItem.setTitle("Turn into Discourse Node");
+          menuItem.setIcon("file-type");
+
+          // Create submenu using the unofficial API pattern
+          // @ts-ignore - setSubmenu is not officially in the API but works
+          const submenu = menuItem.setSubmenu();
+
+          this.settings.nodeTypes.forEach((nodeType) => {
+            submenu.addItem((item: any) => {
+              item
+                .setTitle(nodeType.name)
+                .setIcon("file-type")
+                .onClick(async () => {
+                  await processTextToDiscourseNode(this.app, editor, nodeType);
+                });
+            });
+          });
+        });
+      }),
+    );
   }
 
   toggleDiscourseContextView() {
