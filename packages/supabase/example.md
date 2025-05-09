@@ -51,14 +51,14 @@ Content:
 
 Concept:
 
-| id | is_schema | arity | schema | name                  | content
-|----|-----------|-------|--------|-----------------------|-----------...
-| 16 | true      | 0     |        | Claim                 | {}
-| 17 | true      | 0     |        | Hypothesis            | {}
-| 18 | true      | 2     |        | Opposed-by            | { "roles": ["source", "destination"], "representation": ["source", "sourceref", "destination", "destinationref", "predicate"] }
-| 19 | false     | 0     | 16     | [CLM] Some claim      | {}
-| 20 | false     | 0     | 17     | [HYP] Some hypothesis | {}
-| 21 | false     | 2     | 18     | OpposedBy             | { "concepts": {"source": 19, "destination": 20}, "occurences": [{"sourceref": 11, "destinationref": 9, "source": 25, "destination": 24, "predicate": 10 }] }
+| id | is_schema | arity | schema | name                  | content   |
+|----|-----------|-------|--------|-----------------------|-----------|
+| 16 | true      | 0     |        | Claim                 | {}        |
+| 17 | true      | 0     |        | Hypothesis            | {}        |
+| 18 | true      | 2     |        | Opposed-by            | { "roles": ["source", "destination"], "representation": ["source", "sourceref", "destination", "destinationref", "predicate"] } |
+| 19 | false     | 0     | 16     | [CLM] Some claim      | {}        |
+| 20 | false     | 0     | 17     | [HYP] Some hypothesis | {}        |
+| 21 | false     | 2     | 18     | OpposedBy             | { "concepts": {"source": 19, "destination": 20}, "occurences": [{"sourceref": 11, "destinationref": 9, "source": 25, "destination": 24, "predicate": 10 }] } |
 
 Note: Open question whether the occurence structure matters, and whether it should be materialized in another table.
 (I would tend to say yes to both.)
