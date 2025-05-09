@@ -50,7 +50,7 @@ export async function createDiscourseNodeFile(
   }
 }
 export async function processTextToDiscourseNode(
-  app: any,
+  app: App,
   editor: Editor,
   nodeType: DiscourseNode,
 ): Promise<TFile | null> {
