@@ -30,7 +30,7 @@ export async function createDiscourseNodeFile(
     );
     if (existingFile && existingFile instanceof TFile) {
       new Notice(`File ${formattedNodeName} already exists`, 3000);
-      return existingFile;
+      return null; 
     }
 
     const newFile = await app.vault.create(`${formattedNodeName}.md`, "");
