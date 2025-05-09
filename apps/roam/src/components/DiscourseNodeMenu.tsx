@@ -111,8 +111,10 @@ const NodeMenu = ({
           menuRef.current?.getAttribute("data-active-index"),
         );
         onSelect(index);
+        document.body.click();
       } else if (shortcuts.has(e.key.toUpperCase())) {
         onSelect(indexBySC[e.key.toUpperCase()]);
+        document.body.click();
       } else {
         return;
       }
