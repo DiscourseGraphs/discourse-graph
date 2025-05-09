@@ -34,6 +34,7 @@ import {
 } from "~/components/DiscourseNodeMenu";
 import { IKeyCombo } from "@blueprintjs/core";
 import { configPageTabs } from "~/utils/configPageTabs";
+import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchMenu";
 
 export const initObservers = async ({
   onloadArgs,
@@ -41,7 +42,12 @@ export const initObservers = async ({
   onloadArgs: OnloadArgs;
 }): Promise<{
   observers: MutationObserver[];
-  listeners: EventListener[];
+  listeners: {
+    pageActionListener: EventListener;
+    hashChangeListener: EventListener;
+    nodeMenuTriggerListener: EventListener;
+    discourseNodeSearchTriggerListener: EventListener;
+  };
 }> => {
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
@@ -180,6 +186,37 @@ export const initObservers = async ({
     }
   };
 
+  const discourseNodeSearchTriggerListener = (e: Event) => {
+    const evt = e as KeyboardEvent;
+    const target = evt.target as HTMLElement;
+    if (document.querySelector(".discourse-node-search-menu")) return;
+
+    if (evt.key === "@" || (evt.key === "2" && evt.shiftKey)) {
+      if (
+        target.tagName === "TEXTAREA" &&
+        target.classList.contains("rm-block-input")
+      ) {
+        const textarea = target as HTMLTextAreaElement;
+        const location = window.roamAlphaAPI.ui.getFocusedBlock();
+        if (!location) return;
+
+        const cursorPos = textarea.selectionStart;
+        const isBeginningOrAfterSpace =
+          cursorPos === 0 ||
+          textarea.value.charAt(cursorPos - 1) === " " ||
+          textarea.value.charAt(cursorPos - 1) === "\n";
+
+        if (isBeginningOrAfterSpace) {
+          renderDiscourseNodeSearchMenu({
+            onClose: () => {},
+            textarea: textarea,
+            triggerPosition: cursorPos,
+          });
+        }
+      }
+    }
+  };
+
   return {
     observers: [
       pageTitleObserver,
@@ -188,10 +225,11 @@ export const initObservers = async ({
       linkedReferencesObserver,
       graphOverviewExportObserver,
     ].filter((o): o is MutationObserver => !!o),
-    listeners: [
+    listeners: {
       pageActionListener,
       hashChangeListener,
       nodeMenuTriggerListener,
-    ],
+      discourseNodeSearchTriggerListener,
+    },
   };
 };
