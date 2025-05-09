@@ -1,45 +1,44 @@
 export type EmbeddingVector = number[];
 
-export type CandidateNodeWithEmbedding = {
-  text: string;
-  uid: string;
+import { Result } from "./types";
+
+export type CandidateNodeWithEmbedding = Result & {
   type: string;
   embedding: EmbeddingVector;
 };
-export type SuggestedNode = {
-  text: string;
-  uid: string;
+
+export type SuggestedNode = Result & {
   type: string;
 };
 
 export type RelationTriplet = [string, string, string];
 
-export type HypotheticalNodeGenerator = (
-  node: string,
-  relationType: RelationTriplet,
-) => Promise<string>;
+export type HypotheticalNodeGenerator = (params: {
+  node: string;
+  relationType: RelationTriplet;
+}) => Promise<string>;
+
 export type EmbeddingFunc = (text: string) => Promise<EmbeddingVector>;
 
 export type SearchResultItem = {
   object: SuggestedNode;
   score: number;
 };
-export type SearchFunc = (
-  queryEmbedding: EmbeddingVector,
-  indexData: CandidateNodeWithEmbedding[],
-  options: { topK: number },
-) => Promise<SearchResultItem[]>;
+export type SearchFunc = (params: {
+  queryEmbedding: EmbeddingVector;
+  indexData: CandidateNodeWithEmbedding[];
+  options: { topK: number };
+}) => Promise<SearchResultItem[]>;
 
 export const ANTHROPIC_API_URL =
   "https://discoursegraphs.com/api/llm/anthropic/chat";
-export const ANTHROPIC_MODEL =
-  process.env.ROAM_ANTHROPIC_MODEL ?? "claude-3-sonnet-20240229";
+export const ANTHROPIC_MODEL = "claude-3-sonnet-20240229";
 export const ANTHROPIC_REQUEST_TIMEOUT_MS = 30_000;
 
-export const generateHypotheticalNode: HypotheticalNodeGenerator = async (
-  node: string,
-  relationType: RelationTriplet,
-): Promise<string> => {
+export const generateHypotheticalNode: HypotheticalNodeGenerator = async ({
+  node,
+  relationType,
+}) => {
   const [relationLabel, relatedNodeText, relatedNodeFormat] = relationType;
 
   const userPromptContent = `Given the source discourse node \\\`\\\`\\\`${node}\\\`\\\`\\\`, \nand considering the relation \\\`\\\`\\\`${relationLabel}\\\`\\\`\\\` \nwhich typically connects to a node of type \\\`\\\`\\\`${relatedNodeText}\\\`\\\`\\\` \n(formatted like \\\`\\\`\\\`${relatedNodeFormat}\\\`\\\`\\\`), \ngenerate a hypothetical related discourse node text that would plausibly fit this relationship. \nOnly return the text of the hypothetical node.`;
@@ -100,18 +99,25 @@ export const generateHypotheticalNode: HypotheticalNodeGenerator = async (
   }
 };
 
-async function searchAgainstCandidates(
-  hypotheticalTexts: string[],
-  indexData: CandidateNodeWithEmbedding[],
-  embeddingFunction: EmbeddingFunc,
-  searchFunction: SearchFunc,
-): Promise<SearchResultItem[][]> {
+const searchAgainstCandidates = async ({
+  hypotheticalTexts,
+  indexData,
+  embeddingFunction,
+  searchFunction,
+}: {
+  hypotheticalTexts: string[];
+  indexData: CandidateNodeWithEmbedding[];
+  embeddingFunction: EmbeddingFunc;
+  searchFunction: SearchFunc;
+}): Promise<SearchResultItem[][]> => {
   const allSearchResults = await Promise.all(
     hypotheticalTexts.map(async (hypoText) => {
       try {
         const queryEmbedding = await embeddingFunction(hypoText);
-        return await searchFunction(queryEmbedding, indexData, {
-          topK: indexData.length,
+        return await searchFunction({
+          queryEmbedding,
+          indexData,
+          options: { topK: indexData.length },
         });
       } catch (error) {
         console.error(
@@ -123,11 +129,11 @@ async function searchAgainstCandidates(
     }),
   );
   return allSearchResults;
-}
+};
 
-function combineScores(
+const combineScores = (
   allSearchResults: SearchResultItem[][],
-): Map<string, number> {
+): Map<string, number> => {
   const maxScores = new Map<string, number>();
   for (const resultSet of allSearchResults) {
     for (const result of resultSet) {
@@ -138,12 +144,15 @@ function combineScores(
     }
   }
   return maxScores;
-}
+};
 
-function rankNodes(
-  maxScores: Map<string, number>,
-  candidateNodes: CandidateNodeWithEmbedding[],
-): SuggestedNode[] {
+const rankNodes = ({
+  maxScores,
+  candidateNodes,
+}: {
+  maxScores: Map<string, number>;
+  candidateNodes: CandidateNodeWithEmbedding[];
+}): SuggestedNode[] => {
   const nodeMap = new Map<string, CandidateNodeWithEmbedding>(
     candidateNodes.map((node) => [node.uid, node]),
   );
@@ -155,23 +164,27 @@ function rankNodes(
     .filter(Boolean) as { node: CandidateNodeWithEmbedding; score: number }[];
 
   combinedResults.sort((a, b) => b.score - a.score);
-  return combinedResults.map((item) => ({
-    text: item.node.text,
-    uid: item.node.uid,
-    type: item.node.type,
-  }));
-}
+  return combinedResults.map((item) => {
+    const { embedding, ...restNodeProps } = item.node;
+    return restNodeProps as SuggestedNode;
+  });
+};
 
-export const findSimilarNodesUsingHyde = async (
-  candidateNodes: CandidateNodeWithEmbedding[],
-  currentNodeText: string,
-  relationTriplets: RelationTriplet[],
+export const findSimilarNodesUsingHyde = async ({
+  candidateNodes,
+  currentNodeText,
+  relationTriplets,
+  options,
+}: {
+  candidateNodes: CandidateNodeWithEmbedding[];
+  currentNodeText: string;
+  relationTriplets: RelationTriplet[];
   options: {
     hypotheticalNodeGenerator: HypotheticalNodeGenerator;
     embeddingFunction: EmbeddingFunc;
     searchFunction: SearchFunc;
-  },
-): Promise<SuggestedNode[]> => {
+  };
+}): Promise<SuggestedNode[]> => {
   const { hypotheticalNodeGenerator, embeddingFunction, searchFunction } =
     options;
 
@@ -185,7 +198,7 @@ export const findSimilarNodesUsingHyde = async (
     const hypotheticalNodePromises = [];
     for (const relationType of relationTriplets) {
       hypotheticalNodePromises.push(
-        hypotheticalNodeGenerator(currentNodeText, relationType),
+        hypotheticalNodeGenerator({ node: currentNodeText, relationType }),
       );
     }
     const hypotheticalNodeTexts = (
@@ -197,16 +210,16 @@ export const findSimilarNodesUsingHyde = async (
       return [];
     }
 
-    const allSearchResults = await searchAgainstCandidates(
-      hypotheticalNodeTexts,
+    const allSearchResults = await searchAgainstCandidates({
+      hypotheticalTexts: hypotheticalNodeTexts,
       indexData,
       embeddingFunction,
       searchFunction,
-    );
+    });
 
     const maxScores = combineScores(allSearchResults);
 
-    const rankedNodes = rankNodes(maxScores, candidateNodes);
+    const rankedNodes = rankNodes({ maxScores, candidateNodes });
 
     return rankedNodes;
   } catch (error) {
