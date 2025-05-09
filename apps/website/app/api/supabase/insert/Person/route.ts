@@ -1,16 +1,15 @@
-import { createClient } from "@/utils/supabase/server"; // Using the previously established path alias
+import { createClient } from "~/utils/supabase/server";
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// From LinkML and visual schema
 interface PersonDataInput {
   name: string;
   email: string;
   orcid?: string | null;
-  person_type?: string; // Corresponds to Agent.type, defaults to "Person"
-  account_platform_id: number; // DiscoursePlatform.id for the account
-  account_active?: boolean; // Defaults to true
-  account_write_permission?: boolean; // From visual schema, optional
+  person_type?: string;
+  account_platform_id: number;
+  account_active?: boolean;
+  account_write_permission?: boolean;
 }
 
 interface PersonResult {
@@ -22,7 +21,6 @@ interface PersonResult {
   account_created?: boolean;
 }
 
-// Helper function to get or create a Person
 async function getOrCreatePerson(
   supabase: SupabaseClient<any, "public", any>,
   email: string,
@@ -35,10 +33,9 @@ async function getOrCreatePerson(
   details?: string;
   created: boolean;
 }> {
-  // Try to find an existing person by email
   let { data: existingPerson, error: fetchError } = await supabase
     .from("Person")
-    .select("id, name, email, orcid, type") // Assuming 'type' column exists on Person table for Agent.type
+    .select("id, name, email, orcid, type")
     .eq("email", email)
     .maybeSingle();
 
@@ -54,7 +51,6 @@ async function getOrCreatePerson(
 
   if (existingPerson) {
     console.log("Found existing Person:", existingPerson);
-    // Optionally, update name or orcid if they differ and are provided? For now, just return existing.
     return { person: existingPerson, error: null, created: false };
   } else {
     console.log(`Person with email "${email}" not found, creating new one...`);
@@ -62,7 +58,7 @@ async function getOrCreatePerson(
       email: email,
       name: name,
       orcid: orcid,
-      type: personType, // Set the Agent type
+      type: personType,
     };
     const { data: newPerson, error: insertError } = await supabase
       .from("Person")
@@ -87,13 +83,12 @@ async function getOrCreatePerson(
   }
 }
 
-// Helper function to get or create an Account for a Person
 async function getOrCreateAccount(
   supabase: SupabaseClient<any, "public", any>,
   personId: number,
   platformId: number,
   isActive: boolean,
-  writePermission?: boolean, // Optional based on visual schema
+  writePermission?: boolean,
 ): Promise<{
   account: any | null;
   error: string | null;
@@ -102,7 +97,7 @@ async function getOrCreateAccount(
 }> {
   let { data: existingAccount, error: fetchError } = await supabase
     .from("Account")
-    .select("id, person_id, platform_id, active, write_permission") // 'platform_id' from visual schema
+    .select("id, person_id, platform_id, active, write_permission")
     .eq("person_id", personId)
     .eq("platform_id", platformId)
     .maybeSingle();
@@ -122,7 +117,6 @@ async function getOrCreateAccount(
 
   if (existingAccount) {
     console.log("Found existing Account:", existingAccount);
-    // Optionally, update active or write_permission status if needed? For now, just return existing.
     return { account: existingAccount, error: null, created: false };
   } else {
     console.log(
@@ -168,14 +162,13 @@ export async function POST(request: Request) {
     const {
       name,
       email,
-      orcid = null, // Default to null if not provided
-      person_type = "Person", // Default Agent.type
+      orcid = null,
+      person_type = "Person",
       account_platform_id,
-      account_active = true, // Default as per LinkML `ifabsent: true`
-      account_write_permission, // Optional
+      account_active = true,
+      account_write_permission,
     } = body;
 
-    // Validate required fields for Person
     if (!name || typeof name !== "string" || name.trim() === "") {
       return NextResponse.json(
         { error: "Missing or invalid name for Person" },
@@ -183,13 +176,11 @@ export async function POST(request: Request) {
       );
     }
     if (!email || typeof email !== "string" || email.trim() === "") {
-      // Basic email validation could be added
       return NextResponse.json(
         { error: "Missing or invalid email for Person" },
         { status: 400 },
       );
     }
-    // Validate required fields for Account
     if (
       account_platform_id === undefined ||
       account_platform_id === null ||
@@ -201,7 +192,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Step 1: Get or Create Person
     const personResult = await getOrCreatePerson(
       supabase,
       email.trim(),
@@ -224,7 +214,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Step 2: Get or Create Account for this Person on the specified platform
     const accountResult = await getOrCreateAccount(
       supabase,
       personResult.person.id,
@@ -238,7 +227,6 @@ export async function POST(request: Request) {
         `API Error during Account processing (PersonID: ${personResult.person.id}, PlatformID: ${account_platform_id}): ${accountResult.error}`,
         accountResult.details || "",
       );
-      // If person was just created, should we roll back or leave orphaned? For now, report error.
       const clientError = accountResult.error?.startsWith("Database error")
         ? "An internal error occurred while processing Account."
         : accountResult.error;
@@ -246,15 +234,12 @@ export async function POST(request: Request) {
         {
           error: clientError,
           details: accountResult.details,
-          person: personResult.person, // Return person info even if account fails, for context
+          person: personResult.person,
         },
         { status: 500 },
       );
     }
 
-    // Determine overall status code
-    // If both were created, 201. If one was created and other existed, still 201 for the "overall new entity" feel.
-    // If both existed, 200.
     const statusCode =
       personResult.created || accountResult.created ? 201 : 200;
 
