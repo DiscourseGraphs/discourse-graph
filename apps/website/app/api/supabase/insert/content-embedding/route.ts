@@ -1,8 +1,10 @@
 import { createClient } from "~/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
+import cors from "~/utils/llm/cors";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const supabase = await createClient();
+  let response: NextResponse;
 
   try {
     const body = await request.json();
@@ -13,17 +15,19 @@ export async function POST(request: Request) {
       vector === undefined ||
       obsolete === undefined
     ) {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     }
 
     if (!Array.isArray(vector) || !vector.every((v) => typeof v === "number")) {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Invalid vector format. Expected an array of numbers." },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     }
     const vectorString = JSON.stringify(vector);
 
@@ -41,18 +45,24 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Supabase insert error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      response = NextResponse.json({ error: error.message }, { status: 500 });
+      return cors(request, response) as NextResponse;
     }
 
-    return NextResponse.json(
+    response = NextResponse.json(
       { message: "Data inserted successfully", data },
       { status: 201 },
     );
   } catch (e: any) {
     console.error("API route error:", e);
-    return NextResponse.json(
+    response = NextResponse.json(
       { error: e.message || "An unexpected error occurred" },
       { status: 500 },
     );
   }
+  return cors(request, response) as NextResponse;
+}
+
+export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
+  return cors(req, new NextResponse(null, { status: 204 })) as NextResponse;
 }
