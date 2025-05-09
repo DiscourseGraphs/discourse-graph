@@ -5,7 +5,15 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Menu, MenuItem, Popover, Position, Checkbox } from "@blueprintjs/core";
+import {
+  Menu,
+  MenuItem,
+  Popover,
+  Position,
+  Checkbox,
+  Button,
+  Icon,
+} from "@blueprintjs/core";
 import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -81,6 +89,7 @@ const NodeSearchMenu = ({
   const [checkedTypes, setCheckedTypes] = useState<Record<string, boolean>>(
     DISCOURSE_TYPES.reduce((acc, type) => ({ ...acc, [type.type]: true }), {}),
   );
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const menuRef = useRef<HTMLUListElement>(null);
   const { ["block-uid"]: blockUid, ["window-id"]: windowId } = useMemo(
     () =>
@@ -167,7 +176,6 @@ const NodeSearchMenu = ({
             }
           });
 
-          // Analytics
           posthog.capture("Discourse Node: Selected from Search Menu", {
             id: item.id,
             text: item.text,
@@ -220,15 +228,7 @@ const NodeSearchMenu = ({
         e.stopPropagation();
       }
     },
-    [
-      allItems,
-      setActiveIndex,
-      onSelect,
-      onClose,
-      textarea,
-      setSearchTerm,
-      menuRef,
-    ],
+    [allItems, setActiveIndex, onSelect, onClose],
   );
 
   useEffect(() => {
@@ -236,13 +236,6 @@ const NodeSearchMenu = ({
       setActiveIndex(0);
     }
   }, [allItems, activeIndex]);
-
-  useEffect(() => {
-    document.addEventListener("keydown", keydownListener);
-    return () => {
-      document.removeEventListener("keydown", keydownListener);
-    };
-  }, [keydownListener]);
 
   useEffect(() => {
     textarea.addEventListener("input", handleTextAreaInput);
@@ -293,6 +286,24 @@ const NodeSearchMenu = ({
     e.stopPropagation();
   }, []);
 
+  const toggleFilterMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      setIsFilterMenuOpen((prev) => !prev);
+
+      setTimeout(() => {
+        if (textarea) {
+          textarea.focus();
+          const cursorPos = textarea.selectionStart;
+          textarea.setSelectionRange(cursorPos, cursorPos);
+        }
+      }, 50);
+    },
+    [textarea],
+  );
+
   return (
     <Popover
       onClose={onClose}
@@ -308,28 +319,47 @@ const NodeSearchMenu = ({
       autoFocus={false}
       content={
         <div className="discourse-node-search-menu" style={{ width: "250px" }}>
-          <div
-            className="border-b border-gray-200 p-2"
-            onMouseDown={handleFilterSectionMouseDown}
-          >
-            <div className="mb-2 text-sm font-semibold">Filter by type:</div>
-            <div className="flex flex-wrap gap-2">
-              {DISCOURSE_TYPES.map((type) => (
-                <div
-                  key={type.type}
-                  className="inline-flex cursor-pointer items-center"
-                  onClick={(e) => handleTypeCheckChange(type.type, e)}
-                >
-                  <Checkbox
-                    label={type.title}
-                    checked={checkedTypes[type.type]}
-                    onChange={() => {}}
-                    className="m-0"
-                  />
-                </div>
-              ))}
-            </div>
+          <div className="flex items-center justify-between border-b border-gray-200 p-2">
+            <div className="text-sm font-semibold">Search Results</div>
+            <Button
+              icon="filter"
+              minimal
+              small
+              active={isFilterMenuOpen}
+              onClick={toggleFilterMenu}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              title="Filter by type"
+            />
           </div>
+
+          {isFilterMenuOpen && (
+            <div
+              className="border-b border-gray-200 p-2"
+              onMouseDown={handleFilterSectionMouseDown}
+            >
+              <div className="mb-2 text-sm font-semibold">Filter by type:</div>
+              <div className="flex flex-wrap gap-2">
+                {DISCOURSE_TYPES.map((type) => (
+                  <div
+                    key={type.type}
+                    className="inline-flex cursor-pointer items-center"
+                    onClick={(e) => handleTypeCheckChange(type.type, e)}
+                  >
+                    <Checkbox
+                      label={type.title}
+                      checked={checkedTypes[type.type]}
+                      onChange={() => {}}
+                      className="m-0"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="discourse-node-menu-content h-64 overflow-y-auto">
             {filteredTypes.map((type, typeIndex) => (
               <div key={type.type} className="mb-2">
