@@ -1,6 +1,6 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label, Checkbox } from "@blueprintjs/core";
+import { Label, Checkbox, Button, Intent } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
@@ -12,6 +12,13 @@ import {
   hideFeedbackButton,
   showFeedbackButton,
 } from "~/components/BirdEatsBugs";
+import { runFullEmbeddingProcess } from "~/utils/embeddingWorkflow";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import { getAllDiscourseNodes } from "~/utils/embeddingWorkflow";
+import {
+  getEmbeddingsService,
+  NodeWithEmbedding,
+} from "~/utils/embeddingService";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -114,6 +121,29 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
+      <Label>
+        Supabase Embeddings
+        <Description
+          description={
+            "Extract all text nodes from the current Roam graph, generate embeddings, and upload to Supabase. Process runs in background; check console for progress."
+          }
+        />
+        <Button
+          icon="cloud-upload"
+          text="Generate & Upload All Node Embeddings"
+          onClick={async () => {
+            console.log("handleGenerateEmbeddings: Starting process.");
+            const allNodes = await getAllDiscourseNodes();
+            const nodes = allNodes.slice(0, 101); // Take only the first 101 nodes
+            console.log("Discourse nodes (first 101):", nodes);
+            const nodesWithEmbeddings = await getEmbeddingsService(nodes);
+            console.log("Nodes with embeddings:", nodesWithEmbeddings);
+            // Next: send nodesWithEmbeddings to Supabase
+          }}
+          intent={Intent.PRIMARY}
+          style={{ marginTop: "8px" }}
+        />
+      </Label>
     </div>
   );
 };
