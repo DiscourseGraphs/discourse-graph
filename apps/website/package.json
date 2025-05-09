@@ -13,6 +13,7 @@
     "@repo/types": "*",
     "@repo/ui": "*",
     "@sindresorhus/slugify": "^2.2.1",
+    "@supabase/ssr": "^0.6.1",
     "gray-matter": "^4.0.3",
     "next": "^15.0.3",
     "openai": "^4.97.0",
