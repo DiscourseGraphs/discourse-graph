@@ -1,7 +1,8 @@
 // apps/roam/src/utils/embeddingWorkflow.ts
 import { getEmbeddingsService } from "./embeddingService";
 import { fetchSupabaseEntity } from "./supabaseService";
-import isDiscourseNode from "./isDiscourseNode";
+import getDiscourseNodes from "./getDiscourseNodes";
+import matchDiscourseNode from "./matchDiscourseNode";
 
 // Type for results from the Roam Datalog query
 interface RoamEntityFromQuery {
@@ -21,6 +22,19 @@ export interface RoamContentNode {
 }
 
 export async function getAllDiscourseNodes(): Promise<RoamContentNode[]> {
+  // We are using a forked version of findDiscouseNode that uses the title instead of the uid
+  // because uid runs query for every node, and is too slow.
+
+  const findDiscourseNodeWithTitle = (
+    title = "",
+    nodes = getDiscourseNodes(),
+  ) => {
+    const matchingNode = nodes.find((node) =>
+      matchDiscourseNode({ ...node, title }),
+    );
+    return matchingNode;
+  };
+
   const roamAlpha = (window as any).roamAlphaAPI;
   const query =
     "[:find (pull ?e [:block/uid :node/title :edit/time :create/time]) :where [?e :node/title]]";
@@ -29,7 +43,7 @@ export async function getAllDiscourseNodes(): Promise<RoamContentNode[]> {
     .filter(
       (entity) =>
         entity[":block/uid"] &&
-        isDiscourseNode(entity[":block/uid"]) &&
+        findDiscourseNodeWithTitle(entity[":node/title"]) &&
         entity[":node/title"] &&
         entity[":node/title"]!.trim() !== "",
     )

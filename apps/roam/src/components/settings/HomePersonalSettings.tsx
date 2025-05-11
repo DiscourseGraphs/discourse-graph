@@ -19,6 +19,7 @@ import {
   getEmbeddingsService,
   NodeWithEmbedding,
 } from "~/utils/embeddingService";
+import getDiscourseRelations from "~/utils/getDiscourseRelations";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -132,12 +133,13 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           icon="cloud-upload"
           text="Generate & Upload All Node Embeddings"
           onClick={async () => {
+            console.log("get discourse relations", getDiscourseRelations());
             console.log("handleGenerateEmbeddings: Starting process.");
-            const allNodes = await getAllDiscourseNodes();
-            const nodes = allNodes.slice(0, 101); // Take only the first 101 nodes
-            console.log("Discourse nodes (first 101):", nodes);
-            const nodesWithEmbeddings = await getEmbeddingsService(nodes);
-            console.log("Nodes with embeddings:", nodesWithEmbeddings);
+            // const allNodes = await getAllDiscourseNodes();
+            //const nodes = allNodes.slice(0, 101); // Take only the first 101 nodes
+            //console.log("Discourse nodes (first 101):", nodes);
+            // const nodesWithEmbeddings = await getEmbeddingsService(nodes);
+            // console.log("Nodes with embeddings:", nodesWithEmbeddings);
             // Next: send nodesWithEmbeddings to Supabase
           }}
           intent={Intent.PRIMARY}
