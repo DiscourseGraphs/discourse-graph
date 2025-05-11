@@ -4,155 +4,106 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import cors from "~/utils/llm/cors";
 
 interface PersonDataInput {
+  id: number;
   name: string;
   email: string;
   orcid?: string | null;
-  person_type?: string;
-  account_platform_id: number;
-  account_active?: boolean;
-  account_write_permission?: boolean;
 }
 
-interface PersonResult {
-  person: any | null;
-  account: any | null;
-  error: string | null;
-  details?: string;
-  person_created?: boolean;
-  account_created?: boolean;
-}
-
-async function getOrCreatePerson(
+async function createPersonEntry(
   supabase: SupabaseClient<any, "public", any>,
-  email: string,
-  name: string,
-  orcid: string | null | undefined,
-  personType: string,
-): Promise<{
-  person: any | null;
-  error: string | null;
-  details?: string;
-  created: boolean;
-}> {
-  let { data: existingPerson, error: fetchError } = await supabase
-    .from("Person")
-    .select("id, name, email, orcid, type")
-    .eq("email", email)
-    .maybeSingle();
+  personData: PersonDataInput,
+): Promise<{ person: any | null; error: string | null; details?: string }> {
+  const { id, name, email, orcid = null } = personData;
 
-  if (fetchError) {
-    console.error(`Error fetching Person by email (${email}):`, fetchError);
+  if (id === undefined || id === null || !name || !email) {
     return {
       person: null,
-      error: "Database error while fetching Person",
-      details: fetchError.message,
-      created: false,
+      error: "Missing required fields for Person: id, name, or email",
+      details: "Ensure 'id' (from Agent), 'name', and 'email' are provided.",
     };
   }
 
-  if (existingPerson) {
-    console.log("Found existing Person:", existingPerson);
-    return { person: existingPerson, error: null, created: false };
-  } else {
-    console.log(`Person with email "${email}" not found, creating new one...`);
-    const personToInsert = {
-      email: email,
-      name: name,
-      orcid: orcid,
-      type: personType,
-    };
-    const { data: newPerson, error: insertError } = await supabase
-      .from("Person")
-      .insert(personToInsert)
-      .select("id, name, email, orcid, type")
-      .single();
+  const personToInsert = {
+    id,
+    email,
+    name,
+    orcid,
+  };
 
-    if (insertError) {
-      console.error(
-        `Error inserting new Person (email: ${email}):`,
-        insertError,
-      );
-      return {
-        person: null,
-        error: "Database error while inserting Person",
-        details: insertError.message,
-        created: false,
-      };
-    }
-    console.log("Created new Person:", newPerson);
-    return { person: newPerson, error: null, created: true };
-  }
-}
-
-async function getOrCreateAccount(
-  supabase: SupabaseClient<any, "public", any>,
-  personId: number,
-  platformId: number,
-  isActive: boolean,
-  writePermission?: boolean,
-): Promise<{
-  account: any | null;
-  error: string | null;
-  details?: string;
-  created: boolean;
-}> {
-  let { data: existingAccount, error: fetchError } = await supabase
-    .from("Account")
-    .select("id, person_id, platform_id, active, write_permission")
-    .eq("person_id", personId)
-    .eq("platform_id", platformId)
+  const { data: existingPersonById, error: fetchByIdError } = await supabase
+    .from("Person")
+    .select("id")
+    .eq("id", id)
     .maybeSingle();
 
-  if (fetchError) {
+  if (fetchByIdError) {
     console.error(
-      `Error fetching Account (PersonID: ${personId}, PlatformID: ${platformId}):`,
-      fetchError,
+      `Error checking for existing Person by ID (${id}):`,
+      fetchByIdError,
     );
     return {
-      account: null,
-      error: "Database error while fetching Account",
-      details: fetchError.message,
-      created: false,
+      person: null,
+      error: "Database error while checking for existing Person by ID",
+      details: fetchByIdError.message,
     };
   }
-
-  if (existingAccount) {
-    console.log("Found existing Account:", existingAccount);
-    return { account: existingAccount, error: null, created: false };
-  } else {
-    console.log(
-      `Account for PersonID ${personId} on PlatformID ${platformId} not found, creating new one...`,
+  if (existingPersonById) {
+    console.warn(
+      `Person with ID ${id} already exists. Returning existing (or error if data mismatch).`,
     );
-    const accountToInsert: any = {
-      person_id: personId,
-      platform_id: platformId,
-      active: isActive,
-    };
-    if (writePermission !== undefined) {
-      accountToInsert.write_permission = writePermission;
-    }
+  }
 
-    const { data: newAccount, error: insertError } = await supabase
-      .from("Account")
-      .insert(accountToInsert)
-      .select("id, person_id, platform_id, active, write_permission")
-      .single();
+  const { data: existingPersonByEmail, error: fetchByEmailError } =
+    await supabase
+      .from("Person")
+      .select("id, email")
+      .eq("email", email)
+      .not("id", "eq", id)
+      .maybeSingle();
 
-    if (insertError) {
-      console.error(
-        `Error inserting new Account (PersonID: ${personId}, PlatformID: ${platformId}):`,
-        insertError,
-      );
+  if (fetchByEmailError) {
+    console.error(
+      `Error checking for existing Person by email (${email}):`,
+      fetchByEmailError,
+    );
+  }
+  if (existingPersonByEmail) {
+    console.warn(
+      `Another Person record (ID: ${existingPersonByEmail.id}) already exists with email ${email}. Potential duplicate email.`,
+    );
+  }
+
+  const { data: newPerson, error: insertPersonError } = await supabase
+    .from("Person")
+    .insert(personToInsert)
+    .select("id, name, email, orcid")
+    .single();
+
+  if (insertPersonError) {
+    console.error(
+      `Error inserting new Person (ID: ${id}, email: ${email}):`,
+      insertPersonError,
+    );
+    if (
+      insertPersonError.code === "23505" &&
+      insertPersonError.message.includes("Person_pkey")
+    ) {
       return {
-        account: null,
-        error: "Database error while inserting Account",
-        details: insertError.message,
-        created: false,
+        person: null,
+        error: `Person with ID ${id} already exists. Primary key violation.`,
+        details: insertPersonError.message,
       };
     }
-    console.log("Created new Account:", newAccount);
-    return { account: newAccount, error: null, created: true };
+    return {
+      person: null,
+      error: "Database error while inserting Person",
+      details: insertPersonError.message,
+    };
   }
+
+  console.log("Created new Person:", newPerson);
+  return { person: newPerson, error: null };
 }
 
 export async function POST(request: NextRequest) {
@@ -161,100 +112,58 @@ export async function POST(request: NextRequest) {
 
   try {
     const body: PersonDataInput = await request.json();
-    const {
-      name,
-      email,
-      orcid = null,
-      person_type = "Person",
-      account_platform_id,
-      account_active = true,
-      account_write_permission,
-    } = body;
 
-    if (!name || typeof name !== "string" || name.trim() === "") {
+    if (
+      body.id === undefined ||
+      body.id === null ||
+      typeof body.id !== "number"
+    ) {
+      response = NextResponse.json(
+        { error: "Missing or invalid id (Agent ID) for Person" },
+        { status: 400 },
+      );
+      return cors(request, response);
+    }
+    if (
+      !body.name ||
+      typeof body.name !== "string" ||
+      body.name.trim() === ""
+    ) {
       response = NextResponse.json(
         { error: "Missing or invalid name for Person" },
         { status: 400 },
       );
       return cors(request, response);
     }
-    if (!email || typeof email !== "string" || email.trim() === "") {
+    if (
+      !body.email ||
+      typeof body.email !== "string" ||
+      body.email.trim() === ""
+    ) {
       response = NextResponse.json(
         { error: "Missing or invalid email for Person" },
         { status: 400 },
       );
       return cors(request, response);
     }
-    if (
-      account_platform_id === undefined ||
-      account_platform_id === null ||
-      typeof account_platform_id !== "number"
-    ) {
-      response = NextResponse.json(
-        { error: "Missing or invalid account_platform_id for Account" },
-        { status: 400 },
-      );
-      return cors(request, response);
-    }
 
-    const personResult = await getOrCreatePerson(
-      supabase,
-      email.trim(),
-      name.trim(),
-      orcid,
-      person_type,
-    );
+    const result = await createPersonEntry(supabase, body);
 
-    if (personResult.error || !personResult.person) {
+    if (result.error || !result.person) {
       console.error(
-        `API Error during Person processing (Email: ${email}): ${personResult.error}`,
-        personResult.details || "",
+        `API Error during Person creation (ID: ${body.id}): ${result.error}`,
+        result.details || "",
       );
-      const clientError = personResult.error?.startsWith("Database error")
+      const clientError = result.error?.startsWith("Database error")
         ? "An internal error occurred while processing Person."
-        : personResult.error;
+        : result.error;
+      const statusCode = result.error?.includes("already exists") ? 409 : 500;
       response = NextResponse.json(
-        { error: clientError, details: personResult.details },
-        { status: 500 },
+        { error: clientError, details: result.details },
+        { status: statusCode },
       );
     } else {
-      const accountResult = await getOrCreateAccount(
-        supabase,
-        personResult.person.id,
-        account_platform_id,
-        account_active,
-        account_write_permission,
-      );
-
-      if (accountResult.error || !accountResult.account) {
-        console.error(
-          `API Error during Account processing (PersonID: ${personResult.person.id}, PlatformID: ${account_platform_id}): ${accountResult.error}`,
-          accountResult.details || "",
-        );
-        const clientError = accountResult.error?.startsWith("Database error")
-          ? "An internal error occurred while processing Account."
-          : accountResult.error;
-        response = NextResponse.json(
-          {
-            error: clientError,
-            details: accountResult.details,
-            person: personResult.person,
-          },
-          { status: 500 },
-        );
-      } else {
-        const statusCode =
-          personResult.created || accountResult.created ? 201 : 200;
-        response = NextResponse.json(
-          {
-            person: personResult.person,
-            account: accountResult.account,
-            person_created: personResult.created,
-            account_created: accountResult.created,
-          },
-          { status: statusCode },
-        );
-      }
+      response = NextResponse.json(result.person, { status: 201 });
     }
   } catch (e: any) {
     console.error("API route error in /api/supabase/insert/Person:", e);
