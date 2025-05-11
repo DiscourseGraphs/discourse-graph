@@ -1,6 +1,7 @@
 import { createClient } from "~/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import cors from "~/utils/llm/cors";
 
 interface PersonDataInput {
   name: string;
@@ -154,8 +155,9 @@ async function getOrCreateAccount(
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const supabase = await createClient();
+  let response: NextResponse;
 
   try {
     const body: PersonDataInput = await request.json();
@@ -170,26 +172,29 @@ export async function POST(request: Request) {
     } = body;
 
     if (!name || typeof name !== "string" || name.trim() === "") {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Missing or invalid name for Person" },
         { status: 400 },
       );
+      return cors(request, response);
     }
     if (!email || typeof email !== "string" || email.trim() === "") {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Missing or invalid email for Person" },
         { status: 400 },
       );
+      return cors(request, response);
     }
     if (
       account_platform_id === undefined ||
       account_platform_id === null ||
       typeof account_platform_id !== "number"
     ) {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Missing or invalid account_platform_id for Account" },
         { status: 400 },
       );
+      return cors(request, response);
     }
 
     const personResult = await getOrCreatePerson(
@@ -208,61 +213,67 @@ export async function POST(request: Request) {
       const clientError = personResult.error?.startsWith("Database error")
         ? "An internal error occurred while processing Person."
         : personResult.error;
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: clientError, details: personResult.details },
         { status: 500 },
       );
-    }
-
-    const accountResult = await getOrCreateAccount(
-      supabase,
-      personResult.person.id,
-      account_platform_id,
-      account_active,
-      account_write_permission,
-    );
-
-    if (accountResult.error || !accountResult.account) {
-      console.error(
-        `API Error during Account processing (PersonID: ${personResult.person.id}, PlatformID: ${account_platform_id}): ${accountResult.error}`,
-        accountResult.details || "",
+    } else {
+      const accountResult = await getOrCreateAccount(
+        supabase,
+        personResult.person.id,
+        account_platform_id,
+        account_active,
+        account_write_permission,
       );
-      const clientError = accountResult.error?.startsWith("Database error")
-        ? "An internal error occurred while processing Account."
-        : accountResult.error;
-      return NextResponse.json(
-        {
-          error: clientError,
-          details: accountResult.details,
-          person: personResult.person,
-        },
-        { status: 500 },
-      );
+
+      if (accountResult.error || !accountResult.account) {
+        console.error(
+          `API Error during Account processing (PersonID: ${personResult.person.id}, PlatformID: ${account_platform_id}): ${accountResult.error}`,
+          accountResult.details || "",
+        );
+        const clientError = accountResult.error?.startsWith("Database error")
+          ? "An internal error occurred while processing Account."
+          : accountResult.error;
+        response = NextResponse.json(
+          {
+            error: clientError,
+            details: accountResult.details,
+            person: personResult.person,
+          },
+          { status: 500 },
+        );
+      } else {
+        const statusCode =
+          personResult.created || accountResult.created ? 201 : 200;
+        response = NextResponse.json(
+          {
+            person: personResult.person,
+            account: accountResult.account,
+            person_created: personResult.created,
+            account_created: accountResult.created,
+          },
+          { status: statusCode },
+        );
+      }
     }
-
-    const statusCode =
-      personResult.created || accountResult.created ? 201 : 200;
-
-    return NextResponse.json(
-      {
-        person: personResult.person,
-        account: accountResult.account,
-        person_created: personResult.created,
-        account_created: accountResult.created,
-      },
-      { status: statusCode },
-    );
   } catch (e: any) {
     console.error("API route error in /api/supabase/insert/Person:", e);
     if (e instanceof SyntaxError && e.message.toLowerCase().includes("json")) {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400 },
       );
+    } else {
+      response = NextResponse.json(
+        { error: "An unexpected error occurred processing your request" },
+        { status: 500 },
+      );
     }
-    return NextResponse.json(
-      { error: "An unexpected error occurred processing your request" },
-      { status: 500 },
-    );
   }
+  return cors(request, response);
+}
+
+export async function OPTIONS(request: NextRequest) {
+  const response = new NextResponse(null, { status: 204 });
+  return cors(request, response);
 }
