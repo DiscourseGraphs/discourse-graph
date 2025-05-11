@@ -1,6 +1,12 @@
 import { createClient } from "~/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import cors from "~/utils/llm/cors";
+
+interface PlatformDataInput {
+  name: string;
+  url: string;
+}
 
 interface PlatformResult {
   platform: any | null;
@@ -10,42 +16,31 @@ interface PlatformResult {
 }
 
 async function getOrCreateDiscoursePlatform(
-  supabase: SupabaseClient<any, "public", any>, // Using a more specific type for SupabaseClient
-  currentContentURL: string,
+  supabase: SupabaseClient<any, "public", any>,
+  name: string,
+  url: string,
 ): Promise<PlatformResult> {
-  let platformName: string | null = null;
-  let platformUrl: string | null = null;
-  const lowerCaseURL = currentContentURL.toLowerCase();
-
-  if (lowerCaseURL.includes("roamresearch.com")) {
-    platformName = "roamresearch";
-    platformUrl = "https://roamresearch.com"; // Canonical URL
-  } else {
-    console.warn("Could not determine platform from URL:", currentContentURL);
+  if (!name || !url) {
     return {
-      error: "Could not determine platform from URL",
+      error: "Platform name and URL are required",
       platform: null,
       created: false,
     };
   }
 
-  if (!platformName || !platformUrl) {
-    return {
-      error: "Platform name or URL could not be derived",
-      platform: null,
-      created: false,
-    };
-  }
+  const normalizedUrl = url.replace(/\/$/, "");
 
-  // Try to find an existing platform by its canonical URL (which should be unique)
   const { data: existingPlatform, error: fetchError } = await supabase
     .from("DiscoursePlatform")
     .select("id, name, url")
-    .eq("url", platformUrl)
+    .eq("url", normalizedUrl)
     .maybeSingle();
 
   if (fetchError) {
-    console.error("Error fetching DiscoursePlatform:", fetchError);
+    console.error(
+      `Error fetching DiscoursePlatform (URL: ${normalizedUrl}):`,
+      fetchError,
+    );
     return {
       error: "Database error while fetching platform",
       platform: null,
@@ -59,32 +54,31 @@ async function getOrCreateDiscoursePlatform(
     return { error: null, platform: existingPlatform, created: false };
   } else {
     console.log(
-      `DiscoursePlatform "${platformName}" (URL: ${platformUrl}) not found, creating new one...`,
+      `DiscoursePlatform "${name}" (URL: ${normalizedUrl}) not found, creating new one...`,
     );
-
     const platformToInsert = {
-      name: platformName,
-      url: platformUrl,
+      name: name,
+      url: normalizedUrl,
     };
-
     const { data: newPlatform, error: insertError } = await supabase
       .from("DiscoursePlatform")
       .insert(platformToInsert)
-      .select()
-      .single(); // Expecting one row to be inserted and returned
+      .select("id, name, url")
+      .single();
 
     if (insertError) {
-      console.error("Error inserting new DiscoursePlatform:", insertError);
-      // Handle potential race condition where platform was created between fetch and insert
+      console.error(
+        `Error inserting new DiscoursePlatform (Name: ${name}, URL: ${normalizedUrl}):`,
+        insertError,
+      );
       if (insertError.code === "23505") {
-        // Unique constraint violation
         console.warn(
           "Unique constraint violation on insert. Attempting to re-fetch platform by URL.",
         );
         const { data: reFetchedPlatform, error: reFetchError } = await supabase
           .from("DiscoursePlatform")
           .select("id, name, url")
-          .eq("url", platformUrl)
+          .eq("url", normalizedUrl)
           .maybeSingle();
 
         if (reFetchError) {
@@ -101,9 +95,8 @@ async function getOrCreateDiscoursePlatform(
         }
         if (reFetchedPlatform) {
           console.log("Found platform on re-fetch:", reFetchedPlatform);
-          return { error: null, platform: reFetchedPlatform, created: false }; // It existed, wasn't "created" by this call
+          return { error: null, platform: reFetchedPlatform, created: false };
         }
-        // If re-fetch also fails to find it, the original insert error stands
         return {
           error:
             "Unique constraint violation on insert, and re-fetch failed to find the platform.",
@@ -119,73 +112,89 @@ async function getOrCreateDiscoursePlatform(
         created: false,
       };
     }
-
     console.log("Created new DiscoursePlatform:", newPlatform);
     return { error: null, platform: newPlatform, created: true };
   }
 }
 
-export async function POST(request: Request) {
-  const supabase = await createClient(); // Creates a server-side Supabase client
+export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  let response: NextResponse;
 
   try {
-    const body = await request.json();
-    const { currentContentURL } = body;
+    const body: PlatformDataInput = await request.json();
+    const { name, url } = body;
 
-    if (!currentContentURL || typeof currentContentURL !== "string") {
-      return NextResponse.json(
-        { error: "Missing or invalid currentContentURL in request body" },
+    if (!name || typeof name !== "string" || name.trim() === "") {
+      response = NextResponse.json(
+        { error: "Missing or invalid name in request body" },
         { status: 400 },
       );
+      return cors(request, response);
+    }
+    if (!url || typeof url !== "string" || url.trim() === "") {
+      response = NextResponse.json(
+        { error: "Missing or invalid url in request body" },
+        { status: 400 },
+      );
+      return cors(request, response);
     }
 
     const { platform, error, details, created } =
-      await getOrCreateDiscoursePlatform(supabase, currentContentURL);
+      await getOrCreateDiscoursePlatform(supabase, name.trim(), url.trim());
 
     if (error) {
       console.error(
-        `API Error for DiscoursePlatform (URL: ${currentContentURL}): ${error}`,
+        `API Error for DiscoursePlatform (Name: ${name}, URL: ${url}): ${error}`,
         details || "",
       );
-      return NextResponse.json(
-        { error: error, details: details },
-        { status: 500 },
-      );
-    }
-
-    if (platform) {
-      return NextResponse.json(platform, { status: created ? 201 : 200 });
-    } else {
-      // This case should ideally be caught by the 'error' field in the result
-      console.error(
-        `API Error for DiscoursePlatform (URL: ${currentContentURL}): Platform was null without an error flag.`,
-      );
-      return NextResponse.json(
+      const clientError = error.startsWith("Database error")
+        ? "An internal error occurred while processing the platform information."
+        : error;
+      response = NextResponse.json(
         {
-          error:
-            "Failed to get or create DiscoursePlatform for an unknown reason",
+          error: clientError,
+          details: error.startsWith("Database error") ? undefined : details,
         },
         { status: 500 },
       );
+    } else {
+      if (platform) {
+        response = NextResponse.json(platform, { status: created ? 201 : 200 });
+      } else {
+        console.error(
+          `API Error for DiscoursePlatform (Name: ${name}, URL: ${url}): Platform was null without an error flag.`,
+        );
+        response = NextResponse.json(
+          {
+            error:
+              "Failed to get or create DiscoursePlatform for an unknown reason",
+          },
+          { status: 500 },
+        );
+      }
     }
   } catch (e: any) {
     console.error(
       "API route error in /api/supabase/insert/DiscoursePlatform:",
       e,
     );
-    // Differentiate between JSON parsing errors and other errors
-    if (e instanceof SyntaxError && e.message.includes("JSON")) {
-      return NextResponse.json(
+    if (e instanceof SyntaxError && e.message.toLowerCase().includes("json")) {
+      response = NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400 },
       );
+    } else {
+      response = NextResponse.json(
+        { error: "An unexpected error occurred processing your request" },
+        { status: 500 },
+      );
     }
-    return NextResponse.json(
-      {
-        error:
-          e.message || "An unexpected error occurred processing your request",
-      },
-      { status: 500 },
-    );
   }
+  return cors(request, response);
+}
+
+export async function OPTIONS(request: NextRequest) {
+  const response = new NextResponse(null, { status: 204 });
+  return cors(request, response);
 }
