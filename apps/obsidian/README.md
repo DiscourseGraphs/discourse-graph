@@ -37,8 +37,8 @@ For more information about Discourse Graphs, check out our website at [https://d
 
 4. Enter the repository URL: `https://github.com/DiscourseGraphs/discourse-graph-obsidian`  and choose "Latest version"
 ![Add discourse graph](/apps/obsidian/docs/media/add-discourse-graph.png)
-5. Click "Add Plugin"
-6. Check the box for "Enable after installing the plugin"
+5. Check the box for "Enable after installing the plugin"
+6. Click "Add Plugin"
 
 
 ## Creating Nodes and Relationships
@@ -70,6 +70,7 @@ For more information about Discourse Graphs, check out our website at [https://d
 E.g: this means that *Claim* nodes can supports *Questions* nodes
 <br/>
 - Click "Save changes"
+
 ## Using Discourse Graphs
 
 ### Instantiate a Node
@@ -81,6 +82,7 @@ E.g: this means that *Claim* nodes can supports *Questions* nodes
   1. Using command keys: Cmd + \ 
   <br>
   - As you press these keys, the Node Menu will open up as a popup
+  
   ![node menu](/apps/obsidian/docs/media/node-menu.png)
   - Select the node type you want to turn the text into
   - Voila, you've created a new discourse node
