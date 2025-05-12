@@ -4,8 +4,6 @@ import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
-
-
   plugin.addCommand({
     id: "open-node-type-menu",
     name: "Open Node Type Menu",
