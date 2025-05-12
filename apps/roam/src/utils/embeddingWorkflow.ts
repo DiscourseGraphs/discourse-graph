@@ -194,75 +194,42 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
 
     // --- 3. Setup Roam User (Agent -> Person -> Account) ---
     const userName = "Default Roam User";
-    const userEmail = `roam_user_${platformId}_${Date.now()}@example.com`;
-    const personAgentType = "Person";
+    const userEmail = "default_roam_user@example.com";
 
-    let agentId: number;
-    console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Creating Agent for Roam user...",
-    );
-    try {
-      const agentData = (await fetchSupabaseEntity("Agents", {
-        // MODIFIED: Using fetchSupabaseEntity
-        type: personAgentType,
-      })) as AgentResponse; // Type assertion
-      if (!agentData?.id) {
-        console.error(
-          "runFullEmbeddingProcess (NEW API HIERARCHY): Agent ID missing after creation.",
-        );
-        alert("Error: Could not create Agent for Roam user. ID missing.");
-        return;
-      }
-      agentId = agentData.id;
-    } catch (error: any) {
-      console.error(
-        "runFullEmbeddingProcess (NEW API HIERARCHY): Failed to create Agent:",
-        error.message,
-      );
-      alert(
-        `Error: Could not create Agent for Roam user. ${error.message || "Unknown error"}`,
-      );
-      return;
-    }
-    console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Agent ID:",
-      agentId,
-    );
+    let personId: number; // This will be the Person.id and also the effective Agent.id
 
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Creating Person for Roam user...",
+      "runFullEmbeddingProcess (NEW API HIERARCHY): Ensuring Person (and associated Agent) exists for Roam user...",
     );
     const personPayload = {
-      id: agentId,
       name: userName,
       email: userEmail,
     };
-    let personId: number;
     try {
       const personData = (await fetchSupabaseEntity(
-        "Person",
+        "Person", // This API endpoint should now handle "get or create Person" logic
         personPayload,
-      )) as PersonResponse; // MODIFIED
+      )) as PersonResponse;
       if (!personData?.id) {
         console.error(
-          "runFullEmbeddingProcess (NEW API HIERARCHY): Person ID missing after creation.",
+          "runFullEmbeddingProcess (NEW API HIERARCHY): Person ID missing after get/create.",
         );
-        alert("Error: Could not create Person for Roam user. ID missing.");
+        alert("Error: Could not get/create Person for Roam user. ID missing.");
         return;
       }
-      personId = personData.id; // personData.id should be the same as agentId
+      personId = personData.id; // This ID is Person.id, which is also Agent.id
     } catch (error: any) {
       console.error(
-        "runFullEmbeddingProcess (NEW API HIERARCHY): Failed to create Person:",
+        "runFullEmbeddingProcess (NEW API HIERARCHY): Failed to get/create Person:",
         error.message,
       );
       alert(
-        `Error: Could not create Person for Roam user. ${error.message || "Unknown error"}`,
+        `Error: Could not get/create Person for Roam user. ${error.message || "Unknown error"}`,
       );
       return;
     }
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Person ID:",
+      "runFullEmbeddingProcess (NEW API HIERARCHY): Person ID (Agent ID):",
       personId,
     );
 
@@ -270,9 +237,10 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       "runFullEmbeddingProcess (NEW API HIERARCHY): Creating Account for Roam user...",
     );
     const accountPayload = {
-      person_id: agentId,
+      person_id: personId, // MODIFIED: Use personId obtained from Person get-or-create
       platform_id: platformId,
       active: true,
+      write_permission: true, // This is now defaulted to true in the Account API route
     };
     let authorAccountId: number;
     try {
