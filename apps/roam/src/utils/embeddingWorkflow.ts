@@ -3,6 +3,7 @@
 import { fetchSupabaseEntity } from "./supabaseService";
 import getDiscourseNodes from "./getDiscourseNodes";
 import matchDiscourseNode from "./matchDiscourseNode";
+import { getEmbeddingsService } from "./embeddingService";
 
 // Type for results from the Roam Datalog query
 interface RoamEntityFromQuery {
@@ -103,6 +104,11 @@ interface ContentResponse {
   // ... other fields
 }
 
+// Add this type definition near the top with other interfaces
+interface NodeWithEmbedding extends RoamContentNode {
+  vector: number[];
+}
+
 export const runFullEmbeddingProcess = async (): Promise<void> => {
   console.log("runFullEmbeddingProcess (NEW API HIERARCHY): Process started.");
 
@@ -196,35 +202,38 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     const userName = "Default Roam User";
     const userEmail = "default_roam_user@example.com";
 
-    let personId: number; // This will be the Person.id and also the effective Agent.id
+    // let agentId: number; // agentId will now be personId
+    let personId: number; // This will be the Agent.id as well
 
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Ensuring Person (and associated Agent) exists for Roam user...",
+      "runFullEmbeddingProcess (NEW API HIERARCHY): Ensuring Person (and associated Agent) exists...",
     );
     const personPayload = {
+      // Payload for the "Person" get-or-create endpoint
       name: userName,
       email: userEmail,
     };
     try {
       const personData = (await fetchSupabaseEntity(
-        "Person", // This API endpoint should now handle "get or create Person" logic
+        "Person", // This endpoint now handles Agent creation if needed
         personPayload,
-      )) as PersonResponse;
+      )) as PersonResponse; // PersonResponse should return at least id, name, email
+
       if (!personData?.id) {
         console.error(
           "runFullEmbeddingProcess (NEW API HIERARCHY): Person ID missing after get/create.",
         );
-        alert("Error: Could not get/create Person for Roam user. ID missing.");
+        alert("Error: Could not establish Person. ID missing.");
         return;
       }
-      personId = personData.id; // This ID is Person.id, which is also Agent.id
+      personId = personData.id; // This ID is the Agent.id
     } catch (error: any) {
       console.error(
         "runFullEmbeddingProcess (NEW API HIERARCHY): Failed to get/create Person:",
         error.message,
       );
       alert(
-        `Error: Could not get/create Person for Roam user. ${error.message || "Unknown error"}`,
+        `Error: Could not establish Person. ${error.message || "Unknown error"}`,
       );
       return;
     }
@@ -233,14 +242,15 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       personId,
     );
 
+    // The 'agentId' used below for Account creation is now 'personId'
     console.log(
       "runFullEmbeddingProcess (NEW API HIERARCHY): Creating Account for Roam user...",
     );
     const accountPayload = {
-      person_id: personId, // MODIFIED: Use personId obtained from Person get-or-create
+      person_id: personId, // Use the personId obtained from the Person get-or-create
       platform_id: platformId,
       active: true,
-      write_permission: true, // This is now defaulted to true in the Account API route
+      write_permission: true, // As per previous setting
     };
     let authorAccountId: number;
     try {
@@ -276,142 +286,139 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     );
 
     // --- 4. Fetch Roam Nodes ---
-    //console.log(
-    //  "runFullEmbeddingProcess (NEW API HIERARCHY): Fetching Roam discourse nodes...",
-    //);
-    //const roamNodes = await getAllDiscourseNodes();
+    console.log(
+      "runFullEmbeddingProcess (NEW API HIERARCHY): Fetching Roam discourse nodes...",
+    );
+    const roamNodes = await getAllDiscourseNodes();
+    const first5Nodes = roamNodes.slice(0, 5);
 
-    //if (roamNodes.length === 0) {
-    //  console.warn(
-    //    "runFullEmbeddingProcess (NEW API HIERARCHY): No discourse nodes with valid titles were found to embed.",
-    //  );
-    //  alert("No Roam discourse nodes found to embed.");
-    //  return;
-    //}
-    //console.log(
-    //  `runFullEmbeddingProcess (NEW API HIERARCHY): Found ${roamNodes.length} discourse nodes to process.`,
-    //);
+    // --- 5. Generate Embeddings for all nodes ---
+    console.log(
+      `runFullEmbeddingProcess (NEW API HIERARCHY): Generating embeddings for ${first5Nodes.length} node titles...`,
+    );
+    let generatedVectors: number[][];
+    try {
+      const embeddingResults = await getEmbeddingsService(first5Nodes);
+      generatedVectors = embeddingResults.map((result) => result.vector);
+    } catch (embeddingServiceError: any) {
+      console.error(
+        `runFullEmbeddingProcess (NEW API HIERARCHY): Embedding service failed. Error: ${embeddingServiceError.message}`,
+      );
+      alert("Critical Error: Failed to generate embeddings. Process halted.");
+      return;
+    }
 
-    //// --- 5. Generate Embeddings for all nodes ---
-    //const textsToEmbed = roamNodes.map((node) => node.string);
-    //console.log(
-    //  "runFullEmbeddingProcess (NEW API HIERARCHY): Generating embeddings for all node titles...",
-    //);
-    //let generatedVectors: number[][];
-    //try {
-    //  generatedVectors = await getEmbeddingsService(textsToEmbed);
-    //} catch (embeddingServiceError: any) {
-    //  console.warn(
-    //    `runFullEmbeddingProcess (NEW API HIERARCHY): Embedding service failed. Using dummy data. Error: ${embeddingServiceError.message}`,
-    //  );
-    //  // Fallback to dummy data for testing if embedding service fails
-    //  generatedVectors = textsToEmbed.map(() =>
-    //    Array(1536) // Assuming 1536 dimensions, adjust if different
-    //      .fill(0)
-    //      .map(() => Math.random() * 2 - 1),
-    //  );
-    //}
+    if (generatedVectors.length !== first5Nodes.length) {
+      console.error(
+        "runFullEmbeddingProcess (NEW API HIERARCHY): Mismatch between number of nodes and generated embeddings.",
+      );
+      alert(
+        "Critical Error: Mismatch in embedding generation. Process halted.",
+      );
+      throw new Error(
+        "Mismatch between number of valid nodes and generated embeddings.",
+      );
+    }
+    console.log(
+      "runFullEmbeddingProcess (NEW API HIERARCHY): Embeddings generated successfully.",
+    );
 
-    //if (generatedVectors.length !== roamNodes.length) {
-    //  console.error(
-    //    "runFullEmbeddingProcess (NEW API HIERARCHY): Mismatch between number of nodes and generated embeddings.",
-    //  );
-    //  alert(
-    //    "Critical Error: Mismatch in embedding generation. Process halted.",
-    //  );
-    //  throw new Error(
-    //    "Mismatch between number of valid nodes and generated embeddings.",
-    //  );
-    //}
-    //console.log(
-    //  "runFullEmbeddingProcess (NEW API HIERARCHY): Embeddings generated successfully.",
-    //);
+    // --- 6. Upload Content and Embeddings to Supabase ---
+    console.log(
+      `runFullEmbeddingProcess (NEW API HIERARCHY): Uploading ${first5Nodes.length} nodes to Supabase...`,
+    );
+    let successCount = 0;
+    let errorCount = 0;
 
-    //// --- 6. Upload Content and Embeddings to Supabase ---
-    //console.log(
-    //  `runFullEmbeddingProcess (NEW API HIERARCHY): Uploading ${roamNodes.length} nodes to Supabase...`,
-    //);
-    //let successCount = 0;
-    //let errorCount = 0;
+    for (let i = 0; i < first5Nodes.length; i++) {
+      const node = first5Nodes[i];
+      const vector = generatedVectors[i];
+      let contentId: number;
 
-    //for (let i = 0; i < roamNodes.length; i++) {
-    //  const node = roamNodes[i];
-    //  const vector = generatedVectors[i];
-    //  let contentId: number;
+      try {
+        // 6a. Create Content entry
+        const currentTime = new Date().toISOString();
+        const contentPayload = {
+          author_id: authorAccountId,
+          text: node.string, // MODIFIED from text_content
+          scale: "chunk_unit",
+          space_id: spaceId,
+          source_local_id: node.uid, // MODIFIED from external_id, removed source_uri
+          metadata: {
+            roam_uid: node.uid,
+            roam_edit_time: node["edit/time"],
+            roam_create_time: node["create/time"],
+          },
+          created: currentTime, // ADDED
+          last_modified: currentTime, // ADDED
+        };
+        console.debug(
+          `runFullEmbeddingProcess (NEW API HIERARCHY): Creating Content for UID ${node.uid}`,
+          contentPayload,
+        );
 
-    //  try {
-    //    // 6a. Create Content entry
-    //    const contentPayload = {
-    //      author_id: authorAccountId,
-    //      text_content: node.string,
-    //      scale: "roam_page_title",
-    //      space_id: spaceId,
-    //      source_uri: `roam:${node.uid}`,
-    //      external_id: node.uid,
-    //      metadata: {
-    //        roam_uid: node.uid,
-    //        roam_edit_time: node["edit/time"],
-    //        roam_create_time: node["create/time"],
-    //      },
-    //    };
-    //    console.debug(
-    //      `runFullEmbeddingProcess (NEW API HIERARCHY): Creating Content for UID ${node.uid}`,
-    //      contentPayload,
-    //    );
+        const contentData = (await fetchSupabaseEntity(
+          "Content",
+          contentPayload,
+        )) as ContentResponse; // MODIFIED
+        if (!contentData?.id) {
+          console.error(
+            `runFullEmbeddingProcess (NEW API HIERARCHY): Error creating Content for node UID ${node.uid}: ID missing`,
+          );
+          errorCount++;
+          continue;
+        }
+        contentId = contentData.id;
+        console.debug(
+          `runFullEmbeddingProcess (NEW API HIERARCHY): Content created for UID ${node.uid}, Content ID: ${contentId}`,
+        );
 
-    //    const contentData = await fetchSupabaseEntity("Content", contentPayload) as ContentResponse; // MODIFIED
-    //    if (!contentData?.id) {
-    //       console.error(
-    //        `runFullEmbeddingProcess (NEW API HIERARCHY): Error creating Content for node UID ${node.uid}: ID missing`,
-    //      );
-    //      errorCount++;
-    //      continue;
-    //    }
-    //    contentId = contentData.id;
-    //    console.debug(
-    //      `runFullEmbeddingProcess (NEW API HIERARCHY): Content created for UID ${node.uid}, Content ID: ${contentId}`,
-    //    );
+        // 6b. Create ContentEmbedding entry
+        const embeddingPayload = {
+          target_id: contentId,
+          vector: vector,
+          model: "openai_text_embedding_3_small_1536", // ADDED - Please confirm this model name
+          obsolete: false, // ADDED
+        };
+        console.debug(
+          `runFullEmbeddingProcess (NEW API HIERARCHY): Creating Embedding for Content ID ${contentId}`,
+        );
+        await fetchSupabaseEntity(
+          "ContentEmbedding_openai_text_embedding_3_small_1536",
+          embeddingPayload,
+        ); // MODIFIED table name
 
-    //    // 6b. Create ContentEmbedding entry
-    //    const embeddingPayload = {
-    //      target_id: contentId,
-    //      vector: vector,
-    //    };
-    //    console.debug(
-    //      `runFullEmbeddingProcess (NEW API HIERARCHY): Creating Embedding for Content ID ${contentId}`,
-    //    );
-    //    await fetchSupabaseEntity("ContentEmbedding", embeddingPayload); // MODIFIED
+        console.debug(
+          `runFullEmbeddingProcess (NEW API HIERARCHY): Embedding created for Content ID ${contentId}`,
+        );
+        successCount++;
+      } catch (nodeProcessingError: any) {
+        // This will catch errors from both fetchSupabaseEntity calls
+        console.error(
+          `runFullEmbeddingProcess (NEW API HIERARCHY): Error processing node UID ${node.uid}:`,
+          nodeProcessingError.message,
+          nodeProcessingError.stack,
+        );
+        errorCount++;
+      }
+    }
 
-    //    console.debug(
-    //      `runFullEmbeddingProcess (NEW API HIERARCHY): Embedding created for Content ID ${contentId}`,
-    //    );
-    //    successCount++;
-    //  } catch (nodeProcessingError: any) { // This will catch errors from both fetchSupabaseEntity calls
-    //    console.error(
-    //      `runFullEmbeddingProcess (NEW API HIERARCHY): Error processing node UID ${node.uid}:`,
-    //      nodeProcessingError.message,
-    //      nodeProcessingError.stack,
-    //    );
-    //    errorCount++;
-    //  }
-    //}
-
-    //console.log(
-    //  `runFullEmbeddingProcess (NEW API HIERARCHY): Embedding process complete. Success: ${successCount}, Errors: ${errorCount}`,
-    //);
-    //if (errorCount > 0) {
-    //  alert(
-    //    `Process completed with ${errorCount} errors. Check console for details.`,
-    //  );
-    //} else if (successCount > 0) {
-    //  alert(
-    //    `All ${successCount} Roam nodes processed and embedded successfully!`,
-    //  );
-    //} else {
-    //  // This case needs to be re-evaluated: if roamNodes was empty, this alert would show.
-    //  // Consider if roamNodes.length === 0 and successCount === 0 and errorCount === 0
-    //  alert("Process completed, but no nodes were successfully processed.");
-    //}
+    console.log(
+      `runFullEmbeddingProcess (NEW API HIERARCHY): Embedding process complete. Success: ${successCount}, Errors: ${errorCount}`,
+    );
+    if (errorCount > 0) {
+      alert(
+        `Process completed with ${errorCount} errors. Check console for details.`,
+      );
+    } else if (successCount > 0) {
+      alert(
+        `All ${successCount} Roam nodes processed and embedded successfully!`,
+      );
+    } else {
+      // This case needs to be re-evaluated: if roamNodes was empty, this alert would show.
+      // Consider if roamNodes.length === 0 and successCount === 0 and errorCount === 0
+      alert("Process completed, but no nodes were successfully processed.");
+    }
   } catch (error: any) {
     console.error(
       "runFullEmbeddingProcess (NEW API HIERARCHY): Critical error in overall process:",
