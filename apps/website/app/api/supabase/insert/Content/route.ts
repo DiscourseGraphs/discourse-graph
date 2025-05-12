@@ -60,6 +60,27 @@ async function createContentEntry(
     };
   }
 
+  // Check for existing Content with same space_id and source_local_id
+  if (source_local_id) {
+    const { data: existingContent, error: existingError } = await supabase
+      .from("Content")
+      .select("*")
+      .eq("space_id", space_id)
+      .eq("source_local_id", source_local_id)
+      .maybeSingle();
+    if (existingContent) {
+      return { content: existingContent, error: null };
+    }
+    if (existingError && existingError.code !== "PGRST116") {
+      // PGRST116: No rows found
+      return {
+        content: null,
+        error: "Database error while checking for existing Content",
+        details: existingError.message,
+      };
+    }
+  }
+
   // Validate field types
   if (typeof text !== "string") {
     return {
