@@ -289,6 +289,7 @@ const NodeSearchMenu = ({
 
       setIsFilterMenuOpen((prev) => !prev);
 
+      // Restore focus after toggle
       setTimeout(() => {
         if (textarea) {
           textarea.focus();
