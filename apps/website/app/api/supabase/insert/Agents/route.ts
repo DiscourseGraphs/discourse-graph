@@ -1,14 +1,14 @@
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import cors from "~/utils/llm/cors"; // Adjust path if needed
 
-interface AgentDataInput {
+type AgentDataInput = {
   type: string; // e.g., "Person", "Organization", "Software"
   // Add any other fields directly belonging to the Agent table that are mandatory
   // or that you want to set at creation time.
   // For now, 'type' is the primary one from LinkML.
-}
+};
 
 // interface AgentResult { // Or just return the agent object or a simple wrapper
 //   agent: { id: number; type: string; [key: string]: any } | null;
@@ -16,14 +16,14 @@ interface AgentDataInput {
 //   details?: string;
 // }
 
-async function createAgentEntry(
+const createAgentEntry = async (
   supabase: SupabaseClient<any, "public", any>,
   agentData: AgentDataInput,
 ): Promise<{
   agent: { id: number; type: string; [key: string]: any } | null;
   error: string | null;
-  details?: string;
-}> {
+  details?: string; // Allow null
+}> => {
   const { type } = agentData;
 
   if (!type || typeof type !== "string" || type.trim() === "") {
@@ -45,16 +45,15 @@ async function createAgentEntry(
   };
 
   const { data: newAgent, error: insertError } = await supabase
-    .from("Agents") // Ensure this table name is correct in your Supabase schema
+    .from("Agent")
     .insert(agentToInsert)
-    .select("id, type") // Select id and type, or '*' if you want all columns
+    .select("id, type")
     .single();
 
   if (insertError) {
     console.error(`Error inserting new Agent (type: ${type}):`, insertError);
     // Check for specific errors, e.g., if 'type' has a unique constraint
     if (insertError.code === "23505") {
-      // Unique constraint violation
       return {
         agent: null,
         error: `An Agent with type '${type}' might already exist or violates a unique constraint.`,
@@ -84,9 +83,9 @@ async function createAgentEntry(
 
   console.log("Created new Agent:", newAgent);
   return { agent: newAgent, error: null };
-}
+};
 
-export async function POST(request: NextRequest) {
+export const POST = async (request: NextRequest) => {
   const supabase = await createClient();
   let response: NextResponse;
 
@@ -99,7 +98,7 @@ export async function POST(request: NextRequest) {
       body.type.trim() === ""
     ) {
       response = NextResponse.json(
-        { error: "Missing or invalid type for Agent" },
+        { error: "Validation Error: Missing or invalid type for Agent" },
         { status: 400 },
       );
       return cors(request, response);
@@ -109,8 +108,7 @@ export async function POST(request: NextRequest) {
 
     if (result.error || !result.agent) {
       console.error(
-        `API Error during Agent creation (type: ${body.type}): ${result.error}`,
-        result.details || "",
+        `API Error during Agent creation (type: ${body.type}): ${result.error}. Supabase Details: ${result.details === undefined || result.details === null ? "N/A" : result.details}`,
       );
       const clientError = result.error?.startsWith("Database error")
         ? "An internal error occurred."
@@ -125,6 +123,11 @@ export async function POST(request: NextRequest) {
     }
   } catch (e: any) {
     console.error("API route error in /api/supabase/insert/Agents:", e);
+    let errorPayload: { error: string; details?: string } = {
+      error: "An unexpected server error occurred",
+    };
+    let status = 500;
+
     if (e instanceof SyntaxError && e.message.toLowerCase().includes("json")) {
       response = NextResponse.json(
         { error: "Invalid JSON in request body" },
@@ -138,9 +141,9 @@ export async function POST(request: NextRequest) {
     }
   }
   return cors(request, response);
-}
+};
 
-export async function OPTIONS(request: NextRequest) {
+export const OPTIONS = async (request: NextRequest) => {
   const response = new NextResponse(null, { status: 204 });
   return cors(request, response);
-}
+};

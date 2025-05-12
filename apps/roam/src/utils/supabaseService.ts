@@ -1,19 +1,15 @@
-export async function fetchSupabaseEntity(
-  apiUrl: string,
-  payload: any,
-  entityName: string,
-) {
+export const fetchSupabaseEntity = async (entityType: string, payload: any) => {
   console.log(
-    `fetchSupabaseEntity: Syncing ${entityName} with payload:`,
+    `fetchSupabaseEntity: Syncing ${entityType} with payload:`,
     payload,
   );
 
-  const baseApiUrl =
+  const baseInsertApiUrl =
     process.env.NODE_ENV === "development"
-      ? "http://localhost:3000"
-      : "https://discoursegraphs.com";
+      ? "http://localhost:3000/api/supabase/insert"
+      : "https://discoursegraphs.com/api/supabase/insert";
 
-  const fullApiUrl = apiUrl.startsWith("/") ? `${baseApiUrl}${apiUrl}` : apiUrl;
+  const fullApiUrl = `${baseInsertApiUrl}/${entityType}`;
   console.log(`fetchSupabaseEntity: Calling ${fullApiUrl}`);
 
   const response = await fetch(fullApiUrl, {
@@ -25,19 +21,19 @@ export async function fetchSupabaseEntity(
   if (!response.ok) {
     const errorText = await response.text();
     console.error(
-      `fetchSupabaseEntity: Failed to get/create ${entityName} at ${fullApiUrl}. Status: ${response.status}. Error:`,
+      `fetchSupabaseEntity: Failed to get/create ${entityType} at ${fullApiUrl}. Status: ${response.status}. Error:`,
       errorText,
       "Payload:",
       payload,
     );
     throw new Error(
-      `Failed to sync ${entityName}: ${response.status} ${errorText}`,
+      `Failed to sync ${entityType}: ${response.status} ${errorText}`,
     );
   }
   const responseData = await response.json();
   console.log(
-    `fetchSupabaseEntity: Successfully synced ${entityName}. Response:`,
+    `fetchSupabaseEntity: Successfully synced ${entityType}. Response:`,
     responseData,
   );
   return responseData;
-}
+};
