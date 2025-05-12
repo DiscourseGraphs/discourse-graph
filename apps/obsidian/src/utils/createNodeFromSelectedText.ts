@@ -3,10 +3,10 @@ import { DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "./getDiscourseNodeFormatExpression";
 import { checkInvalidChars } from "./validateNodeType";
 
-export function formatNodeName(
+export const formatNodeName = (
   selectedText: string,
   nodeType: DiscourseNode,
-): string | null {
+): string | null => {
   const regex = getDiscourseNodeFormatExpression(nodeType.format);
   const nodeFormat = regex.source.match(/^\^(.*?)\(\.\*\?\)(.*?)\$$/);
 
@@ -17,20 +17,24 @@ export function formatNodeName(
     selectedText +
     nodeFormat[2]?.replace(/\\/g, "")
   );
-}
+};
 
-export async function createDiscourseNodeFile(
-  app: App,
-  formattedNodeName: string,
-  nodeType: DiscourseNode,
-): Promise<TFile | null> {
+export const createDiscourseNodeFile = async ({
+  app,
+  formattedNodeName,
+  nodeType,
+}: {
+  app: App;
+  formattedNodeName: string;
+  nodeType: DiscourseNode;
+}): Promise<TFile | null> => {
   try {
     const existingFile = app.vault.getAbstractFileByPath(
       `${formattedNodeName}.md`,
     );
     if (existingFile && existingFile instanceof TFile) {
       new Notice(`File ${formattedNodeName} already exists`, 3000);
-      return null; 
+      return existingFile;
     }
 
     const newFile = await app.vault.create(`${formattedNodeName}.md`, "");
@@ -38,7 +42,23 @@ export async function createDiscourseNodeFile(
       fm.nodeTypeId = nodeType.id;
     });
 
-    new Notice(`Created discourse node: ${formattedNodeName}`);
+    const notice = new DocumentFragment();
+    const spanEl = notice.createEl("span", {
+      text: "Created discourse node: ",
+    });
+
+    const linkEl = spanEl.createEl("a", {
+      text: formattedNodeName,
+      cls: "clickable-link",
+    });
+    linkEl.style.textDecoration = "underline";
+    linkEl.style.cursor = "pointer";
+    linkEl.addEventListener("click", () => {
+      app.workspace.openLinkText(formattedNodeName, "", false);
+    });
+
+    new Notice(notice, 4000);
+
     return newFile;
   } catch (error) {
     console.error("Error creating discourse node:", error);
@@ -48,15 +68,18 @@ export async function createDiscourseNodeFile(
     );
     return null;
   }
-}
-export async function processTextToDiscourseNode(
-  app: App,
-  editor: Editor,
-  nodeType: DiscourseNode,
-): Promise<TFile | null> {
-  const selectedText = editor.getSelection();
-  if (!selectedText) return null;
+};
 
+export const processTextToDiscourseNode = async ({
+  app,
+  editor,
+  nodeType,
+}: {
+  app: App;
+  editor: Editor;
+  nodeType: DiscourseNode;
+}): Promise<TFile | null> => {
+  const selectedText = editor.getSelection();
   const formattedNodeName = formatNodeName(selectedText, nodeType);
   if (!formattedNodeName) return null;
 
@@ -66,14 +89,14 @@ export async function processTextToDiscourseNode(
     return null;
   }
 
-  const newFile = await createDiscourseNodeFile(
+  const newFile = await createDiscourseNodeFile({
     app,
     formattedNodeName,
     nodeType,
-  );
+  });
   if (newFile) {
     editor.replaceSelection(`[[${formattedNodeName}]]`);
   }
 
   return newFile;
-}
+};

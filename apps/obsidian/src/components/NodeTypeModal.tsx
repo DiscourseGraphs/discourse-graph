@@ -27,6 +27,10 @@ export class NodeTypeModal extends SuggestModal<DiscourseNode> {
   }
 
   async onChooseSuggestion(nodeType: DiscourseNode) {
-    await processTextToDiscourseNode(this.app, this.editor, nodeType);
+    await processTextToDiscourseNode({
+      app: this.app,
+      editor: this.editor,
+      nodeType,
+    });
   }
 }
