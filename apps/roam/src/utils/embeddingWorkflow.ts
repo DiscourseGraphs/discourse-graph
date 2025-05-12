@@ -1,7 +1,6 @@
 // apps/roam/src/utils/embeddingWorkflow.ts
 // import { getEmbeddingsService } from "./embeddingService";
-// import { fetchSupabaseEntity } from "./supabaseService"; // No longer used
-import { fetchSupabaseEntity } from "./supabaseService"; // Added import
+import { fetchSupabaseEntity } from "./supabaseService";
 import getDiscourseNodes from "./getDiscourseNodes";
 import matchDiscourseNode from "./matchDiscourseNode";
 
@@ -56,53 +55,6 @@ export async function getAllDiscourseNodes(): Promise<RoamContentNode[]> {
     }));
 }
 
-// const API_BASE_URL = "http://localhost:3000/api/supabase/insert"; // Or your deployed URL // REMOVED
-
-// interface ApiResult<T> { // REMOVED
-//   data?: T;
-//   error?: string;
-//   details?: string;
-// }
-
-// async function callApi<T>( // REMOVED
-//   endpoint: string,
-//   body: any,
-//   method: string = "POST",
-// ): Promise<ApiResult<T>> {
-//   // ... existing code ...
-//   try {
-//     const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
-//       method: method,
-//       headers: {
-//         "Content-Type": "application/json",
-//         // Add any other necessary headers, like Authorization if you implement it
-//       },
-//       body: JSON.stringify(body),
-//     });
-
-//     if (!response.ok) {
-//       const errorData = await response.json().catch(() => ({
-//         error: "Failed to parse error response",
-//         details: response.statusText,
-//       }));
-//       console.error(
-//         `API call to ${endpoint} failed with status ${response.status}:`,
-//         errorData,
-//       );
-//       return {
-//         error: errorData.error || `HTTP error! status: ${response.status}`,
-//         details: errorData.details,
-//       };
-//     }
-//     const data = await response.json();
-//     return { data };
-//   } catch (error: any) {
-//     console.error(`Error calling API ${endpoint}:`, error);
-//     return { error: error.message || "Network error or failed to fetch" };
-//   }
-// }
-
-// Define interfaces for the expected API responses (matching the `select` in your routes)
 interface DiscoursePlatformResponse {
   id: number;
   name: string;

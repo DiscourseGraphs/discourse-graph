@@ -28,8 +28,8 @@ async function getOrCreateAccountEntry( // "Get or Create" because an account fo
   const {
     person_id,
     platform_id,
-    active = true, // Default from LinkML
-    write_permission, // Undefined by default
+    active = true,
+    write_permission = true, // MODIFIED: Default to true for testing
   } = accountData;
 
   if (
