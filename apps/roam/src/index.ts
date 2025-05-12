@@ -98,11 +98,16 @@ export default runExtension(async (onloadArgs) => {
   const settingsStyle = addStyle(settingsStyles);
 
   const { observers, listeners } = await initObservers({ onloadArgs });
-  const [pageActionListener, hashChangeListener, nodeMenuTriggerListener] =
-    listeners;
+  const {
+    pageActionListener,
+    hashChangeListener,
+    nodeMenuTriggerListener,
+    discourseNodeSearchTriggerListener,
+  } = listeners;
   document.addEventListener("roamjs:query-builder:action", pageActionListener);
   window.addEventListener("hashchange", hashChangeListener);
   document.addEventListener("keydown", nodeMenuTriggerListener);
+  document.addEventListener("keydown", discourseNodeSearchTriggerListener);
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
@@ -133,6 +138,10 @@ export default runExtension(async (onloadArgs) => {
       );
       window.removeEventListener("hashchange", hashChangeListener);
       document.removeEventListener("keydown", nodeMenuTriggerListener);
+      document.removeEventListener(
+        "keydown",
+        discourseNodeSearchTriggerListener,
+      );
       window.roamAlphaAPI.ui.graphView.wholeGraph.removeCallback({
         label: "discourse-node-styling",
       });
