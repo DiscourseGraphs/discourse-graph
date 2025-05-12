@@ -281,6 +281,45 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       authorAccountId,
     );
 
+    // --- 3.5. Create Document ---
+    console.log(
+      "runFullEmbeddingProcess (NEW API HIERARCHY): Creating Document for this import...",
+    );
+    const now = new Date().toISOString();
+    const documentPayload = {
+      space_id: spaceId,
+      author_id: personId,
+      created: now,
+      last_modified: now,
+      last_synced: now,
+      // Optionally: source_local_id, url, metadata
+    };
+    let documentId: number;
+    try {
+      const documentData = await fetchSupabaseEntity(
+        "Document",
+        documentPayload,
+      );
+      if (!documentData?.id) {
+        console.error(
+          "runFullEmbeddingProcess: Document ID missing after creation.",
+        );
+        alert("Error: Could not create Document. ID missing.");
+        return;
+      }
+      documentId = documentData.id;
+    } catch (error: any) {
+      console.error(
+        "runFullEmbeddingProcess: Failed to create Document:",
+        error.message,
+      );
+      alert(
+        `Error: Could not create Document. ${error.message || "Unknown error"}`,
+      );
+      return;
+    }
+    console.log("runFullEmbeddingProcess: Document ID:", documentId);
+
     console.log(
       "runFullEmbeddingProcess (NEW API HIERARCHY): Supabase prerequisites obtained successfully.",
     );
@@ -339,18 +378,21 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
         // 6a. Create Content entry
         const currentTime = new Date().toISOString();
         const contentPayload = {
-          author_id: authorAccountId,
-          text: node.string, // MODIFIED from text_content
+          author_id: personId,
+          document_id: documentId,
+          text: node.string,
           scale: "chunk_unit",
           space_id: spaceId,
-          source_local_id: node.uid, // MODIFIED from external_id, removed source_uri
+          source_local_id: node.uid,
           metadata: {
             roam_uid: node.uid,
             roam_edit_time: node["edit/time"],
             roam_create_time: node["create/time"],
+            node_title: node.string,
           },
-          created: currentTime, // ADDED
-          last_modified: currentTime, // ADDED
+          created: currentTime,
+          last_modified: currentTime,
+          last_synced: currentTime,
         };
         console.debug(
           `runFullEmbeddingProcess (NEW API HIERARCHY): Creating Content for UID ${node.uid}`,
