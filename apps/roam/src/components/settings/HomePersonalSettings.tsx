@@ -141,6 +141,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             // const nodesWithEmbeddings = await getEmbeddingsService(nodes);
             // console.log("Nodes with embeddings:", nodesWithEmbeddings);
             // Next: send nodesWithEmbeddings to Supabase
+            await runFullEmbeddingProcess();
           }}
           intent={Intent.PRIMARY}
           style={{ marginTop: "8px" }}
