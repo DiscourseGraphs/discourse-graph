@@ -213,9 +213,6 @@ const NodeSearchMenu = ({
         );
         e.preventDefault();
         e.stopPropagation();
-      } else if (e.key == "ArrowLeft" || e.key === "ArrowRight") {
-        e.stopPropagation();
-        e.preventDefault();
       } else if (e.key === "Enter") {
         if (allItems.length > 0) {
           e.preventDefault();
@@ -281,7 +278,7 @@ const NodeSearchMenu = ({
     [textarea],
   );
 
-  const handleFilterSectionMouseDown = useCallback((e: React.MouseEvent) => {
+  const remainFocusOnTextarea = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
   }, []);
@@ -293,13 +290,14 @@ const NodeSearchMenu = ({
 
       setIsFilterMenuOpen((prev) => !prev);
 
+      // Restore focus after toggle
       setTimeout(() => {
         if (textarea) {
           textarea.focus();
           const cursorPos = textarea.selectionStart;
           textarea.setSelectionRange(cursorPos, cursorPos);
         }
-      }, 50);
+      }, 0);
     },
     [textarea],
   );
@@ -318,7 +316,12 @@ const NodeSearchMenu = ({
       }}
       autoFocus={false}
       content={
-        <div className="discourse-node-search-menu" style={{ width: "250px" }}>
+        <div
+          className="discourse-node-search-menu"
+          style={{ width: "250px" }}
+          onMouseDown={remainFocusOnTextarea}
+          onClick={remainFocusOnTextarea}
+        >
           <div className="flex items-center justify-between border-b border-gray-200 p-2">
             <div className="text-sm font-semibold">Search Results</div>
             <Button
@@ -327,19 +330,13 @@ const NodeSearchMenu = ({
               small
               active={isFilterMenuOpen}
               onClick={toggleFilterMenu}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
+              onMouseDown={remainFocusOnTextarea}
               title="Filter by type"
             />
           </div>
 
           {isFilterMenuOpen && (
-            <div
-              className="border-b border-gray-200 p-2"
-              onMouseDown={handleFilterSectionMouseDown}
-            >
+            <div className="border-b border-gray-200 p-2">
               <div className="mb-2 text-sm font-semibold">Filter by type:</div>
               <div className="flex flex-wrap gap-2">
                 {DISCOURSE_TYPES.map((type) => (
