@@ -331,8 +331,7 @@ const DiscourseContextOverlay = ({
         relationTriplets: relationTriplets,
       });
 
-      const numberOfSuggestionsToShow = 5;
-      setHydeFilteredNodes(foundNodes.slice(0, numberOfSuggestionsToShow));
+      setHydeFilteredNodes(foundNodes);
     } catch (error) {
       console.error(
         "Error during HyDE search with default RPC subset search:",
