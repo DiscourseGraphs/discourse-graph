@@ -31,39 +31,9 @@ import { getBlockUidFromTarget } from "roamjs-components/dom";
 import {
   findSimilarNodesUsingHyde,
   SuggestedNode,
-  generateHypotheticalNode,
+  RelationTriplet,
   CandidateNodeWithEmbedding,
-  SearchResultItem,
-  EmbeddingVector,
 } from "~/utils/hyde";
-
-// Placeholder for future implementation
-const mockCreateEmbedding = async (text: string): Promise<number[]> => {
-  console.warn(
-    `mockCreateEmbedding called for text: "${text}". Using dummy random embedding.`,
-  );
-  // Return a dummy embedding, matching the dimension (5) used elsewhere for candidate embeddings.
-  return Array.from({ length: 5 }, () => Math.random());
-};
-
-// Placeholder for future implementation
-const mockVectorSearch = async (
-  _queryEmbedding: EmbeddingVector,
-  candidates: CandidateNodeWithEmbedding[],
-  options: { topK: number } = { topK: 3 },
-): Promise<SearchResultItem[]> => {
-  const { topK } = options;
-  const numToReturn = Math.min(topK, candidates.length);
-  console.warn(
-    `mockVectorSearch called with ${candidates.length} candidates. Returning top ${numToReturn} as dummy results.`,
-  );
-  // For a simple mock, return the first few candidates, wrapping them as SearchResultItem.
-  const resultCandidates = candidates.slice(0, numToReturn);
-  return resultCandidates.map((node) => ({
-    object: { uid: node.uid, text: node.text, type: node.type },
-    score: Math.random(), // Assign a dummy score
-  }));
-};
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -332,7 +302,7 @@ const DiscourseContextOverlay = ({
   const runHydeSearch = async (
     currentSuggestions: SuggestedNode[],
     currentNodeText: string,
-    relationTriplets: [string, string, string][],
+    relationTriplets: RelationTriplet[],
   ) => {
     if (
       !currentSuggestions.length ||
@@ -347,28 +317,27 @@ const DiscourseContextOverlay = ({
     setHydeFilteredNodes([]);
 
     try {
-      const candidateNodesWithEmbeddings: CandidateNodeWithEmbedding[] =
+      const candidateNodesForHyde: CandidateNodeWithEmbedding[] =
         currentSuggestions.map((node) => ({
-          ...node,
-          embedding: Array.from({ length: 5 }, () => Math.random()),
+          uid: node.uid,
+          text: node.text,
+          type: node.type,
+          embedding: [],
         }));
 
-      const options = {
-        hypotheticalNodeGenerator: generateHypotheticalNode,
-        embeddingFunction: mockCreateEmbedding,
-        searchFunction: mockVectorSearch,
-      };
+      const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde({
+        candidateNodes: candidateNodesForHyde,
+        currentNodeText: currentNodeText,
+        relationTriplets: relationTriplets,
+      });
 
-      const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde(
-        candidateNodesWithEmbeddings,
-        currentNodeText,
-        relationTriplets,
-        options,
-      );
-
-      setHydeFilteredNodes(foundNodes);
+      const numberOfSuggestionsToShow = 5;
+      setHydeFilteredNodes(foundNodes.slice(0, numberOfSuggestionsToShow));
     } catch (error) {
-      console.error("Error during HyDE search:", error);
+      console.error(
+        "Error during HyDE search with default RPC subset search:",
+        error,
+      );
       setHydeFilteredNodes([]);
     } finally {
       setIsSearchingHyde(false);

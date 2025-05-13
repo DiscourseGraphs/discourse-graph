@@ -2,9 +2,14 @@ export type EmbeddingVector = number[];
 
 import { Result } from "./types";
 
-export type CandidateNodeWithEmbedding = Result & {
+export type CandidateNodeWithEmbedding = {
+  uid: string;
+  text: string;
   type: string;
   embedding: EmbeddingVector;
+  // Add any other specific properties from RoamJS 'Result' if they are used elsewhere
+  // with CandidateNodeWithEmbedding and do not cause type conflicts.
+  // For example: [key: string]: string | number | Date | undefined; (if necessary and compatible)
 };
 
 export type SuggestedNode = Result & {
@@ -13,29 +18,32 @@ export type SuggestedNode = Result & {
 
 export type RelationTriplet = [string, string, string];
 
-export type HypotheticalNodeGenerator = (params: {
+// --- INTERNAL TYPES (no longer exported) ---
+type HypotheticalNodeGenerator = (params: {
   node: string;
   relationType: RelationTriplet;
 }) => Promise<string>;
 
-export type EmbeddingFunc = (text: string) => Promise<EmbeddingVector>;
+type EmbeddingFunc = (text: string) => Promise<EmbeddingVector>;
 
-export type SearchResultItem = {
-  object: SuggestedNode;
+type HydeInternalSearchResultItem = {
+  object: { uid: string; text: string };
   score: number;
 };
-export type SearchFunc = (params: {
+
+type SearchFunc = (params: {
   queryEmbedding: EmbeddingVector;
-  indexData: CandidateNodeWithEmbedding[];
-  options: { topK: number };
-}) => Promise<SearchResultItem[]>;
+  indexData: CandidateNodeWithEmbedding[]; // Still uses exported CandidateNodeWithEmbedding
+}) => Promise<HydeInternalSearchResultItem[]>;
 
-export const ANTHROPIC_API_URL =
-  "https://discoursegraphs.com/api/llm/anthropic/chat";
-export const ANTHROPIC_MODEL = "claude-3-sonnet-20240229";
-export const ANTHROPIC_REQUEST_TIMEOUT_MS = 30_000;
+// --- INTERNAL CONSTANTS (no longer exported) ---
+const ANTHROPIC_API_URL = "https://discoursegraphs.com/api/llm/anthropic/chat";
+const ANTHROPIC_MODEL = "claude-3-sonnet-20240229";
+const ANTHROPIC_REQUEST_TIMEOUT_MS = 30_000;
 
-export const generateHypotheticalNode: HypotheticalNodeGenerator = async ({
+// --- INTERNAL IMPLEMENTATIONS (no longer exported) ---
+
+const generateHypotheticalNode: HypotheticalNodeGenerator = async ({
   node,
   relationType,
 }) => {
@@ -99,127 +107,177 @@ export const generateHypotheticalNode: HypotheticalNodeGenerator = async ({
   }
 };
 
-const searchAgainstCandidates = async ({
+const createEmbeddingForTextWithThrow: EmbeddingFunc = async (
+  text: string,
+): Promise<EmbeddingVector> => {
+  if (!text.trim()) throw new Error("Input text for embedding is empty.");
+  const isDevelopment =
+    typeof window !== "undefined" && window.location.hostname === "localhost";
+  const apiUrl = isDevelopment
+    ? "http://localhost:3000/api/embeddings/openai/small"
+    : "https://discoursegraphs.com/api/embeddings/openai/small";
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ input: text }),
+    });
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: `Server responded with ${response.status}` }));
+      throw new Error(
+        errorData.error || `Embedding API Error (${response.status})`,
+      );
+    }
+    const data = await response.json();
+    if (!data?.data?.[0]?.embedding) {
+      throw new Error("Invalid API response format from embedding service.");
+    }
+    return data.data[0].embedding;
+  } catch (error) {
+    console.error("Error in createEmbeddingForTextWithThrow:", error);
+    throw error;
+  }
+};
+
+const searchEmbeddingsInNodeSubsetViaRPC: SearchFunc = async ({
+  queryEmbedding,
+  indexData,
+}): Promise<HydeInternalSearchResultItem[]> => {
+  const supabaseClient =
+    typeof window !== "undefined" &&
+    (window as any).roamAlphaAPI?.customExtensionAPI?.supabase;
+  if (!supabaseClient) {
+    console.warn(
+      "searchEmbeddingsInNodeSubsetViaRPC: Supabase client not available.",
+    );
+    return [];
+  }
+  const subsetRoamUids = indexData.map((node) => node.uid);
+  if (subsetRoamUids.length === 0) return [];
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "match_embeddings_for_subset_nodes",
+      { p_query_embedding: queryEmbedding, p_subset_roam_uids: subsetRoamUids },
+    );
+    if (error) {
+      console.error("RPC match_embeddings_for_subset_nodes error:", error);
+      return [];
+    }
+    return (data || []).map((item: any) => ({
+      object: { uid: item.roam_uid, text: item.text_content },
+      score: item.similarity,
+    }));
+  } catch (e) {
+    console.error("Exception in searchEmbeddingsInNodeSubsetViaRPC:", e);
+    return [];
+  }
+};
+
+// --- Internal Helper Functions (not exported) ---
+
+async function searchAgainstCandidatesInternal({
   hypotheticalTexts,
   indexData,
-  embeddingFunction,
-  searchFunction,
 }: {
   hypotheticalTexts: string[];
   indexData: CandidateNodeWithEmbedding[];
-  embeddingFunction: EmbeddingFunc;
-  searchFunction: SearchFunc;
-}): Promise<SearchResultItem[][]> => {
-  const allSearchResults = await Promise.all(
+}): Promise<HydeInternalSearchResultItem[][]> {
+  return Promise.all(
     hypotheticalTexts.map(async (hypoText) => {
       try {
-        const queryEmbedding = await embeddingFunction(hypoText);
-        return await searchFunction({
+        const queryEmbedding = await createEmbeddingForTextWithThrow(hypoText);
+        return await searchEmbeddingsInNodeSubsetViaRPC({
           queryEmbedding,
           indexData,
-          options: { topK: indexData.length },
         });
       } catch (error) {
-        console.error(
-          `Error searching for hypothetical node "${hypoText}":`,
-          error,
-        );
+        console.error(`Error searching for "${hypoText}":`, error);
         return [];
       }
     }),
   );
-  return allSearchResults;
-};
+}
 
-const combineScores = (
-  allSearchResults: SearchResultItem[][],
-): Map<string, number> => {
+function combineScoresInternal(
+  allSearchResults: HydeInternalSearchResultItem[][],
+): Map<string, number> {
   const maxScores = new Map<string, number>();
-  for (const resultSet of allSearchResults) {
-    for (const result of resultSet) {
-      const currentMaxScore = maxScores.get(result.object.uid) ?? -Infinity;
-      if (result.score > currentMaxScore) {
+  allSearchResults.forEach((resultSet) => {
+    resultSet.forEach((result) => {
+      const currentMax = maxScores.get(result.object.uid) ?? -Infinity;
+      if (result.score > currentMax) {
         maxScores.set(result.object.uid, result.score);
       }
-    }
-  }
+    });
+  });
   return maxScores;
-};
+}
 
-const rankNodes = ({
+function rankNodesInternal({
   maxScores,
   candidateNodes,
 }: {
   maxScores: Map<string, number>;
   candidateNodes: CandidateNodeWithEmbedding[];
-}): SuggestedNode[] => {
+}): SuggestedNode[] {
   const nodeMap = new Map<string, CandidateNodeWithEmbedding>(
     candidateNodes.map((node) => [node.uid, node]),
   );
-  const combinedResults = Array.from(maxScores.entries())
-    .map(([uid, score]) => {
-      const node = nodeMap.get(uid);
-      return node ? { node, score } : undefined;
-    })
-    .filter(Boolean) as { node: CandidateNodeWithEmbedding; score: number }[];
+
+  const combinedResults: { node: SuggestedNode; score: number }[] = [];
+  maxScores.forEach((score, uid) => {
+    const fullNode = nodeMap.get(uid);
+    if (fullNode) {
+      const suggestedNodeObject: SuggestedNode = {
+        ...(fullNode as Omit<CandidateNodeWithEmbedding, "embedding">),
+        uid: fullNode.uid,
+        text: fullNode.text,
+        type: fullNode.type,
+      };
+      combinedResults.push({ node: suggestedNodeObject, score });
+    }
+  });
 
   combinedResults.sort((a, b) => b.score - a.score);
-  return combinedResults.map((item) => {
-    const { embedding, ...restNodeProps } = item.node;
-    return restNodeProps as SuggestedNode;
-  });
-};
+  return combinedResults.map((item) => item.node);
+}
 
+// --- EXPORTED PUBLIC API ---
 export const findSimilarNodesUsingHyde = async ({
   candidateNodes,
   currentNodeText,
   relationTriplets,
-  options,
 }: {
   candidateNodes: CandidateNodeWithEmbedding[];
   currentNodeText: string;
   relationTriplets: RelationTriplet[];
-  options: {
-    hypotheticalNodeGenerator: HypotheticalNodeGenerator;
-    embeddingFunction: EmbeddingFunc;
-    searchFunction: SearchFunc;
-  };
 }): Promise<SuggestedNode[]> => {
-  const { hypotheticalNodeGenerator, embeddingFunction, searchFunction } =
-    options;
-
-  if (candidateNodes.length === 0) {
-    return [];
-  }
+  if (!candidateNodes?.length) return [];
 
   try {
-    const indexData = candidateNodes;
-
-    const hypotheticalNodePromises = [];
-    for (const relationType of relationTriplets) {
-      hypotheticalNodePromises.push(
-        hypotheticalNodeGenerator({ node: currentNodeText, relationType }),
-      );
-    }
-    const hypotheticalNodeTexts = (
-      await Promise.all(hypotheticalNodePromises)
+    const hypotheticalTexts = (
+      await Promise.all(
+        relationTriplets.map((relationType) =>
+          generateHypotheticalNode({ node: currentNodeText, relationType }),
+        ),
+      )
     ).filter((text) => !text.startsWith("Error:"));
 
-    if (hypotheticalNodeTexts.length === 0) {
-      console.error("Failed to generate any valid hypothetical nodes.");
+    if (!hypotheticalTexts.length) {
+      console.warn("HyDE: No valid hypothetical nodes generated.");
       return [];
     }
 
-    const allSearchResults = await searchAgainstCandidates({
-      hypotheticalTexts: hypotheticalNodeTexts,
-      indexData,
-      embeddingFunction,
-      searchFunction,
+    const allSearchResults = await searchAgainstCandidatesInternal({
+      hypotheticalTexts,
+      indexData: candidateNodes,
     });
 
-    const maxScores = combineScores(allSearchResults);
-
-    const rankedNodes = rankNodes({ maxScores, candidateNodes });
+    const maxScores = combineScoresInternal(allSearchResults);
+    const rankedNodes = rankNodesInternal({ maxScores, candidateNodes });
 
     return rankedNodes;
   } catch (error) {
