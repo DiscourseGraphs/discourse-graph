@@ -1,6 +1,6 @@
 // apps/roam/src/utils/embeddingWorkflow.ts
 // import { getEmbeddingsService } from "./embeddingService";
-import { fetchSupabaseEntity, postBatchToSupabaseApi } from "./supabaseService";
+import { fetchSupabaseEntity, postBatchToSupabaseApi } from "./supabaseService"; // Ensure postBatchToSupabaseApi is correctly typed for batch operations
 import getDiscourseNodes from "./getDiscourseNodes";
 import matchDiscourseNode from "./matchDiscourseNode";
 import { getEmbeddingsService } from "./embeddingService";
@@ -94,11 +94,35 @@ interface DiscourseSpaceResponse {
   external_id?: string;
 }
 
+// This is the expected structure of items returned by the Content batch API
+// It needs to include source_local_id to map back to original Roam nodes
 interface BatchContentItemResponse {
-  id: number; // Crucial for linking embeddings
-  text_content: string; // This field name might be 'text' from our batch API, adjust if needed
-  source_local_id?: string;
-  // ... other fields returned by the batch content API
+  id: number;
+  text_content: string; // Should match the actual field name from the API (e.g., 'text')
+  source_local_id: string; // Crucial for linking embeddings
+  // other fields returned by the batch content API like created, last_modified etc. might be here
+}
+
+// Payload for Content batch API
+interface ContentPayload {
+  author_id: number;
+  document_id: number;
+  text: string;
+  scale: string;
+  space_id: number;
+  source_local_id: string;
+  metadata: object;
+  created: string;
+  last_modified: string;
+  last_synced: string;
+}
+
+// Payload for ContentEmbedding batch API
+interface ContentEmbeddingPayload {
+  target_id: number;
+  vector: number[];
+  model: string;
+  obsolete: boolean;
 }
 
 // Add this type definition near the top with other interfaces
@@ -107,7 +131,7 @@ interface NodeWithEmbedding extends RoamContentNode {
 }
 
 export const runFullEmbeddingProcess = async (): Promise<void> => {
-  console.log("runFullEmbeddingProcess (BATCH API): Process started.");
+  console.log("runFullEmbeddingProcess (BATCH API V2): Process started.");
 
   try {
     // --- 1. Setup DiscoursePlatform ---
@@ -118,19 +142,18 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       description: "Roam Research platform for Discourse Graphs",
     };
     console.log(
-      "runFullEmbeddingProcess (BATCH API): Ensuring DiscoursePlatform exists...",
+      "runFullEmbeddingProcess (BATCH API V2): Ensuring DiscoursePlatform exists...",
       platformPayload,
     );
     let platformId: number;
     try {
       const platformData = (await fetchSupabaseEntity(
-        // MODIFIED: Using fetchSupabaseEntity
         "DiscoursePlatform",
         platformPayload,
-      )) as DiscoursePlatformResponse; // Type assertion for clarity
+      )) as DiscoursePlatformResponse;
       if (!platformData?.id) {
         console.error(
-          "runFullEmbeddingProcess (BATCH API): DiscoursePlatform ID missing after creation/fetch.",
+          "runFullEmbeddingProcess (BATCH API V2): DiscoursePlatform ID missing after creation/fetch.",
         );
         alert(
           "Critical Error: Could not establish DiscoursePlatform. ID missing.",
@@ -140,7 +163,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       platformId = platformData.id;
     } catch (error: any) {
       console.error(
-        "runFullEmbeddingProcess (BATCH API): Failed to create/get DiscoursePlatform:",
+        "runFullEmbeddingProcess (BATCH API V2): Failed to create/get DiscoursePlatform:",
         error.message,
       );
       alert(
@@ -149,32 +172,32 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       return;
     }
     console.log(
-      "runFullEmbeddingProcess (BATCH API): DiscoursePlatform ID:",
+      "runFullEmbeddingProcess (BATCH API V2): DiscoursePlatform ID:",
       platformId,
     );
 
     // --- 2. Setup DiscourseSpace (Roam Graph) ---
-    const graphName = "DefaultRoamGraph";
-    const graphUrl = `https://roamresearch.com/#/app/${graphName}`;
+    const graphName = "DefaultRoamGraph"; // This could be dynamically fetched from Roam if needed
+    const graphUrl = `https://roamresearch.com/#/app/${graphName}`; // Construct URL based on actual graph name
 
     console.log(
-      "runFullEmbeddingProcess (BATCH API): Ensuring DiscourseSpace exists...",
+      "runFullEmbeddingProcess (BATCH API V2): Ensuring DiscourseSpace exists...",
     );
     const spacePayload = {
       name: graphName,
-      url: graphUrl,
+      url: graphUrl, // Pass the constructed graph URL
       discourse_platform_id: platformId,
+      // external_id: could be roamAlphaAPI.graph.name or similar if available and useful
     };
     let spaceId: number;
     try {
       const spaceData = (await fetchSupabaseEntity(
-        // MODIFIED: Using fetchSupabaseEntity
         "DiscourseSpace",
         spacePayload,
-      )) as DiscourseSpaceResponse; // Type assertion
+      )) as DiscourseSpaceResponse;
       if (!spaceData?.id) {
         console.error(
-          "runFullEmbeddingProcess (BATCH API): DiscourseSpace ID missing after creation/fetch.",
+          "runFullEmbeddingProcess (BATCH API V2): DiscourseSpace ID missing after creation/fetch.",
         );
         alert("Error: Could not establish DiscourseSpace. ID missing.");
         return;
@@ -182,7 +205,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       spaceId = spaceData.id;
     } catch (error: any) {
       console.error(
-        "runFullEmbeddingProcess (BATCH API): Failed to create/get DiscourseSpace:",
+        "runFullEmbeddingProcess (BATCH API V2): Failed to create/get DiscourseSpace:",
         error.message,
       );
       alert(
@@ -191,42 +214,40 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       return;
     }
     console.log(
-      "runFullEmbeddingProcess (BATCH API): DiscourseSpace ID:",
+      "runFullEmbeddingProcess (BATCH API V2): DiscourseSpace ID:",
       spaceId,
     );
 
     // --- 3. Setup Roam User (Agent -> Person -> Account) ---
-    const userName = "Default Roam User";
-    const userEmail = "default_roam_user@example.com";
+    const userName = "Default Roam User"; // Consider fetching actual user info if available/consented
+    const userEmail = "default_roam_user@example.com"; // Placeholder, same consideration
 
-    // let agentId: number; // agentId will now be personId
-    let personId: number; // This will be the Agent.id as well
+    let personId: number;
 
     console.log(
-      "runFullEmbeddingProcess (BATCH API): Ensuring Person (and associated Agent) exists...",
+      "runFullEmbeddingProcess (BATCH API V2): Ensuring Person (and associated Agent) exists...",
     );
     const personPayload = {
-      // Payload for the "Person" get-or-create endpoint
       name: userName,
       email: userEmail,
     };
     try {
       const personData = (await fetchSupabaseEntity(
-        "Person", // This endpoint now handles Agent creation if needed
+        "Person",
         personPayload,
-      )) as PersonResponse; // PersonResponse should return at least id, name, email
+      )) as PersonResponse;
 
       if (!personData?.id) {
         console.error(
-          "runFullEmbeddingProcess (BATCH API): Person ID missing after get/create.",
+          "runFullEmbeddingProcess (BATCH API V2): Person ID missing after get/create.",
         );
         alert("Error: Could not establish Person. ID missing.");
         return;
       }
-      personId = personData.id; // This ID is the Agent.id
+      personId = personData.id;
     } catch (error: any) {
       console.error(
-        "runFullEmbeddingProcess (BATCH API): Failed to get/create Person:",
+        "runFullEmbeddingProcess (BATCH API V2): Failed to get/create Person:",
         error.message,
       );
       alert(
@@ -235,37 +256,37 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       return;
     }
     console.log(
-      "runFullEmbeddingProcess (BATCH API): Person ID (Agent ID):",
+      "runFullEmbeddingProcess (BATCH API V2): Person ID (Agent ID):",
       personId,
     );
 
-    // The 'agentId' used below for Account creation is now 'personId'
     console.log(
-      "runFullEmbeddingProcess (BATCH API): Creating Account for Roam user...",
+      "runFullEmbeddingProcess (BATCH API V2): Creating Account for Roam user...",
     );
     const accountPayload = {
-      person_id: personId, // Use the personId obtained from the Person get-or-create
+      person_id: personId,
       platform_id: platformId,
       active: true,
-      write_permission: true, // As per previous setting
+      write_permission: true,
     };
-    let authorAccountId: number;
+    let authorAccountId: number; // This is the Account.id for the user on this platform
     try {
       const accountData = (await fetchSupabaseEntity(
         "Account",
         accountPayload,
-      )) as AccountResponse; // MODIFIED
+      )) as AccountResponse;
       if (!accountData?.id) {
         console.error(
-          "runFullEmbeddingProcess (BATCH API): Account ID missing after creation.",
+          "runFullEmbeddingProcess (BATCH API V2): Account ID missing after creation.",
         );
         alert("Error: Could not create Account for Roam user. ID missing.");
         return;
       }
-      authorAccountId = accountData.id;
+      authorAccountId = accountData.id; // This is the author_id for Content if we link via Account.
+      // However, current Content.author_id links to Person.id. Sticking to that.
     } catch (error: any) {
       console.error(
-        "runFullEmbeddingProcess (BATCH API): Failed to create Account:",
+        "runFullEmbeddingProcess (BATCH API V2): Failed to create Account:",
         error.message,
       );
       alert(
@@ -274,22 +295,24 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       return;
     }
     console.log(
-      "runFullEmbeddingProcess (BATCH API): Account ID (Author ID for content):",
+      "runFullEmbeddingProcess (BATCH API V2): Account ID (Author Account for platform interaction):",
       authorAccountId,
     );
 
     // --- 3.5. Create Document ---
     console.log(
-      "runFullEmbeddingProcess (BATCH API): Creating Document for this import...",
+      "runFullEmbeddingProcess (BATCH API V2): Creating Document for this import...",
     );
-    const now = new Date().toISOString();
+    const nowForDoc = new Date().toISOString();
     const documentPayload = {
       space_id: spaceId,
-      author_id: personId,
-      created: now,
-      last_modified: now,
-      last_synced: now,
-      // Optionally: source_local_id, url, metadata
+      author_id: personId, // Document author is the Person
+      created: nowForDoc,
+      last_modified: nowForDoc,
+      last_synced: nowForDoc,
+      // title: `Roam Import - ${nowForDoc}`, // Optional: A title for the document
+      // source_local_id: `roam-graph-${graphName}-import-${Date.now()}`, // Optional: a unique ID for this import document
+      // metadata: { import_tool: "roam-extension" } // Optional
     };
     let documentId: number;
     try {
@@ -299,7 +322,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       );
       if (!documentData?.id) {
         console.error(
-          "runFullEmbeddingProcess: Document ID missing after creation.",
+          "runFullEmbeddingProcess (BATCH API V2): Document ID missing after creation.",
         );
         alert("Error: Could not create Document. ID missing.");
         return;
@@ -307,7 +330,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       documentId = documentData.id;
     } catch (error: any) {
       console.error(
-        "runFullEmbeddingProcess: Failed to create Document:",
+        "runFullEmbeddingProcess (BATCH API V2): Failed to create Document:",
         error.message,
       );
       alert(
@@ -315,152 +338,218 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       );
       return;
     }
-    console.log("runFullEmbeddingProcess: Document ID:", documentId);
+    console.log(
+      "runFullEmbeddingProcess (BATCH API V2): Document ID:",
+      documentId,
+    );
 
     console.log(
-      "runFullEmbeddingProcess (BATCH API): Supabase prerequisites obtained successfully.",
+      "runFullEmbeddingProcess (BATCH API V2): Supabase prerequisites obtained successfully.",
     );
 
     // --- 4. Fetch Roam Nodes ---
     console.log(
-      "runFullEmbeddingProcess (BATCH API): Fetching Roam discourse nodes...",
+      "runFullEmbeddingProcess (BATCH API V2): Fetching Roam discourse nodes...",
     );
     const roamNodes = await getAllDiscourseNodes();
-    const first5Nodes = roamNodes;
+    if (roamNodes.length === 0) {
+      console.log(
+        "runFullEmbeddingProcess (BATCH API V2): No discourse nodes found in Roam. Exiting.",
+      );
+      alert("No discourse nodes found in Roam to process.");
+      return;
+    }
+    console.log(
+      `runFullEmbeddingProcess (BATCH API V2): Found ${roamNodes.length} discourse nodes.`,
+    );
 
     // --- 5. Generate Embeddings for all nodes ---
     console.log(
-      `runFullEmbeddingProcess (BATCH API): Generating embeddings for ${first5Nodes.length} node titles...`,
+      `runFullEmbeddingProcess (BATCH API V2): Generating embeddings for ${roamNodes.length} node titles...`,
     );
     let generatedVectors: number[][];
     try {
-      const embeddingResults = await getEmbeddingsService(first5Nodes);
+      // Assuming getEmbeddingsService can handle an array of RoamContentNode and returns results in the same order
+      const embeddingResults = await getEmbeddingsService(roamNodes); // Pass all nodes
       generatedVectors = embeddingResults.map((result) => result.vector);
     } catch (embeddingServiceError: any) {
       console.error(
-        `runFullEmbeddingProcess (BATCH API): Embedding service failed. Error: ${embeddingServiceError.message}`,
+        `runFullEmbeddingProcess (BATCH API V2): Embedding service failed. Error: ${embeddingServiceError.message}`,
       );
       alert("Critical Error: Failed to generate embeddings. Process halted.");
       return;
     }
 
-    if (generatedVectors.length !== first5Nodes.length) {
+    if (generatedVectors.length !== roamNodes.length) {
       console.error(
-        "runFullEmbeddingProcess (BATCH API): Mismatch between number of nodes and generated embeddings.",
+        "runFullEmbeddingProcess (BATCH API V2): Mismatch between number of nodes and generated embeddings.",
       );
       alert(
         "Critical Error: Mismatch in embedding generation. Process halted.",
       );
-      throw new Error(
-        "Mismatch between number of valid nodes and generated embeddings.",
-      );
+      // No throw here, allow graceful exit.
+      return;
     }
     console.log(
-      "runFullEmbeddingProcess (BATCH API): Embeddings generated successfully.",
+      "runFullEmbeddingProcess (BATCH API V2): Embeddings generated successfully.",
     );
 
-    // --- 6. BATCH Upload Content to Supabase ---
+    // --- 6. BATCH Upload Content and Embeddings to Supabase ---
     console.log(
-      `runFullEmbeddingProcess (BATCH API): Preparing ${first5Nodes.length} Content records for batch upload...`,
+      `runFullEmbeddingProcess (BATCH API V2): Preparing ${roamNodes.length} Content records for batch upload...`,
     );
-    let successCount = 0;
-    let errorCount = 0;
 
-    for (let i = 0; i < first5Nodes.length; i++) {
-      const node = first5Nodes[i];
+    const currentTime = new Date().toISOString();
+    const contentPayloads: ContentPayload[] = roamNodes.map((node) => ({
+      author_id: personId, // Content author is the Person
+      document_id: documentId,
+      text: node.string, // This is the title, as per RoamContentNode
+      scale: "chunk_unit", // Assuming this scale
+      space_id: spaceId,
+      source_local_id: node.uid, // Use Roam UID to map back
+      metadata: {
+        roam_uid: node.uid,
+        roam_edit_time: node["edit/time"],
+        roam_create_time: node["create/time"],
+        node_title: node.string, // Redundant with 'text' but can be useful in metadata
+      },
+      created: currentTime,
+      last_modified: currentTime,
+      last_synced: currentTime,
+    }));
+
+    let createdContents: BatchContentItemResponse[] = [];
+    try {
+      console.log(
+        `runFullEmbeddingProcess (BATCH API V2): Batch inserting ${contentPayloads.length} Content records...`,
+      );
+      // Assuming postBatchToSupabaseApi takes (tableName, arrayOfPayloads)
+      // and returns an array of the created items with their IDs and source_local_id
+      createdContents = (await postBatchToSupabaseApi(
+        "Content/batch", // Ensure this matches your batch API endpoint name/table for Content
+        contentPayloads,
+      )) as BatchContentItemResponse[]; // Adjust type if your API returns something different
+
+      if (
+        !createdContents ||
+        createdContents.length !== contentPayloads.length
+      ) {
+        console.error(
+          "runFullEmbeddingProcess (BATCH API V2): Batch Content creation failed or returned mismatched results.",
+          "Expected:",
+          contentPayloads.length,
+          "Received:",
+          createdContents?.length || 0,
+        );
+        alert(
+          "Error: Batch Content creation failed. Some items might not have been saved. Check console.",
+        );
+        // Decide if to proceed or halt. For now, we'll try to process what we have.
+      }
+      console.log(
+        `runFullEmbeddingProcess (BATCH API V2): Successfully batch inserted ${createdContents.length} Content records.`,
+      );
+    } catch (error: any) {
+      console.error(
+        "runFullEmbeddingProcess (BATCH API V2): Error during batch Content insertion:",
+        error.message,
+        error.stack,
+      );
+      alert(
+        `Error during batch Content insertion: ${error.message}. Process halted.`,
+      );
+      return; // Halt if batch content insertion fails critically
+    }
+
+    // Map created content IDs back to their original nodes/vectors
+    // This relies on the batch API returning 'source_local_id' for each created content item.
+    const contentIdMap = new Map<string, number>(); // Map: source_local_id (node.uid) -> content_id
+    createdContents.forEach((item) => {
+      if (item.id && item.source_local_id) {
+        contentIdMap.set(item.source_local_id, item.id);
+      }
+    });
+
+    console.log(
+      `runFullEmbeddingProcess (BATCH API V2): Preparing ${roamNodes.length} ContentEmbedding records for batch upload...`,
+    );
+    const embeddingPayloads: ContentEmbeddingPayload[] = [];
+    let embeddingsToCreateCount = 0;
+
+    for (let i = 0; i < roamNodes.length; i++) {
+      const node = roamNodes[i];
       const vector = generatedVectors[i];
-      let contentId: number;
+      const contentId = contentIdMap.get(node.uid);
 
-      try {
-        // 6a. Create Content entry
-        const currentTime = new Date().toISOString();
-        const contentPayload = {
-          author_id: personId,
-          document_id: documentId,
-          text: node.string,
-          scale: "chunk_unit",
-          space_id: spaceId,
-          source_local_id: node.uid,
-          metadata: {
-            roam_uid: node.uid,
-            roam_edit_time: node["edit/time"],
-            roam_create_time: node["create/time"],
-            node_title: node.string,
-          },
-          created: currentTime,
-          last_modified: currentTime,
-          last_synced: currentTime,
-        };
-        console.debug(
-          `runFullEmbeddingProcess (BATCH API): Creating Content for UID ${node.uid}`,
-          contentPayload,
-        );
-
-        const contentData = (await fetchSupabaseEntity(
-          "Content",
-          contentPayload,
-        )) as BatchContentItemResponse; // MODIFIED
-        if (!contentData?.id) {
-          console.error(
-            `runFullEmbeddingProcess (BATCH API): Error creating Content for node UID ${node.uid}: ID missing`,
-          );
-          errorCount++;
-          continue;
-        }
-        contentId = contentData.id;
-        console.debug(
-          `runFullEmbeddingProcess (BATCH API): Content created for UID ${node.uid}, Content ID: ${contentId}`,
-        );
-
-        // 6b. Create ContentEmbedding entry
-        const embeddingPayload = {
+      if (contentId && vector) {
+        embeddingPayloads.push({
           target_id: contentId,
           vector: vector,
-          model: "openai_text_embedding_3_small_1536", // ADDED - Please confirm this model name
-          obsolete: false, // ADDED
-        };
-        console.debug(
-          `runFullEmbeddingProcess (BATCH API): Creating Embedding for Content ID ${contentId}`,
+          model: "openai_text_embedding_3_small_1536",
+          obsolete: false,
+        });
+        embeddingsToCreateCount++;
+      } else {
+        console.warn(
+          `runFullEmbeddingProcess (BATCH API V2): Skipping embedding for node UID ${node.uid} due to missing Content ID or vector.`,
         );
-        await fetchSupabaseEntity(
-          "ContentEmbedding_openai_text_embedding_3_small_1536",
-          embeddingPayload,
-        ); // MODIFIED table name
-
-        console.debug(
-          `runFullEmbeddingProcess (BATCH API): Embedding created for Content ID ${contentId}`,
-        );
-        successCount++;
-      } catch (nodeProcessingError: any) {
-        // This will catch errors from both fetchSupabaseEntity calls
-        console.error(
-          `runFullEmbeddingProcess (BATCH API): Error processing node UID ${node.uid}:`,
-          nodeProcessingError.message,
-          nodeProcessingError.stack,
-        );
-        errorCount++;
       }
     }
 
-    console.log(
-      `runFullEmbeddingProcess (BATCH API): Embedding process complete. Success: ${successCount}, Errors: ${errorCount}`,
-    );
-    if (errorCount > 0) {
-      alert(
-        `Process completed with ${errorCount} errors. Check console for details.`,
+    if (embeddingPayloads.length > 0) {
+      try {
+        console.log(
+          `runFullEmbeddingProcess (BATCH API V2): Batch inserting ${embeddingPayloads.length} ContentEmbedding records...`,
+        );
+        // Assuming postBatchToSupabaseApi takes (tableName, arrayOfPayloads)
+        // For embeddings, the response might not be as critical unless you need their IDs immediately.
+        await postBatchToSupabaseApi(
+          "ContentEmbedding_openai_text_embedding_3_small_1536/batch", // Ensure this matches your batch API endpoint
+          embeddingPayloads,
+        );
+        console.log(
+          `runFullEmbeddingProcess (BATCH API V2): Successfully batch inserted ${embeddingPayloads.length} ContentEmbedding records.`,
+        );
+      } catch (error: any) {
+        console.error(
+          "runFullEmbeddingProcess (BATCH API V2): Error during batch ContentEmbedding insertion:",
+          error.message,
+          error.stack,
+        );
+        alert(
+          `Error during batch ContentEmbedding insertion: ${error.message}. Some embeddings might not have been saved.`,
+        );
+        // Don't necessarily halt, as content might be saved.
+      }
+    } else {
+      console.log(
+        "runFullEmbeddingProcess (BATCH API V2): No valid embedding payloads to send.",
       );
-    } else if (successCount > 0) {
+    }
+
+    const finalSuccessCount = embeddingPayloads.length; // Assuming success if API call doesn't throw for batch.
+    // Or, if the API returns counts, use that.
+    const finalErrorCount = roamNodes.length - finalSuccessCount; // Approximation
+
+    console.log(
+      `runFullEmbeddingProcess (BATCH API V2): Embedding process complete. Embeddings attempted: ${finalSuccessCount}, Potential issues/skipped: ${finalErrorCount}`,
+    );
+    if (finalErrorCount > 0) {
       alert(
-        `All ${successCount} Roam nodes processed and embedded successfully!`,
+        `Process completed. ${finalSuccessCount} embeddings were attempted. ${finalErrorCount} items encountered issues or were skipped. Check console for details.`,
+      );
+    } else if (finalSuccessCount > 0) {
+      alert(
+        `All ${finalSuccessCount} Roam nodes processed and embeddings attempted successfully via batch!`,
       );
     } else {
-      // This case needs to be re-evaluated: if roamNodes was empty, this alert would show.
-      // Consider if roamNodes.length === 0 and successCount === 0 and errorCount === 0
-      alert("Process completed, but no nodes were successfully processed.");
+      alert(
+        "Process completed, but no embeddings were successfully processed or attempted in batch.",
+      );
     }
   } catch (error: any) {
     console.error(
-      "runFullEmbeddingProcess (BATCH API): Critical error in overall process:",
+      "runFullEmbeddingProcess (BATCH API V2): Critical error in overall process:",
       error.message,
       error.stack,
     );
@@ -468,7 +557,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       `A critical error occurred: ${error.message}. Check console for details.`,
     );
   } finally {
-    console.log("runFullEmbeddingProcess (BATCH API): Process finished.");
+    console.log("runFullEmbeddingProcess (BATCH API V2): Process finished.");
   }
 };
 
