@@ -4,6 +4,10 @@ import { fetchSupabaseEntity, postBatchToSupabaseApi } from "./supabaseService";
 import getDiscourseNodes from "./getDiscourseNodes";
 import matchDiscourseNode from "./matchDiscourseNode";
 import { getEmbeddingsService } from "./embeddingService";
+import isDiscourseNode from "./isDiscourseNode";
+import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
+import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
+import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 
 // Type for results from the Roam Datalog query
 interface RoamEntityFromQuery {
@@ -44,7 +48,8 @@ export async function getAllDiscourseNodes(): Promise<RoamContentNode[]> {
     .filter(
       (entity) =>
         entity[":block/uid"] &&
-        findDiscourseNodeWithTitle(entity[":node/title"]) &&
+        isDiscourseNode(entity[":block/uid"]) &&
+        //findDiscourseNodeWithTitle(entity[":node/title"]) &&
         entity[":node/title"] &&
         entity[":node/title"]!.trim() !== "",
     )
@@ -130,6 +135,9 @@ interface NodeWithEmbedding extends RoamContentNode {
   vector: number[];
 }
 
+// Add constant for Supabase batch size
+const SUPABASE_BATCH_SIZE = 900;
+
 export const runFullEmbeddingProcess = async (): Promise<void> => {
   console.log("runFullEmbeddingProcess (BATCH API V2): Process started.");
 
@@ -177,8 +185,8 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     );
 
     // --- 2. Setup DiscourseSpace (Roam Graph) ---
-    const graphName = "DefaultRoamGraph"; // This could be dynamically fetched from Roam if needed
-    const graphUrl = `https://roamresearch.com/#/app/${graphName}`; // Construct URL based on actual graph name
+    const graphName = window.roamAlphaAPI.graph.name;
+    const graphUrl = `https://roamresearch.com/#/app/${graphName}`;
 
     console.log(
       "runFullEmbeddingProcess (BATCH API V2): Ensuring DiscourseSpace exists...",
@@ -219,8 +227,8 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     );
 
     // --- 3. Setup Roam User (Agent -> Person -> Account) ---
-    const userName = "Default Roam User"; // Consider fetching actual user info if available/consented
-    const userEmail = "default_roam_user@example.com"; // Placeholder, same consideration
+    const userEmail = getCurrentUserEmail() || "unknown@roamresearch.com"; // Fallback email if none available
+    const userName = getCurrentUserDisplayName() || "Roam User"; // Fallback name if none available
 
     let personId: number;
 
@@ -421,25 +429,28 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     let createdContents: BatchContentItemResponse[] = [];
     try {
       console.log(
-        `runFullEmbeddingProcess (BATCH API V2): Batch inserting ${contentPayloads.length} Content records...`,
+        `runFullEmbeddingProcess (BATCH API V2): Batch inserting ${contentPayloads.length} Content records in chunks of ${SUPABASE_BATCH_SIZE}...`,
       );
-      // Assuming postBatchToSupabaseApi takes (tableName, arrayOfPayloads)
-      // and returns an array of the created items with their IDs and source_local_id
-      createdContents = (await postBatchToSupabaseApi(
-        "Content/batch", // Ensure this matches your batch API endpoint name/table for Content
-        contentPayloads,
-      )) as BatchContentItemResponse[]; // Adjust type if your API returns something different
+      // Process contentPayloads in chunks of SUPABASE_BATCH_SIZE
+      for (let i = 0; i < contentPayloads.length; i += SUPABASE_BATCH_SIZE) {
+        const chunk = contentPayloads.slice(i, i + SUPABASE_BATCH_SIZE);
+        console.log(
+          `Processing Content batch chunk ${i / SUPABASE_BATCH_SIZE + 1} with ${chunk.length} items.`,
+        );
+        const chunkResults = (await postBatchToSupabaseApi(
+          "Content/batch", // Ensure this matches your batch API endpoint name/table for Content
+          chunk,
+        )) as BatchContentItemResponse[];
+        createdContents.push(...chunkResults);
+      }
 
-      if (
-        !createdContents ||
-        createdContents.length !== contentPayloads.length
-      ) {
+      if (createdContents.length !== contentPayloads.length) {
         console.error(
           "runFullEmbeddingProcess (BATCH API V2): Batch Content creation failed or returned mismatched results.",
           "Expected:",
           contentPayloads.length,
           "Received:",
-          createdContents?.length || 0,
+          createdContents.length,
         );
         alert(
           "Error: Batch Content creation failed. Some items might not have been saved. Check console.",
@@ -499,14 +510,23 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     if (embeddingPayloads.length > 0) {
       try {
         console.log(
-          `runFullEmbeddingProcess (BATCH API V2): Batch inserting ${embeddingPayloads.length} ContentEmbedding records...`,
+          `runFullEmbeddingProcess (BATCH API V2): Batch inserting ${embeddingPayloads.length} ContentEmbedding records in chunks of ${SUPABASE_BATCH_SIZE}...`,
         );
-        // Assuming postBatchToSupabaseApi takes (tableName, arrayOfPayloads)
-        // For embeddings, the response might not be as critical unless you need their IDs immediately.
-        await postBatchToSupabaseApi(
-          "ContentEmbedding_openai_text_embedding_3_small_1536/batch", // Ensure this matches your batch API endpoint
-          embeddingPayloads,
-        );
+        // Process embeddingPayloads in chunks of SUPABASE_BATCH_SIZE
+        for (
+          let i = 0;
+          i < embeddingPayloads.length;
+          i += SUPABASE_BATCH_SIZE
+        ) {
+          const chunk = embeddingPayloads.slice(i, i + SUPABASE_BATCH_SIZE);
+          console.log(
+            `Processing ContentEmbedding batch chunk ${i / SUPABASE_BATCH_SIZE + 1} with ${chunk.length} items.`,
+          );
+          await postBatchToSupabaseApi(
+            "ContentEmbedding_openai_text_embedding_3_small_1536/batch",
+            chunk,
+          );
+        }
         console.log(
           `runFullEmbeddingProcess (BATCH API V2): Successfully batch inserted ${embeddingPayloads.length} ContentEmbedding records.`,
         );
@@ -517,9 +537,9 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
           error.stack,
         );
         alert(
-          `Error during batch ContentEmbedding insertion: ${error.message}. Some embeddings might not have been saved.`,
+          `Error during batch ContentEmbedding insertion: ${error.message}. Process halted.`,
         );
-        // Don't necessarily halt, as content might be saved.
+        return; // Halt if batch embedding insertion fails critically
       }
     } else {
       console.log(
@@ -560,6 +580,3 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     console.log("runFullEmbeddingProcess (BATCH API V2): Process finished.");
   }
 };
-
-// Removed the entire 'embeddingWorkflow' function and its 'EmbeddingWorkflowParams' interface
-// as per the request to simplify and focus on 'runFullEmbeddingProcess'.

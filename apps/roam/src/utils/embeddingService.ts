@@ -4,7 +4,7 @@ export interface NodeWithEmbedding extends RoamContentNode {
   vector: number[];
 }
 
-const EMBEDDING_BATCH_SIZE = 100;
+const EMBEDDING_BATCH_SIZE = 900;
 
 export async function getEmbeddingsService(
   nodes: RoamContentNode[],
