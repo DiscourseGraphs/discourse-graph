@@ -1,6 +1,6 @@
 // apps/roam/src/utils/embeddingWorkflow.ts
 // import { getEmbeddingsService } from "./embeddingService";
-import { fetchSupabaseEntity } from "./supabaseService";
+import { fetchSupabaseEntity, postBatchToSupabaseApi } from "./supabaseService";
 import getDiscourseNodes from "./getDiscourseNodes";
 import matchDiscourseNode from "./matchDiscourseNode";
 import { getEmbeddingsService } from "./embeddingService";
@@ -94,14 +94,11 @@ interface DiscourseSpaceResponse {
   external_id?: string;
 }
 
-interface ContentResponse {
-  id: number;
-  text_content: string;
-  source_uri?: string;
-  external_id?: string;
-  space_id?: number;
-  author_id?: number; // This would be an Account.id
-  // ... other fields
+interface BatchContentItemResponse {
+  id: number; // Crucial for linking embeddings
+  text_content: string; // This field name might be 'text' from our batch API, adjust if needed
+  source_local_id?: string;
+  // ... other fields returned by the batch content API
 }
 
 // Add this type definition near the top with other interfaces
@@ -110,7 +107,7 @@ interface NodeWithEmbedding extends RoamContentNode {
 }
 
 export const runFullEmbeddingProcess = async (): Promise<void> => {
-  console.log("runFullEmbeddingProcess (NEW API HIERARCHY): Process started.");
+  console.log("runFullEmbeddingProcess (BATCH API): Process started.");
 
   try {
     // --- 1. Setup DiscoursePlatform ---
@@ -121,7 +118,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       description: "Roam Research platform for Discourse Graphs",
     };
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Ensuring DiscoursePlatform exists...",
+      "runFullEmbeddingProcess (BATCH API): Ensuring DiscoursePlatform exists...",
       platformPayload,
     );
     let platformId: number;
@@ -133,7 +130,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       )) as DiscoursePlatformResponse; // Type assertion for clarity
       if (!platformData?.id) {
         console.error(
-          "runFullEmbeddingProcess (NEW API HIERARCHY): DiscoursePlatform ID missing after creation/fetch.",
+          "runFullEmbeddingProcess (BATCH API): DiscoursePlatform ID missing after creation/fetch.",
         );
         alert(
           "Critical Error: Could not establish DiscoursePlatform. ID missing.",
@@ -143,7 +140,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       platformId = platformData.id;
     } catch (error: any) {
       console.error(
-        "runFullEmbeddingProcess (NEW API HIERARCHY): Failed to create/get DiscoursePlatform:",
+        "runFullEmbeddingProcess (BATCH API): Failed to create/get DiscoursePlatform:",
         error.message,
       );
       alert(
@@ -152,7 +149,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       return;
     }
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): DiscoursePlatform ID:",
+      "runFullEmbeddingProcess (BATCH API): DiscoursePlatform ID:",
       platformId,
     );
 
@@ -161,7 +158,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     const graphUrl = `https://roamresearch.com/#/app/${graphName}`;
 
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Ensuring DiscourseSpace exists...",
+      "runFullEmbeddingProcess (BATCH API): Ensuring DiscourseSpace exists...",
     );
     const spacePayload = {
       name: graphName,
@@ -177,7 +174,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       )) as DiscourseSpaceResponse; // Type assertion
       if (!spaceData?.id) {
         console.error(
-          "runFullEmbeddingProcess (NEW API HIERARCHY): DiscourseSpace ID missing after creation/fetch.",
+          "runFullEmbeddingProcess (BATCH API): DiscourseSpace ID missing after creation/fetch.",
         );
         alert("Error: Could not establish DiscourseSpace. ID missing.");
         return;
@@ -185,7 +182,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       spaceId = spaceData.id;
     } catch (error: any) {
       console.error(
-        "runFullEmbeddingProcess (NEW API HIERARCHY): Failed to create/get DiscourseSpace:",
+        "runFullEmbeddingProcess (BATCH API): Failed to create/get DiscourseSpace:",
         error.message,
       );
       alert(
@@ -194,7 +191,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       return;
     }
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): DiscourseSpace ID:",
+      "runFullEmbeddingProcess (BATCH API): DiscourseSpace ID:",
       spaceId,
     );
 
@@ -206,7 +203,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     let personId: number; // This will be the Agent.id as well
 
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Ensuring Person (and associated Agent) exists...",
+      "runFullEmbeddingProcess (BATCH API): Ensuring Person (and associated Agent) exists...",
     );
     const personPayload = {
       // Payload for the "Person" get-or-create endpoint
@@ -221,7 +218,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
 
       if (!personData?.id) {
         console.error(
-          "runFullEmbeddingProcess (NEW API HIERARCHY): Person ID missing after get/create.",
+          "runFullEmbeddingProcess (BATCH API): Person ID missing after get/create.",
         );
         alert("Error: Could not establish Person. ID missing.");
         return;
@@ -229,7 +226,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       personId = personData.id; // This ID is the Agent.id
     } catch (error: any) {
       console.error(
-        "runFullEmbeddingProcess (NEW API HIERARCHY): Failed to get/create Person:",
+        "runFullEmbeddingProcess (BATCH API): Failed to get/create Person:",
         error.message,
       );
       alert(
@@ -238,13 +235,13 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       return;
     }
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Person ID (Agent ID):",
+      "runFullEmbeddingProcess (BATCH API): Person ID (Agent ID):",
       personId,
     );
 
     // The 'agentId' used below for Account creation is now 'personId'
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Creating Account for Roam user...",
+      "runFullEmbeddingProcess (BATCH API): Creating Account for Roam user...",
     );
     const accountPayload = {
       person_id: personId, // Use the personId obtained from the Person get-or-create
@@ -260,7 +257,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       )) as AccountResponse; // MODIFIED
       if (!accountData?.id) {
         console.error(
-          "runFullEmbeddingProcess (NEW API HIERARCHY): Account ID missing after creation.",
+          "runFullEmbeddingProcess (BATCH API): Account ID missing after creation.",
         );
         alert("Error: Could not create Account for Roam user. ID missing.");
         return;
@@ -268,7 +265,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       authorAccountId = accountData.id;
     } catch (error: any) {
       console.error(
-        "runFullEmbeddingProcess (NEW API HIERARCHY): Failed to create Account:",
+        "runFullEmbeddingProcess (BATCH API): Failed to create Account:",
         error.message,
       );
       alert(
@@ -277,13 +274,13 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       return;
     }
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Account ID (Author ID for content):",
+      "runFullEmbeddingProcess (BATCH API): Account ID (Author ID for content):",
       authorAccountId,
     );
 
     // --- 3.5. Create Document ---
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Creating Document for this import...",
+      "runFullEmbeddingProcess (BATCH API): Creating Document for this import...",
     );
     const now = new Date().toISOString();
     const documentPayload = {
@@ -321,19 +318,19 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     console.log("runFullEmbeddingProcess: Document ID:", documentId);
 
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Supabase prerequisites obtained successfully.",
+      "runFullEmbeddingProcess (BATCH API): Supabase prerequisites obtained successfully.",
     );
 
     // --- 4. Fetch Roam Nodes ---
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Fetching Roam discourse nodes...",
+      "runFullEmbeddingProcess (BATCH API): Fetching Roam discourse nodes...",
     );
     const roamNodes = await getAllDiscourseNodes();
-    const first5Nodes = roamNodes.slice(0, 5);
+    const first5Nodes = roamNodes;
 
     // --- 5. Generate Embeddings for all nodes ---
     console.log(
-      `runFullEmbeddingProcess (NEW API HIERARCHY): Generating embeddings for ${first5Nodes.length} node titles...`,
+      `runFullEmbeddingProcess (BATCH API): Generating embeddings for ${first5Nodes.length} node titles...`,
     );
     let generatedVectors: number[][];
     try {
@@ -341,7 +338,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       generatedVectors = embeddingResults.map((result) => result.vector);
     } catch (embeddingServiceError: any) {
       console.error(
-        `runFullEmbeddingProcess (NEW API HIERARCHY): Embedding service failed. Error: ${embeddingServiceError.message}`,
+        `runFullEmbeddingProcess (BATCH API): Embedding service failed. Error: ${embeddingServiceError.message}`,
       );
       alert("Critical Error: Failed to generate embeddings. Process halted.");
       return;
@@ -349,7 +346,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
 
     if (generatedVectors.length !== first5Nodes.length) {
       console.error(
-        "runFullEmbeddingProcess (NEW API HIERARCHY): Mismatch between number of nodes and generated embeddings.",
+        "runFullEmbeddingProcess (BATCH API): Mismatch between number of nodes and generated embeddings.",
       );
       alert(
         "Critical Error: Mismatch in embedding generation. Process halted.",
@@ -359,12 +356,12 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       );
     }
     console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Embeddings generated successfully.",
+      "runFullEmbeddingProcess (BATCH API): Embeddings generated successfully.",
     );
 
-    // --- 6. Upload Content and Embeddings to Supabase ---
+    // --- 6. BATCH Upload Content to Supabase ---
     console.log(
-      `runFullEmbeddingProcess (NEW API HIERARCHY): Uploading ${first5Nodes.length} nodes to Supabase...`,
+      `runFullEmbeddingProcess (BATCH API): Preparing ${first5Nodes.length} Content records for batch upload...`,
     );
     let successCount = 0;
     let errorCount = 0;
@@ -395,24 +392,24 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
           last_synced: currentTime,
         };
         console.debug(
-          `runFullEmbeddingProcess (NEW API HIERARCHY): Creating Content for UID ${node.uid}`,
+          `runFullEmbeddingProcess (BATCH API): Creating Content for UID ${node.uid}`,
           contentPayload,
         );
 
         const contentData = (await fetchSupabaseEntity(
           "Content",
           contentPayload,
-        )) as ContentResponse; // MODIFIED
+        )) as BatchContentItemResponse; // MODIFIED
         if (!contentData?.id) {
           console.error(
-            `runFullEmbeddingProcess (NEW API HIERARCHY): Error creating Content for node UID ${node.uid}: ID missing`,
+            `runFullEmbeddingProcess (BATCH API): Error creating Content for node UID ${node.uid}: ID missing`,
           );
           errorCount++;
           continue;
         }
         contentId = contentData.id;
         console.debug(
-          `runFullEmbeddingProcess (NEW API HIERARCHY): Content created for UID ${node.uid}, Content ID: ${contentId}`,
+          `runFullEmbeddingProcess (BATCH API): Content created for UID ${node.uid}, Content ID: ${contentId}`,
         );
 
         // 6b. Create ContentEmbedding entry
@@ -423,7 +420,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
           obsolete: false, // ADDED
         };
         console.debug(
-          `runFullEmbeddingProcess (NEW API HIERARCHY): Creating Embedding for Content ID ${contentId}`,
+          `runFullEmbeddingProcess (BATCH API): Creating Embedding for Content ID ${contentId}`,
         );
         await fetchSupabaseEntity(
           "ContentEmbedding_openai_text_embedding_3_small_1536",
@@ -431,13 +428,13 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
         ); // MODIFIED table name
 
         console.debug(
-          `runFullEmbeddingProcess (NEW API HIERARCHY): Embedding created for Content ID ${contentId}`,
+          `runFullEmbeddingProcess (BATCH API): Embedding created for Content ID ${contentId}`,
         );
         successCount++;
       } catch (nodeProcessingError: any) {
         // This will catch errors from both fetchSupabaseEntity calls
         console.error(
-          `runFullEmbeddingProcess (NEW API HIERARCHY): Error processing node UID ${node.uid}:`,
+          `runFullEmbeddingProcess (BATCH API): Error processing node UID ${node.uid}:`,
           nodeProcessingError.message,
           nodeProcessingError.stack,
         );
@@ -446,7 +443,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     }
 
     console.log(
-      `runFullEmbeddingProcess (NEW API HIERARCHY): Embedding process complete. Success: ${successCount}, Errors: ${errorCount}`,
+      `runFullEmbeddingProcess (BATCH API): Embedding process complete. Success: ${successCount}, Errors: ${errorCount}`,
     );
     if (errorCount > 0) {
       alert(
@@ -463,7 +460,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
     }
   } catch (error: any) {
     console.error(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Critical error in overall process:",
+      "runFullEmbeddingProcess (BATCH API): Critical error in overall process:",
       error.message,
       error.stack,
     );
@@ -471,9 +468,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       `A critical error occurred: ${error.message}. Check console for details.`,
     );
   } finally {
-    console.log(
-      "runFullEmbeddingProcess (NEW API HIERARCHY): Process finished.",
-    );
+    console.log("runFullEmbeddingProcess (BATCH API): Process finished.");
   }
 };
 
