@@ -1,6 +1,7 @@
 export type EmbeddingVector = number[];
 
 import { Result } from "./types";
+import { getNodeEnv } from "roamjs-components/util/env";
 
 export type CandidateNodeWithEmbedding = {
   uid: string;
@@ -37,9 +38,11 @@ type SearchFunc = (params: {
 }) => Promise<HydeInternalSearchResultItem[]>;
 
 // --- INTERNAL CONSTANTS (no longer exported) ---
-const ANTHROPIC_API_URL = "https://discoursegraphs.com/api/llm/anthropic/chat";
-const ANTHROPIC_MODEL = "claude-3-sonnet-20240229";
+const ANTHROPIC_API_URL = "http://localhost:3000/api/llm/openai/chat";
+const ANTHROPIC_MODEL = "gpt-4.1";
 const ANTHROPIC_REQUEST_TIMEOUT_MS = 30_000;
+const MATCH_EMBEDDINGS_API_URL =
+  "/api/supabase/rpc/match-embeddings-for-subset-nodes"; // Relative path for client-side fetch
 
 // --- INTERNAL IMPLEMENTATIONS (no longer exported) ---
 
@@ -82,13 +85,7 @@ const generateHypotheticalNode: HypotheticalNodeGenerator = async ({
       );
     }
 
-    const body = await response.json().catch(() => null);
-    if (!body || typeof body.completion !== "string") {
-      console.error("Claude API returned unexpected payload:", body);
-      throw new Error("Claude API returned unexpected payload");
-    }
-
-    return body.completion.trim();
+    return await response.text();
   } catch (error) {
     if (
       error instanceof Error &&
@@ -111,8 +108,7 @@ const createEmbeddingForTextWithThrow: EmbeddingFunc = async (
   text: string,
 ): Promise<EmbeddingVector> => {
   if (!text.trim()) throw new Error("Input text for embedding is empty.");
-  const isDevelopment =
-    typeof window !== "undefined" && window.location.hostname === "localhost";
+  const isDevelopment = getNodeEnv() === "development";
   const apiUrl = isDevelopment
     ? "http://localhost:3000/api/embeddings/openai/small"
     : "https://discoursegraphs.com/api/embeddings/openai/small";
@@ -141,37 +137,105 @@ const createEmbeddingForTextWithThrow: EmbeddingFunc = async (
   }
 };
 
-const searchEmbeddingsInNodeSubsetViaRPC: SearchFunc = async ({
+const searchEmbeddingsInNodeSubsetViaAPI: SearchFunc = async ({
   queryEmbedding,
   indexData,
 }): Promise<HydeInternalSearchResultItem[]> => {
-  const supabaseClient =
-    typeof window !== "undefined" &&
-    (window as any).roamAlphaAPI?.customExtensionAPI?.supabase;
-  if (!supabaseClient) {
-    console.warn(
-      "searchEmbeddingsInNodeSubsetViaRPC: Supabase client not available.",
+  console.log("[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Started", {
+    queryEmbedding: queryEmbedding?.length,
+    indexDataCount: indexData?.length,
+  });
+  const subsetRoamUids = indexData.map((node) => node.uid);
+
+  if (queryEmbedding.length === 0) {
+    console.log(
+      "[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: No query embedding provided. Exiting.",
     );
     return [];
   }
-  const subsetRoamUids = indexData.map((node) => node.uid);
-  if (subsetRoamUids.length === 0) return [];
+  // Allow searching with an embedding even if subsetRoamUids is empty, the backend will handle it.
+  // if (subsetRoamUids.length === 0) {
+  //   console.log("[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: No subsetRoamUids to search against. Exiting.");
+  //   return [];
+  // }
+
+  const isDevelopment = getNodeEnv() === "development";
+  const baseUrl = isDevelopment
+    ? "http://localhost:3000"
+    : "https://discoursegraphs.com";
+  const fullApiUrl = `${baseUrl}${MATCH_EMBEDDINGS_API_URL}`;
+  console.log(
+    `[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Determined API URL: ${fullApiUrl}`,
+  );
 
   try {
-    const { data, error } = await supabaseClient.rpc(
-      "match_embeddings_for_subset_nodes",
-      { p_query_embedding: queryEmbedding, p_subset_roam_uids: subsetRoamUids },
+    console.log(
+      `[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Calling fetch to ${fullApiUrl} with queryEmbedding length ${queryEmbedding?.length} and ${subsetRoamUids?.length} UIDs.`,
     );
-    if (error) {
-      console.error("RPC match_embeddings_for_subset_nodes error:", error);
-      return [];
+    const response = await fetch(fullApiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        queryEmbedding: queryEmbedding,
+        subsetRoamUids: subsetRoamUids,
+      }),
+    });
+
+    console.log(
+      `[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Fetch response status: ${response.status}, ok: ${response.ok}`,
+    );
+
+    if (!response.ok) {
+      let errorData;
+      const responseText = await response.text(); // Get text for better error logging
+      try {
+        errorData = JSON.parse(responseText); // Try to parse as JSON
+      } catch (e) {
+        errorData = {
+          error: `API Error (${response.status}): ${responseText}`,
+        };
+      }
+      console.error(
+        `[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: API request failed to ${fullApiUrl}. Status: ${response.status}. Error Data:`,
+        errorData,
+      );
+      throw new Error(
+        errorData.error ||
+          `API request failed with status ${response.status}. Response: ${responseText}`,
+      );
     }
-    return (data || []).map((item: any) => ({
+
+    const results = await response.json();
+    console.log(
+      "[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Received results from API:",
+      results,
+    );
+
+    if (!Array.isArray(results)) {
+      console.error(
+        "[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: API response was not an array.",
+        results,
+      );
+      throw new Error("Invalid API response format: Expected an array.");
+    }
+
+    const mappedResults = results.map((item: any) => ({
       object: { uid: item.roam_uid, text: item.text_content },
       score: item.similarity,
     }));
-  } catch (e) {
-    console.error("Exception in searchEmbeddingsInNodeSubsetViaRPC:", e);
+    console.log(
+      "[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Mapped results:",
+      mappedResults,
+    );
+    return mappedResults;
+  } catch (e: any) {
+    console.error(
+      `[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Exception calling ${fullApiUrl}:`,
+      e.message,
+      e.stack,
+    );
     return [];
   }
 };
@@ -185,25 +249,56 @@ async function searchAgainstCandidatesInternal({
   hypotheticalTexts: string[];
   indexData: CandidateNodeWithEmbedding[];
 }): Promise<HydeInternalSearchResultItem[][]> {
-  return Promise.all(
-    hypotheticalTexts.map(async (hypoText) => {
+  console.log("[HyDE Roam] searchAgainstCandidatesInternal: Started", {
+    hypotheticalTextsCount: hypotheticalTexts?.length,
+    indexDataCount: indexData?.length,
+  });
+  const results = await Promise.all(
+    hypotheticalTexts.map(async (hypoText, index) => {
+      console.log(
+        `[HyDE Roam] searchAgainstCandidatesInternal: Processing hypothetical text ${index + 1}: "${hypoText}"`,
+      );
       try {
         const queryEmbedding = await createEmbeddingForTextWithThrow(hypoText);
-        return await searchEmbeddingsInNodeSubsetViaRPC({
+        console.log(
+          `[HyDE Roam] searchAgainstCandidatesInternal: Generated embedding for text ${index + 1}, length: ${queryEmbedding?.length}`,
+        );
+        console.log(
+          "[HyDE Roam] searchAgainstCandidatesInternal: Calling searchEmbeddingsInNodeSubsetViaAPI with indexData count:",
+          indexData?.length,
+        );
+        const searchResult = await searchEmbeddingsInNodeSubsetViaAPI({
           queryEmbedding,
           indexData,
         });
-      } catch (error) {
-        console.error(`Error searching for "${hypoText}":`, error);
+        console.log(
+          `[HyDE Roam] searchAgainstCandidatesInternal: Search result for text ${index + 1}:`,
+          searchResult,
+        );
+        return searchResult;
+      } catch (error: any) {
+        console.error(
+          `[HyDE Roam] searchAgainstCandidatesInternal: Error searching for "${hypoText}":`,
+          error.message,
+          error.stack,
+        );
         return [];
       }
     }),
   );
+  console.log(
+    "[HyDE Roam] searchAgainstCandidatesInternal: All search results:",
+    results,
+  );
+  return results;
 }
 
 function combineScoresInternal(
   allSearchResults: HydeInternalSearchResultItem[][],
 ): Map<string, number> {
+  console.log("[HyDE Roam] combineScoresInternal: Started", {
+    allSearchResultsCount: allSearchResults?.length,
+  });
   const maxScores = new Map<string, number>();
   allSearchResults.forEach((resultSet) => {
     resultSet.forEach((result) => {
@@ -213,6 +308,7 @@ function combineScoresInternal(
       }
     });
   });
+  console.log("[HyDE Roam] combineScoresInternal: Combined scores:", maxScores);
   return maxScores;
 }
 
@@ -223,6 +319,10 @@ function rankNodesInternal({
   maxScores: Map<string, number>;
   candidateNodes: CandidateNodeWithEmbedding[];
 }): SuggestedNode[] {
+  console.log("[HyDE Roam] rankNodesInternal: Started", {
+    maxScoresSize: maxScores?.size,
+    candidateNodesCount: candidateNodes?.length,
+  });
   const nodeMap = new Map<string, CandidateNodeWithEmbedding>(
     candidateNodes.map((node) => [node.uid, node]),
   );
@@ -242,7 +342,9 @@ function rankNodesInternal({
   });
 
   combinedResults.sort((a, b) => b.score - a.score);
-  return combinedResults.map((item) => item.node);
+  const rankedNodes = combinedResults.map((item) => item.node);
+  console.log("[HyDE Roam] rankNodesInternal: Ranked nodes:", rankedNodes);
+  return rankedNodes;
 }
 
 // --- EXPORTED PUBLIC API ---
@@ -255,7 +357,17 @@ export const findSimilarNodesUsingHyde = async ({
   currentNodeText: string;
   relationTriplets: RelationTriplet[];
 }): Promise<SuggestedNode[]> => {
-  if (!candidateNodes?.length) return [];
+  console.log("[HyDE Roam] findSimilarNodesUsingHyde: Started", {
+    candidateNodesCount: candidateNodes?.length,
+    currentNodeText,
+    relationTriplets,
+  });
+  if (!candidateNodes?.length) {
+    console.log(
+      "[HyDE Roam] findSimilarNodesUsingHyde: No candidate nodes. Exiting.",
+    );
+    return [];
+  }
 
   try {
     const hypotheticalTexts = (
@@ -265,23 +377,49 @@ export const findSimilarNodesUsingHyde = async ({
         ),
       )
     ).filter((text) => !text.startsWith("Error:"));
+    console.log(
+      "[HyDE Roam] findSimilarNodesUsingHyde: Generated hypothetical texts:",
+      hypotheticalTexts,
+    );
 
     if (!hypotheticalTexts.length) {
-      console.warn("HyDE: No valid hypothetical nodes generated.");
+      console.warn(
+        "[HyDE Roam] findSimilarNodesUsingHyde: No valid hypothetical nodes generated. Exiting.",
+      );
       return [];
     }
 
+    console.log(
+      "[HyDE Roam] findSimilarNodesUsingHyde: Calling searchAgainstCandidatesInternal.",
+    );
     const allSearchResults = await searchAgainstCandidatesInternal({
       hypotheticalTexts,
       indexData: candidateNodes,
     });
+    console.log(
+      "[HyDE Roam] findSimilarNodesUsingHyde: Received allSearchResults:",
+      allSearchResults,
+    );
 
     const maxScores = combineScoresInternal(allSearchResults);
+    console.log(
+      "[HyDE Roam] findSimilarNodesUsingHyde: Calculated maxScores:",
+      maxScores,
+    );
+
     const rankedNodes = rankNodesInternal({ maxScores, candidateNodes });
+    console.log(
+      "[HyDE Roam] findSimilarNodesUsingHyde: Final rankedNodes:",
+      rankedNodes,
+    );
 
     return rankedNodes;
-  } catch (error) {
-    console.error("Error in findSimilarNodesUsingHyde:", error);
+  } catch (error: any) {
+    console.error(
+      "[HyDE Roam] findSimilarNodesUsingHyde: Error in main function:",
+      error.message,
+      error.stack,
+    );
     return [];
   }
 };
