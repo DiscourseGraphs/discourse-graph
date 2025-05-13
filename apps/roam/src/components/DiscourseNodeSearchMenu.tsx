@@ -12,7 +12,6 @@ import {
   Position,
   Checkbox,
   Button,
-  Icon,
 } from "@blueprintjs/core";
 import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
@@ -23,17 +22,12 @@ import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { escapeCljString } from "~/utils/formatUtils";
+import { Result } from "~/utils/types";
 
 type Props = {
   textarea: HTMLTextAreaElement;
   triggerPosition: number;
   onClose: () => void;
-};
-
-type NodeSearchResult = {
-  id: string;
-  text: string;
-  uid?: string;
 };
 
 const waitForBlock = (
@@ -64,15 +58,26 @@ const NodeSearchMenu = ({
   const [discourseTypes, setDiscourseTypes] = useState<DiscourseNode[]>([]);
   const [checkedTypes, setCheckedTypes] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [searchResults, setSearchResults] = useState<
-    Record<string, NodeSearchResult[]>
-  >({});
+  const [searchResults, setSearchResults] = useState<Record<string, Result[]>>(
+    {},
+  );
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedSearchTerm = useCallback((term: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      setSearchTerm(term);
+    }, 300);
+  }, []);
 
   const searchNodesForType = (
     node: DiscourseNode,
     searchTerm: string,
-  ): NodeSearchResult[] => {
+  ): Result[] => {
     if (!node.format) return [];
 
     try {
@@ -106,7 +111,7 @@ const NodeSearchMenu = ({
   };
 
   useEffect(() => {
-    const fetchNodes = async () => {
+    const fetchNodeTypes = async () => {
       setIsLoading(true);
 
       const allNodeTypes = getDiscourseNodes().filter(
@@ -130,13 +135,13 @@ const NodeSearchMenu = ({
       setIsLoading(false);
     };
 
-    fetchNodes();
+    fetchNodeTypes();
   }, []);
 
   useEffect(() => {
     if (isLoading) return;
 
-    const newResults: Record<string, NodeSearchResult[]> = {};
+    const newResults: Record<string, Result[]> = {};
 
     discourseTypes.forEach((type) => {
       newResults[type.type] = searchNodesForType(type, searchTerm);
@@ -165,7 +170,7 @@ const NodeSearchMenu = ({
     const items: {
       typeIndex: number;
       itemIndex: number;
-      item: NodeSearchResult;
+      item: Result;
     }[] = [];
 
     filteredTypes.forEach((type, typeIndex) => {
@@ -179,7 +184,7 @@ const NodeSearchMenu = ({
   }, [filteredTypes, searchResults]);
 
   const onSelect = useCallback(
-    (item: NodeSearchResult) => {
+    (item: Result) => {
       waitForBlock(blockUid, textarea.value).then(() => {
         onClose();
 
@@ -238,12 +243,12 @@ const NodeSearchMenu = ({
     );
     const match = atTriggerRegex.exec(textBeforeCursor);
     if (match) {
-      setSearchTerm(match[1]);
+      debouncedSearchTerm(match[1]);
     } else {
       onClose();
       return;
     }
-  }, [textarea, onClose, setSearchTerm, triggerPosition]);
+  }, [textarea, onClose, debouncedSearchTerm, triggerPosition]);
 
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
@@ -293,16 +298,12 @@ const NodeSearchMenu = ({
     if (listeningEl) {
       listeningEl.addEventListener("keydown", keydownListener);
       listeningEl.addEventListener("input", handleTextAreaInput);
-      listeningEl.addEventListener("blur", handleTextAreaInput);
-      listeningEl.addEventListener("click", handleTextAreaInput);
     }
 
     return () => {
       if (listeningEl) {
         listeningEl.removeEventListener("keydown", keydownListener);
         listeningEl.removeEventListener("input", handleTextAreaInput);
-        listeningEl.removeEventListener("blur", handleTextAreaInput);
-        listeningEl.removeEventListener("click", handleTextAreaInput);
       }
     };
   }, [textarea, keydownListener, handleTextAreaInput]);
@@ -312,6 +313,14 @@ const NodeSearchMenu = ({
       handleTextAreaInput();
     }, 50);
   }, [handleTextAreaInput]);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -461,7 +470,7 @@ const NodeSearchMenu = ({
                         const isActive = currentGlobalIndex === activeIndex;
                         return (
                           <MenuItem
-                            key={item.id}
+                            key={item.uid}
                             text={item.text}
                             data-active={isActive}
                             active={isActive}
