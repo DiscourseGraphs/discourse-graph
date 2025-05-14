@@ -2,6 +2,7 @@
   "name": "@repo/types",
   "version": "0.0.0",
   "private": true,
+  "license": "Apache-2.0",
   "main": "./index.ts",
   "types": "./index.ts"
 }

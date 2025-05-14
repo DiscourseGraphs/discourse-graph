@@ -9,7 +9,7 @@
     "deploy": "tsx scripts/deploy.ts",
     "publish": "tsx scripts/publish.ts"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@repo/tailwind-config": "*",
     "@types/contrast-color": "^1.0.0",
