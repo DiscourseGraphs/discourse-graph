@@ -41,19 +41,19 @@ export const DEFAULT_SETTINGS: Settings = {
   relationTypes: Object.values(defaultRelationTypes),
   discourseRelations: [
     {
-      sourceId: defaultNodeTypes.Question!.id,
-      destinationId: defaultNodeTypes.Evidence!.id,
+      sourceId: defaultNodeTypes.Evidence!.id,
+      destinationId: defaultNodeTypes.Question!.id,
+      relationshipTypeId: defaultRelationTypes.informs!.id,
+    },
+    {
+      sourceId: defaultNodeTypes.Evidence!.id,
+      destinationId: defaultNodeTypes.Claim!.id,
       relationshipTypeId: defaultRelationTypes.supports!.id,
     },
     {
-      sourceId: defaultNodeTypes.Claim!.id,
-      destinationId: defaultNodeTypes.Evidence!.id,
+      sourceId: defaultNodeTypes.Evidence!.id,
+      destinationId: defaultNodeTypes.Claim!.id,
       relationshipTypeId: defaultRelationTypes.opposes!.id,
-    },
-    {
-      sourceId: defaultNodeTypes.Claim!.id,
-      destinationId: defaultNodeTypes.Evidence!.id,
-      relationshipTypeId: defaultRelationTypes.informs!.id,
     },
   ],
 };
