@@ -1,5 +1,4 @@
-import { Editor, MarkdownView, MarkdownFileInfo } from "obsidian";
-import { SampleModal } from "~/components/SampleModal";
+import { Editor } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 
@@ -18,6 +17,17 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Toggle Discourse Context",
     callback: () => {
       plugin.toggleDiscourseContextView();
+    },
+  });
+
+  plugin.addCommand({
+    id: "open-discourse-graph-settings",
+    name: "Open Discourse Graph Settings",
+    callback: () => {
+      // This is another unofficial API, but it works
+      const setting = (plugin.app as any).setting;
+      setting.open();
+      setting.openTabById(plugin.manifest.id);
     },
   });
 };
