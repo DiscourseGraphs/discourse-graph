@@ -459,7 +459,7 @@ const NodeSearchMenu = ({
                 )}
               </div>
               <div className="h-64 overflow-y-auto" ref={scrollContainerRef}>
-                {filteredTypes.map((type, typeIndex) => (
+                {filteredTypes.map((type) => (
                   <div key={type.type} className="mb-2">
                     <div className="border-b border-gray-200 px-3 py-1 text-sm font-semibold text-gray-500">
                       {type.text}
