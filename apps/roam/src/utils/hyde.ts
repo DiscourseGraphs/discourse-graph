@@ -111,7 +111,8 @@ const createEmbeddingForTextWithThrow: EmbeddingFunc = async (
   const isDevelopment = getNodeEnv() === "development";
   const apiUrl = isDevelopment
     ? "http://localhost:3000/api/embeddings/openai/small"
-    : "https://discoursegraphs.com/api/embeddings/openai/small";
+    : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/embeddings/openai/small";
+  // : "https://discoursegraphs.com/api/embeddings/openai/small";
   try {
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -162,7 +163,8 @@ const searchEmbeddingsInNodeSubsetViaAPI: SearchFunc = async ({
   const isDevelopment = getNodeEnv() === "development";
   const baseUrl = isDevelopment
     ? "http://localhost:3000"
-    : "https://discoursegraphs.com";
+    : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app";
+  // : "https://discoursegraphs.com";
   const fullApiUrl = `${baseUrl}${MATCH_EMBEDDINGS_API_URL}`;
   console.log(
     `[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Determined API URL: ${fullApiUrl}`,

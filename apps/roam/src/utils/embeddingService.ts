@@ -12,7 +12,8 @@ export async function getEmbeddingsService(
   const isDevelopment = process.env.NODE_ENV === "development";
   const apiUrl = isDevelopment
     ? "http://localhost:3000/api/embeddings/openai/small"
-    : "https://discoursegraphs.com/api/embeddings/openai/small";
+    : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/embeddings/openai/small";
+  // : "https://discoursegraphs.com/api/embeddings/openai/small";
 
   const allEmbeddings: number[][] = [];
   const texts = nodes.map((node) => node.string);
