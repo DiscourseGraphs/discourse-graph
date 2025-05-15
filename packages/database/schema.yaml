@@ -200,14 +200,10 @@ classes:
       - space
       - contributors
       - last_modified
-      - last_synced
     attributes:
       part_of:
         description: This content is part of a larger content unit
         range: Content
-      represents:
-        description: This content explicitly represents a concept
-        range: Concept
   # ContentDerivation:
   #   description: A derivation relation between content units
   #   attributes:
@@ -230,7 +226,6 @@ classes:
       - space
       - source_local_id
       - url
-      - last_synced
       - created
       - metadata
       - last_modified
@@ -276,7 +271,6 @@ classes:
       - contributors
       - created
       - last_modified
-      - last_synced
       - space
     attributes:
       arity:
@@ -294,6 +288,9 @@ classes:
         range: boolean
         required: true
         ifabsent: false
+      represented_by:
+        description: This concept is explicitly represented by a given content unit
+        range: Content
       # update status
       # concept has occurences and possibly a representation in a space.
       # Are concepts space-specific? Tending to yes. So the point of convergence should be distinct.
