@@ -109,9 +109,11 @@ const createEmbeddingForTextWithThrow: EmbeddingFunc = async (
 ): Promise<EmbeddingVector> => {
   if (!text.trim()) throw new Error("Input text for embedding is empty.");
   const isDevelopment = getNodeEnv() === "development";
-  const apiUrl = isDevelopment
-    ? "http://localhost:3000/api/embeddings/openai/small"
-    : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/embeddings/openai/small";
+  const apiUrl =
+    "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/embeddings/openai/small";
+  // isDevelopment
+  //   ? "http://localhost:3000/api/embeddings/openai/small"
+  //   :
   // : "https://discoursegraphs.com/api/embeddings/openai/small";
   try {
     const response = await fetch(apiUrl, {
@@ -161,9 +163,10 @@ const searchEmbeddingsInNodeSubsetViaAPI: SearchFunc = async ({
   // }
 
   const isDevelopment = getNodeEnv() === "development";
-  const baseUrl = isDevelopment
-    ? "http://localhost:3000"
-    : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app";
+  const baseUrl =
+    "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app";
+  // isDevelopment
+  //   ? "http://localhost:3000"
   // : "https://discoursegraphs.com";
   const fullApiUrl = `${baseUrl}${MATCH_EMBEDDINGS_API_URL}`;
   console.log(

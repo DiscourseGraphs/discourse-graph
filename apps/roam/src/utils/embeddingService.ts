@@ -10,9 +10,9 @@ export async function getEmbeddingsService(
   nodes: RoamContentNode[],
 ): Promise<NodeWithEmbedding[]> {
   const isDevelopment = process.env.NODE_ENV === "development";
-  const apiUrl = isDevelopment
-    ? "http://localhost:3000/api/embeddings/openai/small"
-    : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/embeddings/openai/small";
+  const apiUrl =
+    "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/embeddings/openai/small";
+  //? "http://localhost:3000/api/embeddings/openai/small"
   // : "https://discoursegraphs.com/api/embeddings/openai/small";
 
   const allEmbeddings: number[][] = [];
