@@ -135,7 +135,7 @@ interface NodeWithEmbedding extends RoamContentNode {
 }
 
 // Add constant for Supabase batch size
-const SUPABASE_BATCH_SIZE = 900;
+const SUPABASE_BATCH_SIZE = 500;
 
 export const runFullEmbeddingProcess = async (): Promise<void> => {
   console.log("runFullEmbeddingProcess (BATCH API V2): Process started.");
