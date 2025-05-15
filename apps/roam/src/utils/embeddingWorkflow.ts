@@ -119,7 +119,6 @@ interface ContentPayload {
   metadata: object;
   created: string;
   last_modified: string;
-  last_synced: string;
 }
 
 // Payload for ContentEmbedding batch API
@@ -419,7 +418,6 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       },
       created: currentTime,
       last_modified: currentTime,
-      last_synced: currentTime,
     }));
 
     let createdContents: BatchContentItemResponse[] = [];

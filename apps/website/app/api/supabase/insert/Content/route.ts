@@ -15,7 +15,6 @@ interface ContentDataInput {
   last_modified: string;
   document_id?: number;
   part_of_id?: number;
-  represents_id?: number;
 }
 
 interface ContentResult {
@@ -39,7 +38,6 @@ async function createContentEntry(
     last_modified,
     document_id,
     part_of_id,
-    represents_id,
   } = data;
 
   // Validate required fields
@@ -130,7 +128,6 @@ async function createContentEntry(
     last_modified,
     document_id,
     part_of_id,
-    represents_id,
   };
 
   const { data: newContent, error: insertError } = await supabase
@@ -169,13 +166,6 @@ async function createContentEntry(
         return {
           content: null,
           error: `Invalid part_of_id: No Content record found for ID ${part_of_id}.`,
-          details: insertError.message,
-        };
-      }
-      if (insertError.message.includes("represents_id_fkey")) {
-        return {
-          content: null,
-          error: `Invalid represents_id: No Content record found for ID ${represents_id}.`,
           details: insertError.message,
         };
       }

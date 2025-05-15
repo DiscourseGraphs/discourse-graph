@@ -16,7 +16,6 @@ interface ContentBatchItemInput {
   created: string;
   last_modified: string;
   part_of_id?: number;
-  represents_id?: number;
 }
 
 // The request body will be an array of these items
