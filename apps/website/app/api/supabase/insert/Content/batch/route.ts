@@ -15,7 +15,6 @@ interface ContentBatchItemInput {
   metadata?: Record<string, unknown> | string | null; // Allow string for pre-stringified, or null
   created: string;
   last_modified: string;
-  last_synced?: string;
   part_of_id?: number;
   represents_id?: number;
 }

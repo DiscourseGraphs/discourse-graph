@@ -14,7 +14,6 @@ interface ContentDataInput {
   created: string;
   last_modified: string;
   document_id?: number;
-  last_synced?: string;
   part_of_id?: number;
   represents_id?: number;
 }
@@ -39,7 +38,6 @@ async function createContentEntry(
     created,
     last_modified,
     document_id,
-    last_synced,
     part_of_id,
     represents_id,
   } = data;
@@ -131,7 +129,6 @@ async function createContentEntry(
     created,
     last_modified,
     document_id,
-    last_synced,
     part_of_id,
     represents_id,
   };
