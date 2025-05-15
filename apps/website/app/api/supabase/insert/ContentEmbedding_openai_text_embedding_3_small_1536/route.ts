@@ -99,14 +99,14 @@ export async function POST(request: NextRequest) {
         { error: "Missing or invalid target_id" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     if (!body.model || typeof body.model !== "string") {
       response = NextResponse.json(
         { error: "Missing or invalid model name" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     if (
       !body.vector ||
@@ -117,14 +117,14 @@ export async function POST(request: NextRequest) {
         { error: "Missing or invalid vector. Must be an array of numbers." },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     if (body.obsolete !== undefined && typeof body.obsolete !== "boolean") {
       response = NextResponse.json(
         { error: "Invalid type for obsolete. Must be a boolean." },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
 
     const { embedding, error, details } = await createContentEmbeddingEntry(
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
           { error: error, details: details },
           { status: 400 },
         );
-        return cors(request, response);
+        return cors(request, response) as NextResponse;
       }
       const clientError = error.startsWith("Database error")
         ? "An internal error occurred while processing ContentEmbedding."
@@ -154,11 +154,11 @@ export async function POST(request: NextRequest) {
         { error: clientError, details: details },
         { status: 500 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
 
     response = NextResponse.json(embedding, { status: 201 });
-    return cors(request, response);
+    return cors(request, response) as NextResponse;
   } catch (e: any) {
     console.error(
       "API route error in /api/supabase/insert/ContentEmbedding:",
@@ -169,17 +169,17 @@ export async function POST(request: NextRequest) {
         { error: "Invalid JSON in request body" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     response = NextResponse.json(
       { error: "An unexpected error occurred processing your request" },
       { status: 500 },
     );
-    return cors(request, response);
+    return cors(request, response) as NextResponse;
   }
 }
 
 export async function OPTIONS(request: NextRequest) {
   const response = new NextResponse(null, { status: 204 });
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 }

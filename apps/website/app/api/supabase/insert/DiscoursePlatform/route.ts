@@ -130,14 +130,14 @@ export async function POST(request: NextRequest) {
         { error: "Missing or invalid name in request body" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     if (!url || typeof url !== "string" || url.trim() === "") {
       response = NextResponse.json(
         { error: "Missing or invalid url in request body" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
 
     const { platform, error, details, created } =
@@ -191,10 +191,10 @@ export async function POST(request: NextRequest) {
       );
     }
   }
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 }
 
 export async function OPTIONS(request: NextRequest) {
   const response = new NextResponse(null, { status: 204 });
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 }

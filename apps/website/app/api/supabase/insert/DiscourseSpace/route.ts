@@ -143,14 +143,14 @@ export async function POST(request: NextRequest) {
         { error: "Missing or invalid name in request body" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     if (!url || typeof url !== "string" || url.trim() === "") {
       response = NextResponse.json(
         { error: "Missing or invalid url in request body" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     if (
       discourse_platform_id === undefined ||
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
         { error: "Missing or invalid discourse_platform_id in request body" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
 
     const { space, error, details, created } = await getOrCreateDiscourseSpace(
@@ -186,9 +186,11 @@ export async function POST(request: NextRequest) {
         },
         { status: 500 },
       );
+      return cors(request, response) as NextResponse;
     } else {
       if (space) {
         response = NextResponse.json(space, { status: created ? 201 : 200 });
+        return cors(request, response) as NextResponse;
       } else {
         console.error(
           `API Error for DiscourseSpace (Name: ${name}, URL: ${url}, PlatformID: ${discourse_platform_id}): Space was null without an error flag.`,
@@ -200,6 +202,7 @@ export async function POST(request: NextRequest) {
           },
           { status: 500 },
         );
+        return cors(request, response) as NextResponse;
       }
     }
   } catch (e: any) {
@@ -209,17 +212,18 @@ export async function POST(request: NextRequest) {
         { error: "Invalid JSON in request body" },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     } else {
       response = NextResponse.json(
         { error: "An unexpected error occurred processing your request" },
         { status: 500 },
       );
+      return cors(request, response) as NextResponse;
     }
   }
-  return cors(request, response);
 }
 
 export async function OPTIONS(request: NextRequest) {
   const response = new NextResponse(null, { status: 204 });
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 }

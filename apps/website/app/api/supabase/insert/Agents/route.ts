@@ -101,7 +101,7 @@ export const POST = async (request: NextRequest) => {
         { error: "Validation Error: Missing or invalid type for Agent" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
 
     const result = await createAgentEntry(supabase, body);
@@ -118,8 +118,10 @@ export const POST = async (request: NextRequest) => {
         { error: clientError, details: result.details },
         { status: statusCode },
       );
+      return cors(request, response) as NextResponse;
     } else {
       response = NextResponse.json(result.agent, { status: 201 }); // Agent created
+      return cors(request, response) as NextResponse;
     }
   } catch (e: any) {
     console.error("API route error in /api/supabase/insert/Agents:", e);
@@ -133,17 +135,19 @@ export const POST = async (request: NextRequest) => {
         { error: "Invalid JSON in request body" },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     } else {
       response = NextResponse.json(
         { error: "An unexpected error occurred" },
         { status: 500 },
       );
+      return cors(request, response) as NextResponse;
     }
   }
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 };
 
 export const OPTIONS = async (request: NextRequest) => {
   const response = new NextResponse(null, { status: 204 });
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 };

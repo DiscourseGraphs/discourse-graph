@@ -144,7 +144,7 @@ export const POST = async (request: NextRequest) => {
         { error: "Validation Error: Missing or invalid name for Person" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     if (
       !body.email ||
@@ -156,7 +156,7 @@ export const POST = async (request: NextRequest) => {
         { error: "Validation Error: Missing or invalid email for Person" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     // ORCID is optional
 
@@ -204,11 +204,11 @@ export const POST = async (request: NextRequest) => {
     }
     response = NextResponse.json(errorPayload, { status });
   }
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 };
 
 // OPTIONS handler remains the same
 export const OPTIONS = async (request: NextRequest) => {
   const response = new NextResponse(null, { status: 204 });
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 };

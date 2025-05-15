@@ -103,28 +103,28 @@ export async function POST(request: NextRequest) {
         { error: "Missing required field: space_id" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     if (!body.created) {
       response = NextResponse.json(
         { error: "Missing required field: created" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     if (!body.last_modified) {
       response = NextResponse.json(
         { error: "Missing required field: last_modified" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
     if (body.author_id === undefined || body.author_id === null) {
       response = NextResponse.json(
         { error: "Missing required field: author_id" },
         { status: 400 },
       );
-      return cors(request, response);
+      return cors(request, response) as NextResponse;
     }
 
     const { document, error, details } = await createDocumentEntry(
@@ -168,10 +168,10 @@ export async function POST(request: NextRequest) {
       );
     }
   }
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 }
 
 export async function OPTIONS(request: NextRequest) {
   const response = new NextResponse(null, { status: 204 });
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 }

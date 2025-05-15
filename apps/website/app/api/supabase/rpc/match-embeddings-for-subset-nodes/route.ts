@@ -138,10 +138,10 @@ export async function POST(request: NextRequest) {
     "[API Route] POST: Sending final response with status:",
     response.status,
   );
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 }
 
 export async function OPTIONS(request: NextRequest) {
   const response = new NextResponse(null, { status: 204 });
-  return cors(request, response);
+  return cors(request, response) as NextResponse;
 }
