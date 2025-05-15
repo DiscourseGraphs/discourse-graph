@@ -10,7 +10,6 @@ interface DocumentDataInput {
   metadata?: Record<string, unknown>;
   created: string;
   last_modified: string;
-  last_synced: string;
   author_id: number;
 }
 
@@ -31,7 +30,6 @@ async function createDocumentEntry(
     metadata,
     created,
     last_modified,
-    last_synced,
     author_id,
   } = data;
 
@@ -51,7 +49,6 @@ async function createDocumentEntry(
     metadata: metadata ? JSON.stringify(metadata) : "{}",
     created,
     last_modified,
-    last_synced,
     author_id,
   };
 

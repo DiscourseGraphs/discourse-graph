@@ -317,10 +317,6 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       author_id: personId, // Document author is the Person
       created: nowForDoc,
       last_modified: nowForDoc,
-      last_synced: nowForDoc,
-      // title: `Roam Import - ${nowForDoc}`, // Optional: A title for the document
-      // source_local_id: `roam-graph-${graphName}-import-${Date.now()}`, // Optional: a unique ID for this import document
-      // metadata: { import_tool: "roam-extension" } // Optional
     };
     let documentId: number;
     try {
