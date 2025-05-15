@@ -205,7 +205,6 @@ export const initObservers = async ({
           cursorPos === 0 ||
           textarea.value.charAt(cursorPos - 1) === " " ||
           textarea.value.charAt(cursorPos - 1) === "\n";
-
         if (isBeginningOrAfterSpace) {
           renderDiscourseNodeSearchMenu({
             onClose: () => {},
