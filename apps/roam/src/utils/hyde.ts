@@ -38,7 +38,9 @@ type SearchFunc = (params: {
 }) => Promise<HydeInternalSearchResultItem[]>;
 
 // --- INTERNAL CONSTANTS (no longer exported) ---
-const ANTHROPIC_API_URL = "http://localhost:3000/api/llm/openai/chat";
+const ANTHROPIC_API_URL =
+  "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/llm/openai/chat";
+// "http://localhost:3000/api/llm/openai/chat";
 const ANTHROPIC_MODEL = "gpt-4.1";
 const ANTHROPIC_REQUEST_TIMEOUT_MS = 30_000;
 const MATCH_EMBEDDINGS_API_URL =
