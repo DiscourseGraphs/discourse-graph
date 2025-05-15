@@ -1,6 +1,7 @@
 {
   "name": "discourse-graph",
   "private": true,
+  "license": "Apache-2.0",
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
