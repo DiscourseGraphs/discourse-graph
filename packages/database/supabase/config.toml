@@ -2,7 +2,7 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
-project_id = "apps"
+project_id = "discourse-graphs"
 
 [api]
 enabled = true
@@ -48,7 +48,18 @@ max_client_conn = 100
 [db.migrations]
 # Specifies an ordered list of schema files that describe your database.
 # Supports glob patterns relative to supabase directory: "./schemas/*.sql"
-schema_paths = []
+schema_paths = [
+    './schemas/base.sql',
+    './schemas/extensions.sql',
+    './schemas/agent.sql',
+    './schemas/space.sql',
+    './schemas/account.sql',
+    './schemas/content.sql',
+    './schemas/embedding.sql',
+    './schemas/concept.sql',
+    './schemas/contributor.sql',
+    './schemas/sync.sql',
+]
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
@@ -105,9 +116,15 @@ file_size_limit = "50MiB"
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+# site_url = "http://127.0.0.1:3000"
+site_url = "https://discourse-graph-discourse-graphs.vercel.app/"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = [
+    "https://discourse-graph-discourse-graphs.vercel.app/",
+    "https://discourse-graph-discourse-graphs.vercel.app/**",
+    "https://discourse-*-graph-discourse-graphs.vercel.app",
+    "https://discourse-*-graph-discourse-graphs.vercel.app/**",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # If disabled, the refresh token will never expire.
@@ -154,15 +171,15 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+max_frequency = "1m0s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+otp_expiry = 86400
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]
@@ -220,8 +237,8 @@ max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]
