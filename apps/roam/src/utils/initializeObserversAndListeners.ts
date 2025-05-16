@@ -184,28 +184,18 @@ export const initObservers = async ({
         textarea.value.charAt(cursorPos - 1) === "\n";
 
       if (isBeginningOrAfterSpace) {
-        // Don't insert the trigger for key combinations that already produce the character
-        // (e.g., Shift+2 already produces @)
         const triggerChar = nodeSearchTriggerCombo?.key || "@";
-
-        // The position where the menu should appear (at the start of the trigger character)
         let triggerPosition = cursorPos;
 
-        // For key combinations like Ctrl+key that wouldn't naturally insert characters
         if (!evt.isComposing && evt.key !== triggerChar) {
-          // Insert the trigger character at the cursor position
           const text = textarea.value;
           const newText =
             text.slice(0, cursorPos) + triggerChar + text.slice(cursorPos);
 
-          // Update the text - this needs to use updateBlock because directly modifying
-          // textarea.value doesn't trigger Roam's internal state updates
           const blockUid = getUids(textarea).blockUid;
           if (blockUid) {
             updateBlock({ uid: blockUid, text: newText });
           }
-
-          // The menu should appear at the current cursor position
           triggerPosition = cursorPos;
         }
 

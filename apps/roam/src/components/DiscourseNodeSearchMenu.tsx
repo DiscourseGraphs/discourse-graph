@@ -544,7 +544,6 @@ export const NodeSearchMenuTriggerComponent = ({
       const comboObj = getKeyCombo(e.nativeEvent);
       if (!comboObj.key) return;
       const specialCharMap = {
-        // Numbers row
         "~": { key: "`", modifiers: 8 },
         "!": { key: "1", modifiers: 8 },
         "@": { key: "2", modifiers: 8 },
@@ -558,8 +557,6 @@ export const NodeSearchMenuTriggerComponent = ({
         ")": { key: "0", modifiers: 8 },
         _: { key: "-", modifiers: 8 },
         "+": { key: "=", modifiers: 8 },
-
-        // Brackets and punctuation
         "{": { key: "[", modifiers: 8 },
         "}": { key: "]", modifiers: 8 },
         "|": { key: "\\", modifiers: 8 },
