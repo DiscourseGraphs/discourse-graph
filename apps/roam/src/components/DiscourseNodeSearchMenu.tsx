@@ -30,6 +30,7 @@ type Props = {
   textarea: HTMLTextAreaElement;
   triggerPosition: number;
   onClose: () => void;
+  triggerText: string;
 };
 
 const waitForBlock = (
@@ -53,6 +54,7 @@ const NodeSearchMenu = ({
   onClose,
   textarea,
   triggerPosition,
+  triggerText,
 }: { onClose: () => void } & Props) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
@@ -238,19 +240,23 @@ const NodeSearchMenu = ({
   );
 
   const handleTextAreaInput = useCallback(() => {
-    const atTriggerRegex = /@(.*)$/;
+    const triggerRegex = new RegExp(
+      `${triggerText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(.*)$`,
+    );
     const textBeforeCursor = textarea.value.substring(
       triggerPosition,
       textarea.selectionStart,
     );
-    const match = atTriggerRegex.exec(textBeforeCursor);
+    const match = triggerRegex.exec(textBeforeCursor);
     if (match) {
       debouncedSearchTerm(match[1]);
     } else {
       onClose();
       return;
     }
-  }, [textarea, onClose, debouncedSearchTerm, triggerPosition]);
+  }, [textarea, onClose, debouncedSearchTerm, triggerPosition, triggerText]);
+
+  console.log(activeIndex);
 
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
