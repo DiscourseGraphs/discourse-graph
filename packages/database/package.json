@@ -1,0 +1,24 @@
+{
+  "name": "@repo/database",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    "./types.gen.ts": "./types.gen.ts"
+  },
+  "scripts": {
+    "init": "supabase login",
+    "dev": "supabase start",
+    "stop": "supabase stop",
+    "local-types": "supabase start && supabase gen types typescript --local --schema public > types.gen.ts",
+    "active-types": "supabase start && supabase gen types typescript --project-id \"$PRODUCTION_PROJECT_ID\" --schema public > types.gen.ts",
+    "new-migration": "supabase stop && supabase db diff -f ",
+    "deploy": "supabase db push --project-id \"$PRODUCTION_PROJECT_ID\""
+  },
+  "devDependencies": {
+    "supabase": "^2.22.12",
+    "tsx": "^4.19.2"
+  },
+  "dependencies": {}
+}
