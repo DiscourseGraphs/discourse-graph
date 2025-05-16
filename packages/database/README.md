@@ -18,6 +18,6 @@ All CLI commands below should be run in this directory (`packages/database`.)
    4. `supabase db diff -f some_meaningful_migration_name`
    5. If applying the new schema fails, repeat steps 2 and 3
    6. If all goes well, there should be a new file named `supbase/migration/2..._some_meaningful_migration_name.sql` which you should `git add`.
-   7. Regenerate the types file with `supabase gen types typescript --local > types.gen.ts`
-   8. You can start using your changes `supabase start`
+   7. You can start using your changes `supabase start`
+   8. Regenerate the types file with `supabase gen types typescript --local > types.gen.ts`
    9. When your PR gets merged to main, deploy your changes to production with `supabase db push`. (URGENT TODO: make that a CI/CD step.)

@@ -112,7 +112,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "person_id_fkey"
+            foreignKeyName: "automated_agent_id_fkey"
             columns: ["id"]
             isOneToOne: true
             referencedRelation: "Agent"
@@ -131,8 +131,8 @@ export type Database = {
           id: number
           is_schema: boolean
           last_modified: string
-          last_synced: string
           name: string
+          represented_by_id: number | null
           schema_id: number | null
           space_id: number | null
         }
@@ -146,8 +146,8 @@ export type Database = {
           id?: number
           is_schema?: boolean
           last_modified: string
-          last_synced: string
           name: string
+          represented_by_id?: number | null
           schema_id?: number | null
           space_id?: number | null
         }
@@ -161,8 +161,8 @@ export type Database = {
           id?: number
           is_schema?: boolean
           last_modified?: string
-          last_synced?: string
           name?: string
+          represented_by_id?: number | null
           schema_id?: number | null
           space_id?: number | null
         }
@@ -172,6 +172,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "Agent"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_represented_by_id_fkey"
+            columns: ["represented_by_id"]
+            isOneToOne: false
+            referencedRelation: "Content"
             referencedColumns: ["id"]
           },
           {
@@ -228,10 +235,8 @@ export type Database = {
           document_id: number
           id: number
           last_modified: string
-          last_synced: string
           metadata: Json
           part_of_id: number | null
-          represents_id: number | null
           scale: Database["public"]["Enums"]["Scale"]
           source_local_id: string | null
           space_id: number | null
@@ -244,10 +249,8 @@ export type Database = {
           document_id: number
           id?: number
           last_modified: string
-          last_synced: string
           metadata?: Json
           part_of_id?: number | null
-          represents_id?: number | null
           scale: Database["public"]["Enums"]["Scale"]
           source_local_id?: string | null
           space_id?: number | null
@@ -260,10 +263,8 @@ export type Database = {
           document_id?: number
           id?: number
           last_modified?: string
-          last_synced?: string
           metadata?: Json
           part_of_id?: number | null
-          represents_id?: number | null
           scale?: Database["public"]["Enums"]["Scale"]
           source_local_id?: string | null
           space_id?: number | null
@@ -296,13 +297,6 @@ export type Database = {
             columns: ["part_of_id"]
             isOneToOne: false
             referencedRelation: "Content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Content_represents_id_fkey"
-            columns: ["represents_id"]
-            isOneToOne: false
-            referencedRelation: "Concept"
             referencedColumns: ["id"]
           },
           {
@@ -427,7 +421,6 @@ export type Database = {
           created: string
           id: number
           last_modified: string
-          last_synced: string
           metadata: Json
           source_local_id: string | null
           space_id: number | null
@@ -439,7 +432,6 @@ export type Database = {
           created: string
           id?: number
           last_modified: string
-          last_synced: string
           metadata?: Json
           source_local_id?: string | null
           space_id?: number | null
@@ -451,7 +443,6 @@ export type Database = {
           created?: string
           id?: number
           last_modified?: string
-          last_synced?: string
           metadata?: Json
           source_local_id?: string | null
           space_id?: number | null
@@ -588,6 +579,29 @@ export type Database = {
           s_status: Database["public"]["Enums"]["task_status"]
         }
         Returns: undefined
+      }
+      match_content_embeddings: {
+        Args: {
+          query_embedding: string
+          match_threshold: number
+          match_count: number
+          current_document_id?: number
+        }
+        Returns: {
+          content_id: number
+          roam_uid: string
+          text_content: string
+          similarity: number
+        }[]
+      }
+      match_embeddings_for_subset_nodes: {
+        Args: { p_query_embedding: string; p_subset_roam_uids: string[] }
+        Returns: {
+          content_id: number
+          roam_uid: string
+          text_content: string
+          similarity: number
+        }[]
       }
       propose_sync_task: {
         Args: {
