@@ -1,7 +1,7 @@
-import { DiscourseNode, DiscourseRelationType, Settings } from "./types";
-import generateUid from "./utils/generateUid";
+import { DiscourseNode, DiscourseRelationType, Settings } from "~/types";
+import generateUid from "~/utils/generateUid";
 
-export const defaultNodeTypes: Record<string, DiscourseNode> = {
+export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
   Question: {
     id: generateUid("node"),
     name: "Question",
@@ -18,7 +18,7 @@ export const defaultNodeTypes: Record<string, DiscourseNode> = {
     format: "EVD - {content}",
   },
 };
-export const defaultRelationTypes: Record<string, DiscourseRelationType> = {
+export const DEFAULT_RELATION_TYPES: Record<string, DiscourseRelationType> = {
   supports: {
     id: generateUid("relation"),
     label: "supports",
@@ -37,23 +37,23 @@ export const defaultRelationTypes: Record<string, DiscourseRelationType> = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  nodeTypes: Object.values(defaultNodeTypes),
-  relationTypes: Object.values(defaultRelationTypes),
+  nodeTypes: Object.values(DEFAULT_NODE_TYPES),
+  relationTypes: Object.values(DEFAULT_RELATION_TYPES),
   discourseRelations: [
     {
-      sourceId: defaultNodeTypes.Evidence!.id,
-      destinationId: defaultNodeTypes.Question!.id,
-      relationshipTypeId: defaultRelationTypes.informs!.id,
+      sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
+      destinationId: DEFAULT_NODE_TYPES.Question!.id,
+      relationshipTypeId: DEFAULT_RELATION_TYPES.informs!.id,
     },
     {
-      sourceId: defaultNodeTypes.Evidence!.id,
-      destinationId: defaultNodeTypes.Claim!.id,
-      relationshipTypeId: defaultRelationTypes.supports!.id,
+      sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
+      destinationId: DEFAULT_NODE_TYPES.Claim!.id,
+      relationshipTypeId: DEFAULT_RELATION_TYPES.supports!.id,
     },
     {
-      sourceId: defaultNodeTypes.Evidence!.id,
-      destinationId: defaultNodeTypes.Claim!.id,
-      relationshipTypeId: defaultRelationTypes.opposes!.id,
+      sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
+      destinationId: DEFAULT_NODE_TYPES.Claim!.id,
+      relationshipTypeId: DEFAULT_RELATION_TYPES.opposes!.id,
     },
   ],
 };
