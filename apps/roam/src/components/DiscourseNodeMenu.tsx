@@ -197,18 +197,18 @@ export const render = (props: Props) => {
 };
 
 // node_modules\@blueprintjs\core\lib\esm\components\hotkeys\hotkeyParser.js
-const isMac = () => {
+export const isMac = () => {
   const platform =
     typeof navigator !== "undefined" ? navigator.platform : undefined;
   return platform == null ? false : /Mac|iPod|iPhone|iPad/.test(platform);
 };
-const MODIFIER_BIT_MASKS = {
+export const MODIFIER_BIT_MASKS = {
   alt: 1,
   ctrl: 2,
   meta: 4,
   shift: 8,
 };
-const ALIASES: { [key: string]: string } = {
+export const ALIASES: { [key: string]: string } = {
   cmd: "meta",
   command: "meta",
   escape: "esc",
@@ -219,7 +219,7 @@ const ALIASES: { [key: string]: string } = {
   return: "enter",
   win: "meta",
 };
-const normalizeKeyCombo = (combo: string) => {
+export const normalizeKeyCombo = (combo: string) => {
   const keys = combo.replace(/\s/g, "").split("+");
   return keys.map(function (key) {
     const keyName = ALIASES[key] != null ? ALIASES[key] : key;

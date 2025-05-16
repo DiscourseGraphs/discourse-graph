@@ -3,7 +3,8 @@ import {
   createButtonObserver,
   getPageTitleValueByHtmlElement,
 } from "roamjs-components/dom";
-import { createBlock } from "roamjs-components/writes";
+import { createBlock, updateBlock } from "roamjs-components/writes";
+import getUids from "roamjs-components/dom/getUids";
 import { renderLinkedReferenceAdditions } from "~/utils/renderLinkedReferenceAdditions";
 import { createConfigObserver } from "roamjs-components/components/ConfigPage";
 import { renderTldrawCanvas } from "~/components/canvas/Tldraw";
@@ -148,6 +149,11 @@ export const initObservers = async ({
     ) as IKeyCombo) || undefined;
   const personalTrigger = personalTriggerCombo?.key;
   const personalModifiers = getModifiersFromCombo(personalTriggerCombo);
+
+  const nodeSearchTriggerCombo =
+    (onloadArgs.extensionAPI.settings.get(
+      "discourse-node-search-trigger",
+    ) as IKeyCombo) || undefined;
   const handleNodeMenuRender = (target: HTMLElement, evt: KeyboardEvent) => {
     if (
       target.tagName === "TEXTAREA" &&
@@ -159,6 +165,60 @@ export const initObservers = async ({
       });
       evt.preventDefault();
       evt.stopPropagation();
+    }
+  };
+
+  const handleNodeSearchRender = (target: HTMLElement, evt: KeyboardEvent) => {
+    if (
+      target.tagName === "TEXTAREA" &&
+      target.classList.contains("rm-block-input")
+    ) {
+      const textarea = target as HTMLTextAreaElement;
+      const location = window.roamAlphaAPI.ui.getFocusedBlock();
+      if (!location) return;
+
+      const cursorPos = textarea.selectionStart;
+      const isBeginningOrAfterSpace =
+        cursorPos === 0 ||
+        textarea.value.charAt(cursorPos - 1) === " " ||
+        textarea.value.charAt(cursorPos - 1) === "\n";
+
+      if (isBeginningOrAfterSpace) {
+        // Don't insert the trigger for key combinations that already produce the character
+        // (e.g., Shift+2 already produces @)
+        const triggerChar = nodeSearchTriggerCombo?.key || "@";
+
+        // The position where the menu should appear (at the start of the trigger character)
+        let triggerPosition = cursorPos;
+
+        // For key combinations like Ctrl+key that wouldn't naturally insert characters
+        if (!evt.isComposing && evt.key !== triggerChar) {
+          // Insert the trigger character at the cursor position
+          const text = textarea.value;
+          const newText =
+            text.slice(0, cursorPos) + triggerChar + text.slice(cursorPos);
+
+          // Update the text - this needs to use updateBlock because directly modifying
+          // textarea.value doesn't trigger Roam's internal state updates
+          const blockUid = getUids(textarea).blockUid;
+          if (blockUid) {
+            updateBlock({ uid: blockUid, text: newText });
+          }
+
+          // The menu should appear at the current cursor position
+          triggerPosition = cursorPos;
+        }
+
+        renderDiscourseNodeSearchMenu({
+          onClose: () => {},
+          textarea: textarea,
+          triggerPosition: triggerPosition,
+          extensionAPI: onloadArgs.extensionAPI,
+        });
+
+        evt.preventDefault();
+        evt.stopPropagation();
+      }
     }
   };
 
@@ -191,28 +251,26 @@ export const initObservers = async ({
     const target = evt.target as HTMLElement;
     if (document.querySelector(".discourse-node-search-menu")) return;
 
-    if (evt.key === "@" || (evt.key === "2" && evt.shiftKey)) {
-      if (
-        target.tagName === "TEXTAREA" &&
-        target.classList.contains("rm-block-input")
-      ) {
-        const textarea = target as HTMLTextAreaElement;
-        const location = window.roamAlphaAPI.ui.getFocusedBlock();
-        if (!location) return;
+    // If no personal trigger is set or key is empty, the feature is disabled
+    if (!nodeSearchTriggerCombo?.key) return;
 
-        const cursorPos = textarea.selectionStart;
-        const isBeginningOrAfterSpace =
-          cursorPos === 0 ||
-          textarea.value.charAt(cursorPos - 1) === " " ||
-          textarea.value.charAt(cursorPos - 1) === "\n";
-        if (isBeginningOrAfterSpace) {
-          renderDiscourseNodeSearchMenu({
-            onClose: () => {},
-            textarea: textarea,
-            triggerPosition: cursorPos,
-          });
-        }
-      }
+    const personalTrigger = nodeSearchTriggerCombo.key;
+    const personalModifiers = getModifiersFromCombo(nodeSearchTriggerCombo);
+
+    let triggerMatched = false;
+
+    console.log("evt.key", evt.key);
+    console.log("personal trigger", personalTrigger, nodeSearchTriggerCombo);
+    if (evt.key === personalTrigger) {
+      triggerMatched =
+        (!personalModifiers.includes("ctrl") || evt.ctrlKey) &&
+        (!personalModifiers.includes("shift") || evt.shiftKey) &&
+        (!personalModifiers.includes("alt") || evt.altKey) &&
+        (!personalModifiers.includes("meta") || evt.metaKey);
+    }
+
+    if (triggerMatched) {
+      handleNodeSearchRender(target, evt);
     }
   };
 

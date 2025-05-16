@@ -3,6 +3,7 @@ import { OnloadArgs } from "roamjs-components/types";
 import { Label, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
+import { NodeSearchMenuTriggerComponent } from "~/components/DiscourseNodeSearchMenu";
 import {
   getOverlayHandler,
   onPageRefObserverChange,
@@ -28,6 +29,17 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         />
         <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
       </Label>
+
+      <Label>
+        Node Search Menu Trigger
+        <Description
+          description={
+            "Customize the trigger key for the Discourse Node Search Menu (default: @). Must refresh after editing."
+          }
+        />
+        <NodeSearchMenuTriggerComponent extensionAPI={extensionAPI} />
+      </Label>
+
       <Checkbox
         defaultChecked={
           extensionAPI.settings.get("discourse-context-overlay") as boolean

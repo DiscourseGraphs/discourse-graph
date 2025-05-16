@@ -12,6 +12,9 @@ import {
   Position,
   Checkbox,
   Button,
+  InputGroup,
+  IKeyCombo,
+  getKeyCombo,
 } from "@blueprintjs/core";
 import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
@@ -23,11 +26,14 @@ import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { escapeCljString } from "~/utils/formatUtils";
 import { Result } from "~/utils/types";
+import { OnloadArgs } from "roamjs-components/types";
+import { getModifiersFromCombo, normalizeKeyCombo } from "./DiscourseNodeMenu";
 
 type Props = {
   textarea: HTMLTextAreaElement;
   triggerPosition: number;
   onClose: () => void;
+  extensionAPI: OnloadArgs["extensionAPI"];
 };
 
 const waitForBlock = (
@@ -51,6 +57,7 @@ const NodeSearchMenu = ({
   onClose,
   textarea,
   triggerPosition,
+  extensionAPI,
 }: { onClose: () => void } & Props) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
@@ -236,19 +243,15 @@ const NodeSearchMenu = ({
   );
 
   const handleTextAreaInput = useCallback(() => {
-    const atTriggerRegex = /@(.*)$/;
-    const textBeforeCursor = textarea.value.substring(
+    const textAfterTrigger = textarea.value.substring(
       triggerPosition,
       textarea.selectionStart,
     );
-    const match = atTriggerRegex.exec(textBeforeCursor);
-    if (match) {
-      debouncedSearchTerm(match[1]);
-    } else {
-      onClose();
-      return;
+
+    if (textAfterTrigger.length > 0) {
+      debouncedSearchTerm(textAfterTrigger);
     }
-  }, [textarea, onClose, debouncedSearchTerm, triggerPosition]);
+  }, [textarea, debouncedSearchTerm, triggerPosition]);
 
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
@@ -517,6 +520,111 @@ export const renderDiscourseNodeSearchMenu = (props: Props) => {
       }}
     />,
     parent,
+  );
+};
+
+export const NodeSearchMenuTriggerComponent = ({
+  extensionAPI,
+}: {
+  extensionAPI: OnloadArgs["extensionAPI"];
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isActive, setIsActive] = useState(false);
+  const [comboKey, setComboKey] = useState<IKeyCombo>(
+    () =>
+      (extensionAPI.settings.get(
+        "discourse-node-search-trigger",
+      ) as IKeyCombo) || { modifiers: 0, key: "@" },
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const comboObj = getKeyCombo(e.nativeEvent);
+      if (!comboObj.key) return;
+      const specialCharMap = {
+        // Numbers row
+        "~": { key: "`", modifiers: 8 },
+        "!": { key: "1", modifiers: 8 },
+        "@": { key: "2", modifiers: 8 },
+        "#": { key: "3", modifiers: 8 },
+        $: { key: "4", modifiers: 8 },
+        "%": { key: "5", modifiers: 8 },
+        "^": { key: "6", modifiers: 8 },
+        "&": { key: "7", modifiers: 8 },
+        "*": { key: "8", modifiers: 8 },
+        "(": { key: "9", modifiers: 8 },
+        ")": { key: "0", modifiers: 8 },
+        _: { key: "-", modifiers: 8 },
+        "+": { key: "=", modifiers: 8 },
+
+        // Brackets and punctuation
+        "{": { key: "[", modifiers: 8 },
+        "}": { key: "]", modifiers: 8 },
+        "|": { key: "\\", modifiers: 8 },
+        ":": { key: ";", modifiers: 8 },
+        '"': { key: "'", modifiers: 8 },
+        "<": { key: ",", modifiers: 8 },
+        ">": { key: ".", modifiers: 8 },
+        "?": { key: "/", modifiers: 8 },
+      };
+
+      for (const [specialChar, mapping] of Object.entries(specialCharMap)) {
+        if (
+          comboObj.key === mapping.key &&
+          comboObj.modifiers === mapping.modifiers
+        ) {
+          setComboKey({ modifiers: 0, key: specialChar });
+          extensionAPI.settings.set("discourse-node-search-trigger", {
+            modifiers: 0,
+            key: specialChar,
+          });
+          return;
+        }
+      }
+
+      setComboKey(comboObj);
+      extensionAPI.settings.set("discourse-node-search-trigger", comboObj);
+    },
+    [extensionAPI],
+  );
+
+  const shortcut = useMemo(() => {
+    if (!comboKey.key) return "";
+
+    const modifiers = getModifiersFromCombo(comboKey);
+    const comboString = [...modifiers, comboKey.key].join("+");
+    return normalizeKeyCombo(comboString).join("+");
+  }, [comboKey]);
+
+  return (
+    <InputGroup
+      inputRef={inputRef}
+      placeholder={
+        isActive ? "Press keys ..." : "Click to set trigger (default: @)"
+      }
+      value={shortcut}
+      onKeyDown={handleKeyDown}
+      onFocus={() => setIsActive(true)}
+      onBlur={() => setIsActive(false)}
+      rightElement={
+        <Button
+          hidden={
+            !comboKey.key || (comboKey.key === "@" && comboKey.modifiers === 0)
+          }
+          icon={"remove"}
+          onClick={() => {
+            setComboKey({ modifiers: 0, key: "@" });
+            extensionAPI.settings.set("discourse-node-search-trigger", {
+              modifiers: 0,
+              key: "@",
+            });
+          }}
+          minimal
+        />
+      }
+    />
   );
 };
 
