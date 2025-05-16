@@ -100,7 +100,12 @@ const generateHypotheticalNode: HypotheticalNodeGenerator = async ({
 }) => {
   const { relationLabel, relatedNodeText, relatedNodeFormat } = relationType;
 
-  const userPromptContent = `Given the source discourse node \\\`\\\`\\\`${node}\\\`\\\`\\\`, \nand considering the relation \\\`\\\`\\\`${relationLabel}\\\`\\\`\\\` \nwhich typically connects to a node of type \\\`\\\`\\\`${relatedNodeText}\\\`\\\`\\\` \n(formatted like \\\`\\\`\\\`${relatedNodeFormat}\\\`\\\`\\\`), \ngenerate a hypothetical related discourse node text that would plausibly fit this relationship. \nOnly return the text of the hypothetical node.`;
+  const userPromptContent = `Given the source discourse node \`\`\`${node}\`\`\`, 
+and considering the relation \`\`\`${relationLabel}\`\`\` 
+which typically connects to a node of type \`\`\`${relatedNodeText}\`\`\` 
+(formatted like \`\`\`${relatedNodeFormat}\`\`\`), 
+generate a hypothetical related discourse node text that would plausibly fit this relationship. 
+Only return the text of the hypothetical node.`;
   const requestBody = {
     documents: [{ role: "user", content: userPromptContent }],
     passphrase: "",
