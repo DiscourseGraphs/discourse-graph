@@ -7,7 +7,6 @@ This document outlines the coding standards and best practices for contributing 
 - Prefer `type` over `interface`
 - Use explicit return types for functions
 - Avoid `any` types when possible
-- Use arrow functions
 
 ## UI Guidelines
 
@@ -83,7 +82,6 @@ const processData = (data: Data) => {
   const transformedData = transformToDesiredFormat(validatedData);
   return formatForDisplay(transformedData);
 };
-
 ```
 
 ## Testing
