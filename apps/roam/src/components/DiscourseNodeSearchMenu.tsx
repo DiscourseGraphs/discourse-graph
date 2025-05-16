@@ -12,6 +12,7 @@ import {
   Position,
   Checkbox,
   Button,
+  InputGroup,
 } from "@blueprintjs/core";
 import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
@@ -19,6 +20,7 @@ import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
+import { OnloadArgs } from "roamjs-components/types";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { escapeCljString } from "~/utils/formatUtils";
@@ -519,5 +521,39 @@ export const renderDiscourseNodeSearchMenu = (props: Props) => {
     parent,
   );
 };
+
+export const NodeSearchMenuTriggerSetting = ({
+  onloadArgs,
+}: {
+  onloadArgs: OnloadArgs;
+}) => {
+  const extensionAPI = onloadArgs.extensionAPI;
+  const [nodeSearchTrigger, setNodeSearchTrigger] = useState<string>(
+    extensionAPI.settings.get("node-search-trigger") as string,
+  );
+
+  const handleNodeSearchTriggerChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const value = e.target.value.trim();
+    const trigger = value
+      .replace(/"/g, "")
+      .replace(/\\/g, "\\\\")
+      .replace(/\+/g, "\\+")
+      .trim();
+
+    setNodeSearchTrigger(trigger);
+    extensionAPI.settings.set("node-search-trigger", trigger);
+  };
+  return (
+    <InputGroup
+      value={nodeSearchTrigger}
+      onChange={handleNodeSearchTriggerChange}
+      placeholder="@"
+      maxLength={5}
+    />
+  );
+};
+
 
 export default NodeSearchMenu;
