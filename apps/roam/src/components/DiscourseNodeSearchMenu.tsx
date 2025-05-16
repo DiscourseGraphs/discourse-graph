@@ -256,8 +256,6 @@ const NodeSearchMenu = ({
     }
   }, [textarea, onClose, debouncedSearchTerm, triggerPosition, triggerText]);
 
-  console.log(activeIndex);
-
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "ArrowDown" && allItems.length) {
@@ -282,7 +280,7 @@ const NodeSearchMenu = ({
         e.stopPropagation();
       }
     },
-    [allItems, setActiveIndex, onSelect, onClose],
+    [allItems, activeIndex, setActiveIndex, onSelect, onClose],
   );
 
   useEffect(() => {

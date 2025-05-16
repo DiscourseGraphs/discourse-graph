@@ -190,10 +190,8 @@ export const initObservers = async ({
     const evt = e as KeyboardEvent;
     const target = evt.target as HTMLElement;
 
-    // Don't process if the menu is already open
     if (document.querySelector(".discourse-node-search-menu")) return;
 
-    // Only handle for textarea inputs in Roam blocks
     if (
       target.tagName === "TEXTAREA" &&
       target.classList.contains("rm-block-input")
@@ -202,23 +200,18 @@ export const initObservers = async ({
       const location = window.roamAlphaAPI.ui.getFocusedBlock();
       if (!location) return;
 
-      // Get custom trigger from settings
       const customTrigger = onloadArgs.extensionAPI.settings.get(
         "node-search-trigger",
       ) as string;
 
-      // If no trigger is set, don't activate the menu
       if (!customTrigger) return;
 
       const cursorPos = textarea.selectionStart;
       const textBeforeCursor = textarea.value.substring(0, cursorPos);
 
-      // Find the last instance of the trigger before cursor
       const lastTriggerPos = textBeforeCursor.lastIndexOf(customTrigger);
 
-      // Only proceed if we found the trigger in the text
       if (lastTriggerPos >= 0) {
-        // Check if the trigger is at the beginning of text or after whitespace
         const charBeforeTrigger =
           lastTriggerPos > 0
             ? textBeforeCursor.charAt(lastTriggerPos - 1)
@@ -229,42 +222,16 @@ export const initObservers = async ({
           charBeforeTrigger === " " ||
           charBeforeTrigger === "\n";
 
-        // Check if cursor is right after the trigger
         const isCursorAfterTrigger =
           cursorPos === lastTriggerPos + customTrigger.length;
 
-        // Only open the menu if the trigger is valid and the cursor is right after it
         if (isValidTriggerPosition && isCursorAfterTrigger) {
-          // If user pressed a key that isn't part of navigation/editing
-          const isActionKey =
-            evt.ctrlKey ||
-            evt.altKey ||
-            evt.metaKey ||
-            [
-              "Shift",
-              "Control",
-              "Alt",
-              "Meta",
-              "CapsLock",
-              "Escape",
-              "ArrowLeft",
-              "ArrowRight",
-              "ArrowUp",
-              "ArrowDown",
-              "Home",
-              "End",
-              "PageUp",
-              "PageDown",
-            ].includes(evt.key);
-
-          if (!isActionKey) {
-            renderDiscourseNodeSearchMenu({
-              onClose: () => {},
-              textarea: textarea,
-              triggerPosition: lastTriggerPos,
-              triggerText: customTrigger,
-            });
-          }
+          renderDiscourseNodeSearchMenu({
+            onClose: () => {},
+            textarea: textarea,
+            triggerPosition: lastTriggerPos,
+            triggerText: customTrigger,
+          });
         }
       }
     }
