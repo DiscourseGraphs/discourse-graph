@@ -1,16 +1,11 @@
-import { Plugin, Editor, Menu, Notice, TFile } from "obsidian";
+import { Plugin, Editor, Menu } from "obsidian";
 import { SettingsTab } from "~/components/Settings";
 import { Settings } from "~/types";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
-import { VIEW_TYPE_DISCOURSE_CONTEXT, DiscourseNode } from "~/types";
+import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { processTextToDiscourseNode } from "./utils/createNodeFromSelectedText";
-
-const DEFAULT_SETTINGS: Settings = {
-  nodeTypes: [],
-  discourseRelations: [],
-  relationTypes: [],
-};
+import { DEFAULT_SETTINGS } from "./constants";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -92,7 +87,12 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const loadedData = await this.loadData();
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
+
+    if (!loadedData) {
+      await this.saveSettings();
+    }
   }
 
   async saveSettings() {
