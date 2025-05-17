@@ -1,51 +1,59 @@
-
-CREATE TYPE "public"."task_status" AS ENUM (
+CREATE TYPE public.task_status AS ENUM (
     'active',
     'timeout',
     'complete',
     'failed'
 );
 
-ALTER TYPE "public"."task_status" OWNER TO "postgres";
+ALTER TYPE public.task_status OWNER TO "postgres";
 
-CREATE TABLE IF NOT EXISTS "public"."sync_info" (
-    "id" integer NOT NULL,
-    "sync_target" bigint,
-    "sync_function" character varying(20),
-    "status" "public"."task_status" DEFAULT 'active'::"public"."task_status",
-    "worker" character varying(100) NOT NULL,
-    "failure_count" smallint DEFAULT 0,
-    "last_task_start" timestamp with time zone,
-    "last_task_end" timestamp with time zone,
-    "task_times_out_at" timestamp with time zone
+CREATE TABLE IF NOT EXISTS public.sync_info (
+    id integer NOT NULL,
+    sync_target bigint,
+    sync_function character varying(20),
+    status public.task_status DEFAULT 'active'::public.task_status,
+    worker character varying(100) NOT NULL,
+    failure_count smallint DEFAULT 0,
+    last_task_start timestamp with time zone,
+    last_task_end timestamp with time zone,
+    task_times_out_at timestamp with time zone
 );
 
-ALTER TABLE "public"."sync_info" OWNER TO "postgres";
+ALTER TABLE public.sync_info OWNER TO "postgres";
 
-CREATE SEQUENCE IF NOT EXISTS "public"."sync_info_id_seq"
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
+CREATE SEQUENCE IF NOT EXISTS public.sync_info_id_seq
+AS integer
+START WITH 1
+INCREMENT BY 1
+NO MINVALUE
+NO MAXVALUE
+CACHE 1;
 
-ALTER TABLE "public"."sync_info_id_seq" OWNER TO "postgres";
+ALTER TABLE public.sync_info_id_seq OWNER TO "postgres";
 
-ALTER SEQUENCE "public"."sync_info_id_seq" OWNED BY "public"."sync_info"."id";
+ALTER SEQUENCE public.sync_info_id_seq OWNED BY public.sync_info.id;
 
-ALTER TABLE ONLY "public"."sync_info" ALTER COLUMN "id" SET DEFAULT "nextval"('"public"."sync_info_id_seq"'::"regclass");
+ALTER TABLE ONLY public.sync_info ALTER COLUMN id SET DEFAULT nextval(
+    'public.sync_info_id_seq'::regclass
+);
 
-ALTER TABLE ONLY "public"."sync_info"
-    ADD CONSTRAINT "sync_info_pkey" PRIMARY KEY ("id");
+ALTER TABLE ONLY public.sync_info
+ADD CONSTRAINT sync_info_pkey PRIMARY KEY (id);
 
-CREATE UNIQUE INDEX "sync_info_u_idx" ON "public"."sync_info" USING "btree" ("sync_target", "sync_function");
+CREATE UNIQUE INDEX sync_info_u_idx ON public.sync_info USING btree (
+    "sync_target", sync_function
+);
 
 
 
-CREATE OR REPLACE FUNCTION "public"."end_sync_task"("s_target" bigint, "s_function" character varying, "s_worker" character varying, "s_status" "public"."task_status") RETURNS "void"
-    LANGUAGE "plpgsql"
-    AS $$
+CREATE OR REPLACE FUNCTION public.end_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    s_status public.task_status
+) RETURNS void
+LANGUAGE plpgsql
+AS $$
 DECLARE t_id INTEGER;
 DECLARE t_worker varchar;
 DECLARE t_status task_status;
@@ -76,12 +84,23 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION "public"."end_sync_task"("s_target" bigint, "s_function" character varying, "s_worker" character varying, "s_status" "public"."task_status") OWNER TO "postgres";
+ALTER FUNCTION public.end_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    s_status public.task_status
+) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."propose_sync_task"("s_target" bigint, "s_function" character varying, "s_worker" character varying, "timeout" interval, "task_interval" interval) RETURNS interval
-    LANGUAGE "plpgsql"
-    AS $$
+CREATE OR REPLACE FUNCTION public.propose_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    "timeout" interval,
+    "task_interval" interval
+) RETURNS interval
+LANGUAGE plpgsql
+AS $$
 DECLARE s_id INTEGER;
 DECLARE start_time TIMESTAMP WITH TIME ZONE;
 DECLARE t_status task_status;
@@ -138,23 +157,62 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION "public"."propose_sync_task"("s_target" bigint, "s_function" character varying, "s_worker" character varying, "timeout" interval, "task_interval" interval) OWNER TO "postgres";
+ALTER FUNCTION public.propose_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    "timeout" interval,
+    "task_interval" interval
+) OWNER TO "postgres";
 
-GRANT ALL ON TABLE "public"."sync_info" TO "anon";
-GRANT ALL ON TABLE "public"."sync_info" TO "authenticated";
-GRANT ALL ON TABLE "public"."sync_info" TO "service_role";
+GRANT ALL ON TABLE public.sync_info TO "anon";
+GRANT ALL ON TABLE public.sync_info TO "authenticated";
+GRANT ALL ON TABLE public.sync_info TO "service_role";
 
-GRANT ALL ON SEQUENCE "public"."sync_info_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."sync_info_id_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."sync_info_id_seq" TO "service_role";
+GRANT ALL ON SEQUENCE public.sync_info_id_seq TO "anon";
+GRANT ALL ON SEQUENCE public.sync_info_id_seq TO "authenticated";
+GRANT ALL ON SEQUENCE public.sync_info_id_seq TO "service_role";
 
-GRANT ALL ON FUNCTION "public"."end_sync_task"("s_target" bigint, "s_function" character varying, "s_worker" character varying, "s_status" "public"."task_status") TO "anon";
-GRANT ALL ON FUNCTION "public"."end_sync_task"("s_target" bigint, "s_function" character varying, "s_worker" character varying, "s_status" "public"."task_status") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."end_sync_task"("s_target" bigint, "s_function" character varying, "s_worker" character varying, "s_status" "public"."task_status") TO "service_role";
+GRANT ALL ON FUNCTION public.end_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    s_status public.task_status
+) TO "anon";
+GRANT ALL ON FUNCTION public.end_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    s_status public.task_status
+) TO "authenticated";
+GRANT ALL ON FUNCTION public.end_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    s_status public.task_status
+) TO "service_role";
 
-GRANT ALL ON FUNCTION "public"."propose_sync_task"("s_target" bigint, "s_function" character varying, "s_worker" character varying, "timeout" interval, "task_interval" interval) TO "anon";
-GRANT ALL ON FUNCTION "public"."propose_sync_task"("s_target" bigint, "s_function" character varying, "s_worker" character varying, "timeout" interval, "task_interval" interval) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."propose_sync_task"("s_target" bigint, "s_function" character varying, "s_worker" character varying, "timeout" interval, "task_interval" interval) TO "service_role";
+GRANT ALL ON FUNCTION public.propose_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    "timeout" interval,
+    "task_interval" interval
+) TO "anon";
+GRANT ALL ON FUNCTION public.propose_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    "timeout" interval,
+    "task_interval" interval
+) TO "authenticated";
+GRANT ALL ON FUNCTION public.propose_sync_task(
+    s_target bigint,
+    s_function character varying,
+    s_worker character varying,
+    "timeout" interval,
+    "task_interval" interval
+) TO "service_role";
 
 
 RESET ALL;
