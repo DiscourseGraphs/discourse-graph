@@ -47,7 +47,6 @@ CREATE OR REPLACE FUNCTION "public"."end_sync_task"("s_target" bigint, "s_functi
     LANGUAGE "plpgsql"
     AS $$
 DECLARE t_id INTEGER;
-DECLARE t_target varchar;
 DECLARE t_worker varchar;
 DECLARE t_status task_status;
 DECLARE t_failure_count SMALLINT;
@@ -57,8 +56,8 @@ BEGIN
         INTO STRICT t_id, t_worker, t_status, t_failure_count, t_last_task_end
         FROM sync_info WHERE sync_target = s_target AND sync_function = s_function;
     ASSERT s_status > 'active';
-    ASSERT t_worker = s_worker, "Wrong worker";
-    ASSERT s_status >= t_status, "do not go back in status";
+    ASSERT t_worker = s_worker, 'Wrong worker';
+    ASSERT s_status >= t_status, 'do not go back in status';
     IF s_status = 'complete' THEN
         t_last_task_end := now();
         t_failure_count := 0;
@@ -84,9 +83,7 @@ CREATE OR REPLACE FUNCTION "public"."propose_sync_task"("s_target" bigint, "s_fu
     LANGUAGE "plpgsql"
     AS $$
 DECLARE s_id INTEGER;
-DECLARE timeout_as TIMESTAMP WITH TIME ZONE;
 DECLARE start_time TIMESTAMP WITH TIME ZONE;
-DECLARE t_worker VARCHAR;
 DECLARE t_status task_status;
 DECLARE t_failure_count SMALLINT;
 DECLARE t_last_task_start TIMESTAMP WITH TIME ZONE;
@@ -110,8 +107,8 @@ BEGIN
     -- now we know it pre-existed. Maybe already active.
     SELECT id INTO STRICT s_id FROM sync_info WHERE sync_target = s_target AND sync_function = s_function;
     PERFORM pg_advisory_lock(s_id);
-    SELECT worker, status, failure_count, last_task_start, last_task_end, task_times_out_at
-        INTO t_worker, t_status, t_failure_count, t_last_task_start, t_last_task_end, t_times_out_at
+    SELECT status, failure_count, last_task_start, last_task_end, task_times_out_at
+        INTO t_status, t_failure_count, t_last_task_start, t_last_task_end, t_times_out_at
         FROM sync_info
         WHERE id = s_id;
 

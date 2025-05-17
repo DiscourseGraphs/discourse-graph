@@ -28,7 +28,7 @@ GRANT ALL ON TABLE "public"."ContentEmbedding_openai_text_embedding_3_small_1536
 GRANT ALL ON TABLE "public"."ContentEmbedding_openai_text_embedding_3_small_1536" TO "authenticated";
 GRANT ALL ON TABLE "public"."ContentEmbedding_openai_text_embedding_3_small_1536" TO "service_role";
 
-
+set search_path to public,extensions;
 
 CREATE OR REPLACE FUNCTION "public"."match_content_embeddings"("query_embedding" "extensions"."vector", "match_threshold" double precision, "match_count" integer, "current_document_id" integer DEFAULT NULL::integer) RETURNS TABLE("content_id" bigint, "roam_uid" "text", "text_content" "text", "similarity" double precision)
     LANGUAGE "sql" STABLE
@@ -75,3 +75,5 @@ ORDER BY similarity DESC; -- Order by calculated similarity, highest first
 $$;
 
 ALTER FUNCTION "public"."match_embeddings_for_subset_nodes"("p_query_embedding" "extensions"."vector", "p_subset_roam_uids" "text"[]) OWNER TO "postgres";
+
+set search_path to '';
