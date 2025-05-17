@@ -11,6 +11,8 @@
     "init": "supabase login",
     "dev": "supabase start",
     "stop": "supabase stop",
+    "lint": "sqruff lint supabase/schemas",
+    "lint:fix": "sqruff fix supabase/schemas",
     "local-types": "supabase start && supabase gen types typescript --local --schema public > types.gen.ts",
     "active-types": "supabase start && supabase gen types typescript --project-id \"$PRODUCTION_PROJECT_ID\" --schema public > types.gen.ts",
     "new-migration": "supabase stop && supabase db diff -f ",
