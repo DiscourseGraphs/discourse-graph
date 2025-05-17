@@ -20,7 +20,9 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import getDiscourseRelations, {
+  DiscourseRelation,
+} from "~/utils/getDiscourseRelations";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
@@ -31,39 +33,9 @@ import { getBlockUidFromTarget } from "roamjs-components/dom";
 import {
   findSimilarNodesUsingHyde,
   SuggestedNode,
-  generateHypotheticalNode,
+  RelationDetails,
   CandidateNodeWithEmbedding,
-  SearchResultItem,
-  EmbeddingVector,
 } from "~/utils/hyde";
-
-// Placeholder for future implementation
-const mockCreateEmbedding = async (text: string): Promise<number[]> => {
-  console.warn(
-    `mockCreateEmbedding called for text: "${text}". Using dummy random embedding.`,
-  );
-  // Return a dummy embedding, matching the dimension (5) used elsewhere for candidate embeddings.
-  return Array.from({ length: 5 }, () => Math.random());
-};
-
-// Placeholder for future implementation
-const mockVectorSearch = async (
-  _queryEmbedding: EmbeddingVector,
-  candidates: CandidateNodeWithEmbedding[],
-  options: { topK: number } = { topK: 3 },
-): Promise<SearchResultItem[]> => {
-  const { topK } = options;
-  const numToReturn = Math.min(topK, candidates.length);
-  console.warn(
-    `mockVectorSearch called with ${candidates.length} candidates. Returning top ${numToReturn} as dummy results.`,
-  );
-  // For a simple mock, return the first few candidates, wrapping them as SearchResultItem.
-  const resultCandidates = candidates.slice(0, numToReturn);
-  return resultCandidates.map((node) => ({
-    object: { uid: node.uid, text: node.text, type: node.type },
-    score: Math.random(), // Assign a dummy score
-  }));
-};
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -124,68 +96,65 @@ const getAllReferencesOnPage = (pageTitle: string) => {
   })) as Result[];
 };
 
-type Relation = {
-  label: string;
-  source: string;
-  destination: string;
+type SelfNodeType = {
+  type: string;
+  text: string;
+  format: string;
 };
 
-type DiscourseNodeInfo = {
-  format: string;
-  text: string;
-  type: string;
-  [key: string]: any;
-};
+type AllNodesType = ReadonlyArray<SelfNodeType>;
 
 const getUniqueLabelTypeTriplets = (
-  relations: Relation[],
-  selfType: string,
-): [string, string, string][] => {
-  const uniquePairStrings = new Set<string>();
-  const separator = "::";
+  connectingRelations: DiscourseRelation[],
+  selfNode: SelfNodeType,
+  allNodes: AllNodesType,
+): RelationDetails[] => {
+  const relatedNodeType = selfNode.type;
 
-  const allNodes = getDiscourseNodes();
-  const nodeMapByType = new Map<string, DiscourseNodeInfo>();
-  allNodes.forEach((node) => {
-    const discourseNode = node as DiscourseNodeInfo;
-    if (discourseNode.type) {
-      nodeMapByType.set(discourseNode.type, discourseNode);
-    }
-  });
+  const mappedItems = connectingRelations.flatMap((relation) => {
+    let targetNodeIdentifier: string;
+    let targetNodeDetails: { text: string; format: string } | undefined;
+    let finalRelationLabel: string;
 
-  for (const relation of relations) {
-    if (relation.label && relation.source && relation.source !== selfType) {
-      uniquePairStrings.add(`${relation.label}${separator}${relation.source}`);
-    }
-    if (
-      relation.label &&
-      relation.destination &&
-      relation.destination !== selfType
-    ) {
-      uniquePairStrings.add(
-        `${relation.label}${separator}${relation.destination}`,
+    if (relation.source === relatedNodeType) {
+      targetNodeIdentifier = relation.destination;
+      finalRelationLabel = relation.label;
+      const destinationNode = allNodes.find(
+        (n) => n.type === targetNodeIdentifier,
       );
-    }
-  }
-
-  const uniqueTriplets: [string, string, string][] = [];
-  Array.from(uniquePairStrings).forEach((pairString) => {
-    const parts = pairString.split(separator);
-    const label = parts[0];
-    const typeIdentifier = parts[1];
-
-    const node = nodeMapByType.get(typeIdentifier);
-
-    if (node) {
-      uniqueTriplets.push([label, node.text, node.format]);
+      if (destinationNode && destinationNode.text && destinationNode.format) {
+        targetNodeDetails = {
+          text: destinationNode.text,
+          format: destinationNode.format,
+        };
+      }
+    } else if (relation.destination === relatedNodeType) {
+      targetNodeIdentifier = relation.source;
+      finalRelationLabel = relation.complement;
+      const sourceNode = allNodes.find((n) => n.type === targetNodeIdentifier);
+      if (sourceNode && sourceNode.text && sourceNode.format) {
+        targetNodeDetails = {
+          text: sourceNode.text,
+          format: sourceNode.format,
+        };
+      }
     } else {
-      console.warn(
-        `Discourse node type "${typeIdentifier}" not found for relation label "${label}".`,
-      );
+      return [];
     }
+
+    if (!targetNodeDetails) {
+      return [];
+    }
+
+    const mappedItem: RelationDetails = {
+      relationLabel: finalRelationLabel,
+      relatedNodeText: targetNodeDetails.text,
+      relatedNodeFormat: targetNodeDetails.format,
+    };
+    return [mappedItem];
   });
 
-  return uniqueTriplets;
+  return mappedItems;
 };
 
 const DiscourseContextOverlay = ({
@@ -204,13 +173,13 @@ const DiscourseContextOverlay = ({
   const [refs, setRefs] = useState(0);
   const [score, setScore] = useState<number | string>(0);
   const [isSearchingHyde, setIsSearchingHyde] = useState(false);
-  const [suggestedNodes, setSuggestedNodes] = useState<SuggestedNode[]>([]);
   const [hydeFilteredNodes, setHydeFilteredNodes] = useState<SuggestedNode[]>(
     [],
   );
 
   const discourseNode = useMemo(() => findDiscourseNode(tagUid), [tagUid]);
   const relations = useMemo(() => getDiscourseRelations(), []);
+  const allNodes = useMemo(() => getDiscourseNodes(), []);
 
   const getInfo = useCallback(
     () =>
@@ -244,26 +213,39 @@ const DiscourseContextOverlay = ({
     getInfo();
   }, [refresh, getInfo]);
 
-  // Suggestive Mode
-  const memoizedData = useMemo(() => {
-    if (!discourseNode)
+  const suggestionContextData = useMemo(() => {
+    const selfNode = discourseNode;
+
+    if (!selfNode || !selfNode.text || !selfNode.format) {
       return {
         validTypes: [] as string[],
-        uniqueRelationTypeTriplets: [] as [string, string, string][],
+        uniqueRelationTypeTriplets: [] as RelationDetails[],
       };
-    const selfType = discourseNode.type;
-    const validRelations = relations.filter((relation) =>
+    }
+    const selfType = selfNode.type;
+
+    const relationsConnectingToSelf = relations.filter(
+      (relation) =>
+        relation.source === selfType || relation.destination === selfType,
+    );
+    const uniqueTriplets = getUniqueLabelTypeTriplets(
+      relationsConnectingToSelf,
+      selfNode,
+      allNodes,
+    );
+
+    const relationsInvolvingSelfBroadly = relations.filter((relation) =>
       [relation.source, relation.destination, relation.label].includes(
         selfType,
       ),
     );
-    const hasSelfRelation = validRelations.some(
+    const hasSelfRelation = relationsInvolvingSelfBroadly.some(
       (relation) =>
         relation.source === selfType && relation.destination === selfType,
     );
     const types = Array.from(
       new Set(
-        validRelations.flatMap((relation) => [
+        relationsInvolvingSelfBroadly.flatMap((relation) => [
           relation.source,
           relation.destination,
         ]),
@@ -273,14 +255,13 @@ const DiscourseContextOverlay = ({
       ? types
       : types.filter((type) => type !== selfType);
 
-    const uniqueTriplets = getUniqueLabelTypeTriplets(validRelations, selfType);
     return {
       validTypes: filteredTypes,
       uniqueRelationTypeTriplets: uniqueTriplets,
     };
-  }, [discourseNode, relations]);
+  }, [discourseNode, relations, allNodes]);
 
-  const { validTypes, uniqueRelationTypeTriplets } = memoizedData;
+  const { validTypes, uniqueRelationTypeTriplets } = suggestionContextData;
 
   const [currentPageInput, setCurrentPageInput] = useState("");
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
@@ -291,7 +272,6 @@ const DiscourseContextOverlay = ({
 
   useEffect(() => {
     if (!selectedPage) {
-      setSuggestedNodes([]);
       setHydeFilteredNodes([]);
       return;
     }
@@ -315,63 +295,82 @@ const DiscourseContextOverlay = ({
           ),
       );
 
-    setSuggestedNodes(nodes);
-
     if (nodes.length > 0 && uniqueRelationTypeTriplets.length > 0) {
-      runHydeSearch(nodes, tag, uniqueRelationTypeTriplets);
+      const performSearch = async () => {
+        setIsSearchingHyde(true);
+        setHydeFilteredNodes([]);
+        try {
+          const foundNodes = await runHydeSearch({
+            currentSuggestions: nodes,
+            currentNodeText: tag,
+            relationDetails: uniqueRelationTypeTriplets,
+          });
+          setHydeFilteredNodes(foundNodes);
+        } catch (error) {
+          console.error(
+            "Error during HyDE search operation in useEffect:",
+            error,
+          );
+          setHydeFilteredNodes([]);
+        } finally {
+          setIsSearchingHyde(false);
+        }
+      };
+      performSearch();
     }
   }, [selectedPage, results, validTypes, tag, uniqueRelationTypeTriplets]);
 
-  const handleCreateBlock = async (nodeText: string) => {
+  const handleCreateBlock = async (node: SuggestedNode) => {
     await createBlock({
       parentUid: blockUid,
       node: { text: `[[${nodeText}]]` },
     });
+    setHydeFilteredNodes(hydeFilteredNodes.filter((n) => n.uid !== node.uid));
   };
 
-  const runHydeSearch = async (
-    currentSuggestions: SuggestedNode[],
-    currentNodeText: string,
-    relationTriplets: [string, string, string][],
-  ) => {
+  type RunHydeSearchArgs = {
+    currentSuggestions: SuggestedNode[];
+    currentNodeText: string;
+    relationDetails: RelationDetails[];
+  };
+
+  const runHydeSearch = async ({
+    currentSuggestions,
+    currentNodeText,
+    relationDetails,
+  }: RunHydeSearchArgs): Promise<SuggestedNode[]> => {
     if (
       !currentSuggestions.length ||
       !currentNodeText ||
-      !relationTriplets.length
+      !relationDetails.length
     ) {
-      setHydeFilteredNodes([]);
-      return;
+      return [];
     }
 
-    setIsSearchingHyde(true);
-    setHydeFilteredNodes([]);
-
     try {
-      const candidateNodesWithEmbeddings: CandidateNodeWithEmbedding[] =
-        currentSuggestions.map((node) => ({
-          ...node,
-          embedding: Array.from({ length: 5 }, () => Math.random()),
-        }));
+      const candidateNodesForHyde = currentSuggestions.map((node) => {
+        const nodeWithEmbedding = {
+          uid: node.uid,
+          text: node.text,
+          type: node.type,
+          embedding: [] as number[],
+        };
+        return nodeWithEmbedding as CandidateNodeWithEmbedding;
+      });
 
-      const options = {
-        hypotheticalNodeGenerator: generateHypotheticalNode,
-        embeddingFunction: mockCreateEmbedding,
-        searchFunction: mockVectorSearch,
-      };
+      const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde({
+        candidateNodes: candidateNodesForHyde,
+        currentNodeText: currentNodeText,
+        relationDetails: relationDetails,
+      });
 
-      const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde(
-        candidateNodesWithEmbeddings,
-        currentNodeText,
-        relationTriplets,
-        options,
-      );
-
-      setHydeFilteredNodes(foundNodes);
+      return foundNodes;
     } catch (error) {
-      console.error("Error during HyDE search:", error);
-      setHydeFilteredNodes([]);
-    } finally {
-      setIsSearchingHyde(false);
+      console.error(
+        "Error during HyDE search with default RPC subset search:",
+        error,
+      );
+      return [];
     }
   };
 
@@ -433,14 +432,14 @@ const DiscourseContextOverlay = ({
                           <Button
                             minimal
                             icon="add"
-                            onClick={() => handleCreateBlock(node.text)}
+                            onClick={() => handleCreateBlock(node)}
                             className="ml-2"
                           />
                         </li>
                       ))
                     : null}
                   {!isSearchingHyde && hydeFilteredNodes.length === 0 && (
-                    <li>No relevant relations found using HyDE.</li>
+                    <li>No relevant relations found.</li>
                   )}
                 </ul>
               </div>
