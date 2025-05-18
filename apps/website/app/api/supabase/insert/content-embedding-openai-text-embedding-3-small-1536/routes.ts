@@ -1,6 +1,7 @@
 import { createClient } from "~/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import cors from "~/utils/llm/cors";
 
 // Based on LinkML for Embedding
 interface ContentEmbeddingDataInput {
@@ -83,9 +84,9 @@ async function createContentEmbeddingEntry(
   return { embedding: newEmbedding, error: null };
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const supabase = await createClient();
-
+  let response: NextResponse;
   try {
     const body: ContentEmbeddingDataInput = await request.json();
 
@@ -94,32 +95,36 @@ export async function POST(request: Request) {
       body.target_id === null ||
       typeof body.target_id !== "number"
     ) {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Missing or invalid target_id" },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     }
     if (!body.model || typeof body.model !== "string") {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Missing or invalid model name" },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     }
     if (
       !body.vector ||
       !Array.isArray(body.vector) ||
       !body.vector.every((v) => typeof v === "number")
     ) {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Missing or invalid vector. Must be an array of numbers." },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     }
     if (body.obsolete !== undefined && typeof body.obsolete !== "boolean") {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Invalid type for obsolete. Must be a boolean." },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     }
 
     const { embedding, error, details } = await createContentEmbeddingEntry(
@@ -136,35 +141,45 @@ export async function POST(request: Request) {
         error.startsWith("Invalid target_id") ||
         error.startsWith("Invalid vector format")
       ) {
-        return NextResponse.json(
+        response = NextResponse.json(
           { error: error, details: details },
           { status: 400 },
         );
+        return cors(request, response) as NextResponse;
       }
       const clientError = error.startsWith("Database error")
         ? "An internal error occurred while processing ContentEmbedding."
         : error;
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: clientError, details: details },
         { status: 500 },
       );
+      return cors(request, response) as NextResponse;
     }
 
-    return NextResponse.json(embedding, { status: 201 });
+    response = NextResponse.json(embedding, { status: 201 });
+    return cors(request, response) as NextResponse;
   } catch (e: any) {
     console.error(
       "API route error in /api/supabase/insert/ContentEmbedding:",
       e,
     );
     if (e instanceof SyntaxError && e.message.toLowerCase().includes("json")) {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     }
-    return NextResponse.json(
+    response = NextResponse.json(
       { error: "An unexpected error occurred processing your request" },
       { status: 500 },
     );
+    return cors(request, response) as NextResponse;
   }
+}
+
+export async function OPTIONS(request: NextRequest) {
+  const response = new NextResponse(null, { status: 204 });
+  return cors(request, response) as NextResponse;
 }

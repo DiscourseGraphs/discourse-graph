@@ -1,26 +1,35 @@
 import { createClient } from "~/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import cors from "~/utils/llm/cors";
 
-interface DiscourseSpaceData {
+type DiscourseSpaceDataInput = {
   name: string;
   url: string;
   discourse_platform_id: number;
-}
+};
 
-interface DiscourseSpaceResult {
-  space: any | null;
+type DiscourseSpaceRecord = {
+  id: number;
+  name: string;
+  url: string;
+  discourse_platform_id: number;
+  // Add other fields from your DiscourseSpace table if they are selected
+};
+
+type GetOrCreateDiscourseSpaceReturn = {
+  space: DiscourseSpaceRecord | null;
   error: string | null;
   details?: string;
-  created?: boolean;
-}
+  created: boolean; // 'created' should always be boolean
+};
 
 async function getOrCreateDiscourseSpace(
   supabase: SupabaseClient<any, "public", any>,
   name: string,
   url: string,
   discoursePlatformId: number,
-): Promise<DiscourseSpaceResult> {
+): Promise<GetOrCreateDiscourseSpaceReturn> {
   if (
     !name ||
     !url ||
@@ -41,7 +50,7 @@ async function getOrCreateDiscourseSpace(
     .select("id, name, url, discourse_platform_id")
     .eq("url", normalizedUrl)
     .eq("discourse_platform_id", discoursePlatformId)
-    .maybeSingle();
+    .maybeSingle<DiscourseSpaceRecord>();
 
   if (fetchError) {
     console.error(
@@ -74,7 +83,7 @@ async function getOrCreateDiscourseSpace(
       .from("DiscourseSpace")
       .insert(spaceToInsert)
       .select("id, name, url, discourse_platform_id")
-      .single();
+      .single<DiscourseSpaceRecord>();
 
     if (insertError) {
       console.error(
@@ -90,7 +99,7 @@ async function getOrCreateDiscourseSpace(
           .select("id, name, url, discourse_platform_id")
           .eq("url", normalizedUrl)
           .eq("discourse_platform_id", discoursePlatformId)
-          .maybeSingle();
+          .maybeSingle<DiscourseSpaceRecord>();
 
         if (reFetchError) {
           console.error(
@@ -129,84 +138,102 @@ async function getOrCreateDiscourseSpace(
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient();
+  let response: NextResponse;
 
   try {
-    const body: DiscourseSpaceData = await request.json();
+    const body: DiscourseSpaceDataInput = await request.json();
     const { name, url, discourse_platform_id } = body;
 
     if (!name || typeof name !== "string" || name.trim() === "") {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Missing or invalid name in request body" },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     }
     if (!url || typeof url !== "string" || url.trim() === "") {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Missing or invalid url in request body" },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     }
     if (
       discourse_platform_id === undefined ||
       discourse_platform_id === null ||
       typeof discourse_platform_id !== "number"
     ) {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Missing or invalid discourse_platform_id in request body" },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     }
 
-    const { space, error, details, created } = await getOrCreateDiscourseSpace(
+    const result = await getOrCreateDiscourseSpace(
       supabase,
       name.trim(),
       url.trim(),
       discourse_platform_id,
     );
 
-    if (error) {
+    if (result.error) {
       console.error(
-        `API Error for DiscourseSpace (Name: ${name}, URL: ${url}, PlatformID: ${discourse_platform_id}): ${error}`,
-        details || "",
+        `API Error for DiscourseSpace (Name: ${name}, URL: ${url}, PlatformID: ${discourse_platform_id}): ${result.error}`,
+        result.details || "",
       );
-      const clientError = error.startsWith("Database error")
+      const clientError = result.error.startsWith("Database error")
         ? "An internal error occurred while processing the DiscourseSpace information."
-        : error;
-      return NextResponse.json(
+        : result.error;
+      response = NextResponse.json(
         {
           error: clientError,
-          details: error.startsWith("Database error") ? undefined : details,
+          details: result.error.startsWith("Database error")
+            ? undefined
+            : result.details,
         },
         { status: 500 },
       );
-    }
-
-    if (space) {
-      return NextResponse.json(space, { status: created ? 201 : 200 });
+    } else if (result.space) {
+      response = NextResponse.json(result.space, {
+        status: result.created ? 201 : 200,
+      });
     } else {
+      // This case should ideally not be reached if error is null and space is null,
+      // but it's a safeguard.
       console.error(
         `API Error for DiscourseSpace (Name: ${name}, URL: ${url}, PlatformID: ${discourse_platform_id}): Space was null without an error flag.`,
       );
-      return NextResponse.json(
+      response = NextResponse.json(
         {
           error: "Failed to get or create DiscourseSpace for an unknown reason",
         },
         { status: 500 },
       );
     }
-  } catch (e: any) {
-    console.error("API route error in /api/supabase/insert/DiscourseSpace:", e);
+  } catch (e: unknown) {
+    console.error(
+      "API route error in /api/supabase/insert/discourse-space:",
+      e,
+    );
     if (e instanceof SyntaxError && e.message.toLowerCase().includes("json")) {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400 },
       );
+    } else {
+      response = NextResponse.json(
+        { error: "An unexpected error occurred processing your request" },
+        { status: 500 },
+      );
     }
-    return NextResponse.json(
-      { error: "An unexpected error occurred processing your request" },
-      { status: 500 },
-    );
   }
+  return cors(request, response) as NextResponse;
+}
+
+export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
+  const response = new NextResponse(null, { status: 204 });
+  return cors(request, response) as NextResponse;
 }

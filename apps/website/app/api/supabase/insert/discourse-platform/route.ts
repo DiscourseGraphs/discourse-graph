@@ -1,18 +1,30 @@
 import { createClient } from "~/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import cors from "~/utils/llm/cors";
 
-interface PlatformResult {
-  platform: any | null;
+type DiscoursePlatformRecord = {
+  id: number;
+  name: string;
+  url: string;
+  // Add other fields from your DiscoursePlatform table if they are selected
+};
+
+type GetOrCreateDiscoursePlatformReturn = {
+  platform: DiscoursePlatformRecord | null;
   error: string | null;
   details?: string;
-  created?: boolean;
-}
+  created: boolean; // 'created' should always be boolean
+};
+
+type DiscoursePlatformDataInput = {
+  currentContentURL: string;
+};
 
 async function getOrCreateDiscoursePlatform(
-  supabase: SupabaseClient<any, "public", any>, // Using a more specific type for SupabaseClient
+  supabase: SupabaseClient<any, "public", any>,
   currentContentURL: string,
-): Promise<PlatformResult> {
+): Promise<GetOrCreateDiscoursePlatformReturn> {
   let platformName: string | null = null;
   let platformUrl: string | null = null;
   const lowerCaseURL = currentContentURL.toLowerCase();
@@ -42,7 +54,7 @@ async function getOrCreateDiscoursePlatform(
     .from("DiscoursePlatform")
     .select("id, name, url")
     .eq("url", platformUrl)
-    .maybeSingle();
+    .maybeSingle<DiscoursePlatformRecord>();
 
   if (fetchError) {
     console.error("Error fetching DiscoursePlatform:", fetchError);
@@ -70,8 +82,8 @@ async function getOrCreateDiscoursePlatform(
     const { data: newPlatform, error: insertError } = await supabase
       .from("DiscoursePlatform")
       .insert(platformToInsert)
-      .select()
-      .single(); // Expecting one row to be inserted and returned
+      .select("id, name, url") // Ensure selected fields match DiscoursePlatformRecord
+      .single<DiscoursePlatformRecord>(); // Expecting one row to be inserted and returned
 
     if (insertError) {
       console.error("Error inserting new DiscoursePlatform:", insertError);
@@ -85,7 +97,7 @@ async function getOrCreateDiscoursePlatform(
           .from("DiscoursePlatform")
           .select("id, name, url")
           .eq("url", platformUrl)
-          .maybeSingle();
+          .maybeSingle<DiscoursePlatformRecord>();
 
         if (reFetchError) {
           console.error(
@@ -125,42 +137,46 @@ async function getOrCreateDiscoursePlatform(
   }
 }
 
-export async function POST(request: Request) {
-  const supabase = await createClient(); // Creates a server-side Supabase client
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const supabase = await createClient();
+  let response: NextResponse;
 
   try {
-    const body = await request.json();
+    const body: DiscoursePlatformDataInput = await request.json();
     const { currentContentURL } = body;
 
     if (!currentContentURL || typeof currentContentURL !== "string") {
-      return NextResponse.json(
+      response = NextResponse.json(
         { error: "Missing or invalid currentContentURL in request body" },
         { status: 400 },
       );
+      return cors(request, response) as NextResponse;
     }
 
-    const { platform, error, details, created } =
-      await getOrCreateDiscoursePlatform(supabase, currentContentURL);
+    const result = await getOrCreateDiscoursePlatform(
+      supabase,
+      currentContentURL,
+    );
 
-    if (error) {
+    if (result.error) {
       console.error(
-        `API Error for DiscoursePlatform (URL: ${currentContentURL}): ${error}`,
-        details || "",
+        `API Error for DiscoursePlatform (URL: ${currentContentURL}): ${result.error}`,
+        result.details || "",
       );
-      return NextResponse.json(
-        { error: error, details: details },
+      response = NextResponse.json(
+        { error: result.error, details: result.details },
         { status: 500 },
       );
-    }
-
-    if (platform) {
-      return NextResponse.json(platform, { status: created ? 201 : 200 });
+    } else if (result.platform) {
+      response = NextResponse.json(result.platform, {
+        status: result.created ? 201 : 200,
+      });
     } else {
       // This case should ideally be caught by the 'error' field in the result
       console.error(
         `API Error for DiscoursePlatform (URL: ${currentContentURL}): Platform was null without an error flag.`,
       );
-      return NextResponse.json(
+      response = NextResponse.json(
         {
           error:
             "Failed to get or create DiscoursePlatform for an unknown reason",
@@ -168,24 +184,33 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error(
-      "API route error in /api/supabase/insert/DiscoursePlatform:",
+      "API route error in /api/supabase/insert/discourse-platform:",
       e,
     );
     // Differentiate between JSON parsing errors and other errors
-    if (e instanceof SyntaxError && e.message.includes("JSON")) {
-      return NextResponse.json(
+    if (e instanceof SyntaxError && e.message.toLowerCase().includes("json")) {
+      response = NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400 },
       );
+    } else {
+      response = NextResponse.json(
+        {
+          error:
+            e instanceof Error
+              ? e.message
+              : "An unexpected error occurred processing your request",
+        },
+        { status: 500 },
+      );
     }
-    return NextResponse.json(
-      {
-        error:
-          e.message || "An unexpected error occurred processing your request",
-      },
-      { status: 500 },
-    );
   }
+  return cors(request, response) as NextResponse;
+}
+
+export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
+  const response = new NextResponse(null, { status: 204 });
+  return cors(request, response) as NextResponse;
 }

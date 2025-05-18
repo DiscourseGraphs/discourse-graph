@@ -1,8 +1,8 @@
 import { createClient } from "~/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-interface PersonDataInput {
+type PersonDataInput = {
   name: string;
   email: string;
   orcid?: string | null;
@@ -10,16 +10,46 @@ interface PersonDataInput {
   account_platform_id: number;
   account_active?: boolean;
   account_write_permission?: boolean;
-}
+};
 
-interface PersonResult {
+type PersonRecord = {
+  id: number;
+  name: string;
+  email: string;
+  orcid: string | null;
+  type: string; // Assuming 'type' is the column name for person_type
+};
+
+type AccountRecord = {
+  id: number;
+  person_id: number;
+  platform_id: number;
+  active: boolean;
+  write_permission: boolean;
+};
+
+type PersonResult = {
   person: any | null;
   account: any | null;
   error: string | null;
   details?: string;
   person_created?: boolean;
   account_created?: boolean;
-}
+};
+
+type GetOrCreatePersonReturn = {
+  person: PersonRecord | null;
+  error: string | null;
+  details?: string;
+  created: boolean;
+};
+
+type GetOrCreateAccountReturn = {
+  account: AccountRecord | null;
+  error: string | null;
+  details?: string;
+  created: boolean;
+};
 
 async function getOrCreatePerson(
   supabase: SupabaseClient<any, "public", any>,
@@ -27,17 +57,12 @@ async function getOrCreatePerson(
   name: string,
   orcid: string | null | undefined,
   personType: string,
-): Promise<{
-  person: any | null;
-  error: string | null;
-  details?: string;
-  created: boolean;
-}> {
+): Promise<GetOrCreatePersonReturn> {
   let { data: existingPerson, error: fetchError } = await supabase
     .from("Person")
     .select("id, name, email, orcid, type")
     .eq("email", email)
-    .maybeSingle();
+    .maybeSingle<PersonRecord>();
 
   if (fetchError) {
     console.error(`Error fetching Person by email (${email}):`, fetchError);
@@ -64,7 +89,7 @@ async function getOrCreatePerson(
       .from("Person")
       .insert(personToInsert)
       .select("id, name, email, orcid, type")
-      .single();
+      .single<PersonRecord>();
 
     if (insertError) {
       console.error(
@@ -89,18 +114,13 @@ async function getOrCreateAccount(
   platformId: number,
   isActive: boolean,
   writePermission?: boolean,
-): Promise<{
-  account: any | null;
-  error: string | null;
-  details?: string;
-  created: boolean;
-}> {
+): Promise<GetOrCreateAccountReturn> {
   let { data: existingAccount, error: fetchError } = await supabase
     .from("Account")
     .select("id, person_id, platform_id, active, write_permission")
     .eq("person_id", personId)
     .eq("platform_id", platformId)
-    .maybeSingle();
+    .maybeSingle<AccountRecord>();
 
   if (fetchError) {
     console.error(
@@ -122,7 +142,11 @@ async function getOrCreateAccount(
     console.log(
       `Account for PersonID ${personId} on PlatformID ${platformId} not found, creating new one...`,
     );
-    const accountToInsert: any = {
+    const accountToInsert: Partial<AccountRecord> & {
+      person_id: number;
+      platform_id: number;
+      active: boolean;
+    } = {
       person_id: personId,
       platform_id: platformId,
       active: isActive,
@@ -135,7 +159,7 @@ async function getOrCreateAccount(
       .from("Account")
       .insert(accountToInsert)
       .select("id, person_id, platform_id, active, write_permission")
-      .single();
+      .single<AccountRecord>();
 
     if (insertError) {
       console.error(
@@ -154,7 +178,7 @@ async function getOrCreateAccount(
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient();
 
   try {
@@ -252,7 +276,7 @@ export async function POST(request: Request) {
       },
       { status: statusCode },
     );
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("API route error in /api/supabase/insert/Person:", e);
     if (e instanceof SyntaxError && e.message.toLowerCase().includes("json")) {
       return NextResponse.json(
