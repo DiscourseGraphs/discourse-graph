@@ -11,7 +11,7 @@
     "init": "supabase login",
     "dev": "supabase start",
     "stop": "supabase stop",
-    "build": "npm run lint && npm run gentypes:local && npm run dbdiff",
+    "build": "npm run lint && npm run gentypes:local && cp ./types.gen.ts ../../apps/website/app/utils/supabase && npm run dbdiff",
     "lint": "sqruff lint supabase/schemas",
     "lint:fix": "sqruff fix supabase/schemas",
     "gentypes:local": "supabase start && supabase gen types typescript --local --schema public > types.gen.ts",
