@@ -1,5 +1,5 @@
 import type { SupabaseClient, PostgrestError } from "@supabase/supabase-js";
-import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import { Database, Tables, TablesInsert } from "~/utils/supabase/vectorize";
 
 export type GetOrCreateEntityResult<T> = {
   entity: T | null;

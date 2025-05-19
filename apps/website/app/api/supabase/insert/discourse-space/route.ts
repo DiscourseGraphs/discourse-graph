@@ -9,7 +9,7 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
-import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import { Tables, TablesInsert } from "~/utils/supabase/vectorize";
 
 type DiscourseSpaceDataInput = TablesInsert<"DiscourseSpace">;
 type DiscourseSpaceRecord = Tables<"DiscourseSpace">;

@@ -9,7 +9,7 @@ import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
 } from "~/utils/supabase/dbUtils";
-import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import { Tables, TablesInsert } from "~/utils/supabase/vectorize";
 
 type ContentEmbeddingDataInput =
   TablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;

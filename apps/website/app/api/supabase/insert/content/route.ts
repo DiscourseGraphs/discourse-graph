@@ -9,7 +9,7 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils"; // Ensure path is correct
-import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import { Tables, TablesInsert } from "~/utils/supabase/vectorize";
 
 type ContentDataInput = TablesInsert<"Content">;
 type ContentRecord = Tables<"Content">;

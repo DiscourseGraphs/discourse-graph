@@ -9,7 +9,7 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
-import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import { Database, Tables, TablesInsert } from "~/utils/supabase/vectorize";
 
 type AgentDataInput = TablesInsert<"Agent">;
 type AgentRecord = Tables<"Agent">;

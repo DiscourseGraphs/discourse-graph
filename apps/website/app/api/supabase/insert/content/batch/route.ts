@@ -10,7 +10,7 @@ import {
   BatchItemValidator,
   BatchProcessResult, // Import BatchProcessResult for the return type
 } from "~/utils/supabase/dbUtils"; // Ensure this path is correct
-import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import { Tables, TablesInsert } from "~/utils/supabase/vectorize";
 
 type ContentDataInput = TablesInsert<"Content">;
 type ContentRecord = Tables<"Content">;
