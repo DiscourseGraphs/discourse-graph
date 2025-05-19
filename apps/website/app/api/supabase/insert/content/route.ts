@@ -1,6 +1,14 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  getOrCreateEntity,
+  GetOrCreateEntityResult,
+} from "~/utils/supabase/dbUtils"; // Ensure path is correct
+import {
+  createApiResponse,
+  handleRouteError,
+  defaultOptionsHandler,
+} from "~/utils/supabase/apiUtils"; // Ensure path is correct
 import cors from "~/utils/llm/cors";
 
 // Based on the Content table schema and usage in embeddingWorkflow.ts
@@ -10,7 +18,7 @@ type ContentDataInput = {
   space_id: number;
   author_id: number;
   source_local_id?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | string; // Allow string for pre-stringified metadata
   created: string; // ISO 8601 date string
   last_modified: string; // ISO 8601 date string
   document_id?: number;
@@ -24,278 +32,213 @@ type ContentRecord = {
   space_id: number;
   author_id: number;
   source_local_id: string | null;
-  metadata: Record<string, unknown> | null; // Assuming metadata is stored as JSONB
-  created: string; // ISO 8601 date string
-  last_modified: string; // ISO 8601 date string
+  metadata: Record<string, unknown> | null;
+  created: string;
+  last_modified: string;
   document_id: number | null;
   part_of_id: number | null;
   // Add other fields from your Content table if they are selected
 };
 
-type CreateContentEntryReturn = {
-  content: ContentRecord | null;
-  error: string | null;
-  details?: string;
-};
-
-async function createContentEntry(
-  supabase: SupabaseClient<any, "public", any>,
+// Renamed and refactored
+const processAndUpsertContentEntry = async (
+  supabasePromise: ReturnType<typeof createClient>,
   data: ContentDataInput,
-): Promise<CreateContentEntryReturn> {
+): Promise<GetOrCreateEntityResult<ContentRecord>> => {
   const {
     text,
     scale,
     space_id,
     author_id,
     source_local_id,
-    metadata,
+    metadata: rawMetadata,
     created,
     last_modified,
     document_id,
     part_of_id,
   } = data;
 
-  // Validate required fields
+  // --- Start of extensive validation ---
+  if (!text || typeof text !== "string")
+    return {
+      entity: null,
+      error: "Invalid or missing text.",
+      created: false,
+      status: 400,
+    };
+  if (!scale || typeof scale !== "string")
+    return {
+      entity: null,
+      error: "Invalid or missing scale.",
+      created: false,
+      status: 400,
+    };
   if (
-    !text ||
-    !scale ||
-    !space_id ||
-    !author_id ||
-    !created ||
-    !last_modified
-  ) {
+    space_id === undefined ||
+    space_id === null ||
+    typeof space_id !== "number"
+  )
     return {
-      content: null,
-      error:
-        "Missing required fields: text, scale, space_id, author_id, created, or last_modified",
+      entity: null,
+      error: "Invalid or missing space_id.",
+      created: false,
+      status: 400,
     };
-  }
-
-  // Check for existing Content with same space_id and source_local_id
-  if (source_local_id) {
-    const { data: existingContent, error: existingError } = await supabase
-      .from("Content")
-      .select("*") // Consider selecting specific columns for ContentRecord
-      .eq("space_id", space_id)
-      .eq("source_local_id", source_local_id)
-      .maybeSingle<ContentRecord>();
-    if (existingContent) {
-      return { content: existingContent, error: null };
-    }
-    if (existingError && existingError.code !== "PGRST116") {
-      // PGRST116: No rows found
-      return {
-        content: null,
-        error: "Database error while checking for existing Content",
-        details: existingError.message,
-      };
-    }
-  }
-
-  // Validate field types
-  if (typeof text !== "string") {
+  if (
+    author_id === undefined ||
+    author_id === null ||
+    typeof author_id !== "number"
+  )
     return {
-      content: null,
-      error: "Invalid text format. Expected a string.",
+      entity: null,
+      error: "Invalid or missing author_id.",
+      created: false,
+      status: 400,
     };
-  }
-
-  if (typeof scale !== "string") {
+  if (!created)
     return {
-      content: null,
-      error: "Invalid scale format. Expected a string.",
+      entity: null,
+      error: "Missing created date.",
+      created: false,
+      status: 400,
     };
-  }
-
-  if (typeof space_id !== "number") {
+  if (!last_modified)
     return {
-      content: null,
-      error: "Invalid space_id format. Expected a number.",
+      entity: null,
+      error: "Missing last_modified date.",
+      created: false,
+      status: 400,
     };
-  }
 
-  if (typeof author_id !== "number") {
-    return {
-      content: null,
-      error: "Invalid author_id format. Expected a number.",
-    };
-  }
-
-  // Validate dates
   try {
-    new Date(created);
-    new Date(last_modified);
+    new Date(created); // Validate date format
+    new Date(last_modified); // Validate date format
   } catch (e) {
     return {
-      content: null,
-      error: "Invalid date format for created or last_modified",
+      entity: null,
+      error: "Invalid date format for created or last_modified.",
+      created: false,
+      status: 400,
     };
   }
+  // --- End of extensive validation ---
 
-  const contentToInsert = {
+  const processedMetadata =
+    rawMetadata && typeof rawMetadata === "object"
+      ? JSON.stringify(rawMetadata)
+      : typeof rawMetadata === "string"
+        ? rawMetadata
+        : null;
+
+  const supabase = await supabasePromise;
+
+  const contentToInsertOrUpdate = {
     text,
     scale,
     space_id,
     author_id,
-    source_local_id,
-    metadata: metadata ? JSON.stringify(metadata) : null,
+    source_local_id: source_local_id || null,
+    metadata: processedMetadata as any,
     created,
     last_modified,
-    document_id,
-    part_of_id,
+    document_id: document_id || null,
+    part_of_id: part_of_id || null,
   };
 
-  const { data: newContent, error: insertError } = await supabase
-    .from("Content")
-    .insert(contentToInsert)
-    .select() // Consider selecting specific columns for ContentRecord
-    .single<ContentRecord>();
-
-  if (insertError) {
-    console.error("Error inserting new Content:", insertError);
-
-    // Handle foreign key constraint violations
-    if (insertError.code === "23503") {
-      if (insertError.message.includes("space_id_fkey")) {
-        return {
-          content: null,
-          error: `Invalid space_id: No DiscourseSpace record found for ID ${space_id}.`,
-          details: insertError.message,
-        };
-      }
-      if (insertError.message.includes("author_id_fkey")) {
-        return {
-          content: null,
-          error: `Invalid author_id: No Account record found for ID ${author_id}.`,
-          details: insertError.message,
-        };
-      }
-      if (insertError.message.includes("document_id_fkey")) {
-        return {
-          content: null,
-          error: `Invalid document_id: No Document record found for ID ${document_id}.`,
-          details: insertError.message,
-        };
-      }
-      if (insertError.message.includes("part_of_id_fkey")) {
-        return {
-          content: null,
-          error: `Invalid part_of_id: No Content record found for ID ${part_of_id}.`,
-          details: insertError.message,
-        };
-      }
-    }
-
-    return {
-      content: null,
-      error: "Database error while inserting Content",
-      details: insertError.message,
-    };
+  let matchCriteria: Record<string, any> | null = null;
+  if (source_local_id && space_id !== undefined && space_id !== null) {
+    matchCriteria = { space_id: space_id, source_local_id: source_local_id };
   }
+  // If no solid matchCriteria for a "get", getOrCreateEntity will likely proceed to "create".
+  // If there are unique constraints other than (space_id, source_local_id), it will handle race conditions.
 
-  console.log("Created new Content:", newContent);
-  return { content: newContent, error: null };
-}
+  const result = await getOrCreateEntity<ContentRecord>(
+    supabase,
+    "Content",
+    "*", // Select all fields for ContentRecord
+    matchCriteria || { id: -1 }, // Use a non-matching criteria if no specific lookup needed, to force create path if not found
+    contentToInsertOrUpdate, // This will be used for insert if not found or for update in some extended utilities.
+    "Content",
+  );
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const supabase = await createClient();
-  let response: NextResponse;
+  // Custom handling for specific foreign key errors
+  if (
+    result.error &&
+    result.details &&
+    result.status === 400 &&
+    result.details.includes("violates foreign key constraint")
+  ) {
+    const details = result.details.toLowerCase();
+    if (
+      details.includes("content_space_id_fkey") ||
+      details.includes("space_id")
+    ) {
+      // Be more general with FK name if it changes
+      return {
+        ...result,
+        error: `Invalid space_id: No DiscourseSpace record found for ID ${space_id}.`,
+      };
+    }
+    if (
+      details.includes("content_author_id_fkey") ||
+      details.includes("author_id")
+    ) {
+      return {
+        ...result,
+        error: `Invalid author_id: No Account record found for ID ${author_id}.`,
+      };
+    }
+    if (
+      document_id &&
+      (details.includes("content_document_id_fkey") ||
+        details.includes("document_id"))
+    ) {
+      return {
+        ...result,
+        error: `Invalid document_id: No Document record found for ID ${document_id}.`,
+      };
+    }
+    if (
+      part_of_id &&
+      (details.includes("content_part_of_id_fkey") ||
+        details.includes("part_of_id"))
+    ) {
+      return {
+        ...result,
+        error: `Invalid part_of_id: No Content record found for ID ${part_of_id}.`,
+      };
+    }
+  }
+  return result;
+};
+
+export const POST = async (request: NextRequest): Promise<NextResponse> => {
+  const supabasePromise = createClient();
 
   try {
     const body: ContentDataInput = await request.json();
 
-    // Validate required fields
-    if (!body.text) {
-      response = NextResponse.json(
-        { error: "Missing required field: text" },
-        { status: 400 },
-      );
-      return cors(request, response) as NextResponse;
-    }
-    if (!body.scale) {
-      response = NextResponse.json(
-        { error: "Missing required field: scale" },
-        { status: 400 },
-      );
-      return cors(request, response) as NextResponse;
-    }
-    if (body.space_id === undefined || body.space_id === null) {
-      response = NextResponse.json(
-        { error: "Missing required field: space_id" },
-        { status: 400 },
-      );
-      return cors(request, response) as NextResponse;
-    }
-    if (body.author_id === undefined || body.author_id === null) {
-      response = NextResponse.json(
-        { error: "Missing required field: author_id" },
-        { status: 400 },
-      );
-      return cors(request, response) as NextResponse;
-    }
-    if (!body.created) {
-      response = NextResponse.json(
-        { error: "Missing required field: created" },
-        { status: 400 },
-      );
-      return cors(request, response) as NextResponse;
-    }
-    if (!body.last_modified) {
-      response = NextResponse.json(
-        { error: "Missing required field: last_modified" },
-        { status: 400 },
-      );
-      return cors(request, response) as NextResponse;
+    // Most validation is now inside processAndUpsertContentEntry
+    // Minimal check here, or rely on processAndUpsertContentEntry for all field validation
+    if (!body || typeof body !== "object") {
+      return createApiResponse(request, {
+        error: "Invalid request body: expected a JSON object.",
+        status: 400,
+      });
     }
 
-    const { content, error, details } = await createContentEntry(
-      supabase,
-      body,
-    );
+    const result = await processAndUpsertContentEntry(supabasePromise, body);
 
-    if (error) {
-      console.error(`API Error for Content creation: ${error}`, details || "");
-
-      // Handle validation errors
-      if (
-        error.startsWith("Invalid") ||
-        error.startsWith("Missing required fields")
-      ) {
-        response = NextResponse.json(
-          { error: error, details: details },
-          { status: 400 },
-        );
-      } else {
-        // Handle database errors
-        const clientError = error.startsWith("Database error")
-          ? "An internal error occurred while processing Content."
-          : error;
-        response = NextResponse.json(
-          { error: clientError, details: details },
-          { status: 500 },
-        );
-      }
-    } else {
-      response = NextResponse.json(content, { status: 201 });
-    }
+    return createApiResponse(request, {
+      data: result.entity,
+      error: result.error,
+      details: result.details,
+      status: result.status,
+      created: result.created,
+    });
   } catch (e: unknown) {
-    console.error("API route error in /api/supabase/insert/Content:", e);
-    if (e instanceof SyntaxError && e.message.toLowerCase().includes("json")) {
-      response = NextResponse.json(
-        { error: "Invalid JSON in request body" },
-        { status: 400 },
-      );
-    } else {
-      response = NextResponse.json(
-        { error: "An unexpected error occurred processing your request" },
-        { status: 500 },
-      );
-    }
+    return handleRouteError(request, e, "/api/supabase/insert/content");
   }
-  return cors(request, response) as NextResponse;
-}
+};
 
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  const response = new NextResponse(null, { status: 204 });
-  return cors(request, response) as NextResponse;
-}
+export const OPTIONS = defaultOptionsHandler;

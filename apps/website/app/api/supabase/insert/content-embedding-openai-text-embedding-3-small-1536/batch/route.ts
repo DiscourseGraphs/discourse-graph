@@ -1,9 +1,18 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createApiResponse,
+  handleRouteError,
+  defaultOptionsHandler,
+} from "~/utils/supabase/apiUtils";
+import {
+  processAndInsertBatch,
+  BatchItemValidator,
+  BatchProcessResult,
+} from "~/utils/supabase/dbUtils";
 import cors from "~/utils/llm/cors";
 
-// Based on LinkML for Embedding and the target table name
+// Input type for a single item in the batch
 interface ContentEmbeddingBatchItemInput {
   target_id: number; // Foreign key to Content.id
   model: string;
@@ -11,149 +20,122 @@ interface ContentEmbeddingBatchItemInput {
   obsolete?: boolean;
 }
 
+// Request body is an array of these items
 type ContentEmbeddingBatchRequestBody = ContentEmbeddingBatchItemInput[];
 
-interface ContentEmbeddingBatchResult {
-  data?: any[]; // Array of successfully created embedding records
-  error?: string;
-  details?: string;
+// Type for the record as stored/retrieved from DB (ensure fields match your table)
+interface ContentEmbeddingRecord {
+  id: number; // Assuming auto-generated ID
+  target_id: number;
+  model: string;
+  vector: string; // Stored as string (JSON.stringify of number[])
+  obsolete: boolean;
+  // created_at?: string; // If you have timestamps and want to select them
 }
+
+// Type for the item after processing, ready for DB insert
+type ProcessedEmbeddingItem = Omit<ContentEmbeddingBatchItemInput, "vector"> & {
+  vector: string; // Vector is always stringified
+  obsolete: boolean; // Obsolete has a default
+};
 
 const TARGET_EMBEDDING_TABLE =
   "ContentEmbedding_openai_text_embedding_3_small_1536";
 
-async function batchInsertEmbeddings(
-  supabase: SupabaseClient<any, "public", any>,
-  embeddingItems: ContentEmbeddingBatchRequestBody,
-): Promise<ContentEmbeddingBatchResult> {
-  if (!Array.isArray(embeddingItems) || embeddingItems.length === 0) {
+// Validator and processor for embedding items
+const validateAndProcessEmbeddingItem: BatchItemValidator<
+  ContentEmbeddingBatchItemInput,
+  ProcessedEmbeddingItem
+> = (item, index) => {
+  if (item.target_id === undefined || item.target_id === null) {
     return {
-      error: "Request body must be a non-empty array of embedding items.",
+      valid: false,
+      error: `Item at index ${index}: Missing required field target_id.`,
+    };
+  }
+  if (!item.model) {
+    return {
+      valid: false,
+      error: `Item at index ${index}: Missing required field model.`,
+    };
+  }
+  if (!item.vector) {
+    return {
+      valid: false,
+      error: `Item at index ${index}: Missing required field vector.`,
+    };
+  }
+  if (!Array.isArray(item.vector) && typeof item.vector !== "string") {
+    return {
+      valid: false,
+      error: `Item at index ${index}: vector must be an array of numbers or a pre-formatted string.`,
     };
   }
 
-  const processedEmbeddingItems = embeddingItems.map((item, i) => {
-    if (!item) {
-      throw new Error(
-        `Validation Error: Item at index ${i} is undefined or null.`,
-      );
-    }
-    if (
-      item.target_id === undefined ||
-      item.target_id === null ||
-      !item.model ||
-      !item.vector
-    ) {
-      throw new Error(
-        `Validation Error: Item at index ${i} is missing required fields (target_id, model, vector).`,
-      );
-    }
-    if (!Array.isArray(item.vector) && typeof item.vector !== "string") {
-      throw new Error(
-        `Validation Error: Item.vector at index ${i} must be an array of numbers or a pre-formatted string.`,
-      );
-    }
-    // Ensure vector is stringified if it's an array
-    const vectorString = Array.isArray(item.vector)
-      ? JSON.stringify(item.vector)
-      : item.vector;
+  const vectorString = Array.isArray(item.vector)
+    ? JSON.stringify(item.vector)
+    : item.vector;
 
-    return {
+  return {
+    valid: true,
+    processedItem: {
       target_id: item.target_id,
       model: item.model,
       vector: vectorString,
-      obsolete: item.obsolete === undefined ? false : item.obsolete, // Default to false
-    };
-  });
+      obsolete: item.obsolete === undefined ? false : item.obsolete,
+    },
+  };
+};
 
-  const { data: newEmbeddings, error: insertError } = await supabase
-    .from(TARGET_EMBEDDING_TABLE)
-    .insert(processedEmbeddingItems)
-    .select();
-
-  if (insertError) {
-    console.error(
-      `Error batch inserting embeddings into ${TARGET_EMBEDDING_TABLE}:`,
-      insertError,
-    );
-    return {
-      error: `Database error during batch insert of embeddings into ${TARGET_EMBEDDING_TABLE}.`,
-      details: insertError.message,
-    };
-  }
-
-  if (
-    !newEmbeddings ||
-    newEmbeddings.length !== processedEmbeddingItems.length
-  ) {
-    console.warn(
-      "Batch insert Embeddings: Mismatch between input and output count or no data returned.",
-      {
-        inputCount: processedEmbeddingItems.length,
-        outputCount: newEmbeddings?.length,
-      },
-    );
-    return {
-      error:
-        "Batch insert of Embeddings might have partially failed or returned unexpected data.",
-    };
-  }
-
-  console.log(
-    `Successfully batch inserted ${newEmbeddings.length} embedding records into ${TARGET_EMBEDDING_TABLE}.`,
+const batchInsertEmbeddingsProcess = async (
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  embeddingItems: ContentEmbeddingBatchRequestBody,
+): Promise<BatchProcessResult<ContentEmbeddingRecord>> => {
+  return processAndInsertBatch<
+    ContentEmbeddingBatchItemInput,
+    ProcessedEmbeddingItem,
+    ContentEmbeddingRecord
+  >(
+    supabase,
+    embeddingItems,
+    TARGET_EMBEDDING_TABLE,
+    "*", // Select all fields, adjust if needed for ContentEmbeddingRecord
+    validateAndProcessEmbeddingItem,
+    "ContentEmbedding",
   );
-  return { data: newEmbeddings };
-}
+};
 
-export async function POST(request: NextRequest) {
+export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabase = await createClient();
-  let response: NextResponse;
 
   try {
     const body: ContentEmbeddingBatchRequestBody = await request.json();
-    const result = await batchInsertEmbeddings(supabase, body);
-
-    if (result.error) {
-      console.error(
-        `API Error for batch Embedding creation: ${result.error}`,
-        result.details || "",
-      );
-      const statusCode = result.error.startsWith("Validation Error:")
-        ? 400
-        : 500;
-      response = NextResponse.json(
-        { error: result.error, details: result.details },
-        { status: statusCode },
-      );
-    } else {
-      response = NextResponse.json(result.data, { status: 201 });
+    if (!Array.isArray(body)) {
+      return createApiResponse(request, {
+        error: "Request body must be an array of embedding items.",
+        status: 400,
+      });
     }
-  } catch (e: any) {
-    console.error(
-      `API route error in /api/supabase/insert/${TARGET_EMBEDDING_TABLE}/batch:`,
+
+    const result = await batchInsertEmbeddingsProcess(supabase, body);
+
+    return createApiResponse(request, {
+      data: result.data,
+      error: result.error,
+      details: result.details,
+      ...(result.partial_errors && {
+        meta: { partial_errors: result.partial_errors },
+      }),
+      status: result.status,
+      created: result.status === 201,
+    });
+  } catch (e: unknown) {
+    return handleRouteError(
+      request,
       e,
+      `/api/supabase/insert/${TARGET_EMBEDDING_TABLE}/batch`,
     );
-    if (e instanceof SyntaxError && e.message.toLowerCase().includes("json")) {
-      response = NextResponse.json(
-        {
-          error:
-            "Invalid JSON in request body. Expected an array of embedding items.",
-        },
-        { status: 400 },
-      );
-    } else if (e.message?.startsWith("Validation Error:")) {
-      response = NextResponse.json({ error: e.message }, { status: 400 });
-    } else {
-      response = NextResponse.json(
-        { error: "An unexpected error occurred processing your request" },
-        { status: 500 },
-      );
-    }
   }
-  return cors(request, response) as NextResponse;
-}
+};
 
-export async function OPTIONS(request: NextRequest) {
-  const response = new NextResponse(null, { status: 204 });
-  return cors(request, response) as NextResponse;
-}
+export const OPTIONS = defaultOptionsHandler;

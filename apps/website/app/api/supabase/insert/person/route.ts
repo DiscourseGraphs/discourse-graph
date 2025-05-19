@@ -1,6 +1,14 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  getOrCreateEntity,
+  GetOrCreateEntityResult,
+} from "~/utils/supabase/dbUtils";
+import {
+  createApiResponse,
+  handleRouteError,
+  defaultOptionsHandler, // Assuming OPTIONS might be added later
+} from "~/utils/supabase/apiUtils";
 
 type PersonDataInput = {
   name: string;
@@ -17,7 +25,7 @@ type PersonRecord = {
   name: string;
   email: string;
   orcid: string | null;
-  type: string; // Assuming 'type' is the column name for person_type
+  type: string;
 };
 
 type AccountRecord = {
@@ -28,265 +36,176 @@ type AccountRecord = {
   write_permission: boolean;
 };
 
-type PersonResult = {
-  person: any | null;
-  account: any | null;
-  error: string | null;
-  details?: string;
+// Kept for the final API response structure
+type PersonWithAccountResult = {
+  person: PersonRecord | null;
+  account: AccountRecord | null;
   person_created?: boolean;
   account_created?: boolean;
 };
 
-type GetOrCreatePersonReturn = {
-  person: PersonRecord | null;
-  error: string | null;
-  details?: string;
-  created: boolean;
-};
-
-type GetOrCreateAccountReturn = {
-  account: AccountRecord | null;
-  error: string | null;
-  details?: string;
-  created: boolean;
-};
-
-async function getOrCreatePerson(
-  supabase: SupabaseClient<any, "public", any>,
+const getOrCreatePersonInternal = async (
+  supabasePromise: ReturnType<typeof createClient>,
   email: string,
   name: string,
   orcid: string | null | undefined,
   personType: string,
-): Promise<GetOrCreatePersonReturn> {
-  let { data: existingPerson, error: fetchError } = await supabase
-    .from("Person")
-    .select("id, name, email, orcid, type")
-    .eq("email", email)
-    .maybeSingle<PersonRecord>();
-
-  if (fetchError) {
-    console.error(`Error fetching Person by email (${email}):`, fetchError);
-    return {
-      person: null,
-      error: "Database error while fetching Person",
-      details: fetchError.message,
-      created: false,
-    };
-  }
-
-  if (existingPerson) {
-    console.log("Found existing Person:", existingPerson);
-    return { person: existingPerson, error: null, created: false };
-  } else {
-    console.log(`Person with email "${email}" not found, creating new one...`);
-    const personToInsert = {
-      email: email,
-      name: name,
-      orcid: orcid,
+): Promise<GetOrCreateEntityResult<PersonRecord>> => {
+  const supabase = await supabasePromise;
+  return getOrCreateEntity<PersonRecord>(
+    supabase,
+    "Person",
+    "id, name, email, orcid, type",
+    { email: email.trim() },
+    {
+      email: email.trim(),
+      name: name.trim(),
+      orcid: orcid || null,
       type: personType,
-    };
-    const { data: newPerson, error: insertError } = await supabase
-      .from("Person")
-      .insert(personToInsert)
-      .select("id, name, email, orcid, type")
-      .single<PersonRecord>();
+    },
+    "Person",
+  );
+};
 
-    if (insertError) {
-      console.error(
-        `Error inserting new Person (email: ${email}):`,
-        insertError,
-      );
-      return {
-        person: null,
-        error: "Database error while inserting Person",
-        details: insertError.message,
-        created: false,
-      };
-    }
-    console.log("Created new Person:", newPerson);
-    return { person: newPerson, error: null, created: true };
-  }
-}
-
-async function getOrCreateAccount(
-  supabase: SupabaseClient<any, "public", any>,
+const getOrCreateAccountInternal = async (
+  supabasePromise: ReturnType<typeof createClient>,
   personId: number,
   platformId: number,
   isActive: boolean,
   writePermission?: boolean,
-): Promise<GetOrCreateAccountReturn> {
-  let { data: existingAccount, error: fetchError } = await supabase
-    .from("Account")
-    .select("id, person_id, platform_id, active, write_permission")
-    .eq("person_id", personId)
-    .eq("platform_id", platformId)
-    .maybeSingle<AccountRecord>();
-
-  if (fetchError) {
-    console.error(
-      `Error fetching Account (PersonID: ${personId}, PlatformID: ${platformId}):`,
-      fetchError,
-    );
-    return {
-      account: null,
-      error: "Database error while fetching Account",
-      details: fetchError.message,
-      created: false,
-    };
-  }
-
-  if (existingAccount) {
-    console.log("Found existing Account:", existingAccount);
-    return { account: existingAccount, error: null, created: false };
-  } else {
-    console.log(
-      `Account for PersonID ${personId} on PlatformID ${platformId} not found, creating new one...`,
-    );
-    const accountToInsert: Partial<AccountRecord> & {
-      person_id: number;
-      platform_id: number;
-      active: boolean;
-    } = {
+): Promise<GetOrCreateEntityResult<AccountRecord>> => {
+  const supabase = await supabasePromise;
+  const result = await getOrCreateEntity<AccountRecord>(
+    supabase,
+    "Account",
+    "id, person_id, platform_id, active, write_permission",
+    { person_id: personId, platform_id: platformId },
+    {
       person_id: personId,
       platform_id: platformId,
       active: isActive,
-    };
-    if (writePermission !== undefined) {
-      accountToInsert.write_permission = writePermission;
-    }
+      write_permission: writePermission === undefined ? true : writePermission, // Default to true if undefined
+    },
+    "Account",
+  );
 
-    const { data: newAccount, error: insertError } = await supabase
-      .from("Account")
-      .insert(accountToInsert)
-      .select("id, person_id, platform_id, active, write_permission")
-      .single<AccountRecord>();
-
-    if (insertError) {
-      console.error(
-        `Error inserting new Account (PersonID: ${personId}, PlatformID: ${platformId}):`,
-        insertError,
-      );
+  // Custom handling for specific foreign key errors
+  if (
+    result.error &&
+    result.details &&
+    result.status === 400 &&
+    result.details.includes("violates foreign key constraint")
+  ) {
+    if (result.details.includes("Account_person_id_fkey")) {
       return {
-        account: null,
-        error: "Database error while inserting Account",
-        details: insertError.message,
-        created: false,
+        ...result,
+        error: `Invalid person_id for Account: No Person record found for ID ${personId}.`,
       };
     }
-    console.log("Created new Account:", newAccount);
-    return { account: newAccount, error: null, created: true };
+    if (result.details.includes("Account_platform_id_fkey")) {
+      return {
+        ...result,
+        error: `Invalid platform_id for Account: No DiscoursePlatform record found for ID ${platformId}.`,
+      };
+    }
   }
-}
+  return result;
+};
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const supabase = await createClient();
+export const POST = async (request: NextRequest): Promise<NextResponse> => {
+  const supabasePromise = createClient();
 
   try {
     const body: PersonDataInput = await request.json();
     const {
       name,
       email,
-      orcid = null,
-      person_type = "Person",
+      orcid = null, // Default from input
+      person_type = "Person", // Default from input
       account_platform_id,
-      account_active = true,
-      account_write_permission,
+      account_active = true, // Default from input
+      account_write_permission, // No default here, handled in getOrCreateAccountInternal
     } = body;
 
+    // Initial input validation
     if (!name || typeof name !== "string" || name.trim() === "") {
-      return NextResponse.json(
-        { error: "Missing or invalid name for Person" },
-        { status: 400 },
-      );
+      return createApiResponse(request, {
+        error: "Missing or invalid name for Person.",
+        status: 400,
+      });
     }
     if (!email || typeof email !== "string" || email.trim() === "") {
-      return NextResponse.json(
-        { error: "Missing or invalid email for Person" },
-        { status: 400 },
-      );
+      return createApiResponse(request, {
+        error: "Missing or invalid email for Person.",
+        status: 400,
+      });
     }
     if (
       account_platform_id === undefined ||
       account_platform_id === null ||
       typeof account_platform_id !== "number"
     ) {
-      return NextResponse.json(
-        { error: "Missing or invalid account_platform_id for Account" },
-        { status: 400 },
-      );
+      return createApiResponse(request, {
+        error: "Missing or invalid account_platform_id for Account.",
+        status: 400,
+      });
     }
 
-    const personResult = await getOrCreatePerson(
-      supabase,
-      email.trim(),
-      name.trim(),
+    // Get or Create Person
+    const personResult = await getOrCreatePersonInternal(
+      supabasePromise, // Pass the promise
+      email,
+      name,
       orcid,
       person_type,
     );
 
-    if (personResult.error || !personResult.person) {
-      console.error(
-        `API Error during Person processing (Email: ${email}): ${personResult.error}`,
-        personResult.details || "",
-      );
-      const clientError = personResult.error?.startsWith("Database error")
-        ? "An internal error occurred while processing Person."
-        : personResult.error;
-      return NextResponse.json(
-        { error: clientError, details: personResult.details },
-        { status: 500 },
-      );
+    if (personResult.error || !personResult.entity) {
+      return createApiResponse(request, {
+        error: personResult.error || "Failed to process Person.",
+        details: personResult.details,
+        status: personResult.status || 500,
+      });
     }
 
-    const accountResult = await getOrCreateAccount(
-      supabase,
-      personResult.person.id,
+    // Get or Create Account
+    const accountResult = await getOrCreateAccountInternal(
+      supabasePromise, // Pass the promise again, it will resolve the same client or a new one if needed by createClient impl.
+      personResult.entity.id,
       account_platform_id,
       account_active,
       account_write_permission,
     );
 
-    if (accountResult.error || !accountResult.account) {
-      console.error(
-        `API Error during Account processing (PersonID: ${personResult.person.id}, PlatformID: ${account_platform_id}): ${accountResult.error}`,
-        accountResult.details || "",
-      );
-      const clientError = accountResult.error?.startsWith("Database error")
-        ? "An internal error occurred while processing Account."
-        : accountResult.error;
-      return NextResponse.json(
-        {
-          error: clientError,
-          details: accountResult.details,
-          person: personResult.person,
-        },
-        { status: 500 },
-      );
+    if (accountResult.error || !accountResult.entity) {
+      // If account creation fails, return error but include successfully processed person
+      return createApiResponse(request, {
+        error: accountResult.error || "Failed to process Account.",
+        details: accountResult.details,
+        status: accountResult.status || 500,
+        // Optionally include person data if account failed
+        // data: { person: personResult.entity, person_created: personResult.created }
+      });
     }
 
-    const statusCode =
+    const responsePayload: PersonWithAccountResult = {
+      person: personResult.entity,
+      account: accountResult.entity,
+      person_created: personResult.created,
+      account_created: accountResult.created,
+    };
+
+    const overallStatus =
       personResult.created || accountResult.created ? 201 : 200;
 
-    return NextResponse.json(
-      {
-        person: personResult.person,
-        account: accountResult.account,
-        person_created: personResult.created,
-        account_created: accountResult.created,
-      },
-      { status: statusCode },
-    );
+    return createApiResponse(request, {
+      data: responsePayload,
+      status: overallStatus,
+    });
   } catch (e: unknown) {
-    console.error("API route error in /api/supabase/insert/Person:", e);
-    if (e instanceof SyntaxError && e.message.toLowerCase().includes("json")) {
-      return NextResponse.json(
-        { error: "Invalid JSON in request body" },
-        { status: 400 },
-      );
-    }
-    return NextResponse.json(
-      { error: "An unexpected error occurred processing your request" },
-      { status: 500 },
-    );
+    return handleRouteError(request, e, "/api/supabase/insert/person");
   }
-}
+};
+
+// If you need an OPTIONS handler for this route:
+// export const OPTIONS = defaultOptionsHandler;

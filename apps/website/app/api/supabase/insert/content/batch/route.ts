@@ -1,7 +1,15 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import cors from "~/utils/llm/cors";
+import {
+  createApiResponse,
+  handleRouteError,
+  defaultOptionsHandler,
+} from "~/utils/supabase/apiUtils";
+import {
+  processAndInsertBatch,
+  BatchItemValidator,
+  BatchProcessResult, // Import BatchProcessResult for the return type
+} from "~/utils/supabase/dbUtils"; // Ensure this path is correct
 
 // Based on the Content table schema and usage in embeddingWorkflow.ts
 // This is for a single content item in the batch
@@ -37,141 +45,90 @@ type ContentRecord = {
   // Add other fields from your Content table if they are selected
 };
 
-// The response will be an array of created content items (or an error object)
-type ContentBatchResult = {
-  data?: ContentRecord[]; // Array of successfully created content records
-  error?: string;
-  details?: string;
-  partial_errors?: { index: number; error: string; details?: string }[];
+// Specific validator and processor for Content items
+const validateAndProcessContentItem: BatchItemValidator<
+  ContentBatchItemInput,
+  Omit<ContentBatchItemInput, "metadata"> & { metadata: string | null } // TProcessed type
+> = (item, index) => {
+  // No need to check for !item here, processAndInsertBatch handles null/undefined items in the array itself
+  const requiredFields = [
+    "text",
+    "scale",
+    "space_id",
+    "author_id",
+    "document_id",
+    "created",
+    "last_modified",
+  ];
+  const missingFields = requiredFields.filter(
+    (field) => !(item as any)[field] && (item as any)[field] !== 0,
+  ); // check for undefined, null, empty string but allow 0
+  if (missingFields.length > 0) {
+    return {
+      valid: false,
+      error: `Item at index ${index}: Missing required fields: ${missingFields.join(", ")}.`,
+    };
+  }
+
+  let metadataString: string | null = null;
+  if (item.metadata && typeof item.metadata === "object") {
+    metadataString = JSON.stringify(item.metadata);
+  } else if (typeof item.metadata === "string") {
+    metadataString = item.metadata;
+  } // item.metadata can also be null if provided as such, which is fine
+
+  return {
+    valid: true,
+    processedItem: { ...item, metadata: metadataString },
+  };
 };
 
-async function batchInsertContent(
-  supabase: SupabaseClient<any, "public", any>,
+// Updated batchInsertContentProcess to use the generic utility
+const batchInsertContentProcess = async (
+  supabase: Awaited<ReturnType<typeof createClient>>,
   contentItems: ContentBatchRequestBody,
-): Promise<ContentBatchResult> {
-  if (!Array.isArray(contentItems) || contentItems.length === 0) {
-    return {
-      error: "Request body must be a non-empty array of content items.",
-    };
-  }
-
-  const processedContentItems = contentItems.map((item, i) => {
-    if (!item) {
-      // This case should ideally not happen if contentItems is a valid array of objects
-      // but it satisfies the linter if it's worried about sparse arrays or undefined elements.
-      throw new Error(
-        `Validation Error: Item at index ${i} is undefined or null.`,
-      );
-    }
-    if (
-      !item.text ||
-      !item.scale ||
-      !item.space_id ||
-      !item.author_id ||
-      !item.document_id ||
-      !item.created ||
-      !item.last_modified
-    ) {
-      throw new Error(
-        `Validation Error: Item at index ${i} is missing required fields (text, scale, space_id, author_id, document_id, created, last_modified).`,
-      );
-    }
-
-    let metadataString: string | null = null;
-    if (item.metadata && typeof item.metadata === "object") {
-      metadataString = JSON.stringify(item.metadata);
-    } else if (typeof item.metadata === "string") {
-      metadataString = item.metadata;
-    } else {
-      metadataString = null;
-    }
-
-    return {
-      ...item,
-      metadata: metadataString,
-    };
-  });
-
-  const { data: newContents, error: insertError } = await supabase
-    .from("Content")
-    .insert(processedContentItems) // Use the validated and processed items
-    .select<"*", ContentRecord>(); // Select all columns of the inserted rows, including the 'id'
-
-  if (insertError) {
-    console.error("Error batch inserting Content:", insertError);
-    return {
-      error: "Database error during batch insert of Content.",
-      details: insertError.message,
-    };
-  }
-
-  if (!newContents || newContents.length !== processedContentItems.length) {
-    console.warn(
-      "Batch insert Content: Mismatch between input and output count or no data returned.",
-      {
-        inputCount: processedContentItems.length,
-        outputCount: newContents?.length,
-      },
-    );
-    return {
-      error:
-        "Batch insert of Content might have partially failed or returned unexpected data.",
-    };
-  }
-
-  console.log(
-    `Successfully batch inserted ${newContents.length} Content records.`,
+): Promise<BatchProcessResult<ContentRecord>> => {
+  return processAndInsertBatch<
+    ContentBatchItemInput,
+    Omit<ContentBatchItemInput, "metadata"> & { metadata: string | null },
+    ContentRecord
+  >(
+    supabase,
+    contentItems,
+    "Content", // Table name
+    "*", // Select query (can be more specific, e.g., "id, text, scale, ...")
+    validateAndProcessContentItem,
+    "Content", // Entity name for logging
   );
-  return { data: newContents };
-}
+};
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabase = await createClient();
-  let response: NextResponse;
 
   try {
     const body: ContentBatchRequestBody = await request.json();
-    const result = await batchInsertContent(supabase, body);
-
-    if (result.error) {
-      console.error(
-        `API Error for batch Content creation: ${result.error}`,
-        result.details || "",
-      );
-      const statusCode = result.error.startsWith("Validation Error:")
-        ? 400
-        : 500;
-      response = NextResponse.json(
-        { error: result.error, details: result.details },
-        { status: statusCode },
-      );
-    } else {
-      response = NextResponse.json(result.data, { status: 201 });
+    if (!Array.isArray(body)) {
+      return createApiResponse(request, {
+        error: "Request body must be an array of content items.",
+        status: 400,
+      });
     }
+
+    const result = await batchInsertContentProcess(supabase, body);
+
+    return createApiResponse(request, {
+      data: result.data,
+      error: result.error,
+      details: result.details,
+      ...(result.partial_errors && {
+        meta: { partial_errors: result.partial_errors },
+      }),
+      status: result.status,
+      created: result.status === 201,
+    });
   } catch (e: unknown) {
-    console.error("API route error in /api/supabase/insert/Content/batch:", e);
-    if (e instanceof SyntaxError && e.message.toLowerCase().includes("json")) {
-      response = NextResponse.json(
-        {
-          error:
-            "Invalid JSON in request body. Expected an array of content items.",
-        },
-        { status: 400 },
-      );
-    } else if (e.message?.startsWith("Validation Error:")) {
-      // Catch errors thrown from batchInsertContent validation
-      response = NextResponse.json({ error: e.message }, { status: 400 });
-    } else {
-      response = NextResponse.json(
-        { error: "An unexpected error occurred processing your request" },
-        { status: 500 },
-      );
-    }
+    return handleRouteError(request, e, "/api/supabase/insert/content/batch");
   }
-  return cors(request, response) as NextResponse;
-}
+};
 
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  const response = new NextResponse(null, { status: 204 });
-  return cors(request, response) as NextResponse;
-}
+export const OPTIONS = defaultOptionsHandler;
