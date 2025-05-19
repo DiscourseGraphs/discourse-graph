@@ -201,8 +201,6 @@ export const initObservers = async ({
       target.classList.contains("rm-block-input")
     ) {
       const textarea = target as HTMLTextAreaElement;
-      const location = window.roamAlphaAPI.ui.getFocusedBlock();
-      if (!location) return;
 
       if (!customTrigger) return;
 
@@ -226,6 +224,9 @@ export const initObservers = async ({
           cursorPos === lastTriggerPos + customTrigger.length;
 
         if (isValidTriggerPosition && isCursorAfterTrigger) {
+          const location = window.roamAlphaAPI.ui.getFocusedBlock();
+          if (!location) return;
+
           renderDiscourseNodeSearchMenu({
             onClose: () => {},
             textarea: textarea,
