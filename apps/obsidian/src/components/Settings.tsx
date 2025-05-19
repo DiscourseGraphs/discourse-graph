@@ -12,10 +12,10 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState("nodeTypes");
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col">
       <h2>Discourse Graph Settings</h2>
 
-      <div className="border-modifier-border mb-5 border-b p-2">
+      <div className="border-modifier-border border-b p-2">
         <button
           onClick={() => setActiveTab("nodeTypes")}
           className={`discourse-tab mr-2 cursor-pointer border-0 px-4 py-2 ${

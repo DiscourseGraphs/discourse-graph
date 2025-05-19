@@ -127,7 +127,7 @@ const NodeTypeSettings = () => {
   };
 
   return (
-    <div className="discourse-node-types">
+    <div>
       <h3>Node Types</h3>
       {nodeTypes.map((nodeType, index) => (
         <div key={index} className="setting-item">
