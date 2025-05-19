@@ -186,6 +186,10 @@ export const initObservers = async ({
     }
   };
 
+  const customTrigger = onloadArgs.extensionAPI.settings.get(
+    "node-search-trigger",
+  ) as string;
+
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
     const target = evt.target as HTMLElement;
@@ -199,10 +203,6 @@ export const initObservers = async ({
       const textarea = target as HTMLTextAreaElement;
       const location = window.roamAlphaAPI.ui.getFocusedBlock();
       if (!location) return;
-
-      const customTrigger = onloadArgs.extensionAPI.settings.get(
-        "node-search-trigger",
-      ) as string;
 
       if (!customTrigger) return;
 
