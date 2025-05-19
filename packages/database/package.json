@@ -15,10 +15,11 @@
     "lint": "sqruff lint supabase/schemas",
     "lint:fix": "sqruff fix supabase/schemas",
     "gentypes:local": "supabase start && supabase gen types typescript --local --schema public > types.gen.ts",
-    "gentypes:production": "supabase start && supabase gen types typescript --project-id \"$PRODUCTION_PROJECT_ID\" --schema public > types.gen.ts",
+    "gentypes:production": "supabase start && supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > types.gen.ts",
     "dbdiff": "supabase stop && supabase db diff",
     "dbdiff:save": "supabase stop && supabase db diff -f ",
-    "deploy": "supabase db push --project-id \"$PRODUCTION_PROJECT_ID\""
+    "deploy": "echo \"$SUPABASE_PROJECT_ID\" && supabase link --project-ref \"$SUPABASE_PROJECT_ID\" --password \"$SUPABASE_DB_PASSWORD\" && supabase db push",
+    "deploy:functions": "supabase functions deploy --project-ref \"$SUPABASE_PROJECT_ID\""
   },
   "devDependencies": {
     "supabase": "^2.22.12",

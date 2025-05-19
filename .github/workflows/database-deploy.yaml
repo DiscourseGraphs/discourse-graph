@@ -4,19 +4,16 @@ on:
   push:
     branches:
       - feature/supabase
-    paths:
-      - "projects/database"
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      PROJECT_ID: plzkmulvmuhdpcmnyrhm
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID_PROD }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD_PROD }}
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - run: |
-          supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_ID_PROD }}
-          supabase push --project-ref ${{ secrets.SUPABASE_PROJECT_ID_PROD }}
+      - run: turbo deploy -F @repo/database
