@@ -9,30 +9,24 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
+import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-type DiscoursePlatformRecord = {
-  id: number;
-  name: string;
-  url: string;
-};
-
-type DiscoursePlatformDataInput = {
-  currentContentURL: string;
-};
+type DiscoursePlatformDataInput = TablesInsert<"DiscoursePlatform">;
+type DiscoursePlatformRecord = Tables<"DiscoursePlatform">;
 
 const getOrCreateDiscoursePlatformFromURL = async (
   supabase: ReturnType<typeof createClient>,
-  currentContentURL: string,
+  url: string,
 ): Promise<GetOrCreateEntityResult<DiscoursePlatformRecord>> => {
   let platformName: string | null = null;
   let platformUrl: string | null = null;
-  const lowerCaseURL = currentContentURL.toLowerCase();
+  const lowerCaseURL = url.toLowerCase();
 
   if (lowerCaseURL.includes("roamresearch.com")) {
     platformName = "roamresearch";
     platformUrl = "https://roamresearch.com";
   } else {
-    console.warn("Could not determine platform from URL:", currentContentURL);
+    console.warn("Could not determine platform from URL:", url);
     return {
       error: "Could not determine platform from URL.",
       entity: null,
@@ -51,7 +45,7 @@ const getOrCreateDiscoursePlatformFromURL = async (
   }
 
   const resolvedSupabaseClient = await supabase;
-  return getOrCreateEntity<DiscoursePlatformRecord>(
+  return getOrCreateEntity<"DiscoursePlatform">(
     resolvedSupabaseClient,
     "DiscoursePlatform",
     "id, name, url",
@@ -66,19 +60,16 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
   try {
     const body: DiscoursePlatformDataInput = await request.json();
-    const { currentContentURL } = body;
+    const { url } = body;
 
-    if (!currentContentURL || typeof currentContentURL !== "string") {
+    if (!url || typeof url !== "string") {
       return createApiResponse(request, {
-        error: "Missing or invalid currentContentURL in request body.",
+        error: "Missing or invalid url in request body.",
         status: 400,
       });
     }
 
-    const result = await getOrCreateDiscoursePlatformFromURL(
-      supabase,
-      currentContentURL,
-    );
+    const result = await getOrCreateDiscoursePlatformFromURL(supabase, url);
 
     return createApiResponse(request, {
       data: result.entity,

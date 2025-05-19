@@ -9,36 +9,10 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils"; // Ensure path is correct
-import cors from "~/utils/llm/cors";
+import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-// Based on the Content table schema and usage in embeddingWorkflow.ts
-type ContentDataInput = {
-  text: string;
-  scale: string;
-  space_id: number;
-  author_id: number;
-  source_local_id?: string;
-  metadata?: Record<string, unknown> | string; // Allow string for pre-stringified metadata
-  created: string; // ISO 8601 date string
-  last_modified: string; // ISO 8601 date string
-  document_id?: number;
-  part_of_id?: number;
-};
-
-type ContentRecord = {
-  id: number;
-  text: string;
-  scale: string;
-  space_id: number;
-  author_id: number;
-  source_local_id: string | null;
-  metadata: Record<string, unknown> | null;
-  created: string;
-  last_modified: string;
-  document_id: number | null;
-  part_of_id: number | null;
-  // Add other fields from your Content table if they are selected
-};
+type ContentDataInput = TablesInsert<"Content">;
+type ContentRecord = Tables<"Content">;
 
 // Renamed and refactored
 const processAndUpsertContentEntry = async (
@@ -141,7 +115,7 @@ const processAndUpsertContentEntry = async (
     metadata: processedMetadata as any,
     created,
     last_modified,
-    document_id: document_id || null,
+    document_id: document_id,
     part_of_id: part_of_id || null,
   };
 
@@ -152,7 +126,7 @@ const processAndUpsertContentEntry = async (
   // If no solid matchCriteria for a "get", getOrCreateEntity will likely proceed to "create".
   // If there are unique constraints other than (space_id, source_local_id), it will handle race conditions.
 
-  const result = await getOrCreateEntity<ContentRecord>(
+  const result = await getOrCreateEntity<"Content">(
     supabase,
     "Content",
     "*", // Select all fields for ContentRecord

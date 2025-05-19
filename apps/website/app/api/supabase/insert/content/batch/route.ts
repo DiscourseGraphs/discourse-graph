@@ -10,45 +10,18 @@ import {
   BatchItemValidator,
   BatchProcessResult, // Import BatchProcessResult for the return type
 } from "~/utils/supabase/dbUtils"; // Ensure this path is correct
+import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-// Based on the Content table schema and usage in embeddingWorkflow.ts
-// This is for a single content item in the batch
-type ContentBatchItemInput = {
-  text: string;
-  scale: string;
-  space_id: number;
-  author_id: number; // This is Person.id (Agent.id)
-  document_id: number;
-  source_local_id?: string;
-  metadata?: Record<string, unknown> | string | null; // Allow string for pre-stringified, or null
-  created: string; // ISO 8601 date string
-  last_modified: string; // ISO 8601 date string
-  part_of_id?: number;
-};
+type ContentDataInput = TablesInsert<"Content">;
+type ContentRecord = Tables<"Content">;
 
 // The request body will be an array of these items
-type ContentBatchRequestBody = ContentBatchItemInput[];
-
-// Define a type for the actual record stored in/retrieved from DB for Content
-type ContentRecord = {
-  id: number;
-  text: string;
-  scale: string;
-  space_id: number;
-  author_id: number;
-  document_id: number;
-  source_local_id: string | null;
-  metadata: Record<string, unknown> | null; // Assuming metadata is stored as JSONB
-  created: string; // ISO 8601 date string
-  last_modified: string; // ISO 8601 date string
-  part_of_id: number | null;
-  // Add other fields from your Content table if they are selected
-};
+type ContentBatchRequestBody = ContentDataInput[];
 
 // Specific validator and processor for Content items
 const validateAndProcessContentItem: BatchItemValidator<
-  ContentBatchItemInput,
-  Omit<ContentBatchItemInput, "metadata"> & { metadata: string | null } // TProcessed type
+  ContentDataInput,
+  Omit<ContentDataInput, "metadata"> & { metadata: string | null } // TProcessed type
 > = (item, index) => {
   // No need to check for !item here, processAndInsertBatch handles null/undefined items in the array itself
   const requiredFields = [
@@ -89,9 +62,8 @@ const batchInsertContentProcess = async (
   contentItems: ContentBatchRequestBody,
 ): Promise<BatchProcessResult<ContentRecord>> => {
   return processAndInsertBatch<
-    ContentBatchItemInput,
-    Omit<ContentBatchItemInput, "metadata"> & { metadata: string | null },
-    ContentRecord
+    "Content",
+    Omit<ContentDataInput, "metadata"> & { metadata: string | null }
   >(
     supabase,
     contentItems,

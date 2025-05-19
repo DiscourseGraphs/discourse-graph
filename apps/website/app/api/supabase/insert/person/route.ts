@@ -9,59 +9,47 @@ import {
   handleRouteError,
   defaultOptionsHandler, // Assuming OPTIONS might be added later
 } from "~/utils/supabase/apiUtils";
+import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-type PersonDataInput = {
-  name: string;
-  email: string;
-  orcid?: string | null;
-  person_type?: string;
-  account_platform_id: number;
-  account_active?: boolean;
-  account_write_permission?: boolean;
-};
-
-type PersonRecord = {
-  id: number;
-  name: string;
-  email: string;
-  orcid: string | null;
-  type: string;
-};
-
-type AccountRecord = {
-  id: number;
-  person_id: number;
-  platform_id: number;
-  active: boolean;
-  write_permission: boolean;
-};
+type PersonDataInput = TablesInsert<"Person">;
+type PersonRecord = Tables<"Person">;
+type AccountRecord = Tables<"Account">;
 
 // Kept for the final API response structure
-type PersonWithAccountResult = {
-  person: PersonRecord | null;
-  account: AccountRecord | null;
-  person_created?: boolean;
-  account_created?: boolean;
-};
+// type PersonWithAccountResult = {
+//   person: PersonRecord | null;
+//   account: AccountRecord | null;
+//   person_created?: boolean;
+//   account_created?: boolean;
+// };
 
 const getOrCreatePersonInternal = async (
   supabasePromise: ReturnType<typeof createClient>,
   email: string,
   name: string,
   orcid: string | null | undefined,
-  personType: string,
 ): Promise<GetOrCreateEntityResult<PersonRecord>> => {
   const supabase = await supabasePromise;
-  return getOrCreateEntity<PersonRecord>(
+  const agent_response = await getOrCreateEntity<"Agent">(
+    supabase,
+    "Agent",
+    "id, type",
+    { type: "Person" },
+    { type: "Person" },
+    "Agent",
+  );
+  if (agent_response.error || agent_response.entity === null)
+    return agent_response as any as GetOrCreateEntityResult<PersonRecord>;
+  return getOrCreateEntity<"Person">(
     supabase,
     "Person",
     "id, name, email, orcid, type",
     { email: email.trim() },
     {
+      id: agent_response.entity.id,
       email: email.trim(),
       name: name.trim(),
       orcid: orcid || null,
-      type: personType,
     },
     "Person",
   );
@@ -75,7 +63,7 @@ const getOrCreateAccountInternal = async (
   writePermission?: boolean,
 ): Promise<GetOrCreateEntityResult<AccountRecord>> => {
   const supabase = await supabasePromise;
-  const result = await getOrCreateEntity<AccountRecord>(
+  const result = await getOrCreateEntity<"Account">(
     supabase,
     "Account",
     "id, person_id, platform_id, active, write_permission",
@@ -115,16 +103,16 @@ const getOrCreateAccountInternal = async (
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
+  // MAP: Punting the joint creation of person and account. Create the account after the person.
   try {
     const body: PersonDataInput = await request.json();
     const {
       name,
       email,
       orcid = null, // Default from input
-      person_type = "Person", // Default from input
-      account_platform_id,
-      account_active = true, // Default from input
-      account_write_permission, // No default here, handled in getOrCreateAccountInternal
+      // account_platform_id,
+      // account_active = true, // Default from input
+      // account_write_permission, // No default here, handled in getOrCreateAccountInternal
     } = body;
 
     // Initial input validation
@@ -140,16 +128,16 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
         status: 400,
       });
     }
-    if (
-      account_platform_id === undefined ||
-      account_platform_id === null ||
-      typeof account_platform_id !== "number"
-    ) {
-      return createApiResponse(request, {
-        error: "Missing or invalid account_platform_id for Account.",
-        status: 400,
-      });
-    }
+    // if (
+    //   account_platform_id === undefined ||
+    //   account_platform_id === null ||
+    //   typeof account_platform_id !== "number"
+    // ) {
+    //   return createApiResponse(request, {
+    //     error: "Missing or invalid account_platform_id for Account.",
+    //     status: 400,
+    //   });
+    // }
 
     // Get or Create Person
     const personResult = await getOrCreatePersonInternal(
@@ -157,7 +145,6 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       email,
       name,
       orcid,
-      person_type,
     );
 
     if (personResult.error || !personResult.entity) {
@@ -168,38 +155,39 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       });
     }
 
-    // Get or Create Account
-    const accountResult = await getOrCreateAccountInternal(
-      supabasePromise, // Pass the promise again, it will resolve the same client or a new one if needed by createClient impl.
-      personResult.entity.id,
-      account_platform_id,
-      account_active,
-      account_write_permission,
-    );
+    // // Get or Create Account
+    // const accountResult = await getOrCreateAccountInternal(
+    //   supabasePromise, // Pass the promise again, it will resolve the same client or a new one if needed by createClient impl.
+    //   personResult.entity.id,
+    //   account_platform_id,
+    //   account_active,
+    //   account_write_permission,
+    // );
 
-    if (accountResult.error || !accountResult.entity) {
-      // If account creation fails, return error but include successfully processed person
-      return createApiResponse(request, {
-        error: accountResult.error || "Failed to process Account.",
-        details: accountResult.details,
-        status: accountResult.status || 500,
-        // Optionally include person data if account failed
-        // data: { person: personResult.entity, person_created: personResult.created }
-      });
-    }
+    // if (accountResult.error || !accountResult.entity) {
+    //   // If account creation fails, return error but include successfully processed person
+    //   return createApiResponse(request, {
+    //     error: accountResult.error || "Failed to process Account.",
+    //     details: accountResult.details,
+    //     status: accountResult.status || 500,
+    //     // Optionally include person data if account failed
+    //     // data: { person: personResult.entity, person_created: personResult.created }
+    //   });
+    // }
 
-    const responsePayload: PersonWithAccountResult = {
-      person: personResult.entity,
-      account: accountResult.entity,
-      person_created: personResult.created,
-      account_created: accountResult.created,
-    };
+    // const responsePayload: PersonWithAccountResult = {
+    //   person: personResult.entity,
+    //   account: accountResult.entity,
+    //   person_created: personResult.created,
+    //   account_created: accountResult.created,
+    // };
 
-    const overallStatus =
-      personResult.created || accountResult.created ? 201 : 200;
+    // const overallStatus =
+    //   personResult.created || accountResult.created ? 201 : 200;
+    const overallStatus = personResult.created ? 201 : 200;
 
     return createApiResponse(request, {
-      data: responsePayload,
+      data: personResult,
       status: overallStatus,
     });
   } catch (e: unknown) {

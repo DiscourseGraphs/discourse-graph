@@ -10,33 +10,20 @@ import {
   BatchItemValidator,
   BatchProcessResult,
 } from "~/utils/supabase/dbUtils";
-import cors from "~/utils/llm/cors";
+import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-// Input type for a single item in the batch
-interface ContentEmbeddingBatchItemInput {
-  target_id: number; // Foreign key to Content.id
-  model: string;
-  vector: number[] | string; // Accept string for pre-formatted, or number[]
-  obsolete?: boolean;
-}
+type ContentEmbeddingDataInput =
+  TablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;
+type ContentEmbeddingRecord =
+  Tables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
 
 // Request body is an array of these items
-type ContentEmbeddingBatchRequestBody = ContentEmbeddingBatchItemInput[];
-
-// Type for the record as stored/retrieved from DB (ensure fields match your table)
-interface ContentEmbeddingRecord {
-  id: number; // Assuming auto-generated ID
-  target_id: number;
-  model: string;
-  vector: string; // Stored as string (JSON.stringify of number[])
-  obsolete: boolean;
-  // created_at?: string; // If you have timestamps and want to select them
-}
+type ContentEmbeddingBatchRequestBody = ContentEmbeddingDataInput[];
 
 // Type for the item after processing, ready for DB insert
-type ProcessedEmbeddingItem = Omit<ContentEmbeddingBatchItemInput, "vector"> & {
+type ProcessedEmbeddingItem = Omit<ContentEmbeddingDataInput, "vector"> & {
   vector: string; // Vector is always stringified
-  obsolete: boolean; // Obsolete has a default
+  obsolete: boolean | null; // Obsolete has a default
 };
 
 const TARGET_EMBEDDING_TABLE =
@@ -44,7 +31,7 @@ const TARGET_EMBEDDING_TABLE =
 
 // Validator and processor for embedding items
 const validateAndProcessEmbeddingItem: BatchItemValidator<
-  ContentEmbeddingBatchItemInput,
+  ContentEmbeddingDataInput,
   ProcessedEmbeddingItem
 > = (item, index) => {
   if (item.target_id === undefined || item.target_id === null) {
@@ -92,9 +79,8 @@ const batchInsertEmbeddingsProcess = async (
   embeddingItems: ContentEmbeddingBatchRequestBody,
 ): Promise<BatchProcessResult<ContentEmbeddingRecord>> => {
   return processAndInsertBatch<
-    ContentEmbeddingBatchItemInput,
-    ProcessedEmbeddingItem,
-    ContentEmbeddingRecord
+    "ContentEmbedding_openai_text_embedding_3_small_1536",
+    ProcessedEmbeddingItem
   >(
     supabase,
     embeddingItems,

@@ -1,4 +1,5 @@
 import type { SupabaseClient, PostgrestError } from "@supabase/supabase-js";
+import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
 export type GetOrCreateEntityResult<T> = {
   entity: T | null;
@@ -20,21 +21,23 @@ export type GetOrCreateEntityResult<T> = {
  * @param entityName A friendly name for the entity, used in logging and error messages.
  * @returns Promise<GetOrCreateEntityResult<T>>
  */
-export async function getOrCreateEntity<T extends { id: any }>(
-  supabase: SupabaseClient<any, "public", any>,
-  tableName: string,
+export async function getOrCreateEntity<
+  TableName extends keyof Database["public"]["Tables"],
+>(
+  supabase: SupabaseClient<Database, "public", Database["public"]>,
+  tableName: keyof Database["public"]["Tables"],
   selectQuery: string,
   matchCriteria: Record<string, any>,
-  insertData: Omit<T, "id" | "created_at" | "updated_at"> & Record<string, any>, // Flexible insert data
+  insertData: TablesInsert<TableName>, // Flexible insert data
   entityName: string = tableName,
-): Promise<GetOrCreateEntityResult<T>> {
+): Promise<GetOrCreateEntityResult<Tables<TableName>>> {
   // 1. Try to fetch existing entity
   let queryBuilder = supabase.from(tableName).select(selectQuery);
   for (const key in matchCriteria) {
     queryBuilder = queryBuilder.eq(key, matchCriteria[key]);
   }
   const { data: existingEntity, error: fetchError } =
-    await queryBuilder.maybeSingle<T>();
+    await queryBuilder.maybeSingle<Tables<TableName>>();
 
   if (fetchError) {
     console.error(`Error fetching ${entityName} by`, matchCriteria, fetchError);
@@ -67,7 +70,7 @@ export async function getOrCreateEntity<T extends { id: any }>(
     .from(tableName)
     .insert(insertData)
     .select(selectQuery)
-    .single<T>();
+    .single<Tables<TableName>>();
 
   if (insertError) {
     console.error(
@@ -87,7 +90,7 @@ export async function getOrCreateEntity<T extends { id: any }>(
         reFetchQueryBuilder = reFetchQueryBuilder.eq(key, matchCriteria[key]);
       }
       const { data: reFetchedEntity, error: reFetchError } =
-        await reFetchQueryBuilder.maybeSingle<T>();
+        await reFetchQueryBuilder.maybeSingle<Tables<TableName>>();
 
       if (reFetchError) {
         console.error(
@@ -171,14 +174,20 @@ export type BatchProcessResult<TRecord> = {
   status: number; // HTTP status to suggest
 };
 
-export async function processAndInsertBatch<TInput, TProcessed, TRecord>(
+export async function processAndInsertBatch<
+  TableName extends keyof Database["public"]["Tables"],
+  TProcessed,
+>(
   supabase: SupabaseClient<any, "public", any>,
-  items: TInput[],
+  items: TablesInsert<TableName>[],
   tableName: string,
   selectQuery: string, // e.g., "id, field1, field2" or "*"
-  itemValidatorAndProcessor: BatchItemValidator<TInput, TProcessed>,
+  itemValidatorAndProcessor: BatchItemValidator<
+    TablesInsert<TableName>,
+    TProcessed
+  >,
   entityName: string = tableName, // For logging
-): Promise<BatchProcessResult<TRecord>> {
+): Promise<BatchProcessResult<Tables<TableName>>> {
   if (!Array.isArray(items) || items.length === 0) {
     return {
       error: `Request body must be a non-empty array of ${entityName} items.`,
@@ -237,7 +246,7 @@ export async function processAndInsertBatch<TInput, TProcessed, TRecord>(
     };
   }
 
-  const newRecordsTyped = newRecords as TRecord[]; // Assert type
+  const newRecordsTyped = newRecords as Tables<TableName>[]; // Assert type
 
   if (!newRecordsTyped || newRecordsTyped.length !== processedForDb.length) {
     console.warn(

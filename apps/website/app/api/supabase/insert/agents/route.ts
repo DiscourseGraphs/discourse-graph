@@ -9,23 +9,16 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
+import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-type AgentDataInput = {
-  type: string;
-};
-
-type AgentRecord = {
-  id: number;
-  type: string;
-};
+type AgentDataInput = TablesInsert<"Agent">;
+type AgentRecord = Tables<"Agent">;
 
 const getOrCreateAgentByType = async (
   supabasePromise: ReturnType<typeof createClient>,
-  agentType: string,
+  agentType: Database["public"]["Enums"]["EntityType"],
 ): Promise<GetOrCreateEntityResult<AgentRecord>> => {
-  const type = agentType.trim();
-
-  if (!type) {
+  if (!agentType) {
     return {
       entity: null,
       error: "Missing or invalid 'type' for Agent.",
@@ -37,12 +30,12 @@ const getOrCreateAgentByType = async (
 
   const supabase = await supabasePromise;
 
-  return getOrCreateEntity<AgentRecord>(
+  return getOrCreateEntity<"Agent">(
     supabase,
     "Agent",
     "id, type",
-    { type: type },
-    { type: type },
+    { type: agentType },
+    { type: agentType },
     "Agent",
   );
 };

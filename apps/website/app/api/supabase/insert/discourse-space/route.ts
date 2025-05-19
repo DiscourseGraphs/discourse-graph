@@ -9,20 +9,10 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
+import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-type DiscourseSpaceDataInput = {
-  name: string;
-  url: string;
-  discourse_platform_id: number;
-};
-
-type DiscourseSpaceRecord = {
-  id: number;
-  name: string;
-  url: string;
-  discourse_platform_id: number;
-  // Add other fields from your DiscourseSpace table if they are selected
-};
+type DiscourseSpaceDataInput = TablesInsert<"DiscourseSpace">;
+type DiscourseSpaceRecord = Tables<"DiscourseSpace">;
 
 // Renamed and refactored helper function
 const processAndGetOrCreateDiscourseSpace = async (
@@ -66,7 +56,7 @@ const processAndGetOrCreateDiscourseSpace = async (
   const trimmedName = name.trim();
   const supabase = await supabasePromise;
 
-  const result = await getOrCreateEntity<DiscourseSpaceRecord>(
+  const result = await getOrCreateEntity<"DiscourseSpace">(
     supabase,
     "DiscourseSpace",
     "id, name, url, discourse_platform_id",

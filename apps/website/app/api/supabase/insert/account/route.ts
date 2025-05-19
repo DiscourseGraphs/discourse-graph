@@ -9,21 +9,10 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
+import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-type AccountDataInput = {
-  person_id: number;
-  platform_id: number;
-  active?: boolean;
-  write_permission?: boolean;
-};
-
-type AccountRecord = {
-  id: number;
-  person_id: number;
-  platform_id: number;
-  active: boolean;
-  write_permission: boolean;
-};
+type AccountDataInput = TablesInsert<"Account">;
+type AccountRecord = Tables<"Account">;
 
 const getOrCreateAccount = async (
   supabasePromise: ReturnType<typeof createClient>,
@@ -53,7 +42,7 @@ const getOrCreateAccount = async (
 
   const supabase = await supabasePromise;
 
-  const result = await getOrCreateEntity<AccountRecord>(
+  const result = await getOrCreateEntity<"Account">(
     supabase,
     "Account",
     "id, person_id, platform_id, active, write_permission",

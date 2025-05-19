@@ -9,23 +9,12 @@ import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
 } from "~/utils/supabase/dbUtils";
+import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-// Input type
-interface ContentEmbeddingDataInput {
-  target_id: number;
-  model: string;
-  vector: number[]; // Singular route expects number[] directly
-  obsolete?: boolean;
-}
-
-// DB record type
-interface ContentEmbeddingRecord {
-  id: number;
-  target_id: number;
-  model: string;
-  vector: string; // Stored as stringified JSON
-  obsolete: boolean;
-}
+type ContentEmbeddingDataInput =
+  TablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;
+type ContentEmbeddingRecord =
+  Tables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
 
 const TARGET_EMBEDDING_TABLE =
   "ContentEmbedding_openai_text_embedding_3_small_1536";
@@ -93,14 +82,15 @@ const processAndCreateEmbedding = async (
 
   // Using getOrCreateEntity, forcing create path by providing non-matching criteria
   // This standardizes return type and error handling (e.g., FK violations from dbUtils)
-  const result = await getOrCreateEntity<ContentEmbeddingRecord>(
-    supabase,
-    TARGET_EMBEDDING_TABLE,
-    "*", // Select all fields for the record
-    { id: -1 }, // Non-matching criteria to force "create" path
-    embeddingToInsert,
-    "ContentEmbedding",
-  );
+  const result =
+    await getOrCreateEntity<"ContentEmbedding_openai_text_embedding_3_small_1536">(
+      supabase,
+      TARGET_EMBEDDING_TABLE,
+      "*", // Select all fields for the record
+      { id: -1 }, // Non-matching criteria to force "create" path
+      embeddingToInsert,
+      "ContentEmbedding",
+    );
 
   // getOrCreateEntity handles general 23503, but we can make the message more specific if needed
   if (

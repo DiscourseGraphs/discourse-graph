@@ -9,28 +9,10 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
-import cors from "~/utils/llm/cors";
+import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-type DocumentDataInput = {
-  space_id: number;
-  source_local_id?: string;
-  url?: string;
-  metadata?: Record<string, unknown> | string;
-  created: string; // ISO 8601 date string
-  last_modified: string; // ISO 8601 date string
-  author_id: number;
-};
-
-type DocumentRecord = {
-  id: number;
-  space_id: number;
-  source_local_id: string | null;
-  url: string | null;
-  metadata: Record<string, unknown> | null;
-  created: string; // ISO 8601 date string
-  last_modified: string; // ISO 8601 date string
-  author_id: number;
-};
+type DocumentDataInput = TablesInsert<"Document">;
+type DocumentRecord = Tables<"Document">;
 
 const createDocument = async (
   supabasePromise: ReturnType<typeof createClient>,
@@ -82,7 +64,7 @@ const createDocument = async (
 
   const supabase = await supabasePromise;
 
-  const result = await getOrCreateEntity<DocumentRecord>(
+  const result = await getOrCreateEntity<"Document">(
     supabase,
     "Document",
     "id, space_id, source_local_id, url, metadata, created, last_modified, author_id",
