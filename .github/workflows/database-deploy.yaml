@@ -2,8 +2,7 @@ name: Supabase deploy Function
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - feature/supabase
 jobs:
   deploy:
     runs-on: ubuntu-latest
