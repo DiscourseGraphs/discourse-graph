@@ -1,5 +1,6 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
@@ -7,18 +8,23 @@ import {
 import {
   createApiResponse,
   handleRouteError,
-  defaultOptionsHandler, // Assuming OPTIONS might be added later
+  defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
 
-type PersonDataInput = {
-  name: string;
-  email: string;
-  orcid?: string | null;
-  person_type?: string;
-  account_platform_id: number;
-  account_active?: boolean;
-  account_write_permission?: boolean;
-};
+const PersonDataInputSchema = z.object({
+  name: z.string().trim().min(1, { message: "Name cannot be empty." }),
+  email: z.string().trim().email({ message: "Invalid email format." }),
+  orcid: z.string().nullable().optional(),
+  person_type: z.string().optional().default("Person"),
+  account_platform_id: z
+    .number()
+    .int()
+    .positive({ message: "account_platform_id must be a positive integer." }),
+  account_active: z.boolean().optional().default(true),
+  account_write_permission: z.boolean().optional(),
+});
+
+type PersonDataInput = z.infer<typeof PersonDataInputSchema>;
 
 type PersonRecord = {
   id: number;
@@ -36,7 +42,6 @@ type AccountRecord = {
   write_permission: boolean;
 };
 
-// Kept for the final API response structure
 type PersonWithAccountResult = {
   person: PersonRecord | null;
   account: AccountRecord | null;
@@ -56,10 +61,10 @@ const getOrCreatePersonInternal = async (
     supabase,
     "Person",
     "id, name, email, orcid, type",
-    { email: email.trim() },
+    { email: email },
     {
-      email: email.trim(),
-      name: name.trim(),
+      email: email,
+      name: name,
       orcid: orcid || null,
       type: personType,
     },
@@ -84,12 +89,11 @@ const getOrCreateAccountInternal = async (
       person_id: personId,
       platform_id: platformId,
       active: isActive,
-      write_permission: writePermission === undefined ? true : writePermission, // Default to true if undefined
+      write_permission: writePermission === undefined ? true : writePermission,
     },
     "Account",
   );
 
-  // Custom handling for specific foreign key errors
   if (
     result.error &&
     result.details &&
@@ -116,44 +120,33 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: PersonDataInput = await request.json();
+    const body = await request.json();
+
+    const validationResult = PersonDataInputSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.errors
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join("; ");
+      return createApiResponse(request, {
+        error: "Validation Error",
+        details: errorMessages,
+        status: 400,
+      });
+    }
+
     const {
       name,
       email,
-      orcid = null, // Default from input
-      person_type = "Person", // Default from input
+      orcid,
+      person_type,
       account_platform_id,
-      account_active = true, // Default from input
-      account_write_permission, // No default here, handled in getOrCreateAccountInternal
-    } = body;
+      account_active,
+      account_write_permission,
+    } = validationResult.data;
 
-    // Initial input validation
-    if (!name || typeof name !== "string" || name.trim() === "") {
-      return createApiResponse(request, {
-        error: "Missing or invalid name for Person.",
-        status: 400,
-      });
-    }
-    if (!email || typeof email !== "string" || email.trim() === "") {
-      return createApiResponse(request, {
-        error: "Missing or invalid email for Person.",
-        status: 400,
-      });
-    }
-    if (
-      account_platform_id === undefined ||
-      account_platform_id === null ||
-      typeof account_platform_id !== "number"
-    ) {
-      return createApiResponse(request, {
-        error: "Missing or invalid account_platform_id for Account.",
-        status: 400,
-      });
-    }
-
-    // Get or Create Person
     const personResult = await getOrCreatePersonInternal(
-      supabasePromise, // Pass the promise
+      supabasePromise,
       email,
       name,
       orcid,
@@ -168,9 +161,8 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       });
     }
 
-    // Get or Create Account
     const accountResult = await getOrCreateAccountInternal(
-      supabasePromise, // Pass the promise again, it will resolve the same client or a new one if needed by createClient impl.
+      supabasePromise,
       personResult.entity.id,
       account_platform_id,
       account_active,
@@ -178,13 +170,10 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     );
 
     if (accountResult.error || !accountResult.entity) {
-      // If account creation fails, return error but include successfully processed person
       return createApiResponse(request, {
         error: accountResult.error || "Failed to process Account.",
         details: accountResult.details,
         status: accountResult.status || 500,
-        // Optionally include person data if account failed
-        // data: { person: personResult.entity, person_created: personResult.created }
       });
     }
 
@@ -207,5 +196,4 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   }
 };
 
-// If you need an OPTIONS handler for this route:
-// export const OPTIONS = defaultOptionsHandler;
+export const OPTIONS = defaultOptionsHandler;

@@ -1,5 +1,6 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
@@ -16,12 +17,19 @@ type DiscoursePlatformRecord = {
   url: string;
 };
 
-type DiscoursePlatformDataInput = {
-  currentContentURL: string;
-};
+const DiscoursePlatformDataInputSchema = z.object({
+  currentContentURL: z
+    .string({
+      required_error: "currentContentURL is required.",
+      invalid_type_error: "currentContentURL must be a string.",
+    })
+    .trim()
+    .min(1, { message: "currentContentURL cannot be empty." })
+    .url({ message: "Invalid URL format for currentContentURL." }),
+});
 
 const getOrCreateDiscoursePlatformFromURL = async (
-  supabase: ReturnType<typeof createClient>,
+  supabasePromise: ReturnType<typeof createClient>,
   currentContentURL: string,
 ): Promise<GetOrCreateEntityResult<DiscoursePlatformRecord>> => {
   let platformName: string | null = null;
@@ -34,7 +42,8 @@ const getOrCreateDiscoursePlatformFromURL = async (
   } else {
     console.warn("Could not determine platform from URL:", currentContentURL);
     return {
-      error: "Could not determine platform from URL.",
+      error:
+        "Could not determine platform from URL. Ensure it is a supported platform URL.",
       entity: null,
       created: false,
       status: 400,
@@ -43,14 +52,14 @@ const getOrCreateDiscoursePlatformFromURL = async (
 
   if (!platformName || !platformUrl) {
     return {
-      error: "Platform name or URL could not be derived.",
+      error: "Platform name or URL could not be derived even from a valid URL.",
       entity: null,
       created: false,
       status: 400,
     };
   }
 
-  const resolvedSupabaseClient = await supabase;
+  const resolvedSupabaseClient = await supabasePromise;
   return getOrCreateEntity<DiscoursePlatformRecord>(
     resolvedSupabaseClient,
     "DiscoursePlatform",
@@ -62,21 +71,28 @@ const getOrCreateDiscoursePlatformFromURL = async (
 };
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
-  const supabase = createClient();
+  const supabasePromise = createClient();
 
   try {
-    const body: DiscoursePlatformDataInput = await request.json();
-    const { currentContentURL } = body;
+    const body = await request.json();
 
-    if (!currentContentURL || typeof currentContentURL !== "string") {
+    const validationResult = DiscoursePlatformDataInputSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.errors
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join("; ");
       return createApiResponse(request, {
-        error: "Missing or invalid currentContentURL in request body.",
+        error: "Validation Error",
+        details: errorMessages,
         status: 400,
       });
     }
 
+    const { currentContentURL } = validationResult.data;
+
     const result = await getOrCreateDiscoursePlatformFromURL(
-      supabase,
+      supabasePromise,
       currentContentURL,
     );
 

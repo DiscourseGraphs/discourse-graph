@@ -1,5 +1,6 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
@@ -10,9 +11,9 @@ import {
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
 
-type AgentDataInput = {
-  type: string;
-};
+const AgentDataInputSchema = z.object({
+  type: z.string().trim().min(1, { message: "Agent type cannot be empty." }),
+});
 
 type AgentRecord = {
   id: number;
@@ -24,16 +25,6 @@ const getOrCreateAgentByType = async (
   agentType: string,
 ): Promise<GetOrCreateEntityResult<AgentRecord>> => {
   const type = agentType.trim();
-
-  if (!type) {
-    return {
-      entity: null,
-      error: "Missing or invalid 'type' for Agent.",
-      details: "Agent 'type' is required and cannot be empty.",
-      created: false,
-      status: 400,
-    };
-  }
 
   const supabase = await supabasePromise;
 
@@ -51,15 +42,22 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: AgentDataInput = await request.json();
-    const { type } = body;
+    const body = await request.json();
 
-    if (!type || typeof type !== "string" || type.trim() === "") {
+    const validationResult = AgentDataInputSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.errors
+        .map((e) => `${e.path.join(".")} - ${e.message}`)
+        .join("; ");
       return createApiResponse(request, {
-        error: "Validation Error: Missing or invalid type for Agent.",
+        error: "Validation Error",
+        details: errorMessages,
         status: 400,
       });
     }
+
+    const { type } = validationResult.data;
 
     const result = await getOrCreateAgentByType(supabasePromise, type);
 

@@ -3,9 +3,9 @@ import type { SupabaseClient, PostgrestError } from "@supabase/supabase-js";
 export type GetOrCreateEntityResult<T> = {
   entity: T | null;
   error: string | null;
-  details?: string; // For detailed error messages, e.g., from Supabase
+  details?: string;
   created: boolean;
-  status: number; // HTTP status code to suggest
+  status: number;
 };
 
 /**
@@ -48,7 +48,6 @@ export async function getOrCreateEntity<T extends { id: any }>(
   }
 
   if (existingEntity) {
-    console.log(`Found existing ${entityName}:`, existingEntity);
     return {
       entity: existingEntity,
       error: null,
@@ -58,11 +57,6 @@ export async function getOrCreateEntity<T extends { id: any }>(
   }
 
   // 2. Create new entity if not found
-  console.log(
-    `${entityName} not found with criteria`,
-    matchCriteria,
-    `creating new one...`,
-  );
   const { data: newEntity, error: insertError } = await supabase
     .from(tableName)
     .insert(insertData)
@@ -192,7 +186,6 @@ export async function processAndInsertBatch<TInput, TProcessed, TRecord>(
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     if (!item) {
-      // Handles undefined/null items in the array itself
       validationErrors.push({ index: i, error: "Item is undefined or null." });
       continue;
     }
@@ -225,8 +218,8 @@ export async function processAndInsertBatch<TInput, TProcessed, TRecord>(
 
   const { data: newRecords, error: insertError } = await supabase
     .from(tableName)
-    .insert(processedForDb as any) // Cast as any if TProcessed is not directly insertable; ensure TProcessed matches table
-    .select(selectQuery); // Use the provided select query
+    .insert(processedForDb as any)
+    .select(selectQuery);
 
   if (insertError) {
     console.error(`Error batch inserting ${entityName}:`, insertError);
@@ -237,7 +230,7 @@ export async function processAndInsertBatch<TInput, TProcessed, TRecord>(
     };
   }
 
-  const newRecordsTyped = newRecords as TRecord[]; // Assert type
+  const newRecordsTyped = newRecords as TRecord[];
 
   if (!newRecordsTyped || newRecordsTyped.length !== processedForDb.length) {
     console.warn(
@@ -245,7 +238,7 @@ export async function processAndInsertBatch<TInput, TProcessed, TRecord>(
     );
     return {
       error: `Batch insert of ${entityName} might have partially failed or returned unexpected data.`,
-      status: 500, // Or a more specific error
+      status: 500,
     };
   }
 

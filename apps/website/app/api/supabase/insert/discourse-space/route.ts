@@ -1,5 +1,6 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
@@ -10,60 +11,37 @@ import {
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
 
-type DiscourseSpaceDataInput = {
-  name: string;
-  url: string;
-  discourse_platform_id: number;
-};
+const DiscourseSpaceDataInputSchema = z.object({
+  name: z.string().trim().min(1, { message: "Name cannot be empty." }),
+  url: z
+    .string()
+    .trim()
+    .url({ message: "Invalid URL format." })
+    .min(1, { message: "URL cannot be empty." }),
+  discourse_platform_id: z
+    .number()
+    .int()
+    .positive({ message: "discourse_platform_id must be a positive integer." }),
+});
+
+type DiscourseSpaceDataInput = z.infer<typeof DiscourseSpaceDataInputSchema>;
 
 type DiscourseSpaceRecord = {
   id: number;
   name: string;
   url: string;
   discourse_platform_id: number;
-  // Add other fields from your DiscourseSpace table if they are selected
 };
 
-// Renamed and refactored helper function
 const processAndGetOrCreateDiscourseSpace = async (
   supabasePromise: ReturnType<typeof createClient>,
-  data: DiscourseSpaceDataInput,
+  data: DiscourseSpaceDataInput, // data is now Zod-validated
 ): Promise<GetOrCreateEntityResult<DiscourseSpaceRecord>> => {
   const { name, url, discourse_platform_id } = data;
 
-  // --- Start of validation ---
-  if (!name || typeof name !== "string" || name.trim() === "") {
-    return {
-      entity: null,
-      error: "Missing or invalid name.",
-      created: false,
-      status: 400,
-    };
-  }
-  if (!url || typeof url !== "string" || url.trim() === "") {
-    return {
-      entity: null,
-      error: "Missing or invalid URL.",
-      created: false,
-      status: 400,
-    };
-  }
-  if (
-    discourse_platform_id === undefined ||
-    discourse_platform_id === null ||
-    typeof discourse_platform_id !== "number"
-  ) {
-    return {
-      entity: null,
-      error: "Missing or invalid discourse_platform_id.",
-      created: false,
-      status: 400,
-    };
-  }
-  // --- End of validation ---
+  const normalizedUrl = url.replace(/\/$/, "");
+  const trimmedName = name;
 
-  const normalizedUrl = url.trim().replace(/\/$/, "");
-  const trimmedName = name.trim();
   const supabase = await supabasePromise;
 
   const result = await getOrCreateEntity<DiscourseSpaceRecord>(
@@ -79,7 +57,6 @@ const processAndGetOrCreateDiscourseSpace = async (
     "DiscourseSpace",
   );
 
-  // Custom handling for specific foreign key error related to discourse_platform_id
   if (
     result.error &&
     result.details &&
@@ -106,19 +83,26 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: DiscourseSpaceDataInput = await request.json();
+    const body = await request.json();
 
-    // Minimal validation here, more detailed in the helper
-    if (!body || typeof body !== "object") {
+    const validationResult = DiscourseSpaceDataInputSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.errors
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join("; ");
       return createApiResponse(request, {
-        error: "Invalid request body: expected a JSON object.",
+        error: "Validation Error",
+        details: errorMessages,
         status: 400,
       });
     }
 
+    const validatedData = validationResult.data;
+
     const result = await processAndGetOrCreateDiscourseSpace(
       supabasePromise,
-      body,
+      validatedData,
     );
 
     return createApiResponse(request, {

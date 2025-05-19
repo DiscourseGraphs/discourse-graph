@@ -1,5 +1,6 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
 import {
   createApiResponse,
   handleRouteError,
@@ -8,28 +9,35 @@ import {
 import {
   processAndInsertBatch,
   BatchItemValidator,
-  BatchProcessResult, // Import BatchProcessResult for the return type
-} from "~/utils/supabase/dbUtils"; // Ensure this path is correct
+  BatchProcessResult,
+} from "~/utils/supabase/dbUtils";
 
-// Based on the Content table schema and usage in embeddingWorkflow.ts
-// This is for a single content item in the batch
-type ContentBatchItemInput = {
-  text: string;
-  scale: string;
-  space_id: number;
-  author_id: number; // This is Person.id (Agent.id)
-  document_id: number;
-  source_local_id?: string;
-  metadata?: Record<string, unknown> | string | null; // Allow string for pre-stringified, or null
-  created: string; // ISO 8601 date string
-  last_modified: string; // ISO 8601 date string
-  part_of_id?: number;
-};
+const ContentBatchItemSchema = z.object({
+  text: z.string().min(1, { message: "Text cannot be empty." }),
+  scale: z.string().min(1, { message: "Scale cannot be empty." }),
+  space_id: z.number().int().positive(),
+  author_id: z.number().int().positive(),
+  document_id: z.number().int().positive(),
+  source_local_id: z.string().optional(),
+  metadata: z
+    .union([z.record(z.string(), z.unknown()), z.string(), z.null()])
+    .optional(),
+  created: z
+    .string()
+    .datetime({ message: "Invalid ISO 8601 date format for created." }),
+  last_modified: z
+    .string()
+    .datetime({ message: "Invalid ISO 8601 date format for last_modified." }),
+  part_of_id: z.number().int().positive().optional(),
+});
 
-// The request body will be an array of these items
-type ContentBatchRequestBody = ContentBatchItemInput[];
+const ContentBatchRequestBodySchema = z.array(ContentBatchItemSchema).nonempty({
+  message: "Request body must be a non-empty array of content items.",
+});
 
-// Define a type for the actual record stored in/retrieved from DB for Content
+type ContentBatchItemInput = z.infer<typeof ContentBatchItemSchema>;
+type ContentBatchRequestBody = z.infer<typeof ContentBatchRequestBodySchema>;
+
 type ContentRecord = {
   id: number;
   text: string;
@@ -38,67 +46,60 @@ type ContentRecord = {
   author_id: number;
   document_id: number;
   source_local_id: string | null;
-  metadata: Record<string, unknown> | null; // Assuming metadata is stored as JSONB
-  created: string; // ISO 8601 date string
-  last_modified: string; // ISO 8601 date string
+  metadata: Record<string, unknown> | null;
+  created: string;
+  last_modified: string;
   part_of_id: number | null;
-  // Add other fields from your Content table if they are selected
 };
 
-// Specific validator and processor for Content items
 const validateAndProcessContentItem: BatchItemValidator<
   ContentBatchItemInput,
-  Omit<ContentBatchItemInput, "metadata"> & { metadata: string | null } // TProcessed type
-> = (item, index) => {
-  // No need to check for !item here, processAndInsertBatch handles null/undefined items in the array itself
-  const requiredFields = [
-    "text",
-    "scale",
-    "space_id",
-    "author_id",
-    "document_id",
-    "created",
-    "last_modified",
-  ];
-  const missingFields = requiredFields.filter(
-    (field) => !(item as any)[field] && (item as any)[field] !== 0,
-  ); // check for undefined, null, empty string but allow 0
-  if (missingFields.length > 0) {
-    return {
-      valid: false,
-      error: `Item at index ${index}: Missing required fields: ${missingFields.join(", ")}.`,
-    };
+  Omit<ContentBatchItemInput, "metadata" | "source_local_id" | "part_of_id"> & {
+    metadata: string | null;
+    source_local_id: string | null;
+    part_of_id: number | null;
   }
-
+> = (item, _index) => {
   let metadataString: string | null = null;
   if (item.metadata && typeof item.metadata === "object") {
     metadataString = JSON.stringify(item.metadata);
   } else if (typeof item.metadata === "string") {
     metadataString = item.metadata;
-  } // item.metadata can also be null if provided as such, which is fine
+  } // item.metadata can also be null if provided as such
 
   return {
     valid: true,
-    processedItem: { ...item, metadata: metadataString },
+    processedItem: {
+      ...item,
+      metadata: metadataString,
+      source_local_id: item.source_local_id || null,
+      part_of_id: item.part_of_id || null,
+    },
   };
 };
 
-// Updated batchInsertContentProcess to use the generic utility
 const batchInsertContentProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
   contentItems: ContentBatchRequestBody,
 ): Promise<BatchProcessResult<ContentRecord>> => {
   return processAndInsertBatch<
     ContentBatchItemInput,
-    Omit<ContentBatchItemInput, "metadata"> & { metadata: string | null },
+    Omit<
+      ContentBatchItemInput,
+      "metadata" | "source_local_id" | "part_of_id"
+    > & {
+      metadata: string | null;
+      source_local_id: string | null;
+      part_of_id: number | null;
+    },
     ContentRecord
   >(
     supabase,
     contentItems,
-    "Content", // Table name
-    "*", // Select query (can be more specific, e.g., "id, text, scale, ...")
+    "Content",
+    "*",
     validateAndProcessContentItem,
-    "Content", // Entity name for logging
+    "Content",
   );
 };
 
@@ -106,15 +107,27 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabase = await createClient();
 
   try {
-    const body: ContentBatchRequestBody = await request.json();
-    if (!Array.isArray(body)) {
+    const body = await request.json();
+
+    const validationResult = ContentBatchRequestBodySchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.errors
+        .map((e) => `Item at path ${e.path.join(".")}: ${e.message}`)
+        .join("; ");
       return createApiResponse(request, {
-        error: "Request body must be an array of content items.",
+        error: "Validation Error",
+        details: errorMessages,
         status: 400,
       });
     }
 
-    const result = await batchInsertContentProcess(supabase, body);
+    const validatedContentItems = validationResult.data;
+
+    const result = await batchInsertContentProcess(
+      supabase,
+      validatedContentItems,
+    );
 
     return createApiResponse(request, {
       data: result.data,

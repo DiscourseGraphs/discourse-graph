@@ -1,5 +1,6 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
@@ -9,17 +10,31 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
-import cors from "~/utils/llm/cors";
 
-type DocumentDataInput = {
-  space_id: number;
-  source_local_id?: string;
-  url?: string;
-  metadata?: Record<string, unknown> | string;
-  created: string; // ISO 8601 date string
-  last_modified: string; // ISO 8601 date string
-  author_id: number;
-};
+const DocumentDataInputSchema = z.object({
+  space_id: z
+    .number()
+    .int()
+    .positive({ message: "space_id must be a positive integer." }),
+  source_local_id: z.string().optional(),
+  url: z.string().url({ message: "Invalid URL format." }).optional(),
+  metadata: z
+    .union([z.record(z.string(), z.unknown()), z.string()])
+    .nullable()
+    .optional(),
+  created: z
+    .string()
+    .datetime({ message: "Invalid ISO 8601 date format for created." }),
+  last_modified: z
+    .string()
+    .datetime({ message: "Invalid ISO 8601 date format for last_modified." }),
+  author_id: z
+    .number()
+    .int()
+    .positive({ message: "author_id must be a positive integer." }),
+});
+
+type DocumentDataInput = z.infer<typeof DocumentDataInputSchema>;
 
 type DocumentRecord = {
   id: number;
@@ -27,8 +42,8 @@ type DocumentRecord = {
   source_local_id: string | null;
   url: string | null;
   metadata: Record<string, unknown> | null;
-  created: string; // ISO 8601 date string
-  last_modified: string; // ISO 8601 date string
+  created: string;
+  last_modified: string;
   author_id: number;
 };
 
@@ -40,34 +55,16 @@ const createDocument = async (
     space_id,
     source_local_id,
     url,
-    metadata: rawMetadata,
+    metadata,
     created,
     last_modified,
     author_id,
   } = data;
-
-  if (
-    space_id === undefined ||
-    space_id === null ||
-    !created ||
-    !last_modified ||
-    author_id === undefined ||
-    author_id === null
-  ) {
-    return {
-      entity: null,
-      error:
-        "Missing required fields: space_id, created, last_modified, or author_id.",
-      created: false,
-      status: 400,
-    };
-  }
-
   const processedMetadata =
-    rawMetadata && typeof rawMetadata === "object"
-      ? JSON.stringify(rawMetadata)
-      : typeof rawMetadata === "string"
-        ? rawMetadata
+    metadata && typeof metadata === "object"
+      ? JSON.stringify(metadata)
+      : typeof metadata === "string"
+        ? metadata
         : null;
 
   const documentToInsert = {
@@ -118,34 +115,24 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: DocumentDataInput = await request.json();
+    const body = await request.json();
 
-    if (body.space_id === undefined || body.space_id === null) {
+    const validationResult = DocumentDataInputSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.errors
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join("; ");
       return createApiResponse(request, {
-        error: "Missing required field: space_id.",
-        status: 400,
-      });
-    }
-    if (!body.created) {
-      return createApiResponse(request, {
-        error: "Missing required field: created.",
-        status: 400,
-      });
-    }
-    if (!body.last_modified) {
-      return createApiResponse(request, {
-        error: "Missing required field: last_modified.",
-        status: 400,
-      });
-    }
-    if (body.author_id === undefined || body.author_id === null) {
-      return createApiResponse(request, {
-        error: "Missing required field: author_id.",
+        error: "Validation Error",
+        details: errorMessages,
         status: 400,
       });
     }
 
-    const result = await createDocument(supabasePromise, body);
+    const validatedData = validationResult.data;
+
+    const result = await createDocument(supabasePromise, validatedData);
 
     return createApiResponse(request, {
       data: result.entity,

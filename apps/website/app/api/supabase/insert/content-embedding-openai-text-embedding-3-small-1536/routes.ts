@@ -1,5 +1,6 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
 import {
   createApiResponse,
   handleRouteError,
@@ -10,76 +11,38 @@ import {
   GetOrCreateEntityResult,
 } from "~/utils/supabase/dbUtils";
 
-// Input type
-interface ContentEmbeddingDataInput {
-  target_id: number;
-  model: string;
-  vector: number[]; // Singular route expects number[] directly
-  obsolete?: boolean;
-}
+const ContentEmbeddingDataInputSchema = z.object({
+  target_id: z
+    .number()
+    .int()
+    .positive({ message: "target_id must be a positive integer." }),
+  model: z.string().min(1, { message: "Model name cannot be empty." }),
+  vector: z
+    .array(z.number())
+    .nonempty({ message: "Vector array cannot be empty." }),
+  obsolete: z.boolean().optional().default(false),
+});
 
-// DB record type
+type ContentEmbeddingDataInput = z.infer<
+  typeof ContentEmbeddingDataInputSchema
+>;
+
 interface ContentEmbeddingRecord {
   id: number;
   target_id: number;
   model: string;
-  vector: string; // Stored as stringified JSON
+  vector: string;
   obsolete: boolean;
 }
 
 const TARGET_EMBEDDING_TABLE =
   "ContentEmbedding_openai_text_embedding_3_small_1536";
 
-// Renamed and refactored
 const processAndCreateEmbedding = async (
   supabasePromise: ReturnType<typeof createClient>,
-  data: ContentEmbeddingDataInput,
+  data: ContentEmbeddingDataInput, // data is now Zod-validated
 ): Promise<GetOrCreateEntityResult<ContentEmbeddingRecord>> => {
-  const { target_id, model, vector, obsolete = false } = data;
-
-  // --- Start of validation ---
-  if (
-    target_id === undefined ||
-    target_id === null ||
-    typeof target_id !== "number"
-  ) {
-    return {
-      entity: null,
-      error: "Missing or invalid target_id.",
-      created: false,
-      status: 400,
-    };
-  }
-  if (!model || typeof model !== "string") {
-    return {
-      entity: null,
-      error: "Missing or invalid model name.",
-      created: false,
-      status: 400,
-    };
-  }
-  if (
-    !vector ||
-    !Array.isArray(vector) ||
-    !vector.every((v) => typeof v === "number")
-  ) {
-    return {
-      entity: null,
-      error: "Missing or invalid vector. Must be an array of numbers.",
-      created: false,
-      status: 400,
-    };
-  }
-  if (data.obsolete !== undefined && typeof data.obsolete !== "boolean") {
-    // Check original data for obsolete presence
-    return {
-      entity: null,
-      error: "Invalid type for obsolete. Must be a boolean.",
-      created: false,
-      status: 400,
-    };
-  }
-  // --- End of validation ---
+  const { target_id, model, vector, obsolete } = data;
 
   const vectorString = JSON.stringify(vector);
   const supabase = await supabasePromise;
@@ -91,18 +54,15 @@ const processAndCreateEmbedding = async (
     obsolete,
   };
 
-  // Using getOrCreateEntity, forcing create path by providing non-matching criteria
-  // This standardizes return type and error handling (e.g., FK violations from dbUtils)
   const result = await getOrCreateEntity<ContentEmbeddingRecord>(
     supabase,
     TARGET_EMBEDDING_TABLE,
-    "*", // Select all fields for the record
-    { id: -1 }, // Non-matching criteria to force "create" path
+    "*",
+    { id: -1 },
     embeddingToInsert,
     "ContentEmbedding",
   );
 
-  // getOrCreateEntity handles general 23503, but we can make the message more specific if needed
   if (
     result.error &&
     result.details &&
@@ -110,10 +70,11 @@ const processAndCreateEmbedding = async (
     result.details.includes("violates foreign key constraint")
   ) {
     if (
-      result.details.toLowerCase().includes(
-        // Check for target_id FK, adapt if FK name is different
-        `${TARGET_EMBEDDING_TABLE.toLowerCase()}_target_id_fkey`.toLowerCase(),
-      ) ||
+      result.details
+        .toLowerCase()
+        .includes(
+          `${TARGET_EMBEDDING_TABLE.toLowerCase()}_target_id_fkey`.toLowerCase(),
+        ) ||
       result.details.toLowerCase().includes("target_id")
     ) {
       return {
@@ -130,24 +91,34 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: ContentEmbeddingDataInput = await request.json();
+    const body = await request.json();
 
-    // Minimal validation here, more detailed in processAndCreateEmbedding
-    if (!body || typeof body !== "object") {
+    const validationResult = ContentEmbeddingDataInputSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.errors
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join("; ");
       return createApiResponse(request, {
-        error: "Invalid request body: expected a JSON object.",
+        error: "Validation Error",
+        details: errorMessages,
         status: 400,
       });
     }
 
-    const result = await processAndCreateEmbedding(supabasePromise, body);
+    const validatedData = validationResult.data;
+
+    const result = await processAndCreateEmbedding(
+      supabasePromise,
+      validatedData,
+    );
 
     return createApiResponse(request, {
       data: result.entity,
       error: result.error,
       details: result.details,
       status: result.status,
-      created: result.created, // Will be true if successful create
+      created: result.created,
     });
   } catch (e: unknown) {
     return handleRouteError(

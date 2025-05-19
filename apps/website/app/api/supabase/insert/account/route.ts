@@ -1,5 +1,6 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
@@ -10,12 +11,20 @@ import {
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
 
-type AccountDataInput = {
-  person_id: number;
-  platform_id: number;
-  active?: boolean;
-  write_permission?: boolean;
-};
+const AccountDataInputSchema = z.object({
+  person_id: z
+    .number()
+    .int()
+    .positive({ message: "person_id must be a positive integer." }),
+  platform_id: z
+    .number()
+    .int()
+    .positive({ message: "platform_id must be a positive integer." }),
+  active: z.boolean().optional().default(true),
+  write_permission: z.boolean().optional().default(true),
+});
+
+type AccountDataInput = z.infer<typeof AccountDataInputSchema>;
 
 type AccountRecord = {
   id: number;
@@ -29,27 +38,7 @@ const getOrCreateAccount = async (
   supabasePromise: ReturnType<typeof createClient>,
   accountData: AccountDataInput,
 ): Promise<GetOrCreateEntityResult<AccountRecord>> => {
-  const {
-    person_id,
-    platform_id,
-    active = true,
-    write_permission = true,
-  } = accountData;
-
-  if (
-    person_id === undefined ||
-    person_id === null ||
-    platform_id === undefined ||
-    platform_id === null
-  ) {
-    return {
-      entity: null,
-      error: "Missing required fields: person_id or platform_id.",
-      details: "Both person_id and platform_id are required.",
-      created: false,
-      status: 400,
-    };
-  }
+  const { person_id, platform_id, active, write_permission } = accountData;
 
   const supabase = await supabasePromise;
 
@@ -87,22 +76,27 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: AccountDataInput = await request.json();
+    const body = await request.json();
 
-    if (body.person_id === undefined || body.person_id === null) {
+    const validationResult = AccountDataInputSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.errors
+        .map((e) => `${e.path.join(".")} - ${e.message}`)
+        .join("; ");
       return createApiResponse(request, {
-        error: "Missing or invalid person_id.",
+        error: "Validation Error",
+        details: errorMessages,
         status: 400,
       });
     }
-    if (body.platform_id === undefined || body.platform_id === null) {
-      return createApiResponse(request, {
-        error: "Missing or invalid platform_id.",
-        status: 400,
-      });
-    }
 
-    const result = await getOrCreateAccount(supabasePromise, body);
+    const validatedAccountData = validationResult.data;
+
+    const result = await getOrCreateAccount(
+      supabasePromise,
+      validatedAccountData,
+    );
 
     return createApiResponse(request, {
       data: result.entity,
