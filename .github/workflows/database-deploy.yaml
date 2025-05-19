@@ -1,8 +1,11 @@
 name: Supabase deploy Function
 on:
+  workflow_dispatch:
   push:
     branches:
       - feature/supabase
+    paths:
+      - "projects/database"
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -15,6 +18,5 @@ jobs:
         with:
           version: latest
       - run: |
-          cd projects/database
           supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_ID_PROD }}
           supabase push --project-ref ${{ secrets.SUPABASE_PROJECT_ID_PROD }}
