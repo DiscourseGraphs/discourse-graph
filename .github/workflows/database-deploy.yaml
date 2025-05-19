@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 jobs:
   deploy:
-    if: false
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -18,5 +17,5 @@ jobs:
           version: latest
       - run: |
           cd projects/database
-          supabase functions deploy --project-ref ${{ secrets.PRODUCTION_PROJECT_ID }}
-          supabase push --project-ref ${{ secrets.PRODUCTION_PROJECT_ID }}
+          supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_ID_PROD }}
+          supabase push --project-ref ${{ secrets.SUPABASE_PROJECT_ID_PROD }}
