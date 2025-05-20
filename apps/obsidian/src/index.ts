@@ -9,6 +9,7 @@ import { DEFAULT_SETTINGS } from "./constants";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
+  private styleElement: HTMLStyleElement | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -23,6 +24,9 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.addRibbonIcon("telescope", "Toggle Discourse Context", () => {
       this.toggleDiscourseContextView();
     });
+
+    // Initialize frontmatter CSS
+    this.updateFrontmatterStyles();
 
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu: Menu, editor: Editor) => {
@@ -53,6 +57,27 @@ export default class DiscourseGraphPlugin extends Plugin {
         });
       }),
     );
+  }
+
+  updateFrontmatterStyles() {
+    // Create or get style element
+    if (!this.styleElement) {
+      this.styleElement = document.createElement("style");
+      this.styleElement.id = "discourse-graph-frontmatter-styles";
+      document.head.appendChild(this.styleElement);
+    }
+
+    // Generate CSS from settings
+    if (this.settings.hiddenFrontmatterKeys.length > 0) {
+      const selectors = this.settings.hiddenFrontmatterKeys
+        .map((key) => `.metadata-property[data-property-key="${key}"]`)
+        .join(", ");
+
+      this.styleElement.textContent = `${selectors} { display: none !important; }`;
+    } else {
+      // No keys to hide
+      this.styleElement.textContent = "";
+    }
   }
 
   toggleDiscourseContextView() {
@@ -92,14 +117,23 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     if (!loadedData) {
       await this.saveSettings();
+    } else {
+      // Update styles with loaded settings
+      this.updateFrontmatterStyles();
     }
   }
 
   async saveSettings() {
     await this.saveData(this.settings);
+    this.updateFrontmatterStyles();
   }
 
   async onunload() {
+    // Clean up the style element
+    if (this.styleElement) {
+      this.styleElement.remove();
+    }
+
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT);
   }
 }

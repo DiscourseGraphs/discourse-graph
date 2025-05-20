@@ -6,6 +6,7 @@ import { ContextProvider } from "./AppContext";
 import RelationshipTypeSettings from "./RelationshipTypeSettings";
 import RelationshipSettings from "./RelationshipSettings";
 import NodeTypeSettings from "./NodeTypeSettings";
+import FrontmatterSettings from "./FrontmatterSettings";
 import { PluginProvider } from "./PluginContext";
 
 const Settings = () => {
@@ -38,7 +39,7 @@ const Settings = () => {
         </button>
         <button
           onClick={() => setActiveTab("relations")}
-          className={`cursor-pointer px-4 py-2 ${
+          className={`mr-2 cursor-pointer px-4 py-2 ${
             activeTab === "relations"
               ? "!bg-modifier-hover accent-border-bottom"
               : "!bg-transparent"
@@ -46,11 +47,22 @@ const Settings = () => {
         >
           Discourse Relations
         </button>
+        <button
+          onClick={() => setActiveTab("frontmatter")}
+          className={`cursor-pointer px-4 py-2 ${
+            activeTab === "frontmatter"
+              ? "!bg-modifier-hover accent-border-bottom"
+              : "!bg-transparent"
+          }`}
+        >
+          Frontmatter
+        </button>
       </div>
 
       {activeTab === "nodeTypes" && <NodeTypeSettings />}
       {activeTab === "relationTypes" && <RelationshipTypeSettings />}
       {activeTab === "relations" && <RelationshipSettings />}
+      {activeTab === "frontmatter" && <FrontmatterSettings />}
     </div>
   );
 };

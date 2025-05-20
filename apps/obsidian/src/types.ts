@@ -23,6 +23,7 @@ export type Settings = {
   nodeTypes: DiscourseNode[];
   discourseRelations: DiscourseRelation[];
   relationTypes: DiscourseRelationType[];
+  hiddenFrontmatterKeys: string[];
 };
 
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";
