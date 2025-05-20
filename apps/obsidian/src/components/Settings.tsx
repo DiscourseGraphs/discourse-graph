@@ -13,7 +13,7 @@ const Settings = () => {
 
   return (
     <div className="flex flex-col">
-      <h2>Discourse Graph Settings</h2>
+      <h2 className="dg-h2">Discourse Graph Settings</h2>
 
       <div className="border-modifier-border border-b p-2">
         <button
