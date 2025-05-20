@@ -98,6 +98,7 @@ class "Person" [[{A person using the system}]] {
 }
 class "AutomatedAgent" [[{An automated agent}]] {
     {field} metadata : JSON  
+    {field} name : string  
     {field} deterministic : boolean  
     {field} version : string  
     {field} id(i) : integer  

@@ -125,6 +125,7 @@ classes:
     is_a: Agent
     slots:
       - metadata
+      - name
     attributes:
       deterministic:
         range: boolean
