@@ -186,30 +186,54 @@ export const initObservers = async ({
     }
   };
 
+  const customTrigger = onloadArgs.extensionAPI.settings.get(
+    "node-search-trigger",
+  ) as string;
+
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
     const target = evt.target as HTMLElement;
+
     if (document.querySelector(".discourse-node-search-menu")) return;
 
-    if (evt.key === "@" || (evt.key === "2" && evt.shiftKey)) {
-      if (
-        target.tagName === "TEXTAREA" &&
-        target.classList.contains("rm-block-input")
-      ) {
-        const textarea = target as HTMLTextAreaElement;
-        const location = window.roamAlphaAPI.ui.getFocusedBlock();
-        if (!location) return;
+    if (
+      target.tagName === "TEXTAREA" &&
+      target.classList.contains("rm-block-input")
+    ) {
+      const textarea = target as HTMLTextAreaElement;
 
-        const cursorPos = textarea.selectionStart;
-        const isBeginningOrAfterSpace =
-          cursorPos === 0 ||
-          textarea.value.charAt(cursorPos - 1) === " " ||
-          textarea.value.charAt(cursorPos - 1) === "\n";
-        if (isBeginningOrAfterSpace) {
+      if (!customTrigger) return;
+
+      const cursorPos = textarea.selectionStart;
+      const textBeforeCursor = textarea.value.substring(0, cursorPos);
+
+      const lastTriggerPos = textBeforeCursor.lastIndexOf(customTrigger);
+
+      if (lastTriggerPos >= 0) {
+        const charBeforeTrigger =
+          lastTriggerPos > 0
+            ? textBeforeCursor.charAt(lastTriggerPos - 1)
+            : null;
+
+        const isValidTriggerPosition =
+          lastTriggerPos === 0 ||
+          charBeforeTrigger === " " ||
+          charBeforeTrigger === "\n";
+
+        const isCursorAfterTrigger =
+          cursorPos === lastTriggerPos + customTrigger.length;
+
+        if (isValidTriggerPosition && isCursorAfterTrigger) {
+          // Double-check we have an active block context via Roam's API
+          // This guards against edge cases where the DOM shows an input but Roam's internal state disagrees
+          const isEditingBlock = !!window.roamAlphaAPI.ui.getFocusedBlock();
+          if (!isEditingBlock) return;
+
           renderDiscourseNodeSearchMenu({
             onClose: () => {},
             textarea: textarea,
-            triggerPosition: cursorPos,
+            triggerPosition: lastTriggerPos,
+            triggerText: customTrigger,
           });
         }
       }
