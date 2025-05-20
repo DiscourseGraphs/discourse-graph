@@ -19,7 +19,7 @@ import nanoid from "nanoid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import findDiscourseNode from "~/utils/findDiscourseNode";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseRelations, {
   DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
@@ -96,67 +96,6 @@ const getAllReferencesOnPage = (pageTitle: string) => {
   })) as Result[];
 };
 
-type SelfNodeType = {
-  type: string;
-  text: string;
-  format: string;
-};
-
-type AllNodesType = ReadonlyArray<SelfNodeType>;
-
-const getUniqueLabelTypeTriplets = (
-  connectingRelations: DiscourseRelation[],
-  selfNode: SelfNodeType,
-  allNodes: AllNodesType,
-): RelationDetails[] => {
-  const relatedNodeType = selfNode.type;
-
-  const mappedItems = connectingRelations.flatMap((relation) => {
-    let targetNodeIdentifier: string;
-    let targetNodeDetails: { text: string; format: string } | undefined;
-    let finalRelationLabel: string;
-
-    if (relation.source === relatedNodeType) {
-      targetNodeIdentifier = relation.destination;
-      finalRelationLabel = relation.label;
-      const destinationNode = allNodes.find(
-        (n) => n.type === targetNodeIdentifier,
-      );
-      if (destinationNode && destinationNode.text && destinationNode.format) {
-        targetNodeDetails = {
-          text: destinationNode.text,
-          format: destinationNode.format,
-        };
-      }
-    } else if (relation.destination === relatedNodeType) {
-      targetNodeIdentifier = relation.source;
-      finalRelationLabel = relation.complement;
-      const sourceNode = allNodes.find((n) => n.type === targetNodeIdentifier);
-      if (sourceNode && sourceNode.text && sourceNode.format) {
-        targetNodeDetails = {
-          text: sourceNode.text,
-          format: sourceNode.format,
-        };
-      }
-    } else {
-      return [];
-    }
-
-    if (!targetNodeDetails) {
-      return [];
-    }
-
-    const mappedItem: RelationDetails = {
-      relationLabel: finalRelationLabel,
-      relatedNodeText: targetNodeDetails.text,
-      relatedNodeFormat: targetNodeDetails.format,
-    };
-    return [mappedItem];
-  });
-
-  return mappedItems;
-};
-
 const DiscourseContextOverlay = ({
   tag,
   id,
@@ -218,8 +157,8 @@ const DiscourseContextOverlay = ({
 
     if (!selfNode || !selfNode.text || !selfNode.format) {
       return {
-        validTypes: [] as string[],
-        uniqueRelationTypeTriplets: [] as RelationDetails[],
+        validTypes: [],
+        uniqueRelationTypeTriplets: [],
       };
     }
     const selfType = selfNode.type;
@@ -228,11 +167,43 @@ const DiscourseContextOverlay = ({
       (relation) =>
         relation.source === selfType || relation.destination === selfType,
     );
-    const uniqueTriplets = getUniqueLabelTypeTriplets(
-      relationsConnectingToSelf,
-      selfNode,
-      allNodes,
-    );
+
+    const uniqueTriplets = useMemo(() => {
+      const relatedNodeType = selfNode.type;
+
+      return relationsConnectingToSelf.flatMap((relation) => {
+        const isSelfSource = relation.source === relatedNodeType;
+        const isSelfDestination = relation.destination === relatedNodeType;
+
+        let targetNodeType: string;
+        let currentRelationLabel: string;
+
+        if (isSelfSource) {
+          targetNodeType = relation.destination;
+          currentRelationLabel = relation.label;
+        } else if (isSelfDestination) {
+          targetNodeType = relation.source;
+          currentRelationLabel = relation.complement;
+        } else {
+          return [];
+        }
+
+        const identifiedTargetNode = allNodes.find(
+          (node) => node.type === targetNodeType,
+        );
+
+        if (!identifiedTargetNode) {
+          return [];
+        }
+
+        const mappedItem: RelationDetails = {
+          relationLabel: currentRelationLabel,
+          relatedNodeText: identifiedTargetNode.text,
+          relatedNodeFormat: identifiedTargetNode.format,
+        };
+        return [mappedItem];
+      });
+    }, [relationsConnectingToSelf, selfNode.type, allNodes]);
 
     const relationsInvolvingSelfBroadly = relations.filter((relation) =>
       [relation.source, relation.destination, relation.label].includes(
@@ -348,15 +319,11 @@ const DiscourseContextOverlay = ({
     }
 
     try {
-      const candidateNodesForHyde = currentSuggestions.map((node) => {
-        const nodeWithEmbedding = {
-          uid: node.uid,
-          text: node.text,
-          type: node.type,
-          embedding: [] as number[],
-        };
-        return nodeWithEmbedding as CandidateNodeWithEmbedding;
-      });
+      const candidateNodesForHyde = currentSuggestions.map((node) => ({
+        uid: node.uid,
+        text: node.text,
+        type: node.type,
+      }));
 
       const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde({
         candidateNodes: candidateNodesForHyde,
