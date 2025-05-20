@@ -57,6 +57,16 @@ const Settings = () => {
         >
           Discourse Relations
         </button>
+        <button
+          onClick={() => setActiveTab("frontmatter")}
+          className={`cursor-pointer px-4 py-2 ${
+            activeTab === "frontmatter"
+              ? "!bg-modifier-hover accent-border-bottom"
+              : "!bg-transparent"
+          }`}
+        >
+          Frontmatter
+        </button>
       </div>
 
       {activeTab === "general" && <GeneralSettings />}
