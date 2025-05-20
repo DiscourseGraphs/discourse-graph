@@ -1,22 +1,19 @@
-@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
-@layer base {
-  h1 {
-    @apply text-3xl font-bold mb-4;
-  }
-  h2 {
-    @apply text-2xl font-bold mb-3;
-  }
-  h3 {
-    @apply text-xl font-semibold mb-2;
-  }
-  h4 {
-    @apply text-lg font-bold mb-2;
-  }
-}
 .accent-border-bottom {
   border-bottom: 2px solid var(--interactive-accent) !important;
+}
+
+.dg-h1 {
+  @apply text-3xl font-bold mb-4;
+}
+.dg-h2 {
+  @apply text-2xl font-bold mb-3;
+}
+.dg-h3 {
+  @apply text-xl font-semibold mb-2;
+}
+.dg-h4 {
+  @apply text-lg font-bold mb-2;
 }

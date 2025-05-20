@@ -65,7 +65,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
         </div>
 
         <div>
-          <h4 className="border-modifier-border mb-3 mt-4 border-b pb-1">
+          <h4 className="dg-h4 border-modifier-border mb-3 mt-4 border-b pb-1">
             Relationships
           </h4>
           <RelationshipSection key={activeFile.path} activeFile={activeFile} />
@@ -76,7 +76,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
 
   return (
     <div>
-      <h3>Discourse Context</h3>
+      <h3 className="dg-h3">Discourse Context</h3>
       {renderContent()}
     </div>
   );

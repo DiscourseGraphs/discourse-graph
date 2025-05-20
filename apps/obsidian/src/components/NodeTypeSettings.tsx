@@ -127,8 +127,10 @@ const NodeTypeSettings = () => {
   };
 
   return (
-    <div className="discourse-node-types">
-      <h3>Node Types</h3>
+    <div>
+      <div className="discourse-graph">
+        <h3 className="dg-h3">Node Types</h3>
+      </div>
       {nodeTypes.map((nodeType, index) => (
         <div key={index} className="setting-item">
           <div className="flex w-full flex-col">

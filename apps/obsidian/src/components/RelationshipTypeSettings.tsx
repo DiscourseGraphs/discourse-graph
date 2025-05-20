@@ -103,7 +103,7 @@ const RelationshipTypeSettings = () => {
 
   return (
     <div className="discourse-relation-types">
-      <h3>Relation Types</h3>
+      <h3 className="dg-h3">Relation Types</h3>
       {relationTypes.map((relationType, index) => (
         <div key={index} className="setting-item">
           <div className="flex w-full flex-col">
