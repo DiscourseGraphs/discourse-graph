@@ -17,7 +17,6 @@ export type EmbeddingVectorType = number[];
 
 export type CandidateNodeWithEmbedding = Result & {
   type: string;
-  embedding: EmbeddingVectorType;
 };
 
 export type SuggestedNode = Result & {
@@ -308,8 +307,7 @@ const rankNodes = ({
   maxScores.forEach((score, uid) => {
     const fullNode = nodeMap.get(uid);
     if (fullNode) {
-      const { embedding, ...restOfNode } = fullNode;
-      const suggestedNodeObject: SuggestedNode = restOfNode;
+      const suggestedNodeObject: SuggestedNode = fullNode;
       combinedResults.push({ node: suggestedNodeObject, score });
     }
   });
