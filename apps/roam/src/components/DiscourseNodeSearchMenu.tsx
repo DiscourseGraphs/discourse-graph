@@ -480,9 +480,6 @@ const NodeSearchMenu = ({
                             text={item.text}
                             data-active={isActive}
                             active={isActive}
-                            onMouseEnter={() =>
-                              setActiveIndex(currentGlobalIndex)
-                            }
                             onClick={() => onSelect(item)}
                           />
                         );
