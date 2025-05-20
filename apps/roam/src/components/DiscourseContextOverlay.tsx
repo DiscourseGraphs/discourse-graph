@@ -294,7 +294,7 @@ const DiscourseContextOverlay = ({
   const handleCreateBlock = async (node: SuggestedNode) => {
     await createBlock({
       parentUid: blockUid,
-      node: { text: `[[${nodeText}]]` },
+      node: { text: `[[${node.text}]]` },
     });
     setHydeFilteredNodes(hydeFilteredNodes.filter((n) => n.uid !== node.uid));
   };
@@ -386,7 +386,7 @@ const DiscourseContextOverlay = ({
             {selectedPage && (
               <div className="mt-6">
                 <h3 className="mb-2 text-base font-semibold">
-                  Suggested Relationships (Ranked by HyDE)
+                  Suggested Relationships
                 </h3>
                 {isSearchingHyde && (
                   <Spinner size={Spinner.SIZE_SMALL} className="mb-2" />
