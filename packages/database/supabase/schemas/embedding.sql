@@ -51,6 +51,7 @@ FROM public."ContentEmbedding_openai_text_embedding_3_small_1536" AS ce
 JOIN public."Content" AS c ON ce.target_id = c.id
 WHERE 1 - (ce.vector <=> query_embedding) > match_threshold
   AND ce.obsolete = FALSE
+  AND (current_document_id IS NULL OR c.document_id = current_document_id)
 ORDER BY
   ce.vector <=> query_embedding ASC
 LIMIT match_count;
