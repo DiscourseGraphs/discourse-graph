@@ -128,6 +128,10 @@ jobs:
           if [ -f "temp-repo/manifest.json" ]; then
             jq '.version = "${{ github.event.inputs.version }}"' temp-repo/manifest.json > temp.json && mv temp.json temp-repo/manifest.json
             echo "Updated manifest.json with version ${{ github.event.inputs.version }}"
+            # Update the plugin ID
+            jq '.id = "discourse-graphs"' temp-repo/manifest.json > temp.json && mv temp.json temp-repo/manifest.json
+            echo "Updated manifest.json with compatible plugin ID: discourse-graphs"
+
           else
             echo "ERROR: manifest.json not found in temp-repo!"
             exit 1
