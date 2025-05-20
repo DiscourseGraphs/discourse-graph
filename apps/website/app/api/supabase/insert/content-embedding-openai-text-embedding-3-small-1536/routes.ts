@@ -9,21 +9,39 @@ import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
 } from "~/utils/supabase/dbUtils";
-import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
+// Use the first known ContentEmbedding table, as they have the same structure
 type ContentEmbeddingDataInput =
   TablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;
 type ContentEmbeddingRecord =
   Tables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
 
-const TARGET_EMBEDDING_TABLE =
-  "ContentEmbedding_openai_text_embedding_3_small_1536";
+const known_embedding_tables: {
+  [key: string]: {
+    table_name: keyof Database["public"]["Tables"];
+    table_size: number;
+  };
+} = {
+  openai_text_embedding_3_small_1536: {
+    table_name: "ContentEmbedding_openai_text_embedding_3_small_1536",
+    table_size: 1536,
+  },
+};
+
+type ApiInputEmbeddingItem = Omit<ContentEmbeddingDataInput, "vector"> & {
+  vector: number[]; // Vector is passed in as a number[]
+};
+
+type ApiOutputEmbeddingRecord = Omit<ContentEmbeddingRecord, "vector"> & {
+  vector: number[]; // Vector is passed in as a number[]
+};
 
 // Renamed and refactored
 const processAndCreateEmbedding = async (
   supabasePromise: ReturnType<typeof createClient>,
-  data: ContentEmbeddingDataInput,
-): Promise<GetOrCreateEntityResult<ContentEmbeddingRecord>> => {
+  data: ApiInputEmbeddingItem,
+): Promise<GetOrCreateEntityResult<ApiOutputEmbeddingRecord>> => {
   const { target_id, model, vector, obsolete = false } = data;
 
   // --- Start of validation ---
@@ -39,7 +57,11 @@ const processAndCreateEmbedding = async (
       status: 400,
     };
   }
-  if (!model || typeof model !== "string") {
+  if (
+    !model ||
+    typeof model !== "string" ||
+    known_embedding_tables[model] == undefined
+  ) {
     return {
       entity: null,
       error: "Missing or invalid model name.",
@@ -47,9 +69,13 @@ const processAndCreateEmbedding = async (
       status: 400,
     };
   }
+
+  const { table_name, table_size } = known_embedding_tables[model];
+
   if (
     !vector ||
     !Array.isArray(vector) ||
+    vector.length != table_size ||
     !vector.every((v) => typeof v === "number")
   ) {
     return {
@@ -73,7 +99,7 @@ const processAndCreateEmbedding = async (
   const vectorString = JSON.stringify(vector);
   const supabase = await supabasePromise;
 
-  const embeddingToInsert = {
+  const embeddingToInsert: ContentEmbeddingDataInput = {
     target_id,
     model,
     vector: vectorString,
@@ -85,7 +111,7 @@ const processAndCreateEmbedding = async (
   const result =
     await getOrCreateEntity<"ContentEmbedding_openai_text_embedding_3_small_1536">(
       supabase,
-      TARGET_EMBEDDING_TABLE,
+      table_name,
       "*", // Select all fields for the record
       { id: -1 }, // Non-matching criteria to force "create" path
       embeddingToInsert,
@@ -102,25 +128,53 @@ const processAndCreateEmbedding = async (
     if (
       result.details.toLowerCase().includes(
         // Check for target_id FK, adapt if FK name is different
-        `${TARGET_EMBEDDING_TABLE.toLowerCase()}_target_id_fkey`.toLowerCase(),
+        `${table_name.toLowerCase()}_target_id_fkey`,
       ) ||
       result.details.toLowerCase().includes("target_id")
     ) {
       return {
         ...result,
+        entity: null,
         error: `Invalid target_id: No Content record found for ID ${target_id}.`,
       };
     }
   }
 
-  return result;
+  try {
+    const decoded_json = JSON.parse(result.entity?.vector || "");
+    if (
+      result.entity &&
+      Array.isArray(decoded_json) &&
+      decoded_json.length == table_size &&
+      decoded_json.every((v) => typeof v === "number")
+    ) {
+      return {
+        ...result,
+        entity: {
+          ...result.entity,
+          vector: decoded_json,
+        },
+      };
+    }
+  } catch (Exception) {
+    return {
+      ...result,
+      entity: null,
+      error: `Resulting entity does not have the right vector shape`,
+    };
+  }
+  return {
+    ...result,
+    entity: null,
+    error: `Error creating the database object`,
+  };
 };
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: ContentEmbeddingDataInput = await request.json();
+    const body: ApiInputEmbeddingItem = await request.json();
 
     // Minimal validation here, more detailed in processAndCreateEmbedding
     if (!body || typeof body !== "object") {
@@ -143,7 +197,8 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     return handleRouteError(
       request,
       e,
-      `/api/supabase/insert/${TARGET_EMBEDDING_TABLE}`,
+      `/api/supabase/insert/ContentEmbedding_openai_text_embedding_3_small_1536`,
+      // TODO replace with a generic name
     );
   }
 };
