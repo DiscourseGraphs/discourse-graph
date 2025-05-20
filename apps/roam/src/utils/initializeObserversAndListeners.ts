@@ -224,8 +224,10 @@ export const initObservers = async ({
           cursorPos === lastTriggerPos + customTrigger.length;
 
         if (isValidTriggerPosition && isCursorAfterTrigger) {
-          const location = window.roamAlphaAPI.ui.getFocusedBlock();
-          if (!location) return;
+          // Double-check we have an active block context via Roam's API
+          // This guards against edge cases where the DOM shows an input but Roam's internal state disagrees
+          const isEditingBlock = !!window.roamAlphaAPI.ui.getFocusedBlock();
+          if (!isEditingBlock) return;
 
           renderDiscourseNodeSearchMenu({
             onClose: () => {},

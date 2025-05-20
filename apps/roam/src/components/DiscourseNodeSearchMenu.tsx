@@ -553,7 +553,7 @@ export const NodeSearchMenuTriggerSetting = ({
     <InputGroup
       value={nodeSearchTrigger}
       onChange={handleNodeSearchTriggerChange}
-      placeholder="@"
+      placeholder="Click to set trigger"
       maxLength={5}
     />
   );
