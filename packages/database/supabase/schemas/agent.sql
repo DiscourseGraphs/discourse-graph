@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS public."Person" (
 );
 
 ALTER TABLE ONLY public."Person"
+ADD CONSTRAINT "Person_pkey" PRIMARY KEY (id);
+
+ALTER TABLE ONLY public."Person"
 ADD CONSTRAINT person_id_fkey FOREIGN KEY (
     id
 ) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE CASCADE;

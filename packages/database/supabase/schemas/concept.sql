@@ -52,9 +52,6 @@ ADD FOREIGN KEY (represented_by_id) REFERENCES public."Content" (
     id
 ) ON DELETE SET NULL ON UPDATE CASCADE;
 
-ALTER TABLE ONLY public."Person"
-ADD CONSTRAINT "Person_pkey" PRIMARY KEY (id);
-
 CREATE INDEX "Concept_content" ON public."Concept" USING gin (
     content jsonb_path_ops
 );

@@ -44,7 +44,7 @@ NO MINVALUE
 NO MAXVALUE
 CACHE 1;
 
-ALTER TABLE public.entity_id_seq OWNER TO "postgres";
+ALTER SEQUENCE public.entity_id_seq OWNER TO "postgres";
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres;

@@ -21,7 +21,6 @@ class "Document" [[{None}]] {
     {field} id : integer  
     {field} source_local_id : string  
     {field} url : string  
-    {field} last_synced : datetime  
     {field} created : datetime  
     {field} metadata : JSON  
     {field} last_modified : datetime  
@@ -39,7 +38,6 @@ class "Content" [[{A unit of content}]] {
     {field} metadata : JSON  
     {field} scale : Scale  
     {field} last_modified : datetime  
-    {field} last_synced : datetime  
 }
 "Document" --> "0..*" "Agent" : "contributors"
 "Document" --> "1" "Agent" : "author"
@@ -57,7 +55,6 @@ class "Concept" [[{An abstract concept, claim or relation}]] {
     {field} description : string  
     {field} created : datetime  
     {field} last_modified : datetime  
-    {field} last_synced : datetime  
     {field} arity : integer  
     {field} content : JSON  
     {field} is_schema : boolean  
@@ -72,11 +69,11 @@ class "ContentEmbedding" [[{None}]] {
     {field} obsolete : boolean  
 }
 "ContentEmbedding" --> "1" "Content" : "target"
-"Content" --> "0..1" "Concept" : "represents"
 "Content" --> "0..1" "Content" : "part_of"
 "Content" --> "0..*" "Agent" : "contributors"
 "Content" --> "1" "Agent" : "creator"
 "Content" --> "1" "Agent" : "author"
+"Concept" --> "0..1" "Content" : "represented_by"
 class "ConceptSchema" [[{None}]] {
     {field} id(i) : integer  
     {field} epistemic_status(i) : EpistemicStatus  
@@ -84,7 +81,6 @@ class "ConceptSchema" [[{None}]] {
     {field} description(i) : string  
     {field} created(i) : datetime  
     {field} last_modified(i) : datetime  
-    {field} last_synced(i) : datetime  
     {field} arity(i) : integer  
     {field} content(i) : JSON  
     {field} is_schema(i) : boolean  

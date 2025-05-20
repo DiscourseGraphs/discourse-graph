@@ -13,7 +13,7 @@ All CLI commands below should be run in this directory (`packages/database`.)
    3. End you work session with `npm run stop` (alias for `supabase end`) to free docker resources.
 3. Development: We follow the supabase [Declarative Database Schema](https://supabase.com/docs/guides/local-development/declarative-database-schemas) process.
    1. Assuming you're working on a feature branch.
-   2. Make changes to the schema, by editing files in `project/database/supabase/schemas`
+   2. Make changes to the schema, by editing files in `packages/database/supabase/schemas`
    3. If you created a new schema file, make sure to add it to `[db.migrations] schema_paths` in `packages/database/supabase/config.toml`. Schema files are applied in that order, you may need to be strategic in placing your file.
    4. `turbo build`, which will do the following:
       1. Check your logic with `sqruff lint supabase/schemas`, and eventually `sqruff fix supabase/schemas`
