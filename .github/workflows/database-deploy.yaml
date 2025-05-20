@@ -16,4 +16,4 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - run: turbo deploy -F @repo/database
+      - run: npx turbo deploy -F @repo/database
