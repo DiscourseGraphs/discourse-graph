@@ -299,6 +299,7 @@ const DiscourseContextOverlay = ({
     currentNodeText: string;
     relationDetails: RelationDetails[];
   }): Promise<SuggestedNode[]> => {
+    console.log("running stub for hyde search", candidateNodes);
     return candidateNodes;
   };
 
