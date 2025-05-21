@@ -28,11 +28,7 @@ import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import { Result } from "roamjs-components/types/query-builder";
 import createBlock from "roamjs-components/writes/createBlock";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
-import {
-  findSimilarNodesUsingHyde,
-  SuggestedNode,
-  RelationDetails,
-} from "~/utils/hyde";
+import { SuggestedNode, RelationDetails } from "~/utils/hyde";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
