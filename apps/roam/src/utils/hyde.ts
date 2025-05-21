@@ -307,8 +307,7 @@ const rankNodes = ({
   maxScores.forEach((score, uid) => {
     const fullNode = nodeMap.get(uid);
     if (fullNode) {
-      const suggestedNodeObject: SuggestedNode = fullNode;
-      combinedResults.push({ node: suggestedNodeObject, score });
+      combinedResults.push({ node: fullNode, score });
     }
   });
 

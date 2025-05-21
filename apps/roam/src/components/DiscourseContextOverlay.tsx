@@ -19,10 +19,8 @@ import nanoid from "nanoid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import findDiscourseNode from "~/utils/findDiscourseNode";
-import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
-import getDiscourseRelations, {
-  DiscourseRelation,
-} from "~/utils/getDiscourseRelations";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
@@ -34,7 +32,6 @@ import {
   findSimilarNodesUsingHyde,
   SuggestedNode,
   RelationDetails,
-  CandidateNodeWithEmbedding,
 } from "~/utils/hyde";
 
 type DiscourseData = {
@@ -152,87 +149,72 @@ const DiscourseContextOverlay = ({
     getInfo();
   }, [refresh, getInfo]);
 
-  const suggestionContextData = useMemo(() => {
-    const selfNode = discourseNode;
+  const validRelations = useMemo(() => {
+    if (!discourseNode) return [];
+    const selfType = discourseNode.type;
 
-    if (!selfNode || !selfNode.text || !selfNode.format) {
-      return {
-        validTypes: [],
-        uniqueRelationTypeTriplets: [],
-      };
-    }
-    const selfType = selfNode.type;
-
-    const relationsConnectingToSelf = relations.filter(
+    return relations.filter(
       (relation) =>
         relation.source === selfType || relation.destination === selfType,
     );
+  }, [relations, discourseNode]);
 
-    const uniqueTriplets = useMemo(() => {
-      const relatedNodeType = selfNode.type;
+  const uniqueRelationTypeTriplets = useMemo(() => {
+    if (!discourseNode) return [];
+    const relatedNodeType = discourseNode.type;
 
-      return relationsConnectingToSelf.flatMap((relation) => {
-        const isSelfSource = relation.source === relatedNodeType;
-        const isSelfDestination = relation.destination === relatedNodeType;
+    return validRelations.flatMap((relation) => {
+      const isSelfSource = relation.source === relatedNodeType;
+      const isSelfDestination = relation.destination === relatedNodeType;
 
-        let targetNodeType: string;
-        let currentRelationLabel: string;
+      let targetNodeType: string;
+      let currentRelationLabel: string;
 
-        if (isSelfSource) {
-          targetNodeType = relation.destination;
-          currentRelationLabel = relation.label;
-        } else if (isSelfDestination) {
-          targetNodeType = relation.source;
-          currentRelationLabel = relation.complement;
-        } else {
-          return [];
-        }
+      if (isSelfSource) {
+        targetNodeType = relation.destination;
+        currentRelationLabel = relation.label;
+      } else if (isSelfDestination) {
+        targetNodeType = relation.source;
+        currentRelationLabel = relation.complement;
+      } else {
+        return [];
+      }
 
-        const identifiedTargetNode = allNodes.find(
-          (node) => node.type === targetNodeType,
-        );
+      const identifiedTargetNode = allNodes.find(
+        (node) => node.type === targetNodeType,
+      );
 
-        if (!identifiedTargetNode) {
-          return [];
-        }
+      if (!identifiedTargetNode) {
+        return [];
+      }
 
-        const mappedItem: RelationDetails = {
-          relationLabel: currentRelationLabel,
-          relatedNodeText: identifiedTargetNode.text,
-          relatedNodeFormat: identifiedTargetNode.format,
-        };
-        return [mappedItem];
-      });
-    }, [relationsConnectingToSelf, selfNode.type, allNodes]);
+      const mappedItem: RelationDetails = {
+        relationLabel: currentRelationLabel,
+        relatedNodeText: identifiedTargetNode.text,
+        relatedNodeFormat: identifiedTargetNode.format,
+      };
+      return [mappedItem];
+    });
+  }, [validRelations, discourseNode, allNodes]);
 
-    const relationsInvolvingSelfBroadly = relations.filter((relation) =>
-      [relation.source, relation.destination, relation.label].includes(
-        selfType,
-      ),
-    );
-    const hasSelfRelation = relationsInvolvingSelfBroadly.some(
+  const validTypes = useMemo(() => {
+    if (!discourseNode) return [];
+    const selfType = discourseNode.type;
+
+    const hasSelfRelation = validRelations.some(
       (relation) =>
         relation.source === selfType && relation.destination === selfType,
     );
     const types = Array.from(
       new Set(
-        relationsInvolvingSelfBroadly.flatMap((relation) => [
+        validRelations.flatMap((relation) => [
           relation.source,
           relation.destination,
         ]),
       ),
     );
-    const filteredTypes = hasSelfRelation
-      ? types
-      : types.filter((type) => type !== selfType);
-
-    return {
-      validTypes: filteredTypes,
-      uniqueRelationTypeTriplets: uniqueTriplets,
-    };
-  }, [discourseNode, relations, allNodes]);
-
-  const { validTypes, uniqueRelationTypeTriplets } = suggestionContextData;
+    return hasSelfRelation ? types : types.filter((type) => type !== selfType);
+  }, [discourseNode, validRelations]);
 
   const [currentPageInput, setCurrentPageInput] = useState("");
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
@@ -271,11 +253,27 @@ const DiscourseContextOverlay = ({
         setIsSearchingHyde(true);
         setHydeFilteredNodes([]);
         try {
-          const foundNodes = await runHydeSearch({
-            currentSuggestions: nodes,
-            currentNodeText: tag,
-            relationDetails: uniqueRelationTypeTriplets,
-          });
+          const candidateNodesForHyde = nodes.map((node) => ({
+            uid: node.uid,
+            text: node.text,
+            type: node.type,
+          }));
+
+          // TODO: Remove this once the HyDE search is working
+          const foundNodes: SuggestedNode[] =
+            await tempFindSimilarNodesUsingHyde({
+              candidateNodes: candidateNodesForHyde,
+              currentNodeText: tag,
+              relationDetails: uniqueRelationTypeTriplets,
+            });
+
+          // TODO: Uncomment this once the HyDE search is working
+          // const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde({
+          //   candidateNodes: candidateNodesForHyde,
+          //   currentNodeText: tag,
+          //   relationDetails: uniqueRelationTypeTriplets,
+          // });
+
           setHydeFilteredNodes(foundNodes);
         } catch (error) {
           console.error(
@@ -291,54 +289,25 @@ const DiscourseContextOverlay = ({
     }
   }, [selectedPage, results, validTypes, tag, uniqueRelationTypeTriplets]);
 
+  // TODO: Remove this once the HyDE search is working
+  const tempFindSimilarNodesUsingHyde = async ({
+    candidateNodes,
+    currentNodeText,
+    relationDetails,
+  }: {
+    candidateNodes: SuggestedNode[];
+    currentNodeText: string;
+    relationDetails: RelationDetails[];
+  }): Promise<SuggestedNode[]> => {
+    return candidateNodes;
+  };
+
   const handleCreateBlock = async (node: SuggestedNode) => {
     await createBlock({
       parentUid: blockUid,
       node: { text: `[[${node.text}]]` },
     });
     setHydeFilteredNodes(hydeFilteredNodes.filter((n) => n.uid !== node.uid));
-  };
-
-  type RunHydeSearchArgs = {
-    currentSuggestions: SuggestedNode[];
-    currentNodeText: string;
-    relationDetails: RelationDetails[];
-  };
-
-  const runHydeSearch = async ({
-    currentSuggestions,
-    currentNodeText,
-    relationDetails,
-  }: RunHydeSearchArgs): Promise<SuggestedNode[]> => {
-    if (
-      !currentSuggestions.length ||
-      !currentNodeText ||
-      !relationDetails.length
-    ) {
-      return [];
-    }
-
-    try {
-      const candidateNodesForHyde = currentSuggestions.map((node) => ({
-        uid: node.uid,
-        text: node.text,
-        type: node.type,
-      }));
-
-      const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde({
-        candidateNodes: candidateNodesForHyde,
-        currentNodeText: currentNodeText,
-        relationDetails: relationDetails,
-      });
-
-      return foundNodes;
-    } catch (error) {
-      console.error(
-        "Error during HyDE search with default RPC subset search:",
-        error,
-      );
-      return [];
-    }
   };
 
   return (
