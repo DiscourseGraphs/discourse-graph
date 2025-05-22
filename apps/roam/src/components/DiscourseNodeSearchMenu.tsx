@@ -130,9 +130,8 @@ const NodeSearchMenu = ({
       });
       setCheckedTypes(initialCheckedTypes);
 
-      const initialSearchResults = allNodeTypes.reduce(
-        (acc, type) => ({ ...acc, [type.type]: [] }),
-        {},
+      const initialSearchResults = Object.fromEntries(
+        allNodeTypes.map((type) => [type.type, []]),
       );
       setSearchResults(initialSearchResults);
 
@@ -288,13 +287,6 @@ const NodeSearchMenu = ({
       setActiveIndex(0);
     }
   }, [allItems, activeIndex]);
-
-  useEffect(() => {
-    textarea.addEventListener("input", handleTextAreaInput);
-    return () => {
-      textarea.removeEventListener("input", handleTextAreaInput);
-    };
-  }, [handleTextAreaInput, textarea]);
 
   useEffect(() => {
     const listeningEl = textarea.closest(".rm-reference-item")
