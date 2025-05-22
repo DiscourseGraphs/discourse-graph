@@ -86,6 +86,3 @@ ADD CONSTRAINT "Concept_space_id_fkey" FOREIGN KEY (
 GRANT ALL ON TABLE public."Concept" TO anon;
 GRANT ALL ON TABLE public."Concept" TO authenticated;
 GRANT ALL ON TABLE public."Concept" TO service_role;
-
-
-RESET ALL;

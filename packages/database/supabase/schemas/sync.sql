@@ -44,6 +44,7 @@ CREATE UNIQUE INDEX sync_info_u_idx ON public.sync_info USING btree (
     "sync_target", sync_function
 );
 
+set search_path to public, extensions ;
 
 
 CREATE OR REPLACE FUNCTION public.end_sync_task(
