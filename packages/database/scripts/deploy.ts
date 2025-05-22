@@ -5,7 +5,7 @@ dotenv.config();
 
 const main = () => {
   try {
-    exec("git status -s -b", (err, stdout, stderr) => {
+    exec("git status -s -b -uno", (err, stdout, stderr) => {
       if (err) {
         console.error("Is git installed?");
         process.exit(1);
@@ -13,6 +13,12 @@ const main = () => {
       const lines = stdout.split("\n");
       if (lines[0] != "## main...main") {
         console.log("Not on main branch, not deploying database");
+        process.exit(0);
+      }
+      if (lines.length > 1) {
+        console.log(
+          "You seem to have uncommitted changes, not deploying database",
+        );
         process.exit(0);
       }
       const { SUPABASE_PROJECT_ID, SUPABASE_DB_PASSWORD } = process.env;
