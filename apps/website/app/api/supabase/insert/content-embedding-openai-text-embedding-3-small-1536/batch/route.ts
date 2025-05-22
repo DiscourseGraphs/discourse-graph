@@ -7,95 +7,73 @@ import {
 } from "~/utils/supabase/apiUtils";
 import {
   processAndInsertBatch,
-  BatchItemValidator,
   BatchProcessResult,
 } from "~/utils/supabase/dbUtils";
-import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
-
-type ContentEmbeddingDataInput =
-  TablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;
-type ContentEmbeddingRecord =
-  Tables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
-
-// Request body is an array of these items
-type ContentEmbeddingBatchRequestBody = ContentEmbeddingDataInput[];
-
-// Type for the item after processing, ready for DB insert
-type ProcessedEmbeddingItem = Omit<ContentEmbeddingDataInput, "vector"> & {
-  vector: string; // Vector is always stringified
-  obsolete: boolean | null; // Obsolete has a default
-};
-
-const TARGET_EMBEDDING_TABLE =
-  "ContentEmbedding_openai_text_embedding_3_small_1536";
-
-// Validator and processor for embedding items
-const validateAndProcessEmbeddingItem: BatchItemValidator<
-  ContentEmbeddingDataInput,
-  ProcessedEmbeddingItem
-> = (item, index) => {
-  if (item.target_id === undefined || item.target_id === null) {
-    return {
-      valid: false,
-      error: `Item at index ${index}: Missing required field target_id.`,
-    };
-  }
-  if (!item.model) {
-    return {
-      valid: false,
-      error: `Item at index ${index}: Missing required field model.`,
-    };
-  }
-  if (!item.vector) {
-    return {
-      valid: false,
-      error: `Item at index ${index}: Missing required field vector.`,
-    };
-  }
-  if (!Array.isArray(item.vector) && typeof item.vector !== "string") {
-    return {
-      valid: false,
-      error: `Item at index ${index}: vector must be an array of numbers or a pre-formatted string.`,
-    };
-  }
-
-  const vectorString = Array.isArray(item.vector)
-    ? JSON.stringify(item.vector)
-    : item.vector;
-
-  return {
-    valid: true,
-    processedItem: {
-      target_id: item.target_id,
-      model: item.model,
-      vector: vectorString,
-      obsolete: item.obsolete === undefined ? false : item.obsolete,
-    },
-  };
-};
+import {
+  inputProcessing,
+  outputProcessing,
+  type ApiInputEmbeddingItem,
+  type ApiOutputEmbeddingRecord,
+} from "../routes";
 
 const batchInsertEmbeddingsProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
-  embeddingItems: ContentEmbeddingBatchRequestBody,
-): Promise<BatchProcessResult<ContentEmbeddingRecord>> => {
-  return processAndInsertBatch<
-    "ContentEmbedding_openai_text_embedding_3_small_1536",
-    ProcessedEmbeddingItem
-  >(
-    supabase,
-    embeddingItems,
-    TARGET_EMBEDDING_TABLE,
-    "*", // Select all fields, adjust if needed for ContentEmbeddingRecord
-    validateAndProcessEmbeddingItem,
-    "ContentEmbedding",
-  );
+  embeddingItems: ApiInputEmbeddingItem[],
+): Promise<BatchProcessResult<ApiOutputEmbeddingRecord>> => {
+  // groupBy is node21 only. Group by model.
+  // Note: This means that later index values may be totally wrong.
+  const by_model: { [key: string]: ApiInputEmbeddingItem[] } = {};
+  for (let i = 0; i < embeddingItems.length; i++) {
+    const inputItem = embeddingItems[i];
+    if (inputItem !== undefined && inputItem.model !== undefined) {
+      if (by_model[inputItem.model] === undefined) {
+        by_model[inputItem.model] = [inputItem];
+      } else {
+        by_model[inputItem.model]!.push(inputItem);
+      }
+    } else {
+      return {
+        status: 400,
+        error: `Element ${i} undefined or does not have a model`,
+      };
+    }
+  }
+  const globalResults: ApiOutputEmbeddingRecord[] = [];
+  const partial_errors = [];
+  let created = true; // TODO: Maybe transmit from below
+  for (const table_name of Object.keys(by_model)) {
+    const embeddingItemsSet = by_model[table_name];
+    const results = await processAndInsertBatch<
+      "ContentEmbedding_openai_text_embedding_3_small_1536",
+      ApiInputEmbeddingItem,
+      ApiOutputEmbeddingRecord
+    >(
+      supabase,
+      embeddingItemsSet!,
+      table_name,
+      "*", // Select all fields, adjust if needed for ContentEmbeddingRecord
+      "ContentEmbedding",
+      inputProcessing!,
+      outputProcessing,
+    );
+    if (results.error || results.data === undefined)
+      return { ...results, data: undefined };
+    globalResults.push(...results.data);
+    if (results.partial_errors !== undefined)
+      partial_errors.push(...results.partial_errors);
+  }
+  return {
+    data: globalResults,
+    partial_errors,
+    status: created ? 201 : 200,
+  };
 };
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabase = await createClient();
 
   try {
-    const body: ContentEmbeddingBatchRequestBody = await request.json();
+    const body: ApiInputEmbeddingItem[] = await request.json();
     if (!Array.isArray(body)) {
       return createApiResponse(request, {
         error: "Request body must be an array of embedding items.",
@@ -119,7 +97,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     return handleRouteError(
       request,
       e,
-      `/api/supabase/insert/${TARGET_EMBEDDING_TABLE}/batch`,
+      `/api/supabase/insert/content-embedding/batch`,
     );
   }
 };

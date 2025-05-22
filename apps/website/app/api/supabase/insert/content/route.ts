@@ -3,6 +3,7 @@ import { NextResponse, NextRequest } from "next/server";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
+  ItemValidator,
 } from "~/utils/supabase/dbUtils"; // Ensure path is correct
 import {
   createApiResponse,
@@ -11,113 +12,66 @@ import {
 } from "~/utils/supabase/apiUtils"; // Ensure path is correct
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-type ContentDataInput = TablesInsert<"Content">;
-type ContentRecord = Tables<"Content">;
+export type ContentDataInput = TablesInsert<"Content">;
+export type ContentRecord = Tables<"Content">;
+
+export const inputValidation: ItemValidator<ContentDataInput> = (
+  data: ContentDataInput,
+) => {
+  const { author_id, created, last_modified, scale, space_id, text } = data;
+
+  // --- Start of extensive validation ---
+  if (!text || typeof text !== "string") return "Invalid or missing text.";
+  if (!scale || typeof scale !== "string") return "Invalid or missing scale.";
+  if (
+    space_id === undefined ||
+    space_id === null ||
+    typeof space_id !== "number"
+  )
+    return "Invalid or missing space_id.";
+  if (
+    author_id === undefined ||
+    author_id === null ||
+    typeof author_id !== "number"
+  )
+    return "Invalid or missing author_id.";
+  if (created)
+    try {
+      new Date(created); // Validate date format
+      new Date(last_modified); // Validate date format
+    } catch (e) {
+      return "Invalid date format for created or last_modified.";
+    }
+  if (last_modified)
+    try {
+      new Date(last_modified); // Validate date format
+    } catch (e) {
+      return "Invalid date format for created or last_modified.";
+    }
+  // --- End of extensive validation ---
+
+  return null;
+};
 
 // Renamed and refactored
 const processAndUpsertContentEntry = async (
   supabasePromise: ReturnType<typeof createClient>,
   data: ContentDataInput,
 ): Promise<GetOrCreateEntityResult<ContentRecord>> => {
-  const {
-    text,
-    scale,
-    space_id,
-    author_id,
-    source_local_id,
-    metadata: rawMetadata,
-    created,
-    last_modified,
-    document_id,
-    part_of_id,
-  } = data;
+  const { space_id, author_id, source_local_id, document_id, part_of_id } =
+    data;
 
-  // --- Start of extensive validation ---
-  if (!text || typeof text !== "string")
+  const error = inputValidation(data);
+  if (error !== null) {
     return {
       entity: null,
-      error: "Invalid or missing text.",
-      created: false,
-      status: 400,
-    };
-  if (!scale || typeof scale !== "string")
-    return {
-      entity: null,
-      error: "Invalid or missing scale.",
-      created: false,
-      status: 400,
-    };
-  if (
-    space_id === undefined ||
-    space_id === null ||
-    typeof space_id !== "number"
-  )
-    return {
-      entity: null,
-      error: "Invalid or missing space_id.",
-      created: false,
-      status: 400,
-    };
-  if (
-    author_id === undefined ||
-    author_id === null ||
-    typeof author_id !== "number"
-  )
-    return {
-      entity: null,
-      error: "Invalid or missing author_id.",
-      created: false,
-      status: 400,
-    };
-  if (!created)
-    return {
-      entity: null,
-      error: "Missing created date.",
-      created: false,
-      status: 400,
-    };
-  if (!last_modified)
-    return {
-      entity: null,
-      error: "Missing last_modified date.",
-      created: false,
-      status: 400,
-    };
-
-  try {
-    new Date(created); // Validate date format
-    new Date(last_modified); // Validate date format
-  } catch (e) {
-    return {
-      entity: null,
-      error: "Invalid date format for created or last_modified.",
+      error,
       created: false,
       status: 400,
     };
   }
-  // --- End of extensive validation ---
-
-  const processedMetadata =
-    rawMetadata && typeof rawMetadata === "object"
-      ? JSON.stringify(rawMetadata)
-      : typeof rawMetadata === "string"
-        ? rawMetadata
-        : null;
 
   const supabase = await supabasePromise;
-
-  const contentToInsertOrUpdate = {
-    text,
-    scale,
-    space_id,
-    author_id,
-    source_local_id: source_local_id || null,
-    metadata: processedMetadata as any,
-    created,
-    last_modified,
-    document_id: document_id,
-    part_of_id: part_of_id || null,
-  };
 
   let matchCriteria: Record<string, any> | null = null;
   if (source_local_id && space_id !== undefined && space_id !== null) {
@@ -131,7 +85,7 @@ const processAndUpsertContentEntry = async (
     "Content",
     "*", // Select all fields for ContentRecord
     matchCriteria || { id: -1 }, // Use a non-matching criteria if no specific lookup needed, to force create path if not found
-    contentToInsertOrUpdate, // This will be used for insert if not found or for update in some extended utilities.
+    data, // This will be used for insert if not found or for update in some extended utilities.
     "Content",
   );
 

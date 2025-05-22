@@ -195,96 +195,6 @@ export type BatchProcessResult<TRecord> = {
   status: number; // HTTP status to suggest
 };
 
-export async function processAndInsertBatch<
-  TableName extends keyof Database["public"]["Tables"],
-  TProcessed,
->(
-  supabase: SupabaseClient<any, "public", any>,
-  items: TablesInsert<TableName>[],
-  tableName: string,
-  selectQuery: string, // e.g., "id, field1, field2" or "*"
-  itemValidatorAndProcessor: BatchItemValidator<
-    TablesInsert<TableName>,
-    TProcessed
-  >,
-  entityName: string = tableName, // For logging
-): Promise<BatchProcessResult<Tables<TableName>>> {
-  if (!Array.isArray(items) || items.length === 0) {
-    return {
-      error: `Request body must be a non-empty array of ${entityName} items.`,
-      status: 400,
-    };
-  }
-
-  const validationErrors: { index: number; error: string }[] = [];
-  const processedForDb: TProcessed[] = [];
-
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    if (!item) {
-      // Handles undefined/null items in the array itself
-      validationErrors.push({ index: i, error: "Item is undefined or null." });
-      continue;
-    }
-    const { valid, error, processedItem } = itemValidatorAndProcessor(item, i);
-    if (!valid || !processedItem) {
-      validationErrors.push({ index: i, error: error || "Validation failed." });
-    } else {
-      processedForDb.push(processedItem);
-    }
-  }
-
-  if (validationErrors.length > 0) {
-    return {
-      error: `Validation failed for one or more ${entityName} items.`,
-      partial_errors: validationErrors,
-      status: 400,
-    };
-  }
-
-  if (processedForDb.length === 0 && items.length > 0) {
-    return {
-      error: `All ${entityName} items in the batch failed validation or processing.`,
-      partial_errors:
-        validationErrors.length > 0
-          ? validationErrors
-          : [{ index: 0, error: `No valid ${entityName} items to process.` }],
-      status: 400,
-    };
-  }
-
-  const { data: newRecords, error: insertError } = await supabase
-    .from(tableName)
-    .insert(processedForDb as any) // Cast as any if TProcessed is not directly insertable; ensure TProcessed matches table
-    .select(selectQuery); // Use the provided select query
-
-  if (insertError) {
-    console.error(`Error batch inserting ${entityName}:`, insertError);
-    return {
-      error: `Database error during batch insert of ${entityName}.`,
-      details: insertError.message,
-      status: 500,
-    };
-  }
-
-  const newRecordsTyped = newRecords as Tables<TableName>[]; // Assert type
-
-  if (!newRecordsTyped || newRecordsTyped.length !== processedForDb.length) {
-    console.warn(
-      `Batch insert ${entityName}: Mismatch between processed count (${processedForDb.length}) and DB returned count (${newRecordsTyped?.length || 0}).`,
-    );
-    return {
-      error: `Batch insert of ${entityName} might have partially failed or returned unexpected data.`,
-      status: 500, // Or a more specific error
-    };
-  }
-
-  console.log(
-    `Successfully batch inserted ${newRecordsTyped.length} ${entityName} records.`,
-  );
-  return { data: newRecordsTyped, status: 201 };
-}
-
 export async function InsertValidatedBatch<
   TableName extends keyof Database["public"]["Tables"],
 >(
@@ -422,7 +332,7 @@ export async function validateAndInsertBatch<
   return result;
 }
 
-export async function processAndInsertBatch_new<
+export async function processAndInsertBatch<
   TableName extends keyof Database["public"]["Tables"],
   InputType,
   OutputType,
