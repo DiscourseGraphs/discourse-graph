@@ -133,7 +133,7 @@ classes:
       version:
         range: string
 
-  DiscoursePlatform:
+  Platform:
     description: A data platform where discourse happens
     slots:
       - id
@@ -142,7 +142,7 @@ classes:
       url:
         required: true
   Account:
-    description: A user account on a discourse platform
+    description: A user account on a platform
     slots:
       - id
       - platform
@@ -157,15 +157,15 @@ classes:
         range: boolean
         required: true
         ifabsent: true
-  DiscourseSpace:
-    description: A space on a discourse platform representing a community engaged in a conversation
+  Space:
+    description: A space on a platform representing a community engaged in a conversation
     slots:
       - id
       - url
       - name
     attributes:
-      discourse_platform:
-        range: DiscoursePlatform
+      platform:
+        range: Platform
         required: true
   SpaceAccess:
     description: An access control entry for a space
@@ -380,7 +380,7 @@ slots:
   url:
     range: string
   platform:
-    range: DiscoursePlatform
+    range: Platform
     required: true
   issn:
   abstract:
@@ -406,7 +406,7 @@ slots:
     required: true
     ifabsent: EpistemicStatus(unknown)
   space:
-    range: DiscourseSpace
+    range: Space
     description: The space in which the content is located
   document:
     range: Document

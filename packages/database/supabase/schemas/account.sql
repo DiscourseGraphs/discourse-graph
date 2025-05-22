@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public."Account" (
 
 ALTER TABLE public."Account" OWNER TO "postgres";
 
-COMMENT ON TABLE public."Account" IS 'A user account on a discourse platform';
+COMMENT ON TABLE public."Account" IS 'A user account on a platform';
 
 
 ALTER TABLE ONLY public."Account"
@@ -21,7 +21,7 @@ ADD CONSTRAINT "Account_person_id_fkey" FOREIGN KEY (
 ALTER TABLE ONLY public."Account"
 ADD CONSTRAINT "Account_platform_id_fkey" FOREIGN KEY (
     platform_id
-) REFERENCES public."DiscoursePlatform" (
+) REFERENCES public."Platform" (
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
@@ -62,7 +62,7 @@ ADD CONSTRAINT "SpaceAccess_account_id_fkey" FOREIGN KEY (
 ALTER TABLE ONLY public."SpaceAccess"
 ADD CONSTRAINT "SpaceAccess_space_id_fkey" FOREIGN KEY (
     space_id
-) REFERENCES public."DiscourseSpace" (
+) REFERENCES public."Space" (
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 

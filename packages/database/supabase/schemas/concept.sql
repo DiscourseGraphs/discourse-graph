@@ -78,7 +78,7 @@ ADD CONSTRAINT "Concept_schema_id_fkey" FOREIGN KEY (
 ALTER TABLE ONLY public."Concept"
 ADD CONSTRAINT "Concept_space_id_fkey" FOREIGN KEY (
     space_id
-) REFERENCES public."DiscourseSpace" (
+) REFERENCES public."Space" (
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 

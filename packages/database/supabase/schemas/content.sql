@@ -38,7 +38,7 @@ ADD CONSTRAINT "Document_author_id_fkey" FOREIGN KEY (
 ALTER TABLE ONLY public."Document"
 ADD CONSTRAINT "Document_space_id_fkey" FOREIGN KEY (
     space_id
-) REFERENCES public."DiscourseSpace" (
+) REFERENCES public."Space" (
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
@@ -100,7 +100,7 @@ ADD CONSTRAINT "Content_part_of_id_fkey" FOREIGN KEY (
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_space_id_fkey" FOREIGN KEY (
     space_id
-) REFERENCES public."DiscourseSpace" (
+) REFERENCES public."Space" (
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
