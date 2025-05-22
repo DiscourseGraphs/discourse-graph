@@ -1,0 +1,8 @@
+[sqruff]
+dialect = postgres
+exclude_rules = CP05,LT05
+
+[sqruff:indentation]
+indent_unit = space
+tab_space_size = 4
+indented_joins = True
