@@ -10,7 +10,7 @@ All CLI commands below should be run in this directory (`packages/database`.)
 2. Usage:
    1. Use `turbo dev`, (alias for `supabase start`) before you use your local database. URLs will be given for your local supabase database, api endpoint, etc.
    2. You may need to `supabase db pull` if changes are deployed while you work.
-   3. End you work session with `npm run stop` (alias for `supabase end`) to free docker resources.
+   3. End you work session with `supabase end` to free docker resources.
 3. Development: We follow the supabase [Declarative Database Schema](https://supabase.com/docs/guides/local-development/declarative-database-schemas) process.
    1. Assuming you're working on a feature branch.
    2. Make changes to the schema, by editing files in `packages/database/supabase/schemas`
@@ -23,4 +23,3 @@ All CLI commands below should be run in this directory (`packages/database`.)
    6. If you are satisfied with the migration, create a migration file with `npm run dbdiff:save some_meaningful_migration_name`
       1. If all goes well, there should be a new file named `supbase/migration/2..._some_meaningful_migration_name.sql` which you should `git add`.
    10. You can start using your changes again `turbo dev`
-   11. When your PR gets merged to main, deploy your changes to production with `supabase db push`. (URGENT TODO: make that a CI/CD step.)
