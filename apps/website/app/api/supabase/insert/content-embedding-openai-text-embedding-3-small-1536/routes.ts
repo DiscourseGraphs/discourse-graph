@@ -8,26 +8,15 @@ import {
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
+  known_embedding_tables,
 } from "~/utils/supabase/dbUtils";
-import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
 // Use the first known ContentEmbedding table, as they have the same structure
 type ContentEmbeddingDataInput =
   TablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;
 type ContentEmbeddingRecord =
   Tables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
-
-const known_embedding_tables: {
-  [key: string]: {
-    table_name: keyof Database["public"]["Tables"];
-    table_size: number;
-  };
-} = {
-  openai_text_embedding_3_small_1536: {
-    table_name: "ContentEmbedding_openai_text_embedding_3_small_1536",
-    table_size: 1536,
-  },
-};
 
 type ApiInputEmbeddingItem = Omit<ContentEmbeddingDataInput, "vector"> & {
   vector: number[]; // Vector is passed in as a number[]

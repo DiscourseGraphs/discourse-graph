@@ -1,5 +1,18 @@
 import type { SupabaseClient, PostgrestError } from "@supabase/supabase-js";
+import { OK } from "zod";
 import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
+
+export const known_embedding_tables: {
+  [key: string]: {
+    table_name: keyof Database["public"]["Tables"];
+    table_size: number;
+  };
+} = {
+  openai_text_embedding_3_small_1536: {
+    table_name: "ContentEmbedding_openai_text_embedding_3_small_1536",
+    table_size: 1536,
+  },
+};
 
 export type GetOrCreateEntityResult<T> = {
   entity: T | null;
@@ -166,6 +179,14 @@ export type BatchItemValidator<TInput, TProcessed> = (
   index: number,
 ) => { valid: boolean; error?: string; processedItem?: TProcessed };
 
+export type ItemProcessor<TInput, TProcessed> = (item: TInput) => {
+  valid: boolean;
+  error?: string;
+  processedItem?: TProcessed;
+};
+
+export type ItemValidator<T> = (item: T) => string | null;
+
 export type BatchProcessResult<TRecord> = {
   data?: TRecord[];
   error?: string;
@@ -262,4 +283,233 @@ export async function processAndInsertBatch<
     `Successfully batch inserted ${newRecordsTyped.length} ${entityName} records.`,
   );
   return { data: newRecordsTyped, status: 201 };
+}
+
+export async function InsertValidatedBatch<
+  TableName extends keyof Database["public"]["Tables"],
+>(
+  supabase: SupabaseClient<any, "public", any>,
+  items: TablesInsert<TableName>[],
+  tableName: string,
+  selectQuery: string, // e.g., "id, field1, field2" or "*"
+  entityName: string = tableName, // For logging
+): Promise<BatchProcessResult<Tables<TableName>>> {
+  const { data: newRecords, error: insertError } = await supabase
+    .from(tableName)
+    .insert(items)
+    .select(selectQuery); // Use the provided select query
+
+  if (insertError) {
+    console.error(`Error batch inserting ${entityName}:`, insertError);
+    return {
+      error: `Database error during batch insert of ${entityName}.`,
+      details: insertError.message,
+      status: 500,
+    };
+  }
+
+  const newRecordsTyped = newRecords as Tables<TableName>[]; // Assert type
+
+  if (!newRecordsTyped || newRecordsTyped.length !== items.length) {
+    console.warn(
+      `Batch insert ${entityName}: Mismatch between processed count (${items.length}) and DB returned count (${newRecordsTyped?.length || 0}).`,
+    );
+    return {
+      error: `Batch insert of ${entityName} might have partially failed or returned unexpected data.`,
+      status: 500, // Or a more specific error
+    };
+  }
+
+  console.log(
+    `Successfully batch inserted ${newRecordsTyped.length} ${entityName} records.`,
+  );
+  return { data: newRecordsTyped, status: 201 };
+}
+
+export async function validateAndInsertBatch<
+  TableName extends keyof Database["public"]["Tables"],
+>(
+  supabase: SupabaseClient<any, "public", any>,
+  items: TablesInsert<TableName>[],
+  tableName: string,
+  selectQuery: string, // e.g., "id, field1, field2" or "*"
+  entityName: string = tableName, // For logging
+  inputValidator: ItemValidator<TablesInsert<TableName>> | null,
+  outputValidator: ItemValidator<Tables<TableName>> | null,
+): Promise<BatchProcessResult<Tables<TableName>>> {
+  let validatedItems: TablesInsert<TableName>[] = [];
+  const validationErrors: { index: number; error: string }[] = [];
+  if (!Array.isArray(items) || items.length === 0) {
+    return {
+      error: `Request body must be a non-empty array of ${entityName} items.`,
+      status: 400,
+    };
+  }
+
+  if (inputValidator !== null) {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!item) {
+        // Handles undefined/null items in the array itself
+        validationErrors.push({
+          index: i,
+          error: "Item is undefined or null.",
+        });
+        continue;
+      }
+      const error = inputValidator(item);
+      if (error !== null) {
+        validationErrors.push({
+          index: i,
+          error: error || "Validation failed.",
+        });
+      } else {
+        validatedItems.push(item);
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      return {
+        error: `Validation failed for one or more ${entityName} items.`,
+        partial_errors: validationErrors,
+        status: 400,
+      };
+    }
+  } else {
+    validatedItems = items;
+  }
+  const result = await InsertValidatedBatch<TableName>(
+    supabase,
+    validatedItems,
+    tableName,
+    selectQuery,
+    entityName,
+  );
+  if (result.error || !result.data) {
+    return result;
+  }
+  if (outputValidator !== null) {
+    const validatedResults: Tables<TableName>[] = [];
+    for (let i = 0; i < result.data.length; i++) {
+      const item = result.data[i];
+      if (!item) {
+        // Handles undefined/null items in the array itself
+        validationErrors.push({
+          index: i,
+          error: "Returned item is undefined or null.",
+        });
+        continue;
+      }
+      const error = outputValidator(item);
+      if (error !== null) {
+        validationErrors.push({
+          index: i,
+          error: error || "Validation failed.",
+        });
+      } else {
+        validatedResults.push(item);
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      return {
+        error: `Validation failed for one or more ${entityName} results.`,
+        partial_errors: validationErrors,
+        status: 500,
+      };
+    }
+  }
+  return result;
+}
+
+export async function processAndInsertBatch_new<
+  TableName extends keyof Database["public"]["Tables"],
+  InputType,
+  OutputType,
+>(
+  supabase: SupabaseClient<any, "public", any>,
+  items: InputType[],
+  tableName: string,
+  selectQuery: string, // e.g., "id, field1, field2" or "*"
+  entityName: string = tableName, // For logging
+  inputProcessor: ItemProcessor<InputType, TablesInsert<TableName>>,
+  outputProcessor: ItemProcessor<Tables<TableName>, OutputType>,
+): Promise<BatchProcessResult<OutputType>> {
+  let processedItems: TablesInsert<TableName>[] = [];
+  const validationErrors: { index: number; error: string }[] = [];
+  if (!Array.isArray(items) || items.length === 0) {
+    return {
+      error: `Request body must be a non-empty array of ${entityName} items.`,
+      status: 400,
+    };
+  }
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (!item) {
+      // Handles undefined/null items in the array itself
+      validationErrors.push({
+        index: i,
+        error: "Item is undefined or null.",
+      });
+      continue;
+    }
+    const { valid, error, processedItem } = inputProcessor(item);
+    if (!valid || !processedItem) {
+      validationErrors.push({
+        index: i,
+        error: error || "Validation failed.",
+      });
+    } else {
+      processedItems.push(processedItem);
+    }
+  }
+
+  if (validationErrors.length > 0) {
+    return {
+      error: `Validation failed for one or more ${entityName} items.`,
+      partial_errors: validationErrors,
+      status: 400,
+    };
+  }
+  const result = await InsertValidatedBatch<TableName>(
+    supabase,
+    processedItems,
+    tableName,
+    selectQuery,
+    entityName,
+  );
+  if (result.error || !result.data) {
+    return { ...result, data: [] };
+  }
+  const processedResults: OutputType[] = [];
+  for (let i = 0; i < result.data.length; i++) {
+    const item = result.data[i];
+    if (!item) {
+      // Handles undefined/null items in the array itself
+      validationErrors.push({
+        index: i,
+        error: "Returned item is undefined or null.",
+      });
+      continue;
+    }
+    const { valid, error, processedItem } = outputProcessor(item);
+    if (!valid || !processedItem) {
+      validationErrors.push({
+        index: i,
+        error: error || "Result validation failed.",
+      });
+    } else {
+      processedResults.push(processedItem);
+    }
+  }
+
+  if (validationErrors.length > 0) {
+    return {
+      error: `Validation failed for one or more ${entityName} results.`,
+      partial_errors: validationErrors,
+      status: 500,
+    };
+  }
+  return { ...result, data: processedResults };
 }
