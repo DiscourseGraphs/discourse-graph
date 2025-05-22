@@ -24,8 +24,10 @@ const main = () => {
         console.log("Please define SUPABASE_DB_PASSWORD");
         process.exit(1);
       }
+      // Use environment variables that are already set instead of passing as arguments
       exec(
-        `supabase link --project-ref ${SUPABASE_PROJECT_ID} --password ${SUPABASE_DB_PASSWORD}`,
+        `supabase link --project-ref ${SUPABASE_PROJECT_ID}`,
+        { env: { ...process.env, SUPABASE_DB_PASSWORD } },
         (err, stdout, stderr) => {
           console.log(`${stdout}`);
           console.error(`${stderr}`);
