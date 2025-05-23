@@ -11,13 +11,13 @@ import {
 } from "~/utils/supabase/apiUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-type DiscoursePlatformDataInput = TablesInsert<"DiscoursePlatform">;
-type DiscoursePlatformRecord = Tables<"DiscoursePlatform">;
+type PlatformDataInput = TablesInsert<"Platform">;
+type PlatformRecord = Tables<"Platform">;
 
-const getOrCreateDiscoursePlatformFromURL = async (
+const getOrCreatePlatformFromURL = async (
   supabase: ReturnType<typeof createClient>,
   url: string,
-): Promise<GetOrCreateEntityResult<DiscoursePlatformRecord>> => {
+): Promise<GetOrCreateEntityResult<PlatformRecord>> => {
   let platformName: string | null = null;
   let platformUrl: string | null = null;
   const lowerCaseURL = url.toLowerCase();
@@ -45,13 +45,13 @@ const getOrCreateDiscoursePlatformFromURL = async (
   }
 
   const resolvedSupabaseClient = await supabase;
-  return getOrCreateEntity<"DiscoursePlatform">(
+  return getOrCreateEntity<"Platform">(
     resolvedSupabaseClient,
-    "DiscoursePlatform",
+    "Platform",
     "id, name, url",
     { url: platformUrl },
     { name: platformName, url: platformUrl },
-    "DiscoursePlatform",
+    "Platform",
   );
 };
 
@@ -59,7 +59,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabase = createClient();
 
   try {
-    const body: DiscoursePlatformDataInput = await request.json();
+    const body: PlatformDataInput = await request.json();
     const { url } = body;
 
     if (!url || typeof url !== "string") {
@@ -69,7 +69,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       });
     }
 
-    const result = await getOrCreateDiscoursePlatformFromURL(supabase, url);
+    const result = await getOrCreatePlatformFromURL(supabase, url);
 
     return createApiResponse(request, {
       data: result.entity,
@@ -79,11 +79,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       created: result.created,
     });
   } catch (e: unknown) {
-    return handleRouteError(
-      request,
-      e,
-      "/api/supabase/insert/discourse-platform",
-    );
+    return handleRouteError(request, e, "/api/supabase/insert/platform");
   }
 };
 

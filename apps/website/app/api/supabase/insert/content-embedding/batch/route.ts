@@ -14,7 +14,7 @@ import {
   outputProcessing,
   type ApiInputEmbeddingItem,
   type ApiOutputEmbeddingRecord,
-} from "../routes";
+} from "../route";
 
 const batchInsertEmbeddingsProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,

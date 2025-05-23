@@ -104,7 +104,7 @@ const processAndUpsertContentEntry = async (
       // Be more general with FK name if it changes
       return {
         ...result,
-        error: `Invalid space_id: No DiscourseSpace record found for ID ${space_id}.`,
+        error: `Invalid space_id: No Space record found for ID ${space_id}.`,
       };
     }
     if (

@@ -11,15 +11,15 @@ import {
 } from "~/utils/supabase/apiUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-type DiscourseSpaceDataInput = TablesInsert<"DiscourseSpace">;
-type DiscourseSpaceRecord = Tables<"DiscourseSpace">;
+type SpaceDataInput = TablesInsert<"Space">;
+type SpaceRecord = Tables<"Space">;
 
 // Renamed and refactored helper function
-const processAndGetOrCreateDiscourseSpace = async (
+export const processAndGetOrCreateSpace = async (
   supabasePromise: ReturnType<typeof createClient>,
-  data: DiscourseSpaceDataInput,
-): Promise<GetOrCreateEntityResult<DiscourseSpaceRecord>> => {
-  const { name, url, discourse_platform_id } = data;
+  data: SpaceDataInput,
+): Promise<GetOrCreateEntityResult<SpaceRecord>> => {
+  const { name, url, platform_id } = data;
 
   // --- Start of validation ---
   if (!name || typeof name !== "string" || name.trim() === "") {
@@ -39,13 +39,13 @@ const processAndGetOrCreateDiscourseSpace = async (
     };
   }
   if (
-    discourse_platform_id === undefined ||
-    discourse_platform_id === null ||
-    typeof discourse_platform_id !== "number"
+    platform_id === undefined ||
+    platform_id === null ||
+    typeof platform_id !== "number"
   ) {
     return {
       entity: null,
-      error: "Missing or invalid discourse_platform_id.",
+      error: "Missing or invalid platform_id.",
       created: false,
       status: 400,
     };
@@ -56,20 +56,20 @@ const processAndGetOrCreateDiscourseSpace = async (
   const trimmedName = name.trim();
   const supabase = await supabasePromise;
 
-  const result = await getOrCreateEntity<"DiscourseSpace">(
+  const result = await getOrCreateEntity<"Space">(
     supabase,
-    "DiscourseSpace",
-    "id, name, url, discourse_platform_id",
-    { url: normalizedUrl, discourse_platform_id: discourse_platform_id },
+    "Space",
+    "id, name, url, platform_id",
+    { url: normalizedUrl, platform_id: platform_id },
     {
       name: trimmedName,
       url: normalizedUrl,
-      discourse_platform_id: discourse_platform_id,
+      platform_id: platform_id,
     },
-    "DiscourseSpace",
+    "Space",
   );
 
-  // Custom handling for specific foreign key error related to discourse_platform_id
+  // Custom handling for specific foreign key error related to platform_id
   if (
     result.error &&
     result.details &&
@@ -77,14 +77,12 @@ const processAndGetOrCreateDiscourseSpace = async (
     result.details.includes("violates foreign key constraint")
   ) {
     if (
-      result.details
-        .toLowerCase()
-        .includes("discoursespace_discourse_platform_id_fkey") ||
-      result.details.toLowerCase().includes("discourse_platform_id")
+      result.details.toLowerCase().includes("platform_id_fkey") ||
+      result.details.toLowerCase().includes("platform_id")
     ) {
       return {
         ...result,
-        error: `Invalid discourse_platform_id: No DiscoursePlatform record found for ID ${discourse_platform_id}.`,
+        error: `Invalid platform_id: No Space record found for ID ${platform_id}.`,
       };
     }
   }
@@ -96,7 +94,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: DiscourseSpaceDataInput = await request.json();
+    const body: SpaceDataInput = await request.json();
 
     // Minimal validation here, more detailed in the helper
     if (!body || typeof body !== "object") {
@@ -106,10 +104,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       });
     }
 
-    const result = await processAndGetOrCreateDiscourseSpace(
-      supabasePromise,
-      body,
-    );
+    const result = await processAndGetOrCreateSpace(supabasePromise, body);
 
     return createApiResponse(request, {
       data: result.entity,
@@ -119,7 +114,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       created: result.created,
     });
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/supabase/insert/discourse-space");
+    return handleRouteError(request, e, "/api/supabase/insert/space");
   }
 };
 

@@ -93,7 +93,7 @@ const getOrCreateAccountInternal = async (
     if (result.details.includes("Account_platform_id_fkey")) {
       return {
         ...result,
-        error: `Invalid platform_id for Account: No DiscoursePlatform record found for ID ${platformId}.`,
+        error: `Invalid platform_id for Account: No Space record found for ID ${platformId}.`,
       };
     }
   }
