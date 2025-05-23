@@ -1,5 +1,4 @@
 import type { SupabaseClient, PostgrestError } from "@supabase/supabase-js";
-import { OK } from "zod";
 import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
 export const known_embedding_tables: {

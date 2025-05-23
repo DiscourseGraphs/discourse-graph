@@ -65,7 +65,7 @@ const getOrCreateAccount = async (
     } else if (result.details.includes("Account_platform_id_fkey")) {
       return {
         ...result,
-        error: `Invalid platform_id: No Space record found for ID ${platform_id}.`,
+        error: `Invalid platform_id: No Platform record found for ID ${platform_id}.`,
       };
     }
   }

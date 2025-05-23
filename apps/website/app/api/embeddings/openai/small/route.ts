@@ -53,33 +53,34 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const options: OpenAI.EmbeddingCreateParams = {
-      model: model,
-      input: input,
-      encoding_format: encoding_format,
+      model,
+      input,
+      dimensions,
+      encoding_format,
     };
 
-    if (dimensions && model.startsWith("text-embedding-3")) {
-      options.dimensions = dimensions;
-    }
-
     const embeddingsPromise = openai!.embeddings.create(options);
-    const timeoutPromise = new Promise((_, reject) =>
+    const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(
         () => reject(new Error("OpenAI API request timeout")),
         OPENAI_REQUEST_TIMEOUT_MS,
       ),
     );
 
-    const openAIResponse = await Promise.race([
+    const openAIResponse = (await Promise.race([
       embeddingsPromise,
       timeoutPromise,
-    ]);
+    ])) as OpenAI.CreateEmbeddingResponse;
 
     response = NextResponse.json(openAIResponse, { status: 200 });
   } catch (error: unknown) {
     console.error("Error calling OpenAI Embeddings API:", error);
     const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+      process.env.NODE_ENV === "development"
+        ? error instanceof Error
+          ? error.message
+          : "Unknown error"
+        : "Internal server error";
     response = NextResponse.json(
       {
         error: "Failed to generate embeddings.",

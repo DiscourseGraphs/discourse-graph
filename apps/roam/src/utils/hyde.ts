@@ -99,11 +99,11 @@ const generateHypotheticalNode: HypotheticalNodeGenerator = async ({
 }) => {
   const { relationLabel, relatedNodeText, relatedNodeFormat } = relationType;
 
-  const userPromptContent = `Given the source discourse node \`\`\`${node}\`\`\`, 
-and considering the relation \`\`\`${relationLabel}\`\`\` 
-which typically connects to a node of type \`\`\`${relatedNodeText}\`\`\` 
-(formatted like \`\`\`${relatedNodeFormat}\`\`\`), 
-generate a hypothetical related discourse node text that would plausibly fit this relationship. 
+  const userPromptContent = `Given the source discourse node \`\`\`${node}\`\`\`,
+and considering the relation \`\`\`${relationLabel}\`\`\`
+which typically connects to a node of type \`\`\`${relatedNodeText}\`\`\`
+(formatted like \`\`\`${relatedNodeFormat}\`\`\`),
+generate a hypothetical related discourse node text that would plausibly fit this relationship.
 Only return the text of the hypothetical node.`;
   const requestBody = {
     documents: [{ role: "user", content: userPromptContent }],
@@ -155,10 +155,12 @@ const createEmbedding: EmbeddingFunc = async (
   const apiUrl = `${getBaseUrl()}${API_CONFIG.EMBEDDINGS.PATH}`;
 
   try {
+    const signal = AbortSignal.timeout(30000); // 30 second timeout
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ input: text }),
+      signal,
     });
 
     if (!response.ok) {
