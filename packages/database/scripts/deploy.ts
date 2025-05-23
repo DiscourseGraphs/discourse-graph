@@ -11,7 +11,7 @@ const main = () => {
         process.exit(1);
       }
       const lines = stdout.split("\n");
-      if (lines[0] != "## main...main") {
+      if (lines[0] != "## main...origin/main") {
         console.log("Not on main branch, not deploying database");
         process.exit(0);
       }
