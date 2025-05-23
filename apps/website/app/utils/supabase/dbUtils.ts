@@ -1,17 +1,33 @@
 import type { SupabaseClient, PostgrestError } from "@supabase/supabase-js";
 import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
+export type EmbeddingTableData = {
+  table_name: keyof Database["public"]["Tables"];
+  table_size: number;
+};
+
 export const known_embedding_tables: {
-  [key: string]: {
-    table_name: keyof Database["public"]["Tables"];
-    table_size: number;
-  };
+  [key: string]: EmbeddingTableData;
 } = {
   openai_text_embedding_3_small_1536: {
     table_name: "ContentEmbedding_openai_text_embedding_3_small_1536",
     table_size: 1536,
   },
 };
+
+const known_embeddings: { [key: string]: string } = {
+  "openai-text-embedding-3-small-1536": "openai_text_embedding_3_small_1536",
+};
+
+export function get_known_embedding(
+  model: string,
+  dimensions: number,
+  provider: string,
+): EmbeddingTableData | undefined {
+  const embedding_name =
+    known_embeddings[`${provider || "openai"}-${model}-${dimensions}`];
+  return known_embedding_tables[embedding_name || ""];
+}
 
 export type GetOrCreateEntityResult<T> = {
   entity: T | null;
