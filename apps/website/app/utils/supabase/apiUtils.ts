@@ -105,6 +105,10 @@ async function openai_embedding(
   model: string,
   dimensions?: number,
 ): Promise<number[] | number[][] | undefined> {
+  if (!openai) {
+    throw new Error("OpenAI client not initialized. Check OPENAI_API_KEY.");
+  }
+
   let options: OpenAI.EmbeddingCreateParams = {
     model,
     input,
