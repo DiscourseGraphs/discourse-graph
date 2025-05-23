@@ -10,9 +10,12 @@ const main = () => {
         console.error("Is git installed?");
         process.exit(1);
       }
-      console.log(stdout);
-      const lines = stdout.split("\n");
+      let lines = stdout.split("\n");
+      lines = lines.filter((l) => l.length > 0);
+      console.log(lines);
       if (lines[0] != "## main...origin/main") {
+        console.log(stdout);
+        console.error(stderr);
         console.log("Not on main branch, not deploying database");
         process.exit(0);
       }
