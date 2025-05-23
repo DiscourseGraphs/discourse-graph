@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import cors from "~/utils/llm/cors"; // Assuming this path is correct and accessible
+import OpenAI from "openai";
 
 /**
  * Sends a standardized JSON response.
@@ -77,6 +78,16 @@ export function handleRouteError(
   });
 }
 
+export const apiKey = process.env.OPENAI_API_KEY;
+
+if (!apiKey) {
+  console.error(
+    "Missing OPENAI_API_KEY environment variable. The embeddings API will not function.",
+  );
+}
+
+const openai = apiKey ? new OpenAI({ apiKey }) : null;
+
 /**
  * Default OPTIONS handler for CORS preflight requests.
  */
@@ -85,4 +96,45 @@ export async function defaultOptionsHandler(
 ): Promise<NextResponse> {
   const response = new NextResponse(null, { status: 204 });
   return cors(request, response) as NextResponse;
+}
+
+const OPENAI_REQUEST_TIMEOUT_MS = 30000;
+
+async function openai_embedding(
+  input: string | string[],
+  model: string,
+  dimensions?: number,
+): Promise<number[] | number[][] | undefined> {
+  let options: OpenAI.EmbeddingCreateParams = {
+    model,
+    input,
+  };
+  if (dimensions) {
+    options = { ...options, ...{ dimensions } };
+  }
+
+  const embeddingsPromise = openai!.embeddings.create(options);
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(
+      () => reject(new Error("OpenAI API request timeout")),
+      OPENAI_REQUEST_TIMEOUT_MS,
+    ),
+  );
+
+  const response = await Promise.race([embeddingsPromise, timeoutPromise]);
+  const embeddings = response.data.map((d) => d.embedding);
+  if (Array.isArray(input)) return embeddings;
+  else return embeddings[0];
+}
+
+export async function generic_embedding(
+  input: string | string[],
+  model: string,
+  provider: string,
+  dimensions?: number,
+): Promise<number[] | number[][] | undefined> {
+  provider = provider || "openai";
+  if (provider == "openai") {
+    return await openai_embedding(input, model, dimensions);
+  }
 }
