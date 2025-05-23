@@ -7,6 +7,7 @@ import {
 import { Database } from "@repo/database/types.gen.ts";
 import { createClient } from "~/utils/supabase/server";
 import cors from "~/utils/llm/cors";
+import OpenAI from "openai";
 
 /**
  * Sends a standardized JSON response.
@@ -72,6 +73,16 @@ export const handleRouteError = (
       : "An unexpected error occurred processing your request.";
   return createApiResponse(request, asPostgrestFailure(message, "invalid"));
 };
+
+export const openaiApiKey = process.env.OPENAI_API_KEY;
+
+if (!openaiApiKey) {
+  console.error(
+    "Missing OPENAI_API_KEY environment variable. The embeddings API will not function.",
+  );
+}
+
+const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 
 /**
  * Default OPTIONS handler for CORS preflight requests.
@@ -153,4 +164,49 @@ export const asPostgrestFailure = (
     statusText: code,
     status,
   };
+};
+
+const OPENAI_REQUEST_TIMEOUT_MS = 30000;
+
+const openaiEmbedding = async (
+  input: string | string[],
+  model: string,
+  dimensions?: number,
+): Promise<number[] | number[][] | undefined> => {
+  if (!openai) {
+    throw Error("Embeddings service is not configured.");
+  }
+
+  let options: OpenAI.EmbeddingCreateParams = {
+    model,
+    input,
+  };
+  if (dimensions) {
+    options = { ...options, ...{ dimensions } };
+  }
+
+  const embeddingsPromise = openai!.embeddings.create(options);
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(
+      () => reject(new Error("OpenAI API request timeout")),
+      OPENAI_REQUEST_TIMEOUT_MS,
+    ),
+  );
+
+  const response = await Promise.race([embeddingsPromise, timeoutPromise]);
+  const embeddings = response.data.map((d) => d.embedding);
+  if (Array.isArray(input)) return embeddings;
+  else return embeddings[0];
+};
+
+export const genericEmbedding = async (
+  input: string | string[],
+  model: string,
+  provider: string,
+  dimensions?: number,
+): Promise<number[] | number[][] | undefined> => {
+  provider = provider || "openai";
+  if (provider == "openai") {
+    return await openaiEmbedding(input, model, dimensions);
+  }
 };

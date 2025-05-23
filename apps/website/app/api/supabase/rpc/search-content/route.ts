@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import cors from "~/utils/llm/cors";
 import { Database } from "~/utils/supabase/types.gen";
 import { get_known_embedding } from "~/utils/supabase/dbUtils";
-import { generic_embedding } from "~/api/embeddings/route";
+import { generic_embedding } from "~/utils/supabase/apiUtils";
 
 type RequestBody = {
   currentDocumentId?: number;
