@@ -5,17 +5,33 @@ import type {
 } from "@supabase/supabase-js";
 import { Database, Tables, TablesInsert } from "@repo/database/types.gen.ts";
 
+export type EmbeddingTableData = {
+  tableName: keyof Database["public"]["Tables"];
+  tableSize: number;
+};
+
 export const KNOWN_EMBEDDING_TABLES: {
-  [key: string]: {
-    tableName: keyof Database["public"]["Tables"];
-    tableSize: number;
-  };
+  [key: string]: EmbeddingTableData;
 } = {
   openai_text_embedding_3_small_1536: {
     tableName: "ContentEmbedding_openai_text_embedding_3_small_1536",
     tableSize: 1536,
   },
 };
+
+const KNOWN_EMBEDDINGS: { [key: string]: string } = {
+  "openai-text-embedding-3-small-1536": "openai_text_embedding_3_small_1536",
+};
+
+export function get_known_embedding(
+  model: string,
+  dimensions: number,
+  provider: string,
+): EmbeddingTableData | undefined {
+  const embeddingName =
+    KNOWN_EMBEDDINGS[`${provider || "openai"}-${model}-${dimensions}`];
+  return KNOWN_EMBEDDING_TABLES[embeddingName || ""];
+}
 
 const UNIQUE_KEY_RE = /^Key \(([^)]+)\)=\(([\^)]+)\) already exists\.$/;
 const UNIQUE_INDEX_RE =
