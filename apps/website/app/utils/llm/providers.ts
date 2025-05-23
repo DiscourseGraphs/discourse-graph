@@ -1,4 +1,4 @@
-import { LLMProviderConfig, Message, Settings } from "~/types/llm";
+import { LLMProviderConfig, Message, Settings, Provider } from "~/types/llm";
 
 export const openaiConfig: LLMProviderConfig = {
   apiKeyEnvVar: "OPENAI_API_KEY",
@@ -57,4 +57,10 @@ export const anthropicConfig: LLMProviderConfig = {
   }),
   extractResponseText: (responseData: any) => responseData.content?.[0]?.text,
   errorMessagePath: "error?.message",
+};
+
+export const CONFIG_FOR_PROVIDER: { [key in Provider]: LLMProviderConfig } = {
+  openai: openaiConfig,
+  anthropic: anthropicConfig,
+  gemini: geminiConfig,
 };
