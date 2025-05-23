@@ -23,27 +23,34 @@ const batchInsertEmbeddingsProcess = async (
   // groupBy is node21 only. Group by model.
   // Note: This means that later index values may be totally wrong.
   const by_model: { [key: string]: ApiInputEmbeddingItem[] } = {};
-  for (let i = 0; i < embeddingItems.length; i++) {
-    const inputItem = embeddingItems[i];
-    if (inputItem !== undefined && inputItem.model !== undefined) {
-      if (by_model[inputItem.model] === undefined) {
-        by_model[inputItem.model] = [inputItem];
-      } else {
-        by_model[inputItem.model]!.push(inputItem);
+  try {
+    embeddingItems.reduce((acc, item, index) => {
+      if (!item?.model) {
+        throw new Error(`Element ${index} undefined or does not have a model`);
       }
-    } else {
+      if (acc[item.model] === undefined) {
+        acc[item.model] = [];
+      }
+      acc[item.model]!.push(item);
+      return acc;
+    }, by_model);
+  } catch (error) {
+    if (error instanceof Error) {
       return {
         status: 400,
-        error: `Element ${i} undefined or does not have a model`,
+        error: error.message,
       };
     }
+    throw error;
   }
+
   const globalResults: ApiOutputEmbeddingRecord[] = [];
   const partial_errors = [];
   let created = true; // TODO: Maybe transmit from below
   for (const table_name of Object.keys(by_model)) {
     const embeddingItemsSet = by_model[table_name];
     const results = await processAndInsertBatch<
+      // any table for type checking purposes only
       "ContentEmbedding_openai_text_embedding_3_small_1536",
       ApiInputEmbeddingItem,
       ApiOutputEmbeddingRecord
@@ -53,7 +60,7 @@ const batchInsertEmbeddingsProcess = async (
       table_name,
       "*", // Select all fields, adjust if needed for ContentEmbeddingRecord
       "ContentEmbedding",
-      inputProcessing!,
+      inputProcessing,
       outputProcessing,
     );
     if (results.error || results.data === undefined)

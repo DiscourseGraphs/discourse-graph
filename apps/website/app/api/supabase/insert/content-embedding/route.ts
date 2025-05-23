@@ -14,7 +14,7 @@ import {
 } from "~/utils/supabase/dbUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-// Use the first known ContentEmbedding table, as they have the same structure
+// Use the first known ContentEmbedding table for type checking, as they have the same structure
 export type ContentEmbeddingDataInput =
   TablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;
 export type ContentEmbeddingRecord =

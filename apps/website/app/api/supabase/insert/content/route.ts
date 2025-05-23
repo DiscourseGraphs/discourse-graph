@@ -38,15 +38,14 @@ export const inputValidation: ItemValidator<ContentDataInput> = (
   if (created)
     try {
       new Date(created); // Validate date format
-      new Date(last_modified); // Validate date format
     } catch (e) {
-      return "Invalid date format for created or last_modified.";
+      return "Invalid date format for created.";
     }
   if (last_modified)
     try {
       new Date(last_modified); // Validate date format
     } catch (e) {
-      return "Invalid date format for created or last_modified.";
+      return "Invalid date format for last_modified.";
     }
   // --- End of extensive validation ---
 

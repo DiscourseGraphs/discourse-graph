@@ -3,6 +3,7 @@ import { NextResponse, NextRequest } from "next/server";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
+  ItemValidator,
 } from "~/utils/supabase/dbUtils";
 import {
   createApiResponse,
@@ -14,54 +15,26 @@ import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 type DocumentDataInput = TablesInsert<"Document">;
 type DocumentRecord = Tables<"Document">;
 
-const createDocument = async (
-  supabasePromise: ReturnType<typeof createClient>,
-  data: DocumentDataInput,
-): Promise<GetOrCreateEntityResult<DocumentRecord>> => {
+const validateDocument: ItemValidator<DocumentDataInput> = (data) => {
   const {
     space_id,
     source_local_id,
     url,
-    metadata: rawMetadata,
+    metadata,
     created,
     last_modified,
     author_id,
   } = data;
 
-  if (
-    space_id === undefined ||
-    space_id === null ||
-    !created ||
-    !last_modified ||
-    author_id === undefined ||
-    author_id === null
-  ) {
-    return {
-      entity: null,
-      error:
-        "Missing required fields: space_id, created, last_modified, or author_id.",
-      created: false,
-      status: 400,
-    };
-  }
+  if (!space_id) return "Missing required space_id field.";
+  if (!author_id) return "Missing required author_id field.";
+  return null;
+};
 
-  const processedMetadata =
-    rawMetadata && typeof rawMetadata === "object"
-      ? JSON.stringify(rawMetadata)
-      : typeof rawMetadata === "string"
-        ? rawMetadata
-        : null;
-
-  const documentToInsert = {
-    space_id,
-    source_local_id: source_local_id || null,
-    url: url || null,
-    metadata: processedMetadata as any,
-    created,
-    last_modified,
-    author_id,
-  };
-
+const createDocument = async (
+  supabasePromise: ReturnType<typeof createClient>,
+  data: DocumentDataInput,
+): Promise<GetOrCreateEntityResult<DocumentRecord>> => {
   const supabase = await supabasePromise;
 
   const result = await getOrCreateEntity<"Document">(
@@ -69,7 +42,7 @@ const createDocument = async (
     "Document",
     "id, space_id, source_local_id, url, metadata, created, last_modified, author_id",
     { id: -1 },
-    documentToInsert,
+    data,
     "Document",
   );
 
@@ -82,13 +55,13 @@ const createDocument = async (
     if (result.details.includes("space_id_fkey")) {
       return {
         ...result,
-        error: `Invalid space_id: No Space record found for ID ${space_id}.`,
+        error: `Invalid space_id: No Space record found for ID ${data.space_id}.`,
       };
     }
     if (result.details.includes("author_id_fkey")) {
       return {
         ...result,
-        error: `Invalid author_id: No Account record found for ID ${author_id}.`,
+        error: `Invalid author_id: No Account record found for ID ${data.author_id}.`,
       };
     }
   }
@@ -101,31 +74,12 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
   try {
     const body: DocumentDataInput = await request.json();
-
-    if (body.space_id === undefined || body.space_id === null) {
+    const error = validateDocument(body);
+    if (error)
       return createApiResponse(request, {
-        error: "Missing required field: space_id.",
+        error,
         status: 400,
       });
-    }
-    if (!body.created) {
-      return createApiResponse(request, {
-        error: "Missing required field: created.",
-        status: 400,
-      });
-    }
-    if (!body.last_modified) {
-      return createApiResponse(request, {
-        error: "Missing required field: last_modified.",
-        status: 400,
-      });
-    }
-    if (body.author_id === undefined || body.author_id === null) {
-      return createApiResponse(request, {
-        error: "Missing required field: author_id.",
-        status: 400,
-      });
-    }
 
     const result = await createDocument(supabasePromise, body);
 
