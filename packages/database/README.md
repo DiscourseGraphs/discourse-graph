@@ -15,11 +15,17 @@ All CLI commands below should be run in this directory (`packages/database`.)
    1. Assuming you're working on a feature branch.
    2. Make changes to the schema, by editing files in `packages/database/supabase/schemas`
    3. If you created a new schema file, make sure to add it to `[db.migrations] schema_paths` in `packages/database/supabase/config.toml`. Schema files are applied in that order, you may need to be strategic in placing your file.
-   4. `turbo build`, which will do the following:
-      1. Check your logic with `sqruff lint supabase/schemas`, and eventually `sqruff fix supabase/schemas`
-      2. Regenerate the types file with `supabase gen types typescript --local > types.gen.ts`
+   4. `turbo check-types`, which will do the following:
+      1. Check your logic with `sqruff lint supabase/schemas`
+         1. If there are errors there, you can fix them with `npm run lint:fix`
+      2. Stop supabase.
       3. See if there would be a migration to apply with `supabase db diff`
    5. If applying the new schema fails, repeat step 4
    6. If you are satisfied with the migration, create a migration file with `npm run dbdiff:save some_meaningful_migration_name`
       1. If all goes well, there should be a new file named `supbase/migration/2..._some_meaningful_migration_name.sql` which you should `git add`.
-   10. You can start using your changes again `turbo dev`
+   7. `turbo build`, which will do the following:
+      1. Start supbase
+      2. Apply the new migration locally
+      3. Regenerate the types file with `supabase gen types typescript --local > types.gen.ts`
+      4. Copy it where appropriate
+   8. You can start using your changes again `turbo dev`
