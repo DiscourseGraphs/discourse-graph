@@ -43,7 +43,7 @@ export type Database = {
             foreignKeyName: "Account_platform_id_fkey"
             columns: ["platform_id"]
             isOneToOne: false
-            referencedRelation: "DiscoursePlatform"
+            referencedRelation: "Platform"
             referencedColumns: ["id"]
           },
         ]
@@ -167,7 +167,7 @@ export type Database = {
             foreignKeyName: "Concept_space_id_fkey"
             columns: ["space_id"]
             isOneToOne: false
-            referencedRelation: "DiscourseSpace"
+            referencedRelation: "Space"
             referencedColumns: ["id"]
           },
         ]
@@ -278,7 +278,7 @@ export type Database = {
             foreignKeyName: "Content_space_id_fkey"
             columns: ["space_id"]
             isOneToOne: false
-            referencedRelation: "DiscourseSpace"
+            referencedRelation: "Space"
             referencedColumns: ["id"]
           },
         ]
@@ -342,53 +342,6 @@ export type Database = {
           },
         ]
       }
-      DiscoursePlatform: {
-        Row: {
-          id: number
-          name: string
-          url: string
-        }
-        Insert: {
-          id?: number
-          name: string
-          url: string
-        }
-        Update: {
-          id?: number
-          name?: string
-          url?: string
-        }
-        Relationships: []
-      }
-      DiscourseSpace: {
-        Row: {
-          discourse_platform_id: number
-          id: number
-          name: string
-          url: string | null
-        }
-        Insert: {
-          discourse_platform_id: number
-          id?: number
-          name: string
-          url?: string | null
-        }
-        Update: {
-          discourse_platform_id?: number
-          id?: number
-          name?: string
-          url?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "DiscourseSpace_discourse_platform_id_fkey"
-            columns: ["discourse_platform_id"]
-            isOneToOne: false
-            referencedRelation: "DiscoursePlatform"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       Document: {
         Row: {
           author_id: number
@@ -435,7 +388,7 @@ export type Database = {
             foreignKeyName: "Document_space_id_fkey"
             columns: ["space_id"]
             isOneToOne: false
-            referencedRelation: "DiscourseSpace"
+            referencedRelation: "Space"
             referencedColumns: ["id"]
           },
         ]
@@ -465,6 +418,53 @@ export type Database = {
             columns: ["id"]
             isOneToOne: true
             referencedRelation: "Agent"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Platform: {
+        Row: {
+          id: number
+          name: string
+          url: string
+        }
+        Insert: {
+          id?: number
+          name: string
+          url: string
+        }
+        Update: {
+          id?: number
+          name?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      Space: {
+        Row: {
+          id: number
+          name: string
+          platform_id: number
+          url: string | null
+        }
+        Insert: {
+          id?: number
+          name: string
+          platform_id: number
+          url?: string | null
+        }
+        Update: {
+          id?: number
+          name?: string
+          platform_id?: number
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Space_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "Platform"
             referencedColumns: ["id"]
           },
         ]
@@ -500,7 +500,7 @@ export type Database = {
             foreignKeyName: "SpaceAccess_space_id_fkey"
             columns: ["space_id"]
             isOneToOne: false
-            referencedRelation: "DiscourseSpace"
+            referencedRelation: "Space"
             referencedColumns: ["id"]
           },
         ]
@@ -554,6 +554,12 @@ export type Database = {
           s_status: Database["public"]["Enums"]["task_status"]
         }
         Returns: undefined
+      }
+      get_nodes_needing_sync: {
+        Args: { nodes_from_roam: Json }
+        Returns: {
+          uid_to_sync: string
+        }[]
       }
       match_content_embeddings: {
         Args: {
