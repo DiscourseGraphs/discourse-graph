@@ -72,6 +72,7 @@ async function callMatchEmbeddingsRpc(
     }
   } else {
     if (queryText) {
+      // TODO: Allow hybrid search
       return {
         error: "Do not provide both query text and embedding",
       };
