@@ -63,8 +63,7 @@ const API_CONFIG = {
     PATH: "/api/embeddings/openai/small",
   },
   SUPABASE: {
-    MATCH_EMBEDDINGS_PATH:
-      "/api/supabase/rpc/match-embeddings-for-subset-nodes",
+    MATCH_EMBEDDINGS_PATH: "/api/supabase/rpc/search-content",
   },
 } as const;
 
@@ -196,7 +195,7 @@ const searchEmbeddings: SearchFunc = async ({
       },
       body: JSON.stringify({
         queryEmbedding: queryEmbedding,
-        subsetRoamUids: subsetRoamUids,
+        subsetPlatformIds: subsetRoamUids,
       }),
     });
 
