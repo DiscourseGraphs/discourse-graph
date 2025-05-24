@@ -1,0 +1,81 @@
+import { NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
+import cors from "~/utils/llm/cors";
+import { generic_embedding, apiKey } from "~/utils/supabase/apiUtils";
+
+type RequestBody = {
+  input: string | string[];
+  model?: string;
+  dimensions?: number;
+  provider?: string;
+  encoding_format?: "float" | "base64";
+};
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  let response: NextResponse;
+
+  if (!apiKey) {
+    response = NextResponse.json(
+      {
+        error: "Server configuration error.",
+        details: "Embeddings service is not configured.",
+      },
+      { status: 500 },
+    );
+    return cors(req, response) as NextResponse;
+  }
+
+  try {
+    const body: RequestBody = await req.json();
+    const {
+      input,
+      model = "text-embedding-3-small",
+      dimensions,
+      provider = "openai",
+    } = body;
+
+    if (!input || (Array.isArray(input) && input.length === 0)) {
+      response = NextResponse.json(
+        { error: "Input text cannot be empty." },
+        { status: 400 },
+      );
+      return cors(req, response) as NextResponse;
+    }
+
+    const embeddings = await generic_embedding(
+      input,
+      model,
+      provider,
+      dimensions,
+    );
+    if (embeddings === undefined)
+      response = NextResponse.json(
+        {
+          error: "Failed to generate embeddings.",
+        },
+        { status: 500 },
+      );
+    else response = NextResponse.json(embeddings, { status: 200 });
+  } catch (error: unknown) {
+    console.error("Error calling OpenAI Embeddings API:", error);
+    const errorMessage =
+      process.env.NODE_ENV === "development"
+        ? error instanceof Error
+          ? error.message
+          : "Unknown error"
+        : "Internal server error";
+    response = NextResponse.json(
+      {
+        error: "Failed to generate embeddings.",
+        details: errorMessage,
+      },
+      { status: 500 },
+    );
+  }
+
+  return cors(req, response) as NextResponse;
+}
+
+export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
+  return cors(req, new NextResponse(null, { status: 204 })) as NextResponse;
+}
