@@ -48,22 +48,22 @@ type SearchFunc = (params: {
 
 const API_CONFIG = {
   LLM: {
-    URL: "https://discoursegraphs.com/api/llm/openai/chat",
+    PATH: "/api/llm/openai/chat",
     MODEL: "gpt-4.1",
     TIMEOUT_MS: 30_000,
     MAX_TOKENS: 104,
     TEMPERATURE: 0.9,
   },
   BASE_URL: {
+    // TODO: allow env override for DEV, so we can hit vercel
     DEV: "http://localhost:3000",
     PROD: "https://discoursegraphs.com",
   },
   EMBEDDINGS: {
-    PATH: "/api/embeddings/openai/small",
+    PATH: "/api/embeddings",
   },
   SUPABASE: {
-    MATCH_EMBEDDINGS_PATH:
-      "/api/supabase/rpc/match-embeddings-for-subset-nodes",
+    MATCH_EMBEDDINGS_PATH: "/api/supabase/rpc/search-content",
   },
 } as const;
 
@@ -118,7 +118,8 @@ Only return the text of the hypothetical node.`;
   let response: Response | null = null;
   try {
     const signal = AbortSignal.timeout(API_CONFIG.LLM.TIMEOUT_MS);
-    response = await fetch(API_CONFIG.LLM.URL, {
+    const apiUrl = `${getBaseUrl()}${API_CONFIG.LLM.PATH}`;
+    response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -166,10 +167,10 @@ const createEmbedding: EmbeddingFunc = async (
     }
 
     const data = (await response.json()) as ApiEmbeddingResponse;
-    if (!data?.data?.[0]?.embedding) {
+    if (!(data && Array.isArray(data) && data.length > 0)) {
       throw new Error("Invalid API response format from embedding service.");
     }
-    return data.data[0].embedding;
+    return data;
   } catch (error: unknown) {
     console.error("Error creating embedding:", error);
     throw error;
@@ -195,7 +196,7 @@ const searchEmbeddings: SearchFunc = async ({
       },
       body: JSON.stringify({
         queryEmbedding: queryEmbedding,
-        subsetRoamUids: subsetRoamUids,
+        subsetPlatformIds: subsetRoamUids,
       }),
     });
 
