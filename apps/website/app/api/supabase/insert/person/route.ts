@@ -99,4 +99,4 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 };
 
 // If you need an OPTIONS handler for this route:
-// export const OPTIONS = defaultOptionsHandler;
+export const OPTIONS = defaultOptionsHandler;

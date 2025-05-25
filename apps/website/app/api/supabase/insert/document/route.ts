@@ -16,15 +16,7 @@ type DocumentDataInput = TablesInsert<"Document">;
 type DocumentRecord = Tables<"Document">;
 
 const validateDocument: ItemValidator<DocumentDataInput> = (data) => {
-  const {
-    space_id,
-    source_local_id,
-    url,
-    metadata,
-    created,
-    last_modified,
-    author_id,
-  } = data;
+  const { space_id, author_id } = data;
 
   if (!space_id) return "Missing required space_id field.";
   if (!author_id) return "Missing required author_id field.";

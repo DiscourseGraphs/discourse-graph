@@ -1,4 +1,4 @@
-import type { SupabaseClient, PostgrestError } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
 export const known_embedding_tables: {
