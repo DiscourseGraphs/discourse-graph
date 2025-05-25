@@ -8,6 +8,7 @@
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "GEMINI_API_KEY",
+        "NODE_ENV",
         "BLOB_READ_WRITE_TOKEN"
       ],
       "dependsOn": ["^build"],
@@ -21,7 +22,7 @@
       "dependsOn": ["^check-types"]
     },
     "dev": {
-      "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH"],
+      "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH", "NODE_ENV"],
       "cache": false,
       "persistent": true,
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
@@ -33,6 +34,7 @@
         "BLOB_READ_WRITE_TOKEN",
         "GITHUB_REF_NAME",
         "GITHUB_HEAD_REF",
+        "NODE_ENV",
         "SUPABASE_PROJECT_ID",
         "SUPABASE_DB_PASSWORD",
         "SUPABASE_ACCESS_TOKEN"
@@ -41,7 +43,12 @@
     "publish": {
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "passThroughEnv": ["GITHUB_TOKEN", "APP_PRIVATE_KEY", "APP_ID"]
+      "passThroughEnv": [
+        "GITHUB_TOKEN",
+        "APP_PRIVATE_KEY",
+        "APP_ID",
+        "NODE_ENV"
+      ]
     }
   }
 }
