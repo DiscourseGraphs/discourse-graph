@@ -37,7 +37,7 @@ async function callMatchEmbeddingsRpc(
     threshold = 0.8,
   } = query;
   let embedding: number[];
-  const table_data = get_known_embedding(model!, dimensions!, provider!);
+  const table_data = get_known_embedding(model, dimensions, provider);
   if (table_data === undefined) {
     return {
       error: "Invalid model information",
