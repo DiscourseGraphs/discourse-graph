@@ -3,6 +3,7 @@ import { createClient } from "~/utils/supabase/server";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
+  ItemValidator,
 } from "~/utils/supabase/dbUtils";
 import {
   createApiResponse,
@@ -13,6 +14,12 @@ import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
 type AccountDataInput = TablesInsert<"Account">;
 type AccountRecord = Tables<"Account">;
+
+const validateAccount: ItemValidator<AccountDataInput> = (account) => {
+  if (!account.person_id) return "Missing required person_id";
+  if (!account.platform_id) return "Missing required platform_id";
+  return null;
+};
 
 const getOrCreateAccount = async (
   supabasePromise: ReturnType<typeof createClient>,
@@ -25,20 +32,14 @@ const getOrCreateAccount = async (
     write_permission = true,
   } = accountData;
 
-  if (
-    person_id === undefined ||
-    person_id === null ||
-    platform_id === undefined ||
-    platform_id === null
-  ) {
+  const error = validateAccount(accountData);
+  if (error != null)
     return {
       entity: null,
-      error: "Missing required fields: person_id or platform_id.",
-      details: "Both person_id and platform_id are required.",
+      error,
       created: false,
       status: 400,
     };
-  }
 
   const supabase = await supabasePromise;
 

@@ -20,7 +20,7 @@ const batchInsertEmbeddingsProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
   embeddingItems: ApiInputEmbeddingItem[],
 ): Promise<BatchProcessResult<ApiOutputEmbeddingRecord>> => {
-  // groupBy is node21 only. Group by model.
+  // groupBy is node21 only, we are using 20. Group by model, by hand.
   // Note: This means that later index values may be totally wrong.
   const by_model: { [key: string]: ApiInputEmbeddingItem[] } = {};
   try {
@@ -58,7 +58,7 @@ const batchInsertEmbeddingsProcess = async (
       supabase,
       embeddingItemsSet!,
       table_name,
-      "*", // Select all fields, adjust if needed for ContentEmbeddingRecord
+      "*",
       "ContentEmbedding",
       inputProcessing,
       outputProcessing,

@@ -3,6 +3,7 @@ import { createClient } from "~/utils/supabase/server";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
+  ItemValidator,
 } from "~/utils/supabase/dbUtils";
 import {
   createApiResponse,
@@ -14,34 +15,34 @@ import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 type PlatformDataInput = TablesInsert<"Platform">;
 type PlatformRecord = Tables<"Platform">;
 
+const platformValidator: ItemValidator<PlatformDataInput> = (platform) => {
+  const lowerCaseURL = platform.url?.toLowerCase();
+
+  if (!lowerCaseURL.includes("roamresearch.com"))
+    return "Could not determine platform from URL:";
+  return null;
+};
+
 const getOrCreatePlatformFromURL = async (
   supabase: ReturnType<typeof createClient>,
-  url: string,
+  platform: PlatformDataInput,
 ): Promise<GetOrCreateEntityResult<PlatformRecord>> => {
-  let platformName: string | null = null;
-  let platformUrl: string | null = null;
-  const lowerCaseURL = url.toLowerCase();
-
-  if (lowerCaseURL.includes("roamresearch.com")) {
-    platformName = "roamresearch";
-    platformUrl = "https://roamresearch.com";
-  } else {
-    console.warn("Could not determine platform from URL:", url);
+  const error = platformValidator(platform);
+  if (error !== null) {
     return {
-      error: "Could not determine platform from URL.",
+      error,
       entity: null,
       created: false,
       status: 400,
     };
   }
+  const lowerCaseURL = platform.url.toLowerCase();
 
-  if (!platformName || !platformUrl) {
-    return {
-      error: "Platform name or URL could not be derived.",
-      entity: null,
-      created: false,
-      status: 400,
-    };
+  if (lowerCaseURL.includes("roamresearch.com")) {
+    platform.name = "roamresearch";
+    platform.url = "https://roamresearch.com";
+  } else {
+    throw Error("No path should reach here.");
   }
 
   const resolvedSupabaseClient = await supabase;
@@ -49,8 +50,8 @@ const getOrCreatePlatformFromURL = async (
     resolvedSupabaseClient,
     "Platform",
     "id, name, url",
-    { url: platformUrl },
-    { name: platformName, url: platformUrl },
+    platform,
+    platform,
     "Platform",
   );
 };
@@ -69,7 +70,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       });
     }
 
-    const result = await getOrCreatePlatformFromURL(supabase, url);
+    const result = await getOrCreatePlatformFromURL(supabase, body);
 
     return createApiResponse(request, {
       data: result.entity,

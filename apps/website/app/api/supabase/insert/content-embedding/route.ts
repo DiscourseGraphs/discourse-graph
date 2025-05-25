@@ -24,20 +24,19 @@ export type ApiInputEmbeddingItem = Omit<
   ContentEmbeddingDataInput,
   "vector"
 > & {
-  vector: number[]; // Vector is passed in as a number[]
+  vector: number[];
 };
 
 export type ApiOutputEmbeddingRecord = Omit<
   ContentEmbeddingRecord,
   "vector"
 > & {
-  vector: number[]; // Vector is passed in as a number[]
+  vector: number[];
 };
 
 export const inputValidation: ItemValidator<ApiInputEmbeddingItem> = (data) => {
   const { target_id, model, vector } = data;
 
-  // --- Start of validation ---
   if (
     target_id === undefined ||
     target_id === null ||
@@ -65,7 +64,6 @@ export const inputValidation: ItemValidator<ApiInputEmbeddingItem> = (data) => {
     return `Invalid vector length. Expected ${table_size}, got ${vector.length}.`;
   }
   if (data.obsolete !== undefined && typeof data.obsolete !== "boolean") {
-    // Check original data for obsolete presence
     return "Invalid type for obsolete. Must be a boolean.";
   }
   return null;
@@ -164,8 +162,8 @@ const processAndCreateEmbedding = async (
     await getOrCreateEntity<"ContentEmbedding_openai_text_embedding_3_small_1536">(
       supabase,
       table_name,
-      "*", // Select all fields for the record
-      { id: -1 }, // Non-matching criteria to force "create" path
+      "*",
+      { id: -1 },
       processedItem,
       "ContentEmbedding",
     );
@@ -178,10 +176,9 @@ const processAndCreateEmbedding = async (
     result.details.includes("violates foreign key constraint")
   ) {
     if (
-      result.details.toLowerCase().includes(
-        // Check for target_id FK, adapt if FK name is different
-        `${table_name.toLowerCase()}_target_id_fkey`,
-      ) ||
+      result.details
+        .toLowerCase()
+        .includes(`${table_name.toLowerCase()}_target_id_fkey`) ||
       result.details.toLowerCase().includes("target_id")
     ) {
       return {
@@ -219,7 +216,6 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   try {
     const body: ApiInputEmbeddingItem = await request.json();
 
-    // Minimal validation here, more detailed in processAndCreateEmbedding
     if (!body || typeof body !== "object") {
       return createApiResponse(request, {
         error: "Invalid request body: expected a JSON object.",
@@ -234,14 +230,13 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       error: result.error,
       details: result.details,
       status: result.status,
-      created: result.created, // Will be true if successful create
+      created: result.created,
     });
   } catch (e: unknown) {
     return handleRouteError(
       request,
       e,
       `/api/supabase/insert/content-embedding`,
-      // TODO replace with a generic name
     );
   }
 };

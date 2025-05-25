@@ -52,11 +52,11 @@ export function createApiResponse<T>(
  * Handles errors caught in the main try-catch block of an API route.
  * Differentiates JSON parsing errors from other errors.
  */
-export function handleRouteError(
+export const handleRouteError = (
   request: NextRequest,
   error: unknown,
   routeName: string,
-): NextResponse {
+): NextResponse => {
   console.error(`API route error in ${routeName}:`, error);
   if (
     error instanceof SyntaxError &&
@@ -75,14 +75,14 @@ export function handleRouteError(
     error: message,
     status: 500,
   });
-}
+};
 
 /**
  * Default OPTIONS handler for CORS preflight requests.
  */
-export async function defaultOptionsHandler(
+export const defaultOptionsHandler = async (
   request: NextRequest,
-): Promise<NextResponse> {
+): Promise<NextResponse> => {
   const response = new NextResponse(null, { status: 204 });
   return cors(request, response) as NextResponse;
-}
+};

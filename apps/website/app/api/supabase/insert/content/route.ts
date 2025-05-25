@@ -4,12 +4,12 @@ import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
   ItemValidator,
-} from "~/utils/supabase/dbUtils"; // Ensure path is correct
+} from "~/utils/supabase/dbUtils";
 import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
-} from "~/utils/supabase/apiUtils"; // Ensure path is correct
+} from "~/utils/supabase/apiUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
 export type ContentDataInput = TablesInsert<"Content">;
@@ -20,7 +20,6 @@ export const inputValidation: ItemValidator<ContentDataInput> = (
 ) => {
   const { author_id, created, last_modified, scale, space_id, text } = data;
 
-  // --- Start of extensive validation ---
   if (!text || typeof text !== "string") return "Invalid or missing text.";
   if (!scale || typeof scale !== "string") return "Invalid or missing scale.";
   if (
@@ -37,18 +36,16 @@ export const inputValidation: ItemValidator<ContentDataInput> = (
     return "Invalid or missing author_id.";
   if (created)
     try {
-      new Date(created); // Validate date format
+      new Date(created);
     } catch (e) {
       return "Invalid date format for created.";
     }
   if (last_modified)
     try {
-      new Date(last_modified); // Validate date format
+      new Date(last_modified);
     } catch (e) {
       return "Invalid date format for last_modified.";
     }
-  // --- End of extensive validation ---
-
   return null;
 };
 
@@ -82,13 +79,12 @@ const processAndUpsertContentEntry = async (
   const result = await getOrCreateEntity<"Content">(
     supabase,
     "Content",
-    "*", // Select all fields for ContentRecord
-    matchCriteria || { id: -1 }, // Use a non-matching criteria if no specific lookup needed, to force create path if not found
-    data, // This will be used for insert if not found or for update in some extended utilities.
+    "*",
+    matchCriteria || { id: -1 },
+    data,
     "Content",
   );
 
-  // Custom handling for specific foreign key errors
   if (
     result.error &&
     result.details &&

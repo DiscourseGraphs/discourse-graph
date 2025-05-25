@@ -7,15 +7,14 @@ import {
 } from "~/utils/supabase/apiUtils";
 import {
   validateAndInsertBatch,
-  BatchProcessResult, // Import BatchProcessResult for the return type
-} from "~/utils/supabase/dbUtils"; // Ensure this path is correct
+  BatchProcessResult,
+} from "~/utils/supabase/dbUtils";
 import {
   inputValidation,
   type ContentDataInput,
   type ContentRecord,
 } from "~/api/supabase/insert/content/route";
 
-// Updated batchInsertContentProcess to use the generic utility
 const batchInsertContentProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
   contentItems: ContentDataInput[],
@@ -23,9 +22,9 @@ const batchInsertContentProcess = async (
   return validateAndInsertBatch<"Content">(
     supabase,
     contentItems,
-    "Content", // Table name
-    "*", // Select query (can be more specific, e.g., "id, text, scale, ...")
-    "Content", // Entity name for logging
+    "Content",
+    "*",
+    "Content",
     inputValidation,
     null,
   );

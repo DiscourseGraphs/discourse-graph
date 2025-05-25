@@ -3,16 +3,27 @@ import { createClient } from "~/utils/supabase/server";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
+  ItemValidator,
 } from "~/utils/supabase/dbUtils";
 import {
   createApiResponse,
   handleRouteError,
-  defaultOptionsHandler, // Assuming OPTIONS might be added later
+  defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
 type PersonDataInput = TablesInsert<"Person">;
 type PersonRecord = Tables<"Person">;
+
+const personValidator: ItemValidator<PersonDataInput> = (person) => {
+  const { name, email } = person;
+
+  if (!name || typeof name !== "string" || name.trim() === "")
+    return "Missing or invalid name for Person.";
+  if (!email || typeof email !== "string" || email.trim() === "")
+    return "Missing or invalid email for Person.";
+  return null;
+};
 
 const getOrCreatePersonInternal = async (
   supabasePromise: ReturnType<typeof createClient>,
@@ -51,29 +62,17 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
   try {
     const body: PersonDataInput = await request.json();
-    const {
-      name,
-      email,
-      orcid = null, // Default from input
-    } = body;
-
-    // Initial input validation
-    if (!name || typeof name !== "string" || name.trim() === "") {
+    const { name, email, orcid = null } = body;
+    const error = personValidator(body);
+    if (error !== null) {
       return createApiResponse(request, {
-        error: "Missing or invalid name for Person.",
-        status: 400,
-      });
-    }
-    if (!email || typeof email !== "string" || email.trim() === "") {
-      return createApiResponse(request, {
-        error: "Missing or invalid email for Person.",
+        error,
         status: 400,
       });
     }
 
-    // Get or Create Person
     const personResult = await getOrCreatePersonInternal(
-      supabasePromise, // Pass the promise
+      supabasePromise,
       email,
       name,
       orcid,

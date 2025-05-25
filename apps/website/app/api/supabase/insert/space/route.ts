@@ -3,6 +3,7 @@ import { createClient } from "~/utils/supabase/server";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
+  ItemValidator,
 } from "~/utils/supabase/dbUtils";
 import {
   createApiResponse,
@@ -14,45 +15,39 @@ import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 type SpaceDataInput = TablesInsert<"Space">;
 type SpaceRecord = Tables<"Space">;
 
+const spaceValidator: ItemValidator<SpaceDataInput> = (space) => {
+  const { name, url, platform_id } = space;
+
+  if (!name || typeof name !== "string" || name.trim() === "")
+    return "Missing or invalid name.";
+  if (!url || typeof url !== "string" || url.trim() === "")
+    return "Missing or invalid URL.";
+  if (
+    platform_id === undefined ||
+    platform_id === null ||
+    typeof platform_id !== "number"
+  )
+    return "Missing or invalid platform_id.";
+  return null;
+};
+
 // Renamed and refactored helper function
 const processAndGetOrCreateSpace = async (
   supabasePromise: ReturnType<typeof createClient>,
   data: SpaceDataInput,
 ): Promise<GetOrCreateEntityResult<SpaceRecord>> => {
   const { name, url, platform_id } = data;
+  const error = spaceValidator(data);
+  if (error !== null) {
+    return {
+      entity: null,
+      error: error,
+      created: false,
+      status: 400,
+    };
+  }
 
-  // --- Start of validation ---
-  if (!name || typeof name !== "string" || name.trim() === "") {
-    return {
-      entity: null,
-      error: "Missing or invalid name.",
-      created: false,
-      status: 400,
-    };
-  }
-  if (!url || typeof url !== "string" || url.trim() === "") {
-    return {
-      entity: null,
-      error: "Missing or invalid URL.",
-      created: false,
-      status: 400,
-    };
-  }
-  if (
-    platform_id === undefined ||
-    platform_id === null ||
-    typeof platform_id !== "number"
-  ) {
-    return {
-      entity: null,
-      error: "Missing or invalid platform_id.",
-      created: false,
-      status: 400,
-    };
-  }
-  // --- End of validation ---
-
-  const normalizedUrl = url.trim().replace(/\/$/, "");
+  const normalizedUrl = url ? url.trim().replace(/\/$/, "") : null;
   const trimmedName = name.trim();
   const supabase = await supabasePromise;
 
