@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
-import cors from "~/utils/llm/cors"; // Assuming this path is correct and accessible
+import cors from "~/utils/llm/cors";
 
 /**
  * Sends a standardized JSON response.
@@ -24,7 +24,6 @@ export function createApiResponse<T>(
   const { data, error, details, status, created } = payload;
 
   if (error) {
-    // console.error(`API Error (status ${status}): ${error}`, details || ""); // Logging done by callers or specific error handlers
     response = NextResponse.json(
       { error, details: details || undefined },
       { status },

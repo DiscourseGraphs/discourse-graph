@@ -16,6 +16,8 @@ type PersonDataInput = TablesInsert<"Person">;
 type PersonRecord = Tables<"Person">;
 
 const personValidator: ItemValidator<PersonDataInput> = (person) => {
+  if (!person || typeof person !== "object")
+    return "Invalid request body: expected a JSON object.";
   const { name, email } = person;
 
   if (!name || typeof name !== "string" || name.trim() === "")
@@ -97,5 +99,4 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   }
 };
 
-// If you need an OPTIONS handler for this route:
 export const OPTIONS = defaultOptionsHandler;

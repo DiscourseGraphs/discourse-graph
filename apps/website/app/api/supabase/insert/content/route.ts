@@ -18,6 +18,8 @@ export type ContentRecord = Tables<"Content">;
 export const inputValidation: ItemValidator<ContentDataInput> = (
   data: ContentDataInput,
 ) => {
+  if (!data || typeof data !== "object")
+    return "Invalid request body: expected a JSON object.";
   const { author_id, created, last_modified, scale, space_id, text } = data;
 
   if (!text || typeof text !== "string") return "Invalid or missing text.";
@@ -49,7 +51,6 @@ export const inputValidation: ItemValidator<ContentDataInput> = (
   return null;
 };
 
-// Renamed and refactored
 const processAndUpsertContentEntry = async (
   supabasePromise: ReturnType<typeof createClient>,
   data: ContentDataInput,
@@ -140,16 +141,6 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
   try {
     const body: ContentDataInput = await request.json();
-
-    // Most validation is now inside processAndUpsertContentEntry
-    // Minimal check here, or rely on processAndUpsertContentEntry for all field validation
-    if (!body || typeof body !== "object") {
-      return createApiResponse(request, {
-        error: "Invalid request body: expected a JSON object.",
-        status: 400,
-      });
-    }
-
     const result = await processAndUpsertContentEntry(supabasePromise, body);
 
     return createApiResponse(request, {

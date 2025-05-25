@@ -16,6 +16,8 @@ type AccountDataInput = TablesInsert<"Account">;
 type AccountRecord = Tables<"Account">;
 
 const validateAccount: ItemValidator<AccountDataInput> = (account) => {
+  if (!account || typeof account !== "object")
+    return "Invalid request body: expected a JSON object.";
   if (!account.person_id) return "Missing required person_id";
   if (!account.platform_id) return "Missing required platform_id";
   return null;

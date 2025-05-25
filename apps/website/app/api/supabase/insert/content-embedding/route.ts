@@ -35,6 +35,8 @@ export type ApiOutputEmbeddingRecord = Omit<
 };
 
 export const inputValidation: ItemValidator<ApiInputEmbeddingItem> = (data) => {
+  if (!data || typeof data !== "object")
+    return "Invalid request body: expected a JSON object.";
   const { target_id, model, vector } = data;
 
   if (
@@ -125,7 +127,6 @@ export const outputProcessing: ItemProcessor<
   }
 };
 
-// Renamed and refactored
 const processAndCreateEmbedding = async (
   supabasePromise: ReturnType<typeof createClient>,
   data: ApiInputEmbeddingItem,
@@ -215,14 +216,6 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
   try {
     const body: ApiInputEmbeddingItem = await request.json();
-
-    if (!body || typeof body !== "object") {
-      return createApiResponse(request, {
-        error: "Invalid request body: expected a JSON object.",
-        status: 400,
-      });
-    }
-
     const result = await processAndCreateEmbedding(supabasePromise, body);
 
     return createApiResponse(request, {

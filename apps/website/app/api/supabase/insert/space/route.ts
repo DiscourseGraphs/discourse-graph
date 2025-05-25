@@ -16,6 +16,8 @@ type SpaceDataInput = TablesInsert<"Space">;
 type SpaceRecord = Tables<"Space">;
 
 const spaceValidator: ItemValidator<SpaceDataInput> = (space) => {
+  if (!space || typeof space !== "object")
+    return "Invalid request body: expected a JSON object.";
   const { name, url, platform_id } = space;
 
   if (!name || typeof name !== "string" || name.trim() === "")
@@ -31,7 +33,6 @@ const spaceValidator: ItemValidator<SpaceDataInput> = (space) => {
   return null;
 };
 
-// Renamed and refactored helper function
 const processAndGetOrCreateSpace = async (
   supabasePromise: ReturnType<typeof createClient>,
   data: SpaceDataInput,
@@ -90,14 +91,6 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
   try {
     const body: SpaceDataInput = await request.json();
-
-    // Minimal validation here, more detailed in the helper
-    if (!body || typeof body !== "object") {
-      return createApiResponse(request, {
-        error: "Invalid request body: expected a JSON object.",
-        status: 400,
-      });
-    }
 
     const result = await processAndGetOrCreateSpace(supabasePromise, body);
 

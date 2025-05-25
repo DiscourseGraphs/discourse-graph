@@ -8,7 +8,9 @@ import {
 import {
   processAndInsertBatch,
   BatchProcessResult,
+  known_embedding_tables,
 } from "~/utils/supabase/dbUtils";
+
 import {
   inputProcessing,
   outputProcessing,
@@ -22,6 +24,7 @@ const batchInsertEmbeddingsProcess = async (
 ): Promise<BatchProcessResult<ApiOutputEmbeddingRecord>> => {
   // groupBy is node21 only, we are using 20. Group by model, by hand.
   // Note: This means that later index values may be totally wrong.
+  // Note2: The key is a ModelName, but I cannot use an enum as a key.
   const by_model: { [key: string]: ApiInputEmbeddingItem[] } = {};
   try {
     embeddingItems.reduce((acc, item, index) => {
@@ -47,17 +50,19 @@ const batchInsertEmbeddingsProcess = async (
   const globalResults: ApiOutputEmbeddingRecord[] = [];
   const partial_errors = [];
   let created = true; // TODO: Maybe transmit from below
-  for (const table_name of Object.keys(by_model)) {
-    const embeddingItemsSet = by_model[table_name];
+  for (const model_name of Object.keys(by_model)) {
+    const embeddingItemsSet = by_model[model_name];
+    const table_data = known_embedding_tables[model_name];
+    if (table_data === undefined) continue;
     const results = await processAndInsertBatch<
-      // any table for type checking purposes only
+      // any ContentEmbedding table for type checking purposes only
       "ContentEmbedding_openai_text_embedding_3_small_1536",
       ApiInputEmbeddingItem,
       ApiOutputEmbeddingRecord
     >(
       supabase,
       embeddingItemsSet!,
-      table_name,
+      table_data.table_name,
       "*",
       "ContentEmbedding",
       inputProcessing,

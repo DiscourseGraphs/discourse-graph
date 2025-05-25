@@ -40,7 +40,7 @@ export async function getOrCreateEntity<
   tableName: keyof Database["public"]["Tables"],
   selectQuery: string,
   matchCriteria: Record<string, any>,
-  insertData: TablesInsert<TableName>, // Flexible insert data
+  insertData: TablesInsert<TableName>,
   entityName: string = tableName,
 ): Promise<GetOrCreateEntityResult<Tables<TableName>>> {
   // 1. Try to fetch existing entity
@@ -164,7 +164,7 @@ export async function getOrCreateEntity<
       error: `Failed to retrieve new ${entityName} after insert operation.`,
       details:
         "The insert operation might have appeared successful but returned no data.",
-      created: false, // Unsure if created
+      created: false, // Unknown if created
       status: 500,
     };
   }
@@ -197,9 +197,9 @@ export type BatchProcessResult<TRecord> = {
 export async function InsertValidatedBatch<
   TableName extends keyof Database["public"]["Tables"],
 >(
-  supabase: SupabaseClient<any, "public", any>,
+  supabase: SupabaseClient<Database, "public", Database["public"]>,
   items: TablesInsert<TableName>[],
-  tableName: string,
+  tableName: keyof Database["public"]["Tables"],
   selectQuery: string, // e.g., "id, field1, field2" or "*"
   entityName: string = tableName, // For logging
 ): Promise<BatchProcessResult<Tables<TableName>>> {
@@ -217,7 +217,7 @@ export async function InsertValidatedBatch<
     };
   }
 
-  const newRecordsTyped = newRecords as Tables<TableName>[]; // Assert type
+  const newRecordsTyped = newRecords as Tables<TableName>[];
 
   if (!newRecordsTyped || newRecordsTyped.length !== items.length) {
     console.warn(
@@ -238,9 +238,9 @@ export async function InsertValidatedBatch<
 export async function validateAndInsertBatch<
   TableName extends keyof Database["public"]["Tables"],
 >(
-  supabase: SupabaseClient<any, "public", any>,
+  supabase: SupabaseClient<Database, "public", Database["public"]>,
   items: TablesInsert<TableName>[],
-  tableName: string,
+  tableName: keyof Database["public"]["Tables"],
   selectQuery: string, // e.g., "id, field1, field2" or "*"
   entityName: string = tableName, // For logging
   inputValidator: ItemValidator<TablesInsert<TableName>> | null,
@@ -336,9 +336,9 @@ export async function processAndInsertBatch<
   InputType,
   OutputType,
 >(
-  supabase: SupabaseClient<any, "public", any>,
+  supabase: SupabaseClient<Database, "public", Database["public"]>,
   items: InputType[],
-  tableName: string,
+  tableName: keyof Database["public"]["Tables"],
   selectQuery: string, // e.g., "id, field1, field2" or "*"
   entityName: string = tableName, // For logging
   inputProcessor: ItemProcessor<InputType, TablesInsert<TableName>>,

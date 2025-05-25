@@ -16,6 +16,8 @@ type DocumentDataInput = TablesInsert<"Document">;
 type DocumentRecord = Tables<"Document">;
 
 const validateDocument: ItemValidator<DocumentDataInput> = (data) => {
+  if (!data || typeof data !== "object")
+    return "Invalid request body: expected a JSON object.";
   const { space_id, author_id } = data;
 
   if (!space_id) return "Missing required space_id field.";
