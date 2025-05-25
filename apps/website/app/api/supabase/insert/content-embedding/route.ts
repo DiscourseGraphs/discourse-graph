@@ -1,5 +1,5 @@
-import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
+import { createClient } from "~/utils/supabase/server";
 import {
   createApiResponse,
   handleRouteError,

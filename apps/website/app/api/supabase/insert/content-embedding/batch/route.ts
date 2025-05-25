@@ -1,5 +1,5 @@
-import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
+import { createClient } from "~/utils/supabase/server";
 import {
   createApiResponse,
   handleRouteError,
@@ -14,7 +14,7 @@ import {
   outputProcessing,
   type ApiInputEmbeddingItem,
   type ApiOutputEmbeddingRecord,
-} from "../route";
+} from "~/api/supabase/insert/content-embedding/route";
 
 const batchInsertEmbeddingsProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
