@@ -33,7 +33,7 @@ export type GetOrCreateEntityResult<T> = {
  * @param entityName A friendly name for the entity, used in logging and error messages.
  * @returns Promise<GetOrCreateEntityResult<T>>
  */
-export async function getOrCreateEntity<
+export const getOrCreateEntity = async <
   TableName extends keyof Database["public"]["Tables"],
 >(
   supabase: SupabaseClient<Database, "public", Database["public"]>,
@@ -42,7 +42,7 @@ export async function getOrCreateEntity<
   matchCriteria: Record<string, any>,
   insertData: TablesInsert<TableName>,
   entityName: string = tableName,
-): Promise<GetOrCreateEntityResult<Tables<TableName>>> {
+): Promise<GetOrCreateEntityResult<Tables<TableName>>> => {
   // 1. Try to fetch existing entity
   let queryBuilder = supabase.from(tableName).select(selectQuery);
   for (const key in matchCriteria) {
@@ -171,7 +171,7 @@ export async function getOrCreateEntity<
 
   console.log(`Created new ${entityName}:`, newEntity);
   return { entity: newEntity, error: null, created: true, status: 201 };
-}
+};
 
 export type BatchItemValidator<TInput, TProcessed> = (
   item: TInput,
@@ -194,7 +194,7 @@ export type BatchProcessResult<TRecord> = {
   status: number; // HTTP status to suggest
 };
 
-export async function InsertValidatedBatch<
+export const InsertValidatedBatch = async <
   TableName extends keyof Database["public"]["Tables"],
 >(
   supabase: SupabaseClient<Database, "public", Database["public"]>,
@@ -202,7 +202,7 @@ export async function InsertValidatedBatch<
   tableName: keyof Database["public"]["Tables"],
   selectQuery: string, // e.g., "id, field1, field2" or "*"
   entityName: string = tableName, // For logging
-): Promise<BatchProcessResult<Tables<TableName>>> {
+): Promise<BatchProcessResult<Tables<TableName>>> => {
   const { data: newRecords, error: insertError } = await supabase
     .from(tableName)
     .insert(items)
@@ -233,9 +233,9 @@ export async function InsertValidatedBatch<
     `Successfully batch inserted ${newRecordsTyped.length} ${entityName} records.`,
   );
   return { data: newRecordsTyped, status: 201 };
-}
+};
 
-export async function validateAndInsertBatch<
+export const validateAndInsertBatch = async <
   TableName extends keyof Database["public"]["Tables"],
 >(
   supabase: SupabaseClient<Database, "public", Database["public"]>,
@@ -245,7 +245,7 @@ export async function validateAndInsertBatch<
   entityName: string = tableName, // For logging
   inputValidator: ItemValidator<TablesInsert<TableName>> | null,
   outputValidator: ItemValidator<Tables<TableName>> | null,
-): Promise<BatchProcessResult<Tables<TableName>>> {
+): Promise<BatchProcessResult<Tables<TableName>>> => {
   let validatedItems: TablesInsert<TableName>[] = [];
   const validationErrors: { index: number; error: string }[] = [];
   if (!Array.isArray(items) || items.length === 0) {
@@ -329,9 +329,9 @@ export async function validateAndInsertBatch<
     }
   }
   return result;
-}
+};
 
-export async function processAndInsertBatch<
+export const processAndInsertBatch = async <
   TableName extends keyof Database["public"]["Tables"],
   InputType,
   OutputType,
@@ -343,7 +343,7 @@ export async function processAndInsertBatch<
   entityName: string = tableName, // For logging
   inputProcessor: ItemProcessor<InputType, TablesInsert<TableName>>,
   outputProcessor: ItemProcessor<Tables<TableName>, OutputType>,
-): Promise<BatchProcessResult<OutputType>> {
+): Promise<BatchProcessResult<OutputType>> => {
   let processedItems: TablesInsert<TableName>[] = [];
   const validationErrors: { index: number; error: string }[] = [];
   if (!Array.isArray(items) || items.length === 0) {
@@ -421,4 +421,4 @@ export async function processAndInsertBatch<
     };
   }
   return { ...result, data: processedResults };
-}
+};

@@ -10,7 +10,7 @@ import cors from "~/utils/llm/cors";
  * @param status The HTTP status code for the response.
  * @param created A boolean indicating if a resource was created (influences status code: 201 vs 200).
  */
-export function createApiResponse<T>(
+export const createApiResponse = <T>(
   request: NextRequest,
   payload: {
     data?: T | null;
@@ -19,7 +19,7 @@ export function createApiResponse<T>(
     status: number;
     created?: boolean;
   },
-): NextResponse {
+): NextResponse => {
   let response: NextResponse;
   const { data, error, details, status, created } = payload;
 
@@ -45,7 +45,7 @@ export function createApiResponse<T>(
     );
   }
   return cors(request, response) as NextResponse;
-}
+};
 
 /**
  * Handles errors caught in the main try-catch block of an API route.

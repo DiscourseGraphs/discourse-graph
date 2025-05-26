@@ -169,7 +169,7 @@ const processAndCreateEmbedding = async (
       "ContentEmbedding",
     );
 
-  // getOrCreateEntity handles general 23503, but we can make the message more specific if needed
+  // getOrCreateEntity handles general foreign key constraints, but we can make the message more specific if needed
   if (
     result.error &&
     result.details &&
