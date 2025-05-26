@@ -9,7 +9,7 @@ import { Notice } from "obsidian";
 import generateUid from "~/utils/generateUid";
 import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
-import { getTemplateFiles } from "~/utils/getTemplateFiles";
+import { getTemplateFiles } from "~/utils/templates";
 
 const NodeTypeSettings = () => {
   const plugin = usePlugin();
