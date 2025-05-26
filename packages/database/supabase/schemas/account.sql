@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS public."Account" (
         'public.entity_id_seq'::regclass
     ) NOT NULL,
     platform_id bigint NOT NULL,
-    person_id bigint NOT NULL,
+    agent_id bigint NOT NULL,
+    account_local_id varchar NOT NULL,
     write_permission boolean NOT NULL,
     active boolean DEFAULT true NOT NULL
 );
@@ -14,8 +15,8 @@ COMMENT ON TABLE public."Account" IS 'A user account on a platform';
 
 
 ALTER TABLE ONLY public."Account"
-ADD CONSTRAINT "Account_person_id_fkey" FOREIGN KEY (
-    person_id
+ADD CONSTRAINT "Account_agent_id_fkey" FOREIGN KEY (
+    agent_id
 ) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public."Account"
@@ -28,23 +29,16 @@ ADD CONSTRAINT "Account_platform_id_fkey" FOREIGN KEY (
 ALTER TABLE ONLY public."Account"
 ADD CONSTRAINT "Account_pkey" PRIMARY KEY (id);
 
+CREATE UNIQUE INDEX account_platform_and_local_id_idx ON public."Account" USING btree (platform_id, account_local_id);
 
 CREATE TABLE IF NOT EXISTS public."SpaceAccess" (
-    id bigint DEFAULT nextval(
-        'public.entity_id_seq'::regclass
-    ) NOT NULL,
     space_id bigint,
     account_id bigint NOT NULL,
     editor boolean NOT NULL
 );
 
 ALTER TABLE ONLY public."SpaceAccess"
-ADD CONSTRAINT "SpaceAccess_account_id_space_id_key" UNIQUE (
-    account_id, space_id
-);
-
-ALTER TABLE ONLY public."SpaceAccess"
-ADD CONSTRAINT "SpaceAccess_pkey" PRIMARY KEY (id);
+ADD CONSTRAINT "SpaceAccess_pkey" PRIMARY KEY (space_id, account_id);
 
 
 ALTER TABLE public."SpaceAccess" OWNER TO "postgres";
@@ -53,6 +47,7 @@ COMMENT ON TABLE public."SpaceAccess" IS 'An access control entry for a space';
 
 COMMENT ON COLUMN public."SpaceAccess".space_id IS 'The space in which the content is located';
 
+COMMENT ON COLUMN public."SpaceAccess".account_id IS 'The identity of the account in this space';
 
 ALTER TABLE ONLY public."SpaceAccess"
 ADD CONSTRAINT "SpaceAccess_account_id_fkey" FOREIGN KEY (

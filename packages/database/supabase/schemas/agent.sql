@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public."AutomatedAgent" (
     name character varying NOT NULL,
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     deterministic boolean DEFAULT false,
-    version character varying
+    version character varying NOT NULL
 );
 
 ALTER TABLE ONLY public."AutomatedAgent"
@@ -29,6 +29,7 @@ ADD CONSTRAINT automated_agent_id_fkey FOREIGN KEY (
     id
 ) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
+CREATE UNIQUE INDEX automated_agent_name_version_idx ON public."AutomatedAgent" USING btree (name, version);
 
 ALTER TABLE public."AutomatedAgent" OWNER TO "postgres";
 
@@ -49,6 +50,8 @@ ADD CONSTRAINT person_id_fkey FOREIGN KEY (
     id
 ) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
+CREATE UNIQUE INDEX person_email_idx ON public."Person" USING btree (email);
+CREATE UNIQUE INDEX person_orcid_idx ON public."Person" USING btree (orcid);
 
 ALTER TABLE public."Person" OWNER TO "postgres";
 

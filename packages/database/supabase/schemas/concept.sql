@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS public."Concept" (
     author_id bigint,
     created timestamp without time zone NOT NULL,
     last_modified timestamp without time zone NOT NULL,
-    space_id bigint,
+    space_id bigint NOT NULL,
     arity smallint DEFAULT 0 NOT NULL,
     schema_id bigint,
     content jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -63,6 +63,8 @@ CREATE INDEX "Concept_space" ON public."Concept" USING btree (space_id);
 CREATE UNIQUE INDEX "Concept_represented_by" ON public."Concept" (
     represented_by_id
 );
+
+CREATE UNIQUE INDEX concept_space_and_name_idx ON public."Concept" (space_id, name);
 
 
 ALTER TABLE ONLY public."Concept"
