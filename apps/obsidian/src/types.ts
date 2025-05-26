@@ -2,6 +2,7 @@ export type DiscourseNode = {
   id: string;
   name: string;
   format: string;
+  template?: string;
   shortcut?: string;
   color?: string;
 };
