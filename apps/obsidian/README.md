@@ -16,7 +16,6 @@ For more information about Discourse Graphs, check out our website at [https://d
 ![BRAT](/apps/obsidian/docs/media/BRAT.png)
 4. Install BRAT and enable it
 
-
 #### Install DataCore via BRAT
 
 1. Open Obsidian Settings
@@ -51,8 +50,26 @@ For more information about Discourse Graphs, check out our website at [https://d
    - Under "Node Types," click "Add Node Type"
    - Enter a name for your node type (e.g., "Claim", "Evidence", "Question")
    - Add the format for your node type. eg a claim node will have page title "CLM - {content}"
-  ![add node types](/apps/obsidian/docs/media/add-node-types.png)
-  - Click "Save Changes"
+   - **Template (Optional)**: Select a template from the dropdown to automatically apply template content when creating nodes of this type
+     - Templates are sourced from Obsidian's core Templates plugin
+     - Ensure you have the Templates plugin enabled and configured with a template folder
+     - The dropdown will show all available template files from your configured template folder
+
+  ![add node types with template](/apps/obsidian/docs/media/choose-template.png)
+    - Click "Save Changes"
+
+    
+    - To create a new template:
+
+Create new folder to store templates
+
+![new folder](/apps/obsidian/docs/media/new-folder.png)
+
+Specify template folder location in plugin settings menu
+![template](/apps/obsidian/docs/media/template.png)
+Create new file in template folder (A) and add text to file (B)
+![create template file](/apps/obsidian/docs/media/create-template-file.png)
+
 #### Edit Relation Types
    - Under "Relation Types," click "Add Relationship Type"
    - A relation type is a kind of relationship that can exist between any two node types
