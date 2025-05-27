@@ -91,7 +91,7 @@ type ApiParams = Promise<{ id: string }>;
 export type SegmentDataType = { params: ApiParams };
 
 /**
- * Default GET handler for CORS preflight requests.
+ * Default GET handler for retrieving a resource by Id
  */
 export const defaultGetHandler = async (
   request: NextRequest,
@@ -135,7 +135,7 @@ export const defaultGetHandler = async (
 };
 
 /**
- * Default DELETE handler for CORS preflight requests.
+ * Default DELETE handler for deleting a resource by ID
  */
 export const defaultDeleteHandler = async (
   request: NextRequest,
