@@ -9,6 +9,7 @@ class "Account" [[{A user account on a platform}]] {
     {field} id : integer  
     {field} write_permission : boolean  
     {field} active : boolean  
+    {field} account_local_id : string  
 }
 class "Space" [[{A space on a platform representing a community engaged in a conversation}]] {
     {field} id : integer  
@@ -104,7 +105,7 @@ class "AutomatedAgent" [[{An automated agent}]] {
     {field} id(i) : integer  
     {field} type(i) : EntityType  
 }
-"Account" --> "1" "Agent" : "person"
+"Account" --> "1" "Agent" : "agent"
 "Agent" ^-- "Person"
 "Agent" ^-- "AutomatedAgent"
 @enduml

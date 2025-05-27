@@ -42,6 +42,11 @@ ADD CONSTRAINT "Document_space_id_fkey" FOREIGN KEY (
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
+CREATE UNIQUE INDEX document_space_and_local_id_idx ON public."Document" USING btree (space_id, source_local_id)
+    NULLS DISTINCT WHERE space_id IS NOT NULL;
+
+CREATE UNIQUE INDEX document_url_idx ON public."Document" USING btree (url);
+
 ALTER TABLE public."Document" OWNER TO "postgres";
 
 COMMENT ON COLUMN public."Document".space_id IS 'The space in which the content is located';
@@ -114,9 +119,9 @@ CREATE INDEX "Content_part_of" ON public."Content" USING btree (
 
 CREATE INDEX "Content_space" ON public."Content" USING btree (space_id);
 
-CREATE UNIQUE INDEX "Content_space_and_id" ON public."Content" USING btree (
+CREATE UNIQUE INDEX content_space_and_local_id_idx ON public."Content" USING btree (
     space_id, source_local_id
-) WHERE (source_local_id IS NOT NULL);
+) NULLS DISTINCT WHERE (space_id IS NOT NULL);
 
 CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
 

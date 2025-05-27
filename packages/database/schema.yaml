@@ -120,6 +120,13 @@ classes:
       email:
         required: true
       # TODO: known skills, i.e. what processes can they confirm.
+    unique_keys:
+      person_email:
+        unique_key_slots:
+          - email
+      person_orcid:
+        unique_key_slots:
+          - orcid
   AutomatedAgent:
     description: An automated agent
     is_a: Agent
@@ -132,22 +139,28 @@ classes:
         ifabsent: false
       version:
         range: string
-
+    unique_keys:
+      automated_agent_name_version:
+        unique_key_slots:
+          - name
+          - version
   Platform:
     description: A data platform where discourse happens
     slots:
       - id
       - name
-    attributes:
-      url:
-        required: true
+      - url
+    unique_keys:
+      platform_url:
+        unique_key_slots:
+          - url
   Account:
     description: A user account on a platform
     slots:
       - id
       - platform
     attributes:
-      person:
+      agent:
         range: Agent
         required: true
       write_permission:
@@ -157,6 +170,14 @@ classes:
         range: boolean
         required: true
         ifabsent: true
+      account_local_id:
+        required: true
+        description: The identity of the person in this space
+    unique_keys:
+      account_platform_and_local_id:
+        unique_key_slots:
+          - platform
+          - account_local_id
   Space:
     description: A space on a platform representing a community engaged in a conversation
     slots:
@@ -167,6 +188,10 @@ classes:
       platform:
         range: Platform
         required: true
+    unique_keys:
+      space_url:
+        unique_key_slots:
+          - url
   SpaceAccess:
     description: An access control entry for a space
     slots:
@@ -205,6 +230,12 @@ classes:
       part_of:
         description: This content is part of a larger content unit
         range: Content
+    unique_keys:
+      content_space_and_local_id:
+        unique_key_slots:
+          - space
+          - source_local_id
+
   # ContentDerivation:
   #   description: A derivation relation between content units
   #   attributes:
@@ -226,15 +257,24 @@ classes:
       - id
       - space
       - source_local_id
-      - url
       - created
       - metadata
       - last_modified
       - author
       - contributors
     attributes:
+      url:
+        range: string
       contents:
         range: blob
+    unique_keys:
+      document_space_and_local_id:
+        unique_key_slots:
+          - space
+          - source_local_id
+      document_url:
+        unique_key_slots:
+          - url
   # Article:
   #   description: an article
   #   is_a: Document
@@ -303,6 +343,11 @@ classes:
       # Damn, concept schema is a concept, is it not?
       # Now, if a concept has a complex structwre based on a complex content...
       # AH, it should be based on occurences.
+    unique_keys:
+      concept_space_and_name:
+        unique_key_slots:
+          - space
+          - name
 
   ConceptSchema:
     is_a: Concept
@@ -379,6 +424,7 @@ slots:
     range: string
   url:
     range: string
+    required: true
   platform:
     range: Platform
     required: true
