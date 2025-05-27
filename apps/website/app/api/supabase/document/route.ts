@@ -35,6 +35,9 @@ const createDocument = async (
     supabase,
     tableName: "Document",
     insertData: data,
+    // Note: This is a temporary assumption
+    // we'll want to have a in-space route with this,
+    // and an out-of-space context with url.
     uniqueOn: ["space_id", "source_local_id"],
   });
 

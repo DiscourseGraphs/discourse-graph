@@ -1,4 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
+import { useRouter } from "next/router";
+import { createClient } from "~/utils/supabase/server";
 import cors from "~/utils/llm/cors";
 
 /**
@@ -84,4 +86,87 @@ export const defaultOptionsHandler = async (
 ): Promise<NextResponse> => {
   const response = new NextResponse(null, { status: 204 });
   return cors(request, response) as NextResponse;
+};
+
+/**
+ * Default GET handler for CORS preflight requests.
+ */
+export const defaultGetHandler = async (
+  request: NextRequest,
+  pk: string = "id",
+): Promise<NextResponse> => {
+  const supabase = await createClient();
+  const router = useRouter();
+  const idS = router.query[pk];
+  let id: number;
+  try {
+    id = Number.parseInt((Array.isArray(idS) ? idS[0] : idS) || "error");
+  } catch (error) {
+    return createApiResponse(request, {
+      error: `${pk} is not a number`,
+      status: 400,
+    });
+  }
+
+  const { data, error, status } = await supabase
+    .from("Person")
+    .select()
+    .eq(pk, id)
+    .maybeSingle();
+  if (error) {
+    return createApiResponse(request, {
+      error: error.message,
+      status,
+    });
+  }
+  if (status == 404) {
+    return createApiResponse(request, {
+      error: "Not found",
+      status,
+    });
+  }
+
+  return createApiResponse(request, {
+    data,
+    status,
+  });
+};
+
+/**
+ * Default DELETE handler for CORS preflight requests.
+ */
+export const defaultDeleteHandler = async (
+  request: NextRequest,
+  pk: string = "id",
+): Promise<NextResponse> => {
+  const supabase = await createClient();
+  const router = useRouter();
+  const idS = router.query[pk];
+  let id: number;
+  try {
+    id = Number.parseInt((Array.isArray(idS) ? idS[0] : idS) || "error");
+  } catch (error) {
+    return createApiResponse(request, {
+      error: `${pk} is not a number`,
+      status: 400,
+    });
+  }
+
+  const { error, status } = await supabase.from("Person").delete().eq(pk, id);
+  if (error) {
+    return createApiResponse(request, {
+      error: error.message,
+      status,
+    });
+  }
+  if (status == 404) {
+    return createApiResponse(request, {
+      error: "Not found",
+      status,
+    });
+  }
+
+  return createApiResponse(request, {
+    status,
+  });
 };
