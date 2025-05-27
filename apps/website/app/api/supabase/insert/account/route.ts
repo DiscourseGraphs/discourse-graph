@@ -18,7 +18,7 @@ type AccountRecord = Tables<"Account">;
 const validateAccount: ItemValidator<AccountDataInput> = (account) => {
   if (!account || typeof account !== "object")
     return "Invalid request body: expected a JSON object.";
-  if (!account.person_id) return "Missing required person_id";
+  if (!account.agent_id) return "Missing required agent_id";
   if (!account.platform_id) return "Missing required platform_id";
   return null;
 };
@@ -28,10 +28,11 @@ const getOrCreateAccount = async (
   accountData: AccountDataInput,
 ): Promise<GetOrCreateEntityResult<AccountRecord>> => {
   const {
-    person_id,
+    agent_id,
     platform_id,
     active = true,
     write_permission = true,
+    account_local_id,
   } = accountData;
 
   const error = validateAccount(accountData);
@@ -48,9 +49,9 @@ const getOrCreateAccount = async (
   const result = await getOrCreateEntity<"Account">(
     supabase,
     "Account",
-    "id, person_id, platform_id, active, write_permission",
-    { person_id: person_id, platform_id: platform_id },
-    { person_id, platform_id, active, write_permission },
+    "id, agent_id, platform_id, active, write_permission",
+    { agent_id: agent_id, platform_id: platform_id },
+    { agent_id, platform_id, active, write_permission, account_local_id },
     "Account",
   );
 
@@ -60,10 +61,10 @@ const getOrCreateAccount = async (
     result.status === 400 &&
     result.details.includes("violates foreign key constraint")
   ) {
-    if (result.details.includes("Account_person_id_fkey")) {
+    if (result.details.includes("agent_id_fkey")) {
       return {
         ...result,
-        error: `Invalid person_id: No Person record found for ID ${person_id}.`,
+        error: `Invalid agent_id: No Person record found for ID ${agent_id}.`,
       };
     } else if (result.details.includes("Account_platform_id_fkey")) {
       return {
@@ -81,9 +82,9 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   try {
     const body: AccountDataInput = await request.json();
 
-    if (body.person_id === undefined || body.person_id === null) {
+    if (body.agent_id === undefined || body.agent_id === null) {
       return createApiResponse(request, {
-        error: "Missing or invalid person_id.",
+        error: "Missing or invalid agent_id.",
         status: 400,
       });
     }

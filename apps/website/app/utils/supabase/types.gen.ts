@@ -11,30 +11,33 @@ export type Database = {
     Tables: {
       Account: {
         Row: {
+          account_local_id: string
           active: boolean
+          agent_id: number
           id: number
-          person_id: number
           platform_id: number
           write_permission: boolean
         }
         Insert: {
+          account_local_id: string
           active?: boolean
+          agent_id: number
           id?: number
-          person_id: number
           platform_id: number
           write_permission: boolean
         }
         Update: {
+          account_local_id?: string
           active?: boolean
+          agent_id?: number
           id?: number
-          person_id?: number
           platform_id?: number
           write_permission?: boolean
         }
         Relationships: [
           {
-            foreignKeyName: "Account_person_id_fkey"
-            columns: ["person_id"]
+            foreignKeyName: "Account_agent_id_fkey"
+            columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "Agent"
             referencedColumns: ["id"]
@@ -69,21 +72,21 @@ export type Database = {
           id: number
           metadata: Json
           name: string
-          version: string | null
+          version: string
         }
         Insert: {
           deterministic?: boolean | null
           id: number
           metadata?: Json
           name: string
-          version?: string | null
+          version: string
         }
         Update: {
           deterministic?: boolean | null
           id?: number
           metadata?: Json
           name?: string
-          version?: string | null
+          version?: string
         }
         Relationships: [
           {
@@ -109,7 +112,7 @@ export type Database = {
           name: string
           represented_by_id: number | null
           schema_id: number | null
-          space_id: number | null
+          space_id: number
         }
         Insert: {
           arity?: number
@@ -124,7 +127,7 @@ export type Database = {
           name: string
           represented_by_id?: number | null
           schema_id?: number | null
-          space_id?: number | null
+          space_id: number
         }
         Update: {
           arity?: number
@@ -139,7 +142,7 @@ export type Database = {
           name?: string
           represented_by_id?: number | null
           schema_id?: number | null
-          space_id?: number | null
+          space_id?: number
         }
         Relationships: [
           {
@@ -445,19 +448,19 @@ export type Database = {
           id: number
           name: string
           platform_id: number
-          url: string | null
+          url: string
         }
         Insert: {
           id?: number
           name: string
           platform_id: number
-          url?: string | null
+          url: string
         }
         Update: {
           id?: number
           name?: string
           platform_id?: number
-          url?: string | null
+          url?: string
         }
         Relationships: [
           {
@@ -473,20 +476,17 @@ export type Database = {
         Row: {
           account_id: number
           editor: boolean
-          id: number
-          space_id: number | null
+          space_id: number
         }
         Insert: {
           account_id: number
           editor: boolean
-          id?: number
-          space_id?: number | null
+          space_id: number
         }
         Update: {
           account_id?: number
           editor?: boolean
-          id?: number
-          space_id?: number | null
+          space_id?: number
         }
         Relationships: [
           {

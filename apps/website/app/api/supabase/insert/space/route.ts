@@ -48,7 +48,7 @@ const processAndGetOrCreateSpace = async (
     };
   }
 
-  const normalizedUrl = url ? url.trim().replace(/\/$/, "") : null;
+  const normalizedUrl = url.trim().replace(/\/$/, "");
   const trimmedName = name.trim();
   const supabase = await supabasePromise;
 
