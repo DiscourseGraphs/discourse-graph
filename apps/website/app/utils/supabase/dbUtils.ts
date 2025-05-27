@@ -13,6 +13,28 @@ export const known_embedding_tables: {
   },
 };
 
+const unique_key_re = /^Key \(([^\)]+)\)=\(([\^\)]+)\) already exists\.$/;
+const unique_index_re =
+  /duplicate key value violates unique constraint "(\w+)"/;
+const foreign_key_re = /Keys? \(([^\)]+)\)=\(([^\)]+)\) (is|are) not present in table ("?\w+"?)./;
+const foreign_constraint_re = /insert or update on table ("?\w+"?) violates foreign key constraint ("?\w+"?)/;
+
+// const known_unique_keys: {
+//   [key in keyof Database["public"]["Tables"]]: string[][]; // It should be keyof Tables<key>[][]
+// } = {
+//   Agent: [["id"]],
+//   Account: [["platform_id", "account_local_id"], ["id"]],
+//   AutomatedAgent: [["name", "version"], ["id"]],
+//   Person: [["email"], ["orcid"], ["id"]],
+//   Concept: [["space_id", "name"], ["id"]],
+//   Document: [["space_id", "source_local_id"], ["url"], ["id"]],
+//   Content: [["space_id", "source_local_id"], ["id"]],
+//   Platform: [["url"], ["id"]],
+//   Space: [["url"], ["id"]],
+//   ContentEmbedding_openai_text_embedding_3_small_1536: [["target_id"]],
+//   concept_contributors: [[""]],
+// };
+
 export type GetOrCreateEntityResult<T> = {
   entity: T | null;
   error: string | null;
@@ -27,10 +49,8 @@ export type GetOrCreateEntityResult<T> = {
  *
  * @param supabase Supabase client instance.
  * @param tableName The name of the table.
- * @param selectQuery The select string, e.g., "id, name, url".
- * @param matchCriteria An object representing the WHERE clause for lookup, e.g., { url: "some-url" }.
- * @param insertData Data to insert if the entity is not found.
- * @param entityName A friendly name for the entity, used in logging and error messages.
+ * @param insertData Data to upsert
+ * @param uniqueOn The expected uniqueOn key.
  * @returns Promise<GetOrCreateEntityResult<T>>
  */
 export const getOrCreateEntity = async <
@@ -61,35 +81,37 @@ export const getOrCreateEntity = async <
 
   if (insertError) {
     console.error(`Error inserting new ${tableName}:`, insertData, insertError);
-    // Handle race condition: unique constraint violation (PostgreSQL error code '23505')
     if (insertError.code === "23505") {
-      // It could well be another unique constraint
-      // TODO: Can I identify the unique key constraint to do a fetch?
+      // Handle race condition: unique constraint violation (PostgreSQL error code '23505')
       console.warn(
-        `Unique constraint violation on ${tableName} insert using ${uniqueOn}.\nError is ${insertError.message}.\n Attempting to re-fetch.`,
+        `Unique constraint violation on ${tableName} insert using ${uniqueOn}.\nError is ${insertError.message}.`,
       );
-      let reFetchQueryBuilder = supabase.from(tableName).select();
-      if (uniqueOn !== undefined) {
-        for (let i = 0; i < uniqueOn.length; i++) {
-          const key: keyof TablesInsert<TableName> = uniqueOn[i]!;
-          reFetchQueryBuilder = reFetchQueryBuilder.eq(
-            key as string,
-            insertData[key] as any, // TS gets confused here?
-          );
-        }
-      } else if (false) {
-        // TODO: Another case is when we were given the primary key.
-        // But we have to compute the primary key for that. Punting.
-      } else {
-        // Likely another unique constraint
-        // TODO: have to decode from insertError message
+      const dup_key_data = unique_key_re.exec(insertError.hint);
+      if (dup_key_data !== null && dup_key_data.length > 1)
+        uniqueOn = dup_key_data[1]!
+          .split(",")
+          .map((x) => x.trim()) as (keyof TablesInsert<TableName>)[];
+      if (!uniqueOn || uniqueOn.length === 0) {
+        const idx_data = unique_index_re.exec(insertError.message);
         return {
           entity: null,
-          error: "Could not decide what to refetch on",
+          error:
+            idx_data === null
+              ? "Could not identify the keys or index of the unique constraint"
+              : `Could not identify the keys of the unique key index ${idx_data[1]}`,
           details: insertError.message,
           created: false,
           status: 400,
         };
+      }
+      console.warn(`Attempting to re-fetch using ${uniqueOn.join(", ")}`);
+      let reFetchQueryBuilder = supabase.from(tableName).select();
+      for (let i = 0; i < uniqueOn.length; i++) {
+        const key: keyof TablesInsert<TableName> = uniqueOn[i]!;
+        reFetchQueryBuilder = reFetchQueryBuilder.eq(
+          key as string,
+          insertData[key] as any, // TS gets confused here?
+        );
       }
       const { data: reFetchedEntity, error: reFetchError } =
         await reFetchQueryBuilder.maybeSingle<Tables<TableName>>();
@@ -111,34 +133,43 @@ export const getOrCreateEntity = async <
         console.log(`Found ${tableName} on re-fetch:`, reFetchedEntity);
         return {
           entity: reFetchedEntity,
-          error: null,
+          error: "Upsert failed because of cnflict with this entity",
           created: false,
-          status: 200, // Successfully fetched, though not created by this call.
+          status: 400,
         };
       }
       return {
         entity: null,
         error: `Unique constraint violation on ${tableName} insert, and re-fetch failed to find the entity.`,
-        details: insertError.message, // Original insert error
+        details: insertError.message,
         created: false,
         status: 409, // Conflict, and couldn't resolve by re-fetching
       };
     }
-
-    // Handle foreign key constraint violations (PostgreSQL error code '23503')
     if (insertError.code === "23503") {
+      // Handle foreign key constraint violations (PostgreSQL error code '23503')
+      const fkey_data = foreign_key_re.exec(insertError.hint);
+      const constraint_data = foreign_constraint_re.exec(insertError.message);
+      console.warn(
+        `Foreign violation on ${tableName}, constraint ${constraint_data ? [2]}, keys ${fkey_data ? [1]}`,
+      );
       return {
         entity: null,
-        error: `Invalid reference: A foreign key constraint was violated while creating ${tableName}.`,
-        details: insertError.message, // Specific FK details are in the message
+        error:
+          (fkey_data === null)
+            ? ((constraint_data === null)
+              ? "Could not identify the missing foreign key"
+              : `Foreign key constraint ${constraint_data[2]} violated`)
+            : `Foreign key ${fkey_data[1]} is missing value ${fkey_data[2]}`,
+        details: insertError.message,
         created: false,
-        status: 400, // Usually due to bad input ID
+        status: 400,
       };
     }
 
     return {
       entity: null,
-      error: `Database error while inserting ${tableName}.`,
+      error: `Database error ${insertError.code} while upserting in ${tableName}.`,
       details: insertError.message,
       created: false,
       status: 500,
