@@ -26,7 +26,7 @@ const platformValidator: ItemValidator<PlatformDataInput> = (platform) => {
 };
 
 const getOrCreatePlatformFromURL = async (
-  supabase: ReturnType<typeof createClient>,
+  supabasePromise: ReturnType<typeof createClient>,
   platform: PlatformDataInput,
 ): Promise<GetOrCreateEntityResult<PlatformRecord>> => {
   const error = platformValidator(platform);
@@ -47,15 +47,13 @@ const getOrCreatePlatformFromURL = async (
     throw Error("No path should reach here.");
   }
 
-  const resolvedSupabaseClient = await supabase;
-  return getOrCreateEntity<"Platform">(
-    resolvedSupabaseClient,
-    "Platform",
-    "id, name, url",
-    platform,
-    platform,
-    "Platform",
-  );
+  const supabase = await supabasePromise;
+  return getOrCreateEntity<"Platform">({
+    supabase,
+    tableName: "Platform",
+    insertData: platform,
+    uniqueOn: ["url"],
+  });
 };
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {

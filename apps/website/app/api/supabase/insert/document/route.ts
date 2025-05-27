@@ -31,14 +31,12 @@ const createDocument = async (
 ): Promise<GetOrCreateEntityResult<DocumentRecord>> => {
   const supabase = await supabasePromise;
 
-  const result = await getOrCreateEntity<"Document">(
+  const result = await getOrCreateEntity<"Document">({
     supabase,
-    "Document",
-    "id, space_id, source_local_id, url, metadata, created, last_modified, author_id",
-    { id: -1 },
-    data,
-    "Document",
-  );
+    tableName: "Document",
+    insertData: data,
+    uniqueOn: ["space_id", "source_local_id"],
+  });
 
   if (
     result.error &&

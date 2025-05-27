@@ -145,9 +145,9 @@ const processAndCreateEmbedding = async (
     };
   }
   const supabase = await supabasePromise;
-  const table_data = known_embedding_tables[processedItem.model];
+  const tableData = known_embedding_tables[processedItem.model];
 
-  if (!table_data) {
+  if (!tableData) {
     return {
       entity: null,
       error: "unknown model",
@@ -156,17 +156,16 @@ const processAndCreateEmbedding = async (
     };
   }
 
-  const { table_name } = table_data;
+  const { table_name } = tableData;
   // Using getOrCreateEntity, forcing create path by providing non-matching criteria
   // This standardizes return type and error handling (e.g., FK violations from dbUtils)
   const result =
     await getOrCreateEntity<"ContentEmbedding_openai_text_embedding_3_small_1536">(
-      supabase,
-      table_name,
-      "*",
-      { id: -1 },
-      processedItem,
-      "ContentEmbedding",
+      {
+        supabase,
+        tableName: table_name,
+        insertData: processedItem,
+      },
     );
 
   // getOrCreateEntity handles general foreign key constraints, but we can make the message more specific if needed

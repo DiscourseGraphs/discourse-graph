@@ -34,29 +34,24 @@ const getOrCreatePersonInternal = async (
   orcid: string | null | undefined,
 ): Promise<GetOrCreateEntityResult<PersonRecord>> => {
   const supabase = await supabasePromise;
-  const agent_response = await getOrCreateEntity<"Agent">(
+  const agent_response = await getOrCreateEntity<"Agent">({
     supabase,
-    "Agent",
-    "id, type",
-    { type: "Person" },
-    { type: "Person" },
-    "Agent",
-  );
+    tableName: "Agent",
+    insertData: { type: "Person" },
+  });
   if (agent_response.error || agent_response.entity === null)
     return agent_response as any as GetOrCreateEntityResult<PersonRecord>;
-  return getOrCreateEntity<"Person">(
+  return getOrCreateEntity<"Person">({
     supabase,
-    "Person",
-    "id, name, email, orcid, type",
-    { email: email.trim() },
-    {
+    tableName: "Person",
+    insertData: {
       id: agent_response.entity.id,
       email: email.trim(),
       name: name.trim(),
       orcid: orcid || null,
     },
-    "Person",
-  );
+    uniqueOn: ["email"],
+  });
 };
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {

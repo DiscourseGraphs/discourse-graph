@@ -35,110 +35,101 @@ export type GetOrCreateEntityResult<T> = {
  */
 export const getOrCreateEntity = async <
   TableName extends keyof Database["public"]["Tables"],
->(
-  supabase: SupabaseClient<Database, "public", Database["public"]>,
-  tableName: keyof Database["public"]["Tables"],
-  selectQuery: string,
-  matchCriteria: Record<string, any>,
-  insertData: TablesInsert<TableName>,
-  entityName: string = tableName,
-): Promise<GetOrCreateEntityResult<Tables<TableName>>> => {
-  // 1. Try to fetch existing entity
-  let queryBuilder = supabase.from(tableName).select(selectQuery);
-  for (const key in matchCriteria) {
-    queryBuilder = queryBuilder.eq(key, matchCriteria[key]);
-  }
-  const { data: existingEntity, error: fetchError } =
-    await queryBuilder.maybeSingle<Tables<TableName>>();
-
-  if (fetchError) {
-    console.error(`Error fetching ${entityName} by`, matchCriteria, fetchError);
-    return {
-      entity: null,
-      error: `Database error while fetching ${entityName}.`,
-      details: fetchError.message,
-      created: false,
-      status: 500,
-    };
-  }
-
-  if (existingEntity) {
-    console.log(`Found existing ${entityName}:`, existingEntity);
-    return {
-      entity: existingEntity,
-      error: null,
-      created: false,
-      status: 200,
-    };
-  }
-
-  // 2. Create new entity if not found
-  console.log(
-    `${entityName} not found with criteria`,
-    matchCriteria,
-    `creating new one...`,
-  );
-  const { data: newEntity, error: insertError } = await supabase
+>({
+  supabase,
+  tableName,
+  insertData,
+  uniqueOn = undefined,
+}: {
+  supabase: SupabaseClient<Database, "public", Database["public"]>;
+  tableName: keyof Database["public"]["Tables"];
+  insertData: TablesInsert<TableName>;
+  uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
+}): Promise<GetOrCreateEntityResult<Tables<TableName>>> => {
+  const {
+    data: newEntity,
+    error: insertError,
+    status: status,
+  } = await supabase
     .from(tableName)
-    .insert(insertData)
-    .select(selectQuery)
-    .single<Tables<TableName>>();
+    .upsert(insertData, {
+      onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
+      ignoreDuplicates: false,
+      count: "estimated",
+    })
+    .select();
 
   if (insertError) {
-    console.error(
-      `Error inserting new ${entityName}:`,
-      insertData,
-      insertError,
-    );
+    console.error(`Error inserting new ${tableName}:`, insertData, insertError);
     // Handle race condition: unique constraint violation (PostgreSQL error code '23505')
     if (insertError.code === "23505") {
+      // It could well be another unique constraint
+      // TODO: Can I identify the unique key constraint to do a fetch?
       console.warn(
-        `Unique constraint violation on ${entityName} insert for`,
-        matchCriteria,
-        `Attempting to re-fetch.`,
+        `Unique constraint violation on ${tableName} insert using ${uniqueOn}.\nError is ${insertError.message}.\n Attempting to re-fetch.`,
       );
-      let reFetchQueryBuilder = supabase.from(tableName).select(selectQuery);
-      for (const key in matchCriteria) {
-        reFetchQueryBuilder = reFetchQueryBuilder.eq(key, matchCriteria[key]);
+      let reFetchQueryBuilder = supabase.from(tableName).select();
+      if (uniqueOn !== undefined) {
+        for (let i = 0; i < uniqueOn.length; i++) {
+          const key: keyof TablesInsert<TableName> = uniqueOn[i]!;
+          reFetchQueryBuilder = reFetchQueryBuilder.eq(
+            key as string,
+            insertData[key] as any, // TS gets confused here?
+          );
+        }
+      } else if (false) {
+        // TODO: Another case is when we were given the primary key.
+        // But we have to compute the primary key for that. Punting.
+      } else {
+        // Likely another unique constraint
+        // TODO: have to decode from insertError message
+        return {
+          entity: null,
+          error: "Could not decide what to refetch on",
+          details: insertError.message,
+          created: false,
+          status: 400,
+        };
       }
       const { data: reFetchedEntity, error: reFetchError } =
         await reFetchQueryBuilder.maybeSingle<Tables<TableName>>();
 
       if (reFetchError) {
         console.error(
-          `Error re-fetching ${entityName} after unique constraint violation:`,
+          `Error re-fetching ${tableName} after unique constraint violation:`,
           reFetchError,
         );
         return {
           entity: null,
-          error: `Database error after unique constraint violation for ${entityName}.`,
+          error: `Database error after unique constraint violation for ${tableName}.`,
           details: reFetchError.message,
           created: false,
           status: 500,
         };
       }
       if (reFetchedEntity) {
-        console.log(`Found ${entityName} on re-fetch:`, reFetchedEntity);
+        console.log(`Found ${tableName} on re-fetch:`, reFetchedEntity);
         return {
           entity: reFetchedEntity,
           error: null,
           created: false,
-          status: 200, // Successfully fetched, though not created by this call
+          status: 200, // Successfully fetched, though not created by this call.
         };
       }
       return {
         entity: null,
-        error: `Unique constraint violation on ${entityName} insert, and re-fetch failed to find the entity.`,
+        error: `Unique constraint violation on ${tableName} insert, and re-fetch failed to find the entity.`,
         details: insertError.message, // Original insert error
         created: false,
         status: 409, // Conflict, and couldn't resolve by re-fetching
       };
     }
+
     // Handle foreign key constraint violations (PostgreSQL error code '23503')
     if (insertError.code === "23503") {
       return {
         entity: null,
-        error: `Invalid reference: A foreign key constraint was violated while creating ${entityName}.`,
+        error: `Invalid reference: A foreign key constraint was violated while creating ${tableName}.`,
         details: insertError.message, // Specific FK details are in the message
         created: false,
         status: 400, // Usually due to bad input ID
@@ -147,30 +138,46 @@ export const getOrCreateEntity = async <
 
     return {
       entity: null,
-      error: `Database error while inserting ${entityName}.`,
+      error: `Database error while inserting ${tableName}.`,
       details: insertError.message,
       created: false,
       status: 500,
     };
-  }
-
-  if (!newEntity) {
-    // This case should ideally not be reached if insertError is null and .single() is used.
+  } else if (newEntity) {
+    const entityT = newEntity as Tables<TableName> | Tables<TableName>[] | null;
+    let entity: Tables<TableName> | null = null;
+    if (Array.isArray(entityT)) {
+      if (entityT.length > 0) entity = entityT[0]!;
+      else
+        return {
+          entity: null,
+          error: `Got an empty array from the upsert`,
+          created: false,
+          status: 500,
+        };
+    } else {
+      entity = entityT;
+    }
+    console.log(`Created new ${tableName}:`, entity);
+    return {
+      entity,
+      error: null,
+      created: status == 201,
+      status,
+    };
+  } else {
     console.error(
-      `New ${entityName} was not returned after insert, despite no reported Supabase error.`,
+      `New ${tableName} was not returned after insert, despite no reported Supabase error.`,
     );
     return {
       entity: null,
-      error: `Failed to retrieve new ${entityName} after insert operation.`,
+      error: `Failed to retrieve new ${tableName} after insert operation.`,
       details:
         "The insert operation might have appeared successful but returned no data.",
       created: false, // Unknown if created
       status: 500,
     };
   }
-
-  console.log(`Created new ${entityName}:`, newEntity);
-  return { entity: newEntity, error: null, created: true, status: 201 };
 };
 
 export type BatchItemValidator<TInput, TProcessed> = (

@@ -46,14 +46,18 @@ const getOrCreateAccount = async (
 
   const supabase = await supabasePromise;
 
-  const result = await getOrCreateEntity<"Account">(
+  const result = await getOrCreateEntity<"Account">({
     supabase,
-    "Account",
-    "id, agent_id, platform_id, active, write_permission",
-    { agent_id: agent_id, platform_id: platform_id },
-    { agent_id, platform_id, active, write_permission, account_local_id },
-    "Account",
-  );
+    tableName: "Account",
+    insertData: {
+      agent_id,
+      platform_id,
+      active,
+      write_permission,
+      account_local_id,
+    },
+    uniqueOn: ["agent_id", "platform_id"],
+  });
 
   if (
     result.error &&

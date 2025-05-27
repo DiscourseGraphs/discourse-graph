@@ -52,18 +52,16 @@ const processAndGetOrCreateSpace = async (
   const trimmedName = name.trim();
   const supabase = await supabasePromise;
 
-  const result = await getOrCreateEntity<"Space">(
+  const result = await getOrCreateEntity<"Space">({
     supabase,
-    "Space",
-    "id, name, url, platform_id",
-    { url: normalizedUrl, platform_id: platform_id },
-    {
+    tableName: "Space",
+    insertData: {
       name: trimmedName,
       url: normalizedUrl,
       platform_id: platform_id,
     },
-    "Space",
-  );
+    uniqueOn: ["url"],
+  });
 
   // Custom handling for specific foreign key error related to platform_id
   if (

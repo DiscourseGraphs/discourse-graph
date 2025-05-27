@@ -77,14 +77,12 @@ const processAndUpsertContentEntry = async (
   // If no solid matchCriteria for a "get", getOrCreateEntity will likely proceed to "create".
   // If there are unique constraints other than (space_id, source_local_id), it will handle race conditions.
 
-  const result = await getOrCreateEntity<"Content">(
+  const result = await getOrCreateEntity<"Content">({
     supabase,
-    "Content",
-    "*",
-    matchCriteria || { id: -1 },
-    data,
-    "Content",
-  );
+    tableName: "Content",
+    insertData: data,
+    uniqueOn: ["space_id", "source_local_id"],
+  });
 
   if (
     result.error &&
