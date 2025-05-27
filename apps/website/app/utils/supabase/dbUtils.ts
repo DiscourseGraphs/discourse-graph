@@ -13,29 +13,13 @@ export const known_embedding_tables: {
   },
 };
 
-const unique_key_re = /^Key \(([^\)]+)\)=\(([\^\)]+)\) already exists\.$/;
+const unique_key_re = /^Key \(([^)]+)\)=\(([\^)]+)\) already exists\.$/;
 const unique_index_re =
   /duplicate key value violates unique constraint "(\w+)"/;
 const foreign_key_re =
-  /Keys? \(([^\)]+)\)=\(([^\)]+)\) (is|are) not present in table ("?\w+"?)./;
+  /Keys? \(([^)]+)\)=\(([^)]+)\) (is|are) not present in table ("?\w+"?)./;
 const foreign_constraint_re =
   /insert or update on table ("?\w+"?) violates foreign key constraint ("?\w+"?)/;
-
-// const known_unique_keys: {
-//   [key in keyof Database["public"]["Tables"]]: string[][]; // It should be keyof Tables<key>[][]
-// } = {
-//   Agent: [["id"]],
-//   Account: [["platform_id", "account_local_id"], ["id"]],
-//   AutomatedAgent: [["name", "version"], ["id"]],
-//   Person: [["email"], ["orcid"], ["id"]],
-//   Concept: [["space_id", "name"], ["id"]],
-//   Document: [["space_id", "source_local_id"], ["url"], ["id"]],
-//   Content: [["space_id", "source_local_id"], ["id"]],
-//   Platform: [["url"], ["id"]],
-//   Space: [["url"], ["id"]],
-//   ContentEmbedding_openai_text_embedding_3_small_1536: [["target_id"]],
-//   concept_contributors: [[""]],
-// };
 
 export type BaseEntityResult = {
   error: string | null;
@@ -289,7 +273,7 @@ export const InsertValidatedBatch = async <
     return {
       data,
       error: `Batch insert of ${tableName} might have partially failed or returned unexpected data.`,
-      status: 500, // Or a more specific error
+      status: 500,
     };
   }
 

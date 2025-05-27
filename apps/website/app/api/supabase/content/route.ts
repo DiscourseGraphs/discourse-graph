@@ -3,7 +3,6 @@ import { createClient } from "~/utils/supabase/server";
 import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
-  ItemValidator,
 } from "~/utils/supabase/dbUtils";
 import {
   createApiResponse,

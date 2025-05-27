@@ -9,8 +9,6 @@ import {
   getOrCreateEntity,
   GetOrCreateEntityResult,
   known_embedding_tables,
-  ItemProcessor,
-  ItemValidator,
 } from "~/utils/supabase/dbUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 import {
