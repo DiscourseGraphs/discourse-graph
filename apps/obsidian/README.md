@@ -55,20 +55,19 @@ For more information about Discourse Graphs, check out our website at [https://d
      - Ensure you have the Templates plugin enabled and configured with a template folder
      - The dropdown will show all available template files from your configured template folder
 
-  ![add node types with template](/apps/obsidian/docs/media/choose-template.png)
-    - Click "Save Changes"
+      ![add node types with template](/apps/obsidian/docs/media/choose-template.png)
+     - Click "Save Changes"
 
     
-    - To create a new template:
+- To create a new template:
+  + Create new folder to store templates
+  ![new folder](/apps/obsidian/docs/media/new-folder.png)
 
-Create new folder to store templates
+  + Specify template folder location in plugin settings menu
+  ![template](/apps/obsidian/docs/media/template.png)
 
-![new folder](/apps/obsidian/docs/media/new-folder.png)
-
-Specify template folder location in plugin settings menu
-![template](/apps/obsidian/docs/media/template.png)
-Create new file in template folder (A) and add text to file (B)
-![create template file](/apps/obsidian/docs/media/create-template-file.png)
+  + Create new file in template folder (A) and add text to file (B)
+  ![create template file](/apps/obsidian/docs/media/create-template-file.png)
 
 #### Edit Relation Types
    - Under "Relation Types," click "Add Relationship Type"
