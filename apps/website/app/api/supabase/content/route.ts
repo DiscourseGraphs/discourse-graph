@@ -10,55 +10,17 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
+import { contentInputValidation } from "~/utils/supabase/validators";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-export type ContentDataInput = TablesInsert<"Content">;
-export type ContentRecord = Tables<"Content">;
-
-export const inputValidation: ItemValidator<ContentDataInput> = (
-  data: ContentDataInput,
-) => {
-  if (!data || typeof data !== "object")
-    return "Invalid request body: expected a JSON object.";
-  const { author_id, created, last_modified, scale, space_id, text } = data;
-
-  if (!text || typeof text !== "string") return "Invalid or missing text.";
-  if (!scale || typeof scale !== "string") return "Invalid or missing scale.";
-  if (
-    space_id === undefined ||
-    space_id === null ||
-    typeof space_id !== "number"
-  )
-    return "Invalid or missing space_id.";
-  if (
-    author_id === undefined ||
-    author_id === null ||
-    typeof author_id !== "number"
-  )
-    return "Invalid or missing author_id.";
-  if (created)
-    try {
-      new Date(created);
-    } catch (e) {
-      return "Invalid date format for created.";
-    }
-  if (last_modified)
-    try {
-      new Date(last_modified);
-    } catch (e) {
-      return "Invalid date format for last_modified.";
-    }
-  return null;
-};
+type ContentDataInput = TablesInsert<"Content">;
+type ContentRecord = Tables<"Content">;
 
 const processAndUpsertContentEntry = async (
   supabasePromise: ReturnType<typeof createClient>,
   data: ContentDataInput,
 ): Promise<GetOrCreateEntityResult<ContentRecord>> => {
-  const { space_id, author_id, source_local_id, document_id, part_of_id } =
-    data;
-
-  const error = inputValidation(data);
+  const error = contentInputValidation(data);
   if (error !== null) {
     return {
       entity: null,
@@ -70,10 +32,6 @@ const processAndUpsertContentEntry = async (
 
   const supabase = await supabasePromise;
 
-  let matchCriteria: Record<string, any> | null = null;
-  if (source_local_id && space_id !== undefined && space_id !== null) {
-    matchCriteria = { space_id: space_id, source_local_id: source_local_id };
-  }
   // If no solid matchCriteria for a "get", getOrCreateEntity will likely proceed to "create".
   // If there are unique constraints other than (space_id, source_local_id), it will handle race conditions.
 

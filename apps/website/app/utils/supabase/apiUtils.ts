@@ -1,5 +1,4 @@
 import { NextResponse, NextRequest } from "next/server";
-import { useRouter } from "next/router";
 import { createClient } from "~/utils/supabase/server";
 import cors from "~/utils/llm/cors";
 
@@ -88,30 +87,33 @@ export const defaultOptionsHandler = async (
   return cors(request, response) as NextResponse;
 };
 
+type ApiParams = Promise<{ id: string }>;
+export type SegmentDataType = { params: ApiParams };
+
 /**
  * Default GET handler for CORS preflight requests.
  */
 export const defaultGetHandler = async (
   request: NextRequest,
+  segmentData: SegmentDataType,
   pk: string = "id",
 ): Promise<NextResponse> => {
-  const supabase = await createClient();
-  const router = useRouter();
-  const idS = router.query[pk];
-  let id: number;
+  const { id } = await segmentData.params;
+  let idN: number;
   try {
-    id = Number.parseInt((Array.isArray(idS) ? idS[0] : idS) || "error");
+    idN = Number.parseInt((Array.isArray(id) ? id[0] : id) || "error");
   } catch (error) {
     return createApiResponse(request, {
       error: `${pk} is not a number`,
       status: 400,
     });
   }
+  const supabase = await createClient();
 
   const { data, error, status } = await supabase
     .from("Person")
     .select()
-    .eq(pk, id)
+    .eq(pk, idN)
     .maybeSingle();
   if (error) {
     return createApiResponse(request, {
@@ -137,22 +139,22 @@ export const defaultGetHandler = async (
  */
 export const defaultDeleteHandler = async (
   request: NextRequest,
+  segmentData: SegmentDataType,
   pk: string = "id",
 ): Promise<NextResponse> => {
-  const supabase = await createClient();
-  const router = useRouter();
-  const idS = router.query[pk];
-  let id: number;
+  const { id } = await segmentData.params;
+  let idN: number;
   try {
-    id = Number.parseInt((Array.isArray(idS) ? idS[0] : idS) || "error");
+    idN = Number.parseInt((Array.isArray(id) ? id[0] : id) || "error");
   } catch (error) {
     return createApiResponse(request, {
       error: `${pk} is not a number`,
       status: 400,
     });
   }
+  const supabase = await createClient();
 
-  const { error, status } = await supabase.from("Person").delete().eq(pk, id);
+  const { error, status } = await supabase.from("Person").delete().eq(pk, idN);
   if (error) {
     return createApiResponse(request, {
       error: error.message,

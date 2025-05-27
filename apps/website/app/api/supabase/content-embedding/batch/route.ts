@@ -10,13 +10,12 @@ import {
   BatchProcessResult,
   known_embedding_tables,
 } from "~/utils/supabase/dbUtils";
-
 import {
-  inputProcessing,
-  outputProcessing,
-  type ApiInputEmbeddingItem,
-  type ApiOutputEmbeddingRecord,
-} from "~/api/supabase/content-embedding/route";
+  ApiInputEmbeddingItem,
+  ApiOutputEmbeddingRecord,
+  embeddingInputProcessing,
+  embeddingOutputProcessing,
+} from "~/utils/supabase/validators";
 
 const batchInsertEmbeddingsProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -63,8 +62,8 @@ const batchInsertEmbeddingsProcess = async (
       supabase,
       items: embeddingItemsSet!,
       tableName: table_data.table_name,
-      inputProcessor: inputProcessing,
-      outputProcessor: outputProcessing,
+      inputProcessor: embeddingInputProcessing,
+      outputProcessor: embeddingOutputProcessing,
     });
     if (results.error || results.data === undefined)
       return { ...results, data: undefined };

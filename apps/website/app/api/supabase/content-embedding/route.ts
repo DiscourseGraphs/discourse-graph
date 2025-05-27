@@ -13,6 +13,12 @@ import {
   ItemValidator,
 } from "~/utils/supabase/dbUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import {
+  ApiInputEmbeddingItem,
+  ApiOutputEmbeddingRecord,
+  embeddingInputProcessing,
+  embeddingOutputProcessing,
+} from "~/utils/supabase/validators";
 
 // Use the first known ContentEmbedding table for type checking, as they have the same structure
 export type ContentEmbeddingDataInput =
@@ -20,118 +26,11 @@ export type ContentEmbeddingDataInput =
 export type ContentEmbeddingRecord =
   Tables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
 
-export type ApiInputEmbeddingItem = Omit<
-  ContentEmbeddingDataInput,
-  "vector"
-> & {
-  vector: number[];
-};
-
-export type ApiOutputEmbeddingRecord = Omit<
-  ContentEmbeddingRecord,
-  "vector"
-> & {
-  vector: number[];
-};
-
-export const inputValidation: ItemValidator<ApiInputEmbeddingItem> = (data) => {
-  if (!data || typeof data !== "object")
-    return "Invalid request body: expected a JSON object.";
-  const { target_id, model, vector } = data;
-
-  if (
-    target_id === undefined ||
-    target_id === null ||
-    typeof target_id !== "number"
-  ) {
-    return "Missing or invalid target_id.";
-  }
-  if (
-    !model ||
-    typeof model !== "string" ||
-    known_embedding_tables[model] == undefined
-  ) {
-    return "Missing or invalid model name.";
-  }
-  const { table_size } = known_embedding_tables[model];
-
-  if (
-    !vector ||
-    !Array.isArray(vector) ||
-    !vector.every((v) => typeof v === "number")
-  ) {
-    return "Missing or invalid vector. Must be an array of numbers.";
-  }
-  if (vector.length != table_size) {
-    return `Invalid vector length. Expected ${table_size}, got ${vector.length}.`;
-  }
-  if (data.obsolete !== undefined && typeof data.obsolete !== "boolean") {
-    return "Invalid type for obsolete. Must be a boolean.";
-  }
-  return null;
-};
-
-export const inputProcessing: ItemProcessor<
-  ApiInputEmbeddingItem,
-  ContentEmbeddingDataInput
-> = (data) => {
-  const error = inputValidation(data);
-  if (error) {
-    return { valid: false, error };
-  }
-  return {
-    valid: true,
-    data: { ...data, vector: JSON.stringify(data.vector) },
-  };
-};
-
-export const outputValidation: ItemValidator<ApiOutputEmbeddingRecord> = (
-  data,
-) => {
-  const { model, vector } = data;
-  if (
-    !model ||
-    typeof model !== "string" ||
-    known_embedding_tables[model] == undefined
-  ) {
-    return "Missing or invalid model name.";
-  }
-
-  const { table_size } = known_embedding_tables[model];
-
-  if (vector.length != table_size) {
-    return `Invalid vector length. Expected ${table_size}, got ${vector.length}.`;
-  }
-  return null;
-};
-
-export const outputProcessing: ItemProcessor<
-  ContentEmbeddingRecord,
-  ApiOutputEmbeddingRecord
-> = (data) => {
-  try {
-    const processedData = { ...data, vector: JSON.parse(data.vector) };
-    const error = outputValidation(processedData);
-    if (error) {
-      return { valid: false, error };
-    }
-    return {
-      valid: true,
-      data: processedData,
-    };
-  } catch (error) {
-    if (error instanceof SyntaxError) {
-      return { valid: false, error: error.message };
-    }
-    throw error;
-  }
-};
-
 const processAndCreateEmbedding = async (
   supabasePromise: ReturnType<typeof createClient>,
   data: ApiInputEmbeddingItem,
 ): Promise<GetOrCreateEntityResult<ApiOutputEmbeddingRecord>> => {
-  const { valid, error, processedItem } = inputProcessing(data);
+  const { valid, error, processedItem } = embeddingInputProcessing(data);
   if (
     !valid ||
     processedItem === undefined ||
@@ -175,7 +74,7 @@ const processAndCreateEmbedding = async (
     };
   }
 
-  const processedResult = outputProcessing(result.entity);
+  const processedResult = embeddingOutputProcessing(result.entity);
   if (!processedResult.valid || !processedResult.processedItem)
     return {
       ...result,

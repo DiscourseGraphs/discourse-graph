@@ -10,10 +10,10 @@ import {
   BatchProcessResult,
 } from "~/utils/supabase/dbUtils";
 import {
-  inputValidation,
+  contentInputValidation,
   type ContentDataInput,
   type ContentRecord,
-} from "~/api/supabase/content/route";
+} from "~/utils/supabase/validators";
 
 const batchInsertContentProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -24,7 +24,7 @@ const batchInsertContentProcess = async (
     tableName: "Content",
     items: contentItems,
     uniqueOn: ["space_id", "source_local_id"],
-    inputValidator: inputValidation,
+    inputValidator: contentInputValidation,
   });
 };
 
