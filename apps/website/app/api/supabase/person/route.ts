@@ -90,7 +90,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       status: overallStatus,
     });
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/supabase/insert/person");
+    return handleRouteError(request, e, "/api/supabase/person");
   }
 };
 

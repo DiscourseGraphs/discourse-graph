@@ -82,7 +82,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       created: result.created,
     });
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/supabase/insert/space");
+    return handleRouteError(request, e, "/api/supabase/space");
   }
 };
 

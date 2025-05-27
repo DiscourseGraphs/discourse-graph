@@ -204,11 +204,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       created: result.created,
     });
   } catch (e: unknown) {
-    return handleRouteError(
-      request,
-      e,
-      `/api/supabase/insert/content-embedding`,
-    );
+    return handleRouteError(request, e, `/api/supabase/content-embedding`);
   }
 };
 

@@ -80,7 +80,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       created: result.created,
     });
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/supabase/insert/platform");
+    return handleRouteError(request, e, "/api/supabase/platform");
   }
 };
 

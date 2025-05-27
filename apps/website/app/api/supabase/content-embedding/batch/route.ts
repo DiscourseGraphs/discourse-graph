@@ -16,7 +16,7 @@ import {
   outputProcessing,
   type ApiInputEmbeddingItem,
   type ApiOutputEmbeddingRecord,
-} from "~/api/supabase/insert/content-embedding/route";
+} from "~/api/supabase/content-embedding/route";
 
 const batchInsertEmbeddingsProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -109,7 +109,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     return handleRouteError(
       request,
       e,
-      `/api/supabase/insert/content-embedding/batch`,
+      `/api/supabase/content-embedding/batch`,
     );
   }
 };

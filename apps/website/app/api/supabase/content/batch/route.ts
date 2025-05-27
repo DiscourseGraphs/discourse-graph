@@ -13,7 +13,7 @@ import {
   inputValidation,
   type ContentDataInput,
   type ContentRecord,
-} from "~/api/supabase/insert/content/route";
+} from "~/api/supabase/content/route";
 
 const batchInsertContentProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -53,7 +53,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       created: result.status === 201,
     });
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/supabase/insert/content/batch");
+    return handleRouteError(request, e, "/api/supabase/content/batch");
   }
 };
 
