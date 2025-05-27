@@ -63,24 +63,6 @@ const processAndGetOrCreateSpace = async (
     uniqueOn: ["url"],
   });
 
-  // Custom handling for specific foreign key error related to platform_id
-  if (
-    result.error &&
-    result.details &&
-    result.status === 400 &&
-    result.details.includes("violates foreign key constraint")
-  ) {
-    if (
-      result.details.toLowerCase().includes("platform_id_fkey") ||
-      result.details.toLowerCase().includes("platform_id")
-    ) {
-      return {
-        ...result,
-        error: `Invalid platform_id: No Space record found for ID ${platform_id}.`,
-      };
-    }
-  }
-
   return result;
 };
 

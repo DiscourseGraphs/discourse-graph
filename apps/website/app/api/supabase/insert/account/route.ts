@@ -58,25 +58,6 @@ const getOrCreateAccount = async (
     },
     uniqueOn: ["agent_id", "platform_id"],
   });
-
-  if (
-    result.error &&
-    result.details &&
-    result.status === 400 &&
-    result.details.includes("violates foreign key constraint")
-  ) {
-    if (result.details.includes("agent_id_fkey")) {
-      return {
-        ...result,
-        error: `Invalid agent_id: No Person record found for ID ${agent_id}.`,
-      };
-    } else if (result.details.includes("Account_platform_id_fkey")) {
-      return {
-        ...result,
-        error: `Invalid platform_id: No Platform record found for ID ${platform_id}.`,
-      };
-    }
-  }
   return result;
 };
 

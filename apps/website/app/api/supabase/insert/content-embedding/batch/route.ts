@@ -49,7 +49,7 @@ const batchInsertEmbeddingsProcess = async (
 
   const globalResults: ApiOutputEmbeddingRecord[] = [];
   const partial_errors = [];
-  let created = true; // TODO: Maybe transmit from below
+  let created = false;
   for (const model_name of Object.keys(by_model)) {
     const embeddingItemsSet = by_model[model_name];
     const table_data = known_embedding_tables[model_name];
@@ -59,23 +59,23 @@ const batchInsertEmbeddingsProcess = async (
       "ContentEmbedding_openai_text_embedding_3_small_1536",
       ApiInputEmbeddingItem,
       ApiOutputEmbeddingRecord
-    >(
+    >({
       supabase,
-      embeddingItemsSet!,
-      table_data.table_name,
-      "*",
-      "ContentEmbedding",
-      inputProcessing,
-      outputProcessing,
-    );
+      items: embeddingItemsSet!,
+      tableName: table_data.table_name,
+      inputProcessor: inputProcessing,
+      outputProcessor: outputProcessing,
+    });
     if (results.error || results.data === undefined)
       return { ...results, data: undefined };
     globalResults.push(...results.data);
     if (results.partial_errors !== undefined)
       partial_errors.push(...results.partial_errors);
+    created = created || results.status === 201;
   }
   return {
     data: globalResults,
+    error: null,
     partial_errors,
     status: created ? 201 : 200,
   };

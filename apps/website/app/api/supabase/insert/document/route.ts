@@ -38,26 +38,6 @@ const createDocument = async (
     uniqueOn: ["space_id", "source_local_id"],
   });
 
-  if (
-    result.error &&
-    result.details &&
-    result.status === 400 &&
-    result.details.includes("violates foreign key constraint")
-  ) {
-    if (result.details.includes("space_id_fkey")) {
-      return {
-        ...result,
-        error: `Invalid space_id: No Space record found for ID ${data.space_id}.`,
-      };
-    }
-    if (result.details.includes("author_id_fkey")) {
-      return {
-        ...result,
-        error: `Invalid author_id: No Account record found for ID ${data.author_id}.`,
-      };
-    }
-  }
-
   return result;
 };
 

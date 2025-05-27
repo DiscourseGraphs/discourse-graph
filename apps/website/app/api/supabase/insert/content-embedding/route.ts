@@ -168,27 +168,6 @@ const processAndCreateEmbedding = async (
       },
     );
 
-  // getOrCreateEntity handles general foreign key constraints, but we can make the message more specific if needed
-  if (
-    result.error &&
-    result.details &&
-    result.status === 400 &&
-    result.details.includes("violates foreign key constraint")
-  ) {
-    if (
-      result.details
-        .toLowerCase()
-        .includes(`${table_name.toLowerCase()}_target_id_fkey`) ||
-      result.details.toLowerCase().includes("target_id")
-    ) {
-      return {
-        ...result,
-        entity: null,
-        error: `Invalid target_id: No Content record found for ID ${processedItem.target_id}.`,
-      };
-    }
-  }
-
   if (result.error || !result.entity) {
     return {
       ...result,

@@ -19,15 +19,13 @@ const batchInsertContentProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
   contentItems: ContentDataInput[],
 ): Promise<BatchProcessResult<ContentRecord>> => {
-  return validateAndInsertBatch<"Content">(
+  return validateAndInsertBatch<"Content">({
     supabase,
-    contentItems,
-    "Content",
-    "*",
-    "Content",
-    inputValidation,
-    null,
-  );
+    tableName: "Content",
+    items: contentItems,
+    uniqueOn: ["space_id", "source_local_id"],
+    inputValidator: inputValidation,
+  });
 };
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {

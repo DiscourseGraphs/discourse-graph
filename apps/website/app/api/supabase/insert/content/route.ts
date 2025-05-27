@@ -84,53 +84,6 @@ const processAndUpsertContentEntry = async (
     uniqueOn: ["space_id", "source_local_id"],
   });
 
-  if (
-    result.error &&
-    result.details &&
-    result.status === 400 &&
-    result.details.includes("violates foreign key constraint")
-  ) {
-    const details = result.details.toLowerCase();
-    if (
-      details.includes("content_space_id_fkey") ||
-      details.includes("space_id")
-    ) {
-      // Be more general with FK name if it changes
-      return {
-        ...result,
-        error: `Invalid space_id: No Space record found for ID ${space_id}.`,
-      };
-    }
-    if (
-      details.includes("content_author_id_fkey") ||
-      details.includes("author_id")
-    ) {
-      return {
-        ...result,
-        error: `Invalid author_id: No Account record found for ID ${author_id}.`,
-      };
-    }
-    if (
-      document_id &&
-      (details.includes("content_document_id_fkey") ||
-        details.includes("document_id"))
-    ) {
-      return {
-        ...result,
-        error: `Invalid document_id: No Document record found for ID ${document_id}.`,
-      };
-    }
-    if (
-      part_of_id &&
-      (details.includes("content_part_of_id_fkey") ||
-        details.includes("part_of_id"))
-    ) {
-      return {
-        ...result,
-        error: `Invalid part_of_id: No Content record found for ID ${part_of_id}.`,
-      };
-    }
-  }
   return result;
 };
 
