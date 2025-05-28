@@ -29,8 +29,6 @@ You need a GitHub token with appropriate permissions to push to the target repos
 Set the token as an environment variable:
 
 ```bash
-export GITHUB_TOKEN="your_token_here"
-# or
 export OBSIDIAN_PLUGIN_REPO_TOKEN="your_token_here"
 ```
 
@@ -51,24 +49,20 @@ tsx scripts/publish-obsidian.ts --version <version> [options]
 #### Options
 
 - `--create-release, -r` - Create a GitHub release
-- `--target-repo <repo>` - Target repository (overrides environment variable)
-- `--stable` - Mark as stable release (not pre-release)
+- `--stable` - Mark as stable release (defaults to pre-release if not specified)
 - `--help, -h` - Show help message
 
 ### Examples
 
 ```bash
-# Basic publish without release
+# Basic publish without release (pre-release)
 tsx scripts/publish-obsidian.ts --version 0.1.0-beta.1
 
-# Publish with GitHub release
+# Publish with GitHub release (pre-release)
 tsx scripts/publish-obsidian.ts --version 0.1.0-beta.1 --create-release
 
 # Publish stable release
 tsx scripts/publish-obsidian.ts --version 1.0.0 --create-release --stable
-
-# Custom target repository
-tsx scripts/publish-obsidian.ts --version 0.2.0 --target-repo "YourOrg/your-plugin"
 
 # Using npm script from obsidian directory
 cd apps/obsidian
@@ -77,22 +71,18 @@ npm run publish -- --version 0.1.0-beta.1 --create-release
 
 ### Environment Variables
 
-The script uses environment variables for configuration:
+The script uses the following environment variable:
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
-| `GITHUB_TOKEN` or `OBSIDIAN_PLUGIN_REPO_TOKEN` | **required** | GitHub token for authentication |
-| `OBSIDIAN_TARGET_REPO` | `DiscourseGraphs/discourse-graph-obsidian` | Default target repository |
-| `OBSIDIAN_IS_PRERELEASE` | `true` | Default pre-release setting |
+| `OBSIDIAN_PLUGIN_REPO_TOKEN` | **required** | GitHub token for authentication |
 
 ### Using .env file
 
 Create a `.env` file in the root directory:
 
 ```env
-GITHUB_TOKEN=your_token_here
-OBSIDIAN_TARGET_REPO=DiscourseGraphs/discourse-graph-obsidian
-OBSIDIAN_IS_PRERELEASE=true
+OBSIDIAN_PLUGIN_REPO_TOKEN=your_token_here
 ```
 
 ## What the Script Does
@@ -109,8 +99,8 @@ OBSIDIAN_IS_PRERELEASE=true
    - Other gitignored files
 4. **Copies build artifacts** - Overwrites with built files:
    - `main.js` (required)
-   - `manifest.json` (required, with updated version)
-   - `styles.css` (optional)
+   - `manifest.json` (required)
+   - `styles.css` (required)
 5. **Updates manifest** - Sets the version and ensures compatible plugin ID
 6. **Pushes to repository** - Force pushes to the target repository's main branch
 7. **Creates release** (if `--create-release` flag is used) - Creates a GitHub release with:
@@ -119,16 +109,16 @@ OBSIDIAN_IS_PRERELEASE=true
 
 ## Target Repository Structure
 
-The script publishes to a separate repository that contains only the plugin files needed for Obsidian. This repository should be structured as:
+The script publishes to `DiscourseGraphs/discourse-graph-obsidian` repository that contains only the plugin files needed for Obsidian. This repository should be structured as:
 
 ```
 discourse-graph-obsidian/
 ├── main.js              # Built plugin code
 ├── manifest.json        # Plugin manifest with updated version
-├── styles.css           # Plugin styles (if any)
-├── README.md            # Plugin documentation
-├── docs/                # Documentation files
-└── ...                  # Other source files (excluding build artifacts)
+├── styles.css          # Plugin styles
+├── README.md           # Plugin documentation
+├── docs/               # Documentation files
+└── ...                 # Other source files (excluding build artifacts)
 ```
 
 ## Troubleshooting
@@ -151,15 +141,12 @@ discourse-graph-obsidian/
 4. **"Authentication failed"**
    - Verify your GitHub token has the correct permissions
    - Check that the token is properly set in environment variables
-   - Ensure the target repository exists and you have write access
+   - Ensure you have write access to the repository
 
 5. **"Release creation failed"**
-   - Verify the repository exists and you have release permissions
+   - Verify you have release permissions
    - Check that your GitHub token has the necessary permissions
    - Make sure you used the `--create-release` flag
-
-6. **"apps/obsidian directory not found"**
-   - Make sure you're running the script from the root of the discourse-graph repository
 
 ### Debug Mode
 
@@ -179,18 +166,15 @@ The main logic is in `publish-obsidian.ts`. Key areas:
 - **Argument parsing**: Modify `parseArgs()` function
 - **File exclusion**: Modify `EXCLUDE_PATTERNS` array
 - **Build process**: Update `buildPlugin()` function
-- **Repository operations**: Modify `pushToRepository()` function
-- **Release creation**: Update `createRelease()` function
+- **Repository operations**: Modify `pushToRepo()` function
+- **Release creation**: Update `createGithubRelease()` function
 
 ### Testing
 
-Before publishing to the main repository, you can test the script with a different target repository:
+Before making changes, you can test the script with a test version:
 
 ```bash
-tsx scripts/publish-obsidian.ts \
-  --version 0.0.1-test \
-  --target-repo "YourUsername/test-repo" \
-  --create-release
+tsx scripts/publish-obsidian.ts --version 0.0.1-test --create-release
 ```
 
 ## Security Notes
@@ -198,13 +182,4 @@ tsx scripts/publish-obsidian.ts \
 - Never commit GitHub tokens to the repository
 - Use environment variables or `.env` files (which should be gitignored)
 - The script force-pushes to the target repository, which overwrites history
-- Ensure you have backups of important data in the target repository
-
-## Comparison with GitHub Workflow
-
-This script replaces the GitHub workflow approach with a local script that:
-- Can be run from any environment with Node.js
-- Requires explicit version input for safety
-- Uses command line flags for key options
-- Provides immediate feedback and debugging
-- Follows a similar pattern to other publishing tools 
+- Ensure you have backups of important data in the target repository 
