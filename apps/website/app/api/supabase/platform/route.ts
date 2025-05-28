@@ -29,7 +29,7 @@ const getOrCreatePlatformFromURL = async (
   platform: PlatformDataInput,
 ): Promise<PostgrestSingleResponse<PlatformRecord>> => {
   const error = platformValidator(platform);
-  if (error != null) return asPostgrestFailure(error, "invalid");
+  if (error !== null) return asPostgrestFailure(error, "invalid");
   const lowerCaseURL = platform.url.toLowerCase();
 
   if (lowerCaseURL.includes("roamresearch.com")) {

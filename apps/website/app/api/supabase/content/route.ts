@@ -20,7 +20,7 @@ const processAndUpsertContentEntry = async (
   data: ContentDataInput,
 ): Promise<PostgrestSingleResponse<ContentRecord>> => {
   const error = contentInputValidation(data);
-  if (error != null) return asPostgrestFailure(error, "invalid");
+  if (error !== null) return asPostgrestFailure(error, "invalid");
 
   const supabase = await supabasePromise;
 

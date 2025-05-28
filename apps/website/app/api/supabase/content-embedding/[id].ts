@@ -1,9 +1,7 @@
-import { NextRequest } from "next/server";
 import {
   defaultOptionsHandler,
   makeDefaultGetHandler,
   makeDefaultDeleteHandler,
-  type SegmentDataType,
 } from "~/utils/supabase/apiUtils";
 
 // TODO: Make model agnostic

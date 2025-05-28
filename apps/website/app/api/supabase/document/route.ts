@@ -49,7 +49,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   try {
     const body: DocumentDataInput = await request.json();
     const error = validateDocument(body);
-    if (error != null)
+    if (error !== null)
       return createApiResponse(request, asPostgrestFailure(error, "invalid"));
 
     const result = await createDocument(supabasePromise, body);

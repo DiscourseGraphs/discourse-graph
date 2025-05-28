@@ -5,24 +5,24 @@ import type {
 } from "@supabase/supabase-js";
 import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
-export const known_embedding_tables: {
+export const KNOWN_EMBEDDING_TABLES: {
   [key: string]: {
-    table_name: keyof Database["public"]["Tables"];
-    table_size: number;
+    tableName: keyof Database["public"]["Tables"];
+    tableSize: number;
   };
 } = {
   openai_text_embedding_3_small_1536: {
-    table_name: "ContentEmbedding_openai_text_embedding_3_small_1536",
-    table_size: 1536,
+    tableName: "ContentEmbedding_openai_text_embedding_3_small_1536",
+    tableSize: 1536,
   },
 };
 
-const unique_key_re = /^Key \(([^)]+)\)=\(([\^)]+)\) already exists\.$/;
-const unique_index_re =
+const UNIQUE_KEY_RE = /^Key \(([^)]+)\)=\(([\^)]+)\) already exists\.$/;
+const UNIQUE_INDEX_RE =
   /duplicate key value violates unique constraint "(\w+)"/;
-const foreign_key_re =
+const FOREIGN_KEY_RE =
   /Keys? \(([^)]+)\)=\(([^)]+)\) (is|are) not present in table ("?\w+"?)./;
-const foreign_constraint_re =
+const FOREIGN_CONSTRAINT_RE =
   /insert or update on table ("?\w+"?) violates foreign key constraint ("?\w+"?)/;
 
 const processSupabaseError = <T>(
@@ -37,11 +37,11 @@ const processSupabaseError = <T>(
     console.warn(
       `Unique constraint violation on ${tableName} insert .\nError is ${error.message}, ${error.hint}.`,
     );
-    const dup_key_data = unique_key_re.exec(error.hint);
+    const dup_key_data = UNIQUE_KEY_RE.exec(error.hint);
     if (dup_key_data !== null && dup_key_data.length > 1) {
       const uniqueOn = dup_key_data[1]!.split(",").map((x) => x.trim());
       if (uniqueOn.length === 0) {
-        const idx_data = unique_index_re.exec(error.message);
+        const idx_data = UNIQUE_INDEX_RE.exec(error.message);
         response.error.message =
           idx_data === null
             ? "Could not identify the keys or index of the unique constraint"
@@ -54,8 +54,8 @@ const processSupabaseError = <T>(
     response.status = 409; // Conflict, and couldn't resolve by re-fetching
   } else if (error.code === "23503") {
     // Handle foreign key constraint violations (PostgreSQL error code '23503')
-    const fkey_data = foreign_key_re.exec(error.hint);
-    const constraint_data = foreign_constraint_re.exec(error.message);
+    const fkey_data = FOREIGN_KEY_RE.exec(error.hint);
+    const constraint_data = FOREIGN_CONSTRAINT_RE.exec(error.message);
     console.warn(
       `Foreign violation on ${tableName}, constraint ${constraint_data ? constraint_data[2] : "unknown"}, keys ${fkey_data ? fkey_data[1] : "unknown"}`,
     );
@@ -102,11 +102,11 @@ export const getOrCreateEntity = async <
     })
     .single()
     .overrideTypes<Tables<TableName>>();
-  const { data: entity, error: insertError, status: status } = result;
+  const { error: insertError } = result;
   if (insertError) {
     if (insertError.code === "23505") {
       // Handle race condition: unique constraint violation (PostgreSQL error code '23505')
-      const dup_key_data = unique_key_re.exec(insertError.hint);
+      const dup_key_data = UNIQUE_KEY_RE.exec(insertError.hint);
       if (dup_key_data !== null && dup_key_data.length > 1)
         uniqueOn = dup_key_data[1]!
           .split(",")

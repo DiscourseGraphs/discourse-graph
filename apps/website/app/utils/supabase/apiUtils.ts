@@ -7,7 +7,6 @@ import {
 import { Database } from "./types.gen";
 import { createClient } from "~/utils/supabase/server";
 import cors from "~/utils/llm/cors";
-import { Segment } from "next/dist/server/app-render/types";
 
 /**
  * Sends a standardized JSON response.
@@ -97,7 +96,7 @@ export const makeDefaultGetHandler =
     segmentData: SegmentDataType,
   ): Promise<NextResponse> => {
     const { id } = await segmentData.params;
-    const idN = Number.parseInt((Array.isArray(id) ? id[0] : id) || "error");
+    const idN = Number.parseInt(id);
     if (isNaN(idN)) {
       return createApiResponse(
         request,
@@ -123,7 +122,7 @@ export const makeDefaultDeleteHandler =
     segmentData: SegmentDataType,
   ): Promise<NextResponse> => {
     const { id } = await segmentData.params;
-    const idN = Number.parseInt((Array.isArray(id) ? id[0] : id) || "error");
+    const idN = Number.parseInt(id);
     if (isNaN(idN)) {
       return createApiResponse(
         request,

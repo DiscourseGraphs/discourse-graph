@@ -38,7 +38,7 @@ const processAndGetOrCreateSpace = async (
 ): Promise<PostgrestSingleResponse<SpaceRecord>> => {
   const { name, url, platform_id } = data;
   const error = spaceValidator(data);
-  if (error != null) return asPostgrestFailure(error, "invalid");
+  if (error !== null) return asPostgrestFailure(error, "invalid");
 
   const normalizedUrl = url.trim().replace(/\/$/, "");
   const trimmedName = name.trim();

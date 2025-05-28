@@ -10,7 +10,7 @@ import {
 } from "~/utils/supabase/apiUtils";
 import {
   getOrCreateEntity,
-  known_embedding_tables,
+  KNOWN_EMBEDDING_TABLES,
 } from "~/utils/supabase/dbUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 import {
@@ -41,18 +41,18 @@ const processAndCreateEmbedding = async (
     return asPostgrestFailure(error || "unknown error", "valid");
   const supabase = await supabasePromise;
   const tableData =
-    known_embedding_tables[processedItem.model || DEFAULT_MODEL];
+    KNOWN_EMBEDDING_TABLES[processedItem.model || DEFAULT_MODEL];
 
   if (!tableData) return asPostgrestFailure("Unknown model", "unknown");
 
-  const { table_name } = tableData;
+  const { tableName } = tableData;
   // Using getOrCreateEntity, forcing create path by providing non-matching criteria
   // This standardizes return type and error handling (e.g., FK violations from dbUtils)
   const result =
     await getOrCreateEntity<"ContentEmbedding_openai_text_embedding_3_small_1536">(
       {
         supabase,
-        tableName: table_name,
+        tableName,
         insertData: processedItem,
       },
     );

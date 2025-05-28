@@ -10,7 +10,7 @@ import {
 } from "~/utils/supabase/apiUtils";
 import {
   processAndInsertBatch,
-  known_embedding_tables,
+  KNOWN_EMBEDDING_TABLES,
 } from "~/utils/supabase/dbUtils";
 import {
   ApiInputEmbeddingItem,
@@ -28,16 +28,16 @@ const batchInsertEmbeddingsProcess = async (
   // groupBy is node21 only, we are using 20. Group by model, by hand.
   // Note: This means that later index values may be totally wrong.
   // Note2: The key is a ModelName, but I cannot use an enum as a key.
-  const by_model: { [key: string]: ApiInputEmbeddingItem[] } = {};
+  const byModel: { [key: string]: ApiInputEmbeddingItem[] } = {};
   try {
-    embeddingItems.reduce((acc, item, index) => {
+    embeddingItems.reduce((acc, item) => {
       const model = item?.model || DEFAULT_MODEL;
       if (acc[model] === undefined) {
         acc[model] = [];
       }
       acc[model]!.push(item);
       return acc;
-    }, by_model);
+    }, byModel);
   } catch (error) {
     if (error instanceof Error) {
       return asPostgrestFailure(error.message, "exception");
@@ -46,14 +46,14 @@ const batchInsertEmbeddingsProcess = async (
   }
 
   const globalResults: ApiOutputEmbeddingRecord[] = [];
-  const partial_errors: string[] = [];
+  const partialErrors: string[] = [];
   let created = false,
     count = 0,
     has_400 = false;
-  for (const model_name of Object.keys(by_model)) {
-    const embeddingItemsSet = by_model[model_name];
-    const table_data = known_embedding_tables[model_name];
-    if (table_data === undefined) continue;
+  for (const modelName of Object.keys(byModel)) {
+    const embeddingItemsSet = byModel[modelName];
+    const tableData = KNOWN_EMBEDDING_TABLES[modelName];
+    if (tableData === undefined) continue;
     const results = await processAndInsertBatch<
       // any ContentEmbedding table for type checking purposes only
       "ContentEmbedding_openai_text_embedding_3_small_1536",
@@ -62,7 +62,7 @@ const batchInsertEmbeddingsProcess = async (
     >({
       supabase,
       items: embeddingItemsSet!,
-      tableName: table_data.table_name,
+      tableName: tableData.tableName,
       inputProcessor: embeddingInputProcessing,
       outputProcessor: embeddingOutputProcessing,
     });
@@ -71,18 +71,18 @@ const batchInsertEmbeddingsProcess = async (
       globalResults.push(...results.data);
       created = created || results.status === 201;
     } else {
-      partial_errors.push(results.error.message);
-      if (results.status == 400) has_400 = true;
+      partialErrors.push(results.error.message);
+      if (results.status === 400) has_400 = true;
     }
   }
   if (count > 0) {
-    if (partial_errors.length > 0) {
+    if (partialErrors.length > 0) {
       return {
         data: globalResults,
         error: null,
         status: has_400 ? 400 : 500,
         count,
-        statusText: partial_errors.join("; "),
+        statusText: partialErrors.join("; "),
       };
     } else
       return {
@@ -94,7 +94,7 @@ const batchInsertEmbeddingsProcess = async (
       };
   } else {
     return asPostgrestFailure(
-      partial_errors.join("; "),
+      partialErrors.join("; "),
       "multiple",
       has_400 ? 400 : 500,
     );

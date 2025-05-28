@@ -33,24 +33,30 @@ const getOrCreatePersonInternal = async (
   orcid: string | null | undefined,
 ): Promise<PostgrestSingleResponse<PersonRecord>> => {
   const supabase = await supabasePromise;
-  const agent_response = await getOrCreateEntity<"Agent">({
+  // TODO: Rewrite in a transaction with the ORM later.
+  const agentResponse = await getOrCreateEntity<"Agent">({
     supabase,
     tableName: "Agent",
     insertData: { type: "Person" },
   });
-  if (agent_response.error || agent_response.data === null)
-    return agent_response as any as PostgrestSingleResponse<PersonRecord>;
-  return getOrCreateEntity<"Person">({
+  if (agentResponse.error || agentResponse.data === null)
+    return agentResponse as any as PostgrestSingleResponse<PersonRecord>;
+  const result = await getOrCreateEntity<"Person">({
     supabase,
     tableName: "Person",
     insertData: {
-      id: agent_response.data.id,
+      id: agentResponse.data.id,
       email: email.trim(),
       name: name.trim(),
       orcid: orcid || null,
     },
     uniqueOn: ["email"],
   });
+  if (result.error) {
+    await supabase.from("Agent").delete().eq("id", agentResponse.data.id);
+    // not much to do if an error here
+  }
+  return result;
 };
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
@@ -60,7 +66,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     const body: PersonDataInput = await request.json();
     const { name, email, orcid = null } = body;
     const error = personValidator(body);
-    if (error != null)
+    if (error !== null)
       return createApiResponse(request, asPostgrestFailure(error, "invalid"));
 
     const personResult = await getOrCreatePersonInternal(

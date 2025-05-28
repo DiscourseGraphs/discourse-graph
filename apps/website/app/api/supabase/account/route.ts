@@ -35,7 +35,7 @@ const getOrCreateAccount = async (
   } = accountData;
 
   const error = validateAccount(accountData);
-  if (error != null) return asPostgrestFailure(error, "invalid");
+  if (error !== null) return asPostgrestFailure(error, "invalid");
 
   const supabase = await supabasePromise;
 

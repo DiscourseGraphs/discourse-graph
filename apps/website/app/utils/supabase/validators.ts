@@ -1,5 +1,5 @@
 import {
-  known_embedding_tables,
+  KNOWN_EMBEDDING_TABLES,
   ItemProcessor,
   ItemValidator,
 } from "./dbUtils";
@@ -42,11 +42,11 @@ export const embeddingInputValidation: ItemValidator<ApiInputEmbeddingItem> = (
   if (
     !model ||
     typeof model !== "string" ||
-    known_embedding_tables[model] == undefined
+    KNOWN_EMBEDDING_TABLES[model] == undefined
   ) {
     return "Missing or invalid model name.";
   }
-  const { table_size } = known_embedding_tables[model];
+  const { tableSize } = KNOWN_EMBEDDING_TABLES[model];
 
   if (
     !vector ||
@@ -55,8 +55,8 @@ export const embeddingInputValidation: ItemValidator<ApiInputEmbeddingItem> = (
   ) {
     return "Missing or invalid vector. Must be an array of numbers.";
   }
-  if (vector.length != table_size) {
-    return `Invalid vector length. Expected ${table_size}, got ${vector.length}.`;
+  if (vector.length != tableSize) {
+    return `Invalid vector length. Expected ${tableSize}, got ${vector.length}.`;
   }
   if (data.obsolete !== undefined && typeof data.obsolete !== "boolean") {
     return "Invalid type for obsolete. Must be a boolean.";
@@ -85,15 +85,15 @@ export const embeddingOutputValidation: ItemValidator<
   if (
     !model ||
     typeof model !== "string" ||
-    known_embedding_tables[model] == undefined
+    KNOWN_EMBEDDING_TABLES[model] == undefined
   ) {
     return "Missing or invalid model name.";
   }
 
-  const { table_size } = known_embedding_tables[model];
+  const { tableSize } = KNOWN_EMBEDDING_TABLES[model];
 
-  if (vector.length != table_size) {
-    return `Invalid vector length. Expected ${table_size}, got ${vector.length}.`;
+  if (vector.length != tableSize) {
+    return `Invalid vector length. Expected ${tableSize}, got ${vector.length}.`;
   }
   return null;
 };
