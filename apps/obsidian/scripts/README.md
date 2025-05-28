@@ -19,10 +19,7 @@ You need a GitHub token with appropriate permissions to push to the target repos
 
 ### Setting up the token
 
-1. Go to GitHub Settings > Developer settings > Personal access tokens
-2. Create a new token with these permissions:
-   - `repo` (full repository access)
-   - `workflow` (if you need to trigger workflows)
+Grab the token from 1Password's Engineering vault, in "obsidian .env"
 
 ### Providing the token
 
@@ -79,7 +76,7 @@ The script uses the following environment variable:
 
 ### Using .env file
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the apps/obsidian/ folder
 
 ```env
 OBSIDIAN_PLUGIN_REPO_TOKEN=your_token_here
@@ -101,7 +98,7 @@ OBSIDIAN_PLUGIN_REPO_TOKEN=your_token_here
    - `main.js` (required)
    - `manifest.json` (required)
    - `styles.css` (required)
-5. **Updates manifest** - Sets the version and ensures compatible plugin ID
+5. **Updates manifest.json** - Sets the version and ensures compatible plugin ID
 6. **Pushes to repository** - Force pushes to the target repository's main branch
 7. **Creates release** (if `--create-release` flag is used) - Creates a GitHub release with:
    - Individual files: `main.js`, `manifest.json`, `styles.css`
@@ -168,14 +165,6 @@ The main logic is in `publish-obsidian.ts`. Key areas:
 - **Build process**: Update `buildPlugin()` function
 - **Repository operations**: Modify `pushToRepo()` function
 - **Release creation**: Update `createGithubRelease()` function
-
-### Testing
-
-Before making changes, you can test the script with a test version:
-
-```bash
-tsx scripts/publish-obsidian.ts --version 0.0.1-test --create-release
-```
 
 ## Security Notes
 
