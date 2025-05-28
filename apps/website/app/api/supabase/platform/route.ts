@@ -1,14 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+
 import { createClient } from "~/utils/supabase/server";
-import {
-  getOrCreateEntity,
-  GetOrCreateEntityResult,
-  ItemValidator,
-} from "~/utils/supabase/dbUtils";
+import { getOrCreateEntity, ItemValidator } from "~/utils/supabase/dbUtils";
 import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
+  asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
@@ -28,16 +27,9 @@ const platformValidator: ItemValidator<PlatformDataInput> = (platform) => {
 const getOrCreatePlatformFromURL = async (
   supabasePromise: ReturnType<typeof createClient>,
   platform: PlatformDataInput,
-): Promise<GetOrCreateEntityResult<PlatformRecord>> => {
+): Promise<PostgrestSingleResponse<PlatformRecord>> => {
   const error = platformValidator(platform);
-  if (error !== null) {
-    return {
-      error,
-      entity: null,
-      created: false,
-      status: 400,
-    };
-  }
+  if (error != null) return asPostgrestFailure(error, "invalid");
   const lowerCaseURL = platform.url.toLowerCase();
 
   if (lowerCaseURL.includes("roamresearch.com")) {
@@ -64,21 +56,17 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     const { url } = body;
 
     if (!url || typeof url !== "string") {
-      return createApiResponse(request, {
-        error: "Missing or invalid url in request body.",
-        status: 400,
-      });
+      return createApiResponse(
+        request,
+        asPostgrestFailure(
+          "Missing or invalid url in request body.",
+          "invalid",
+        ),
+      );
     }
 
     const result = await getOrCreatePlatformFromURL(supabase, body);
-
-    return createApiResponse(request, {
-      data: result.entity,
-      error: result.error,
-      details: result.details,
-      status: result.status,
-      created: result.created,
-    });
+    return createApiResponse(request, result);
   } catch (e: unknown) {
     return handleRouteError(request, e, "/api/supabase/platform");
   }

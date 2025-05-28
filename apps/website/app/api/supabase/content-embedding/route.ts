@@ -1,13 +1,15 @@
 import { NextResponse, NextRequest } from "next/server";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+
 import { createClient } from "~/utils/supabase/server";
 import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
+  asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
 import {
   getOrCreateEntity,
-  GetOrCreateEntityResult,
   known_embedding_tables,
 } from "~/utils/supabase/dbUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
@@ -24,34 +26,24 @@ export type ContentEmbeddingDataInput =
 export type ContentEmbeddingRecord =
   Tables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
 
+const DEFAULT_MODEL = "openai_text_embedding_3_small_1536";
+
 const processAndCreateEmbedding = async (
   supabasePromise: ReturnType<typeof createClient>,
   data: ApiInputEmbeddingItem,
-): Promise<GetOrCreateEntityResult<ApiOutputEmbeddingRecord>> => {
+): Promise<PostgrestSingleResponse<ApiOutputEmbeddingRecord>> => {
   const { valid, error, processedItem } = embeddingInputProcessing(data);
   if (
     !valid ||
     processedItem === undefined ||
     processedItem.model === undefined
-  ) {
-    return {
-      entity: null,
-      error: error || "unknown error",
-      created: false,
-      status: 400,
-    };
-  }
+  )
+    return asPostgrestFailure(error || "unknown error", "valid");
   const supabase = await supabasePromise;
-  const tableData = known_embedding_tables[processedItem.model];
+  const tableData =
+    known_embedding_tables[processedItem.model || DEFAULT_MODEL];
 
-  if (!tableData) {
-    return {
-      entity: null,
-      error: "unknown model",
-      created: false,
-      status: 400,
-    };
-  }
+  if (!tableData) return asPostgrestFailure("Unknown model", "unknown");
 
   const { table_name } = tableData;
   // Using getOrCreateEntity, forcing create path by providing non-matching criteria
@@ -65,24 +57,30 @@ const processAndCreateEmbedding = async (
       },
     );
 
-  if (result.error || !result.entity) {
-    return {
-      ...result,
-      entity: null,
-    };
+  if (result.error) {
+    return result;
   }
 
-  const processedResult = embeddingOutputProcessing(result.entity);
-  if (!processedResult.valid || !processedResult.processedItem)
+  const processedResult = embeddingOutputProcessing(result.data);
+  if (!processedResult.processedItem) {
+    return asPostgrestFailure(
+      processedResult.error || "unknown error",
+      "postinvalid",
+      500,
+    );
+  }
+  if (processedResult.error) {
+    // err on the side of returning the data
     return {
       ...result,
-      error: processedResult.error || "unknown error",
-      entity: null,
       status: 500,
+      data: processedResult.processedItem,
+      statusText: processedResult.error,
     };
+  }
   return {
     ...result,
-    entity: processedResult.processedItem,
+    data: processedResult.processedItem,
   };
 };
 
@@ -92,14 +90,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   try {
     const body: ApiInputEmbeddingItem = await request.json();
     const result = await processAndCreateEmbedding(supabasePromise, body);
-
-    return createApiResponse(request, {
-      data: result.entity,
-      error: result.error,
-      details: result.details,
-      status: result.status,
-      created: result.created,
-    });
+    return createApiResponse(request, result);
   } catch (e: unknown) {
     return handleRouteError(request, e, `/api/supabase/content-embedding`);
   }

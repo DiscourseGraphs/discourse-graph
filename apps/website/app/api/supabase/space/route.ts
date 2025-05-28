@@ -1,14 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+
 import { createClient } from "~/utils/supabase/server";
-import {
-  getOrCreateEntity,
-  GetOrCreateEntityResult,
-  ItemValidator,
-} from "~/utils/supabase/dbUtils";
+import { getOrCreateEntity, ItemValidator } from "~/utils/supabase/dbUtils";
 import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
+  asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
@@ -36,17 +35,10 @@ const spaceValidator: ItemValidator<SpaceDataInput> = (space) => {
 const processAndGetOrCreateSpace = async (
   supabasePromise: ReturnType<typeof createClient>,
   data: SpaceDataInput,
-): Promise<GetOrCreateEntityResult<SpaceRecord>> => {
+): Promise<PostgrestSingleResponse<SpaceRecord>> => {
   const { name, url, platform_id } = data;
   const error = spaceValidator(data);
-  if (error !== null) {
-    return {
-      entity: null,
-      error: error,
-      created: false,
-      status: 400,
-    };
-  }
+  if (error != null) return asPostgrestFailure(error, "invalid");
 
   const normalizedUrl = url.trim().replace(/\/$/, "");
   const trimmedName = name.trim();
@@ -73,14 +65,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     const body: SpaceDataInput = await request.json();
 
     const result = await processAndGetOrCreateSpace(supabasePromise, body);
-
-    return createApiResponse(request, {
-      data: result.entity,
-      error: result.error,
-      details: result.details,
-      status: result.status,
-      created: result.created,
-    });
+    return createApiResponse(request, result);
   } catch (e: unknown) {
     return handleRouteError(request, e, "/api/supabase/space");
   }

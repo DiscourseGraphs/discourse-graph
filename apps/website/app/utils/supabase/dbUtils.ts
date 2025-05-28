@@ -1,4 +1,8 @@
-import type { SupabaseClient, PostgrestError } from "@supabase/supabase-js";
+import type {
+  SupabaseClient,
+  PostgrestResponse,
+  PostgrestSingleResponse,
+} from "@supabase/supabase-js";
 import { Database, Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
 export const known_embedding_tables: {
@@ -21,16 +25,12 @@ const foreign_key_re =
 const foreign_constraint_re =
   /insert or update on table ("?\w+"?) violates foreign key constraint ("?\w+"?)/;
 
-export type BaseEntityResult = {
-  error: string | null;
-  details?: string; // For detailed error messages, e.g., from Supabase
-  status: number; // HTTP status code to suggest
-};
-
-const processSupabaseError = (
-  error: PostgrestError,
+const processSupabaseError = <T>(
+  response: PostgrestResponse<T>,
   tableName: string,
-): BaseEntityResult => {
+): PostgrestResponse<T> => {
+  const { error } = response;
+  if (error == null) return response; // should not happen, but makes TS happy
   console.error(`Error inserting new ${tableName}:`, error);
   if (error.code === "23505") {
     // Handle race condition: unique constraint violation (PostgreSQL error code '23505')
@@ -42,51 +42,32 @@ const processSupabaseError = (
       const uniqueOn = dup_key_data[1]!.split(",").map((x) => x.trim());
       if (uniqueOn.length === 0) {
         const idx_data = unique_index_re.exec(error.message);
-        return {
-          error:
-            idx_data === null
-              ? "Could not identify the keys or index of the unique constraint"
-              : `Could not identify the keys of the unique key index ${idx_data[1]}`,
-          details: error.message,
-          status: 400,
-        };
+        response.error.message =
+          idx_data === null
+            ? "Could not identify the keys or index of the unique constraint"
+            : `Could not identify the keys of the unique key index ${idx_data[1]}`;
+        response.status = 400;
+        return response;
       }
     }
-    return {
-      error: `Unique constraint violation on ${tableName} insert, and re-fetch failed to find the entity.`,
-      details: error.message,
-      status: 409, // Conflict, and couldn't resolve by re-fetching
-    };
-  }
-  if (error.code === "23503") {
+    response.error.message = `Unique constraint violation on ${tableName} insert, and re-fetch failed to find the entity.`;
+    response.status = 409; // Conflict, and couldn't resolve by re-fetching
+  } else if (error.code === "23503") {
     // Handle foreign key constraint violations (PostgreSQL error code '23503')
     const fkey_data = foreign_key_re.exec(error.hint);
     const constraint_data = foreign_constraint_re.exec(error.message);
     console.warn(
       `Foreign violation on ${tableName}, constraint ${constraint_data ? constraint_data[2] : "unknown"}, keys ${fkey_data ? fkey_data[1] : "unknown"}`,
     );
-    return {
-      error:
-        fkey_data === null
-          ? constraint_data === null
-            ? "Could not identify the missing foreign key"
-            : `Foreign key constraint ${constraint_data[2]} violated`
-          : `Foreign key ${fkey_data[1]} is missing value ${fkey_data[2]}`,
-      details: error.message,
-      status: 400,
-    };
+    response.error.message =
+      fkey_data === null
+        ? constraint_data === null
+          ? "Could not identify the missing foreign key"
+          : `Foreign key constraint ${constraint_data[2]} violated`
+        : `Foreign key ${fkey_data[1]} is missing value ${fkey_data[2]}`;
+    response.status = 400;
   }
-
-  return {
-    error: `Database error ${error.code} while upserting in ${tableName}.`,
-    details: error.message,
-    status: 500,
-  };
-};
-
-export type GetOrCreateEntityResult<T> = BaseEntityResult & {
-  entity: T | null;
-  created: boolean;
+  return response;
 };
 
 /**
@@ -111,12 +92,8 @@ export const getOrCreateEntity = async <
   tableName: keyof Database["public"]["Tables"];
   insertData: TablesInsert<TableName>;
   uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
-}): Promise<GetOrCreateEntityResult<Tables<TableName>>> => {
-  const {
-    data: entity,
-    error: insertError,
-    status: status,
-  } = await supabase
+}): Promise<PostgrestSingleResponse<Tables<TableName>>> => {
+  const result: PostgrestSingleResponse<Tables<TableName>> = await supabase
     .from(tableName)
     .upsert(insertData, {
       onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
@@ -125,7 +102,7 @@ export const getOrCreateEntity = async <
     })
     .single()
     .overrideTypes<Tables<TableName>>();
-
+  const { data: entity, error: insertError, status: status } = result;
   if (insertError) {
     if (insertError.code === "23505") {
       // Handle race condition: unique constraint violation (PostgreSQL error code '23505')
@@ -144,67 +121,33 @@ export const getOrCreateEntity = async <
             insertData[key] as any, // TS gets confused here?
           );
         }
-        const { data: reFetchedEntity, error: reFetchError } =
+        const reFetchResult =
           await reFetchQueryBuilder.maybeSingle<Tables<TableName>>();
+        const { data: reFetchedEntity, error: reFetchError } = reFetchResult;
 
-        if (reFetchError) {
-          console.error(
-            `Error re-fetching ${tableName} after unique constraint violation:`,
-            reFetchError,
-          );
-          return {
-            entity: null,
-            error: `Database error after unique constraint violation for ${tableName}.`,
-            details: reFetchError.message,
-            created: false,
-            status: 500,
-          };
-        }
-        if (reFetchedEntity) {
+        if (reFetchResult === null) {
+          result.error.message = `Unique constraint violation on on (${uniqueOn.join(", ")}) in ${tableName}, and re-fetch failed to find the entity because of ${reFetchError}.`;
+          result.status = 500;
+          return result;
+        } else {
           console.log(`Found ${tableName} on re-fetch:`, reFetchedEntity);
+          // Note: Using a PostgrestResult means I cannot have both data and error non-null...
           return {
-            entity: reFetchedEntity,
-            error: "Upsert failed because of conflict with this entity",
-            created: false,
+            error: {
+              ...result.error,
+              message: `Upsert failed because of conflict with this entity: ${reFetchedEntity}"`,
+            },
+            statusText: result.statusText,
+            data: null,
+            count: null,
             status: 400,
           };
         }
-        return {
-          entity: null,
-          error: `Unique constraint violation on ${tableName} insert, and re-fetch failed to find the entity.`,
-          details: insertError.message,
-          created: false,
-          status: 409, // Conflict, and couldn't resolve by re-fetching
-        };
       }
     }
-
-    return {
-      entity: null,
-      created: false,
-      ...processSupabaseError(insertError, tableName),
-    };
-  } else if (entity) {
-    console.log(`Created new ${tableName}:`, entity);
-    return {
-      entity,
-      error: null,
-      created: status == 201,
-      status,
-    };
-  } else {
-    console.error(
-      `New ${tableName} was not returned after insert, despite no reported Supabase error.`,
-    );
-    return {
-      entity: null,
-      error: `Failed to retrieve new ${tableName} after insert operation.`,
-      details:
-        "The insert operation might have appeared successful but returned no data.",
-      created: false, // Unknown if created
-      status: 500,
-    };
+    processSupabaseError(result, tableName);
   }
+  return result;
 };
 
 export type BatchItemValidator<TInput, TProcessed> = (
@@ -220,11 +163,6 @@ export type ItemProcessor<TInput, TProcessed> = (item: TInput) => {
 
 export type ItemValidator<T> = (item: T) => string | null;
 
-export type BatchProcessResult<TRecord> = BaseEntityResult & {
-  data?: TRecord[];
-  partial_errors?: { index: number; error: string }[];
-};
-
 export const InsertValidatedBatch = async <
   TableName extends keyof Database["public"]["Tables"],
 >({
@@ -237,50 +175,34 @@ export const InsertValidatedBatch = async <
   tableName: keyof Database["public"]["Tables"];
   items: TablesInsert<TableName>[];
   uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
-}): Promise<BatchProcessResult<Tables<TableName>>> => {
-  const {
-    data: rawData,
-    error: insertError,
-    status,
-  } = await supabase
+}): Promise<PostgrestResponse<Tables<TableName>>> => {
+  const result: PostgrestResponse<Tables<TableName>> = await supabase
     .from(tableName)
     .upsert(items, {
       onConflict: uniqueOn === undefined ? undefined : uniqueOn.join(","),
       ignoreDuplicates: false,
       count: "estimated",
     })
-    .select()
-    .overrideTypes<Tables<TableName>>();
+    .select();
+  const { data, error, status } = result;
 
-  const data = (rawData || []) as Tables<TableName>[]; // TS gets confused here
-
-  if (insertError) {
-    return { data, ...processSupabaseError(insertError, tableName) };
-  }
-  if (rawData === null) {
-    console.error(`Null results while upserting ${tableName}:`, insertError);
-    return {
-      error: `Database error during batch insert of ${tableName}.`,
-      details: "Null results",
-      status: 500,
-    };
+  if (error !== null) {
+    processSupabaseError(result, tableName);
+    return result;
   }
 
   if (data.length !== items.length) {
     console.warn(
       `Batch insert ${tableName}: Mismatch between processed count (${items.length}) and DB returned count (${data?.length || 0}).`,
     );
-    return {
-      data,
-      error: `Batch insert of ${tableName} might have partially failed or returned unexpected data.`,
-      status: 500,
-    };
+    result.statusText = `Batch insert of ${tableName} might have partially failed or returned unexpected data.`;
+    result.status = 500;
   }
 
   console.log(
     `Successfully batch inserted ${data.length} ${tableName} records.`,
   );
-  return { data, status, error: null };
+  return result;
 };
 
 export const validateAndInsertBatch = async <
@@ -299,13 +221,22 @@ export const validateAndInsertBatch = async <
   uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
   inputValidator?: ItemValidator<TablesInsert<TableName>>;
   outputValidator?: ItemValidator<Tables<TableName>>;
-}): Promise<BatchProcessResult<Tables<TableName>>> => {
+}): Promise<PostgrestResponse<Tables<TableName>>> => {
   let validatedItems: TablesInsert<TableName>[] = [];
   const validationErrors: { index: number; error: string }[] = [];
   if (!Array.isArray(items) || items.length === 0) {
     return {
-      error: `Request body must be a non-empty array of ${tableName} items.`,
+      error: {
+        message: `Request body must be a non-empty array of ${tableName} items.`,
+        details: "",
+        hint: "",
+        code: "1",
+        name: "nonempty",
+      },
       status: 400,
+      data: null,
+      count: null,
+      statusText: "Empty input",
     };
   }
 
@@ -333,9 +264,17 @@ export const validateAndInsertBatch = async <
 
     if (validationErrors.length > 0) {
       return {
-        error: `Validation failed for one or more ${tableName} items.`,
-        partial_errors: validationErrors,
+        error: {
+          message: `Validation failed for one or more ${tableName} items.`,
+          details: `${validationErrors}`,
+          hint: "",
+          code: "2",
+          name: "invalid",
+        },
         status: 400,
+        data: null,
+        count: null,
+        statusText: "Validation errors",
       };
     }
   } else {
@@ -347,7 +286,7 @@ export const validateAndInsertBatch = async <
     items: validatedItems,
     uniqueOn,
   });
-  if (result.error || !result.data) {
+  if (result.error) {
     return result;
   }
   if (outputValidator !== undefined) {
@@ -366,7 +305,7 @@ export const validateAndInsertBatch = async <
       if (error !== null) {
         validationErrors.push({
           index: i,
-          error: error || "Validation failed.",
+          error: error || `Validation failed for ${item}.`,
         });
       } else {
         validatedResults.push(item);
@@ -374,11 +313,30 @@ export const validateAndInsertBatch = async <
     }
 
     if (validationErrors.length > 0) {
-      return {
-        error: `Validation failed for one or more ${tableName} results.`,
-        partial_errors: validationErrors,
-        status: 500,
-      };
+      if (validatedResults.length > 0) {
+        // Erring on the side of returning data with an error in status.
+        return {
+          error: null,
+          status: 500,
+          data: validatedResults,
+          count: validatedResults.length,
+          statusText: `Validation failed for one or more ${tableName} items, and succeeded for ${validatedResults.length}/${result.data.length}.`,
+        };
+      } else {
+        return {
+          error: {
+            message: `Post-validation failed for all ${tableName} items.`,
+            details: `${validationErrors}`,
+            hint: "",
+            code: "2",
+            name: "invalid",
+          },
+          status: 500,
+          data: null,
+          count: null,
+          statusText: "post-validation",
+        };
+      }
     }
   }
   return result;
@@ -402,13 +360,22 @@ export const processAndInsertBatch = async <
   uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
   inputProcessor: ItemProcessor<InputType, TablesInsert<TableName>>;
   outputProcessor: ItemProcessor<Tables<TableName>, OutputType>;
-}): Promise<BatchProcessResult<OutputType>> => {
+}): Promise<PostgrestResponse<OutputType>> => {
   let processedItems: TablesInsert<TableName>[] = [];
   const validationErrors: { index: number; error: string }[] = [];
   if (!Array.isArray(items) || items.length === 0) {
     return {
-      error: `Request body must be a non-empty array of ${tableName} items.`,
+      error: {
+        message: `Request body must be a non-empty array of ${tableName} items.`,
+        details: "",
+        hint: "",
+        code: "1",
+        name: "nonempty",
+      },
       status: 400,
+      data: null,
+      count: null,
+      statusText: "Empty input",
     };
   }
 
@@ -435,9 +402,17 @@ export const processAndInsertBatch = async <
 
   if (validationErrors.length > 0) {
     return {
-      error: `Validation failed for one or more ${tableName} items.`,
-      partial_errors: validationErrors,
+      error: {
+        message: `Validation failed for one or more ${tableName} items.`,
+        details: `${validationErrors}`,
+        hint: "",
+        code: "2",
+        name: "invalid",
+      },
       status: 400,
+      data: null,
+      count: null,
+      statusText: "Validation errors",
     };
   }
   const result = await InsertValidatedBatch<TableName>({
@@ -446,8 +421,8 @@ export const processAndInsertBatch = async <
     items: processedItems,
     uniqueOn,
   });
-  if (result.error || !result.data) {
-    return { ...result, data: [] };
+  if (result.error) {
+    return result;
   }
   const processedResults: OutputType[] = [];
   for (let i = 0; i < result.data.length; i++) {
@@ -472,11 +447,30 @@ export const processAndInsertBatch = async <
   }
 
   if (validationErrors.length > 0) {
-    return {
-      error: `Validation failed for one or more ${tableName} results.`,
-      partial_errors: validationErrors,
-      status: 500,
-    };
+    if (processedResults.length > 0) {
+      // Erring on the side of returning data with an error in status.
+      return {
+        error: null,
+        status: 500,
+        data: processedResults,
+        count: processedResults.length,
+        statusText: `Validation failed for one or more ${tableName} items, and succeeded for ${processedResults.length}/${result.data.length}.`,
+      };
+    } else {
+      return {
+        error: {
+          message: `Post-validation failed for all ${tableName} items.`,
+          details: `${validationErrors}`,
+          hint: "",
+          code: "2",
+          name: "invalid",
+        },
+        status: 500,
+        data: null,
+        count: null,
+        statusText: "post-validation",
+      };
+    }
   }
   return { ...result, data: processedResults };
 };

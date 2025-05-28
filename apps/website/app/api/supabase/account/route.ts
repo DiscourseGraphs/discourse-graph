@@ -1,14 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+
 import { createClient } from "~/utils/supabase/server";
-import {
-  getOrCreateEntity,
-  GetOrCreateEntityResult,
-  ItemValidator,
-} from "~/utils/supabase/dbUtils";
+import { getOrCreateEntity, ItemValidator } from "~/utils/supabase/dbUtils";
 import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
+  asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
@@ -26,7 +25,7 @@ const validateAccount: ItemValidator<AccountDataInput> = (account) => {
 const getOrCreateAccount = async (
   supabasePromise: ReturnType<typeof createClient>,
   accountData: AccountDataInput,
-): Promise<GetOrCreateEntityResult<AccountRecord>> => {
+): Promise<PostgrestSingleResponse<AccountRecord>> => {
   const {
     agent_id,
     platform_id,
@@ -36,13 +35,7 @@ const getOrCreateAccount = async (
   } = accountData;
 
   const error = validateAccount(accountData);
-  if (error != null)
-    return {
-      entity: null,
-      error,
-      created: false,
-      status: 400,
-    };
+  if (error != null) return asPostgrestFailure(error, "invalid");
 
   const supabase = await supabasePromise;
 
@@ -68,27 +61,21 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     const body: AccountDataInput = await request.json();
 
     if (body.agent_id === undefined || body.agent_id === null) {
-      return createApiResponse(request, {
-        error: "Missing or invalid agent_id.",
-        status: 400,
-      });
+      return createApiResponse(
+        request,
+        asPostgrestFailure("Missing or invalid agent_id.", "invalid"),
+      );
     }
     if (body.platform_id === undefined || body.platform_id === null) {
-      return createApiResponse(request, {
-        error: "Missing or invalid platform_id.",
-        status: 400,
-      });
+      return createApiResponse(
+        request,
+        asPostgrestFailure("Missing or invalid platform_id.", "invalid"),
+      );
     }
 
     const result = await getOrCreateAccount(supabasePromise, body);
 
-    return createApiResponse(request, {
-      data: result.entity,
-      error: result.error,
-      details: result.details,
-      status: result.status,
-      created: result.created,
-    });
+    return createApiResponse(request, result);
   } catch (e: unknown) {
     return handleRouteError(request, e, "/api/supabase/account");
   }

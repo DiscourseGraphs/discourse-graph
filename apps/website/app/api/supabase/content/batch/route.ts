@@ -1,14 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
+import type { PostgrestResponse } from "@supabase/supabase-js";
 import { createClient } from "~/utils/supabase/server";
 import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
+  asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
-import {
-  validateAndInsertBatch,
-  BatchProcessResult,
-} from "~/utils/supabase/dbUtils";
+import { validateAndInsertBatch } from "~/utils/supabase/dbUtils";
 import {
   contentInputValidation,
   type ContentDataInput,
@@ -18,7 +17,7 @@ import {
 const batchInsertContentProcess = async (
   supabase: Awaited<ReturnType<typeof createClient>>,
   contentItems: ContentDataInput[],
-): Promise<BatchProcessResult<ContentRecord>> => {
+): Promise<PostgrestResponse<ContentRecord>> => {
   return validateAndInsertBatch<"Content">({
     supabase,
     tableName: "Content",
@@ -34,24 +33,18 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   try {
     const body: ContentDataInput[] = await request.json();
     if (!Array.isArray(body)) {
-      return createApiResponse(request, {
-        error: "Request body must be an array of content items.",
-        status: 400,
-      });
+      return createApiResponse(
+        request,
+        asPostgrestFailure(
+          "Request body must be an array of content items.",
+          "array",
+        ),
+      );
     }
 
     const result = await batchInsertContentProcess(supabase, body);
 
-    return createApiResponse(request, {
-      data: result.data,
-      error: result.error,
-      details: result.details,
-      ...(result.partial_errors && {
-        meta: { partial_errors: result.partial_errors },
-      }),
-      status: result.status,
-      created: result.status === 201,
-    });
+    return createApiResponse(request, result);
   } catch (e: unknown) {
     return handleRouteError(request, e, "/api/supabase/content/batch");
   }

@@ -1,14 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+
 import { createClient } from "~/utils/supabase/server";
-import {
-  getOrCreateEntity,
-  GetOrCreateEntityResult,
-  ItemValidator,
-} from "~/utils/supabase/dbUtils";
+import { getOrCreateEntity, ItemValidator } from "~/utils/supabase/dbUtils";
 import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
+  asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
 import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
 
@@ -32,20 +31,20 @@ const getOrCreatePersonInternal = async (
   email: string,
   name: string,
   orcid: string | null | undefined,
-): Promise<GetOrCreateEntityResult<PersonRecord>> => {
+): Promise<PostgrestSingleResponse<PersonRecord>> => {
   const supabase = await supabasePromise;
   const agent_response = await getOrCreateEntity<"Agent">({
     supabase,
     tableName: "Agent",
     insertData: { type: "Person" },
   });
-  if (agent_response.error || agent_response.entity === null)
-    return agent_response as any as GetOrCreateEntityResult<PersonRecord>;
+  if (agent_response.error || agent_response.data === null)
+    return agent_response as any as PostgrestSingleResponse<PersonRecord>;
   return getOrCreateEntity<"Person">({
     supabase,
     tableName: "Person",
     insertData: {
-      id: agent_response.entity.id,
+      id: agent_response.data.id,
       email: email.trim(),
       name: name.trim(),
       orcid: orcid || null,
@@ -61,12 +60,8 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     const body: PersonDataInput = await request.json();
     const { name, email, orcid = null } = body;
     const error = personValidator(body);
-    if (error !== null) {
-      return createApiResponse(request, {
-        error,
-        status: 400,
-      });
-    }
+    if (error != null)
+      return createApiResponse(request, asPostgrestFailure(error, "invalid"));
 
     const personResult = await getOrCreatePersonInternal(
       supabasePromise,
@@ -75,20 +70,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       orcid,
     );
 
-    if (personResult.error || !personResult.entity) {
-      return createApiResponse(request, {
-        error: personResult.error || "Failed to process Person.",
-        details: personResult.details,
-        status: personResult.status || 500,
-      });
-    }
-
-    const overallStatus = personResult.created ? 201 : 200;
-
-    return createApiResponse(request, {
-      data: personResult,
-      status: overallStatus,
-    });
+    return createApiResponse(request, personResult);
   } catch (e: unknown) {
     return handleRouteError(request, e, "/api/supabase/person");
   }

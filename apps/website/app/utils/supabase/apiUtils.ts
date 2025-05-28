@@ -1,4 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
+import {
+  PostgrestResponse,
+  PostgrestSingleResponse,
+} from "@supabase/supabase-js";
+
 import { createClient } from "~/utils/supabase/server";
 import cors from "~/utils/llm/cors";
 
@@ -13,25 +18,18 @@ import cors from "~/utils/llm/cors";
  */
 export const createApiResponse = <T>(
   request: NextRequest,
-  payload: {
-    data?: T | null;
-    error?: string | null;
-    details?: string | null;
-    status: number;
-    created?: boolean;
-  },
+  payload: PostgrestResponse<T> | PostgrestSingleResponse<T>,
 ): NextResponse => {
   let response: NextResponse;
-  const { data, error, details, status, created } = payload;
+  const { data, error, status } = payload;
 
   if (error) {
     response = NextResponse.json(
-      { error, details: details || undefined },
+      { error: error.message, details: error.details || undefined },
       { status },
     );
   } else if (data !== undefined && data !== null) {
-    const effectiveStatus = created ? 201 : status === 201 ? 200 : status;
-    response = NextResponse.json(data, { status: effectiveStatus });
+    response = NextResponse.json(data, { status });
   } else {
     // Fallback for unexpected state (e.g. no error, but no data for a success status)
     console.error(
@@ -62,19 +60,16 @@ export const handleRouteError = (
     error instanceof SyntaxError &&
     error.message.toLowerCase().includes("json")
   ) {
-    return createApiResponse(request, {
-      error: "Invalid JSON in request body.",
-      status: 400,
-    });
+    return createApiResponse(
+      request,
+      asPostgrestFailure("Invalid JSON in request body.", "invalid"),
+    );
   }
   const message =
     error instanceof Error
       ? error.message
       : "An unexpected error occurred processing your request.";
-  return createApiResponse(request, {
-    error: message,
-    status: 500,
-  });
+  return createApiResponse(request, asPostgrestFailure(message, "invalid"));
 };
 
 /**
@@ -103,35 +98,18 @@ export const defaultGetHandler = async (
   try {
     idN = Number.parseInt((Array.isArray(id) ? id[0] : id) || "error");
   } catch (error) {
-    return createApiResponse(request, {
-      error: `${pk} is not a number`,
-      status: 400,
-    });
+    return createApiResponse(
+      request,
+      asPostgrestFailure(`${pk} is not a number`, "type"),
+    );
   }
   const supabase = await createClient();
-
-  const { data, error, status } = await supabase
+  const response = await supabase
     .from("Person")
     .select()
     .eq(pk, idN)
     .maybeSingle();
-  if (error) {
-    return createApiResponse(request, {
-      error: error.message,
-      status,
-    });
-  }
-  if (status == 404) {
-    return createApiResponse(request, {
-      error: "Not found",
-      status,
-    });
-  }
-
-  return createApiResponse(request, {
-    data,
-    status,
-  });
+  return createApiResponse(request, response);
 };
 
 /**
@@ -147,28 +125,33 @@ export const defaultDeleteHandler = async (
   try {
     idN = Number.parseInt((Array.isArray(id) ? id[0] : id) || "error");
   } catch (error) {
-    return createApiResponse(request, {
-      error: `${pk} is not a number`,
-      status: 400,
-    });
+    return createApiResponse(
+      request,
+      asPostgrestFailure(`${pk} is not a number`, "type"),
+    );
   }
   const supabase = await createClient();
 
-  const { error, status } = await supabase.from("Person").delete().eq(pk, idN);
-  if (error) {
-    return createApiResponse(request, {
-      error: error.message,
-      status,
-    });
-  }
-  if (status == 404) {
-    return createApiResponse(request, {
-      error: "Not found",
-      status,
-    });
-  }
+  const response = await supabase.from("Person").delete().eq(pk, idN);
+  return createApiResponse(request, response);
+};
 
-  return createApiResponse(request, {
+export const asPostgrestFailure = (
+  message: string,
+  code: string,
+  status: number = 400,
+): PostgrestSingleResponse<any> => {
+  return {
+    data: null,
+    error: {
+      message,
+      code,
+      details: "",
+      hint: "",
+      name: code,
+    },
+    count: null,
+    statusText: code,
     status,
-  });
+  };
 };
