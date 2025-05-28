@@ -13,6 +13,7 @@ import {
   showFeedbackButton,
 } from "~/components/BirdEatsBugs";
 import { runFullEmbeddingProcess } from "~/utils/embeddingWorkflow";
+import { getLastSyncTime } from "~/utils/syncToEmbeddingDb";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { getAllDiscourseNodes } from "~/utils/embeddingWorkflow";
 import {
@@ -141,7 +142,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             // const nodesWithEmbeddings = await getEmbeddingsService(nodes);
             // console.log("Nodes with embeddings:", nodesWithEmbeddings);
             // Next: send nodesWithEmbeddings to Supabase
-            await runFullEmbeddingProcess();
+            const lastSyncTime = await getLastSyncTime();
+            console.log("Last sync time:", lastSyncTime);
+            // await runFullEmbeddingProcess();
           }}
           intent={Intent.PRIMARY}
           style={{ marginTop: "8px" }}
