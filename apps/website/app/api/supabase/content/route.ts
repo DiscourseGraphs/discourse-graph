@@ -10,7 +10,7 @@ import {
   asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
 import { contentInputValidation } from "~/utils/supabase/validators";
-import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import { Tables, TablesInsert } from "@repo/database/types.gen.ts";
 
 type ContentDataInput = TablesInsert<"Content">;
 type ContentRecord = Tables<"Content">;

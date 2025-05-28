@@ -9,7 +9,7 @@ import {
   defaultOptionsHandler,
   asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
-import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import { Tables, TablesInsert } from "@repo/database/types.gen.ts";
 
 type AccountDataInput = TablesInsert<"Account">;
 type AccountRecord = Tables<"Account">;

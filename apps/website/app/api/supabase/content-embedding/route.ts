@@ -12,7 +12,7 @@ import {
   getOrCreateEntity,
   KNOWN_EMBEDDING_TABLES,
 } from "~/utils/supabase/dbUtils";
-import { Tables, TablesInsert } from "~/utils/supabase/types.gen";
+import { Tables, TablesInsert } from "@repo/database/types.gen.ts";
 import {
   ApiInputEmbeddingItem,
   ApiOutputEmbeddingRecord,

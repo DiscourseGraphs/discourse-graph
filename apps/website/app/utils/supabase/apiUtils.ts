@@ -4,7 +4,7 @@ import {
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
 
-import { Database } from "@repo/database/types.gen";
+import { Database } from "@repo/database/types.gen.ts";
 import { createClient } from "~/utils/supabase/server";
 import cors from "~/utils/llm/cors";
 
