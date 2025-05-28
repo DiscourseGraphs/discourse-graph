@@ -21,7 +21,7 @@ type RequestBody = {
 
 const OPENAI_REQUEST_TIMEOUT_MS = 30000;
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
+export const POST = async (req: NextRequest): Promise<NextResponse> => {
   let response: NextResponse;
 
   if (!apiKey) {
@@ -91,8 +91,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   return cors(req, response) as NextResponse;
-}
+};
 
-export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
+export const OPTIONS = async (req: NextRequest): Promise<NextResponse> => {
   return cors(req, new NextResponse(null, { status: 204 })) as NextResponse;
-}
+};

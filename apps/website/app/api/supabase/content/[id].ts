@@ -1,11 +1,11 @@
 import {
   defaultOptionsHandler,
-  defaultGetHandler,
-  defaultDeleteHandler,
+  makeDefaultGetHandler,
+  makeDefaultDeleteHandler,
 } from "~/utils/supabase/apiUtils";
 
-export const GET = defaultGetHandler;
+export const GET = makeDefaultGetHandler("Content");
 
 export const OPTIONS = defaultOptionsHandler;
 
-export const DELETE = defaultDeleteHandler;
+export const DELETE = makeDefaultDeleteHandler("Content");

@@ -4,8 +4,10 @@ import {
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
 
+import { Database } from "./types.gen";
 import { createClient } from "~/utils/supabase/server";
 import cors from "~/utils/llm/cors";
+import { Segment } from "next/dist/server/app-render/types";
 
 /**
  * Sends a standardized JSON response.
@@ -88,53 +90,51 @@ export type SegmentDataType = { params: ApiParams };
 /**
  * Default GET handler for retrieving a resource by Id
  */
-export const defaultGetHandler = async (
-  request: NextRequest,
-  segmentData: SegmentDataType,
-  pk: string = "id",
-): Promise<NextResponse> => {
-  const { id } = await segmentData.params;
-  let idN: number;
-  try {
-    idN = Number.parseInt((Array.isArray(id) ? id[0] : id) || "error");
-  } catch (error) {
-    return createApiResponse(
-      request,
-      asPostgrestFailure(`${pk} is not a number`, "type"),
-    );
-  }
-  const supabase = await createClient();
-  const response = await supabase
-    .from("Person")
-    .select()
-    .eq(pk, idN)
-    .maybeSingle();
-  return createApiResponse(request, response);
-};
+export const makeDefaultGetHandler =
+  (tableName: keyof Database["public"]["Tables"], pk: string = "id") =>
+  async (
+    request: NextRequest,
+    segmentData: SegmentDataType,
+  ): Promise<NextResponse> => {
+    const { id } = await segmentData.params;
+    const idN = Number.parseInt((Array.isArray(id) ? id[0] : id) || "error");
+    if (isNaN(idN)) {
+      return createApiResponse(
+        request,
+        asPostgrestFailure(`${pk} is not a number`, "type"),
+      );
+    }
+    const supabase = await createClient();
+    const response = await supabase
+      .from(tableName)
+      .select()
+      .eq(pk, idN)
+      .maybeSingle();
+    return createApiResponse(request, response);
+  };
 
 /**
  * Default DELETE handler for deleting a resource by ID
  */
-export const defaultDeleteHandler = async (
-  request: NextRequest,
-  segmentData: SegmentDataType,
-  pk: string = "id",
-): Promise<NextResponse> => {
-  const { id } = await segmentData.params;
-  let idN: number;
-  try {
-    idN = Number.parseInt((Array.isArray(id) ? id[0] : id) || "error");
-  } catch (error) {
-    return createApiResponse(
-      request,
-      asPostgrestFailure(`${pk} is not a number`, "type"),
-    );
-  }
-  const supabase = await createClient();
+export const makeDefaultDeleteHandler =
+  (tableName: keyof Database["public"]["Tables"], pk: string = "id") =>
+  async (
+    request: NextRequest,
+    segmentData: SegmentDataType,
+  ): Promise<NextResponse> => {
+    const { id } = await segmentData.params;
+    const idN = Number.parseInt((Array.isArray(id) ? id[0] : id) || "error");
+    if (isNaN(idN)) {
+      return createApiResponse(
+        request,
+        asPostgrestFailure(`${pk} is not a number`, "type"),
+      );
+    }
+    const supabase = await createClient();
 
-  const response = await supabase.from("Person").delete().eq(pk, idN);
-  return createApiResponse(request, response);
-};
+    const response = await supabase.from(tableName).delete().eq(pk, idN);
+    return createApiResponse(request, response);
+  };
 
 export const asPostgrestFailure = (
   message: string,
