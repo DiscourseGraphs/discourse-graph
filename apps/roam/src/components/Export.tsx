@@ -43,14 +43,13 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import { getNodeEnv } from "roamjs-components/util/env";
 import apiGet from "roamjs-components/util/apiGet";
 import apiPut from "roamjs-components/util/apiPut";
-import localStorageGet from "roamjs-components/util/localStorageGet";
 import { ExportGithub } from "./ExportGithub";
-import localStorageSet from "roamjs-components/util/localStorageSet";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import createPage from "roamjs-components/writes/createPage";
 import { createInitialTldrawProps } from "~/utils/createInitialTldrawProps";
 import { isCanvasPage as checkIfCanvasPage } from "~/utils/isCanvasPage";
 import sendErrorEmail from "~/utils/sendErrorEmail";
+import { getSetting, setSetting } from "~/utils/extensionSettings";
 
 const ExportProgress = ({ id }: { id: string }) => {
   const [progress, setProgress] = useState(0);
@@ -115,8 +114,8 @@ const ExportDialog: ExportDialogComponent = ({
   isExportDiscourseGraph = false,
   initialPanel,
 }) => {
-  const [selectedRepo, setSelectedRepo] = useState(
-    localStorageGet("selected-repo"),
+  const [selectedRepo, setSelectedRepo] = useState<string>(
+    getSetting<string>("selected-repo", ""),
   );
   const exportId = useMemo(() => nanoid(), []);
   useEffect(() => {
@@ -162,15 +161,11 @@ const ExportDialog: ExportDialogComponent = ({
   useEffect(() => {
     if (initialPanel === "export") setSelectedTabId("export");
   }, [initialPanel]);
-  const [discourseGraphEnabled, setDiscourseGraphEnabled] = useState(() => {
-    return getExtensionAPI().settings.get("discourse-graphs");
-  });
-  const [includeDiscourseContext, setIncludeDiscourseContext] = useState(
-    discourseGraphEnabled as boolean,
-  );
+  const [includeDiscourseContext, setIncludeDiscourseContext] = useState(false);
   const [gitHubAccessToken, setGitHubAccessToken] = useState<string | null>(
-    localStorageGet("oauth-github"),
+    getSetting<string | null>("oauth-github", null),
   );
+
   const [canSendToGitHub, setCanSendToGitHub] = useState(false);
 
   const writeFileToRepo = async ({
@@ -199,7 +194,7 @@ const ExportDialog: ExportDialogComponent = ({
       if (response.status === 401) {
         setGitHubAccessToken(null);
         setError("Authentication failed. Please log in again.");
-        localStorageSet("oauth-github", "");
+        setSetting("oauth-github", "");
         return { status: 401 };
       }
       return { status: response.status };
@@ -554,10 +549,7 @@ const ExportDialog: ExportDialogComponent = ({
               : `Exporting ${results.length} results`}
           </span>
           <div className="flex flex-col items-end">
-            <FormGroup
-              className={`m-0 ${discourseGraphEnabled ? "" : "hidden"}`}
-              inline
-            >
+            <FormGroup className={`m-0`} inline>
               <Checkbox
                 alignIndicator={"right"}
                 checked={includeDiscourseContext}

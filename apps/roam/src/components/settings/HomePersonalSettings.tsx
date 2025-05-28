@@ -12,6 +12,7 @@ import {
   hideFeedbackButton,
   showFeedbackButton,
 } from "~/components/BirdEatsBugs";
+import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 import { runFullEmbeddingProcess } from "~/utils/embeddingWorkflow";
 import { getLastSyncTime } from "~/utils/syncToEmbeddingDb";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
@@ -36,6 +37,15 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           }
         />
         <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
+      </Label>
+      <Label>
+        Node Search Menu Trigger
+        <Description
+          description={
+            "Set the trigger character for the Node Search Menu. Must refresh after editing."
+          }
+        />
+        <NodeSearchMenuTriggerSetting onloadArgs={onloadArgs} />
       </Label>
       <Checkbox
         defaultChecked={

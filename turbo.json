@@ -32,7 +32,10 @@
       "passThroughEnv": [
         "BLOB_READ_WRITE_TOKEN",
         "GITHUB_REF_NAME",
-        "GITHUB_HEAD_REF"
+        "GITHUB_HEAD_REF",
+        "SUPABASE_PROJECT_ID",
+        "SUPABASE_DB_PASSWORD",
+        "SUPABASE_ACCESS_TOKEN"
       ]
     },
     "publish": {

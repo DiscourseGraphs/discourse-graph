@@ -3,16 +3,16 @@ import nanoid from "nanoid";
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  useMemo,
 } from "react";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import apiGet from "roamjs-components/util/apiGet";
 import apiPost from "roamjs-components/util/apiPost";
 import { getNodeEnv } from "roamjs-components/util/env";
-import localStorageGet from "roamjs-components/util/localStorageGet";
-import localStorageSet from "roamjs-components/util/localStorageSet";
+import getExtensionApi from "roamjs-components/util/extensionApiContext";
+import { setSetting } from "~/utils/extensionSettings";
 
 type UserReposResponse = {
   data: [
@@ -58,40 +58,42 @@ export const ExportGithub = ({
   const repoSelectEnabled = isGitHubAppInstalled && gitHubAccessToken;
 
   const isDev = useMemo(() => getNodeEnv() === "development", []);
-
   const setRepo = (repo: string) => {
     setSelectedRepo(repo);
-    localStorageSet("selected-repo", repo);
+    setSetting("selected-repo", repo);
   };
 
   const handleReceivedAccessToken = (token: string) => {
-    localStorageSet("oauth-github", token);
+    setSetting("oauth-github", token);
     setGitHubAccessToken(token);
     setClickedInstall(false);
     authWindow.current?.close();
   };
 
-  const fetchAndSetInstallation = useCallback(async () => {
+  const fetchAndSetInstallation = useCallback(async (token: string) => {
     try {
       const res = await apiGet<{ installations: { app_id: number }[] }>({
         domain: "https://api.github.com",
         path: "user/installations",
         headers: {
-          Authorization: `token ${localStorageGet("oauth-github")}`,
+          Authorization: `token ${token}`,
         },
       });
+
       const installations = res.installations;
       const APP_ID = isDev ? 882491 : 312167; // TODO - pull from process.env.GITHUB_APP_ID
       const isAppInstalled = installations.some(
         (installation) => installation.app_id === APP_ID,
       );
+
       setIsGitHubAppInstalled(isAppInstalled);
       return isAppInstalled;
     } catch (error) {
       const e = error as Error;
+
       if (e.message === "Bad credentials") {
         setGitHubAccessToken(null);
-        localStorageSet("oauth-github", "");
+        setSetting("oauth-github", "");
       }
       return false;
     }
@@ -103,6 +105,7 @@ export const ExportGithub = ({
     const key = nanoid().replace(/_/g, "-");
     const state = `github_${otp}_${key}`;
     setState(state);
+
     const handleGitHubAuthMessage = (event: MessageEvent) => {
       const targetOrigin = isDev
         ? "https://samepage.ngrok.io"
@@ -125,7 +128,7 @@ export const ExportGithub = ({
 
   // check for installation
   useEffect(() => {
-    if (gitHubAccessToken) fetchAndSetInstallation();
+    if (gitHubAccessToken) fetchAndSetInstallation(gitHubAccessToken);
   }, [gitHubAccessToken]);
 
   // get the list of repos

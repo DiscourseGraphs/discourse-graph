@@ -51,36 +51,23 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
     }
     return (
       <>
-        <div style={{ marginBottom: "1.5rem" }}>
-          <div
-            style={{
-              fontSize: "1.2em",
-              fontWeight: "bold",
-              marginBottom: "8px",
-            }}
-          >
+        <div className="mb-6">
+          <div className="text-md mb-2 font-bold">
             {nodeType.name || "Unnamed Node Type"}
           </div>
 
           {nodeType.format && (
-            <div style={{ marginBottom: "4px" }}>
-              <span style={{ fontWeight: "bold" }}>Content: </span>
+            <div className="mb-1">
+              <span className="font-bold">Content: </span>
               {extractContentFromTitle(nodeType.format, activeFile.basename)}
             </div>
           )}
         </div>
 
-        <div className="relationships-section">
-          <h5
-            style={{
-              marginTop: "1rem",
-              marginBottom: "0.75rem",
-              borderBottom: "1px solid var(--background-modifier-border)",
-              paddingBottom: "0.25rem",
-            }}
-          >
+        <div>
+          <h4 className="dg-h4 border-modifier-border mb-3 mt-4 border-b pb-1">
             Relationships
-          </h5>
+          </h4>
           <RelationshipSection key={activeFile.path} activeFile={activeFile} />
         </div>
       </>
@@ -89,7 +76,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
 
   return (
     <div>
-      <h4 style={{ marginTop: 0 }}>Discourse Context</h4>
+      <h3 className="dg-h3">Discourse Context</h3>
       {renderContent()}
     </div>
   );

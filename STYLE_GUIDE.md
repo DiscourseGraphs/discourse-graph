@@ -7,7 +7,7 @@ This document outlines the coding standards and best practices for contributing 
 - Prefer `type` over `interface`
 - Use explicit return types for functions
 - Avoid `any` types when possible
-- Use arrow functions
+- Prefer arrow functions over regular function declarations
 
 ## UI Guidelines
 
@@ -37,7 +37,9 @@ This document outlines the coding standards and best practices for contributing 
 ## Code Organization
 
 - Prefer small, focused functions over inline code
+- Prefer util functions for reusable logic and common operations
 - Extract complex logic into well-named functions
+- Prefer early returns over nested conditionals for better readability
 - Function names should describe their purpose clearly:
 
 ```typescript

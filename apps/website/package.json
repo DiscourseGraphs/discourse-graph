@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "https://discoursegraphs.com NextJs Website",
   "private": true,
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
