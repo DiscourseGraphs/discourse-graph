@@ -14,7 +14,7 @@ import {
 } from "~/components/BirdEatsBugs";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 import { runFullEmbeddingProcess } from "~/utils/embeddingWorkflow";
-import { getLastSyncTime } from "~/utils/syncToEmbeddingDb";
+import { getLastUpdateTimeByGraphName } from "~/utils/syncToEmbeddingDb";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { getAllDiscourseNodes } from "~/utils/embeddingWorkflow";
 import {
@@ -22,6 +22,7 @@ import {
   NodeWithEmbedding,
 } from "~/utils/embeddingService";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import { upsertDiscourseNodes } from "~/utils/syncToEmbeddingDb";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -152,9 +153,19 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             // const nodesWithEmbeddings = await getEmbeddingsService(nodes);
             // console.log("Nodes with embeddings:", nodesWithEmbeddings);
             // Next: send nodesWithEmbeddings to Supabase
-            const lastSyncTime = await getLastSyncTime();
-            console.log("Last sync time:", lastSyncTime);
-            // await runFullEmbeddingProcess();
+
+            // Test the new function with a sample URL
+            const graphName = window.roamAlphaAPI.graph.name;
+            const lastUpdateTime =
+              await getLastUpdateTimeByGraphName(graphName);
+            console.log("Last update time for", graphName, ":", lastUpdateTime);
+
+            // if its null, then run the full embedding process
+            if (lastUpdateTime === null) {
+              await runFullEmbeddingProcess();
+            } else {
+              await upsertDiscourseNodes(lastUpdateTime);
+            }
           }}
           intent={Intent.PRIMARY}
           style={{ marginTop: "8px" }}
