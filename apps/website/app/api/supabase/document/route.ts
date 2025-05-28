@@ -17,10 +17,12 @@ type DocumentRecord = Tables<"Document">;
 const validateDocument: ItemValidator<DocumentDataInput> = (data) => {
   if (!data || typeof data !== "object")
     return "Invalid request body: expected a JSON object.";
-  const { space_id, author_id } = data;
+  const { space_id, author_id, source_local_id } = data;
 
-  if (!space_id) return "Missing required space_id field.";
   if (!author_id) return "Missing required author_id field.";
+  // Note: Those are only mandatory together.
+  if ((space_id === null) !== (source_local_id === null))
+    return "Either specify both source_id and source_local_id or neither.";
   return null;
 };
 

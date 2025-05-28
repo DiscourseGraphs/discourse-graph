@@ -17,7 +17,12 @@ type PlatformRecord = Tables<"Platform">;
 const platformValidator: ItemValidator<PlatformDataInput> = (platform) => {
   if (!platform || typeof platform !== "object")
     return "Invalid request body: expected a JSON object.";
-  const lowerCaseURL = platform.url?.toLowerCase();
+
+  if (!platform.url || typeof platform.url !== "string") {
+    return "Missing or invalid url field.";
+  }
+
+  const lowerCaseURL = platform.url.toLowerCase();
 
   if (!lowerCaseURL.includes("roamresearch.com"))
     return "Could not determine platform from URL:";

@@ -59,20 +59,6 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
   try {
     const body: AccountDataInput = await request.json();
-
-    if (body.agent_id === undefined || body.agent_id === null) {
-      return createApiResponse(
-        request,
-        asPostgrestFailure("Missing or invalid agent_id.", "invalid"),
-      );
-    }
-    if (body.platform_id === undefined || body.platform_id === null) {
-      return createApiResponse(
-        request,
-        asPostgrestFailure("Missing or invalid platform_id.", "invalid"),
-      );
-    }
-
     const result = await getOrCreateAccount(supabasePromise, body);
 
     return createApiResponse(request, result);

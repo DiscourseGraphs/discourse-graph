@@ -55,7 +55,7 @@ export const embeddingInputValidation: ItemValidator<ApiInputEmbeddingItem> = (
   ) {
     return "Missing or invalid vector. Must be an array of numbers.";
   }
-  if (vector.length != tableSize) {
+  if (vector.length !== tableSize) {
     return `Invalid vector length. Expected ${tableSize}, got ${vector.length}.`;
   }
   if (data.obsolete !== undefined && typeof data.obsolete !== "boolean") {
@@ -74,7 +74,7 @@ export const embeddingInputProcessing: ItemProcessor<
   }
   return {
     valid: true,
-    data: { ...data, vector: JSON.stringify(data.vector) },
+    processedItem: { ...data, vector: JSON.stringify(data.vector) },
   };
 };
 
@@ -92,7 +92,7 @@ export const embeddingOutputValidation: ItemValidator<
 
   const { tableSize } = KNOWN_EMBEDDING_TABLES[model];
 
-  if (vector.length != tableSize) {
+  if (vector.length !== tableSize) {
     return `Invalid vector length. Expected ${tableSize}, got ${vector.length}.`;
   }
   return null;
@@ -110,7 +110,7 @@ export const embeddingOutputProcessing: ItemProcessor<
     }
     return {
       valid: true,
-      data: processedData,
+      processedItem: processedData,
     };
   } catch (error) {
     if (error instanceof SyntaxError) {
