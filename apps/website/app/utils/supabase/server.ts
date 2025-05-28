@@ -11,6 +11,7 @@ export const createClient = async () => {
     throw new Error("Missing required Supabase environment variables");
   }
 
+  // following https://supabase.com/docs/guides/auth/server-side/creating-a-client?queryGroups=environment&environment=server
   return createServerClient<Database>(supabaseUrl, supabaseKey, {
     cookies: {
       getAll() {

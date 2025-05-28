@@ -3,7 +3,7 @@ import {
   ItemProcessor,
   ItemValidator,
 } from "./dbUtils";
-import { Tables, TablesInsert } from "./types.gen";
+import { Tables, TablesInsert } from "@repo/database/types.gen.ts";
 
 // Use the first known ContentEmbedding table for type checking, as they have the same structure
 export type ContentEmbeddingDataInput =
