@@ -1,6 +1,5 @@
 import isDiscourseNode from "./isDiscourseNode";
 import { getEmbeddingsService } from "./embeddingService";
-import { fetchSupabaseEntity, postBatchToSupabaseApi } from "./supabaseService";
 import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 
@@ -71,55 +70,13 @@ export async function upsertDiscourseNodes(lastUpdateTime: string) {
       return;
     }
 
-    // Get required IDs for content records (since platform/space exist, just get their IDs)
+    // Get user and graph info
     const graphName = window.roamAlphaAPI.graph.name;
     const userEmail = getCurrentUserEmail() || "unknown@roamresearch.com";
     const userName = getCurrentUserDisplayName() || "Roam User";
 
     console.log(
-      "upsertDiscourseNodes: Getting required IDs for content records...",
-    );
-
-    // Try to get/create the required entities
-    // If this fails, it means the setup is not complete and we should run the full process instead
-    const platformPayload = {
-      name: "roamresearch",
-      url: "https://roamresearch.com",
-    };
-    const platformData = await fetchSupabaseEntity("Platform", platformPayload);
-    const platformId = platformData.id;
-
-    const graphUrl = `https://roamresearch.com/#/app/${graphName}`;
-    const spacePayload = {
-      name: graphName,
-      url: graphUrl,
-      platform: platformId,
-    };
-    const spaceData = await fetchSupabaseEntity("Space", spacePayload);
-    const spaceId = spaceData.id;
-
-    const personPayload = {
-      name: userName,
-      email: userEmail,
-      type: "Person",
-    };
-    const personData = await fetchSupabaseEntity("Person", personPayload);
-    const authorId = personData.id;
-
-    const currentTime = new Date().toISOString();
-    const documentPayload = {
-      space_id: spaceId,
-      author_id: authorId,
-      created: currentTime,
-      last_modified: currentTime,
-      metadata: { graph_name: graphName, created_for: "discourse_nodes" },
-      source_local_id: `discourse_nodes_document_for_${graphName}`,
-    };
-    const documentData = await fetchSupabaseEntity("Document", documentPayload);
-    const documentId = documentData.id;
-
-    console.log(
-      `upsertDiscourseNodes: Using space_id: ${spaceId}, author_id: ${authorId}, document_id: ${documentId}`,
+      `upsertDiscourseNodes: Processing ${nodes.length} nodes for graph: ${graphName}, user: ${userName}`,
     );
 
     // Generate Embeddings for updated nodes
@@ -127,144 +84,70 @@ export async function upsertDiscourseNodes(lastUpdateTime: string) {
       `upsertDiscourseNodes: Generating embeddings for ${nodes.length} updated nodes...`,
     );
     const embeddingResults = await getEmbeddingsService(nodes);
-    const generatedVectors = embeddingResults.map((result) => result.vector);
 
-    if (generatedVectors.length !== nodes.length) {
+    if (embeddingResults.length !== nodes.length) {
       throw new Error(
         "Mismatch between number of nodes and generated embeddings",
       );
     }
     console.log("upsertDiscourseNodes: Embeddings generated successfully.");
 
-    // Upsert Content Records
-    const BATCH_SIZE = 200;
-
-    const contentPayloads = nodes.map((node) => ({
-      text: node.string,
-      scale: "chunk_unit",
-      space_id: spaceId,
-      author_id: authorId,
-      document_id: documentId,
-      source_local_id: node.uid,
-      metadata: {
-        roam_uid: node.uid,
-        roam_edit_time: node["edit/time"],
-        roam_create_time: node["create/time"],
-        node_title: node.string,
-        graph_name: graphName,
-        user_email: userEmail,
-        user_name: userName,
-      },
-      created: new Date(node["create/time"] || Date.now()).toISOString(),
-      last_modified: new Date(node["edit/time"] || Date.now()).toISOString(),
-    }));
-
-    console.log(
-      `upsertDiscourseNodes: Upserting ${contentPayloads.length} Content records...`,
-    );
-    let upsertedContents: any[] = [];
-
-    // Process content in batches
-    for (let i = 0; i < contentPayloads.length; i += BATCH_SIZE) {
-      const chunk = contentPayloads.slice(i, i + BATCH_SIZE);
-      console.log(
-        `Processing Content batch chunk ${i / BATCH_SIZE + 1} with ${chunk.length} items.`,
+    // Client-side batching
+    const batchSize = 200;
+    for (let i = 0; i < nodes.length; i += batchSize) {
+      const batch = nodes.slice(i, i + batchSize);
+      const response = await fetch(
+        `${API_BASE_URL}/api/supabase/rpc/upsert-discourse-nodes`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            p_space_name: graphName,
+            p_user_email: userEmail,
+            p_user_name: userName,
+            p_nodes: batch.map((node, i) => ({
+              text: node.string,
+              uid: node.uid,
+              vector: embeddingResults[i].vector,
+              metadata: {
+                roam_uid: node.uid,
+                roam_edit_time: node["edit/time"],
+                roam_create_time: node["create/time"],
+                node_title: node.string,
+                graph_name: graphName,
+                user_email: userEmail,
+                user_name: userName,
+              },
+              created: new Date(
+                node["create/time"] || Date.now(),
+              ).toISOString(),
+              last_modified: new Date(
+                node["edit/time"] || Date.now(),
+              ).toISOString(),
+            })),
+          }),
+        },
       );
 
-      const chunkResults = await postBatchToSupabaseApi("Content/batch", chunk);
-      upsertedContents.push(...chunkResults);
-    }
-
-    if (upsertedContents.length !== contentPayloads.length) {
-      console.warn("Mismatch between expected and returned content records");
-    }
-    console.log(
-      `upsertDiscourseNodes: Successfully upserted ${upsertedContents.length} Content records.`,
-    );
-
-    // Upsert Embedding Records
-    // Map content IDs back to their original nodes/vectors
-    const contentIdMap = new Map<string, number>();
-    upsertedContents.forEach((item) => {
-      if (item.id && item.source_local_id) {
-        contentIdMap.set(item.source_local_id, item.id);
-      }
-    });
-
-    const embeddingPayloads: any[] = [];
-
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
-      const vector = generatedVectors[i];
-      const contentId = contentIdMap.get(node.uid);
-
-      if (contentId && vector) {
-        embeddingPayloads.push({
-          target: contentId,
-          vector: vector,
-          model: "openai_text_embedding_3_small_1536",
-          obsolete: false,
-        });
-      } else {
-        console.warn(
-          `Skipping embedding for node UID ${node.uid} due to missing Content ID or vector.`,
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(
+          `Failed to upsert discourse nodes: ${response.status} ${errorBody}`,
         );
       }
-    }
 
-    if (embeddingPayloads.length > 0) {
-      console.log(
-        `upsertDiscourseNodes: Processing ${embeddingPayloads.length} ContentEmbedding records...`,
-      );
-
-      // Process embeddings in batches
-      for (let i = 0; i < embeddingPayloads.length; i += BATCH_SIZE) {
-        const chunk = embeddingPayloads.slice(i, i + BATCH_SIZE);
-        console.log(
-          `Processing ContentEmbedding batch chunk ${i / BATCH_SIZE + 1} with ${chunk.length} items.`,
-        );
-
-        try {
-          await postBatchToSupabaseApi(
-            "ContentEmbedding_openai_text_embedding_3_small_1536/batch",
-            chunk,
-          );
-        } catch (error: any) {
-          // If we get a conflict error, it means some embeddings already exist
-          // This is expected in incremental updates, so we'll continue
-          if (
-            error.message.includes("duplicate key") ||
-            error.message.includes("23505")
-          ) {
-            console.warn(
-              `Some embeddings already exist in batch ${i / BATCH_SIZE + 1}, this is expected for incremental updates`,
-            );
-          } else {
-            // Re-throw other errors
-            throw error;
-          }
-        }
-      }
+      const results = await response.json();
+      const successCount = results.length;
 
       console.log(
-        `upsertDiscourseNodes: Successfully processed ${embeddingPayloads.length} ContentEmbedding records.`,
-      );
-    } else {
-      console.log(
-        "upsertDiscourseNodes: No valid embedding payloads to process.",
+        `upsertDiscourseNodes: Successfully processed ${successCount} discourse nodes.`,
       );
     }
 
-    const successCount = embeddingPayloads.length;
-    const errorCount = nodes.length - successCount;
-
-    console.log(
-      `upsertDiscourseNodes: Process complete. Processed: ${successCount}, Issues: ${errorCount}`,
-    );
-
-    if (errorCount > 0) {
-      console.warn(`${errorCount} items encountered issues during processing.`);
-    }
+    console.log("upsertDiscourseNodes: Process complete.");
   } catch (error: any) {
     console.error(
       "upsertDiscourseNodes: Critical error:",
