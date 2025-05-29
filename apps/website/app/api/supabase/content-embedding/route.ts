@@ -12,19 +12,12 @@ import {
   getOrCreateEntity,
   KNOWN_EMBEDDING_TABLES,
 } from "~/utils/supabase/dbUtils";
-import { Tables, TablesInsert } from "@repo/database/types.gen.ts";
 import {
   ApiInputEmbeddingItem,
   ApiOutputEmbeddingRecord,
   embeddingInputProcessing,
   embeddingOutputProcessing,
 } from "~/utils/supabase/validators";
-
-// Use the first known ContentEmbedding table for type checking, as they have the same structure
-export type ContentEmbeddingDataInput =
-  TablesInsert<"ContentEmbedding_openai_text_embedding_3_small_1536">;
-export type ContentEmbeddingRecord =
-  Tables<"ContentEmbedding_openai_text_embedding_3_small_1536">;
 
 const DEFAULT_MODEL = "openai_text_embedding_3_small_1536";
 

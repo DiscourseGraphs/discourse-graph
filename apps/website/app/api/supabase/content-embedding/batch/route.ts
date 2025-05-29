@@ -52,6 +52,7 @@ const batchInsertEmbeddingsProcess = async (
     has_400 = false;
   for (const modelName of Object.keys(byModel)) {
     const embeddingItemsSet = byModel[modelName];
+    if (embeddingItemsSet === undefined) continue;
     const tableData = KNOWN_EMBEDDING_TABLES[modelName];
     if (tableData === undefined) continue;
     const results = await processAndInsertBatch<
@@ -61,7 +62,7 @@ const batchInsertEmbeddingsProcess = async (
       ApiOutputEmbeddingRecord
     >({
       supabase,
-      items: embeddingItemsSet!,
+      items: embeddingItemsSet,
       tableName: tableData.tableName,
       inputProcessor: embeddingInputProcessing,
       outputProcessor: embeddingOutputProcessing,
