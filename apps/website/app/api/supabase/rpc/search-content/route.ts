@@ -2,9 +2,9 @@ import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import cors from "~/utils/llm/cors";
-import { Database } from "~/utils/supabase/types.gen";
+import type { Database } from "@repo/database/types.gen.ts";
 import { get_known_embedding } from "~/utils/supabase/dbUtils";
-import { generic_embedding } from "~/utils/supabase/apiUtils";
+import { genericEmbedding } from "~/utils/supabase/apiUtils";
 
 type RequestBody = {
   currentDocumentId?: number;
@@ -53,7 +53,7 @@ async function callMatchEmbeddingsRpc(
         error: "Provide either query text or embedding",
       };
     }
-    const newEmbedding = await generic_embedding(
+    const newEmbedding = await genericEmbedding(
       queryText,
       model,
       provider,
