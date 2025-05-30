@@ -13,7 +13,8 @@ type RoamEntityFromQuery = {
 };
 
 // Moved API_BASE_URL to be a module-level constant
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL =
+  "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app";
 
 type RoamContentNode = {
   uid: string;
