@@ -43,7 +43,7 @@ ADD CONSTRAINT "Document_space_id_fkey" FOREIGN KEY (
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
 CREATE UNIQUE INDEX document_space_and_local_id_idx ON public."Document" USING btree (space_id, source_local_id)
-    NULLS DISTINCT WHERE space_id IS NOT NULL;
+    NULLS DISTINCT;
 
 CREATE UNIQUE INDEX document_url_idx ON public."Document" USING btree (url);
 
@@ -121,7 +121,7 @@ CREATE INDEX "Content_space" ON public."Content" USING btree (space_id);
 
 CREATE UNIQUE INDEX content_space_and_local_id_idx ON public."Content" USING btree (
     space_id, source_local_id
-) NULLS DISTINCT WHERE (space_id IS NOT NULL);
+) NULLS DISTINCT;
 
 CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
 

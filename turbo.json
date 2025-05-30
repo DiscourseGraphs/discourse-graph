@@ -22,7 +22,17 @@
       "dependsOn": ["^check-types"]
     },
     "dev": {
-      "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH", "NODE_ENV"],
+      "passThroughEnv": [
+        "OBSIDIAN_PLUGIN_PATH",
+        "NODE_ENV",
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "POSTGRES_URL",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY"
+      ],
       "cache": false,
       "persistent": true,
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
@@ -37,7 +47,14 @@
         "NODE_ENV",
         "SUPABASE_PROJECT_ID",
         "SUPABASE_DB_PASSWORD",
-        "SUPABASE_ACCESS_TOKEN"
+        "SUPABASE_ACCESS_TOKEN",
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "POSTGRES_URL",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY"
       ]
     },
     "publish": {

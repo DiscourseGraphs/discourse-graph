@@ -30,7 +30,7 @@ export const createApiResponse = <T>(
       { status },
     );
   } else if (data !== undefined && data !== null) {
-    response = NextResponse.json(data, { status });
+    response = NextResponse.json<T | T[]>(data, { status });
   } else {
     // Fallback for unexpected state (e.g. no error, but no data for a success status)
     console.error(
