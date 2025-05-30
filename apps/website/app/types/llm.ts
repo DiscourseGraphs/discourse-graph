@@ -1,3 +1,5 @@
+export type Provider = "openai" | "anthropic" | "gemini";
+
 export type Message = {
   role: string;
   content: string;
@@ -17,6 +19,11 @@ export type RequestBody = {
   documents: Message[];
   passphrase?: string;
   settings: Settings;
+};
+
+export type EmbeddingSettings = {
+  model: string;
+  dimensions?: number;
 };
 
 export const CONTENT_TYPE_JSON = "application/json";
