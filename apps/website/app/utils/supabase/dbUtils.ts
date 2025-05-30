@@ -100,10 +100,10 @@ export const getOrCreateEntity = async <
       ignoreDuplicates: false,
       count: "estimated",
     })
-    .single()
-    .overrideTypes<Tables<TableName>>();
-  const { error: insertError } = result;
-  if (insertError) {
+    .select()
+    .single();
+  if (result.error) {
+    const { error: insertError } = result;
     if (insertError.code === "23505") {
       // Handle race condition: unique constraint violation (PostgreSQL error code '23505')
       const dup_key_data = UNIQUE_KEY_RE.exec(insertError.hint);
@@ -115,9 +115,14 @@ export const getOrCreateEntity = async <
         console.warn(`Attempting to re-fetch using ${uniqueOn.join(", ")}`);
         let reFetchQueryBuilder = supabase.from(tableName).select();
         for (let i = 0; i < uniqueOn.length; i++) {
-          const key: keyof TablesInsert<TableName> = uniqueOn[i]!;
+          const key = uniqueOn[i];
+          if (!key) {
+            console.error("Empty key in uniqueOn");
+            continue;
+          }
+          const keyS = String(key);
           reFetchQueryBuilder = reFetchQueryBuilder.eq(
-            key as string,
+            keyS,
             insertData[key] as any, // TS gets confused here?
           );
         }
