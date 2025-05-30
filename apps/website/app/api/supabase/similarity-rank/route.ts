@@ -17,7 +17,11 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     const body: SimilarityRankInput = await request.json();
     const { embedding, subsetRoamUids } = body;
 
-    if (!embedding || !subsetRoamUids?.length) {
+    if (
+      !Array.isArray(embedding) ||
+      !Array.isArray(subsetRoamUids) ||
+      !subsetRoamUids.length
+    ) {
       return createApiResponse(
         request,
         asPostgrestFailure(
