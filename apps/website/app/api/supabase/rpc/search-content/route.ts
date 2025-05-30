@@ -13,7 +13,7 @@ type RequestBody = {
 };
 
 type RpcResponseItem =
-  Database["public"]["Functions"]["match_content_embeddings"]["Returns"];
+  Database["public"]["Functions"]["match_embeddings_for_subset_nodes"]["Returns"];
 
 async function callMatchEmbeddingsRpc(
   supabase: SupabaseClient<Database, "public", Database["public"]>,
@@ -33,7 +33,19 @@ async function callMatchEmbeddingsRpc(
       error: "Invalid model information",
     };
   }
-  const newEmbedding = await genericEmbedding(queryText, settings, provider);
+
+  let newEmbedding;
+  try {
+    newEmbedding = await genericEmbedding(queryText, settings, provider);
+  } catch (error) {
+    if (error instanceof Error)
+      return {
+        error: error.message,
+      };
+    return {
+      error: `Unknown error generating embeddings: ${error}`,
+    };
+  }
   if (!Array.isArray(subsetPlatformIds)) {
     console.log(
       "[API Route] callMatchEmbeddingsRpc: Invalid subsetPlatformIds.",

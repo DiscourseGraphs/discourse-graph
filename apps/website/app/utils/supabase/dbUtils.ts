@@ -32,10 +32,21 @@ export function get_known_embedding(
   dimensions: number | undefined,
   provider: string,
 ): EmbeddingTableData | undefined {
-  dimensions = dimensions || DEFAULT_DIMENSIONS[model];
-  if (!dimensions) return undefined;
+  if (!provider) {
+    console.warn("No provider specified, defaulting to 'openai'");
+  }
+  if (!dimensions) {
+    console.error(`No default dimensions found for model: ${model}`);
+    return undefined;
+  }
   const embeddingName =
     KNOWN_EMBEDDINGS[`${provider || "openai"}-${model}-${dimensions}`];
+  if (!embeddingName) {
+    console.error(
+      `No embedding configuration found for: ${provider || "openai"}-${model}-${dimensions}`,
+    );
+    return undefined;
+  }
   return KNOWN_EMBEDDING_TABLES[embeddingName || ""];
 }
 

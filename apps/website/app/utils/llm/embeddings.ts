@@ -14,7 +14,7 @@ const openaiEmbedding = async (
     throw new Error(
       `API key not configured. Please set the ${config.apiKeyEnvVar} environment variable in your Vercel project settings.`,
     );
-  const openai = apiKey ? new OpenAI({ apiKey: apiKey }) : null;
+  const openai = new OpenAI({ apiKey: apiKey });
 
   let options: OpenAI.EmbeddingCreateParams = {
     model: settings.model,
