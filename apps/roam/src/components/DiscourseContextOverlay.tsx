@@ -6,6 +6,7 @@ import {
   Tooltip,
   ControlGroup,
   Spinner,
+  Intent,
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
@@ -113,6 +114,9 @@ const DiscourseContextOverlay = ({
   const [hydeFilteredNodes, setHydeFilteredNodes] = useState<SuggestedNode[]>(
     [],
   );
+  const [useAllPagesForSuggestions, setUseAllPagesForSuggestions] =
+    useState(false);
+  const [selectedPage, setSelectedPage] = useState<string | null>(null);
 
   const discourseNode = useMemo(() => findDiscourseNode(tagUid), [tagUid]);
   const relations = useMemo(() => getDiscourseRelations(), []);
@@ -218,68 +222,114 @@ const DiscourseContextOverlay = ({
   }, [discourseNode, validRelations]);
 
   const [currentPageInput, setCurrentPageInput] = useState("");
-  const [selectedPage, setSelectedPage] = useState<string | null>(null);
   const allPages = useMemo(() => getAllPageNames(), []);
-  useEffect(() => {
-    setSelectedPage(null);
-  }, [currentPageInput]);
 
   useEffect(() => {
-    if (!selectedPage) {
-      setHydeFilteredNodes([]);
-      return;
+    if (selectedPage && currentPageInput !== selectedPage) {
+      setSelectedPage(null);
     }
-    const nodesOnPage = getAllReferencesOnPage(selectedPage);
-    const nodes = nodesOnPage
-      .map((n) => {
-        const node = findDiscourseNode(n.uid);
-        if (!node || node.backedBy === "default") return null;
-        if (!validTypes.includes(node.type)) return null;
-        return {
-          uid: n.uid,
-          text: n.text,
-          type: node.type,
-        };
-      })
-      .filter((node): node is SuggestedNode => node !== null)
-      .filter(
-        (node) =>
-          !results.some((r) =>
-            Object.values(r.results).some((result) => result.uid === node.uid),
-          ),
-      );
+  }, [currentPageInput, selectedPage]);
 
-    if (nodes.length > 0 && uniqueRelationTypeTriplets.length > 0) {
-      const performSearch = async () => {
-        setIsSearchingHyde(true);
+  useEffect(() => {
+    const performHydeSearch = async () => {
+      if (!discourseNode) {
         setHydeFilteredNodes([]);
-        try {
-          const candidateNodesForHyde = nodes.map((node) => ({
-            uid: node.uid,
-            text: node.text,
-            type: node.type,
-          }));
+        return;
+      }
 
+      let candidateNodesForHyde: SuggestedNode[] = [];
+      setIsSearchingHyde(true);
+      setHydeFilteredNodes([]);
+
+      try {
+        if (useAllPagesForSuggestions) {
+          candidateNodesForHyde = allPages
+            .map((pageName) => {
+              const pageUid = getPageUidByPageTitle(pageName);
+              if (!pageUid || pageUid === tagUid) {
+                return null;
+              }
+              const node = findDiscourseNode(pageUid);
+              if (
+                !node ||
+                node.backedBy === "default" ||
+                !validTypes.includes(node.type) ||
+                results.some((r) =>
+                  Object.values(r.results).some(
+                    (result) => result.uid === pageUid,
+                  ),
+                )
+              ) {
+                return null;
+              }
+              return { uid: pageUid, text: pageName, type: node.type };
+            })
+            .filter((node): node is SuggestedNode => node !== null);
+        } else if (selectedPage) {
+          const nodesOnPage = getAllReferencesOnPage(selectedPage);
+          candidateNodesForHyde = nodesOnPage
+            .map((n) => {
+              const node = findDiscourseNode(n.uid);
+              if (
+                !node ||
+                node.backedBy === "default" ||
+                !validTypes.includes(node.type) ||
+                results.some((r) =>
+                  Object.values(r.results).some(
+                    (result) => result.uid === n.uid,
+                  ),
+                )
+              ) {
+                return null;
+              }
+              return { uid: n.uid, text: n.text, type: node.type };
+            })
+            .filter((node): node is SuggestedNode => node !== null);
+        } else {
+          setHydeFilteredNodes([]);
+          setIsSearchingHyde(false);
+          return;
+        }
+
+        if (
+          candidateNodesForHyde.length > 0 &&
+          uniqueRelationTypeTriplets.length > 0
+        ) {
           const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde({
             candidateNodes: candidateNodesForHyde,
             currentNodeText: tag,
             relationDetails: uniqueRelationTypeTriplets,
           });
-
           setHydeFilteredNodes(foundNodes);
-        } catch (error) {
-          console.error(
-            "Error during HyDE search operation in useEffect:",
-            error,
-          );
+        } else {
           setHydeFilteredNodes([]);
-        } finally {
-          setIsSearchingHyde(false);
         }
-      };
-      performSearch();
-    }
-  }, [selectedPage, results, validTypes, tag, uniqueRelationTypeTriplets]);
+      } catch (error) {
+        console.error(
+          "Error during HyDE search operation in useEffect:",
+          error,
+        );
+        setHydeFilteredNodes([]);
+      } finally {
+        setIsSearchingHyde(false);
+      }
+    };
+
+    performHydeSearch();
+  }, [
+    useAllPagesForSuggestions,
+    selectedPage,
+    allPages,
+    results,
+    validTypes,
+    tag,
+    tagUid,
+    uniqueRelationTypeTriplets,
+    discourseNode,
+    findDiscourseNode,
+    getAllReferencesOnPage,
+    getPageUidByPageTitle,
+  ]);
 
   const handleCreateBlock = async (node: SuggestedNode) => {
     await createBlock({
@@ -309,42 +359,90 @@ const DiscourseContextOverlay = ({
                 Add page to suggest relationships
               </label>
               <ControlGroup
-                className="flex gap-1"
+                className="flex items-center gap-2"
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  if (
+                    e.key === "Enter" &&
+                    currentPageInput &&
+                    !useAllPagesForSuggestions
+                  ) {
                     setSelectedPage(currentPageInput);
+                    setUseAllPagesForSuggestions(false);
                   }
                 }}
               >
                 <AutocompleteInput
                   value={currentPageInput}
-                  placeholder="Enter page name..."
+                  placeholder={
+                    useAllPagesForSuggestions
+                      ? "Using all pages for suggestions"
+                      : "Enter page name..."
+                  }
                   setValue={setCurrentPageInput}
                   options={allPages}
                   maxItemsDisplayed={50}
+                  disabled={useAllPagesForSuggestions}
                 />
-                <Button
-                  icon="tick"
-                  onClick={() => setSelectedPage(currentPageInput)}
-                  disabled={!currentPageInput}
-                  intent={selectedPage ? "success" : "none"}
-                />
+                <Tooltip
+                  content="Confirm page for suggestions"
+                  disabled={useAllPagesForSuggestions || !currentPageInput}
+                >
+                  <Button
+                    icon="tick"
+                    small
+                    onClick={() => {
+                      if (currentPageInput) {
+                        setSelectedPage(currentPageInput);
+                        setUseAllPagesForSuggestions(false);
+                      }
+                    }}
+                    disabled={!currentPageInput || useAllPagesForSuggestions}
+                    intent={
+                      selectedPage === currentPageInput &&
+                      !useAllPagesForSuggestions
+                        ? Intent.SUCCESS
+                        : Intent.NONE
+                    }
+                  />
+                </Tooltip>
+                <Tooltip content="Suggest relationships from all pages in your graph">
+                  <Button
+                    text="All Pages"
+                    icon="globe-network"
+                    small
+                    onClick={() => {
+                      setUseAllPagesForSuggestions(true);
+                      setSelectedPage(null);
+                      setCurrentPageInput("");
+                    }}
+                    intent={
+                      useAllPagesForSuggestions ? Intent.PRIMARY : Intent.NONE
+                    }
+                  />
+                </Tooltip>
               </ControlGroup>
             </div>
-            {selectedPage && (
+            {(selectedPage || useAllPagesForSuggestions) && (
               <div className="mt-6">
                 <h3 className="mb-2 text-base font-semibold">
                   Suggested Relationships
+                  {useAllPagesForSuggestions && " from All Pages"}
+                  {!useAllPagesForSuggestions &&
+                    selectedPage &&
+                    ` from "${selectedPage}"`}
                 </h3>
                 {isSearchingHyde && (
                   <Spinner size={Spinner.SIZE_SMALL} className="mb-2" />
                 )}
-                <ul className="space-y-2">
+                <ul className="space-y-1">
                   {!isSearchingHyde && hydeFilteredNodes.length > 0
                     ? hydeFilteredNodes.map((node) => (
-                        <li key={node.uid} className="">
+                        <li
+                          key={node.uid}
+                          className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-gray-100"
+                        >
                           <span
-                            className="cursor-pointer hover:underline"
+                            className="mr-2 cursor-pointer hover:underline"
                             onClick={(e) => {
                               if (e.shiftKey) {
                                 openBlockInSidebar(node.uid);
@@ -357,17 +455,24 @@ const DiscourseContextOverlay = ({
                           >
                             {node.text}
                           </span>
-                          <Button
-                            minimal
-                            icon="add"
-                            onClick={() => handleCreateBlock(node)}
-                            className="ml-2"
-                          />
+                          <Tooltip
+                            content={`Add "${node.text}" as a block reference`}
+                          >
+                            <Button
+                              minimal
+                              small
+                              icon="add"
+                              onClick={() => handleCreateBlock(node)}
+                              className="ml-2"
+                            />
+                          </Tooltip>
                         </li>
                       ))
                     : null}
                   {!isSearchingHyde && hydeFilteredNodes.length === 0 && (
-                    <li>No relevant relations found.</li>
+                    <li className="px-2 py-1.5 italic text-gray-500">
+                      No relevant relations found.
+                    </li>
                   )}
                 </ul>
               </div>
