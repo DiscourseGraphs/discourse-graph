@@ -1,74 +1,124 @@
-export type EmbeddingVector = number[];
-
 import { Result } from "./types";
 import { getNodeEnv } from "roamjs-components/util/env";
 
-export type CandidateNodeWithEmbedding = {
-  uid: string;
-  text: string;
+type ApiEmbeddingResponse = {
+  data: Array<{
+    embedding: number[];
+  }>;
+};
+
+type ApiSupabaseResultItem = {
+  roam_uid: string;
+  text_content: string;
+  similarity: number;
+};
+
+export type EmbeddingVectorType = number[];
+
+export type CandidateNodeWithEmbedding = Result & {
   type: string;
-  embedding: EmbeddingVector;
-  // Add any other specific properties from RoamJS 'Result' if they are used elsewhere
-  // with CandidateNodeWithEmbedding and do not cause type conflicts.
-  // For example: [key: string]: string | number | Date | undefined; (if necessary and compatible)
 };
 
 export type SuggestedNode = Result & {
   type: string;
 };
 
-export type RelationTriplet = [string, string, string];
+export type RelationDetails = {
+  relationLabel: string;
+  relatedNodeText: string;
+  relatedNodeFormat: string;
+};
 
-// --- INTERNAL TYPES (no longer exported) ---
-type HypotheticalNodeGenerator = (params: {
-  node: string;
-  relationType: RelationTriplet;
-}) => Promise<string>;
-
-type EmbeddingFunc = (text: string) => Promise<EmbeddingVector>;
-
-type HydeInternalSearchResultItem = {
+export type NodeSearchResult = {
   object: { uid: string; text: string };
   score: number;
 };
 
+type HypotheticalNodeGenerator = (params: {
+  node: string;
+  relationType: RelationDetails;
+}) => Promise<string>;
+
+type EmbeddingFunc = (text: string) => Promise<EmbeddingVectorType>;
+
 type SearchFunc = (params: {
-  queryEmbedding: EmbeddingVector;
-  indexData: CandidateNodeWithEmbedding[]; // Still uses exported CandidateNodeWithEmbedding
-}) => Promise<HydeInternalSearchResultItem[]>;
+  queryEmbedding: EmbeddingVectorType;
+  indexData: CandidateNodeWithEmbedding[];
+}) => Promise<NodeSearchResult[]>;
 
-// --- INTERNAL CONSTANTS (no longer exported) ---
-const ANTHROPIC_API_URL =
-  "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/llm/openai/chat";
-// "http://localhost:3000/api/llm/openai/chat";
-const ANTHROPIC_MODEL = "gpt-4.1";
-const ANTHROPIC_REQUEST_TIMEOUT_MS = 30_000;
-const MATCH_EMBEDDINGS_API_URL =
-  "/api/supabase/rpc/match-embeddings-for-subset-nodes"; // Relative path for client-side fetch
+const API_CONFIG = {
+  LLM: {
+    URL: "https://discoursegraphs.com/api/llm/openai/chat",
+    MODEL: "gpt-4.1",
+    TIMEOUT_MS: 30_000,
+    MAX_TOKENS: 104,
+    TEMPERATURE: 0.9,
+  },
+  BASE_URL: {
+    DEV: "http://localhost:3000",
+    PROD: "https://discoursegraphs.com",
+  },
+  EMBEDDINGS: {
+    PATH: "/api/embeddings/openai/small",
+  },
+  SUPABASE: {
+    MATCH_EMBEDDINGS_PATH:
+      "/api/supabase/rpc/match-embeddings-for-subset-nodes",
+  },
+} as const;
 
-// --- INTERNAL IMPLEMENTATIONS (no longer exported) ---
+const getBaseUrl = (): string => {
+  const isDevelopment = getNodeEnv() === "development";
+  return isDevelopment ? API_CONFIG.BASE_URL.DEV : API_CONFIG.BASE_URL.PROD;
+};
+
+const handleApiError = async (
+  response: Response,
+  context: string,
+): Promise<never> => {
+  const errorText = await response.text();
+  let errorData;
+  try {
+    errorData = JSON.parse(errorText);
+  } catch (e) {
+    errorData = { error: `Server responded with ${response.status}` };
+  }
+  console.error(
+    `${context} failed with status ${response.status}. Error:`,
+    errorData,
+  );
+  throw new Error(
+    errorData.error ||
+      `${context} failed with status ${response.status}. Response: ${errorText}`,
+  );
+};
 
 const generateHypotheticalNode: HypotheticalNodeGenerator = async ({
   node,
   relationType,
 }) => {
-  const [relationLabel, relatedNodeText, relatedNodeFormat] = relationType;
+  const { relationLabel, relatedNodeText, relatedNodeFormat } = relationType;
 
-  const userPromptContent = `Given the source discourse node \\\`\\\`\\\`${node}\\\`\\\`\\\`, \nand considering the relation \\\`\\\`\\\`${relationLabel}\\\`\\\`\\\` \nwhich typically connects to a node of type \\\`\\\`\\\`${relatedNodeText}\\\`\\\`\\\` \n(formatted like \\\`\\\`\\\`${relatedNodeFormat}\\\`\\\`\\\`), \ngenerate a hypothetical related discourse node text that would plausibly fit this relationship. \nOnly return the text of the hypothetical node.`;
+  const userPromptContent = `Given the source discourse node \`\`\`${node}\`\`\`, 
+and considering the relation \`\`\`${relationLabel}\`\`\` 
+which typically connects to a node of type \`\`\`${relatedNodeText}\`\`\` 
+(formatted like \`\`\`${relatedNodeFormat}\`\`\`), 
+generate a hypothetical related discourse node text that would plausibly fit this relationship. 
+Only return the text of the hypothetical node.`;
   const requestBody = {
     documents: [{ role: "user", content: userPromptContent }],
     passphrase: "",
     settings: {
-      model: ANTHROPIC_MODEL,
-      maxTokens: 104,
-      temperature: 0.9,
+      model: API_CONFIG.LLM.MODEL,
+      maxTokens: API_CONFIG.LLM.MAX_TOKENS,
+      temperature: API_CONFIG.LLM.TEMPERATURE,
     },
   };
 
   let response: Response | null = null;
   try {
-    const signal = AbortSignal.timeout(ANTHROPIC_REQUEST_TIMEOUT_MS);
-    response = await fetch(ANTHROPIC_API_URL, {
+    const signal = AbortSignal.timeout(API_CONFIG.LLM.TIMEOUT_MS);
+    response = await fetch(API_CONFIG.LLM.URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -78,107 +128,66 @@ const generateHypotheticalNode: HypotheticalNodeGenerator = async ({
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        `Claude API request failed with status ${response.status}. Response Text: ${errorText}`,
-      );
-      throw new Error(
-        `Claude API request failed with status ${response.status}: ${errorText.substring(0, 500)}`,
-      );
+      await handleApiError(response, "Hypothetical node generation");
     }
 
     return await response.text();
-  } catch (error) {
+  } catch (error: unknown) {
     if (
       error instanceof Error &&
       (error.name === "AbortError" || error.name === "TimeoutError")
     ) {
-      console.error(
-        "Error during fetch for Claude API: Request timed out",
-        error,
-      );
+      console.error("Hypothetical node generation timed out", error);
       return `Error: Failed to generate hypothetical node. Request timed out.`;
     }
-    console.error("Error during fetch for Claude API:", error);
+    console.error("Hypothetical node generation failed:", error);
     return `Error: Failed to generate hypothetical node. ${
       error instanceof Error ? error.message : String(error)
     }`;
   }
 };
 
-const createEmbeddingForTextWithThrow: EmbeddingFunc = async (
+const createEmbedding: EmbeddingFunc = async (
   text: string,
-): Promise<EmbeddingVector> => {
+): Promise<EmbeddingVectorType> => {
   if (!text.trim()) throw new Error("Input text for embedding is empty.");
-  const isDevelopment = getNodeEnv() === "development";
-  const apiUrl =
-    "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/embeddings/openai/small";
-  // isDevelopment
-  //   ? "http://localhost:3000/api/embeddings/openai/small"
-  //   :
-  // : "https://discoursegraphs.com/api/embeddings/openai/small";
+
+  const apiUrl = `${getBaseUrl()}${API_CONFIG.EMBEDDINGS.PATH}`;
+
   try {
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ input: text }),
     });
+
     if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ error: `Server responded with ${response.status}` }));
-      throw new Error(
-        errorData.error || `Embedding API Error (${response.status})`,
-      );
+      await handleApiError(response, "Embedding creation");
     }
-    const data = await response.json();
+
+    const data = (await response.json()) as ApiEmbeddingResponse;
     if (!data?.data?.[0]?.embedding) {
       throw new Error("Invalid API response format from embedding service.");
     }
     return data.data[0].embedding;
-  } catch (error) {
-    console.error("Error in createEmbeddingForTextWithThrow:", error);
+  } catch (error: unknown) {
+    console.error("Error creating embedding:", error);
     throw error;
   }
 };
 
-const searchEmbeddingsInNodeSubsetViaAPI: SearchFunc = async ({
+const searchEmbeddings: SearchFunc = async ({
   queryEmbedding,
   indexData,
-}): Promise<HydeInternalSearchResultItem[]> => {
-  console.log("[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Started", {
-    queryEmbedding: queryEmbedding?.length,
-    indexDataCount: indexData?.length,
-  });
-  const subsetRoamUids = indexData.map((node) => node.uid);
-
-  if (queryEmbedding.length === 0) {
-    console.log(
-      "[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: No query embedding provided. Exiting.",
-    );
+}): Promise<NodeSearchResult[]> => {
+  if (!indexData?.length) {
     return [];
   }
-  // Allow searching with an embedding even if subsetRoamUids is empty, the backend will handle it.
-  // if (subsetRoamUids.length === 0) {
-  //   console.log("[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: No subsetRoamUids to search against. Exiting.");
-  //   return [];
-  // }
 
-  const isDevelopment = getNodeEnv() === "development";
-  const baseUrl =
-    "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app";
-  // isDevelopment
-  //   ? "http://localhost:3000"
-  // : "https://discoursegraphs.com";
-  const fullApiUrl = `${baseUrl}${MATCH_EMBEDDINGS_API_URL}`;
-  console.log(
-    `[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Determined API URL: ${fullApiUrl}`,
-  );
+  const subsetRoamUids = indexData.map((node) => node.uid);
+  const fullApiUrl = `${getBaseUrl()}${API_CONFIG.SUPABASE.MATCH_EMBEDDINGS_PATH}`;
 
   try {
-    console.log(
-      `[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Calling fetch to ${fullApiUrl} with queryEmbedding length ${queryEmbedding?.length} and ${subsetRoamUids?.length} UIDs.`,
-    );
     const response = await fetch(fullApiUrl, {
       method: "POST",
       headers: {
@@ -190,122 +199,83 @@ const searchEmbeddingsInNodeSubsetViaAPI: SearchFunc = async ({
       }),
     });
 
-    console.log(
-      `[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Fetch response status: ${response.status}, ok: ${response.ok}`,
-    );
-
     if (!response.ok) {
-      let errorData;
-      const responseText = await response.text(); // Get text for better error logging
-      try {
-        errorData = JSON.parse(responseText); // Try to parse as JSON
-      } catch (e) {
-        errorData = {
-          error: `API Error (${response.status}): ${responseText}`,
-        };
-      }
-      console.error(
-        `[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: API request failed to ${fullApiUrl}. Status: ${response.status}. Error Data:`,
-        errorData,
-      );
-      throw new Error(
-        errorData.error ||
-          `API request failed with status ${response.status}. Response: ${responseText}`,
-      );
+      await handleApiError(response, "Embedding search");
     }
 
     const results = await response.json();
-    console.log(
-      "[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Received results from API:",
-      results,
-    );
 
     if (!Array.isArray(results)) {
-      console.error(
-        "[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: API response was not an array.",
-        results,
-      );
+      console.error("Embedding search response was not an array:", results);
       throw new Error("Invalid API response format: Expected an array.");
     }
 
-    const mappedResults = results.map((item: any) => ({
+    const mappedResults = results.map((item: ApiSupabaseResultItem) => ({
       object: { uid: item.roam_uid, text: item.text_content },
       score: item.similarity,
     }));
-    console.log(
-      "[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Mapped results:",
-      mappedResults,
-    );
     return mappedResults;
-  } catch (e: any) {
+  } catch (error: unknown) {
+    let errorMessage = `Embedding search failed for ${fullApiUrl}.`;
+    let errorStack;
+    if (error instanceof Error) {
+      errorMessage += ` Message: ${error.message}`;
+      errorStack = error.stack;
+    } else {
+      errorMessage += ` Error: ${String(error)}`;
+    }
     console.error(
-      `[HyDE Roam] searchEmbeddingsInNodeSubsetViaAPI: Exception calling ${fullApiUrl}:`,
-      e.message,
-      e.stack,
+      `Embedding search exception:`,
+      errorMessage,
+      errorStack && `Stack: ${errorStack}`,
     );
     return [];
   }
 };
 
-// --- Internal Helper Functions (not exported) ---
-
-async function searchAgainstCandidatesInternal({
+const searchAgainstCandidates = async ({
   hypotheticalTexts,
   indexData,
 }: {
   hypotheticalTexts: string[];
   indexData: CandidateNodeWithEmbedding[];
-}): Promise<HydeInternalSearchResultItem[][]> {
-  console.log("[HyDE Roam] searchAgainstCandidatesInternal: Started", {
-    hypotheticalTextsCount: hypotheticalTexts?.length,
-    indexDataCount: indexData?.length,
-  });
+}): Promise<NodeSearchResult[][]> => {
+  if (!hypotheticalTexts?.length || !indexData?.length) {
+    return [];
+  }
+
   const results = await Promise.all(
-    hypotheticalTexts.map(async (hypoText, index) => {
-      console.log(
-        `[HyDE Roam] searchAgainstCandidatesInternal: Processing hypothetical text ${index + 1}: "${hypoText}"`,
-      );
+    hypotheticalTexts.map(async (hypoText) => {
       try {
-        const queryEmbedding = await createEmbeddingForTextWithThrow(hypoText);
-        console.log(
-          `[HyDE Roam] searchAgainstCandidatesInternal: Generated embedding for text ${index + 1}, length: ${queryEmbedding?.length}`,
-        );
-        console.log(
-          "[HyDE Roam] searchAgainstCandidatesInternal: Calling searchEmbeddingsInNodeSubsetViaAPI with indexData count:",
-          indexData?.length,
-        );
-        const searchResult = await searchEmbeddingsInNodeSubsetViaAPI({
+        const queryEmbedding = await createEmbedding(hypoText);
+        return await searchEmbeddings({
           queryEmbedding,
           indexData,
         });
-        console.log(
-          `[HyDE Roam] searchAgainstCandidatesInternal: Search result for text ${index + 1}:`,
-          searchResult,
-        );
-        return searchResult;
-      } catch (error: any) {
+      } catch (error: unknown) {
+        let errorMessage = `Search failed for hypothetical text "${hypoText}".`;
+        let errorStack;
+        if (error instanceof Error) {
+          errorMessage += ` Message: ${error.message}`;
+          errorStack = error.stack;
+        } else {
+          errorMessage += ` Error: ${String(error)}`;
+        }
         console.error(
-          `[HyDE Roam] searchAgainstCandidatesInternal: Error searching for "${hypoText}":`,
-          error.message,
-          error.stack,
+          `Search exception:`,
+          errorMessage,
+          errorStack && `Stack: ${errorStack}`,
         );
         return [];
       }
     }),
   );
-  console.log(
-    "[HyDE Roam] searchAgainstCandidatesInternal: All search results:",
-    results,
-  );
   return results;
-}
+};
 
-function combineScoresInternal(
-  allSearchResults: HydeInternalSearchResultItem[][],
-): Map<string, number> {
-  console.log("[HyDE Roam] combineScoresInternal: Started", {
-    allSearchResultsCount: allSearchResults?.length,
-  });
+const combineScores = (
+  allSearchResults: NodeSearchResult[][],
+): Map<string, number> => {
   const maxScores = new Map<string, number>();
   allSearchResults.forEach((resultSet) => {
     resultSet.forEach((result) => {
@@ -315,21 +285,20 @@ function combineScoresInternal(
       }
     });
   });
-  console.log("[HyDE Roam] combineScoresInternal: Combined scores:", maxScores);
   return maxScores;
-}
+};
 
-function rankNodesInternal({
+const rankNodes = ({
   maxScores,
   candidateNodes,
 }: {
   maxScores: Map<string, number>;
   candidateNodes: CandidateNodeWithEmbedding[];
-}): SuggestedNode[] {
-  console.log("[HyDE Roam] rankNodesInternal: Started", {
-    maxScoresSize: maxScores?.size,
-    candidateNodesCount: candidateNodes?.length,
-  });
+}): SuggestedNode[] => {
+  if (!candidateNodes?.length) {
+    return [];
+  }
+
   const nodeMap = new Map<string, CandidateNodeWithEmbedding>(
     candidateNodes.map((node) => [node.uid, node]),
   );
@@ -338,94 +307,65 @@ function rankNodesInternal({
   maxScores.forEach((score, uid) => {
     const fullNode = nodeMap.get(uid);
     if (fullNode) {
-      const suggestedNodeObject: SuggestedNode = {
-        ...(fullNode as Omit<CandidateNodeWithEmbedding, "embedding">),
-        uid: fullNode.uid,
-        text: fullNode.text,
-        type: fullNode.type,
-      };
-      combinedResults.push({ node: suggestedNodeObject, score });
+      combinedResults.push({ node: fullNode, score });
     }
   });
 
   combinedResults.sort((a, b) => b.score - a.score);
-  const rankedNodes = combinedResults.map((item) => item.node);
-  console.log("[HyDE Roam] rankNodesInternal: Ranked nodes:", rankedNodes);
-  return rankedNodes;
-}
+  return combinedResults.map((item) => item.node);
+};
 
-// --- EXPORTED PUBLIC API ---
 export const findSimilarNodesUsingHyde = async ({
   candidateNodes,
   currentNodeText,
-  relationTriplets,
+  relationDetails,
 }: {
   candidateNodes: CandidateNodeWithEmbedding[];
   currentNodeText: string;
-  relationTriplets: RelationTriplet[];
+  relationDetails: RelationDetails[];
 }): Promise<SuggestedNode[]> => {
-  console.log("[HyDE Roam] findSimilarNodesUsingHyde: Started", {
-    candidateNodesCount: candidateNodes?.length,
-    currentNodeText,
-    relationTriplets,
-  });
-  if (!candidateNodes?.length) {
-    console.log(
-      "[HyDE Roam] findSimilarNodesUsingHyde: No candidate nodes. Exiting.",
-    );
+  if (
+    !candidateNodes?.length ||
+    !currentNodeText?.trim() ||
+    !relationDetails?.length
+  ) {
     return [];
   }
 
   try {
     const hypotheticalTexts = (
       await Promise.all(
-        relationTriplets.map((relationType) =>
+        relationDetails.map((relationType) =>
           generateHypotheticalNode({ node: currentNodeText, relationType }),
         ),
       )
     ).filter((text) => !text.startsWith("Error:"));
-    console.log(
-      "[HyDE Roam] findSimilarNodesUsingHyde: Generated hypothetical texts:",
-      hypotheticalTexts,
-    );
 
     if (!hypotheticalTexts.length) {
-      console.warn(
-        "[HyDE Roam] findSimilarNodesUsingHyde: No valid hypothetical nodes generated. Exiting.",
-      );
+      console.warn("No valid hypothetical nodes were generated. Exiting.");
       return [];
     }
 
-    console.log(
-      "[HyDE Roam] findSimilarNodesUsingHyde: Calling searchAgainstCandidatesInternal.",
-    );
-    const allSearchResults = await searchAgainstCandidatesInternal({
+    const allSearchResults = await searchAgainstCandidates({
       hypotheticalTexts,
       indexData: candidateNodes,
     });
-    console.log(
-      "[HyDE Roam] findSimilarNodesUsingHyde: Received allSearchResults:",
-      allSearchResults,
-    );
 
-    const maxScores = combineScoresInternal(allSearchResults);
-    console.log(
-      "[HyDE Roam] findSimilarNodesUsingHyde: Calculated maxScores:",
-      maxScores,
-    );
-
-    const rankedNodes = rankNodesInternal({ maxScores, candidateNodes });
-    console.log(
-      "[HyDE Roam] findSimilarNodesUsingHyde: Final rankedNodes:",
-      rankedNodes,
-    );
-
-    return rankedNodes;
-  } catch (error: any) {
+    const maxScores = combineScores(allSearchResults);
+    return rankNodes({ maxScores, candidateNodes });
+  } catch (error: unknown) {
+    let errorMessage = "Failed to find similar nodes.";
+    let errorStack;
+    if (error instanceof Error) {
+      errorMessage += ` Message: ${error.message}`;
+      errorStack = error.stack;
+    } else {
+      errorMessage += ` Error: ${String(error)}`;
+    }
     console.error(
-      "[HyDE Roam] findSimilarNodesUsingHyde: Error in main function:",
-      error.message,
-      error.stack,
+      "Similar nodes search exception:",
+      errorMessage,
+      errorStack && `Stack: ${errorStack}`,
     );
     return [];
   }

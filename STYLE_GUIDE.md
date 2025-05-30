@@ -85,7 +85,6 @@ const processData = (data: Data) => {
   const transformedData = transformToDesiredFormat(validatedData);
   return formatForDisplay(transformedData);
 };
-
 ```
 
 ## Testing

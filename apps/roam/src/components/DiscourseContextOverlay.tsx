@@ -28,12 +28,7 @@ import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import { Result } from "roamjs-components/types/query-builder";
 import createBlock from "roamjs-components/writes/createBlock";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
-import {
-  findSimilarNodesUsingHyde,
-  SuggestedNode,
-  RelationTriplet,
-  CandidateNodeWithEmbedding,
-} from "~/utils/hyde";
+import { SuggestedNode, RelationDetails } from "~/utils/hyde";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -94,70 +89,6 @@ const getAllReferencesOnPage = (pageTitle: string) => {
   })) as Result[];
 };
 
-type Relation = {
-  label: string;
-  source: string;
-  destination: string;
-};
-
-type DiscourseNodeInfo = {
-  format: string;
-  text: string;
-  type: string;
-  [key: string]: any;
-};
-
-const getUniqueLabelTypeTriplets = (
-  relations: Relation[],
-  selfType: string,
-): [string, string, string][] => {
-  const uniquePairStrings = new Set<string>();
-  const separator = "::";
-
-  const allNodes = getDiscourseNodes();
-  const nodeMapByType = new Map<string, DiscourseNodeInfo>();
-  allNodes.forEach((node) => {
-    const discourseNode = node as DiscourseNodeInfo;
-    if (discourseNode.type) {
-      nodeMapByType.set(discourseNode.type, discourseNode);
-    }
-  });
-
-  for (const relation of relations) {
-    if (relation.label && relation.source && relation.source !== selfType) {
-      uniquePairStrings.add(`${relation.label}${separator}${relation.source}`);
-    }
-    if (
-      relation.label &&
-      relation.destination &&
-      relation.destination !== selfType
-    ) {
-      uniquePairStrings.add(
-        `${relation.label}${separator}${relation.destination}`,
-      );
-    }
-  }
-
-  const uniqueTriplets: [string, string, string][] = [];
-  Array.from(uniquePairStrings).forEach((pairString) => {
-    const parts = pairString.split(separator);
-    const label = parts[0];
-    const typeIdentifier = parts[1];
-
-    const node = nodeMapByType.get(typeIdentifier);
-
-    if (node) {
-      uniqueTriplets.push([label, node.text, node.format]);
-    } else {
-      console.warn(
-        `Discourse node type "${typeIdentifier}" not found for relation label "${label}".`,
-      );
-    }
-  });
-
-  return uniqueTriplets;
-};
-
 const DiscourseContextOverlay = ({
   tag,
   id,
@@ -174,13 +105,13 @@ const DiscourseContextOverlay = ({
   const [refs, setRefs] = useState(0);
   const [score, setScore] = useState<number | string>(0);
   const [isSearchingHyde, setIsSearchingHyde] = useState(false);
-  const [suggestedNodes, setSuggestedNodes] = useState<SuggestedNode[]>([]);
   const [hydeFilteredNodes, setHydeFilteredNodes] = useState<SuggestedNode[]>(
     [],
   );
 
   const discourseNode = useMemo(() => findDiscourseNode(tagUid), [tagUid]);
   const relations = useMemo(() => getDiscourseRelations(), []);
+  const allNodes = useMemo(() => getDiscourseNodes(), []);
 
   const getInfo = useCallback(
     () =>
@@ -214,19 +145,58 @@ const DiscourseContextOverlay = ({
     getInfo();
   }, [refresh, getInfo]);
 
-  // Suggestive Mode
-  const memoizedData = useMemo(() => {
-    if (!discourseNode)
-      return {
-        validTypes: [] as string[],
-        uniqueRelationTypeTriplets: [] as [string, string, string][],
-      };
+  const validRelations = useMemo(() => {
+    if (!discourseNode) return [];
     const selfType = discourseNode.type;
-    const validRelations = relations.filter((relation) =>
-      [relation.source, relation.destination, relation.label].includes(
-        selfType,
-      ),
+
+    return relations.filter(
+      (relation) =>
+        relation.source === selfType || relation.destination === selfType,
     );
+  }, [relations, discourseNode]);
+
+  const uniqueRelationTypeTriplets = useMemo(() => {
+    if (!discourseNode) return [];
+    const relatedNodeType = discourseNode.type;
+
+    return validRelations.flatMap((relation) => {
+      const isSelfSource = relation.source === relatedNodeType;
+      const isSelfDestination = relation.destination === relatedNodeType;
+
+      let targetNodeType: string;
+      let currentRelationLabel: string;
+
+      if (isSelfSource) {
+        targetNodeType = relation.destination;
+        currentRelationLabel = relation.label;
+      } else if (isSelfDestination) {
+        targetNodeType = relation.source;
+        currentRelationLabel = relation.complement;
+      } else {
+        return [];
+      }
+
+      const identifiedTargetNode = allNodes.find(
+        (node) => node.type === targetNodeType,
+      );
+
+      if (!identifiedTargetNode) {
+        return [];
+      }
+
+      const mappedItem: RelationDetails = {
+        relationLabel: currentRelationLabel,
+        relatedNodeText: identifiedTargetNode.text,
+        relatedNodeFormat: identifiedTargetNode.format,
+      };
+      return [mappedItem];
+    });
+  }, [validRelations, discourseNode, allNodes]);
+
+  const validTypes = useMemo(() => {
+    if (!discourseNode) return [];
+    const selfType = discourseNode.type;
+
     const hasSelfRelation = validRelations.some(
       (relation) =>
         relation.source === selfType && relation.destination === selfType,
@@ -239,18 +209,8 @@ const DiscourseContextOverlay = ({
         ]),
       ),
     );
-    const filteredTypes = hasSelfRelation
-      ? types
-      : types.filter((type) => type !== selfType);
-
-    const uniqueTriplets = getUniqueLabelTypeTriplets(validRelations, selfType);
-    return {
-      validTypes: filteredTypes,
-      uniqueRelationTypeTriplets: uniqueTriplets,
-    };
-  }, [discourseNode, relations]);
-
-  const { validTypes, uniqueRelationTypeTriplets } = memoizedData;
+    return hasSelfRelation ? types : types.filter((type) => type !== selfType);
+  }, [discourseNode, validRelations]);
 
   const [currentPageInput, setCurrentPageInput] = useState("");
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
@@ -261,7 +221,6 @@ const DiscourseContextOverlay = ({
 
   useEffect(() => {
     if (!selectedPage) {
-      setSuggestedNodes([]);
       setHydeFilteredNodes([]);
       return;
     }
@@ -285,62 +244,67 @@ const DiscourseContextOverlay = ({
           ),
       );
 
-    setSuggestedNodes(nodes);
-
     if (nodes.length > 0 && uniqueRelationTypeTriplets.length > 0) {
-      runHydeSearch(nodes, tag, uniqueRelationTypeTriplets);
+      const performSearch = async () => {
+        setIsSearchingHyde(true);
+        setHydeFilteredNodes([]);
+        try {
+          const candidateNodesForHyde = nodes.map((node) => ({
+            uid: node.uid,
+            text: node.text,
+            type: node.type,
+          }));
+
+          // TODO: Remove this once the HyDE search is working
+          const foundNodes: SuggestedNode[] =
+            await tempFindSimilarNodesUsingHyde({
+              candidateNodes: candidateNodesForHyde,
+              currentNodeText: tag,
+              relationDetails: uniqueRelationTypeTriplets,
+            });
+
+          // TODO: Uncomment this once the HyDE search is working
+          // const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde({
+          //   candidateNodes: candidateNodesForHyde,
+          //   currentNodeText: tag,
+          //   relationDetails: uniqueRelationTypeTriplets,
+          // });
+
+          setHydeFilteredNodes(foundNodes);
+        } catch (error) {
+          console.error(
+            "Error during HyDE search operation in useEffect:",
+            error,
+          );
+          setHydeFilteredNodes([]);
+        } finally {
+          setIsSearchingHyde(false);
+        }
+      };
+      performSearch();
     }
   }, [selectedPage, results, validTypes, tag, uniqueRelationTypeTriplets]);
 
-  const handleCreateBlock = async (nodeText: string) => {
-    await createBlock({
-      parentUid: blockUid,
-      node: { text: `[[${nodeText}]]` },
-    });
+  // TODO: Remove this once the HyDE search is working
+  const tempFindSimilarNodesUsingHyde = async ({
+    candidateNodes,
+    currentNodeText,
+    relationDetails,
+  }: {
+    candidateNodes: SuggestedNode[];
+    currentNodeText: string;
+    relationDetails: RelationDetails[];
+  }): Promise<SuggestedNode[]> => {
+    console.log("running stub for hyde search", candidateNodes);
+    return candidateNodes;
   };
 
-  const runHydeSearch = async (
-    currentSuggestions: SuggestedNode[],
-    currentNodeText: string,
-    relationTriplets: RelationTriplet[],
-  ) => {
-    if (
-      !currentSuggestions.length ||
-      !currentNodeText ||
-      !relationTriplets.length
-    ) {
-      setHydeFilteredNodes([]);
-      return;
-    }
-
-    setIsSearchingHyde(true);
-    setHydeFilteredNodes([]);
-
-    try {
-      const candidateNodesForHyde: CandidateNodeWithEmbedding[] =
-        currentSuggestions.map((node) => ({
-          uid: node.uid,
-          text: node.text,
-          type: node.type,
-          embedding: [],
-        }));
-
-      const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde({
-        candidateNodes: candidateNodesForHyde,
-        currentNodeText: currentNodeText,
-        relationTriplets: relationTriplets,
-      });
-
-      setHydeFilteredNodes(foundNodes);
-    } catch (error) {
-      console.error(
-        "Error during HyDE search with default RPC subset search:",
-        error,
-      );
-      setHydeFilteredNodes([]);
-    } finally {
-      setIsSearchingHyde(false);
-    }
+  const handleCreateBlock = async (node: SuggestedNode) => {
+    await createBlock({
+      parentUid: blockUid,
+      node: { text: `[[${node.text}]]` },
+    });
+    setHydeFilteredNodes(hydeFilteredNodes.filter((n) => n.uid !== node.uid));
   };
 
   return (
@@ -388,7 +352,7 @@ const DiscourseContextOverlay = ({
             {selectedPage && (
               <div className="mt-6">
                 <h3 className="mb-2 text-base font-semibold">
-                  Suggested Relationships (Ranked by HyDE)
+                  Suggested Relationships
                 </h3>
                 {isSearchingHyde && (
                   <Spinner size={Spinner.SIZE_SMALL} className="mb-2" />
@@ -401,14 +365,14 @@ const DiscourseContextOverlay = ({
                           <Button
                             minimal
                             icon="add"
-                            onClick={() => handleCreateBlock(node.text)}
+                            onClick={() => handleCreateBlock(node)}
                             className="ml-2"
                           />
                         </li>
                       ))
                     : null}
                   {!isSearchingHyde && hydeFilteredNodes.length === 0 && (
-                    <li>No relevant relations found using HyDE.</li>
+                    <li>No relevant relations found.</li>
                   )}
                 </ul>
               </div>
@@ -420,9 +384,7 @@ const DiscourseContextOverlay = ({
         <Button
           small
           id={id}
-          className={`roamjs-discourse-context-overlay ${
-            loading ? "animate-pulse" : ""
-          }`}
+          className={"roamjs-discourse-context-overlay"}
           style={{
             minHeight: "initial",
             paddingTop: ".25rem",
@@ -433,9 +395,9 @@ const DiscourseContextOverlay = ({
         >
           <div className="flex items-center gap-1.5">
             <Icon icon={"diagram-tree"} />
-            <span className="mr-1 leading-none">{loading ? "-" : score}</span>
+            <span className="mr-1 leading-none">{score}</span>
             <Icon icon={"link"} />
-            <span className="leading-none">{loading ? "-" : refs}</span>
+            <span className="leading-none">{refs}</span>
           </div>
         </Button>
       }
@@ -464,9 +426,9 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
     >
       <div className="flex items-center gap-1.5">
         <Icon icon={"diagram-tree"} />
-        <span className="mr-1">-</span>
+        <span className="mr-1">0</span>
         <Icon icon={"link"} />
-        <span>-</span>
+        <span>0</span>
       </div>
     </Button>
   );
