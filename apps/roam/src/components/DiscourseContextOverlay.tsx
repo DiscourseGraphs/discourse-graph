@@ -28,7 +28,12 @@ import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import { Result } from "roamjs-components/types/query-builder";
 import createBlock from "roamjs-components/writes/createBlock";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
-import { SuggestedNode, RelationDetails } from "~/utils/hyde";
+import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
+import {
+  SuggestedNode,
+  RelationDetails,
+  findSimilarNodesUsingHyde,
+} from "~/utils/hyde";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -255,20 +260,11 @@ const DiscourseContextOverlay = ({
             type: node.type,
           }));
 
-          // TODO: Remove this once the HyDE search is working
-          const foundNodes: SuggestedNode[] =
-            await tempFindSimilarNodesUsingHyde({
-              candidateNodes: candidateNodesForHyde,
-              currentNodeText: tag,
-              relationDetails: uniqueRelationTypeTriplets,
-            });
-
-          // TODO: Uncomment this once the HyDE search is working
-          // const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde({
-          //   candidateNodes: candidateNodesForHyde,
-          //   currentNodeText: tag,
-          //   relationDetails: uniqueRelationTypeTriplets,
-          // });
+          const foundNodes: SuggestedNode[] = await findSimilarNodesUsingHyde({
+            candidateNodes: candidateNodesForHyde,
+            currentNodeText: tag,
+            relationDetails: uniqueRelationTypeTriplets,
+          });
 
           setHydeFilteredNodes(foundNodes);
         } catch (error) {
@@ -284,20 +280,6 @@ const DiscourseContextOverlay = ({
       performSearch();
     }
   }, [selectedPage, results, validTypes, tag, uniqueRelationTypeTriplets]);
-
-  // TODO: Remove this once the HyDE search is working
-  const tempFindSimilarNodesUsingHyde = async ({
-    candidateNodes,
-    currentNodeText,
-    relationDetails,
-  }: {
-    candidateNodes: SuggestedNode[];
-    currentNodeText: string;
-    relationDetails: RelationDetails[];
-  }): Promise<SuggestedNode[]> => {
-    console.log("running stub for hyde search", candidateNodes);
-    return candidateNodes;
-  };
 
   const handleCreateBlock = async (node: SuggestedNode) => {
     await createBlock({
@@ -361,7 +343,20 @@ const DiscourseContextOverlay = ({
                   {!isSearchingHyde && hydeFilteredNodes.length > 0
                     ? hydeFilteredNodes.map((node) => (
                         <li key={node.uid} className="">
-                          <span>{node.text}</span>
+                          <span
+                            className="cursor-pointer hover:underline"
+                            onClick={(e) => {
+                              if (e.shiftKey) {
+                                openBlockInSidebar(node.uid);
+                              } else {
+                                window.roamAlphaAPI.ui.mainWindow.openPage({
+                                  page: { uid: node.uid },
+                                });
+                              }
+                            }}
+                          >
+                            {node.text}
+                          </span>
                           <Button
                             minimal
                             icon="add"
