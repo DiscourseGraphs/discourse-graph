@@ -78,7 +78,7 @@ async function batchInsertContent(
 
   const { data: newContents, error: insertError } = await supabase
     .from("Content")
-    .upsert(processedContentItems) // Use the validated and processed items
+    .insert(processedContentItems) // Use the validated and processed items
     .select(); // Select all columns of the inserted rows, including the 'id'
 
   if (insertError) {

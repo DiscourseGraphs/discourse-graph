@@ -68,7 +68,7 @@ const initEmbeddingSync = async () => {
 
     if (lastUpdateTime === null) {
       console.log(
-        "Discourse Graph: No previous sync found, running full embedding process...",
+        "Discourse Graph: No previous sync found, run embedding process from discourse graph settings menu",
       );
     } else {
       console.log(

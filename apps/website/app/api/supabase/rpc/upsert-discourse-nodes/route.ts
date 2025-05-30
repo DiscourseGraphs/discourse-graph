@@ -45,13 +45,6 @@ export async function POST(request: NextRequest) {
       );
       return cors(request, response) as NextResponse;
     }
-    if (!body.p_user_name) {
-      response = NextResponse.json(
-        { error: "Missing required field: p_user_name" },
-        { status: 400 },
-      );
-      return cors(request, response) as NextResponse;
-    }
     if (!body.p_nodes || !Array.isArray(body.p_nodes)) {
       response = NextResponse.json(
         { error: "Missing required field: p_nodes (must be an array)" },
@@ -60,18 +53,8 @@ export async function POST(request: NextRequest) {
       return cors(request, response) as NextResponse;
     }
 
-    // Set defaults for optional parameters
-    const platformName = body.p_platform_name || "roamresearch";
-    const platformUrl = body.p_platform_url || "https://roamresearch.com";
-    const spaceUrl =
-      body.p_space_url || `https://roamresearch.com/#/app/${body.p_space_name}`;
-    const agentType = body.p_agent_type || "Person";
-    const contentScale = body.p_content_scale || "chunk_unit";
-    const embeddingModel =
-      body.p_embedding_model || "openai_text_embedding_3_small_1536";
-
     console.log(
-      `Upserting ${body.p_nodes.length} discourse nodes for ${platformName} space: ${body.p_space_name}`,
+      `Upserting ${body.p_nodes.length} discourse nodes for space: ${body.p_space_name}`,
     );
 
     // Call the Supabase function

@@ -106,7 +106,6 @@ export async function upsertDiscourseNodes(lastUpdateTime: string) {
       const requestBody = {
         p_space_name: graphName,
         p_user_email: userEmail,
-        p_user_name: userName,
         p_nodes: batch.map((node, indexInBatch) => {
           const embeddingVector = embeddingResults[i + indexInBatch].vector;
           return {
