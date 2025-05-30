@@ -7,6 +7,8 @@ import {
   ControlGroup,
   Spinner,
   Intent,
+  Tag,
+  Divider,
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
@@ -116,7 +118,9 @@ const DiscourseContextOverlay = ({
   );
   const [useAllPagesForSuggestions, setUseAllPagesForSuggestions] =
     useState(false);
-  const [selectedPage, setSelectedPage] = useState<string | null>(null);
+  const [selectedPages, setSelectedPages] = useState<string[]>([]);
+  const [searchNonce, setSearchNonce] = useState(0);
+  const [autocompleteKey, setAutocompleteKey] = useState(0);
 
   const discourseNode = useMemo(() => findDiscourseNode(tagUid), [tagUid]);
   const relations = useMemo(() => getDiscourseRelations(), []);
@@ -225,13 +229,18 @@ const DiscourseContextOverlay = ({
   const allPages = useMemo(() => getAllPageNames(), []);
 
   useEffect(() => {
-    if (selectedPage && currentPageInput !== selectedPage) {
-      setSelectedPage(null);
-    }
-  }, [currentPageInput, selectedPage]);
+    setHydeFilteredNodes([]);
+    setIsSearchingHyde(false);
+  }, [selectedPages, useAllPagesForSuggestions]);
 
   useEffect(() => {
     const performHydeSearch = async () => {
+      if (!useAllPagesForSuggestions && selectedPages.length === 0) {
+        setHydeFilteredNodes([]);
+        setIsSearchingHyde(false);
+        return;
+      }
+
       if (!discourseNode) {
         setHydeFilteredNodes([]);
         return;
@@ -265,9 +274,26 @@ const DiscourseContextOverlay = ({
               return { uid: pageUid, text: pageName, type: node.type };
             })
             .filter((node): node is SuggestedNode => node !== null);
-        } else if (selectedPage) {
-          const nodesOnPage = getAllReferencesOnPage(selectedPage);
-          candidateNodesForHyde = nodesOnPage
+        } else if (selectedPages.length > 0 && !useAllPagesForSuggestions) {
+          let allReferencedNodesFromSelectedPages: {
+            uid: string;
+            text: string;
+          }[] = [];
+          for (const pageName of selectedPages) {
+            const nodesOnThisPage = getAllReferencesOnPage(pageName);
+            allReferencedNodesFromSelectedPages.push(...nodesOnThisPage);
+          }
+
+          const uniqueReferencedNodes = Array.from(
+            new Map(
+              allReferencedNodesFromSelectedPages.map((item) => [
+                item.uid,
+                item,
+              ]),
+            ).values(),
+          );
+
+          candidateNodesForHyde = uniqueReferencedNodes
             .map((n) => {
               const node = findDiscourseNode(n.uid);
               if (
@@ -278,7 +304,8 @@ const DiscourseContextOverlay = ({
                   Object.values(r.results).some(
                     (result) => result.uid === n.uid,
                   ),
-                )
+                ) ||
+                n.uid === tagUid
               ) {
                 return null;
               }
@@ -315,21 +342,10 @@ const DiscourseContextOverlay = ({
       }
     };
 
-    performHydeSearch();
-  }, [
-    useAllPagesForSuggestions,
-    selectedPage,
-    allPages,
-    results,
-    validTypes,
-    tag,
-    tagUid,
-    uniqueRelationTypeTriplets,
-    discourseNode,
-    findDiscourseNode,
-    getAllReferencesOnPage,
-    getPageUidByPageTitle,
-  ]);
+    if (searchNonce > 0) {
+      performHydeSearch();
+    }
+  }, [searchNonce]);
 
   const handleCreateBlock = async (node: SuggestedNode) => {
     await createBlock({
@@ -356,7 +372,7 @@ const DiscourseContextOverlay = ({
                 htmlFor="suggest-page-input"
                 className="mb-1 block text-sm font-medium text-gray-700"
               >
-                Add page to suggest relationships
+                Add page(s) to suggest relationships
               </label>
               <ControlGroup
                 className="flex items-center gap-2"
@@ -366,17 +382,30 @@ const DiscourseContextOverlay = ({
                     currentPageInput &&
                     !useAllPagesForSuggestions
                   ) {
-                    setSelectedPage(currentPageInput);
-                    setUseAllPagesForSuggestions(false);
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    if (
+                      currentPageInput &&
+                      !selectedPages.includes(currentPageInput)
+                    ) {
+                      setSelectedPages((prev) => [...prev, currentPageInput]);
+                      setTimeout(() => {
+                        setCurrentPageInput("");
+                        setAutocompleteKey((prev) => prev + 1);
+                      }, 0);
+                      setUseAllPagesForSuggestions(false);
+                    }
                   }
                 }}
               >
                 <AutocompleteInput
+                  key={autocompleteKey}
                   value={currentPageInput}
                   placeholder={
                     useAllPagesForSuggestions
                       ? "Using all pages for suggestions"
-                      : "Enter page name..."
+                      : "Enter page name to add..."
                   }
                   setValue={setCurrentPageInput}
                   options={allPages}
@@ -384,52 +413,107 @@ const DiscourseContextOverlay = ({
                   disabled={useAllPagesForSuggestions}
                 />
                 <Tooltip
-                  content="Confirm page for suggestions"
+                  content={
+                    selectedPages.includes(currentPageInput)
+                      ? "Page already added"
+                      : "Add page for suggestions"
+                  }
                   disabled={useAllPagesForSuggestions || !currentPageInput}
                 >
                   <Button
-                    icon="tick"
+                    icon="plus"
                     small
                     onClick={() => {
-                      if (currentPageInput) {
-                        setSelectedPage(currentPageInput);
+                      if (
+                        currentPageInput &&
+                        !selectedPages.includes(currentPageInput)
+                      ) {
+                        setSelectedPages((prev) => [...prev, currentPageInput]);
+                        setTimeout(() => {
+                          setCurrentPageInput("");
+                          setAutocompleteKey((prev) => prev + 1);
+                        }, 0);
                         setUseAllPagesForSuggestions(false);
                       }
                     }}
-                    disabled={!currentPageInput || useAllPagesForSuggestions}
-                    intent={
-                      selectedPage === currentPageInput &&
-                      !useAllPagesForSuggestions
-                        ? Intent.SUCCESS
-                        : Intent.NONE
-                    }
-                  />
-                </Tooltip>
-                <Tooltip content="Suggest relationships from all pages in your graph">
-                  <Button
-                    text="All Pages"
-                    icon="globe-network"
-                    small
-                    onClick={() => {
-                      setUseAllPagesForSuggestions(true);
-                      setSelectedPage(null);
-                      setCurrentPageInput("");
-                    }}
-                    intent={
-                      useAllPagesForSuggestions ? Intent.PRIMARY : Intent.NONE
+                    disabled={
+                      !currentPageInput ||
+                      useAllPagesForSuggestions ||
+                      selectedPages.includes(currentPageInput)
                     }
                   />
                 </Tooltip>
               </ControlGroup>
+              {selectedPages.length > 0 && !useAllPagesForSuggestions && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {selectedPages.map((pageName) => (
+                    <Tag
+                      key={pageName}
+                      onRemove={() =>
+                        setSelectedPages((prev) =>
+                          prev.filter((p) => p !== pageName),
+                        )
+                      }
+                      round
+                      minimal
+                    >
+                      {pageName}
+                    </Tag>
+                  ))}
+                </div>
+              )}
+              {/* Find Suggestions Button for selected pages */}
+              <div className="mt-3">
+                <Button
+                  text="Find Suggestions"
+                  icon="search-template"
+                  intent={Intent.PRIMARY}
+                  onClick={() => {
+                    setUseAllPagesForSuggestions(false);
+                    setSearchNonce((prev) => prev + 1);
+                  }}
+                  disabled={
+                    useAllPagesForSuggestions || selectedPages.length === 0
+                  }
+                  small
+                />
+              </div>
+
+              {/* Separator and All Pages Option */}
+              <div className="my-4 flex items-center">
+                <Divider className="flex-grow" />
+                <span className="mx-2 text-xs text-gray-500">OR</span>
+                <Divider className="flex-grow" />
+              </div>
+
+              <div>
+                <Tooltip
+                  content={"Suggest relationships from all pages in your graph"}
+                >
+                  <Button
+                    text="Use All Pages for Suggestions"
+                    icon="globe-network"
+                    small
+                    onClick={() => {
+                      setUseAllPagesForSuggestions(true);
+                      setSelectedPages([]);
+                      setCurrentPageInput("");
+                      setAutocompleteKey((prev) => prev + 1);
+                      setSearchNonce((prev) => prev + 1);
+                    }}
+                  />
+                </Tooltip>
+              </div>
             </div>
-            {(selectedPage || useAllPagesForSuggestions) && (
+            {((selectedPages.length > 0 && !useAllPagesForSuggestions) ||
+              useAllPagesForSuggestions) && (
               <div className="mt-6">
                 <h3 className="mb-2 text-base font-semibold">
                   Suggested Relationships
                   {useAllPagesForSuggestions && " from All Pages"}
                   {!useAllPagesForSuggestions &&
-                    selectedPage &&
-                    ` from "${selectedPage}"`}
+                    selectedPages.length > 0 &&
+                    ` from ${selectedPages.length === 1 ? `"${selectedPages[0]}"` : `${selectedPages.length} selected pages`}`}
                 </h3>
                 {isSearchingHyde && (
                   <Spinner size={Spinner.SIZE_SMALL} className="mb-2" />
