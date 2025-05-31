@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase.rpc("alpha_upsert_discourse_nodes", {
       p_space_name: body.p_space_name,
       p_user_email: body.p_user_email,
+      p_user_name: body.p_user_name,
       p_nodes: body.p_nodes,
     });
 
