@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   validateAllNodes,
   validateNodeFormat,
@@ -9,6 +9,7 @@ import { Notice } from "obsidian";
 import generateUid from "~/utils/generateUid";
 import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
+import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
 
 const NodeTypeSettings = () => {
   const plugin = usePlugin();
@@ -17,6 +18,19 @@ const NodeTypeSettings = () => {
   );
   const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [templateFiles, setTemplateFiles] = useState<string[]>([]);
+  const [templateConfig, setTemplateConfig] = useState({
+    isEnabled: false,
+    folderPath: "",
+  });
+
+  useEffect(() => {
+    const config = getTemplatePluginInfo(plugin.app);
+    setTemplateConfig(config);
+
+    const files = getTemplateFiles(plugin.app);
+    setTemplateFiles(files);
+  }, [plugin.app]);
 
   const updateErrors = (
     index: number,
@@ -44,7 +58,12 @@ const NodeTypeSettings = () => {
     const updatedNodeTypes = [...nodeTypes];
     if (!updatedNodeTypes[index]) {
       const newId = generateUid("node");
-      updatedNodeTypes[index] = { id: newId, name: "", format: "" };
+      updatedNodeTypes[index] = {
+        id: newId,
+        name: "",
+        format: "",
+        template: "",
+      };
     }
 
     updatedNodeTypes[index][field] = value;
@@ -69,6 +88,7 @@ const NodeTypeSettings = () => {
         id: newId,
         name: "",
         format: "",
+        template: "",
       },
     ];
     setNodeTypes(updatedNodeTypes);
@@ -153,6 +173,27 @@ const NodeTypeSettings = () => {
                 }
                 className="flex-1"
               />
+              <select
+                value={nodeType.template || ""}
+                onChange={(e) =>
+                  handleNodeTypeChange(index, "template", e.target.value)
+                }
+                className="flex-1"
+                disabled={
+                  !templateConfig.isEnabled || !templateConfig.folderPath
+                }
+              >
+                <option value="">
+                  {!templateConfig.isEnabled || !templateConfig.folderPath
+                    ? "Template folder not configured"
+                    : "No template"}
+                </option>
+                {templateFiles.map((templateFile) => (
+                  <option key={templateFile} value={templateFile}>
+                    {templateFile}
+                  </option>
+                ))}
+              </select>
               <button
                 onClick={() => confirmDeleteNodeType(index)}
                 className="mod-warning p-2"

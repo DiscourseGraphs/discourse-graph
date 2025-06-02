@@ -2,6 +2,7 @@ import { App, Editor, Notice, TFile } from "obsidian";
 import { DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "./getDiscourseNodeFormatExpression";
 import { checkInvalidChars } from "./validateNodeType";
+import { applyTemplate } from "./templates";
 
 export const formatNodeName = (
   selectedText: string,
@@ -41,6 +42,20 @@ export const createDiscourseNodeFile = async ({
     await app.fileManager.processFrontMatter(newFile, (fm) => {
       fm.nodeTypeId = nodeType.id;
     });
+
+    if (nodeType.template && nodeType.template.trim() !== "") {
+      const templateApplied = await applyTemplate({
+        app,
+        targetFile: newFile,
+        templateName: nodeType.template,
+      });
+      if (!templateApplied) {
+        new Notice(
+          `Warning: Could not apply template "${nodeType.template}"`,
+          3000,
+        );
+      }
+    }
 
     const notice = new DocumentFragment();
     const spanEl = notice.createEl("span", {
