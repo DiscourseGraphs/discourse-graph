@@ -9,7 +9,7 @@ import { Notice } from "obsidian";
 import generateUid from "~/utils/generateUid";
 import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
-import { getTemplateFiles } from "~/utils/templates";
+import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
 
 const NodeTypeSettings = () => {
   const plugin = usePlugin();
@@ -19,13 +19,17 @@ const NodeTypeSettings = () => {
   const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [templateFiles, setTemplateFiles] = useState<string[]>([]);
+  const [templateConfig, setTemplateConfig] = useState({
+    isEnabled: false,
+    folderPath: "",
+  });
 
   useEffect(() => {
-    const loadTemplateFiles = async () => {
-      const files = await getTemplateFiles(plugin.app);
-      setTemplateFiles(files);
-    };
-    loadTemplateFiles();
+    const config = getTemplatePluginInfo(plugin.app);
+    setTemplateConfig(config);
+
+    const files = getTemplateFiles(plugin.app);
+    setTemplateFiles(files);
   }, [plugin.app]);
 
   const updateErrors = (
@@ -175,8 +179,15 @@ const NodeTypeSettings = () => {
                   handleNodeTypeChange(index, "template", e.target.value)
                 }
                 className="flex-1"
+                disabled={
+                  !templateConfig.isEnabled || !templateConfig.folderPath
+                }
               >
-                <option value="">No template</option>
+                <option value="">
+                  {!templateConfig.isEnabled || !templateConfig.folderPath
+                    ? "Template folder not configured"
+                    : "No template"}
+                </option>
                 {templateFiles.map((templateFile) => (
                   <option key={templateFile} value={templateFile}>
                     {templateFile}

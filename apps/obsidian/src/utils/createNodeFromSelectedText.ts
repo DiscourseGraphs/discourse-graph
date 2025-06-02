@@ -44,11 +44,11 @@ export const createDiscourseNodeFile = async ({
     });
 
     if (nodeType.template && nodeType.template.trim() !== "") {
-      const templateApplied = await applyTemplate(
+      const templateApplied = await applyTemplate({
         app,
-        newFile,
-        nodeType.template,
-      );
+        targetFile: newFile,
+        templateName: nodeType.template,
+      });
       if (!templateApplied) {
         new Notice(
           `Warning: Could not apply template "${nodeType.template}"`,

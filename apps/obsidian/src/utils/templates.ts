@@ -1,11 +1,11 @@
-import { App, TFile, TFolder } from "obsidian";
+import { App, TFile, TFolder, TAbstractFile } from "obsidian";
 
 type TemplatePluginInfo = {
   isEnabled: boolean;
   folderPath: string;
 };
 
-const getTemplatePluginInfo = (app: App): TemplatePluginInfo => {
+export const getTemplatePluginInfo = (app: App): TemplatePluginInfo => {
   try {
     const templatesPlugin = (app as any).internalPlugins?.plugins?.templates;
 
@@ -25,15 +25,11 @@ const getTemplatePluginInfo = (app: App): TemplatePluginInfo => {
   }
 };
 
-export const getTemplateFiles = async (app: App): Promise<string[]> => {
+export const getTemplateFiles = (app: App): string[] => {
   try {
     const { isEnabled, folderPath } = getTemplatePluginInfo(app);
 
-    if (!isEnabled) {
-      return [];
-    }
-
-    if (!folderPath) {
+    if (!isEnabled || !folderPath) {
       return [];
     }
 
@@ -45,7 +41,7 @@ export const getTemplateFiles = async (app: App): Promise<string[]> => {
 
     const templateFiles = templateFolder.children
       .filter(
-        (file: any): file is TFile =>
+        (file: TAbstractFile): file is TFile =>
           file instanceof TFile && file.extension === "md",
       )
       .map((file: TFile) => file.basename)
@@ -58,11 +54,15 @@ export const getTemplateFiles = async (app: App): Promise<string[]> => {
   }
 };
 
-export const applyTemplate = async (
-  app: App,
-  targetFile: TFile,
-  templateName: string,
-): Promise<boolean> => {
+export const applyTemplate = async ({
+  app,
+  targetFile,
+  templateName,
+}: {
+  app: App;
+  targetFile: TFile;
+  templateName: string;
+}): Promise<boolean> => {
   try {
     const { isEnabled, folderPath } = getTemplatePluginInfo(app);
 
