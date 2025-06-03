@@ -1,10 +1,13 @@
 import React, { useMemo } from "react";
+import { OnloadArgs } from "roamjs-components/types";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
+import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
+import { SETTING, toggleGitHubSync } from "~/components/GitHubSync";
 
-const DiscourseGraphHome = () => {
+const DiscourseGraphHome = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const settings = useMemo(() => {
     refreshConfigTree();
     return getFormattedConfigTree();
@@ -28,6 +31,23 @@ const DiscourseGraphHome = () => {
         parentUid={settings.settingsUid}
         value={settings.canvasPageFormat.value}
         defaultValue={DEFAULT_CANVAS_PAGE_FORMAT}
+      />
+      <FlagPanel
+        title={SETTING}
+        description="Sync select pages with GitHub Issues"
+        parentUid={settings.settingsUid}
+        order={2}
+        uid={settings.githubSync.uid}
+        value={settings.githubSync.value}
+        options={{
+          onChange: async (checked) => {
+            await toggleGitHubSync(checked, onloadArgs);
+            setTimeout(() => {
+              // Wait for the GitHub Sync flag block to be updated
+              refreshConfigTree();
+            }, 250);
+          },
+        }}
       />
     </div>
   );
