@@ -17,18 +17,17 @@ type SpaceRecord = Tables<"Space">;
 const spaceValidator: ItemValidator<SpaceDataInput> = (space) => {
   if (!space || typeof space !== "object")
     return "Invalid request body: expected a JSON object.";
-  const { name, url, platform_id } = space;
+  const { name, url, platform } = space;
 
   if (!name || typeof name !== "string" || name.trim() === "")
     return "Missing or invalid name.";
   if (!url || typeof url !== "string" || url.trim() === "")
     return "Missing or invalid URL.";
   if (
-    platform_id === undefined ||
-    platform_id === null ||
-    typeof platform_id !== "number"
+    platform === undefined ||
+    !(platform in ["Roam", "Obsidian"])
   )
-    return "Missing or invalid platform_id.";
+    return "Missing or invalid platform.";
   return null;
 };
 
@@ -36,7 +35,7 @@ const processAndGetOrCreateSpace = async (
   supabasePromise: ReturnType<typeof createClient>,
   data: SpaceDataInput,
 ): Promise<PostgrestSingleResponse<SpaceRecord>> => {
-  const { name, url, platform_id } = data;
+  const { name, url, platform } = data;
   const error = spaceValidator(data);
   if (error !== null) return asPostgrestFailure(error, "invalid");
 
@@ -50,7 +49,7 @@ const processAndGetOrCreateSpace = async (
     insertData: {
       name: trimmedName,
       url: normalizedUrl,
-      platform_id: platform_id,
+      platform: platform,
     },
     uniqueOn: ["url"],
   });
