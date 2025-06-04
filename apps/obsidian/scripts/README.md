@@ -52,7 +52,7 @@ This ensures that external beta releases always take precedence over internal al
 **🧪 Pre-release** (default behavior)
 - **GitHub**: Marked as "Pre-release" 
 - **Main Branch**: Not updated (keeps stable code in main)
-- **Use Case**: Testing, beta versions, internal releases
+- **Use Case**: Testing, beta versions, internal releases. In the future, when we official have DG in Obsidian plugin, it won't automatically pick up pre-release as an update either
 
 **✅ Stable** (with `--stable` flag)
 - **GitHub**: Marked as stable release
