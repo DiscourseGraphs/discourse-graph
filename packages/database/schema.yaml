@@ -167,6 +167,7 @@ classes:
       value:
         required: true
       trusted:
+        description: If we trust this identifier was verified by the platform and can be used automatically
         range: boolean
         required: true
         ifabsent: "false"

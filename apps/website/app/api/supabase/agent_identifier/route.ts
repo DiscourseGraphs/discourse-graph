@@ -28,8 +28,8 @@ const agentIdentifierValidator: ItemValidator<AgentIdentifierDataInput> = (agent
     return "Missing or invalid value";
   if (!account_id || Number.isNaN(Number.parseInt(account_id)))
     return "Missing or invalid account_id";
-  if (trusted && !["true", "false"].includes(String(trusted)))
-    return "trusted should be a boolean";
+  if (trusted !== undefined && !["true", "false", true, false].includes(trusted))
+    return "if included, trusted should be a boolean";
 
   const keys = [ 'identifier_type', 'account_id', 'value', 'trusted' ];
   if (!Object.keys(agent_identifier).every((key)=>keys.includes(key)))
@@ -47,7 +47,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       return createApiResponse(request, asPostgrestFailure(error, "invalid"));
 
     body.account_id = Number.parseInt(body.account_id);
-    body.trusted = [true, "true"].includes(body.trusted);
+    body.trusted = body.trusted === true || body.trusted === "true" || false;
     const supabase = await supabasePromise;
     const result = await getOrCreateEntity<"AgentIdentifier">({
       supabase,
