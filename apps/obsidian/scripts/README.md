@@ -20,22 +20,32 @@ The script supports different release types based on version format and flags:
 ### Internal vs External Releases
 
 **🔒 Internal Releases**
-- **Format**: Non-standard SemVer (e.g., `0.1.0-canvas-integration`, `0.2.0-graph-refactor`)
+- **Format**: **MUST use `alpha` prefix** - e.g., `0.1.0-alpha-canvas-integration`, `0.2.0-alpha-graph-refactor`
 - **Purpose**: Internal testing and development. These releases won't be recognized by BRAT as the latest version, hence won't be automatically updated on non-testers users. We also mark these releases as pre-release by default, so users will less likely install these.
 
    Developers can run this script from their local branch, creating an update release containing their local code.
 - **BRAT Behavior**: Not auto-updated (users must install manually via specific version)
 - **Main Branch**: Never updated (keeps production code clean)
 - **Use Case**: Feature testing, experimental builds
+- **⚠️ IMPORTANT**: Always use `alpha-` prefix to ensure BRAT doesn't prioritize these over external beta releases
 
 **🌐 External Releases**
-- **Format**: Valid SemVer (e.g., `1.0.0`, `1.0.0-beta.1`, `1.0.0-alpha.2`)
+- **Format**: **MUST use `beta` prefix** - e.g., `1.0.0-beta.1`, `1.0.0-beta.2`
 - **Purpose**: Public testing and distribution
 
    Note: should only be ran from main branch, after having merged the feature
 - **BRAT Behavior**: Auto-updated for users with "latest" version setting
 - **Main Branch**: Updated only for stable releases
 - **Use Case**: Beta testing, production releases
+- **⚠️ IMPORTANT**: Always use `beta` prefix to ensure BRAT prioritizes these over internal alpha releases
+
+### BRAT Version Priority
+
+BRAT uses alphabetical ordering for pre-release identifiers. This is why we enforce:
+- **Internal**: `alpha-*` (comes first alphabetically) 
+- **External**: `beta-*` (comes after alpha, gets higher priority)
+
+This ensures that external beta releases always take precedence over internal alpha releases for BRAT auto-updates.
 
 ### Pre-release vs Stable
 
@@ -89,23 +99,34 @@ tsx scripts/publish-obsidian.ts --version <version> [options]
 
 | Format | Type | BRAT Auto-Update | Main Branch Update | Example |
 |--------|------|------------------|-------------------|---------|
-| `x.y.z-feature-name` | Internal | ❌ No | ❌ Never | `0.1.0-canvas-integration` |
+| `x.y.z-alpha-feature-name` | Internal | ❌ No | ❌ Never | `0.1.0-alpha-canvas-integration` |
 | `x.y.z-beta.n` | External Pre-release | ✅ Yes | ❌ No | `1.0.0-beta.1` |
-| `x.y.z-alpha.n` | External Pre-release | ✅ Yes | ❌ No | `1.0.0-alpha.2` |
 | `x.y.z` (with `--stable`) | External Stable | ✅ Yes | ✅ Yes | `1.0.0` |
+
+**⚠️ CRITICAL**: Always follow the naming convention:
+- **Internal releases**: `x.y.z-alpha-feature-name`
+- **External releases**: `x.y.z-beta.n`
+
+This ensures proper BRAT version ordering where beta releases always take priority over alpha releases.
 
 ## Examples
 
 ### Internal Testing Release
 ```bash
-# Creates pre-release, no main branch update, manual BRAT install only
-tsx scripts/publish-obsidian.ts --version 0.1.0-canvas-feature --release-name "Canvas Integration Feature" --create-release
+# ✅ Correct format with alpha prefix
+tsx scripts/publish-obsidian.ts --version 0.1.0-alpha-canvas-feature --release-name "Canvas Integration Feature" --create-release
+
+# ❌ Wrong - will interfere with BRAT ordering
+tsx scripts/publish-obsidian.ts --version 0.1.0-canvas-feature --create-release
 ```
 
 ### Beta Release for Public Testing  
 ```bash
-# Creates pre-release, no main branch update, BRAT auto-updates
+# ✅ Correct format with beta prefix
 tsx scripts/publish-obsidian.ts --version 1.0.0-beta.1 --release-name "Beta: New Graph View" --create-release
+
+# ❌ Wrong - should use beta prefix for external releases
+tsx scripts/publish-obsidian.ts --version 1.0.0-test.1 --create-release
 ```
 
 ### Stable Production Release
@@ -117,7 +138,7 @@ tsx scripts/publish-obsidian.ts --version 1.0.0 --stable --create-release
 ### Quick Build (No GitHub Release)
 ```bash
 # For when we only want to update the repo without creating a release
-tsx scripts/publish-obsidian.ts --version 0.1.0-beta-1 --stable
+tsx scripts/publish-obsidian.ts --version 1.0.0-beta.1 --stable
 ```
 
 ### Using npm script from obsidian directory
@@ -207,12 +228,26 @@ Publishes to: `DiscourseGraphs/discourse-graph-obsidian`
    - Run `npm run build` manually to check for build errors
    - Ensure TypeScript compiles without errors
 
+6. **BRAT picking wrong version**
+   - Ensure internal releases use `alpha-` prefix: `0.1.0-alpha-feature`
+   - Ensure external releases use `beta` prefix: `1.0.0-beta.1`
+   - BRAT prioritizes versions alphabetically, so `beta` > `alpha`
+
 ### BRAT Testing
 
 To test BRAT integration:
 
 1. **Internal Release**: Users must install via specific version tag
 2. **External Release**: Users with "latest" setting will auto-update
+
+### BRAT Version Ordering
+
+Remember that BRAT uses alphabetical ordering for pre-release identifiers:
+- `v1.0.0-alpha-test` (lower priority)
+- `v1.0.0-beta.1` (higher priority)
+- `v1.0.0` (highest priority)
+
+This is why the naming convention is critical for ensuring the right version gets auto-updated.
 
 ## Development Notes
 
