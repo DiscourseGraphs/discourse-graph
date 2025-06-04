@@ -24,7 +24,7 @@ GRANT USAGE ON SCHEMA public TO service_role;
 CREATE TYPE public."EntityType" AS ENUM (
     'Platform',
     'Space',
-    'Account',
+    'PlatformAccount',
     'Person',
     'AutomatedAgent',
     'Document',
@@ -36,6 +36,8 @@ CREATE TYPE public."EntityType" AS ENUM (
 );
 
 ALTER TYPE public."EntityType" OWNER TO postgres;
+
+COMMENT ON TYPE public."EntityType" IS 'The type of an entity';
 
 CREATE SEQUENCE IF NOT EXISTS public.entity_id_seq
 START WITH 1

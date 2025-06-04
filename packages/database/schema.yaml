@@ -45,14 +45,29 @@ enums:
       could_be_true:
       strong_evidence_for:
       certain:
+  Platform:
+    description: A known platform on which DiscourseGraph operates
+    permissible_values:
+      roam:
+      obsidian:
+  AgentType:
+    description: The type of agent
+    permissible_values:
+      person:
+      organization:
+      automated_agent:
+  AgentIdentifierType:
+    description: A namespace for identifiers that can help identify an agent
+    permissible_values:
+      email:
+      orcid:
   EntityType:
     description: The type of an entity
     permissible_values:
       Platform:
       Space:
-      Account:
-      Person:
-      AutomatedAgent:
+      PlatformAccount:
+      AgentIdentifier:
       Document:
       Content:
       Concept:
@@ -104,90 +119,66 @@ types:
       sql_type: sqlalchemy.dialects.postgresql.BLOB
     description: A binary large object
 classes:
-  Agent:
-    description: An agent that acts in the system
+  Users:
+    description: A database user account. Managed by the auth infrastructure.
+    slots:
+      - id
+  PlatformAccount:
+    description: An account for an agent on a platform
     abstract: true
     slots:
       - id
-      - type
-  Person:
-    description: A person using the system
-    is_a: Agent
-    slots:
       - name
-      - orcid
-    attributes:
-      email:
-        required: true
-      # TODO: known skills, i.e. what processes can they confirm.
-    unique_keys:
-      person_email:
-        unique_key_slots:
-          - email
-      person_orcid:
-        unique_key_slots:
-          - orcid
-  AutomatedAgent:
-    description: An automated agent
-    is_a: Agent
-    slots:
-      - metadata
-      - name
-    attributes:
-      deterministic:
-        range: boolean
-        ifabsent: false
-      version:
-        range: string
-    unique_keys:
-      automated_agent_name_version:
-        unique_key_slots:
-          - name
-          - version
-  Platform:
-    description: A data platform where discourse happens
-    slots:
-      - id
-      - name
-      - url
-    unique_keys:
-      platform_url:
-        unique_key_slots:
-          - url
-  Account:
-    description: A user account on a platform
-    slots:
-      - id
       - platform
     attributes:
-      agent:
-        range: Agent
+      platform_local_id:
         required: true
+        description: The identity of the person in this space
       write_permission:
         range: boolean
         required: true
       active:
         range: boolean
         required: true
-        ifabsent: true
-      account_local_id:
+        ifabsent: 'true'
+      agent_type:
         required: true
-        description: The identity of the person in this space
+        range: AgentType
+        ifabsent: AgentType(person)
+      metadata:
+        range: JSON
+        description: Additional platform-specific information about the account
+      dg_account:
+        range: Users
     unique_keys:
-      account_platform_and_local_id:
+      account_platform_and_id:
         unique_key_slots:
+          - platform_id
           - platform
-          - account_local_id
+  AgentIdentifier:
+    description: An identifying attribute associated with an agent, can be a basis for unification
+    attributes:
+      identifier_type:
+        range: AgentIdentifierType
+        required: true
+      value:
+        required: true
+      account:
+        range: PlatformAccount
+        required: true
+    unique_keys:
+      account_attribute_value:
+        unique_key_slots:
+          - value
+          - identifier_type
+          - account
   Space:
     description: A space on a platform representing a community engaged in a conversation
     slots:
       - id
       - url
       - name
-    attributes:
-      platform:
-        range: Platform
-        required: true
+      - platform
     unique_keys:
       space_url:
         unique_key_slots:
@@ -198,7 +189,7 @@ classes:
       - space
     attributes:
       account:
-        range: Account
+        range: PlatformAccount
         required: true
       editor:
         range: boolean
@@ -253,6 +244,7 @@ classes:
   #       range: DerivedTextVariant
   #       required: true
   Document:
+    description: An external document, or a high-level unit on a platform (eg Roam page)
     slots:
       - id
       - space
@@ -282,6 +274,7 @@ classes:
   #     - issn
   #     - abstract
   ContentEmbedding:
+    description: An embedding for a piece of content.
     # abstract: true
     attributes:
       target:
@@ -300,7 +293,7 @@ classes:
       obsolete:
         description: Whether this embedding is obsolete (becauses the Content was modified)
         range: boolean
-        ifabsent: false
+        ifabsent: 'false'
   Concept:
     description: An abstract concept, claim or relation
     slots:
@@ -317,7 +310,7 @@ classes:
       arity:
         range: integer
         required: true
-        ifabsent: 0
+        ifabsent: '0'
         description: The number of roles in this relation; nodes have zero, binary relations have 2, etc.
       schema:
         range: ConceptSchema
@@ -328,7 +321,7 @@ classes:
       is_schema:
         range: boolean
         required: true
-        ifabsent: false
+        ifabsent: 'false'
       represented_by:
         description: This concept is explicitly represented by a given content unit
         range: Content
@@ -350,6 +343,7 @@ classes:
           - name
 
   ConceptSchema:
+    description: A Concept that describes a schema (type) for other concepts
     is_a: Concept
 
   # Reference:
@@ -393,16 +387,16 @@ slots:
   name:
     required: true
   author:
-    range: Agent
+    range: PlatformAccount
     description: The author of content
     required: true
   creator:
-    range: Agent
+    range: PlatformAccount
     description: The creator of a logical structure, such as a content subdivision
     required: true
   contributors:
     multivalued: true
-    range: Agent
+    range: PlatformAccount
   text:
     required: true
   description:
@@ -436,13 +430,13 @@ slots:
   position:
     description: The ordinal position of the content within its parent, wrt other content units of the same scale
     range: integer
-    ifabsent: 0
+    ifabsent: '0'
     required: true
   char_position:
     description: The character position of the content within its parent.
     # Does not apply to outline sub-elements
     range: integer
-    ifabsent: 0
+    ifabsent: '0'
   validation:
     range: Validation
     required: true
