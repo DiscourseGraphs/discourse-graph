@@ -449,12 +449,17 @@ const updateMainBranch = async (
   }
 };
 
-const createGithubRelease = async (
-  tempDir: string,
-  version: string,
-  isPrerelease: boolean,
-  releaseName?: string,
-): Promise<void> => {
+const createGithubRelease = async ({
+  tempDir,
+  version,
+  isPrerelease,
+  releaseName,
+}: {
+  tempDir: string;
+  version: string;
+  isPrerelease: boolean;
+  releaseName?: string;
+}): Promise<void> => {
   log("Creating GitHub release...");
 
   const token = getEnvVar("OBSIDIAN_PLUGIN_REPO_TOKEN");
@@ -553,12 +558,12 @@ const publish = async (config: PublishConfig): Promise<void> => {
       fs.copyFileSync(manifestSrc, manifestDest);
       updateManifest(releaseTempDir, version);
 
-      await createGithubRelease(
-        releaseTempDir,
+      await createGithubRelease({
+        tempDir: releaseTempDir,
         version,
         isPrerelease,
-        config.releaseName,
-      );
+        releaseName: config.releaseName,
+      });
 
       fs.rmSync(releaseTempDir, { recursive: true });
     }
