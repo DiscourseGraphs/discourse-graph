@@ -48,6 +48,7 @@ CREATE TABLE public."AgentIdentifier" (
 	identifier_type public."AgentIdentifierType" NOT NULL,
 	account_id BIGINT NOT NULL,
 	value VARCHAR NOT NULL,
+    trusted BOOLEAN NOT NULL DEFAULT false,
     PRIMARY KEY (value, identifier_type, account_id),
 	FOREIGN KEY(account_id) REFERENCES public."PlatformAccount" (id)
 );

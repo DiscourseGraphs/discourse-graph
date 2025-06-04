@@ -166,6 +166,10 @@ classes:
         required: true
       value:
         required: true
+      trusted:
+        range: boolean
+        required: true
+        ifabsent: "false"
     unique_keys:
       account_attribute_value:
         unique_key_slots:

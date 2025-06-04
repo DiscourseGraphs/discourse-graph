@@ -13,16 +13,19 @@ export type Database = {
         Row: {
           account_id: number
           identifier_type: Database["public"]["Enums"]["AgentIdentifierType"]
+          trusted: boolean
           value: string
         }
         Insert: {
           account_id: number
           identifier_type: Database["public"]["Enums"]["AgentIdentifierType"]
+          trusted?: boolean
           value: string
         }
         Update: {
           account_id?: number
           identifier_type?: Database["public"]["Enums"]["AgentIdentifierType"]
+          trusted?: boolean
           value?: string
         }
         Relationships: [

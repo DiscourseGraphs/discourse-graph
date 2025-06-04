@@ -62,6 +62,7 @@ class "Concept" [[{An abstract concept, claim or relation}]] {
 class "AgentIdentifier" [[{An identifying attribute associated with an agent, can be a basis for unification}]] {
     {field} identifier_type : AgentIdentifierType  
     {field} value : string  
+    {field} trusted : boolean  
 }
 "AgentIdentifier" --> "1" "PlatformAccount" : "account"
 "Content" --> "1" "PlatformAccount" : "author"
