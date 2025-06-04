@@ -88,15 +88,6 @@ const parseArgs = (): PublishConfig => {
       case "-r":
         config.createRelease = true;
         break;
-      case "--target-repo":
-        if (!nextArg || nextArg.startsWith("-")) {
-          throw new Error(
-            "Repository argument is required after --target-repo",
-          );
-        }
-        config.targetRepo = nextArg;
-        i++;
-        break;
       case "--stable":
         config.isPrerelease = false;
         break;
@@ -319,13 +310,15 @@ const updateMainBranch = async (
 
   const token = getEnvVar("OBSIDIAN_PLUGIN_REPO_TOKEN");
   const octokit = new Octokit({ auth: token });
+  const owner = OWNER;
+  const repo = REPO;
 
   try {
     const { data: ref } = await octokit.request(
       "GET /repos/{owner}/{repo}/git/refs/{ref}",
       {
-        owner: OWNER,
-        repo: REPO,
+        owner,
+        repo,
         ref: "heads/main",
       },
     );
@@ -338,8 +331,8 @@ const updateMainBranch = async (
     const { data: currentCommit } = await octokit.request(
       "GET /repos/{owner}/{repo}/git/commits/{commit_sha}",
       {
-        owner: OWNER,
-        repo: REPO,
+        owner,
+        repo,
         commit_sha: currentSha,
       },
     );
@@ -381,8 +374,8 @@ const updateMainBranch = async (
       const { data: blob } = await octokit.request(
         "POST /repos/{owner}/{repo}/git/blobs",
         {
-          owner: OWNER,
-          repo: REPO,
+          owner,
+          repo,
           content: content.toString("base64"),
           encoding: "base64",
         },
@@ -403,8 +396,8 @@ const updateMainBranch = async (
     const { data: newTree } = await octokit.request(
       "POST /repos/{owner}/{repo}/git/trees",
       {
-        owner: OWNER,
-        repo: REPO,
+        owner,
+        repo,
         base_tree: currentTreeSha,
         tree: blobs.map((blob) => ({
           path: blob.path,
@@ -422,8 +415,8 @@ const updateMainBranch = async (
     const { data: newCommit } = await octokit.request(
       "POST /repos/{owner}/{repo}/git/commits",
       {
-        owner: OWNER,
-        repo: REPO,
+        owner,
+        repo,
         message: `Release v${version}`,
         tree: newTree.sha,
         parents: [currentSha],
@@ -435,8 +428,8 @@ const updateMainBranch = async (
     }
 
     await octokit.request("PATCH /repos/{owner}/{repo}/git/refs/{ref}", {
-      owner: OWNER,
-      repo: REPO,
+      owner,
+      repo,
       ref: "heads/main",
       sha: newCommit.sha,
     });
