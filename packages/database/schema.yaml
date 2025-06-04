@@ -131,7 +131,7 @@ classes:
       - name
       - platform
     attributes:
-      platform_local_id:
+      account_local_id:
         required: true
         description: The identity of the person in this space
       write_permission:
@@ -153,7 +153,7 @@ classes:
     unique_keys:
       account_platform_and_id:
         unique_key_slots:
-          - platform_id
+          - account_local_id
           - platform
   AgentIdentifier:
     description: An identifying attribute associated with an agent, can be a basis for unification
@@ -161,10 +161,10 @@ classes:
       identifier_type:
         range: AgentIdentifierType
         required: true
-      value:
-        required: true
       account:
         range: PlatformAccount
+        required: true
+      value:
         required: true
     unique_keys:
       account_attribute_value:

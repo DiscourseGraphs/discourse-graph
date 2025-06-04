@@ -6,7 +6,7 @@ abstract "PlatformAccount" [[{An account for an agent on a platform}]] {
     {field} id : integer  
     {field} name : string  
     {field} platform : Platform  
-    {field} platform_local_id : string  
+    {field} account_local_id : string  
     {field} write_permission : boolean  
     {field} active : boolean  
     {field} agent_type : AgentType  

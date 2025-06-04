@@ -25,7 +25,7 @@ const spaceValidator: ItemValidator<SpaceDataInput> = (space) => {
     return "Missing or invalid URL.";
   if (
     platform === undefined ||
-    !(platform in ["Roam", "Obsidian"])
+    !["Roam", "Obsidian"].includes(platform)
   )
     return "Missing or invalid platform.";
   return null;

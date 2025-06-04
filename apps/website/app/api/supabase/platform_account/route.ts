@@ -20,9 +20,9 @@ const accountValidator: ItemValidator<PlatformAccountDataInput> = (account: any)
   if (!name || typeof name !== "string" || name.trim() === "")
     return "Missing or invalid name";
   // This is not dry, to be rewritten with Drizzle/Zed.
-  if (!(platform in ["Roam", "Obsidian"]))
+  if (!["Roam", "Obsidian"].includes(platform))
     return "Missing or invalid platform";
-  if (agent_type !== undefined && !(agent_type in ["person", "organization", "automated_agent"]))
+  if (agent_type !== undefined && !["person", "organization", "automated_agent"].includes(agent_type))
     return "Invalid agent_type";
   if (write_permission !== undefined && typeof write_permission != 'boolean')
     return "write_permission must be boolean";
@@ -40,9 +40,11 @@ const accountValidator: ItemValidator<PlatformAccountDataInput> = (account: any)
   if (!account_local_id || typeof account_local_id != "string" || account_local_id.trim() === "")
     return "Missing or invalid account_local_id";
   if (dg_account != undefined) {
-    if (typeof account_local_id != "string")
+    if (typeof dg_account != "string")
       return "dg_account should be a UUID string";
-    // TODO: Check it is a UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(dg_account))
+      return "dg_account must be a valid UUID";
   }
   const keys = [ 'name', 'platform', 'account_local_id', 'write_permission', 'active', 'agent_type', 'metadata', 'dg_account' ];
   if (!Object.keys(account).every((key)=>keys.includes(key)))

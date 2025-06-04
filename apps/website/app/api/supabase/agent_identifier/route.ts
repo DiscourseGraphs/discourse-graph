@@ -21,7 +21,7 @@ const agentIdentifierValidator: ItemValidator<AgentIdentifierDataInput> = (agent
     value,
   } = agent_identifier;
 
-  if (!(identifier_type in ['email', 'orcid']))
+  if (!['email', 'orcid'].includes(identifier_type))
     return "Invalid identifier_type";
   if (!value || typeof value !== "string" || value.trim() === "")
     return "Missing or invalid value";
