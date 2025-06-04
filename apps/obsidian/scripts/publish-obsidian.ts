@@ -141,10 +141,24 @@ const validateVersion = (version: string): void => {
 };
 
 const isExternalRelease = (version: string): boolean => {
-  // Official SemVer regex from https://semver.org/#semantic-versioning-specification-semver
-  const semverRegex =
-    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
-  return semverRegex.test(version);
+  // External releases are:
+  // 1. Stable releases (x.y.z)
+  // 2. Beta releases (x.y.z-beta.n)
+
+  // Stable release pattern (x.y.z)
+  const stablePattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+  if (stablePattern.test(version)) {
+    return true;
+  }
+
+  // Beta release pattern (x.y.z-beta.n)
+  const betaPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-beta(\.\d+)?$/;
+  if (betaPattern.test(version)) {
+    return true;
+  }
+
+  // Everything else (including alpha releases) is internal
+  return false;
 };
 
 const showHelp = (): void => {
@@ -162,18 +176,23 @@ Options:
   --help, -h               Show this help message
 
 Version Formats:
-  x.y.z                    Stable release (e.g., 1.0.0)
+  x.y.z                    Stable release - auto-picked up by BRAT (e.g., 1.0.0)
   x.y.z-beta.n            Beta release - auto-picked up by BRAT (e.g., 1.0.0-beta.1)
-  x.y.z-alpha.n           Alpha release - auto-picked up by BRAT (e.g., 1.0.0-alpha.1)
-  x.y.z-feature-name      Internal release - manual install only (e.g., 0.1.0-canvas-integration)
+  x.y.z-alpha-name        Internal release - manual install only (e.g., 0.1.0-alpha-canvas-feature)
 
 Release Type Auto-Detection:
-  - Internal releases (x.y.z-feature-name): Marked as pre-release, not auto-updated by BRAT
-  - External releases: Auto-updated by BRAT users if they chose "Latest" as the version
+  - External releases (stable, beta): Auto-updated by BRAT users
+  - Internal releases (alpha prefix): Marked as pre-release, manual install only
+
+BRAT Version Priority:
+  BRAT uses alphabetical ordering, so alpha < beta < stable
+  - 0.1.0-alpha-feature (lowest priority)
+  - 0.1.0-beta.1 (higher priority) 
+  - 0.1.0 (highest priority)
 
 Examples:
   # Internal release with custom name
-  tsx scripts/publish-obsidian.ts --version 0.1.0-canvas --release-name "Canvas Integration Feature" --create-release
+  tsx scripts/publish-obsidian.ts --version 0.1.0-alpha-canvas --release-name "Canvas Integration Feature" --create-release
   
   # Beta release with feature description
   tsx scripts/publish-obsidian.ts --version 1.0.0-beta.1 --release-name "Beta: New Graph View" --create-release
