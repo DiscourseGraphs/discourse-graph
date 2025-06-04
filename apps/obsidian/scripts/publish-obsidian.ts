@@ -60,7 +60,7 @@ const getEnvVar = (name: string): string => {
   if (!value) {
     throw new Error(`${name} environment variable is required`);
   }
-  return value || "";
+  return value;
 };
 
 const parseArgs = (): PublishConfig => {
@@ -161,7 +161,6 @@ Required:
 
 Options:
   --create-release, -r      Create a GitHub release
-  --target-repo <repo>      Target repository
   --stable                 Mark as stable release (defaults to pre-release if not specified)
   --release-name <name>    Custom release name (defaults to "Discourse Graph v{version}")
   --help, -h               Show this help message
