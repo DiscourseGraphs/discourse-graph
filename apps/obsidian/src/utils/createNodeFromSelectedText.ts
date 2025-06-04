@@ -94,7 +94,8 @@ export const processTextToDiscourseNode = async ({
   editor: Editor;
   nodeType: DiscourseNode;
 }): Promise<TFile | null> => {
-  const selectedText = editor.getSelection();
+  const selectedText = editor.getSelection().trim();
+  
   const formattedNodeName = formatNodeName(selectedText, nodeType);
   if (!formattedNodeName) return null;
 
