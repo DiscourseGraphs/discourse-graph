@@ -6,17 +6,20 @@
   "private": true,
   "scripts": {
     "dev": "tsx scripts/dev.ts",
-    "build": "tsx scripts/build.ts"
+    "build": "tsx scripts/build.ts",
+    "publish": "tsx scripts/publish-obsidian.ts"
   },
   "keywords": [],
   "author": "",
   "license": "Apache-2.0",
   "devDependencies": {
+    "@octokit/core": "^6.1.2",
     "@types/node": "^16.11.6",
     "@typescript-eslint/eslint-plugin": "5.29.0",
     "@typescript-eslint/parser": "5.29.0",
     "autoprefixer": "^10.4.21",
     "builtin-modules": "3.3.0",
+    "dotenv": "^16.4.5",
     "esbuild": "0.17.3",
     "obsidian": "^1.7.2",
     "postcss": "^8.5.3",
