@@ -1,4 +1,4 @@
-import { Editor } from "obsidian";
+import { Editor, Notice } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 
@@ -8,6 +8,11 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Open Node Type Menu",
     hotkeys: [{ modifiers: ["Mod"], key: "\\" }],
     editorCallback: (editor: Editor) => {
+      if (!editor.getSelection()) {
+        new Notice("Please select some text to create a discourse node", 3000);
+        return;
+      }
+
       new NodeTypeModal(plugin.app, editor, plugin.settings.nodeTypes).open();
     },
   });
