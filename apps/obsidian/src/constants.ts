@@ -57,4 +57,5 @@ export const DEFAULT_SETTINGS: Settings = {
     },
   ],
   showIdsInFrontmatter: false,
+  nodesFolderPath: "Discourse Nodes",
 };

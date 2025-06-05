@@ -13,7 +13,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         return;
       }
 
-      new NodeTypeModal(plugin.app, editor, plugin.settings.nodeTypes).open();
+      new NodeTypeModal(editor, plugin.settings.nodeTypes, plugin).open();
     },
   });
 

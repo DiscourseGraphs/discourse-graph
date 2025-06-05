@@ -47,7 +47,7 @@ export default class DiscourseGraphPlugin extends Plugin {
                 .setIcon("file-type")
                 .onClick(async () => {
                   await processTextToDiscourseNode({
-                    app: this.app,
+                    plugin: this,
                     editor,
                     nodeType,
                   });
