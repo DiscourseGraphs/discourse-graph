@@ -7,6 +7,9 @@ const GeneralSettings = () => {
   const [showIdsInFrontmatter, setShowIdsInFrontmatter] = useState(
     plugin.settings.showIdsInFrontmatter,
   );
+  const [nodesFolderPath, setNodesFolderPath] = useState(
+    plugin.settings.nodesFolderPath,
+  );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const handleToggleChange = (newValue: boolean) => {
@@ -14,8 +17,14 @@ const GeneralSettings = () => {
     setHasUnsavedChanges(true);
   };
 
+  const handleFolderPathChange = (newValue: string) => {
+    setNodesFolderPath(newValue);
+    setHasUnsavedChanges(true);
+  };
+
   const handleSave = async () => {
     plugin.settings.showIdsInFrontmatter = showIdsInFrontmatter;
+    plugin.settings.nodesFolderPath = nodesFolderPath;
     await plugin.saveSettings();
     new Notice("General settings saved");
     setHasUnsavedChanges(false);
@@ -40,6 +49,24 @@ const GeneralSettings = () => {
           >
             <input type="checkbox" checked={showIdsInFrontmatter} />
           </div>
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">Discourse nodes folder path</div>
+          <div className="setting-item-description">
+            Specify the folder where new Discourse nodes should be created.
+            Leave empty to create nodes in the root folder.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <input
+            type="text"
+            value={nodesFolderPath}
+            onChange={(e) => handleFolderPathChange(e.target.value)}
+            placeholder="Discourse Nodes"
+          />
         </div>
       </div>
 
