@@ -37,13 +37,8 @@ const GeneralSettings = () => {
           <div
             className={`checkbox-container ${showIdsInFrontmatter ? "is-enabled" : ""}`}
             onClick={() => handleToggleChange(!showIdsInFrontmatter)}
-            style={{ cursor: "pointer" }}
           >
-            <input
-              type="checkbox"
-              checked={showIdsInFrontmatter}
-              onChange={(e) => handleToggleChange(e.target.checked)}
-            />
+            <input type="checkbox" checked={showIdsInFrontmatter} />
           </div>
         </div>
       </div>
