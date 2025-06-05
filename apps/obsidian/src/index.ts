@@ -60,7 +60,6 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   updateFrontmatterStyles() {
-    // Create or get style element
     if (!this.styleElement) {
       this.styleElement = document.createElement("style");
       this.styleElement.id = "discourse-graph-frontmatter-styles";
@@ -70,12 +69,10 @@ export default class DiscourseGraphPlugin extends Plugin {
     let keysToHide: string[] = [];
 
     if (!this.settings.showIdsInFrontmatter) {
-      // Hide nodeTypeId and all relation type IDs
       keysToHide.push("nodeTypeId");
       keysToHide.push(...this.settings.relationTypes.map((rt) => rt.id));
     }
 
-    // Generate CSS from settings
     if (keysToHide.length > 0) {
       const selectors = keysToHide
         .map((key) => `.metadata-property[data-property-key="${key}"]`)
@@ -83,7 +80,6 @@ export default class DiscourseGraphPlugin extends Plugin {
 
       this.styleElement.textContent = `${selectors} { display: none !important; }`;
     } else {
-      // No keys to hide
       this.styleElement.textContent = "";
     }
   }
@@ -123,12 +119,15 @@ export default class DiscourseGraphPlugin extends Plugin {
     const loadedData = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
 
-    if (!loadedData) {
+    if (!loadedData || this.hasNewFields(loadedData)) {
       await this.saveSettings();
     } else {
-      // Update styles with loaded settings
       this.updateFrontmatterStyles();
     }
+  }
+
+  private hasNewFields(loadedData: any): boolean {
+    return Object.keys(DEFAULT_SETTINGS).some((key) => !(key in loadedData));
   }
 
   async saveSettings() {
@@ -137,7 +136,6 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   async onunload() {
-    // Clean up the style element
     if (this.styleElement) {
       this.styleElement.remove();
     }
