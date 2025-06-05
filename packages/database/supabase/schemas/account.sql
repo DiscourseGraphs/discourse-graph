@@ -1,35 +1,68 @@
-CREATE TABLE IF NOT EXISTS public."Account" (
-    id bigint DEFAULT nextval(
-        'public.entity_id_seq'::regclass
-    ) NOT NULL,
-    platform_id bigint NOT NULL,
-    agent_id bigint NOT NULL,
-    account_local_id varchar NOT NULL,
-    write_permission boolean NOT NULL,
-    active boolean DEFAULT true NOT NULL
+CREATE TYPE public."AgentType" AS ENUM (
+    'person',
+    'organization',
+    'automated_agent'
 );
 
-ALTER TABLE public."Account" OWNER TO "postgres";
+ALTER TYPE public."AgentType" OWNER TO postgres;
 
-COMMENT ON TABLE public."Account" IS 'A user account on a platform';
+COMMENT ON TYPE public."AgentType" IS 'The type of agent';
+
+CREATE TYPE public."AgentIdentifierType" AS ENUM (
+    'email',
+    'orcid'
+);
+
+ALTER TYPE public."AgentIdentifierType" OWNER TO postgres;
+
+COMMENT ON TYPE public."AgentIdentifierType" IS 'A namespace for identifiers that can help identify an agent';
 
 
-ALTER TABLE ONLY public."Account"
-ADD CONSTRAINT "Account_agent_id_fkey" FOREIGN KEY (
-    agent_id
-) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+CREATE TABLE IF NOT EXISTS public."PlatformAccount" (
+    id bigint DEFAULT nextval(
+        'public.entity_id_seq'::regclass
+    ) NOT NULL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+	platform public."Platform" NOT NULL,
+    account_local_id VARCHAR NOT NULL,
+	write_permission BOOLEAN NOT NULL DEFAULT true,
+	active BOOLEAN NOT NULL DEFAULT true,
+	agent_type public."AgentType" NOT NULL DEFAULT 'person',
+	metadata JSONB NOT NULL DEFAULT '{}',
+	dg_account UUID,
+	FOREIGN KEY(dg_account) REFERENCES auth.users (id) ON DELETE SET NULL ON UPDATE CASCADE
+);
 
-ALTER TABLE ONLY public."Account"
-ADD CONSTRAINT "Account_platform_id_fkey" FOREIGN KEY (
-    platform_id
-) REFERENCES public."Platform" (
-    id
-) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE public."PlatformAccount" OWNER TO "postgres";
 
-ALTER TABLE ONLY public."Account"
-ADD CONSTRAINT "Account_pkey" PRIMARY KEY (id);
+COMMENT ON TABLE public."PlatformAccount" IS 'An account for an agent on a platform';
 
-CREATE UNIQUE INDEX account_platform_and_local_id_idx ON public."Account" USING btree (platform_id, account_local_id);
+CREATE UNIQUE INDEX account_platform_and_id_idx ON public."PlatformAccount" (account_local_id, platform);
+
+GRANT ALL ON TABLE public."PlatformAccount" TO anon;
+GRANT ALL ON TABLE public."PlatformAccount" TO authenticated;
+GRANT ALL ON TABLE public."PlatformAccount" TO service_role;
+
+
+CREATE TABLE public."AgentIdentifier" (
+	identifier_type public."AgentIdentifierType" NOT NULL,
+	account_id BIGINT NOT NULL,
+	value VARCHAR NOT NULL,
+    trusted BOOLEAN NOT NULL DEFAULT false,
+    PRIMARY KEY (value, identifier_type, account_id),
+	FOREIGN KEY(account_id) REFERENCES public."PlatformAccount" (id)
+);
+
+ALTER TABLE public."AgentIdentifier" OWNER TO "postgres";
+
+COMMENT ON TABLE public."AgentIdentifier" IS 'An identifying attribute associated with an account, can be a basis for unification';
+
+GRANT ALL ON TABLE public."AgentIdentifier" TO anon;
+GRANT ALL ON TABLE public."AgentIdentifier" TO authenticated;
+GRANT ALL ON TABLE public."AgentIdentifier" TO service_role;
+
+CREATE INDEX platform_account_dg_account_idx ON public."PlatformAccount" (dg_account);
+
 
 CREATE TABLE IF NOT EXISTS public."SpaceAccess" (
     space_id bigint,
@@ -52,7 +85,7 @@ COMMENT ON COLUMN public."SpaceAccess".account_id IS 'The identity of the accoun
 ALTER TABLE ONLY public."SpaceAccess"
 ADD CONSTRAINT "SpaceAccess_account_id_fkey" FOREIGN KEY (
     account_id
-) REFERENCES public."Account" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public."SpaceAccess"
 ADD CONSTRAINT "SpaceAccess_space_id_fkey" FOREIGN KEY (
@@ -65,7 +98,3 @@ GRANT ALL ON TABLE public."SpaceAccess" TO anon;
 GRANT ALL ON TABLE public."SpaceAccess" TO authenticated;
 GRANT ALL ON TABLE public."SpaceAccess" TO service_role;
 
-
-GRANT ALL ON TABLE public."Account" TO anon;
-GRANT ALL ON TABLE public."Account" TO authenticated;
-GRANT ALL ON TABLE public."Account" TO service_role;

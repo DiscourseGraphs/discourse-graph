@@ -4,8 +4,8 @@ import {
   makeDefaultDeleteHandler,
 } from "~/utils/supabase/apiUtils";
 
-export const GET = makeDefaultGetHandler("Platform");
+export const GET = makeDefaultGetHandler("AgentIdentifier");
 
 export const OPTIONS = defaultOptionsHandler;
 
-export const DELETE = makeDefaultDeleteHandler("Platform");
+export const DELETE = makeDefaultDeleteHandler("AgentIdentifier");

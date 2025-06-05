@@ -51,7 +51,6 @@ max_client_conn = 100
 schema_paths = [
     './schemas/base.sql',
     './schemas/extensions.sql',
-    './schemas/agent.sql',
     './schemas/space.sql',
     './schemas/account.sql',
     './schemas/content.sql',

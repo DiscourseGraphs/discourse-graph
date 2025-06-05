@@ -33,7 +33,7 @@ ADD CONSTRAINT "Document_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."Document"
 ADD CONSTRAINT "Document_author_id_fkey" FOREIGN KEY (
     author_id
-) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public."Document"
 ADD CONSTRAINT "Document_space_id_fkey" FOREIGN KEY (
@@ -85,12 +85,12 @@ ADD CONSTRAINT "Content_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_author_id_fkey" FOREIGN KEY (
     author_id
-) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE SET NULL;
+) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_creator_id_fkey" FOREIGN KEY (
     creator_id
-) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE SET NULL;
+) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_document_id_fkey" FOREIGN KEY (
