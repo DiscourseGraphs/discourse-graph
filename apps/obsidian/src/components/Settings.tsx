@@ -6,17 +6,27 @@ import { ContextProvider } from "./AppContext";
 import RelationshipTypeSettings from "./RelationshipTypeSettings";
 import RelationshipSettings from "./RelationshipSettings";
 import NodeTypeSettings from "./NodeTypeSettings";
-import FrontmatterSettings from "./FrontmatterSettings";
+import GeneralSettings from "./GeneralSettings";
 import { PluginProvider } from "./PluginContext";
 
 const Settings = () => {
-  const [activeTab, setActiveTab] = useState("nodeTypes");
+  const [activeTab, setActiveTab] = useState("general");
 
   return (
     <div className="flex flex-col">
       <h2 className="dg-h2">Discourse Graph Settings</h2>
 
       <div className="border-modifier-border border-b p-2">
+        <button
+          onClick={() => setActiveTab("general")}
+          className={`discourse-tab mr-2 cursor-pointer border-0 px-4 py-2 ${
+            activeTab === "general"
+              ? "!bg-modifier-hover accent-border-bottom"
+              : "!bg-transparent"
+          }`}
+        >
+          General
+        </button>
         <button
           onClick={() => setActiveTab("nodeTypes")}
           className={`discourse-tab mr-2 cursor-pointer border-0 px-4 py-2 ${
@@ -47,22 +57,12 @@ const Settings = () => {
         >
           Discourse Relations
         </button>
-        <button
-          onClick={() => setActiveTab("frontmatter")}
-          className={`cursor-pointer px-4 py-2 ${
-            activeTab === "frontmatter"
-              ? "!bg-modifier-hover accent-border-bottom"
-              : "!bg-transparent"
-          }`}
-        >
-          Frontmatter
-        </button>
       </div>
 
+      {activeTab === "general" && <GeneralSettings />}
       {activeTab === "nodeTypes" && <NodeTypeSettings />}
       {activeTab === "relationTypes" && <RelationshipTypeSettings />}
       {activeTab === "relations" && <RelationshipSettings />}
-      {activeTab === "frontmatter" && <FrontmatterSettings />}
     </div>
   );
 };

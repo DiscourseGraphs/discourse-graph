@@ -67,9 +67,17 @@ export default class DiscourseGraphPlugin extends Plugin {
       document.head.appendChild(this.styleElement);
     }
 
+    let keysToHide: string[] = [];
+
+    if (!this.settings.showIdsInFrontmatter) {
+      // Hide nodeTypeId and all relation type IDs
+      keysToHide.push("nodeTypeId");
+      keysToHide.push(...this.settings.relationTypes.map((rt) => rt.id));
+    }
+
     // Generate CSS from settings
-    if (this.settings.hiddenFrontmatterKeys.length > 0) {
-      const selectors = this.settings.hiddenFrontmatterKeys
+    if (keysToHide.length > 0) {
+      const selectors = keysToHide
         .map((key) => `.metadata-property[data-property-key="${key}"]`)
         .join(", ");
 
