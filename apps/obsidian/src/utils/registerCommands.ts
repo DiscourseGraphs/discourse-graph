@@ -32,6 +32,25 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   });
 
   plugin.addCommand({
+    id: "create-discourse-node",
+    name: "Create Discourse Node",
+    editorCallback: (editor: Editor) => {
+      new CreateNodeModal(plugin.app, {
+        nodeTypes: plugin.settings.nodeTypes,
+        plugin,
+        onNodeCreate: async (nodeType, title) => {
+          await createDiscourseNode({
+            plugin,
+            nodeType,
+            text: title,
+            editor,
+          });
+        },
+      }).open();
+    },
+  });
+
+  plugin.addCommand({
     id: "toggle-discourse-context",
     name: "Toggle Discourse Context",
     callback: () => {
