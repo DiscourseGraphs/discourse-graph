@@ -9,9 +9,9 @@ DECLARE
   v_creator_id bigint;
   document JSONB;
 BEGIN
-  SELECT id, platform FROM public."Space" WHERE url = space_url INTO STRICT v_space_id, v_platform;
+  SELECT id, platform INTO STRICT v_space_id, v_platform FROM public."Space" WHERE url = space_url;
   -- creator_id, may be null
-  SELECT id FROM public."PlatformAccount" WHERE account_local_id=creator_uid AND platform = v_platform.id INTO v_creator_id;
+  SELECT id INTO v_creator_id FROM public."PlatformAccount" WHERE account_local_id=creator_uid AND platform = v_platform.id;
 
   -- Process each document
   FOR document IN SELECT * FROM jsonb_array_elements(data)
@@ -26,10 +26,10 @@ BEGIN
     BEGIN
 
     RAISE NOTICE 'Processing document with UID: %', v_document_local_id;
-    SELECT id FROM public."PlatformAccount" WHERE account_local_id = v_document_author_local_id INTO STRICT v_document_author_id;
+    SELECT id INTO STRICT v_document_author_id FROM public."PlatformAccount" WHERE account_local_id = v_document_author_local_id;
     -- upsert document. Note that some variables being null will cause failure, as desired.
     INSERT INTO public."Document" (platform, source_local_id, author_id, created, last_modified) VALUES (
-      (v_platform, v_document_local_id, v_document_author_id, v_document_created, v_document_last_modified)
+      v_platform, v_document_local_id, v_document_author_id, v_document_created, v_document_last_modified
     ) ON CONFLICT (platform, source_local_id)
     DO UPDATE SET
       author_id = v_document_author_id,
@@ -84,7 +84,7 @@ DECLARE
 BEGIN
   SELECT id, platform FROM public."Space" WHERE url = space_url INTO STRICT v_space_id, v_platform;
   -- creator_id, may be null
-  SELECT id FROM public."PlatformAccount" WHERE account_local_id=creator_uid AND platform = v_platform.id INTO v_creator_id;
+  SELECT id INTO v_creator_id FROM public."PlatformAccount" WHERE account_local_id=creator_uid AND platform = v_platform.id;
 
   -- Process each content
   FOR content IN SELECT * FROM jsonb_array_elements(data)
@@ -99,11 +99,11 @@ BEGIN
       v_content_author_local_id VARCHAR = content ->>'author_local_id';
       v_content_scale public."Scale" := (content ->> 'scale')::public."Scale";
       v_content_text TEXT := content->>'text';
-      v_content_created TIMESTAMPTZ := (node->>'created')::TIMESTAMPTZ;
-      v_content_last_modified TIMESTAMPTZ := (node->>'last_modified')::TIMESTAMPTZ;
-      v_content_metadata JSONB := node -> 'metadata';
-      v_content_part_of_local_id VARCHAR := node ->> 'part_of_local_id';
-      v_content_embedding_name VARCHAR :=  node ->> 'embedding_name';
+      v_content_created TIMESTAMPTZ := (content->>'created')::TIMESTAMPTZ;
+      v_content_last_modified TIMESTAMPTZ := (content->>'last_modified')::TIMESTAMPTZ;
+      v_content_metadata JSONB := content -> 'metadata';
+      v_content_part_of_local_id VARCHAR := content ->> 'part_of_local_id';
+      v_content_embedding_name VARCHAR :=  content ->> 'embedding_name';
       v_content_document_id BIGINT;
       v_content_author_id BIGINT;
       v_part_of_id BIGINT;
@@ -113,7 +113,7 @@ BEGIN
 
     RAISE NOTICE 'Processing content with UID: %', v_content_local_id;
     IF content_as_document OR v_document_local_id = v_content_local_id THEN
-      v_content_scale := COALESCE(v_content_scale, "document"::public."Scale");
+      v_content_scale := COALESCE(v_content_scale, 'document'::public."Scale");
       v_document_local_id := COALESCE(v_document_local_id, v_content_local_id);
       v_document_author_local_id := v_content_author_local_id;
       v_document_created := v_content_created;
@@ -122,9 +122,9 @@ BEGIN
     SELECT id FROM public."Document" WHERE source_local_id = v_document_local_id INTO v_content_document_id;
     IF v_content_document_id IS NULL THEN
       -- upsert document. Note that some variables being null will cause failure, as desired.
-      SELECT id FROM public."PlatformAccount" WHERE account_local_id = v_document_author_local_id INTO STRICT v_document_author_id;
+      SELECT id INTO STRICT v_document_author_id FROM public."PlatformAccount" WHERE account_local_id = v_document_author_local_id;
       INSERT INTO public."Document" (platform, source_local_id, author_id, created, last_modified) VALUES (
-        (v_platform, v_document_local_id, v_document_author_id, v_document_created, v_document_last_modified)
+        v_platform, v_document_local_id, v_document_author_id, v_document_created, v_document_last_modified
       ) ON CONFLICT (platform, source_local_id)
       DO UPDATE SET
         author_id = v_document_author_id,
@@ -136,14 +136,14 @@ BEGIN
       END IF;
     END IF;
     IF v_content_author_id IS NULL THEN
-      SELECT id FROM public."PlatformAccount" WHERE account_local_id = v_content_author_local_id INTO STRICT v_content_author_id;
+      SELECT id INTO STRICT v_content_author_id FROM public."PlatformAccount" WHERE account_local_id = v_content_author_local_id;
     END IF;
     IF v_content_part_of_local_id IS NOT NULL THEN
       -- If strict, this would requires that containers are inserted before content. Right now let's just lose the information but that loses data.
-      SELECT id FROM public."Content" WHERE source_local_id = v_content_part_of_local_id INTO v_content_part_of_local_id;
+      SELECT id INTO v_content_part_of_local_id FROM public."Content" WHERE source_local_id = v_content_part_of_local_id;
     END IF;
     INSERT INTO public."Content" (platform, source_local_id, document_id, scale, "text", author_id, creator_id, created, last_modified, metadata) VALUES (
-      (v_platform, source_local_id, v_document_id, v_content_scale, v_content_text, v_content_author_id, v_creator_id, v_content_created, v_content_last_modified)
+      v_platform, source_local_id, v_document_id, v_content_scale, v_content_text, v_content_author_id, v_creator_id, v_content_created, v_content_last_modified
     ) ON CONFLICT (platform, source_local_id)
     DO UPDATE SET
       document_id = v_document_id,
@@ -155,8 +155,6 @@ BEGIN
       last_modified = v_document_last_modified,
       metadata = COALESCE(metadata, v_content_metadata)
     RETURNING id INTO STRICT v_content_id;
-    -- Commit now as this is already valuable
-    COMMIT;
 
     -- I would actually prefer to do this in a separate function
     IF v_content_embedding_name IS NOT NULL AND v_content -> 'embedding_vector' IS NOT NULL THEN
@@ -165,14 +163,13 @@ BEGIN
           v_content_embedding_vector extensions.VECTOR(1532);
         BEGIN
           WITH vq AS (SELECT value::float FROM jsonb_array_elements(v_content -> 'embedding_vector'))
-            SELECT array_agg(value)::vector FROM q INTO v_content_embedding_vector;
+            SELECT array_agg(value)::vector INTO v_content_embedding_vector FROM q;
           INSERT INTO "ContentEmbedding_openai_text_embedding_3_small_1536" (target_id, model, vector, obsolete)
             VALUES (v_content_id, v_content_embedding_name, v_content_embedding_vector, false)
           ON CONFLICT (v_content_id, v_content_embedding_name)
           DO UPDATE
             SET vector = v_content_embedding_vector,
             obsolete = false;
-          COMMIT;
         END;
       ELSE
         RAISE WARNING 'Invalid vector name %s or length %s for embedding', v_content_embedding_name, jsonb_array_length(v_content -> 'embedding_vector');
