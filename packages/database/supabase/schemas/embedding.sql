@@ -24,6 +24,8 @@ ADD CONSTRAINT "ContentEmbedding_openai_text_embedding_3_small_1536_pkey" PRIMAR
 ALTER TABLE ONLY public."ContentEmbedding_openai_text_embedding_3_small_1536"
 ADD CONSTRAINT "ContentEmbedding_openai_text_embedding_3_small_1_target_id_fkey" FOREIGN KEY (target_id) REFERENCES public."Content" (id) ON UPDATE CASCADE ON DELETE CASCADE ;
 
+CREATE UNIQUE INDEX content_embedding_openai_text_embedding_3_small_1536_target_idx ON public."ContentEmbedding_openai_text_embedding_3_small_1536" (target_id);
+
 GRANT ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" TO "anon" ;
 GRANT ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" TO "authenticated" ;
 GRANT ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" TO "service_role" ;

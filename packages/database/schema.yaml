@@ -299,6 +299,11 @@ classes:
         description: Whether this embedding is obsolete (becauses the Content was modified)
         range: boolean
         ifabsent: 'false'
+    unique_keys:
+      unique_target_model:
+        unique_key_slots:
+          - target
+          # model is implicit as we have 1 table/model
   Concept:
     description: An abstract concept, claim or relation
     slots:
