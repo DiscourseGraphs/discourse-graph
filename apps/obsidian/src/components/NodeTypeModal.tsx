@@ -1,6 +1,6 @@
 import { App, Editor, SuggestModal, TFile, Notice } from "obsidian";
 import { DiscourseNode } from "~/types";
-import { processTextToDiscourseNode } from "~/utils/createNodeFromSelectedText";
+import { processTextToDiscourseNode } from "~/utils/createNode";
 import type DiscourseGraphPlugin from "~/index";
 
 export class NodeTypeModal extends SuggestModal<DiscourseNode> {

@@ -6,9 +6,11 @@ import { applyTemplate } from "./templates";
 import type DiscourseGraphPlugin from "~/index";
 
 export const formatNodeName = (
-  selectedText: string,
+  text: string,
   nodeType: DiscourseNode,
 ): string | null => {
+  const normalizedText = text.replace(/\s*\n\s*/g, " ").trim();
+
   const regex = getDiscourseNodeFormatExpression(nodeType.format);
   const nodeFormat = regex.source.match(/^\^(.*?)\(\.\*\?\)(.*?)\$$/);
 
@@ -16,7 +18,7 @@ export const formatNodeName = (
 
   return (
     nodeFormat[1]?.replace(/\\/g, "") +
-    selectedText +
+    normalizedText +
     nodeFormat[2]?.replace(/\\/g, "")
   );
 };
@@ -105,18 +107,18 @@ export const createDiscourseNodeFile = async ({
   }
 };
 
-export const processTextToDiscourseNode = async ({
+export const createDiscourseNode = async ({
   plugin,
-  editor,
   nodeType,
+  text,
+  editor,
 }: {
   plugin: DiscourseGraphPlugin;
-  editor: Editor;
   nodeType: DiscourseNode;
+  text: string;
+  editor?: Editor;
 }): Promise<TFile | null> => {
-  const selectedText = editor.getSelection().trim();
-
-  const formattedNodeName = formatNodeName(selectedText, nodeType);
+  const formattedNodeName = formatNodeName(text, nodeType);
   if (!formattedNodeName) return null;
 
   const isFilenameValid = checkInvalidChars(formattedNodeName);
@@ -130,9 +132,29 @@ export const processTextToDiscourseNode = async ({
     formattedNodeName,
     nodeType,
   });
-  if (newFile) {
+
+  if (newFile && editor) {
     editor.replaceSelection(`[[${formattedNodeName}]]`);
   }
 
   return newFile;
+};
+
+export const processTextToDiscourseNode = async ({
+  plugin,
+  editor,
+  nodeType,
+}: {
+  plugin: DiscourseGraphPlugin;
+  editor: Editor;
+  nodeType: DiscourseNode;
+}): Promise<TFile | null> => {
+  const selectedText = editor.getSelection().trim();
+
+  return createDiscourseNode({
+    plugin,
+    nodeType,
+    text: selectedText,
+    editor,
+  });
 };

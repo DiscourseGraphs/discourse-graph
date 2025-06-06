@@ -4,7 +4,7 @@ import { Settings } from "~/types";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
-import { processTextToDiscourseNode } from "./utils/createNodeFromSelectedText";
+import { processTextToDiscourseNode } from "./utils/createNode";
 import { DEFAULT_SETTINGS } from "./constants";
 
 export default class DiscourseGraphPlugin extends Plugin {
