@@ -74,12 +74,18 @@ class "AgentIdentifier" [[{An identifying attribute associated with an agent, ca
 "Concept" --> "0..*" "PlatformAccount" : "contributors"
 "Content" --> "1" "PlatformAccount" : "creator"
 "Content" --> "1" "Document" : "document"
-class "ContentEmbedding" [[{An embedding for a piece of content.}]] {
+abstract "ContentEmbedding" [[{An embedding for a piece of content.}]] {
     {field} model : EmbeddingName  
     {field} vector : vector  
     {field} obsolete : boolean  
 }
+class "ContentEmbedding_openai_text_embedding_3_small_1536" [[{The table for the openai text_embedding_3_small model (1536 dimensions)}]] {
+    {field} model(i) : EmbeddingName  
+    {field} vector(i) : vector  
+    {field} obsolete(i) : boolean  
+}
 "ContentEmbedding" --> "1" "Content" : "target"
+"ContentEmbedding" ^-- "ContentEmbedding_openai_text_embedding_3_small_1536"
 "Content" --> "0..1" "Content" : "part_of"
 "Concept" --> "0..1" "Content" : "represented_by"
 class "ConceptSchema" [[{A Concept that describes a schema (type) for other concepts}]] {

@@ -543,6 +543,41 @@ export type Database = {
           uid_to_sync: string
         }[]
       }
+      local_content_to_db_content: {
+        Args: {
+          data: Database["public"]["CompositeTypes"]["content_local_input"]
+        }
+        Returns: {
+          author_id: number | null
+          created: string
+          creator_id: number | null
+          document_id: number
+          id: number
+          last_modified: string
+          metadata: Json
+          part_of_id: number | null
+          scale: Database["public"]["Enums"]["Scale"]
+          source_local_id: string | null
+          space_id: number | null
+          text: string
+        }
+      }
+      local_document_to_db_document: {
+        Args: {
+          data: Database["public"]["CompositeTypes"]["document_local_input"]
+        }
+        Returns: {
+          author_id: number
+          contents: unknown | null
+          created: string
+          id: number
+          last_modified: string
+          metadata: Json
+          source_local_id: string | null
+          space_id: number | null
+          url: string | null
+        }
+      }
       match_content_embeddings: {
         Args: {
           query_embedding: string
@@ -576,6 +611,19 @@ export type Database = {
         }
         Returns: unknown
       }
+      upsert_content: {
+        Args: {
+          v_space_id: number
+          data: Json
+          v_creator_id: number
+          content_as_document?: boolean
+        }
+        Returns: number[]
+      }
+      upsert_content_embedding: {
+        Args: { content_id: number; model: string; embedding_array: number[] }
+        Returns: undefined
+      }
       upsert_discourse_nodes: {
         Args: {
           p_space_name: string
@@ -595,6 +643,17 @@ export type Database = {
           embedding_created: boolean
           action: string
         }[]
+      }
+      upsert_documents: {
+        Args: { v_space_id: number; data: Json }
+        Returns: number[]
+      }
+      upsert_platform_account_input: {
+        Args: {
+          account_info: Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          p_platform: Database["public"]["Enums"]["Platform"]
+        }
+        Returns: number
       }
     }
     Enums: {
@@ -644,7 +703,55 @@ export type Database = {
       task_status: "active" | "timeout" | "complete" | "failed"
     }
     CompositeTypes: {
-      [_ in never]: never
+      content_local_input: {
+        document_id: number | null
+        source_local_id: string | null
+        author_id: number | null
+        creator_id: number | null
+        created: string | null
+        text: string | null
+        metadata: Json | null
+        scale: Database["public"]["Enums"]["Scale"] | null
+        space_id: number | null
+        last_modified: string | null
+        part_of_id: number | null
+        document_local_id: string | null
+        creator_local_id: string | null
+        author_local_id: string | null
+        part_of_local_id: string | null
+        space_url: string | null
+        document_inline:
+          | Database["public"]["CompositeTypes"]["document_local_input"]
+          | null
+        author_inline:
+          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | null
+        creator_inline:
+          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | null
+        embedding_inline:
+          | Database["public"]["CompositeTypes"]["inline_embedding_input"]
+          | null
+      }
+      document_local_input: {
+        space_id: number | null
+        source_local_id: string | null
+        url: string | null
+        created: string | null
+        metadata: Json | null
+        last_modified: string | null
+        author_id: number | null
+        contents: unknown | null
+        author_local_id: string | null
+        space_url: string | null
+        author_inline:
+          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | null
+      }
+      inline_embedding_input: {
+        model: string | null
+        vector: number[] | null
+      }
     }
   }
 }
