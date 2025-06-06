@@ -70,7 +70,7 @@ CREATE UNIQUE INDEX concept_space_and_name_idx ON public."Concept" (space_id, na
 ALTER TABLE ONLY public."Concept"
 ADD CONSTRAINT "Concept_author_id_fkey" FOREIGN KEY (
     author_id
-) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE SET NULL;
+) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE ONLY public."Concept"
 ADD CONSTRAINT "Concept_schema_id_fkey" FOREIGN KEY (

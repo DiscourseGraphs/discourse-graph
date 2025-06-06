@@ -1,0 +1,111 @@
+import { getNodeEnv } from "roamjs-components/util/env";
+import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
+import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
+import getRoamUrl from "roamjs-components/dom/getRoamUrl";
+import { Database } from "@repo/database/types.gen";
+
+type Platform = Database["public"]["Enums"]["Platform"];
+
+export type SupabaseContext = {
+  platform: Platform;
+  spaceId: number;
+  userId: number;
+};
+
+let CONTEXT_CACHE: SupabaseContext | null = null;
+
+// TODO: This should be an util on its own.
+const base_url =
+  getNodeEnv() === "development"
+    ? "http://localhost:3000/api/supabase"
+    : "https://discoursegraphs.com/api/supabase";
+
+// Note: Some of this will be more typesafe if rewritten with direct supabase access eventually.
+// We're going through nextjs until we have settled security.
+
+const fetchOrCreateSpaceId = async (): Promise<number> => {
+  const url = getRoamUrl();
+  const urlParts = url.split("/");
+  const name = window.roamAlphaAPI.graph.name;
+  const platform: Platform = "Roam";
+  const response = await fetch(base_url + "/space", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ url, name, platform }),
+  });
+  if (!response.ok)
+    throw new Error(
+      `Platform API failed: \${response.status} \${response.statusText}`,
+    );
+  const space = await response.json();
+  if (typeof space.id !== "number") throw new Error("API did not return space");
+  return space.id;
+};
+
+const fetchOrCreatePlatformAccount = async (
+  accountLocalId: string,
+  name: string,
+  personEmail: string | undefined
+): Promise<number> => {
+  const response = await fetch(
+    `${base_url}/platform_account`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        platform: "Roam", account_local_id: accountLocalId, name
+      }),
+    },
+  );
+  if (!response.ok)
+    throw new Error(
+      `Platform API failed: \${response.status} \${response.statusText}`,
+    );
+  const account = await response.json();
+  if (personEmail !== undefined) {
+    const idResponse = await fetch(
+      `${base_url}/agent_identifier`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          account_id: account.id,
+          identifier_type: "email",
+          value: personEmail,
+          trusted: true,  // Roam tests email
+        }),
+      },
+    );
+    if (!idResponse.ok) {
+      const error = await idResponse.text();
+      console.error(`Error setting the email for the account: ${error}`);
+      // This is not a reason to stop here
+    }
+  }
+  if (typeof account.id !== "number")
+    throw new Error("API did not return account");
+  return account.id;
+};
+
+export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
+  if (CONTEXT_CACHE === null) {
+    try {
+      const spaceId = await fetchOrCreateSpaceId();
+      const accountLocalId = window.roamAlphaAPI.user.uid();
+      const personEmail = getCurrentUserEmail();
+      const personName = getCurrentUserDisplayName();
+      const userId = await fetchOrCreatePlatformAccount(accountLocalId, personEmail, personName);
+      CONTEXT_CACHE = { platform: "Roam", spaceId, userId };
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+  return CONTEXT_CACHE;
+};
