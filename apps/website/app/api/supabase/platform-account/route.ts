@@ -10,7 +10,7 @@ import {
 } from "~/utils/supabase/apiUtils";
 import { TablesInsert, Constants } from "@repo/database/types.gen.ts";
 
-const { AgentType, PlatformType } = Constants.public.Enums;
+const { AgentType, Platform } = Constants.public.Enums;
 
 type PlatformAccountDataInput = TablesInsert<"PlatformAccount">;
 
@@ -22,7 +22,7 @@ const accountValidator: ItemValidator<PlatformAccountDataInput> = (account: any)
   if (!name || typeof name !== "string" || name.trim() === "")
     return "Missing or invalid name";
   // This is not dry, to be rewritten with Drizzle/Zed.
-  if (!PlatformType.includes(platform))
+  if (!Platform.includes(platform))
     return "Missing or invalid platform";
   if (agent_type !== undefined && !AgentType.includes(agent_type))
     return "Invalid agent_type";
