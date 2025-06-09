@@ -17,7 +17,6 @@ import runQuery from "~/utils/runQuery";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { render as exportRender } from "~/components/Export";
 import getBlockProps from "~/utils/getBlockProps";
-import localStorageGet from "roamjs-components/util/localStorageGet";
 import apiGet from "roamjs-components/util/apiGet";
 import { handleTitleAdditions } from "~/utils/handleTitleAdditions";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
@@ -37,11 +36,21 @@ import {
   WINDOW_WIDTH,
   fetchInstallationStatus,
 } from "~/components/ExportGithub";
-import localStorageSet from "roamjs-components/util/localStorageSet";
+import { getSetting, setSetting } from "~/utils/extensionSettings";
 import nanoid from "nanoid";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import isFlagEnabled from "~/utils/isFlagEnabled";
 import getPageTitleByBlockUid from "roamjs-components/queries/getPageTitleByBlockUid";
+import {
+  API_URL_DEV,
+  GH_APP_ID_DEV,
+  GH_APP_ID_PROD,
+  GH_APP_URL_DEV,
+  GH_APP_URL_PROD,
+  GH_CLIENT_ID_DEV,
+  GH_CLIENT_ID_PROD,
+  API_URL_PROD,
+} from "~/constants";
 
 const CommentUidCache = new Set<string>();
 const CommentContainerUidCache = new Set<string>();
@@ -85,6 +94,13 @@ type GitHubCommentsResponse = {
 const CONFIG_PAGE = "roam/js/github-sync";
 export const SETTING = "GitHub Sync";
 let enabled = false;
+
+// const isDev = getNodeEnv() === "development";
+const isDev = true;
+const APP_ID = isDev ? GH_APP_ID_DEV : GH_APP_ID_PROD;
+const CLIENT_ID = isDev ? GH_CLIENT_ID_DEV : GH_CLIENT_ID_PROD;
+const API_URL = isDev ? API_URL_DEV : API_URL_PROD;
+const APP_URL = isDev ? GH_APP_URL_DEV : GH_APP_URL_PROD;
 
 // Utils
 const getPageGitHubPropsDetails = (pageUid: string) => {
@@ -161,7 +177,7 @@ export const insertNewCommentsFromGitHub = async ({
     matchingNode,
   });
 
-  const gitHubAccessToken = localStorageGet("github-oauth");
+  const gitHubAccessToken = getSetting("github-oauth");
   if (!gitHubAccessToken) {
     renderToast({
       id: "github-issue-auth",
@@ -363,7 +379,7 @@ const CommentsComponent = ({ blockUid }: { blockUid: string }) => {
         onClick={async (e) => {
           setLoading(true);
 
-          const gitHubAccessToken = localStorageGet("github-oauth");
+          const gitHubAccessToken = getSetting("github-oauth");
           if (!gitHubAccessToken) {
             renderToast({
               id: "github-issue-auth",
@@ -553,7 +569,7 @@ export const TitleButtons = ({ pageUid }: { pageUid: string }) => {
         onClick={() => {
           setLoading({ ...loading, sendToGitHub: true });
           const destination: GitHubDestination = "Issue";
-          localStorageSet("github-destination", destination);
+          setSetting("github-destination", destination);
           exportRender({
             results: [
               {
@@ -565,7 +581,7 @@ export const TitleButtons = ({ pageUid }: { pageUid: string }) => {
             initialPanel: "export",
             initialExportDestination: "github",
             onClose: () => {
-              localStorageSet("github-destination", "");
+              setSetting("github-destination", "");
               setTimeout(() => {
                 setLoading({ ...loading, sendToGitHub: false });
               }, 500);
@@ -692,11 +708,11 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
   const [state, setState] = useState("");
 
   const [gitHubAccessToken, _setGitHubAccessToken] = useState<string>(
-    localStorageGet("github-oauth"),
+    getSetting("github-oauth"),
   );
 
   const setGitHubAccessToken = (token: string) => {
-    localStorageSet("github-oauth", token);
+    setSetting("github-oauth", token);
     _setGitHubAccessToken(token);
   };
 
@@ -705,15 +721,14 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
     return props?.["github-sync"]?.["issue"];
   }, [pageUid]);
 
-  // const isDev = useMemo(() => getNodeEnv() === "development", []);
-  const isDev = false;
-
   const showGitHubLogin = isGitHubAppInstalled && !gitHubAccessToken;
   const repoSelectEnabled = isGitHubAppInstalled && gitHubAccessToken;
 
-  const fetchAndSetInstallation = useCallback(async () => {
+  const fetchAndSetInstallation = useCallback(async (token: string) => {
     try {
-      const isAppInstalled = await fetchInstallationStatus();
+      const isAppInstalled = await fetchInstallationStatus(token);
+      console.log("isAppInstalled", isAppInstalled);
+      console.log("token", token);
       setIsGitHubAppInstalled(isAppInstalled);
     } catch (error) {
       const e = error as Error;
@@ -730,9 +745,7 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
     const state = `github_${otp}_${key}`;
     setState(state);
     const handleGitHubAuthMessage = (event: MessageEvent) => {
-      const targetOrigin = isDev
-        ? "https://samepage.ngrok.io"
-        : "https://samepage.network";
+      const targetOrigin = new URL(API_URL).origin;
       if (event.data && event.origin === targetOrigin) {
         setGitHubAccessToken(event.data);
         setClickedInstall(false);
@@ -749,7 +762,8 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
 
   // check for installation
   useEffect(() => {
-    if (gitHubAccessToken) fetchAndSetInstallation();
+    console.log("gitHubAccessToken", gitHubAccessToken);
+    if (gitHubAccessToken) fetchAndSetInstallation(gitHubAccessToken);
   }, [gitHubAccessToken]);
 
   return (
@@ -792,7 +806,7 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
             <div className="flex flex-col">
               {!isGitHubAppInstalled && (
                 <Button
-                  text="Install SamePage App"
+                  text="Install Discourse Graphs App"
                   id="qb-install-button"
                   icon="cloud-download"
                   className={
@@ -802,9 +816,7 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
                   onClick={async () => {
                     console.log(isDev);
                     authWindow.current = window.open(
-                      isDev
-                        ? "https://github.com/apps/samepage-network-dev"
-                        : "https://github.com/apps/samepage-network",
+                      APP_URL,
                       "_blank",
                       `width=${WINDOW_WIDTH}, height=${WINDOW_HEIGHT}, top=${WINDOW_TOP}, left=${WINDOW_LEFT}`,
                     );
@@ -833,9 +845,7 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
               icon="key"
               intent="primary"
               onClick={async () => {
-                const params = isDev
-                  ? `client_id=Iv1.4bf062a6c6636672&state=${state}`
-                  : `client_id=Iv1.e7e282a385b7b2da&state=${state}`;
+                const params = `client_id=${CLIENT_ID}&state=${state}`;
                 console.log(params);
                 authWindow.current = window.open(
                   `https://github.com/login/oauth/authorize?${params}`,
@@ -848,9 +858,7 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
                   if (attemptCount < 30 && !gitHubAccessToken) {
                     apiPost({
                       path: "access-token",
-                      domain: isDev
-                        ? "https://api.samepage.ngrok.io"
-                        : "https://api.samepage.network",
+                      domain: API_URL,
                       data: { state },
                     }).then((r) => {
                       if (r.accessToken) {

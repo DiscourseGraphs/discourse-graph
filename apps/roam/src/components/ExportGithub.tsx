@@ -13,6 +13,16 @@ import apiPost from "roamjs-components/util/apiPost";
 import { getNodeEnv } from "roamjs-components/util/env";
 import getExtensionApi from "roamjs-components/util/extensionApiContext";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
+import {
+  GH_APP_ID_DEV,
+  GH_APP_ID_PROD,
+  GH_APP_URL_DEV,
+  GH_CLIENT_ID_DEV,
+  GH_CLIENT_ID_PROD,
+  GH_APP_URL_PROD,
+  API_URL_DEV,
+  API_URL_PROD,
+} from "~/constants";
 
 export type UserReposResponse = {
   data: [
@@ -37,20 +47,24 @@ export const WINDOW_TOP =
 
 // const isDev = getNodeEnv() === "development";
 const isDev = false;
+const APP_ID = isDev ? GH_APP_ID_DEV : GH_APP_ID_PROD;
+const CLIENT_ID = isDev ? GH_CLIENT_ID_DEV : GH_CLIENT_ID_PROD;
+const API_URL = isDev ? API_URL_DEV : API_URL_PROD;
+const APP_URL = isDev ? GH_APP_URL_DEV : GH_APP_URL_PROD;
 
-export const fetchInstallationStatus = async () => {
+export const fetchInstallationStatus = async (token: string) => {
   try {
     // https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
     const res = await apiGet<{ installations: { app_id: number }[] }>({
       domain: "https://api.github.com",
       path: "user/installations",
       headers: {
-        Authorization: `token ${getSetting("github-oauth")}`,
+        Authorization: `token ${token}`,
       },
     });
     const installations = res.installations;
-    console.log(installations);
-    const APP_ID = isDev ? 882491 : 312167; // TODO - pull from process.env.GITHUB_APP_ID
+    console.log("installations", installations);
+
     const isAppInstalled = installations.some(
       (installation) => installation.app_id === APP_ID,
     );
@@ -108,7 +122,7 @@ export const ExportGithub = ({
 
   const fetchAndSetInstallation = useCallback(async (token: string) => {
     try {
-      const isAppInstalled = await fetchInstallationStatus();
+      const isAppInstalled = await fetchInstallationStatus(gitHubAccessToken);
       setIsGitHubAppInstalled(isAppInstalled);
     } catch (error) {
       const e = error as Error;
@@ -182,16 +196,14 @@ export const ExportGithub = ({
         <div className="flex flex-col">
           {!isGitHubAppInstalled && (
             <Button
-              text="Install SamePage App"
+              text="Install Discourse Graphs App"
               id="qb-install-button"
               icon="cloud-download"
               className={clickedInstall ? "opacity-30 hover:opacity-100" : ""}
               intent={clickedInstall ? "none" : "primary"}
               onClick={async () => {
                 authWindow.current = window.open(
-                  isDev
-                    ? "https://github.com/apps/samepage-network-dev"
-                    : "https://github.com/apps/samepage-network",
+                  APP_URL,
                   "_blank",
                   `width=${WINDOW_WIDTH}, height=${WINDOW_HEIGHT}, top=${WINDOW_TOP}, left=${WINDOW_LEFT}`,
                 );
@@ -219,9 +231,7 @@ export const ExportGithub = ({
           icon="key"
           intent="primary"
           onClick={async () => {
-            const params = isDev
-              ? `client_id=Iv1.4bf062a6c6636672&state=${state}`
-              : `client_id=Iv1.e7e282a385b7b2da&state=${state}`;
+            const params = `client_id=${CLIENT_ID}&state=${state}`;
             authWindow.current = window.open(
               `https://github.com/login/oauth/authorize?${params}`,
               "_blank",
@@ -233,9 +243,7 @@ export const ExportGithub = ({
               if (attemptCount < 30 && !gitHubAccessToken) {
                 apiPost({
                   path: "access-token",
-                  domain: isDev
-                    ? "https://api.samepage.ngrok.io"
-                    : "https://api.samepage.network",
+                  domain: API_URL,
                   data: { state },
                 }).then((r) => {
                   if (r.accessToken) {
