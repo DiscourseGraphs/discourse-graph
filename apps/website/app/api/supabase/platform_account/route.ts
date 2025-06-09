@@ -8,7 +8,9 @@ import {
   defaultOptionsHandler,
   asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
-import { TablesInsert } from "@repo/database/types.gen.ts";
+import { TablesInsert, Constants } from "@repo/database/types.gen.ts";
+
+const { AgentType, PlatformType } = Constants.public.Enums;
 
 type PlatformAccountDataInput = TablesInsert<"PlatformAccount">;
 
@@ -20,9 +22,9 @@ const accountValidator: ItemValidator<PlatformAccountDataInput> = (account: any)
   if (!name || typeof name !== "string" || name.trim() === "")
     return "Missing or invalid name";
   // This is not dry, to be rewritten with Drizzle/Zed.
-  if (!["Roam", "Obsidian"].includes(platform))
+  if (!PlatformType.includes(platform))
     return "Missing or invalid platform";
-  if (agent_type !== undefined && !["person", "organization", "automated_agent"].includes(agent_type))
+  if (agent_type !== undefined && !AgentType.includes(agent_type))
     return "Invalid agent_type";
   if (write_permission !== undefined && typeof write_permission != 'boolean')
     return "write_permission must be boolean";

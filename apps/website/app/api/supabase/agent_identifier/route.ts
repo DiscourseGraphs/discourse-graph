@@ -8,9 +8,10 @@ import {
   defaultOptionsHandler,
   asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
-import { TablesInsert } from "@repo/database/types.gen.ts";
+import { TablesInsert, Constants } from "@repo/database/types.gen.ts";
 
 type AgentIdentifierDataInput = TablesInsert<"AgentIdentifier">;
+const { AgentIdentifierType } = Constants.public.Enums;
 
 const agentIdentifierValidator: ItemValidator<AgentIdentifierDataInput> = (agent_identifier: any) => {
   if (!agent_identifier || typeof agent_identifier !== "object")
@@ -22,11 +23,11 @@ const agentIdentifierValidator: ItemValidator<AgentIdentifierDataInput> = (agent
     trusted,
   } = agent_identifier;
 
-  if (!['email', 'orcid'].includes(identifier_type))
+  if (!AgentIdentifierType.includes(identifier_type))
     return "Invalid identifier_type";
   if (!value || typeof value !== "string" || value.trim() === "")
     return "Missing or invalid value";
-  if (!account_id || Number.isNaN(Number.parseInt(account_id)))
+  if (!account_id || Number.isNaN(Number.parseInt(account_id, 10)))
     return "Missing or invalid account_id";
   if (trusted !== undefined && !["true", "false", true, false].includes(trusted))
     return "if included, trusted should be a boolean";
@@ -46,7 +47,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     if (error !== null)
       return createApiResponse(request, asPostgrestFailure(error, "invalid"));
 
-    body.account_id = Number.parseInt(body.account_id);
+    body.account_id = Number.parseInt(body.account_id, 10);
     body.trusted = body.trusted === true || body.trusted === "true" || false;
     const supabase = await supabasePromise;
     const result = await getOrCreateEntity<"AgentIdentifier">({

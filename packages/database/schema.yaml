@@ -48,8 +48,8 @@ enums:
   Platform:
     description: A known platform on which DiscourseGraph operates
     permissible_values:
-      roam:
-      obsidian:
+      Roam:
+      Obsidian:
   AgentType:
     description: The type of agent
     permissible_values:
@@ -125,7 +125,6 @@ classes:
       - id
   PlatformAccount:
     description: An account for an agent on a platform
-    abstract: true
     slots:
       - id
       - name
@@ -148,6 +147,7 @@ classes:
       metadata:
         range: JSON
         description: Additional platform-specific information about the account
+        ifabsent: '{}'
       dg_account:
         range: Users
     unique_keys:
