@@ -46,6 +46,9 @@ export class CreateNodeModal extends Modal {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         this.handleConfirm();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        this.close();
       }
     });
     this.titleInput.addEventListener("input", () => {
