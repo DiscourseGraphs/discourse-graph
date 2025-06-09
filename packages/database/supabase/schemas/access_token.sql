@@ -1,6 +1,7 @@
-create table "access-token" (
+create table "access_token" (
   id bigint primary key generated always as identity,
-  "access-token" text not null,
+  -- TODO encrypt this
+  access_token text not null,
   code text,
   state text,
   created_date timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -9,7 +10,18 @@ create table "access-token" (
   )
 );
 
-create unique index access_token_access_token_idx on "access-token" ("access-token");
-create index access_token_code_idx on "access-token" (code);
-create index access_token_state_idx on "access-token" (state);
-create index access_token_created_date_idx on "access-token" (created_date desc);
+create unique index access_token_access_token_idx on "access_token" ("access_token");
+create index access_token_code_idx on "access_token" (code);
+create index access_token_state_idx on "access_token" (state);
+create index access_token_created_date_idx on "access_token" (created_date desc);
+
+-- Revoke dangerous permissions from anon role
+revoke delete on table "public"."access_token" from "anon";
+revoke truncate on table "public"."access_token" from "anon";
+revoke update on table "public"."access_token" from "anon";
+revoke references on table "public"."access_token" from "anon";
+revoke trigger on table "public"."access_token" from "anon";
+
+-- Ensure only necessary permissions remain for anon role
+grant select on table "public"."access_token" to "anon";
+grant insert on table "public"."access_token" to "anon";

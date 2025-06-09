@@ -9,23 +9,23 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      "access-token": {
+      access_token: {
         Row: {
-          "access-token": string;
+          access_token: string;
           code: string | null;
           created_date: string;
           id: number;
           state: string | null;
         };
         Insert: {
-          "access-token": string;
+          access_token: string;
           code?: string | null;
           created_date?: string;
           id?: never;
           state?: string | null;
         };
         Update: {
-          "access-token"?: string;
+          access_token?: string;
           code?: string | null;
           created_date?: string;
           id?: never;
@@ -33,7 +33,7 @@ export type Database = {
         };
         Relationships: [];
       };
-      AgentIdentifier: {
+      Account: {
         Row: {
           account_id: number;
           identifier_type: Database["public"]["Enums"]["AgentIdentifierType"];
