@@ -59,6 +59,7 @@ schema_paths = [
     './schemas/contributor.sql',
     './schemas/sync.sql',
     './schemas/upload_temp.sql',
+    './schemas/access_token.sql',
 ]
 
 [db.seed]
