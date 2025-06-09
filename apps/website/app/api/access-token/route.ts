@@ -16,21 +16,24 @@ export const POST = async (request: Request) => {
     const body = await request.json();
     const validatedData = requestSchema.parse(body);
 
-    const supabase = await createClient();
+    // const supabase = await createClient();
 
-    let query = supabase
-      .from("access-token")
-      .select("access-token, code, state, created_date")
-      .order("created_date", { ascending: false })
-      .limit(1);
+    // let query = supabase
+    //   .from("access-token")
+    //   .select("access-token, code, state, created_date")
+    //   .order("created_date", { ascending: false })
+    //   .limit(1);
 
-    if (validatedData.code) {
-      query = query.eq("code", validatedData.code);
-    } else if (validatedData.state) {
-      query = query.eq("state", validatedData.state);
-    }
+    // if (validatedData.code) {
+    //   query = query.eq("code", validatedData.code);
+    // } else if (validatedData.state) {
+    //   query = query.eq("state", validatedData.state);
+    // }
 
-    const { data, error } = await query;
+    // const { data, error } = await query;
+
+    const data = [{ "access-token": "dummy data" }];
+    const error = null;
 
     if (error) {
       return NextResponse.json(
