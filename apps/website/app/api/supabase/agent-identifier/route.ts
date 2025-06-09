@@ -59,7 +59,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
     return createApiResponse(request, result);
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/supabase/agent_identifier");
+    return handleRouteError(request, e, "/api/supabase/agent-identifier");
   }
 };
 

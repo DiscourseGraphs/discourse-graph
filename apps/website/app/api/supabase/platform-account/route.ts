@@ -73,7 +73,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
     return createApiResponse(request, result);
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/supabase/platform_account");
+    return handleRouteError(request, e, "/api/supabase/platfor-account");
   }
 };
 
