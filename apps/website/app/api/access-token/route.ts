@@ -32,7 +32,7 @@ export const POST = async (request: Request) => {
 
     // const { data, error } = await query;
 
-    const data = [{ "access-token": "dummy data" }];
+    const data = { "access-token": "dummy data" };
     const error = null;
 
     if (error) {
@@ -42,14 +42,14 @@ export const POST = async (request: Request) => {
       );
     }
 
-    if (!data || data.length === 0) {
+    if (!data) {
       return NextResponse.json(
         { error: "No access token found" },
         { status: 404 },
       );
     }
 
-    return NextResponse.json({ accessToken: data[0]["access-token"] });
+    return NextResponse.json({ accessToken: data["access-token"] });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
