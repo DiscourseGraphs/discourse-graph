@@ -11,10 +11,19 @@ export const getFileMetadata = async ({
   filename,
   directory,
 }: Props): Promise<PageFrontmatter> => {
-  const fileContent = await getFileContent({
-    filename,
-    directory,
-  });
-  const { data } = matter(fileContent);
-  return PageSchema.parse(data);
+  try {
+    const fileContent = await getFileContent({
+      filename,
+      directory,
+    });
+    const { data } = matter(fileContent);
+    return PageSchema.parse(data);
+  } catch (error) {
+    console.error(`Error parsing metadata for ${filename}:`, error);
+    throw new Error(
+      `Invalid frontmatter in ${filename}: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
+    );
+  }
 };
