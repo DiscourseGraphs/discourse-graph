@@ -63,6 +63,7 @@ const Settings = () => {
       {activeTab === "nodeTypes" && <NodeTypeSettings />}
       {activeTab === "relationTypes" && <RelationshipTypeSettings />}
       {activeTab === "relations" && <RelationshipSettings />}
+      {activeTab === "frontmatter" && <GeneralSettings />}
     </div>
   );
 };

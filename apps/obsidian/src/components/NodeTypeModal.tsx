@@ -1,14 +1,15 @@
 import { App, Editor, SuggestModal, TFile, Notice } from "obsidian";
 import { DiscourseNode } from "~/types";
 import { processTextToDiscourseNode } from "~/utils/createNodeFromSelectedText";
+import type DiscourseGraphPlugin from "~/index";
 
 export class NodeTypeModal extends SuggestModal<DiscourseNode> {
   constructor(
-    app: App,
     private editor: Editor,
     private nodeTypes: DiscourseNode[],
+    private plugin: DiscourseGraphPlugin,
   ) {
-    super(app);
+    super(plugin.app);
   }
 
   getItemText(item: DiscourseNode): string {
@@ -28,7 +29,7 @@ export class NodeTypeModal extends SuggestModal<DiscourseNode> {
 
   async onChooseSuggestion(nodeType: DiscourseNode) {
     await processTextToDiscourseNode({
-      app: this.app,
+      plugin: this.plugin,
       editor: this.editor,
       nodeType,
     });

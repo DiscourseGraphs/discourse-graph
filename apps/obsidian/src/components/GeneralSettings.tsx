@@ -1,11 +1,73 @@
-import React, { useState } from "react";
+import { useState, useCallback } from "react";
 import { usePlugin } from "./PluginContext";
 import { Notice } from "obsidian";
+import SuggestInput from "./SuggestInput";
+
+export const FolderSuggestInput = ({
+  value,
+  onChange,
+  placeholder = "Enter folder path",
+  className = "",
+  disabled = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+}) => {
+  const plugin = usePlugin();
+
+  const getAllFolders = useCallback((): string[] => {
+    const folders = plugin.app.vault.getAllFolders();
+    return folders.map((folder) => folder.path).sort();
+  }, [plugin.app.vault]);
+
+  const getFilteredFolders = useCallback(
+    (query: string): string[] => {
+      const allFolders = getAllFolders();
+
+      if (!query.trim()) {
+        return allFolders.slice(0, 10);
+      }
+
+      return allFolders
+        .filter((path) => path.toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 10);
+    },
+    [getAllFolders],
+  );
+
+  const renderFolder = useCallback((folder: string, el: HTMLElement) => {
+    el.createDiv({
+      text: folder || "(Root folder)",
+      cls: "folder-suggestion-item",
+    });
+  }, []);
+
+  const getDisplayText = useCallback((folder: string) => folder, []);
+
+  return (
+    <SuggestInput<string>
+      value={value}
+      onChange={onChange}
+      getSuggestions={getFilteredFolders}
+      getDisplayText={getDisplayText}
+      renderItem={renderFolder}
+      placeholder={placeholder}
+      className={className}
+      disabled={disabled}
+    />
+  );
+};
 
 const GeneralSettings = () => {
   const plugin = usePlugin();
   const [showIdsInFrontmatter, setShowIdsInFrontmatter] = useState(
     plugin.settings.showIdsInFrontmatter,
+  );
+  const [nodesFolderPath, setNodesFolderPath] = useState(
+    plugin.settings.nodesFolderPath,
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -14,8 +76,14 @@ const GeneralSettings = () => {
     setHasUnsavedChanges(true);
   };
 
+  const handleFolderPathChange = useCallback((newValue: string) => {
+    setNodesFolderPath(newValue);
+    setHasUnsavedChanges(true);
+  }, []);
+
   const handleSave = async () => {
     plugin.settings.showIdsInFrontmatter = showIdsInFrontmatter;
+    plugin.settings.nodesFolderPath = nodesFolderPath;
     await plugin.saveSettings();
     new Notice("General settings saved");
     setHasUnsavedChanges(false);
@@ -40,6 +108,23 @@ const GeneralSettings = () => {
           >
             <input type="checkbox" checked={showIdsInFrontmatter} />
           </div>
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">Discourse Nodes folder path</div>
+          <div className="setting-item-description">
+            Specify the folder where new Discourse Nodes should be created.
+            Leave empty to create nodes in the root folder.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <FolderSuggestInput
+            value={nodesFolderPath}
+            onChange={handleFolderPathChange}
+            placeholder="Discourse Nodes"
+          />
         </div>
       </div>
 

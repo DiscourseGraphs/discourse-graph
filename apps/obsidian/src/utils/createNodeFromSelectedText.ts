@@ -3,6 +3,7 @@ import { DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "./getDiscourseNodeFormatExpression";
 import { checkInvalidChars } from "./validateNodeType";
 import { applyTemplate } from "./templates";
+import type DiscourseGraphPlugin from "~/index";
 
 export const formatNodeName = (
   selectedText: string,
@@ -21,24 +22,43 @@ export const formatNodeName = (
 };
 
 export const createDiscourseNodeFile = async ({
-  app,
+  plugin,
   formattedNodeName,
   nodeType,
 }: {
-  app: App;
+  plugin: DiscourseGraphPlugin;
   formattedNodeName: string;
   nodeType: DiscourseNode;
 }): Promise<TFile | null> => {
   try {
-    const existingFile = app.vault.getAbstractFileByPath(
-      `${formattedNodeName}.md`,
+    const { app, settings } = plugin;
+
+    const fileName = `${formattedNodeName}.md`;
+
+    const existingFile = app.metadataCache.getFirstLinkpathDest(
+      formattedNodeName,
+      "",
     );
-    if (existingFile && existingFile instanceof TFile) {
-      new Notice(`File ${formattedNodeName} already exists`, 3000);
+
+    if (existingFile) {
+      new Notice(
+        `File ${formattedNodeName} already exists at ${existingFile.path}`,
+        3000,
+      );
       return existingFile;
     }
 
-    const newFile = await app.vault.create(`${formattedNodeName}.md`, "");
+    const folderPath = settings.nodesFolderPath.trim();
+    const fullPath = folderPath ? `${folderPath}/${fileName}` : fileName;
+
+    if (folderPath) {
+      const folderExists = app.vault.getAbstractFileByPath(folderPath);
+      if (!folderExists) {
+        await app.vault.createFolder(folderPath);
+      }
+    }
+
+    const newFile = await app.vault.create(fullPath, "");
     await app.fileManager.processFrontMatter(newFile, (fm) => {
       fm.nodeTypeId = nodeType.id;
     });
@@ -86,16 +106,16 @@ export const createDiscourseNodeFile = async ({
 };
 
 export const processTextToDiscourseNode = async ({
-  app,
+  plugin,
   editor,
   nodeType,
 }: {
-  app: App;
+  plugin: DiscourseGraphPlugin;
   editor: Editor;
   nodeType: DiscourseNode;
 }): Promise<TFile | null> => {
   const selectedText = editor.getSelection().trim();
-  
+
   const formattedNodeName = formatNodeName(selectedText, nodeType);
   if (!formattedNodeName) return null;
 
@@ -106,7 +126,7 @@ export const processTextToDiscourseNode = async ({
   }
 
   const newFile = await createDiscourseNodeFile({
-    app,
+    plugin,
     formattedNodeName,
     nodeType,
   });
