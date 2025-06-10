@@ -4,8 +4,8 @@ import { Settings } from "~/types";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
-import { processTextToDiscourseNode } from "./utils/createNodeFromSelectedText";
-import { DEFAULT_SETTINGS } from "./constants";
+import { createDiscourseNode } from "~/utils/createNode";
+import { DEFAULT_SETTINGS } from "~/constants";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -46,10 +46,11 @@ export default class DiscourseGraphPlugin extends Plugin {
                 .setTitle(nodeType.name)
                 .setIcon("file-type")
                 .onClick(async () => {
-                  await processTextToDiscourseNode({
+                  await createDiscourseNode({
                     plugin: this,
                     editor,
                     nodeType,
+                    text: editor.getSelection().trim() || "",
                   });
                 });
             });
