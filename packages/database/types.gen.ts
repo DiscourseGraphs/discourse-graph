@@ -14,25 +14,22 @@ export type Database = {
           access_token: string
           code: string | null
           created_date: string
-          id: number
           platform_account_id: number | null
-          state: string | null
+          request_id: string
         }
         Insert: {
           access_token: string
           code?: string | null
           created_date?: string
-          id?: never
           platform_account_id?: number | null
-          state?: string | null
+          request_id: string
         }
         Update: {
           access_token?: string
           code?: string | null
           created_date?: string
-          id?: never
           platform_account_id?: number | null
-          state?: string | null
+          request_id?: string
         }
         Relationships: [
           {
