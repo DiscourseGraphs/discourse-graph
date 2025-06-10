@@ -63,15 +63,24 @@ export const generateStaticParams = async () => {
 
     const mdFiles = files.filter((filename) => filename.endsWith(".md"));
 
-    const publishedFiles = await Promise.all(
+    const results = await Promise.allSettled(
       mdFiles.map(async (filename) => {
-        const { published } = await getFileMetadata({
-          filename,
-          directory: BLOG_PATH,
-        });
-        return { filename, published };
+        try {
+          const { published } = await getFileMetadata({
+            filename,
+            directory: BLOG_PATH,
+          });
+          return { filename, published };
+        } catch (error) {
+          console.error(`Skipping ${filename} due to metadata error:`, error);
+          return { filename, published: false };
+        }
       }),
     );
+
+    const publishedFiles = results
+      .filter((result) => result.status === 'fulfilled')
+      .map((result) => result.value);
 
     return publishedFiles
       .filter(({ published }) => published)
