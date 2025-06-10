@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { AbstractInputSuggest, App } from "obsidian";
 import { usePlugin } from "./PluginContext";
 
@@ -74,11 +74,14 @@ const SuggestInput = <T,>({
   const inputRef = useRef<HTMLInputElement>(null);
   const [suggest, setSuggest] = useState<GenericSuggestInput<T> | null>(null);
 
-  const handleSelect = (item: T) => {
-    const displayText = getDisplayText(item);
-    onChange(displayText);
-    onSelect?.(item);
-  };
+  const handleSelect = useCallback(
+    (item: T) => {
+      const displayText = getDisplayText(item);
+      onChange(displayText);
+      onSelect?.(item);
+    },
+    [getDisplayText, onChange, onSelect],
+  );
 
   useEffect(() => {
     if (inputRef.current && !suggest && !disabled) {
@@ -101,12 +104,11 @@ const SuggestInput = <T,>({
     }
   }, [
     plugin.app,
-    onChange,
-    onSelect,
     getSuggestions,
     getDisplayText,
     renderItem,
     disabled,
+    handleSelect,
   ]);
 
   useEffect(() => {

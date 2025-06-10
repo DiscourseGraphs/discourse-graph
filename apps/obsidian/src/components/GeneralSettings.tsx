@@ -1,53 +1,58 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { usePlugin } from "./PluginContext";
 import { Notice } from "obsidian";
 import SuggestInput from "./SuggestInput";
 
-export const FolderSuggestInput: React.FC<{
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  className?: string;
-  disabled?: boolean;
-}> = ({
+export const FolderSuggestInput = ({
   value,
   onChange,
   placeholder = "Enter folder path",
   className = "",
   disabled = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
 }) => {
   const plugin = usePlugin();
 
-  const getAllFolders = (): string[] => {
+  const getAllFolders = useCallback((): string[] => {
     const folders = plugin.app.vault.getAllFolders();
     return folders.map((folder) => folder.path).sort();
-  };
+  }, [plugin.app.vault]);
 
-  const getFilteredFolders = (query: string): string[] => {
-    const allFolders = getAllFolders();
+  const getFilteredFolders = useCallback(
+    (query: string): string[] => {
+      const allFolders = getAllFolders();
 
-    if (!query.trim()) {
-      return allFolders.slice(0, 10);
-    }
+      if (!query.trim()) {
+        return allFolders.slice(0, 10);
+      }
 
-    return allFolders
-      .filter((path) => path.toLowerCase().includes(query.toLowerCase()))
-      .slice(0, 10);
-  };
+      return allFolders
+        .filter((path) => path.toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 10);
+    },
+    [getAllFolders],
+  );
 
-  const renderFolder = (folder: string, el: HTMLElement) => {
+  const renderFolder = useCallback((folder: string, el: HTMLElement) => {
     el.createDiv({
       text: folder || "(Root folder)",
       cls: "folder-suggestion-item",
     });
-  };
+  }, []);
+
+  const getDisplayText = useCallback((folder: string) => folder, []);
 
   return (
     <SuggestInput<string>
       value={value}
       onChange={onChange}
       getSuggestions={getFilteredFolders}
-      getDisplayText={(folder) => folder}
+      getDisplayText={getDisplayText}
       renderItem={renderFolder}
       placeholder={placeholder}
       className={className}
@@ -71,10 +76,10 @@ const GeneralSettings = () => {
     setHasUnsavedChanges(true);
   };
 
-  const handleFolderPathChange = (newValue: string) => {
+  const handleFolderPathChange = useCallback((newValue: string) => {
     setNodesFolderPath(newValue);
     setHasUnsavedChanges(true);
-  };
+  }, []);
 
   const handleSave = async () => {
     plugin.settings.showIdsInFrontmatter = showIdsInFrontmatter;
