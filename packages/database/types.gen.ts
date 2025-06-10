@@ -467,6 +467,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      alpha_delete_by_source_local_ids: {
+        Args: { p_space_name: string; p_source_local_ids: string[] }
+        Returns: string
+      }
+      alpha_get_last_update_time: {
+        Args: { p_space_name: string }
+        Returns: {
+          last_update_time: string
+        }[]
+      }
+      alpha_upsert_discourse_nodes: {
+        Args: {
+          p_space_name: string
+          p_user_email: string
+          p_user_name: string
+          p_nodes: Json
+        }
+        Returns: string
+      }
       end_sync_task: {
         Args: {
           s_target: number
@@ -514,6 +533,35 @@ export type Database = {
           task_interval: unknown
         }
         Returns: unknown
+      }
+      upsert_content: {
+        Args: {
+          space_url: string
+          data: Json
+          creator_uid: string
+          content_as_document?: boolean
+        }
+        Returns: number[]
+      }
+      upsert_discourse_nodes: {
+        Args: {
+          p_space_name: string
+          p_user_email: string
+          p_user_name: string
+          p_nodes: Json
+          p_platform_name?: string
+          p_platform_url?: string
+          p_space_url?: string
+          p_agent_type?: string
+          p_content_scale?: string
+          p_embedding_model?: string
+          p_document_source_id?: string
+        }
+        Returns: {
+          content_id: number
+          embedding_created: boolean
+          action: string
+        }[]
       }
     }
     Enums: {
