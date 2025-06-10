@@ -27,7 +27,7 @@ const GeneralSettings = () => {
 
       <div className="setting-item">
         <div className="setting-item-info">
-          <div className="setting-item-name">Toggle IDs in frontmatter</div>
+          <div className="setting-item-name">Show IDs in frontmatter</div>
           <div className="setting-item-description">
             Choose if you want IDs to show in the frontmatter. Controls
             visibility of node type IDs and relation type IDs.

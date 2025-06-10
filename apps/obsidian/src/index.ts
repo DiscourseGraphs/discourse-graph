@@ -59,13 +59,17 @@ export default class DiscourseGraphPlugin extends Plugin {
     );
   }
 
+  private createStyleElement() {
+    if (!this.styleElement) {
+      this.styleElement = document.createElement("style");
+      this.styleElement.id = "discourse-graph-frontmatter-styles";
+      document.head.appendChild(this.styleElement);
+    }
+  }
+
   updateFrontmatterStyles() {
     try {
-      if (!this.styleElement) {
-        this.styleElement = document.createElement("style");
-        this.styleElement.id = "discourse-graph-frontmatter-styles";
-        document.head.appendChild(this.styleElement);
-      }
+      this.createStyleElement();
 
       let keysToHide: string[] = [];
 
@@ -79,9 +83,9 @@ export default class DiscourseGraphPlugin extends Plugin {
           .map((key) => `.metadata-property[data-property-key="${key}"]`)
           .join(", ");
 
-        this.styleElement.textContent = `${selectors} { display: none !important; }`;
+        this.styleElement!.textContent = `${selectors} { display: none !important; }`;
       } else {
-        this.styleElement.textContent = "";
+        this.styleElement!.textContent = "";
       }
     } catch (error) {
       console.error("Error updating frontmatter styles:", error);
