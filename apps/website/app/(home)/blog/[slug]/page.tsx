@@ -12,7 +12,7 @@ type Params = {
   }>;
 };
 
-export default async function BlogPost({ params }: Params) {
+const BlogPost = async ({ params }: Params) => {
   try {
     const { slug } = await params;
     const { data, contentHtml } = await getProcessedMarkdownFile({
@@ -42,9 +42,9 @@ export default async function BlogPost({ params }: Params) {
     console.error("Error rendering blog post:", error);
     return notFound();
   }
-}
+};
 
-export async function generateStaticParams() {
+export const generateStaticParams = async () => {
   try {
     const blogPath = path.resolve(process.cwd(), BLOG_PATH);
     const directoryExists = await fs
@@ -82,9 +82,11 @@ export async function generateStaticParams() {
     console.error("Error generating static params:", error);
     return [];
   }
-}
+};
 
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
+export const generateMetadata = async ({
+  params,
+}: Params): Promise<Metadata> => {
   try {
     const { slug } = await params;
     const { data } = await getProcessedMarkdownFile({
@@ -102,4 +104,6 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       title: "Blog Post",
     };
   }
-}
+};
+
+export default BlogPost;

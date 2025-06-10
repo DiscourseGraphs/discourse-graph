@@ -19,7 +19,7 @@ type Params = {
 const PATH = "app/(docs)/docs/roam/pages";
 const DIRECTORY = path.join(process.cwd(), PATH);
 
-export default async function Page({ params }: Params) {
+const Page = async ({ params }: Params) => {
   try {
     const { slug } = await params;
     const { data, contentHtml } = await getProcessedMarkdownFile({
@@ -46,9 +46,11 @@ export default async function Page({ params }: Params) {
     console.error("Error rendering docs page:", error);
     return notFound();
   }
-}
+};
 
-export async function generateStaticParams() {
+export default Page;
+
+export const generateStaticParams = async () => {
   try {
     const directoryExists = await fs
       .stat(DIRECTORY)
@@ -83,9 +85,11 @@ export async function generateStaticParams() {
     console.error("Error generating static params:", error);
     return [];
   }
-}
+};
 
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
+export const generateMetadata = async ({
+  params,
+}: Params): Promise<Metadata> => {
   try {
     const { slug } = await params;
     const { data } = await getProcessedMarkdownFile({
@@ -103,4 +107,4 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       title: "Docs",
     };
   }
-}
+};
