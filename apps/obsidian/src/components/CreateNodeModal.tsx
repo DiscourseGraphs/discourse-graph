@@ -1,12 +1,157 @@
 import { App, Modal, Notice } from "obsidian";
+import { createRoot, Root } from "react-dom/client";
+import { StrictMode, useState, useEffect, useRef } from "react";
 import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
 
-interface CreateNodeModalProps {
+type CreateNodeFormProps = {
   nodeTypes: DiscourseNode[];
   plugin: DiscourseGraphPlugin;
   onNodeCreate: (nodeType: DiscourseNode, title: string) => Promise<void>;
+  onCancel: () => void;
+};
+
+export function CreateNodeForm({
+  nodeTypes,
+  plugin,
+  onNodeCreate,
+  onCancel,
+}: CreateNodeFormProps) {
+  const [title, setTitle] = useState("");
+  const [selectedNodeType, setSelectedNodeType] =
+    useState<DiscourseNode | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Focus the title input when component mounts
+    setTimeout(() => {
+      titleInputRef.current?.focus();
+    }, 50);
+  }, []);
+
+  const isFormValid = title.trim() && selectedNodeType;
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleConfirm();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onCancel();
+    }
+  };
+
+  const handleNodeTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    setSelectedNodeType(nodeTypes.find((nt) => nt.id === selectedId) || null);
+  };
+
+  const handleConfirm = async () => {
+    if (!isFormValid || isSubmitting) {
+      return;
+    }
+
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      new Notice("Please enter a title", 3000);
+      return;
+    }
+
+    if (!selectedNodeType) {
+      new Notice("Please select a node type", 3000);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await onNodeCreate(selectedNodeType, trimmedTitle);
+      onCancel(); // Close the modal on success
+    } catch (error) {
+      console.error("Error creating node:", error);
+      new Notice(
+        `Error creating node: ${error instanceof Error ? error.message : String(error)}`,
+        5000,
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div>
+      <h2>Create Discourse Node</h2>
+
+      <div className="setting-item">
+        <div className="setting-item-name">Title</div>
+        <div className="setting-item-control">
+          <input
+            ref={titleInputRef}
+            type="text"
+            placeholder="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isSubmitting}
+            className="resize-vertical font-inherit border-background-modifier-border bg-background-primary text-text-normal max-h-[6em] min-h-[2.5em] w-full overflow-y-auto rounded-md border p-2"
+          />
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-name">Type</div>
+        <div className="setting-item-control">
+          <select
+            value={selectedNodeType?.id || ""}
+            onChange={handleNodeTypeChange}
+            disabled={isSubmitting}
+            className="w-full"
+          >
+            <option value="">Select node type</option>
+            {nodeTypes.map((nodeType) => (
+              <option key={nodeType.id} value={nodeType.id}>
+                {nodeType.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div
+        className="modal-button-container"
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "8px",
+          marginTop: "20px",
+        }}
+      >
+        <button
+          type="button"
+          className="mod-normal"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="mod-cta"
+          onClick={handleConfirm}
+          disabled={!isFormValid || isSubmitting}
+        >
+          {isSubmitting ? "Creating..." : "Confirm"}
+        </button>
+      </div>
+    </div>
+  );
 }
+
+type CreateNodeModalProps = {
+  nodeTypes: DiscourseNode[];
+  plugin: DiscourseGraphPlugin;
+  onNodeCreate: (nodeType: DiscourseNode, title: string) => Promise<void>;
+};
 
 export class CreateNodeModal extends Modal {
   private nodeTypes: DiscourseNode[];
@@ -15,9 +160,7 @@ export class CreateNodeModal extends Modal {
     nodeType: DiscourseNode,
     title: string,
   ) => Promise<void>;
-  private selectedNodeType: DiscourseNode | null = null;
-  private titleInput: HTMLInputElement | null = null;
-  private confirmButton: HTMLButtonElement | null = null;
+  private root: Root | null = null;
 
   constructor(app: App, props: CreateNodeModalProps) {
     super(app);
@@ -30,113 +173,24 @@ export class CreateNodeModal extends Modal {
     const { contentEl } = this;
     contentEl.empty();
 
-    contentEl.createEl("h2", { text: "Create node" });
-
-    const titleContainer = contentEl.createDiv({ cls: "setting-item" });
-    titleContainer.createEl("div", { text: "Title", cls: "setting-item-name" });
-    const titleInputContainer = titleContainer.createDiv({
-      cls: "setting-item-control",
-    });
-
-    this.titleInput = titleInputContainer.createEl("input", {
-      type: "text",
-      placeholder: "Title",
-    });
-    this.titleInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        this.handleConfirm();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        this.close();
-      }
-    });
-    this.titleInput.addEventListener("input", () => {
-      this.updateButtonState();
-    });
-
-    const typeContainer = contentEl.createDiv({ cls: "setting-item" });
-    typeContainer.createEl("div", { text: "Type", cls: "setting-item-name" });
-    const typeInputContainer = typeContainer.createDiv({
-      cls: "setting-item-control",
-    });
-
-    const typeSelect = typeInputContainer.createEl("select");
-    typeSelect.createEl("option", { text: "Select node type", value: "" });
-    this.nodeTypes.forEach((nodeType) => {
-      typeSelect.createEl("option", {
-        text: nodeType.name,
-        value: nodeType.id,
-      });
-    });
-    typeSelect.addEventListener("change", () => {
-      const selectedId = typeSelect.value;
-      this.selectedNodeType =
-        this.nodeTypes.find((nt) => nt.id === selectedId) || null;
-      this.updateButtonState();
-    });
-
-    const buttonContainer = contentEl.createDiv({
-      cls: "modal-button-container",
-    });
-    buttonContainer.style.display = "flex";
-    buttonContainer.style.justifyContent = "flex-end";
-    buttonContainer.style.gap = "8px";
-    buttonContainer.style.marginTop = "20px";
-
-    const cancelButton = buttonContainer.createEl("button", {
-      text: "Cancel",
-      cls: "mod-normal",
-    });
-    cancelButton.addEventListener("click", () => {
-      this.close();
-    });
-
-    this.confirmButton = buttonContainer.createEl("button", {
-      text: "Confirm",
-      cls: "mod-cta",
-    });
-    this.confirmButton.disabled = true;
-    this.confirmButton.addEventListener("click", () => {
-      this.handleConfirm();
-    });
-
-    setTimeout(() => this.titleInput?.focus(), 50);
-    this.updateButtonState();
-  }
-
-  private updateButtonState() {
-    if (this.confirmButton) {
-      const hasTitle = this.titleInput?.value.trim();
-      const hasNodeType = this.selectedNodeType;
-      this.confirmButton.disabled = !hasTitle || !hasNodeType;
-    }
-  }
-
-  private async handleConfirm() {
-    if (!this.titleInput || !this.selectedNodeType) {
-      return;
-    }
-
-    const title = this.titleInput.value.trim();
-    if (!title) {
-      new Notice("Please enter a title", 3000);
-      return;
-    }
-
-    try {
-      await this.onNodeCreate(this.selectedNodeType, title);
-      this.close();
-    } catch (error) {
-      console.error("Error creating node:", error);
-      new Notice(
-        `Error creating node: ${error instanceof Error ? error.message : String(error)}`,
-        5000,
-      );
-    }
+    this.root = createRoot(contentEl);
+    this.root.render(
+      <StrictMode>
+        <CreateNodeForm
+          nodeTypes={this.nodeTypes}
+          plugin={this.plugin}
+          onNodeCreate={this.onNodeCreate}
+          onCancel={() => this.close()}
+        />
+      </StrictMode>,
+    );
   }
 
   onClose() {
+    if (this.root) {
+      this.root.unmount();
+      this.root = null;
+    }
     const { contentEl } = this;
     contentEl.empty();
   }

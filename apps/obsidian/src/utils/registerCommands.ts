@@ -10,7 +10,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Open Node Type Menu",
     hotkeys: [{ modifiers: ["Mod"], key: "\\" }],
     editorCallback: (editor: Editor) => {
-      const hasSelection = editor.getSelection();
+      const hasSelection = !!editor.getSelection();
 
       if (hasSelection) {
         new NodeTypeModal(editor, plugin.settings.nodeTypes, plugin).open();

@@ -139,22 +139,3 @@ export const createDiscourseNode = async ({
 
   return newFile;
 };
-
-export const processTextToDiscourseNode = async ({
-  plugin,
-  editor,
-  nodeType,
-}: {
-  plugin: DiscourseGraphPlugin;
-  editor: Editor;
-  nodeType: DiscourseNode;
-}): Promise<TFile | null> => {
-  const selectedText = editor.getSelection().trim();
-
-  return createDiscourseNode({
-    plugin,
-    nodeType,
-    text: selectedText,
-    editor,
-  });
-};

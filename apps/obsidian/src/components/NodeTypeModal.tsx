@@ -1,6 +1,6 @@
 import { App, Editor, SuggestModal, TFile, Notice } from "obsidian";
 import { DiscourseNode } from "~/types";
-import { processTextToDiscourseNode } from "~/utils/createNode";
+import { createDiscourseNode } from "~/utils/createNode";
 import type DiscourseGraphPlugin from "~/index";
 
 export class NodeTypeModal extends SuggestModal<DiscourseNode> {
@@ -28,10 +28,11 @@ export class NodeTypeModal extends SuggestModal<DiscourseNode> {
   }
 
   async onChooseSuggestion(nodeType: DiscourseNode) {
-    await processTextToDiscourseNode({
+    await createDiscourseNode({
       plugin: this.plugin,
       editor: this.editor,
       nodeType,
+      text: this.editor.getSelection().trim() || "",
     });
   }
 }
