@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getProcessedMarkdownFile } from "~/utils/getProcessedMarkdownFile";
 import { BLOG_PATH } from "~/data/constants";
+import { getFileMetadata } from "~/utils/getFileMetadata";
 
 type Params = {
   params: Promise<{
@@ -11,7 +12,7 @@ type Params = {
   }>;
 };
 
-export default async function BlogPost({ params }: Params) {
+const BlogPost = async ({ params }: Params) => {
   try {
     const { slug } = await params;
     const { data, contentHtml } = await getProcessedMarkdownFile({
@@ -41,18 +42,16 @@ export default async function BlogPost({ params }: Params) {
     console.error("Error rendering blog post:", error);
     return notFound();
   }
-}
+};
 
-export async function generateStaticParams() {
+export const generateStaticParams = async () => {
   try {
     const blogPath = path.resolve(process.cwd(), BLOG_PATH);
-    // 1) Check if the directory exists
     const directoryExists = await fs
       .stat(blogPath)
       .then((stats) => stats.isDirectory())
       .catch(() => false);
 
-    // 2) If it's missing, return empty
     if (!directoryExists) {
       console.log(
         "No app/blog/posts directory found. Returning empty params...",
@@ -60,22 +59,43 @@ export async function generateStaticParams() {
       return [];
     }
 
-    // 3) If it exists, read it
     const files = await fs.readdir(blogPath);
 
-    // 4) Filter .md files to build the slug array
-    return files
-      .filter((filename) => filename.endsWith(".md"))
-      .map((filename) => ({
+    const mdFiles = files.filter((filename) => filename.endsWith(".md"));
+
+    const results = await Promise.allSettled(
+      mdFiles.map(async (filename) => {
+        try {
+          const { published } = await getFileMetadata({
+            filename,
+            directory: BLOG_PATH,
+          });
+          return { filename, published };
+        } catch (error) {
+          console.error(`Skipping ${filename} due to metadata error:`, error);
+          return { filename, published: false };
+        }
+      }),
+    );
+
+    const publishedFiles = results
+      .filter((result) => result.status === 'fulfilled')
+      .map((result) => result.value);
+
+    return publishedFiles
+      .filter(({ published }) => published)
+      .map(({ filename }) => ({
         slug: filename.replace(/\.md$/, ""),
       }));
   } catch (error) {
     console.error("Error generating static params:", error);
     return [];
   }
-}
+};
 
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
+export const generateMetadata = async ({
+  params,
+}: Params): Promise<Metadata> => {
   try {
     const { slug } = await params;
     const { data } = await getProcessedMarkdownFile({
@@ -93,4 +113,6 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       title: "Blog Post",
     };
   }
-}
+};
+
+export default BlogPost;
