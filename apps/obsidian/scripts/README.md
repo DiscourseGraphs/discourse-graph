@@ -15,13 +15,13 @@ This directory contains a script for publishing the Discourse Graph Obsidian plu
 
 ## Release Types
 
-The script supports different release types based on version format and flags:
+The script automatically determines release type based on version format and always creates a GitHub release.
 
 ### Internal vs External Releases
 
 **🔒 Internal Releases**
 - **Format**: **MUST use `alpha` prefix** - e.g., `0.1.0-alpha-canvas-integration`, `0.2.0-alpha-graph-refactor`
-- **Purpose**: Internal testing and development. These releases won't be recognized by BRAT as the latest version, hence won't be automatically updated on non-testers users. We also mark these releases as pre-release by default, so users will less likely install these.
+- **Purpose**: Internal testing and development. These releases won't be recognized by BRAT as the latest version, hence won't be automatically updated on non-testers users. These are automatically marked as pre-release, so users will less likely install these.
 
    Developers can run this script from their local branch, creating an update release containing their local code.
 - **BRAT Behavior**: Not auto-updated (users must install manually via specific version)
@@ -30,14 +30,14 @@ The script supports different release types based on version format and flags:
 - **⚠️ IMPORTANT**: Always use `alpha-` prefix to ensure BRAT doesn't prioritize these over external beta releases
 
 **🌐 External Releases**
-- **Format**: **MUST use `beta` prefix** - e.g., `1.0.0-beta.1`, `1.0.0-beta.2`
+- **Format**: **Stable (`x.y.z`) or Beta (`x.y.z-beta.n`)** - e.g., `1.0.0`, `1.0.0-beta.1`, `1.0.0-beta.2`
 - **Purpose**: Public testing and distribution
 
    Note: should only be ran from main branch, after having merged the feature
 - **BRAT Behavior**: Auto-updated for users with "latest" version setting
-- **Main Branch**: Updated only for stable releases
+- **Main Branch**: Updated automatically for stable releases (`x.y.z` format)
 - **Use Case**: Beta testing, production releases
-- **⚠️ IMPORTANT**: Always use `beta` prefix to ensure BRAT prioritizes these over internal alpha releases
+- **⚠️ IMPORTANT**: Use `beta` prefix for beta releases to ensure BRAT prioritizes these over internal alpha releases
 
 ### BRAT Version Priority
 
@@ -47,14 +47,18 @@ BRAT uses alphabetical ordering for pre-release identifiers. This is why we enfo
 
 This ensures that external beta releases always take precedence over internal alpha releases for BRAT auto-updates.
 
-### Pre-release vs Stable
+### Automatic Release Type Detection
 
-**🧪 Pre-release** (default behavior)
+The script automatically determines the release type based on version format:
+
+**🧪 Pre-release** (automatic detection)
+- **Triggers**: Any version with `alpha` or `beta` suffixes
 - **GitHub**: Marked as "Pre-release" 
 - **Main Branch**: Not updated (keeps stable code in main)
-- **Use Case**: Testing, beta versions, internal releases. In the future, when we official have DG in Obsidian plugin, it won't automatically pick up pre-release as an update either
+- **Use Case**: Testing, beta versions, internal releases
 
-**✅ Stable** (with `--stable` flag)
+**✅ Stable** (automatic detection)
+- **Triggers**: Clean semantic versions (`x.y.z` format)
 - **GitHub**: Marked as stable release
 - **Main Branch**: Updated with new version (for official Obsidian store)
 - **Use Case**: Production-ready releases
@@ -68,7 +72,6 @@ You need a GitHub token with appropriate permissions to push to the target repos
 Grab the token from 1Password's Engineering vault, in "obsidian .env"
 
 ### Providing the token
-
 
 Create a `.env` file in the `apps/obsidian/` folder:
 
@@ -90,22 +93,21 @@ tsx scripts/publish-obsidian.ts --version <version> [options]
 
 ### Optional Arguments
 
-- `--create-release, -r` - Create a GitHub release
-- `--stable` - Mark as stable release. This will signal to users that it's an official update, and also updates main branch
 - `--release-name <name>` - Custom release name (defaults to "Discourse Graph v{version}")
 - `--help, -h` - Show help message
 
 ### Version Formats
 
-| Format | Type | BRAT Auto-Update | Main Branch Update | Example |
-|--------|------|------------------|-------------------|---------|
-| `x.y.z-alpha-feature-name` | Internal | ❌ No | ❌ Never | `0.1.0-alpha-canvas-integration` |
-| `x.y.z-beta.n` | External Pre-release | ✅ Yes | ❌ No | `1.0.0-beta.1` |
-| `x.y.z` (with `--stable`) | External Stable | ✅ Yes | ✅ Yes | `1.0.0` |
+| Format | Type | BRAT Auto-Update | Main Branch Update | GitHub Release | Example |
+|--------|------|------------------|-------------------|----------------|---------|
+| `x.y.z-alpha-feature-name` | Internal | ❌ No | ❌ Never | 🧪 Pre-release | `0.1.0-alpha-canvas-integration` |
+| `x.y.z-beta.n` | External Pre-release | ✅ Yes | ❌ No |  ✅ Stable | `1.0.0-beta.1` |
+| `x.y.z` | External Stable | ✅ Yes | ✅ Yes | ✅ Stable | `1.0.0` |
 
 **⚠️ CRITICAL**: Always follow the naming convention:
 - **Internal releases**: `x.y.z-alpha-feature-name`
-- **External releases**: `x.y.z-beta.n`
+- **External beta releases**: `x.y.z-beta.n`
+- **External stable releases**: `x.y.z`
 
 This ensures proper BRAT version ordering where beta releases always take priority over alpha releases.
 
@@ -113,59 +115,51 @@ This ensures proper BRAT version ordering where beta releases always take priori
 
 ### Internal Testing Release
 ```bash
-# ✅ Correct format with alpha prefix
-tsx scripts/publish-obsidian.ts --version 0.1.0-alpha-canvas-feature --release-name "Canvas Integration Feature" --create-release
+# ✅ Correct format with alpha prefix - creates pre-release automatically
+tsx scripts/publish-obsidian.ts --version 0.1.0-alpha-canvas-feature --release-name "Canvas Integration Feature"
 
 # ❌ Wrong - will interfere with BRAT ordering
-tsx scripts/publish-obsidian.ts --version 0.1.0-canvas-feature --create-release
+tsx scripts/publish-obsidian.ts --version 0.1.0-canvas-feature
 ```
 
 ### Beta Release for Public Testing  
 ```bash
-# ✅ Correct format with beta prefix
-tsx scripts/publish-obsidian.ts --version 1.0.0-beta.1 --release-name "Beta: New Graph View" --create-release
+# ✅ Correct format with beta prefix - creates pre-release automatically
+tsx scripts/publish-obsidian.ts --version 1.0.0-beta.1 --release-name "Beta: New Graph View"
 
 # ❌ Wrong - should use beta prefix for external releases
-tsx scripts/publish-obsidian.ts --version 1.0.0-test.1 --create-release
+tsx scripts/publish-obsidian.ts --version 1.0.0-test.1
 ```
 
 ### Stable Production Release
 ```bash
-# Creates stable release, updates main branch, BRAT auto-updates
-tsx scripts/publish-obsidian.ts --version 1.0.0 --stable --create-release
-```
-
-### Quick Build (No GitHub Release)
-```bash
-# For when we only want to update the repo without creating a release
-tsx scripts/publish-obsidian.ts --version 1.0.0-beta.1 --stable
+# Creates stable release automatically, updates main branch, BRAT auto-updates
+tsx scripts/publish-obsidian.ts --version 1.0.0
 ```
 
 ### Using npm script from obsidian directory
 ```bash
 cd apps/obsidian
-npm run publish -- --version 1.0.0-beta.1 --create-release
+npm run publish -- --version 1.0.0-beta.1
 ```
 
 ## What the Script Does
 
 ### For All Releases:
 1. **Validates input** - Checks version format and arguments
-2. **Detects release type** - Internal vs External based on SemVer validation
+2. **Detects release type** - Internal vs External based on version format
 3. **Builds the plugin** - Runs `npm run build` to create distribution files
 4. **Copies source files** - Copies plugin source (excluding build artifacts)
+5. **Creates GitHub release** - Always creates a release with:
+   - Custom or default release name
+   - Automatic pre-release or stable marking based on version format
+   - Required assets: `main.js`, `manifest.json`, `styles.css`
 
 ### For External Stable Releases Only:
-5. **Updates main branch** - Creates proper git commit via GitHub API with:
+6. **Updates main branch** - Creates proper git commit via GitHub API with:
    - Updated `manifest.json` with new version
    - Built `main.js`, `styles.css`
    - All other source files
-
-### If `--create-release` flag is used:
-6. **Creates GitHub release** with:
-   - Custom or default release name
-   - Pre-release or stable marking
-   - Required assets: `main.js`, `manifest.json`, `styles.css`
 
 ## File Operations
 
@@ -189,9 +183,9 @@ Publishes to: `DiscourseGraphs/discourse-graph-obsidian`
 
 ### Repository State by Release Type:
 
-**Internal Release**: Repository unchanged, only GitHub release created
-**External Pre-release**: Repository unchanged, GitHub release created  
-**External Stable**: Repository main branch updated + GitHub release created
+**Internal Release**: Repository unchanged, GitHub pre-release created
+**External Pre-release**: Repository unchanged, GitHub pre-release created  
+**External Stable**: Repository main branch updated + GitHub stable release created
 
 ## Troubleshooting
 
@@ -200,10 +194,10 @@ Publishes to: `DiscourseGraphs/discourse-graph-obsidian`
 1. **"Version is required"**
    ```bash
    # ❌ Wrong
-   tsx scripts/publish-obsidian.ts --create-release
+   tsx scripts/publish-obsidian.ts
    
    # ✅ Correct  
-   tsx scripts/publish-obsidian.ts --version 1.0.0 --create-release
+   tsx scripts/publish-obsidian.ts --version 1.0.0
    ```
 
 2. **"Invalid version format"**
@@ -252,9 +246,9 @@ This is why the naming convention is critical for ensuring the right version get
 ## Development Notes
 
 ### Key Functions:
-- `isExternalRelease()` - Validates SemVer format
+- `isExternalRelease()` - Determines if version is external (stable/beta) or internal (alpha)
 - `updateMainBranch()` - Uses GitHub API to create proper commits  
-- `createGithubRelease()` - Creates releases with assets
+- `createGithubRelease()` - Creates releases with assets and automatic pre-release detection
 - `updateManifest()` - Updates version in manifest.json
 
 ### Security:
