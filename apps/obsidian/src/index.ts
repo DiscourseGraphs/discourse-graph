@@ -9,6 +9,7 @@ import { DEFAULT_SETTINGS } from "./constants";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
+  private styleElement: HTMLStyleElement | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -23,6 +24,9 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.addRibbonIcon("telescope", "Toggle Discourse Context", () => {
       this.toggleDiscourseContextView();
     });
+
+    // Initialize frontmatter CSS
+    this.updateFrontmatterStyles();
 
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu: Menu, editor: Editor) => {
@@ -53,6 +57,39 @@ export default class DiscourseGraphPlugin extends Plugin {
         });
       }),
     );
+  }
+
+  private createStyleElement() {
+    if (!this.styleElement) {
+      this.styleElement = document.createElement("style");
+      this.styleElement.id = "discourse-graph-frontmatter-styles";
+      document.head.appendChild(this.styleElement);
+    }
+  }
+
+  updateFrontmatterStyles() {
+    try {
+      this.createStyleElement();
+
+      let keysToHide: string[] = [];
+
+      if (!this.settings.showIdsInFrontmatter) {
+        keysToHide.push("nodeTypeId");
+        keysToHide.push(...this.settings.relationTypes.map((rt) => rt.id));
+      }
+
+      if (keysToHide.length > 0) {
+        const selectors = keysToHide
+          .map((key) => `.metadata-property[data-property-key="${key}"]`)
+          .join(", ");
+
+        this.styleElement!.textContent = `${selectors} { display: none !important; }`;
+      } else {
+        this.styleElement!.textContent = "";
+      }
+    } catch (error) {
+      console.error("Error updating frontmatter styles:", error);
+    }
   }
 
   toggleDiscourseContextView() {
@@ -90,16 +127,27 @@ export default class DiscourseGraphPlugin extends Plugin {
     const loadedData = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
 
-    if (!loadedData) {
+    if (!loadedData || this.hasNewFields(loadedData)) {
       await this.saveSettings();
+    } else {
+      this.updateFrontmatterStyles();
     }
+  }
+
+  private hasNewFields(loadedData: any): boolean {
+    return Object.keys(DEFAULT_SETTINGS).some((key) => !(key in loadedData));
   }
 
   async saveSettings() {
     await this.saveData(this.settings);
+    this.updateFrontmatterStyles();
   }
 
   async onunload() {
+    if (this.styleElement) {
+      this.styleElement.remove();
+    }
+
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT);
   }
 }
