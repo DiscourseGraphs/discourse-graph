@@ -1,6 +1,60 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { usePlugin } from "./PluginContext";
 import { Notice } from "obsidian";
+import SuggestInput from "./SuggestInput";
+
+export const FolderSuggestInput: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+}> = ({
+  value,
+  onChange,
+  placeholder = "Enter folder path",
+  className = "",
+  disabled = false,
+}) => {
+  const plugin = usePlugin();
+
+  const getAllFolders = (): string[] => {
+    const folders = plugin.app.vault.getAllFolders();
+    return folders.map((folder) => folder.path).sort();
+  };
+
+  const getFilteredFolders = (query: string): string[] => {
+    const allFolders = getAllFolders();
+
+    if (!query.trim()) {
+      return allFolders.slice(0, 10);
+    }
+
+    return allFolders
+      .filter((path) => path.toLowerCase().includes(query.toLowerCase()))
+      .slice(0, 10);
+  };
+
+  const renderFolder = (folder: string, el: HTMLElement) => {
+    el.createDiv({
+      text: folder || "(Root folder)",
+      cls: "folder-suggestion-item",
+    });
+  };
+
+  return (
+    <SuggestInput<string>
+      value={value}
+      onChange={onChange}
+      getSuggestions={getFilteredFolders}
+      getDisplayText={(folder) => folder}
+      renderItem={renderFolder}
+      placeholder={placeholder}
+      className={className}
+      disabled={disabled}
+    />
+  );
+};
 
 const GeneralSettings = () => {
   const plugin = usePlugin();
@@ -54,17 +108,16 @@ const GeneralSettings = () => {
 
       <div className="setting-item">
         <div className="setting-item-info">
-          <div className="setting-item-name">Discourse nodes folder path</div>
+          <div className="setting-item-name">Discourse Nodes folder path</div>
           <div className="setting-item-description">
-            Specify the folder where new Discourse nodes should be created.
+            Specify the folder where new Discourse Nodes should be created.
             Leave empty to create nodes in the root folder.
           </div>
         </div>
         <div className="setting-item-control">
-          <input
-            type="text"
+          <FolderSuggestInput
             value={nodesFolderPath}
-            onChange={(e) => handleFolderPathChange(e.target.value)}
+            onChange={handleFolderPathChange}
             placeholder="Discourse Nodes"
           />
         </div>
