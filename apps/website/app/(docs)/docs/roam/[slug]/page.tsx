@@ -8,6 +8,7 @@ import { TableOfContents } from "~/components/TableOfContents";
 import { getProcessedMarkdownFile } from "~/utils/getProcessedMarkdownFile";
 import { collectSections } from "~/utils/getSections";
 import { PrevNextLinks } from "~/components/PrevNextLinks";
+import { getFileMetadata } from "~/utils/getFileMetadata";
 
 type Params = {
   params: Promise<{
@@ -61,9 +62,21 @@ export async function generateStaticParams() {
 
     const files = await fs.readdir(DIRECTORY);
 
-    return files
-      .filter((filename) => filename.endsWith(".md"))
-      .map((filename) => ({
+    const mdFiles = files.filter((filename) => filename.endsWith(".md"));
+
+    const publishedFiles = await Promise.all(
+      mdFiles.map(async (filename) => {
+        const { published } = await getFileMetadata({
+          filename,
+          directory: DIRECTORY,
+        });
+        return { filename, published };
+      }),
+    );
+
+    return publishedFiles
+      .filter(({ published }) => published)
+      .map(({ filename }) => ({
         slug: filename.replace(/\.md$/, ""),
       }));
   } catch (error) {
