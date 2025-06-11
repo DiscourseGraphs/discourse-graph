@@ -88,9 +88,13 @@ const NodeSearchMenu = ({
       const regex = getDiscourseNodeFormatExpression(node.format);
 
       const regexPattern = regex.source
-        .replace(/^\^/, "")
-        .replace(/\$$/, "")
-        .replace(/\\/g, "\\\\");
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"');
+
+      const searchCondition = searchTerm
+        ? `[(re-pattern "(?i).*${escapeCljString(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))}.*") ?search-regex]
+           [(re-find ?search-regex ?node-title)]`
+        : "";
 
       const query = `[
       :find
@@ -98,8 +102,8 @@ const NodeSearchMenu = ({
       :where
         [(re-pattern "${regexPattern}") ?title-regex]
         [?node :node/title ?node-title]
-        ${searchTerm ? `[(clojure.string/includes? ?node-title "${escapeCljString(searchTerm)}")]` : ""}
         [(re-find ?title-regex ?node-title)]
+        ${searchCondition}
     ]`;
       const results = window.roamAlphaAPI.q(query);
 
@@ -110,6 +114,7 @@ const NodeSearchMenu = ({
       }));
     } catch (error) {
       console.error(`Error querying for node type ${node.type}:`, error);
+      console.error(`Node format:`, node.format);
       return [];
     }
   };
@@ -377,7 +382,6 @@ const NodeSearchMenu = ({
 
       setIsFilterMenuOpen((prev) => !prev);
 
-      // Restore focus after toggle
       setTimeout(() => {
         if (textarea) {
           textarea.focus();
