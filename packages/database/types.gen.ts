@@ -543,6 +543,28 @@ export type Database = {
           uid_to_sync: string
         }[]
       }
+      local_concept_to_db_concept: {
+        Args: {
+          data: Database["public"]["CompositeTypes"]["concept_local_input"]
+        }
+        Returns: {
+          arity: number
+          author_id: number | null
+          created: string
+          description: string | null
+          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
+          id: number
+          is_schema: boolean
+          last_modified: string
+          literal_content: Json
+          name: string
+          reference_content: Json
+          refs: number[]
+          represented_by_id: number | null
+          schema_id: number | null
+          space_id: number
+        }
+      }
       match_content_embeddings: {
         Args: {
           query_embedding: string
@@ -575,6 +597,10 @@ export type Database = {
           task_interval: unknown
         }
         Returns: unknown
+      }
+      upsert_concepts: {
+        Args: { v_space_id: number; data: Json }
+        Returns: number[]
       }
       upsert_discourse_nodes: {
         Args: {
@@ -644,7 +670,25 @@ export type Database = {
       task_status: "active" | "timeout" | "complete" | "failed"
     }
     CompositeTypes: {
-      [_ in never]: never
+      concept_local_input: {
+        epistemic_status: Database["public"]["Enums"]["EpistemicStatus"] | null
+        name: string | null
+        description: string | null
+        author_id: number | null
+        created: string | null
+        last_modified: string | null
+        space_id: number | null
+        schema_id: number | null
+        literal_content: Json | null
+        is_schema: boolean | null
+        represented_by_id: number | null
+        reference_content: Json | null
+        author_local_id: string | null
+        represented_by_local_id: string | null
+        schema_represented_by_local_id: string | null
+        space_url: string | null
+        local_reference_content: Json | null
+      }
     }
   }
 }
