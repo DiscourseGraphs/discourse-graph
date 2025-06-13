@@ -35,6 +35,10 @@ import {
 import { IKeyCombo } from "@blueprintjs/core";
 import { configPageTabs } from "~/utils/configPageTabs";
 import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchMenu";
+import {
+  renderTextSelectionPopup,
+  removeTextSelectionPopup,
+} from "~/utils/renderTextSelectionPopup";
 
 export const initObservers = async ({
   onloadArgs,
@@ -47,6 +51,7 @@ export const initObservers = async ({
     hashChangeListener: EventListener;
     nodeMenuTriggerListener: EventListener;
     discourseNodeSearchTriggerListener: EventListener;
+    selectionChangeListener: EventListener;
   };
 }> => {
   const pageTitleObserver = createHTMLObserver({
@@ -240,6 +245,59 @@ export const initObservers = async ({
     }
   };
 
+  const selectionChangeListener = () => {
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0) return;
+
+    const selectedText = selection.toString().trim();
+    console.log("Selected text:", selectedText);
+
+    if (!selectedText) return;
+
+    // Check if the selection is within a Roam block
+    const range = selection.getRangeAt(0);
+    const commonAncestor = range.commonAncestorContainer;
+    let blockElement: Element | null = null;
+    const currentElement =
+      commonAncestor.nodeType === Node.TEXT_NODE
+        ? commonAncestor.parentElement
+        : (commonAncestor as Element);
+
+    if (currentElement) {
+      if (
+        currentElement.classList?.contains("rm-block-text") ||
+        currentElement.classList?.contains("rm-block-input") ||
+        currentElement.closest(".rm-autocomplete__wrapper")
+      ) {
+        blockElement = currentElement;
+      }
+    }
+
+    if (blockElement) {
+      console.log("✅ Selected text in block:", selectedText);
+
+      // Get selection rectangle for positioning
+      const selectionRect = range.getBoundingClientRect();
+
+      // Handle node type selection
+      const handleNodeTypeSelect = (nodeType: string, selectedText: string) => {
+        console.log(`Creating ${nodeType} node with text: "${selectedText}"`);
+        // TODO: Implement actual node creation logic here
+        // This could involve creating a new block, adding tags, etc.
+      };
+
+      renderTextSelectionPopup(
+        selectedText,
+        selectionRect,
+        handleNodeTypeSelect,
+      );
+    } else {
+      // Remove popup if selection is not in a block
+      removeTextSelectionPopup();
+    }
+  };
+
   return {
     observers: [
       pageTitleObserver,
@@ -253,6 +311,7 @@ export const initObservers = async ({
       hashChangeListener,
       nodeMenuTriggerListener,
       discourseNodeSearchTriggerListener,
+      selectionChangeListener,
     },
   };
 };

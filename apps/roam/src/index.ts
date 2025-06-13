@@ -19,6 +19,7 @@ import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
 import styles from "./styles/styles.css";
 import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
+import textSelectionPopupStyles from "./styles/textSelectionPopup.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
@@ -96,6 +97,7 @@ export default runExtension(async (onloadArgs) => {
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
+  const textSelectionPopupStyle = addStyle(textSelectionPopupStyles);
 
   const { observers, listeners } = await initObservers({ onloadArgs });
   const {
@@ -103,11 +105,13 @@ export default runExtension(async (onloadArgs) => {
     hashChangeListener,
     nodeMenuTriggerListener,
     discourseNodeSearchTriggerListener,
+    selectionChangeListener,
   } = listeners;
   document.addEventListener("roamjs:query-builder:action", pageActionListener);
   window.addEventListener("hashchange", hashChangeListener);
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
+  document.addEventListener("selectionchange", selectionChangeListener);
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
@@ -126,7 +130,12 @@ export default runExtension(async (onloadArgs) => {
   };
 
   return {
-    elements: [style, settingsStyle, discourseGraphStyle],
+    elements: [
+      style,
+      settingsStyle,
+      discourseGraphStyle,
+      textSelectionPopupStyle,
+    ],
     observers: observers,
     unload: () => {
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
@@ -139,6 +148,7 @@ export default runExtension(async (onloadArgs) => {
       window.removeEventListener("hashchange", hashChangeListener);
       document.removeEventListener("keydown", nodeMenuTriggerListener);
       document.removeEventListener("input", discourseNodeSearchTriggerListener);
+      document.removeEventListener("selectionchange", selectionChangeListener);
       window.roamAlphaAPI.ui.graphView.wholeGraph.removeCallback({
         label: "discourse-node-styling",
       });
