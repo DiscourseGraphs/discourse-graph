@@ -287,10 +287,17 @@ export const initObservers = async ({
         // This could involve creating a new block, adding tags, etc.
       };
 
+      // Get discourse nodes to pass to the popup
+      const discourseNodes = getDiscourseNodes().filter(
+        (n) => n.backedBy === "user",
+      );
+
       renderTextSelectionPopup(
         selectedText,
         selectionRect,
         handleNodeTypeSelect,
+        discourseNodes,
+        onloadArgs.extensionAPI,
       );
     } else {
       // Remove popup if selection is not in a block
