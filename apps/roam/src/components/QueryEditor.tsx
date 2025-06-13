@@ -27,6 +27,7 @@ import {
   sourceToTargetOptions,
   sourceToTargetPlaceholder,
 } from "~/utils/conditionToDatalog";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getNthChildUidByBlockUid from "roamjs-components/queries/getNthChildUidByBlockUid";
 import getChildrenLengthByPageUid from "roamjs-components/queries/getChildrenLengthByPageUid";
@@ -67,9 +68,16 @@ const QueryClause = ({
 }) => {
   const debounceRef = useRef(0);
   const conditionLabels = useMemo(getConditionLabels, []);
+  const discourseNodeTypes = useMemo(
+    () => getDiscourseNodes().map((n) => n.text),
+    [],
+  );
   const targetOptions = useMemo(
-    () => sourceToTargetOptions({ source: con.source, relation: con.relation }),
-    [con.source, con.relation],
+    () =>
+      /is a/i.test(con.relation)
+        ? discourseNodeTypes
+        : sourceToTargetOptions({ source: con.source, relation: con.relation }),
+    [con.source, con.relation, discourseNodeTypes],
   );
   const targetPlaceholder = useMemo(
     () => sourceToTargetPlaceholder({ relation: con.relation }),
@@ -440,6 +448,10 @@ const QueryEditor: QueryEditorComponent = ({
   hideCustomSwitch,
   showAlias,
 }) => {
+  const discourseNodeTypes = useMemo(
+    () => getDiscourseNodes().map((n) => n.text),
+    [],
+  );
   useEffect(() => {
     const previewQuery = ((e: CustomEvent) => {
       if (parentUid !== e.detail) return;
@@ -532,6 +544,12 @@ const QueryEditor: QueryEditorComponent = ({
         }
         if (!condition.target) {
           return `Condition ${index + 1} must not have an empty target.`;
+        }
+        if (
+          /is a/i.test(condition.relation) &&
+          !discourseNodeTypes.includes(condition.target)
+        ) {
+          return `Condition ${index + 1} has an invalid discourse node type \`${condition.target}\`.`;
         }
       } else if (!condition.conditions.length) {
         return `Condition ${index + 1} must have at least one sub-condition.`;
