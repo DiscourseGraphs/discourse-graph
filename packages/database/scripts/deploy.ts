@@ -44,7 +44,7 @@ const main = () => {
           if (err) {
             process.exit(err.code);
           }
-          exec("supabase db push", (err, stdout, stderr) => {
+          exec("supabase db push --include-all", (err, stdout, stderr) => {
             console.log(`${stdout}`);
             console.error(`${stderr}`);
             if (err) {
