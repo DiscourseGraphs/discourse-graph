@@ -320,9 +320,16 @@ classes:
       schema:
         range: ConceptSchema
         required: true
-      content:
+      reference_content:
+        description: "Aspects of the concept that reference other concepts. `{[key: string]: number|number[]}`"
         range: JSON
         required: true
+        ifabsent: '{}'
+      literal_content:
+        range: JSON
+        required: true
+        description: "Aspects of the concept that have literal values. `{[key: string]: any}`"
+        ifabsent: '{}'
       is_schema:
         range: boolean
         required: true

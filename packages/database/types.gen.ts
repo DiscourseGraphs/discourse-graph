@@ -74,14 +74,16 @@ export type Database = {
         Row: {
           arity: number
           author_id: number | null
-          content: Json
           created: string
           description: string | null
           epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
           id: number
           is_schema: boolean
           last_modified: string
+          literal_content: Json
           name: string
+          reference_content: Json
+          refs: number[]
           represented_by_id: number | null
           schema_id: number | null
           space_id: number
@@ -89,14 +91,16 @@ export type Database = {
         Insert: {
           arity?: number
           author_id?: number | null
-          content?: Json
           created: string
           description?: string | null
           epistemic_status?: Database["public"]["Enums"]["EpistemicStatus"]
           id?: number
           is_schema?: boolean
           last_modified: string
+          literal_content?: Json
           name: string
+          reference_content?: Json
+          refs?: number[]
           represented_by_id?: number | null
           schema_id?: number | null
           space_id: number
@@ -104,14 +108,16 @@ export type Database = {
         Update: {
           arity?: number
           author_id?: number | null
-          content?: Json
           created?: string
           description?: string | null
           epistemic_status?: Database["public"]["Enums"]["EpistemicStatus"]
           id?: number
           is_schema?: boolean
           last_modified?: string
+          literal_content?: Json
           name?: string
+          reference_content?: Json
+          refs?: number[]
           represented_by_id?: number | null
           schema_id?: number | null
           space_id?: number
@@ -526,6 +532,10 @@ export type Database = {
           s_status: Database["public"]["Enums"]["task_status"]
         }
         Returns: undefined
+      }
+      extract_references: {
+        Args: { refs: Json }
+        Returns: number[]
       }
       get_nodes_needing_sync: {
         Args: { nodes_from_roam: Json }

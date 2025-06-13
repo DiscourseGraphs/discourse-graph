@@ -12,6 +12,9 @@ CREATE TYPE public."EpistemicStatus" AS ENUM (
 
 ALTER TYPE public."EpistemicStatus" OWNER TO postgres;
 
+CREATE OR REPLACE FUNCTION extract_references(refs JSONB) RETURNS BIGINT [] LANGUAGE sql IMMUTABLE AS $$
+  SELECT COALESCE(array_agg(i::bigint), '{}') FROM (SELECT jsonb_array_elements(jsonb_path_query_array(refs, '$.*[*]')) i) exrefs;
+$$;
 
 CREATE TABLE IF NOT EXISTS public."Concept" (
     id bigint DEFAULT nextval(
@@ -26,7 +29,9 @@ CREATE TABLE IF NOT EXISTS public."Concept" (
     space_id bigint NOT NULL,
     arity smallint DEFAULT 0 NOT NULL,
     schema_id bigint,
-    content jsonb DEFAULT '{}'::jsonb NOT NULL,
+    literal_content jsonb NOT NULL DEFAULT '{}'::jsonb,
+    reference_content jsonb NOT NULL DEFAULT '{}'::jsonb,
+    refs BIGINT [] NOT NULL GENERATED ALWAYS AS (extract_references(reference_content)) STORED,
     is_schema boolean DEFAULT false NOT NULL,
     represented_by_id bigint
 );
@@ -52,9 +57,11 @@ ADD FOREIGN KEY (represented_by_id) REFERENCES public."Content" (
     id
 ) ON DELETE SET NULL ON UPDATE CASCADE;
 
-CREATE INDEX "Concept_content" ON public."Concept" USING gin (
-    content jsonb_path_ops
+CREATE INDEX concept_literal_content_idx ON public."Concept" USING gin (
+    literal_content jsonb_ops
 );
+
+CREATE INDEX concept_refs_idx ON public."Concept" USING gin (refs);
 
 CREATE INDEX "Concept_schema" ON public."Concept" USING btree (schema_id);
 
@@ -64,6 +71,7 @@ CREATE UNIQUE INDEX "Concept_represented_by" ON public."Concept" (
     represented_by_id
 );
 
+-- maybe make that for schemas only?
 CREATE UNIQUE INDEX concept_space_and_name_idx ON public."Concept" (space_id, name);
 
 

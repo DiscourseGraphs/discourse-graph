@@ -2,7 +2,7 @@
 skinparam nodesep 10
 hide circle
 hide empty members
-abstract "PlatformAccount" [[{An account for an agent on a platform}]] {
+class "PlatformAccount" [[{An account for an agent on a platform}]] {
     {field} id : integer  
     {field} name : string  
     {field} platform : Platform  
@@ -53,7 +53,8 @@ class "Concept" [[{An abstract concept, claim or relation}]] {
     {field} created : datetime  
     {field} last_modified : datetime  
     {field} arity : integer  
-    {field} content : JSON  
+    {field} reference_content : JSON  
+    {field} literal_content : JSON  
     {field} is_schema : boolean  
 }
 "Content" --> "0..1" "Space" : "space"
@@ -89,7 +90,8 @@ class "ConceptSchema" [[{A Concept that describes a schema (type) for other conc
     {field} created(i) : datetime  
     {field} last_modified(i) : datetime  
     {field} arity(i) : integer  
-    {field} content(i) : JSON  
+    {field} reference_content(i) : JSON  
+    {field} literal_content(i) : JSON  
     {field} is_schema(i) : boolean  
 }
 "Concept" --> "1" "ConceptSchema" : "schema"
