@@ -1,32 +1,21 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { TextSelectionPopup } from "~/components/TextSelectionPopup";
+import { TextSelectionNodeMenu } from "~/components/DiscourseNodeMenu";
+import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
+import { OnloadArgs } from "roamjs-components/types";
 
 let currentPopupContainer: HTMLSpanElement | null = null;
-
-const getCoordsFromSelection = (): { left: number; top: number } => {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) {
-    return { left: 0, top: 0 };
-  }
-
-  const range = selection.getRangeAt(0);
-  const rect = range.getBoundingClientRect();
-
-  // Calculate coordinates relative to the document, not viewport
-  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-  return {
-    left: rect.left + scrollLeft + rect.width / 2, // Center horizontally
-    top: rect.top + scrollTop - 5, // 5px above selection
-  };
-};
 
 export const renderTextSelectionPopup = (
   selectedText: string,
   selectionRect: DOMRect,
   onNodeTypeSelect: (nodeType: string, selectedText: string) => void,
+  discourseNodes: Array<{
+    type: string;
+    text: string;
+    canvasSettings: { color?: string };
+  }>,
+  extensionAPI: OnloadArgs["extensionAPI"],
 ) => {
   // Remove existing popup if any
   removeTextSelectionPopup();
@@ -59,25 +48,45 @@ export const renderTextSelectionPopup = (
 
   if (!blockElement) return;
 
+  // Find the textarea element
+  const textarea = blockElement.querySelector("textarea");
+  if (!textarea) return;
+
+  // Get coordinates using the existing utility
+  const coords = getCoordsFromTextarea(textarea);
+
+  // Calculate the center of the selected text
+  const selectionStart = textarea.selectionStart;
+  const selectionEnd = textarea.selectionEnd;
+  const selectedTextLength = selectionEnd - selectionStart;
+
+  // Estimate character width to center over the selection
+  const computedStyle = window.getComputedStyle(textarea);
+  const fontSize = parseInt(computedStyle.fontSize) || 14;
+  const charWidth = fontSize * 0.6; // Approximate character width
+
+  // Adjust coordinates to center over the selected text
+  const selectionCenterOffset = (selectedTextLength * charWidth) / 2;
+  const centeredLeft = coords.left + selectionCenterOffset;
+
   // Create container following the DiscourseNodeMenu pattern
-  currentPopupContainer = document.createElement("span");
-  const coords = getCoordsFromSelection();
+  currentPopupContainer = document.createElement("div");
   currentPopupContainer.style.position = "absolute";
-  currentPopupContainer.style.left = `${coords.left}px`;
-  currentPopupContainer.style.top = `${coords.top}px`;
-  currentPopupContainer.style.transform = "translateX(-50%)"; // Center the popup
+  currentPopupContainer.style.left = `${centeredLeft}px`;
+  currentPopupContainer.style.top = `${coords.top - parseInt(computedStyle.height) - 5}px`;
   currentPopupContainer.style.zIndex = "9999";
+  currentPopupContainer.style.transform = "translateX(-50%)"; // Center the popup horizontally
 
   // Insert before the block element (following the established pattern)
   blockElement.parentElement?.insertBefore(currentPopupContainer, blockElement);
 
-  // Render popup using ReactDOM.render (following the established pattern)
+  // Render popup using the new TextSelectionNodeMenu
   ReactDOM.render(
-    <TextSelectionPopup
+    <TextSelectionNodeMenu
       selectedText={selectedText}
-      selectionRect={selectionRect}
+      textarea={textarea}
+      extensionAPI={extensionAPI}
       onClose={removeTextSelectionPopup}
-      onNodeTypeSelect={onNodeTypeSelect}
     />,
     currentPopupContainer,
   );
