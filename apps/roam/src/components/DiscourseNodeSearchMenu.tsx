@@ -16,6 +16,7 @@ import {
 } from "@blueprintjs/core";
 import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
+import fuzzy from "fuzzy";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
@@ -92,7 +93,9 @@ const NodeSearchMenu = ({
         .replace(/"/g, '\\"');
 
       const searchCondition = searchTerm
-        ? `[(re-pattern "(?i).*${escapeCljString(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))}.*") ?search-regex]
+        ? `[(re-pattern "(?i).*${escapeCljString(
+            searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\$&"),
+          )}.*") ?search-regex]
            [(re-find ?search-regex ?node-title)]`
         : "";
 
@@ -107,11 +110,21 @@ const NodeSearchMenu = ({
     ]`;
       const results = window.roamAlphaAPI.q(query);
 
-      return results.map(([result]: any) => ({
+      const mappedResults: Result[] = results.map(([result]: any) => ({
         id: result.uid,
         text: result.title || result.string,
         uid: result.uid,
       }));
+
+      let filtered = mappedResults;
+      if (searchTerm) {
+        filtered = fuzzy
+          .filter(searchTerm, mappedResults, { extract: (r) => r.text })
+          .map((f) => f.original)
+          .filter((f): f is Result => !!f);
+      }
+
+      return filtered.slice(0, 50);
     } catch (error) {
       console.error(`Error querying for node type ${node.type}:`, error);
       console.error(`Node format:`, node.format);
