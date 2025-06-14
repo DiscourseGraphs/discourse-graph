@@ -55,7 +55,7 @@ const fetchOrCreatePlatformAccount = async (
     personEmail: string | undefined
   }): Promise<number> => {
   const response = await fetch(
-    `${base_url}/platform_account`,
+    `${base_url}/platform-account`,
     {
       method: "POST",
       headers: {
