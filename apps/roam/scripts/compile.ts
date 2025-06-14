@@ -133,6 +133,9 @@ export const compile = ({
       minify: process.env.NODE_ENV === "production",
       entryNames: out,
       external: externalModules.map(([e]) => e).concat(["crypto"]),
+      define: {
+        "process.env.NODE_ENV": `"${process.env.NODE_ENV}"`,
+      },
       plugins: [
         importAsGlobals(
           Object.fromEntries(
