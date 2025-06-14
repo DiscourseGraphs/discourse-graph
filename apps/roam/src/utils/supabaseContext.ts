@@ -61,7 +61,7 @@ const fetchOrCreatePlatformAccount = async ({
     body: JSON.stringify({
       platform: "Roam",
       account_local_id: accountLocalId,
-      personName,
+      name: personName,
     }),
   });
   if (!response.ok)
