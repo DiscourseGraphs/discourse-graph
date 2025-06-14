@@ -27,6 +27,7 @@ import {
   getLastUpdateTimeByGraphName,
   upsertDiscourseNodes,
 } from "./utils/syncToEmbeddingDb";
+import { SplitViewButton } from "./components/SplitViewButton";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -132,6 +133,10 @@ export default runExtension(async (onloadArgs) => {
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
+
+  // Since this is a non-visual component that injects the button,
+  // we can just call it here.
+  SplitViewButton();
 
   initEmbeddingSync();
 
