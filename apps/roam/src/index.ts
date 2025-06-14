@@ -28,6 +28,8 @@ import {
   upsertDiscourseNodes,
 } from "./utils/syncToEmbeddingDb";
 import { SplitViewButton } from "./components/SplitViewButton";
+import React from "react";
+import ReactDOM from "react-dom";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -134,9 +136,9 @@ export default runExtension(async (onloadArgs) => {
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
 
-  // Since this is a non-visual component that injects the button,
-  // we can just call it here.
-  SplitViewButton();
+  const appContainer = document.createElement("div");
+  document.body.appendChild(appContainer);
+  ReactDOM.render(React.createElement(SplitViewButton), appContainer);
 
   initEmbeddingSync();
 
@@ -189,6 +191,8 @@ export default runExtension(async (onloadArgs) => {
       window.roamAlphaAPI.ui.graphView.wholeGraph.removeCallback({
         label: "discourse-node-styling",
       });
+      ReactDOM.unmountComponentAtNode(appContainer);
+      appContainer.remove();
     },
   };
 });
