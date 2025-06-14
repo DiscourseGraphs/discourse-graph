@@ -44,49 +44,44 @@ const fetchOrCreateSpaceId = async (): Promise<number> => {
   return space.id;
 };
 
-const fetchOrCreatePlatformAccount = async (
-  {
-    accountLocalId,
-    personName,
-    personEmail
-  }: {
-    accountLocalId: string,
-    personName: string,
-    personEmail: string | undefined
-  }): Promise<number> => {
-  const response = await fetch(
-    `${base_url}/platform-account`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        platform: "Roam", account_local_id: accountLocalId, personName
-      }),
+const fetchOrCreatePlatformAccount = async ({
+  accountLocalId,
+  personName,
+  personEmail,
+}: {
+  accountLocalId: string;
+  personName: string;
+  personEmail: string | undefined;
+}): Promise<number> => {
+  const response = await fetch(`${base_url}/platform-account`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify({
+      platform: "Roam",
+      account_local_id: accountLocalId,
+      personName,
+    }),
+  });
   if (!response.ok)
     throw new Error(
       `Platform API failed: \${response.status} \${response.statusText}`,
     );
   const account = await response.json();
   if (personEmail !== undefined) {
-    const idResponse = await fetch(
-      `${base_url}/agent-identifier`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          account_id: account.id,
-          identifier_type: "email",
-          value: personEmail,
-          trusted: false,  // Roam tests email
-        }),
+    const idResponse = await fetch(`${base_url}/agent-identifier`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        account_id: account.id,
+        identifier_type: "email",
+        value: personEmail,
+        trusted: false, // Roam tests email
+      }),
+    });
     if (!idResponse.ok) {
       const error = await idResponse.text();
       console.error(`Error setting the email for the account: ${error}`);
@@ -105,7 +100,11 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
       const accountLocalId = window.roamAlphaAPI.user.uid();
       const personEmail = getCurrentUserEmail();
       const personName = getCurrentUserDisplayName();
-      const userId = await fetchOrCreatePlatformAccount({accountLocalId, personName, personEmail});
+      const userId = await fetchOrCreatePlatformAccount({
+        accountLocalId,
+        personName,
+        personEmail,
+      });
       CONTEXT_CACHE = { platform: "Roam", spaceId, userId };
     } catch (error) {
       console.error(error);
