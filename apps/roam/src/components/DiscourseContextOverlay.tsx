@@ -37,6 +37,7 @@ import {
   RelationDetails,
   findSimilarNodesUsingHyde,
 } from "~/utils/hyde";
+import { DiscourseSuggestionsPanel } from "./DiscourseSuggestionsPanel";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -663,6 +664,16 @@ const DiscourseContextOverlay = ({
             <span className="mr-1 leading-none">{score}</span>
             <Icon icon={"link"} />
             <span className="leading-none">{refs}</span>
+            <Tooltip content="Open suggestions panel">
+              <Button
+                icon="panel-stats"
+                minimal
+                small
+                onClick={() =>
+                  DiscourseSuggestionsPanel.toggle(tag, id, parentEl)
+                }
+              />
+            </Tooltip>
           </div>
         </Button>
       }
