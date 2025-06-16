@@ -10,6 +10,8 @@
         "GEMINI_API_KEY",
         "NODE_ENV",
         "BLOB_READ_WRITE_TOKEN",
+        "GH_CLIENT_ID_PROD",
+        "GH_CLIENT_ID_DEV",
         "GH_CLIENT_SECRET_PROD",
         "GH_CLIENT_SECRET_DEV"
       ],
@@ -34,6 +36,8 @@
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "GEMINI_API_KEY",
+        "GH_CLIENT_ID_PROD",
+        "GH_CLIENT_ID_DEV",
         "GH_CLIENT_SECRET_PROD",
         "GH_CLIENT_SECRET_DEV"
       ],
