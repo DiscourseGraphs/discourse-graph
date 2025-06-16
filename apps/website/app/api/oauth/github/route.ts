@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 const CLIENT_ID =
   process.env.NODE_ENV === "production"
-    ? process.env.GH_CLIENT_ID_PROD
+    ? "Iv23liZlGOO5JGe9DAd5"
     : process.env.GH_CLIENT_ID_DEV;
 const CLIENT_SECRET =
   process.env.NODE_ENV === "production"
