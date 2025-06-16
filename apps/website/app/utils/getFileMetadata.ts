@@ -22,8 +22,8 @@ export const getFileMetadata = async ({
     console.error(`Error parsing metadata for ${filename}:`, error);
     throw new Error(
       `Invalid frontmatter in ${filename}: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
     );
   }
 };

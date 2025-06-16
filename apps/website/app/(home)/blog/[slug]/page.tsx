@@ -79,7 +79,7 @@ export const generateStaticParams = async () => {
     );
 
     const publishedFiles = results
-      .filter((result) => result.status === 'fulfilled')
+      .filter((result) => result.status === "fulfilled")
       .map((result) => result.value);
 
     return publishedFiles
