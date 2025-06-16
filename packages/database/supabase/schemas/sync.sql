@@ -113,7 +113,7 @@ BEGIN
     ASSERT task_interval >= '5s'::interval;
     INSERT INTO public.sync_info (sync_target, sync_function, status, worker, last_task_start, task_times_out_at)
         VALUES (s_target, s_function, 'active', s_worker, start_time, start_time+timeout)
-        ON CONFLICT DO NOTHING
+        ON CONFLICT (sync_target, sync_function) DO NOTHING
         RETURNING id INTO s_id;
     IF s_id IS NOT NULL THEN
         -- totally new_row, I'm on the task
@@ -141,7 +141,7 @@ BEGIN
     IF coalesce(t_last_task_end, t_last_task_start) + task_interval < now() THEN
         -- we are ready to take on the task
         UPDATE public.sync_info
-        SET worker=s_worker, status='active', task_times_out_at = now() + timeout, last_task_start = now(), failure_count=t_failure_count
+        SET worker=s_worker, status='active', task_times_out_at = now() + timeout, last_task_start = start_time, failure_count=t_failure_count
         WHERE id=s_id;
     ELSE
         -- the task has been tried recently enough
@@ -150,7 +150,7 @@ BEGIN
             SET status=t_status, failure_count=t_failure_count
             WHERE id=s_id;
         END IF;
-        result := coalesce(t_last_task_end, t_last_task_start) + task_interval - now();
+        result := coalesce(t_last_task_end, t_last_task_start) + task_interval;
     END IF;
 
     PERFORM pg_advisory_unlock(s_id);

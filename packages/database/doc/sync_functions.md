@@ -7,7 +7,7 @@ This acts as a semaphore, so that two workers (e.g. the roam plugin on two diffe
 2.  a `function` name, to distinguish different tasks on the same target; e.g. adding vs deleting content. (arbitrary short string)
 3.  the `worker` name: random string, should be the same between calls.
 
-Further, you may specify the `timeout` (>= 1s) after which the task should be deemed to have failed; and the `task_interval` (>=5s) which is how often to do the task. (This must be longer than the `timeout`.)
+Further, you may specify the `timeout` (>= 1s) after which the task should be deemed to have failed. The `task_interval` (>=5s) which is how often to do the task. (This must be longer than the `timeout`.)
 
 When a worker calls `propose_sync_task`, it will receive either:
 
