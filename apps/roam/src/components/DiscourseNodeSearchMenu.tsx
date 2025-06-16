@@ -552,5 +552,4 @@ export const NodeSearchMenuTriggerSetting = ({
   );
 };
 
-
 export default NodeSearchMenu;

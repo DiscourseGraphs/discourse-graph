@@ -13,15 +13,12 @@ import { TablesInsert, Constants } from "@repo/database/types.gen.ts";
 type AgentIdentifierDataInput = TablesInsert<"AgentIdentifier">;
 const { AgentIdentifierType } = Constants.public.Enums;
 
-const agentIdentifierValidator: ItemValidator<AgentIdentifierDataInput> = (agent_identifier: any) => {
+const agentIdentifierValidator: ItemValidator<AgentIdentifierDataInput> = (
+  agent_identifier: any,
+) => {
   if (!agent_identifier || typeof agent_identifier !== "object")
     return "Invalid request body: expected a JSON object.";
-  const {
-    identifier_type,
-    account_id,
-    value,
-    trusted,
-  } = agent_identifier;
+  const { identifier_type, account_id, value, trusted } = agent_identifier;
 
   if (!AgentIdentifierType.includes(identifier_type))
     return "Invalid identifier_type";
@@ -29,11 +26,14 @@ const agentIdentifierValidator: ItemValidator<AgentIdentifierDataInput> = (agent
     return "Missing or invalid value";
   if (!account_id || Number.isNaN(Number.parseInt(account_id, 10)))
     return "Missing or invalid account_id";
-  if (trusted !== undefined && !["true", "false", true, false].includes(trusted))
+  if (
+    trusted !== undefined &&
+    !["true", "false", true, false].includes(trusted)
+  )
     return "if included, trusted should be a boolean";
 
-  const keys = [ 'identifier_type', 'account_id', 'value', 'trusted' ];
-  if (!Object.keys(agent_identifier).every((key)=>keys.includes(key)))
+  const keys = ["identifier_type", "account_id", "value", "trusted"];
+  if (!Object.keys(agent_identifier).every((key) => keys.includes(key)))
     return "Invalid agent_identifier object: extra keys";
   return null;
 };

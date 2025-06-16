@@ -23,10 +23,7 @@ const spaceValidator: ItemValidator<SpaceDataInput> = (space) => {
     return "Missing or invalid name.";
   if (!url || typeof url !== "string" || url.trim() === "")
     return "Missing or invalid URL.";
-  if (
-    platform === undefined ||
-    !["Roam", "Obsidian"].includes(platform)
-  )
+  if (platform === undefined || !["Roam", "Obsidian"].includes(platform))
     return "Missing or invalid platform.";
   return null;
 };
