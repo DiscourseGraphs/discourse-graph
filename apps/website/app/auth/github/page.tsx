@@ -45,6 +45,7 @@ const Page = async ({ searchParams }: Props) => {
     });
 
     if (!githubAuthResponse.ok) {
+      console.error("githubAuthResponse", githubAuthResponse);
       return (
         <ClientCallbackHandler
           error={`HTTP error! status: ${githubAuthResponse.status}`}

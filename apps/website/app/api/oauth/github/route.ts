@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 
 const CLIENT_ID =
   process.env.NODE_ENV === "production"
-    ? process.env.GH_CLIENT_ID_PROD!
-    : process.env.GH_CLIENT_ID_DEV!;
+    ? process.env.GH_CLIENT_ID_PROD
+    : process.env.GH_CLIENT_ID_DEV;
 const CLIENT_SECRET =
   process.env.NODE_ENV === "production"
-    ? process.env.GH_CLIENT_SECRET_PROD!
-    : process.env.GH_CLIENT_SECRET_DEV!;
+    ? process.env.GH_CLIENT_SECRET_PROD
+    : process.env.GH_CLIENT_SECRET_DEV;
 const REDIRECT_URI =
   process.env.NODE_ENV === "production"
     ? "https://discourse-graph-git-roam-github-sync-discourse-graphs.vercel.app/auth/github"
@@ -19,6 +19,12 @@ export const GET = async (request: Request) => {
 
   if (!code) {
     return NextResponse.json({ error: "Missing code" }, { status: 400 });
+  }
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    return NextResponse.json(
+      { error: "Missing client ID or secret" },
+      { status: 400 },
+    );
   }
 
   try {
