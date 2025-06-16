@@ -45,8 +45,7 @@ export const WINDOW_LEFT =
 export const WINDOW_TOP =
   window.screenY + (window.innerHeight - WINDOW_HEIGHT) / 2;
 
-// const isDev = getNodeEnv() === "development";
-const isDev = false;
+const isDev = getNodeEnv() === "development";
 const APP_ID = isDev ? GH_APP_ID_DEV : GH_APP_ID_PROD;
 const CLIENT_ID = isDev ? GH_CLIENT_ID_DEV : GH_CLIENT_ID_PROD;
 const API_URL = isDev ? API_URL_DEV : API_URL_PROD;
@@ -238,26 +237,27 @@ export const ExportGithub = ({
               `width=${WINDOW_WIDTH}, height=${WINDOW_HEIGHT}, top=${WINDOW_TOP}, left=${WINDOW_LEFT}`,
             );
 
-            let attemptCount = 0;
-            const check = () => {
-              if (attemptCount < 30 && !gitHubAccessToken) {
-                apiPost({
-                  path: "access-token",
-                  domain: API_URL,
-                  data: { state },
-                }).then((r) => {
-                  if (r.accessToken) {
-                    handleReceivedAccessToken(r.accessToken);
-                  } else {
-                    attemptCount++;
-                    setTimeout(check, 1000);
-                  }
-                });
-              } else {
-                setError("Something went wrong.  Please contact support.");
-              }
-            };
-            setTimeout(check, 1500);
+            // Fallback for apps that don't support popup windows
+            // let attemptCount = 0;
+            // const check = () => {
+            //   if (attemptCount < 30 && !gitHubAccessToken) {
+            //     apiPost({
+            //       path: "access-token",
+            //       domain: API_URL,
+            //       data: { state },
+            //     }).then((r) => {
+            //       if (r.accessToken) {
+            //         handleReceivedAccessToken(r.accessToken);
+            //       } else {
+            //         attemptCount++;
+            //         setTimeout(check, 1000);
+            //       }
+            //     });
+            //   } else {
+            //     setError("Something went wrong.  Please contact support.");
+            //   }
+            // };
+            // setTimeout(check, 1500);
           }}
         />
       )}

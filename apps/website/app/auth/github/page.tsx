@@ -4,41 +4,63 @@ type Props = {
   searchParams: Promise<{ code?: string; state?: string }>;
 };
 
-const API_URL =
+const ACCESS_TOKEN_URL =
   process.env.NODE_ENV === "development"
-    ? "http://localhost:3000/api/access-token"
+    ? "https://43b0516e8c41.ngrok.app/api/access-token"
     : "https://discoursegraphs.com/api/access-token";
 
-console.log("API_URL", API_URL);
+const GITHUB_AUTH_URL =
+  process.env.NODE_ENV === "development"
+    ? "https://43b0516e8c41.ngrok.app/api/oauth/github"
+    : "https://discoursegraphs.com/api/oauth/github";
 
 const Page = async ({ searchParams }: Props) => {
   const { code, state } = await searchParams;
-
   try {
+    // check if the access token is already in the database
     // TODO zod validate the response
-    const response = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ code }),
+    // const accessTokenResponse = await fetch(ACCESS_TOKEN_URL, {
+    //   method: "POST",
+    //   body: JSON.stringify({ code }),
+    // });
+
+    // if (!accessTokenResponse.ok) {
+    //   return (
+    //     <ClientCallbackHandler
+    //       error={`HTTP error! status: ${accessTokenResponse.status}`}
+    //     />
+    //   );
+    // }
+
+    // const data = await accessTokenResponse.json();
+    // const { accessToken } = data;
+
+    // if (accessToken) {
+    //   return <ClientCallbackHandler accessToken={accessToken} state={state} />;
+    // }
+
+    // if not, get the access token from github
+    const githubAuthResponse = await fetch(GITHUB_AUTH_URL + "?code=" + code, {
+      method: "GET",
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (!githubAuthResponse.ok) {
+      return (
+        <ClientCallbackHandler
+          error={`HTTP error! status: ${githubAuthResponse.status}`}
+        />
+      );
     }
 
-    const responseText = await response.text();
-
-    if (!responseText) {
-      throw new Error("Empty response received");
-    }
-
-    const accessTokenByCode = JSON.parse(responseText);
+    const githubAuthData = await githubAuthResponse.json();
+    const { accessToken: githubAccessToken } = githubAuthData;
 
     return (
-      <ClientCallbackHandler accessToken={accessTokenByCode} state={state} />
+      <ClientCallbackHandler accessToken={githubAccessToken} state={state} />
     );
   } catch (error) {
     console.error("Error in GitHub auth callback:", error);
-    throw error;
+    return <ClientCallbackHandler error="Failed to authenticate with GitHub" />;
   }
 };
 

@@ -51,6 +51,7 @@ import {
   GH_CLIENT_ID_PROD,
   API_URL_PROD,
 } from "~/constants";
+import { getNodeEnv } from "roamjs-components/util/env";
 
 const CommentUidCache = new Set<string>();
 const CommentContainerUidCache = new Set<string>();
@@ -95,8 +96,7 @@ const CONFIG_PAGE = "roam/js/github-sync";
 export const SETTING = "GitHub Sync";
 let enabled = false;
 
-// const isDev = getNodeEnv() === "development";
-const isDev = true;
+const isDev = getNodeEnv() === "development";
 const APP_ID = isDev ? GH_APP_ID_DEV : GH_APP_ID_PROD;
 const CLIENT_ID = isDev ? GH_CLIENT_ID_DEV : GH_CLIENT_ID_PROD;
 const API_URL = isDev ? API_URL_DEV : API_URL_PROD;
@@ -727,8 +727,6 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
   const fetchAndSetInstallation = useCallback(async (token: string) => {
     try {
       const isAppInstalled = await fetchInstallationStatus(token);
-      console.log("isAppInstalled", isAppInstalled);
-      console.log("token", token);
       setIsGitHubAppInstalled(isAppInstalled);
     } catch (error) {
       const e = error as Error;
@@ -762,7 +760,6 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
 
   // check for installation
   useEffect(() => {
-    console.log("gitHubAccessToken", gitHubAccessToken);
     if (gitHubAccessToken) fetchAndSetInstallation(gitHubAccessToken);
   }, [gitHubAccessToken]);
 
@@ -853,28 +850,29 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
                   `width=${WINDOW_WIDTH}, height=${WINDOW_HEIGHT}, top=${WINDOW_TOP}, left=${WINDOW_LEFT}`,
                 );
 
-                let attemptCount = 0;
-                const check = () => {
-                  if (attemptCount < 30 && !gitHubAccessToken) {
-                    apiPost({
-                      path: "access-token",
-                      domain: API_URL,
-                      data: { state },
-                    }).then((r) => {
-                      if (r.accessToken) {
-                        setGitHubAccessToken(r.accessToken);
-                        setClickedInstall(false);
-                        authWindow.current?.close();
-                      } else {
-                        attemptCount++;
-                        setTimeout(check, 1000);
-                      }
-                    });
-                  } else {
-                    setError("Something went wrong.  Please contact support.");
-                  }
-                };
-                setTimeout(check, 1500);
+                // Fallback for apps that don't support popup windows
+                // let attemptCount = 0;
+                // const check = () => {
+                //   if (attemptCount < 30 && !gitHubAccessToken) {
+                //     apiPost({
+                //       path: "access-token",
+                //       domain: API_URL,
+                //       data: { state },
+                //     }).then((r) => {
+                //       if (r.accessToken) {
+                //         setGitHubAccessToken(r.accessToken);
+                //         setClickedInstall(false);
+                //         authWindow.current?.close();
+                //       } else {
+                //         attemptCount++;
+                //         setTimeout(check, 1000);
+                //       }
+                //     });
+                //   } else {
+                //     setError("Something went wrong.  Please contact support.");
+                //   }
+                // };
+                // setTimeout(check, 1500);
               }}
             />
           )}

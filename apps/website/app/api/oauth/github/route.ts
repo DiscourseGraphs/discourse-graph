@@ -4,8 +4,14 @@ const CLIENT_ID =
   process.env.NODE_ENV === "production"
     ? process.env.GH_CLIENT_ID_PROD!
     : process.env.GH_CLIENT_ID_DEV!;
-const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET!;
-const REDIRECT_URI = "https://discoursegraphs.com/oauth/github";
+const CLIENT_SECRET =
+  process.env.NODE_ENV === "production"
+    ? process.env.GH_CLIENT_SECRET_PROD!
+    : process.env.GH_CLIENT_SECRET_DEV!;
+const REDIRECT_URI =
+  process.env.NODE_ENV === "production"
+    ? "https://discoursegraphs.com/auth/github"
+    : "https://43b0516e8c41.ngrok.app/auth/github";
 
 export const GET = async (request: Request) => {
   const { searchParams } = new URL(request.url);
