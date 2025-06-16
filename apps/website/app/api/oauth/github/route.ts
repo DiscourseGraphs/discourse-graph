@@ -10,7 +10,7 @@ const CLIENT_SECRET =
     : process.env.GH_CLIENT_SECRET_DEV!;
 const REDIRECT_URI =
   process.env.NODE_ENV === "production"
-    ? "https://discoursegraphs.com/auth/github"
+    ? "https://discourse-graph-git-roam-github-sync-discourse-graphs.vercel.app/auth/github"
     : "https://43b0516e8c41.ngrok.app/auth/github";
 
 export const GET = async (request: Request) => {

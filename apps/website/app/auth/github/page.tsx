@@ -7,12 +7,12 @@ type Props = {
 const ACCESS_TOKEN_URL =
   process.env.NODE_ENV === "development"
     ? "https://43b0516e8c41.ngrok.app/api/access-token"
-    : "https://discoursegraphs.com/api/access-token";
+    : "https://discourse-graph-git-roam-github-sync-discourse-graphs.vercel.app//api/access-token";
 
 const GITHUB_AUTH_URL =
   process.env.NODE_ENV === "development"
     ? "https://43b0516e8c41.ngrok.app/api/oauth/github"
-    : "https://discoursegraphs.com/api/oauth/github";
+    : "https://discourse-graph-git-roam-github-sync-discourse-graphs.vercel.app/api/oauth/github";
 
 const Page = async ({ searchParams }: Props) => {
   const { code, state } = await searchParams;
