@@ -13,9 +13,9 @@ const REDIRECT_URI =
     ? "https://discourse-graph-git-roam-github-sync-discourse-graphs.vercel.app/auth/github"
     : "https://43b0516e8c41.ngrok.app/auth/github";
 
-export const GET = async (request: Request) => {
-  const { searchParams } = new URL(request.url);
-  const code = searchParams.get("code");
+// TODO is this route even needed, or can we do this on the server component?
+export const POST = async (request: Request) => {
+  const { code } = await request.json();
 
   if (!code) {
     return NextResponse.json({ error: "Missing code" }, { status: 400 });

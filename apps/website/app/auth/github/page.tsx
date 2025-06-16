@@ -40,8 +40,9 @@ const Page = async ({ searchParams }: Props) => {
     // }
 
     // if not, get the access token from github
-    const githubAuthResponse = await fetch(GITHUB_AUTH_URL + "?code=" + code, {
-      method: "GET",
+    const githubAuthResponse = await fetch(GITHUB_AUTH_URL, {
+      method: "POST",
+      body: JSON.stringify({ code }),
     });
 
     if (!githubAuthResponse.ok) {
