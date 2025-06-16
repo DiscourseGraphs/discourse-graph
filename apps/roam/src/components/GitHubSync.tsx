@@ -97,6 +97,7 @@ export const SETTING = "GitHub Sync";
 let enabled = false;
 
 const isDev = getNodeEnv() === "development";
+// const isDev = false;
 const APP_ID = isDev ? GH_APP_ID_DEV : GH_APP_ID_PROD;
 const CLIENT_ID = isDev ? GH_CLIENT_ID_DEV : GH_CLIENT_ID_PROD;
 const API_URL = isDev ? API_URL_DEV : API_URL_PROD;
@@ -743,7 +744,10 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
     const state = `github_${otp}_${key}`;
     setState(state);
     const handleGitHubAuthMessage = (event: MessageEvent) => {
-      const targetOrigin = new URL(API_URL).origin;
+      // TODO: add this back before publishing
+      // const targetOrigin = new URL(API_URL).origin;
+      const targetOrigin =
+        "https://discourse-graph-git-roam-github-sync-discourse-graphs.vercel.app";
       if (event.data && event.origin === targetOrigin) {
         setGitHubAccessToken(event.data);
         setClickedInstall(false);
@@ -878,21 +882,10 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
           )}
 
           {repoSelectEnabled && (
-            <Tag intent="success" large className="w-52 text-center">
+            <Tag intent="success" large className="w-full text-center">
               Authorized
             </Tag>
           )}
-          <h3>GitHub Sync Settings</h3>
-          <a
-            onClick={() => {
-              window.roamAlphaAPI.ui.mainWindow.openPage({
-                page: { title: CONFIG_PAGE },
-              });
-              setIsOpen(false);
-            }}
-          >
-            {`[[${CONFIG_PAGE}]]`}
-          </a>
         </div>
       </div>
       <div className={Classes.DIALOG_FOOTER}>

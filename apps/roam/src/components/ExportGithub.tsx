@@ -46,6 +46,7 @@ export const WINDOW_TOP =
   window.screenY + (window.innerHeight - WINDOW_HEIGHT) / 2;
 
 const isDev = getNodeEnv() === "development";
+// const isDev = false;
 const APP_ID = isDev ? GH_APP_ID_DEV : GH_APP_ID_PROD;
 const CLIENT_ID = isDev ? GH_CLIENT_ID_DEV : GH_CLIENT_ID_PROD;
 const API_URL = isDev ? API_URL_DEV : API_URL_PROD;
