@@ -24,7 +24,7 @@ const Page = ({ accessToken, state, error }: Props) => {
       if (hasValidOpener && accessToken) {
         window.opener.postMessage(accessToken, "*");
         setMessage("Success! You may close this page.");
-        // setTimeout(() => window.close(), 2000);
+        setTimeout(() => window.close(), 2000);
         return;
       }
 
@@ -81,37 +81,6 @@ const Page = ({ accessToken, state, error }: Props) => {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">{message}</div>
-      <div className="mt-4 flex flex-col gap-2">
-        <button
-          onClick={() => {
-            window.opener?.postMessage(accessToken, "*");
-          }}
-          className="rounded-md bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-        >
-          *
-        </button>
-
-        <button
-          onClick={() => {
-            window.opener?.postMessage(accessToken, window.location.origin);
-          }}
-          className="rounded-md bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-        >
-          window.location.origin
-        </button>
-
-        <button
-          onClick={() => {
-            window.opener?.postMessage(
-              accessToken,
-              process.env.NEXT_PUBLIC_URL,
-            );
-          }}
-          className="rounded-md bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-        >
-          process.env.NEXT_PUBLIC_URL
-        </button>
-      </div>
     </div>
   );
 };
