@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import { createIconButton } from "roamjs-components/dom";
 
 const PANEL_ROOT_ID = "discourse-graph-suggestions-root";
@@ -8,6 +9,8 @@ export const SplitViewButton = () => {
     roamBodyMain: string;
     mainContent: string;
   } | null>(null);
+
+  const extensionAPI = useExtensionAPI();
 
   const toggleSplitView = () => {
     const roamBodyMain = document.querySelector(
@@ -70,6 +73,10 @@ export const SplitViewButton = () => {
   };
 
   useEffect(() => {
+    if (!extensionAPI?.settings.get("suggestion-display-split-view")) {
+      return; // do not render icon if split view disabled
+    }
+
     const newButton = createIconButton("split-columns");
     newButton.classList.add("bp3-minimal", "bp3-small");
     newButton.onclick = toggleSplitView;

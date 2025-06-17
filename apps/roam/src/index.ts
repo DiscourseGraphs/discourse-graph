@@ -27,7 +27,6 @@ import {
   getLastUpdateTimeByGraphName,
   upsertDiscourseNodes,
 } from "./utils/syncToEmbeddingDb";
-import { SplitViewButton } from "./components/SplitViewButton";
 import React from "react";
 import ReactDOM from "react-dom";
 
@@ -136,9 +135,7 @@ export default runExtension(async (onloadArgs) => {
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
 
-  const appContainer = document.createElement("div");
-  document.body.appendChild(appContainer);
-  ReactDOM.render(React.createElement(SplitViewButton), appContainer);
+  const extensionAPI = onloadArgs.extensionAPI;
 
   initEmbeddingSync();
 
@@ -158,7 +155,6 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
 
-  const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>
       runQuery({ parentUid, extensionAPI }).then(
@@ -191,8 +187,6 @@ export default runExtension(async (onloadArgs) => {
       window.roamAlphaAPI.ui.graphView.wholeGraph.removeCallback({
         label: "discourse-node-styling",
       });
-      ReactDOM.unmountComponentAtNode(appContainer);
-      appContainer.remove();
     },
   };
 });

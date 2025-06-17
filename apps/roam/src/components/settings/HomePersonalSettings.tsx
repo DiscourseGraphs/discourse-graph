@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label, Checkbox, Button, Intent } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
@@ -27,6 +27,16 @@ import { upsertDiscourseNodes } from "~/utils/syncToEmbeddingDb";
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
+
+  const [splitEnabled, setSplitEnabled] = useState<boolean>(
+    Boolean(extensionAPI.settings.get("suggestion-display-split-view")),
+  );
+  const [overlayEnabled, setOverlayEnabled] = useState<boolean>(
+    Boolean(extensionAPI.settings.get("suggestion-display-overlay")),
+  );
+  const [inlineEnabled, setInlineEnabled] = useState<boolean>(
+    Boolean(extensionAPI.settings.get("suggestion-display-inline")),
+  );
 
   return (
     <div className="flex flex-col gap-4 p-1">
@@ -134,6 +144,46 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
+      <Label>
+        Discourse Suggestions Display
+        <Description
+          description={
+            "Choose where Discourse Suggestions should appear. Only one mode can be active at a time."
+          }
+        />
+        <div className="flex flex-col gap-1 pl-2">
+          <Checkbox
+            checked={splitEnabled}
+            onChange={(e) => {
+              const checked = (e.target as HTMLInputElement).checked;
+              setSplitEnabled(checked);
+              extensionAPI.settings.set(
+                "suggestion-display-split-view",
+                checked,
+              );
+            }}
+            labelElement={<>{"Split View"}</>}
+          />
+          <Checkbox
+            checked={overlayEnabled}
+            onChange={(e) => {
+              const checked = (e.target as HTMLInputElement).checked;
+              setOverlayEnabled(checked);
+              extensionAPI.settings.set("suggestion-display-overlay", checked);
+            }}
+            labelElement={<>{"In Overlay"}</>}
+          />
+          <Checkbox
+            checked={inlineEnabled}
+            onChange={(e) => {
+              const checked = (e.target as HTMLInputElement).checked;
+              setInlineEnabled(checked);
+              extensionAPI.settings.set("suggestion-display-inline", checked);
+            }}
+            labelElement={<>{"Inline"}</>}
+          />
+        </div>
+      </Label>
       <Label>
         Supabase Embeddings
         <Description

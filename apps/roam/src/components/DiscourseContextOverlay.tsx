@@ -26,7 +26,6 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
-import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import { Result } from "roamjs-components/types/query-builder";
 import createBlock from "roamjs-components/writes/createBlock";
@@ -38,6 +37,8 @@ import {
   findSimilarNodesUsingHyde,
 } from "~/utils/hyde";
 import { DiscourseSuggestionsPanel } from "./DiscourseSuggestionsPanel";
+import useSuggestionsDisplaySettings from "~/utils/useSuggestionsDisplayMode";
+import SuggestionsBody from "./SuggestionsBody";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -129,6 +130,18 @@ const DiscourseContextOverlay = ({
   const discourseNode = useMemo(() => findDiscourseNode(tagUid), [tagUid]);
   const relations = useMemo(() => getDiscourseRelations(), []);
   const allNodes = useMemo(() => getDiscourseNodes(), []);
+
+  // Determine how suggestions should be displayed
+  const {
+    split: splitEnabled,
+    overlay: overlayEnabled,
+    inline: inlineEnabled,
+  } = useSuggestionsDisplaySettings();
+  console.log("suggestionsDisplayMode", {
+    splitEnabled,
+    overlayEnabled,
+    inlineEnabled,
+  });
 
   const getInfo = useCallback(
     () =>
@@ -398,6 +411,15 @@ const DiscourseContextOverlay = ({
           }`}
         >
           <ContextContent uid={tagUid} results={results} />
+          {overlayEnabled && (
+            <div className="mt-4 border-t pt-4">
+              <SuggestionsBody
+                tag={tag}
+                blockUid={blockUid}
+                existingResults={results}
+              />
+            </div>
+          )}
         </div>
       }
       target={
@@ -421,23 +443,25 @@ const DiscourseContextOverlay = ({
             <span className="mr-1 leading-none">{score}</span>
             <Icon icon={"link"} />
             <span className="leading-none">{refs}</span>
-            <Tooltip
-              content="Open suggestions panel"
-              hoverOpenDelay={200}
-              hoverCloseDelay={0}
-              position={Position.RIGHT}
-            >
-              <Button
-                icon="panel-stats"
-                minimal
-                small
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  DiscourseSuggestionsPanel.toggle(tag, id, parentEl);
-                }}
-              />
-            </Tooltip>
+            {splitEnabled && (
+              <Tooltip
+                content="Open suggestions panel"
+                hoverOpenDelay={200}
+                hoverCloseDelay={0}
+                position={Position.RIGHT}
+              >
+                <Button
+                  icon="panel-stats"
+                  minimal
+                  small
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    DiscourseSuggestionsPanel.toggle(tag, id, parentEl);
+                  }}
+                />
+              </Tooltip>
+            )}
           </div>
         </Button>
       }
