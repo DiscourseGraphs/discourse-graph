@@ -4,7 +4,7 @@ This directory contains a script for publishing the Discourse Graph Obsidian plu
 
 ## Files
 
-- `publish-obsidian.ts` - TypeScript script that handles the publishing process
+- `publish.ts` - TypeScript script that handles the publishing process
 - `README.md` - This documentation file
 
 ## Prerequisites
@@ -84,7 +84,7 @@ OBSIDIAN_PLUGIN_REPO_TOKEN=your_token_here
 ### Basic Command Structure
 
 ```bash
-tsx scripts/publish-obsidian.ts --version <version> [options]
+tsx scripts/publish.ts --version <version> [options]
 ```
 
 ### Required Arguments
@@ -116,25 +116,25 @@ This ensures proper BRAT version ordering where beta releases always take priori
 ### Internal Testing Release
 ```bash
 # ✅ Correct format with alpha prefix - creates pre-release automatically
-tsx scripts/publish-obsidian.ts --version 0.1.0-alpha-canvas-feature --release-name "Canvas Integration Feature"
+tsx scripts/publish.ts --version 0.1.0-alpha-canvas-feature --release-name "Canvas Integration Feature"
 
 # ❌ Wrong - will interfere with BRAT ordering
-tsx scripts/publish-obsidian.ts --version 0.1.0-canvas-feature
+tsx scripts/publish.ts --version 0.1.0-canvas-feature
 ```
 
 ### Beta Release for Public Testing  
 ```bash
 # ✅ Correct format with beta prefix - creates pre-release automatically
-tsx scripts/publish-obsidian.ts --version 1.0.0-beta.1 --release-name "Beta: New Graph View"
+tsx scripts/publish.ts --version 1.0.0-beta.1 --release-name "Beta: New Graph View"
 
 # ❌ Wrong - should use beta prefix for external releases
-tsx scripts/publish-obsidian.ts --version 1.0.0-test.1
+tsx scripts/publish.ts --version 1.0.0-test.1
 ```
 
 ### Stable Production Release
 ```bash
 # Creates stable release automatically, updates main branch, BRAT auto-updates
-tsx scripts/publish-obsidian.ts --version 1.0.0
+tsx scripts/publish.ts --version 1.0.0
 ```
 
 ### Using npm script from obsidian directory
@@ -194,19 +194,19 @@ Publishes to: `DiscourseGraphs/discourse-graph-obsidian`
 1. **"Version is required"**
    ```bash
    # ❌ Wrong
-   tsx scripts/publish-obsidian.ts
+   tsx scripts/publish.ts
    
    # ✅ Correct  
-   tsx scripts/publish-obsidian.ts --version 1.0.0
+   tsx scripts/publish.ts --version 1.0.0
    ```
 
 2. **"Invalid version format"**
    ```bash
    # ❌ Wrong
-   tsx scripts/publish-obsidian.ts --version "beta-1"
+   tsx scripts/publish.ts --version "beta-1"
    
    # ✅ Correct
-   tsx scripts/publish-obsidian.ts --version 1.0.0-beta.1
+   tsx scripts/publish.ts --version 1.0.0-beta.1
    ```
 
 3. **"OBSIDIAN_PLUGIN_REPO_TOKEN environment variable is required"**

@@ -216,7 +216,15 @@ const shouldExclude = (filePath: string, baseDir: string): boolean => {
   });
 };
 
-const copyDirectory = (src: string, dest: string, baseDir: string): void => {
+const copyDirectory = ({
+  src,
+  dest,
+  baseDir,
+}: {
+  src: string;
+  dest: string;
+  baseDir: string;
+}): void => {
   if (!fs.existsSync(src)) {
     throw new Error(`Source directory does not exist: ${src}`);
   }
@@ -233,7 +241,7 @@ const copyDirectory = (src: string, dest: string, baseDir: string): void => {
     }
 
     if (entry.isDirectory()) {
-      copyDirectory(srcPath, destPath, baseDir);
+      copyDirectory({ src: srcPath, dest: destPath, baseDir });
     } else {
       try {
         fs.copyFileSync(srcPath, destPath);
@@ -527,7 +535,7 @@ const publish = async (config: PublishConfig): Promise<void> => {
       fs.rmSync(tempDir, { recursive: true });
     }
 
-    copyDirectory(obsidianDir, tempDir, obsidianDir);
+    copyDirectory({ src: obsidianDir, dest: tempDir, baseDir: obsidianDir });
     copyBuildFiles(buildDir, tempDir);
 
     if (isExternal) {
