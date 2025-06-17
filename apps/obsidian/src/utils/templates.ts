@@ -86,11 +86,30 @@ export const applyTemplate = async ({
 
     const templateContent = await app.vault.read(templateFile);
 
-    const currentContent = await app.vault.read(targetFile);
+    const templateFrontmatter =
+      app.metadataCache.getFileCache(templateFile)?.frontmatter || {};
 
-    const newContent = currentContent + templateContent;
+    const templateBodyMatch = templateContent.match(
+      /^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/,
+    );
+    const templateBody = templateBodyMatch
+      ? templateBodyMatch[2] || ""
+      : templateContent;
 
-    await app.vault.modify(targetFile, newContent);
+    const currentFrontmatter =
+      app.metadataCache.getFileCache(targetFile)?.frontmatter || {};
+    const mergedFrontmatter = {
+      ...templateFrontmatter,
+      ...currentFrontmatter,
+    };
+
+    await app.fileManager.processFrontMatter(targetFile, (fm) => {
+      Object.assign(fm, mergedFrontmatter);
+    });
+
+    if (templateBody.trim()) {
+      await app.vault.append(targetFile, templateBody);
+    }
 
     return true;
   } catch (error) {
