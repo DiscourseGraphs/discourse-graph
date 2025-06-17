@@ -117,11 +117,9 @@ const NodeMenu = ({
           menuRef.current?.getAttribute("data-active-index"),
         );
         onSelect(index);
-        // Remove focus from the block to ensure updateBlock works properly
         document.body.click();
       } else if (shortcuts.has(e.key.toUpperCase())) {
         onSelect(indexBySC[e.key.toUpperCase()]);
-        // Remove focus from the block to ensure updateBlock works properly
         document.body.click();
       } else {
         return;
@@ -218,22 +216,46 @@ export const render = (props: Props) => {
   );
 };
 
-// Create a component specifically for text selection popup
 export const TextSelectionNodeMenu = ({
-  selectedText,
   textarea,
   extensionAPI,
   onClose,
 }: {
-  selectedText: string;
   textarea: HTMLTextAreaElement;
   extensionAPI: OnloadArgs["extensionAPI"];
   onClose: () => void;
 }) => {
+  // Preserve the selection when the popup is created
+  const [selection, setSelection] = useState({
+    start: textarea.selectionStart,
+    end: textarea.selectionEnd,
+  });
+
+  useEffect(() => {
+    setSelection({
+      start: textarea.selectionStart,
+      end: textarea.selectionEnd,
+    });
+  }, []);
+
+  // Restore selection when trigger is clicked
+  const handleTriggerMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      // Prevent button from taking focus
+      // e.preventDefault();
+      // e.stopPropagation();
+      textarea.focus();
+      textarea.setSelectionRange(selection.start, selection.end);
+    },
+    [textarea, selection],
+  );
+
   const trigger = (
     <Button
       minimal
       small
+      onMouseDown={handleTriggerMouseDown}
+      onClick={handleTriggerMouseDown}
       icon={
         <div className="flex items-center gap-1 bg-white">
           <svg

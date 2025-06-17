@@ -38,6 +38,7 @@ import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchM
 import {
   renderTextSelectionPopup,
   removeTextSelectionPopup,
+  findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
 
 export const initObservers = async ({
@@ -52,6 +53,7 @@ export const initObservers = async ({
     nodeMenuTriggerListener: EventListener;
     discourseNodeSearchTriggerListener: EventListener;
     selectionChangeListener: EventListener;
+    documentClickListener: EventListener;
   };
 }> => {
   const pageTitleObserver = createHTMLObserver({
@@ -251,57 +253,36 @@ export const initObservers = async ({
     if (!selection || selection.rangeCount === 0) return;
 
     const selectedText = selection.toString().trim();
-    console.log("Selected text:", selectedText);
 
     if (!selectedText) return;
 
-    // Check if the selection is within a Roam block
-    const range = selection.getRangeAt(0);
-    const commonAncestor = range.commonAncestorContainer;
-    let blockElement: Element | null = null;
-    const currentElement =
-      commonAncestor.nodeType === Node.TEXT_NODE
-        ? commonAncestor.parentElement
-        : (commonAncestor as Element);
-
-    if (currentElement) {
-      if (
-        currentElement.classList?.contains("rm-block-text") ||
-        currentElement.classList?.contains("rm-block-input") ||
-        currentElement.closest(".rm-autocomplete__wrapper")
-      ) {
-        blockElement = currentElement;
-      }
-    }
+    const blockElement = findBlockElementFromSelection();
 
     if (blockElement) {
-      console.log("✅ Selected text in block:", selectedText);
-
-      // Get selection rectangle for positioning
-      const selectionRect = range.getBoundingClientRect();
-
-      // Handle node type selection
-      const handleNodeTypeSelect = (nodeType: string, selectedText: string) => {
-        console.log(`Creating ${nodeType} node with text: "${selectedText}"`);
-        // TODO: Implement actual node creation logic here
-        // This could involve creating a new block, adding tags, etc.
-      };
-
-      // Get discourse nodes to pass to the popup
-      const discourseNodes = getDiscourseNodes().filter(
-        (n) => n.backedBy === "user",
-      );
-
-      renderTextSelectionPopup(
-        selectedText,
-        selectionRect,
-        handleNodeTypeSelect,
-        discourseNodes,
-        onloadArgs.extensionAPI,
-      );
+      const textarea = blockElement.querySelector("textarea");
+      renderTextSelectionPopup(onloadArgs.extensionAPI, blockElement, textarea);
     } else {
-      // Remove popup if selection is not in a block
       removeTextSelectionPopup();
+    }
+  };
+
+  const documentClickListener = (e: Event) => {
+    const event = e as MouseEvent;
+    const target = event.target as Element;
+
+    const existingPopup = document.getElementById(
+      "discourse-text-selection-popup",
+    );
+
+    if (existingPopup) {
+      const isClickOutsidePopup =
+        !target.closest(".bp3-popover-target") &&
+        !target.closest(".bp3-popover-content") &&
+        !existingPopup.contains(target);
+
+      if (isClickOutsidePopup) {
+        removeTextSelectionPopup();
+      }
     }
   };
 
@@ -319,6 +300,7 @@ export const initObservers = async ({
       nodeMenuTriggerListener,
       discourseNodeSearchTriggerListener,
       selectionChangeListener,
+      documentClickListener,
     },
   };
 };

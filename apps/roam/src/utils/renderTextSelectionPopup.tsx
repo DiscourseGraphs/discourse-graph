@@ -6,28 +6,13 @@ import { OnloadArgs } from "roamjs-components/types";
 
 let currentPopupContainer: HTMLSpanElement | null = null;
 
-export const renderTextSelectionPopup = (
-  selectedText: string,
-  selectionRect: DOMRect,
-  onNodeTypeSelect: (nodeType: string, selectedText: string) => void,
-  discourseNodes: Array<{
-    type: string;
-    text: string;
-    canvasSettings: { color?: string };
-  }>,
-  extensionAPI: OnloadArgs["extensionAPI"],
-) => {
-  // Remove existing popup if any
-  removeTextSelectionPopup();
-
-  // Find the block element containing the selection (following the established pattern)
+export const findBlockElementFromSelection = (): Element | null => {
   const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return;
+  if (!selection || selection.rangeCount === 0) return null;
 
   const range = selection.getRangeAt(0);
   const commonAncestor = range.commonAncestorContainer;
 
-  // Find the closest block element to insert before (same logic as in selection listener)
   let blockElement: Element | null = null;
   let currentElement =
     commonAncestor.nodeType === Node.TEXT_NODE
@@ -46,45 +31,41 @@ export const renderTextSelectionPopup = (
     currentElement = currentElement.parentElement;
   }
 
-  if (!blockElement) return;
+  return blockElement;
+};
 
-  // Find the textarea element
-  const textarea = blockElement.querySelector("textarea");
-  if (!textarea) return;
+export const renderTextSelectionPopup = (
+  extensionAPI: OnloadArgs["extensionAPI"],
+  blockElement?: Element | null,
+  textarea?: HTMLTextAreaElement | null,
+) => {
+  removeTextSelectionPopup();
+  const targetBlockElement = blockElement || findBlockElementFromSelection();
+  if (!targetBlockElement) return;
 
-  // Get coordinates using the existing utility
-  const coords = getCoordsFromTextarea(textarea);
+  const targetTextarea =
+    textarea || targetBlockElement.querySelector("textarea");
+  if (!targetTextarea) return;
 
-  // Calculate the center of the selected text
-  const selectionStart = textarea.selectionStart;
-  const selectionEnd = textarea.selectionEnd;
-  const selectedTextLength = selectionEnd - selectionStart;
+  const coords = getCoordsFromTextarea(targetTextarea);
+  console.log(coords);
 
-  // Estimate character width to center over the selection
-  const computedStyle = window.getComputedStyle(textarea);
-  const fontSize = parseInt(computedStyle.fontSize) || 14;
-  const charWidth = fontSize * 0.6; // Approximate character width
-
-  // Adjust coordinates to center over the selected text
-  const selectionCenterOffset = (selectedTextLength * charWidth) / 2;
-  const centeredLeft = coords.left + selectionCenterOffset;
-
-  // Create container following the DiscourseNodeMenu pattern
   currentPopupContainer = document.createElement("div");
+  currentPopupContainer.id = "discourse-text-selection-popup";
+  currentPopupContainer.className = "discourse-text-selection-popup";
   currentPopupContainer.style.position = "absolute";
-  currentPopupContainer.style.left = `${centeredLeft}px`;
-  currentPopupContainer.style.top = `${coords.top - parseInt(computedStyle.height) - 5}px`;
+  currentPopupContainer.style.left = `${coords.left + 50}px`;
+  currentPopupContainer.style.top = `${coords.top - 40}px`;
   currentPopupContainer.style.zIndex = "9999";
-  currentPopupContainer.style.transform = "translateX(-50%)"; // Center the popup horizontally
 
-  // Insert before the block element (following the established pattern)
-  blockElement.parentElement?.insertBefore(currentPopupContainer, blockElement);
+  targetBlockElement.parentElement?.insertBefore(
+    currentPopupContainer,
+    targetBlockElement,
+  );
 
-  // Render popup using the new TextSelectionNodeMenu
   ReactDOM.render(
     <TextSelectionNodeMenu
-      selectedText={selectedText}
-      textarea={textarea}
+      textarea={targetTextarea}
       extensionAPI={extensionAPI}
       onClose={removeTextSelectionPopup}
     />,
@@ -95,7 +76,7 @@ export const renderTextSelectionPopup = (
 export const removeTextSelectionPopup = () => {
   if (currentPopupContainer) {
     ReactDOM.unmountComponentAtNode(currentPopupContainer);
-    currentPopupContainer.remove(); // Following the pattern from DiscourseNodeMenu
+    currentPopupContainer.remove();
     currentPopupContainer = null;
   }
 };
