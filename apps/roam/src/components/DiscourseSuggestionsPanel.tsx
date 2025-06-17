@@ -3,6 +3,7 @@ import {
   Card,
   Classes,
   Button,
+  ButtonGroup,
   Navbar,
   Position,
   Tooltip,
@@ -11,6 +12,8 @@ import {
   Intent,
   Tag,
   Divider,
+  Collapse,
+  Popover,
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
@@ -36,6 +39,7 @@ import {
 } from "~/utils/hyde";
 
 const PANEL_ROOT_ID = "discourse-graph-suggestions-root";
+const PANELS_CONTAINER_ID = "discourse-graph-panels-container";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -124,6 +128,7 @@ export const DiscourseSuggestionsPanel = ({
   const [activeNodeTypeFilters, setActiveNodeTypeFilters] = useState<string[]>(
     [],
   );
+  const [isOpen, setIsOpen] = useState(true);
 
   const discourseNode = useMemo(() => findDiscourseNode(tagUid), [tagUid]);
   const relations = useMemo(() => getDiscourseRelations(), []);
@@ -398,14 +403,22 @@ export const DiscourseSuggestionsPanel = ({
     );
   }, [hydeFilteredNodes, activeNodeTypeFilters]);
 
+  const toggleHighlight = (uid: string, on: boolean) => {
+    document
+      .querySelectorAll(`[data-dg-block-uid="${uid}"]`)
+      .forEach((el) => el.classList.toggle("dg-highlight", on));
+  };
+
   return (
     <Card
+      {...{ "data-dg-block-uid": blockUid }}
+      onMouseEnter={() => toggleHighlight(blockUid, true)}
+      onMouseLeave={() => toggleHighlight(blockUid, false)}
       style={{
         backgroundColor: "#fff",
         display: "flex",
         flexDirection: "column",
-        padding: 0,
-        height: "100%",
+        padding: "8px",
       }}
       className="roamjs-discourse-suggestions-panel"
     >
@@ -413,16 +426,45 @@ export const DiscourseSuggestionsPanel = ({
         style={{
           borderBottom: "1px solid #d8e1e8",
           boxShadow: "none",
+          paddingRight: 0,
+          display: "flex",
+          flexWrap: "nowrap",
+          alignItems: "center",
         }}
       >
-        <Navbar.Group align={Alignment.LEFT}>
+        {/* Left-aligned group for panel heading */}
+        <Navbar.Group align={Alignment.LEFT} style={{ flex: 1, minWidth: 0 }}>
           <Navbar.Heading
-            style={{ fontSize: "14px", margin: 0, fontWeight: 600 }}
+            className="truncate"
+            style={{
+              fontSize: "13px",
+              margin: 0,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+            onClick={() => setIsOpen((prev) => !prev)}
           >
-            Suggested Discourse nodes
+            {tag}
           </Navbar.Heading>
         </Navbar.Group>
-        <Navbar.Group align={Alignment.RIGHT}>
+
+        {/* Right-aligned group for action buttons */}
+        <Navbar.Group
+          align={Alignment.RIGHT}
+          style={{
+            marginRight: "5px",
+            flexShrink: 0,
+            display: "flex",
+            gap: "4px",
+          }}
+        >
+          <Button
+            icon={isOpen ? "chevron-up" : "chevron-down"}
+            minimal
+            small
+            onClick={() => setIsOpen((prev) => !prev)}
+            title={isOpen ? "Collapse" : "Expand"}
+          />
           <Button icon="cog" minimal={true} title="Settings" small={true} />
           <Button
             icon="cross"
@@ -433,65 +475,32 @@ export const DiscourseSuggestionsPanel = ({
           />
         </Navbar.Group>
       </Navbar>
-      <div
-        className={Classes.CARD}
-        style={{ flexGrow: 1, overflowY: "auto", padding: "10px" }}
+      <Collapse
+        isOpen={isOpen}
+        keepChildrenMounted={true}
+        transitionDuration={150}
       >
-        {/* Suggestive Mode */}
-        <div>
-          <div className="mb-3 flex items-center justify-between border-b pb-2">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Suggested Relationships
-            </h3>
-          </div>
-          <div className="mt-2">
-            <label
-              htmlFor="suggest-page-input"
-              className={`mb-1 block text-sm font-medium text-gray-700`}
-            >
-              Add page(s) to suggest relationships
-            </label>
-            <ControlGroup
-              className="flex items-center gap-1"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && currentPageInput) {
-                  e.preventDefault();
-                  e.stopPropagation();
-
-                  if (
-                    currentPageInput &&
-                    !selectedPages.includes(currentPageInput)
-                  ) {
-                    setSelectedPages((prev) => [...prev, currentPageInput]);
-                    setTimeout(() => {
-                      setCurrentPageInput("");
-                      setAutocompleteKey((prev) => prev + 1);
-                    }, 0);
-                    setUseAllPagesForSuggestions(false);
-                  }
-                }
-              }}
-            >
-              <AutocompleteInput
-                key={autocompleteKey}
-                value={currentPageInput}
-                placeholder={"Enter page name to add..."}
-                setValue={setCurrentPageInput}
-                options={allPages}
-                maxItemsDisplayed={50}
-              />
-              <Tooltip
-                content={
-                  selectedPages.includes(currentPageInput)
-                    ? "Page already added"
-                    : "Add page for suggestions"
-                }
-                disabled={!currentPageInput}
+        <div
+          className={Classes.CARD}
+          style={{ flexGrow: 1, overflowY: "auto", padding: "6px" }}
+        >
+          {/* Suggestive Mode */}
+          <div>
+            <div className="mt-2">
+              <label
+                htmlFor="suggest-page-input"
+                className="mb-1 block text-sm font-medium text-gray-700"
               >
-                <Button
-                  icon="plus"
-                  small
-                  onClick={() => {
+                Suggest relationships from pages
+              </label>
+              <ControlGroup
+                fill
+                className="flex flex-wrap items-center gap-2"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && currentPageInput) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
                     if (
                       currentPageInput &&
                       !selectedPages.includes(currentPageInput)
@@ -503,195 +512,248 @@ export const DiscourseSuggestionsPanel = ({
                       }, 0);
                       setUseAllPagesForSuggestions(false);
                     }
-                  }}
-                  disabled={
-                    !currentPageInput ||
-                    selectedPages.includes(currentPageInput)
                   }
-                />
-              </Tooltip>
-              <Button
-                text="Find Suggestions"
-                icon="search-template"
-                intent={Intent.PRIMARY}
-                onClick={() => {
-                  setUseAllPagesForSuggestions(false);
-                  setSearchNonce((prev) => prev + 1);
                 }}
-                disabled={selectedPages.length === 0}
-                small
-              />{" "}
-              <div>
+              >
+                <div className="flex-0 min-w-[160px]">
+                  <AutocompleteInput
+                    key={autocompleteKey}
+                    value={currentPageInput}
+                    placeholder={"Add page…"}
+                    setValue={setCurrentPageInput}
+                    options={allPages}
+                    maxItemsDisplayed={50}
+                  />
+                </div>
                 <Tooltip
                   content={
-                    useAllPagesForSuggestions
-                      ? "Refresh suggestions from all pages"
-                      : "Suggest relationships from all pages in your graph"
+                    selectedPages.includes(currentPageInput)
+                      ? "Page already added"
+                      : "Add page"
                   }
+                  disabled={!currentPageInput}
                 >
                   <Button
-                    text="Use All Pages for Suggestions"
-                    icon="globe-network"
+                    icon="plus"
                     small
                     onClick={() => {
-                      setUseAllPagesForSuggestions(true);
-                      setSelectedPages([]);
-                      setCurrentPageInput("");
-                      setAutocompleteKey((prev) => prev + 1);
-                      setSearchNonce((prev) => prev + 1);
-                    }}
-                  />
-                </Tooltip>
-              </div>
-            </ControlGroup>
-            {selectedPages.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {selectedPages.map((pageName) => (
-                  <Tag
-                    key={pageName}
-                    onRemove={() => {
-                      setSelectedPages((prev) =>
-                        prev.filter((p) => p !== pageName),
-                      );
-                      if (selectedPages.length === 1) {
-                        setHydeFilteredNodes([]);
-                        setIsSearchingHyde(false);
+                      if (
+                        currentPageInput &&
+                        !selectedPages.includes(currentPageInput)
+                      ) {
+                        setSelectedPages((prev) => [...prev, currentPageInput]);
+                        setTimeout(() => {
+                          setCurrentPageInput("");
+                          setAutocompleteKey((prev) => prev + 1);
+                        }, 0);
+                        setUseAllPagesForSuggestions(false);
                       }
                     }}
-                    round
-                    minimal
+                    disabled={
+                      !currentPageInput ||
+                      selectedPages.includes(currentPageInput)
+                    }
+                    className="whitespace-nowrap"
+                  />
+                </Tooltip>
+                <Button
+                  text="Find"
+                  icon="search-template"
+                  intent={Intent.PRIMARY}
+                  onClick={() => {
+                    setUseAllPagesForSuggestions(false);
+                    setSearchNonce((prev) => prev + 1);
+                  }}
+                  disabled={selectedPages.length === 0}
+                  small
+                  className="whitespace-nowrap"
+                />{" "}
+                <div>
+                  <Tooltip
+                    content={
+                      useAllPagesForSuggestions
+                        ? "Refresh suggestions from all pages"
+                        : "Use all pages"
+                    }
                   >
-                    {pageName}
-                  </Tag>
-                ))}
-              </div>
-            )}
-          </div>
-          {/* Conditionally render suggestions based on if a search has been run or criteria exist */}
-          {hydeFilteredNodes.length > 0 ||
-          isSearchingHyde ||
-          (searchNonce > 0 &&
-            (useAllPagesForSuggestions || selectedPages.length > 0)) ? (
-            <div className="mt-6">
-              <h3 className="mb-2 text-base font-semibold">
-                {useAllPagesForSuggestions
-                  ? "From All Pages"
-                  : selectedPages.length > 0
-                    ? `From ${selectedPages.length === 1 ? `"${selectedPages[0]}"` : `${selectedPages.length} selected pages`}`
-                    : "Select pages to see suggestions"}
-              </h3>
-              {/* Scrollable container for filters and suggestions list */}
-              <div className="flex max-h-96 gap-4 pr-2">
-                {" "}
-                {/* Flex container */}
-                {/* Suggestions List */}
-                <div className="flex-grow overflow-y-auto">
-                  {isSearchingHyde && (
-                    <Spinner size={Spinner.SIZE_SMALL} className="mb-2" />
-                  )}
-                  <ul className="space-y-1">
-                    {!isSearchingHyde && actuallyDisplayedNodes.length > 0
-                      ? actuallyDisplayedNodes.map((node) => (
-                          <li
-                            key={node.uid}
-                            className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-gray-100"
-                          >
-                            <span
-                              className="mr-2 cursor-pointer hover:underline"
-                              onClick={(e) => {
-                                if (e.shiftKey) {
-                                  openBlockInSidebar(node.uid);
-                                } else {
-                                  window.roamAlphaAPI.ui.mainWindow.openPage({
-                                    page: { uid: node.uid },
-                                  });
-                                }
-                              }}
-                            >
-                              {node.text}
-                            </span>
-                            <Tooltip
-                              content={`Add "${node.text}" as a block reference`}
-                            >
-                              <Button
-                                minimal
-                                small
-                                icon="add"
-                                onClick={() => handleCreateBlock(node)}
-                                className="ml-2"
-                              />
-                            </Tooltip>
-                          </li>
-                        ))
-                      : null}
-                    {!isSearchingHyde &&
-                      actuallyDisplayedNodes.length === 0 && (
-                        <li className="px-2 py-1.5 italic text-gray-500">
-                          {hydeFilteredNodes.length > 0 &&
-                          activeNodeTypeFilters.length > 0
-                            ? "No suggestions match the current filters."
-                            : "No relevant relations found."}
-                        </li>
-                      )}
-                  </ul>
+                    <Button
+                      text="All Pages"
+                      icon="globe-network"
+                      small
+                      onClick={() => {
+                        setUseAllPagesForSuggestions(true);
+                        setSelectedPages([]);
+                        setCurrentPageInput("");
+                        setAutocompleteKey((prev) => prev + 1);
+                        setSearchNonce((prev) => prev + 1);
+                      }}
+                      className="whitespace-nowrap"
+                    />
+                  </Tooltip>
                 </div>
-                {/* Node Type Filter UI - Placed to the right */}
-                {hydeFilteredNodes.length > 0 &&
-                  availableFilterTypes.length > 1 && (
-                    <div className="w-48 flex-shrink-0 border-l border-gray-200 pl-3">
-                      {" "}
-                      {/* Adjusted width and added border */}
-                      <div className="mb-1 text-sm font-medium text-gray-700">
-                        Filter by Node Type:
-                      </div>
-                      <div className="space-y-1">
-                        {availableFilterTypes.map((typeFilter) => (
-                          <Button
-                            key={typeFilter.uid}
-                            small
-                            minimal
-                            fill // Make button take full width of its container
-                            alignText="left" // Align text to the left
-                            text={typeFilter.text}
-                            intent={
-                              activeNodeTypeFilters.includes(typeFilter.uid)
-                                ? Intent.PRIMARY
-                                : Intent.NONE
-                            }
-                            onClick={() => {
-                              setActiveNodeTypeFilters((prevFilters) =>
-                                prevFilters.includes(typeFilter.uid)
-                                  ? prevFilters.filter(
-                                      (f) => f !== typeFilter.uid,
-                                    )
-                                  : [...prevFilters, typeFilter.uid],
-                              );
-                            }}
-                            className="w-full justify-start" // Ensure button text starts from left
-                          />
-                        ))}
-                      </div>
-                      {activeNodeTypeFilters.length > 0 && (
-                        <div className="mt-1.5">
-                          <Button
-                            small
-                            minimal
-                            icon="cross"
-                            text="Clear Filters"
-                            onClick={() => setActiveNodeTypeFilters([])}
-                            className="text-xs"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-              </div>{" "}
-              {/* End of scrollable container */}
+              </ControlGroup>
+              {selectedPages.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {selectedPages.map((pageName) => (
+                    <Tag
+                      key={pageName}
+                      onRemove={() => {
+                        setSelectedPages((prev) =>
+                          prev.filter((p) => p !== pageName),
+                        );
+                        if (selectedPages.length === 1) {
+                          setHydeFilteredNodes([]);
+                          setIsSearchingHyde(false);
+                        }
+                      }}
+                      round
+                      minimal
+                    >
+                      {pageName}
+                    </Tag>
+                  ))}
+                </div>
+              )}
             </div>
-          ) : null}{" "}
-          {/* Added a null fallback for the outer conditional rendering */}
+            {/* Conditionally render suggestions based on if a search has been run or criteria exist */}
+            {hydeFilteredNodes.length > 0 ||
+            isSearchingHyde ||
+            (searchNonce > 0 &&
+              (useAllPagesForSuggestions || selectedPages.length > 0)) ? (
+              <div className="mt-6">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-base font-semibold">
+                    {useAllPagesForSuggestions
+                      ? "From All Pages"
+                      : selectedPages.length > 0
+                        ? `From ${selectedPages.length === 1 ? `"${selectedPages[0]}"` : `${selectedPages.length} selected pages`}`
+                        : "Select pages to see suggestions"}
+                  </h3>
+                  <span className="ml-2 text-sm font-semibold text-gray-900">
+                    {actuallyDisplayedNodes.length}
+                  </span>
+                  {availableFilterTypes.length > 1 && (
+                    <Popover
+                      position={Position.BOTTOM_RIGHT}
+                      content={
+                        <div className="space-y-1 p-2">
+                          {availableFilterTypes.map((typeFilter) => (
+                            <Button
+                              key={typeFilter.uid}
+                              small
+                              minimal
+                              fill
+                              alignText="left"
+                              text={typeFilter.text}
+                              intent={
+                                activeNodeTypeFilters.includes(typeFilter.uid)
+                                  ? Intent.PRIMARY
+                                  : Intent.NONE
+                              }
+                              onClick={() => {
+                                setActiveNodeTypeFilters((prevFilters) =>
+                                  prevFilters.includes(typeFilter.uid)
+                                    ? prevFilters.filter(
+                                        (f) => f !== typeFilter.uid,
+                                      )
+                                    : [...prevFilters, typeFilter.uid],
+                                );
+                              }}
+                              className="w-full justify-start whitespace-nowrap"
+                            />
+                          ))}
+                          {activeNodeTypeFilters.length > 0 && (
+                            <Button
+                              small
+                              minimal
+                              icon="cross"
+                              text="Clear"
+                              onClick={() => setActiveNodeTypeFilters([])}
+                              className="whitespace-nowrap text-xs"
+                            />
+                          )}
+                        </div>
+                      }
+                    >
+                      <Button
+                        icon="filter"
+                        small
+                        minimal
+                        intent={
+                          activeNodeTypeFilters.length > 0
+                            ? Intent.PRIMARY
+                            : Intent.NONE
+                        }
+                      />
+                    </Popover>
+                  )}
+                </div>
+                {/* Scrollable container for filters and suggestions list */}
+                <div className="flex pr-2">
+                  {" "}
+                  {/* Flex container */}
+                  {/* Suggestions List */}
+                  <div className="flex-grow overflow-y-auto">
+                    {isSearchingHyde && (
+                      <Spinner size={Spinner.SIZE_SMALL} className="mb-2" />
+                    )}
+                    <ul className="list-none space-y-1 p-0">
+                      {!isSearchingHyde && actuallyDisplayedNodes.length > 0
+                        ? actuallyDisplayedNodes.map((node) => (
+                            <li
+                              key={node.uid}
+                              className="flex items-center justify-between rounded-md px-1.5 py-1.5 hover:bg-gray-100"
+                            >
+                              <span
+                                className="mr-2 cursor-pointer hover:underline"
+                                onClick={(e) => {
+                                  if (e.shiftKey) {
+                                    openBlockInSidebar(node.uid);
+                                  } else {
+                                    window.roamAlphaAPI.ui.mainWindow.openPage({
+                                      page: { uid: node.uid },
+                                    });
+                                  }
+                                }}
+                              >
+                                {node.text}
+                              </span>
+                              <Tooltip
+                                content={`Add "${node.text}" as a block reference`}
+                                hoverOpenDelay={200}
+                                hoverCloseDelay={0}
+                                position={Position.RIGHT}
+                              >
+                                <Button
+                                  minimal
+                                  small
+                                  icon="add"
+                                  onClick={() => handleCreateBlock(node)}
+                                  className="ml-2 whitespace-nowrap"
+                                />
+                              </Tooltip>
+                            </li>
+                          ))
+                        : null}
+                      {!isSearchingHyde &&
+                        actuallyDisplayedNodes.length === 0 && (
+                          <li className="px-2 py-1.5 italic text-gray-500">
+                            {hydeFilteredNodes.length > 0 &&
+                            activeNodeTypeFilters.length > 0
+                              ? "No suggestions match the current filters."
+                              : "No relevant relations found."}
+                          </li>
+                        )}
+                    </ul>
+                  </div>
+                </div>{" "}
+                {/* End of scrollable container */}
+              </div>
+            ) : null}{" "}
+            {/* Added a null fallback for the outer conditional rendering */}
+          </div>
         </div>
-      </div>
+      </Collapse>
     </Card>
   );
 };
@@ -702,47 +764,180 @@ DiscourseSuggestionsPanel.toggle = (
   id: string,
   parentEl: HTMLElement,
 ) => {
+  // Ensure there is a dedicated root element for all suggestion panels.
+  let suggestionsRoot = document.getElementById(
+    PANEL_ROOT_ID,
+  ) as HTMLElement | null;
+
+  // Always reference Roam's main container – we need it for (un)split logic
   const roamBodyMain = document.querySelector(
     ".roam-body-main",
   ) as HTMLElement | null;
-  if (!roamBodyMain) return;
 
-  const isSplit = roamBodyMain.dataset.isSplit === "true";
-
-  if (isSplit) {
-    const panelRoot = document.getElementById(PANEL_ROOT_ID);
-    if (panelRoot) {
-      ReactDOM.unmountComponentAtNode(panelRoot);
-      panelRoot.remove();
-    }
-    roamBodyMain.removeAttribute("data-is-split");
-    roamBodyMain.style.display = "";
+  // If the root does not exist yet, create it and apply the 40/60 split.
+  if (!suggestionsRoot && roamBodyMain) {
     const mainContent = roamBodyMain.firstElementChild as HTMLElement | null;
-    if (mainContent) {
-      mainContent.style.flex = "";
-    }
-  } else {
-    const mainContent = roamBodyMain.firstElementChild as HTMLElement | null;
-    if (!mainContent) return;
+    if (!mainContent) return; // safety-guard – shouldn't happen in a normal Roam page
 
-    const panelRoot = document.createElement("div");
-    panelRoot.id = PANEL_ROOT_ID;
+    suggestionsRoot = document.createElement("div");
+    suggestionsRoot.id = PANEL_ROOT_ID;
+    suggestionsRoot.style.display = "flex";
+    suggestionsRoot.style.flexDirection = "column";
+    suggestionsRoot.style.flex = "0 0 40%";
 
-    roamBodyMain.insertBefore(panelRoot, mainContent);
-
+    // Insert the root before Roam's main content area and apply split styling
+    roamBodyMain.insertBefore(suggestionsRoot, mainContent);
     roamBodyMain.style.display = "flex";
-    panelRoot.style.flex = "0 0 40%";
     mainContent.style.flex = "1 1 60%";
     roamBodyMain.dataset.isSplit = "true";
-
-    ReactDOM.render(
-      <DiscourseSuggestionsPanel
-        onClose={() => DiscourseSuggestionsPanel.toggle(tag, id, parentEl)}
-        tag={tag}
-        id={id}
-        parentEl={parentEl}
-      />,
-      panelRoot,
-    );
   }
+
+  // If we still don't have either container, bail
+  if (!suggestionsRoot) return;
+
+  // If the root exists but is currently hidden, show it again and re-apply
+  // the 40/60 split layout that we use for split view.
+  if (
+    suggestionsRoot.style.display === "none" &&
+    roamBodyMain &&
+    !roamBodyMain.dataset.isSplit
+  ) {
+    const mainContent =
+      suggestionsRoot.nextElementSibling as HTMLElement | null;
+    suggestionsRoot.style.display = "flex";
+    // Ensure the root is sized correctly.
+    suggestionsRoot.style.flex = "0 0 40%";
+
+    // Apply flex split styling to the parent container and main content.
+    roamBodyMain.style.display = "flex";
+    if (mainContent && mainContent !== suggestionsRoot) {
+      mainContent.style.flex = "1 1 60%";
+    }
+    roamBodyMain.dataset.isSplit = "true";
+  }
+
+  // From now on, always append the panels container to `suggestionsRoot`.
+  const containerParent = suggestionsRoot;
+
+  const panelId = `discourse-panel-${tag.replace(/[^a-zA-Z0-9]/g, "-")}`;
+  const existingPanel = document.getElementById(panelId);
+
+  // If this specific panel already exists, close only this panel
+  if (existingPanel) {
+    ReactDOM.unmountComponentAtNode(existingPanel);
+    existingPanel.remove();
+
+    // Check if there are any remaining panels
+    const panelsContainer = document.getElementById(
+      PANELS_CONTAINER_ID,
+    ) as HTMLElement | null;
+    const remainingPanels = panelsContainer?.children.length || 0;
+
+    if (remainingPanels === 0 && panelsContainer) {
+      panelsContainer.remove();
+      // Remove the suggestions root and restore layout
+      if (suggestionsRoot?.parentElement) {
+        suggestionsRoot.remove();
+      }
+      if (roamBodyMain && roamBodyMain.dataset.isSplit === "true") {
+        roamBodyMain.removeAttribute("data-is-split");
+        roamBodyMain.style.display = "";
+        const mainContent =
+          roamBodyMain.firstElementChild as HTMLElement | null;
+        if (mainContent) {
+          mainContent.style.flex = "";
+        }
+      }
+    }
+    return;
+  }
+
+  // Ensure there is only one panels container in the entire document
+  let panelsContainer = document.getElementById(
+    PANELS_CONTAINER_ID,
+  ) as HTMLElement | null;
+
+  // If a container exists but is NOT inside the intended parent, move it.
+  if (panelsContainer && panelsContainer.parentElement !== containerParent) {
+    panelsContainer.parentElement?.removeChild(panelsContainer);
+    containerParent.appendChild(panelsContainer);
+  }
+
+  // Create the panels container if it does not exist yet
+  if (!panelsContainer) {
+    panelsContainer = document.createElement("div");
+    panelsContainer.id = PANELS_CONTAINER_ID;
+    panelsContainer.style.display = "flex";
+    panelsContainer.style.flexDirection = "column";
+    panelsContainer.style.flex = "1 1 auto";
+    panelsContainer.style.gap = "8px";
+    panelsContainer.style.padding = "8px";
+    panelsContainer.style.backgroundColor = "#f5f5f5";
+    panelsContainer.style.overflowY = "auto";
+
+    containerParent.appendChild(panelsContainer);
+
+    // Common header shown once per container
+    const headerCardId = "discourse-suggestions-header";
+    const headerCard = document.createElement("div");
+    headerCard.id = headerCardId;
+    headerCard.style.flex = "0 0 auto";
+    headerCard.style.padding = "6px 8px";
+    headerCard.style.backgroundColor = "#fff";
+    headerCard.style.borderRadius = "4px 4px 0 0";
+    headerCard.style.marginBottom = "0";
+    headerCard.style.fontWeight = "600";
+    headerCard.style.fontSize = "13px";
+    headerCard.style.boxShadow = "0 1px 3px rgba(0,0,0,0.08)";
+    headerCard.textContent = "Suggested Discourse nodes";
+
+    panelsContainer.appendChild(headerCard);
+  }
+
+  // Create the new panel
+  const newPanel = document.createElement("div");
+  newPanel.id = panelId;
+  newPanel.style.flex = "0 0 auto";
+  newPanel.style.marginBottom = "8px";
+  newPanel.style.marginTop = "0";
+  newPanel.style.backgroundColor = "#fff";
+  newPanel.style.borderRadius = "0 0 4px 4px";
+  newPanel.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+
+  panelsContainer.appendChild(newPanel);
+
+  const handleClosePanel = () => {
+    ReactDOM.unmountComponentAtNode(newPanel);
+    newPanel.remove();
+
+    // Check if there are any remaining panels
+    const remainingPanels = panelsContainer?.children.length || 0;
+
+    if (remainingPanels === 0) {
+      panelsContainer.remove();
+      // Remove the suggestions root and restore layout
+      if (suggestionsRoot?.parentElement) {
+        suggestionsRoot.remove();
+      }
+      if (roamBodyMain && roamBodyMain.dataset.isSplit === "true") {
+        roamBodyMain.removeAttribute("data-is-split");
+        roamBodyMain.style.display = "";
+        const mainContent =
+          roamBodyMain.firstElementChild as HTMLElement | null;
+        if (mainContent) {
+          mainContent.style.flex = "";
+        }
+      }
+    }
+  };
+
+  ReactDOM.render(
+    <DiscourseSuggestionsPanel
+      onClose={handleClosePanel}
+      tag={tag}
+      id={id}
+      parentEl={parentEl}
+    />,
+    newPanel,
+  );
 };

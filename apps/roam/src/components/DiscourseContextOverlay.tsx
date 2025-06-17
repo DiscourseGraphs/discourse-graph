@@ -373,6 +373,12 @@ const DiscourseContextOverlay = ({
       .sort((a, b) => a.text.localeCompare(b.text));
   }, [uniqueSuggestedTypeUIDs, allNodes]);
 
+  const toggleHighlight = (uid: string, on: boolean) => {
+    document
+      .querySelectorAll(`[data-dg-block-uid="${uid}"]`)
+      .forEach((el) => el.classList.toggle("dg-highlight", on));
+  };
+
   const actuallyDisplayedNodes = useMemo(() => {
     if (activeNodeTypeFilters.length === 0) {
       return hydeFilteredNodes;
@@ -392,264 +398,15 @@ const DiscourseContextOverlay = ({
           }`}
         >
           <ContextContent uid={tagUid} results={results} />
-          {/* Suggestive Mode */}
-          <div>
-            <h3 className="mb-3 border-b pb-2 text-lg font-semibold text-gray-800">
-              Suggested Relationships
-            </h3>
-            <div className="mt-2">
-              <label
-                htmlFor="suggest-page-input"
-                className={`mb-1 block text-sm font-medium text-gray-700`}
-              >
-                Add page(s) to suggest relationships
-              </label>
-              <ControlGroup
-                className="flex items-center gap-1"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && currentPageInput) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    if (
-                      currentPageInput &&
-                      !selectedPages.includes(currentPageInput)
-                    ) {
-                      setSelectedPages((prev) => [...prev, currentPageInput]);
-                      setTimeout(() => {
-                        setCurrentPageInput("");
-                        setAutocompleteKey((prev) => prev + 1);
-                      }, 0);
-                      setUseAllPagesForSuggestions(false);
-                    }
-                  }
-                }}
-              >
-                <AutocompleteInput
-                  key={autocompleteKey}
-                  value={currentPageInput}
-                  placeholder={"Enter page name to add..."}
-                  setValue={setCurrentPageInput}
-                  options={allPages}
-                  maxItemsDisplayed={50}
-                />
-                <Tooltip
-                  content={
-                    selectedPages.includes(currentPageInput)
-                      ? "Page already added"
-                      : "Add page for suggestions"
-                  }
-                  disabled={!currentPageInput}
-                >
-                  <Button
-                    icon="plus"
-                    small
-                    onClick={() => {
-                      if (
-                        currentPageInput &&
-                        !selectedPages.includes(currentPageInput)
-                      ) {
-                        setSelectedPages((prev) => [...prev, currentPageInput]);
-                        setTimeout(() => {
-                          setCurrentPageInput("");
-                          setAutocompleteKey((prev) => prev + 1);
-                        }, 0);
-                        setUseAllPagesForSuggestions(false);
-                      }
-                    }}
-                    disabled={
-                      !currentPageInput ||
-                      selectedPages.includes(currentPageInput)
-                    }
-                  />
-                </Tooltip>
-                <Button
-                  text="Find Suggestions"
-                  icon="search-template"
-                  intent={Intent.PRIMARY}
-                  onClick={() => {
-                    setUseAllPagesForSuggestions(false);
-                    setSearchNonce((prev) => prev + 1);
-                  }}
-                  disabled={selectedPages.length === 0}
-                  small
-                />{" "}
-                <div>
-                  <Tooltip
-                    content={
-                      useAllPagesForSuggestions
-                        ? "Refresh suggestions from all pages"
-                        : "Suggest relationships from all pages in your graph"
-                    }
-                  >
-                    <Button
-                      text="Use All Pages for Suggestions"
-                      icon="globe-network"
-                      small
-                      onClick={() => {
-                        setUseAllPagesForSuggestions(true);
-                        setSelectedPages([]);
-                        setCurrentPageInput("");
-                        setAutocompleteKey((prev) => prev + 1);
-                        setSearchNonce((prev) => prev + 1);
-                      }}
-                    />
-                  </Tooltip>
-                </div>
-              </ControlGroup>
-              {selectedPages.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {selectedPages.map((pageName) => (
-                    <Tag
-                      key={pageName}
-                      onRemove={() => {
-                        setSelectedPages((prev) =>
-                          prev.filter((p) => p !== pageName),
-                        );
-                        if (selectedPages.length === 1) {
-                          setHydeFilteredNodes([]);
-                          setIsSearchingHyde(false);
-                        }
-                      }}
-                      round
-                      minimal
-                    >
-                      {pageName}
-                    </Tag>
-                  ))}
-                </div>
-              )}
-            </div>
-            {/* Conditionally render suggestions based on if a search has been run or criteria exist */}
-            {hydeFilteredNodes.length > 0 ||
-            isSearchingHyde ||
-            (searchNonce > 0 &&
-              (useAllPagesForSuggestions || selectedPages.length > 0)) ? (
-              <div className="mt-6">
-                <h3 className="mb-2 text-base font-semibold">
-                  {useAllPagesForSuggestions
-                    ? "From All Pages"
-                    : selectedPages.length > 0
-                      ? `From ${selectedPages.length === 1 ? `"${selectedPages[0]}"` : `${selectedPages.length} selected pages`}`
-                      : "Select pages to see suggestions"}
-                </h3>
-                {/* Scrollable container for filters and suggestions list */}
-                <div className="flex max-h-96 gap-4 pr-2">
-                  {" "}
-                  {/* Flex container */}
-                  {/* Suggestions List */}
-                  <div className="flex-grow overflow-y-auto">
-                    {isSearchingHyde && (
-                      <Spinner size={Spinner.SIZE_SMALL} className="mb-2" />
-                    )}
-                    <ul className="space-y-1">
-                      {!isSearchingHyde && actuallyDisplayedNodes.length > 0
-                        ? actuallyDisplayedNodes.map((node) => (
-                            <li
-                              key={node.uid}
-                              className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-gray-100"
-                            >
-                              <span
-                                className="mr-2 cursor-pointer hover:underline"
-                                onClick={(e) => {
-                                  if (e.shiftKey) {
-                                    openBlockInSidebar(node.uid);
-                                  } else {
-                                    window.roamAlphaAPI.ui.mainWindow.openPage({
-                                      page: { uid: node.uid },
-                                    });
-                                  }
-                                }}
-                              >
-                                {node.text}
-                              </span>
-                              <Tooltip
-                                content={`Add "${node.text}" as a block reference`}
-                              >
-                                <Button
-                                  minimal
-                                  small
-                                  icon="add"
-                                  onClick={() => handleCreateBlock(node)}
-                                  className="ml-2"
-                                />
-                              </Tooltip>
-                            </li>
-                          ))
-                        : null}
-                      {!isSearchingHyde &&
-                        actuallyDisplayedNodes.length === 0 && (
-                          <li className="px-2 py-1.5 italic text-gray-500">
-                            {hydeFilteredNodes.length > 0 &&
-                            activeNodeTypeFilters.length > 0
-                              ? "No suggestions match the current filters."
-                              : "No relevant relations found."}
-                          </li>
-                        )}
-                    </ul>
-                  </div>
-                  {/* Node Type Filter UI - Placed to the right */}
-                  {hydeFilteredNodes.length > 0 &&
-                    availableFilterTypes.length > 1 && (
-                      <div className="w-48 flex-shrink-0 border-l border-gray-200 pl-3">
-                        {" "}
-                        {/* Adjusted width and added border */}
-                        <div className="mb-1 text-sm font-medium text-gray-700">
-                          Filter by Node Type:
-                        </div>
-                        <div className="space-y-1">
-                          {availableFilterTypes.map((typeFilter) => (
-                            <Button
-                              key={typeFilter.uid}
-                              small
-                              minimal
-                              fill // Make button take full width of its container
-                              alignText="left" // Align text to the left
-                              text={typeFilter.text}
-                              intent={
-                                activeNodeTypeFilters.includes(typeFilter.uid)
-                                  ? Intent.PRIMARY
-                                  : Intent.NONE
-                              }
-                              onClick={() => {
-                                setActiveNodeTypeFilters((prevFilters) =>
-                                  prevFilters.includes(typeFilter.uid)
-                                    ? prevFilters.filter(
-                                        (f) => f !== typeFilter.uid,
-                                      )
-                                    : [...prevFilters, typeFilter.uid],
-                                );
-                              }}
-                              className="w-full justify-start" // Ensure button text starts from left
-                            />
-                          ))}
-                        </div>
-                        {activeNodeTypeFilters.length > 0 && (
-                          <div className="mt-1.5">
-                            <Button
-                              small
-                              minimal
-                              icon="cross"
-                              text="Clear Filters"
-                              onClick={() => setActiveNodeTypeFilters([])}
-                              className="text-xs"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                </div>{" "}
-                {/* End of scrollable container */}
-              </div>
-            ) : null}{" "}
-            {/* Added a null fallback for the outer conditional rendering */}
-          </div>
         </div>
       }
       target={
         <Button
           small
           id={id}
+          {...{ "data-dg-block-uid": blockUid }}
+          onMouseEnter={() => toggleHighlight(blockUid, true)}
+          onMouseLeave={() => toggleHighlight(blockUid, false)}
           className={"roamjs-discourse-context-overlay"}
           style={{
             minHeight: "initial",
@@ -664,14 +421,21 @@ const DiscourseContextOverlay = ({
             <span className="mr-1 leading-none">{score}</span>
             <Icon icon={"link"} />
             <span className="leading-none">{refs}</span>
-            <Tooltip content="Open suggestions panel">
+            <Tooltip
+              content="Open suggestions panel"
+              hoverOpenDelay={200}
+              hoverCloseDelay={0}
+              position={Position.RIGHT}
+            >
               <Button
                 icon="panel-stats"
                 minimal
                 small
-                onClick={() =>
-                  DiscourseSuggestionsPanel.toggle(tag, id, parentEl)
-                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  DiscourseSuggestionsPanel.toggle(tag, id, parentEl);
+                }}
               />
             </Tooltip>
           </div>

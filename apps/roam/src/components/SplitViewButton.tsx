@@ -1,7 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import ReactDOM from "react-dom";
 import { createIconButton } from "roamjs-components/dom";
-import { DiscourseSuggestionsPanel } from "./DiscourseSuggestionsPanel";
 
 const PANEL_ROOT_ID = "discourse-graph-suggestions-root";
 
@@ -17,26 +15,33 @@ export const SplitViewButton = () => {
     ) as HTMLElement | null;
     if (!roamBodyMain) return;
 
+    const panelRoot = document.getElementById(
+      PANEL_ROOT_ID,
+    ) as HTMLElement | null;
+
     const isSplit = roamBodyMain.dataset.isSplit === "true";
 
     if (isSplit) {
-      const panelRoot = document.getElementById(PANEL_ROOT_ID);
+      // HIDE split view but keep its DOM so that panels persist
       if (panelRoot) {
-        ReactDOM.unmountComponentAtNode(panelRoot);
-        panelRoot.remove();
+        panelRoot.style.display = "none";
       }
 
       const original = originalStylesRef.current;
       if (original) {
         const mainContent =
           roamBodyMain.firstElementChild as HTMLElement | null;
+        // Restore original styles that existed before we first split
         roamBodyMain.style.cssText = original.roamBodyMain;
         if (mainContent) mainContent.style.cssText = original.mainContent;
       }
 
       roamBodyMain.removeAttribute("data-is-split");
+      // NOTE: we intentionally do NOT unmount or remove the panelRoot so that
+      // its React tree (and state) survive until the next time we show it.
       originalStylesRef.current = null;
     } else {
+      // OPEN split view
       const mainContent = roamBodyMain.firstElementChild as HTMLElement | null;
       if (!mainContent) return;
 
@@ -45,20 +50,22 @@ export const SplitViewButton = () => {
         mainContent: mainContent.style.cssText,
       };
 
-      const panelRoot = document.createElement("div");
-      panelRoot.id = PANEL_ROOT_ID;
-
-      roamBodyMain.insertBefore(panelRoot, mainContent);
+      let root = panelRoot;
+      // If a root already exists (because we previously hid it), just show it.
+      if (root) {
+        root.style.display = "block";
+      } else {
+        // First-time open: create the root; it will be populated when the
+        // user opens a suggestions panel.
+        root = document.createElement("div");
+        root.id = PANEL_ROOT_ID;
+        roamBodyMain.insertBefore(root, mainContent);
+      }
 
       roamBodyMain.style.display = "flex";
-      panelRoot.style.flex = "0 0 40%";
+      root.style.flex = "0 0 40%";
       mainContent.style.flex = "1 1 60%";
       roamBodyMain.dataset.isSplit = "true";
-
-      ReactDOM.render(
-        <DiscourseSuggestionsPanel onClose={toggleSplitView} />,
-        panelRoot,
-      );
     }
   };
 
