@@ -100,12 +100,21 @@ export const applyTemplate = async ({
       Object.assign(fm, mergedFrontmatter);
     });
 
-    const templateBodyMatch = templateContent.match(
-      /^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/,
+    const normalizedContent = templateContent
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n");
+
+    const templateBodyMatch = normalizedContent.match(
+      /^---\s*\n([\s\S]*?)\n---\s*(?:\n|$)([\s\S]*)$/,
     );
-    const templateBody = templateBodyMatch
-      ? templateBodyMatch[2] || ""
-      : templateContent;
+
+    let templateBody = "";
+
+    if (templateBodyMatch) {
+      templateBody = templateBodyMatch[2] || "";
+    } else {
+      templateBody = normalizedContent;
+    }
 
     if (templateBody.trim()) {
       await app.vault.append(targetFile, templateBody);
