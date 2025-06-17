@@ -22,8 +22,8 @@
     "deploy:functions": "tsx scripts/lint.ts -f"
   },
   "devDependencies": {
-    "supabase": "^2.24.3",
-    "tsx": "^4.20.2"
+    "supabase": "^2.26.9",
+    "tsx": "^4.20.3"
   },
   "dependencies": {}
 }
