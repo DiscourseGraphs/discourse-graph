@@ -52,7 +52,7 @@ const NodeMenu = ({
   const blockUid = useMemo(() => getUids(textarea).blockUid, [textarea]);
   const menuRef = useRef<HTMLUListElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isOpen, setIsOpen] = useState(!trigger); // Auto-open for keyboard trigger, controlled for button trigger
+  const [isOpen, setIsOpen] = useState(!trigger);
 
   const onSelect = useCallback(
     (index) => {
@@ -117,6 +117,9 @@ const NodeMenu = ({
           menuRef.current?.getAttribute("data-active-index"),
         );
         onSelect(index);
+        document.body.click();
+      } else if (e.key === "Escape") {
+        onClose();
         document.body.click();
       } else if (shortcuts.has(e.key.toUpperCase())) {
         onSelect(indexBySC[e.key.toUpperCase()]);

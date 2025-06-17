@@ -19,7 +19,6 @@ import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
 import styles from "./styles/styles.css";
 import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
-import textSelectionPopupStyles from "./styles/textSelectionPopup.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
@@ -97,7 +96,6 @@ export default runExtension(async (onloadArgs) => {
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
-  const textSelectionPopupStyle = addStyle(textSelectionPopupStyles);
 
   const { observers, listeners } = await initObservers({ onloadArgs });
   const {
@@ -132,12 +130,7 @@ export default runExtension(async (onloadArgs) => {
   };
 
   return {
-    elements: [
-      style,
-      settingsStyle,
-      discourseGraphStyle,
-      textSelectionPopupStyle,
-    ],
+    elements: [style, settingsStyle, discourseGraphStyle],
     observers: observers,
     unload: () => {
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");

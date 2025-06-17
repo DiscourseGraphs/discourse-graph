@@ -4,7 +4,7 @@ import { TextSelectionNodeMenu } from "~/components/DiscourseNodeMenu";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import { OnloadArgs } from "roamjs-components/types";
 
-let currentPopupContainer: HTMLSpanElement | null = null;
+let currentPopupContainer: HTMLDivElement | null = null;
 
 export const findBlockElementFromSelection = (): Element | null => {
   const selection = window.getSelection();
@@ -48,7 +48,6 @@ export const renderTextSelectionPopup = (
   if (!targetTextarea) return;
 
   const coords = getCoordsFromTextarea(targetTextarea);
-  console.log(coords);
 
   currentPopupContainer = document.createElement("div");
   currentPopupContainer.id = "discourse-text-selection-popup";
