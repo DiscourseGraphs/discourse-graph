@@ -17,12 +17,12 @@ CREATE OR REPLACE FUNCTION extract_references(refs JSONB) RETURNS BIGINT [] LANG
 $$;
 
 CREATE OR REPLACE FUNCTION compute_arity_lit(lit_content JSONB) RETURNS smallint language sql IMMUTABLE AS $$
-  WITH q AS (SELECT jsonb_path_query(lit_content, '$.roles[*]')) SELECT count(*) FROM q;
+  SELECT COALESCE(jsonb_array_length(lit_content->'roles'), 0);
 $$;
 
 SET check_function_bodies = false;
 CREATE OR REPLACE FUNCTION compute_arity_id(p_schema_id BIGINT) RETURNS smallint language sql IMMUTABLE AS $$
-  WITH q AS (SELECT jsonb_path_query(literal_content, '$.roles[*]') FROM public."Concept" WHERE id=p_schema_id) SELECT count(*) FROM q;
+  SELECT COALESCE(jsonb_array_length(literal_content->'roles'), 0) FROM public."Concept" WHERE id=p_schema_id;
 $$;
 SET check_function_bodies = true;
 
