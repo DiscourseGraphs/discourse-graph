@@ -248,13 +248,25 @@ export const initObservers = async ({
   };
 
   const selectionChangeListener = () => {
+    // Check if text selection popup is enabled (default to true for backward compatibility)
+    const isTextSelectionPopupEnabled =
+      onloadArgs.extensionAPI.settings.get("text-selection-popup") !== false;
+
+    if (!isTextSelectionPopupEnabled) {
+      removeTextSelectionPopup();
+      return;
+    }
+
     const selection = window.getSelection();
 
     if (!selection || selection.rangeCount === 0) return;
 
     const selectedText = selection.toString().trim();
 
-    if (!selectedText) return;
+    if (!selectedText) {
+      removeTextSelectionPopup();
+      return;
+    }
 
     const blockElement = findBlockElementFromSelection();
 
