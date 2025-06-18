@@ -97,7 +97,9 @@ let lastStorageKey: string | undefined = undefined;
 
 // let's avoid exporting this, and always use the createLoggedInClient
 // to ensure we never have conflict between multiple clients
-const createSingletonClient = (uniqueKey: string): DGSupabaseClient | null => {
+export const createSingletonClient = (
+  uniqueKey: string,
+): DGSupabaseClient | null => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY;
 
