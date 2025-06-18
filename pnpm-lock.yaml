@@ -427,6 +427,9 @@ importers:
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@supabase/auth-js':
+        specifier: 'catalog:'
+        version: 2.95.3
       '@supabase/ssr':
         specifier: ^0.8.0
         version: 0.8.0(@supabase/supabase-js@2.95.3)
@@ -649,6 +652,15 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@19.1.12)(react@19.1.1)
+      '@repo/database':
+        specifier: workspace:*
+        version: link:../database
+      '@supabase/auth-js':
+        specifier: 'catalog:'
+        version: 2.95.3
+      '@supabase/supabase-js':
+        specifier: 'catalog:'
+        version: 2.95.3
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
