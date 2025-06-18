@@ -1,1 +1,1 @@
-DROP EXTENSION IF EXISTS extensions.pg_jwt;
+DROP EXTENSION IF EXISTS pg_jwt;
