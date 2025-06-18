@@ -25,6 +25,7 @@ import sendErrorEmail from "~/utils/sendErrorEmail";
 import HomePersonalSettings from "./HomePersonalSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
+import { Account } from "~/components/auth/Account";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -139,6 +140,12 @@ export const SettingsDialog = ({
             panel={<HomePersonalSettings onloadArgs={onloadArgs} />}
           />
           <Tab
+            id="discourse-graph-account"
+            title="Login"
+            className="overflow-y-auto"
+            panel={<Account/>}
+          />
+          <Tab
             id="query-settings"
             title="Queries"
             className="mb-8 overflow-y-auto"
@@ -208,7 +215,7 @@ export const SettingsDialog = ({
               <div className="flex gap-4 p-4">
                 <Button
                   onClick={() => {
-                    console.log("NODE_ENV:", process.env.NODE_ENV);
+                    // console.log("NODE_ENV:", process.env.NODE_ENV);
                   }}
                 >
                   Log Node Env
