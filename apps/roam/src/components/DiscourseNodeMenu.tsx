@@ -247,7 +247,7 @@ export const TextSelectionNodeMenu = ({
       minimal
       small
       icon={
-        <div className="flex items-center gap-1 bg-white">
+        <div className="flex items-center gap-1">
           <svg
             width="18"
             height="19"
