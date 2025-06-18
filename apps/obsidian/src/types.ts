@@ -27,4 +27,18 @@ export type Settings = {
   nodesFolderPath: string;
 };
 
+export type BulkImportCandidate = {
+  file: import("obsidian").TFile;
+  matchedNodeType: DiscourseNode;
+  alternativePattern: string;
+  extractedContent: string;
+  selected: boolean;
+};
+
+export type BulkImportPattern = {
+  nodeTypeId: string;
+  alternativePattern: string;
+  enabled: boolean;
+};
+
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";

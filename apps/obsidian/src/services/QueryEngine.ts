@@ -1,4 +1,7 @@
 import { TFile, App } from "obsidian";
+import { BulkImportPattern, BulkImportCandidate, DiscourseNode } from "~/types";
+import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
+import { extractContentFromTitle } from "~/utils/extractContentFromTitle";
 
 // This is a workaround to get the datacore API.
 // TODO: Remove once we can use datacore npm package
@@ -143,5 +146,125 @@ export class QueryEngine {
     }
 
     return searchIndex === searchLower.length;
+  }
+
+  async scanForBulkImportCandidates(
+    patterns: BulkImportPattern[],
+    validNodeTypeIds: Set<string>,
+  ): Promise<BulkImportCandidate[]> {
+    const candidates: BulkImportCandidate[] = [];
+
+    if (!this.dc) {
+      console.warn(
+        "Datacore API not available. Falling back to vault iteration.",
+      );
+      return this.fallbackScanVault(patterns, validNodeTypeIds);
+    }
+
+    try {
+      // Construct efficient Datacore query to filter out files with valid nodeTypeIds
+      let dcQuery: string;
+
+      if (validNodeTypeIds.size === 0) {
+        // No valid node types, so get all pages
+        dcQuery = "@page";
+      } else {
+        // Build query to exclude files with valid nodeTypeIds
+        const validIdConditions = Array.from(validNodeTypeIds)
+          .map((id) => `nodeTypeId != "${id}"`)
+          .join(" and ");
+
+        dcQuery = `@page and (!exists(nodeTypeId) or (${validIdConditions}))`;
+      }
+
+      console.log("Datacore query:", dcQuery); // Debug log
+      const potentialPages = this.dc.query(dcQuery);
+
+      for (const page of potentialPages) {
+        const fileName = page.$name;
+
+        // Test patterns against filename
+        for (const pattern of patterns) {
+          if (!pattern.enabled || !pattern.alternativePattern.trim()) continue;
+
+          const regex = getDiscourseNodeFormatExpression(
+            pattern.alternativePattern,
+          );
+
+          if (regex.test(fileName)) {
+            // Convert datacore page to TFile
+            const file = this.app.vault.getAbstractFileByPath(page.$path);
+            if (file && file instanceof TFile) {
+              const extractedContent = extractContentFromTitle(
+                pattern.alternativePattern,
+                fileName,
+              );
+
+              candidates.push({
+                file,
+                matchedNodeType: { id: pattern.nodeTypeId } as DiscourseNode, // Will be resolved later
+                alternativePattern: pattern.alternativePattern,
+                extractedContent,
+                selected: true,
+              });
+            }
+            break; // Stop checking other patterns for this file
+          }
+        }
+      }
+
+      return candidates;
+    } catch (error) {
+      console.error(
+        "Error in datacore bulk scan, falling back to vault iteration:",
+        error,
+      );
+      return this.fallbackScanVault(patterns, validNodeTypeIds);
+    }
+  }
+
+  private async fallbackScanVault(
+    patterns: BulkImportPattern[],
+    validNodeTypeIds: Set<string>,
+  ): Promise<BulkImportCandidate[]> {
+    const candidates: BulkImportCandidate[] = [];
+    const allFiles = this.app.vault.getMarkdownFiles();
+
+    for (const file of allFiles) {
+      const fileName = file.basename;
+      const fileCache = this.app.metadataCache.getFileCache(file);
+      const currentNodeTypeId = fileCache?.frontmatter?.nodeTypeId;
+
+      // Skip files that already have a valid nodeTypeId
+      if (currentNodeTypeId && validNodeTypeIds.has(currentNodeTypeId)) {
+        continue;
+      }
+
+      for (const pattern of patterns) {
+        if (!pattern.enabled || !pattern.alternativePattern.trim()) continue;
+
+        const regex = getDiscourseNodeFormatExpression(
+          pattern.alternativePattern,
+        );
+
+        if (regex.test(fileName)) {
+          const extractedContent = extractContentFromTitle(
+            pattern.alternativePattern,
+            fileName,
+          );
+
+          candidates.push({
+            file,
+            matchedNodeType: { id: pattern.nodeTypeId } as DiscourseNode, // Will be resolved later
+            alternativePattern: pattern.alternativePattern,
+            extractedContent,
+            selected: true,
+          });
+          break;
+        }
+      }
+    }
+
+    return candidates;
   }
 }
