@@ -130,16 +130,30 @@ const NodeMenu = ({
       e.stopPropagation();
       e.preventDefault();
     },
-    [menuRef, setActiveIndex, onSelect, shortcuts, indexBySC],
+    [onSelect, onClose, indexBySC],
   );
   useEffect(() => {
-    textarea.addEventListener("keydown", keydownListener);
-    textarea.addEventListener("input", onClose);
-    return () => {
-      textarea.removeEventListener("keydown", keydownListener);
-      textarea.removeEventListener("input", onClose);
+    const eventTarget = trigger ? document : textarea;
+    const keydownHandler = (e: Event) => {
+      if (trigger && e instanceof KeyboardEvent) {
+        keydownListener(e);
+      } else if (!trigger) {
+        keydownListener(e as KeyboardEvent);
+      }
     };
-  }, [keydownListener, onClose, textarea]);
+    eventTarget.addEventListener("keydown", keydownHandler);
+
+    if (!trigger) {
+      textarea.addEventListener("input", onClose);
+    }
+
+    return () => {
+      eventTarget.removeEventListener("keydown", keydownHandler);
+      if (!trigger) {
+        textarea.removeEventListener("input", onClose);
+      }
+    };
+  }, [keydownListener, onClose, textarea, trigger]);
 
   const handlePopoverInteraction = useCallback(
     (nextOpenState: boolean) => {
@@ -228,37 +242,10 @@ export const TextSelectionNodeMenu = ({
   extensionAPI: OnloadArgs["extensionAPI"];
   onClose: () => void;
 }) => {
-  // Preserve the selection when the popup is created
-  const [selection, setSelection] = useState({
-    start: textarea.selectionStart,
-    end: textarea.selectionEnd,
-  });
-
-  useEffect(() => {
-    setSelection({
-      start: textarea.selectionStart,
-      end: textarea.selectionEnd,
-    });
-  }, []);
-
-  // Restore selection when trigger is clicked
-  const handleTriggerMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      // Prevent button from taking focus
-      // e.preventDefault();
-      // e.stopPropagation();
-      textarea.focus();
-      textarea.setSelectionRange(selection.start, selection.end);
-    },
-    [textarea, selection],
-  );
-
   const trigger = (
     <Button
       minimal
       small
-      onMouseDown={handleTriggerMouseDown}
-      onClick={handleTriggerMouseDown}
       icon={
         <div className="flex items-center gap-1 bg-white">
           <svg
