@@ -60,9 +60,15 @@ export function discourseNodeSchemaToLocalConcept(
 
 export function discourseNodeBlockToLocalConcept(
   context: SupabaseContext,
-  node_uid: string,
-  schema_uid: string,
-  text: string
+  {
+    node_uid,
+    schema_uid,
+    text
+  }: {
+    node_uid: string,
+    schema_uid: string,
+    text: string
+  }
 ): LocalConceptDataInput {
   const extra_data = getNodeExtraData(node_uid);
   return {
