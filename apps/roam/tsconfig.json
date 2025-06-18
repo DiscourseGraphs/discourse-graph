@@ -12,6 +12,10 @@
     "module": "ESNext",
     "moduleResolution": "Node",
     "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "~/*": ["src/*"],
+      "@/*": ["../../packages/ui/src/*"]
+    },
     "jsx": "react",
     "noUncheckedIndexedAccess": false
   }
