@@ -32,6 +32,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^8.57.1",
+    "shadcn": "2.10.0",
     "typescript": "5.5.4"
   },
   "dependencies": {
@@ -40,7 +41,8 @@
     "lucide-react": "^0.468.0",
     "react": "^19",
     "react-dom": "^19",
-    "tailwind-merge": "^2.5.5",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7",
+    "tw-animate-css": "^1.3.4"
   }
 }
