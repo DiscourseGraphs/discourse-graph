@@ -2,7 +2,10 @@
   "extends": "@repo/typescript-config/react-library.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "rootDir": "."
+    "rootDir": ".",
+    "outDir": "dist",
+    "composite": true
   },
-  "include": ["src", "turbo", "scripts"]
+  "include": ["src", "turbo"],
+  "exclude": ["node_modules", "dist"]
 }
