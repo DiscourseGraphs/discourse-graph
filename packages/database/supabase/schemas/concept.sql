@@ -13,8 +13,23 @@ CREATE TYPE public."EpistemicStatus" AS ENUM (
 ALTER TYPE public."EpistemicStatus" OWNER TO postgres;
 
 CREATE OR REPLACE FUNCTION extract_references(refs JSONB) RETURNS BIGINT [] LANGUAGE sql IMMUTABLE AS $$
-  SELECT COALESCE(array_agg(i::bigint), '{}') FROM (SELECT jsonb_array_elements(jsonb_path_query_array(refs, '$.*[*]')) i) exrefs;
+  SELECT COALESCE(array_agg(i::bigint), '{}') FROM (SELECT DISTINCT jsonb_array_elements(jsonb_path_query_array(refs, '$.*[*]')) i) exrefs;
 $$;
+
+CREATE OR REPLACE FUNCTION compute_arity_lit(lit_content JSONB) RETURNS smallint language sql IMMUTABLE AS $$
+  SELECT COALESCE(jsonb_array_length(lit_content->'roles'), 0);
+$$;
+
+SET check_function_bodies = false;
+CREATE OR REPLACE FUNCTION compute_arity_id(p_schema_id BIGINT) RETURNS smallint language sql IMMUTABLE AS $$
+  SELECT COALESCE(jsonb_array_length(literal_content->'roles'), 0) FROM public."Concept" WHERE id=p_schema_id;
+$$;
+SET check_function_bodies = true;
+
+CREATE OR REPLACE FUNCTION compute_arity_local(schema_id BIGINT, lit_content JSONB) RETURNS smallint language sql IMMUTABLE AS $$
+  SELECT CASE WHEN schema_id IS NULL THEN compute_arity_lit(lit_content) ELSE compute_arity_id(schema_id) END;
+$$;
+
 
 CREATE TABLE IF NOT EXISTS public."Concept" (
     id bigint DEFAULT nextval(
@@ -27,7 +42,7 @@ CREATE TABLE IF NOT EXISTS public."Concept" (
     created timestamp without time zone NOT NULL,
     last_modified timestamp without time zone NOT NULL,
     space_id bigint NOT NULL,
-    arity smallint DEFAULT 0 NOT NULL,
+    arity smallint GENERATED ALWAYS AS (compute_arity_local(schema_id, literal_content)) STORED,
     schema_id bigint,
     literal_content jsonb NOT NULL DEFAULT '{}'::jsonb,
     reference_content jsonb NOT NULL DEFAULT '{}'::jsonb,
