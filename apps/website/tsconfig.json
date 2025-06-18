@@ -4,7 +4,8 @@
     "baseUrl": ".",
     "rootDir": ".",
     "paths": {
-      "~/*": ["./app/*"]
+      "~/*": ["./app/*"],
+      "@/*": ["../../packages/ui/src/*"]
     },
   },
   "include": [

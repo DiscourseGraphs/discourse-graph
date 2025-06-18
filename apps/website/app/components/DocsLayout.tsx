@@ -1,5 +1,3 @@
-"use client";
-
 import { Navigation, NavigationList } from "~/components/Navigation";
 import Link from "next/link";
 import clsx from "clsx";

@@ -1,11 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@repo/ui/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowBigDownDash, CircleGauge } from "lucide-react";
 import { getLatestBlogs } from "~/(home)/blog/readBlogs";
 import { TeamPerson } from "~/components/TeamPerson";
