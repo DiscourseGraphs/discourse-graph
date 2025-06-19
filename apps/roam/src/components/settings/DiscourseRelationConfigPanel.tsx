@@ -49,6 +49,7 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
+import { getSetting, setSetting } from "~/utils/extensionSettings";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",
@@ -868,7 +869,7 @@ export const RelationEditPanel = ({
               style={{ marginRight: 8 }}
             />
           </Tooltip>
-          {!!localStorage.getItem("roamjs:discourse-relation-copy") && (
+          {!!getSetting("discourse-relation-copy") && (
             <Tooltip content={"Paste Relation"}>
               <Button
                 minimal
@@ -877,8 +878,7 @@ export const RelationEditPanel = ({
                 style={{ marginRight: 8 }}
                 onClick={() => {
                   elementsRef.current[tab] = JSON.parse(
-                    localStorage.getItem("roamjs:discourse-relation-copy") ||
-                      "{}",
+                    getSetting("discourse-relation-copy", "{}"),
                   ).map((n: { data: { id: string } }) =>
                     n.data.id === "source"
                       ? {
@@ -910,8 +910,8 @@ export const RelationEditPanel = ({
               disabled={loading}
               onClick={() => {
                 saveCyToElementRef(tab);
-                localStorage.setItem(
-                  "roamjs:discourse-relation-copy",
+                setSetting(
+                  "discourse-relation-copy",
                   JSON.stringify(elementsRef.current[tab]),
                 );
                 renderToast({

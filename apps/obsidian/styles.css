@@ -1,8 +1,19 @@
-.discourse-relations .relationship-visualization {
-  transition: all 0.2s ease;
+@tailwind components;
+@tailwind utilities;
+
+.accent-border-bottom {
+  border-bottom: 2px solid var(--interactive-accent) !important;
 }
 
-.discourse-relations .relationship-visualization:hover {
-  background: var(--background-modifier-hover);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+.dg-h1 {
+  @apply text-3xl font-bold mb-4;
+}
+.dg-h2 {
+  @apply text-2xl font-bold mb-3;
+}
+.dg-h3 {
+  @apply text-xl font-semibold mb-2;
+}
+.dg-h4 {
+  @apply text-lg font-bold mb-2;
 }

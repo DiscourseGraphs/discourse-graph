@@ -15,6 +15,7 @@ import {
 import isDiscourseNode from "~/utils/isDiscourseNode";
 import { fetchEmbeddingsForNodes } from "~/utils/fetchEmbeddingsForNodes";
 import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
+import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -30,6 +31,15 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           }
         />
         <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
+      </Label>
+      <Label>
+        Node Search Menu Trigger
+        <Description
+          description={
+            "Set the trigger character for the Node Search Menu. Must refresh after editing."
+          }
+        />
+        <NodeSearchMenuTriggerSetting onloadArgs={onloadArgs} />
       </Label>
       <Checkbox
         defaultChecked={

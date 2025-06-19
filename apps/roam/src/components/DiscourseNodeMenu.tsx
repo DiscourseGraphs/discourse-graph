@@ -65,6 +65,11 @@ const NodeMenu = ({
           nodeType: nodeUid,
           blockUid,
         });
+
+        if (!pageName) {
+          return;
+        }
+
         const currentBlockText = getTextByBlockUid(blockUid);
         const newText = `${currentBlockText.substring(
           0,
@@ -106,8 +111,12 @@ const NodeMenu = ({
           menuRef.current?.getAttribute("data-active-index"),
         );
         onSelect(index);
+        // Remove focus from the block to ensure updateBlock works properly
+        document.body.click();
       } else if (shortcuts.has(e.key.toUpperCase())) {
         onSelect(indexBySC[e.key.toUpperCase()]);
+        // Remove focus from the block to ensure updateBlock works properly
+        document.body.click();
       } else {
         return;
       }

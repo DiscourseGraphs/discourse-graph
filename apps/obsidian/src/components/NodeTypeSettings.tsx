@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   validateAllNodes,
   validateNodeFormat,
@@ -9,6 +9,7 @@ import { Notice } from "obsidian";
 import generateUid from "~/utils/generateUid";
 import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
+import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
 
 const NodeTypeSettings = () => {
   const plugin = usePlugin();
@@ -17,6 +18,19 @@ const NodeTypeSettings = () => {
   );
   const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [templateFiles, setTemplateFiles] = useState<string[]>([]);
+  const [templateConfig, setTemplateConfig] = useState({
+    isEnabled: false,
+    folderPath: "",
+  });
+
+  useEffect(() => {
+    const config = getTemplatePluginInfo(plugin.app);
+    setTemplateConfig(config);
+
+    const files = getTemplateFiles(plugin.app);
+    setTemplateFiles(files);
+  }, [plugin.app]);
 
   const updateErrors = (
     index: number,
@@ -44,7 +58,12 @@ const NodeTypeSettings = () => {
     const updatedNodeTypes = [...nodeTypes];
     if (!updatedNodeTypes[index]) {
       const newId = generateUid("node");
-      updatedNodeTypes[index] = { id: newId, name: "", format: "" };
+      updatedNodeTypes[index] = {
+        id: newId,
+        name: "",
+        format: "",
+        template: "",
+      };
     }
 
     updatedNodeTypes[index][field] = value;
@@ -69,6 +88,7 @@ const NodeTypeSettings = () => {
         id: newId,
         name: "",
         format: "",
+        template: "",
       },
     ];
     setNodeTypes(updatedNodeTypes);
@@ -127,14 +147,14 @@ const NodeTypeSettings = () => {
   };
 
   return (
-    <div className="discourse-node-types">
-      <h3>Node Types</h3>
+    <div>
+      <div className="discourse-graph">
+        <h3 className="dg-h3">Node Types</h3>
+      </div>
       {nodeTypes.map((nodeType, index) => (
         <div key={index} className="setting-item">
-          <div
-            style={{ display: "flex", flexDirection: "column", width: "100%" }}
-          >
-            <div style={{ display: "flex", gap: "10px" }}>
+          <div className="flex w-full flex-col">
+            <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Name"
@@ -142,7 +162,7 @@ const NodeTypeSettings = () => {
                 onChange={(e) =>
                   handleNodeTypeChange(index, "name", e.target.value)
                 }
-                style={{ flex: 1 }}
+                className="flex-2"
               />
               <input
                 type="text"
@@ -151,23 +171,38 @@ const NodeTypeSettings = () => {
                 onChange={(e) =>
                   handleNodeTypeChange(index, "format", e.target.value)
                 }
-                style={{ flex: 2 }}
+                className="flex-1"
               />
+              <select
+                value={nodeType.template || ""}
+                onChange={(e) =>
+                  handleNodeTypeChange(index, "template", e.target.value)
+                }
+                className="flex-1"
+                disabled={
+                  !templateConfig.isEnabled || !templateConfig.folderPath
+                }
+              >
+                <option value="">
+                  {!templateConfig.isEnabled || !templateConfig.folderPath
+                    ? "Template folder not configured"
+                    : "No template"}
+                </option>
+                {templateFiles.map((templateFile) => (
+                  <option key={templateFile} value={templateFile}>
+                    {templateFile}
+                  </option>
+                ))}
+              </select>
               <button
                 onClick={() => confirmDeleteNodeType(index)}
-                className="mod-warning"
+                className="mod-warning p-2"
               >
                 Delete
               </button>
             </div>
             {formatErrors[index] && (
-              <div
-                style={{
-                  color: "var(--text-error)",
-                  fontSize: "12px",
-                  marginTop: "4px",
-                }}
-              >
+              <div className="text-error mt-1 text-xs">
                 {formatErrors[index]}
               </div>
             )}
@@ -175,11 +210,13 @@ const NodeTypeSettings = () => {
         </div>
       ))}
       <div className="setting-item">
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button onClick={handleAddNodeType}>Add Node Type</button>
+        <div className="flex gap-2">
+          <button onClick={handleAddNodeType} className="p-2">
+            Add Node Type
+          </button>
           <button
             onClick={handleSave}
-            className={hasUnsavedChanges ? "mod-cta" : ""}
+            className={`p-2 ${hasUnsavedChanges ? "mod-cta" : ""}`}
             disabled={
               !hasUnsavedChanges || Object.keys(formatErrors).length > 0
             }
@@ -189,9 +226,7 @@ const NodeTypeSettings = () => {
         </div>
       </div>
       {hasUnsavedChanges && (
-        <div style={{ marginTop: "8px", color: "var(--text-muted)" }}>
-          You have unsaved changes
-        </div>
+        <div className="text-muted mt-2">You have unsaved changes</div>
       )}
     </div>
   );
