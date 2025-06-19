@@ -101,27 +101,36 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
     const selectedCandidates = candidates.filter((c) => c.selected);
     setStep("importing");
     setImportProgress({ current: 0, total: selectedCandidates.length });
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
 
     try {
-      for (let i = 0; i < selectedCandidates.length; i++) {
-        const candidate = selectedCandidates[i];
-        if (!candidate) {
-          continue;
+      for (const candidate of selectedCandidates) {
+        try {
+          await plugin.app.fileManager.processFrontMatter(
+            candidate.file,
+            (fm) => {
+              fm.nodeTypeId = candidate.matchedNodeType.id;
+            },
+          );
+
+          setImportProgress({
+            current: importProgress.current + 1,
+            total: selectedCandidates.length,
+          });
+          successCount++;
+        } catch (error) {
+          console.error("Error processing front matter:", error);
+          errorCount++;
+          errors.push(`${candidate.file.basename}: ${error}`);
         }
-
-        await plugin.app.fileManager.processFrontMatter(
-          candidate.file,
-          (fm) => {
-            fm.nodeTypeId = candidate.matchedNodeType.id;
-          },
-        );
-
-        setImportProgress({ current: i + 1, total: selectedCandidates.length });
       }
 
       new Notice(
-        `Successfully processed ${selectedCandidates.length} files as discourse nodes`,
+        `Successfully processed ${successCount} files as discourse nodes`,
       );
+      console.error("Bulk import errors:", errors);
       onClose();
     } catch (error) {
       console.error("Error during bulk import:", error);
