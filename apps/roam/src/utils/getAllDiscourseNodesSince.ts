@@ -29,7 +29,6 @@ export const getAllDiscourseNodesSince = async (
       [(> ?edit-time ?since)]]`;
 
   const result = roamAlpha.data.q(query, since) as RoamEntityFromQuery[];
-  console.log("result", result);
 
   return result.filter(
     (entity) =>
@@ -38,53 +37,4 @@ export const getAllDiscourseNodesSince = async (
       entity.title &&
       entity.title.trim() !== "",
   );
-};
-
-export const getLastSyncTime = async (): Promise<string | null> => {
-  try {
-    const context = await getSupabaseContext();
-    if (!context) {
-      console.error("Failed to get supabase context");
-      return null;
-    }
-
-    const { spaceId } = context;
-
-    const response = await fetch(
-      `https://discoursegraphs.com/api/supabase/sync`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          spaceId: spaceId,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(
-        `Error fetching last sync time for spaceId ${spaceId}: ${response.status} ${response.statusText}`,
-        errorBody,
-      );
-      return null;
-    }
-
-    const data = await response.json();
-    console.log("sync data", data);
-
-    // Handle the API response format
-    if (data && data.last_task_end) {
-      return data.last_task_end;
-    }
-
-    // If no sync record exists yet
-    return null;
-  } catch (error) {
-    console.error("Network or other error fetching last sync time:", error);
-    return null;
-  }
 };
