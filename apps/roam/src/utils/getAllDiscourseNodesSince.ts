@@ -38,3 +38,8 @@ export const getAllDiscourseNodesSince = async (
       entity.title.trim() !== "",
   );
 };
+
+// Return a stub value 5 minutes ago
+export const getLastSyncTime = async (): Promise<string | null> => {
+  return new Date(Date.now() - 5 * 60 * 1000).toISOString();
+};
