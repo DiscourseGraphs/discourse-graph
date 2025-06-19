@@ -14,7 +14,10 @@ import {
 } from "~/components/BirdEatsBugs";
 import isDiscourseNode from "~/utils/isDiscourseNode";
 import { fetchEmbeddingsForNodes } from "~/utils/fetchEmbeddingsForNodes";
-import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
+import {
+  getAllDiscourseNodesSince,
+  getLastSyncTime,
+} from "~/utils/getAllDiscourseNodesSince";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
@@ -159,12 +162,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         style={{ marginTop: "8px" }}
       />
       <Button
-        text="Get all nodes since 5 minutes ago"
+        text="Get all nodes since last sync"
         onClick={async () => {
-          const nodes = await getAllDiscourseNodesSince(
-            Date.now() - 5 * 60 * 1000,
-          );
-          console.log("nodes", nodes, Date.now() - 5 * 60 * 1000);
+          const nodes = await getLastSyncTime();
+          console.log("nodes", nodes);
         }}
         intent={Intent.PRIMARY}
         style={{ marginTop: "8px" }}
