@@ -4,26 +4,14 @@ import {
   Classes,
   Button,
   Navbar,
-  Position,
-  Tooltip,
-  Intent,
   Collapse,
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
-import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
-import deriveDiscourseNodeAttribute from "~/utils/deriveDiscourseNodeAttribute";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
-import findDiscourseNode from "~/utils/findDiscourseNode";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
-import { Result } from "roamjs-components/types/query-builder";
-import { RelationDetails } from "~/utils/hyde";
 import SuggestionsBody from "./SuggestionsBody";
+import { useDiscourseData } from "~/utils/useDiscourseData";
 
 const PANEL_ROOT_ID = "discourse-graph-suggestions-root";
 const PANELS_CONTAINER_ID = "discourse-graph-panels-container";
@@ -36,56 +24,6 @@ const cache: {
   [tag: string]: DiscourseData;
 } = {};
 
-const getOverlayInfo = async (
-  tag: string,
-  relations: ReturnType<typeof getDiscourseRelations>,
-): Promise<DiscourseData> => {
-  try {
-    if (cache[tag]) return cache[tag];
-
-    const nodes = getDiscourseNodes(relations);
-
-    const [results, refs] = await Promise.all([
-      getDiscourseContextResults({
-        uid: getPageUidByPageTitle(tag),
-        nodes,
-        relations,
-      }),
-      // @ts-ignore - backend to be added to roamjs-components
-      window.roamAlphaAPI.data.backend.q(
-        `[:find ?a :where [?b :node/title "${normalizePageTitle(tag)}"] [?a :block/refs ?b]]`,
-      ),
-    ]);
-
-    return (cache[tag] = {
-      results,
-      refs: refs.length,
-    });
-  } catch (error) {
-    console.error(`Error getting overlay info for ${tag}:`, error);
-    return {
-      results: [],
-      refs: 0,
-    };
-  }
-};
-
-const getAllReferencesOnPage = (pageTitle: string) => {
-  const referencedPages = window.roamAlphaAPI.data.q(
-    `[:find ?uid ?text
-      :where
-        [?page :node/title "${normalizePageTitle(pageTitle)}"]
-        [?b :block/page ?page]
-        [?b :block/refs ?refPage]
-        [?refPage :block/uid ?uid]
-        [?refPage :node/title ?text]]`,
-  );
-  return referencedPages.map(([uid, text]) => ({
-    uid,
-    text,
-  })) as Result[];
-};
-
 export const DiscourseSuggestionsPanel = ({
   onClose,
   tag,
@@ -97,120 +35,9 @@ export const DiscourseSuggestionsPanel = ({
   id: string;
   parentEl: HTMLElement;
 }) => {
-  const tagUid = useMemo(() => getPageUidByPageTitle(tag), [tag]);
   const blockUid = useMemo(() => getBlockUidFromTarget(parentEl), [parentEl]);
-  const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState<DiscourseData["results"]>([]);
-  const [refs, setRefs] = useState(0);
-  const [score, setScore] = useState<number | string>(0);
   const [isOpen, setIsOpen] = useState(true);
-
-  const discourseNode = useMemo(() => findDiscourseNode(tagUid), [tagUid]);
-  const relations = useMemo(() => getDiscourseRelations(), []);
-  const allNodes = useMemo(() => getDiscourseNodes(), []);
-
-  const getInfo = useCallback(
-    () =>
-      getOverlayInfo(tag, relations)
-        .then(({ refs, results }) => {
-          if (!discourseNode) return;
-          const attribute = getSettingValueFromTree({
-            tree: getBasicTreeByParentUid(discourseNode.type),
-            key: "Overlay",
-            defaultValue: "Overlay",
-          });
-          return deriveDiscourseNodeAttribute({
-            uid: tagUid,
-            attribute,
-          }).then((score) => {
-            setResults(results);
-            setRefs(refs);
-            setScore(score);
-          });
-        })
-        .finally(() => setLoading(false)),
-    [tag, setResults, setLoading, setRefs, setScore],
-  );
-
-  const refresh = useCallback(() => {
-    setLoading(true);
-    getInfo();
-  }, [getInfo, setLoading]);
-
-  useEffect(() => {
-    getInfo();
-  }, [refresh, getInfo]);
-
-  const validRelations = useMemo(() => {
-    if (!discourseNode) return [];
-    const selfType = discourseNode.type;
-
-    return relations.filter(
-      (relation) =>
-        relation.source === selfType || relation.destination === selfType,
-    );
-  }, [relations, discourseNode]);
-
-  const uniqueRelationTypeTriplets = useMemo(() => {
-    if (!discourseNode) return [];
-    const relatedNodeType = discourseNode.type;
-
-    return validRelations.flatMap((relation) => {
-      const isSelfSource = relation.source === relatedNodeType;
-      const isSelfDestination = relation.destination === relatedNodeType;
-
-      let targetNodeType: string;
-      let currentRelationLabel: string;
-
-      if (isSelfSource) {
-        targetNodeType = relation.destination;
-        currentRelationLabel = relation.label;
-      } else if (isSelfDestination) {
-        targetNodeType = relation.source;
-        currentRelationLabel = relation.complement;
-      } else {
-        return [];
-      }
-
-      const identifiedTargetNode = allNodes.find(
-        (node) => node.type === targetNodeType,
-      );
-
-      if (!identifiedTargetNode) {
-        return [];
-      }
-
-      const mappedItem: RelationDetails = {
-        relationLabel: currentRelationLabel,
-        relatedNodeText: identifiedTargetNode.text,
-        relatedNodeFormat: identifiedTargetNode.format,
-      };
-      return [mappedItem];
-    });
-  }, [validRelations, discourseNode, allNodes]);
-
-  console.log("uniqueRelationTypeTriplets", uniqueRelationTypeTriplets);
-
-  const validTypes = useMemo(() => {
-    if (!discourseNode) return [];
-    const selfType = discourseNode.type;
-
-    const hasSelfRelation = validRelations.some(
-      (relation) =>
-        relation.source === selfType && relation.destination === selfType,
-    );
-    const types = Array.from(
-      new Set(
-        validRelations.flatMap((relation) => [
-          relation.source,
-          relation.destination,
-        ]),
-      ),
-    );
-    return hasSelfRelation ? types : types.filter((type) => type !== selfType);
-  }, [discourseNode, validRelations]);
-
-  console.log("validTypes", validTypes);
+  const { results } = useDiscourseData(tag);
 
   return (
     <Card

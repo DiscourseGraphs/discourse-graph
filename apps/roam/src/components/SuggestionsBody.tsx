@@ -15,15 +15,11 @@ import createBlock from "roamjs-components/writes/createBlock";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import findDiscourseNode from "~/utils/findDiscourseNode";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import { SuggestedNode, findSimilarNodesUsingHyde } from "~/utils/hyde";
 import {
-  SuggestedNode,
-  RelationDetails,
-  findSimilarNodesUsingHyde,
-} from "~/utils/hyde";
-import { Result } from "roamjs-components/types/query-builder";
-import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
+  getAllReferencesOnPage,
+  useDiscourseData,
+} from "~/utils/useDiscourseData";
 
 interface Props {
   tag: string;
@@ -31,93 +27,19 @@ interface Props {
   existingResults: any[];
 }
 
-const getAllReferencesOnPage = (pageTitle: string) => {
-  const referencedPages = window.roamAlphaAPI.data.q(
-    `[:find ?uid ?text
-      :where
-        [?page :node/title "${normalizePageTitle(pageTitle)}"]
-        [?b :block/page ?page]
-        [?b :block/refs ?refPage]
-        [?refPage :block/uid ?uid]
-        [?refPage :node/title ?text]]`,
-  );
-  return referencedPages.map(([uid, text]) => ({ uid, text })) as Result[];
-};
-
 const SuggestionsBody: React.FC<Props> = ({
   tag,
   blockUid,
   existingResults,
 }) => {
-  const tagUid = useMemo(() => getPageUidByPageTitle(tag), [tag]);
-  const discourseNode = useMemo(() => findDiscourseNode(tagUid), [tagUid]);
-  const relations = useMemo(() => getDiscourseRelations(), []);
-  const allNodes = useMemo(() => getDiscourseNodes(), []);
-
-  const validRelations = useMemo(() => {
-    if (!discourseNode) return [];
-    const selfType = discourseNode.type;
-    return relations.filter(
-      (relation) =>
-        relation.source === selfType || relation.destination === selfType,
-    );
-  }, [relations, discourseNode]);
-
-  const uniqueRelationTypeTriplets = useMemo<RelationDetails[]>(() => {
-    if (!discourseNode) return [];
-    const relatedNodeType = discourseNode.type;
-
-    return validRelations.flatMap((relation) => {
-      const isSelfSource = relation.source === relatedNodeType;
-      const isSelfDestination = relation.destination === relatedNodeType;
-
-      let targetNodeType: string;
-      let currentRelationLabel: string;
-
-      if (isSelfSource) {
-        targetNodeType = relation.destination;
-        currentRelationLabel = relation.label;
-      } else if (isSelfDestination) {
-        targetNodeType = relation.source;
-        currentRelationLabel = relation.complement;
-      } else {
-        return [];
-      }
-
-      const identifiedTargetNode = allNodes.find(
-        (node) => node.type === targetNodeType,
-      );
-      if (!identifiedTargetNode) return [];
-
-      return [
-        {
-          relationLabel: currentRelationLabel,
-          relatedNodeText: identifiedTargetNode.text,
-          relatedNodeFormat: identifiedTargetNode.format,
-        },
-      ];
-    });
-  }, [validRelations, discourseNode, allNodes]);
-
-  const validTypes = useMemo(() => {
-    if (!discourseNode) return [];
-    const selfType = discourseNode.type;
-
-    const hasSelfRelation = validRelations.some(
-      (relation) =>
-        relation.source === selfType && relation.destination === selfType,
-    );
-    const types = Array.from(
-      new Set(
-        validRelations.flatMap((relation) => [
-          relation.source,
-          relation.destination,
-        ]),
-      ),
-    );
-    return hasSelfRelation ? types : types.filter((type) => type !== selfType);
-  }, [discourseNode, validRelations]);
-
+  const {
+    tagUid,
+    discourseNode,
+    validRelations,
+    uniqueRelationTypeTriplets,
+    validTypes,
+    allNodes,
+  } = useDiscourseData(tag);
   const allPages = useMemo(() => getAllPageNames(), []);
 
   // UI states
@@ -270,7 +192,7 @@ const SuggestionsBody: React.FC<Props> = ({
 
   // --- UI ---
   return (
-    <div>
+    <div onMouseDown={(e) => e.stopPropagation()}>
       <div className="mt-2">
         <label
           htmlFor="suggest-page-input"
@@ -278,28 +200,27 @@ const SuggestionsBody: React.FC<Props> = ({
         >
           Suggest relationships from pages
         </label>
-        <ControlGroup
-          fill
-          className="flex flex-wrap items-center gap-2"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && currentPageInput) {
-              e.preventDefault();
-              e.stopPropagation();
-              if (
-                currentPageInput &&
-                !selectedPages.includes(currentPageInput)
-              ) {
-                setSelectedPages((prev) => [...prev, currentPageInput]);
-                setTimeout(() => {
-                  setCurrentPageInput("");
-                  setAutocompleteKey((prev) => prev + 1);
-                }, 0);
-                setUseAllPagesForSuggestions(false);
+        <ControlGroup fill className="flex flex-wrap items-center gap-2">
+          <div
+            className="flex-0 min-w-[160px]"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && currentPageInput) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (
+                  currentPageInput &&
+                  !selectedPages.includes(currentPageInput)
+                ) {
+                  setSelectedPages((prev) => [...prev, currentPageInput]);
+                  setTimeout(() => {
+                    setCurrentPageInput("");
+                    setAutocompleteKey((prev) => prev + 1);
+                  }, 0);
+                  setUseAllPagesForSuggestions(false);
+                }
               }
-            }
-          }}
-        >
-          <div className="flex-0 min-w-[160px]">
+            }}
+          >
             <AutocompleteInput
               key={autocompleteKey}
               value={currentPageInput}

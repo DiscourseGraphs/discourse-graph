@@ -25,6 +25,7 @@ export const overlayPageRefHandler = (
     const tag =
       s.getAttribute("data-tag") ||
       s.parentElement.getAttribute("data-link-title");
+    console.log("overlayPageRefHandler", tag);
     if (
       tag &&
       !s.getAttribute("data-roamjs-discourse-overlay") &&

@@ -2,6 +2,7 @@ import {
   createHTMLObserver,
   createButtonObserver,
   getPageTitleValueByHtmlElement,
+  getBlockUidFromTarget,
 } from "roamjs-components/dom";
 import { createBlock } from "roamjs-components/writes";
 import { renderLinkedReferenceAdditions } from "~/utils/renderLinkedReferenceAdditions";
@@ -35,6 +36,7 @@ import {
 import { IKeyCombo } from "@blueprintjs/core";
 import { configPageTabs } from "~/utils/configPageTabs";
 import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchMenu";
+import { render as renderInlineSuggestions } from "~/components/InlineSuggestions";
 
 export const initObservers = async ({
   onloadArgs,
@@ -77,6 +79,61 @@ export const initObservers = async ({
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
+  });
+
+  const inlineSuggestiveModeButtonObserver = createButtonObserver({
+    attribute: "inline-suggestive-mode",
+    render: (button) => {
+      setTimeout(() => {
+        const btn = button as HTMLButtonElement;
+        const blockContainer = btn.closest<HTMLElement>(
+          ".roam-block-container",
+        );
+        if (!blockContainer) {
+          return;
+        }
+
+        // Prevents re-rendering if the component is already there
+        if (
+          blockContainer.querySelector(".roamjs-discourse-inline-suggestions")
+        ) {
+          return;
+        }
+
+        const childrenContainer =
+          blockContainer.querySelector<HTMLElement>(".rm-block-children");
+        if (!childrenContainer) {
+          return;
+        }
+
+        const firstChildBlockInput =
+          childrenContainer.querySelector<HTMLElement>(".rm-block__input");
+        const tag = firstChildBlockInput?.textContent?.trim();
+
+        if (!tag) {
+          console.error(
+            "Discourse Graph: Could not find tag in child block for inline suggestions.",
+          );
+          return;
+        }
+
+        // Hide the child block containing the tag
+        childrenContainer.style.display = "none";
+
+        const blockInput = btn.closest(".rm-block__input");
+        if (!blockInput) {
+          return;
+        }
+        // By clearing the input and appending our placeholder, we ensure our component
+        // is the only thing inside the block's main text area.
+        blockInput.innerHTML = "";
+        const placeholder = document.createElement("div");
+        blockInput.appendChild(placeholder);
+
+        const blockUid = getBlockUidFromTarget(blockContainer);
+        renderInlineSuggestions({ parent: placeholder, tag, blockUid });
+      }, 50);
+    },
   });
 
   const pageActionListener = ((
@@ -244,6 +301,7 @@ export const initObservers = async ({
     observers: [
       pageTitleObserver,
       queryBlockObserver,
+      inlineSuggestiveModeButtonObserver,
       configPageObserver,
       linkedReferencesObserver,
       graphOverviewExportObserver,
