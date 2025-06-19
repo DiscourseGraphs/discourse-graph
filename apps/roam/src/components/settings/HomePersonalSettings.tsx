@@ -1,6 +1,6 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label, Checkbox } from "@blueprintjs/core";
+import { Label, Checkbox, Button, Intent } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
@@ -12,6 +12,8 @@ import {
   hideFeedbackButton,
   showFeedbackButton,
 } from "~/components/BirdEatsBugs";
+import isDiscourseNode from "~/utils/isDiscourseNode";
+import { fetchEmbeddingsForNodes } from "~/utils/fetchEmbeddingsForNodes";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -113,6 +115,37 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             />
           </>
         }
+      />
+
+      <Button
+        icon="cloud-upload"
+        text="Fetch Embeddings for nodes "
+        onClick={async () => {
+          const roamAlpha = (window as any).roamAlphaAPI;
+          const query =
+            "[:find ?uid ?title ?create-time ?edit-time :where [?e :node/title] [?e :block/uid ?uid]  [?e :node/title ?title] [?e :create/time ?create-time] [?e :edit/time ?edit-time]]";
+          const rawEntities = roamAlpha.data.fast.q(query) as any[];
+          const entities = rawEntities;
+
+          const filteredNodes = entities
+            .filter(
+              ([uid, title]) =>
+                uid && isDiscourseNode(uid) && title && title.trim() !== "",
+            )
+            .map(([uid, title, createTime, editTime]) => ({
+              uid,
+              text: title.trim(),
+              createTime,
+              editTime,
+            }));
+
+          console.log("nodes", filteredNodes.length);
+          const nodesWithEmbeddings =
+            await fetchEmbeddingsForNodes(filteredNodes);
+          console.log("nodesWithEmbeddings", nodesWithEmbeddings);
+        }}
+        intent={Intent.PRIMARY}
+        style={{ marginTop: "8px" }}
       />
     </div>
   );
