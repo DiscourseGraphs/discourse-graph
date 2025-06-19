@@ -135,8 +135,8 @@ CREATE TYPE public.concept_local_input AS (
     local_reference_content JSONB
 );
 
-
-CREATE OR REPLACE FUNCTION public.local_concept_to_db_concept(data public.concept_local_input) RETURNS public."Concept" LANGUAGE plpgsql STABLE AS $$
+-- private function. Transform concept with local (platform) references to concept with db references
+CREATE OR REPLACE FUNCTION public._local_concept_to_db_concept(data public.concept_local_input) RETURNS public."Concept" LANGUAGE plpgsql STABLE AS $$
 DECLARE
   concept public."Concept"%ROWTYPE;
   reference_content JSONB := jsonb_build_object();
@@ -190,7 +190,8 @@ BEGIN
 END;
 $$;
 
-
+-- The data should be an array of LocalConcept, i.e. in TS,
+-- Partial<Database['public']["CompositeTypes"]["concept_local_input"]>;
 CREATE OR REPLACE FUNCTION public.upsert_concepts(v_space_id bigint, data jsonb)
 RETURNS SETOF BIGINT
 LANGUAGE plpgsql
@@ -210,7 +211,7 @@ BEGIN
     -- then input values
     local_concept := jsonb_populate_record(local_concept, concept_row);
     local_concept.space_id := v_space_id;
-    db_concept := public.local_concept_to_db_concept(local_concept);
+    db_concept := public._local_concept_to_db_concept(local_concept);
     BEGIN
         -- cannot use db_concept.* because of refs.
         INSERT INTO public."Concept" (
