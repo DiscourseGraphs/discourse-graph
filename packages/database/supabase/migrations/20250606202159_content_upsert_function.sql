@@ -1,157 +1,3 @@
-CREATE TYPE public."Scale" AS ENUM (
-    'document',
-    'post',
-    'chunk_unit',
-    'section',
-    'block',
-    'field',
-    'paragraph',
-    'quote',
-    'sentence',
-    'phrase'
-);
-
-ALTER TYPE public."Scale" OWNER TO postgres;
-
-CREATE TABLE IF NOT EXISTS public."Document" (
-    id bigint DEFAULT nextval(
-        'public.entity_id_seq'::regclass
-    ) NOT NULL,
-    space_id bigint,
-    source_local_id character varying,
-    url character varying,
-    "created" timestamp without time zone NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    last_modified timestamp without time zone NOT NULL,
-    author_id bigint NOT NULL,
-    contents oid
-);
-
-ALTER TABLE ONLY public."Document"
-ADD CONSTRAINT "Document_pkey" PRIMARY KEY (id);
-
-ALTER TABLE ONLY public."Document"
-ADD CONSTRAINT "Document_author_id_fkey" FOREIGN KEY (
-    author_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-ALTER TABLE ONLY public."Document"
-ADD CONSTRAINT "Document_space_id_fkey" FOREIGN KEY (
-    space_id
-) REFERENCES public."Space" (
-    id
-) ON UPDATE CASCADE ON DELETE CASCADE;
-
-CREATE UNIQUE INDEX document_space_and_local_id_idx ON public."Document" USING btree (space_id, source_local_id)
-NULLS DISTINCT;
-
-CREATE UNIQUE INDEX document_url_idx ON public."Document" USING btree (url);
-
-ALTER TABLE public."Document" OWNER TO "postgres";
-
-COMMENT ON COLUMN public."Document".space_id IS 'The space in which the content is located';
-
-COMMENT ON COLUMN public."Document".source_local_id IS 'The unique identifier of the content in the remote source';
-
-COMMENT ON COLUMN public."Document".created IS 'The time when the content was created in the remote source';
-
-COMMENT ON COLUMN public."Document".last_modified IS 'The last time the content was modified in the remote source';
-
-COMMENT ON COLUMN public."Document".author_id IS 'The author of content';
-
-COMMENT ON COLUMN public."Document".contents IS 'A large object OID for the downloaded raw content';
-
-
-CREATE TABLE IF NOT EXISTS public."Content" (
-    id bigint DEFAULT nextval(
-        'public.entity_id_seq'::regclass
-    ) NOT NULL,
-    document_id bigint NOT NULL,
-    source_local_id character varying,
-    author_id bigint,
-    creator_id bigint,
-    created timestamp without time zone NOT NULL,
-    text text NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    scale public."Scale" NOT NULL,
-    space_id bigint,
-    last_modified timestamp without time zone NOT NULL,
-    part_of_id bigint
-);
-
-ALTER TABLE ONLY public."Content"
-ADD CONSTRAINT "Content_pkey" PRIMARY KEY (id);
-
-ALTER TABLE ONLY public."Content"
-ADD CONSTRAINT "Content_author_id_fkey" FOREIGN KEY (
-    author_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-ALTER TABLE ONLY public."Content"
-ADD CONSTRAINT "Content_creator_id_fkey" FOREIGN KEY (
-    creator_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-ALTER TABLE ONLY public."Content"
-ADD CONSTRAINT "Content_document_id_fkey" FOREIGN KEY (
-    document_id
-) REFERENCES public."Document" (id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-ALTER TABLE ONLY public."Content"
-ADD CONSTRAINT "Content_part_of_id_fkey" FOREIGN KEY (
-    part_of_id
-) REFERENCES public."Content" (id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-ALTER TABLE ONLY public."Content"
-ADD CONSTRAINT "Content_space_id_fkey" FOREIGN KEY (
-    space_id
-) REFERENCES public."Space" (
-    id
-) ON UPDATE CASCADE ON DELETE CASCADE;
-
-CREATE INDEX "Content_document" ON public."Content" USING btree (
-    document_id
-);
-
-CREATE INDEX "Content_part_of" ON public."Content" USING btree (
-    part_of_id
-);
-
-CREATE INDEX "Content_space" ON public."Content" USING btree (space_id);
-
-CREATE UNIQUE INDEX content_space_and_local_id_idx ON public."Content" USING btree (
-    space_id, source_local_id
-) NULLS DISTINCT;
-
-CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
-
-ALTER TABLE public."Content" OWNER TO "postgres";
-
-COMMENT ON TABLE public."Content" IS 'A unit of content';
-
-COMMENT ON COLUMN public."Content".source_local_id IS 'The unique identifier of the content in the remote source';
-
-COMMENT ON COLUMN public."Content".author_id IS 'The author of content';
-
-COMMENT ON COLUMN public."Content".creator_id IS 'The creator of a logical structure, such as a content subdivision';
-
-COMMENT ON COLUMN public."Content".created IS 'The time when the content was created in the remote source';
-
-COMMENT ON COLUMN public."Content".space_id IS 'The space in which the content is located';
-
-COMMENT ON COLUMN public."Content".last_modified IS 'The last time the content was modified in the remote source';
-
-COMMENT ON COLUMN public."Content".part_of_id IS 'This content is part of a larger content unit';
-
-
-GRANT ALL ON TABLE public."Document" TO anon;
-GRANT ALL ON TABLE public."Document" TO authenticated;
-GRANT ALL ON TABLE public."Document" TO service_role;
-
-GRANT ALL ON TABLE public."Content" TO anon;
-GRANT ALL ON TABLE public."Content" TO authenticated;
-GRANT ALL ON TABLE public."Content" TO service_role;
-
 CREATE TYPE public.document_local_input AS (
     -- document columns
     space_id bigint,
@@ -201,7 +47,7 @@ CREATE TYPE public.content_local_input AS (
 );
 
 
--- private function. Transform document with local (platform) references to document with db references
+-- local function
 CREATE OR REPLACE FUNCTION public._local_document_to_db_document(data public.document_local_input) RETURNS public."Document" LANGUAGE plpgsql STABLE AS $$
 DECLARE
   document public."Document"%ROWTYPE;
@@ -230,7 +76,7 @@ $$;
 
 COMMENT ON FUNCTION public._local_document_to_db_document IS 'utility function so we have the option to use platform identifiers for document upsert' ;
 
--- private function. Transform content with local (platform) references to content with db references
+-- local function
 CREATE OR REPLACE FUNCTION public._local_content_to_db_content (data public.content_local_input) RETURNS public."Content" LANGUAGE plpgsql STABLE AS $$
 DECLARE
   content public."Content"%ROWTYPE;
@@ -271,8 +117,6 @@ $$ ;
 
 COMMENT ON FUNCTION public._local_content_to_db_content IS 'utility function so we have the option to use platform identifiers for content upsert' ;
 
--- The data should be a PlatformAccount
--- PlatformAccount is upserted, based on platform and account_local_id. New (or old) ID is returned.
 CREATE OR REPLACE FUNCTION public.upsert_platform_account_input (account_info public."PlatformAccount", p_platform public."Platform")
 RETURNS BIGINT
 LANGUAGE sql
@@ -304,8 +148,7 @@ AS $$
   RETURNING id;
 $$ ;
 
--- The data should be an array of LocalDocumentDataInput
--- Documents are upserted, based on space_id and local_id. New (or old) IDs are returned.
+
 CREATE OR REPLACE FUNCTION public.upsert_documents (v_space_id bigint, data jsonb)
 RETURNS SETOF BIGINT
 LANGUAGE plpgsql
@@ -380,9 +223,7 @@ $$ ;
 
 COMMENT ON FUNCTION public.upsert_content_embedding IS 'single content embedding upsert' ;
 
--- The data should be an array of LocalContentDataInput
--- Contents are upserted, based on space_id and local_id. New (or old) IDs are returned.
--- This may trigger creation of PlatformAccounts and Documents appropriately.
+
 CREATE OR REPLACE FUNCTION public.upsert_content (v_space_id bigint, data jsonb, v_creator_id BIGINT, content_as_document boolean DEFAULT true)
 RETURNS SETOF BIGINT
 LANGUAGE plpgsql
