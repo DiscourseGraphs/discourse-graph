@@ -70,29 +70,14 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
 
     setIsScanning(true);
     try {
-      const validNodeTypeIds = new Set(
-        plugin.settings.nodeTypes.map((nt) => nt.id),
-      );
+      const validNodeTypes = plugin.settings.nodeTypes;
       const foundCandidates =
         await queryEngineRef.current.scanForBulkImportCandidates(
           enabledPatterns,
-          validNodeTypeIds,
+          validNodeTypes,
         );
 
-      // Resolve node types for candidates
-      const resolvedCandidates = foundCandidates
-        .map((candidate) => {
-          const nodeType = plugin.settings.nodeTypes.find(
-            (nt) => nt.id === candidate.matchedNodeType.id,
-          );
-          return {
-            ...candidate,
-            matchedNodeType: nodeType!,
-          };
-        })
-        .filter((candidate) => candidate.matchedNodeType); // Filter out any that couldn't be resolved
-
-      setCandidates(resolvedCandidates);
+      setCandidates(foundCandidates);
       setStep("review");
     } catch (error) {
       console.error("Error scanning vault:", error);
@@ -171,53 +156,57 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
         </button>
       </div>
 
-      <div className="flex flex-col gap-4">
-        {patterns.map((pattern, index) => {
-          const nodeType = plugin.settings.nodeTypes.find(
-            (n) => n.id === pattern.nodeTypeId,
-          );
-          return (
-            <div key={pattern.nodeTypeId} className="rounded border">
-              <div
-                className="mb-2 flex items-center"
-                onClick={() => {
-                  handlePatternChange(index, "enabled", !pattern.enabled);
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={pattern.enabled}
-                  onChange={() => {
+      <div className="bg-accent/10 mb-4 rounded p-3 text-sm">
+        <strong>💡 </strong> Use <code>{"{content}"}</code> as placeholder for
+        the main content in your alternative patterns.
+      </div>
+
+      <div className="mb-6 h-80 overflow-y-auto rounded border p-4">
+        <div className="flex flex-col gap-4">
+          {patterns.map((pattern, index) => {
+            const nodeType = plugin.settings.nodeTypes.find(
+              (n) => n.id === pattern.nodeTypeId,
+            );
+            return (
+              <div key={pattern.nodeTypeId} className="rounded border p-3">
+                <div
+                  className="mb-2 flex cursor-pointer items-center"
+                  onClick={() => {
                     handlePatternChange(index, "enabled", !pattern.enabled);
                   }}
-                  className="mr-2"
-                />
-                <span className="font-medium">{nodeType?.name}</span>
-              </div>
-
-              {pattern.enabled && (
-                <div>
+                >
                   <input
-                    type="text"
-                    placeholder={`e.g., for "${nodeType?.format}" you might use "C - {content}"`}
-                    value={pattern.alternativePattern}
-                    onChange={(e) =>
-                      handlePatternChange(
-                        index,
-                        "alternativePattern",
-                        e.target.value,
-                      )
-                    }
-                    className="w-full rounded border p-2"
+                    type="checkbox"
+                    checked={pattern.enabled}
+                    onChange={() => {
+                      handlePatternChange(index, "enabled", !pattern.enabled);
+                    }}
+                    className="mr-2"
                   />
-                  <div className="text-muted mt-1 text-xs">
-                    Use {"{content}"} as placeholder for the main content
-                  </div>
+                  <span className="font-medium">{nodeType?.name}</span>
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                {pattern.enabled && (
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      placeholder={`e.g., for "${nodeType?.format}" you might use "C - {content}"`}
+                      value={pattern.alternativePattern}
+                      onChange={(e) =>
+                        handlePatternChange(
+                          index,
+                          "alternativePattern",
+                          e.target.value,
+                        )
+                      }
+                      className="w-full rounded border p-2"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="mt-6 flex justify-between">

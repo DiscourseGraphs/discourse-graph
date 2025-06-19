@@ -150,7 +150,7 @@ export class QueryEngine {
 
   async scanForBulkImportCandidates(
     patterns: BulkImportPattern[],
-    validNodeTypeIds: Set<string>,
+    validNodeTypes: DiscourseNode[],
   ): Promise<BulkImportCandidate[]> {
     const candidates: BulkImportCandidate[] = [];
 
@@ -158,32 +158,27 @@ export class QueryEngine {
       console.warn(
         "Datacore API not available. Falling back to vault iteration.",
       );
-      return this.fallbackScanVault(patterns, validNodeTypeIds);
+      return this.fallbackScanVault(patterns, validNodeTypes);
     }
 
     try {
-      // Construct efficient Datacore query to filter out files with valid nodeTypeIds
       let dcQuery: string;
 
-      if (validNodeTypeIds.size === 0) {
-        // No valid node types, so get all pages
+      if (validNodeTypes.length === 0) {
         dcQuery = "@page";
       } else {
-        // Build query to exclude files with valid nodeTypeIds
-        const validIdConditions = Array.from(validNodeTypeIds)
-          .map((id) => `nodeTypeId != "${id}"`)
+        const validIdConditions = validNodeTypes
+          .map((nt) => `nodeTypeId != "${nt.id}"`)
           .join(" and ");
 
         dcQuery = `@page and (!exists(nodeTypeId) or (${validIdConditions}))`;
       }
 
-      console.log("Datacore query:", dcQuery); // Debug log
       const potentialPages = this.dc.query(dcQuery);
 
       for (const page of potentialPages) {
         const fileName = page.$name;
 
-        // Test patterns against filename
         for (const pattern of patterns) {
           if (!pattern.enabled || !pattern.alternativePattern.trim()) continue;
 
@@ -192,7 +187,6 @@ export class QueryEngine {
           );
 
           if (regex.test(fileName)) {
-            // Convert datacore page to TFile
             const file = this.app.vault.getAbstractFileByPath(page.$path);
             if (file && file instanceof TFile) {
               const extractedContent = extractContentFromTitle(
@@ -202,7 +196,9 @@ export class QueryEngine {
 
               candidates.push({
                 file,
-                matchedNodeType: { id: pattern.nodeTypeId } as DiscourseNode, // Will be resolved later
+                matchedNodeType: validNodeTypes.find(
+                  (nt) => nt.id === pattern.nodeTypeId,
+                )!,
                 alternativePattern: pattern.alternativePattern,
                 extractedContent,
                 selected: true,
@@ -219,13 +215,13 @@ export class QueryEngine {
         "Error in datacore bulk scan, falling back to vault iteration:",
         error,
       );
-      return this.fallbackScanVault(patterns, validNodeTypeIds);
+      return this.fallbackScanVault(patterns, validNodeTypes);
     }
   }
 
   private async fallbackScanVault(
     patterns: BulkImportPattern[],
-    validNodeTypeIds: Set<string>,
+    validNodeTypes: DiscourseNode[],
   ): Promise<BulkImportCandidate[]> {
     const candidates: BulkImportCandidate[] = [];
     const allFiles = this.app.vault.getMarkdownFiles();
@@ -235,8 +231,10 @@ export class QueryEngine {
       const fileCache = this.app.metadataCache.getFileCache(file);
       const currentNodeTypeId = fileCache?.frontmatter?.nodeTypeId;
 
-      // Skip files that already have a valid nodeTypeId
-      if (currentNodeTypeId && validNodeTypeIds.has(currentNodeTypeId)) {
+      if (
+        currentNodeTypeId &&
+        validNodeTypes.some((nt) => nt.id === currentNodeTypeId)
+      ) {
         continue;
       }
 
@@ -255,7 +253,9 @@ export class QueryEngine {
 
           candidates.push({
             file,
-            matchedNodeType: { id: pattern.nodeTypeId } as DiscourseNode, // Will be resolved later
+            matchedNodeType: validNodeTypes.find(
+              (nt) => nt.id === pattern.nodeTypeId,
+            )!,
             alternativePattern: pattern.alternativePattern,
             extractedContent,
             selected: true,
