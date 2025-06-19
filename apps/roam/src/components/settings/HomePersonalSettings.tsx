@@ -14,6 +14,7 @@ import {
 } from "~/components/BirdEatsBugs";
 import isDiscourseNode from "~/utils/isDiscourseNode";
 import { fetchEmbeddingsForNodes } from "~/utils/fetchEmbeddingsForNodes";
+import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -143,6 +144,17 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           const nodesWithEmbeddings =
             await fetchEmbeddingsForNodes(filteredNodes);
           console.log("nodesWithEmbeddings", nodesWithEmbeddings);
+        }}
+        intent={Intent.PRIMARY}
+        style={{ marginTop: "8px" }}
+      />
+      <Button
+        text="Get all nodes since 5 minutes ago"
+        onClick={async () => {
+          const nodes = await getAllDiscourseNodesSince(
+            Date.now() - 5 * 60 * 1000,
+          );
+          console.log("nodes", nodes, Date.now() - 5 * 60 * 1000);
         }}
         intent={Intent.PRIMARY}
         style={{ marginTop: "8px" }}
