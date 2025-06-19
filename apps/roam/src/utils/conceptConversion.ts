@@ -118,7 +118,14 @@ export function discourseRelationDataToLocalConcept(
   const relation = discourseRelationSchemaToLocalConcept(context, roamRelation);
   const lit_content = ((relation.literal_content)? relation.literal_content: {}) as unknown as {[key: string]: any};
   const roles = (lit_content['roles'] as string[] | undefined)  || STANDARD_ROLES;
-  const casting = Object.fromEntries(roles.map((role) => [role, relationNodes[role]]));
+  const casting = Object.fromEntries(
+    roles
+      .map((role) => [role, relationNodes[role]])
+      .filter(([, uid]) => uid !== undefined)
+  );
+  if (Object.keys(casting).length === 0) {
+    throw new Error(`No valid node UIDs supplied for roles ${roles.join(", ")}`);
+  }
   // TODO: Also get the nodes from the representation, using QueryBuilder. That will likely give me the relation object
   const nodeData = Object.values(casting).map((v) => getNodeExtraData(v));
   // roundabout way to do a max from stringified dates
