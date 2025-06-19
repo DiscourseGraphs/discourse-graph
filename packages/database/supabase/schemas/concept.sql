@@ -192,6 +192,8 @@ $$;
 
 -- The data should be an array of LocalConcept, i.e. in TS,
 -- Partial<Database['public']["CompositeTypes"]["concept_local_input"]>;
+-- Concepts are upserted, based on represented_by_id. New (or old) IDs are returned.
+-- name conflicts will cause an insertion failure, and the ID will be given as -1
 CREATE OR REPLACE FUNCTION public.upsert_concepts(v_space_id bigint, data jsonb)
 RETURNS SETOF BIGINT
 LANGUAGE plpgsql
