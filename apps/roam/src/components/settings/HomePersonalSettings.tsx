@@ -14,10 +14,7 @@ import {
 } from "~/components/BirdEatsBugs";
 import isDiscourseNode from "~/utils/isDiscourseNode";
 import { fetchEmbeddingsForNodes } from "~/utils/fetchEmbeddingsForNodes";
-import {
-  getAllDiscourseNodesSince,
-  getLastSyncTime,
-} from "~/utils/getAllDiscourseNodesSince";
+import { getLastSyncTime } from "~/utils/getAllDiscourseNodesSince";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
