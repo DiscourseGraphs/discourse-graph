@@ -6,86 +6,64 @@ import { ContextProvider } from "./AppContext";
 import RelationshipTypeSettings from "./RelationshipTypeSettings";
 import RelationshipSettings from "./RelationshipSettings";
 import NodeTypeSettings from "./NodeTypeSettings";
+import GeneralSettings from "./GeneralSettings";
 import { PluginProvider } from "./PluginContext";
 
 const Settings = () => {
-  const [activeTab, setActiveTab] = useState("nodeTypes");
+  const [activeTab, setActiveTab] = useState("general");
 
   return (
-    <div>
-      <h2>Discourse Graph Settings</h2>
+    <div className="flex flex-col">
+      <h2 className="dg-h2">Discourse Graph Settings</h2>
 
-      <div
-        className="discourse-tabs"
-        style={{
-          marginBottom: "20px",
-          borderBottom: "1px solid var(--background-modifier-border)",
-        }}
-      >
+      <div className="border-modifier-border border-b p-2">
+        <button
+          onClick={() => setActiveTab("general")}
+          className={`discourse-tab mr-2 cursor-pointer border-0 px-4 py-2 ${
+            activeTab === "general"
+              ? "!bg-modifier-hover accent-border-bottom"
+              : "!bg-transparent"
+          }`}
+        >
+          General
+        </button>
         <button
           onClick={() => setActiveTab("nodeTypes")}
-          className={`discourse-tab ${activeTab === "nodeTypes" ? "active" : ""}`}
-          style={{
-            padding: "8px 16px",
-            background:
-              activeTab === "nodeTypes"
-                ? "var(--background-modifier-hover)"
-                : "transparent",
-            border: "none",
-            borderBottom:
-              activeTab === "nodeTypes"
-                ? "2px solid var(--interactive-accent)"
-                : "none",
-            marginRight: "8px",
-            cursor: "pointer",
-          }}
+          className={`discourse-tab mr-2 cursor-pointer border-0 px-4 py-2 ${
+            activeTab === "nodeTypes"
+              ? "!bg-modifier-hover accent-border-bottom"
+              : "!bg-transparent"
+          }`}
         >
           Node Types
         </button>
         <button
           onClick={() => setActiveTab("relationTypes")}
-          className={`discourse-tab ${activeTab === "relationTypes" ? "active" : ""}`}
-          style={{
-            padding: "8px 16px",
-            background:
-              activeTab === "relationTypes"
-                ? "var(--background-modifier-hover)"
-                : "transparent",
-            border: "none",
-            borderBottom:
-              activeTab === "relationTypes"
-                ? "2px solid var(--interactive-accent)"
-                : "none",
-            marginRight: "8px",
-            cursor: "pointer",
-          }}
+          className={`mr-2 cursor-pointer px-4 py-2 ${
+            activeTab === "relationTypes"
+              ? "!bg-modifier-hover accent-border-bottom"
+              : "!bg-transparent"
+          }`}
         >
           Relation Types
         </button>
         <button
           onClick={() => setActiveTab("relations")}
-          className={`discourse-tab ${activeTab === "relations" ? "active" : ""}`}
-          style={{
-            padding: "8px 16px",
-            background:
-              activeTab === "relations"
-                ? "var(--background-modifier-hover)"
-                : "transparent",
-            border: "none",
-            borderBottom:
-              activeTab === "relations"
-                ? "2px solid var(--interactive-accent)"
-                : "none",
-            cursor: "pointer",
-          }}
+          className={`mr-2 cursor-pointer px-4 py-2 ${
+            activeTab === "relations"
+              ? "!bg-modifier-hover accent-border-bottom"
+              : "!bg-transparent"
+          }`}
         >
           Discourse Relations
         </button>
       </div>
 
+      {activeTab === "general" && <GeneralSettings />}
       {activeTab === "nodeTypes" && <NodeTypeSettings />}
       {activeTab === "relationTypes" && <RelationshipTypeSettings />}
       {activeTab === "relations" && <RelationshipSettings />}
+      {activeTab === "frontmatter" && <GeneralSettings />}
     </div>
   );
 };

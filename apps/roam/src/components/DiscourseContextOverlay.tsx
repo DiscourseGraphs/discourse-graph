@@ -384,7 +384,9 @@ const DiscourseContextOverlay = ({
         <Button
           small
           id={id}
-          className={"roamjs-discourse-context-overlay"}
+          className={`roamjs-discourse-context-overlay ${
+            loading ? "animate-pulse" : ""
+          }`}
           style={{
             minHeight: "initial",
             paddingTop: ".25rem",
@@ -395,9 +397,9 @@ const DiscourseContextOverlay = ({
         >
           <div className="flex items-center gap-1.5">
             <Icon icon={"diagram-tree"} />
-            <span className="mr-1 leading-none">{score}</span>
+            <span className="mr-1 leading-none">{loading ? "-" : score}</span>
             <Icon icon={"link"} />
-            <span className="leading-none">{refs}</span>
+            <span className="leading-none">{loading ? "-" : refs}</span>
           </div>
         </Button>
       }
@@ -426,9 +428,9 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
     >
       <div className="flex items-center gap-1.5">
         <Icon icon={"diagram-tree"} />
-        <span className="mr-1">0</span>
+        <span className="mr-1">-</span>
         <Icon icon={"link"} />
-        <span>0</span>
+        <span>-</span>
       </div>
     </Button>
   );

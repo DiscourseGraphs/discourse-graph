@@ -2,6 +2,7 @@ export type DiscourseNode = {
   id: string;
   name: string;
   format: string;
+  template?: string;
   shortcut?: string;
   color?: string;
 };
@@ -22,6 +23,8 @@ export type Settings = {
   nodeTypes: DiscourseNode[];
   discourseRelations: DiscourseRelation[];
   relationTypes: DiscourseRelationType[];
+  showIdsInFrontmatter: boolean;
+  nodesFolderPath: string;
 };
 
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";

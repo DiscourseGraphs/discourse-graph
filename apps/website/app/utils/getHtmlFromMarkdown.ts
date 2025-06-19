@@ -25,7 +25,7 @@ function remarkHeadingId() {
 
 export async function getHtmlFromMarkdown(markdown: string): Promise<string> {
   if (!markdown) {
-    throw new Error('Markdown content is required');
+    throw new Error("Markdown content is required");
   }
 
   try {
@@ -37,7 +37,7 @@ export async function getHtmlFromMarkdown(markdown: string): Promise<string> {
       .process(markdown);
     return htmlString.toString();
   } catch (error) {
-    console.error('Error processing markdown:', error);
-    throw new Error('Failed to process markdown content');
+    console.error("Error processing markdown:", error);
+    throw new Error("Failed to process markdown content");
   }
 }
