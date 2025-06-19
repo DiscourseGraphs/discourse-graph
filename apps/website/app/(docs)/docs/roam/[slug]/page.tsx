@@ -8,6 +8,7 @@ import { TableOfContents } from "~/components/TableOfContents";
 import { getProcessedMarkdownFile } from "~/utils/getProcessedMarkdownFile";
 import { collectSections } from "~/utils/getSections";
 import { PrevNextLinks } from "~/components/PrevNextLinks";
+import { getFileMetadata } from "~/utils/getFileMetadata";
 
 type Params = {
   params: Promise<{
@@ -18,7 +19,7 @@ type Params = {
 const PATH = "app/(docs)/docs/roam/pages";
 const DIRECTORY = path.join(process.cwd(), PATH);
 
-export default async function Page({ params }: Params) {
+const Page = async ({ params }: Params) => {
   try {
     const { slug } = await params;
     const { data, contentHtml } = await getProcessedMarkdownFile({
@@ -45,9 +46,11 @@ export default async function Page({ params }: Params) {
     console.error("Error rendering docs page:", error);
     return notFound();
   }
-}
+};
 
-export async function generateStaticParams() {
+export default Page;
+
+export const generateStaticParams = async () => {
   try {
     const directoryExists = await fs
       .stat(DIRECTORY)
@@ -61,18 +64,32 @@ export async function generateStaticParams() {
 
     const files = await fs.readdir(DIRECTORY);
 
-    return files
-      .filter((filename) => filename.endsWith(".md"))
-      .map((filename) => ({
+    const mdFiles = files.filter((filename) => filename.endsWith(".md"));
+
+    const publishedFiles = await Promise.all(
+      mdFiles.map(async (filename) => {
+        const { published } = await getFileMetadata({
+          filename,
+          directory: DIRECTORY,
+        });
+        return { filename, published };
+      }),
+    );
+
+    return publishedFiles
+      .filter(({ published }) => published)
+      .map(({ filename }) => ({
         slug: filename.replace(/\.md$/, ""),
       }));
   } catch (error) {
     console.error("Error generating static params:", error);
     return [];
   }
-}
+};
 
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
+export const generateMetadata = async ({
+  params,
+}: Params): Promise<Metadata> => {
   try {
     const { slug } = await params;
     const { data } = await getProcessedMarkdownFile({
@@ -90,4 +107,4 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       title: "Docs",
     };
   }
-}
+};

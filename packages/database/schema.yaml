@@ -1,0 +1,469 @@
+id: https://discoursegraphs.com/schemas/v0#
+name: discoursegraphs
+prefixes:
+  linkml: https://w3id.org/linkml/
+  dg: https://discoursegraphs.com/schemas/v0#
+default_prefix: dg
+default_range: string
+imports:
+  - linkml:types
+enums:
+  Scale:
+    description: scale value of a Content
+    permissible_values:
+      document:
+      post:
+      chunk_unit:
+      section:
+      block:
+        description: A block of content in an outline system, such as a Roam node
+      field:
+      paragraph:
+      quote:
+      sentence:
+      phrase:
+  Validation:
+    description: Whether a given value was given by a person, or suggested by an automated agent (and then possibly infirmed.)
+    permissible_values:
+      infirmed:
+        description: Infirmed by a trusted agent
+      suggested:
+        description: Suggested by a fallible agent (probabilistic, heuristic, person in training...)
+      confirmed:
+        description: Confirmed by a trusted agent
+      intrinsic:
+        description: No validation needed, this is intrinsic to the data
+  EpistemicStatus:
+    description: The epistemic status of a claim
+    permissible_values:
+      certainly_not:
+      strong_evidence_against:
+      could_be_false:
+      unknown:
+      uncertain:
+      contentious:
+      could_be_true:
+      strong_evidence_for:
+      certain:
+  Platform:
+    description: A known platform on which DiscourseGraph operates
+    permissible_values:
+      Roam:
+      Obsidian:
+  AgentType:
+    description: The type of agent
+    permissible_values:
+      person:
+      organization:
+      automated_agent:
+  AgentIdentifierType:
+    description: A namespace for identifiers that can help identify an agent
+    permissible_values:
+      email:
+      orcid:
+  EntityType:
+    description: The type of an entity
+    permissible_values:
+      Platform:
+      Space:
+      PlatformAccount:
+      AgentIdentifier:
+      Document:
+      Content:
+      Concept:
+      ConceptSchema:
+      ContentLink:
+      Occurrence:
+  EmbeddingName:
+    description: an embedding name
+    permissible_values:
+      openai_text_embedding_ada2_1536:
+      openai_text_embedding_3_small_512:
+      openai_text_embedding_3_small_1536:
+      openai_text_embedding_3_large_256:
+      openai_text_embedding_3_large_1024:
+      openai_text_embedding_3_large_3072:
+  DerivedTextVariant:
+    description: Is the text taken as-is, or is it a computed variant?
+    permissible_values:
+      as_is:
+      neighbourhood_parent_and_children:
+      neighbourhood_parent_and_level_2_descendants:
+      neighbourhood_children:
+      neighbourhood_level_2_descendants:
+      summary:
+types:
+  JSON:
+    uri: xsd:string
+    # base: dict
+    base: str
+    description: JSON data
+    # annotations:
+    #   sql_type: sqlalchemy.dialects.postgresql.JSONB
+  JSONSchema:
+    uri: xsd:string
+    base: dict
+    description: A Json schema
+    # annotations:
+    #   sql_type: sqlalchemy.dialects.postgresql.JSONB
+  vector:
+    uri: xsd:float
+    base: float
+    description: A vector of floats
+    annotations:
+      sql_type: pgvector.sqlalchemy.Vector
+  blob:
+    uri: xsd:base64Binary
+    base: bytes
+    annotations:
+      sql_type: sqlalchemy.dialects.postgresql.BLOB
+    description: A binary large object
+classes:
+  Users:
+    description: A database user account. Managed by the auth infrastructure.
+    slots:
+      - id
+  PlatformAccount:
+    description: An account for an agent on a platform
+    slots:
+      - id
+      - name
+      - platform
+    attributes:
+      account_local_id:
+        required: true
+        description: The identity of the person in this space
+      write_permission:
+        range: boolean
+        required: true
+      active:
+        range: boolean
+        required: true
+        ifabsent: 'true'
+      agent_type:
+        required: true
+        range: AgentType
+        ifabsent: AgentType(person)
+      metadata:
+        range: JSON
+        description: Additional platform-specific information about the account
+        ifabsent: '{}'
+      dg_account:
+        range: Users
+    unique_keys:
+      account_platform_and_id:
+        unique_key_slots:
+          - account_local_id
+          - platform
+  AgentIdentifier:
+    description: An identifying attribute associated with an agent, can be a basis for unification
+    attributes:
+      identifier_type:
+        range: AgentIdentifierType
+        required: true
+      account:
+        range: PlatformAccount
+        required: true
+      value:
+        required: true
+      trusted:
+        description: If we trust this identifier was verified by the platform and can be used automatically
+        range: boolean
+        required: true
+        ifabsent: "false"
+    unique_keys:
+      account_attribute_value:
+        unique_key_slots:
+          - value
+          - identifier_type
+          - account
+  Space:
+    description: A space on a platform representing a community engaged in a conversation
+    slots:
+      - id
+      - url
+      - name
+      - platform
+    unique_keys:
+      space_url:
+        unique_key_slots:
+          - url
+  SpaceAccess:
+    description: An access control entry for a space
+    slots:
+      - space
+    attributes:
+      account:
+        range: PlatformAccount
+        required: true
+      editor:
+        range: boolean
+        required: true
+    unique_keys:
+      main:
+        description: Primary key for space access
+        unique_key_slots:
+          - account
+          - space
+  Content:
+    description: A unit of content
+    slots:
+      - id
+      - document
+      - source_local_id
+      - author
+      - creator
+      - created
+      - text
+      - metadata
+      - scale
+      # - position
+      # - char_position
+      - space
+      - contributors
+      - last_modified
+    attributes:
+      part_of:
+        description: This content is part of a larger content unit
+        range: Content
+    unique_keys:
+      content_space_and_local_id:
+        unique_key_slots:
+          - space
+          - source_local_id
+
+  # ContentDerivation:
+  #   description: A derivation relation between content units
+  #   attributes:
+  #     derived_content:
+  #       description: The derived content unit
+  #       range: Content
+  #       required: true
+  #       identifier: true
+  #     derived_from:
+  #       description: The content unit that this variant was derived from
+  #       range: Content
+  #       required: true
+  #     derived_variant:
+  #       description: This content is a variant derived from another content unit
+  #       range: DerivedTextVariant
+  #       required: true
+  Document:
+    description: An external document, or a high-level unit on a platform (eg Roam page)
+    slots:
+      - id
+      - space
+      - source_local_id
+      - created
+      - metadata
+      - last_modified
+      - author
+      - contributors
+    attributes:
+      url:
+        range: string
+      contents:
+        range: blob
+    unique_keys:
+      document_space_and_local_id:
+        unique_key_slots:
+          - space
+          - source_local_id
+      document_url:
+        unique_key_slots:
+          - url
+  # Article:
+  #   description: an article
+  #   is_a: Document
+  #   slots:
+  #     - issn
+  #     - abstract
+  ContentEmbedding:
+    description: An embedding for a piece of content.
+    # abstract: true
+    attributes:
+      target:
+        range: Content
+        required: true
+        identifier: true
+      model:
+        range: EmbeddingName
+        required: true
+      vector:
+        range: vector
+        array:
+          minimum_number_dimensions: 1
+          maximum_number_dimensions: 1
+        required: true
+      obsolete:
+        description: Whether this embedding is obsolete (becauses the Content was modified)
+        range: boolean
+        ifabsent: 'false'
+  Concept:
+    description: An abstract concept, claim or relation
+    slots:
+      - id
+      - epistemic_status
+      - name
+      - description
+      - author
+      - contributors
+      - created
+      - last_modified
+      - space
+    attributes:
+      arity:
+        range: integer
+        required: true
+        ifabsent: '0'
+        description: The number of roles in this relation; nodes have zero, binary relations have 2, etc.
+      schema:
+        range: ConceptSchema
+        required: true
+      reference_content:
+        description: "Aspects of the concept that reference other concepts. `{[key: string]: number|number[]}`"
+        range: JSON
+        required: true
+        ifabsent: '{}'
+      literal_content:
+        range: JSON
+        required: true
+        description: "Aspects of the concept that have literal values. `{[key: string]: any}`"
+        ifabsent: '{}'
+      is_schema:
+        range: boolean
+        required: true
+        ifabsent: 'false'
+      represented_by:
+        description: This concept is explicitly represented by a given content unit
+        range: Content
+      # update status
+      # concept has occurences and possibly a representation in a space.
+      # Are concepts space-specific? Tending to yes. So the point of convergence should be distinct.
+      # Can a concept have multiple representations? One case is a reprentation
+      # of an equivalent concept in another space.
+      # do non-claim concepts have epistemic status?
+      # The other big deal is who has authority on concept definition.
+      # Finally... concept schema. Yeah. Is it per-space? Likely.
+      # Damn, concept schema is a concept, is it not?
+      # Now, if a concept has a complex structwre based on a complex content...
+      # AH, it should be based on occurences.
+    unique_keys:
+      concept_space_and_name:
+        unique_key_slots:
+          - space
+          - name
+
+  ConceptSchema:
+    description: A Concept that describes a schema (type) for other concepts
+    is_a: Concept
+
+  # Reference:
+  #   abstract: true
+  #   description: A link from a content fragment to something else
+  #   attributes:
+  #     source:
+  #       range: Content
+  #       required: true
+  #   slots:
+  #     - creator
+  #     - created
+  #     - validation
+  #     - type
+  #     # This is an aggregate of validation events
+  #     # Q: What is the relationship between occurences and links? Links to Concepts in particular?
+  #     # What if the concept has been materialized as content?
+  # ContentLink:
+  #   description: An explicit link from a content fragment to another content.
+  #   is_a: Reference
+  #   attributes:
+  #     target:
+  #       range: Content
+  #       required: true
+  # Occurrence:
+  #   description: A link from a content fragment to a Concept. May be an interpretation.
+  #   is_a: Reference
+  #   attributes:
+  #     target:
+  #       range: Concept
+  #       required: true
+slots:
+  id:
+    range: integer
+    identifier: true
+    required: true
+  type:
+    range: EntityType
+    required: true
+    designates_type: true
+  name:
+    required: true
+  author:
+    range: PlatformAccount
+    description: The author of content
+    required: true
+  creator:
+    range: PlatformAccount
+    description: The creator of a logical structure, such as a content subdivision
+    required: true
+  contributors:
+    multivalued: true
+    range: PlatformAccount
+  text:
+    required: true
+  description:
+  created:
+    range: datetime
+    required: true
+    description: The time when the content was created in the remote source
+  last_modified:
+    range: datetime
+    required: true
+    description: The last time the content was modified in the remote source
+  last_synced:
+    range: datetime
+    required: true
+    description: The last time the content was synced with the remote source
+  metadata:
+    range: JSON
+  orcid:
+    range: string
+  url:
+    range: string
+    required: true
+  platform:
+    range: Platform
+    required: true
+  issn:
+  abstract:
+  scale:
+    range: Scale
+    required: true
+  position:
+    description: The ordinal position of the content within its parent, wrt other content units of the same scale
+    range: integer
+    ifabsent: '0'
+    required: true
+  char_position:
+    description: The character position of the content within its parent.
+    # Does not apply to outline sub-elements
+    range: integer
+    ifabsent: '0'
+  validation:
+    range: Validation
+    required: true
+    ifabsent: Validation(suggested)
+  epistemic_status:
+    range: EpistemicStatus
+    required: true
+    ifabsent: EpistemicStatus(unknown)
+  space:
+    range: Space
+    description: The space in which the content is located
+  document:
+    range: Document
+    required: true
+  source_local_id:
+    range: string
+    description: The unique identifier of the content in the remote source
+    # In the case of a document, could it be the URL?

@@ -334,6 +334,7 @@ const LabelDialog = ({
     let title = "Please provide a label";
     let icon = IconNames.INFO_SIGN;
     let action = "initial";
+    let confirmText = "Confirm";
     const nodeLabel = discourseContext.nodes[nodeType].text;
 
     if (!label) return { title, icon, action };
@@ -343,24 +344,28 @@ const LabelDialog = ({
         title = `Edit title of ${nodeLabel} node`;
         icon = IconNames.EDIT;
         action = "editing";
+        confirmText = "Edit";
       } else {
         title = `Change to existing ${nodeLabel} node`;
         icon = IconNames.EXCHANGE;
         action = "changing";
+        confirmText = "Change";
       }
     } else {
       if (uid === initialUid) {
         title = `Create new ${nodeLabel} node`;
         icon = IconNames.NEW_OBJECT;
         action = "creating";
+        confirmText = "Create";
       } else {
         title = `Set to existing ${nodeLabel} node`;
         icon = IconNames.LINK;
         action = "setting";
+        confirmText = "Set";
       }
     }
 
-    return { title, icon, action };
+    return { title, icon, action, confirmText };
   };
   const calloutText = renderCalloutText();
 
@@ -440,7 +445,7 @@ const LabelDialog = ({
             className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
           >
             <Button
-              text={"Confirm"}
+              text={calloutText.confirmText}
               intent={Intent.PRIMARY}
               onClick={onSubmit}
               onTouchEnd={onSubmit}

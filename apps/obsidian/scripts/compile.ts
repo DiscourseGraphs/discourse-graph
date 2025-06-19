@@ -4,6 +4,9 @@ import path from "path";
 import { z } from "zod";
 import builtins from "builtin-modules";
 import dotenv from "dotenv";
+import postcss from "postcss";
+import tailwindcss from "tailwindcss";
+import autoprefixer from "autoprefixer";
 
 dotenv.config();
 
@@ -110,15 +113,41 @@ export const compile = ({
           name: "combineStyles",
           setup(build) {
             build.onEnd(async () => {
-              const styleFiles = fs
-                .readdirSync(stylesDir)
-                .filter((file) => file.endsWith(".css"));
-              const combinedStyles = styleFiles
-                .map((file) =>
-                  fs.readFileSync(path.join(stylesDir, file), "utf8"),
-                )
-                .join("\n");
-              fs.writeFileSync(outputStylesFile, combinedStyles);
+              const rootStylesPath = path.join(root, "styles.css");
+              if (fs.existsSync(rootStylesPath)) {
+                const css = fs.readFileSync(rootStylesPath, "utf8");
+                const result = await postcss([
+                  tailwindcss(path.join(root, "tailwind.config.ts")),
+                  autoprefixer(),
+                ]).process(css, { from: rootStylesPath, to: outputStylesFile });
+
+                let additionalStyles = "";
+                if (fs.existsSync(stylesDir)) {
+                  const styleFiles = fs
+                    .readdirSync(stylesDir)
+                    .filter((file) => file.endsWith(".css"));
+                  additionalStyles = styleFiles
+                    .map((file) =>
+                      fs.readFileSync(path.join(stylesDir, file), "utf8"),
+                    )
+                    .join("\n");
+                }
+
+                fs.writeFileSync(
+                  outputStylesFile,
+                  result.css + "\n" + additionalStyles,
+                );
+              } else if (fs.existsSync(stylesDir)) {
+                const styleFiles = fs
+                  .readdirSync(stylesDir)
+                  .filter((file) => file.endsWith(".css"));
+                const combinedStyles = styleFiles
+                  .map((file) =>
+                    fs.readFileSync(path.join(stylesDir, file), "utf8"),
+                  )
+                  .join("\n");
+                fs.writeFileSync(outputStylesFile, combinedStyles);
+              }
             });
           },
         },
