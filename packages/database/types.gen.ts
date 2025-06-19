@@ -543,7 +543,7 @@ export type Database = {
           uid_to_sync: string
         }[]
       }
-      local_concept_to_db_concept: {
+      _local_concept_to_db_concept: {
         Args: {
           data: Database["public"]["CompositeTypes"]["concept_local_input"]
         }
