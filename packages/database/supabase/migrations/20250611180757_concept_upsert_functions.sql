@@ -1,118 +1,3 @@
-CREATE TYPE public."EpistemicStatus" AS ENUM (
-    'certainly_not',
-    'strong_evidence_against',
-    'could_be_false',
-    'unknown',
-    'uncertain',
-    'contentious',
-    'could_be_true',
-    'strong_evidence_for',
-    'certain'
-);
-
-ALTER TYPE public."EpistemicStatus" OWNER TO postgres;
-
-CREATE OR REPLACE FUNCTION extract_references(refs JSONB) RETURNS BIGINT [] LANGUAGE sql IMMUTABLE AS $$
-  SELECT COALESCE(array_agg(i::bigint), '{}') FROM (SELECT DISTINCT jsonb_array_elements(jsonb_path_query_array(refs, '$.*[*]')) i) exrefs;
-$$;
-
-CREATE OR REPLACE FUNCTION compute_arity_lit(lit_content JSONB) RETURNS smallint language sql IMMUTABLE AS $$
-  SELECT COALESCE(jsonb_array_length(lit_content->'roles'), 0);
-$$;
-
-SET check_function_bodies = false;
-CREATE OR REPLACE FUNCTION compute_arity_id(p_schema_id BIGINT) RETURNS smallint language sql IMMUTABLE AS $$
-  SELECT COALESCE(jsonb_array_length(literal_content->'roles'), 0) FROM public."Concept" WHERE id=p_schema_id;
-$$;
-SET check_function_bodies = true;
-
-CREATE OR REPLACE FUNCTION compute_arity_local(schema_id BIGINT, lit_content JSONB) RETURNS smallint language sql IMMUTABLE AS $$
-  SELECT CASE WHEN schema_id IS NULL THEN compute_arity_lit(lit_content) ELSE compute_arity_id(schema_id) END;
-$$;
-
-
-CREATE TABLE IF NOT EXISTS public."Concept" (
-    id bigint DEFAULT nextval(
-        'public.entity_id_seq'::regclass
-    ) NOT NULL,
-    epistemic_status public."EpistemicStatus" DEFAULT 'unknown'::public."EpistemicStatus" NOT NULL,
-    name character varying NOT NULL,
-    description text,
-    author_id bigint,
-    created timestamp without time zone NOT NULL,
-    last_modified timestamp without time zone NOT NULL,
-    space_id bigint NOT NULL,
-    arity smallint GENERATED ALWAYS AS (compute_arity_local(schema_id, literal_content)) STORED,
-    schema_id bigint,
-    literal_content jsonb NOT NULL DEFAULT '{}'::jsonb,
-    reference_content jsonb NOT NULL DEFAULT '{}'::jsonb,
-    refs BIGINT [] NOT NULL GENERATED ALWAYS AS (extract_references(reference_content)) STORED,
-    is_schema boolean DEFAULT false NOT NULL,
-    represented_by_id bigint
-);
-
-ALTER TABLE public."Concept" OWNER TO "postgres";
-
-COMMENT ON TABLE public."Concept" IS 'An abstract concept, claim or relation';
-
-COMMENT ON COLUMN public."Concept".author_id IS 'The author of content';
-
-COMMENT ON COLUMN public."Concept".created IS 'The time when the content was created in the remote source';
-
-COMMENT ON COLUMN public."Concept".last_modified IS 'The last time the content was modified in the remote source';
-
-COMMENT ON COLUMN public."Concept".space_id IS 'The space in which the content is located';
-
-
-ALTER TABLE ONLY public."Concept"
-ADD CONSTRAINT "Concept_pkey" PRIMARY KEY (id);
-
-ALTER TABLE ONLY public."Concept"
-ADD FOREIGN KEY (represented_by_id) REFERENCES public."Content" (
-    id
-) ON DELETE SET NULL ON UPDATE CASCADE;
-
-CREATE INDEX concept_literal_content_idx ON public."Concept" USING gin (
-    literal_content jsonb_ops
-);
-
-CREATE INDEX concept_refs_idx ON public."Concept" USING gin (refs);
-
-CREATE INDEX "Concept_schema" ON public."Concept" USING btree (schema_id);
-
-CREATE INDEX "Concept_space" ON public."Concept" USING btree (space_id);
-
-CREATE UNIQUE INDEX "Concept_represented_by" ON public."Concept" (
-    represented_by_id
-);
-
--- maybe make that for schemas only?
-CREATE UNIQUE INDEX concept_space_and_name_idx ON public."Concept" (space_id, name);
-
-
-ALTER TABLE ONLY public."Concept"
-ADD CONSTRAINT "Concept_author_id_fkey" FOREIGN KEY (
-    author_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-ALTER TABLE ONLY public."Concept"
-ADD CONSTRAINT "Concept_schema_id_fkey" FOREIGN KEY (
-    schema_id
-) REFERENCES public."Concept" (id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-ALTER TABLE ONLY public."Concept"
-ADD CONSTRAINT "Concept_space_id_fkey" FOREIGN KEY (
-    space_id
-) REFERENCES public."Space" (
-    id
-) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
-GRANT ALL ON TABLE public."Concept" TO anon;
-GRANT ALL ON TABLE public."Concept" TO authenticated;
-GRANT ALL ON TABLE public."Concept" TO service_role;
-
-
 CREATE TYPE public.concept_local_input AS (
     -- concept columns
     epistemic_status public."EpistemicStatus",
@@ -135,8 +20,8 @@ CREATE TYPE public.concept_local_input AS (
     local_reference_content JSONB
 );
 
--- private function. Transform concept with local (platform) references to concept with db references
-CREATE OR REPLACE FUNCTION public._local_concept_to_db_concept(data public.concept_local_input) RETURNS public."Concept" LANGUAGE plpgsql STABLE AS $$
+
+CREATE OR REPLACE FUNCTION public.local_concept_to_db_concept(data public.concept_local_input) RETURNS public."Concept" LANGUAGE plpgsql STABLE AS $$
 DECLARE
   concept public."Concept"%ROWTYPE;
   reference_content JSONB := jsonb_build_object();
@@ -190,10 +75,8 @@ BEGIN
 END;
 $$;
 
--- The data should be an array of LocalConcept, i.e. in TS,
--- Partial<Database['public']["CompositeTypes"]["concept_local_input"]>;
--- Concepts are upserted, based on represented_by_id. New (or old) IDs are returned.
--- name conflicts will cause an insertion failure, and the ID will be given as -1
+
+
 CREATE OR REPLACE FUNCTION public.upsert_concepts(v_space_id bigint, data jsonb)
 RETURNS SETOF BIGINT
 LANGUAGE plpgsql
@@ -213,7 +96,7 @@ BEGIN
     -- then input values
     local_concept := jsonb_populate_record(local_concept, concept_row);
     local_concept.space_id := v_space_id;
-    db_concept := public._local_concept_to_db_concept(local_concept);
+    db_concept := public.local_concept_to_db_concept(local_concept);
     BEGIN
         -- cannot use db_concept.* because of refs.
         INSERT INTO public."Concept" (
