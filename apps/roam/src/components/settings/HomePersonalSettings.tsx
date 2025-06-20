@@ -1,6 +1,6 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label, Checkbox } from "@blueprintjs/core";
+import { Label, Checkbox, Intent, Button } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
@@ -13,6 +13,7 @@ import {
   showFeedbackButton,
 } from "~/components/BirdEatsBugs";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
+import { cleanupOrphanedNodes } from "~/utils/cleanupOrphanedNodes";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -123,6 +124,14 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             />
           </>
         }
+      />
+      <Button
+        text="Cleanup orphaned nodes"
+        onClick={async () => {
+          await cleanupOrphanedNodes();
+        }}
+        intent={Intent.PRIMARY}
+        style={{ marginTop: "8px" }}
       />
     </div>
   );
