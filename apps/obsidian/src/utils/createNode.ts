@@ -94,7 +94,7 @@ export const createDiscourseNodeFile = async ({
       app.workspace.openLinkText(formattedNodeName, "", false);
     });
 
-    new Notice(notice, 4000);
+    new Notice(notice, 10000);
 
     return newFile;
   } catch (error) {
