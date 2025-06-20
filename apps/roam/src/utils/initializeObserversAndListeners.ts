@@ -35,6 +35,11 @@ import {
 import { IKeyCombo } from "@blueprintjs/core";
 import { configPageTabs } from "~/utils/configPageTabs";
 import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchMenu";
+import {
+  renderTextSelectionPopup,
+  removeTextSelectionPopup,
+  findBlockElementFromSelection,
+} from "~/utils/renderTextSelectionPopup";
 
 export const initObservers = async ({
   onloadArgs,
@@ -47,6 +52,8 @@ export const initObservers = async ({
     hashChangeListener: EventListener;
     nodeMenuTriggerListener: EventListener;
     discourseNodeSearchTriggerListener: EventListener;
+    selectionChangeListener: EventListener;
+    documentClickListener: EventListener;
   };
 }> => {
   const pageTitleObserver = createHTMLObserver({
@@ -240,6 +247,57 @@ export const initObservers = async ({
     }
   };
 
+  const selectionChangeListener = () => {
+    // Check if text selection popup is enabled (default to true for backward compatibility)
+    const isTextSelectionPopupEnabled =
+      onloadArgs.extensionAPI.settings.get("text-selection-popup") !== false;
+
+    if (!isTextSelectionPopupEnabled) {
+      removeTextSelectionPopup();
+      return;
+    }
+
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0) return;
+
+    const selectedText = selection.toString().trim();
+
+    if (!selectedText) {
+      removeTextSelectionPopup();
+      return;
+    }
+
+    const blockElement = findBlockElementFromSelection();
+
+    if (blockElement) {
+      const textarea = blockElement.querySelector("textarea");
+      renderTextSelectionPopup(onloadArgs.extensionAPI, blockElement, textarea);
+    } else {
+      removeTextSelectionPopup();
+    }
+  };
+
+  const documentClickListener = (e: Event) => {
+    const event = e as MouseEvent;
+    const target = event.target as Element;
+
+    const existingPopup = document.getElementById(
+      "discourse-text-selection-popup",
+    );
+
+    if (existingPopup) {
+      const isClickOutsidePopup =
+        !target.closest(".bp3-popover-target") &&
+        !target.closest(".bp3-popover-content") &&
+        !existingPopup.contains(target);
+
+      if (isClickOutsidePopup) {
+        removeTextSelectionPopup();
+      }
+    }
+  };
+
   return {
     observers: [
       pageTitleObserver,
@@ -253,6 +311,8 @@ export const initObservers = async ({
       hashChangeListener,
       nodeMenuTriggerListener,
       discourseNodeSearchTriggerListener,
+      selectionChangeListener,
+      documentClickListener,
     },
   };
 };
