@@ -1,6 +1,6 @@
 import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label, Checkbox } from "@blueprintjs/core";
+import { Label, Checkbox, Intent, Button } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
@@ -13,6 +13,7 @@ import {
   showFeedbackButton,
 } from "~/components/BirdEatsBugs";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
+import { getExistingNodesFromSupabase } from "~/utils/cleanupOrphanedNodes";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -123,6 +124,15 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             />
           </>
         }
+      />
+      <Button
+        text="Find orphaned nodes"
+        onClick={async () => {
+          const existingNodes = await getExistingNodesFromSupabase();
+          console.log("Non-existing nodes:", existingNodes);
+        }}
+        intent={Intent.PRIMARY}
+        style={{ marginTop: "8px" }}
       />
     </div>
   );
