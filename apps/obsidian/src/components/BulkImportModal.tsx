@@ -97,45 +97,84 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
     );
   };
 
+  const handleFolderToggle = (folderPath: string) => {
+    setCandidates((prev) => {
+      const folderCandidates = prev.filter(
+        (c) => getDirectoryPath(c.file.path) === folderPath,
+      );
+      const allSelected = folderCandidates.every((c) => c.selected);
+      return prev.map((c) =>
+        getDirectoryPath(c.file.path) === folderPath
+          ? { ...c, selected: !allSelected }
+          : c,
+      );
+    });
+  };
+
   const handleBulkImport = async () => {
     const selectedCandidates = candidates.filter((c) => c.selected);
     setStep("importing");
     setImportProgress({ current: 0, total: selectedCandidates.length });
+
     let successCount = 0;
-    let errorCount = 0;
-    const errors: string[] = [];
 
-    try {
-      for (const candidate of selectedCandidates) {
+    for (const candidate of selectedCandidates) {
+      try {
+        await plugin.app.fileManager.processFrontMatter(
+          candidate.file,
+          (fm) => {
+            fm.nodeTypeId = candidate.matchedNodeType.id;
+          },
+        );
+
+        successCount++;
+      } catch (fileError) {
+        console.error(
+          `Error processing file ${candidate.file.path}:`,
+          fileError,
+        );
+
         try {
-          await plugin.app.fileManager.processFrontMatter(
-            candidate.file,
-            (fm) => {
-              fm.nodeTypeId = candidate.matchedNodeType.id;
-            },
-          );
+          const fileContent = await plugin.app.vault.read(candidate.file);
+          const newContent = `---\nnodeTypeId: ${candidate.matchedNodeType.id}\n---\n\n${fileContent}`;
 
-          setImportProgress({
-            current: importProgress.current + 1,
-            total: selectedCandidates.length,
-          });
+          await plugin.app.vault.modify(candidate.file, newContent);
+
           successCount++;
-        } catch (error) {
-          console.error("Error processing front matter:", error);
-          errorCount++;
-          errors.push(`${candidate.file.basename}: ${error}`);
+
+          new Notice(
+            `Error processing ${candidate.file.basename}. Preserved original content.`,
+          );
+        } catch (fallbackError) {
+          console.error(
+            `Failed fallback for ${candidate.file.path}:`,
+            fallbackError,
+          );
+          new Notice(
+            `Failed to process ${candidate.file.basename}. Skipping...`,
+          );
         }
       }
+      setImportProgress((prev) => ({
+        current: prev.current + 1,
+        total: selectedCandidates.length,
+      }));
+    }
 
+    const failureCount = selectedCandidates.length - successCount;
+
+    if (failureCount > 0) {
+      new Notice(
+        `Import completed with some issues:\n${successCount} files processed successfully\n${failureCount} files skipped`,
+        5000,
+      );
+    } else {
       new Notice(
         `Successfully processed ${successCount} files as discourse nodes`,
       );
-      console.error("Bulk import errors:", errors);
-      onClose();
-    } catch (error) {
-      console.error("Error during bulk import:", error);
-      new Notice("Error during bulk import");
     }
+
+    onClose();
   };
 
   const renderPatternsStep = () => (
@@ -233,73 +272,108 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
     </div>
   );
 
-  const renderReviewStep = () => (
-    <div>
-      <h3 className="mb-4">Review Import Candidates</h3>
-      <p className="text-muted mb-4 text-sm">
-        {candidates.length} potential matches found. Review and select which
-        files to import.
-      </p>
+  const renderReviewStep = () => {
+    // Group candidates by directory path
+    const grouped: Record<
+      string,
+      { candidate: BulkImportCandidate; index: number }[]
+    > = {};
+    candidates.forEach((candidate, idx) => {
+      const dir = getDirectoryPath(candidate.file.path);
+      if (!grouped[dir]) grouped[dir] = [];
+      grouped[dir].push({ candidate, index: idx });
+    });
 
-      <div className="mb-4">
-        <button
-          onClick={() =>
-            setCandidates((prev) => prev.map((c) => ({ ...c, selected: true })))
-          }
-          className="mr-2 rounded border px-3 py-1 text-sm"
-        >
-          Select All
-        </button>
-        <button
-          onClick={() =>
-            setCandidates((prev) =>
-              prev.map((c) => ({ ...c, selected: false })),
-            )
-          }
-          className="rounded border px-3 py-1 text-sm"
-        >
-          Deselect All
-        </button>
-      </div>
+    return (
+      <div>
+        <h3 className="mb-4">Review Import Candidates</h3>
+        <p className="text-muted mb-4 text-sm">
+          {candidates.length} potential matches found. Review and select which
+          files to import.
+        </p>
 
-      <div className="max-h-96 overflow-y-auto rounded border">
-        {candidates.map((candidate, index) => (
-          <div
-            key={candidate.file.path}
-            className="flex items-start border-b p-3"
+        <div className="mb-4">
+          <button
+            onClick={() =>
+              setCandidates((prev) =>
+                prev.map((c) => ({ ...c, selected: true })),
+              )
+            }
+            className="mr-2 rounded border px-3 py-1 text-sm"
           >
-            <input
-              type="checkbox"
-              checked={candidate.selected}
-              onChange={() => handleCandidateToggle(index)}
-              className="mr-3 mt-1 flex-shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-              <div className="line-clamp-3 font-medium">
-                {candidate.file.basename}
-              </div>
-              <div className="text-muted text-sm">
-                {getDirectoryPath(candidate.file.path)}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+            Select All
+          </button>
+          <button
+            onClick={() =>
+              setCandidates((prev) =>
+                prev.map((c) => ({ ...c, selected: false })),
+              )
+            }
+            className="rounded border px-3 py-1 text-sm"
+          >
+            Deselect All
+          </button>
+        </div>
 
-      <div className="mt-6 flex justify-between">
-        <button onClick={() => setStep("patterns")} className="px-4 py-2">
-          Back
-        </button>
-        <button
-          onClick={handleBulkImport}
-          className="!bg-accent !text-on-accent rounded px-4 py-2"
-          disabled={candidates.filter((c) => c.selected).length === 0}
-        >
-          Import Selected ({candidates.filter((c) => c.selected).length})
-        </button>
+        <div className="max-h-96 overflow-y-auto rounded border">
+          {Object.entries(grouped).map(([folderPath, list]) => {
+            const allSelected = list.every((l) => l.candidate.selected);
+            const someSelected =
+              list.some((l) => l.candidate.selected) && !allSelected;
+            return (
+              <div key={folderPath} className="border-b">
+                <div className="bg-muted/10 flex items-center px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelected;
+                    }}
+                    onChange={() => handleFolderToggle(folderPath)}
+                    className="mr-2"
+                  />
+                  <span className="mr-2">📂</span>
+                  <span className="text-accent-foreground line-clamp-1 font-medium italic">
+                    {folderPath}
+                  </span>
+                </div>
+
+                {list.map(({ candidate, index }) => (
+                  <div
+                    key={candidate.file.path}
+                    className="flex items-start border-t p-3 pl-8"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={candidate.selected}
+                      onChange={() => handleCandidateToggle(index)}
+                      className="mr-3 mt-1 flex-shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="line-clamp-3 font-medium">
+                        {candidate.file.basename}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 flex justify-between">
+          <button onClick={() => setStep("patterns")}>Back</button>
+          <button
+            onClick={handleBulkImport}
+            className="!bg-accent !text-on-accent rounded px-4 py-2"
+            disabled={candidates.filter((c) => c.selected).length === 0}
+          >
+            Import Selected ({candidates.filter((c) => c.selected).length})
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderImportingStep = () => (
     <div className="text-center">
