@@ -14,12 +14,11 @@ export const POST = async (
 ): Promise<NextResponse> => {
   try {
     const { target, fn, worker } = await segmentData.params;
-    console.log('v4', target, fn, worker);
     const targetN = Number.parseInt(target);
     if (isNaN(targetN)) {
       return createApiResponse(
         request,
-        asPostgrestFailure(`${targetN} is not a number`, "type"),
+        asPostgrestFailure(`${target} is not a number`, "type"),
       );
     }
     const infoS: string = await request.json();
@@ -37,6 +36,7 @@ export const POST = async (
       s_worker: worker,
       s_status: info
     }) as PostgrestSingleResponse<boolean>;
+    // Transform 204 No Content to 200 OK with success indicator for API consistency
     if (response.status === 204) {
       response.data = true;
       response.status = 200;

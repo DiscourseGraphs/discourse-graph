@@ -40,7 +40,7 @@ export const POST = async (request: NextRequest, segmentData: SegmentDataType): 
       return createApiResponse(
         request,
         asPostgrestFailure(
-          "Missing some worker",
+          "Worker field is required",
           "invalid",
         ),
       );
@@ -54,7 +54,7 @@ export const POST = async (request: NextRequest, segmentData: SegmentDataType): 
       task_interval: info.task_interval
     }) as PostgrestSingleResponse<Date|null|boolean>;
     if (response.data === null) {
-      // next not happy about null as a response
+      // NextJS responses cannot handle null values, convert to boolean success indicator
       response.data = true;
     }
 
