@@ -194,11 +194,20 @@ export class QueryEngine {
                 fileName,
               );
 
+              const matchedNodeType = validNodeTypes.find(
+                (nt) => nt.id === pattern.nodeTypeId,
+              );
+
+              if (!matchedNodeType) {
+                console.warn(
+                  `No matching node type found for pattern with nodeTypeId: ${pattern.nodeTypeId}`,
+                );
+                continue;
+              }
+
               candidates.push({
                 file,
-                matchedNodeType: validNodeTypes.find(
-                  (nt) => nt.id === pattern.nodeTypeId,
-                )!,
+                matchedNodeType,
                 alternativePattern: pattern.alternativePattern,
                 extractedContent,
                 selected: true,
@@ -251,11 +260,20 @@ export class QueryEngine {
             fileName,
           );
 
+          const matchedNodeType = validNodeTypes.find(
+            (nt) => nt.id === pattern.nodeTypeId,
+          );
+
+          if (!matchedNodeType) {
+            console.warn(
+              `No matching node type found for pattern with nodeTypeId: ${pattern.nodeTypeId}`,
+            );
+            continue;
+          }
+
           candidates.push({
             file,
-            matchedNodeType: validNodeTypes.find(
-              (nt) => nt.id === pattern.nodeTypeId,
-            )!,
+            matchedNodeType,
             alternativePattern: pattern.alternativePattern,
             extractedContent,
             selected: true,
