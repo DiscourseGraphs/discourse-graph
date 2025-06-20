@@ -13,7 +13,7 @@ import {
   showFeedbackButton,
 } from "~/components/BirdEatsBugs";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
-import { getExistingNodesFromSupabase } from "~/utils/cleanupOrphanedNodes";
+import { cleanupOrphanedNodes } from "~/utils/cleanupOrphanedNodes";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -126,10 +126,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }
       />
       <Button
-        text="Find orphaned nodes"
+        text="Cleanup orphaned nodes"
         onClick={async () => {
-          const existingNodes = await getExistingNodesFromSupabase();
-          console.log("Non-existing nodes:", existingNodes);
+          await cleanupOrphanedNodes();
         }}
         intent={Intent.PRIMARY}
         style={{ marginTop: "8px" }}

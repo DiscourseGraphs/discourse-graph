@@ -40,7 +40,7 @@ export const getAllNodesFromSupabase = async (): Promise<string[]> => {
   }
 };
 
-export const getExistingRoamNodes = (nodeUids: string[]): string[] => {
+export const getNonExistentRoamUids = (nodeUids: string[]): string[] => {
   try {
     if (nodeUids.length === 0) {
       return [];
@@ -60,30 +60,73 @@ export const getExistingRoamNodes = (nodeUids: string[]): string[] => {
   }
 };
 
-export const getExistingSupabaseNodes = (supabaseUids: string[]): string[] => {
+export const deleteNodesFromSupabase = async (
+  uids: string[],
+): Promise<number> => {
   try {
-    const nonExistingUids = getExistingRoamNodes(supabaseUids);
-    return nonExistingUids;
+    const context = await getSupabaseContext();
+    if (!context) {
+      console.error("Failed to get Supabase context");
+      return 0;
+    }
+
+    const baseUrl =
+      getNodeEnv() === "development"
+        ? "http://localhost:3000/api/supabase"
+        : "https://discoursegraphs.com/api/supabase";
+
+    const deleteNodesResponse = await fetch(`${baseUrl}/delete-nodes`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        spaceId: context.spaceId,
+        uids,
+      }),
+    });
+
+    if (!deleteNodesResponse.ok) {
+      const errorText = await deleteNodesResponse.text();
+      console.error(
+        `Failed to delete nodes from Supabase: ${deleteNodesResponse.status} ${errorText}`,
+      );
+      return 0;
+    }
+
+    const { count } = await deleteNodesResponse.json();
+    return count;
   } catch (error) {
-    console.error("Error filtering existing Supabase nodes:", error);
-    return [];
+    console.error("Error in deleteNodesFromSupabase:", error);
+    return 0;
   }
 };
 
-export const getExistingNodesFromSupabase = async (): Promise<string[]> => {
+export const cleanupOrphanedNodes = async (): Promise<void> => {
   try {
+    console.log("Cleaning up orphaned nodes...");
     const supabaseUids = await getAllNodesFromSupabase();
+    console.log("supabaseUids", supabaseUids);
 
     if (supabaseUids.length === 0) {
       console.log("No nodes found in Supabase");
-      return [];
+      return;
     }
 
-    const nonExistingUids = getExistingSupabaseNodes(supabaseUids);
+    const orphanedUids = getNonExistentRoamUids(supabaseUids);
+    console.log("orphanedUids", orphanedUids);
 
-    return nonExistingUids;
+    if (orphanedUids.length === 0) {
+      console.log("No orphaned nodes found");
+      return;
+    }
+
+    console.log(
+      `Found ${orphanedUids.length} orphaned nodes, deleting...`,
+      orphanedUids,
+    );
+    await deleteNodesFromSupabase(orphanedUids);
   } catch (error) {
-    console.error("Error in getExistingNodesFromSupabase:", error);
-    return [];
+    console.error("Error in cleanupOrphanedNodes:", error);
   }
 };
