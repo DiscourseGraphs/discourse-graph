@@ -1,7 +1,7 @@
 import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import DiscourseGraphPlugin from "~/index";
-import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
+import { extractContentFromTitle } from "~/utils/extractContentFromTitle";
 import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { PluginProvider, usePlugin } from "~/components/PluginContext";
@@ -12,16 +12,6 @@ type DiscourseContextProps = {
 
 const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
-
-  const extractContentFromTitle = (
-    format: string | undefined,
-    title: string,
-  ): string => {
-    if (!format) return "";
-    const regex = getDiscourseNodeFormatExpression(format);
-    const match = title.match(regex);
-    return match?.[1] ?? title;
-  };
 
   const renderContent = () => {
     if (!activeFile) {
