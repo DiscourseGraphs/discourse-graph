@@ -75,7 +75,6 @@ export const getAllReferencesOnPage = (pageTitle: string) => {
 };
 
 export const useDiscourseData = (tag: string) => {
-  console.log("useDiscourseData", tag);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<DiscourseData["results"]>([]);
   const [refs, setRefs] = useState(0);

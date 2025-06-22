@@ -202,15 +202,7 @@ export async function upsertDiscourseNodes(lastUpdateTime: string) {
               text: node.string,
               uid: node.uid,
               vector: embeddingVector,
-              metadata: {
-                roam_uid: node.uid,
-                roam_edit_time: node["edit/time"],
-                roam_create_time: node["create/time"],
-                node_title: node.string,
-                graph_name: graphName,
-                user_email: userEmail,
-                user_name: userName,
-              },
+              metadata: {},
               created: new Date(
                 node["create/time"] || Date.now(),
               ).toISOString(),
