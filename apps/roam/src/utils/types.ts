@@ -46,3 +46,14 @@ export type Result = {
   Record<string, string | number | Date>;
 
 export type Column = { key: string; uid: string; selection: string };
+
+export type DiscourseGraphContent = {
+  author_local_id: string;
+  source_local_id: string;
+  scale: string;
+  created: string;
+  last_modified: string;
+  text: string;
+  model: string;
+  vector: number[];
+};
