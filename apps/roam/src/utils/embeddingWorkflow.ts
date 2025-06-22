@@ -123,7 +123,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
           text: node.string,
           uid: node.uid,
           vector: embeddingVector,
-          metadata: {},
+          metadata: {} as Record<string, any>,
           created: new Date(node["create/time"] || Date.now()).toISOString(),
           last_modified: new Date(
             node["edit/time"] || Date.now(),
