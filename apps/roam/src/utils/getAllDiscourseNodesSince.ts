@@ -1,22 +1,22 @@
 import isDiscourseNode from "./isDiscourseNode";
 
-type RoamEntityFromQuery = {
-  uid: string;
-  title?: string;
-  createTime?: number;
-  editTime?: number;
-  userUuid?: string;
-  username?: string;
+export type DiscourseGraphContent = {
+  author_local_id: string;
+  source_local_id: string;
+  scale: string;
+  created: string;
+  last_modified: string;
+  text: string;
 };
 
 export const getAllDiscourseNodesSince = async (
   since: string,
-): Promise<RoamEntityFromQuery[]> => {
+): Promise<DiscourseGraphContent[]> => {
   const roamAlpha = (window as any).roamAlphaAPI;
   const sinceMs = new Date(since).getTime();
 
   const query = `[:find ?uid ?create-time ?edit-time ?user-uuid ?username ?title
-     :keys  uid   createTime    editTime    userUuid   username title
+     :keys  source_local_id created last_modified author_local_id author_name text 
      :in $ ?since 
      :where
       [?e :node/title ?title]
@@ -28,13 +28,13 @@ export const getAllDiscourseNodesSince = async (
       [?e :edit/time ?edit-time]
       [(> ?edit-time ?since)]]`;
 
-  const result = roamAlpha.data.q(query, sinceMs) as RoamEntityFromQuery[];
+  const result = roamAlpha.data.q(query, sinceMs) as DiscourseGraphContent[];
 
   return result.filter(
     (entity) =>
-      entity.uid &&
-      isDiscourseNode(entity.uid) &&
-      entity.title &&
-      entity.title.trim() !== "",
+      entity.source_local_id &&
+      isDiscourseNode(entity.source_local_id) &&
+      entity.text &&
+      entity.text.trim() !== "",
   );
 };
