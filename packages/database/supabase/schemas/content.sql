@@ -33,7 +33,7 @@ ADD CONSTRAINT "Document_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."Document"
 ADD CONSTRAINT "Document_author_id_fkey" FOREIGN KEY (
     author_id
-) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public."Document"
 ADD CONSTRAINT "Document_space_id_fkey" FOREIGN KEY (
@@ -43,7 +43,7 @@ ADD CONSTRAINT "Document_space_id_fkey" FOREIGN KEY (
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
 CREATE UNIQUE INDEX document_space_and_local_id_idx ON public."Document" USING btree (space_id, source_local_id)
-    NULLS DISTINCT WHERE space_id IS NOT NULL;
+    NULLS DISTINCT;
 
 CREATE UNIQUE INDEX document_url_idx ON public."Document" USING btree (url);
 
@@ -85,12 +85,12 @@ ADD CONSTRAINT "Content_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_author_id_fkey" FOREIGN KEY (
     author_id
-) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE SET NULL;
+) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_creator_id_fkey" FOREIGN KEY (
     creator_id
-) REFERENCES public."Agent" (id) ON UPDATE CASCADE ON DELETE SET NULL;
+) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_document_id_fkey" FOREIGN KEY (
@@ -121,7 +121,7 @@ CREATE INDEX "Content_space" ON public."Content" USING btree (space_id);
 
 CREATE UNIQUE INDEX content_space_and_local_id_idx ON public."Content" USING btree (
     space_id, source_local_id
-) NULLS DISTINCT WHERE (space_id IS NOT NULL);
+) NULLS DISTINCT;
 
 CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
 

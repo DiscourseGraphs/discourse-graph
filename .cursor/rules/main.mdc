@@ -32,12 +32,13 @@ This repository uses Turborepo.
 - Maintain visual consistency with the host application's design system
 - Follow responsive design principles
   
-- ### TypeScript Guidelines
+### TypeScript Guidelines
 
 - Prefer `type` over `interface`
 - Use explicit return types for functions
 - Avoid `any` types when possible
 - Prefer arrow functions over regular function declarations
+- Use named parameters (object destructuring) when a function has more than 2 parameters
   
 ### Code Formatting
 

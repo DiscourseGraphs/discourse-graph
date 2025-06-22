@@ -2,27 +2,31 @@
 skinparam nodesep 10
 hide circle
 hide empty members
-class "SpaceAccess" [[{An access control entry for a space}]] {
-    {field} editor : boolean  
-}
-class "Account" [[{A user account on a platform}]] {
+class "PlatformAccount" [[{An account for an agent on a platform}]] {
     {field} id : integer  
+    {field} name : string  
+    {field} platform : Platform  
+    {field} account_local_id : string  
     {field} write_permission : boolean  
     {field} active : boolean  
-    {field} account_local_id : string  
+    {field} agent_type : AgentType  
+    {field} metadata : JSON  
+}
+class "Users" [[{A database user account. Managed by the auth infrastructure.}]] {
+    {field} id : integer  
+}
+"PlatformAccount" --> "0..1" "Users" : "dg_account"
+class "SpaceAccess" [[{An access control entry for a space}]] {
+    {field} editor : boolean  
 }
 class "Space" [[{A space on a platform representing a community engaged in a conversation}]] {
     {field} id : integer  
     {field} url : string  
     {field} name : string  
+    {field} platform : Platform  
 }
-"SpaceAccess" --> "1" "Account" : "account"
+"SpaceAccess" --> "1" "PlatformAccount" : "account"
 "SpaceAccess" --> "0..1" "Space" : "space"
-class "Platform" [[{A data platform where discourse happens}]] {
-    {field} id : integer  
-    {field} name : string  
-    {field} url : string  
-}
 class "Content" [[{A unit of content}]] {
     {field} id : integer  
     {field} source_local_id : string  
@@ -32,13 +36,13 @@ class "Content" [[{A unit of content}]] {
     {field} scale : Scale  
     {field} last_modified : datetime  
 }
-class "Document" [[{None}]] {
+class "Document" [[{An external document, or a high-level unit on a platform (eg Roam page)}]] {
     {field} id : integer  
     {field} source_local_id : string  
-    {field} url : string  
     {field} created : datetime  
     {field} metadata : JSON  
     {field} last_modified : datetime  
+    {field} url : string  
     {field} contents : blob  
 }
 class "Concept" [[{An abstract concept, claim or relation}]] {
@@ -49,33 +53,36 @@ class "Concept" [[{An abstract concept, claim or relation}]] {
     {field} created : datetime  
     {field} last_modified : datetime  
     {field} arity : integer  
-    {field} content : JSON  
+    {field} reference_content : JSON  
+    {field} literal_content : JSON  
     {field} is_schema : boolean  
 }
-"Space" --> "1" "Platform" : "platform"
 "Content" --> "0..1" "Space" : "space"
 "Document" --> "0..1" "Space" : "space"
 "Concept" --> "0..1" "Space" : "space"
-"Account" --> "1" "Platform" : "platform"
-abstract "Agent" [[{An agent that acts in the system}]] {
-    {field} id : integer  
-    {field} type : EntityType  
+class "AgentIdentifier" [[{An identifying attribute associated with an agent, can be a basis for unification}]] {
+    {field} identifier_type : AgentIdentifierType  
+    {field} value : string  
+    {field} trusted : boolean  
 }
-"Document" --> "0..*" "Agent" : "contributors"
-"Document" --> "1" "Agent" : "author"
+"AgentIdentifier" --> "1" "PlatformAccount" : "account"
+"Content" --> "1" "PlatformAccount" : "author"
+"Document" --> "1" "PlatformAccount" : "author"
+"Concept" --> "1" "PlatformAccount" : "author"
+"Content" --> "0..*" "PlatformAccount" : "contributors"
+"Document" --> "0..*" "PlatformAccount" : "contributors"
+"Concept" --> "0..*" "PlatformAccount" : "contributors"
+"Content" --> "1" "PlatformAccount" : "creator"
 "Content" --> "1" "Document" : "document"
-class "ContentEmbedding" [[{None}]] {
+class "ContentEmbedding" [[{An embedding for a piece of content.}]] {
     {field} model : EmbeddingName  
     {field} vector : vector  
     {field} obsolete : boolean  
 }
 "ContentEmbedding" --> "1" "Content" : "target"
 "Content" --> "0..1" "Content" : "part_of"
-"Content" --> "0..*" "Agent" : "contributors"
-"Content" --> "1" "Agent" : "creator"
-"Content" --> "1" "Agent" : "author"
 "Concept" --> "0..1" "Content" : "represented_by"
-class "ConceptSchema" [[{None}]] {
+class "ConceptSchema" [[{A Concept that describes a schema (type) for other concepts}]] {
     {field} id(i) : integer  
     {field} epistemic_status(i) : EpistemicStatus  
     {field} name(i) : string  
@@ -83,29 +90,10 @@ class "ConceptSchema" [[{None}]] {
     {field} created(i) : datetime  
     {field} last_modified(i) : datetime  
     {field} arity(i) : integer  
-    {field} content(i) : JSON  
+    {field} reference_content(i) : JSON  
+    {field} literal_content(i) : JSON  
     {field} is_schema(i) : boolean  
 }
 "Concept" --> "1" "ConceptSchema" : "schema"
-"Concept" --> "0..*" "Agent" : "contributors"
-"Concept" --> "1" "Agent" : "author"
 "Concept" ^-- "ConceptSchema"
-class "Person" [[{A person using the system}]] {
-    {field} name : string  
-    {field} orcid : string  
-    {field} email : string  
-    {field} id(i) : integer  
-    {field} type(i) : EntityType  
-}
-class "AutomatedAgent" [[{An automated agent}]] {
-    {field} metadata : JSON  
-    {field} name : string  
-    {field} deterministic : boolean  
-    {field} version : string  
-    {field} id(i) : integer  
-    {field} type(i) : EntityType  
-}
-"Account" --> "1" "Agent" : "agent"
-"Agent" ^-- "Person"
-"Agent" ^-- "AutomatedAgent"
 @enduml

@@ -51,7 +51,6 @@ max_client_conn = 100
 schema_paths = [
     './schemas/base.sql',
     './schemas/extensions.sql',
-    './schemas/agent.sql',
     './schemas/space.sql',
     './schemas/account.sql',
     './schemas/content.sql',
@@ -59,6 +58,8 @@ schema_paths = [
     './schemas/concept.sql',
     './schemas/contributor.sql',
     './schemas/sync.sql',
+    './schemas/upload_temp.sql',
+    './schemas/access_token.sql',
 ]
 
 [db.seed]

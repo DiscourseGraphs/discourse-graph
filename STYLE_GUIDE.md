@@ -8,6 +8,7 @@ This document outlines the coding standards and best practices for contributing 
 - Use explicit return types for functions
 - Avoid `any` types when possible
 - Prefer arrow functions over regular function declarations
+- Use named parameters (object destructuring) when a function has more than 2 parameters
 
 ## UI Guidelines
 

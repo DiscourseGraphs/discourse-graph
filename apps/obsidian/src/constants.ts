@@ -56,4 +56,6 @@ export const DEFAULT_SETTINGS: Settings = {
       relationshipTypeId: DEFAULT_RELATION_TYPES.opposes!.id,
     },
   ],
+  showIdsInFrontmatter: true,
+  nodesFolderPath: "Discourse Nodes",
 };

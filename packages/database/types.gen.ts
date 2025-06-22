@@ -9,88 +9,63 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      Account: {
+      access_token: {
         Row: {
-          active: boolean
-          id: number
-          person_id: number
-          platform_id: number
-          write_permission: boolean
+          access_token: string
+          code: string | null
+          created_date: string
+          platform_account_id: number | null
+          request_id: string
         }
         Insert: {
-          active?: boolean
-          id?: number
-          person_id: number
-          platform_id: number
-          write_permission: boolean
+          access_token: string
+          code?: string | null
+          created_date?: string
+          platform_account_id?: number | null
+          request_id: string
         }
         Update: {
-          active?: boolean
-          id?: number
-          person_id?: number
-          platform_id?: number
-          write_permission?: boolean
+          access_token?: string
+          code?: string | null
+          created_date?: string
+          platform_account_id?: number | null
+          request_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "Account_person_id_fkey"
-            columns: ["person_id"]
+            foreignKeyName: "access_token_platform_account_id_fkey"
+            columns: ["platform_account_id"]
             isOneToOne: false
-            referencedRelation: "Agent"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Account_platform_id_fkey"
-            columns: ["platform_id"]
-            isOneToOne: false
-            referencedRelation: "Platform"
+            referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
         ]
       }
-      Agent: {
+      AgentIdentifier: {
         Row: {
-          id: number
-          type: Database["public"]["Enums"]["EntityType"]
+          account_id: number
+          identifier_type: Database["public"]["Enums"]["AgentIdentifierType"]
+          trusted: boolean
+          value: string
         }
         Insert: {
-          id?: number
-          type: Database["public"]["Enums"]["EntityType"]
+          account_id: number
+          identifier_type: Database["public"]["Enums"]["AgentIdentifierType"]
+          trusted?: boolean
+          value: string
         }
         Update: {
-          id?: number
-          type?: Database["public"]["Enums"]["EntityType"]
-        }
-        Relationships: []
-      }
-      AutomatedAgent: {
-        Row: {
-          deterministic: boolean | null
-          id: number
-          metadata: Json
-          name: string
-          version: string | null
-        }
-        Insert: {
-          deterministic?: boolean | null
-          id: number
-          metadata?: Json
-          name: string
-          version?: string | null
-        }
-        Update: {
-          deterministic?: boolean | null
-          id?: number
-          metadata?: Json
-          name?: string
-          version?: string | null
+          account_id?: number
+          identifier_type?: Database["public"]["Enums"]["AgentIdentifierType"]
+          trusted?: boolean
+          value?: string
         }
         Relationships: [
           {
-            foreignKeyName: "automated_agent_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "Agent"
+            foreignKeyName: "AgentIdentifier_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
         ]
@@ -99,54 +74,60 @@ export type Database = {
         Row: {
           arity: number
           author_id: number | null
-          content: Json
           created: string
           description: string | null
           epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
           id: number
           is_schema: boolean
           last_modified: string
+          literal_content: Json
           name: string
+          reference_content: Json
+          refs: number[]
           represented_by_id: number | null
           schema_id: number | null
-          space_id: number | null
+          space_id: number
         }
         Insert: {
           arity?: number
           author_id?: number | null
-          content?: Json
           created: string
           description?: string | null
           epistemic_status?: Database["public"]["Enums"]["EpistemicStatus"]
           id?: number
           is_schema?: boolean
           last_modified: string
+          literal_content?: Json
           name: string
+          reference_content?: Json
+          refs?: number[]
           represented_by_id?: number | null
           schema_id?: number | null
-          space_id?: number | null
+          space_id: number
         }
         Update: {
           arity?: number
           author_id?: number | null
-          content?: Json
           created?: string
           description?: string | null
           epistemic_status?: Database["public"]["Enums"]["EpistemicStatus"]
           id?: number
           is_schema?: boolean
           last_modified?: string
+          literal_content?: Json
           name?: string
+          reference_content?: Json
+          refs?: number[]
           represented_by_id?: number | null
           schema_id?: number | null
-          space_id?: number | null
+          space_id?: number
         }
         Relationships: [
           {
             foreignKeyName: "Concept_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
-            referencedRelation: "Agent"
+            referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
           {
@@ -197,7 +178,7 @@ export type Database = {
             foreignKeyName: "concept_contributors_contributor_id_fkey"
             columns: ["contributor_id"]
             isOneToOne: false
-            referencedRelation: "Agent"
+            referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
         ]
@@ -250,14 +231,14 @@ export type Database = {
             foreignKeyName: "Content_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
-            referencedRelation: "Agent"
+            referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "Content_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
-            referencedRelation: "Agent"
+            referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
           {
@@ -308,7 +289,7 @@ export type Database = {
             foreignKeyName: "content_contributors_contributor_id_fkey"
             columns: ["contributor_id"]
             isOneToOne: false
-            referencedRelation: "Agent"
+            referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
         ]
@@ -381,7 +362,7 @@ export type Database = {
             foreignKeyName: "Document_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
-            referencedRelation: "Agent"
+            referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
           {
@@ -393,50 +374,39 @@ export type Database = {
           },
         ]
       }
-      Person: {
+      PlatformAccount: {
         Row: {
-          email: string
+          account_local_id: string
+          active: boolean
+          agent_type: Database["public"]["Enums"]["AgentType"]
+          dg_account: string | null
           id: number
+          metadata: Json
           name: string
-          orcid: string | null
+          platform: Database["public"]["Enums"]["Platform"]
+          write_permission: boolean
         }
         Insert: {
-          email: string
-          id: number
+          account_local_id: string
+          active?: boolean
+          agent_type?: Database["public"]["Enums"]["AgentType"]
+          dg_account?: string | null
+          id?: number
+          metadata?: Json
           name: string
-          orcid?: string | null
+          platform: Database["public"]["Enums"]["Platform"]
+          write_permission?: boolean
         }
         Update: {
-          email?: string
+          account_local_id?: string
+          active?: boolean
+          agent_type?: Database["public"]["Enums"]["AgentType"]
+          dg_account?: string | null
           id?: number
+          metadata?: Json
           name?: string
-          orcid?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "person_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "Agent"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      Platform: {
-        Row: {
-          id: number
-          name: string
-          url: string
-        }
-        Insert: {
-          id?: number
-          name: string
-          url: string
-        }
-        Update: {
-          id?: number
-          name?: string
-          url?: string
+          platform?: Database["public"]["Enums"]["Platform"]
+          write_permission?: boolean
         }
         Relationships: []
       }
@@ -444,56 +414,45 @@ export type Database = {
         Row: {
           id: number
           name: string
-          platform_id: number
-          url: string | null
+          platform: Database["public"]["Enums"]["Platform"]
+          url: string
         }
         Insert: {
           id?: number
           name: string
-          platform_id: number
-          url?: string | null
+          platform: Database["public"]["Enums"]["Platform"]
+          url: string
         }
         Update: {
           id?: number
           name?: string
-          platform_id?: number
-          url?: string | null
+          platform?: Database["public"]["Enums"]["Platform"]
+          url?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "Space_platform_id_fkey"
-            columns: ["platform_id"]
-            isOneToOne: false
-            referencedRelation: "Platform"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       SpaceAccess: {
         Row: {
           account_id: number
           editor: boolean
-          id: number
-          space_id: number | null
+          space_id: number
         }
         Insert: {
           account_id: number
           editor: boolean
-          id?: number
-          space_id?: number | null
+          space_id: number
         }
         Update: {
           account_id?: number
           editor?: boolean
-          id?: number
-          space_id?: number | null
+          space_id?: number
         }
         Relationships: [
           {
             foreignKeyName: "SpaceAccess_account_id_fkey"
             columns: ["account_id"]
             isOneToOne: false
-            referencedRelation: "Account"
+            referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
           {
@@ -546,6 +505,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      alpha_delete_by_source_local_ids: {
+        Args: { p_space_name: string; p_source_local_ids: string[] }
+        Returns: string
+      }
+      alpha_get_last_update_time: {
+        Args: { p_space_name: string }
+        Returns: {
+          last_update_time: string
+        }[]
+      }
+      alpha_upsert_discourse_nodes: {
+        Args: {
+          p_space_name: string
+          p_user_email: string
+          p_user_name: string
+          p_nodes: Json
+        }
+        Returns: string
+      }
       end_sync_task: {
         Args: {
           s_target: number
@@ -555,11 +533,37 @@ export type Database = {
         }
         Returns: undefined
       }
+      extract_references: {
+        Args: { refs: Json }
+        Returns: number[]
+      }
       get_nodes_needing_sync: {
         Args: { nodes_from_roam: Json }
         Returns: {
           uid_to_sync: string
         }[]
+      }
+      _local_concept_to_db_concept: {
+        Args: {
+          data: Database["public"]["CompositeTypes"]["concept_local_input"]
+        }
+        Returns: {
+          arity: number
+          author_id: number | null
+          created: string
+          description: string | null
+          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
+          id: number
+          is_schema: boolean
+          last_modified: string
+          literal_content: Json
+          name: string
+          reference_content: Json
+          refs: number[]
+          represented_by_id: number | null
+          schema_id: number | null
+          space_id: number
+        }
       }
       match_content_embeddings: {
         Args: {
@@ -594,8 +598,34 @@ export type Database = {
         }
         Returns: unknown
       }
+      upsert_concepts: {
+        Args: { v_space_id: number; data: Json }
+        Returns: number[]
+      }
+      upsert_discourse_nodes: {
+        Args: {
+          p_space_name: string
+          p_user_email: string
+          p_user_name: string
+          p_nodes: Json
+          p_platform_name?: string
+          p_platform_url?: string
+          p_space_url?: string
+          p_agent_type?: string
+          p_content_scale?: string
+          p_embedding_model?: string
+          p_document_source_id?: string
+        }
+        Returns: {
+          content_id: number
+          embedding_created: boolean
+          action: string
+        }[]
+      }
     }
     Enums: {
+      AgentIdentifierType: "email" | "orcid"
+      AgentType: "person" | "organization" | "automated_agent"
       EmbeddingName:
         | "openai_text_embedding_ada2_1536"
         | "openai_text_embedding_3_small_512"
@@ -606,7 +636,7 @@ export type Database = {
       EntityType:
         | "Platform"
         | "Space"
-        | "Account"
+        | "PlatformAccount"
         | "Person"
         | "AutomatedAgent"
         | "Document"
@@ -625,6 +655,7 @@ export type Database = {
         | "could_be_true"
         | "strong_evidence_for"
         | "certain"
+      Platform: "Roam" | "Obsidian"
       Scale:
         | "document"
         | "post"
@@ -639,7 +670,25 @@ export type Database = {
       task_status: "active" | "timeout" | "complete" | "failed"
     }
     CompositeTypes: {
-      [_ in never]: never
+      concept_local_input: {
+        epistemic_status: Database["public"]["Enums"]["EpistemicStatus"] | null
+        name: string | null
+        description: string | null
+        author_id: number | null
+        created: string | null
+        last_modified: string | null
+        space_id: number | null
+        schema_id: number | null
+        literal_content: Json | null
+        is_schema: boolean | null
+        represented_by_id: number | null
+        reference_content: Json | null
+        author_local_id: string | null
+        represented_by_local_id: string | null
+        schema_represented_by_local_id: string | null
+        space_url: string | null
+        local_reference_content: Json | null
+      }
     }
   }
 }
@@ -752,6 +801,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      AgentIdentifierType: ["email", "orcid"],
+      AgentType: ["person", "organization", "automated_agent"],
       EmbeddingName: [
         "openai_text_embedding_ada2_1536",
         "openai_text_embedding_3_small_512",
@@ -763,7 +814,7 @@ export const Constants = {
       EntityType: [
         "Platform",
         "Space",
-        "Account",
+        "PlatformAccount",
         "Person",
         "AutomatedAgent",
         "Document",
@@ -784,6 +835,7 @@ export const Constants = {
         "strong_evidence_for",
         "certain",
       ],
+      Platform: ["Roam", "Obsidian"],
       Scale: [
         "document",
         "post",

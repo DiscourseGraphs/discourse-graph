@@ -14,7 +14,7 @@
     "check-types": "npm run lint && supabase stop && npm run dbdiff",
     "lint": "tsx scripts/lint.ts",
     "lint:fix": "tsx scripts/lint.ts -f",
-    "build": "if [ $HOME != '/vercel' ]; then\n supabase start && supabase migrations up && (supabase gen types typescript --local --schema public > types.gen.ts)\nfi",
+    "build": "tsx scripts/build.ts",
     "gentypes:production": "supabase start && supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > types.gen.ts",
     "dbdiff": "supabase stop && supabase db diff",
     "dbdiff:save": "supabase stop && supabase db diff -f",
@@ -22,8 +22,8 @@
     "deploy:functions": "tsx scripts/lint.ts -f"
   },
   "devDependencies": {
-    "supabase": "^2.22.12",
-    "tsx": "^4.19.2"
+    "supabase": "^2.26.9",
+    "tsx": "^4.20.3"
   },
   "dependencies": {}
 }
