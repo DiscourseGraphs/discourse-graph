@@ -24,6 +24,12 @@ const cache: {
   [tag: string]: DiscourseData;
 } = {};
 
+const toggleHighlight = (uid: string, on: boolean) => {
+  document
+    .querySelectorAll(`[data-dg-block-uid="${uid}"]`)
+    .forEach((el) => el.classList.toggle("dg-highlight", on));
+};
+
 export const DiscourseSuggestionsPanel = ({
   onClose,
   tag,
@@ -48,6 +54,8 @@ export const DiscourseSuggestionsPanel = ({
         flexDirection: "column",
         padding: "8px",
       }}
+      onMouseEnter={() => toggleHighlight(blockUid, true)}
+      onMouseLeave={() => toggleHighlight(blockUid, false)}
       className="roamjs-discourse-suggestions-panel"
     >
       <Navbar

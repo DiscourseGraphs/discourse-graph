@@ -15,12 +15,6 @@ import {
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 import { runFullEmbeddingProcess } from "~/utils/embeddingWorkflow";
 import { getLastUpdateTimeByGraphName } from "~/utils/syncToEmbeddingDb";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import { getAllDiscourseNodes } from "~/utils/embeddingWorkflow";
-import {
-  getEmbeddingsService,
-  NodeWithEmbedding,
-} from "~/utils/embeddingService";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { upsertDiscourseNodes } from "~/utils/syncToEmbeddingDb";
 

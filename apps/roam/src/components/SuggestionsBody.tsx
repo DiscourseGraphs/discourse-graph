@@ -21,6 +21,14 @@ import {
   useDiscourseData,
 } from "~/utils/useDiscourseData";
 
+interface SuggestionsCache {
+  selectedPages: string[];
+  useAllPagesForSuggestions: boolean;
+  hydeFilteredNodes: SuggestedNode[];
+  activeNodeTypeFilters: string[];
+}
+const suggestionsCache = new Map<string, SuggestionsCache>();
+
 interface Props {
   tag: string;
   blockUid: string;
@@ -41,23 +49,47 @@ const SuggestionsBody: React.FC<Props> = ({
     allNodes,
   } = useDiscourseData(tag);
   const allPages = useMemo(() => getAllPageNames(), []);
+  const isInitialMount = React.useRef(true);
+  const cachedState = suggestionsCache.get(blockUid);
 
   // UI states
   const [currentPageInput, setCurrentPageInput] = useState("");
-  const [selectedPages, setSelectedPages] = useState<string[]>([]);
-  const [useAllPagesForSuggestions, setUseAllPagesForSuggestions] =
-    useState(false);
+  const [selectedPages, setSelectedPages] = useState<string[]>(
+    cachedState?.selectedPages || [],
+  );
+  const [useAllPagesForSuggestions, setUseAllPagesForSuggestions] = useState(
+    cachedState?.useAllPagesForSuggestions || false,
+  );
   const [searchNonce, setSearchNonce] = useState(0);
   const [autocompleteKey, setAutocompleteKey] = useState(0);
   const [isSearchingHyde, setIsSearchingHyde] = useState(false);
   const [hydeFilteredNodes, setHydeFilteredNodes] = useState<SuggestedNode[]>(
-    [],
+    cachedState?.hydeFilteredNodes || [],
   );
   const [activeNodeTypeFilters, setActiveNodeTypeFilters] = useState<string[]>(
-    [],
+    cachedState?.activeNodeTypeFilters || [],
   );
 
   useEffect(() => {
+    suggestionsCache.set(blockUid, {
+      selectedPages,
+      useAllPagesForSuggestions,
+      hydeFilteredNodes,
+      activeNodeTypeFilters,
+    });
+  }, [
+    blockUid,
+    selectedPages,
+    useAllPagesForSuggestions,
+    hydeFilteredNodes,
+    activeNodeTypeFilters,
+  ]);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     setHydeFilteredNodes([]);
     setIsSearchingHyde(false);
   }, [selectedPages, useAllPagesForSuggestions]);
@@ -167,6 +199,13 @@ const SuggestionsBody: React.FC<Props> = ({
       node: { text: `[[${node.text}]]` },
     });
     setHydeFilteredNodes((prev) => prev.filter((n) => n.uid !== node.uid));
+  };
+
+  // Function to highlight/unhighlight overlays when hovering over suggestions
+  const toggleOverlayHighlight = (nodeUid: string, on: boolean) => {
+    document
+      .querySelectorAll(`[data-dg-block-uid="${nodeUid}"]`)
+      .forEach((el) => el.classList.toggle("dg-highlight", on));
   };
 
   const actuallyDisplayedNodes = useMemo(() => {
@@ -332,7 +371,7 @@ const SuggestionsBody: React.FC<Props> = ({
                   : "Select pages to see suggestions"}
             </h3>
             <span className="ml-2 text-sm font-semibold text-gray-900">
-              {actuallyDisplayedNodes.length}
+              Total nodes: {actuallyDisplayedNodes.length}
             </span>
             {availableFilterTypes.length > 1 && (
               <Popover
@@ -400,6 +439,12 @@ const SuggestionsBody: React.FC<Props> = ({
                     <li
                       key={node.uid}
                       className="flex items-center justify-between rounded-md px-1.5 py-1.5 hover:bg-gray-100"
+                      onMouseEnter={() =>
+                        toggleOverlayHighlight(node.uid, true)
+                      }
+                      onMouseLeave={() =>
+                        toggleOverlayHighlight(node.uid, false)
+                      }
                     >
                       <span
                         className="mr-2 cursor-pointer hover:underline"
@@ -415,20 +460,13 @@ const SuggestionsBody: React.FC<Props> = ({
                       >
                         {node.text}
                       </span>
-                      <Tooltip
-                        content={`Add "${node.text}" as a block reference`}
-                        hoverOpenDelay={200}
-                        hoverCloseDelay={0}
-                        position={Position.RIGHT}
-                      >
-                        <Button
-                          minimal
-                          small
-                          icon="add"
-                          onClick={() => handleCreateBlock(node)}
-                          className="ml-2 whitespace-nowrap"
-                        />
-                      </Tooltip>
+                      <Button
+                        minimal
+                        small
+                        icon="add"
+                        onClick={() => handleCreateBlock(node)}
+                        className="ml-2 whitespace-nowrap"
+                      />
                     </li>
                   ))}
                 {!isSearchingHyde && actuallyDisplayedNodes.length === 0 && (
