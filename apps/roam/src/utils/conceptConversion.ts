@@ -168,8 +168,10 @@ export const discourseRelationDataToLocalConcept = (
   };
 };
 
-const relatedConcepts = (concept: LocalConceptDataInput): string[] => {
-  const relations = Object.values(concept.local_reference_content || {}).flat();
+export const relatedConcepts = (concept: LocalConceptDataInput): string[] => {
+  const relations = Object.values(
+    concept.local_reference_content || {},
+  ).flat() as string[];
   if (concept.schema_represented_by_local_id) {
     relations.push(concept.schema_represented_by_local_id);
   }
@@ -185,7 +187,7 @@ const orderConceptsRec = (
   const relatedConceptIds = relatedConcepts(concept);
   let missing: Set<string> = new Set();
   while (relatedConceptIds.length > 0) {
-    const relatedConceptId = relatedConceptIds.pop()!;
+    const relatedConceptId = relatedConceptIds.shift()!;
     const relatedConcept = remainder[relatedConceptId];
     if (relatedConcept === undefined) {
       missing.add(relatedConceptId);
@@ -201,18 +203,31 @@ const orderConceptsRec = (
   return missing;
 };
 
-// This can be used by a sync function to order upserts.
-// It assumes all input has defined represented_by_local_id,
-// and that nodes that are not in the upsert set are already in the database.
+/*
+If writing a concept upsert method, you want to insure that
+a node's dependencies are defined before the node itself is upserted.
+The dependencies are as defined in relatedConcepts.
+If you upsert in the following order: [node schemas, relation schemas, nodes, relations]
+then the depencies will be implicitly respected.
+(It will be tricker when we have recursive relations.)
+If you are starting from a random stream of nodes, you would want to order them with this function.
+It assumes all input has defined represented_by_local_id,
+and that nodes that are not in the upsert set are already in the database.
+the Id of those nodes is returned and can be used to check that assumption.
+We also assume that there are no dependency cycles.
+ */
 export const orderConceptsByDependency = (
   concepts: LocalConceptDataInput[],
 ): { ordered: LocalConceptDataInput[]; missing: string[] } => {
-  if (concepts.length === 0) return concepts;
+  if (concepts.length === 0) return { ordered: concepts, missing: [] };
   const conceptById: { [key: string]: LocalConceptDataInput } =
-    Object.fromEntries(concepts.map((c) => [c, c.represented_by_local_id]));
+    Object.fromEntries(concepts.map((c) => [c.represented_by_local_id, c]));
   const ordered: LocalConceptDataInput[] = [];
-  const first = conceptById[concepts[0].represented_by_local_id!];
-  const missing = orderConceptsRec(ordered, first, conceptById);
+  let missing: Set<string> = new Set();
+  while (Object.keys(conceptById).length > 0) {
+    const first = conceptById[concepts[0].represented_by_local_id!];
+    missing = missing.union(orderConceptsRec(ordered, first, conceptById));
+  }
   return { ordered, missing: [...missing] };
 };
 
