@@ -35,6 +35,8 @@ import {
 import { IKeyCombo } from "@blueprintjs/core";
 import { configPageTabs } from "~/utils/configPageTabs";
 import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchMenu";
+import { isGitHubSyncPage } from "~/components/GitHubSync";
+import { renderGitHubSyncPage } from "~/components/GitHubSync";
 
 export const initObservers = async ({
   onloadArgs,
@@ -60,6 +62,10 @@ export const initObservers = async ({
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
       else if (isQueryPage(props)) renderQueryPage(props);
       else if (isCanvasPage(props)) renderTldrawCanvas(props);
+      else {
+        const matchingNode = isGitHubSyncPage(title);
+        if (matchingNode) renderGitHubSyncPage({ ...props, matchingNode });
+      }
     },
   });
 
