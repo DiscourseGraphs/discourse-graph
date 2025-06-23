@@ -181,18 +181,24 @@ const orderConceptsRec = (
   ordered: LocalConceptDataInput[],
   concept: LocalConceptDataInput,
   remainder: { [key: string]: LocalConceptDataInput },
-): undefined => {
+): Set<string> => {
   const relatedConceptIds = relatedConcepts(concept);
+  let missing: Set<string> = new Set();
   while (relatedConceptIds.length > 0) {
-    const relatedConceptId = relatedConceptIds.unshift();
+    const relatedConceptId = relatedConceptIds.pop()!;
     const relatedConcept = remainder[relatedConceptId];
-    if (relatedConcept !== undefined) {
-      orderConceptsRec(ordered, relatedConcept, remainder);
+    if (relatedConcept === undefined) {
+      missing.add(relatedConceptId);
+    } else {
+      missing = missing.union(
+        orderConceptsRec(ordered, relatedConcept, remainder),
+      );
       delete remainder[relatedConceptId];
     }
   }
   ordered.push(concept);
   delete remainder[concept.represented_by_local_id!];
+  return missing;
 };
 
 // This can be used by a sync function to order upserts.
@@ -200,14 +206,14 @@ const orderConceptsRec = (
 // and that nodes that are not in the upsert set are already in the database.
 export const orderConceptsByDependency = (
   concepts: LocalConceptDataInput[],
-): LocalConceptDataInput[] => {
+): { ordered: LocalConceptDataInput[]; missing: string[] } => {
   if (concepts.length === 0) return concepts;
   const conceptById: { [key: string]: LocalConceptDataInput } =
     Object.fromEntries(concepts.map((c) => [c, c.represented_by_local_id]));
   const ordered: LocalConceptDataInput[] = [];
   const first = conceptById[concepts[0].represented_by_local_id!];
-  orderConceptsRec(ordered, first, conceptById);
-  return ordered;
+  const missing = orderConceptsRec(ordered, first, conceptById);
+  return { ordered, missing: [...missing] };
 };
 
 // the input to the upsert method would look like this:
