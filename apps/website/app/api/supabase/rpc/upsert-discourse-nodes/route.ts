@@ -2,6 +2,8 @@ import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
 import cors from "~/utils/llm/cors";
 
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+
 interface UpsertDiscourseNodesRequest {
   p_platform_name?: string;
   p_platform_url?: string;
@@ -17,7 +19,7 @@ interface UpsertDiscourseNodesRequest {
     text: string;
     uid: string;
     vector: number[];
-    metadata: Record<string, unknown>;
+    metadata: Record<string, Json>;
     created: string;
     last_modified: string;
   }>;
