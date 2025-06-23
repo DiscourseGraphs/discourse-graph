@@ -3,7 +3,7 @@
 In general, for external references, you can either embed it inline, reference it by `X_local_id` (where local means the platform) or use the db_ids as in the tables.
 
 ```typescript
-import type { LocalDocumentDataInput, LocalContentDataInput } from '@repo/database/input_types.ts';
+import type { LocalDocumentDataInput, LocalContentDataInput } from '@repo/database/inputTypes.ts';
 
 const docs: LocalDocumentDataInput[] = [{ "source_local_id": "page1_uid", "created": "2000/01/01", "last_modified": "2001/01/02", author_local_id:"sR22zZ470dNPkIf9PpjQXXdTBjG2"}];
 const contents: LocalContentDataInput[] = [
