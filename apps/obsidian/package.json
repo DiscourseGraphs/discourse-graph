@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "tsx scripts/dev.ts",
     "build": "tsx scripts/build.ts",
+    "lint": "eslint .",
     "publish": "tsx scripts/publish-obsidian.ts"
   },
   "keywords": [],
@@ -14,9 +15,7 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@octokit/core": "^6.1.2",
-    "@types/node": "^16.11.6",
-    "@typescript-eslint/eslint-plugin": "5.29.0",
-    "@typescript-eslint/parser": "5.29.0",
+    "@types/node": "^20",
     "autoprefixer": "^10.4.21",
     "builtin-modules": "3.3.0",
     "dotenv": "^16.4.5",
@@ -24,9 +23,9 @@
     "obsidian": "^1.7.2",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
-    "tslib": "2.4.0",
+    "tslib": "2.5.1",
     "tsx": "^4.19.2",
-    "typescript": "4.7.4"
+    "typescript": "5.5.4"
   },
   "dependencies": {
     "react": "^19.0.0",
