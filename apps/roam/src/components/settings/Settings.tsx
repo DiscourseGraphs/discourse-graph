@@ -97,8 +97,20 @@ export const SettingsDialog = ({
           .dg-settings-tabs .bp3-tab-list {
             overflow-y: auto;
             max-height: 100%;
+            /* Firefox */
             scrollbar-width: thin;
             scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+            /* Webkit browsers */
+            &::-webkit-scrollbar {
+              width: 6px;
+            }
+            &::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            &::-webkit-scrollbar-thumb {
+              background-color: rgba(0, 0, 0, 0.2);
+              border-radius: 3px;
+            }
           }
         `}</style>
         <Tabs
