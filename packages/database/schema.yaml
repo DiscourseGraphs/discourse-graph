@@ -280,7 +280,7 @@ classes:
   #     - abstract
   ContentEmbedding:
     description: An embedding for a piece of content.
-    # abstract: true
+    abstract: true
     attributes:
       target:
         range: Content
@@ -299,6 +299,9 @@ classes:
         description: Whether this embedding is obsolete (becauses the Content was modified)
         range: boolean
         ifabsent: 'false'
+  ContentEmbedding_openai_text_embedding_3_small_1536:
+    is_a: ContentEmbedding
+    description: The table for the openai text_embedding_3_small model (1536 dimensions)
   Concept:
     description: An abstract concept, claim or relation
     slots:

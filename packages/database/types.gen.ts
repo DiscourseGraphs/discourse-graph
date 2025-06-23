@@ -72,7 +72,7 @@ export type Database = {
       }
       Concept: {
         Row: {
-          arity: number
+          arity: number | null
           author_id: number | null
           created: string
           description: string | null
@@ -89,7 +89,7 @@ export type Database = {
           space_id: number
         }
         Insert: {
-          arity?: number
+          arity?: number | null
           author_id?: number | null
           created: string
           description?: string | null
@@ -106,7 +106,7 @@ export type Database = {
           space_id: number
         }
         Update: {
-          arity?: number
+          arity?: number | null
           author_id?: number | null
           created?: string
           description?: string | null
@@ -505,6 +505,63 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _local_concept_to_db_concept: {
+        Args: {
+          data: Database["public"]["CompositeTypes"]["concept_local_input"]
+        }
+        Returns: {
+          arity: number | null
+          author_id: number | null
+          created: string
+          description: string | null
+          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
+          id: number
+          is_schema: boolean
+          last_modified: string
+          literal_content: Json
+          name: string
+          reference_content: Json
+          refs: number[]
+          represented_by_id: number | null
+          schema_id: number | null
+          space_id: number
+        }
+      }
+      _local_content_to_db_content: {
+        Args: {
+          data: Database["public"]["CompositeTypes"]["content_local_input"]
+        }
+        Returns: {
+          author_id: number | null
+          created: string
+          creator_id: number | null
+          document_id: number
+          id: number
+          last_modified: string
+          metadata: Json
+          part_of_id: number | null
+          scale: Database["public"]["Enums"]["Scale"]
+          source_local_id: string | null
+          space_id: number | null
+          text: string
+        }
+      }
+      _local_document_to_db_document: {
+        Args: {
+          data: Database["public"]["CompositeTypes"]["document_local_input"]
+        }
+        Returns: {
+          author_id: number
+          contents: unknown | null
+          created: string
+          id: number
+          last_modified: string
+          metadata: Json
+          source_local_id: string | null
+          space_id: number | null
+          url: string | null
+        }
+      }
       alpha_delete_by_source_local_ids: {
         Args: { p_space_name: string; p_source_local_ids: string[] }
         Returns: string
@@ -524,6 +581,18 @@ export type Database = {
         }
         Returns: string
       }
+      compute_arity_id: {
+        Args: { p_schema_id: number }
+        Returns: number
+      }
+      compute_arity_lit: {
+        Args: { lit_content: Json }
+        Returns: number
+      }
+      compute_arity_local: {
+        Args: { schema_id: number; lit_content: Json }
+        Returns: number
+      }
       end_sync_task: {
         Args: {
           s_target: number
@@ -542,28 +611,6 @@ export type Database = {
         Returns: {
           uid_to_sync: string
         }[]
-      }
-      _local_concept_to_db_concept: {
-        Args: {
-          data: Database["public"]["CompositeTypes"]["concept_local_input"]
-        }
-        Returns: {
-          arity: number
-          author_id: number | null
-          created: string
-          description: string | null
-          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
-          id: number
-          is_schema: boolean
-          last_modified: string
-          literal_content: Json
-          name: string
-          reference_content: Json
-          refs: number[]
-          represented_by_id: number | null
-          schema_id: number | null
-          space_id: number
-        }
       }
       match_content_embeddings: {
         Args: {
@@ -596,11 +643,24 @@ export type Database = {
           timeout: unknown
           task_interval: unknown
         }
-        Returns: unknown
+        Returns: string
       }
       upsert_concepts: {
         Args: { v_space_id: number; data: Json }
         Returns: number[]
+      }
+      upsert_content: {
+        Args: {
+          v_space_id: number
+          data: Json
+          v_creator_id: number
+          content_as_document?: boolean
+        }
+        Returns: number[]
+      }
+      upsert_content_embedding: {
+        Args: { content_id: number; model: string; embedding_array: number[] }
+        Returns: undefined
       }
       upsert_discourse_nodes: {
         Args: {
@@ -621,6 +681,17 @@ export type Database = {
           embedding_created: boolean
           action: string
         }[]
+      }
+      upsert_documents: {
+        Args: { v_space_id: number; data: Json }
+        Returns: number[]
+      }
+      upsert_platform_account_input: {
+        Args: {
+          account_info: Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          p_platform: Database["public"]["Enums"]["Platform"]
+        }
+        Returns: number
       }
     }
     Enums: {
@@ -688,6 +759,55 @@ export type Database = {
         schema_represented_by_local_id: string | null
         space_url: string | null
         local_reference_content: Json | null
+      }
+      content_local_input: {
+        document_id: number | null
+        source_local_id: string | null
+        author_id: number | null
+        creator_id: number | null
+        created: string | null
+        text: string | null
+        metadata: Json | null
+        scale: Database["public"]["Enums"]["Scale"] | null
+        space_id: number | null
+        last_modified: string | null
+        part_of_id: number | null
+        document_local_id: string | null
+        creator_local_id: string | null
+        author_local_id: string | null
+        part_of_local_id: string | null
+        space_url: string | null
+        document_inline:
+          | Database["public"]["CompositeTypes"]["document_local_input"]
+          | null
+        author_inline:
+          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | null
+        creator_inline:
+          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | null
+        embedding_inline:
+          | Database["public"]["CompositeTypes"]["inline_embedding_input"]
+          | null
+      }
+      document_local_input: {
+        space_id: number | null
+        source_local_id: string | null
+        url: string | null
+        created: string | null
+        metadata: Json | null
+        last_modified: string | null
+        author_id: number | null
+        contents: unknown | null
+        author_local_id: string | null
+        space_url: string | null
+        author_inline:
+          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | null
+      }
+      inline_embedding_input: {
+        model: string | null
+        vector: number[] | null
       }
     }
   }
