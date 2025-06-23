@@ -55,12 +55,13 @@ export async function POST(request: NextRequest) {
   console.log(
     "[API Route] POST /api/supabase/rpc/get-last-update-time: Request received",
   );
-  const supabase = await createClient();
   let response: NextResponse;
 
   try {
     const body: RequestBody = await request.json();
     console.log("[API Route] POST: Parsed request body:", body);
+
+    const supabase = await createClient();
 
     console.log("[API Route] POST: Calling callGetLastUpdateTimeRpc.");
     const { data, error } = await callGetLastUpdateTimeRpc(supabase, body);
