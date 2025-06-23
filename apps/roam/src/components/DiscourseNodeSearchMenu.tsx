@@ -404,6 +404,15 @@ const NodeSearchMenu = ({
       modifiers={{
         flip: { enabled: true },
         preventOverflow: { enabled: true },
+        offset: {
+          enabled: true,
+          fn: (data) => {
+            if (data.placement.startsWith("top")) {
+              data.offsets.popper.top -= 30;
+            }
+            return data;
+          },
+        },
       }}
       autoFocus={false}
       content={
