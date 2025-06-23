@@ -29,15 +29,13 @@ import apiPost from "roamjs-components/util/apiPost";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getExtensionAPI from "roamjs-components/util/extensionApiContext";
-import getBlockProps from "~/utils/getBlockProps";
+import getBlockProps from "../utils/getBlockProps";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
-import findDiscourseNode from "~/utils/findDiscourseNode";
-import { createShapeId } from "@tldraw/tlschema";
-import { MAX_WIDTH } from "./canvas/Tldraw";
-import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
+import findDiscourseNode from "../utils/findDiscourseNode";
+import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 import { Column } from "~/utils/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { getNodeEnv } from "roamjs-components/util/env";
@@ -46,8 +44,10 @@ import apiPut from "roamjs-components/util/apiPut";
 import { ExportGithub } from "./ExportGithub";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import createPage from "roamjs-components/writes/createPage";
-import { createInitialTldrawProps } from "~/utils/createInitialTldrawProps";
-import { isCanvasPage as checkIfCanvasPage } from "~/utils/isCanvasPage";
+import { createShapeId, IndexKey, TLParentId } from "tldraw";
+import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
+import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
+import { MAX_WIDTH } from "~/components/canvas/Tldraw";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 
@@ -145,14 +145,18 @@ const ExportDialog: ExportDialogComponent = ({
   const [activeExportDestination, setActiveExportDestination] =
     useState<string>(EXPORT_DESTINATIONS[0].id);
 
+  const checkForCanvasPage = (title: string) => {
+    const canvasPageFormat =
+      (getExtensionAPI().settings.get("canvas-page-format") as string) ||
+      DEFAULT_CANVAS_PAGE_FORMAT;
+    return new RegExp(`^${canvasPageFormat}$`.replace(/\*/g, ".+")).test(title);
+  };
   const firstColumnKey = columns?.[0]?.key || "text";
   const currentPageUid = getCurrentPageUid();
   const currentPageTitle = getPageTitleByPageUid(currentPageUid);
   const [selectedPageTitle, setSelectedPageTitle] = useState(currentPageTitle);
   const [selectedPageUid, setSelectedPageUid] = useState(currentPageUid);
-  const isCanvasPage = checkIfCanvasPage({
-    title: selectedPageTitle,
-  });
+  const isCanvasPage = checkForCanvasPage(selectedPageTitle);
   const [activeSendToDestination, setActiveSendToDestination] =
     useState<(typeof SEND_TO_DESTINATIONS)[number]>("page");
   const isSendToGraph = activeSendToDestination === "graph";
@@ -224,23 +228,39 @@ const ExportDialog: ExportDialogComponent = ({
     const MAX_COLUMNS = 5;
     const COLUMN_WIDTH = Number(MAX_WIDTH.replace("px", ""));
     const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
-    const tldraw =
-      (rjsqb?.["tldraw"] as Record<string, unknown>) ||
-      createInitialTldrawProps();
+    const tldraw = (rjsqb?.["tldraw"] as Record<string, unknown>) || {
+      "document:document": {
+        gridSize: 10,
+        name: "",
+        meta: {},
+        id: "document:document",
+        typeName: "document",
+      },
+      "page:page": {
+        meta: {},
+        id: "page:page",
+        name: "Page 1",
+        index: "a1",
+        typeName: "page",
+      },
+    };
 
-    const getPageKey = (obj: Record<string, unknown>): string => {
+    const getPageKey = (
+      obj: Record<string, unknown>,
+    ): TLParentId | undefined => {
       for (const key in obj) {
         if (
           obj[key] &&
           typeof obj[key] === "object" &&
           (obj[key] as any)["typeName"] === "page"
         ) {
-          return key;
+          return key as TLParentId;
         }
       }
-      return "";
+      return undefined;
     };
     const pageKey = getPageKey(tldraw);
+    if (!pageKey) return console.log("no page key");
 
     type TLdrawProps = {
       [key: string]: any;
@@ -311,7 +331,8 @@ const ExportDialog: ExportDialogComponent = ({
         extensionAPI,
       });
       const newShapeId = createShapeId();
-      const newShape = {
+      const newShape: DiscourseNodeShape = {
+        index: "a1" as IndexKey, // TODO does this need to be unique?
         rotation: 0,
         isLocked: false,
         type: nodeType,
@@ -319,7 +340,7 @@ const ExportDialog: ExportDialogComponent = ({
           w,
           h,
           uid: r.uid,
-          title: r[firstColumnKey],
+          title: String(r[firstColumnKey]),
           imageUrl,
         },
         parentId: pageKey,
@@ -327,6 +348,8 @@ const ExportDialog: ExportDialogComponent = ({
         id: newShapeId,
         typeName: "shape",
         x: commonBounds.right + nextShapeX,
+        meta: {},
+        opacity: 1,
       };
 
       nextShapeX += COLUMN_WIDTH + PADDING_BETWEEN_SHAPES;

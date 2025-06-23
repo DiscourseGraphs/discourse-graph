@@ -18,7 +18,7 @@
     "@types/react-vertical-timeline-component": "^3.3.3",
     "axios": "^0.27.2",
     "esbuild": "0.17.14",
-    "patch-package": "^6.5.1",
+    "patch-package": "^8.0.0",
     "tsx": "^4.19.2"
   },
   "//": "axios dep temporary - need to fix the dep in underlying libraries",
@@ -32,7 +32,7 @@
     "@repo/types": "*",
     "@supabase/auth-js": "^2.70.0",
     "@supabase/supabase-js": "^2.50.0",
-    "@tldraw/tldraw": "^2.0.0-alpha.12",
+    "tldraw": "2.3.0",
     "@vercel/blob": "^0.27.0",
     "contrast-color": "^1.0.1",
     "cytoscape-navigator": "^2.0.1",
@@ -42,13 +42,6 @@
     "react-draggable": "^4.4.5",
     "react-in-viewport": "^1.0.0-alpha.20",
     "react-vertical-timeline-component": "^3.5.2",
-    "roamjs-components": "^0.85.1",
-    "signia-react": "^0.1.1"
-  },
-  "overrides": {
-    "@tldraw/tldraw": {
-      "react": "^17.0.2",
-      "react-dom": "^17.0.2"
-    }
+    "roamjs-components": "^0.85.1"
   }
 }
