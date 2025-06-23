@@ -225,7 +225,7 @@ export const orderConceptsByDependency = (
   const ordered: LocalConceptDataInput[] = [];
   let missing: Set<string> = new Set();
   while (Object.keys(conceptById).length > 0) {
-    const first = conceptById[concepts[0].represented_by_local_id!];
+    const first = Object.values(conceptById)[0];
     missing = missing.union(orderConceptsRec(ordered, first, conceptById));
   }
   return { ordered, missing: [...missing] };
