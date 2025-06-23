@@ -1,6 +1,6 @@
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import { OnloadArgs, TreeNode } from "roamjs-components/types";
-import { DEFAULT_STYLE_PROPS, MAX_WIDTH } from "~/components/canvas/Tldraw";
+import { MAX_WIDTH } from "~/components/canvas/Tldraw";
 import { measureCanvasNodeText } from "./measureCanvasNodeText";
 import resolveQueryBuilderRef from "./resolveQueryBuilderRef";
 import runQuery from "./runQuery";
@@ -8,7 +8,7 @@ import getDiscourseNodes from "./getDiscourseNodes";
 import resolveRefs from "roamjs-components/dom/resolveRefs";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { loadImage } from "./loadImage";
-import sendErrorEmail from "./sendErrorEmail";
+import { DEFAULT_STYLE_PROPS } from "~/components/canvas/DiscourseNodeUtil";
 
 const extractFirstImageUrl = (text: string): string | null => {
   const regex = /!\[.*?\]\((https:\/\/[^)]+)\)/;
@@ -97,20 +97,10 @@ const calcCanvasNodeSizeAndImg = async ({
       h: h + nodeImageHeight + padding * 2,
       imageUrl,
     };
-  } catch (e) {
-    const error = e as Error;
-    sendErrorEmail({
-      error,
-      type: "Canvas Node Image Load Failed",
-      context: {
-        uid,
-        nodeType,
-        imageUrl,
-      },
-    });
+  } catch {
     renderToast({
       id: "tldraw-image-load-fail",
-      content: error.message,
+      content: "Failed to load image",
       intent: "warning",
     });
     return { w, h, imageUrl: "" };
