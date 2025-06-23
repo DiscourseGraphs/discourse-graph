@@ -11,7 +11,7 @@ import {
 type ApiParams = Promise<{ target: string; fn: string; worker: string }>;
 export type SegmentDataType = { params: ApiParams };
 
-// POST the task status to the /supabase/sync_task/{function_name}/{target}/{worker} endpoint
+// POST the task status to the /supabase/sync-task/{function_name}/{target}/{worker} endpoint
 export const POST = async (
   request: NextRequest,
   segmentData: SegmentDataType,
@@ -50,6 +50,6 @@ export const POST = async (
 
     return createApiResponse(request, response);
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/supabase/sync_task");
+    return handleRouteError(request, e, "/api/supabase/sync-task");
   }
 };

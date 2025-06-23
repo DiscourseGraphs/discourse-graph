@@ -22,7 +22,7 @@ const SYNC_DEFAULTS: Partial<SyncTaskInfo> = {
 type ApiParams = Promise<{ target: string; fn: string }>;
 export type SegmentDataType = { params: ApiParams };
 
-// POST with the SyncTaskInfo to the /supabase/sync_task/{function_name}/{target} endpoint
+// POST with the SyncTaskInfo to the /supabase/sync-task/{function_name}/{target} endpoint
 export const POST = async (
   request: NextRequest,
   segmentData: SegmentDataType,
@@ -62,7 +62,7 @@ export const POST = async (
   }
 };
 
-// GET the sync_info table from /supabase/sync_task/{function_name}/{target} (should not be necessary)
+// GET the sync_info table from /supabase/sync-task/{function_name}/{target} (should not be necessary)
 export const GET = async (
   request: NextRequest,
   segmentData: SegmentDataType,
