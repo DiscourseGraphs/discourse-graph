@@ -15,7 +15,7 @@ const InlineSuggestions = ({
   const { loading, results } = useDiscourseData(tag);
 
   return (
-    <div className="roamjs-discourse-inline-suggestions rounded-md bg-blue-50 p-2">
+    <div className="roamjs-discourse-inline-suggestions rounded-md border border-blue-200 bg-white p-2">
       {loading ? (
         <Spinner size={Spinner.SIZE_SMALL} />
       ) : (

@@ -32,7 +32,6 @@ const DiscourseContextOverlay = ({
   id: string;
   parentEl: HTMLElement;
 }) => {
-  console.log("DiscourseContextOverlay", tag);
   const blockUid = useMemo(() => getBlockUidFromTarget(parentEl), [parentEl]);
 
   const { loading, results, refs, score, tagUid } = useDiscourseData(tag);

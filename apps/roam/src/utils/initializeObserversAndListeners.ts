@@ -106,9 +106,13 @@ export const initObservers = async ({
           return;
         }
 
-        const firstChildBlockInput =
-          childrenContainer.querySelector<HTMLElement>(".rm-block__input");
-        const tag = firstChildBlockInput?.textContent?.trim();
+        const candidateInputs = Array.from(
+          childrenContainer.querySelectorAll<HTMLElement>(".rm-block__input"),
+        );
+        const tagBlockInput = candidateInputs.find((el) =>
+          el.querySelector(".rm-page-ref"),
+        ) as HTMLElement | undefined;
+        const tag = tagBlockInput?.textContent?.trim();
 
         if (!tag) {
           console.error(
@@ -117,20 +121,29 @@ export const initObservers = async ({
           return;
         }
 
-        // Hide the child block containing the tag
         childrenContainer.style.display = "none";
 
         const blockInput = btn.closest(".rm-block__input");
         if (!blockInput) {
           return;
         }
-        // By clearing the input and appending our placeholder, we ensure our component
-        // is the only thing inside the block's main text area.
         blockInput.innerHTML = "";
         const placeholder = document.createElement("div");
         blockInput.appendChild(placeholder);
 
-        const blockUid = getBlockUidFromTarget(blockContainer);
+        const parentBlockContainer =
+          blockContainer.parentElement?.closest<HTMLElement>(
+            ".roam-block-container",
+          );
+
+        const parentBlockInput =
+          parentBlockContainer?.querySelector<HTMLElement>(".rm-block__input");
+
+        const blockUid = getBlockUidFromTarget(
+          (parentBlockInput as HTMLElement) ||
+            parentBlockContainer ||
+            blockContainer,
+        );
         renderInlineSuggestions({ parent: placeholder, tag, blockUid });
       }, 50);
     },
