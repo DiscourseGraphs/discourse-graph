@@ -93,13 +93,22 @@ export const SettingsDialog = ({
       className="relative bg-white"
     >
       <div className={Classes.DIALOG_BODY}>
+        <style>{`
+          .dg-settings-tabs .bp3-tab-list {
+            overflow-y: auto;
+            max-height: 100%;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+          }
+        `}</style>
         <Tabs
+          className="dg-settings-tabs flex h-full"
           onChange={(id) => setSelectedTabId(id)}
           selectedTabId={selectedTabId}
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
-          <div className="mb-2 text-lg font-semibold text-neutral-dark">
+          <div className="pb-8 text-lg font-semibold text-neutral-dark">
             Personal Settings
           </div>
           <Tab
@@ -114,7 +123,7 @@ export const SettingsDialog = ({
             className="mb-8 overflow-y-auto"
             panel={<QuerySettings extensionAPI={extensionAPI} />}
           />
-          <div className="text-lg font-semibold text-neutral-dark">
+          <div className="pb-8 text-lg font-semibold text-neutral-dark">
             Global Settings
           </div>
           <Tab
