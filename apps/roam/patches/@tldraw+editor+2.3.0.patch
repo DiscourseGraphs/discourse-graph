@@ -1,0 +1,47 @@
+diff --git a/node_modules/@tldraw/editor/dist-esm/lib/editor/Editor.mjs b/node_modules/@tldraw/editor/dist-esm/lib/editor/Editor.mjs
+index 2789a72..398c086 100644
+--- a/node_modules/@tldraw/editor/dist-esm/lib/editor/Editor.mjs
++++ b/node_modules/@tldraw/editor/dist-esm/lib/editor/Editor.mjs
+@@ -53,7 +53,8 @@ import {
+ } from "@tldraw/utils";
+ import EventEmitter from "eventemitter3";
+ import { flushSync } from "react-dom";
+-import { createRoot } from "react-dom/client";
++// import { createRoot } from "react-dom/client";
++import ReactDOM from 'react-dom';
+ import { getSnapshot, loadSnapshot } from "../config/TLEditorSnapshot.mjs";
+ import { createTLUser } from "../config/createTLUser.mjs";
+ import { checkBindings } from "../config/defaultBindings.mjs";
+@@ -6110,18 +6111,23 @@ class Editor extends EventEmitter {
+    *
+    * @public
+    */
++  // query builder note
++  // react-dom/client is from React 18
++  // we only have access to 17.0.2
+   async getSvgElement(shapes, opts = {}) {
+     const result = await getSvgJsx(this, shapes, opts);
+-    if (!result)
+-      return void 0;
++    if (!result) return undefined;
++  
+     const fragment = document.createDocumentFragment();
+-    const root = createRoot(fragment);
+-    flushSync(() => {
+-      root.render(result.jsx);
+-    });
+-    const svg = fragment.firstElementChild;
+-    assert(svg instanceof SVGSVGElement, "Expected an SVG element");
+-    root.unmount();
++    const container = document.createElement('div'); 
++    fragment.appendChild(container);
++  
++    ReactDOM.render(result.jsx, container); 
++  
++    const svg = container.firstElementChild; 
++    assert(svg instanceof SVGSVGElement, 'Expected an SVG element');
++  
++    ReactDOM.unmountComponentAtNode(container);
+     return { svg, width: result.width, height: result.height };
+   }
+   /**
