@@ -1,10 +1,9 @@
 import { DiscourseNode } from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
-import { Database } from "@repo/database/types.gen";
 import type { SupabaseContext } from "~/utils/supabaseContext";
 
-import type { LocalConceptDataInput } from "@repo/database/input_types";
+import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 
 const getNodeExtraData = (
   node_uid: string,
@@ -69,22 +68,22 @@ export const discourseNodeSchemaToLocalConcept = (
 export const discourseNodeBlockToLocalConcept = (
   context: SupabaseContext,
   {
-    node_uid,
-    schema_uid,
+    nodeUid,
+    schemaUid,
     text,
   }: {
-    node_uid: string;
-    schema_uid: string;
+    nodeUid: string;
+    schemaUid: string;
     text: string;
   },
 ): LocalConceptDataInput => {
   return {
     space_id: context.spaceId,
     name: text,
-    represented_by_local_id: node_uid,
-    schema_represented_by_local_id: schema_uid,
+    represented_by_local_id: nodeUid,
+    schema_represented_by_local_id: schemaUid,
     is_schema: false,
-    ...getNodeExtraData(node_uid),
+    ...getNodeExtraData(nodeUid),
   };
 };
 
