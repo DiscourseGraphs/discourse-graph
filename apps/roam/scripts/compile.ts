@@ -129,6 +129,10 @@ export const compile = ({
       outdir,
       bundle: true,
       format,
+      define: {
+        SUPABASE_URL: JSON.stringify(process.env.SUPABASE_URL!),
+        SUPABASE_ANON_KEY: JSON.stringify(process.env.SUPABASE_ANON_KEY!)
+      },
       sourcemap: process.env.NODE_ENV === "production" ? undefined : "inline",
       minify: process.env.NODE_ENV === "production",
       entryNames: out,
