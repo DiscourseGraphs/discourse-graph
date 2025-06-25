@@ -4,13 +4,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import prettier from "eslint-config-prettier";
-import turbo from "eslint-plugin-turbo";
 import onlyWarn from "eslint-plugin-only-warn";
 import vercel from "@vercel/style-guide/eslint/next";
 import globals from "globals";
 import next_eslint from "@next/eslint-plugin-next";
-
-const project = resolve(process.cwd(), "tsconfig.json");
 
 // this could just be import.meta.dirname if we set minimun node to 20.11
 const __filename = fileURLToPath(import.meta.url);
@@ -39,9 +36,10 @@ export default [
         React: true,
         JSX: true,
       },
+      // IMPORTANT: This is given as an example, but must be repeated in each project. Cwd fails in editors.
       parserOptions: {
         project: true,
-        tsconfigRootDir: path.dirname(project),
+        tsconfigRootDir: ".",
         ecmaFeatures: {
           jsx: true,
         },
@@ -51,7 +49,7 @@ export default [
     settings: {
       "import/resolver": {
         typescript: {
-          project,
+          project: "tsconfig.lint.json",
         },
       },
     },
