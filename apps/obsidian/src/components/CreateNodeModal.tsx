@@ -34,7 +34,7 @@ export function CreateNodeForm({
     }, 50);
   }, []);
 
-  const isFormValid = title.trim() !== "" && selectedNodeType !== null;
+  const isFormValid = title.trim() && selectedNodeType;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey && isFormValid && !isSubmitting) {
@@ -47,8 +47,8 @@ export function CreateNodeForm({
   };
 
   const handleNodeTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const nodeType = nodeTypes.find((type) => type.id === e.target.value);
-    setSelectedNodeType(nodeType || null);
+    const selectedId = e.target.value;
+    setSelectedNodeType(nodeTypes.find((nt) => nt.id === selectedId) || null);
   };
 
   const handleConfirm = async () => {

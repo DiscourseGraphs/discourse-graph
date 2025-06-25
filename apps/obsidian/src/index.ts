@@ -5,7 +5,7 @@ import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import {
-  convertToDiscourseNode,
+  convertPageToDiscourseNode,
   createDiscourseNode,
 } from "~/utils/createNode";
 import { DEFAULT_SETTINGS } from "~/constants";
@@ -48,7 +48,6 @@ export default class DiscourseGraphPlugin extends Plugin {
             menuItem.setTitle("Convert into");
             menuItem.setIcon("file-type");
 
-            // Create submenu using the unofficial API pattern
             // @ts-ignore - setSubmenu is not officially in the API but works
             const submenu = menuItem.setSubmenu();
 
@@ -64,7 +63,7 @@ export default class DiscourseGraphPlugin extends Plugin {
                       initialTitle: file.basename,
                       initialNodeType: nodeType,
                       onNodeCreate: async (nodeType, title) => {
-                        await convertToDiscourseNode({
+                        await convertPageToDiscourseNode({
                           plugin: this,
                           file,
                           nodeType,

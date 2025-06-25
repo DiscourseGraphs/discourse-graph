@@ -140,7 +140,7 @@ export const createDiscourseNode = async ({
   return newFile;
 };
 
-export const convertToDiscourseNode = async ({
+export const convertPageToDiscourseNode = async ({
   plugin,
   file,
   nodeType,
