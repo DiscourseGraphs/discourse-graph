@@ -24,11 +24,12 @@ export const normalizeProps = (props: json): json =>
           )
     : props;
 
+export const getRawBlockProps = (uid: string) =>
+  (window.roamAlphaAPI.pull("[:block/props]", [":block/uid", uid])?.[
+    ":block/props"
+  ] || {}) as Record<string, json>;
+
 const getBlockProps = (uid: string) =>
-  normalizeProps(
-    (window.roamAlphaAPI.pull("[:block/props]", [":block/uid", uid])?.[
-      ":block/props"
-    ] || {}) as Record<string, json>,
-  ) as Record<string, json>;
+  normalizeProps(getRawBlockProps(uid)) as Record<string, json>;
 
 export default getBlockProps;
