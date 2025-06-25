@@ -166,10 +166,12 @@ export const convertPageToDiscourseNode = async ({
       fm.nodeTypeId = nodeType.id;
     });
 
-    if (formattedNodeName !== file.basename) {
-      const newPath = file.path.replace(file.basename, formattedNodeName);
+      const dirPath = file.parent?.path ?? "";
+      const newPath = dirPath
+        ? `${dirPath}/${formattedNodeName}.md`
+        : `${formattedNodeName}.md`;
       await plugin.app.fileManager.renameFile(file, newPath);
-    }
+
 
     new Notice("Converted page to discourse node", 10000);
   } catch (error) {
