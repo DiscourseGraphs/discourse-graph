@@ -1,4 +1,21 @@
 import base from "@repo/eslint-config/next.js";
-import parser from "@typescript-eslint/parser";
 
-export default base;
+export default [
+  ...base,
+  {
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: ".",
+        project: true,
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+  },
+  {
+    ignores: [".next/**"],
+  },
+];
+
+
