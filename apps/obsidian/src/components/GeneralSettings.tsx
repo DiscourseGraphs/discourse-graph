@@ -123,7 +123,7 @@ const GeneralSettings = () => {
           <FolderSuggestInput
             value={nodesFolderPath}
             onChange={handleFolderPathChange}
-            placeholder="Discourse Nodes"
+            placeholder="Example: folder 1/folder"
           />
         </div>
       </div>
