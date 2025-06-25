@@ -1,0 +1,27 @@
+{
+  "folders": [
+    {
+      "path": ".",
+    },
+    {
+      "path": "./apps/obsidian",
+    },
+    {
+      "path": "./apps/roam",
+    },
+    {
+      "path": "./apps/website",
+    },
+    {
+      "path": "./packages/database",
+    },
+    {
+      "path": "./packages/ui",
+    },
+  ],
+  "settings": {
+    "files.watcherExclude": {
+      "**/target": true,
+    },
+  },
+}
