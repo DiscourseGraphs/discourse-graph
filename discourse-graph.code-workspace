@@ -22,6 +22,8 @@
   "settings": {
     "files.watcherExclude": {
       "**/target": true,
+      "**/dist": true,
+      "**/next": true,
     },
   },
 }

@@ -2,6 +2,7 @@
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "noEmit": true
   },
   "include": ["."],
   "exclude": ["supabase"]
