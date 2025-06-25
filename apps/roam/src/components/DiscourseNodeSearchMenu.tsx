@@ -67,6 +67,7 @@ const NodeSearchMenu = ({
   );
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const POPOVER_TOP_OFFSET = 30;
 
   const debouncedSearchTerm = useCallback((term: string) => {
     if (searchTimeoutRef.current) {
@@ -404,6 +405,15 @@ const NodeSearchMenu = ({
       modifiers={{
         flip: { enabled: true },
         preventOverflow: { enabled: true },
+        offset: {
+          enabled: true,
+          fn: (data) => {
+            if (data.placement?.startsWith("top") && data.offsets?.popper) {
+              data.offsets.popper.top -= POPOVER_TOP_OFFSET;
+            }
+            return data;
+          },
+        },
       }}
       autoFocus={false}
       content={
