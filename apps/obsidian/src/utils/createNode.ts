@@ -139,3 +139,46 @@ export const createDiscourseNode = async ({
 
   return newFile;
 };
+
+export const convertPageToDiscourseNode = async ({
+  plugin,
+  file,
+  nodeType,
+}: {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+  nodeType: DiscourseNode;
+}): Promise<void> => {
+  try {
+    const formattedNodeName = formatNodeName(file.basename, nodeType);
+    if (!formattedNodeName) {
+      new Notice("Failed to format node name", 3000);
+      return;
+    }
+
+    const isFilenameValid = checkInvalidChars(formattedNodeName);
+    if (!isFilenameValid.isValid) {
+      new Notice(`${isFilenameValid.error}`, 5000);
+      return;
+    }
+
+    await plugin.app.fileManager.processFrontMatter(file, (fm) => {
+      fm.nodeTypeId = nodeType.id;
+    });
+
+      const dirPath = file.parent?.path ?? "";
+      const newPath = dirPath
+        ? `${dirPath}/${formattedNodeName}.md`
+        : `${formattedNodeName}.md`;
+      await plugin.app.fileManager.renameFile(file, newPath);
+
+
+    new Notice("Converted page to discourse node", 10000);
+  } catch (error) {
+    console.error("Error converting to discourse node:", error);
+    new Notice(
+      `Error converting to discourse node: ${error instanceof Error ? error.message : String(error)}`,
+      5000,
+    );
+  }
+};
