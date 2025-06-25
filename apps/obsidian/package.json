@@ -8,6 +8,7 @@
     "dev": "tsx scripts/dev.ts",
     "build": "tsx scripts/build.ts",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "publish": "tsx scripts/publish-obsidian.ts"
   },
   "keywords": [],
