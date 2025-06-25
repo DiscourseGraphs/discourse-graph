@@ -1,14 +1,14 @@
 create table "access_token" (
-  request_id varchar primary key,
-  -- TODO encrypt this (look into supabase vault)
-  access_token varchar not null,
-  code varchar,
-  platform_account_id bigint,
-  created_date timestamp with time zone default timezone('utc'::text, now()) not null,
-  constraint access_token_code_check check (
-    code is not null
-  ),
-  constraint access_token_platform_account_id_fkey foreign key (platform_account_id)
+    request_id varchar primary key,
+    -- TODO encrypt this (look into supabase vault)
+    access_token varchar not null,
+    code varchar,
+    platform_account_id bigint,
+    created_date timestamp with time zone default timezone('utc'::text, now()) not null,
+    constraint access_token_code_check check (
+        code is not null
+    ),
+    constraint access_token_platform_account_id_fkey foreign key (platform_account_id)
     references public."PlatformAccount" (id) on update cascade on delete set null
 );
 

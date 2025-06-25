@@ -23,14 +23,14 @@ CREATE TABLE IF NOT EXISTS public."PlatformAccount" (
         'public.entity_id_seq'::regclass
     ) NOT NULL PRIMARY KEY,
     name VARCHAR NOT NULL,
-	platform public."Platform" NOT NULL,
+    platform public."Platform" NOT NULL,
     account_local_id VARCHAR NOT NULL,
-	write_permission BOOLEAN NOT NULL DEFAULT true,
-	active BOOLEAN NOT NULL DEFAULT true,
-	agent_type public."AgentType" NOT NULL DEFAULT 'person',
-	metadata JSONB NOT NULL DEFAULT '{}',
-	dg_account UUID,
-	FOREIGN KEY(dg_account) REFERENCES auth.users (id) ON DELETE SET NULL ON UPDATE CASCADE
+    write_permission BOOLEAN NOT NULL DEFAULT true,
+    active BOOLEAN NOT NULL DEFAULT true,
+    agent_type public."AgentType" NOT NULL DEFAULT 'person',
+    metadata JSONB NOT NULL DEFAULT '{}',
+    dg_account UUID,
+    FOREIGN KEY (dg_account) REFERENCES auth.users (id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 ALTER TABLE public."PlatformAccount" OWNER TO "postgres";
@@ -45,12 +45,12 @@ GRANT ALL ON TABLE public."PlatformAccount" TO service_role;
 
 
 CREATE TABLE public."AgentIdentifier" (
-	identifier_type public."AgentIdentifierType" NOT NULL,
-	account_id BIGINT NOT NULL,
-	value VARCHAR NOT NULL,
+    identifier_type public."AgentIdentifierType" NOT NULL,
+    account_id BIGINT NOT NULL,
+    value VARCHAR NOT NULL,
     trusted BOOLEAN NOT NULL DEFAULT false,
     PRIMARY KEY (value, identifier_type, account_id),
-	FOREIGN KEY(account_id) REFERENCES public."PlatformAccount" (id)
+    FOREIGN KEY (account_id) REFERENCES public."PlatformAccount" (id)
 );
 
 ALTER TABLE public."AgentIdentifier" OWNER TO "postgres";
@@ -97,4 +97,3 @@ ADD CONSTRAINT "SpaceAccess_space_id_fkey" FOREIGN KEY (
 GRANT ALL ON TABLE public."SpaceAccess" TO anon;
 GRANT ALL ON TABLE public."SpaceAccess" TO authenticated;
 GRANT ALL ON TABLE public."SpaceAccess" TO service_role;
-
