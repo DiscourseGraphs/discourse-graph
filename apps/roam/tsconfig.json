@@ -1,6 +1,6 @@
 {
   "include": ["src", "src/types.d.ts", "tailwind.config.ts", "tests"],
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules", "dist"],
   "extends": "@repo/typescript-config/react-library.json",
   "compilerOptions": {
     "baseUrl": ".",
