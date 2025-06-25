@@ -1,11 +1,15 @@
-import { Plugin, Editor, Menu } from "obsidian";
+import { Plugin, Editor, Menu, TFile, Events } from "obsidian";
 import { SettingsTab } from "~/components/Settings";
 import { Settings } from "~/types";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
-import { createDiscourseNode } from "~/utils/createNode";
+import {
+  convertToDiscourseNode,
+  createDiscourseNode,
+} from "~/utils/createNode";
 import { DEFAULT_SETTINGS } from "~/constants";
+import { CreateNodeModal } from "~/components/CreateNodeModal";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -27,6 +31,53 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // Initialize frontmatter CSS
     this.updateFrontmatterStyles();
+
+    this.registerEvent(
+      // @ts-ignore - file-menu event exists but is not in the type definitions
+      this.app.workspace.on("file-menu", (menu: Menu, file: TFile) => {
+        const fileCache = this.app.metadataCache.getFileCache(file);
+        const fileNodeType = fileCache?.frontmatter?.nodeTypeId;
+
+        if (
+          !fileNodeType ||
+          !this.settings.nodeTypes.some(
+            (nodeType) => nodeType.id === fileNodeType,
+          )
+        ) {
+          menu.addItem((menuItem) => {
+            menuItem.setTitle("Convert into");
+            menuItem.setIcon("file-type");
+
+            // Create submenu using the unofficial API pattern
+            // @ts-ignore - setSubmenu is not officially in the API but works
+            const submenu = menuItem.setSubmenu();
+
+            this.settings.nodeTypes.forEach((nodeType) => {
+              submenu.addItem((item: any) => {
+                item
+                  .setTitle(nodeType.name)
+                  .setIcon("file-type")
+                  .onClick(() => {
+                    new CreateNodeModal(this.app, {
+                      nodeTypes: this.settings.nodeTypes,
+                      plugin: this,
+                      initialTitle: file.basename,
+                      initialNodeType: nodeType,
+                      onNodeCreate: async (nodeType, title) => {
+                        await convertToDiscourseNode({
+                          plugin: this,
+                          file,
+                          nodeType,
+                        });
+                      },
+                    }).open();
+                  });
+              });
+            });
+          });
+        }
+      }),
+    );
 
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu: Menu, editor: Editor) => {

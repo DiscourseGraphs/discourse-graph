@@ -9,6 +9,8 @@ type CreateNodeFormProps = {
   plugin: DiscourseGraphPlugin;
   onNodeCreate: (nodeType: DiscourseNode, title: string) => Promise<void>;
   onCancel: () => void;
+  initialTitle?: string;
+  initialNodeType?: DiscourseNode;
 };
 
 export function CreateNodeForm({
@@ -16,10 +18,12 @@ export function CreateNodeForm({
   plugin,
   onNodeCreate,
   onCancel,
+  initialTitle = "",
+  initialNodeType,
 }: CreateNodeFormProps) {
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initialTitle);
   const [selectedNodeType, setSelectedNodeType] =
-    useState<DiscourseNode | null>(null);
+    useState<DiscourseNode | null>(initialNodeType || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,10 +34,10 @@ export function CreateNodeForm({
     }, 50);
   }, []);
 
-  const isFormValid = title.trim() && selectedNodeType;
+  const isFormValid = title.trim() !== "" && selectedNodeType !== null;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && isFormValid && !isSubmitting) {
       e.preventDefault();
       handleConfirm();
     } else if (e.key === "Escape") {
@@ -43,8 +47,8 @@ export function CreateNodeForm({
   };
 
   const handleNodeTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedId = e.target.value;
-    setSelectedNodeType(nodeTypes.find((nt) => nt.id === selectedId) || null);
+    const nodeType = nodeTypes.find((type) => type.id === e.target.value);
+    setSelectedNodeType(nodeType || null);
   };
 
   const handleConfirm = async () => {
@@ -151,6 +155,8 @@ type CreateNodeModalProps = {
   nodeTypes: DiscourseNode[];
   plugin: DiscourseGraphPlugin;
   onNodeCreate: (nodeType: DiscourseNode, title: string) => Promise<void>;
+  initialTitle?: string;
+  initialNodeType?: DiscourseNode;
 };
 
 export class CreateNodeModal extends Modal {
@@ -161,12 +167,16 @@ export class CreateNodeModal extends Modal {
     title: string,
   ) => Promise<void>;
   private root: Root | null = null;
+  private initialTitle?: string;
+  private initialNodeType?: DiscourseNode;
 
   constructor(app: App, props: CreateNodeModalProps) {
     super(app);
     this.nodeTypes = props.nodeTypes;
     this.plugin = props.plugin;
     this.onNodeCreate = props.onNodeCreate;
+    this.initialTitle = props.initialTitle;
+    this.initialNodeType = props.initialNodeType;
   }
 
   onOpen() {
@@ -181,6 +191,8 @@ export class CreateNodeModal extends Modal {
           plugin={this.plugin}
           onNodeCreate={this.onNodeCreate}
           onCancel={() => this.close()}
+          initialTitle={this.initialTitle}
+          initialNodeType={this.initialNodeType}
         />
       </StrictMode>,
     );
