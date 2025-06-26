@@ -1,6 +1,16 @@
-import { DiscourseGraphContent } from "./types";
+type DiscourseGraphContent = {
+  author_local_id: string;
+  source_local_id: string;
+  scale: string;
+  created: string;
+  last_modified: string;
+  text: string;
+  model: string;
+  vector: number[];
+};
 
 const EMBEDDING_BATCH_SIZE = 100;
+const API_URL = `https://discoursegraphs.com/api/embeddings/openai/small`;
 
 type EmbeddingApiResponse = {
   data: {
@@ -11,19 +21,13 @@ type EmbeddingApiResponse = {
 export const fetchEmbeddingsForNodes = async (
   nodes: DiscourseGraphContent[],
 ): Promise<DiscourseGraphContent[]> => {
-  if (!nodes || nodes.length === 0) {
-    return [];
-  }
-
-  const apiUrl = `https://discoursegraphs.com/api/embeddings/openai/small`;
-
   const allEmbeddings: number[][] = [];
   const allNodesTexts = nodes.map((node) => node.text);
 
   for (let i = 0; i < allNodesTexts.length; i += EMBEDDING_BATCH_SIZE) {
     const batch = allNodesTexts.slice(i, i + EMBEDDING_BATCH_SIZE);
 
-    const response = await fetch(apiUrl, {
+    const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ input: batch }),
@@ -65,5 +69,5 @@ export const fetchEmbeddingsForNodes = async (
     ...node,
     model: "openai_text_embedding_3_small_1536",
     vector: allEmbeddings[i],
-  })) as DiscourseGraphContent[];
+  }));
 };
