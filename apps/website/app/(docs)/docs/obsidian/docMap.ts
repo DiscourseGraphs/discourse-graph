@@ -1,9 +1,6 @@
-import path from "path";
-
-// Base directories (relative to process.cwd())
 const OBSIDIAN_DOCS = "app/(docs)/docs/obsidian/pages";
 const ROAM_DOCS = "app/(docs)/docs/roam/pages";
-const SHARED_DOCS = "app/(docs)/docs/shared";
+const SHARED_DOCS = "app/(docs)/docs/sharedPages";
 
 type DocMapType = {
   default: string;
@@ -16,12 +13,13 @@ export const docMap: DocMapType = {
   default: OBSIDIAN_DOCS,
 
   // Fundamentals - use Roam docs
-  "what-is-discourse-graph": ROAM_DOCS,
-  grammar: ROAM_DOCS,
+  // TODO: use shared docs when restructure Roam docs too
+  "what-is-discourse-graph": SHARED_DOCS,
+  grammar: SHARED_DOCS,
 
-  // Use Cases - use Roam docs
-  "literature-reviewing": ROAM_DOCS,
-  "research-roadmapping": ROAM_DOCS,
-  "reading-clubs": ROAM_DOCS,
-  "lab-notebooks": ROAM_DOCS,
+  // TODO: use shared docs when restructure Roam docs too
+  "literature-reviewing": SHARED_DOCS,
+  "research-roadmapping": SHARED_DOCS,
+  "reading-clubs": SHARED_DOCS,
+  "lab-notebooks": SHARED_DOCS,
 };
