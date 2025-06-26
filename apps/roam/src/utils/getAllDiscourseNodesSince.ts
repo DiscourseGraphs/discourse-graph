@@ -1,18 +1,20 @@
-import isDiscourseNode from "./isDiscourseNode";
+import getDiscourseNodes from "./getDiscourseNodes";
+import findDiscourseNode from "./findDiscourseNode";
 
-export type DiscourseGraphContent = {
+type RoamDiscourseNodeData = {
   author_local_id: string;
   source_local_id: string;
-  scale: string;
   created: string;
   last_modified: string;
+  author_name: string;
   text: string;
 };
 
+type ISODateString = string;
+
 export const getAllDiscourseNodesSince = async (
-  since: string,
-): Promise<DiscourseGraphContent[]> => {
-  const roamAlpha = (window as any).roamAlphaAPI;
+  since: ISODateString,
+): Promise<RoamDiscourseNodeData[]> => {
   const sinceMs = new Date(since).getTime();
 
   const query = `[:find ?uid ?create-time ?edit-time ?user-uuid ?username ?title
@@ -28,13 +30,19 @@ export const getAllDiscourseNodesSince = async (
       [?e :edit/time ?edit-time]
       [(> ?edit-time ?since)]]`;
 
-  const result = roamAlpha.data.q(query, sinceMs) as DiscourseGraphContent[];
+  // @ts-ignore - backend to be added to roamjs-components
+  const result = (await window.roamAlphaAPI.data.backend.q(
+    query,
+    sinceMs,
+  )) as unknown[][] as RoamDiscourseNodeData[];
 
-  return result.filter(
-    (entity) =>
-      entity.source_local_id &&
-      isDiscourseNode(entity.source_local_id) &&
-      entity.text &&
-      entity.text.trim() !== "",
-  );
+  const discourseNodes = getDiscourseNodes();
+
+  return result.filter((entity) => {
+    if (!entity.source_local_id) return false;
+    const node = findDiscourseNode(entity.source_local_id, discourseNodes);
+    if (!node) return false;
+    if (node.backedBy === "default") return false;
+    return Boolean(entity.text && entity.text.trim() !== "");
+  });
 };
