@@ -18,6 +18,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
     const supabase = await createClient();
 
+    // TODO - Later when we have discourse relations in Supabase, this function should only get the discourse nodes
     const documentsResponse = await supabase
       .from("Document")
       .select("source_local_id")
@@ -36,7 +37,11 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     const response = NextResponse.json(result, { status: 200 });
     return cors(request, response) as NextResponse;
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/supabase/get-all-nodes");
+    return handleRouteError(
+      request,
+      e,
+      "/api/supabase/get-all-discourse-nodes",
+    );
   }
 };
 

@@ -1,7 +1,7 @@
 import { getSupabaseContext } from "./supabaseContext";
 import { getNodeEnv } from "roamjs-components/util/env";
 
-export const getAllNodesFromSupabase = async (): Promise<string[]> => {
+const getAllNodesFromSupabase = async (): Promise<string[]> => {
   try {
     const context = await getSupabaseContext();
     if (!context) {
@@ -9,14 +9,12 @@ export const getAllNodesFromSupabase = async (): Promise<string[]> => {
       return [];
     }
 
-    console.log("context", context);
-
     const baseUrl =
       getNodeEnv() === "development"
         ? "http://localhost:3000/api/supabase"
         : "https://discoursegraphs.com/api/supabase";
 
-    const getNodesResponse = await fetch(`${baseUrl}/get-all-nodes`, {
+    const getNodesResponse = await fetch(`${baseUrl}/get-all-discourse-nodes`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -42,7 +40,7 @@ export const getAllNodesFromSupabase = async (): Promise<string[]> => {
   }
 };
 
-export const getNonExistentRoamUids = (nodeUids: string[]): string[] => {
+const getNonExistentRoamUids = (nodeUids: string[]): string[] => {
   try {
     if (nodeUids.length === 0) {
       return [];
@@ -62,9 +60,7 @@ export const getNonExistentRoamUids = (nodeUids: string[]): string[] => {
   }
 };
 
-export const deleteNodesFromSupabase = async (
-  uids: string[],
-): Promise<number> => {
+const deleteNodesFromSupabase = async (uids: string[]): Promise<number> => {
   try {
     const context = await getSupabaseContext();
     if (!context) {
@@ -77,7 +73,7 @@ export const deleteNodesFromSupabase = async (
         ? "http://localhost:3000/api/supabase"
         : "https://discoursegraphs.com/api/supabase";
 
-    const deleteNodesResponse = await fetch(`${baseUrl}/delete-nodes`, {
+    const deleteNodesResponse = await fetch(`${baseUrl}/delete-discourse-nodes`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -106,27 +102,14 @@ export const deleteNodesFromSupabase = async (
 
 export const cleanupOrphanedNodes = async (): Promise<void> => {
   try {
-    console.log("Cleaning up orphaned nodes...");
     const supabaseUids = await getAllNodesFromSupabase();
-    console.log("supabaseUids", supabaseUids);
-
     if (supabaseUids.length === 0) {
-      console.log("No nodes found in Supabase");
       return;
     }
-
     const orphanedUids = getNonExistentRoamUids(supabaseUids);
-    console.log("orphanedUids", orphanedUids);
-
     if (orphanedUids.length === 0) {
-      console.log("No orphaned nodes found");
       return;
     }
-
-    console.log(
-      `Found ${orphanedUids.length} orphaned nodes, deleting...`,
-      orphanedUids,
-    );
     await deleteNodesFromSupabase(orphanedUids);
   } catch (error) {
     console.error("Error in cleanupOrphanedNodes:", error);

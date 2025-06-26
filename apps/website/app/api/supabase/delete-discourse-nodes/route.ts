@@ -18,7 +18,8 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     const body: DeleteNodesRequest = await request.json();
     const { spaceId, uids } = body;
     const supabase = await createClient();
-
+  
+    // TODO - Later we need to delete a discoursenode's concept, content and document 
     const { error, count } = await supabase
       .from("Document")
       .delete({ count: "exact" })
@@ -35,7 +36,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     const response = NextResponse.json({ count }, { status: 200 });
     return cors(request, response) as NextResponse;
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/supabase/delete-nodes");
+    return handleRouteError(request, e, "/api/supabase/delete-discourse-nodes");
   }
 };
 
