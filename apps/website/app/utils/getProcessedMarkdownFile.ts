@@ -3,6 +3,7 @@ import { getFileContent } from "~/utils/getFileContent";
 import { notFound } from "next/navigation";
 import { PageFrontmatter, PageSchema } from "~/types/schema";
 import matter from "gray-matter";
+import path from "path";
 
 type Props = {
   slug: string;
@@ -28,10 +29,48 @@ export const getProcessedMarkdownFile = async ({
       throw new Error("Invalid path");
     }
 
-    const fileContent = await getFileContent({
-      filename: `${slug}.md`,
-      directory,
-    });
+    console.log("slug", slug);
+    console.log("directory", directory);
+
+    let fileContent: string | null = null;
+    let error: Error | null = null;
+
+    try {
+      fileContent = await getFileContent({
+        filename: `${slug}.md`,
+        directory,
+      });
+    } catch (e) {
+      error = e as Error;
+      // If file not found in specified directory, try alternative directories
+      // const alternativeDirectories = [
+      //   "app/(docs)/docs/roam/pages",
+      //   "app/(docs)/docs/obsidian/pages",
+      //   "app/(docs)/docs/shared",
+      // ].map((dir) => path.join(process.cwd(), dir));
+
+      // for (const altDir of alternativeDirectories) {
+      //   if (altDir === directory) continue; // Skip the original directory
+      //   try {
+      //     fileContent = await getFileContent({
+      //       filename: `${slug}.md`,
+      //       directory: altDir,
+      //     });
+      //     if (fileContent) {
+      //       console.log(`Found ${slug}.md in alternative directory: ${altDir}`);
+      //       break;
+      //     }
+      //   } catch (err) {
+      //     continue;
+      //   }
+      // }
+    }
+
+    if (!fileContent) {
+      console.error(`File not found: ${slug}.md`, error);
+      return notFound();
+    }
+
     const { data: rawData, content } = matter(fileContent);
     const data = PageSchema.parse(rawData);
 
