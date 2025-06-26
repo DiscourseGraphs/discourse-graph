@@ -58,22 +58,6 @@ export const getOverlayInfo = async (
   }
 };
 
-export const getAllReferencesOnPage = (pageTitle: string) => {
-  const referencedPages = window.roamAlphaAPI.data.q(
-    `[:find ?uid ?text
-      :where
-        [?page :node/title "${normalizePageTitle(pageTitle)}"]
-        [?b :block/page ?page]
-        [?b :block/refs ?refPage]
-        [?refPage :block/uid ?uid]
-        [?refPage :node/title ?text]]`,
-  );
-  return referencedPages.map(([uid, text]) => ({
-    uid,
-    text,
-  })) as Result[];
-};
-
 export const useDiscourseData = (tag: string) => {
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<DiscourseData["results"]>([]);

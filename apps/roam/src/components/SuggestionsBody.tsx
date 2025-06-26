@@ -16,10 +16,9 @@ import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import { SuggestedNode, findSimilarNodesUsingHyde } from "~/utils/hyde";
-import {
-  getAllReferencesOnPage,
-  useDiscourseData,
-} from "~/utils/useDiscourseData";
+import { useDiscourseData } from "~/utils/useDiscourseData";
+import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
+import { Result } from "roamjs-components/types/query-builder";
 
 interface SuggestionsCache {
   selectedPages: string[];
@@ -34,6 +33,56 @@ interface Props {
   blockUid: string;
   existingResults: any[];
 }
+
+export const extractPagesFromChildBlock = (tag: string) => {
+  return window.roamAlphaAPI.data
+    .q(
+      `[:find ?uid ?title
+    :where [?b :node/title "${normalizePageTitle(tag)}"]
+      [?a :block/refs ?b]
+      [?p :block/parents ?a]
+      [?p :block/refs ?rf]
+      [?rf :block/uid ?uid]
+      [?rf :node/title ?title]]]`,
+    )
+    .map(([uid, title]) => ({
+      uid,
+      text: title,
+    })) as Result[];
+};
+
+export const extractPagesFromParentBlock = (tag: string) => {
+  return window.roamAlphaAPI.data
+    .q(
+      `[:find ?uid ?title
+    :where [?b :node/title "${normalizePageTitle(tag)}"]
+      [?a :block/refs ?b]
+      [?p :block/children ?a]
+      [?p :block/refs ?rf]
+      [?rf :block/uid ?uid]
+      [?rf :node/title ?title]]]`,
+    )
+    .map(([uid, title]) => ({
+      uid,
+      text: title,
+    })) as Result[];
+};
+
+export const getAllReferencesOnPage = (pageTitle: string) => {
+  const referencedPages = window.roamAlphaAPI.data.q(
+    `[:find ?uid ?text
+      :where
+        [?page :node/title "${normalizePageTitle(pageTitle)}"]
+        [?b :block/page ?page]
+        [?b :block/refs ?refPage]
+        [?refPage :block/uid ?uid]
+        [?refPage :node/title ?text]]`,
+  );
+  return referencedPages.map(([uid, text]) => ({
+    uid,
+    text,
+  })) as Result[];
+};
 
 const SuggestionsBody: React.FC<Props> = ({
   tag,
@@ -140,9 +189,12 @@ const SuggestionsBody: React.FC<Props> = ({
         } else {
           // From selected pages
           let referenced: { uid: string; text: string }[] = [];
+          referenced.push(...getAllReferencesOnPage(tag));
           selectedPages.forEach((p) => {
             referenced.push(...getAllReferencesOnPage(p));
           });
+          referenced.push(...extractPagesFromChildBlock(tag));
+          referenced.push(...extractPagesFromParentBlock(tag));
           const uniqueReferenced = Array.from(
             new Map(referenced.map((x) => [x.uid, x])).values(),
           );
