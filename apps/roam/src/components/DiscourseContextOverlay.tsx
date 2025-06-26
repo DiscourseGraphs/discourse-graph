@@ -27,10 +27,12 @@ const DiscourseContextOverlay = ({
   tag,
   id,
   parentEl,
+  onloadArgs,
 }: {
   tag: string;
   id: string;
   parentEl: HTMLElement;
+  onloadArgs: OnloadArgs;
 }) => {
   const blockUid = useMemo(() => getBlockUidFromTarget(parentEl), [parentEl]);
 
@@ -105,7 +107,12 @@ const DiscourseContextOverlay = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    DiscourseSuggestionsPanel.toggle(tag, id, parentEl);
+                    DiscourseSuggestionsPanel.toggle(
+                      tag,
+                      id,
+                      parentEl,
+                      onloadArgs,
+                    );
                   }}
                 />
               </Tooltip>
@@ -143,7 +150,15 @@ const DiscourseContextOverlay = ({
   );
 };
 
-const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
+const Wrapper = ({
+  parent,
+  tag,
+  onloadArgs,
+}: {
+  parent: HTMLElement;
+  tag: string;
+  onloadArgs: OnloadArgs;
+}) => {
   const id = useMemo(() => nanoid(), []);
   const { inViewport } = useInViewport(
     { current: parent },
@@ -152,7 +167,12 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
     {},
   );
   return inViewport ? (
-    <DiscourseContextOverlay tag={tag} id={id} parentEl={parent} />
+    <DiscourseContextOverlay
+      tag={tag}
+      id={id}
+      parentEl={parent}
+      onloadArgs={onloadArgs}
+    />
   ) : (
     <Button
       small
@@ -184,7 +204,7 @@ export const render = ({
   parent.onmousedown = (e) => e.stopPropagation();
   ReactDOM.render(
     <ExtensionApiContextProvider {...onloadArgs}>
-      <Wrapper tag={tag} parent={parent} />
+      <Wrapper tag={tag} parent={parent} onloadArgs={onloadArgs} />
     </ExtensionApiContextProvider>,
     parent,
   );

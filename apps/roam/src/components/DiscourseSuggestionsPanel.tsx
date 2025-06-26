@@ -12,6 +12,8 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
 import SuggestionsBody from "./SuggestionsBody";
 import { useDiscourseData } from "~/utils/useDiscourseData";
+import { OnloadArgs } from "roamjs-components/types/native";
+import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 
 const PANEL_ROOT_ID = "discourse-graph-suggestions-root";
 const PANELS_CONTAINER_ID = "discourse-graph-panels-container";
@@ -136,6 +138,7 @@ DiscourseSuggestionsPanel.toggle = (
   tag: string,
   id: string,
   parentEl: HTMLElement,
+  onloadArgs: OnloadArgs,
 ) => {
   // Ensure there is a dedicated root element for all suggestion panels.
   let suggestionsRoot = document.getElementById(
@@ -348,12 +351,14 @@ DiscourseSuggestionsPanel.toggle = (
   };
 
   ReactDOM.render(
-    <DiscourseSuggestionsPanel
-      onClose={handleClosePanel}
-      tag={tag}
-      id={id}
-      parentEl={parentEl}
-    />,
+    <ExtensionApiContextProvider {...onloadArgs}>
+      <DiscourseSuggestionsPanel
+        onClose={handleClosePanel}
+        tag={tag}
+        id={id}
+        parentEl={parentEl}
+      />
+    </ExtensionApiContextProvider>,
     newPanel,
   );
 };

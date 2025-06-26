@@ -4,6 +4,7 @@ import { OnloadArgs } from "roamjs-components/types/native";
 import ReactDOM from "react-dom";
 import { Spinner } from "@blueprintjs/core";
 import { useDiscourseData } from "~/utils/useDiscourseData";
+import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 
 const InlineSuggestions = ({
   tag,
@@ -33,13 +34,19 @@ export const render = ({
   parent,
   tag,
   blockUid,
+  onloadArgs,
 }: {
   parent: HTMLElement;
   tag: string;
   blockUid: string;
-  onloadArgs?: OnloadArgs; // unused presently
+  onloadArgs: OnloadArgs;
 }) => {
-  ReactDOM.render(<InlineSuggestions tag={tag} blockUid={blockUid} />, parent);
+  ReactDOM.render(
+    <ExtensionApiContextProvider {...onloadArgs}>
+      <InlineSuggestions tag={tag} blockUid={blockUid} />
+    </ExtensionApiContextProvider>,
+    parent,
+  );
 };
 
 export default InlineSuggestions;

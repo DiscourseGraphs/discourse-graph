@@ -144,7 +144,12 @@ export const initObservers = async ({
             parentBlockContainer ||
             blockContainer,
         );
-        renderInlineSuggestions({ parent: placeholder, tag, blockUid });
+        renderInlineSuggestions({
+          parent: placeholder,
+          tag,
+          blockUid,
+          onloadArgs,
+        });
       }, 50);
     },
   });

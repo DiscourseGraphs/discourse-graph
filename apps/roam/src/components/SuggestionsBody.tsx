@@ -3,6 +3,8 @@ import {
   Button,
   ControlGroup,
   Intent,
+  Menu,
+  MenuItem,
   Position,
   Popover,
   Spinner,
@@ -19,6 +21,7 @@ import { SuggestedNode, findSimilarNodesUsingHyde } from "~/utils/hyde";
 import { useDiscourseData } from "~/utils/useDiscourseData";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import { Result } from "roamjs-components/types/query-builder";
+import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 
 interface SuggestionsCache {
   selectedPages: string[];
@@ -100,6 +103,7 @@ const SuggestionsBody: React.FC<Props> = ({
   const allPages = useMemo(() => getAllPageNames(), []);
   const isInitialMount = React.useRef(true);
   const cachedState = suggestionsCache.get(blockUid);
+  const extensionAPI = useExtensionAPI();
 
   // UI states
   const [currentPageInput, setCurrentPageInput] = useState("");
@@ -118,6 +122,16 @@ const SuggestionsBody: React.FC<Props> = ({
   const [activeNodeTypeFilters, setActiveNodeTypeFilters] = useState<string[]>(
     cachedState?.activeNodeTypeFilters || [],
   );
+  const [pageGroups, setPageGroups] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    const storedGroups = extensionAPI?.settings.get(
+      "suggestion-page-groups",
+    ) as Record<string, string[]> | undefined;
+    if (storedGroups && typeof storedGroups === "object") {
+      setPageGroups(storedGroups);
+    }
+  }, [extensionAPI]);
 
   useEffect(() => {
     suggestionsCache.set(blockUid, {
@@ -351,6 +365,35 @@ const SuggestionsBody: React.FC<Props> = ({
               className="whitespace-nowrap"
             />
           </Tooltip>
+          {Object.keys(pageGroups).length > 0 && (
+            <Popover
+              position={Position.BOTTOM_LEFT}
+              content={
+                <Menu>
+                  {Object.keys(pageGroups)
+                    .sort((a, b) => a.localeCompare(b))
+                    .map((groupName) => (
+                      <MenuItem
+                        key={groupName}
+                        text={groupName}
+                        shouldDismissPopover={false}
+                        onClick={() => {
+                          const groupPages = pageGroups[groupName] || [];
+                          setSelectedPages((prev) =>
+                            Array.from(new Set([...prev, ...groupPages])),
+                          );
+                          setUseAllPagesForSuggestions(false);
+                        }}
+                      />
+                    ))}
+                </Menu>
+              }
+            >
+              <Tooltip content="Add pages from a group">
+                <Button icon="folder-open" small text="Add Group" />
+              </Tooltip>
+            </Popover>
+          )}
           <Button
             text="Find"
             icon="search-template"
