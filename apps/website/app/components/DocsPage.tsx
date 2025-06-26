@@ -10,17 +10,20 @@ import { collectSections } from "~/utils/getSections";
 import { PrevNextLinks } from "~/components/PrevNextLinks";
 import { getFileMetadata } from "~/utils/getFileMetadata";
 
-type DocsPageProps = {
-  params: { slug: string } | Promise<{ slug: string }>;
+type Params = {
+  params: Promise<{
+    slug: string;
+  }>;
+};
+
+type DocsPageProps = Params & {
   directory: string;
 };
 
-export async function DocsPage({ params, directory }: DocsPageProps) {
+export const DocsPage = async ({ params, directory }: DocsPageProps) => {
   try {
-    const resolvedParams = await (params instanceof Promise
-      ? params
-      : Promise.resolve(params));
-    const { slug } = resolvedParams;
+    const { slug } = await params;
+
     const DIRECTORY = path.join(process.cwd(), directory);
     const { data, contentHtml } = await getProcessedMarkdownFile({
       slug,
@@ -46,9 +49,9 @@ export async function DocsPage({ params, directory }: DocsPageProps) {
     console.error("Error rendering docs page:", error);
     return notFound();
   }
-}
+};
 
-export async function generateDocsStaticParams(directory: string) {
+export const generateDocsStaticParams = async (directory: string) => {
   try {
     const directoryExists = await fs
       .stat(directory)
@@ -82,17 +85,14 @@ export async function generateDocsStaticParams(directory: string) {
     console.error("Error generating static params:", error);
     return [];
   }
-}
+};
 
 export async function generateDocsMetadata({
   params,
   directory,
 }: DocsPageProps): Promise<Metadata> {
   try {
-    const resolvedParams = await (params instanceof Promise
-      ? params
-      : Promise.resolve(params));
-    const { slug } = resolvedParams;
+    const { slug } = await params;
     const { data } = await getProcessedMarkdownFile({
       slug,
       directory,

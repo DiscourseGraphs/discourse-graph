@@ -1,18 +1,19 @@
-import { DocsPage } from "../../components/DocsPage";
 import { docMap } from "../docMap";
 import { Metadata } from "next";
 import {
   generateDocsStaticParams,
   generateDocsMetadata,
-} from "../../components/DocsPage";
+  DocsPage,
+} from "~/components/DocsPage";
 
-export default async function Page({ params }: { params: { slug: string } }) {
-  // Get the directory for this slug, fallback to Obsidian docs if not mapped
-  const directory = docMap[params.slug] ?? docMap.default;
-  console.log("directory mapped", directory);
-  // Pass params directly since they're already resolved in Next.js 14
-  return <DocsPage params={params} directory={directory} />;
-}
+const Page = async ({ params }: { params: { slug: string } }) => {
+  const { slug } = await params;
+  const directory = docMap[slug] ?? docMap.default;
+
+  return <DocsPage params={Promise.resolve({ slug })} directory={directory} />;
+};
+
+export default Page;
 
 export const generateStaticParams = () =>
   generateDocsStaticParams(docMap.default);

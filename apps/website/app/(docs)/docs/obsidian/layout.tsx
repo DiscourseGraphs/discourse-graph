@@ -1,10 +1,10 @@
-import { DocsLayout } from "../components/DocsLayout";
 import { navigation } from "./navigation";
+import { Layout } from "~/components/DocsLayout";
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <DocsLayout navigation={navigation}>{children}</DocsLayout>;
+  return <Layout navigationList={navigation}>{children}</Layout>;
 }
