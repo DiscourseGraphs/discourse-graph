@@ -16,6 +16,9 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

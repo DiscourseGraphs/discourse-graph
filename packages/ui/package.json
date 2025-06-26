@@ -22,8 +22,8 @@
     "ui": "npx shadcn@latest"
   },
   "devDependencies": {
-    "@repo/tailwind-config": "*",
     "@repo/eslint-config": "*",
+    "@repo/tailwind-config": "*",
     "@repo/typescript-config": "*",
     "@turbo/gen": "^1.12.4",
     "@types/eslint": "^8.56.5",
@@ -34,6 +34,8 @@
     "typescript": "5.5.4"
   },
   "dependencies": {
+    "@supabase/auth-ui-react": "0.4.7",
+    "@supabase/supabase-js": "^2.50.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
