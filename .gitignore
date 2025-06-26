@@ -7,7 +7,12 @@ node_modules
 
 # Local env files
 .env
-.env.*
+.env.localdb
+.env.productiondb
+# The same for shell variants
+.env.*sh
+.env.localdb.*sh
+.env.productiondb.*sh
 
 # Testing
 coverage

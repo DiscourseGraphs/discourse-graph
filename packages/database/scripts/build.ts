@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
 
-if (process.env.HOME !== "/vercel") {
+if (process.env.HOME !== "/vercel" && process.env.SUPABASE_URL == 'http://127.0.0.1:54321') {
   try {
     execSync("supabase start");
     execSync("supabase migrations up --include-all");
