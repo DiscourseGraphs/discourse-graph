@@ -22,6 +22,13 @@ import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
+import { runFullEmbeddingProcess } from "./utils/embeddingWorkflow";
+import {
+  getLastUpdateTimeByGraphName,
+  upsertDiscourseNodes,
+} from "./utils/syncToEmbeddingDb";
+import React from "react";
+import ReactDOM from "react-dom";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -45,6 +52,40 @@ const initPostHog = () => {
       "$pathname",
     ],
   });
+};
+
+const initEmbeddingSync = async () => {
+  try {
+    console.log(
+      "Discourse Graph: Starting automatic embedding sync on load...",
+    );
+
+    const graphName = window.roamAlphaAPI.graph.name;
+    const lastUpdateTime = await getLastUpdateTimeByGraphName(graphName);
+
+    console.log(
+      `Discourse Graph: Last update time for ${graphName}:`,
+      lastUpdateTime,
+    );
+
+    if (lastUpdateTime === null) {
+      console.log(
+        "Discourse Graph: No previous sync found, run embedding process from discourse graph settings menu",
+      );
+    } else {
+      console.log(
+        "Discourse Graph: Running incremental sync since last update...",
+      );
+      await upsertDiscourseNodes(lastUpdateTime);
+    }
+
+    console.log("Discourse Graph: Embedding sync completed successfully.");
+  } catch (error) {
+    console.error(
+      "Discourse Graph: Error during automatic embedding sync:",
+      error,
+    );
+  }
 };
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
@@ -93,6 +134,11 @@ export default runExtension(async (onloadArgs) => {
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
+
+  const extensionAPI = onloadArgs.extensionAPI;
+
+  initEmbeddingSync();
+
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
@@ -109,7 +155,6 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
 
-  const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>
       runQuery({ parentUid, extensionAPI }).then(
