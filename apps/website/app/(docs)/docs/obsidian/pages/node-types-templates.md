@@ -11,15 +11,16 @@ Node types are the building blocks of your discourse graph. Each node type repre
 
 ### Adding a Node Type
 
-1. Open Obsidian Settings
-2. Navigate to the "Discourse Graphs" settings tab
-3. Under "Node Types," click "Add Node Type"
-4. Configure the node type:
-   - Enter a name (e.g., "Claim", "Evidence", "Question")
-   - Add the format (e.g., "CLM - {content}")
-   - Optionally select a template
+1. Under "Node Types," click "Add Node Type"
+2. Enter a name for your node type (e.g., "Claim", "Evidence", "Question")
+3. Add the format for your node type. eg a claim node will have page title "CLM - {content}"
+4. **Template (Optional)**: Select a template from the dropdown to automatically apply template content when creating nodes of this type
+   - Templates are sourced from Obsidian's core Templates plugin
+   - Ensure you have the Templates plugin enabled and configured with a template folder
+   - The dropdown will show all available template files from your configured template folder
 
-![add node types with template](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FHMg_Tq6qiR.png?alt=media&token=69828bfc-c939-41b0-abd4-2cc8931c5a38)
+      ![add node types with template](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FHMg_Tq6qiR.png?alt=media&token=69828bfc-c939-41b0-abd4-2cc8931c5a38)
+   - Click "Save Changes"
 
 ## Working with Templates
 
@@ -35,12 +36,6 @@ Templates allow you to automatically add predefined content when creating new no
 
 3. Create template files
 ![create template file](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FtTr9vOnXnX.png?alt=media&token=dda1fe25-3ccf-42b4-8f3c-1cd29f82c3f7)
-
-### Assigning Templates to Node Types
-
-1. In the node type settings, select a template from the dropdown
-2. The template will be automatically applied when creating nodes of this type
-![add node types](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FYRZ6ocI_d-.png?alt=media&token=c623bec7-02bd-42b4-a994-cd1c40a54d82)
 
 ## Template Requirements
 
