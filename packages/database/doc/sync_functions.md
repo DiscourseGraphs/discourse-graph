@@ -1,11 +1,11 @@
 # Sync information
 
-The `sync_info` table is meant to always be accessed through one of these two functions: `propose_sync_task` and `end_sync_task`.
+The `sync_info` table is meant to always be accessed through one of these two functions: `propose_sync_task` and `end_sync_task`, used through POSTS to the web api endpoints `api/supabase/sync-task/[fn]/[target]` and `api/supabase/sync-task/[fn]/[target]/[worker]` respectively.
 This acts as a semaphore, so that two workers (e.g. the roam plugin on two different browsers) do not try to run the same sync task at the same time. So you need to give the function `propose_sync_task` enough information to distinguish what you mean to do:
 
 1. The `target`, e.g. the database Id of the scope of the task, usually a space, but it could be a single content or concept (for reactive updates)
-2.  a `function` name, to distinguish different tasks on the same target; e.g. adding vs deleting content. (arbitrary short string)
-3.  the `worker` name: random string, should be the same between calls.
+2. a `function` name, to distinguish different tasks on the same target; e.g. adding vs deleting content. (arbitrary short string)
+3. the `worker` name: random string, should be the same between calls.
 
 Further, you may specify the `timeout` (>= 1s) after which the task should be deemed to have failed. The `task_interval` (>=5s) which is how often to do the task. (This must be longer than the `timeout`.)
 
