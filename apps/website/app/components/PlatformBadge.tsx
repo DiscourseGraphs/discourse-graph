@@ -1,16 +1,16 @@
-export function PlatformBadge({ platform }: { platform: "obsidian" | "roam" }) {
-  const platformConfig = {
-    obsidian: {
-      name: "Obsidian",
-      bgColor: "bg-[#483699]",
-    },
-    roam: {
-      name: "Roam Research",
-      bgColor: "bg-[#0C1B30]",
-    },
-  };
+const PLATFORM_CONFIG = {
+  obsidian: {
+    name: "Obsidian",
+    bgColor: "bg-[#483699]",
+  },
+  roam: {
+    name: "Roam Research",
+    bgColor: "bg-[#0C1B30]",
+  },
+} as const;
 
-  const config = platformConfig[platform];
+export function PlatformBadge({ platform }: { platform: "obsidian" | "roam" }) {
+  const config = PLATFORM_CONFIG[platform];
 
   return (
     <div
