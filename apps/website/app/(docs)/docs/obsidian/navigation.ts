@@ -19,7 +19,24 @@ export const navigation: NavigationList = [
       },
       {
         title: "Grammar",
-        href: `${ROOT}/grammar`,
+        href: `${ROOT}/base-grammar`,
+      },
+    ],
+  },
+  {
+    title: "⚙️ Configuration",
+    links: [
+      {
+        title: "Node Types & Templates",
+        href: `${ROOT}/node-types-templates`,
+      },
+      {
+        title: "Relationship Types",
+        href: `${ROOT}/relationship-types`,
+      },
+      {
+        title: "General Settings",
+        href: `${ROOT}/general-settings`,
       },
     ],
   },
@@ -38,42 +55,14 @@ export const navigation: NavigationList = [
         title: "Exploring Your Graph",
         href: `${ROOT}/exploring-discourse-graph`,
       },
-      {
-        title: "Using Discourse Context",
-        href: `${ROOT}/using-discourse-context`,
-      },
     ],
   },
-  {
-    title: "⚙️ Configuration",
-    links: [
-      {
-        title: "Node Types & Templates",
-        href: `${ROOT}/node-types-templates`,
-      },
-      {
-        title: "Relationship Types",
-        href: `${ROOT}/relationship-types`,
-      },
-      {
-        title: "Extending & Personalizing",
-        href: `${ROOT}/extending-personalizing-graph`,
-      },
-    ],
-  },
+
   {
     title: "🔍 Advanced Features",
     links: [
       {
-        title: "Using Templates",
-        href: `${ROOT}/using-templates`,
-      },
-      {
-        title: "Keyboard Shortcuts",
-        href: `${ROOT}/keyboard-shortcuts`,
-      },
-      {
-        title: "Command Palette Integration",
+        title: "Commands",
         href: `${ROOT}/command-palette`,
       },
     ],
