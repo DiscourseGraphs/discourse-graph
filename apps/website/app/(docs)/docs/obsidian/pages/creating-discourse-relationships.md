@@ -33,5 +33,3 @@ To create a relationship between discourse nodes:
 
 After creating relationships:
 - [Learn how to explore your graph](./exploring-discourse-graph)
-- [Configure additional relationship types](./extending-personalizing-graph#edit-relation-types)
-- [Define new possible relations between nodes](./extending-personalizing-graph#define-possible-relations-between-nodes) 

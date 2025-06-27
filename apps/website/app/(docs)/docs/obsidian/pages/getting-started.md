@@ -19,15 +19,9 @@ For more information about Discourse Graphs, check out our website at [https://d
 
 ## What's Next?
 
-- Learn about [what makes a discourse graph](/docs/roam/what-is-discourse-graph)
+- Learn about [what makes a discourse graph](./what-is-discourse-graph)
 - Explore [use cases](./literature-reviewing) for discourse graphs
 - Join our community to share your experience and get help
-
-## Overview
-
-Here is a relatively brief walkthrough of some of the main features of the plugin, including creating discourse nodes and relations, and [using](./exploring-discourse-graph), [querying](./querying-discourse-graph), and [sharing](./sharing-discourse-graph) the discourse graph. This is done in the context of an actual ongoing literature review.
-
-[Video walkthrough coming soon]
 
 ## Guides: Jump right in
 
