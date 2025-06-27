@@ -9,7 +9,7 @@ if (
   !process.env.NEXT_PUBLIC_POSTHOG_KEY ||
   !process.env.NEXT_PUBLIC_POSTHOG_HOST
 ) {
-  // throw new Error("PostHog environment variables are not set");
+  throw new Error("PostHog environment variables are not set");
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {

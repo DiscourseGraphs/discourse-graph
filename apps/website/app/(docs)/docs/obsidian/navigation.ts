@@ -48,12 +48,12 @@ export const navigation: NavigationList = [
         href: `${ROOT}/creating-discourse-nodes`,
       },
       {
-        title: "Creating Relationships",
-        href: `${ROOT}/creating-discourse-relationships`,
+        title: "Discourse Context",
+        href: `${ROOT}/discourse-context`,
       },
       {
-        title: "Exploring Your Graph",
-        href: `${ROOT}/exploring-discourse-graph`,
+        title: "Creating Relationships",
+        href: `${ROOT}/creating-discourse-relationships`,
       },
     ],
   },
