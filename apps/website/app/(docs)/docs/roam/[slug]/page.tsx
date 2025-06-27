@@ -6,7 +6,13 @@ import {
   DocsPage,
 } from "~/components/DocsPage";
 
-const Page = async ({ params }: { params: { slug: string } }) => {
+type Params = {
+  params: Promise<{
+    slug: string;
+  }>;
+};
+
+const Page = async ({ params }: Params) => {
   const { slug } = await params;
   const directory = docMap[slug] ?? docMap.default;
 
