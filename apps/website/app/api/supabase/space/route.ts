@@ -1,6 +1,10 @@
 import { NextResponse, NextRequest } from "next/server";
-import type { PostgrestSingleResponse } from "@supabase/supabase-js";
-
+import {
+  type PostgrestSingleResponse,
+  PostgrestError,
+  type User,
+  type SupabaseClient,
+} from "@supabase/supabase-js";
 import { createClient } from "~/utils/supabase/server";
 import { getOrCreateEntity, ItemValidator } from "~/utils/supabase/dbUtils";
 import {
@@ -10,9 +14,16 @@ import {
   asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
 import { Tables, TablesInsert } from "@repo/database/types.gen.ts";
+import { spaceAnonUserEmail } from "@repo/ui/lib/utils";
 
 type SpaceDataInput = TablesInsert<"Space">;
 type SpaceRecord = Tables<"Space">;
+
+type SpaceCreationInput = {
+  space: SpaceDataInput;
+  account_id: number;
+  password: string;
+};
 
 const spaceValidator: ItemValidator<SpaceDataInput> = (space) => {
   if (!space || typeof space !== "object")
@@ -30,27 +41,101 @@ const spaceValidator: ItemValidator<SpaceDataInput> = (space) => {
 
 const processAndGetOrCreateSpace = async (
   supabasePromise: ReturnType<typeof createClient>,
-  data: SpaceDataInput,
+  data: SpaceCreationInput,
 ): Promise<PostgrestSingleResponse<SpaceRecord>> => {
-  const { name, url, platform } = data;
-  const error = spaceValidator(data);
-  if (error !== null) return asPostgrestFailure(error, "invalid");
+  const { space, account_id, password } = data;
+  const { name, url, platform } = space;
+  const error = spaceValidator(space);
+  if (error !== null) return asPostgrestFailure(error, "invalid space");
+  if (!account_id || Number.isNaN(parseInt(account_id as any, 10)))
+    return asPostgrestFailure(
+      "account_id is not a number",
+      "invalid account_id",
+    );
 
-  const normalizedUrl = url.trim().replace(/\/$/, "");
-  const trimmedName = name.trim();
   const supabase = await supabasePromise;
 
   const result = await getOrCreateEntity<"Space">({
     supabase,
     tableName: "Space",
     insertData: {
-      name: trimmedName,
-      url: normalizedUrl,
-      platform: platform,
+      name: name.trim(),
+      url: url.trim().replace(/\/$/, ""),
+      platform,
     },
     uniqueOn: ["url"],
   });
+  if (result.error) return result;
+  const space_id = result.data.id;
 
+  // this is related but each step is idempotent, so con retry w/o transaction
+  const email = spaceAnonUserEmail(platform, result.data.id);
+  let anonymousUser: User | null = null;
+  try {
+    const login = await supabase.auth.signInWithPassword({ email, password });
+    anonymousUser = login.data.user;
+  } catch (error) {
+    // no user
+  }
+  if (anonymousUser === null) {
+    const resultCreateAnonymousUser = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+    if (resultCreateAnonymousUser.error) {
+      return {
+        count: null,
+        status: resultCreateAnonymousUser.error.status || -1,
+        statusText: resultCreateAnonymousUser.error.message,
+        data: null,
+        error: new PostgrestError({
+          message: resultCreateAnonymousUser.error.message,
+          details:
+            typeof resultCreateAnonymousUser.error.cause === "string"
+              ? resultCreateAnonymousUser.error.cause
+              : "",
+          hint: "",
+          code: resultCreateAnonymousUser.error.code || "unknown",
+        }),
+      }; // space created but not its user, try again
+    }
+    anonymousUser = resultCreateAnonymousUser.data.user;
+  }
+
+  const anonPlatformUserResult = await getOrCreateEntity<"PlatformAccount">({
+    supabase,
+    tableName: "PlatformAccount",
+    insertData: {
+      platform,
+      account_local_id: email,
+      name: `Anonymous of space ${space_id}`,
+      agent_type: "anonymous",
+      dg_account: anonymousUser.id,
+    },
+    uniqueOn: ["account_local_id", "platform"],
+  });
+  if (anonPlatformUserResult.error) return anonPlatformUserResult;
+
+  const resultAnonUserSpaceAccess = await getOrCreateEntity<"SpaceAccess">({
+    supabase,
+    tableName: "SpaceAccess",
+    insertData: {
+      space_id,
+      account_id: anonPlatformUserResult.data.id,
+      editor: true,
+    },
+    uniqueOn: ["space_id", "account_id"],
+  });
+  if (resultAnonUserSpaceAccess.error) return resultAnonUserSpaceAccess; // space created but not connected, try again
+
+  const resultUserSpaceAccess = await getOrCreateEntity<"SpaceAccess">({
+    supabase,
+    tableName: "SpaceAccess",
+    insertData: { space_id, account_id, editor: true },
+    uniqueOn: ["space_id", "account_id"],
+  });
+  if (resultUserSpaceAccess.error) return resultUserSpaceAccess; // space created but not connected, try again
   return result;
 };
 
@@ -58,8 +143,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const supabasePromise = createClient();
 
   try {
-    const body: SpaceDataInput = await request.json();
-
+    const body: SpaceCreationInput = await request.json();
     const result = await processAndGetOrCreateSpace(supabasePromise, body);
     return createApiResponse(request, result);
   } catch (e: unknown) {
