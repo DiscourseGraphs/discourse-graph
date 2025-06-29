@@ -11,7 +11,7 @@ import setBlockProps from "~/utils/setBlockProps";
 import {
   createClient,
   type DGSupabaseClient,
-} from "@repo/ui/lib/supabase/client";
+} from "@repo/ui/src/lib/supabase/client";
 import { spaceAnonUserEmail } from "@repo/ui/lib/utils";
 
 declare const crypto: { randomUUID: () => string };
@@ -163,10 +163,21 @@ export const getLoggedInClient = async (): Promise<DGSupabaseClient> => {
     const context = await getSupabaseContext();
     if (context === null) throw new Error("Could not create context");
     LOGGED_IN_CLIENT = createClient();
-    await LOGGED_IN_CLIENT.auth.signInWithPassword({
+    const { error } = await LOGGED_IN_CLIENT.auth.signInWithPassword({
       email: spaceAnonUserEmail(context.platform, context.spaceId),
       password: context.spacePassword,
     });
+    if (error) {
+      LOGGED_IN_CLIENT = null;
+      throw new Error(`Authentication failed: ${error.message}`);
+    }
+  } else {
+    // renew session
+    const { error } = await LOGGED_IN_CLIENT.auth.getSession();
+    if (error) {
+      LOGGED_IN_CLIENT = null;
+      throw new Error(`Authentication expired: ${error.message}`);
+    }
   }
   return LOGGED_IN_CLIENT;
 };

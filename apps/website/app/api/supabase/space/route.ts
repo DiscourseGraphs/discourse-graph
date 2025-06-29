@@ -47,10 +47,19 @@ const processAndGetOrCreateSpace = async (
   const { name, url, platform } = space;
   const error = spaceValidator(space);
   if (error !== null) return asPostgrestFailure(error, "invalid space");
-  if (!account_id || Number.isNaN(parseInt(account_id as any, 10)))
+  if (
+    typeof account_id !== "number" ||
+    !Number.isInteger(account_id) ||
+    account_id <= 0
+  )
     return asPostgrestFailure(
       "account_id is not a number",
       "invalid account_id",
+    );
+  if (!password || typeof password !== "string" || password.length < 8)
+    return asPostgrestFailure(
+      "password must be at least 8 characters",
+      "invalid password",
     );
 
   const supabase = await supabasePromise;
@@ -71,11 +80,16 @@ const processAndGetOrCreateSpace = async (
   // this is related but each step is idempotent, so con retry w/o transaction
   const email = spaceAnonUserEmail(platform, result.data.id);
   let anonymousUser: User | null = null;
-  try {
-    const login = await supabase.auth.signInWithPassword({ email, password });
-    anonymousUser = login.data.user;
-  } catch (error) {
-    // no user
+  {
+    const { error, data } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error && error.message !== "Invalid login credentials") {
+      // Handle unexpected errors
+      return asPostgrestFailure(error.message, "authentication_error");
+    }
+    anonymousUser = data.user;
   }
   if (anonymousUser === null) {
     const resultCreateAnonymousUser = await supabase.auth.admin.createUser({
