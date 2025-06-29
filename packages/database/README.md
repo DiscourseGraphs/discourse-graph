@@ -1,11 +1,12 @@
 This contains the database schema for vector embeddings and concepts.
 All CLI commands below should be run in this directory (`packages/database`.)
 
-1. Setup
+1. Local development setup
    1. Install [Docker](https://www.docker.com)
    2. Install the [supabase CLI](https://supabase.com/docs/guides/local-development). (There is a brew version)
    3. `supabase login` with your (account-specific) supabase access token. (TODO: Create a group access token.)
-   4. `supabase link`. It will ask you for a project name, use `discourse-graphs`. (Production for now.) It will also ask you for the database password (See 1password.)
+   4. If you have a supabase instance, connect to it with `supabase link`. It will ask you for its project name and password.
+      1. Team development: use `discourse-graphs`. (Production for now.) It will also ask you for the database password (See 1password.)
    5. Install [sqruff](https://github.com/quarylabs/sqruff)
 2. Usage:
    1. Use `turbo dev`, (alias for `supabase start`) before you use your local database. URLs will be given for your local supabase database, api endpoint, etc.
