@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import prettier from "eslint-config-prettier";
 import onlyWarn from "eslint-plugin-only-warn";
+import preferArrows from "eslint-plugin-prefer-arrow-functions";
 import globals from "globals";
 
 // this could just be import.meta.dirname if we set minimun node to 20.11
@@ -41,13 +42,27 @@ export default [
         },
       },
     },
-    plugins: { "only-warn": onlyWarn },
+    plugins: { "only-warn": onlyWarn, "prefer-arrow-functions": preferArrows },
     settings: {
       "import/resolver": {
         typescript: {
           project: "tsconfig.lint.json",
         },
       },
+    },
+    rules: {
+      "max-params": ["error", 3],
+      "@typescript-eslint/naming-convention": "error",
+      "prefer-arrow-functions/prefer-arrow-functions": [
+        "warn",
+        {
+          allowNamedFunctions: false,
+          classPropertiesAllowed: false,
+          disallowPrototype: false,
+          returnStyle: "unchanged",
+          singleReturnOnly: false,
+        },
+      ],
     },
     // Force ESLint to detect .tsx files
     files: ["**/*.ts?(x)", "**/*.js?(x)"],
