@@ -40,35 +40,23 @@ export const renderTextSelectionPopup = ({
   textarea,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
-  blockElement?: Element | null;
-  textarea?: HTMLTextAreaElement | null;
+  blockElement: Element;
+  textarea: HTMLTextAreaElement;
 }) => {
   removeTextSelectionPopup();
-  const targetBlockElement = blockElement || findBlockElementFromSelection();
-  if (!targetBlockElement) return;
-
-  const targetTextarea =
-    textarea || targetBlockElement.querySelector("textarea");
-  if (!targetTextarea) return;
-
-  const coords = getCoordsFromTextarea(targetTextarea);
-
+  const coords = getCoordsFromTextarea(textarea);
   currentPopupContainer = document.createElement("div");
   currentPopupContainer.id = "discourse-text-selection-popup";
-  currentPopupContainer.className = "discourse-text-selection-popup";
-  currentPopupContainer.style.position = "absolute";
+  currentPopupContainer.className =
+    "absolute z-[9999] max-w-none font-inherit bg-white";
   currentPopupContainer.style.left = `${coords.left + 50}px`;
   currentPopupContainer.style.top = `${coords.top - 40}px`;
-  currentPopupContainer.style.zIndex = "9999";
 
-  targetBlockElement.parentElement?.insertBefore(
-    currentPopupContainer,
-    targetBlockElement,
-  );
+  blockElement.parentElement?.insertBefore(currentPopupContainer, blockElement);
 
   ReactDOM.render(
     <TextSelectionNodeMenu
-      textarea={targetTextarea}
+      textarea={textarea}
       extensionAPI={extensionAPI}
       onClose={removeTextSelectionPopup}
     />,

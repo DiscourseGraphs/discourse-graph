@@ -270,6 +270,7 @@ export const initObservers = async ({
 
     if (blockElement) {
       const textarea = blockElement.querySelector("textarea");
+      if (!textarea) return;
       renderTextSelectionPopup({
         extensionAPI: onloadArgs.extensionAPI,
         blockElement,
