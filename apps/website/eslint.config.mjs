@@ -1,7 +1,8 @@
-import base from "@repo/eslint-config/next.js";
+import { nextJsConfig } from "@repo/eslint-config/next-js";
 
 export default [
-  ...base,
+  ...nextJsConfig,
+  // additions
   {
     languageOptions: {
       parserOptions: {
@@ -17,5 +18,3 @@ export default [
     ignores: [".next/**"],
   },
 ];
-
-

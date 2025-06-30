@@ -1,16 +1,11 @@
 {
-  "include": ["src", "src/types.d.ts", "tailwind.config.ts", "tests"],
-  "exclude": ["node_modules", "dist"],
   "extends": "@repo/typescript-config/react-library.json",
+  "include": ["src", "src/types.d.ts", "tailwind.config.ts", "tests", "scripts"],
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "dist",
-    "target": "ESNext",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": false,
     "esModuleInterop": false,
-    "module": "ESNext",
-    "moduleResolution": "Node",
     "forceConsistentCasingInFileNames": true,
     "jsx": "react",
     "noUncheckedIndexedAccess": false
