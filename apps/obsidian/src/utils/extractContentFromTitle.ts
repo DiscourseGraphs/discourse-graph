@@ -1,9 +1,6 @@
 import { getDiscourseNodeFormatExpression } from "./getDiscourseNodeFormatExpression";
 
-export const extractContentFromTitle = (
-  format: string | undefined,
-  title: string,
-): string => {
+export const extractContentFromTitle = (format: string, title: string): string => {
   if (!format) return title;
 
   const regex = getDiscourseNodeFormatExpression(format);

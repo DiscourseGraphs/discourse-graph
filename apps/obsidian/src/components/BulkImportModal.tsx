@@ -4,6 +4,7 @@ import { StrictMode, useState, useEffect, useCallback, useRef } from "react";
 import type DiscourseGraphPlugin from "../index";
 import { BulkImportCandidate, BulkImportPattern } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
+import { TFile } from "obsidian";
 
 type BulkImportModalProps = {
   plugin: DiscourseGraphPlugin;
@@ -30,11 +31,10 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
     }
   }, [plugin.app]);
 
-  const getDirectoryPath = (filePath: string): string => {
-    const pathParts = filePath.split("/");
-    pathParts.pop();
-    const dirPath = pathParts.join("/");
-    return "/" + (dirPath || "(Root)");
+  const getDirectoryPath = (file: TFile): string => {
+    return file.parent?.path !== "/" && file.parent?.path
+      ? "/" + file.parent?.path
+      : "(Root)";
   };
 
   useEffect(() => {
@@ -100,11 +100,11 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
   const handleFolderToggle = (folderPath: string) => {
     setCandidates((prev) => {
       const folderCandidates = prev.filter(
-        (c) => getDirectoryPath(c.file.path) === folderPath,
+        (c) => getDirectoryPath(c.file) === folderPath,
       );
       const allSelected = folderCandidates.every((c) => c.selected);
       return prev.map((c) =>
-        getDirectoryPath(c.file.path) === folderPath
+        getDirectoryPath(c.file) === folderPath
           ? { ...c, selected: !allSelected }
           : c,
       );
@@ -279,7 +279,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
       { candidate: BulkImportCandidate; index: number }[]
     > = {};
     candidates.forEach((candidate, idx) => {
-      const dir = getDirectoryPath(candidate.file.path);
+      const dir = getDirectoryPath(candidate.file);
       if (!grouped[dir]) grouped[dir] = [];
       grouped[dir].push({ candidate, index: idx });
     });

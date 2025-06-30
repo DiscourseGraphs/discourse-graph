@@ -1,3 +1,5 @@
+import { TFile } from "obsidian";
+
 export type DiscourseNode = {
   id: string;
   name: string;
@@ -28,7 +30,7 @@ export type Settings = {
 };
 
 export type BulkImportCandidate = {
-  file: import("obsidian").TFile;
+  file: TFile;
   matchedNodeType: DiscourseNode;
   alternativePattern: string;
   extractedContent: string;
