@@ -1,11 +1,13 @@
-import { resolve } from "node:path";
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import pluginReactHooks from "eslint-plugin-react-hooks";
+import pluginReact from "eslint-plugin-react";
+import globals from "globals";
+import { config as baseConfig } from "./base.js";
+
 import { FlatCompat } from "@eslint/eslintrc";
 import path from "path";
 import { fileURLToPath } from "url";
-import tseslint from "@typescript-eslint/eslint-plugin";
-import prettier from "eslint-config-prettier";
-import onlyWarn from "eslint-plugin-only-warn";
-import globals from "globals";
 
 // this could just be import.meta.dirname if we set minimun node to 20.11
 const __filename = fileURLToPath(import.meta.url);
@@ -15,16 +17,35 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-/*
- * This is a custom ESLint configuration for use with
- * internal (bundled by their consumer) libraries
- * that utilize React.
- */
+/**
+ * A custom ESLint configuration for libraries that use React.
+ *
+ * @type {import("eslint").Linter.Config[]} */
+export const config = [
+  ...baseConfig,
+  pluginReact.configs.flat.recommended,
+  {
+    languageOptions: {
+      ...pluginReact.configs.flat.recommended.languageOptions,
+      globals: {
+        ...globals.serviceworker,
+        ...globals.browser,
+      },
+    },
+  },
+  {
+    plugins: {
+      "react-hooks": pluginReactHooks,
+    },
+    settings: { react: { version: "detect" } },
+    rules: {
+      ...pluginReactHooks.configs.recommended.rules,
+      // React scope no longer necessary with new JSX transform.
+      "react/react-in-jsx-scope": "off",
+    },
+  },
 
-/** @type {import("eslint").Linter.FlatConfig[]} */
-export default [
-  ...tseslint.configs["flat/recommended-type-checked"],
-  prettier,
+  // additions
   ...compat.extends("eslint-config-turbo"),
   {
     languageOptions: {
@@ -38,14 +59,6 @@ export default [
         tsconfigRootDir: ".",
         ecmaFeatures: {
           jsx: true,
-        },
-      },
-    },
-    plugins: { "only-warn": onlyWarn },
-    settings: {
-      "import/resolver": {
-        typescript: {
-          project: "tsconfig.lint.json",
         },
       },
     },

@@ -1,13 +1,14 @@
-import { resolve } from "node:path";
-import { FlatCompat } from "@eslint/eslintrc";
-import path from "path";
-import { fileURLToPath } from "url";
-import tseslint from "@typescript-eslint/eslint-plugin";
-import prettier from "eslint-config-prettier";
-import onlyWarn from "eslint-plugin-only-warn";
-import vercel from "@vercel/style-guide/eslint/next";
+import js from "@eslint/js";
+import pluginReactHooks from "eslint-plugin-react-hooks";
+import pluginReact from "eslint-plugin-react";
 import globals from "globals";
-import next_eslint from "@next/eslint-plugin-next";
+import pluginNext from "@next/eslint-plugin-next";
+import { config as baseConfig } from "./base.js";
+
+import vercel from "@vercel/style-guide/eslint/next";
+import { FlatCompat } from "@eslint/eslintrc";
+import { fileURLToPath } from "url";
+import path from "path";
 
 // this could just be import.meta.dirname if we set minimun node to 20.11
 const __filename = fileURLToPath(import.meta.url);
@@ -17,22 +18,51 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-/*
- * This is a custom ESLint configuration for use within vercel
- */
+/**
+ * A custom ESLint configuration for libraries that use Next.js.
+ *
+ * @type {import("eslint").Linter.Config[]}
+ * */
+export const nextJsConfig = [
+  ...baseConfig,
+  {
+    ...pluginReact.configs.flat.recommended,
+    languageOptions: {
+      ...pluginReact.configs.flat.recommended.languageOptions,
+      globals: {
+        ...globals.serviceworker,
+      },
+    },
+  },
+  {
+    plugins: {
+      "@next/next": pluginNext,
+    },
+    rules: {
+      ...pluginNext.configs.recommended.rules,
+      ...pluginNext.configs["core-web-vitals"].rules,
+    },
+  },
+  {
+    plugins: {
+      "react-hooks": pluginReactHooks,
+    },
+    settings: { react: { version: "detect" } },
+    rules: {
+      ...pluginReactHooks.configs.recommended.rules,
+      // React scope no longer necessary with new JSX transform.
+      "react/react-in-jsx-scope": "off",
+    },
+  },
 
-/** @type {import("eslint").Linter.FlatConfig[]} */
-export default [
-  ...tseslint.configs["flat/recommended-type-checked"],
-  prettier,
+  // additions
   ...compat.config(vercel),
   ...compat.extends("eslint-config-turbo"),
-  ...compat.config(next_eslint.configs["core-web-vitals"]),
+  ...compat.config(pluginNext.configs["core-web-vitals"]),
   {
     languageOptions: {
       globals: {
         ...globals.browser,
-        ...globals.node,
         React: true,
         JSX: true,
       },
@@ -45,26 +75,5 @@ export default [
         },
       },
     },
-    plugins: { "only-warn": onlyWarn },
-    settings: {
-      "import/resolver": {
-        typescript: {
-          project: "tsconfig.lint.json",
-        },
-      },
-    },
-    files: ["**/*.ts?(x)", "**/*.js?(x)"],
-  },
-  {
-    files: ["**/*.js?(x)", "**/*.mjs"],
-    ...tseslint.configs["flat/disable-type-checked"],
-  },
-  {
-    ignores: [
-      // Ignore dotfiles
-      ".*.js",
-      "node_modules/",
-      "*.config.*",
-    ],
   },
 ];
