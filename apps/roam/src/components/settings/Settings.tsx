@@ -16,6 +16,7 @@ import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import DiscourseGraphHome from "./GeneralSettings";
 import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
+import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
 import getDiscourseNodes, {
   excludeDefaultNodes,
@@ -25,6 +26,7 @@ import sendErrorEmail from "~/utils/sendErrorEmail";
 import HomePersonalSettings from "./HomePersonalSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
+import { ExtensionAPITracker } from "~/components/ExtensionAPITracker";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -93,133 +95,140 @@ export const SettingsDialog = ({
       style={{ width: "80vw", height: "80vh" }}
       className="relative bg-white"
     >
-      <div className={Classes.DIALOG_BODY}>
-        <Tabs
-          onChange={(id) => setSelectedTabId(id)}
-          selectedTabId={selectedTabId}
-          vertical={true}
-          renderActiveTabPanelOnly={true}
-        >
-          <div className="mb-2 text-lg font-semibold text-neutral-dark">
-            Personal Settings
-          </div>
-          <Tab
-            id="discourse-graph-home-personal"
-            title="Home"
-            className="overflow-y-auto"
-            panel={
-              <HomePersonalSettings onloadArgs={onloadArgs} onClose={onClose} />
-            }
-          />
-          <Tab
-            id="query-settings"
-            title="Queries"
-            className="mb-8 overflow-y-auto"
-            panel={<QuerySettings extensionAPI={extensionAPI} />}
-          />
-          <div className="text-lg font-semibold text-neutral-dark">
-            Global Settings
-          </div>
-          <Tab
-            id="discourse-graph-home"
-            title="Home"
-            className="overflow-y-auto"
-            panel={<DiscourseGraphHome />}
-          />
-          <Tab
-            id="discourse-graph-export"
-            title="Export"
-            className="overflow-y-auto"
-            panel={<DiscourseGraphExport />}
-          />
-          <SectionHeader>Grammar</SectionHeader>
-          <Tab
-            id="discourse-relations"
-            title="Relations"
-            className="overflow-y-auto"
-            panel={
-              <DiscourseRelationConfigPanel
-                defaultValue={DEFAULT_RELATION_VALUES}
-                title="Relations"
-                parentUid={settings.grammarUid}
-                uid={settings.relationsUid}
-              />
-            }
-          />
-          <Tab
-            id="discourse-nodes"
-            title="Nodes"
-            className="overflow-y-auto"
-            panel={
-              <DiscourseNodeConfigPanel
-                title="Nodes"
-                uid={settings.nodesUid}
-                parentUid={settings.grammarUid}
-                defaultValue={[]}
-                setSelectedTabId={setSelectedTabId}
-                isPopup={true}
-              />
-            }
-          />
-          <SectionHeader>Nodes</SectionHeader>
-          {nodes.map((n) => (
+      <ExtensionAPITracker extensionAPI={extensionAPI}>
+        <div className={Classes.DIALOG_BODY}>
+          <Tabs
+            onChange={(id) => setSelectedTabId(id)}
+            selectedTabId={selectedTabId}
+            vertical={true}
+            renderActiveTabPanelOnly={true}
+          >
+            <div className="mb-2 text-lg font-semibold text-neutral-dark">
+              Personal Settings
+            </div>
             <Tab
-              id={n.type}
-              title={n.text}
+              id="discourse-graph-home-personal"
+              title="Home"
               className="overflow-y-auto"
-              panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
+              panel={<HomePersonalSettings onloadArgs={onloadArgs} />}
             />
-          ))}
-          <Tabs.Expander />
-          {/* Secret Dev Panel */}
-          <Tab
-            hidden={true}
-            id="secret-dev-panel"
-            title="Secret Dev Panel"
-            className="overflow-y-auto"
-            panel={
-              <div className="flex gap-4 p-4">
-                <Button
-                  onClick={() => {
-                    console.log("NODE_ENV:", process.env.NODE_ENV);
-                  }}
-                >
-                  Log Node Env
-                </Button>
-                <Button
-                  onClick={() => {
-                    console.log("sending error email");
-                    sendErrorEmail({
-                      error: new Error("test"),
-                      type: "Test",
-                    });
-                  }}
-                >
-                  sendErrorEmail()
-                </Button>
-              </div>
-            }
-          />
-        </Tabs>
-      </div>
-      <Button
-        icon="send-message"
-        intent={Intent.PRIMARY}
-        onClick={() => {
-          const birdeatsbug = window.birdeatsbug as FeedbackWidget;
-          birdeatsbug.trigger?.();
-        }}
-        className="absolute bottom-4 left-4"
-      >
-        Send Feedback
-      </Button>
-      {/* <Button
-        icon="cross"
-        minimal
-        intent={Intent.NONE}
-        onClick={onClose}
-        className="absolute top-0 right-0"
-      /> */}
+            <Tab
+              id="query-settings"
+              title="Queries"
+              className="overflow-y-auto"
+              panel={<QuerySettings extensionAPI={extensionAPI} />}
+            />
+            <Tab
+              id="suggestive-mode-settings"
+              title="Suggestive Mode"
+              className="mb-8 overflow-y-auto"
+              panel={<SuggestiveModeSettings onloadArgs={onloadArgs} />}
+            />
+            <div className="text-lg font-semibold text-neutral-dark">
+              Global Settings
+            </div>
+            <Tab
+              id="discourse-graph-home"
+              title="Home"
+              className="overflow-y-auto"
+              panel={<DiscourseGraphHome />}
+            />
+            <Tab
+              id="discourse-graph-export"
+              title="Export"
+              className="overflow-y-auto"
+              panel={<DiscourseGraphExport />}
+            />
+            <SectionHeader>Grammar</SectionHeader>
+            <Tab
+              id="discourse-relations"
+              title="Relations"
+              className="overflow-y-auto"
+              panel={
+                <DiscourseRelationConfigPanel
+                  defaultValue={DEFAULT_RELATION_VALUES}
+                  title="Relations"
+                  parentUid={settings.grammarUid}
+                  uid={settings.relationsUid}
+                />
+              }
+            />
+            <Tab
+              id="discourse-nodes"
+              title="Nodes"
+              className="overflow-y-auto"
+              panel={
+                <DiscourseNodeConfigPanel
+                  title="Nodes"
+                  uid={settings.nodesUid}
+                  parentUid={settings.grammarUid}
+                  defaultValue={[]}
+                  setSelectedTabId={setSelectedTabId}
+                  isPopup={true}
+                />
+              }
+            />
+            <SectionHeader>Nodes</SectionHeader>
+            {nodes.map((n) => (
+              <Tab
+                id={n.type}
+                title={n.text}
+                className="overflow-y-auto"
+                panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
+              />
+            ))}
+            <Tabs.Expander />
+            {/* Secret Dev Panel */}
+            <Tab
+              hidden={true}
+              id="secret-dev-panel"
+              title="Secret Dev Panel"
+              className="overflow-y-auto"
+              panel={
+                <div className="flex gap-4 p-4">
+                  <Button
+                    onClick={() => {
+                      console.log("NODE_ENV:", process.env.NODE_ENV);
+                    }}
+                  >
+                    Log Node Env
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      console.log("sending error email");
+                      sendErrorEmail({
+                        error: new Error("test"),
+                        type: "Test",
+                      });
+                    }}
+                  >
+                    sendErrorEmail()
+                  </Button>
+                </div>
+              }
+            />
+          </Tabs>
+        </div>
+        <Button
+          icon="send-message"
+          intent={Intent.PRIMARY}
+          onClick={() => {
+            const birdeatsbug = window.birdeatsbug as FeedbackWidget;
+            birdeatsbug.trigger?.();
+          }}
+          className="absolute bottom-4 left-4"
+        >
+          Send Feedback
+        </Button>
+        <Button
+          icon="cross"
+          minimal
+          large
+          intent={Intent.NONE}
+          onClick={onClose}
+          className="absolute right-4 top-4"
+        />
+      </ExtensionAPITracker>
     </Dialog>
   );
 };
