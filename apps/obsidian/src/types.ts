@@ -1,3 +1,5 @@
+import { TFile } from "obsidian";
+
 export type DiscourseNode = {
   id: string;
   name: string;
@@ -25,6 +27,20 @@ export type Settings = {
   relationTypes: DiscourseRelationType[];
   showIdsInFrontmatter: boolean;
   nodesFolderPath: string;
+};
+
+export type BulkImportCandidate = {
+  file: TFile;
+  matchedNodeType: DiscourseNode;
+  alternativePattern: string;
+  extractedContent: string;
+  selected: boolean;
+};
+
+export type BulkImportPattern = {
+  nodeTypeId: string;
+  alternativePattern: string;
+  enabled: boolean;
 };
 
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";
