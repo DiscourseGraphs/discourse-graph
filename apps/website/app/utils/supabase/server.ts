@@ -2,6 +2,8 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { Database } from "@repo/database/types.gen.ts";
 
+// Inspired by https://supabase.com/ui/docs/nextjs/password-based-auth
+
 export const createClient = async () => {
   const cookieStore = await cookies();
   const supabaseUrl = process.env.SUPABASE_URL;

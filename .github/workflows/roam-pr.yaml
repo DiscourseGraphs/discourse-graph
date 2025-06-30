@@ -12,6 +12,8 @@ env:
   BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
   GITHUB_HEAD_REF: ${{ github.head_ref }}
   GITHUB_REF_NAME: ${{ github.ref_name }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
 jobs:
   deploy:
