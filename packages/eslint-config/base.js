@@ -27,17 +27,10 @@ export const config = [
     },
   },
   {
-    ignores: ["dist/**", "node_modules/**"],
-  },
-
-  // additions
-  {
-    files: ["**/*.js?(x)", "**/*.mjs"],
-    ...tseslint.configs.disableTypeChecked,
-  },
-  {
     ignores: [
-      // Ignore dotfiles and config
+      "dist/**",
+      // Addition: ignore dotfiles and config
+      "node_modules/**",
       ".*.js",
       "*.config.*",
     ],
