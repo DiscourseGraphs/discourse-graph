@@ -12,13 +12,13 @@ type BulkImportModalProps = {
 };
 
 const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
-  const [step, setStep] = useState<"patterns" | "review" | "importing">(
+  const [step, setStep] = useState<"patterns" | "review" | "identifying">(
     "patterns",
   );
   const [patterns, setPatterns] = useState<BulkImportPattern[]>([]);
   const [candidates, setCandidates] = useState<BulkImportCandidate[]>([]);
   const [isScanning, setIsScanning] = useState(false);
-  const [importProgress, setImportProgress] = useState({
+  const [identificationProgress, setIdentificationProgress] = useState({
     current: 0,
     total: 0,
   });
@@ -46,11 +46,15 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
     setPatterns(initialPatterns);
   }, [plugin.settings.nodeTypes]);
 
-  const handlePatternChange = (
-    index: number,
-    field: keyof BulkImportPattern,
-    value: string | boolean,
-  ) => {
+  const handlePatternChange = ({
+    index,
+    field,
+    value,
+  }: {
+    index: number;
+    field: keyof BulkImportPattern;
+    value: string | boolean;
+  }) => {
     setPatterns((prev) =>
       prev.map((pattern, i) =>
         i === index ? { ...pattern, [field]: value } : pattern,
@@ -80,7 +84,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
       setCandidates(foundCandidates);
       setStep("review");
     } catch (error) {
-      console.error("Error scanning vault:", error);
+      console.warn("Error scanning vault:", error);
       new Notice("Error scanning vault for candidates");
     } finally {
       setIsScanning(false);
@@ -111,10 +115,10 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
     });
   };
 
-  const handleBulkImport = async () => {
+  const handleBulkIdentify = async () => {
     const selectedCandidates = candidates.filter((c) => c.selected);
-    setStep("importing");
-    setImportProgress({ current: 0, total: selectedCandidates.length });
+    setStep("identifying");
+    setIdentificationProgress({ current: 0, total: selectedCandidates.length });
 
     let successCount = 0;
 
@@ -143,7 +147,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
           successCount++;
 
           new Notice(
-            `Error processing ${candidate.file.basename}. Preserved original content.`,
+            `Problem processing ${candidate.file.basename}'s frontmatter. Preserved original content.`,
           );
         } catch (fallbackError) {
           console.error(
@@ -155,7 +159,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
           );
         }
       }
-      setImportProgress((prev) => ({
+      setIdentificationProgress((prev) => ({
         current: prev.current + 1,
         total: selectedCandidates.length,
       }));
@@ -165,12 +169,12 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
 
     if (failureCount > 0) {
       new Notice(
-        `Import completed with some issues:\n${successCount} files processed successfully\n${failureCount} files skipped`,
+        `Identification completed with some issues:\n${successCount} files processed successfully\n${failureCount} files skipped`,
         5000,
       );
     } else {
       new Notice(
-        `Successfully processed ${successCount} files as discourse nodes`,
+        `Successfully identified ${successCount} files as discourse nodes`,
       );
     }
 
@@ -179,9 +183,9 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
 
   const renderPatternsStep = () => (
     <div>
-      <h3 className="mb-4">Configure Import Patterns</h3>
+      <h3 className="mb-4">Configure Identification Patterns</h3>
       <p className="text-muted mb-4 text-sm">
-        Files with title matching these patterns will be converted to discourse
+        Files with title matching these patterns will be identified as discourse
         nodes.
       </p>
 
@@ -220,14 +224,22 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
                 <div
                   className="mb-2 flex cursor-pointer items-center"
                   onClick={() => {
-                    handlePatternChange(index, "enabled", !pattern.enabled);
+                    handlePatternChange({
+                      index,
+                      field: "enabled",
+                      value: !pattern.enabled,
+                    });
                   }}
                 >
                   <input
                     type="checkbox"
                     checked={pattern.enabled}
                     onChange={() => {
-                      handlePatternChange(index, "enabled", !pattern.enabled);
+                      handlePatternChange({
+                        index,
+                        field: "enabled",
+                        value: !pattern.enabled,
+                      });
                     }}
                     className="mr-2"
                   />
@@ -241,11 +253,11 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
                       placeholder={`e.g., for "${nodeType?.format}" you might use "C - {content}"`}
                       value={pattern.alternativePattern}
                       onChange={(e) =>
-                        handlePatternChange(
+                        handlePatternChange({
                           index,
-                          "alternativePattern",
-                          e.target.value,
-                        )
+                          field: "alternativePattern",
+                          value: e.target.value,
+                        })
                       }
                       className="w-full rounded border p-2"
                     />
@@ -286,10 +298,10 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
 
     return (
       <div>
-        <h3 className="mb-4">Review Import Candidates</h3>
+        <h3 className="mb-4">Review Candidates</h3>
         <p className="text-muted mb-4 text-sm">
           {candidates.length} potential matches found. Review and select which
-          files to import.
+          files to identify as discourse nodes.
         </p>
 
         <div className="mb-4">
@@ -364,31 +376,33 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
         <div className="mt-6 flex justify-between">
           <button onClick={() => setStep("patterns")}>Back</button>
           <button
-            onClick={handleBulkImport}
+            onClick={handleBulkIdentify}
             className="!bg-accent !text-on-accent rounded px-4 py-2"
             disabled={candidates.filter((c) => c.selected).length === 0}
           >
-            Import Selected ({candidates.filter((c) => c.selected).length})
+            Identify Selected as Discourse Nodes (
+            {candidates.filter((c) => c.selected).length})
           </button>
         </div>
       </div>
     );
   };
 
-  const renderImportingStep = () => (
+  const renderIdentifyingStep = () => (
     <div className="text-center">
-      <h3 className="mb-4">Importing Files</h3>
+      <h3 className="mb-4">Identifying Files as Discourse Nodes</h3>
       <div className="mb-4">
         <div className="bg-modifier-border mb-2 h-2 rounded-full">
           <div
             className="bg-accent h-2 rounded-full transition-all duration-300"
             style={{
-              width: `${(importProgress.current / importProgress.total) * 100}%`,
+              width: `${(identificationProgress.current / identificationProgress.total) * 100}%`,
             }}
           />
         </div>
         <div className="text-muted text-sm">
-          {importProgress.current} of {importProgress.total} files processed
+          {identificationProgress.current} of {identificationProgress.total}{" "}
+          files processed
         </div>
       </div>
     </div>
@@ -399,14 +413,14 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
       return renderPatternsStep();
     case "review":
       return renderReviewStep();
-    case "importing":
-      return renderImportingStep();
+    case "identifying":
+      return renderIdentifyingStep();
     default:
       return null;
   }
 };
 
-export class BulkImportModal extends Modal {
+export class BulkIdentifyDiscourseNodesModal extends Modal {
   private plugin: DiscourseGraphPlugin;
   private root: Root | null = null;
 

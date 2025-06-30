@@ -2,7 +2,7 @@ import { Editor } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import { CreateNodeModal } from "~/components/CreateNodeModal";
-import { BulkImportModal } from "~/components/BulkImportModal";
+import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
 import { createDiscourseNode } from "./createNode";
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
@@ -52,10 +52,10 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   });
 
   plugin.addCommand({
-    id: "bulk-import-discourse-nodes",
-    name: "Bulk Import Discourse Nodes",
+    id: "bulk-identify-discourse-nodes",
+    name: "Bulk Identify Discourse Nodes",
     callback: () => {
-      new BulkImportModal(plugin.app, plugin).open();
+      new BulkIdentifyDiscourseNodesModal(plugin.app, plugin).open();
     },
   });
 
