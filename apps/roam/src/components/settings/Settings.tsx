@@ -28,10 +28,13 @@ import { FeedbackWidget } from "~/components/BirdEatsBugs";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
+  className?: string;
 };
-const SectionHeader = ({ children }: SectionHeaderProps) => {
+const SectionHeader = ({ children, className }: SectionHeaderProps) => {
   return (
-    <div className="bp3-tab-copy mt-4 cursor-default select-none font-bold">
+    <div
+      className={`bp3-tab-copy mt-4 cursor-default select-none font-bold ${className}`}
+    >
       {children}
     </div>
   );
@@ -112,6 +115,11 @@ export const SettingsDialog = ({
               border-radius: 3px;
             }
           }
+
+          /* Override bp3-tab-copy font-size when text-lg is applied */
+          .bp3-tab-copy.text-lg {
+            font-size: 1.125rem;
+          }
         `}</style>
         <Tabs
           className="dg-settings-tabs flex h-full"
@@ -120,9 +128,9 @@ export const SettingsDialog = ({
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
-          <div className="pb-8 text-lg font-semibold text-neutral-dark">
+          <SectionHeader className="text-lg font-semibold text-neutral-dark">
             Personal Settings
-          </div>
+          </SectionHeader>
           <Tab
             id="discourse-graph-home-personal"
             title="Home"
@@ -135,9 +143,9 @@ export const SettingsDialog = ({
             className="mb-8 overflow-y-auto"
             panel={<QuerySettings extensionAPI={extensionAPI} />}
           />
-          <div className="pb-8 text-lg font-semibold text-neutral-dark">
+          <SectionHeader className="text-lg font-semibold text-neutral-dark">
             Global Settings
-          </div>
+          </SectionHeader>
           <Tab
             id="discourse-graph-home"
             title="Home"
