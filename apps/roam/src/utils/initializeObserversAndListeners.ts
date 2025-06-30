@@ -52,8 +52,7 @@ export const initObservers = async ({
     hashChangeListener: EventListener;
     nodeMenuTriggerListener: EventListener;
     discourseNodeSearchTriggerListener: EventListener;
-    selectionChangeListener: EventListener;
-    documentClickListener: EventListener;
+    nodeCreationPopoverListener: EventListener;
   };
 }> => {
   const pageTitleObserver = createHTMLObserver({
@@ -247,8 +246,7 @@ export const initObservers = async ({
     }
   };
 
-  const selectionChangeListener = () => {
-    // Check if text selection popup is enabled (default to true for backward compatibility)
+  const nodeCreationPopoverListener = () => {
     const isTextSelectionPopupEnabled =
       onloadArgs.extensionAPI.settings.get("text-selection-popup") !== false;
 
@@ -272,29 +270,13 @@ export const initObservers = async ({
 
     if (blockElement) {
       const textarea = blockElement.querySelector("textarea");
-      renderTextSelectionPopup(onloadArgs.extensionAPI, blockElement, textarea);
+      renderTextSelectionPopup({
+        extensionAPI: onloadArgs.extensionAPI,
+        blockElement,
+        textarea,
+      });
     } else {
       removeTextSelectionPopup();
-    }
-  };
-
-  const documentClickListener = (e: Event) => {
-    const event = e as MouseEvent;
-    const target = event.target as Element;
-
-    const existingPopup = document.getElementById(
-      "discourse-text-selection-popup",
-    );
-
-    if (existingPopup) {
-      const isClickOutsidePopup =
-        !target.closest(".bp3-popover-target") &&
-        !target.closest(".bp3-popover-content") &&
-        !existingPopup.contains(target);
-
-      if (isClickOutsidePopup) {
-        removeTextSelectionPopup();
-      }
     }
   };
 
@@ -311,8 +293,7 @@ export const initObservers = async ({
       hashChangeListener,
       nodeMenuTriggerListener,
       discourseNodeSearchTriggerListener,
-      selectionChangeListener,
-      documentClickListener,
+      nodeCreationPopoverListener,
     },
   };
 };

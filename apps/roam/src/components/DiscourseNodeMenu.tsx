@@ -117,12 +117,14 @@ const NodeMenu = ({
           menuRef.current?.getAttribute("data-active-index"),
         );
         onSelect(index);
+        // Remove focus from the block to ensure updateBlock works properly
         document.body.click();
       } else if (e.key === "Escape") {
         onClose();
         document.body.click();
       } else if (shortcuts.has(e.key.toUpperCase())) {
         onSelect(indexBySC[e.key.toUpperCase()]);
+        // Remove focus from the block to ensure updateBlock works properly
         document.body.click();
       } else {
         return;
@@ -135,11 +137,7 @@ const NodeMenu = ({
   useEffect(() => {
     const eventTarget = trigger ? document : textarea;
     const keydownHandler = (e: Event) => {
-      if (trigger && e instanceof KeyboardEvent) {
-        keydownListener(e);
-      } else if (!trigger) {
-        keydownListener(e as KeyboardEvent);
-      }
+      keydownListener(e as KeyboardEvent);
     };
     eventTarget.addEventListener("keydown", keydownHandler);
 

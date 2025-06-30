@@ -75,7 +75,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             Text Selection Popup
             <Description
               description={
-                "Whether or not to show the discourse node creation popup when selecting text."
+                "Whether or not to show the Discourse Node Menu when selecting text."
               }
             />
           </>

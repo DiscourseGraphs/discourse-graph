@@ -34,11 +34,15 @@ export const findBlockElementFromSelection = (): Element | null => {
   return blockElement;
 };
 
-export const renderTextSelectionPopup = (
-  extensionAPI: OnloadArgs["extensionAPI"],
-  blockElement?: Element | null,
-  textarea?: HTMLTextAreaElement | null,
-) => {
+export const renderTextSelectionPopup = ({
+  extensionAPI,
+  blockElement,
+  textarea,
+}: {
+  extensionAPI: OnloadArgs["extensionAPI"];
+  blockElement?: Element | null;
+  textarea?: HTMLTextAreaElement | null;
+}) => {
   removeTextSelectionPopup();
   const targetBlockElement = blockElement || findBlockElementFromSelection();
   if (!targetBlockElement) return;
