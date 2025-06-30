@@ -16,6 +16,8 @@ import {
   Tab,
   TabId,
   InputGroup,
+  Tooltip,
+  Position,
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
@@ -30,16 +32,9 @@ import getDiscourseNodes, {
 } from "~/utils/getDiscourseNodes";
 import { getSubTree } from "roamjs-components/util";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
-
-declare global {
-  interface Window {
-    Toast: (args: {
-      content: string;
-      intent: Intent;
-      timeout?: number;
-    }) => void;
-  }
-}
+import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
+import { escapeCljString } from "~/utils/formatUtils";
+import { Result } from "~/utils/types";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -75,9 +70,9 @@ const NodeTemplateConfig = ({
 
   const [embeddingRef, setEmbeddingRef] = useState("");
   const [isFirstChild, setIsFirstChild] = useState(false);
-  const [isLastChild, setIsLastChild] = useState(false);
-  const [isFirstGrandChild, setIsFirstGrandChild] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [canUpdate, setCanUpdate] = useState(false);
 
   const blockUidToRender = useMemo(() => {
     if (!embeddingRef) return null;
@@ -90,16 +85,12 @@ const NodeTemplateConfig = ({
       | {
           embeddingRef: string;
           isFirstChild: boolean;
-          isLastChild: boolean;
-          isFirstGrandChild: boolean;
         }
       | undefined;
 
     if (settings) {
       setEmbeddingRef(settings.embeddingRef || "");
       setIsFirstChild(settings.isFirstChild || false);
-      setIsLastChild(settings.isLastChild || false);
-      setIsFirstGrandChild(settings.isFirstGrandChild || false);
     }
   }, [node.type, extensionAPI, settingsKey]);
 
@@ -107,14 +98,102 @@ const NodeTemplateConfig = ({
     extensionAPI.settings.set(settingsKey, {
       embeddingRef,
       isFirstChild,
-      isLastChild,
-      isFirstGrandChild,
     });
     setHasUnsavedChanges(false);
-    window.Toast({
-      content: `Rules for "${node.text}" saved!`,
-      intent: Intent.SUCCESS,
-    });
+    console.log(`Rules for "${node.text}" saved!`);
+    setCanUpdate(true);
+  };
+
+  const searchNodesForType = async (
+    node: DiscourseNode,
+    rules: { isFirstChild?: boolean; embeddingRef?: string },
+  ): Promise<any[]> => {
+    if (!node.format) return [];
+
+    try {
+      const regex = getDiscourseNodeFormatExpression(node.format);
+      console.log("regex", regex);
+
+      const regexPattern = regex.source
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"');
+
+      const query = `[
+      :find ?node-title ?uid
+      :keys node-title uid
+      :where
+        [(re-pattern "${regexPattern}") ?title-regex]
+        [?node :node/title ?node-title]
+        [(re-find ?title-regex ?node-title)]
+        [?node :block/uid ?uid]
+        ]`;
+
+      const childByOrder = `[
+      :find ?node-title ?childUid ?childString 
+      :keys node-title uid block-string
+      :in $ ?firstChildUid 
+      :where
+        [(re-pattern "${regexPattern}") ?title-regex]
+        [?node :node/title ?node-title]
+        [(re-find ?title-regex ?node-title)]
+        [?s :block/uid ?firstChildUid]
+        [?s :block/string ?firstChildString]
+        [?bg :block/page ?node]
+        [?node :node/title ?tit]
+        [?bg :block/string ?firstChildString]
+        [?bg :block/children ?child]
+        [?child :block/order 0]
+        [?child :block/uid ?childUid]
+        [?child :block/string ?childString]
+        ]`;
+
+      const results = rules.isFirstChild
+        ? // @ts-ignore - backend to be added to roamjs-components
+          window.roamAlphaAPI.q(
+            childByOrder,
+            rules.embeddingRef?.match(/\(\((.*)\)\)/)?.[1] ?? "",
+          )
+        : // @ts-ignore - backend to be added to roamjs-components
+          await window.roamAlphaAPI.data.backend.q(query);
+
+      console.log(
+        "query",
+        childByOrder,
+        rules.embeddingRef?.match(/\(\((.*)\)\)/)?.[1] ?? "",
+      );
+      console.log("results", results);
+    } catch (error) {
+      console.error(`Error querying for node type ${node.type}:`, error);
+      console.error(`Node format:`, node.format);
+      return [];
+    }
+  };
+
+  const handleUpdateEmbeddings = async () => {
+    setIsUpdating(true);
+    console.log(`Starting embedding update for "${node.text}".`);
+
+    const rules = extensionAPI.settings.get(settingsKey) as {
+      isFirstChild?: boolean;
+      embeddingRef?: string;
+    };
+    console.log(
+      `Repopulating database for node type "${node.text}" with rules:`,
+      rules,
+    );
+    const nodesOfType = await searchNodesForType(node, rules);
+    console.log("nodesOfType", nodesOfType);
+
+    // TODO:
+    // 2. For each node, get its content based on the rules.
+    // 3. Generate embeddings and upsert to the database.
+    // Example: await updateEmbeddingsForNodeType(node.type, rules);
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // Placeholder for async work
+    console.log(`Finished updating embeddings for ${node.text}.`);
+
+    setIsUpdating(false);
+    console.log(`Embeddings for "${node.text}" updated successfully.`);
+    setCanUpdate(false);
   };
 
   const templateUid = getSubTree({
@@ -154,30 +233,30 @@ const NodeTemplateConfig = ({
             setHasUnsavedChanges(true);
           }}
         />
-        <Checkbox
-          label="Last Child"
-          checked={isLastChild}
-          onChange={(e) => {
-            setIsLastChild((e.target as HTMLInputElement).checked);
-            setHasUnsavedChanges(true);
-          }}
-        />
-        <Checkbox
-          label="First Grand Child"
-          checked={isFirstGrandChild}
-          onChange={(e) => {
-            setIsFirstGrandChild((e.target as HTMLInputElement).checked);
-            setHasUnsavedChanges(true);
-          }}
-        />
       </div>
-      <Button
-        text="Save Rules"
-        intent={Intent.PRIMARY}
-        disabled={!hasUnsavedChanges}
-        onClick={handleSave}
-        style={{ maxWidth: "120px" }}
-      />
+      <div className="flex items-center gap-2">
+        <Button
+          text="Save Rules"
+          intent={Intent.PRIMARY}
+          disabled={!hasUnsavedChanges}
+          onClick={handleSave}
+          style={{ maxWidth: "120px" }}
+        />
+        <Tooltip
+          content="Save changes before updating embeddings"
+          position={Position.TOP}
+          disabled={canUpdate}
+        >
+          <Button
+            text="Update Embeddings"
+            intent={Intent.NONE}
+            onClick={handleUpdateEmbeddings}
+            style={{ minWidth: "140px" }}
+            disabled={!canUpdate}
+            loading={isUpdating}
+          />
+        </Tooltip>
+      </div>
     </div>
   );
 };
