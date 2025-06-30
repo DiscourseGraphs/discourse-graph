@@ -1,7 +1,9 @@
-import base from "@repo/eslint-config/react-internal.js";
+import { config } from "@repo/eslint-config/react-internal";
+
+// console.log(config.map((x)=>(x.languageOptions || {}).parserOptions));
 
 export default [
-  ...base,
+  ...config,
   {
     languageOptions: {
       parserOptions: {
@@ -12,8 +14,5 @@ export default [
         },
       },
     },
-  },
-  {
-    ignores: ["scripts/*.ts"],
   },
 ];

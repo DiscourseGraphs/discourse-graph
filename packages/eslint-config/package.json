@@ -1,25 +1,26 @@
 {
   "name": "@repo/eslint-config",
   "version": "0.0.0",
-  "private": true,
-  "license": "Apache-2.0",
   "type": "module",
-  "files": [
-    "library.js",
-    "next.js",
-    "react-internal.js"
-  ],
+  "license": "Apache-2.0",
+  "private": true,
+  "exports": {
+    "./base": "./base.js",
+    "./next-js": "./next.js",
+    "./react-internal": "./react-internal.js"
+  },
   "devDependencies": {
+    "@eslint/js": "^9.29.0",
     "@next/eslint-plugin-next": "~15.0.3",
-    "@types/eslint": "^8.56.5",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
     "@vercel/style-guide": "^6.0.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-config-turbo": "^2.5.4",
     "eslint-plugin-only-warn": "^1.1.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "eslint": "^8.57.1",
     "globals": "16.2.0",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "typescript-eslint": "^7.18.0"
   }
 }
