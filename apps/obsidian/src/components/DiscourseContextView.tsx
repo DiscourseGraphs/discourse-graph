@@ -13,10 +13,7 @@ type DiscourseContextProps = {
 const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
 
-  const extractContentFromTitle = (
-    format: string | undefined,
-    title: string,
-  ): string => {
+  const extractContentFromTitle = (format: string, title: string): string => {
     if (!format) return "";
     const regex = getDiscourseNodeFormatExpression(format);
     const match = title.match(regex);

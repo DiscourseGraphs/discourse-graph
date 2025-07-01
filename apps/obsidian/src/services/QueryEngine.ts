@@ -1,4 +1,7 @@
 import { TFile, App } from "obsidian";
+import { BulkImportPattern, BulkImportCandidate, DiscourseNode } from "~/types";
+import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
+import { extractContentFromTitle } from "~/utils/extractContentFromTitle";
 
 // This is a workaround to get the datacore API.
 // TODO: Remove once we can use datacore npm package
@@ -143,5 +146,143 @@ export class QueryEngine {
     }
 
     return searchIndex === searchLower.length;
+  }
+
+  async scanForBulkImportCandidates(
+    patterns: BulkImportPattern[],
+    validNodeTypes: DiscourseNode[],
+  ): Promise<BulkImportCandidate[]> {
+    const candidates: BulkImportCandidate[] = [];
+
+    if (!this.dc) {
+      console.warn(
+        "Datacore API not available. Falling back to vault iteration.",
+      );
+      return this.fallbackScanVault(patterns, validNodeTypes);
+    }
+
+    try {
+      let dcQuery: string;
+
+      if (validNodeTypes.length === 0) {
+        dcQuery = "@page";
+      } else {
+        const validIdConditions = validNodeTypes
+          .map((nt) => `nodeTypeId != "${nt.id}"`)
+          .join(" and ");
+
+        dcQuery = `@page and (!exists(nodeTypeId) or (${validIdConditions}))`;
+      }
+
+      const potentialPages = this.dc.query(dcQuery);
+
+      for (const page of potentialPages) {
+        const fileName = page.$name;
+
+        for (const pattern of patterns) {
+          if (!pattern.enabled || !pattern.alternativePattern.trim()) continue;
+
+          const regex = getDiscourseNodeFormatExpression(
+            pattern.alternativePattern,
+          );
+
+          if (regex.test(fileName)) {
+            const file = this.app.vault.getAbstractFileByPath(page.$path);
+            if (file && file instanceof TFile) {
+              const extractedContent = extractContentFromTitle(
+                pattern.alternativePattern,
+                fileName,
+              );
+
+              const matchedNodeType = validNodeTypes.find(
+                (nt) => nt.id === pattern.nodeTypeId,
+              );
+
+              if (!matchedNodeType) {
+                console.warn(
+                  `No matching node type found for pattern with nodeTypeId: ${pattern.nodeTypeId}`,
+                );
+                continue;
+              }
+
+              candidates.push({
+                file,
+                matchedNodeType,
+                alternativePattern: pattern.alternativePattern,
+                extractedContent,
+                selected: true,
+              });
+            }
+            break; // Stop checking other patterns for this file
+          }
+        }
+      }
+
+      return candidates;
+    } catch (error) {
+      console.error(
+        "Error in datacore bulk scan, falling back to vault iteration:",
+        error,
+      );
+      return this.fallbackScanVault(patterns, validNodeTypes);
+    }
+  }
+
+  private async fallbackScanVault(
+    patterns: BulkImportPattern[],
+    validNodeTypes: DiscourseNode[],
+  ): Promise<BulkImportCandidate[]> {
+    const candidates: BulkImportCandidate[] = [];
+    const allFiles = this.app.vault.getMarkdownFiles();
+
+    for (const file of allFiles) {
+      const fileName = file.basename;
+      const fileCache = this.app.metadataCache.getFileCache(file);
+      const currentNodeTypeId = fileCache?.frontmatter?.nodeTypeId;
+
+      if (
+        currentNodeTypeId &&
+        validNodeTypes.some((nt) => nt.id === currentNodeTypeId)
+      ) {
+        continue;
+      }
+
+      for (const pattern of patterns) {
+        if (!pattern.enabled || !pattern.alternativePattern.trim()) continue;
+
+        const regex = getDiscourseNodeFormatExpression(
+          pattern.alternativePattern,
+        );
+
+        if (regex.test(fileName)) {
+          const extractedContent = extractContentFromTitle(
+            pattern.alternativePattern,
+            fileName,
+          );
+
+          const matchedNodeType = validNodeTypes.find(
+            (nt) => nt.id === pattern.nodeTypeId,
+          );
+
+          if (!matchedNodeType) {
+            console.warn(
+              `No matching node type found for pattern with nodeTypeId: ${pattern.nodeTypeId}`,
+            );
+            continue;
+          }
+
+          candidates.push({
+            file,
+            matchedNodeType,
+            alternativePattern: pattern.alternativePattern,
+            extractedContent,
+            selected: true,
+          });
+          break;
+        }
+      }
+    }
+
+    return candidates;
   }
 }
