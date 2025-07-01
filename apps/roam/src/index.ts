@@ -103,11 +103,13 @@ export default runExtension(async (onloadArgs) => {
     hashChangeListener,
     nodeMenuTriggerListener,
     discourseNodeSearchTriggerListener,
+    nodeCreationPopoverListener,
   } = listeners;
   document.addEventListener("roamjs:query-builder:action", pageActionListener);
   window.addEventListener("hashchange", hashChangeListener);
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
+  document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
@@ -139,6 +141,10 @@ export default runExtension(async (onloadArgs) => {
       window.removeEventListener("hashchange", hashChangeListener);
       document.removeEventListener("keydown", nodeMenuTriggerListener);
       document.removeEventListener("input", discourseNodeSearchTriggerListener);
+      document.removeEventListener(
+        "selectionchange",
+        nodeCreationPopoverListener,
+      );
       window.roamAlphaAPI.ui.graphView.wholeGraph.removeCallback({
         label: "discourse-node-styling",
       });
