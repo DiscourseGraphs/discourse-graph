@@ -67,6 +67,7 @@ export default class DiscourseGraphPlugin extends Plugin {
                           plugin: this,
                           file,
                           nodeType,
+                          title,
                         });
                       },
                     }).open();
