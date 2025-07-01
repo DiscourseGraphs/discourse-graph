@@ -33,8 +33,8 @@ import getDiscourseNodes, {
 import { getSubTree } from "roamjs-components/util";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
-import { escapeCljString } from "~/utils/formatUtils";
-import { Result } from "~/utils/types";
+import { getSupabaseContext } from "~/utils/supabaseContext";
+import { getNodeEnv } from "roamjs-components/util/env";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -119,23 +119,26 @@ const NodeTemplateConfig = ({
         .replace(/"/g, '\\"');
 
       const query = `[
-      :find ?node-title ?uid
-      :keys node-title uid
+      :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime
+      :keys node-title uid childCreateTime childEditTime
       :where
         [(re-pattern "${regexPattern}") ?title-regex]
         [?node :node/title ?node-title]
         [(re-find ?title-regex ?node-title)]
         [?node :block/uid ?uid]
+        [?node :create/time ?nodeCreateTime]
+        [?node :edit/time ?nodeEditTime]
         ]`;
 
       const childByOrder = `[
-      :find ?node-title ?childUid ?childString 
-      :keys node-title uid block-string
+      :find ?childUid ?childString ?nodeUid ?childCreateTime ?childEditTime
+      :keys blockUid blockString nodeUid childCreateTime childEditTime
       :in $ ?firstChildUid 
       :where
         [(re-pattern "${regexPattern}") ?title-regex]
         [?node :node/title ?node-title]
         [(re-find ?title-regex ?node-title)]
+        [?node :block/uid ?nodeUid]
         [?s :block/uid ?firstChildUid]
         [?s :block/string ?firstChildString]
         [?bg :block/page ?node]
@@ -145,6 +148,8 @@ const NodeTemplateConfig = ({
         [?child :block/order 0]
         [?child :block/uid ?childUid]
         [?child :block/string ?childString]
+        [?child :create/time ?childCreateTime]
+        [?child :edit/time ?childEditTime]
         ]`;
 
       const results = rules.isFirstChild
@@ -162,6 +167,7 @@ const NodeTemplateConfig = ({
         rules.embeddingRef?.match(/\(\((.*)\)\)/)?.[1] ?? "",
       );
       console.log("results", results);
+      return results;
     } catch (error) {
       console.error(`Error querying for node type ${node.type}:`, error);
       console.error(`Node format:`, node.format);
@@ -184,16 +190,60 @@ const NodeTemplateConfig = ({
     const nodesOfType = await searchNodesForType(node, rules);
     console.log("nodesOfType", nodesOfType);
 
+    if (rules.isFirstChild && Array.isArray(nodesOfType)) {
+      const context = await getSupabaseContext();
+      if (!context) {
+        console.error("Could not get Supabase context. Aborting update.");
+        setIsUpdating(false);
+        return;
+      }
+      const { spaceId, userId: authorId } = context;
+
+      const apiBase =
+        getNodeEnv() === "development"
+          ? "http://localhost:3000/api/supabase"
+          : "https://discoursegraphs.com/api/supabase";
+      fetch(`${apiBase}/content/upsert-for-page`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          spaceId,
+          authorId,
+          items: nodesOfType,
+        }),
+      })
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Failed to upsert content");
+          }
+          return res.json();
+        })
+        .then(() => {
+          console.log(`Embeddings for "${node.text}" updated successfully.`);
+          setCanUpdate(false);
+        })
+        .catch((e) => {
+          console.error("Failed to update embeddings", e);
+        })
+        .finally(() => {
+          setIsUpdating(false);
+        });
+    } else {
+      setIsUpdating(false);
+    }
+
     // TODO:
     // 2. For each node, get its content based on the rules.
     // 3. Generate embeddings and upsert to the database.
     // Example: await updateEmbeddingsForNodeType(node.type, rules);
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // Placeholder for async work
-    console.log(`Finished updating embeddings for ${node.text}.`);
-
-    setIsUpdating(false);
-    console.log(`Embeddings for "${node.text}" updated successfully.`);
-    setCanUpdate(false);
+    // await new Promise((resolve) => setTimeout(resolve, 2000)); // Placeholder for async work
+    // console.log(`Finished updating embeddings for ${node.text}.`);
+    //
+    // setIsUpdating(false);
+    // console.log(`Embeddings for "${node.text}" updated successfully.`);
+    // setCanUpdate(false);
   };
 
   const templateUid = getSubTree({
