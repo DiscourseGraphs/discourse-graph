@@ -91,6 +91,7 @@ export const SettingsDialog = ({
         refreshConfigTree();
         onClose?.();
       }}
+      enforceFocus={false}
       isCloseButtonShown={false}
       style={{ width: "80vw", height: "80vh" }}
       className="relative bg-white"
