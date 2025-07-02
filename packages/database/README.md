@@ -1,5 +1,6 @@
 This contains the database schema for vector embeddings and concepts.
-All CLI commands below should be run in this directory (`packages/database`.)
+
+IMPORTANT: Either set SUPABASE_WORKDIR to the full path to this directory (`packages/database`) or run all CLI commands in this directory.
 
 1. Local development setup
    1. Install [Docker](https://www.docker.com)
