@@ -25,5 +25,5 @@ Feature: Content access
   Scenario Outline: Per-space document access
     When the user user1 opens the Roam plugin in space s1
     Then the database should contain 3 Document
-    And a user logged in space s2 should see 3 Document in the database
-    And a user logged in space s1 should see 3 Document in the database
+    And a user logged in space s2 should see 1 Document in the database
+    And a user logged in space s1 should see 2 Document in the database

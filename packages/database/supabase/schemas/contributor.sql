@@ -50,3 +50,13 @@ GRANT ALL ON TABLE public.concept_contributors TO service_role;
 GRANT ALL ON TABLE public.content_contributors TO anon;
 GRANT ALL ON TABLE public.content_contributors TO authenticated;
 GRANT ALL ON TABLE public.content_contributors TO service_role;
+
+ALTER TABLE public.concept_contributors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS concept_contributors_policy ON public.concept_contributors;
+CREATE POLICY concept_contributors_policy ON public.concept_contributors FOR ALL USING (public.concept_in_space(concept_id));
+
+ALTER TABLE public.content_contributors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS content_contributors_policy ON public.content_contributors;
+CREATE POLICY content_contributors_policy ON public.content_contributors FOR ALL USING (public.content_in_space(content_id));

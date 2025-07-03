@@ -37,9 +37,10 @@ AS $$
 $$;
 
 
--- TODO: on delete trigger anonymous user
+-- on delete trigger anonymous user. Needs to be DEFINER to allow delete on user.auth.
 CREATE OR REPLACE FUNCTION public.after_delete_space()
 RETURNS TRIGGER
+SECURITY DEFINER
 SET search_path = ''
 LANGUAGE plpgsql
 AS $$
@@ -53,3 +54,5 @@ END;
 $$;
 
 CREATE TRIGGER on_delete_space_trigger AFTER DELETE ON public."Space" FOR EACH ROW EXECUTE FUNCTION public.after_delete_space();
+
+-- RLS security in account file.

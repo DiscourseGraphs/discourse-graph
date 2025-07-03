@@ -52,8 +52,7 @@ Given("the database is blank", async () => {
   r = await client.from("PlatformAccount").delete().neq("id", -1);
   assert.equal(r.error, null);
   r = await client.from("Space").delete().neq("id", -1);
-  // this one fails. I need to set security to definer. Will do in another PR.
-  // assert.equal(r.error, null);
+  assert.equal(r.error, null);
 });
 
 const substituteLocalReferences = (

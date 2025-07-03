@@ -111,7 +111,7 @@ ADD CONSTRAINT "Concept_space_id_fkey" FOREIGN KEY (
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
-GRANT ALL ON TABLE public."Concept" TO anon;
+REVOKE ALL ON TABLE public."Concept" FROM anon;
 GRANT ALL ON TABLE public."Concept" TO authenticated;
 GRANT ALL ON TABLE public."Concept" TO service_role;
 
@@ -253,3 +253,19 @@ BEGIN
   RAISE DEBUG 'Completed upsert_content successfully';
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION public.concept_in_space (concept_id BIGINT) RETURNS boolean
+STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT public.in_space(space_id) FROM public."Concept" WHERE id=concept_id
+$$;
+
+COMMENT ON FUNCTION public.concept_in_space IS 'security utility: does current user have access to this concept''s space?';
+
+
+ALTER TABLE public."Concept" ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS concept_policy ON public."Concept";
+CREATE POLICY concept_policy ON public."Concept" FOR ALL USING (public.in_space(space_id));
