@@ -1,5 +1,4 @@
 CREATE TYPE task_status AS ENUM ('active', 'timeout', 'complete', 'failed');
-
 CREATE TABLE sync_info (
     id SERIAL PRIMARY KEY,
     sync_target BIGINT,
@@ -11,9 +10,7 @@ CREATE TABLE sync_info (
     last_task_end TIMESTAMP WITH TIME ZONE,
     task_times_out_at TIMESTAMP WITH TIME ZONE
 );
-
 CREATE UNIQUE INDEX sync_info_u_idx on sync_info (sync_target, sync_function);
-
 CREATE OR REPLACE FUNCTION propose_sync_task(s_target BIGINT, s_function VARCHAR(20), s_worker varchar(100), timeout INTERVAL, task_interval INTERVAL)
     RETURNS INTERVAL AS $$
 DECLARE s_id INTEGER;
@@ -73,7 +70,6 @@ BEGIN
     RETURN result;
 END;
 $$ LANGUAGE plpgsql;
-
 CREATE OR REPLACE FUNCTION end_sync_task(s_target BIGINT, s_function VARCHAR(20), s_worker varchar(100), s_status task_status) RETURNS VOID AS $$
 DECLARE t_id INTEGER;
 DECLARE t_target varchar;

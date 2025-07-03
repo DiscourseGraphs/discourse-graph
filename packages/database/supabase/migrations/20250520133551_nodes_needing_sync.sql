@@ -34,5 +34,4 @@ AS $function$
         END LOOP;
         RETURN;
     END;
-    $function$
-;
+    $function$;

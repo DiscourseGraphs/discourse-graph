@@ -49,7 +49,9 @@ export async function getAllDiscourseNodes(): Promise<RoamContentNode[]> {
 }
 
 const base_url =
-  "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app";
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:3000"
+    : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app";
 
 export const runFullEmbeddingProcess = async (): Promise<void> => {
   console.log("runFullEmbeddingProcess (BATCH API V2): Process started.");
@@ -181,5 +183,7 @@ export const runFullEmbeddingProcess = async (): Promise<void> => {
       );
       throw error;
     }
+    // Add a small delay to avoid overwhelming the server
+    await new Promise((resolve) => setTimeout(resolve, 250));
   }
 };

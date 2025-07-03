@@ -14,7 +14,9 @@ type RoamEntityFromQuery = {
 
 // Moved API_BASE_URL to be a module-level constant
 const API_BASE_URL =
-  "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app";
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:54321"
+    : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app";
 
 type RoamContentNode = {
   uid: string;

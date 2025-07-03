@@ -17,7 +17,6 @@ ORDER BY
   ce.vector <=> query_embedding ASC
 LIMIT match_count;
 $function$;
-
 -- Supabase wants to replace this function for no obvious reason. Letting it.
 
 CREATE OR REPLACE FUNCTION public.match_embeddings_for_subset_nodes(p_query_embedding vector, p_subset_roam_uids text[])

@@ -30,9 +30,7 @@ BEGIN
             failure_count=t_failure_count
         WHERE id=t_id;
 END;
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.propose_sync_task(s_target bigint, s_function character varying, s_worker character varying, timeout interval, task_interval interval)
  RETURNS interval
  LANGUAGE plpgsql
@@ -91,5 +89,4 @@ BEGIN
     PERFORM pg_advisory_unlock(s_id);
     RETURN result;
 END;
-$function$
-;
+$function$;

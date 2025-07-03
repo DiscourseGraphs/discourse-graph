@@ -56,7 +56,8 @@ const API_CONFIG = {
   },
   BASE_URL: {
     DEV: "http://localhost:3000",
-    PROD: "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app",
+    PROD: "http://localhost:54321",
+    // "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app",
   },
   EMBEDDINGS: {
     PATH: "/api/embeddings/openai/small",
