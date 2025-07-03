@@ -562,6 +562,10 @@ export type Database = {
           url: string | null
         }
       }
+      account_in_shared_space: {
+        Args: { p_account_id: number }
+        Returns: boolean
+      }
       alpha_delete_by_source_local_ids: {
         Args: { p_source_local_ids: string[]; p_space_name: string }
         Returns: string
@@ -574,10 +578,10 @@ export type Database = {
       }
       alpha_upsert_discourse_nodes: {
         Args: {
-          p_nodes: Json
           p_space_name: string
           p_user_email: string
           p_user_name: string
+          p_nodes: Json
         }
         Returns: string
       }
@@ -585,14 +589,18 @@ export type Database = {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
       }
+      content_in_space: {
+        Args: { content_id: number }
+        Returns: boolean
+      }
       create_account_in_space: {
         Args: {
+          email_trusted?: boolean
+          name_: string
           space_id_: number
           account_local_id_: string
-          name_: string
-          editor_?: boolean
-          email_trusted?: boolean
           email_?: string
+          editor_?: boolean
         }
         Returns: number
       }
@@ -617,10 +625,14 @@ export type Database = {
       }
       get_space_anonymous_email: {
         Args: {
-          space_id: number
           platform: Database["public"]["Enums"]["Platform"]
+          space_id: number
         }
         Returns: string
+      }
+      in_space: {
+        Args: { space_id: number }
+        Returns: boolean
       }
       match_content_embeddings: {
         Args: {
@@ -632,26 +644,26 @@ export type Database = {
         Returns: {
           content_id: number
           roam_uid: string
-          similarity: number
           text_content: string
+          similarity: number
         }[]
       }
       match_embeddings_for_subset_nodes: {
-        Args: { p_query_embedding: string; p_subset_roam_uids: string[] }
+        Args: { p_subset_roam_uids: string[]; p_query_embedding: string }
         Returns: {
-          content_id: number
-          roam_uid: string
-          text_content: string
           similarity: number
+          text_content: string
+          roam_uid: string
+          content_id: number
         }[]
       }
       propose_sync_task: {
         Args: {
           timeout: unknown
+          s_worker: string
           s_function: string
           s_target: number
           task_interval: unknown
-          s_worker: string
         }
         Returns: string
       }
@@ -661,35 +673,35 @@ export type Database = {
       }
       upsert_content: {
         Args: {
-          content_as_document?: boolean
           v_creator_id: number
-          data: Json
+          content_as_document?: boolean
           v_space_id: number
+          data: Json
         }
         Returns: number[]
       }
       upsert_content_embedding: {
-        Args: { content_id: number; embedding_array: number[]; model: string }
+        Args: { embedding_array: number[]; model: string; content_id: number }
         Returns: undefined
       }
       upsert_discourse_nodes: {
         Args: {
-          p_platform_name?: string
+          p_platform_url?: string
           p_space_url?: string
-          p_document_source_id?: string
-          p_embedding_model?: string
           p_content_scale?: string
+          p_embedding_model?: string
+          p_document_source_id?: string
           p_agent_type?: string
           p_space_name: string
           p_user_email: string
           p_user_name: string
           p_nodes: Json
-          p_platform_url?: string
+          p_platform_name?: string
         }
         Returns: {
-          action: string
-          embedding_created: boolean
           content_id: number
+          embedding_created: boolean
+          action: string
         }[]
       }
       upsert_documents: {
@@ -698,8 +710,8 @@ export type Database = {
       }
       upsert_platform_account_input: {
         Args: {
-          p_platform: Database["public"]["Enums"]["Platform"]
           account_info: Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          p_platform: Database["public"]["Enums"]["Platform"]
         }
         Returns: number
       }

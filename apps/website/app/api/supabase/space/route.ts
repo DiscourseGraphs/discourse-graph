@@ -98,7 +98,14 @@ const processAndGetOrCreateSpace = async (
     }
     anonymousUser = resultCreateAnonymousUser.data.user;
   }
-
+  const rsignin = await supabase.auth.signInWithPassword({ password, email });
+  if (rsignin.error)
+    return asPostgrestFailure(
+      rsignin.error.message,
+      `${rsignin.error.code}`,
+      typeof rsignin.error.code === "number" ? rsignin.error.code : undefined,
+    );
+  console.log(await supabase.auth.getUser());
   const anonPlatformUserResult = await getOrCreateEntity<"PlatformAccount">({
     supabase,
     tableName: "PlatformAccount",

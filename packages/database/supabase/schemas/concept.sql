@@ -103,7 +103,7 @@ ADD CONSTRAINT "Concept_space_id_fkey" FOREIGN KEY (
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
-GRANT ALL ON TABLE public."Concept" TO anon;
+REVOKE ALL ON TABLE public."Concept" FROM anon;
 GRANT ALL ON TABLE public."Concept" TO authenticated;
 GRANT ALL ON TABLE public."Concept" TO service_role;
 
@@ -240,3 +240,14 @@ BEGIN
   RAISE DEBUG 'Completed upsert_content successfully';
 END;
 $$;
+
+ALTER TABLE public."Concept" ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS platform_account_insert_policy ON public."Concept";
+CREATE POLICY platform_account_insert_policy ON public."Concept" FOR INSERT WITH CHECK (public.in_space(space_id));
+
+DROP POLICY IF EXISTS platform_account_update_policy ON public."Concept";
+CREATE POLICY platform_account_update_policy ON public."Concept" FOR UPDATE USING (public.in_space(space_id));
+
+DROP POLICY IF EXISTS platform_account_select_policy ON public."Concept";
+CREATE POLICY platform_account_select_policy ON public."Concept" FOR SELECT USING (public.in_space(space_id));
