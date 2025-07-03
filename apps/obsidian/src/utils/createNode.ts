@@ -144,13 +144,15 @@ export const convertPageToDiscourseNode = async ({
   plugin,
   file,
   nodeType,
+  title,
 }: {
   plugin: DiscourseGraphPlugin;
   file: TFile;
   nodeType: DiscourseNode;
+  title?: string;
 }): Promise<void> => {
   try {
-    const formattedNodeName = formatNodeName(file.basename, nodeType);
+    const formattedNodeName = formatNodeName(title || file.basename, nodeType);
     if (!formattedNodeName) {
       new Notice("Failed to format node name", 3000);
       return;
@@ -166,12 +168,21 @@ export const convertPageToDiscourseNode = async ({
       fm.nodeTypeId = nodeType.id;
     });
 
+    let newPath = "";
+    const folderPath = plugin.settings.nodesFolderPath.trim();
+    if (folderPath) {
+      const folderExists = plugin.app.vault.getAbstractFileByPath(folderPath);
+      if (!folderExists) {
+        await plugin.app.vault.createFolder(folderPath);
+      }
+      newPath = `${folderPath}/${formattedNodeName}.md`;
+    } else {
       const dirPath = file.parent?.path ?? "";
-      const newPath = dirPath
+      newPath = dirPath
         ? `${dirPath}/${formattedNodeName}.md`
         : `${formattedNodeName}.md`;
-      await plugin.app.fileManager.renameFile(file, newPath);
-
+    }
+    await plugin.app.fileManager.renameFile(file, newPath);
 
     new Notice("Converted page to discourse node", 10000);
   } catch (error) {

@@ -36,6 +36,11 @@ import {
 import { IKeyCombo } from "@blueprintjs/core";
 import { configPageTabs } from "~/utils/configPageTabs";
 import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchMenu";
+import {
+  renderTextSelectionPopup,
+  removeTextSelectionPopup,
+  findBlockElementFromSelection,
+} from "~/utils/renderTextSelectionPopup";
 import { render as renderInlineSuggestions } from "~/components/InlineSuggestions";
 
 export const initObservers = async ({
@@ -49,6 +54,7 @@ export const initObservers = async ({
     hashChangeListener: EventListener;
     nodeMenuTriggerListener: EventListener;
     discourseNodeSearchTriggerListener: EventListener;
+    nodeCreationPopoverListener: EventListener;
   };
 }> => {
   const pageTitleObserver = createHTMLObserver({
@@ -315,6 +321,41 @@ export const initObservers = async ({
     }
   };
 
+  const nodeCreationPopoverListener = () => {
+    const isTextSelectionPopupEnabled =
+      onloadArgs.extensionAPI.settings.get("text-selection-popup") !== false;
+
+    if (!isTextSelectionPopupEnabled) {
+      removeTextSelectionPopup();
+      return;
+    }
+
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0) return;
+
+    const selectedText = selection.toString().trim();
+
+    if (!selectedText) {
+      removeTextSelectionPopup();
+      return;
+    }
+
+    const blockElement = findBlockElementFromSelection();
+
+    if (blockElement) {
+      const textarea = blockElement.querySelector("textarea");
+      if (!textarea) return;
+      renderTextSelectionPopup({
+        extensionAPI: onloadArgs.extensionAPI,
+        blockElement,
+        textarea,
+      });
+    } else {
+      removeTextSelectionPopup();
+    }
+  };
+
   return {
     observers: [
       pageTitleObserver,
@@ -329,6 +370,7 @@ export const initObservers = async ({
       hashChangeListener,
       nodeMenuTriggerListener,
       discourseNodeSearchTriggerListener,
+      nodeCreationPopoverListener,
     },
   };
 };

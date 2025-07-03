@@ -7,6 +7,7 @@ import {
   InputGroup,
   getKeyCombo,
   IKeyCombo,
+  Icon,
 } from "@blueprintjs/core";
 import React, {
   useCallback,
@@ -30,12 +31,14 @@ import posthog from "posthog-js";
 type Props = {
   textarea: HTMLTextAreaElement;
   extensionAPI: OnloadArgs["extensionAPI"];
+  trigger?: JSX.Element;
 };
 
 const NodeMenu = ({
   onClose,
   textarea,
   extensionAPI,
+  trigger,
 }: { onClose: () => void } & Props) => {
   const discourseNodes = useMemo(
     () => getDiscourseNodes().filter((n) => n.backedBy === "user"),
@@ -49,6 +52,8 @@ const NodeMenu = ({
   const blockUid = useMemo(() => getUids(textarea).blockUid, [textarea]);
   const menuRef = useRef<HTMLUListElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isOpen, setIsOpen] = useState(!trigger);
+
   const onSelect = useCallback(
     (index) => {
       const menuItem =
@@ -90,17 +95,18 @@ const NodeMenu = ({
       });
       onClose();
     },
-    [menuRef, blockUid, onClose],
+    [menuRef, blockUid, onClose, textarea, extensionAPI],
   );
+
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      if (e.key === "ArrowDown") {
         const index = Number(
           menuRef.current?.getAttribute("data-active-index"),
         );
         const count = menuRef.current?.childElementCount || 0;
         setActiveIndex((index + 1) % count);
-      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      } else if (e.key === "ArrowUp") {
         const index = Number(
           menuRef.current?.getAttribute("data-active-index"),
         );
@@ -113,6 +119,9 @@ const NodeMenu = ({
         onSelect(index);
         // Remove focus from the block to ensure updateBlock works properly
         document.body.click();
+      } else if (e.key === "Escape") {
+        onClose();
+        document.body.click();
       } else if (shortcuts.has(e.key.toUpperCase())) {
         onSelect(indexBySC[e.key.toUpperCase()]);
         // Remove focus from the block to ensure updateBlock works properly
@@ -123,23 +132,44 @@ const NodeMenu = ({
       e.stopPropagation();
       e.preventDefault();
     },
-    [menuRef, setActiveIndex],
+    [onSelect, onClose, indexBySC],
   );
   useEffect(() => {
-    textarea.addEventListener("keydown", keydownListener);
-    textarea.addEventListener("input", onClose);
-    return () => {
-      textarea.removeEventListener("keydown", keydownListener);
-      textarea.removeEventListener("input", onClose);
+    const eventTarget = trigger ? document : textarea;
+    const keydownHandler = (e: Event) => {
+      keydownListener(e as KeyboardEvent);
     };
-  }, [keydownListener, onClose]);
+    eventTarget.addEventListener("keydown", keydownHandler);
+
+    if (!trigger) {
+      textarea.addEventListener("input", onClose);
+    }
+
+    return () => {
+      eventTarget.removeEventListener("keydown", keydownHandler);
+      if (!trigger) {
+        textarea.removeEventListener("input", onClose);
+      }
+    };
+  }, [keydownListener, onClose, textarea, trigger]);
+
+  const handlePopoverInteraction = useCallback(
+    (nextOpenState: boolean) => {
+      setIsOpen(nextOpenState);
+      if (!nextOpenState) {
+        onClose();
+      }
+    },
+    [onClose],
+  );
+
   return (
     <Popover
       onClose={onClose}
-      isOpen={true}
+      isOpen={isOpen}
       canEscapeKeyClose
       minimal
-      target={<span />}
+      target={trigger || <span />}
       position={Position.BOTTOM_LEFT}
       modifiers={{
         flip: { enabled: false },
@@ -147,6 +177,7 @@ const NodeMenu = ({
       }}
       autoFocus={false}
       enforceFocus={false}
+      onInteraction={trigger ? handlePopoverInteraction : undefined}
       content={
         <Menu ulRef={menuRef} data-active-index={activeIndex}>
           {discourseNodes.map((item, i) => {
@@ -197,6 +228,52 @@ export const render = (props: Props) => {
       }}
     />,
     parent,
+  );
+};
+
+export const TextSelectionNodeMenu = ({
+  textarea,
+  extensionAPI,
+  onClose,
+}: {
+  textarea: HTMLTextAreaElement;
+  extensionAPI: OnloadArgs["extensionAPI"];
+  onClose: () => void;
+}) => {
+  const trigger = (
+    <Button
+      minimal
+      small
+      className="rounded border border-[#d3d8de] bg-white px-2 py-1 shadow-md hover:border-[#bfccd6] hover:bg-[#f7f9fc]"
+      icon={
+        <div className="flex items-center gap-1">
+          <svg
+            width="18"
+            height="19"
+            viewBox="0 0 256 264"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M156.705 252.012C140.72 267.995 114.803 267.995 98.8183 252.012L11.9887 165.182C-3.99622 149.197 -3.99622 123.28 11.9886 107.296L55.4035 63.8807C63.3959 55.8881 76.3541 55.8881 84.3467 63.8807C92.3391 71.8731 92.3391 84.8313 84.3467 92.8239L69.8751 107.296C53.8901 123.28 53.8901 149.197 69.8751 165.182L113.29 208.596C121.282 216.589 134.241 216.589 142.233 208.596C150.225 200.604 150.225 187.646 142.233 179.653L127.761 165.182C111.777 149.197 111.777 123.28 127.761 107.296C143.746 91.3105 143.746 65.3939 127.761 49.4091L113.29 34.9375C105.297 26.9452 105.297 13.9868 113.29 5.99432C121.282 -1.99811 134.241 -1.99811 142.233 5.99434L243.533 107.296C259.519 123.28 259.519 149.197 243.533 165.182L156.705 252.012ZM200.119 121.767C192.127 113.775 179.168 113.775 171.176 121.767C163.184 129.76 163.184 142.718 171.176 150.71C179.168 158.703 192.127 158.703 200.119 150.71C208.112 142.718 208.112 129.76 200.119 121.767Z"
+              fill="#555555"
+            />
+          </svg>
+          <Icon icon="chevron-down" size={16} color="#555555" />
+        </div>
+      }
+    />
+  );
+
+  return (
+    <NodeMenu
+      textarea={textarea}
+      extensionAPI={extensionAPI}
+      trigger={trigger}
+      onClose={onClose}
+    />
   );
 };
 
@@ -298,4 +375,5 @@ export const NodeMenuTriggerComponent = ({
     />
   );
 };
+
 export default NodeMenu;

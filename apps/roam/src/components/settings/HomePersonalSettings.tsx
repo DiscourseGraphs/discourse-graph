@@ -64,6 +64,25 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       />
       <Checkbox
         defaultChecked={
+          extensionAPI.settings.get("text-selection-popup") !== false
+        }
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          extensionAPI.settings.set("text-selection-popup", target.checked);
+        }}
+        labelElement={
+          <>
+            Text Selection Popup
+            <Description
+              description={
+                "Whether or not to show the Discourse Node Menu when selecting text."
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={
           extensionAPI.settings.get("disable-sidebar-open") as boolean
         }
         onChange={(e) => {
