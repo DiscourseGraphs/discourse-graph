@@ -1,4 +1,3 @@
-import { getNodeEnv } from "roamjs-components/util/env";
 import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -11,8 +10,13 @@ import setBlockProps from "~/utils/setBlockProps";
 import {
   createClient,
   type DGSupabaseClient,
-} from "@repo/ui/src/lib/supabase/client";
+} from "@repo/ui/lib/supabase/client";
 import { spaceAnonUserEmail } from "@repo/ui/lib/utils";
+import {
+  fetchOrCreateSpaceId,
+  fetchOrCreatePlatformAccount,
+  createLoggedInClient,
+} from "@repo/ui/lib/supabase/contextFunctions";
 
 declare const crypto: { randomUUID: () => string };
 
@@ -26,12 +30,6 @@ export type SupabaseContext = {
 };
 
 let _contextCache: SupabaseContext | null = null;
-
-// TODO: This should be an util on its own.
-const base_url =
-  getNodeEnv() === "development"
-    ? "http://localhost:3000/api/supabase"
-    : "https://discoursegraphs.com/api/supabase";
 
 const settingsConfigPageUid = getPageUidByPageTitle(
   DISCOURSE_CONFIG_PAGE_TITLE,
@@ -53,82 +51,6 @@ const getOrCreateSpacePassword = () => {
 // It is better if this is still at least protected by CORS.
 // But calls anywhere else should use the supabase client directly.
 
-const fetchOrCreateSpaceId = async (
-  account_id: number,
-  password: string,
-): Promise<number> => {
-  const url = getRoamUrl();
-  const name = window.roamAlphaAPI.graph.name;
-  const platform: Platform = "Roam";
-  const response = await fetch(base_url + "/space", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      space: { url, name, platform },
-      password,
-      account_id,
-    }),
-  });
-  if (!response.ok)
-    throw new Error(
-      `Platform API failed: \${response.status} \${response.statusText}`,
-    );
-  const space = await response.json();
-  if (typeof space.id !== "number") throw new Error("API did not return space");
-  return space.id;
-};
-
-const fetchOrCreatePlatformAccount = async ({
-  accountLocalId,
-  personName,
-  personEmail,
-}: {
-  accountLocalId: string;
-  personName: string;
-  personEmail: string | undefined;
-}): Promise<number> => {
-  const response = await fetch(`${base_url}/platform-account`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      platform: "Roam",
-      account_local_id: accountLocalId,
-      name: personName,
-    }),
-  });
-  if (!response.ok)
-    throw new Error(
-      `Platform API failed: \${response.status} \${response.statusText}`,
-    );
-  const account = await response.json();
-  if (personEmail !== undefined) {
-    const idResponse = await fetch(`${base_url}/agent-identifier`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        account_id: account.id,
-        identifier_type: "email",
-        value: personEmail,
-        trusted: false, // Roam tests email
-      }),
-    });
-    if (!idResponse.ok) {
-      const error = await idResponse.text();
-      console.error(`Error setting the email for the account: ${error}`);
-      // This is not a reason to stop here
-    }
-  }
-  if (typeof account.id !== "number")
-    throw new Error("API did not return account");
-  return account.id;
-};
-
 export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
   if (_contextCache === null) {
     try {
@@ -136,12 +58,23 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
       const spacePassword = getOrCreateSpacePassword();
       const personEmail = getCurrentUserEmail();
       const personName = getCurrentUserDisplayName();
-      const userId = await fetchOrCreatePlatformAccount({
-        accountLocalId,
-        personName,
-        personEmail,
+      const url = getRoamUrl();
+      const spaceName = window.roamAlphaAPI.graph.name;
+      const platform: Platform = "Roam";
+      const spaceId = await fetchOrCreateSpaceId({
+        password: spacePassword,
+        url,
+        name: spaceName,
+        platform,
       });
-      const spaceId = await fetchOrCreateSpaceId(userId, spacePassword);
+      const userId = await fetchOrCreatePlatformAccount({
+        platform: "Roam",
+        accountLocalId,
+        name: personName,
+        email: personEmail,
+        spaceId,
+        password: spacePassword,
+      });
       _contextCache = {
         platform: "Roam",
         spaceId,
@@ -162,15 +95,11 @@ export const getLoggedInClient = async (): Promise<DGSupabaseClient> => {
   if (_loggedInClient === null) {
     const context = await getSupabaseContext();
     if (context === null) throw new Error("Could not create context");
-    _loggedInClient = createClient();
-    const { error } = await _loggedInClient.auth.signInWithPassword({
-      email: spaceAnonUserEmail(context.platform, context.spaceId),
-      password: context.spacePassword,
-    });
-    if (error) {
-      _loggedInClient = null;
-      throw new Error(`Authentication failed: ${error.message}`);
-    }
+    _loggedInClient = await createLoggedInClient(
+      context.platform,
+      context.spaceId,
+      context.spacePassword,
+    );
   } else {
     // renew session
     const { error } = await _loggedInClient.auth.getSession();
