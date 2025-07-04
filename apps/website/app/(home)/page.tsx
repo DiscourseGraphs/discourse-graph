@@ -399,9 +399,7 @@ export default async function Home() {
                     </span>
                     <ul className="ml-6 mt-2 list-inside list-disc space-y-2">
                       <li className="text-neutral-dark">
-                        <Link href="https://discoursegraphs.com/docs/roam/">
-                          Documentation
-                        </Link>
+                        <Link href="/docs/roam/">Documentation</Link>
                       </li>
                       <li className="text-neutral-dark">
                         <Link href="https://roamresearch.com/#/app/DiscourseGraphTemplate/page/ChgjmeLuR">
@@ -427,7 +425,7 @@ export default async function Home() {
                     {/* TODO: Add Obsidian plugin documentation when available */}
                     {/* <ul className="ml-6 mt-2 list-inside list-disc space-y-2">
                       <li className="text-neutral-dark">
-                        <Link href="https://discoursegraphs.com/docs/obsidian/">
+                        <Link href="/docs/obsidian/">
                           Documentation
                         </Link>
                       </li>
