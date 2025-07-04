@@ -612,6 +612,25 @@ export type Database = {
           uid_to_sync: string
         }[]
       }
+      get_or_create_space: {
+        Args: {
+          space: Database["public"]["Tables"]["Space"]["Row"]
+          anon_password: string
+        }
+        Returns: {
+          id: number
+          name: string
+          platform: Database["public"]["Enums"]["Platform"]
+          url: string
+        }
+      }
+      get_space_anonymous_email: {
+        Args: {
+          platform: Database["public"]["Enums"]["Platform"]
+          space_id: number
+        }
+        Returns: string
+      }
       match_content_embeddings: {
         Args: {
           query_embedding: string
@@ -696,7 +715,7 @@ export type Database = {
     }
     Enums: {
       AgentIdentifierType: "email" | "orcid"
-      AgentType: "person" | "organization" | "automated_agent"
+      AgentType: "person" | "organization" | "automated_agent" | "anonymous"
       EmbeddingName:
         | "openai_text_embedding_ada2_1536"
         | "openai_text_embedding_3_small_512"
@@ -922,7 +941,7 @@ export const Constants = {
   public: {
     Enums: {
       AgentIdentifierType: ["email", "orcid"],
-      AgentType: ["person", "organization", "automated_agent"],
+      AgentType: ["person", "organization", "automated_agent", "anonymous"],
       EmbeddingName: [
         "openai_text_embedding_ada2_1536",
         "openai_text_embedding_3_small_512",
