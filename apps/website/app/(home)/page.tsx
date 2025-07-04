@@ -389,7 +389,9 @@ export default async function Home() {
                 <ul className="space-y-4">
                   <li className="text-neutral-dark">
                     <span className="text-neutral-dark">
-                      <Link href="/docs/roam">Roam Research Plugin</Link>
+                      <Link href="https://github.com/DiscourseGraphs/discourse-graph/tree/main/apps/roam">
+                        Roam Research Plugin
+                      </Link>
                     </span>
                     <span className="text-neutral-dark">
                       {" "}
@@ -414,7 +416,9 @@ export default async function Home() {
                   </li>
                   <li className="text-neutral-dark">
                     <span className="text-neutral-dark">
-                      <Link href="#">Obsidian Plugin</Link>
+                      <Link href="https://github.com/DiscourseGraphs/discourse-graph-obsidian">
+                        Obsidian Plugin
+                      </Link>
                     </span>
                     <span className="text-neutral-dark">
                       {" "}
