@@ -379,20 +379,58 @@ export default async function Home() {
                     Scholarly Communication Infrastructure
                   </Link>
                 </li>
-                <li className="text-neutral-dark">
-                  <Link href="/docs/roam">
-                    Discourse Graph plugin documentation
-                  </Link>{" "}
-                  for Roam Research
-                </li>
-                <li className="text-neutral-dark">
-                  Roam Research{" "}
-                  <Link href="https://roamresearch.com/#/app/DiscourseGraphTemplate/page/ChgjmeLuR">
-                    Discourse Graph Template
-                  </Link>{" "}
-                  - get cracking building your graphs!
-                </li>
               </ul>
+
+              {/* Plugins Subsection */}
+              <div className="mt-8">
+                <h3 className="mb-4 text-2xl font-bold text-primary">
+                  Plugins
+                </h3>
+                <ul className="space-y-4">
+                  <li className="text-neutral-dark">
+                    <span className="text-neutral-dark">
+                      <Link href="/docs/roam">Roam Research Plugin</Link>
+                    </span>
+                    <span className="text-neutral-dark">
+                      {" "}
+                      – Available via Roam Depot
+                    </span>
+                    <ul className="ml-6 mt-2 list-inside list-disc space-y-2">
+                      <li className="text-neutral-dark">
+                        <Link href="https://discoursegraphs.com/docs/roam/">
+                          Documentation
+                        </Link>
+                      </li>
+                      <li className="text-neutral-dark">
+                        <Link href="https://roamresearch.com/#/app/DiscourseGraphTemplate/page/ChgjmeLuR">
+                          Discourse Graph Template
+                        </Link>
+                        <span className="text-neutral-dark">
+                          {" "}
+                          – get cracking building your graphs!
+                        </span>
+                      </li>
+                    </ul>
+                  </li>
+                  <li className="text-neutral-dark">
+                    <span className="text-neutral-dark">
+                      <Link href="#">Obsidian Plugin</Link>
+                    </span>
+                    <span className="text-neutral-dark">
+                      {" "}
+                      – Available via BRAT
+                    </span>
+                    {/* TODO: Add Obsidian plugin documentation when available */}
+                    {/* <ul className="ml-6 mt-2 list-inside list-disc space-y-2">
+                      <li className="text-neutral-dark">
+                        <Link href="https://discoursegraphs.com/docs/obsidian/">
+                          Documentation
+                        </Link>
+                      </li>
+                    </ul> */}
+                  </li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
           {/* Events */}
