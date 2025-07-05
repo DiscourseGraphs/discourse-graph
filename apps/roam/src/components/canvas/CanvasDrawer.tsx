@@ -155,7 +155,8 @@ export const openCanvasDrawer = () => {
   const props = getBlockProps(pageUid) as Record<string, unknown>;
   const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
   const tldraw = (rjsqb?.tldraw as Record<string, unknown>) || {};
-  const shapes = Object.values(tldraw).filter((s) => {
+  const store = (tldraw?.["store"] as Record<string, unknown>) || {};
+  const shapes = Object.values(store).filter((s) => {
     const shape = s as TLBaseShape<string, { uid: string }>;
     const uid = shape.props?.uid;
     return !!uid;
