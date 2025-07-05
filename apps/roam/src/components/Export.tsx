@@ -223,7 +223,8 @@ const ExportDialog: ExportDialogComponent = ({
     const MAX_COLUMNS = 5;
     const COLUMN_WIDTH = Number(MAX_WIDTH.replace("px", ""));
     const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
-    const tldraw = (rjsqb?.["tldraw"] as Record<string, unknown>) || {
+    const tldraw = (rjsqb?.["tldraw"] as Record<string, unknown>) || {};
+    const store = (tldraw?.["store"] as Record<string, unknown>) || {
       "document:document": {
         gridSize: 10,
         name: "",
@@ -254,21 +255,21 @@ const ExportDialog: ExportDialogComponent = ({
       }
       return undefined;
     };
-    const pageKey = getPageKey(tldraw);
+    const pageKey = getPageKey(store);
     if (!pageKey) return console.log("no page key");
 
     type TLdrawProps = { [key: string]: any };
     type ShapeBounds = { x: number; y: number; w: number; h: number };
-    const extractShapesBounds = (tldraw: TLdrawProps): ShapeBounds[] => {
-      if (!tldraw) return [];
-      return Object.keys(tldraw)
-        .filter((key) => tldraw[key].typeName === "shape")
+    const extractShapesBounds = (store: TLdrawProps): ShapeBounds[] => {
+      if (!store) return [];
+      return Object.keys(store)
+        .filter((key) => store[key].typeName === "shape")
         .map((key) => {
-          const shape = tldraw[key];
+          const shape = store[key];
           return { x: shape.x, y: shape.y, w: shape.props.w, h: shape.props.h };
         });
     };
-    const shapeBounds = extractShapesBounds(tldraw);
+    const shapeBounds = extractShapesBounds(store);
 
     type CommonBounds = {
       top: number;
@@ -337,7 +338,7 @@ const ExportDialog: ExportDialogComponent = ({
         nextShapeX = COMMON_BOUNDS_XOFFSET;
       }
 
-      tldraw[newShapeId] = newShape;
+      store[newShapeId] = newShape;
     }
 
     const newStateId = nanoid();
@@ -346,7 +347,11 @@ const ExportDialog: ExportDialogComponent = ({
         uid: pageUid,
         props: {
           ...props,
-          ["roamjs-query-builder"]: { ...rjsqb, tldraw, stateId: newStateId },
+          ["roamjs-query-builder"]: {
+            ...rjsqb,
+            tldraw: { ...tldraw, store },
+            stateId: newStateId,
+          },
         },
       },
     });
