@@ -11,6 +11,7 @@
     "POSTGRES_PRISMA_URL",
     "POSTGRES_URL",
     "POSTGRES_URL_NON_POOLING",
+    "SUPABASE_PROJECT_ID",
     "SUPABASE_URL"
   ],
   "globalPassThroughEnv": [
