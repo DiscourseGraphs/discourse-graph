@@ -39,7 +39,7 @@ const NodeConfig = ({
     key: "Attributes",
   });
 
-  const [selectedTabId, setSelectedTabId] = useState<TabId>("main");
+  const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
 
   return (
     <>
@@ -49,8 +49,8 @@ const NodeConfig = ({
         renderActiveTabPanelOnly={true}
       >
         <Tab
-          id="main"
-          title="Main"
+          id="general"
+          title="General"
           panel={
             <div className="flex flex-col gap-4 p-1">
               <TextPanel
