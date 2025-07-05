@@ -25,7 +25,8 @@
     "RESEND_API_KEY",
     "SUPABASE_ANON_KEY",
     "SUPABASE_JWT_SECRET",
-    "SUPABASE_SERVICE_ROLE_KEY"
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_DB_PASSWORD"
   ],
   "tasks": {
     "build": {
