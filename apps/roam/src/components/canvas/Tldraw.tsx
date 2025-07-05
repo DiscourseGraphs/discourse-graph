@@ -511,6 +511,19 @@ const InsideEditorAndUiContext = ({
   };
 
   useEffect(() => {
+    registerDefaultExternalContentHandlers(
+      editor,
+      {
+        maxImageDimension: 5000,
+        maxAssetSize: 10 * 1024 * 1024, // 10mb
+        acceptedImageMimeTypes: DEFAULT_SUPPORTED_IMAGE_TYPES,
+        acceptedVideoMimeTypes: DEFAULT_SUPPORT_VIDEO_TYPES,
+      },
+      {
+        toasts,
+        msg,
+      },
+    );
     editor.registerExternalContentHandler(
       "files",
       async (content: TLExternalContent) => {
@@ -570,19 +583,7 @@ const InsideEditorAndUiContext = ({
         return asset;
       },
     );
-    registerDefaultExternalContentHandlers(
-      editor,
-      {
-        maxImageDimension: 5000,
-        maxAssetSize: 10 * 1024 * 1024, // 10mb
-        acceptedImageMimeTypes: DEFAULT_SUPPORTED_IMAGE_TYPES,
-        acceptedVideoMimeTypes: DEFAULT_SUPPORT_VIDEO_TYPES,
-      },
-      {
-        toasts,
-        msg,
-      },
-    );
+
 
     const registerCustomSideEffects = () => {
       const removeBeforeChangeHandler =
