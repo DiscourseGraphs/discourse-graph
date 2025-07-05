@@ -329,10 +329,7 @@ const LabelDialog = ({
       );
 
       if (referencedNode) {
-        return {
-          name: referencedNode.text,
-          nodeType: referencedNode.type,
-        };
+        return { name: referencedNode.text, nodeType: referencedNode.type };
       }
     }
 

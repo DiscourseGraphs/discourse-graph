@@ -3,9 +3,7 @@ import { useToasts, TLUiToast } from "tldraw";
 
 export const dispatchToastEvent = (toast: TLUiToast) => {
   document.dispatchEvent(
-    new CustomEvent<TLUiToast>("show-toast", {
-      detail: toast,
-    })
+    new CustomEvent<TLUiToast>("show-toast", { detail: toast }),
   );
 };
 

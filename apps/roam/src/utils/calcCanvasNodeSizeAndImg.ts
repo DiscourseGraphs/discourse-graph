@@ -92,11 +92,7 @@ const calcCanvasNodeSizeAndImg = async ({
     const aspectRatio = width / height;
     const nodeImageHeight = effectiveWidth / aspectRatio;
 
-    return {
-      w,
-      h: h + nodeImageHeight + padding * 2,
-      imageUrl,
-    };
+    return { w, h: h + nodeImageHeight + padding * 2, imageUrl };
   } catch {
     renderToast({
       id: "tldraw-image-load-fail",

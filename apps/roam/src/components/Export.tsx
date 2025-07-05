@@ -187,13 +187,8 @@ const ExportDialog: ExportDialogComponent = ({
       const response = await apiPut({
         domain: "https://api.github.com",
         path: `repos/${selectedRepo}/contents/${filename}`,
-        headers: {
-          Authorization: `token ${gitHubAccessToken}`,
-        },
-        data: {
-          message: `Add ${filename}`,
-          content: base64Content,
-        },
+        headers: { Authorization: `token ${gitHubAccessToken}` },
+        data: { message: `Add ${filename}`, content: base64Content },
       });
       if (response.status === 401) {
         setGitHubAccessToken(null);
@@ -262,27 +257,15 @@ const ExportDialog: ExportDialogComponent = ({
     const pageKey = getPageKey(tldraw);
     if (!pageKey) return console.log("no page key");
 
-    type TLdrawProps = {
-      [key: string]: any;
-    };
-    type ShapeBounds = {
-      x: number;
-      y: number;
-      w: number;
-      h: number;
-    };
+    type TLdrawProps = { [key: string]: any };
+    type ShapeBounds = { x: number; y: number; w: number; h: number };
     const extractShapesBounds = (tldraw: TLdrawProps): ShapeBounds[] => {
       if (!tldraw) return [];
       return Object.keys(tldraw)
         .filter((key) => tldraw[key].typeName === "shape")
         .map((key) => {
           const shape = tldraw[key];
-          return {
-            x: shape.x,
-            y: shape.y,
-            w: shape.props.w,
-            h: shape.props.h,
-          };
+          return { x: shape.x, y: shape.y, w: shape.props.w, h: shape.props.h };
         });
     };
     const shapeBounds = extractShapesBounds(tldraw);
@@ -336,13 +319,7 @@ const ExportDialog: ExportDialogComponent = ({
         rotation: 0,
         isLocked: false,
         type: nodeType,
-        props: {
-          w,
-          h,
-          uid: r.uid,
-          title: String(r[firstColumnKey]),
-          imageUrl,
-        },
+        props: { w, h, uid: r.uid, title: String(r[firstColumnKey]), imageUrl },
         parentId: pageKey,
         y: shapeY,
         id: newShapeId,
@@ -369,11 +346,7 @@ const ExportDialog: ExportDialogComponent = ({
         uid: pageUid,
         props: {
           ...props,
-          ["roamjs-query-builder"]: {
-            ...rjsqb,
-            tldraw,
-            stateId: newStateId,
-          },
+          ["roamjs-query-builder"]: { ...rjsqb, tldraw, stateId: newStateId },
         },
       },
     });
@@ -434,10 +407,7 @@ const ExportDialog: ExportDialogComponent = ({
               onClick={(event) => {
                 if (event.shiftKey) {
                   window.roamAlphaAPI.ui.rightSidebar.addWindow({
-                    window: {
-                      "block-uid": uid,
-                      type: "outline",
-                    },
+                    window: { "block-uid": uid, type: "outline" },
                   });
                 } else {
                   window.roamAlphaAPI.ui.mainWindow.openPage({
@@ -464,10 +434,7 @@ const ExportDialog: ExportDialogComponent = ({
         intent: "danger",
         id: "discourse-graphs-error",
       });
-      sendErrorEmail({
-        error,
-        type: "Export Dialog Failed",
-      }).catch(() => {});
+      sendErrorEmail({ error, type: "Export Dialog Failed" }).catch(() => {});
     } finally {
       setLoading(false);
       onClose();
@@ -475,10 +442,7 @@ const ExportDialog: ExportDialogComponent = ({
   };
 
   const handlePdfExport = async (
-    files: {
-      title: string;
-      content: string;
-    }[],
+    files: { title: string; content: string }[],
     filename: string,
   ) => {
     const preparedFiles = files.map((f) => ({
@@ -494,10 +458,7 @@ const ExportDialog: ExportDialogComponent = ({
       const response = await apiPost({
         domain,
         path: "pdf",
-        data: {
-          files: preparedFiles,
-          filename,
-        },
+        data: { files: preparedFiles, filename },
       });
       const responseData = JSON.parse(response.data);
       const path = JSON.parse(responseData.body);
@@ -621,10 +582,7 @@ const ExportDialog: ExportDialogComponent = ({
                   if (exportType && window.RoamLazy) {
                     setDialogOpen(true);
                     setLoading(false);
-                    updateExportProgress({
-                      progress: 0.0001,
-                      id: exportId,
-                    });
+                    updateExportProgress({ progress: 0.0001, id: exportId });
                     const files = await exportType.callback({
                       filename,
                       includeDiscourseContext,
@@ -699,11 +657,7 @@ const ExportDialog: ExportDialogComponent = ({
                   sendErrorEmail({
                     error,
                     type: "Export Dialog Failed",
-                    context: {
-                      activeExportType,
-                      filename,
-                      results,
-                    },
+                    context: { activeExportType, filename, results },
                   }).catch(() => {});
                   setDialogOpen(true);
                   setError((e as Error).message);

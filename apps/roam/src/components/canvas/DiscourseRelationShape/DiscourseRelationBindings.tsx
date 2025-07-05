@@ -312,10 +312,7 @@ export function updateArrowTerminal({
   const update = {
     id: arrow.id,
     type: arrow.type,
-    props: {
-      [terminal]: { x: point.x, y: point.y },
-      bend: arrow.props.bend,
-    },
+    props: { [terminal]: { x: point.x, y: point.y }, bend: arrow.props.bend },
   } satisfies TLShapePartial<DiscourseRelationShape>;
 
   // fix up the bend:

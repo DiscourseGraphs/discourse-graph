@@ -102,18 +102,9 @@ export const useRoamStore = ({
 
   // Handle initial data
   useEffect(() => {
-    const persisted = getSubTree({
-      parentUid: pageUid,
-      tree,
-      key: "State",
-    });
+    const persisted = getSubTree({ parentUid: pageUid, tree, key: "State" });
     if (!persisted.uid) {
-      createBlock({
-        node: {
-          text: "State",
-        },
-        parentUid: pageUid,
-      });
+      createBlock({ node: { text: "State" }, parentUid: pageUid });
     }
     const props = getBlockProps(pageUid) as Record<string, unknown>;
     const rjsqb =
@@ -260,9 +251,7 @@ export const useRoamStore = ({
         data: {
           method: "extension-error",
           type: "Failed to perform Canvas upgrade",
-          data: {
-            oldData,
-          },
+          data: { oldData },
           message: error.message,
           stack: error.stack,
           version: process.env.VERSION,

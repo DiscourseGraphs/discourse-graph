@@ -4,28 +4,14 @@ export const LEGACY_SCHEMA = {
   recordVersions: {
     asset: {
       subTypeKey: "type",
-      subTypeVersions: {
-        image: 2,
-        video: 2,
-        bookmark: 0,
-      },
+      subTypeVersions: { image: 2, video: 2, bookmark: 0 },
       version: 0,
     },
-    camera: {
-      version: 0,
-    },
-    document: {
-      version: 0,
-    },
-    instance: {
-      version: 5,
-    },
-    instance_page_state: {
-      version: 0,
-    },
-    page: {
-      version: 0,
-    },
+    camera: { version: 0 },
+    document: { version: 0 },
+    instance: { version: 5 },
+    instance_page_state: { version: 0 },
+    page: { version: 0 },
     shape: {
       subTypeKey: "type",
       subTypeVersions: {
@@ -60,15 +46,9 @@ export const LEGACY_SCHEMA = {
       },
       version: 1,
     },
-    user: {
-      version: 0,
-    },
-    user_document: {
-      version: 2,
-    },
-    user_presence: {
-      version: 0,
-    },
+    user: { version: 0 },
+    user_document: { version: 2 },
+    user_presence: { version: 0 },
   },
 };
 
@@ -183,11 +163,7 @@ export const LEGACY_STORE_TEST = {
   "user_presence:VT7O76YWA12xlDw4mTVJB": {
     lastUsedInstanceId: "instance:kXv8MG9HV",
     lastActivityTimestamp: 1726906872543,
-    cursor: {
-      x: 363,
-      y: 175.40625,
-      z: 0,
-    },
+    cursor: { x: 363, y: 175.40625, z: 0 },
     color: "#EC5E41",
     id: "user_presence:VT7O76YWA12xlDw4mTVJB",
     userId: "user:pLGiiYCIXuflaHshpHJY5rEqC3B2",
@@ -319,181 +295,41 @@ export const LEGACY_STORE_TEST = {
         {
           type: "free",
           points: [
-            {
-              x: 0,
-              y: 0,
-              z: 0.5,
-            },
-            {
-              x: 0,
-              y: -1.52,
-              z: 0.5,
-            },
-            {
-              x: 0,
-              y: -10.67,
-              z: 0.5,
-            },
-            {
-              x: 6.1,
-              y: -39.63,
-              z: 0.5,
-            },
-            {
-              x: 25.91,
-              y: -115.84,
-              z: 0.5,
-            },
-            {
-              x: 39.63,
-              y: -170.71,
-              z: 0.5,
-            },
-            {
-              x: 45.72,
-              y: -225.58,
-              z: 0.5,
-            },
-            {
-              x: 48.77,
-              y: -281.97,
-              z: 0.5,
-            },
-            {
-              x: 48.77,
-              y: -312.45,
-              z: 0.5,
-            },
-            {
-              x: 48.77,
-              y: -336.84,
-              z: 0.5,
-            },
-            {
-              x: 48.77,
-              y: -352.08,
-              z: 0.5,
-            },
-            {
-              x: 48.77,
-              y: -361.23,
-              z: 0.5,
-            },
-            {
-              x: 53.35,
-              y: -362.75,
-              z: 0.5,
-            },
-            {
-              x: 68.59,
-              y: -362.75,
-              z: 0.5,
-            },
-            {
-              x: 108.22,
-              y: -362.75,
-              z: 0.5,
-            },
-            {
-              x: 166.13,
-              y: -362.75,
-              z: 0.5,
-            },
-            {
-              x: 224.05,
-              y: -361.23,
-              z: 0.5,
-            },
-            {
-              x: 289.59,
-              y: -356.65,
-              z: 0.5,
-            },
-            {
-              x: 356.65,
-              y: -352.08,
-              z: 0.5,
-            },
-            {
-              x: 417.62,
-              y: -347.51,
-              z: 0.5,
-            },
-            {
-              x: 466.39,
-              y: -345.98,
-              z: 0.5,
-            },
-            {
-              x: 504.5,
-              y: -345.98,
-              z: 0.5,
-            },
-            {
-              x: 513.64,
-              y: -345.98,
-              z: 0.5,
-            },
-            {
-              x: 513.64,
-              y: -336.84,
-              z: 0.5,
-            },
-            {
-              x: 510.59,
-              y: -312.45,
-              z: 0.5,
-            },
-            {
-              x: 504.5,
-              y: -277.4,
-              z: 0.5,
-            },
-            {
-              x: 490.78,
-              y: -204.24,
-              z: 0.5,
-            },
-            {
-              x: 475.54,
-              y: -140.22,
-              z: 0.5,
-            },
-            {
-              x: 460.3,
-              y: -82.3,
-              z: 0.5,
-            },
-            {
-              x: 446.58,
-              y: -30.48,
-              z: 0.5,
-            },
-            {
-              x: 434.39,
-              y: 18.29,
-              z: 0.5,
-            },
-            {
-              x: 426.76,
-              y: 53.35,
-              z: 0.5,
-            },
-            {
-              x: 425.24,
-              y: 83.83,
-              z: 0.5,
-            },
-            {
-              x: 422.19,
-              y: 103.64,
-              z: 0.5,
-            },
-            {
-              x: 422.19,
-              y: 106.69,
-              z: 0.5,
-            },
+            { x: 0, y: 0, z: 0.5 },
+            { x: 0, y: -1.52, z: 0.5 },
+            { x: 0, y: -10.67, z: 0.5 },
+            { x: 6.1, y: -39.63, z: 0.5 },
+            { x: 25.91, y: -115.84, z: 0.5 },
+            { x: 39.63, y: -170.71, z: 0.5 },
+            { x: 45.72, y: -225.58, z: 0.5 },
+            { x: 48.77, y: -281.97, z: 0.5 },
+            { x: 48.77, y: -312.45, z: 0.5 },
+            { x: 48.77, y: -336.84, z: 0.5 },
+            { x: 48.77, y: -352.08, z: 0.5 },
+            { x: 48.77, y: -361.23, z: 0.5 },
+            { x: 53.35, y: -362.75, z: 0.5 },
+            { x: 68.59, y: -362.75, z: 0.5 },
+            { x: 108.22, y: -362.75, z: 0.5 },
+            { x: 166.13, y: -362.75, z: 0.5 },
+            { x: 224.05, y: -361.23, z: 0.5 },
+            { x: 289.59, y: -356.65, z: 0.5 },
+            { x: 356.65, y: -352.08, z: 0.5 },
+            { x: 417.62, y: -347.51, z: 0.5 },
+            { x: 466.39, y: -345.98, z: 0.5 },
+            { x: 504.5, y: -345.98, z: 0.5 },
+            { x: 513.64, y: -345.98, z: 0.5 },
+            { x: 513.64, y: -336.84, z: 0.5 },
+            { x: 510.59, y: -312.45, z: 0.5 },
+            { x: 504.5, y: -277.4, z: 0.5 },
+            { x: 490.78, y: -204.24, z: 0.5 },
+            { x: 475.54, y: -140.22, z: 0.5 },
+            { x: 460.3, y: -82.3, z: 0.5 },
+            { x: 446.58, y: -30.48, z: 0.5 },
+            { x: 434.39, y: 18.29, z: 0.5 },
+            { x: 426.76, y: 53.35, z: 0.5 },
+            { x: 425.24, y: 83.83, z: 0.5 },
+            { x: 422.19, y: 103.64, z: 0.5 },
+            { x: 422.19, y: 106.69, z: 0.5 },
           ],
         },
       ],
@@ -514,12 +350,7 @@ export const LEGACY_STORE_TEST = {
   "instance:kXv8MG9HV": {
     isFocusMode: false,
     isToolLocked: false,
-    screenBounds: {
-      x: 43,
-      y: 207.59375,
-      w: 795.390625,
-      h: 498,
-    },
+    screenBounds: { x: 43, y: 207.59375, w: 795.390625, h: 498 },
     scribble: null,
     id: "instance:kXv8MG9HV",
     currentPageId: "page:L0rHs6IYqrglpemnenQVG",
@@ -539,11 +370,7 @@ export const LEGACY_STORE_TEST = {
       color: "black",
     },
     typeName: "instance",
-    cursor: {
-      type: "default",
-      color: "black",
-      rotation: 0,
-    },
+    cursor: { type: "default", color: "black", rotation: 0 },
     exportBackground: true,
     userId: "user:pLGiiYCIXuflaHshpHJY5rEqC3B2",
     isDebugMode: true,
@@ -558,16 +385,8 @@ export const LEGACY_STORE_TEST = {
       opacity: "1",
       text: "",
       fill: "none",
-      start: {
-        type: "point",
-        x: 0,
-        y: 0,
-      },
-      end: {
-        type: "point",
-        x: 218,
-        y: -7,
-      },
+      start: { type: "point", x: 0, y: 0 },
+      end: { type: "point", x: 218, y: -7 },
       size: "m",
       font: "draw",
       arrowheadStart: "none",
@@ -616,19 +435,13 @@ export const LEGACY_STORE_TEST = {
       start: {
         type: "binding",
         boundShapeId: "shape:VxV4j7Y0A0P9OkLolERMN",
-        normalizedAnchor: {
-          x: 0.5,
-          y: 0.5,
-        },
+        normalizedAnchor: { x: 0.5, y: 0.5 },
         isExact: false,
       },
       end: {
         type: "binding",
         boundShapeId: "shape:dwxM22HSvKuLvCxZX5zsF",
-        normalizedAnchor: {
-          x: 0.5,
-          y: 0.5,
-        },
+        normalizedAnchor: { x: 0.5, y: 0.5 },
         isExact: false,
       },
       size: "m",

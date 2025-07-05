@@ -160,19 +160,10 @@ export const createAllReferencedNodeUtils = (
         }
 
         await window.roamAlphaAPI.data.page.update({
-          page: {
-            uid: target.props.uid,
-            title: newTitle,
-          },
+          page: { uid: target.props.uid, title: newTitle },
         });
         editor.updateShapes([
-          {
-            id: target.id,
-            type: target.type,
-            props: {
-              title: newTitle,
-            },
-          },
+          { id: target.id, type: target.type, props: { title: newTitle } },
         ]);
 
         dispatchToastEvent({
@@ -249,10 +240,7 @@ export const createAllReferencedNodeUtils = (
           // Skip binding
           removeArrowBinding(this.editor, shape, handleId);
 
-          update.props![handleId] = {
-            x: handle.x,
-            y: handle.y,
-          };
+          update.props![handleId] = { x: handle.x, y: handle.y };
           return update;
         }
 
@@ -294,10 +282,7 @@ export const createAllReferencedNodeUtils = (
 
           // todo: maybe double check that this isn't equal to the other handle too?
           removeArrowBinding(this.editor, shape, handleId);
-          update.props![handleId] = {
-            x: handle.x,
-            y: handle.y,
-          };
+          update.props![handleId] = { x: handle.x, y: handle.y };
           return update;
         }
 
@@ -521,12 +506,7 @@ export const createAllRelationShapeUtils = (
           );
         }
         if (arrow.type !== target.type) {
-          editor.updateShapes([
-            {
-              id: arrow.id,
-              type: target.type,
-            },
-          ]);
+          editor.updateShapes([{ id: arrow.id, type: target.type }]);
         }
         const { triples, label: relationLabel } = relation;
         const isOriginal = arrow.props.text === relationLabel;
@@ -548,11 +528,7 @@ export const createAllRelationShapeUtils = (
             }
             return t.slice(0);
           })
-          .map(([source, relation, target]) => ({
-            source,
-            relation,
-            target,
-          }));
+          .map(([source, relation, target]) => ({ source, relation, target }));
         const parentUid = getCurrentPageUid();
         const title = getPageTitleByPageUid(parentUid);
         triplesToBlocks({
@@ -560,9 +536,7 @@ export const createAllRelationShapeUtils = (
           toPage: async (title: string, blocks: InputTextNode[]) => {
             const parentUid =
               getPageUidByPageTitle(title) ||
-              (await createPage({
-                title: title,
-              }));
+              (await createPage({ title: title }));
 
             await Promise.all(
               blocks.map((node, order) =>
@@ -666,10 +640,7 @@ export const createAllRelationShapeUtils = (
           // Skip binding
           removeArrowBinding(this.editor, shape, handleId);
 
-          update.props![handleId] = {
-            x: handle.x,
-            y: handle.y,
-          };
+          update.props![handleId] = { x: handle.x, y: handle.y };
           return update;
         }
 
@@ -711,10 +682,7 @@ export const createAllRelationShapeUtils = (
 
           // todo: maybe double check that this isn't equal to the other handle too?
           removeArrowBinding(this.editor, shape, handleId);
-          update.props![handleId] = {
-            x: handle.x,
-            y: handle.y,
-          };
+          update.props![handleId] = { x: handle.x, y: handle.y };
           return update;
         }
 
@@ -1207,13 +1175,7 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
       });
     }
 
-    const next = {
-      props: {
-        start,
-        end,
-        bend,
-      },
-    };
+    const next = { props: { start, end, bend } };
 
     return next;
   };
@@ -1381,13 +1343,7 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
 
     if (text.trimEnd() !== shape.props.text) {
       this.editor.updateShapes<DiscourseRelationShape>([
-        {
-          id,
-          type,
-          props: {
-            text: text.trimEnd(),
-          },
-        },
+        { id, type, props: { text: text.trimEnd() } },
       ]);
     }
   };
@@ -1423,14 +1379,8 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
   override getCanvasSvgDefs(): TLShapeUtilCanvasSvgDef[] {
     return [
       getFillDefForCanvas(),
-      {
-        key: `arrow:dot`,
-        component: ArrowheadDotDef,
-      },
-      {
-        key: `arrow:cross`,
-        component: ArrowheadCrossDef,
-      },
+      { key: `arrow:dot`, component: ArrowheadDotDef },
+      { key: `arrow:cross`, component: ArrowheadCrossDef },
     ];
   }
 

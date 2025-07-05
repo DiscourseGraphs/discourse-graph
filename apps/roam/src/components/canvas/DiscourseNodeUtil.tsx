@@ -259,10 +259,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
         );
         const endBinding = bindingsFromArrow.find((b) => b.toId !== shape.id);
         if (!endBinding) return null;
-        return {
-          startId: shape.id,
-          endId: endBinding.toId,
-        };
+        return { startId: shape.id, endId: endBinding.toId };
       });
     });
 
@@ -302,35 +299,22 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
           : label === "Opposes" || label === "Opposed By"
             ? "red"
             : "black";
-      return {
-        id: arrowId,
-        type: relationId,
-        props: {
-          color,
-        },
-      };
+      return { id: arrowId, type: relationId, props: { color } };
     });
 
     const bindingsToCreate = toCreate.flatMap(
       ({ relationId, complement, nodeId, arrowId }) => {
-        const staticRelationProps = {
-          type: relationId,
-          fromId: arrowId,
-        };
+        const staticRelationProps = { type: relationId, fromId: arrowId };
         return [
           {
             ...staticRelationProps,
             toId: complement ? nodesInCanvas[nodeId].id : shape.id,
-            props: {
-              terminal: "start",
-            },
+            props: { terminal: "start" },
           },
           {
             ...staticRelationProps,
             toId: complement ? shape.id : nodesInCanvas[nodeId].id,
-            props: {
-              terminal: "end",
-            },
+            props: { terminal: "end" },
           },
         ];
       },
@@ -356,9 +340,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     const backgroundColor = formattedBackgroundColor
       ? formattedBackgroundColor
       : COLOR_PALETTE[paletteColor];
-    const textColor = ContrastColor.contrastColor({
-      bgColor: backgroundColor,
-    });
+    const textColor = ContrastColor.contrastColor({ bgColor: backgroundColor });
     return { backgroundColor, textColor };
   }
 
@@ -495,21 +477,14 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
         nodeType: this.type,
         extensionAPI,
       });
-      context.updateProps(shape.id, shape.type, {
-        h,
-        w,
-        imageUrl,
-      });
+      context.updateProps(shape.id, shape.type, { h, w, imageUrl });
     };
 
     return (
       <HTMLContainer
         id={shape.id}
         className="roamjs-tldraw-node pointer-events-auto flex items-center justify-center overflow-hidden rounded-2xl"
-        style={{
-          background: backgroundColor,
-          color: textColor,
-        }}
+        style={{ background: backgroundColor, color: textColor }}
       >
         <div style={{ pointerEvents: "all" }}>
           {shape.props.imageUrl && isKeyImage ? (
@@ -541,10 +516,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               if (action === "editing") {
                 if (isPageUid(shape.props.uid))
                   await window.roamAlphaAPI.updatePage({
-                    page: {
-                      uid: shape.props.uid,
-                      title: text,
-                    },
+                    page: { uid: shape.props.uid, title: text },
                   });
                 else await updateBlock({ uid: shape.props.uid, text });
               }
@@ -559,10 +531,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
 
               // Update Shape Props
               setSizeAndImgProps({ context: this, text, uid });
-              this.updateProps(shape.id, shape.type, {
-                title: text,
-                uid,
-              });
+              this.updateProps(shape.id, shape.type, { title: text, uid });
 
               // Update Shape Relations
               const relationIds = getRelationIds();
