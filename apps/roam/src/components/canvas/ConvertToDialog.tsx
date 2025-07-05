@@ -65,9 +65,7 @@ const ConvertToDialog = ({
                         key={node.type}
                         text={node.text}
                         className="flex-grow justify-start p-2 px-7 focus:bg-gray-300 focus:outline-none"
-                        style={{
-                          caretColor: "transparent",
-                        }}
+                        style={{ caretColor: "transparent" }}
                         onClick={() => {
                           getOnSelectForShape({
                             shape: selectedShapes[0],
@@ -80,9 +78,7 @@ const ConvertToDialog = ({
                         icon={
                           <div
                             className="mr-2 h-4 w-4 select-none rounded-full"
-                            style={{
-                              backgroundColor: color || "#000",
-                            }}
+                            style={{ backgroundColor: color || "#000" }}
                           ></div>
                         }
                       />
