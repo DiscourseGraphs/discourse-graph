@@ -25,7 +25,7 @@ export type SupabaseContext = {
   spacePassword: string;
 };
 
-let CONTEXT_CACHE: SupabaseContext | null = null;
+let _contextCache: SupabaseContext | null = null;
 
 // TODO: This should be an util on its own.
 const base_url =
@@ -54,8 +54,8 @@ const getOrCreateSpacePassword = () => {
 // But calls anywhere else should use the supabase client directly.
 
 const fetchOrCreateSpaceId = async (
-  user_account_id: number,
-  anon_password: string,
+  account_id: number,
+  password: string,
 ): Promise<number> => {
   const url = getRoamUrl();
   const name = window.roamAlphaAPI.graph.name;
@@ -67,8 +67,8 @@ const fetchOrCreateSpaceId = async (
     },
     body: JSON.stringify({
       space: { url, name, platform },
-      password: anon_password,
-      account_id: user_account_id,
+      password,
+      account_id,
     }),
   });
   if (!response.ok)
@@ -130,7 +130,7 @@ const fetchOrCreatePlatformAccount = async ({
 };
 
 export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
-  if (CONTEXT_CACHE === null) {
+  if (_contextCache === null) {
     try {
       const accountLocalId = window.roamAlphaAPI.user.uid();
       const spacePassword = getOrCreateSpacePassword();
@@ -142,7 +142,7 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
         personEmail,
       });
       const spaceId = await fetchOrCreateSpaceId(userId, spacePassword);
-      CONTEXT_CACHE = {
+      _contextCache = {
         platform: "Roam",
         spaceId,
         userId,
@@ -153,31 +153,31 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
       return null;
     }
   }
-  return CONTEXT_CACHE;
+  return _contextCache;
 };
 
-let LOGGED_IN_CLIENT: DGSupabaseClient | null = null;
+let _loggedInClient: DGSupabaseClient | null = null;
 
 export const getLoggedInClient = async (): Promise<DGSupabaseClient> => {
-  if (LOGGED_IN_CLIENT === null) {
+  if (_loggedInClient === null) {
     const context = await getSupabaseContext();
     if (context === null) throw new Error("Could not create context");
-    LOGGED_IN_CLIENT = createClient();
-    const { error } = await LOGGED_IN_CLIENT.auth.signInWithPassword({
+    _loggedInClient = createClient();
+    const { error } = await _loggedInClient.auth.signInWithPassword({
       email: spaceAnonUserEmail(context.platform, context.spaceId),
       password: context.spacePassword,
     });
     if (error) {
-      LOGGED_IN_CLIENT = null;
+      _loggedInClient = null;
       throw new Error(`Authentication failed: ${error.message}`);
     }
   } else {
     // renew session
-    const { error } = await LOGGED_IN_CLIENT.auth.getSession();
+    const { error } = await _loggedInClient.auth.getSession();
     if (error) {
-      LOGGED_IN_CLIENT = null;
+      _loggedInClient = null;
       throw new Error(`Authentication expired: ${error.message}`);
     }
   }
-  return LOGGED_IN_CLIENT;
+  return _loggedInClient;
 };
