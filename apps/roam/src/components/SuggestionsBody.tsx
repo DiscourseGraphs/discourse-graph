@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Button,
   ControlGroup,
@@ -105,6 +105,95 @@ const SuggestionsBody: React.FC<Props> = ({
   const cachedState = suggestionsCache.get(blockUid);
   const extensionAPI = useExtensionAPI();
 
+  /**
+   * Returns a candidate node object (uid, text, type) based on node-specific rules.
+   * If a rule exists for the node type with an embedding block reference, we will
+   * locate that block (or its first child) within the given page and use it.
+   * Falls back to page title when rules are missing or the block cannot be found.
+   */
+  const getCandidateNodeForPage = useCallback(
+    (
+      pageUid: string,
+      pageTitle: string,
+      nodeType: string,
+    ): SuggestedNode | null => {
+      // Attempt to read node-specific embedding rules
+      const settingsKey = `discourse-graph-node-rule-${nodeType}`;
+      const rules = (extensionAPI?.settings.get(settingsKey) || {}) as {
+        embeddingRef?: string;
+        isFirstChild?: boolean;
+      };
+
+      const fallback = {
+        uid: pageUid,
+        text: pageTitle,
+        type: nodeType,
+      } as SuggestedNode;
+
+      if (!rules?.embeddingRef) return fallback;
+
+      const refUidMatch = rules.embeddingRef.match(/\(\((.*)\)\)/);
+      const templateBlockUid = refUidMatch?.[1];
+      if (!templateBlockUid) return fallback;
+
+      try {
+        // Get the string of the template reference block
+        const refBlock: any = window.roamAlphaAPI.pull("[:block/string]", [
+          ":block/uid",
+          templateBlockUid,
+        ]);
+        const refString: string | undefined = refBlock?.[":block/string"];
+        if (!refString) return fallback;
+
+        // Locate the corresponding block in the target page with the same string
+        const match = window.roamAlphaAPI.q(
+          `[:find ?buid
+            :in $ ?pageUid ?str
+            :where
+              [?page :block/uid ?pageUid]
+              [?b :block/page ?page]
+              [?b :block/string ?str]
+              [?b :block/uid ?buid]]`,
+          pageUid,
+          refString,
+        ) as string[][];
+
+        if (!match.length) return fallback;
+
+        let targetUid = match[0][0] as string;
+        let targetString = refString;
+
+        // If "First Child" is enabled, look for the first child of the matched block
+        if (rules.isFirstChild) {
+          const childRes = window.roamAlphaAPI.q(
+            `[:find ?cuid ?cstring
+              :in $ ?parentUid
+              :where
+                [?parent :block/uid ?parentUid]
+                [?parent :block/children ?child]
+                [?child :block/order 0]
+                [?child :block/uid ?cuid]
+                [?child :block/string ?cstring]]`,
+            targetUid,
+          ) as string[][];
+          if (childRes.length) {
+            targetUid = childRes[0][0] as string;
+            targetString = childRes[0][1] as string;
+          }
+        }
+
+        return { uid: targetUid, text: targetString, type: nodeType };
+      } catch (e) {
+        console.error(
+          `Failed to apply embedding rules for page ${pageTitle} (${pageUid}) of type ${nodeType}:`,
+          e,
+        );
+        return fallback;
+      }
+    },
+    [extensionAPI],
+  );
+
   // UI states
   const [currentPageInput, setCurrentPageInput] = useState("");
   const [selectedPages, setSelectedPages] = useState<string[]>(
@@ -193,11 +282,12 @@ const SuggestionsBody: React.FC<Props> = ({
               ) {
                 return null;
               }
-              return {
-                uid: pageUid,
-                text: pageName,
-                type: node.type,
-              } as SuggestedNode;
+              const candidate = getCandidateNodeForPage(
+                pageUid,
+                pageName,
+                node.type,
+              );
+              return candidate;
             })
             .filter((n): n is SuggestedNode => n !== null);
         } else {
@@ -228,11 +318,12 @@ const SuggestionsBody: React.FC<Props> = ({
               ) {
                 return null;
               }
-              return {
-                uid: n.uid,
-                text: n.text,
-                type: node.type,
-              } as SuggestedNode;
+              const candidate = getCandidateNodeForPage(
+                n.uid,
+                n.text,
+                node.type,
+              );
+              return candidate;
             })
             .filter((n): n is SuggestedNode => n !== null);
         }

@@ -203,7 +203,7 @@ const NodeTemplateConfig = ({
         getNodeEnv() === "development"
           ? "http://localhost:3000/api/supabase"
           : "https://discoursegraphs.com/api/supabase";
-      fetch(`${apiBase}/content/upsert-for-page`, {
+      const upsertRes = await fetch(`${apiBase}/content/upsert-for-page`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -213,23 +213,75 @@ const NodeTemplateConfig = ({
           authorId,
           items: nodesOfType,
         }),
-      })
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error("Failed to upsert content");
+      });
+      if (!upsertRes.ok) {
+        throw new Error("Failed to upsert content");
+      }
+      const data = (await upsertRes.json()) as any[];
+
+      console.log(`Embeddings for "${node.text}" updated successfully.`);
+      setCanUpdate(false);
+
+      if (data && Array.isArray(data)) {
+        // 1. Collect {id, text}
+        const textsToEmbed = data.map((row: any) => ({
+          contentId: row.id as number,
+          text: row.text as string,
+        }));
+
+        // 2. Hit your embeddings endpoint in one batch
+        const embedRes = await fetch(
+          `http://localhost:3000/api/embeddings/openai/small`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              input: textsToEmbed.map((t) => t.text),
+            }),
+          },
+        );
+        const embedJson = (await embedRes.json()) as {
+          data: { embedding: number[] }[];
+        };
+
+        // 3. Build rows for Supabase insert
+        const embeddingRows = textsToEmbed.map((t: any, i: number) => ({
+          target_id: t.contentId,
+          model: "openai_text_embedding_3_small_1536", // match Supabase table & validators
+          vector: embedJson.data[i].embedding,
+          obsolete: false,
+        }));
+
+        // 4. Persist embeddings via Supabase API
+        try {
+          const embedInsertRes = await fetch(
+            `${apiBase}/content-embedding/batch`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(embeddingRows),
+            },
+          );
+
+          if (!embedInsertRes.ok) {
+            const errorText = await embedInsertRes.text();
+            throw new Error(
+              `Failed to batch insert embeddings [${embedInsertRes.status}]: ${errorText}`,
+            );
           }
-          return res.json();
-        })
-        .then(() => {
-          console.log(`Embeddings for "${node.text}" updated successfully.`);
-          setCanUpdate(false);
-        })
-        .catch((e) => {
-          console.error("Failed to update embeddings", e);
-        })
-        .finally(() => {
+
+          console.log(
+            `Batch inserted ${embeddingRows.length} embeddings for node type "${node.text}"`,
+          );
+
+          // Reset updating state after successful insertion
           setIsUpdating(false);
-        });
+        } catch (error) {
+          console.error("Error inserting embeddings:", error);
+          setIsUpdating(false);
+          throw error; // Surface to outer catch for user feedback
+        }
+      }
     } else {
       setIsUpdating(false);
     }
@@ -655,7 +707,11 @@ const SuggestiveModeSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         <Tab
           id="node-specific-rules"
           title="Node Specific Rules"
-          panel={<NodeRules extensionAPI={extensionAPI} />}
+          panel={
+            <div className="max-h-[60vh] overflow-y-auto">
+              <NodeRules extensionAPI={extensionAPI} />
+            </div>
+          }
         />
       </Tabs>
     </div>

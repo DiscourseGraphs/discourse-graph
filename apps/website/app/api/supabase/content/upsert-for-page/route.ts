@@ -3,12 +3,38 @@ import { NextResponse, NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import cors from "~/utils/llm/cors";
 
+function toSupabaseTimestamp(
+  value: string | number | undefined | null,
+): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const numValue = typeof value === "string" ? parseInt(value, 10) : value;
+
+  if (isNaN(numValue) || numValue === 0) {
+    // Return null for invalid or zero timestamps
+    return null;
+  }
+
+  // Timestamps with 10 digits are in seconds, otherwise assume milliseconds.
+  const timestampInMs =
+    numValue.toString().length === 10 ? numValue * 1000 : numValue;
+
+  try {
+    return new Date(timestampInMs).toISOString();
+  } catch (error) {
+    console.error("Invalid timestamp value:", value, error);
+    return null;
+  }
+}
+
 interface ItemInput {
   nodeUid: string; // Document's source_local_id
   blockUid: string; // Content's source_local_id
   blockString: string; // Content's text
-  childCreateTime: string;
-  childEditTime: string;
+  childCreateTime?: string | number;
+  childEditTime?: string | number;
 }
 
 interface RequestBody {
@@ -51,8 +77,8 @@ async function batchUpsertContentForPage(
       author_id: authorId,
       creator_id: authorId,
       scale: "block",
-      created: item.childCreateTime,
-      last_modified: item.childEditTime,
+      created: toSupabaseTimestamp(item.childCreateTime),
+      last_modified: toSupabaseTimestamp(item.childEditTime),
       metadata: { useForEmbedding: true },
     }))
     .filter((item) => item.document_id !== undefined);
