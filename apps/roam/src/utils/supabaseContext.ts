@@ -4,14 +4,19 @@ import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserD
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 
-import { Database } from "@repo/database/types.gen";
+import { Enums } from "@repo/database/types.gen";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
+import {
+  createClient,
+  type DGSupabaseClient,
+} from "@repo/ui/src/lib/supabase/client";
+import { spaceAnonUserEmail } from "@repo/ui/lib/utils";
 
 declare const crypto: { randomUUID: () => string };
 
-type Platform = Database["public"]["Enums"]["Platform"];
+type Platform = Enums<"Platform">;
 
 export type SupabaseContext = {
   platform: Platform;
@@ -20,7 +25,7 @@ export type SupabaseContext = {
   spacePassword: string;
 };
 
-let CONTEXT_CACHE: SupabaseContext | null = null;
+let _contextCache: SupabaseContext | null = null;
 
 // TODO: This should be an util on its own.
 const base_url =
@@ -44,12 +49,15 @@ const getOrCreateSpacePassword = () => {
   return password;
 };
 
-// Note: Some of this will be more typesafe if rewritten with direct supabase access eventually.
-// We're going through nextjs until we have settled security.
+// Note: calls in this file will still use vercel endpoints.
+// It is better if this is still at least protected by CORS.
+// But calls anywhere else should use the supabase client directly.
 
-const fetchOrCreateSpaceId = async (): Promise<number> => {
+const fetchOrCreateSpaceId = async (
+  account_id: number,
+  password: string,
+): Promise<number> => {
   const url = getRoamUrl();
-  const urlParts = url.split("/");
   const name = window.roamAlphaAPI.graph.name;
   const platform: Platform = "Roam";
   const response = await fetch(base_url + "/space", {
@@ -57,7 +65,11 @@ const fetchOrCreateSpaceId = async (): Promise<number> => {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ url, name, platform }),
+    body: JSON.stringify({
+      space: { url, name, platform },
+      password,
+      account_id,
+    }),
   });
   if (!response.ok)
     throw new Error(
@@ -118,23 +130,54 @@ const fetchOrCreatePlatformAccount = async ({
 };
 
 export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
-  if (CONTEXT_CACHE === null) {
+  if (_contextCache === null) {
     try {
-      const spaceId = await fetchOrCreateSpaceId();
       const accountLocalId = window.roamAlphaAPI.user.uid();
+      const spacePassword = getOrCreateSpacePassword();
       const personEmail = getCurrentUserEmail();
       const personName = getCurrentUserDisplayName();
-      const spacePassword = getOrCreateSpacePassword();
       const userId = await fetchOrCreatePlatformAccount({
         accountLocalId,
         personName,
         personEmail,
       });
-      CONTEXT_CACHE = { platform: "Roam", spaceId, userId, spacePassword };
+      const spaceId = await fetchOrCreateSpaceId(userId, spacePassword);
+      _contextCache = {
+        platform: "Roam",
+        spaceId,
+        userId,
+        spacePassword,
+      };
     } catch (error) {
       console.error(error);
       return null;
     }
   }
-  return CONTEXT_CACHE;
+  return _contextCache;
+};
+
+let _loggedInClient: DGSupabaseClient | null = null;
+
+export const getLoggedInClient = async (): Promise<DGSupabaseClient> => {
+  if (_loggedInClient === null) {
+    const context = await getSupabaseContext();
+    if (context === null) throw new Error("Could not create context");
+    _loggedInClient = createClient();
+    const { error } = await _loggedInClient.auth.signInWithPassword({
+      email: spaceAnonUserEmail(context.platform, context.spaceId),
+      password: context.spacePassword,
+    });
+    if (error) {
+      _loggedInClient = null;
+      throw new Error(`Authentication failed: ${error.message}`);
+    }
+  } else {
+    // renew session
+    const { error } = await _loggedInClient.auth.getSession();
+    if (error) {
+      _loggedInClient = null;
+      throw new Error(`Authentication expired: ${error.message}`);
+    }
+  }
+  return _loggedInClient;
 };

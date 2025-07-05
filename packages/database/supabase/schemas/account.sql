@@ -1,7 +1,8 @@
 CREATE TYPE public."AgentType" AS ENUM (
     'person',
     'organization',
-    'automated_agent'
+    'automated_agent',
+    'anonymous'
 );
 
 ALTER TYPE public."AgentType" OWNER TO postgres;
