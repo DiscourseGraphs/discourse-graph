@@ -525,10 +525,7 @@ const InsideEditorAndUiContext = ({
         const file = content.files[0];
 
         //@ts-ignore
-        const url = await window.roamAlphaAPI.file.upload({
-          file,
-          toast: { hide: true },
-        });
+        const url = await window.roamAlphaAPI.file.upload({ file });
         const dataUrl = url.replace(/^!\[\]\(/, "").replace(/\)$/, "");
         // TODO add video support
         const isImageType = isImage(file.type);
@@ -563,6 +560,82 @@ const InsideEditorAndUiContext = ({
           x: (window.innerWidth - size.w) / 2,
           y: (window.innerHeight - size.h) / 2,
           props: { assetId, w: size.w, h: size.h },
+        });
+
+        return asset;
+      },
+    );
+    //https://github.com/tldraw/tldraw/blob/v2.3.x/packages/tldraw/src/lib/defaultExternalContentHandlers.ts#L183
+    editor.registerExternalContentHandler(
+      "svg-text",
+      async (content: TLExternalContent) => {
+        if (content.type !== "svg-text") {
+          console.error("Expected svg-text, received:", content.type);
+          return;
+        }
+
+        const { text, point } = content;
+        const svgString = text;
+
+        const svg = new DOMParser()
+          .parseFromString(svgString, "image/svg+xml")
+          .querySelector("svg");
+        if (!svg) {
+          throw new Error("No <svg/> element present");
+        }
+
+        let width = parseFloat(svg.getAttribute("width") || "0");
+        let height = parseFloat(svg.getAttribute("height") || "0");
+
+        if (!(width && height)) {
+          document.body.appendChild(svg);
+          const box = svg.getBoundingClientRect();
+          document.body.removeChild(svg);
+
+          width = box.width;
+          height = box.height;
+        }
+
+        const svgBlob = new Blob([svgString], { type: "image/svg+xml" });
+        const file = new File([svgBlob], "image.svg", {
+          type: "image/svg+xml",
+        });
+
+        //@ts-ignore
+        const url = await window.roamAlphaAPI.file.upload({ file });
+        const dataUrl = url.replace(/^!\[\]\(/, "").replace(/\)$/, "");
+
+        const assetId: TLAssetId = AssetRecordType.createId(
+          getHashForString(dataUrl),
+        );
+        const asset: TLAsset = AssetRecordType.create({
+          id: assetId,
+          type: "image",
+          typeName: "asset",
+          props: {
+            name: "image.svg",
+            src: dataUrl,
+            w: width,
+            h: height,
+            fileSize: file.size,
+            mimeType: "image/svg+xml",
+            isAnimated: false,
+          },
+        });
+
+        editor.createAssets([asset]);
+
+        const position =
+          point ??
+          (editor.inputs.shiftKey
+            ? editor.inputs.currentPagePoint
+            : editor.getViewportPageBounds().center);
+
+        editor.createShape({
+          type: "image",
+          x: position.x - width / 2,
+          y: position.y - height / 2,
+          props: { assetId, w: width, h: height },
         });
 
         return asset;
