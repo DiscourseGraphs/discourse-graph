@@ -307,10 +307,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       const { w, h } = app.getViewportPageBounds();
       const lastTime = lastInsertRef.current;
       const position = lastTime
-        ? {
-            x: lastTime.x + w * 0.025,
-            y: lastTime.y + h * 0.05,
-          }
+        ? { x: lastTime.x + w * 0.025, y: lastTime.y + h * 0.05 }
         : { x: x - DEFAULT_WIDTH / 2, y: y - DEFAULT_HEIGHT / 2 };
       const nodeType = findDiscourseNode(e.detail.uid, allNodes);
       if (nodeType) {
@@ -318,10 +315,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
           {
             type: nodeType.type,
             id: createShapeId(),
-            props: {
-              uid: e.detail.uid,
-              title: e.detail.val,
-            },
+            props: { uid: e.detail.uid, title: e.detail.val },
             ...position,
           },
         ]);
@@ -519,10 +513,7 @@ const InsideEditorAndUiContext = ({
         acceptedImageMimeTypes: DEFAULT_SUPPORTED_IMAGE_TYPES,
         acceptedVideoMimeTypes: DEFAULT_SUPPORT_VIDEO_TYPES,
       },
-      {
-        toasts,
-        msg,
-      },
+      { toasts, msg },
     );
     editor.registerExternalContentHandler(
       "files",
@@ -536,9 +527,7 @@ const InsideEditorAndUiContext = ({
         //@ts-ignore
         const url = await window.roamAlphaAPI.file.upload({
           file,
-          toast: {
-            hide: true,
-          },
+          toast: { hide: true },
         });
         const dataUrl = url.replace(/^!\[\]\(/, "").replace(/\)$/, "");
         // TODO add video support
@@ -573,17 +562,12 @@ const InsideEditorAndUiContext = ({
           // Center the image in the editor
           x: (window.innerWidth - size.w) / 2,
           y: (window.innerHeight - size.h) / 2,
-          props: {
-            assetId,
-            w: size.w,
-            h: size.h,
-          },
+          props: { assetId, w: size.w, h: size.h },
         });
 
         return asset;
       },
     );
-
 
     const registerCustomSideEffects = () => {
       const removeBeforeChangeHandler =

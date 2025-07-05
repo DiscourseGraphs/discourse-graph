@@ -78,10 +78,7 @@ const convertToDiscourseNode = async ({
   const nodeText =
     type === "blck-node"
       ? text
-      : await getNewDiscourseNodeText({
-          text,
-          nodeType: type,
-        });
+      : await getNewDiscourseNodeText({ text, nodeType: type });
   const uid = await createDiscourseNode({
     configPageUid: type,
     text: nodeText,
@@ -100,13 +97,7 @@ const convertToDiscourseNode = async ({
     {
       type,
       id: createShapeId(),
-      props: {
-        uid,
-        title: nodeText,
-        h,
-        w,
-        imageUrl,
-      },
+      props: { uid, title: nodeText, h, w, imageUrl },
       x,
       y,
     },
@@ -133,9 +124,7 @@ export const getOnSelectForShape = ({
       const file = await fetch(asset.props.src)
         .then((r) => r.arrayBuffer())
         .then((buf) => new File([buf], shape.id));
-      const src = await window.roamAlphaAPI.util.uploadFile({
-        file,
-      });
+      const src = await window.roamAlphaAPI.util.uploadFile({ file });
       const text = nodeType === "blck-node" ? `![](${src})` : "";
       convertToDiscourseNode({
         text,
@@ -417,9 +406,7 @@ export const createUiOverrides = ({
       kbd: "$!X",
       onSelect: (source) => {
         originalCopyAsSvgAction.onSelect(source);
-        addToast({
-          title: "Copied as SVG",
-        });
+        addToast({ title: "Copied as SVG" });
       },
     };
     actions["copy-as-png"] = {
@@ -427,9 +414,7 @@ export const createUiOverrides = ({
       kbd: "$!C",
       onSelect: (source) => {
         originalCopyAsPngAction.onSelect(source);
-        addToast({
-          title: "Copied as PNG",
-        });
+        addToast({ title: "Copied as PNG" });
       },
     };
     return actions;

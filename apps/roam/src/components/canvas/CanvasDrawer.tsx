@@ -12,10 +12,7 @@ import { DiscourseNodeShape } from "./DiscourseNodeUtil";
 
 export type GroupedShapes = Record<string, DiscourseNodeShape[]>;
 
-type Props = {
-  groupedShapes: GroupedShapes;
-  pageUid: string;
-};
+type Props = { groupedShapes: GroupedShapes; pageUid: string };
 
 const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -67,18 +64,12 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
   }, [groupedShapes, showDuplicates, filterType, typeToTitleMap]);
 
   const toggleCollapse = (uid: string) => {
-    setOpenSections((prevState) => ({
-      ...prevState,
-      [uid]: !prevState[uid],
-    }));
+    setOpenSections((prevState) => ({ ...prevState, [uid]: !prevState[uid] }));
   };
   const moveCameraToShape = (shapeId: string) => {
     document.dispatchEvent(
       new CustomEvent("roamjs:query-builder:action", {
-        detail: {
-          action: "move-camera-to-shape",
-          shapeId,
-        },
+        detail: { action: "move-camera-to-shape", shapeId },
       }),
     );
   };

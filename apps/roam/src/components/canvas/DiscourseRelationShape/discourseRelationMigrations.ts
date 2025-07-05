@@ -45,11 +45,7 @@ export const createArrowShapeMigrations = ({
           scope: "store",
           up(oldStore) {
             type OldArrowTerminal =
-              | {
-                  type: "point";
-                  x: number;
-                  y: number;
-                }
+              | { type: "point"; x: number; y: number }
               | {
                   type: "binding";
                   boundShapeId: TLShapeId;
@@ -70,7 +66,7 @@ export const createArrowShapeMigrations = ({
                 r.typeName === "shape" &&
                 "type" in r &&
                 (allRelationIds.includes(r.type) ||
-                  allAddReferencedNodeActions.includes(r.type))
+                  allAddReferencedNodeActions.includes(r.type)),
             );
 
             for (const a of arrows) {
