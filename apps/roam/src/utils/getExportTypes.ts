@@ -122,7 +122,13 @@ const collectUids = (t: TreeNode): string[] => [
 ];
 
 const MATCHES_NONE = /$.+^/;
-const EMBED_REGEX = /{{(?:\[\[)embed(?:\]\]):\s*\(\(([\w\d-]{9,10})\)\)\s*}}/;
+
+// Roam embed syntax: {{[[embed]]: ((block-uid)) }}
+// Roam embed syntax: {{[[embed-path]]: ((block-uid)) }}
+// Also handles multiple parentheses: {{[[embed]]: ((((block-uid)))) }}
+const EMBED_REGEX =
+  /{{\[\[(?:embed|embed-path)\]\]:\s*\(\(+\s*([\w\d-]{9,10})\s*\)\)+\s*}}/;
+
 
 const toLink = (filename: string, uid: string, linkType: string) => {
   const extensionRemoved = filename.replace(/\.\w+$/, "");
