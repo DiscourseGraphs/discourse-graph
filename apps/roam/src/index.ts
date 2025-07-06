@@ -19,33 +19,9 @@ import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
 import styles from "./styles/styles.css";
 import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
-import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
-
-const initPostHog = () => {
-  posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
-    api_host: "https://us.i.posthog.com",
-    person_profiles: "identified_only",
-    capture_pageview: false,
-    autocapture: false,
-    property_denylist: [
-      "$ip", // Still seeing ip in the event
-      "$device_id",
-      "$geoip_city_name",
-      "$geoip_latitude",
-      "$geoip_longitude",
-      "$geoip_postal_code",
-      "$geoip_subdivision_1_name",
-      "$raw_user_agent",
-      "$current_url",
-      "$referrer",
-      "$referring_domain",
-      "$initial_current_url",
-      "$pathname",
-    ],
-  });
-};
+import { initPostHog, captureEvent, identifyUser } from "./utils/posthog";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -56,10 +32,10 @@ export default runExtension(async (onloadArgs) => {
     initPostHog();
     const userUid = getCurrentUserUid();
     const graphName = window.roamAlphaAPI.graph.name;
-    posthog.identify(userUid, {
+    identifyUser(userUid, {
       graphName,
     });
-    posthog.capture("Extension Loaded", {
+    captureEvent("Extension Loaded", {
       graphName,
       userUid,
     });
