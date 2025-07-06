@@ -164,13 +164,13 @@ const toMarkdown = ({
     flatten = false,
   } = opts;
   const processedText = c.text
-    .replace(refs ? BLOCK_REF_REGEX : MATCHES_NONE, (_, blockUid) => {
-      const reference = getTextByBlockUid(blockUid);
-      return reference || blockUid;
-    })
     .replace(embeds ? EMBED_REGEX : MATCHES_NONE, (_, blockUid) => {
       const reference = getFullTreeByParentUid(blockUid);
       return toMarkdown({ c: reference, i, v, opts });
+    })
+    .replace(refs ? BLOCK_REF_REGEX : MATCHES_NONE, (_, blockUid) => {
+      const reference = getTextByBlockUid(blockUid);
+      return reference || blockUid;
     })
     .replace(/{{\[\[TODO\]\]}}/g, v === "bullet" ? "[ ]" : "- [ ]")
     .replace(/{{\[\[DONE\]\]}}/g, v === "bullet" ? "[x]" : "- [x]")
