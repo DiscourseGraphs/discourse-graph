@@ -16,7 +16,6 @@ export type StringSetting = UidPair<string>;
 export type ExportConfigWithUids = {
   exportUid: string;
   maxFilenameLength: IntSetting;
-  openSidebar: BooleanSetting;
   removeSpecialCharacters: BooleanSetting;
   simplifiedFilename: BooleanSetting;
   optsEmbeds: BooleanSetting;
@@ -32,7 +31,6 @@ export type ExportConfigWithUids = {
 export type ExportConfig = {
   exportUid: string;
   maxFilenameLength: number;
-  openSidebar: boolean;
   removeSpecialCharacters: boolean;
   simplifiedFilename: boolean;
   optsEmbeds: boolean;
@@ -97,7 +95,6 @@ export const getExportSettingsAndUids = (): ExportConfigWithUids => {
     optsRefs: getBoolean("resolve block references"),
     linkType: getString("link type"),
     appendRefNodeContext: getBoolean("append referenced node"),
-    openSidebar: getBoolean("open sidebar"),
     maxFilenameLength: {
       uid: maxFilenameLengthUid,
       value: maxFilenameLength,
@@ -113,7 +110,6 @@ export const getExportSettings = (): Omit<ExportConfig, "exportUid"> => {
   const settings = getExportSettingsAndUids();
   return {
     maxFilenameLength: settings.maxFilenameLength.value,
-    openSidebar: settings.openSidebar.value,
     removeSpecialCharacters: settings.removeSpecialCharacters.value,
     simplifiedFilename: settings.simplifiedFilename.value,
     optsEmbeds: settings.optsEmbeds.value,
