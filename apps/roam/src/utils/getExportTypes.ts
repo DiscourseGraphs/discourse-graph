@@ -217,7 +217,12 @@ const toMarkdown = ({
           .join("") || processedText
       : processedText;
   const indentation = flatten ? "" : "".padStart(i * 4, " ");
-  const viewTypePrefix = viewTypeToPrefix[v];
+  // If this block contains an embed, treat it as document to avoid extra prefixes
+  const effectiveViewType =
+    embeds && (EMBED_REGEX.test(c.text) || EMBED_CHILDREN_REGEX.test(c.text))
+      ? "document"
+      : v;
+  const viewTypePrefix = viewTypeToPrefix[effectiveViewType];
   const headingPrefix = c.heading ? `${"".padStart(c.heading, "#")} ` : "";
   const childrenMarkdown = (c.children || [])
     .filter((nested) => !!nested.text || !!nested.children?.length)
