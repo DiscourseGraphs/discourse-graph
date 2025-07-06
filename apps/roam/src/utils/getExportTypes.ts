@@ -129,6 +129,9 @@ const MATCHES_NONE = /$.+^/;
 const EMBED_REGEX =
   /{{\[\[(?:embed|embed-path)\]\]:\s*\(\(+\s*([\w\d-]{9,10})\s*\)\)+\s*}}/;
 
+// Roam embed-children syntax: {{[[embed-children]]: ((block-uid)) }}
+const EMBED_CHILDREN_REGEX =
+  /{{\[\[embed-children\]\]:\s*\(\(+\s*([\w\d-]{9,10})\s*\)\)+\s*}}/;
 
 const toLink = (filename: string, uid: string, linkType: string) => {
   const extensionRemoved = filename.replace(/\.\w+$/, "");
@@ -173,6 +176,12 @@ const toMarkdown = ({
     .replace(embeds ? EMBED_REGEX : MATCHES_NONE, (_, blockUid) => {
       const reference = getFullTreeByParentUid(blockUid);
       return toMarkdown({ c: reference, i, v, opts });
+    })
+    .replace(embeds ? EMBED_CHILDREN_REGEX : MATCHES_NONE, (_, blockUid) => {
+      const reference = getFullTreeByParentUid(blockUid);
+      return reference.children
+        .map((child) => toMarkdown({ c: child, i, v, opts }))
+        .join("\n");
     })
     .replace(refs ? BLOCK_REF_REGEX : MATCHES_NONE, (_, blockUid) => {
       const reference = getTextByBlockUid(blockUid);
