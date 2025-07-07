@@ -34,7 +34,7 @@ This contains the database schema for vector embeddings and concepts.
       3. See if there would be a migration to apply with `supabase db diff`
    5. If applying the new schema fails, repeat step 4
    6. If you are satisfied with the migration, create a migration file with `npm run dbdiff:save some_meaningful_migration_name`
-      1. If all goes well, there should be a new file named `supbase/migration/2..._some_meaningful_migration_name.sql` which you should `git add`.
+      1. If all goes well, there should be a new file named `supabase/migration/2..._some_meaningful_migration_name.sql` which you should `git add`.
    7. `turbo build`, which will do the following:
       1. Start supbase
       2. Apply the new migration locally
