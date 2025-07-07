@@ -21,6 +21,7 @@ import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
+import getDiscourseRelations from "./utils/getDiscourseRelations";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
 
 const initPostHog = () => {
@@ -125,6 +126,7 @@ export default runExtension(async (onloadArgs) => {
     isDiscourseNode: isDiscourseNode,
     // @ts-ignore - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
+    getDiscourseRelations: getDiscourseRelations,
   };
 
   return {
