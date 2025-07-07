@@ -59,3 +59,18 @@ export const DEFAULT_SETTINGS: Settings = {
   showIdsInFrontmatter: false,
   nodesFolderPath: "",
 };
+
+export const FRONTMATTER_KEY = "tldr-dg";
+export const TLDATA_DELIMITER_START =
+  "!!!_START_OF_TLDRAW_DG_DATA__DO_NOT_CHANGE_THIS_PHRASE_!!!";
+export const TLDATA_DELIMITER_END =
+  "!!!_END_OF_TLDRAW_DG_DATA__DO_NOT_CHANGE_THIS_PHRASE_!!!";
+
+export const VIEW_TYPE_TLDRAW_DG = "tldraw-dg-view";
+export const VIEW_TYPE_TLDRAW_DG_PREVIEW = "tldraw-dg-preview";
+export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";
+
+export const TLDRAW_VERSION = "2.3.0"; // Match the version from tldraw-in-obsidian
+export const DEFAULT_SAVE_DELAY = 500; // in ms
+
+export const RIBBON_NEW_FILE = "Create new Discourse Graph canvas";
