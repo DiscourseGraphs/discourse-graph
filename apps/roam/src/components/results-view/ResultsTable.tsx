@@ -99,21 +99,14 @@ const ResultHeader = React.forwardRef<
       () => activeSort.findIndex((s) => s.key === c.key),
       [c.key, activeSort],
     );
-    const refCallback = useCallback(
-      (r: HTMLTableDataCellElement) => {
-        if (ref && "current" in ref && ref.current) ref.current[c.uid] = r;
-      },
-      [ref, c.uid],
-    );
     return (
-      <td
+      <th
         style={{
           cursor: "pointer",
           textTransform: "capitalize",
           width: columnWidth,
         }}
         data-column={c.uid}
-        ref={refCallback}
         key={c.uid}
         onClick={() => {
           if (sortIndex >= 0) {
@@ -158,7 +151,7 @@ const ResultHeader = React.forwardRef<
             )}
           </span>
         </div>
-      </td>
+      </th>
     );
   },
 );
@@ -194,12 +187,6 @@ export const CellEmbed = ({
   );
 };
 
-type OnWidthUpdate = (args: {
-  column: string;
-  width: string;
-  save?: boolean;
-}) => void;
-
 type ResultRowProps = {
   r: Result;
   columns: Column[];
@@ -210,7 +197,6 @@ type ResultRowProps = {
   ctrlClick?: (e: Result) => void;
   views: { column: string; mode: string; value: string }[];
   onRefresh: () => void;
-  onWidthUpdate: OnWidthUpdate;
 };
 
 const ResultRow = ({
@@ -219,8 +205,10 @@ const ResultRow = ({
   parentUid,
   ctrlClick,
   views,
+  onDragStart,
+  onDrag,
+  onDragEnd,
   onRefresh,
-  onWidthUpdate,
 }: ResultRowProps) => {
   const cell = (key: string) => {
     const value = toCellValue({
@@ -270,34 +258,6 @@ const ResultRow = ({
     [views],
   );
   const trRef = useRef<HTMLTableRowElement>(null);
-  const dragHandler = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      if (e.clientX === 0) return;
-      const delta = e.clientX - e.currentTarget.getBoundingClientRect().left;
-      const cellWidth =
-        e.currentTarget.parentElement?.getBoundingClientRect().width;
-      if (typeof cellWidth === "undefined") return;
-      const rowWidth =
-        e.currentTarget.parentElement?.parentElement?.getBoundingClientRect()
-          .width;
-      if (typeof rowWidth === "undefined") return;
-      const raw = cellWidth + delta;
-      const minPercentage = 5;
-      const minPx = (rowWidth * minPercentage) / 100;
-      const maxPx = rowWidth - minPx;
-      const clampedPx = Math.max(minPx, Math.min(raw, maxPx));
-      const newPercentage = `${(clampedPx / rowWidth) * 100}%`;
-      const isSaving = e.type === "dragend";
-      const column = e.currentTarget.getAttribute("data-column");
-
-      if (clampedPx === 0 || clampedPx === rowWidth) return;
-
-      if (column) {
-        onWidthUpdate({ column, width: newPercentage, save: isSaving });
-      }
-    },
-    [onWidthUpdate],
-  );
   return (
     <>
       <tr ref={trRef} data-uid={r.uid}>
@@ -370,11 +330,13 @@ const ResultRow = ({
                   data-right-column-uid={columns[i + 1].uid}
                   data-column={columnUid}
                   draggable
-                  onDragStart={(e) =>
-                    e.dataTransfer.setDragImage(dragImage, 0, 0)
-                  }
-                  onDrag={dragHandler}
-                  onDragEnd={dragHandler}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", "");
+                    e.dataTransfer.setDragImage(dragImage, 0, 0);
+                    onDragStart(e);
+                  }}
+                  onDrag={onDrag}
+                  onDragEnd={onDragEnd}
                 />
               )}
             </td>
@@ -439,7 +401,7 @@ const ResultsTable = ({
   allResults: Result[];
   showInterface?: boolean;
 }) => {
-  const tableRef = useRef<HTMLTableElement | null>(null);
+  const tableContainerRef = useRef<HTMLDivElement | null>(null);
   const dragInfo = useRef<DragInfo>({
     startX: 0,
     leftColumnUid: null,
@@ -463,19 +425,17 @@ const ResultsTable = ({
   });
 
   const onDragStart = useCallback((e) => {
-    e.dataTransfer.setDragImage(dragImage, 0, 0);
     const { leftColumnUid, rightColumnUid } = e.currentTarget.dataset;
-    if (!leftColumnUid || !rightColumnUid || !tableRef.current) return;
+    if (!leftColumnUid || !rightColumnUid || !tableContainerRef.current) return;
 
-    const leftHeader = tableRef.current?.querySelector(
+    const leftHeader = tableContainerRef.current?.querySelector(
       `th[data-column="${leftColumnUid}"]`,
     );
-    const rightHeader = tableRef.current?.querySelector(
+    const rightHeader = tableContainerRef.current?.querySelector(
       `th[data-column="${rightColumnUid}"]`,
     );
 
-    if (!leftHeader || !rightHeader || !leftColumnUid || !rightColumnUid)
-      return;
+    if (!leftHeader || !rightHeader) return;
 
     dragInfo.current = {
       startX: e.clientX,
@@ -524,12 +484,13 @@ const ResultsTable = ({
   }, []);
 
   const onDragEnd = useCallback(() => {
-    const totalWidth = tableRef.current?.offsetWidth;
+    const totalWidth = tableContainerRef.current?.offsetWidth;
     if (!totalWidth) return;
 
     const finalWidths: ColumnWidths = {};
-    Object.entries(columnWidths).forEach(([uid]) => {
-      const header = tableRef.current?.querySelector(
+    const uids = columns.map((c) => c.uid);
+    uids.forEach((uid) => {
+      const header = tableContainerRef.current?.querySelector(
         `th[data-column="${uid}"]`,
       );
       if (header) {
@@ -547,29 +508,8 @@ const ResultsTable = ({
         values: Object.entries(finalWidths).map(([k, v]) => `${k} - ${v}`),
       });
     }
-  }, [columnWidths, parentUid]);
+  }, [columns, parentUid]);
 
-  const thRefs = useRef<Record<string, HTMLTableCellElement>>({});
-  const onWidthUpdate = useCallback<OnWidthUpdate>(
-    (args) => {
-      const cell = thRefs.current[args.column];
-      if (!cell) return;
-      cell.style.width = args.width;
-      if (args.save) {
-        const layoutUid = getSubTree({ parentUid, key: "layout" }).uid;
-        if (layoutUid)
-          setInputSettings({
-            blockUid: layoutUid,
-            key: "widths",
-            values: Object.entries(thRefs.current)
-              .map(([k, v]) => [k, v.style.width])
-              .filter(([k, v]) => !!k && !!v)
-              .map(([k, v]) => `${k} - ${v}`),
-          });
-      }
-    },
-    [thRefs, parentUid],
-  );
   const resultHeaderSetFilters = React.useCallback(
     (fs: FilterData) => {
       setFilters(fs);
@@ -654,148 +594,154 @@ const ResultsTable = ({
     if (extraRowType === null) setExtraRowUid(null);
   }, [extraRowType, setExtraRowUid]);
   return (
-    <HTMLTable
+    <div
+      ref={tableContainerRef}
       style={{
         maxHeight: "400px",
         overflowY: "scroll",
-        width: "100%",
-        tableLayout: "fixed",
         borderRadius: 3,
       }}
-      data-parent-uid={parentUid}
-      {...tableProps}
     >
-      <thead style={{ background: "#eeeeee80" }}>
-        <tr style={{ visibility: !showInterface ? "collapse" : "visible" }}>
-          {columns.map((c) => (
-            <ResultHeader
-              key={c.uid}
-              c={c}
-              ref={thRefs}
-              allResults={allResults}
-              activeSort={activeSort}
-              setActiveSort={setActiveSort}
-              filters={filters}
-              setFilters={resultHeaderSetFilters}
-              initialFilter={filters[c.key]}
-              columnWidth={columnWidths[c.uid]}
-            />
+      <HTMLTable
+        style={{
+          width: "100%",
+          tableLayout: "fixed",
+        }}
+        data-parent-uid={parentUid}
+        {...tableProps}
+      >
+        <thead style={{ background: "#eeeeee80" }}>
+          <tr style={{ visibility: !showInterface ? "collapse" : "visible" }}>
+            {columns.map((c) => (
+              <ResultHeader
+                key={c.uid}
+                c={c}
+                allResults={allResults}
+                activeSort={activeSort}
+                setActiveSort={setActiveSort}
+                filters={filters}
+                setFilters={resultHeaderSetFilters}
+                initialFilter={filters[c.key]}
+                columnWidth={columnWidths[c.uid]}
+              />
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {results.map((r) => (
+            <React.Fragment key={Object.values(r).join("-")}>
+              <ResultRow
+                r={r}
+                parentUid={parentUid}
+                views={views}
+                onRefresh={onRefresh}
+                columns={columns}
+                onDragStart={onDragStart}
+                onDrag={onDrag}
+                onDragEnd={onDragEnd}
+              />
+              {extraRowUid === r.uid && (
+                <tr className={`roamjs-${extraRowType}-row roamjs-extra-row`}>
+                  <td colSpan={columns.length}>
+                    {extraRowUid && extraRowType === "context" ? (
+                      <ExtraContextRow uid={extraRowUid} />
+                    ) : extraRowUid && extraRowType === "discourse" ? (
+                      <ContextContent uid={extraRowUid} />
+                    ) : null}
+                  </td>
+                </tr>
+              )}
+            </React.Fragment>
           ))}
-        </tr>
-      </thead>
-      <tbody>
-        {results.map((r) => (
-          <React.Fragment key={Object.values(r).join("-")}>
-            <ResultRow
-              r={r}
-              parentUid={parentUid}
-              views={views}
-              onRefresh={onRefresh}
-              columns={columns}
-              onWidthUpdate={onWidthUpdate}
-              onDragStart={onDragStart}
-              onDrag={onDrag}
-              onDragEnd={onDragEnd}
-            />
-            {extraRowUid === r.uid && (
-              <tr className={`roamjs-${extraRowType}-row roamjs-extra-row`}>
-                <td colSpan={columns.length}>
-                  {extraRowUid && extraRowType === "context" ? (
-                    <ExtraContextRow uid={extraRowUid} />
-                  ) : extraRowUid && extraRowType === "discourse" ? (
-                    <ContextContent uid={extraRowUid} />
-                  ) : null}
-                </td>
-              </tr>
-            )}
-          </React.Fragment>
-        ))}
-      </tbody>
-      <tfoot style={!showInterface ? { display: "none" } : {}}>
-        <tr>
-          <td
-            colSpan={columns.length}
-            style={{ padding: 0, background: "#eeeeee80" }}
-          >
-            <div
-              className="flex items-center justify-between"
-              style={{ padding: 4 }}
+        </tbody>
+        <tfoot style={!showInterface ? { display: "none" } : {}}>
+          <tr>
+            <td
+              colSpan={columns.length}
+              style={{ padding: 0, background: "#eeeeee80" }}
             >
               <div
-                className="flex items-center gap-4"
-                style={{ paddingLeft: 4 }}
+                className="flex items-center justify-between"
+                style={{ padding: 4 }}
               >
-                <span>Rows per page:</span>
-                <InputGroup
-                  defaultValue={pageSize.toString()}
-                  onChange={(e) => {
-                    clearTimeout(pageSizeTimeoutRef.current);
-                    pageSizeTimeoutRef.current = window.setTimeout(() => {
-                      setPageSize(Number(e.target.value));
+                <div
+                  className="flex items-center gap-4"
+                  style={{ paddingLeft: 4 }}
+                >
+                  <span>Rows per page:</span>
+                  <InputGroup
+                    defaultValue={pageSize.toString()}
+                    onChange={(e) => {
+                      clearTimeout(pageSizeTimeoutRef.current);
+                      pageSizeTimeoutRef.current = window.setTimeout(() => {
+                        setPageSize(Number(e.target.value));
 
-                      if (preventSavingSettings) return;
-                      setInputSetting({
-                        key: "size",
-                        value: e.target.value,
-                        blockUid: parentUid,
-                      });
-                    }, 1000);
-                  }}
-                  type="number"
-                  style={{
-                    width: 60,
-                    maxWidth: 60,
-                    marginRight: 32,
-                    marginLeft: 16,
-                  }}
-                />
-              </div>
-              <span>
-                <Button
-                  minimal
-                  icon={"double-chevron-left"}
-                  onClick={() => setPage(1)}
-                  disabled={page === 1}
-                  small
-                />
-                <Button
-                  minimal
-                  icon={"chevron-left"}
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                  small
-                />
-                <span style={{ margin: "4px 0" }} className={"text-sm"}>
-                  {page}
+                        if (preventSavingSettings) return;
+                        setInputSetting({
+                          key: "size",
+                          value: e.target.value,
+                          blockUid: parentUid,
+                        });
+                      }, 1000);
+                    }}
+                    type="number"
+                    style={{
+                      width: 60,
+                      maxWidth: 60,
+                      marginRight: 32,
+                      marginLeft: 16,
+                    }}
+                  />
+                </div>
+                <span>
+                  <Button
+                    minimal
+                    icon={"double-chevron-left"}
+                    onClick={() => setPage(1)}
+                    disabled={page === 1}
+                    small
+                  />
+                  <Button
+                    minimal
+                    icon={"chevron-left"}
+                    onClick={() => setPage(page - 1)}
+                    disabled={page === 1}
+                    small
+                  />
+                  <span style={{ margin: "4px 0" }} className={"text-sm"}>
+                    {page}
+                  </span>
+                  <Button
+                    minimal
+                    icon={"chevron-right"}
+                    onClick={() => setPage(page + 1)}
+                    disabled={
+                      page ===
+                        Math.ceil(allProcessedResults.length / pageSize) ||
+                      allProcessedResults.length === 0
+                    }
+                    small
+                  />
+                  <Button
+                    minimal
+                    icon={"double-chevron-right"}
+                    disabled={
+                      page ===
+                        Math.ceil(allProcessedResults.length / pageSize) ||
+                      allProcessedResults.length === 0
+                    }
+                    onClick={() =>
+                      setPage(Math.ceil(allProcessedResults.length / pageSize))
+                    }
+                    small
+                  />
                 </span>
-                <Button
-                  minimal
-                  icon={"chevron-right"}
-                  onClick={() => setPage(page + 1)}
-                  disabled={
-                    page === Math.ceil(allProcessedResults.length / pageSize) ||
-                    allProcessedResults.length === 0
-                  }
-                  small
-                />
-                <Button
-                  minimal
-                  icon={"double-chevron-right"}
-                  disabled={
-                    page === Math.ceil(allProcessedResults.length / pageSize) ||
-                    allProcessedResults.length === 0
-                  }
-                  onClick={() =>
-                    setPage(Math.ceil(allProcessedResults.length / pageSize))
-                  }
-                  small
-                />
-              </span>
-            </div>
-          </td>
-        </tr>
-      </tfoot>
-    </HTMLTable>
+              </div>
+            </td>
+          </tr>
+        </tfoot>
+      </HTMLTable>
+    </div>
   );
 };
 
