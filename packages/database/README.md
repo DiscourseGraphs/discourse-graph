@@ -1,30 +1,32 @@
 This contains the database schema for vector embeddings and concepts.
 
-1. Local development setup
+There are three usage scenarios:
+
+## Local development setup
+
+Normal scenario: Your backend and frontend will work against a database instance within docker.
+It does mean you will have a fresh database with minimal data.
+
+1. Installation
    1. Install [Docker](https://www.docker.com)
    2. Set the `SUPABASE_WORKDIR` in your environment to the absolute path of the `packages/database` directory.
    3. Install [sqruff](https://github.com/quarylabs/sqruff)
-   4. Choose whether you will work locally or on the production instance.
-      There are two ways your code can talk to supabase. It can talk to the production instance, or to your local supabase instance.
-      It is obviously safer to use the local instance, but there may be discrepancies of behaviour, and you may need to talk to the production instance.
-      It may be a good strategy to setup both a `.env.localdb` and `.env.productiondb` and copy (or link) either to `.env` as appropriate.
-      1. To work on the production instance: populate your `.env.localdb` from the `.env.productiondb.example` (and copy to `.env`)
-      2. To work on the local instance:
-        1. populate your `.env.productiondb` from the `.env.example`
-        2. `supabase start` to create your local supabase instance
-            1. Many values will be specified in the output. Use them to populate your `.env.productiondb` as follows:
-              ```
-                SUPABASE_JWT_SECRET = <JWT secret>
-                SUPABASE_ANON_KEY = <anon key>
-                SUPABASE_SERVICE_ROLE_KEY = <service_role key>
-              ```
-        5. Optional: `supabase end` to free docker resources.
+   4. populate your `.env.localdb` from the `.env.example`
+   5. `supabase start` to create your local supabase instance
+       1. Many values will be specified in the output. Use them to populate your `.env.localdb` as follows:
+       ```
+       SUPABASE_JWT_SECRET = <JWT secret>
+       SUPABASE_ANON_KEY = <anon key>
+       SUPABASE_SERVICE_ROLE_KEY = <service_role key>
+       ```
+    6. Copy (or link) your `env.localdb` to `.env`
+    7. Optional: `supabase end` to free docker resources.
 2. Usage:
-   1. `turbo dev`, will do a `supabase start` so you can talk to your local database. (Only if using local database.)
+   1. `turbo dev`, will do a `supabase start` so you can talk to your local database.
    2. You can use the studio to look over things; its url is given by supabase start.
    3. End you work session with `supabase end` to free docker resources.
-3. Development: We follow the supabase [Declarative Database Schema](https://supabase.com/docs/guides/local-development/declarative-database-schemas) process.
-   1. Assuming you're working on a feature branch, and you must be using the local database for development.
+3. Database-specific development: We follow the supabase [Declarative Database Schema](https://supabase.com/docs/guides/local-development/declarative-database-schemas) process.
+   1. Assuming you're working on a feature branch.
    2. Make changes to the schema, by editing files in `packages/database/supabase/schemas`
    3. If you created a new schema file, make sure to add it to `[db.migrations] schema_paths` in `packages/database/supabase/config.toml`. Schema files are applied in that order, you may need to be strategic in placing your file.
    4. `turbo check-types`, which will do the following:
@@ -50,13 +52,32 @@ This contains the database schema for vector embeddings and concepts.
       3. If you have an ongoing migration file, the timestamp at the start of the name should come after the latest new migration. Rename as needed.
       4. Apply `turbo build` again, so the incoming migrations are applied, and then your working migration. You may have to fix the schema and migration to take the changes into account.
     10. When your migration is pushed in a branch, supabase will create a branch instance. Note there is a small cost to this, so we do not want those branches to linger.
-        The branch will be created without data. (Seed data could be added to `.../supabase/seed.sql`) The vercel branch instance will talk to this supabase branch. This is a wholly separate environment, and will not affect production.
-        If you want your local development setup to talk to this database branch, you will need to create a separate `.env` for your branch, based on the `.env.productiondb`, with values populated from the supabase UI for the branch. This should be rare; in most cases you should either use the supabase branch through the vercel branch, or use your local supabase.
-        IMPORTANT: Avoid using any supabase command while this environment is active.
-        In the `Project settings` tab, with the branch selected:
-          1. The `General` tab has the `Project ID`, which you can use for `SUPABASE_PROJECT_ID` and `SUPABASE_URL`
-          2. The `API Keys` tab has the `anon` and `service_role` keys, for `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`
-          3. The `JWT Keys` tab has the `JWT secret` value, for `SUPABASE_JWT_SECRET`
+        The branch will be also created without data. (Seed data could be added to `.../supabase/seed.sql`)
+        The vercel branch instance will talk to this supabase branch. This is a wholly separate environment, and will not affect production.
+
+## Using local code against your supabase branch
+
+You may want to test your local code against the supabase branch database.
+If you are working on frontend code, you may use the environment variable `NEXT_API_ROOT` (forthcoming) to get the api of the active vercel branch instance (as given in the [vercel interface](https://vercel.com/discourse-graphs/discourse-graph/deployments).)
+If you are working on the website api code, you need to create a branch-specific `.env` based on the `.env.productiondb`, with values populated from the supabase UI for the branch.
+
+IMPORTANT: Avoid using any supabase command while this environment is active. It is also safer to stop your local supabase altogether.
+
+1. Navigate to our [supabase ui page](https://supabase.com/dashboard/project/zytfjzqyijgagqxrzbmz/settings/general)
+2. In the top breacrumbs, where it says `main (Production)`, select the branch you're working on
+3. In bottom of the leftmost menu bar, choose the project settings (⚙️)
+4. Populate your `.env` variables using this information, in particular:
+   1. The `General` tab has the `Project ID`, which you can use for `SUPABASE_PROJECT_ID` and `SUPABASE_URL`
+   2. The `API Keys` tab has the `anon` and `service_role` keys, for `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`
+   3. The `JWT Keys` tab has the `JWT secret` value, for `SUPABASE_JWT_SECRET`
+
+
+## Using local code against the production branch
+
+This should be used with extreme caution, as there is not currently adequate security to prevent changes to the data.
+It may be appropriate if there is a problem in production that is due to corrupted data (vs schema issues), and it is somehow simpler to test code to repair it directly than to load the data locally.
+In that case, basically use the `.env.productiondb` example file, fill the secrets and copy it to `.env`
+
 
 ## Testing the backend
 
