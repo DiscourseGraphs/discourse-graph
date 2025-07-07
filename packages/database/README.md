@@ -59,6 +59,9 @@ It does mean you will have a fresh database with minimal data.
 
 You may want to test your local code against the supabase branch database.
 If you are working on frontend code, you may use the environment variable `NEXT_API_ROOT` (forthcoming) to get the api of the active vercel branch instance (as given in the [vercel interface](https://vercel.com/discourse-graphs/discourse-graph/deployments).)
+
+If you have logged in with the vercel cli tool, you can also get the URL with `vercel list -m githubCommitRef=<branch name>`
+
 If you are working on the website api code, you need to create a branch-specific `.env` based on the `.env.productiondb`, with values populated from the supabase UI for the branch.
 
 IMPORTANT: Avoid using any supabase command while this environment is active. It is also safer to stop your local supabase altogether.
