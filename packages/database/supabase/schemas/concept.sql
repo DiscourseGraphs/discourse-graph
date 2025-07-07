@@ -27,7 +27,7 @@ $$;
 SET check_function_bodies = true;
 
 CREATE OR REPLACE FUNCTION compute_arity_local(schema_id BIGINT, lit_content JSONB) RETURNS smallint LANGUAGE sql IMMUTABLE AS $$
-  SELECT CASE WHEN schema_id IS NULL THEN compute_arity_lit(lit_content) ELSE compute_arity_id(schema_id) END;
+  SELECT CASE WHEN schema_id IS NULL THEN public.compute_arity_lit(lit_content) ELSE public.compute_arity_id(schema_id) END;
 $$;
 
 
