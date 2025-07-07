@@ -199,23 +199,29 @@ type OnWidthUpdate = (args: {
   width: string;
   save?: boolean;
 }) => void;
+
+type ResultRowProps = {
+  r: Result;
+  columns: Column[];
+  onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDrag: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
+  parentUid: string;
+  ctrlClick?: (e: Result) => void;
+  views: { column: string; mode: string; value: string }[];
+  onRefresh: () => void;
+  onWidthUpdate: OnWidthUpdate;
+};
+
 const ResultRow = ({
   r,
+  columns,
   parentUid,
   ctrlClick,
   views,
   onRefresh,
-  columns,
   onWidthUpdate,
-}: {
-  r: Result;
-  parentUid: string;
-  ctrlClick?: (e: Result) => void;
-  views: { column: string; mode: string; value: string }[];
-  columns: Column[];
-  onRefresh: () => void;
-  onWidthUpdate: OnWidthUpdate;
-}) => {
+}: ResultRowProps) => {
   const cell = (key: string) => {
     const value = toCellValue({
       value: r[`${key}-display`] || r[key] || "",
@@ -266,27 +272,29 @@ const ResultRow = ({
   const trRef = useRef<HTMLTableRowElement>(null);
   const dragHandler = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
+      if (e.clientX === 0) return;
       const delta = e.clientX - e.currentTarget.getBoundingClientRect().left;
       const cellWidth =
         e.currentTarget.parentElement?.getBoundingClientRect().width;
       if (typeof cellWidth === "undefined") return;
-      if (cellWidth + delta <= 0) return;
       const rowWidth =
         e.currentTarget.parentElement?.parentElement?.getBoundingClientRect()
           .width;
       if (typeof rowWidth === "undefined") return;
-      if (cellWidth + delta >= rowWidth) return;
+      const raw = cellWidth + delta;
+      const minPercentage = 5;
+      const minPx = (rowWidth * minPercentage) / 100;
+      const maxPx = rowWidth - minPx;
+      const clampedPx = Math.max(minPx, Math.min(raw, maxPx));
+      const newPercentage = `${(clampedPx / rowWidth) * 100}%`;
+      const isSaving = e.type === "dragend";
       const column = e.currentTarget.getAttribute("data-column");
-      const save = e.type === "dragend";
-      if (trRef.current) {
-        trRef.current.style.cursor = save ? "" : "ew-resize";
+
+      if (clampedPx === 0 || clampedPx === rowWidth) return;
+
+      if (column) {
+        onWidthUpdate({ column, width: newPercentage, save: isSaving });
       }
-      if (column)
-        onWidthUpdate({
-          column,
-          width: `${((cellWidth + delta) / rowWidth) * 100}%`,
-          save,
-        });
     },
     [onWidthUpdate],
   );
@@ -350,7 +358,7 @@ const ResultRow = ({
               {i < columns.length - 1 && (
                 <div
                   style={{
-                    width: 1,
+                    width: 2,
                     cursor: "ew-resize",
                     position: "absolute",
                     top: 0,
@@ -358,6 +366,8 @@ const ResultRow = ({
                     bottom: 0,
                     background: `rgba(16,22,26,0.15)`,
                   }}
+                  data-left-column-uid={columnUid}
+                  data-right-column-uid={columns[i + 1].uid}
                   data-column={columnUid}
                   draggable
                   onDragStart={(e) =>
@@ -373,6 +383,18 @@ const ResultRow = ({
       </tr>
     </>
   );
+};
+
+type ColumnWidths = {
+  [key: string]: string;
+};
+
+type DragInfo = {
+  startX: number;
+  leftColumnUid: string | null;
+  rightColumnUid: string | null;
+  leftStartWidth: number;
+  rightStartWidth: number;
 };
 
 const ResultsTable = ({
@@ -417,21 +439,116 @@ const ResultsTable = ({
   allResults: Result[];
   showInterface?: boolean;
 }) => {
-  const columnWidths = useMemo(() => {
+  const tableRef = useRef<HTMLTableElement | null>(null);
+  const dragInfo = useRef<DragInfo>({
+    startX: 0,
+    leftColumnUid: null,
+    rightColumnUid: null,
+    leftStartWidth: 0,
+    rightStartWidth: 0,
+  });
+
+  const [columnWidths, setColumnWidths] = useState(() => {
     const widths =
       typeof layout.widths === "string" ? [layout.widths] : layout.widths || [];
-    return Object.fromEntries(
-      widths
-        .map((w) => {
-          const match = /^(.*) - ([^-]+)$/.exec(w);
-          return match;
-        })
-        .filter((m): m is RegExpExecArray => !!m)
-        .map((match) => {
-          return [match[1], match[2]];
-        }),
+    const fromLayout = Object.fromEntries(
+      widths.map((w) => w.split(" - ")).filter((p) => p.length === 2),
     );
-  }, [layout]);
+    const allWidths: ColumnWidths = {};
+    const defaultWidth = `${100 / columns.length}%`;
+    columns.forEach((c) => {
+      allWidths[c.uid] = fromLayout[c.uid] || defaultWidth;
+    });
+    return allWidths;
+  });
+
+  const onDragStart = useCallback((e) => {
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    const { leftColumnUid, rightColumnUid } = e.currentTarget.dataset;
+    if (!leftColumnUid || !rightColumnUid || !tableRef.current) return;
+
+    const leftHeader = tableRef.current?.querySelector(
+      `th[data-column="${leftColumnUid}"]`,
+    );
+    const rightHeader = tableRef.current?.querySelector(
+      `th[data-column="${rightColumnUid}"]`,
+    );
+
+    if (!leftHeader || !rightHeader || !leftColumnUid || !rightColumnUid)
+      return;
+
+    dragInfo.current = {
+      startX: e.clientX,
+      leftColumnUid,
+      rightColumnUid,
+      leftStartWidth: (leftHeader as HTMLElement).offsetWidth,
+      rightStartWidth: (rightHeader as HTMLElement).offsetWidth,
+    };
+  }, []);
+
+  const onDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (e.clientX === 0) return;
+
+    const {
+      startX,
+      leftColumnUid,
+      rightColumnUid,
+      leftStartWidth,
+      rightStartWidth,
+    } = dragInfo.current;
+
+    if (!leftColumnUid || !rightColumnUid) return;
+
+    const delta = e.clientX - startX;
+
+    const minWidth = 40;
+
+    let newLeftWidth = leftStartWidth + delta;
+    let newRightWidth = rightStartWidth - delta;
+
+    if (newLeftWidth < minWidth) {
+      const adjustment = minWidth - newLeftWidth;
+      newLeftWidth = minWidth;
+      newRightWidth -= adjustment;
+    } else if (newRightWidth < minWidth) {
+      const adjustment = minWidth - newRightWidth;
+      newRightWidth = minWidth;
+      newLeftWidth -= adjustment;
+    }
+
+    setColumnWidths((prev) => ({
+      ...prev,
+      [leftColumnUid]: `${newLeftWidth}px`,
+      [rightColumnUid]: `${newRightWidth}px`,
+    }));
+  }, []);
+
+  const onDragEnd = useCallback(() => {
+    const totalWidth = tableRef.current?.offsetWidth;
+    if (!totalWidth) return;
+
+    const finalWidths: ColumnWidths = {};
+    Object.entries(columnWidths).forEach(([uid]) => {
+      const header = tableRef.current?.querySelector(
+        `th[data-column="${uid}"]`,
+      );
+      if (header) {
+        finalWidths[uid] =
+          `${((header as HTMLElement).offsetWidth / totalWidth) * 100}%`;
+      }
+    });
+    setColumnWidths(finalWidths);
+
+    const layoutUid = getSubTree({ parentUid, key: "layout" }).uid;
+    if (layoutUid) {
+      setInputSettings({
+        blockUid: layoutUid,
+        key: "widths",
+        values: Object.entries(finalWidths).map(([k, v]) => `${k} - ${v}`),
+      });
+    }
+  }, [columnWidths, parentUid]);
+
   const thRefs = useRef<Record<string, HTMLTableCellElement>>({});
   const onWidthUpdate = useCallback<OnWidthUpdate>(
     (args) => {
@@ -576,6 +693,9 @@ const ResultsTable = ({
               onRefresh={onRefresh}
               columns={columns}
               onWidthUpdate={onWidthUpdate}
+              onDragStart={onDragStart}
+              onDrag={onDrag}
+              onDragEnd={onDragEnd}
             />
             {extraRowUid === r.uid && (
               <tr className={`roamjs-${extraRowType}-row roamjs-extra-row`}>
