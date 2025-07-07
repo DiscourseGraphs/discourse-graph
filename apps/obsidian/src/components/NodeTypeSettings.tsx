@@ -1,28 +1,152 @@
 import { useState, useEffect } from "react";
-import {
-  validateAllNodes,
-  validateNodeFormat,
-  validateNodeName,
-} from "~/utils/validateNodeType";
+import { validateNodeFormat, validateNodeName } from "~/utils/validateNodeType";
 import { usePlugin } from "./PluginContext";
-import { Notice } from "obsidian";
+import { Notice, setIcon } from "obsidian";
 import generateUid from "~/utils/generateUid";
 import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
 
+type EditableFieldKey = keyof Omit<DiscourseNode, "id" | "shortcut" | "color">;
+
+type BaseFieldConfig = {
+  key: EditableFieldKey;
+  label: string;
+  description: string;
+  required?: boolean;
+  type: "text" | "select";
+  placeholder?: string;
+  validate?: (
+    value: string,
+    nodeType: DiscourseNode,
+    existingNodes: DiscourseNode[],
+  ) => { isValid: boolean; error?: string };
+};
+
+const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
+  name: {
+    key: "name",
+    label: "Name",
+    description: "The name of this node type",
+    required: true,
+    type: "text",
+    validate: (value, nodeType, existingNodes) =>
+      validateNodeName(value, [nodeType, ...existingNodes]),
+    placeholder: "Name",
+  },
+  format: {
+    key: "format",
+    label: "Format",
+    description:
+      "The format pattern for this node type (e.g., CLM - {content})",
+    required: true,
+    type: "text",
+    validate: (value, nodeType, existingNodes) =>
+      validateNodeFormat(value, [nodeType, ...existingNodes]),
+    placeholder: "Format (e.g., CLM - {content})",
+  },
+  template: {
+    key: "template",
+    label: "Template",
+    description: "The template to use for this node type",
+    type: "select",
+    required: false,
+  },
+};
+
+const FIELD_CONFIG_ARRAY = Object.values(FIELD_CONFIGS);
+
+const TextField = ({
+  fieldConfig,
+  value,
+  error,
+  onChange,
+}: {
+  fieldConfig: BaseFieldConfig;
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+}) => (
+  <input
+    type="text"
+    value={value || ""}
+    onChange={(e) => onChange(e.target.value)}
+    placeholder={fieldConfig.placeholder}
+    className={`w-full ${error ? "input-error" : ""}`}
+  />
+);
+
+const TemplateField = ({
+  value,
+  error,
+  onChange,
+  templateConfig,
+  templateFiles,
+}: {
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+  templateConfig: { isEnabled: boolean; folderPath: string };
+  templateFiles: string[];
+}) => (
+  <select
+    value={value || ""}
+    onChange={(e) => onChange(e.target.value)}
+    className={`w-full ${error ? "input-error" : ""}`}
+    disabled={!templateConfig.isEnabled || !templateConfig.folderPath}
+  >
+    <option value="">
+      {!templateConfig.isEnabled || !templateConfig.folderPath
+        ? "Template folder not configured"
+        : "No template"}
+    </option>
+    {templateFiles.map((templateFile) => (
+      <option key={templateFile} value={templateFile}>
+        {templateFile}
+      </option>
+    ))}
+  </select>
+);
+
+const FieldWrapper = ({
+  fieldConfig,
+  children,
+  error,
+}: {
+  fieldConfig: BaseFieldConfig;
+  children: React.ReactNode;
+  error?: string;
+}) => (
+  <div className="setting-item" key={fieldConfig.key}>
+    <div className="setting-item-info">
+      <div className="setting-item-name">{fieldConfig.label}</div>
+      <div className="setting-item-description">{fieldConfig.description}</div>
+    </div>
+    <div className="setting-item-control">
+      {children}
+      {error && <div className="text-error mt-1 text-xs">{error}</div>}
+    </div>
+  </div>
+);
+
 const NodeTypeSettings = () => {
   const plugin = usePlugin();
-  const [nodeTypes, setNodeTypes] = useState(
-    () => plugin.settings.nodeTypes ?? [],
+  const [nodeTypes, setNodeTypes] = useState<DiscourseNode[]>([]);
+  const [editingNodeType, setEditingNodeType] = useState<DiscourseNode | null>(
+    null,
   );
-  const [formatErrors, setFormatErrors] = useState<Record<number, string>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<EditableFieldKey, string>>
+  >({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [templateFiles, setTemplateFiles] = useState<string[]>([]);
   const [templateConfig, setTemplateConfig] = useState({
     isEnabled: false,
     folderPath: "",
   });
+  const [selectedNodeIndex, setSelectedNodeIndex] = useState<number | null>(
+    null,
+  );
 
   useEffect(() => {
     const config = getTemplatePluginInfo(plugin.app);
@@ -32,67 +156,81 @@ const NodeTypeSettings = () => {
     setTemplateFiles(files);
   }, [plugin.app]);
 
-  const updateErrors = (
-    index: number,
-    validation: { isValid: boolean; error?: string },
-  ) => {
-    if (!validation.isValid) {
-      setFormatErrors((prev) => ({
+  useEffect(() => {
+    setNodeTypes(plugin.settings.nodeTypes ?? []);
+  }, [plugin.settings.nodeTypes]);
+
+  const validateField = (
+    field: EditableFieldKey,
+    value: string,
+    nodeType: DiscourseNode,
+  ): boolean => {
+    const fieldConfig = FIELD_CONFIGS[field];
+    if (!fieldConfig) return true;
+
+    if (fieldConfig.required && !value.trim()) {
+      setErrors((prev) => ({
         ...prev,
-        [index]: validation.error || "Invalid input",
+        [field]: `${fieldConfig.label} is required`,
       }));
-    } else {
-      setFormatErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[index];
-        return newErrors;
-      });
+      return false;
     }
+
+    if (fieldConfig.validate) {
+      const { isValid, error } = fieldConfig.validate(
+        value,
+        nodeType,
+        nodeTypes,
+      );
+      if (!isValid) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: error || `Invalid ${fieldConfig.label.toLowerCase()}`,
+        }));
+        return false;
+      }
+    }
+
+    setErrors((prev) => {
+      const { [field]: _, ...rest } = prev;
+      return rest;
+    });
+    return true;
   };
 
-  const handleNodeTypeChange = async (
-    index: number,
-    field: keyof DiscourseNode,
+  const handleNodeTypeChange = (
+    field: EditableFieldKey,
     value: string,
-  ): Promise<void> => {
-    const updatedNodeTypes = [...nodeTypes];
-    if (!updatedNodeTypes[index]) {
-      const newId = generateUid("node");
-      updatedNodeTypes[index] = {
-        id: newId,
-        name: "",
-        format: "",
-        template: "",
-      };
-    }
+  ): void => {
+    if (!editingNodeType) return;
 
-    updatedNodeTypes[index][field] = value;
-
-    if (field === "format") {
-      const { isValid, error } = validateNodeFormat(value, updatedNodeTypes);
-      updateErrors(index, { isValid, error });
-    } else if (field === "name") {
-      const nameValidation = validateNodeName(value, updatedNodeTypes);
-      updateErrors(index, nameValidation);
-    }
-
-    setNodeTypes(updatedNodeTypes);
+    const updatedNodeType = { ...editingNodeType, [field]: value };
+    validateField(field, value, updatedNodeType);
+    setEditingNodeType(updatedNodeType);
     setHasUnsavedChanges(true);
   };
 
   const handleAddNodeType = (): void => {
-    const newId = generateUid("node");
-    const updatedNodeTypes = [
-      ...nodeTypes,
-      {
-        id: newId,
-        name: "",
-        format: "",
-        template: "",
-      },
-    ];
-    setNodeTypes(updatedNodeTypes);
+    const newNodeType: DiscourseNode = {
+      id: generateUid("node"),
+      name: "",
+      format: "",
+      template: "",
+    };
+    setEditingNodeType(newNodeType);
+    setSelectedNodeIndex(nodeTypes.length);
     setHasUnsavedChanges(true);
+    setErrors({});
+  };
+
+  const startEditing = (index: number) => {
+    const nodeType = nodeTypes[index];
+    if (nodeType) {
+      setEditingNodeType({ ...nodeType });
+      setSelectedNodeIndex(index);
+      setHasUnsavedChanges(false);
+      setErrors({});
+    }
   };
 
   const confirmDeleteNodeType = (index: number): void => {
@@ -106,9 +244,12 @@ const NodeTypeSettings = () => {
   };
 
   const handleDeleteNodeType = async (index: number): Promise<void> => {
-    const nodeId = nodeTypes[index]?.id;
+    const nodeType = nodeTypes[index];
+    if (!nodeType) return;
+
     const isUsed = plugin.settings.discourseRelations?.some(
-      (rel) => rel.sourceId === nodeId || rel.destinationId === nodeId,
+      (rel) =>
+        rel.sourceId === nodeType.id || rel.destinationId === nodeType.id,
     );
 
     if (isUsed) {
@@ -119,115 +260,189 @@ const NodeTypeSettings = () => {
     }
 
     const updatedNodeTypes = nodeTypes.filter((_, i) => i !== index);
-    setNodeTypes(updatedNodeTypes);
     plugin.settings.nodeTypes = updatedNodeTypes;
     await plugin.saveSettings();
-    if (formatErrors[index]) {
-      setFormatErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[index];
-        return newErrors;
-      });
-    }
+    setNodeTypes(updatedNodeTypes);
+    setSelectedNodeIndex(null);
+    setEditingNodeType(null);
     new Notice("Node type deleted successfully");
   };
 
   const handleSave = async (): Promise<void> => {
-    const { hasErrors, errorMap } = validateAllNodes(nodeTypes);
+    if (!editingNodeType) return;
 
-    if (hasErrors) {
-      setFormatErrors(errorMap);
-      new Notice("Please fix the errors before saving");
+    if (!validateNodeType(editingNodeType)) {
       return;
     }
-    plugin.settings.nodeTypes = nodeTypes;
+
+    const updatedNodeTypes = [...nodeTypes];
+    if (
+      selectedNodeIndex !== null &&
+      selectedNodeIndex < updatedNodeTypes.length
+    ) {
+      updatedNodeTypes[selectedNodeIndex] = editingNodeType;
+    } else {
+      updatedNodeTypes.push(editingNodeType);
+    }
+
+    plugin.settings.nodeTypes = updatedNodeTypes;
     await plugin.saveSettings();
-    new Notice("Node types saved");
+    setNodeTypes(updatedNodeTypes);
+    new Notice("Node type saved");
     setHasUnsavedChanges(false);
+    setSelectedNodeIndex(null);
+    setEditingNodeType(null);
+    setErrors({});
   };
 
-  return (
-    <div>
-      <div className="discourse-graph">
-        <h3 className="dg-h3">Node Types</h3>
-      </div>
+  const handleCancel = (): void => {
+    setEditingNodeType(null);
+    setSelectedNodeIndex(null);
+    setHasUnsavedChanges(false);
+    setErrors({});
+  };
+
+  const validateNodeType = (nodeType: DiscourseNode): boolean => {
+    let isValid = true;
+    const newErrors: Partial<Record<EditableFieldKey, string>> = {};
+
+    Object.entries(FIELD_CONFIGS).forEach(([key, config]) => {
+      const field = key as EditableFieldKey;
+      const value = nodeType[field] as string;
+
+      if (config.required && !value?.trim()) {
+        newErrors[field] = `${config.label} is required`;
+        isValid = false;
+        return;
+      }
+
+      if (config.validate && value) {
+        const { isValid: fieldValid, error } = config.validate(
+          value,
+          nodeType,
+          nodeTypes,
+        );
+        if (!fieldValid) {
+          newErrors[field] = error || `Invalid ${config.label.toLowerCase()}`;
+          isValid = false;
+        }
+      }
+    });
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const renderField = (fieldConfig: BaseFieldConfig) => {
+    if (!editingNodeType) return null;
+
+    const value = editingNodeType[fieldConfig.key] as string;
+    const error = errors[fieldConfig.key];
+    const handleChange = (newValue: string) =>
+      handleNodeTypeChange(fieldConfig.key, newValue);
+
+    return (
+      <FieldWrapper fieldConfig={fieldConfig} error={error}>
+        {fieldConfig.key === "template" ? (
+          <TemplateField
+            value={value}
+            error={error}
+            onChange={handleChange}
+            templateConfig={templateConfig}
+            templateFiles={templateFiles}
+          />
+        ) : (
+          <TextField
+            fieldConfig={fieldConfig}
+            value={value}
+            error={error}
+            onChange={handleChange}
+          />
+        )}
+      </FieldWrapper>
+    );
+  };
+
+  const renderNodeList = () => (
+    <div className="node-type-list">
+      <button onClick={handleAddNodeType} className="mod-cta">
+        Add Node Type
+      </button>
       {nodeTypes.map((nodeType, index) => (
-        <div key={index} className="setting-item">
-          <div className="flex w-full flex-col">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Name"
-                value={nodeType.name}
-                onChange={(e) =>
-                  handleNodeTypeChange(index, "name", e.target.value)
-                }
-                className="flex-2"
-              />
-              <input
-                type="text"
-                placeholder="Format (e.g., CLM - {content})"
-                value={nodeType.format}
-                onChange={(e) =>
-                  handleNodeTypeChange(index, "format", e.target.value)
-                }
-                className="flex-1"
-              />
-              <select
-                value={nodeType.template || ""}
-                onChange={(e) =>
-                  handleNodeTypeChange(index, "template", e.target.value)
-                }
-                className="flex-1"
-                disabled={
-                  !templateConfig.isEnabled || !templateConfig.folderPath
-                }
-              >
-                <option value="">
-                  {!templateConfig.isEnabled || !templateConfig.folderPath
-                    ? "Template folder not configured"
-                    : "No template"}
-                </option>
-                {templateFiles.map((templateFile) => (
-                  <option key={templateFile} value={templateFile}>
-                    {templateFile}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => confirmDeleteNodeType(index)}
-                className="mod-warning p-2"
-              >
-                Delete
-              </button>
-            </div>
-            {formatErrors[index] && (
-              <div className="text-error mt-1 text-xs">
-                {formatErrors[index]}
-              </div>
-            )}
+        <div
+          key={nodeType.id}
+          className="node-type-item hover:bg-secondary-lt flex cursor-pointer items-center justify-between p-2"
+          onClick={() => startEditing(index)}
+        >
+          <span>{nodeType.name}</span>
+          <div className="flex gap-2">
+            <button
+              className="icon-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                startEditing(index);
+              }}
+              aria-label="Edit node type"
+            >
+              <div className="icon" ref={(el) => el && setIcon(el, "pencil")} />
+            </button>
+            <button
+              className="icon-button mod-warning"
+              onClick={(e) => {
+                e.stopPropagation();
+                confirmDeleteNodeType(index);
+              }}
+              aria-label="Delete node type"
+            >
+              <div className="icon" ref={(el) => el && setIcon(el, "trash")} />
+            </button>
           </div>
         </div>
       ))}
-      <div className="setting-item">
-        <div className="flex gap-2">
-          <button onClick={handleAddNodeType} className="p-2">
-            Add Node Type
-          </button>
+    </div>
+  );
+
+  const renderEditForm = () => {
+    if (!editingNodeType) return null;
+
+    return (
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="dg-h3">Edit Node Type</h3>
           <button
-            onClick={handleSave}
-            className={`p-2 ${hasUnsavedChanges ? "mod-cta" : ""}`}
-            disabled={
-              !hasUnsavedChanges || Object.keys(formatErrors).length > 0
-            }
+            onClick={handleCancel}
+            className="icon-button mod-warning"
+            aria-label="Close edit form"
           >
-            Save Changes
+            <div className="icon" ref={(el) => el && setIcon(el, "x")} />
           </button>
         </div>
+        {FIELD_CONFIG_ARRAY.map(renderField)}
+        {hasUnsavedChanges && (
+          <div className="mt-4 flex justify-end gap-2">
+            <button onClick={handleCancel} className="mod-warning">
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="mod-cta"
+              disabled={
+                Object.keys(errors).length > 0 ||
+                !editingNodeType.name ||
+                !editingNodeType.format
+              }
+            >
+              Save Changes
+            </button>
+          </div>
+        )}
       </div>
-      {hasUnsavedChanges && (
-        <div className="text-muted mt-2">You have unsaved changes</div>
-      )}
+    );
+  };
+
+  return (
+    <div className="discourse-graph">
+      {selectedNodeIndex === null ? renderNodeList() : renderEditForm()}
     </div>
   );
 };

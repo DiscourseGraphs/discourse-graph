@@ -13,10 +13,10 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-4">
       <h2 className="dg-h2">Discourse Graph Settings</h2>
 
-      <div className="border-modifier-border border-b p-2">
+      <div className="border-modifier-border flex w-full overflow-x-auto border-b p-2">
         <button
           onClick={() => setActiveTab("general")}
           className={`discourse-tab mr-2 cursor-pointer border-0 px-4 py-2 ${
