@@ -60,20 +60,7 @@ You can use the `--filter` flag to run a single application, eg:
 turbo dev --filter roam
 ```
 
-4. Set up a supabase environment. This will cache and optimize some semantic queries. You may not need both environments, but you cannot develop unless `SUPABASE_URL` and `SUPABASE_ANON_KEY` are defined.
-   1. For local development:
-      1. Follow the local development setup steps [here](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/database/README.md)
-      2. Start the local environment with `turbo dev`, and navigate to the [studio](http://localhost:54323).
-      3. create a `.env.local` environment file, and set:
-         1. `SUPABASE_URL` from the `Project URL` in the [Data api tab](http://localhost:54323/settings/api) of `Project Settings`
-         2. `SUPABASE_ANON_KEY` from the `anon`, `public` API key in the [API Keys tab](http://localhost:54324/settings/api-keys) of `Project Settings.
-   2. To use your production database:
-      1. Create an account and project on [Supabase](https://supabase.com). (Free tiers available.) There you will get a <project_id>.
-      2. Navigate to your project studio. (URL should look like `https://supabase.com/dashboard/project/<project_id>`)
-      3. Set up a `.env.production` file
-         1. `SUPABASE_URL` from the `Project URL` in the `Data api` tab of `Project Settings`. URL should look like `https://supabase.com/dashboard/project/<project_id>/settings/api`
-         2. `SUPABASE_ANON_KEY` from the `anon`, `public` API key in the `API Keys` tab of `Project Settings`. URL should look like `https://supabase.com/dashboard/project/<project_id>/settings/api-keys`
-   3. To use a database branch on supabase (on the paid tier): Instructions [here](https://supabase.com/docs/guides/deployment/branching)
+1. Set up a supabase environment. This will cache and optimize some semantic queries. You may not need both environments, but you cannot develop unless `SUPABASE_URL` and `SUPABASE_ANON_KEY` are defined. Full instructions [here](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/database/README.md).
 
 #### Roam
 
