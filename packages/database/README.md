@@ -4,12 +4,10 @@ All CLI commands below should be run in this directory (`packages/database`.)
 1. Setup
    1. Install [Docker](https://www.docker.com)
    2. Install the [supabase CLI](https://supabase.com/docs/guides/local-development). (There is a brew version)
-   3. `supabase login` with your (account-specific) supabase access token. (TODO: Create a group access token.)
-   4. `supabase link`. It will ask you for a project name, use `discourse-graphs`. (Production for now.) It will also ask you for the database password (See 1password.)
-   5. Install [sqruff](https://github.com/quarylabs/sqruff)
+   3. Install [sqruff](https://github.com/quarylabs/sqruff)
 2. Usage:
    1. Use `turbo dev`, (alias for `supabase start`) before you use your local database. URLs will be given for your local supabase database, api endpoint, etc.
-   2. You may need to `supabase db pull` if changes are deployed while you work.
+   2. If schema changes are deployed while you work, rebase or merge the latest `main` branch to apply new migrations to your local database.
    3. End you work session with `supabase end` to free docker resources.
 3. Development: We follow the supabase [Declarative Database Schema](https://supabase.com/docs/guides/local-development/declarative-database-schemas) process.
    1. Assuming you're working on a feature branch.
