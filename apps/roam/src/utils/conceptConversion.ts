@@ -233,8 +233,36 @@ export const orderConceptsByDependency = (
 // the input to the upsert method would look like this:
 
 // const idata: LocalConceptDataInput[] = [
-//   { "name": "Claim", "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2", "represented_by_local_id": "a_roam_uid", "created": "2000/01/01", "last_modified": "2001/01/02", "is_schema": true },
-//   { "name": "A Claim", "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2", "represented_by_local_id": "a_roam_uid2", "created": "2000/01/03", "last_modified": "2001/01/04", "is_schema": false, "schema_represented_by_local_id": "a_roam_uid" },
-//   { "name": "test2", "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2", "created": "2000/01/04", "last_modified": "2001/01/05", "is_schema": false, "literal_content": { "source": "a_roam_uid", "target": ["a_roam_uid", "a_roam_uid2"] }, "local_reference_content": { "source": "a_roam_uid", "target": ["a_roam_uid", "a_roam_uid2"] } }]
+//   { "name": "Claim",
+//     "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2",
+//     "represented_by_local_id": "a_roam_uid",
+//     "created": "2000/01/01",
+//     "last_modified": "2001/01/02",
+//     "is_schema": true
+//   },
+//   { "name": "A Claim",
+//     "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2",
+//     "represented_by_local_id": "a_roam_uid2",
+//     "created": "2000/01/03",
+//     "last_modified": "2001/01/04",
+//     "is_schema": false,
+//     "schema_represented_by_local_id": "a_roam_uid"
+//   },
+//   { "name": "test2",
+//     "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2",
+//     "created": "2000/01/04",
+//     "last_modified": "2001/01/05",
+//     "is_schema": false,
+//     "literal_content": {
+//       "source": "a_roam_uid",
+//       "target": ["a_roam_uid", "a_roam_uid2"]
+//     },
+//     "local_reference_content": {
+//       "source": "a_roam_uid",
+//       "target": ["a_roam_uid", "a_roam_uid2"]
+//     }
+//   }
+// ]
 
 // const { data, error } = await supabase_client.rpc("upsert_concepts", { v_space_id: 12, data: idata });
+``;

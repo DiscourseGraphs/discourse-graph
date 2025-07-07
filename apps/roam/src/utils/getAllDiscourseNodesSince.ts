@@ -8,6 +8,7 @@ type RoamDiscourseNodeData = {
   last_modified: string;
   author_name: string;
   text: string;
+  type: string;
 };
 
 type ISODateString = string;
@@ -38,11 +39,24 @@ export const getAllDiscourseNodesSince = async (
 
   const discourseNodes = getDiscourseNodes();
 
-  return result.filter((entity) => {
-    if (!entity.source_local_id) return false;
-    const node = findDiscourseNode(entity.source_local_id, discourseNodes);
-    if (!node) return false;
-    if (node.backedBy === "default") return false;
-    return Boolean(entity.text && entity.text.trim() !== "");
-  });
+  return result
+    .map((entity) => {
+      if (!entity.source_local_id) {
+        return null;
+      }
+      const node = findDiscourseNode(entity.source_local_id, discourseNodes);
+      if (
+        !node ||
+        node.backedBy === "default" ||
+        !entity.text ||
+        entity.text.trim() === ""
+      ) {
+        return null;
+      }
+      return {
+        ...entity,
+        type: node.type,
+      };
+    })
+    .filter((n): n is RoamDiscourseNodeData => n !== null);
 };

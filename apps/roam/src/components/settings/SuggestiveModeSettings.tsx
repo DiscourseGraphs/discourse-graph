@@ -35,6 +35,7 @@ import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { getSupabaseContext } from "~/utils/supabaseContext";
 import { getNodeEnv } from "roamjs-components/util/env";
+import { convertDgToSupabase } from "~/utils/convertDgToSupabase";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -174,6 +175,9 @@ const NodeTemplateConfig = ({
       return [];
     }
   };
+
+  // get all discourse nodes types
+  // - get thes settings for where to put the embeddings
 
   const handleUpdateEmbeddings = async () => {
     setIsUpdating(true);
@@ -352,9 +356,11 @@ const NodeTemplateConfig = ({
           <Button
             text="Update Embeddings"
             intent={Intent.NONE}
-            onClick={handleUpdateEmbeddings}
+            onClick={async () => {
+              await convertDgToSupabase();
+            }}
             style={{ minWidth: "140px" }}
-            disabled={!canUpdate}
+            //disabled={!canUpdate}
             loading={isUpdating}
           />
         </Tooltip>
