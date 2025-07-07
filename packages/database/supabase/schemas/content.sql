@@ -228,7 +228,7 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public._local_document_to_db_documentIS 'utility function so we have the option to use platform identifiers for document upsert' ;
+COMMENT ON FUNCTION public._local_document_to_db_document IS 'utility function so we have the option to use platform identifiers for document upsert' ;
 
 -- private function. Transform content with local (platform) references to content with db references
 CREATE OR REPLACE FUNCTION public._local_content_to_db_content (data public.content_local_input) RETURNS public."Content" LANGUAGE plpgsql STABLE AS $$
@@ -269,7 +269,7 @@ BEGIN
 END;
 $$ ;
 
-COMMENT ON FUNCTION public._local_content_to_db_contentIS 'utility function so we have the option to use platform identifiers for content upsert' ;
+COMMENT ON FUNCTION public._local_content_to_db_content IS 'utility function so we have the option to use platform identifiers for content upsert' ;
 
 -- The data should be a PlatformAccount
 -- PlatformAccount is upserted, based on platform and account_local_id. New (or old) ID is returned.
@@ -358,7 +358,7 @@ BEGIN
 END;
 $$ ;
 
-COMMENT ON FUNCTION public.upsert_documentsIS 'batch document upsert' ;
+COMMENT ON FUNCTION public.upsert_documents IS 'batch document upsert' ;
 
 CREATE OR REPLACE FUNCTION public.upsert_content_embedding (content_id bigint, model varchar, embedding_array float []) RETURNS VOID
 LANGUAGE plpgsql
@@ -378,7 +378,7 @@ BEGIN
 END
 $$ ;
 
-COMMENT ON FUNCTION public.upsert_content_embeddingIS 'single content embedding upsert' ;
+COMMENT ON FUNCTION public.upsert_content_embedding IS 'single content embedding upsert' ;
 
 -- The data should be an array of LocalContentDataInput
 -- Contents are upserted, based on space_id and local_id. New (or old) IDs are returned.
@@ -498,4 +498,4 @@ BEGIN
 END;
 $$ ;
 
-COMMENT ON FUNCTION public.upsert_contentIS 'batch content upsert' ;
+COMMENT ON FUNCTION public.upsert_content IS 'batch content upsert' ;

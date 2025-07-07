@@ -29,7 +29,7 @@ GRANT ALL ON TABLE public."Space" TO authenticated;
 GRANT ALL ON TABLE public."Space" TO service_role;
 
 CREATE OR REPLACE FUNCTION public.get_space_anonymous_email(platform public."Platform", space_id BIGINT) RETURNS character varying LANGUAGE sql IMMUTABLE AS $$
-    SELECT concat(lower(platform), '-', space_id, '-anon@database.discoursegraphs.com')
+    SELECT concat(lower(platform::text), '-', space_id, '-anon@database.discoursegraphs.com')
 $$;
 
 
