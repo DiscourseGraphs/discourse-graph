@@ -61,19 +61,7 @@ export const TldrawPreviewComponent = ({
           <Tldraw
             store={store}
             autoFocus={false}
-            hideUi={isReadonly}
-            onMount={handleMount}
-            components={{
-              // Disable UI elements we don't need
-              ActionsMenu: null,
-              ContextMenu: null,
-              HelpMenu: null,
-              MenuPanel: null,
-              PageMenu: null,
-              SharePanel: null,
-              StylePanel: null,
-              NavigationPanel: null,
-            }}
+           
           />
         </ErrorBoundary>
       ) : (
