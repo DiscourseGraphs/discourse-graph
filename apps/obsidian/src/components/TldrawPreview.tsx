@@ -3,7 +3,16 @@ import { VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import type DiscourseGraphPlugin from "~/index";
 import { Root, createRoot } from "react-dom/client";
 import { TldrawPreviewComponent } from "./TldrawPreviewComponent";
-import { TLStore, createTLStore, loadSnapshot } from "tldraw";
+import {
+  ErrorBoundary,
+  TLStore,
+  Tldraw,
+  TldrawUiContextProvider,
+  createTLStore,
+  defaultShapeUtils,
+  loadSnapshot,
+} from "tldraw";
+import React from "react";
 
 export class TldrawPreview extends TextFileView {
   plugin: DiscourseGraphPlugin;
@@ -37,12 +46,20 @@ export class TldrawPreview extends TextFileView {
     this.data = "";
   }
 
+  protected get tldrawContainer() {
+    return this.containerEl.children[1];
+  }
+
+  override onload(): void {
+    super.onload();
+    this.contentEl.addClass("tldraw-view-content");
+  }
+
   async onOpen() {
-    const container = this.containerEl.children[1];
+    const container = this.tldrawContainer;
     if (!container) return;
 
     container.empty();
-    container.addClass("tldraw-view-content");
   }
 
   async onLoadFile(file: TFile): Promise<void> {
@@ -53,6 +70,8 @@ export class TldrawPreview extends TextFileView {
 
     // Create store from file data
     const store = await this.createStore(fileData);
+
+    console.log("store on load file", store);
     if (!store) {
       console.warn("No tldraw data found in file");
       return;
@@ -82,7 +101,9 @@ export class TldrawPreview extends TextFileView {
       }
       console.log("data parsed", data);
 
-      const store = createTLStore();
+      const store = createTLStore({
+        shapeUtils: defaultShapeUtils,
+      });
       console.log("store created", store);
       loadSnapshot(store, data.raw);
       return store;
@@ -90,6 +111,20 @@ export class TldrawPreview extends TextFileView {
       console.error("Failed to create store from file data", e);
       return;
     }
+  }
+
+  private createReactRoot(entryPoint: Element, store: TLStore) {
+    const root = createRoot(entryPoint);
+    root.render(
+      <React.StrictMode>
+        <TldrawPreviewComponent
+          store={store}
+          isReadonly={true}
+          plugin={this.plugin}
+        />
+      </React.StrictMode>,
+    );
+    return root;
   }
 
   protected async setStore(store: TLStore) {
@@ -108,13 +143,14 @@ export class TldrawPreview extends TextFileView {
     this.store = store;
 
     // Refresh view
-    await this.refreshView();
+    if (this.tldrawContainer) {
+      console.log("refreshView was called");
+      await this.refreshView();
+    }
   }
 
   private async refreshView() {
-    console.log("refreshView", this.store);
-    const container = this.containerEl.children[1];
-    if (!container) return;
+    if (!this.store) return;
 
     // Clean up old React root
     if (this.reactRoot) {
@@ -126,24 +162,11 @@ export class TldrawPreview extends TextFileView {
       this.reactRoot = undefined;
     }
 
-    // Create new React root and render
-    try {
-      const reactContainer = container.createDiv();
-      reactContainer.style.flex = "1";
-      reactContainer.style.height = "100%";
+    console.log("tldrawContainer", this.tldrawContainer);
+    console.log("store", this.store);
 
-      this.reactRoot = createRoot(reactContainer);
-      this.reactRoot.render(
-        <TldrawPreviewComponent
-          plugin={this.plugin}
-          store={this.store!}
-          isReadonly={true}
-        />,
-      );
-    } catch (e) {
-      console.error("Failed to refresh view", e);
-      container.createEl("div", { text: "Failed to initialize canvas view" });
-    }
+    // Create new React root and render
+    this.reactRoot = this.createReactRoot(this.tldrawContainer!, this.store);
   }
 
   registerOnUnloadFile(callback: () => void) {
@@ -160,6 +183,7 @@ export class TldrawPreview extends TextFileView {
   }
 
   async onClose() {
+    await super.onClose();
     // Cleanup React
     if (this.reactRoot) {
       try {
