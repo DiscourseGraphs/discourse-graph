@@ -94,7 +94,7 @@ export const createDiscourseNodeFile = async ({
       app.workspace.openLinkText(formattedNodeName, "", false);
     });
 
-    new Notice(notice, 4000);
+    new Notice(notice, 10000);
 
     return newFile;
   } catch (error) {
@@ -138,4 +138,58 @@ export const createDiscourseNode = async ({
   }
 
   return newFile;
+};
+
+export const convertPageToDiscourseNode = async ({
+  plugin,
+  file,
+  nodeType,
+  title,
+}: {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+  nodeType: DiscourseNode;
+  title?: string;
+}): Promise<void> => {
+  try {
+    const formattedNodeName = formatNodeName(title || file.basename, nodeType);
+    if (!formattedNodeName) {
+      new Notice("Failed to format node name", 3000);
+      return;
+    }
+
+    const isFilenameValid = checkInvalidChars(formattedNodeName);
+    if (!isFilenameValid.isValid) {
+      new Notice(`${isFilenameValid.error}`, 5000);
+      return;
+    }
+
+    await plugin.app.fileManager.processFrontMatter(file, (fm) => {
+      fm.nodeTypeId = nodeType.id;
+    });
+
+    let newPath = "";
+    const folderPath = plugin.settings.nodesFolderPath.trim();
+    if (folderPath) {
+      const folderExists = plugin.app.vault.getAbstractFileByPath(folderPath);
+      if (!folderExists) {
+        await plugin.app.vault.createFolder(folderPath);
+      }
+      newPath = `${folderPath}/${formattedNodeName}.md`;
+    } else {
+      const dirPath = file.parent?.path ?? "";
+      newPath = dirPath
+        ? `${dirPath}/${formattedNodeName}.md`
+        : `${formattedNodeName}.md`;
+    }
+    await plugin.app.fileManager.renameFile(file, newPath);
+
+    new Notice("Converted page to discourse node", 10000);
+  } catch (error) {
+    console.error("Error converting to discourse node:", error);
+    new Notice(
+      `Error converting to discourse node: ${error instanceof Error ? error.message : String(error)}`,
+      5000,
+    );
+  }
 };

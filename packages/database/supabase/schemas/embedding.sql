@@ -98,4 +98,4 @@ ALTER FUNCTION public.match_embeddings_for_subset_nodes (
 "p_query_embedding" extensions.vector, "p_subset_roam_uids" Text [])
 OWNER TO "postgres" ;
 
-RESET ALL;
+RESET ALL ;

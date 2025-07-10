@@ -1,19 +1,39 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": [
+    "GH_CLIENT_ID_PROD",
+    "GITHUB_HEAD_REF",
+    "GITHUB_REF_NAME",
+    "NODE_ENV",
+    "POSTGRES_DATABASE",
+    "POSTGRES_HOST",
+    "POSTGRES_PRISMA_URL",
+    "POSTGRES_URL",
+    "POSTGRES_URL_NON_POOLING",
+    "SUPABASE_PROJECT_ID",
+    "SUPABASE_URL"
+  ],
+  "globalPassThroughEnv": [
+    "ANTHROPIC_API_KEY",
+    "BLOB_READ_WRITE_TOKEN",
+    "GEMINI_API_KEY",
+    "GH_CLIENT_SECRET_PROD",
+    "OPENAI_API_KEY",
+    "POSTGRES_PASSWORD",
+    "POSTGRES_USER",
+    "RESEND_API_KEY",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_JWT_SECRET",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_DB_PASSWORD",
+    "SUPABASE_ACCESS_TOKEN"
+  ],
   "tasks": {
     "build": {
-      "passThroughEnv": [
-        "RESEND_API_KEY",
-        "OPENAI_API_KEY",
-        "ANTHROPIC_API_KEY",
-        "GEMINI_API_KEY",
-        "NODE_ENV",
-        "BLOB_READ_WRITE_TOKEN"
-      ],
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "types.gen.ts"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -22,50 +42,20 @@
       "dependsOn": ["^check-types"]
     },
     "dev": {
-      "passThroughEnv": [
-        "OBSIDIAN_PLUGIN_PATH",
-        "NODE_ENV",
-        "SUPABASE_URL",
-        "SUPABASE_ANON_KEY",
-        "SUPABASE_SERVICE_ROLE_KEY",
-        "POSTGRES_URL",
-        "OPENAI_API_KEY",
-        "ANTHROPIC_API_KEY",
-        "GEMINI_API_KEY"
-      ],
+      "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH"],
       "cache": false,
       "persistent": true,
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
     "deploy": {
       "cache": false,
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "passThroughEnv": [
-        "BLOB_READ_WRITE_TOKEN",
-        "GITHUB_REF_NAME",
-        "GITHUB_HEAD_REF",
-        "NODE_ENV",
-        "SUPABASE_PROJECT_ID",
-        "SUPABASE_DB_PASSWORD",
-        "SUPABASE_ACCESS_TOKEN",
-        "SUPABASE_URL",
-        "SUPABASE_ANON_KEY",
-        "SUPABASE_SERVICE_ROLE_KEY",
-        "POSTGRES_URL",
-        "OPENAI_API_KEY",
-        "ANTHROPIC_API_KEY",
-        "GEMINI_API_KEY"
-      ]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
     "publish": {
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "passThroughEnv": [
-        "GITHUB_TOKEN",
-        "APP_PRIVATE_KEY",
-        "APP_ID",
-        "NODE_ENV"
-      ]
+      "env": ["APP_ID"],
+      "passThroughEnv": ["APP_PRIVATE_KEY"]
     }
   }
 }

@@ -12,24 +12,19 @@ CREATE TYPE public."EpistemicStatus" AS ENUM (
 
 ALTER TYPE public."EpistemicStatus" OWNER TO postgres;
 
-CREATE OR REPLACE FUNCTION extract_references(refs JSONB) RETURNS BIGINT [] LANGUAGE sql IMMUTABLE AS $$
+CREATE OR REPLACE FUNCTION public.extract_references(refs JSONB) RETURNS BIGINT [] LANGUAGE sql IMMUTABLE AS $$
   SELECT COALESCE(array_agg(i::bigint), '{}') FROM (SELECT DISTINCT jsonb_array_elements(jsonb_path_query_array(refs, '$.*[*]')) i) exrefs;
 $$;
 
-CREATE OR REPLACE FUNCTION compute_arity_lit(lit_content JSONB) RETURNS smallint language sql IMMUTABLE AS $$
-  SELECT COALESCE(jsonb_array_length(lit_content->'roles'), 0);
-$$;
-
 SET check_function_bodies = false;
-CREATE OR REPLACE FUNCTION compute_arity_id(p_schema_id BIGINT) RETURNS smallint language sql IMMUTABLE AS $$
-  SELECT COALESCE(jsonb_array_length(literal_content->'roles'), 0) FROM public."Concept" WHERE id=p_schema_id;
+CREATE OR REPLACE FUNCTION public.compute_arity_local(schema_id BIGINT, lit_content JSONB) RETURNS smallint LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE WHEN schema_id IS NULL THEN (
+    SELECT COALESCE(jsonb_array_length(lit_content->'roles'), 0)
+  ) ELSE (
+    SELECT COALESCE(jsonb_array_length(literal_content->'roles'), 0) FROM public."Concept" WHERE id=compute_arity_local.schema_id
+  ) END;
 $$;
 SET check_function_bodies = true;
-
-CREATE OR REPLACE FUNCTION compute_arity_local(schema_id BIGINT, lit_content JSONB) RETURNS smallint language sql IMMUTABLE AS $$
-  SELECT CASE WHEN schema_id IS NULL THEN compute_arity_lit(lit_content) ELSE compute_arity_id(schema_id) END;
-$$;
-
 
 CREATE TABLE IF NOT EXISTS public."Concept" (
     id bigint DEFAULT nextval(
@@ -190,8 +185,7 @@ BEGIN
 END;
 $$;
 
--- The data should be an array of LocalConcept, i.e. in TS,
--- Partial<Database['public']["CompositeTypes"]["concept_local_input"]>;
+-- The data should be an array of LocalConceptDataInput
 -- Concepts are upserted, based on represented_by_id. New (or old) IDs are returned.
 -- name conflicts will cause an insertion failure, and the ID will be given as -1
 CREATE OR REPLACE FUNCTION public.upsert_concepts(v_space_id bigint, data jsonb)

@@ -1,8 +1,8 @@
-set check_function_bodies = off;
+SET check_function_bodies = off;
 
-CREATE OR REPLACE FUNCTION public.alpha_delete_by_source_local_ids(p_space_name text, p_source_local_ids text[])
- RETURNS text
- LANGUAGE plpgsql
+CREATE OR REPLACE FUNCTION public.alpha_delete_by_source_local_ids(p_space_name text, p_source_local_ids text [])
+RETURNS text
+LANGUAGE plpgsql
 AS $function$-- TEST EDIT
 DECLARE
   v_space_id BIGINT;
@@ -19,7 +19,7 @@ BEGIN
   IF p_space_name IS NULL OR p_space_name = '' THEN
     RETURN 'Invalid or empty space_name provided. No action taken.';
   END IF;
-  
+
   IF p_source_local_ids IS NULL OR array_length(p_source_local_ids, 1) IS NULL THEN
     RETURN 'No source_local_ids provided or array is empty. No action taken.';
   END IF;
@@ -28,7 +28,7 @@ BEGIN
   SELECT id INTO v_space_id
   FROM "Space"
   WHERE name = p_space_name;
-  
+
   IF v_space_id IS NULL THEN
     RETURN format('Space not found with name: %s. No action taken.', p_space_name);
   END IF;
@@ -36,10 +36,10 @@ BEGIN
   -- Collect IDs of Documents to be DELETED (those NOT in current p_source_local_ids)
   SELECT array_agg(id) INTO v_target_document_ids
   FROM "Document"
-  WHERE space_id = v_space_id 
-    AND source_local_id IS NOT NULL 
+  WHERE space_id = v_space_id
+    AND source_local_id IS NOT NULL
     AND NOT (source_local_id = ANY(p_source_local_ids));
-  
+
   IF v_target_document_ids IS NULL THEN
     v_target_document_ids := '{}';
   END IF;
@@ -47,7 +47,7 @@ BEGIN
   -- Collect IDs of all Content to be DELETED (STALE content)
   WITH content_directly_stale AS (
     SELECT id FROM "Content"
-    WHERE space_id = v_space_id 
+    WHERE space_id = v_space_id
       AND source_local_id IS NOT NULL
       AND NOT (source_local_id = ANY(p_source_local_ids))
   ), content_from_stale_documents AS (
@@ -59,7 +59,7 @@ BEGIN
     SELECT id FROM content_from_stale_documents
   )
   SELECT array_agg(id) INTO v_all_target_content_ids FROM combined_stale_content_ids;
-  
+
   IF v_all_target_content_ids IS NULL THEN
     v_all_target_content_ids := '{}';
   END IF;
@@ -137,8 +137,8 @@ END;$function$
 ;
 
 CREATE OR REPLACE FUNCTION public.alpha_get_last_update_time(p_space_name text)
- RETURNS TABLE(last_update_time timestamp with time zone)
- LANGUAGE plpgsql
+RETURNS TABLE (last_update_time timestamp with time zone)
+LANGUAGE plpgsql
 AS $function$
 BEGIN
   RETURN QUERY
@@ -156,8 +156,8 @@ $function$
 
 
 CREATE OR REPLACE FUNCTION public.upsert_discourse_nodes(p_space_name text, p_user_email text, p_user_name text, p_nodes jsonb, p_platform_name text DEFAULT 'roamresearch'::text, p_platform_url text DEFAULT 'https://roamresearch.com'::text, p_space_url text DEFAULT NULL::text, p_agent_type text DEFAULT 'Person'::text, p_content_scale text DEFAULT 'chunk_unit'::text, p_embedding_model text DEFAULT 'openai_text_embedding_3_small_1536'::text, p_document_source_id text DEFAULT NULL::text)
- RETURNS TABLE(content_id bigint, embedding_created boolean, action text)
- LANGUAGE plpgsql
+RETURNS TABLE (content_id bigint, embedding_created boolean, action text)
+LANGUAGE plpgsql
 AS $function$
 DECLARE
   v_platform_id bigint;
@@ -173,16 +173,16 @@ DECLARE
   embedding_exists boolean;
 BEGIN
   v_current_time := now();
-  
-  RAISE NOTICE 'Starting upsert_discourse_nodes for space: %, user: %, nodes count: %', 
+
+  RAISE NOTICE 'Starting upsert_discourse_nodes for space: %, user: %, nodes count: %',
     p_space_name, p_user_email, jsonb_array_length(p_nodes);
-  
+
   -- Set space URL if not provided
   v_space_url := COALESCE(p_space_url, p_platform_url || '/#/app/' || p_space_name);
-  
+
   -- Set default document source ID if not provided
   v_document_source_local_id := COALESCE(
-    p_document_source_id, 
+    p_document_source_id,
     'discourse_nodes_document_for_' || p_space_name
   );
 
@@ -192,9 +192,9 @@ BEGIN
   INSERT INTO "Platform" (name, url)
   VALUES (p_platform_name, p_platform_url)
   ON CONFLICT (url) DO UPDATE SET name = EXCLUDED.name;
-  
-  SELECT id INTO v_platform_id 
-  FROM "Platform" 
+
+  SELECT id INTO v_platform_id
+  FROM "Platform"
   WHERE url = p_platform_url;
 
   RAISE NOTICE 'Platform ID: %', v_platform_id;
@@ -203,65 +203,65 @@ BEGIN
   INSERT INTO "Space" (name, url, platform_id)
   VALUES (p_space_name, v_space_url, v_platform_id)
   ON CONFLICT (url) DO UPDATE SET name = EXCLUDED.name;
-  
-  SELECT id INTO v_space_id 
-  FROM "Space" 
+
+  SELECT id INTO v_space_id
+  FROM "Space"
   WHERE url = v_space_url;
 
   RAISE NOTICE 'Space ID: %', v_space_id;
 
   -- Get or create Person/Agent (handle the inheritance relationship properly)
   -- First check if Person exists
-  SELECT id INTO v_person_id 
-  FROM "Person" 
+  SELECT id INTO v_person_id
+  FROM "Person"
   WHERE email = p_user_email;
-  
+
   IF v_person_id IS NULL THEN
     RAISE NOTICE 'Creating new Person for email: %', p_user_email;
     -- Create new Agent first
     INSERT INTO "Agent" (type)
     VALUES (p_agent_type::public."EntityType")
     RETURNING id INTO v_agent_id;
-    
+
     -- Create Person with the Agent ID
     INSERT INTO "Person" (id, name, email)
     VALUES (v_agent_id, p_user_name, p_user_email);
-    
+
     v_person_id := v_agent_id;
     RAISE NOTICE 'Created new Person with ID: %', v_person_id;
   ELSE
     RAISE NOTICE 'Found existing Person with ID: %', v_person_id;
     -- Update existing Person
-    UPDATE "Person" 
+    UPDATE "Person"
     SET name = p_user_name
     WHERE id = v_person_id;
   END IF;
 
   -- Get or create Document for discourse nodes
   RAISE NOTICE 'Looking for existing document with space_id=%', v_space_id;
-  
+
   -- Debug: Show what documents exist for this space
   RAISE NOTICE 'Existing documents for space_id=%: %', v_space_id, (
     SELECT string_agg(
-      'id=' || id::text || ' source_local_id=' || COALESCE(source_local_id, 'NULL'), 
+      'id=' || id::text || ' source_local_id=' || COALESCE(source_local_id, 'NULL'),
       ', '
     )
-    FROM "Document" 
+    FROM "Document"
     WHERE space_id = v_space_id
   );
-  
-  SELECT id INTO v_document_id 
-  FROM "Document" 
+
+  SELECT id INTO v_document_id
+  FROM "Document"
   WHERE space_id = v_space_id
   LIMIT 1;
-    
+
   IF v_document_id IS NULL THEN
     RAISE NOTICE 'Creating new Document for space_id: %', v_space_id;
     INSERT INTO "Document" (
-      space_id, 
-      author_id, 
-      created, 
-      last_modified, 
+      space_id,
+      author_id,
+      created,
+      last_modified,
       source_local_id
     )
     VALUES (
@@ -283,26 +283,26 @@ BEGIN
   FOR node IN SELECT * FROM jsonb_array_elements(p_nodes)
   LOOP
     RAISE NOTICE 'Processing node with UID: %', node->>'uid';
-    
+
     -- Check if content exists
     SELECT * INTO content_row
     FROM "Content"
-    WHERE space_id = v_space_id 
+    WHERE space_id = v_space_id
       AND source_local_id = node->>'uid';
-    
+
     IF content_row.id IS NULL THEN
       RAISE NOTICE 'Creating new Content for UID: %', node->>'uid';
       -- Create new content
       INSERT INTO "Content" (
-        text, 
-        scale, 
-        space_id, 
-        author_id, 
+        text,
+        scale,
+        space_id,
+        author_id,
         creator_id,
-        document_id, 
-        source_local_id, 
-        metadata, 
-        created, 
+        document_id,
+        source_local_id,
+        metadata,
+        created,
         last_modified
       ) VALUES (
         node->>'text',
@@ -320,7 +320,7 @@ BEGIN
     ELSE
       RAISE NOTICE 'Updating existing Content with ID: %', content_row.id;
       -- Update existing content
-      UPDATE "Content" 
+      UPDATE "Content"
       SET
         text = node->>'text',
         last_modified = (node->>'last_modified')::timestamp,
@@ -334,11 +334,11 @@ BEGIN
 
     -- Check if embedding exists
     SELECT EXISTS(
-      SELECT 1 FROM "ContentEmbedding_openai_text_embedding_3_small_1536" 
+      SELECT 1 FROM "ContentEmbedding_openai_text_embedding_3_small_1536"
       WHERE target_id = content_row.id
     ) INTO embedding_exists;
 
-    RAISE NOTICE 'Embedding exists: %, Vector length: %', embedding_exists, 
+    RAISE NOTICE 'Embedding exists: %, Vector length: %', embedding_exists,
       array_length(string_to_array(trim(both '[]' from node->>'vector'), ','), 1);
 
     -- Upsert embedding
@@ -349,7 +349,7 @@ BEGIN
       (node->>'vector')::vector,
       false
     )
-    ON CONFLICT (target_id) 
+    ON CONFLICT (target_id)
     DO UPDATE SET
       vector = EXCLUDED.vector,
       model = EXCLUDED.model,
@@ -357,22 +357,22 @@ BEGIN
 
     RAISE NOTICE 'Embedding upserted for content ID: %', content_row.id;
 
-    RETURN QUERY SELECT 
-      content_row.id, 
+    RETURN QUERY SELECT
+      content_row.id,
       true,
       CASE WHEN embedding_exists THEN 'updated' ELSE 'created' END;
   END LOOP;
-  
+
   -- Update last_modified for the document
-  RAISE NOTICE 'Updating document last_modified from % to %', 
+  RAISE NOTICE 'Updating document last_modified from % to %',
     (SELECT last_modified FROM "Document" WHERE id = v_document_id),
     v_current_time;
-    
-  UPDATE "Document" 
+
+  UPDATE "Document"
   SET last_modified = v_current_time
   WHERE id = v_document_id;
-  
-  RAISE NOTICE 'Document updated. New last_modified: %', 
+
+  RAISE NOTICE 'Document updated. New last_modified: %',
     (SELECT last_modified FROM "Document" WHERE id = v_document_id);
 
   RAISE NOTICE 'Completed upsert_discourse_nodes successfully';
@@ -381,9 +381,8 @@ $function$
 ;
 
 
-create or REPLACE function public.alpha_upsert_discourse_nodes(p_space_name text, p_user_email text, p_user_name text, p_nodes jsonb) returns text language plpgsql AS
+CREATE OR REPLACE FUNCTION public.alpha_upsert_discourse_nodes(p_space_name text, p_user_email text, p_user_name text, p_nodes jsonb) RETURNS text LANGUAGE plpgsql AS
 $$
-
 DECLARE
   v_platform public."Platform";
   v_space_id BIGINT;

@@ -129,6 +129,10 @@ export const compile = ({
       outdir,
       bundle: true,
       format,
+      define: {
+        "process.env.SUPABASE_URL": `"${process.env.SUPABASE_URL}"`,
+        "process.env.SUPABASE_ANON_KEY": `"${process.env.SUPABASE_ANON_KEY}"`,
+      },
       sourcemap: process.env.NODE_ENV === "production" ? undefined : "inline",
       minify: process.env.NODE_ENV === "production",
       entryNames: out,

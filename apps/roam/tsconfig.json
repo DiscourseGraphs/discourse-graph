@@ -12,7 +12,6 @@
     "module": "ESNext",
     "moduleResolution": "Node",
     "forceConsistentCasingInFileNames": true,
-
     "jsx": "react",
     "noUncheckedIndexedAccess": false
   }

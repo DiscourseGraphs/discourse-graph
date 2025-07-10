@@ -122,7 +122,16 @@ const collectUids = (t: TreeNode): string[] => [
 ];
 
 const MATCHES_NONE = /$.+^/;
-const EMBED_REGEX = /{{(?:\[\[)embed(?:\]\]):\s*\(\(([\w\d-]{9,10})\)\)\s*}}/;
+
+// Roam embed syntax: {{[[embed]]: ((block-uid)) }}
+// Roam embed syntax: {{[[embed-path]]: ((block-uid)) }}
+// Also handles multiple parentheses: {{[[embed]]: ((((block-uid)))) }}
+const EMBED_REGEX =
+  /{{\[\[(?:embed|embed-path)\]\]:\s*\(\(+\s*([\w\d-]{9,10})\s*\)\)+\s*}}/;
+
+// Roam embed-children syntax: {{[[embed-children]]: ((block-uid)) }}
+const EMBED_CHILDREN_REGEX =
+  /{{\[\[embed-children\]\]:\s*\(\(+\s*([\w\d-]{9,10})\s*\)\)+\s*}}/;
 
 const toLink = (filename: string, uid: string, linkType: string) => {
   const extensionRemoved = filename.replace(/\.\w+$/, "");
@@ -164,13 +173,19 @@ const toMarkdown = ({
     flatten = false,
   } = opts;
   const processedText = c.text
-    .replace(refs ? BLOCK_REF_REGEX : MATCHES_NONE, (_, blockUid) => {
-      const reference = getTextByBlockUid(blockUid);
-      return reference || blockUid;
-    })
     .replace(embeds ? EMBED_REGEX : MATCHES_NONE, (_, blockUid) => {
       const reference = getFullTreeByParentUid(blockUid);
       return toMarkdown({ c: reference, i, v, opts });
+    })
+    .replace(embeds ? EMBED_CHILDREN_REGEX : MATCHES_NONE, (_, blockUid) => {
+      const reference = getFullTreeByParentUid(blockUid);
+      return reference.children
+        .map((child) => toMarkdown({ c: child, i, v, opts }))
+        .join("\n");
+    })
+    .replace(refs ? BLOCK_REF_REGEX : MATCHES_NONE, (_, blockUid) => {
+      const reference = getTextByBlockUid(blockUid);
+      return reference || blockUid;
     })
     .replace(/{{\[\[TODO\]\]}}/g, v === "bullet" ? "[ ]" : "- [ ]")
     .replace(/{{\[\[DONE\]\]}}/g, v === "bullet" ? "[x]" : "- [x]")
@@ -202,7 +217,12 @@ const toMarkdown = ({
           .join("") || processedText
       : processedText;
   const indentation = flatten ? "" : "".padStart(i * 4, " ");
-  const viewTypePrefix = viewTypeToPrefix[v];
+  // If this block contains an embed, treat it as document to avoid extra prefixes
+  const effectiveViewType =
+    embeds && (EMBED_REGEX.test(c.text) || EMBED_CHILDREN_REGEX.test(c.text))
+      ? "document"
+      : v;
+  const viewTypePrefix = viewTypeToPrefix[effectiveViewType];
   const headingPrefix = c.heading ? `${"".padStart(c.heading, "#")} ` : "";
   const childrenMarkdown = (c.children || [])
     .filter((nested) => !!nested.text || !!nested.children?.length)

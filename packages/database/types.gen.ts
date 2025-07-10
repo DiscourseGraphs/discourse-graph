@@ -72,7 +72,7 @@ export type Database = {
       }
       Concept: {
         Row: {
-          arity: number
+          arity: number | null
           author_id: number | null
           created: string
           description: string | null
@@ -89,7 +89,7 @@ export type Database = {
           space_id: number
         }
         Insert: {
-          arity?: number
+          arity?: number | null
           author_id?: number | null
           created: string
           description?: string | null
@@ -106,7 +106,7 @@ export type Database = {
           space_id: number
         }
         Update: {
-          arity?: number
+          arity?: number | null
           author_id?: number | null
           created?: string
           description?: string | null
@@ -505,50 +505,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      alpha_delete_by_source_local_ids: {
-        Args: { p_space_name: string; p_source_local_ids: string[] }
-        Returns: string
-      }
-      alpha_get_last_update_time: {
-        Args: { p_space_name: string }
-        Returns: {
-          last_update_time: string
-        }[]
-      }
-      alpha_upsert_discourse_nodes: {
-        Args: {
-          p_space_name: string
-          p_user_email: string
-          p_user_name: string
-          p_nodes: Json
-        }
-        Returns: string
-      }
-      end_sync_task: {
-        Args: {
-          s_target: number
-          s_function: string
-          s_worker: string
-          s_status: Database["public"]["Enums"]["task_status"]
-        }
-        Returns: undefined
-      }
-      extract_references: {
-        Args: { refs: Json }
-        Returns: number[]
-      }
-      get_nodes_needing_sync: {
-        Args: { nodes_from_roam: Json }
-        Returns: {
-          uid_to_sync: string
-        }[]
-      }
       _local_concept_to_db_concept: {
         Args: {
           data: Database["public"]["CompositeTypes"]["concept_local_input"]
         }
         Returns: {
-          arity: number
+          arity: number | null
           author_id: number | null
           created: string
           description: string | null
@@ -564,6 +526,98 @@ export type Database = {
           schema_id: number | null
           space_id: number
         }
+      }
+      _local_content_to_db_content: {
+        Args: {
+          data: Database["public"]["CompositeTypes"]["content_local_input"]
+        }
+        Returns: {
+          author_id: number | null
+          created: string
+          creator_id: number | null
+          document_id: number
+          id: number
+          last_modified: string
+          metadata: Json
+          part_of_id: number | null
+          scale: Database["public"]["Enums"]["Scale"]
+          source_local_id: string | null
+          space_id: number | null
+          text: string
+        }
+      }
+      _local_document_to_db_document: {
+        Args: {
+          data: Database["public"]["CompositeTypes"]["document_local_input"]
+        }
+        Returns: {
+          author_id: number
+          contents: unknown | null
+          created: string
+          id: number
+          last_modified: string
+          metadata: Json
+          source_local_id: string | null
+          space_id: number | null
+          url: string | null
+        }
+      }
+      alpha_delete_by_source_local_ids: {
+        Args: { p_space_name: string; p_source_local_ids: string[] }
+        Returns: string
+      }
+      alpha_get_last_update_time: {
+        Args: { p_space_name: string }
+        Returns: {
+          last_update_time: string
+        }[]
+      }
+      alpha_upsert_discourse_nodes: {
+        Args: {
+          p_nodes: Json
+          p_user_email: string
+          p_space_name: string
+          p_user_name: string
+        }
+        Returns: string
+      }
+      compute_arity_id: {
+        Args: { p_schema_id: number }
+        Returns: number
+      }
+      compute_arity_lit: {
+        Args: { lit_content: Json }
+        Returns: number
+      }
+      compute_arity_local: {
+        Args: { lit_content: Json; schema_id: number }
+        Returns: number
+      }
+      end_sync_task: {
+        Args: {
+          s_target: number
+          s_status: Database["public"]["Enums"]["task_status"]
+          s_worker: string
+          s_function: string
+        }
+        Returns: undefined
+      }
+      extract_references: {
+        Args: { refs: Json }
+        Returns: number[]
+      }
+      get_nodes_needing_sync: {
+        Args: { nodes_from_roam: Json }
+        Returns: {
+          uid_to_sync: string
+        }[]
+      }
+      get_space_anonymous_email: {
+        Args: {
+          platform: Database["public"]["Enums"]["Platform"]
+          space_id: number
+        }
+        Returns: string
       }
       match_content_embeddings: {
         Args: {
@@ -582,25 +636,38 @@ export type Database = {
       match_embeddings_for_subset_nodes: {
         Args: { p_query_embedding: string; p_subset_roam_uids: string[] }
         Returns: {
-          content_id: number
-          roam_uid: string
           text_content: string
           similarity: number
+          content_id: number
+          roam_uid: string
         }[]
       }
       propose_sync_task: {
         Args: {
           s_target: number
-          s_function: string
-          s_worker: string
           timeout: unknown
           task_interval: unknown
+          s_worker: string
+          s_function: string
         }
-        Returns: unknown
+        Returns: string
       }
       upsert_concepts: {
-        Args: { v_space_id: number; data: Json }
+        Args: { data: Json; v_space_id: number }
         Returns: number[]
+      }
+      upsert_content: {
+        Args: {
+          v_space_id: number
+          data: Json
+          v_creator_id: number
+          content_as_document?: boolean
+        }
+        Returns: number[]
+      }
+      upsert_content_embedding: {
+        Args: { model: string; content_id: number; embedding_array: number[] }
+        Returns: undefined
       }
       upsert_discourse_nodes: {
         Args: {
@@ -617,15 +684,26 @@ export type Database = {
           p_document_source_id?: string
         }
         Returns: {
+          action: string
           content_id: number
           embedding_created: boolean
-          action: string
         }[]
+      }
+      upsert_documents: {
+        Args: { data: Json; v_space_id: number }
+        Returns: number[]
+      }
+      upsert_platform_account_input: {
+        Args: {
+          account_info: Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          p_platform: Database["public"]["Enums"]["Platform"]
+        }
+        Returns: number
       }
     }
     Enums: {
       AgentIdentifierType: "email" | "orcid"
-      AgentType: "person" | "organization" | "automated_agent"
+      AgentType: "person" | "organization" | "automated_agent" | "anonymous"
       EmbeddingName:
         | "openai_text_embedding_ada2_1536"
         | "openai_text_embedding_3_small_512"
@@ -688,6 +766,55 @@ export type Database = {
         schema_represented_by_local_id: string | null
         space_url: string | null
         local_reference_content: Json | null
+      }
+      content_local_input: {
+        document_id: number | null
+        source_local_id: string | null
+        author_id: number | null
+        creator_id: number | null
+        created: string | null
+        text: string | null
+        metadata: Json | null
+        scale: Database["public"]["Enums"]["Scale"] | null
+        space_id: number | null
+        last_modified: string | null
+        part_of_id: number | null
+        document_local_id: string | null
+        creator_local_id: string | null
+        author_local_id: string | null
+        part_of_local_id: string | null
+        space_url: string | null
+        document_inline:
+          | Database["public"]["CompositeTypes"]["document_local_input"]
+          | null
+        author_inline:
+          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | null
+        creator_inline:
+          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | null
+        embedding_inline:
+          | Database["public"]["CompositeTypes"]["inline_embedding_input"]
+          | null
+      }
+      document_local_input: {
+        space_id: number | null
+        source_local_id: string | null
+        url: string | null
+        created: string | null
+        metadata: Json | null
+        last_modified: string | null
+        author_id: number | null
+        contents: unknown | null
+        author_local_id: string | null
+        space_url: string | null
+        author_inline:
+          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | null
+      }
+      inline_embedding_input: {
+        model: string | null
+        vector: number[] | null
       }
     }
   }
@@ -802,7 +929,7 @@ export const Constants = {
   public: {
     Enums: {
       AgentIdentifierType: ["email", "orcid"],
-      AgentType: ["person", "organization", "automated_agent"],
+      AgentType: ["person", "organization", "automated_agent", "anonymous"],
       EmbeddingName: [
         "openai_text_embedding_ada2_1536",
         "openai_text_embedding_3_small_512",
