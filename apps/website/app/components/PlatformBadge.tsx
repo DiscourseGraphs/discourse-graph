@@ -9,7 +9,11 @@ const PLATFORM_CONFIG = {
   },
 } as const;
 
-export function PlatformBadge({ platform }: { platform: "obsidian" | "roam" }) {
+export const PlatformBadge = ({
+  platform,
+}: {
+  platform: "obsidian" | "roam";
+}) => {
   const config = PLATFORM_CONFIG[platform];
 
   return (
@@ -19,4 +23,4 @@ export function PlatformBadge({ platform }: { platform: "obsidian" | "roam" }) {
       <span className="font-medium">{config.name}</span>
     </div>
   );
-}
+};
