@@ -1,14 +1,15 @@
 // apps/roam/src/utils/embeddingWorkflow.ts
-// import { getEmbeddingsService } from "./embeddingService";
-import { fetchSupabaseEntity, postBatchToSupabaseApi } from "./supabaseService"; // Ensure postBatchToSupabaseApi is correctly typed for batch operations
-import getDiscourseNodes from "./getDiscourseNodes";
-import matchDiscourseNode from "./matchDiscourseNode";
-import { getEmbeddingsService } from "./embeddingService";
+import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
+import {
+  getEmbeddingsService,
+  type NodeWithEmbedding,
+} from "./embeddingService";
 import isDiscourseNode from "./isDiscourseNode";
+import type {
+  LocalContentDataInput,
+  LocalDocumentDataInput,
+} from "../../../../packages/database/inputTypes.ts";
 import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
-import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
-import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
-import { getSupabaseContext } from "./supabaseContext";
 
 // Type for results from the Roam Datalog query
 interface RoamEntityFromQuery {
@@ -54,134 +55,135 @@ const base_url =
     : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app";
 
 export const runFullEmbeddingProcess = async (): Promise<void> => {
-  console.log("runFullEmbeddingProcess (BATCH API V2): Process started.");
+  console.log("runFullEmbeddingProcess (upsert_content): Process started.");
+
+  // 1. Resolve Supabase context (space/user ids) and create a logged-in client
   const context = await getSupabaseContext();
   if (!context) {
-    console.error("No Supabase context found.");
+    console.error("runFullEmbeddingProcess: No Supabase context found.");
     return;
   }
   const { spaceId, userId } = context;
 
-  console.log(
-    "runFullEmbeddingProcess (BATCH API V2): Fetching Roam discourse nodes...",
-  );
+  // 2. Gather discourse nodes from Roam
+  console.log("runFullEmbeddingProcess: Fetching Roam discourse nodes…");
   const roamNodes = await getAllDiscourseNodes();
-  console.log(roamNodes.length);
   if (roamNodes.length === 0) {
-    console.log(
-      "runFullEmbeddingProcess (BATCH API V2): No discourse nodes found in Roam. Exiting.",
-    );
+    console.log("runFullEmbeddingProcess: No discourse nodes found. Exiting.");
     alert("No discourse nodes found in Roam to process.");
     return;
   }
   console.log(
-    `runFullEmbeddingProcess (BATCH API V2): Found ${roamNodes.length} discourse nodes.`,
+    `runFullEmbeddingProcess: Found ${roamNodes.length} discourse nodes.`,
   );
 
-  // --- 5. Generate Embeddings for all nodes ---
-  console.log(
-    `runFullEmbeddingProcess (BATCH API V2): Generating embeddings for ${roamNodes.length} node titles...`,
-  );
-  let generatedVectors: number[][];
+  // 3. Generate embeddings for every node title
+  let nodesWithEmbeddings: NodeWithEmbedding[];
   try {
-    // Assuming getEmbeddingsService can handle an array of RoamContentNode and returns results in the same order
-    const embeddingResults = await getEmbeddingsService(roamNodes); // Pass all nodes
-    generatedVectors = embeddingResults.map((result) => result.vector);
-  } catch (embeddingServiceError: any) {
+    console.log("runFullEmbeddingProcess: Generating embeddings…");
+    nodesWithEmbeddings = await getEmbeddingsService(roamNodes);
+  } catch (error: any) {
     console.error(
-      `runFullEmbeddingProcess (BATCH API V2): Embedding service failed. Error: ${embeddingServiceError.message}`,
+      `runFullEmbeddingProcess: Embedding service failed – ${error.message}`,
     );
     alert("Critical Error: Failed to generate embeddings. Process halted.");
     return;
   }
 
-  if (generatedVectors.length !== roamNodes.length) {
+  if (nodesWithEmbeddings.length !== roamNodes.length) {
     console.error(
-      "runFullEmbeddingProcess (BATCH API V2): Mismatch between number of nodes and generated embeddings.",
+      "runFullEmbeddingProcess: Mismatch between node and embedding counts.",
     );
     alert("Critical Error: Mismatch in embedding generation. Process halted.");
-    // No throw here, allow graceful exit.
     return;
   }
-  console.log(
-    "runFullEmbeddingProcess (BATCH API V2): Embeddings generated successfully.",
+  console.log("runFullEmbeddingProcess: Embeddings generated successfully.");
+
+  // 4. Build LocalDocumentDataInput objects and upsert them first
+  const authorLocalId = getCurrentUserUid();
+
+  const docsData: LocalDocumentDataInput[] = nodesWithEmbeddings.map(
+    (node) => ({
+      source_local_id: node.uid,
+      created: new Date(node["create/time"] || Date.now()).toISOString(),
+      last_modified: new Date(node["edit/time"] || Date.now()).toISOString(),
+      author_local_id: authorLocalId,
+    }),
   );
 
-  // --- 6. BATCH Upload Content and Embeddings to Supabase ---
-  console.log(
-    `runFullEmbeddingProcess (BATCH API V2): Preparing ${roamNodes.length} Content records for batch upload...`,
-  );
+  console.log("runFullEmbeddingProcess: Upserting documents…");
+  {
+    const response = await fetch(
+      `${base_url}/api/supabase/rpc/upsert-documents`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          v_space_id: spaceId,
+          data: docsData as any,
+        }),
+      },
+    );
+    const { error } = await response.json();
+    if (error) {
+      console.error("runFullEmbeddingProcess: upsert_documents failed:", error);
+      alert("Failed to upsert documents. Process halted.");
+      return;
+    }
+  }
 
+  console.log("runFullEmbeddingProcess: Documents upserted successfully.");
+
+  // 5. Build LocalContentDataInput objects and upsert them in batches
   const batchSize = 200;
-  for (let i = 0; i < roamNodes.length; i += batchSize) {
-    const batch = roamNodes.slice(i, i + batchSize);
-    const requestBody = {
-      p_space_name: window.roamAlphaAPI.graph.name,
-      p_user_email: getCurrentUserEmail(),
-      p_user_name: getCurrentUserDisplayName(),
-      p_nodes: batch.map((node, indexInBatch) => {
-        const embeddingVector = generatedVectors[i + indexInBatch];
-        return {
-          text: node.string,
-          uid: node.uid,
-          vector: embeddingVector,
-          metadata: {} as Record<string, unknown>,
-          created: new Date(node["create/time"] || Date.now()).toISOString(),
-          last_modified: new Date(
-            node["edit/time"] || Date.now(),
-          ).toISOString(),
-        };
-      }),
-    };
-    try {
-      const response = await fetch(
-        `${base_url}/api/supabase/rpc/upsert-discourse-nodes`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        },
-      );
 
-      const responseText = await response.text();
+  for (let i = 0; i < nodesWithEmbeddings.length; i += batchSize) {
+    const batch = nodesWithEmbeddings.slice(i, i + batchSize);
 
-      if (!response.ok) {
-        console.error(
-          `upsertDiscourseNodes: Failed to upsert discourse nodes. Status: ${response.status}. Body: ${responseText}. Request body (full):`,
-          JSON.stringify(requestBody, null, 2),
-        );
-        throw new Error(
-          `Failed to upsert discourse nodes: ${response.status} ${responseText}`,
-        );
-      }
+    const contents: LocalContentDataInput[] = batch.map((node) => ({
+      author_local_id: authorLocalId,
+      document_local_id: node.uid,
+      source_local_id: node.uid,
+      scale: "document",
+      created: new Date(node["create/time"] || Date.now()).toISOString(),
+      last_modified: new Date(node["edit/time"] || Date.now()).toISOString(),
+      text: node.string,
+      embedding_inline: {
+        model: "openai_text_embedding_3_small_1536",
+        vector: node.vector,
+      },
+    }));
 
-      let results;
-      try {
-        results = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error(
-          `upsertDiscourseNodes: Failed to parse JSON response from Supabase. Status: ${response.status}. Raw response: ${responseText}`,
-        );
-        throw new Error(
-          `Failed to parse JSON response from Supabase: ${responseText}`,
-        );
-      }
+    console.log(
+      `runFullEmbeddingProcess: Uploading batch ${i / batchSize + 1} (${contents.length} items)…`,
+    );
 
-      console.log(
-        `upsertDiscourseNodes: Successfully processed batch. Response from Supabase:`,
-        results,
-      );
-    } catch (error) {
+    const response = await fetch(
+      `${base_url}/api/supabase/rpc/upsert-content`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          v_space_id: spaceId,
+          v_creator_id: userId,
+          data: contents as any,
+          content_as_document: false,
+        }),
+      },
+    );
+    const { data, error } = await response.json();
+
+    if (error) {
       console.error(
-        `upsertDiscourseNodes: Error during fetch operation for batch starting at index ${i}:`,
+        `runFullEmbeddingProcess: upsert_content failed for batch starting at index ${i}:`,
         error,
-        "Request body (full):",
-        JSON.stringify(requestBody, null, 2),
       );
       throw error;
     }
+
+    console.log(
+      `runFullEmbeddingProcess: Successfully processed batch ${i / batchSize + 1}.`,
+      data,
+    );
   }
+
+  console.log("runFullEmbeddingProcess: All batches processed successfully.");
 };
