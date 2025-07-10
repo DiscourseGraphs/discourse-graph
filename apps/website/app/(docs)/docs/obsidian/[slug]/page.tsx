@@ -23,9 +23,10 @@ export const generateMetadata = async ({
 }: {
   params: { slug: string };
 }): Promise<Metadata> => {
-  const directory = docMap[params.slug] ?? docMap.default;
+  const { slug } = await params;
+  const directory = docMap[slug] ?? docMap.default;
   return generateDocsMetadata({
-    params: Promise.resolve({ slug: params.slug }),
+    params: Promise.resolve({ slug }),
     directory,
   });
 };
