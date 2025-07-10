@@ -125,10 +125,6 @@ const RelationshipSettings = () => {
 
   return (
     <div className="discourse-relations">
-      <div className="discourse-graph">
-        <h3 className="dg-h3">Node Type Relations</h3>
-      </div>
-
       {plugin.settings.nodeTypes.length === 0 ? (
         <div>You need to create some node types first.</div>
       ) : plugin.settings.relationTypes.length === 0 ? (
