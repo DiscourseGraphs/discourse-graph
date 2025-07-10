@@ -5,11 +5,9 @@ export const fetchSupabaseEntity = async (entityType: string, payload: any) => {
   );
 
   const baseInsertApiUrl =
-    "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/supabase/insert";
-  // process.env.NODE_ENV === "development"
-  //   ? "http://localhost:3000/api/supabase/insert"
-  //   :
-  // : "https://discoursegraphs.com/api/supabase/insert";
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:3000/api/supabase/insert"
+      : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/supabase/insert";
 
   const fullApiUrl = `${baseInsertApiUrl}/${entityType}`;
   console.log(`fetchSupabaseEntity: Calling ${fullApiUrl}`);
@@ -45,11 +43,9 @@ export async function postBatchToSupabaseApi<T>(
   batchPayload: T[],
 ): Promise<any> {
   const baseUrl =
-    "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/supabase/insert";
-  // process.env.NODE_ENV === "development"
-  //   ? "http://localhost:3000/api/supabase/insert"
-  //   :
-  // : "https://discoursegraphs.com/api/supabase/insert";
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:3000/api/supabase/insert"
+      : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app/api/supabase/insert";
 
   const fullApiUrl = `${baseUrl}/${apiPath}`;
 

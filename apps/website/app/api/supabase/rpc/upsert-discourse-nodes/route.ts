@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Call the Supabase function
-    const { data, error } = await supabase.rpc("alpha_upsert_discourse_nodes", {
+    const { data, error } = await supabase.rpc("upsert_discourse_nodes", {
       p_space_name: body.p_space_name,
       p_user_email: body.p_user_email,
       p_user_name: body.p_user_name,
@@ -68,10 +68,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error(
-        "Error calling alpha_upsert_discourse_nodes function:",
-        error,
-      );
+      console.error("Error calling upsert_discourse_nodes function:", error);
       response = NextResponse.json(
         {
           error: "Database error while upserting discourse nodes",
