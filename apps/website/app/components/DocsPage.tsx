@@ -87,10 +87,10 @@ export const generateDocsStaticParams = async (directory: string) => {
   }
 };
 
-export async function generateDocsMetadata({
+export const generateDocsMetadata = async ({
   params,
   directory,
-}: DocsPageProps): Promise<Metadata> {
+}: DocsPageProps): Promise<Metadata> => {
   try {
     const { slug } = await params;
     const { data } = await getProcessedMarkdownFile({
@@ -108,4 +108,4 @@ export async function generateDocsMetadata({
       title: "Docs",
     };
   }
-}
+};

@@ -5,8 +5,8 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { PlatformBadge } from "./PlatformBadge";
 
-export function Logo() {
-  let pathname = usePathname();
+export const Logo = () => {
+  const pathname = usePathname();
 
   const platform = pathname.includes("/docs/obsidian/") ? "obsidian" : "roam";
 
@@ -31,4 +31,4 @@ export function Logo() {
       )}
     </div>
   );
-}
+};

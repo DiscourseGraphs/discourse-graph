@@ -1,4 +1,4 @@
-import { docMap } from "../docMap";
+import { docMap } from "~/(docs)/docs/obsidian/docMap";
 import { Metadata } from "next";
 import {
   generateDocsStaticParams,
@@ -18,11 +18,14 @@ export default Page;
 export const generateStaticParams = () =>
   generateDocsStaticParams(docMap.default);
 
-export async function generateMetadata({
+export const generateMetadata = async ({
   params,
 }: {
   params: { slug: string };
-}): Promise<Metadata> {
+}): Promise<Metadata> => {
   const directory = docMap[params.slug] ?? docMap.default;
-  return generateDocsMetadata({ params: Promise.resolve(params), directory });
-}
+  return generateDocsMetadata({
+    params: Promise.resolve({ slug: params.slug }),
+    directory,
+  });
+};
