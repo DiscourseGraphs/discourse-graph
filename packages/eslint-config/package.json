@@ -16,6 +16,7 @@
     "eslint-config-prettier": "^10.1.5",
     "eslint-config-turbo": "^2.5.4",
     "eslint-plugin-only-warn": "^1.1.0",
+    "eslint-plugin-prefer-arrow-functions": "3.4.2",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint": "^8.57.1",
