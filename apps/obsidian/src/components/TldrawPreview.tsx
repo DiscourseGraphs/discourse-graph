@@ -5,6 +5,8 @@ import { Root, createRoot } from "react-dom/client";
 import { TldrawPreviewComponent } from "./TldrawPreviewComponent";
 import {
   ErrorBoundary,
+  StoreSnapshot,
+  TLRecord,
   TLStore,
   Tldraw,
   TldrawUiContextProvider,
@@ -105,7 +107,7 @@ export class TldrawPreview extends TextFileView {
         shapeUtils: defaultShapeUtils,
       });
       console.log("store created", store);
-      loadSnapshot(store, data.raw);
+      loadSnapshot(store, data.raw as StoreSnapshot<TLRecord>);
       return store;
     } catch (e) {
       console.error("Failed to create store from file data", e);
@@ -152,21 +154,25 @@ export class TldrawPreview extends TextFileView {
   private async refreshView() {
     if (!this.store) return;
 
-    // Clean up old React root
+    // Safely cleanup existing React root
     if (this.reactRoot) {
       try {
-        this.reactRoot.unmount();
+        // Check if container still exists and has children before unmounting
+        const container = this.tldrawContainer;
+        if (container && container.hasChildNodes()) {
+          this.reactRoot.unmount();
+        }
       } catch (e) {
         console.error("Failed to unmount React root", e);
       }
       this.reactRoot = undefined;
     }
 
-    console.log("tldrawContainer", this.tldrawContainer);
-    console.log("store", this.store);
-
-    // Create new React root and render
-    this.reactRoot = this.createReactRoot(this.tldrawContainer!, this.store);
+    // Only create new root if container exists
+    const container = this.tldrawContainer;
+    if (container) {
+      this.reactRoot = this.createReactRoot(container, this.store);
+    }
   }
 
   registerOnUnloadFile(callback: () => void) {
@@ -184,17 +190,19 @@ export class TldrawPreview extends TextFileView {
 
   async onClose() {
     await super.onClose();
-    // Cleanup React
+    // Safely cleanup React root
     if (this.reactRoot) {
       try {
-        this.reactRoot.unmount();
+        const container = this.tldrawContainer;
+        if (container && container.hasChildNodes()) {
+          this.reactRoot.unmount();
+        }
       } catch (e) {
         console.error("Failed to unmount React root", e);
       }
       this.reactRoot = undefined;
     }
 
-    // Cleanup store
     if (this.store) {
       try {
         this.store.dispose();

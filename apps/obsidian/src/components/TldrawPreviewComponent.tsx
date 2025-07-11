@@ -58,11 +58,7 @@ export const TldrawPreviewComponent = ({
             <div>Error in Tldraw component: {JSON.stringify(error)}</div>
           )}
         >
-          <Tldraw
-            store={store}
-            autoFocus={false}
-           
-          />
+          <Tldraw store={store} autoFocus={false} />
         </ErrorBoundary>
       ) : (
         <div>Loading Tldraw...</div>
