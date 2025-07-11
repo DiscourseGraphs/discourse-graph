@@ -11,7 +11,7 @@ It does mean you will have a fresh database with minimal data.
    1. Install [Docker](https://www.docker.com)
    2. Set the `SUPABASE_WORKDIR` in your environment to the absolute path of the `packages/database` directory.
    3. Install [sqruff](https://github.com/quarylabs/sqruff)
-   4. populate your `.env.localdb` from the `.env.example`
+   4. Populate your `.env.localdb` from the `.env.example`
    5. `supabase start` to create your local supabase instance
        1. Many values will be specified in the output. Use them to populate your `.env.localdb` as follows:
        ```
@@ -23,7 +23,7 @@ It does mean you will have a fresh database with minimal data.
     7. Optional: `supabase end` to free docker resources.
 2. Usage:
    1. `turbo dev`, will do a `supabase start` so you can talk to your local database.
-   2. You can use the studio to look over things; its url is given by supabase start.
+   2. You can use the studio to look over things; its url is given by `supabase start`.
    3. End you work session with `supabase end` to free docker resources.
 3. Database-specific development: We follow the supabase [Declarative Database Schema](https://supabase.com/docs/guides/local-development/declarative-database-schemas) process.
    1. Assuming you're working on a feature branch.
@@ -62,7 +62,7 @@ If you are working on frontend code, you may use the environment variable `NEXT_
 
 If you have logged in with the vercel cli tool, you can also get the URL with `vercel list -m githubCommitRef=<branch name>`
 
-If you are working on the website api code, you need to create a branch-specific `.env` based on the `.env.productiondb`, with values populated from the supabase UI for the branch.
+If you are working on the website api code, you need to create a different, branch-specific `.env` based on the `.env.productiondb.example`, with values populated from the supabase UI for the branch.
 
 IMPORTANT: Avoid using any supabase command while this environment is active. It is also safer to stop your local supabase altogether.
 
@@ -79,7 +79,7 @@ IMPORTANT: Avoid using any supabase command while this environment is active. It
 
 This should be used with extreme caution, as there is not currently adequate security to prevent changes to the data.
 It may be appropriate if there is a problem in production that is due to corrupted data (vs schema issues), and it is somehow simpler to test code to repair it directly than to load the data locally.
-In that case, basically use the `.env.productiondb` example file, fill the secrets and copy it to `.env`
+In that case, basically use the `.env.productiondb.example` file, fill the secrets and copy it to `.env`
 
 
 ## Testing the backend
