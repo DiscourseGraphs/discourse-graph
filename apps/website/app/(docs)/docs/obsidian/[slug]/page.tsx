@@ -6,7 +6,7 @@ import {
   DocsPage,
 } from "~/components/DocsPage";
 
-const Page = async ({ params }: { params: { slug: string } }) => {
+const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const { slug } = await params;
   const directory = docMap[slug] ?? docMap.default;
 
@@ -21,7 +21,7 @@ export const generateStaticParams = () =>
 export const generateMetadata = async ({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> => {
   const { slug } = await params;
   const directory = docMap[slug] ?? docMap.default;
