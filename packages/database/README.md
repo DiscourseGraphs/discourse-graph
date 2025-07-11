@@ -57,12 +57,13 @@ It does mean you will have a fresh database with minimal data.
 
 ## Using local code against your supabase branch
 
-You may want to test your local code against the supabase branch database.
+You may want to test your local code against the supabase branch database that was created after push (step 10 above) instead of using the branch database only through the vercel branch deployment.
+
 If you are working on frontend code, you may use the environment variable `NEXT_API_ROOT` (forthcoming) to get the api of the active vercel branch instance (as given in the [vercel interface](https://vercel.com/discourse-graphs/discourse-graph/deployments).)
 
 If you have logged in with the vercel cli tool, you can also get the URL with `vercel list -m githubCommitRef=<branch name>`
 
-If you are working on the website api code, you need to create a different, branch-specific `.env` based on the `.env.productiondb.example`, with values populated from the supabase UI for the branch.
+If you are working on the website api code itself, you need to create a different, branch-specific `.env` based on the `.env.productiondb.example`, with values populated from the supabase UI for the branch. (In that case, you'll be maintaining two or more separate `.env` files. It may be appropriate to call them by different names, such as `.env.local`, `.env.branch1`, etc. But turbo only recognizes `.env`, so you would have to overwrite `.env` with whichever of your `.env.variant` file is appropriate according to your current task.)
 
 IMPORTANT: Avoid using any supabase command while this environment is active. It is also safer to stop your local supabase altogether.
 
