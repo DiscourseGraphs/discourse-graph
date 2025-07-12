@@ -10,6 +10,7 @@ ALTER TYPE public.task_status OWNER TO "postgres";
 CREATE TABLE IF NOT EXISTS public.sync_info (
     id integer NOT NULL,
     sync_target bigint,
+    target_type public."EntityType" NOT NULL DEFAULT 'Space'::public."EntityType",
     sync_function character varying(20),
     status public.task_status DEFAULT 'active'::public.task_status,
     worker character varying(100) NOT NULL,
