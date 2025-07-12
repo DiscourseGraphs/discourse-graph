@@ -11,7 +11,7 @@ import setBlockProps from "~/utils/setBlockProps";
 import {
   createClient,
   type DGSupabaseClient,
-} from "@repo/ui/src/lib/supabase/client";
+} from "@repo/ui/lib/supabase/client";
 import { spaceAnonUserEmail } from "@repo/ui/lib/utils";
 
 declare const crypto: { randomUUID: () => string };

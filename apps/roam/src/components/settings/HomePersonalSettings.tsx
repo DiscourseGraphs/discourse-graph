@@ -13,12 +13,9 @@ import {
   showFeedbackButton,
 } from "~/components/BirdEatsBugs";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
-import { runFullEmbeddingProcess } from "~/utils/embeddingWorkflow";
-import { getLastUpdateTimeByGraphName } from "~/utils/syncToEmbeddingDb";
-import getDiscourseRelations from "~/utils/getDiscourseRelations";
-import { upsertDiscourseNodes } from "~/utils/syncToEmbeddingDb";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
+import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
 
 const HomePersonalSettings = ({
   onloadArgs,
@@ -39,7 +36,6 @@ const HomePersonalSettings = ({
   const [inlineEnabled, setInlineEnabled] = useState<boolean>(
     Boolean(extensionAPI.settings.get("suggestion-display-inline")),
   );
-
 
   const [embeddingsUploaded, setEmbeddingsUploaded] = useState<boolean>(false);
 
@@ -132,8 +128,7 @@ const HomePersonalSettings = ({
   // Determine if embeddings have been uploaded on mount
   useEffect(() => {
     (async () => {
-      const graphName = window.roamAlphaAPI.graph.name;
-      const lastUpdateTime = await getLastUpdateTimeByGraphName(graphName);
+      const lastUpdateTime = await getLastUpdateTimeByGraphName();
       setEmbeddingsUploaded(lastUpdateTime !== null);
     })();
   }, []);
@@ -441,27 +436,7 @@ const HomePersonalSettings = ({
           icon="cloud-upload"
           text={embeddingsButtonText}
           onClick={async () => {
-            console.log("get discourse relations", getDiscourseRelations());
-            console.log("handleGenerateEmbeddings: Starting process.");
-            // const allNodes = await getAllDiscourseNodes();
-            //const nodes = allNodes.slice(0, 101); // Take only the first 101 nodes
-            //console.log("Discourse nodes (first 101):", nodes);
-            // const nodesWithEmbeddings = await getEmbeddingsService(nodes);
-            // console.log("Nodes with embeddings:", nodesWithEmbeddings);
-            // Next: send nodesWithEmbeddings to Supabase
-
-            // Test the new function with a sample URL
-            const graphName = window.roamAlphaAPI.graph.name;
-            const lastUpdateTime =
-              await getLastUpdateTimeByGraphName(graphName);
-            console.log("Last update time for", graphName, ":", lastUpdateTime);
-
-            // if its null, then run the full embedding process
-            if (lastUpdateTime === null) {
-              await runFullEmbeddingProcess();
-            } else {
-              await upsertDiscourseNodes(lastUpdateTime);
-            }
+            await createOrUpdateDiscourseEmbedding();
           }}
           intent={Intent.PRIMARY}
           style={{ marginTop: "8px" }}

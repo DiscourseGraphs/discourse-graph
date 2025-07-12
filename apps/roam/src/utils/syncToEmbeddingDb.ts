@@ -1,5 +1,4 @@
 import isDiscourseNode from "./isDiscourseNode";
-import { getEmbeddingsService } from "./embeddingService";
 import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 
@@ -290,61 +289,5 @@ export async function upsertDiscourseNodes(lastUpdateTime: string) {
     throw error;
   } finally {
     console.log("upsertDiscourseNodes: Process finished.");
-  }
-}
-
-export async function getLastUpdateTimeByGraphName(
-  graphName: string,
-): Promise<string | null> {
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/supabase/rpc/get-last-update-time`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          spaceName: graphName,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(
-        `Error fetching last update time for graph ${graphName}: ${response.status} ${response.statusText}`,
-        errorBody,
-      );
-      return null; // Indicates failure to retrieve
-    }
-
-    const data = await response.json();
-    console.log("data", data);
-
-    if (Array.isArray(data) && data.length > 0 && data[0].last_update_time) {
-      return data[0].last_update_time;
-    }
-
-    // Handle direct object response format (fallback)
-    if (data && typeof data.last_update_time === "string") {
-      return data.last_update_time;
-    } else if (data && data.last_update_time === null) {
-      // Explicitly null 'last_update_time' field, e.g. document exists but no date.
-      return null;
-    } else {
-      console.warn(
-        `Received unexpected data structure or no 'last_update_time' field for graph ${graphName}:`,
-        data,
-      );
-      return null; // Document not found or 'last_update_time' field missing/invalid
-    }
-  } catch (error) {
-    console.error(
-      `Network or other error fetching last update time for graph ${graphName}:`,
-      error,
-    );
-    return null;
   }
 }

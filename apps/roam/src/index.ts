@@ -22,13 +22,7 @@ import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
-import { runFullEmbeddingProcess } from "./utils/embeddingWorkflow";
-import {
-  getLastUpdateTimeByGraphName,
-  upsertDiscourseNodes,
-} from "./utils/syncToEmbeddingDb";
-import React from "react";
-import ReactDOM from "react-dom";
+import { createOrUpdateDiscourseEmbedding } from "./utils/syncDgNodesToSupabase";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -59,26 +53,7 @@ const initEmbeddingSync = async () => {
     console.log(
       "Discourse Graph: Starting automatic embedding sync on load...",
     );
-
-    const graphName = window.roamAlphaAPI.graph.name;
-    const lastUpdateTime = await getLastUpdateTimeByGraphName(graphName);
-
-    console.log(
-      `Discourse Graph: Last update time for ${graphName}:`,
-      lastUpdateTime,
-    );
-
-    if (lastUpdateTime === null) {
-      console.log(
-        "Discourse Graph: No previous sync found, run embedding process from discourse graph settings menu",
-      );
-    } else {
-      console.log(
-        "Discourse Graph: Running incremental sync since last update...",
-      );
-      await upsertDiscourseNodes(lastUpdateTime);
-    }
-
+    await createOrUpdateDiscourseEmbedding();
     console.log("Discourse Graph: Embedding sync completed successfully.");
   } catch (error) {
     console.error(

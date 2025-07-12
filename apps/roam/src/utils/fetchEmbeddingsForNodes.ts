@@ -1,7 +1,7 @@
-type DiscourseGraphContent = {
+import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
+export type DiscourseGraphContent = {
   author_local_id: string;
   source_local_id: string;
-  scale: string;
   created: string;
   last_modified: string;
   text: string;
@@ -19,7 +19,7 @@ type EmbeddingApiResponse = {
 };
 
 export const fetchEmbeddingsForNodes = async (
-  nodes: DiscourseGraphContent[],
+  nodes: RoamDiscourseNodeData[],
 ): Promise<DiscourseGraphContent[]> => {
   const allEmbeddings: number[][] = [];
   const allNodesTexts = nodes.map((node) => node.text);
