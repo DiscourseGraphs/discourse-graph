@@ -99,21 +99,14 @@ const ResultHeader = React.forwardRef<
       () => activeSort.findIndex((s) => s.key === c.key),
       [c.key, activeSort],
     );
-    const refCallback = useCallback(
-      (r: HTMLTableDataCellElement) => {
-        if (ref && "current" in ref && ref.current) ref.current[c.uid] = r;
-      },
-      [ref, c.uid],
-    );
     return (
-      <td
+      <th
         style={{
           cursor: "pointer",
           textTransform: "capitalize",
           width: columnWidth,
         }}
         data-column={c.uid}
-        ref={refCallback}
         key={c.uid}
         onClick={() => {
           if (sortIndex >= 0) {
@@ -158,7 +151,7 @@ const ResultHeader = React.forwardRef<
             )}
           </span>
         </div>
-      </td>
+      </th>
     );
   },
 );
@@ -194,28 +187,29 @@ export const CellEmbed = ({
   );
 };
 
-type OnWidthUpdate = (args: {
-  column: string;
-  width: string;
-  save?: boolean;
-}) => void;
-const ResultRow = ({
-  r,
-  parentUid,
-  ctrlClick,
-  views,
-  onRefresh,
-  columns,
-  onWidthUpdate,
-}: {
+type ResultRowProps = {
   r: Result;
+  columns: Column[];
+  onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDrag: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
   parentUid: string;
   ctrlClick?: (e: Result) => void;
   views: { column: string; mode: string; value: string }[];
-  columns: Column[];
   onRefresh: () => void;
-  onWidthUpdate: OnWidthUpdate;
-}) => {
+};
+
+const ResultRow = ({
+  r,
+  columns,
+  parentUid,
+  ctrlClick,
+  views,
+  onDragStart,
+  onDrag,
+  onDragEnd,
+  onRefresh,
+}: ResultRowProps) => {
   const cell = (key: string) => {
     const value = toCellValue({
       value: r[`${key}-display`] || r[key] || "",
@@ -264,32 +258,6 @@ const ResultRow = ({
     [views],
   );
   const trRef = useRef<HTMLTableRowElement>(null);
-  const dragHandler = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      const delta = e.clientX - e.currentTarget.getBoundingClientRect().left;
-      const cellWidth =
-        e.currentTarget.parentElement?.getBoundingClientRect().width;
-      if (typeof cellWidth === "undefined") return;
-      if (cellWidth + delta <= 0) return;
-      const rowWidth =
-        e.currentTarget.parentElement?.parentElement?.getBoundingClientRect()
-          .width;
-      if (typeof rowWidth === "undefined") return;
-      if (cellWidth + delta >= rowWidth) return;
-      const column = e.currentTarget.getAttribute("data-column");
-      const save = e.type === "dragend";
-      if (trRef.current) {
-        trRef.current.style.cursor = save ? "" : "ew-resize";
-      }
-      if (column)
-        onWidthUpdate({
-          column,
-          width: `${((cellWidth + delta) / rowWidth) * 100}%`,
-          save,
-        });
-    },
-    [onWidthUpdate],
-  );
   return (
     <>
       <tr ref={trRef} data-uid={r.uid}>
@@ -350,7 +318,7 @@ const ResultRow = ({
               {i < columns.length - 1 && (
                 <div
                   style={{
-                    width: 1,
+                    width: 2,
                     cursor: "ew-resize",
                     position: "absolute",
                     top: 0,
@@ -358,13 +326,17 @@ const ResultRow = ({
                     bottom: 0,
                     background: `rgba(16,22,26,0.15)`,
                   }}
+                  data-left-column-uid={columnUid}
+                  data-right-column-uid={columns[i + 1].uid}
                   data-column={columnUid}
                   draggable
-                  onDragStart={(e) =>
-                    e.dataTransfer.setDragImage(dragImage, 0, 0)
-                  }
-                  onDrag={dragHandler}
-                  onDragEnd={dragHandler}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", "");
+                    e.dataTransfer.setDragImage(dragImage, 0, 0);
+                    onDragStart(e);
+                  }}
+                  onDrag={onDrag}
+                  onDragEnd={onDragEnd}
                 />
               )}
             </td>
@@ -373,6 +345,18 @@ const ResultRow = ({
       </tr>
     </>
   );
+};
+
+type ColumnWidths = {
+  [key: string]: string;
+};
+
+type DragInfo = {
+  startX: number;
+  leftColumnUid: string | null;
+  rightColumnUid: string | null;
+  leftStartWidth: number;
+  rightStartWidth: number;
 };
 
 const ResultsTable = ({
@@ -417,42 +401,152 @@ const ResultsTable = ({
   allResults: Result[];
   showInterface?: boolean;
 }) => {
-  const columnWidths = useMemo(() => {
+  const tableContainerRef = useRef<HTMLDivElement | null>(null);
+  const dragInfo = useRef<DragInfo>({
+    startX: 0,
+    leftColumnUid: null,
+    rightColumnUid: null,
+    leftStartWidth: 0,
+    rightStartWidth: 0,
+  });
+
+  const rafIdRef = useRef<number | null>(null);
+  const throttledSetColumnWidths = useCallback((update: ColumnWidths) => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+    rafIdRef.current = requestAnimationFrame(() =>
+      setColumnWidths(
+        (prev) =>
+          ({
+            ...prev,
+            ...update,
+          }) as ColumnWidths,
+      ),
+    );
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
+
+  const [columnWidths, setColumnWidths] = useState(() => {
     const widths =
       typeof layout.widths === "string" ? [layout.widths] : layout.widths || [];
-    return Object.fromEntries(
-      widths
-        .map((w) => {
-          const match = /^(.*) - ([^-]+)$/.exec(w);
-          return match;
-        })
-        .filter((m): m is RegExpExecArray => !!m)
-        .map((match) => {
-          return [match[1], match[2]];
-        }),
+    const fromLayout = Object.fromEntries(
+      widths.map((w) => w.split(" - ")).filter((p) => p.length === 2),
     );
-  }, [layout]);
-  const thRefs = useRef<Record<string, HTMLTableCellElement>>({});
-  const onWidthUpdate = useCallback<OnWidthUpdate>(
-    (args) => {
-      const cell = thRefs.current[args.column];
-      if (!cell) return;
-      cell.style.width = args.width;
-      if (args.save) {
-        const layoutUid = getSubTree({ parentUid, key: "layout" }).uid;
-        if (layoutUid)
-          setInputSettings({
-            blockUid: layoutUid,
-            key: "widths",
-            values: Object.entries(thRefs.current)
-              .map(([k, v]) => [k, v.style.width])
-              .filter(([k, v]) => !!k && !!v)
-              .map(([k, v]) => `${k} - ${v}`),
-          });
+    const allWidths: ColumnWidths = {};
+    const defaultWidth = `${100 / columns.length}%`;
+    columns.forEach((c) => {
+      allWidths[c.uid] = fromLayout[c.uid] || defaultWidth;
+    });
+    return allWidths;
+  });
+
+  const onDragStart = useCallback((e) => {
+    const { leftColumnUid, rightColumnUid } = e.currentTarget.dataset;
+    if (!leftColumnUid || !rightColumnUid || !tableContainerRef.current) return;
+
+    const leftHeader = tableContainerRef.current?.querySelector(
+      `th[data-column="${leftColumnUid}"]`,
+    );
+    const rightHeader = tableContainerRef.current?.querySelector(
+      `th[data-column="${rightColumnUid}"]`,
+    );
+
+    if (!leftHeader || !rightHeader) return;
+
+    dragInfo.current = {
+      startX: e.clientX,
+      leftColumnUid,
+      rightColumnUid,
+      leftStartWidth: (leftHeader as HTMLElement).offsetWidth,
+      rightStartWidth: (rightHeader as HTMLElement).offsetWidth,
+    };
+  }, []);
+
+  const onDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (e.clientX === 0) return;
+
+    const {
+      startX,
+      leftColumnUid,
+      rightColumnUid,
+      leftStartWidth,
+      rightStartWidth,
+    } = dragInfo.current;
+
+    if (!leftColumnUid || !rightColumnUid) return;
+
+    const delta = e.clientX - startX;
+
+    const minWidth = 40;
+
+    let newLeftWidth = leftStartWidth + delta;
+    let newRightWidth = rightStartWidth - delta;
+
+    if (newLeftWidth < minWidth) {
+      const adjustment = minWidth - newLeftWidth;
+      newLeftWidth = minWidth;
+      newRightWidth -= adjustment;
+    } else if (newRightWidth < minWidth) {
+      const adjustment = minWidth - newRightWidth;
+      newRightWidth = minWidth;
+      newLeftWidth -= adjustment;
+    }
+
+    throttledSetColumnWidths({
+      [leftColumnUid]: `${newLeftWidth}px`,
+      [rightColumnUid]: `${newRightWidth}px`,
+    });
+  }, []);
+
+  const onDragEnd = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
+    const totalWidth = tableContainerRef.current?.offsetWidth;
+    if (!totalWidth || totalWidth === 0) {
+      return;
+    }
+    const minWidth = 40;
+    const minPercent = (minWidth / totalWidth) * 100;
+
+    const finalWidths: ColumnWidths = {};
+    const uids = columns.map((c) => c.uid);
+    uids.forEach((uid) => {
+      const header = tableContainerRef.current?.querySelector(
+        `th[data-column="${uid}"]`,
+      );
+      if (header) {
+        const headerWidth = (header as HTMLElement).offsetWidth;
+        if (headerWidth > 0) {
+          const percent = (headerWidth / totalWidth) * 100;
+          finalWidths[uid] = `${Math.max(minPercent, percent)}%`;
+        } else {
+          finalWidths[uid] = columnWidths[uid] || "5%";
+        }
       }
-    },
-    [thRefs, parentUid],
-  );
+    });
+    setColumnWidths(finalWidths);
+
+    const layoutUid = getSubTree({ parentUid, key: "layout" }).uid;
+    if (layoutUid) {
+      setInputSettings({
+        blockUid: layoutUid,
+        key: "widths",
+        values: Object.entries(finalWidths).map(([k, v]) => `${k} - ${v}`),
+      });
+    }
+  }, [columns, parentUid, columnWidths]);
+
   const resultHeaderSetFilters = React.useCallback(
     (fs: FilterData) => {
       setFilters(fs);
@@ -537,145 +631,154 @@ const ResultsTable = ({
     if (extraRowType === null) setExtraRowUid(null);
   }, [extraRowType, setExtraRowUid]);
   return (
-    <HTMLTable
+    <div
+      ref={tableContainerRef}
       style={{
         maxHeight: "400px",
         overflowY: "scroll",
-        width: "100%",
-        tableLayout: "fixed",
         borderRadius: 3,
       }}
-      data-parent-uid={parentUid}
-      {...tableProps}
     >
-      <thead style={{ background: "#eeeeee80" }}>
-        <tr style={{ visibility: !showInterface ? "collapse" : "visible" }}>
-          {columns.map((c) => (
-            <ResultHeader
-              key={c.uid}
-              c={c}
-              ref={thRefs}
-              allResults={allResults}
-              activeSort={activeSort}
-              setActiveSort={setActiveSort}
-              filters={filters}
-              setFilters={resultHeaderSetFilters}
-              initialFilter={filters[c.key]}
-              columnWidth={columnWidths[c.uid]}
-            />
+      <HTMLTable
+        style={{
+          width: "100%",
+          tableLayout: "fixed",
+        }}
+        data-parent-uid={parentUid}
+        {...tableProps}
+      >
+        <thead style={{ background: "#eeeeee80" }}>
+          <tr style={{ visibility: !showInterface ? "collapse" : "visible" }}>
+            {columns.map((c) => (
+              <ResultHeader
+                key={c.uid}
+                c={c}
+                allResults={allResults}
+                activeSort={activeSort}
+                setActiveSort={setActiveSort}
+                filters={filters}
+                setFilters={resultHeaderSetFilters}
+                initialFilter={filters[c.key]}
+                columnWidth={columnWidths[c.uid]}
+              />
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {results.map((r) => (
+            <React.Fragment key={Object.values(r).join("-")}>
+              <ResultRow
+                r={r}
+                parentUid={parentUid}
+                views={views}
+                onRefresh={onRefresh}
+                columns={columns}
+                onDragStart={onDragStart}
+                onDrag={onDrag}
+                onDragEnd={onDragEnd}
+              />
+              {extraRowUid === r.uid && (
+                <tr className={`roamjs-${extraRowType}-row roamjs-extra-row`}>
+                  <td colSpan={columns.length}>
+                    {extraRowUid && extraRowType === "context" ? (
+                      <ExtraContextRow uid={extraRowUid} />
+                    ) : extraRowUid && extraRowType === "discourse" ? (
+                      <ContextContent uid={extraRowUid} />
+                    ) : null}
+                  </td>
+                </tr>
+              )}
+            </React.Fragment>
           ))}
-        </tr>
-      </thead>
-      <tbody>
-        {results.map((r) => (
-          <React.Fragment key={Object.values(r).join("-")}>
-            <ResultRow
-              r={r}
-              parentUid={parentUid}
-              views={views}
-              onRefresh={onRefresh}
-              columns={columns}
-              onWidthUpdate={onWidthUpdate}
-            />
-            {extraRowUid === r.uid && (
-              <tr className={`roamjs-${extraRowType}-row roamjs-extra-row`}>
-                <td colSpan={columns.length}>
-                  {extraRowUid && extraRowType === "context" ? (
-                    <ExtraContextRow uid={extraRowUid} />
-                  ) : extraRowUid && extraRowType === "discourse" ? (
-                    <ContextContent uid={extraRowUid} />
-                  ) : null}
-                </td>
-              </tr>
-            )}
-          </React.Fragment>
-        ))}
-      </tbody>
-      <tfoot style={!showInterface ? { display: "none" } : {}}>
-        <tr>
-          <td
-            colSpan={columns.length}
-            style={{ padding: 0, background: "#eeeeee80" }}
-          >
-            <div
-              className="flex items-center justify-between"
-              style={{ padding: 4 }}
+        </tbody>
+        <tfoot style={!showInterface ? { display: "none" } : {}}>
+          <tr>
+            <td
+              colSpan={columns.length}
+              style={{ padding: 0, background: "#eeeeee80" }}
             >
               <div
-                className="flex items-center gap-4"
-                style={{ paddingLeft: 4 }}
+                className="flex items-center justify-between"
+                style={{ padding: 4 }}
               >
-                <span>Rows per page:</span>
-                <InputGroup
-                  defaultValue={pageSize.toString()}
-                  onChange={(e) => {
-                    clearTimeout(pageSizeTimeoutRef.current);
-                    pageSizeTimeoutRef.current = window.setTimeout(() => {
-                      setPageSize(Number(e.target.value));
+                <div
+                  className="flex items-center gap-4"
+                  style={{ paddingLeft: 4 }}
+                >
+                  <span>Rows per page:</span>
+                  <InputGroup
+                    defaultValue={pageSize.toString()}
+                    onChange={(e) => {
+                      clearTimeout(pageSizeTimeoutRef.current);
+                      pageSizeTimeoutRef.current = window.setTimeout(() => {
+                        setPageSize(Number(e.target.value));
 
-                      if (preventSavingSettings) return;
-                      setInputSetting({
-                        key: "size",
-                        value: e.target.value,
-                        blockUid: parentUid,
-                      });
-                    }, 1000);
-                  }}
-                  type="number"
-                  style={{
-                    width: 60,
-                    maxWidth: 60,
-                    marginRight: 32,
-                    marginLeft: 16,
-                  }}
-                />
-              </div>
-              <span>
-                <Button
-                  minimal
-                  icon={"double-chevron-left"}
-                  onClick={() => setPage(1)}
-                  disabled={page === 1}
-                  small
-                />
-                <Button
-                  minimal
-                  icon={"chevron-left"}
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                  small
-                />
-                <span style={{ margin: "4px 0" }} className={"text-sm"}>
-                  {page}
+                        if (preventSavingSettings) return;
+                        setInputSetting({
+                          key: "size",
+                          value: e.target.value,
+                          blockUid: parentUid,
+                        });
+                      }, 1000);
+                    }}
+                    type="number"
+                    style={{
+                      width: 60,
+                      maxWidth: 60,
+                      marginRight: 32,
+                      marginLeft: 16,
+                    }}
+                  />
+                </div>
+                <span>
+                  <Button
+                    minimal
+                    icon={"double-chevron-left"}
+                    onClick={() => setPage(1)}
+                    disabled={page === 1}
+                    small
+                  />
+                  <Button
+                    minimal
+                    icon={"chevron-left"}
+                    onClick={() => setPage(page - 1)}
+                    disabled={page === 1}
+                    small
+                  />
+                  <span style={{ margin: "4px 0" }} className={"text-sm"}>
+                    {page}
+                  </span>
+                  <Button
+                    minimal
+                    icon={"chevron-right"}
+                    onClick={() => setPage(page + 1)}
+                    disabled={
+                      page ===
+                        Math.ceil(allProcessedResults.length / pageSize) ||
+                      allProcessedResults.length === 0
+                    }
+                    small
+                  />
+                  <Button
+                    minimal
+                    icon={"double-chevron-right"}
+                    disabled={
+                      page ===
+                        Math.ceil(allProcessedResults.length / pageSize) ||
+                      allProcessedResults.length === 0
+                    }
+                    onClick={() =>
+                      setPage(Math.ceil(allProcessedResults.length / pageSize))
+                    }
+                    small
+                  />
                 </span>
-                <Button
-                  minimal
-                  icon={"chevron-right"}
-                  onClick={() => setPage(page + 1)}
-                  disabled={
-                    page === Math.ceil(allProcessedResults.length / pageSize) ||
-                    allProcessedResults.length === 0
-                  }
-                  small
-                />
-                <Button
-                  minimal
-                  icon={"double-chevron-right"}
-                  disabled={
-                    page === Math.ceil(allProcessedResults.length / pageSize) ||
-                    allProcessedResults.length === 0
-                  }
-                  onClick={() =>
-                    setPage(Math.ceil(allProcessedResults.length / pageSize))
-                  }
-                  small
-                />
-              </span>
-            </div>
-          </td>
-        </tr>
-      </tfoot>
-    </HTMLTable>
+              </div>
+            </td>
+          </tr>
+        </tfoot>
+      </HTMLTable>
+    </div>
   );
 };
 
