@@ -410,6 +410,30 @@ const ResultsTable = ({
     rightStartWidth: 0,
   });
 
+  const rafIdRef = useRef<number | null>(null);
+  const throttledSetColumnWidths = useCallback((update: ColumnWidths) => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+    rafIdRef.current = requestAnimationFrame(() =>
+      setColumnWidths(
+        (prev) =>
+          ({
+            ...prev,
+            ...update,
+          }) as ColumnWidths,
+      ),
+    );
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
+
   const [columnWidths, setColumnWidths] = useState(() => {
     const widths =
       typeof layout.widths === "string" ? [layout.widths] : layout.widths || [];
@@ -476,16 +500,24 @@ const ResultsTable = ({
       newLeftWidth -= adjustment;
     }
 
-    setColumnWidths((prev) => ({
-      ...prev,
+    throttledSetColumnWidths({
       [leftColumnUid]: `${newLeftWidth}px`,
       [rightColumnUid]: `${newRightWidth}px`,
-    }));
+    });
   }, []);
 
   const onDragEnd = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
     const totalWidth = tableContainerRef.current?.offsetWidth;
-    if (!totalWidth) return;
+    if (!totalWidth || totalWidth === 0) {
+      return;
+    }
+    const minWidth = 40;
+    const minPercent = (minWidth / totalWidth) * 100;
 
     const finalWidths: ColumnWidths = {};
     const uids = columns.map((c) => c.uid);
@@ -494,8 +526,13 @@ const ResultsTable = ({
         `th[data-column="${uid}"]`,
       );
       if (header) {
-        finalWidths[uid] =
-          `${((header as HTMLElement).offsetWidth / totalWidth) * 100}%`;
+        const headerWidth = (header as HTMLElement).offsetWidth;
+        if (headerWidth > 0) {
+          const percent = (headerWidth / totalWidth) * 100;
+          finalWidths[uid] = `${Math.max(minPercent, percent)}%`;
+        } else {
+          finalWidths[uid] = columnWidths[uid] || "5%";
+        }
       }
     });
     setColumnWidths(finalWidths);
@@ -508,7 +545,7 @@ const ResultsTable = ({
         values: Object.entries(finalWidths).map(([k, v]) => `${k} - ${v}`),
       });
     }
-  }, [columns, parentUid]);
+  }, [columns, parentUid, columnWidths]);
 
   const resultHeaderSetFilters = React.useCallback(
     (fs: FilterData) => {
