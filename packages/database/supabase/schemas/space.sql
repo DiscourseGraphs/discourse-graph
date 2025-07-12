@@ -33,8 +33,8 @@ CREATE OR REPLACE FUNCTION public.get_space_anonymous_email(platform public."Pla
 $$;
 
 
--- TODO: on delete trigger anonymous user
-CREATE OR REPLACE FUNCTION public.after_delete_space() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+-- on delete trigger anonymous user. Needs to be DEFINER to allow delete on user.auth.
+CREATE OR REPLACE FUNCTION public.after_delete_space() RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
     DELETE FROM auth.users WHERE email = public.get_space_anonymous_email(OLD.platform, OLD.id);
     DELETE FROM public."PlatformAccount"
@@ -45,3 +45,5 @@ END;
 $$;
 
 CREATE TRIGGER on_delete_space_trigger AFTER DELETE ON public."Space" FOR EACH ROW EXECUTE FUNCTION public.after_delete_space();
+
+-- RLS security in account file.

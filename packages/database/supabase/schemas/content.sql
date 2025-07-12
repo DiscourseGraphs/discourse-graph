@@ -144,11 +144,11 @@ COMMENT ON COLUMN public."Content".last_modified IS 'The last time the content w
 COMMENT ON COLUMN public."Content".part_of_id IS 'This content is part of a larger content unit';
 
 
-GRANT ALL ON TABLE public."Document" TO anon;
+REVOKE ALL ON TABLE public."Document" FROM anon;
 GRANT ALL ON TABLE public."Document" TO authenticated;
 GRANT ALL ON TABLE public."Document" TO service_role;
 
-GRANT ALL ON TABLE public."Content" TO anon;
+REVOKE ALL ON TABLE public."Content" FROM anon;
 GRANT ALL ON TABLE public."Content" TO authenticated;
 GRANT ALL ON TABLE public."Content" TO service_role;
 
@@ -499,3 +499,35 @@ END;
 $$ ;
 
 COMMENT ON FUNCTION public.upsert_content IS 'batch content upsert' ;
+
+CREATE OR REPLACE FUNCTION public.content_in_space (content_id BIGINT) RETURNS boolean
+STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT public.in_space(space_id) FROM public."Content" WHERE id=content_id
+$$ ;
+
+COMMENT ON FUNCTION public.content_in_space IS 'security utility: does current user have access to this content''s space?' ;
+
+ALTER TABLE public."Document" ENABLE ROW LEVEL SECURITY ;
+
+DROP POLICY IF EXISTS platform_account_insert_policy ON public."Document" ;
+CREATE POLICY platform_account_insert_policy ON public."Document" FOR INSERT WITH CHECK (public.in_space (space_id)) ;
+
+DROP POLICY IF EXISTS platform_account_update_policy ON public."Document" ;
+CREATE POLICY platform_account_update_policy ON public."Document" FOR UPDATE USING (public.in_space (space_id)) ;
+
+DROP POLICY IF EXISTS platform_account_select_policy ON public."Document" ;
+CREATE POLICY platform_account_select_policy ON public."Document" FOR SELECT USING (public.in_space (space_id)) ;
+
+ALTER TABLE public."Content" ENABLE ROW LEVEL SECURITY ;
+
+DROP POLICY IF EXISTS platform_account_insert_policy ON public."Content" ;
+CREATE POLICY platform_account_insert_policy ON public."Content" FOR INSERT WITH CHECK (public.in_space (space_id)) ;
+
+DROP POLICY IF EXISTS platform_account_update_policy ON public."Content" ;
+CREATE POLICY platform_account_update_policy ON public."Content" FOR UPDATE USING (public.in_space (space_id)) ;
+
+DROP POLICY IF EXISTS platform_account_select_policy ON public."Content" ;
+CREATE POLICY platform_account_select_policy ON public."Content" FOR SELECT USING (public.in_space (space_id)) ;
