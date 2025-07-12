@@ -202,7 +202,10 @@ CREATE TYPE public.content_local_input AS (
 
 
 -- private function. Transform document with local (platform) references to document with db references
-CREATE OR REPLACE FUNCTION public._local_document_to_db_document(data public.document_local_input) RETURNS public."Document" LANGUAGE plpgsql STABLE AS $$
+CREATE OR REPLACE FUNCTION public._local_document_to_db_document(data public.document_local_input)
+RETURNS public."Document" LANGUAGE plpgsql STABLE
+SET search_path = ''
+AS $$
 DECLARE
   document public."Document"%ROWTYPE;
   reference_content JSONB := jsonb_build_object();
@@ -228,10 +231,13 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public._local_document_to_db_document IS 'utility function so we have the option to use platform identifiers for document upsert' ;
+COMMENT ON FUNCTION public._local_document_to_db_document IS 'utility function so we have the option to use platform identifiers for document upsert';
 
 -- private function. Transform content with local (platform) references to content with db references
-CREATE OR REPLACE FUNCTION public._local_content_to_db_content (data public.content_local_input) RETURNS public."Content" LANGUAGE plpgsql STABLE AS $$
+CREATE OR REPLACE FUNCTION public._local_content_to_db_content(data public.content_local_input)
+RETURNS public."Content" STABLE
+SET search_path = ''
+LANGUAGE plpgsql AS $$
 DECLARE
   content public."Content"%ROWTYPE;
   reference_content JSONB := jsonb_build_object();
@@ -267,14 +273,15 @@ BEGIN
   END IF;
   RETURN content;
 END;
-$$ ;
+$$;
 
-COMMENT ON FUNCTION public._local_content_to_db_content IS 'utility function so we have the option to use platform identifiers for content upsert' ;
+COMMENT ON FUNCTION public._local_content_to_db_content IS 'utility function so we have the option to use platform identifiers for content upsert';
 
 -- The data should be a PlatformAccount
 -- PlatformAccount is upserted, based on platform and account_local_id. New (or old) ID is returned.
-CREATE OR REPLACE FUNCTION public.upsert_platform_account_input (account_info public."PlatformAccount", p_platform public."Platform")
+CREATE OR REPLACE FUNCTION public.upsert_platform_account_input(account_info public."PlatformAccount", p_platform public."Platform")
 RETURNS BIGINT
+SET search_path = ''
 LANGUAGE sql
 AS $$
     INSERT INTO public."PlatformAccount" (
@@ -302,12 +309,13 @@ AS $$
       agent_type = COALESCE(agent_type(account_info), EXCLUDED.agent_type, 'person'),
       metadata = COALESCE(metadata(account_info), EXCLUDED.metadata, '{}')
   RETURNING id;
-$$ ;
+$$;
 
 -- The data should be an array of LocalDocumentDataInput
 -- Documents are upserted, based on space_id and local_id. New (or old) IDs are returned.
-CREATE OR REPLACE FUNCTION public.upsert_documents (v_space_id bigint, data jsonb)
+CREATE OR REPLACE FUNCTION public.upsert_documents(v_space_id bigint, data jsonb)
 RETURNS SETOF BIGINT
+SET search_path = ''
 LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -356,11 +364,12 @@ BEGIN
     RETURN NEXT upsert_id;
   END LOOP;
 END;
-$$ ;
+$$;
 
-COMMENT ON FUNCTION public.upsert_documents IS 'batch document upsert' ;
+COMMENT ON FUNCTION public.upsert_documents IS 'batch document upsert';
 
-CREATE OR REPLACE FUNCTION public.upsert_content_embedding (content_id bigint, model varchar, embedding_array float []) RETURNS VOID
+CREATE OR REPLACE FUNCTION public.upsert_content_embedding(content_id bigint, model varchar, embedding_array float []) RETURNS VOID
+SET search_path = ''
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -376,14 +385,14 @@ BEGIN
         -- do not fail just because of the embedding
     END IF;
 END
-$$ ;
+$$;
 
-COMMENT ON FUNCTION public.upsert_content_embedding IS 'single content embedding upsert' ;
+COMMENT ON FUNCTION public.upsert_content_embedding IS 'single content embedding upsert';
 
 -- The data should be an array of LocalContentDataInput
 -- Contents are upserted, based on space_id and local_id. New (or old) IDs are returned.
 -- This may trigger creation of PlatformAccounts and Documents appropriately.
-CREATE OR REPLACE FUNCTION public.upsert_content (v_space_id bigint, data jsonb, v_creator_id BIGINT, content_as_document boolean DEFAULT true)
+CREATE OR REPLACE FUNCTION public.upsert_content(v_space_id bigint, data jsonb, v_creator_id BIGINT, content_as_document boolean DEFAULT true)
 RETURNS SETOF BIGINT
 LANGUAGE plpgsql
 AS $$
@@ -496,6 +505,6 @@ BEGIN
     RETURN NEXT upsert_id;
   END LOOP;
 END;
-$$ ;
+$$;
 
-COMMENT ON FUNCTION public.upsert_content IS 'batch content upsert' ;
+COMMENT ON FUNCTION public.upsert_content IS 'batch content upsert';
