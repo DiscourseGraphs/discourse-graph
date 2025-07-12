@@ -40,6 +40,7 @@ content_id bigint,
 roam_uid Text,
 text_content Text,
 similarity double precision)
+SET search_path = 'extensions'
 LANGUAGE sql STABLE
 AS $$
 SELECT
@@ -71,6 +72,7 @@ roam_uid Text,
 text_content Text,
 similarity double precision)
 LANGUAGE sql STABLE
+SET search_path = 'extensions'
 AS $$
 WITH subset_content_with_embeddings AS (
   -- Step 1: Identify content and fetch embeddings ONLY for the nodes in the provided Roam UID subset
