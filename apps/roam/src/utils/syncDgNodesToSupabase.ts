@@ -152,7 +152,6 @@ export const runFullEmbeddingProcess = async (
   console.log("runFullEmbeddingProcess: Fetching Roam discourse nodes…");
   if (roamNodes.length === 0) {
     console.log("runFullEmbeddingProcess: No discourse nodes found. Exiting.");
-    alert("No discourse nodes found in Roam to process.");
     return;
   }
   console.log(
@@ -168,7 +167,9 @@ export const runFullEmbeddingProcess = async (
     console.error(
       `runFullEmbeddingProcess: Embedding service failed – ${error.message}`,
     );
-    alert("Critical Error: Failed to generate embeddings. Process halted.");
+    console.log(
+      "Critical Error: Failed to generate embeddings. Process halted.",
+    );
     return;
   }
 
@@ -176,7 +177,9 @@ export const runFullEmbeddingProcess = async (
     console.error(
       "runFullEmbeddingProcess: Mismatch between node and embedding counts.",
     );
-    alert("Critical Error: Mismatch in embedding generation. Process halted.");
+    console.log(
+      "Critical Error: Mismatch in embedding generation. Process halted.",
+    );
     return;
   }
   console.log("runFullEmbeddingProcess: Embeddings generated successfully.");
@@ -210,7 +213,7 @@ export const runFullEmbeddingProcess = async (
         "Request body (full):",
         JSON.stringify(docsData, null, 2),
       );
-      alert("Failed to upsert documents. Process halted.");
+      console.log("Failed to upsert documents. Process halted.");
       return;
     }
   }

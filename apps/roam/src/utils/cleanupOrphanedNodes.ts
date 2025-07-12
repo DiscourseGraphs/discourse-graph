@@ -73,16 +73,19 @@ const deleteNodesFromSupabase = async (uids: string[]): Promise<number> => {
         ? "http://localhost:3000/api/supabase"
         : "https://discoursegraphs.com/api/supabase";
 
-    const deleteNodesResponse = await fetch(`${baseUrl}/delete-discourse-nodes`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const deleteNodesResponse = await fetch(
+      `${baseUrl}/delete-discourse-nodes`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          spaceId: context.spaceId,
+          uids,
+        }),
       },
-      body: JSON.stringify({
-        spaceId: context.spaceId,
-        uids,
-      }),
-    });
+    );
 
     if (!deleteNodesResponse.ok) {
       const errorText = await deleteNodesResponse.text();
@@ -110,7 +113,11 @@ export const cleanupOrphanedNodes = async (): Promise<void> => {
     if (orphanedUids.length === 0) {
       return;
     }
+    console.log(
+      `cleanupOrphanedNodes: Deleting ${orphanedUids.length} orphaned nodes from Supabase.`,
+    );
     await deleteNodesFromSupabase(orphanedUids);
+    console.log(`cleanupOrphanedNodes: Deleted orphaned nodes from Supabase.`);
   } catch (error) {
     console.error("Error in cleanupOrphanedNodes:", error);
   }

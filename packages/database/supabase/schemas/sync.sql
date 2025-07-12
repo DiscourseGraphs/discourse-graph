@@ -140,6 +140,7 @@ BEGIN
     task_interval := task_interval * (1+t_failure_count);
     IF coalesce(t_last_task_end, t_last_task_start) + task_interval < now() THEN
         -- we are ready to take on the task
+        result := t_last_task_start;
         UPDATE public.sync_info
         SET worker=s_worker, status='active', task_times_out_at = now() + timeout, last_task_start = start_time, failure_count=t_failure_count
         WHERE id=s_id;
