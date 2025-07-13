@@ -1,7 +1,11 @@
 import assert from "assert";
 import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import { createClient } from "@supabase/supabase-js";
-import type { Database, Enums } from "@repo/database/types.gen.ts";
+import {
+  Constants,
+  type Database,
+  type Enums,
+} from "@repo/database/types.gen.ts";
 import { spaceAnonUserEmail } from "@repo/ui/lib/utils";
 import {
   fetchOrCreateSpaceId,
@@ -9,17 +13,31 @@ import {
 } from "@repo/ui/lib/supabase/contextFunctions";
 
 type Platform = Enums<"Platform">;
+const PLATFORMS: readonly Platform[] = Constants.public.Enums.Platform;
 
-const getAnonymousClient = () =>
-  createClient<Database, "public", Database["public"]>(
+const getAnonymousClient = () => {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+    throw new Error(
+      "Missing required environment variables: SUPABASE_URL and SUPABASE_ANON_KEY",
+    );
+  }
+  return createClient<Database, "public", Database["public"]>(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_ANON_KEY!,
   );
-const getServiceClient = () =>
-  createClient<Database, "public", Database["public"]>(
+};
+
+const getServiceClient = () => {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      "Missing required environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
+    );
+  }
+  return createClient<Database, "public", Database["public"]>(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
+};
 
 const SPACE_ANONYMOUS_PASSWORD = "abcdefgh";
 
@@ -94,19 +112,21 @@ Given(
 const userEmail = (userAccountId: string) => `${userAccountId}@example.com`;
 
 When(
-  "the user {word} opens the roam plugin in space {word}",
-  async (userAccountId, spaceName) => {
+  "the user {word} opens the {word} plugin in space {word}",
+  async (userAccountId, platform, spaceName) => {
     // assumption: turbo dev is running. TODO: Make into hooks
+    if (PLATFORMS.indexOf(platform) < 0)
+      throw new Error(`Platform must be one of ${PLATFORMS}`);
     const localRefs: Record<string, any> = world.localRefs || {};
     const spaceId = await fetchOrCreateSpaceId({
       password: SPACE_ANONYMOUS_PASSWORD,
       url: `https://roamresearch.com/#/app/${spaceName}`,
       name: spaceName,
-      platform: "Roam",
+      platform,
     });
     localRefs[spaceName] = spaceId;
     const userId = await fetchOrCreatePlatformAccount({
-      platform: "Roam",
+      platform,
       accountLocalId: userAccountId,
       name: userAccountId,
       email: userEmail(userAccountId),
