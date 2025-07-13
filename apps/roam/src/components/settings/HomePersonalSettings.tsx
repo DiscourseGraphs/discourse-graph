@@ -126,12 +126,12 @@ const HomePersonalSettings = ({
   const getAutocompleteKey = (group: string) => autocompleteKeys[group] || 0;
 
   // Determine if embeddings have been uploaded on mount
-  useEffect(() => {
-    (async () => {
-      const lastUpdateTime = await getLastUpdateTimeByGraphName();
-      setEmbeddingsUploaded(lastUpdateTime !== null);
-    })();
-  }, []);
+  // useEffect(() => {
+  //   (async () => {
+  //     const lastUpdateTime = await getLastUpdateTime();
+  //     setEmbeddingsUploaded(lastUpdateTime !== null);
+  //   })();
+  // }, []);
 
   const embeddingsButtonText = embeddingsUploaded
     ? "Upload Updated Node Embeddings"

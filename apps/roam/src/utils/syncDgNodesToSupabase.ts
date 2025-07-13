@@ -478,12 +478,12 @@ export const createOrUpdateDiscourseEmbedding = async () => {
 
     // if its null, then run the full embedding process
     if (lastUpdateTime === null) {
-      await convertDgToSupabaseConcepts(allNodes);
       await runFullEmbeddingProcess(allNodes);
+      await convertDgToSupabaseConcepts(allNodes);
     } else {
       const nodesSince = await getAllDiscourseNodesSince(lastUpdateTime);
-      await convertDgToSupabaseConcepts(nodesSince);
       await runFullEmbeddingProcess(nodesSince);
+      await convertDgToSupabaseConcepts(nodesSince);
       await cleanupOrphanedNodes();
     }
 
