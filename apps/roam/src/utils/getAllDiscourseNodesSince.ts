@@ -9,6 +9,7 @@ export type RoamDiscourseNodeData = {
   created: string;
   last_modified: string;
   text: string;
+  type: string;
 };
 export const getAllDiscourseNodesSince = async (
   since: ISODateString,
@@ -35,11 +36,24 @@ export const getAllDiscourseNodesSince = async (
 
   const discourseNodes = getDiscourseNodes();
 
-  return result.filter((entity) => {
-    if (!entity.source_local_id) return false;
-    const node = findDiscourseNode(entity.source_local_id, discourseNodes);
-    if (!node) return false;
-    if (node.backedBy === "default") return false;
-    return Boolean(entity.text && entity.text.trim() !== "");
-  });
+  return result
+    .map((entity) => {
+      if (!entity.source_local_id) {
+        return null;
+      }
+      const node = findDiscourseNode(entity.source_local_id, discourseNodes);
+      if (
+        !node ||
+        node.backedBy === "default" ||
+        !entity.text ||
+        entity.text.trim() === ""
+      ) {
+        return null;
+      }
+      return {
+        ...entity,
+        type: node.type,
+      };
+    })
+    .filter((n): n is RoamDiscourseNodeData => n !== null);
 };

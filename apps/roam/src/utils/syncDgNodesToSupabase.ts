@@ -10,6 +10,16 @@ import {
   LocalContentDataInput,
 } from "../../../../packages/database/inputTypes";
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
+import getDiscourseRelations from "./getDiscourseRelations";
+import getDiscourseNodes from "./getDiscourseNodes";
+import {
+  discourseNodeBlockToLocalConcept,
+  discourseNodeSchemaToLocalConcept,
+  orderConceptsByDependency,
+  discourseRelationSchemaToLocalConcept,
+  discourseRelationDataToLocalConcept,
+} from "./conceptConversion";
+import getDiscourseRelationTriples from "./getDiscourseRelationTriples";
 
 const base_url =
   process.env.NODE_ENV === "development"
@@ -134,6 +144,90 @@ export async function proposeSyncTask(): Promise<SyncTaskInfo> {
     };
   }
 }
+
+export const convertDgToSupabaseConcepts = async (
+  nodesSince: RoamDiscourseNodeData[],
+) => {
+  console.log("Upserting concepts to Supabase: Starting process.");
+  const nodes = getDiscourseNodes().filter((n) => n.backedBy === "user");
+  const context = await getSupabaseContext();
+  if (!context) {
+    console.error("Could not get Supabase context. Aborting update.");
+    return;
+  }
+  const nodesTypesToLocalConcepts = nodes.map((node) => {
+    return discourseNodeSchemaToLocalConcept(context, node);
+  });
+
+  const relationSchemas = getDiscourseRelations();
+
+  const relationsToEmbed = relationSchemas.map((relation) => {
+    const localConcept = discourseRelationSchemaToLocalConcept(
+      context,
+      relation,
+    );
+    return localConcept;
+  });
+
+  const nodeBlockToLocalConcepts = nodesSince.map((node) => {
+    const localConcept = discourseNodeBlockToLocalConcept(context, {
+      nodeUid: node.source_local_id,
+      schemaUid: node.type,
+      text: node.text,
+    });
+    return localConcept;
+  });
+
+  const relationTriples = getDiscourseRelationTriples();
+  const relationLabelToId = Object.fromEntries(
+    relationSchemas.map((r) => [r.label, r.id]),
+  );
+  const relationBlockToLocalConcepts = relationTriples
+    .map(({ relation, source, target }) => {
+      const relationSchemaUid = relationLabelToId[relation];
+      if (!relationSchemaUid) {
+        return null;
+      }
+      return discourseRelationDataToLocalConcept(context, relationSchemaUid, {
+        source,
+        target,
+      });
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+
+  const conceptsToUpsert = [
+    ...nodesTypesToLocalConcepts,
+    ...relationsToEmbed,
+    ...nodeBlockToLocalConcepts,
+    ...relationBlockToLocalConcepts,
+  ];
+  const { ordered, missing } = orderConceptsByDependency(conceptsToUpsert);
+  if (missing.length > 0) {
+  }
+  const response = await fetch(`${base_url}/api/supabase/rpc/upsert-concepts`, {
+    method: "POST",
+    body: JSON.stringify({
+      v_space_id: context.spaceId,
+      data: ordered,
+    }),
+  });
+  const { error } = await response.json();
+  if (error) {
+    throw new Error(
+      `upsert_concepts failed: ${JSON.stringify(error, null, 2)}`,
+    );
+  }
+  console.log(
+    "Upserting concepts to Supabase: Successfully upserted concepts.",
+  );
+
+  return [
+    ...nodesTypesToLocalConcepts,
+    ...relationsToEmbed,
+    ...nodeBlockToLocalConcepts,
+    ...relationBlockToLocalConcepts,
+  ];
+};
 
 export const runFullEmbeddingProcess = async (
   roamNodes: RoamDiscourseNodeData[],
@@ -296,10 +390,12 @@ export const createOrUpdateDiscourseEmbedding = async () => {
     // if its null, then run the full embedding process
     if (lastUpdateTime === null) {
       await runFullEmbeddingProcess(allNodes);
+      await convertDgToSupabaseConcepts(allNodes);
     } else {
       const nodesSince = await getAllDiscourseNodesSince(lastUpdateTime);
       await runFullEmbeddingProcess(nodesSince);
       await cleanupOrphanedNodes();
+      await convertDgToSupabaseConcepts(nodesSince);
     }
 
     // Mark task as complete
