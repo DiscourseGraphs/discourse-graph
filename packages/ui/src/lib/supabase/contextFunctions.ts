@@ -7,7 +7,7 @@ import {
 
 type Platform = Enums<"Platform">;
 
-const base_url = nextApiRoot() + "/supabase";
+const baseUrl = nextApiRoot() + "/supabase";
 
 export const fetchOrCreateSpaceId = async (data: {
   password: string;
@@ -15,7 +15,7 @@ export const fetchOrCreateSpaceId = async (data: {
   name: string;
   platform: Platform;
 }): Promise<number> => {
-  const response = await fetch(base_url + "/space", {
+  const response = await fetch(baseUrl + "/space", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

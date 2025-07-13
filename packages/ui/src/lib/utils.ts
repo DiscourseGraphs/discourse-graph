@@ -10,7 +10,7 @@ export function cn(...inputs: ClassValue[]) {
 export const spaceAnonUserEmail = (platform: string, space_id: number) =>
   `${platform.toLowerCase()}-${space_id}-anon@database.discoursegraphs.com`;
 
-export const IS_DEV = process.env.NODE_ENV !== "production";
+const IS_DEV = process.env.NODE_ENV !== "production";
 
 export const nextApiRoot = (): string => {
   if (

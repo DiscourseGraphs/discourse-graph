@@ -7,11 +7,7 @@ import { Enums } from "@repo/database/types.gen";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
-import {
-  createClient,
-  type DGSupabaseClient,
-} from "@repo/ui/lib/supabase/client";
-import { spaceAnonUserEmail } from "@repo/ui/lib/utils";
+import { type DGSupabaseClient } from "@repo/ui/lib/supabase/client";
 import {
   fetchOrCreateSpaceId,
   fetchOrCreatePlatformAccount,
