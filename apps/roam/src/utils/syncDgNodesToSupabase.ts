@@ -144,6 +144,85 @@ export async function proposeSyncTask(): Promise<SyncTaskInfo> {
     };
   }
 }
+const upsertNodeSchemaToContent = async (
+  nodesUids: string[],
+  spaceId: number,
+  userId: number,
+) => {
+  const query = `[
+  :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title
+  :keys     source_local_id    created    last_modified    author_local_id    text
+  :in       $  [?uid ...]
+  :where
+    [?e :block/uid       ?uid]
+    [?e :node/title      ?title]
+    [?e :create/user     ?user-eid]
+    [?user-eid :user/uid ?user-uuid]
+    [?e :create/time     ?create-time]
+    [?e :edit/time       ?edit-time]
+]
+`;
+  // @ts-ignore - backend to be added to roamjs-components
+  const result = (await window.roamAlphaAPI.data.backend.q(
+    query,
+    nodesUids,
+  )) as unknown as RoamDiscourseNodeData[];
+
+  const docsData: LocalDocumentDataInput[] = result.map((node) => ({
+    source_local_id: node.source_local_id,
+    created: new Date(node.created || Date.now()).toISOString(),
+    last_modified: new Date(node.last_modified || Date.now()).toISOString(),
+    author_id: userId,
+  }));
+  {
+    const response = await fetch(
+      `${base_url}/api/supabase/rpc/upsert-documents`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          v_space_id: spaceId,
+          data: docsData as any,
+        }),
+      },
+    );
+    const { error } = await response.json();
+    if (error) {
+      console.error(
+        "runFullEmbeddingProcess: upsert_documents failed:",
+        error,
+        "Request body (full):",
+        JSON.stringify(docsData, null, 2),
+      );
+      console.log("Failed to upsert documents. Process halted.");
+      return;
+    }
+  }
+
+  const contentData: LocalContentDataInput[] = result.map((node) => ({
+    author_local_id: node.author_local_id,
+    document_local_id: node.source_local_id,
+    source_local_id: node.source_local_id,
+    scale: "document",
+    created: new Date(node.created || Date.now()).toISOString(),
+    last_modified: new Date(node.last_modified || Date.now()).toISOString(),
+    text: node.text,
+  }));
+  console.log("contentData", contentData);
+  const response = await fetch(`${base_url}/api/supabase/rpc/upsert-content`, {
+    method: "POST",
+    body: JSON.stringify({
+      v_space_id: spaceId,
+      v_creator_id: userId,
+      data: contentData as any,
+      content_as_document: false,
+    }),
+  });
+  const { error } = await response.json();
+  if (error) {
+    console.error("upsert_content failed:", error);
+  }
+  console.log("contentData upserted successfully");
+};
 
 export const convertDgToSupabaseConcepts = async (
   nodesSince: RoamDiscourseNodeData[],
@@ -155,6 +234,16 @@ export const convertDgToSupabaseConcepts = async (
     console.error("Could not get Supabase context. Aborting update.");
     return;
   }
+  console.log(
+    "nodes",
+    nodes.map((node) => node.type),
+  );
+  await upsertNodeSchemaToContent(
+    nodes.map((node) => node.type),
+    context.spaceId,
+    context.userId,
+  );
+
   const nodesTypesToLocalConcepts = nodes.map((node) => {
     return discourseNodeSchemaToLocalConcept(context, node);
   });
@@ -389,13 +478,13 @@ export const createOrUpdateDiscourseEmbedding = async () => {
 
     // if its null, then run the full embedding process
     if (lastUpdateTime === null) {
-      await runFullEmbeddingProcess(allNodes);
       await convertDgToSupabaseConcepts(allNodes);
+      await runFullEmbeddingProcess(allNodes);
     } else {
       const nodesSince = await getAllDiscourseNodesSince(lastUpdateTime);
+      await convertDgToSupabaseConcepts(nodesSince);
       await runFullEmbeddingProcess(nodesSince);
       await cleanupOrphanedNodes();
-      await convertDgToSupabaseConcepts(nodesSince);
     }
 
     // Mark task as complete
