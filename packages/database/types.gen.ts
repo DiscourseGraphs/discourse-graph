@@ -473,6 +473,7 @@ export type Database = {
           status: Database["public"]["Enums"]["task_status"] | null
           sync_function: string | null
           sync_target: number | null
+          target_type: Database["public"]["Enums"]["EntityType"]
           task_times_out_at: string | null
           worker: string
         }
@@ -484,6 +485,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["task_status"] | null
           sync_function?: string | null
           sync_target?: number | null
+          target_type?: Database["public"]["Enums"]["EntityType"]
           task_times_out_at?: string | null
           worker: string
         }
@@ -495,6 +497,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["task_status"] | null
           sync_function?: string | null
           sync_target?: number | null
+          target_type?: Database["public"]["Enums"]["EntityType"]
           task_times_out_at?: string | null
           worker?: string
         }
@@ -563,7 +566,7 @@ export type Database = {
         }
       }
       alpha_delete_by_source_local_ids: {
-        Args: { p_space_name: string; p_source_local_ids: string[] }
+        Args: { p_source_local_ids: string[]; p_space_name: string }
         Returns: string
       }
       alpha_get_last_update_time: {
@@ -574,31 +577,34 @@ export type Database = {
       }
       alpha_upsert_discourse_nodes: {
         Args: {
+          p_nodes: Json
           p_space_name: string
           p_user_email: string
           p_user_name: string
-          p_nodes: Json
         }
         Returns: string
       }
-      compute_arity_id: {
-        Args: { p_schema_id: number }
-        Returns: number
-      }
-      compute_arity_lit: {
-        Args: { lit_content: Json }
-        Returns: number
-      }
       compute_arity_local: {
-        Args: { schema_id: number; lit_content: Json }
+        Args: { lit_content: Json; schema_id: number }
+        Returns: number
+      }
+      create_account_in_space: {
+        Args: {
+          email_?: string
+          name_: string
+          editor_?: boolean
+          space_id_: number
+          account_local_id_: string
+          email_trusted?: boolean
+        }
         Returns: number
       }
       end_sync_task: {
         Args: {
+          s_status: Database["public"]["Enums"]["task_status"]
           s_target: number
           s_function: string
           s_worker: string
-          s_status: Database["public"]["Enums"]["task_status"]
         }
         Returns: undefined
       }
@@ -612,36 +618,43 @@ export type Database = {
           uid_to_sync: string
         }[]
       }
+      get_space_anonymous_email: {
+        Args: {
+          platform: Database["public"]["Enums"]["Platform"]
+          space_id: number
+        }
+        Returns: string
+      }
       match_content_embeddings: {
         Args: {
-          query_embedding: string
-          match_threshold: number
           match_count: number
+          match_threshold: number
+          query_embedding: string
           current_document_id?: number
         }
         Returns: {
-          content_id: number
-          roam_uid: string
           text_content: string
           similarity: number
+          roam_uid: string
+          content_id: number
         }[]
       }
       match_embeddings_for_subset_nodes: {
         Args: { p_query_embedding: string; p_subset_roam_uids: string[] }
         Returns: {
           content_id: number
-          roam_uid: string
-          text_content: string
           similarity: number
+          text_content: string
+          roam_uid: string
         }[]
       }
       propose_sync_task: {
         Args: {
+          timeout: unknown
+          s_worker: string
+          task_interval: unknown
           s_target: number
           s_function: string
-          s_worker: string
-          timeout: unknown
-          task_interval: unknown
         }
         Returns: string
       }
@@ -651,22 +664,19 @@ export type Database = {
       }
       upsert_content: {
         Args: {
-          v_space_id: number
           data: Json
-          v_creator_id: number
+          v_space_id: number
           content_as_document?: boolean
+          v_creator_id: number
         }
         Returns: number[]
       }
       upsert_content_embedding: {
-        Args: { content_id: number; model: string; embedding_array: number[] }
+        Args: { model: string; content_id: number; embedding_array: number[] }
         Returns: undefined
       }
       upsert_discourse_nodes: {
         Args: {
-          p_space_name: string
-          p_user_email: string
-          p_user_name: string
           p_nodes: Json
           p_platform_name?: string
           p_platform_url?: string
@@ -675,6 +685,9 @@ export type Database = {
           p_content_scale?: string
           p_embedding_model?: string
           p_document_source_id?: string
+          p_space_name: string
+          p_user_email: string
+          p_user_name: string
         }
         Returns: {
           content_id: number
@@ -686,17 +699,10 @@ export type Database = {
         Args: { v_space_id: number; data: Json }
         Returns: number[]
       }
-      upsert_platform_account_input: {
-        Args: {
-          account_info: Database["public"]["Tables"]["PlatformAccount"]["Row"]
-          p_platform: Database["public"]["Enums"]["Platform"]
-        }
-        Returns: number
-      }
     }
     Enums: {
       AgentIdentifierType: "email" | "orcid"
-      AgentType: "person" | "organization" | "automated_agent"
+      AgentType: "person" | "organization" | "automated_agent" | "anonymous"
       EmbeddingName:
         | "openai_text_embedding_ada2_1536"
         | "openai_text_embedding_3_small_512"
@@ -922,7 +928,7 @@ export const Constants = {
   public: {
     Enums: {
       AgentIdentifierType: ["email", "orcid"],
-      AgentType: ["person", "organization", "automated_agent"],
+      AgentType: ["person", "organization", "automated_agent", "anonymous"],
       EmbeddingName: [
         "openai_text_embedding_ada2_1536",
         "openai_text_embedding_3_small_512",

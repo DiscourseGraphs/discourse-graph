@@ -10,6 +10,7 @@ ALTER TYPE public.task_status OWNER TO "postgres";
 CREATE TABLE IF NOT EXISTS public.sync_info (
     id integer NOT NULL,
     sync_target bigint,
+    target_type public."EntityType" NOT NULL DEFAULT 'Space'::public."EntityType",
     sync_function character varying(20),
     status public.task_status DEFAULT 'active'::public.task_status,
     worker character varying(100) NOT NULL,
@@ -50,11 +51,12 @@ CREATE OR REPLACE FUNCTION public.end_sync_task(
     s_worker character varying,
     s_status public.task_status
 ) RETURNS void
+SET search_path = ''
 LANGUAGE plpgsql
 AS $$
 DECLARE t_id INTEGER;
 DECLARE t_worker varchar;
-DECLARE t_status task_status;
+DECLARE t_status public.task_status;
 DECLARE t_failure_count SMALLINT;
 DECLARE t_last_task_end TIMESTAMP WITH TIME ZONE;
 BEGIN
@@ -97,11 +99,12 @@ CREATE OR REPLACE FUNCTION public.propose_sync_task(
     "timeout" interval,
     "task_interval" interval
 ) RETURNS timestamp with time zone
+SET search_path = ''
 LANGUAGE plpgsql
 AS $$
 DECLARE s_id INTEGER;
 DECLARE start_time TIMESTAMP WITH TIME ZONE := now();
-DECLARE t_status task_status;
+DECLARE t_status public.task_status;
 DECLARE t_failure_count SMALLINT;
 DECLARE t_last_task_start TIMESTAMP WITH TIME ZONE;
 DECLARE t_last_task_end TIMESTAMP WITH TIME ZONE;
@@ -140,6 +143,7 @@ BEGIN
     task_interval := task_interval * (1+t_failure_count);
     IF coalesce(t_last_task_end, t_last_task_start) + task_interval < now() THEN
         -- we are ready to take on the task
+        result := t_last_task_start;
         UPDATE public.sync_info
         SET worker=s_worker, status='active', task_times_out_at = now() + timeout, last_task_start = start_time, failure_count=t_failure_count
         WHERE id=s_id;
@@ -168,6 +172,7 @@ ALTER FUNCTION public.propose_sync_task(
 
 CREATE OR REPLACE FUNCTION public.get_nodes_needing_sync(nodes_from_roam jsonb)
 RETURNS TABLE (uid_to_sync text)
+SET search_path = ''
 LANGUAGE plpgsql
 AS $function$
     DECLARE

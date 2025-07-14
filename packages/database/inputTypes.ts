@@ -1,4 +1,4 @@
-import { Database, TablesInsert } from "./types.gen.ts";
+import { Database, TablesInsert } from "./types.gen";
 
 export type LocalDocumentDataInput = Partial<
   Omit<Database['public']["CompositeTypes"]["document_local_input"], "author_inline">

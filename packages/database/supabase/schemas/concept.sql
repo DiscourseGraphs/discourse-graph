@@ -12,24 +12,27 @@ CREATE TYPE public."EpistemicStatus" AS ENUM (
 
 ALTER TYPE public."EpistemicStatus" OWNER TO postgres;
 
-CREATE OR REPLACE FUNCTION extract_references(refs JSONB) RETURNS BIGINT [] LANGUAGE sql IMMUTABLE AS $$
+CREATE OR REPLACE FUNCTION public.extract_references(refs JSONB)
+RETURNS BIGINT [] IMMUTABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
   SELECT COALESCE(array_agg(i::bigint), '{}') FROM (SELECT DISTINCT jsonb_array_elements(jsonb_path_query_array(refs, '$.*[*]')) i) exrefs;
 $$;
 
-CREATE OR REPLACE FUNCTION compute_arity_lit(lit_content JSONB) RETURNS smallint LANGUAGE sql IMMUTABLE AS $$
-  SELECT COALESCE(jsonb_array_length(lit_content->'roles'), 0);
-$$;
-
 SET check_function_bodies = false;
-CREATE OR REPLACE FUNCTION compute_arity_id(p_schema_id BIGINT) RETURNS smallint LANGUAGE sql IMMUTABLE AS $$
-  SELECT COALESCE(jsonb_array_length(literal_content->'roles'), 0) FROM public."Concept" WHERE id=p_schema_id;
+CREATE OR REPLACE FUNCTION public.compute_arity_local(schema_id BIGINT, lit_content JSONB)
+RETURNS smallint IMMUTABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+  SELECT CASE WHEN schema_id IS NULL THEN (
+    SELECT COALESCE(jsonb_array_length(lit_content->'roles'), 0)
+  ) ELSE (
+    SELECT COALESCE(jsonb_array_length(literal_content->'roles'), 0) FROM public."Concept" WHERE id=compute_arity_local.schema_id
+  ) END;
 $$;
 SET check_function_bodies = true;
-
-CREATE OR REPLACE FUNCTION compute_arity_local(schema_id BIGINT, lit_content JSONB) RETURNS smallint LANGUAGE sql IMMUTABLE AS $$
-  SELECT CASE WHEN schema_id IS NULL THEN compute_arity_lit(lit_content) ELSE compute_arity_id(schema_id) END;
-$$;
-
 
 CREATE TABLE IF NOT EXISTS public."Concept" (
     id bigint DEFAULT nextval(
@@ -136,7 +139,11 @@ CREATE TYPE public.concept_local_input AS (
 );
 
 -- private function. Transform concept with local (platform) references to concept with db references
-CREATE OR REPLACE FUNCTION public._local_concept_to_db_concept(data public.concept_local_input) RETURNS public."Concept" LANGUAGE plpgsql STABLE AS $$
+CREATE OR REPLACE FUNCTION public._local_concept_to_db_concept(data public.concept_local_input)
+RETURNS public."Concept" STABLE
+SET search_path = ''
+LANGUAGE plpgsql
+AS $$
 DECLARE
   concept public."Concept"%ROWTYPE;
   reference_content JSONB := jsonb_build_object();
@@ -195,6 +202,7 @@ $$;
 -- name conflicts will cause an insertion failure, and the ID will be given as -1
 CREATE OR REPLACE FUNCTION public.upsert_concepts(v_space_id bigint, data jsonb)
 RETURNS SETOF BIGINT
+SET search_path = ''
 LANGUAGE plpgsql
 AS $$
 DECLARE

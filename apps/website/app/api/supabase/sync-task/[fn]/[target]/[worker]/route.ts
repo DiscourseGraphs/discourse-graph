@@ -6,6 +6,7 @@ import {
   createApiResponse,
   asPostgrestFailure,
   handleRouteError,
+  defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
 
 type ApiParams = Promise<{ target: string; fn: string; worker: string }>;
@@ -53,3 +54,5 @@ export const POST = async (
     return handleRouteError(request, e, "/api/supabase/sync-task");
   }
 };
+
+export const OPTIONS = defaultOptionsHandler;
