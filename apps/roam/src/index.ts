@@ -22,7 +22,14 @@ import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
-import { createOrUpdateDiscourseEmbedding } from "./utils/syncDgNodesToSupabase";
+import {
+  convertDgToSupabaseConcepts,
+  endSyncTask,
+  proposeSyncTask,
+  runFullEmbeddingProcess,
+} from "./utils/syncDgNodesToSupabase";
+import { cleanupOrphanedNodes } from "./utils/cleanupOrphanedNodes";
+import { getAllDiscourseNodesSince } from "./utils/getAllDiscourseNodesSince";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -49,17 +56,40 @@ const initPostHog = () => {
 };
 
 const initEmbeddingSync = async () => {
-  try {
+  console.log("createOrUpdateDiscourseEmbedding: Starting process.");
+
+  const syncInfo = await proposeSyncTask();
+
+  if (!syncInfo.shouldProceed) {
     console.log(
-      "Discourse Graph: Starting automatic embedding sync on load...",
+      "createOrUpdateDiscourseEmbedding: Task already running or failed to acquire lock. Exiting.",
     );
-    await createOrUpdateDiscourseEmbedding();
-    console.log("Discourse Graph: Embedding sync completed successfully.");
+    return;
+  }
+
+  const { lastUpdateTime, spaceId, worker } = syncInfo;
+  console.log("Last update time:", lastUpdateTime);
+
+  try {
+    if (lastUpdateTime === null) {
+      console.log(
+        "createOrUpdateDiscourseEmbedding: No last update time, running full embedding process.",
+      );
+    } else {
+      const nodesSince = await getAllDiscourseNodesSince(lastUpdateTime);
+      await runFullEmbeddingProcess(nodesSince);
+      await convertDgToSupabaseConcepts(nodesSince);
+      await cleanupOrphanedNodes();
+    }
+
+    await endSyncTask(spaceId, worker, "complete");
+    console.log(
+      "createOrUpdateDiscourseEmbedding: Process completed successfully.",
+    );
   } catch (error) {
-    console.error(
-      "Discourse Graph: Error during automatic embedding sync:",
-      error,
-    );
+    console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
+    await endSyncTask(spaceId, worker, "failed");
+    throw error;
   }
 };
 

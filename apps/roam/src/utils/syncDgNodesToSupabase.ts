@@ -33,7 +33,7 @@ type SyncTaskInfo = {
   shouldProceed: boolean;
 };
 
-async function endSyncTask(
+export async function endSyncTask(
   spaceId: number,
   worker: string,
   status: "complete" | "failed",
@@ -174,6 +174,7 @@ const upsertNodeSchemaToContent = async (
     last_modified: new Date(node.last_modified || Date.now()).toISOString(),
     author_id: userId,
   }));
+  console.log("upserting node schemas to documents");
   {
     const response = await fetch(
       `${base_url}/api/supabase/rpc/upsert-documents`,
@@ -207,7 +208,6 @@ const upsertNodeSchemaToContent = async (
     last_modified: new Date(node.last_modified || Date.now()).toISOString(),
     text: node.text,
   }));
-  console.log("contentData", contentData);
   const response = await fetch(`${base_url}/api/supabase/rpc/upsert-content`, {
     method: "POST",
     body: JSON.stringify({
@@ -234,10 +234,6 @@ export const convertDgToSupabaseConcepts = async (
     console.error("Could not get Supabase context. Aborting update.");
     return;
   }
-  console.log(
-    "nodes",
-    nodes.map((node) => node.type),
-  );
   await upsertNodeSchemaToContent(
     nodes.map((node) => node.type),
     context.spaceId,
@@ -293,6 +289,7 @@ export const convertDgToSupabaseConcepts = async (
   const { ordered, missing } = orderConceptsByDependency(conceptsToUpsert);
   if (missing.length > 0) {
   }
+  console.log("upserting concepts to supabase", ordered);
   const response = await fetch(`${base_url}/api/supabase/rpc/upsert-concepts`, {
     method: "POST",
     body: JSON.stringify({
@@ -306,9 +303,7 @@ export const convertDgToSupabaseConcepts = async (
       `upsert_concepts failed: ${JSON.stringify(error, null, 2)}`,
     );
   }
-  console.log(
-    "Upserting concepts to Supabase: Successfully upserted concepts.",
-  );
+  console.log("Successfully upserted concepts.");
 
   return [
     ...nodesTypesToLocalConcepts,
@@ -326,26 +321,25 @@ export const runFullEmbeddingProcess = async (
   // 1. Resolve Supabase context (space/user ids) and create a logged-in client
   const context = await getSupabaseContext();
   if (!context) {
-    console.error("runFullEmbeddingProcess: No Supabase context found.");
+    console.error("No Supabase context found.");
     return;
   }
   const { spaceId, userId } = context;
 
   // 2. Gather discourse nodes from Roam
-  console.log("runFullEmbeddingProcess: Fetching Roam discourse nodes…");
+  console.log("Fetching Roam discourse nodes…");
   if (roamNodes.length === 0) {
-    console.log("runFullEmbeddingProcess: No discourse nodes found. Exiting.");
+    console.log("No discourse nodes found. Exiting.");
     return;
   }
-  console.log(
-    `runFullEmbeddingProcess: Found ${roamNodes.length} discourse nodes.`,
-  );
+  console.log(`Found ${roamNodes.length} discourse nodes.`);
 
   // 3. Generate embeddings for every node title
   let nodesWithEmbeddings: DiscourseGraphContent[];
   try {
-    console.log("runFullEmbeddingProcess: Generating embeddings…");
+    console.log(" Generating embeddings…");
     nodesWithEmbeddings = await fetchEmbeddingsForNodes(roamNodes);
+    console.log(" Embeddings generated successfully.");
   } catch (error: any) {
     console.error(
       `runFullEmbeddingProcess: Embedding service failed – ${error.message}`,
@@ -401,7 +395,7 @@ export const runFullEmbeddingProcess = async (
     }
   }
 
-  console.log("runFullEmbeddingProcess: Documents upserted successfully.");
+  console.log(" Documents upserted successfully.");
 
   // 5. Build LocalContentDataInput objects and upsert them in batches
   const batchSize = 200;
@@ -424,7 +418,7 @@ export const runFullEmbeddingProcess = async (
     }));
 
     console.log(
-      `runFullEmbeddingProcess: Uploading batch ${i / batchSize + 1} (${contents.length} items)…`,
+      `Uploading batch ${i / batchSize + 1} (${contents.length} items)…`,
     );
 
     const response = await fetch(
@@ -443,19 +437,16 @@ export const runFullEmbeddingProcess = async (
 
     if (error) {
       console.error(
-        `runFullEmbeddingProcess: upsert_content failed for batch starting at index ${i}:`,
+        `upsert_content failed for batch starting at index ${i}:`,
         error,
       );
       throw error;
     }
 
-    console.log(
-      `runFullEmbeddingProcess: Successfully processed batch ${i / batchSize + 1}.`,
-      data,
-    );
+    console.log(`Successfully processed batch ${i / batchSize + 1}.`, data);
   }
 
-  console.log("runFullEmbeddingProcess: All batches processed successfully.");
+  console.log("All batches processed successfully.");
 };
 
 export const createOrUpdateDiscourseEmbedding = async () => {
@@ -474,10 +465,9 @@ export const createOrUpdateDiscourseEmbedding = async () => {
   console.log("Last update time:", lastUpdateTime);
 
   try {
-    const allNodes = await getAllDiscourseNodesSince("1970-01-01");
-
     // if its null, then run the full embedding process
     if (lastUpdateTime === null) {
+      const allNodes = await getAllDiscourseNodesSince("1970-01-01");
       await runFullEmbeddingProcess(allNodes);
       await convertDgToSupabaseConcepts(allNodes);
     } else {

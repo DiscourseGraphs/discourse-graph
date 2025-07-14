@@ -192,6 +192,7 @@ const deleteNodeSchemasFromSupabase = async (
 };
 
 export const cleanupOrphanedNodes = async (): Promise<void> => {
+  console.log("CleanupOrphanedNodes: Starting process.");
   try {
     const supabaseUids = await getAllNodesFromSupabase();
     console.log("supabaseUids", supabaseUids);

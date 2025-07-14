@@ -15,7 +15,11 @@ import {
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
-import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
+import {
+  createOrUpdateDiscourseEmbedding,
+  endSyncTask,
+  proposeSyncTask,
+} from "~/utils/syncDgNodesToSupabase";
 
 const HomePersonalSettings = ({
   onloadArgs,
@@ -126,12 +130,13 @@ const HomePersonalSettings = ({
   const getAutocompleteKey = (group: string) => autocompleteKeys[group] || 0;
 
   // Determine if embeddings have been uploaded on mount
-  // useEffect(() => {
-  //   (async () => {
-  //     const lastUpdateTime = await getLastUpdateTime();
-  //     setEmbeddingsUploaded(lastUpdateTime !== null);
-  //   })();
-  // }, []);
+  useEffect(() => {
+    (async () => {
+      const { lastUpdateTime, spaceId, worker } = await proposeSyncTask();
+      setEmbeddingsUploaded(lastUpdateTime !== null);
+      await endSyncTask(spaceId, worker, "complete");
+    })();
+  }, []);
 
   const embeddingsButtonText = embeddingsUploaded
     ? "Upload Updated Node Embeddings"

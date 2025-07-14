@@ -9,7 +9,7 @@ export type DiscourseGraphContent = {
   vector: number[];
 };
 
-const EMBEDDING_BATCH_SIZE = 100;
+const EMBEDDING_BATCH_SIZE = 200;
 const API_URL = `https://discoursegraphs.com/api/embeddings/openai/small`;
 
 type EmbeddingApiResponse = {
@@ -26,6 +26,9 @@ export const fetchEmbeddingsForNodes = async (
 
   for (let i = 0; i < allNodesTexts.length; i += EMBEDDING_BATCH_SIZE) {
     const batch = allNodesTexts.slice(i, i + EMBEDDING_BATCH_SIZE);
+    console.log(
+      `fetchEmbeddingsForNodes: Fetching batch ${i / EMBEDDING_BATCH_SIZE + 1} of ${allNodesTexts.length / EMBEDDING_BATCH_SIZE}`,
+    );
 
     const response = await fetch(API_URL, {
       method: "POST",
