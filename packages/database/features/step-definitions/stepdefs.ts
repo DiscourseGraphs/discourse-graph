@@ -1,4 +1,5 @@
 import assert from "assert";
+import { config } from "dotenv";
 import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -14,6 +15,8 @@ import {
 
 type Platform = Enums<"Platform">;
 const PLATFORMS: readonly Platform[] = Constants.public.Enums.Platform;
+
+config();
 
 const getAnonymousClient = () => {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {

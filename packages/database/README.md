@@ -12,6 +12,7 @@ It does mean you will have a fresh database with minimal data.
    2. Set the `SUPABASE_WORKDIR` in your environment to the absolute path of the `packages/database` directory.
    3. Install [sqruff](https://github.com/quarylabs/sqruff)
    4. Populate your `.env.localdb` from the `.env.example`
+      1. This applies to the `.env` in this directory, and all `apps` subdirectory.
    5. `supabase start` to create your local supabase instance
        1. Many values will be specified in the output. Use them to populate your `.env.localdb` as follows:
        ```
@@ -55,6 +56,15 @@ It does mean you will have a fresh database with minimal data.
         The branch will be also created without data. (Seed data could be added to `.../supabase/seed.sql`)
         The vercel branch instance will talk to this supabase branch. This is a wholly separate environment, and will not affect production.
 
+### Testing the backend
+
+There are cucumber scenarios to test the flow of database operations. We have not yet automated those tests, but you should run against the local environment when developing the database. You will need to
+
+1. Run `turbo dev` in one terminal (in the root directory)
+2. In another other terminal, `cd` to this directory (`packages/database`) and run the tests with `npm run test`
+
+Think of adding new tests if appropriate!
+
 ## Using local code against your supabase branch
 
 You may want to test your local code against the supabase branch database that was created after push (step 10 above) instead of using the branch database only through the vercel branch deployment.
@@ -81,16 +91,3 @@ IMPORTANT: Avoid using any supabase command while this environment is active. It
 This should be used with extreme caution, as there is not currently adequate security to prevent changes to the data.
 It may be appropriate if there is a problem in production that is due to corrupted data (vs schema issues), and it is somehow simpler to test code to repair it directly than to load the data locally.
 In that case, basically use the `.env.productiondb.example` file, fill the secrets and copy it to `.env`
-
-
-## Testing the backend
-
-There are cucumber scenarios to test the flow of database operations. We have not yet automated those tests, but you should run them when developing the database. You will need to
-
-1. Run `turbo dev` in one terminal (in the root directory)
-  1. Take note of the `API URL`, `anon key` and `service role key` in the `@repo/database task`
-2. In another other terminal, `cd` to this directory (`packages/database`)
-  1. Set the environment variables `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` to the values noted above, respectively.
-  2. Run the tests with `npm run test`
-
-Think of adding new tests if appropriate!
