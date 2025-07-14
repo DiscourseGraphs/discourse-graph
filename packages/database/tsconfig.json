@@ -1,0 +1,13 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "outDir": "dist"
+  },
+  "include": [
+    "./*",
+    "./features/step-definitions/**/*",
+    "./features/support/**/*"
+  ]
+}
