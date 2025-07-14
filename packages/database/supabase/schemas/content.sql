@@ -277,40 +277,6 @@ $$;
 
 COMMENT ON FUNCTION public._local_content_to_db_content IS 'utility function so we have the option to use platform identifiers for content upsert';
 
--- The data should be a PlatformAccount
--- PlatformAccount is upserted, based on platform and account_local_id. New (or old) ID is returned.
-CREATE OR REPLACE FUNCTION public.upsert_platform_account_input(account_info public."PlatformAccount", p_platform public."Platform")
-RETURNS BIGINT
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    INSERT INTO public."PlatformAccount" (
-      name,
-      platform,
-      account_local_id,
-      write_permission,
-      active,
-      agent_type,
-      metadata
-      -- Do not overwrite dg_account from the platform
-    ) VALUES (
-      name(account_info),
-      COALESCE(platform(account_info), p_platform),
-      account_local_id(account_info),
-      COALESCE(write_permission(account_info), true),
-      COALESCE(active(account_info), true),
-      COALESCE(agent_type(account_info), 'person'),
-      COALESCE(metadata(account_info), '{}')
-    )
-    ON CONFLICT (account_local_id, platform) DO UPDATE SET
-      name = COALESCE(name(account_info), EXCLUDED.name),
-      write_permission = COALESCE(write_permission(account_info), EXCLUDED.write_permission, true),
-      active = COALESCE(active(account_info), EXCLUDED.active, true),
-      agent_type = COALESCE(agent_type(account_info), EXCLUDED.agent_type, 'person'),
-      metadata = COALESCE(metadata(account_info), EXCLUDED.metadata, '{}')
-  RETURNING id;
-$$;
-
 -- The data should be an array of LocalDocumentDataInput
 -- Documents are upserted, based on space_id and local_id. New (or old) IDs are returned.
 CREATE OR REPLACE FUNCTION public.upsert_documents(v_space_id bigint, data jsonb)
@@ -331,7 +297,11 @@ BEGIN
     local_document := jsonb_populate_record(NULL::public.document_local_input, document_row);
     local_document.space_id := v_space_id;
     IF account_local_id(author_inline(local_document)) IS NOT NULL THEN
-      SELECT upsert_platform_account_input(author_inline(local_document), v_platform) INTO STRICT upsert_id;
+      SELECT public.create_account_in_space(
+        v_space_id,
+        account_local_id(author_inline(local_document)),
+        name(author_inline(local_document))
+      ) INTO STRICT upsert_id;
       local_document.author_id := upsert_id;
     END IF;
     db_document := public._local_document_to_db_document(local_document);
@@ -374,11 +344,11 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     IF  model = 'openai_text_embedding_3_small_1536' AND array_length(embedding_array, 1) = 1536 THEN
-        INSERT INTO "ContentEmbedding_openai_text_embedding_3_small_1536" (target_id, model, vector, obsolete)
-            VALUES (content_id, model::public."EmbeddingName", embedding_array::VECTOR, false)
+        INSERT INTO public."ContentEmbedding_openai_text_embedding_3_small_1536" (target_id, model, vector, obsolete)
+            VALUES (content_id, model::public."EmbeddingName", embedding_array::extensions.VECTOR, false)
         ON CONFLICT (target_id)
         DO UPDATE
-            SET vector = embedding_array::VECTOR,
+            SET vector = embedding_array::extensions.VECTOR,
             obsolete = false;
     ELSE
         RAISE WARNING 'Invalid vector name % or length % for embedding', model, array_length(embedding_array, 1);
@@ -405,20 +375,26 @@ DECLARE
   content_row JSONB;
   upsert_id BIGINT;
 BEGIN
-  raise notice 'upsert content: %', data;
   SELECT platform INTO STRICT v_platform FROM public."Space" WHERE id=v_space_id;
   FOR content_row IN SELECT * FROM jsonb_array_elements(data)
   LOOP
-    raise notice 'Content row: %', content_row;
     local_content := jsonb_populate_record(NULL::public.content_local_input, content_row);
     local_content.space_id := v_space_id;
     db_content := public._local_content_to_db_content(local_content);
     IF account_local_id(author_inline(local_content)) IS NOT NULL THEN
-      SELECT upsert_platform_account_input(author_inline(local_content), v_platform) INTO STRICT upsert_id;
+      SELECT public.create_account_in_space(
+        v_space_id,
+        account_local_id(author_inline(local_content)),
+        name(author_inline(local_content))
+      ) INTO STRICT upsert_id;
       local_content.author_id := upsert_id;
     END IF;
     IF account_local_id(creator_inline(local_content)) IS NOT NULL THEN
-      SELECT upsert_platform_account_input(creator_inline(local_content), v_platform) INTO STRICT upsert_id;
+      SELECT public.create_account_in_space(
+        v_space_id,
+        account_local_id(creator_inline(local_content)),
+        name(creator_inline(local_content))
+      ) INTO STRICT upsert_id;
       local_content.creator_id := upsert_id;
     END IF;
     IF content_as_document THEN
@@ -444,7 +420,7 @@ BEGIN
         author_id,
         contents
       ) VALUES (
-        db_document.space_id,
+        COALESCE(db_document.space_id, v_space_id),
         db_document.source_local_id,
         db_document.url,
         db_document.created,
