@@ -24,11 +24,8 @@ export default Page;
 export const generateStaticParams = () =>
   generateDocsStaticParams(docMap.default);
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug: string };
-}): Promise<Metadata> {
-  const directory = docMap[params.slug] ?? docMap.default;
-  return generateDocsMetadata({ params: Promise.resolve(params), directory });
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { slug } = await params;
+  const directory = docMap[slug] ?? docMap.default;
+  return generateDocsMetadata({ params: Promise.resolve({ slug }), directory });
 }
