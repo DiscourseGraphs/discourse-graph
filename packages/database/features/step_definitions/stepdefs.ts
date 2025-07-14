@@ -188,3 +188,62 @@ Then(
     assert.equal(response.count, expectedCount);
   },
 );
+
+Given(
+  "user {word} upserts these documents to space {word}:",
+  async (userName: string, spaceName: string, docString: string) => {
+    const data = JSON.parse(docString);
+    const client = getAnonymousClient();
+    const spaceId = world.localRefs[spaceName];
+    const loginResponse = await client.auth.signInWithPassword({
+      email: spaceAnonUserEmail("Roam", spaceId),
+      password: SPACE_ANONYMOUS_PASSWORD,
+    });
+    assert.equal(loginResponse.error, null);
+    const response = await client.rpc("upsert_documents", {
+      v_space_id: spaceId,
+      data,
+    });
+    assert.equal(response.error, null);
+  },
+);
+
+Given(
+  "user {word} upserts this content to space {word}:",
+  async (userName: string, spaceName: string, docString: string) => {
+    const data = JSON.parse(docString);
+    const client = getAnonymousClient();
+    const spaceId = world.localRefs[spaceName];
+    const loginResponse = await client.auth.signInWithPassword({
+      email: spaceAnonUserEmail("Roam", spaceId),
+      password: SPACE_ANONYMOUS_PASSWORD,
+    });
+    assert.equal(loginResponse.error, null);
+    const response = await client.rpc("upsert_content", {
+      v_space_id: spaceId,
+      data,
+      v_creator_id: world.localRefs[userName],
+      content_as_document: false,
+    });
+    assert.equal(response.error, null);
+  },
+);
+
+Given(
+  "user {word} upserts these concepts to space {word}:",
+  async (userName: string, spaceName: string, docString: string) => {
+    const data = JSON.parse(docString);
+    const client = getAnonymousClient();
+    const spaceId = world.localRefs[spaceName];
+    const loginResponse = await client.auth.signInWithPassword({
+      email: spaceAnonUserEmail("Roam", spaceId),
+      password: SPACE_ANONYMOUS_PASSWORD,
+    });
+    assert.equal(loginResponse.error, null);
+    const response = await client.rpc("upsert_concepts", {
+      v_space_id: spaceId,
+      data,
+    });
+    assert.equal(response.error, null);
+  },
+);
