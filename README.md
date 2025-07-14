@@ -29,6 +29,7 @@ Learn more about how monorepos improve development workflows [here](https://verc
 - [typescript-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/typescript-config): Shared tsconfig.jsons
 - [eslint-config](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/eslint-config): ESLint preset
 - [ui](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/ui): Core React components
+- [database](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/database): Database configuration
 
 ### Getting Started
 
@@ -58,6 +59,8 @@ You can use the `--filter` flag to run a single application, eg:
 ```bash
 turbo dev --filter roam
 ```
+
+1. Set up a supabase environment. This will cache and optimize some semantic queries. You may not need both environments, but you cannot develop unless `SUPABASE_URL` and `SUPABASE_ANON_KEY` are defined. Full instructions [here](https://github.com/DiscourseGraphs/discourse-graph/tree/main/packages/database/README.md).
 
 #### Roam
 
