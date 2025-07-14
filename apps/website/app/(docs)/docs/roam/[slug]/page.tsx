@@ -1,4 +1,4 @@
-import { docMap } from "../docMap";
+import { docMap } from "~/(docs)/docs/roam/docMap";
 import { Metadata } from "next";
 import {
   generateDocsStaticParams,

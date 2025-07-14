@@ -40,7 +40,6 @@ export const navigation: NavigationList = [
       },
     ],
   },
-
   {
     title: "🗺️ Core Features",
     links: [
