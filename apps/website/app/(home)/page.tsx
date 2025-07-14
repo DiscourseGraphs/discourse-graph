@@ -422,14 +422,11 @@ export default async function Home() {
                       {" "}
                       – Available via BRAT
                     </span>
-                    {/* TODO: Add Obsidian plugin documentation when available */}
-                    {/* <ul className="ml-6 mt-2 list-inside list-disc space-y-2">
+                    <ul className="ml-6 mt-2 list-inside list-disc space-y-2">
                       <li className="text-neutral-dark">
-                        <Link href="/docs/obsidian/">
-                          Documentation
-                        </Link>
+                        <Link href="/docs/obsidian/">Documentation</Link>
                       </li>
-                    </ul> */}
+                    </ul>
                   </li>
                 </ul>
               </div>
