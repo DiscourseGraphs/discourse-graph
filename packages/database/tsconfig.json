@@ -7,7 +7,7 @@
   },
   "include": [
     "./*",
-    "./features/step_definitions/**/*",
+    "./features/step-definitions/**/*",
     "./features/support/**/*"
   ]
 }
