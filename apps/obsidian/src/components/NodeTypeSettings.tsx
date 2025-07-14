@@ -407,20 +407,23 @@ const NodeTypeSettings = () => {
 
     return (
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="dg-h3">Edit Node Type</h3>
+        <div className="mb-4 flex items-center gap-2">
           <button
             onClick={handleCancel}
-            className="icon-button mod-warning"
-            aria-label="Close edit form"
+            className="icon-button"
+            aria-label="Back to node type list"
           >
-            <div className="icon" ref={(el) => el && setIcon(el, "x")} />
+            <div
+              className="icon"
+              ref={(el) => el && setIcon(el, "arrow-left")}
+            />
           </button>
+          <h3 className="dg-h3">Edit Node Type</h3>
         </div>
         {FIELD_CONFIG_ARRAY.map(renderField)}
         {hasUnsavedChanges && (
           <div className="mt-4 flex justify-end gap-2">
-            <button onClick={handleCancel} className="mod-warning">
+            <button onClick={handleCancel} className="mod-muted">
               Cancel
             </button>
             <button
