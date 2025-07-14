@@ -59,7 +59,7 @@ It does mean you will have a fresh database with minimal data.
 
 You may want to test your local code against the supabase branch database that was created after push (step 10 above) instead of using the branch database only through the vercel branch deployment.
 
-If you are working on frontend code, you may use the environment variable `NEXT_API_ROOT` (forthcoming) to get the api of the active vercel branch instance (as given in the [vercel interface](https://vercel.com/discourse-graphs/discourse-graph/deployments).)
+If you are working on frontend code, the easiest is to use the vercel branch website, which will talk to the supabase branch. You would set the environment variable `NEXT_API_ROOT` (forthcoming) to the url of the api of the active vercel branch instance (as given in the [vercel interface](https://vercel.com/discourse-graphs/discourse-graph/deployments).)
 
 If you have logged in with the vercel cli tool, you can also get the URL with `vercel list -m githubCommitRef=<branch name>`
 
