@@ -18,18 +18,48 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     const body: DeleteNodesRequest = await request.json();
     const { spaceId, uids } = body;
     const supabase = await createClient();
-  
-    // TODO - Later we need to delete a discoursenode's concept, content and document 
-    const { error, count } = await supabase
+
+    const { data: contentData, error: contentError } = await supabase
+      .from("Content")
+      .select("id")
+      .eq("space_id", spaceId)
+      .in("source_local_id", uids);
+
+    if (contentError) {
+      return createApiResponse(
+        request,
+        asPostgrestFailure(contentError.message, contentError.code, 500),
+      );
+    }
+
+    const contentIds = contentData.map((c) => c.id);
+
+    if (contentIds.length > 0) {
+      const { error: conceptError } = await supabase
+        .from("Concept")
+        .delete()
+        .in("represented_by_id", contentIds)
+        .eq("is_schema", false);
+
+      if (conceptError) {
+        return createApiResponse(
+          request,
+          asPostgrestFailure(conceptError.message, conceptError.code, 500),
+        );
+      }
+    }
+
+    // TODO - Later we need to delete a discoursenode's content
+    const { error: docError, count } = await supabase
       .from("Document")
       .delete({ count: "exact" })
       .eq("space_id", spaceId)
       .in("source_local_id", uids);
 
-    if (error) {
+    if (docError) {
       return createApiResponse(
         request,
-        asPostgrestFailure(error.message, error.code, 500),
+        asPostgrestFailure(docError.message, docError.code, 500),
       );
     }
 

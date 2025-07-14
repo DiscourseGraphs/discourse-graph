@@ -177,3 +177,8 @@ div.roamjs-discourse-drawer div.bp3-drawer {
 .bp3-popover-wrapper + .referenced-node-autocomplete {
   margin-top: 1rem;
 }
+
+.dg-highlight {
+  box-shadow: 0 0 0 2px #137cbd !important;
+  border-radius: 4px;
+}

@@ -152,15 +152,14 @@ export const discourseRelationDataToLocalConcept = (
     Math.max(...nodeData.map((nd) => new Date(nd.created).getTime())),
   ).toISOString();
   const author_local_id: string = nodeData[0].author_uid; // take any one; again until I get the relation object
-  const represented_by_local_id =
-    casting["target"] || Object.values(casting)[0]; // This one is tricky. Prefer the target for now.
+  const represented_by_local_id = `${relationSchemaUid}-${Object.values(casting).join("-")}`;
   return {
     space_id: context.spaceId,
     represented_by_local_id,
     author_local_id,
     created,
     last_modified,
-    name: `${relationSchemaUid}-${Object.values(casting).join("-")}`,
+    name: represented_by_local_id,
     is_schema: false,
     schema_represented_by_local_id: relationSchemaUid,
     local_reference_content: casting,

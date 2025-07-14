@@ -91,7 +91,7 @@ export const SettingsDialog = ({
         refreshConfigTree();
         onClose?.();
       }}
-      enforceFocus={false}
+      canOutsideClickClose={false}
       isCloseButtonShown={false}
       style={{ width: "80vw", height: "80vh" }}
       className="relative bg-white"
@@ -136,7 +136,9 @@ export const SettingsDialog = ({
             id="discourse-graph-home-personal"
             title="Home"
             className="overflow-y-auto"
-            panel={<HomePersonalSettings onloadArgs={onloadArgs} />}
+            panel={
+              <HomePersonalSettings onloadArgs={onloadArgs} onClose={onClose} />
+            }
           />
           <Tab
             id="query-settings"
