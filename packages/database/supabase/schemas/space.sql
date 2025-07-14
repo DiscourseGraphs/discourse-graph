@@ -28,13 +28,21 @@ GRANT ALL ON TABLE public."Space" TO anon;
 GRANT ALL ON TABLE public."Space" TO authenticated;
 GRANT ALL ON TABLE public."Space" TO service_role;
 
-CREATE OR REPLACE FUNCTION public.get_space_anonymous_email(platform public."Platform", space_id BIGINT) RETURNS character varying LANGUAGE sql IMMUTABLE AS $$
+CREATE OR REPLACE FUNCTION public.get_space_anonymous_email(platform public."Platform", space_id BIGINT)
+RETURNS character varying IMMUTABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
     SELECT concat(lower(platform::text), '-', space_id, '-anon@database.discoursegraphs.com')
 $$;
 
 
 -- TODO: on delete trigger anonymous user
-CREATE OR REPLACE FUNCTION public.after_delete_space() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION public.after_delete_space()
+RETURNS TRIGGER
+SET search_path = ''
+LANGUAGE plpgsql
+AS $$
 BEGIN
     DELETE FROM auth.users WHERE email = public.get_space_anonymous_email(OLD.platform, OLD.id);
     DELETE FROM public."PlatformAccount"

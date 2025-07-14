@@ -574,10 +574,10 @@ export type Database = {
       }
       alpha_upsert_discourse_nodes: {
         Args: {
-          p_user_email: string
-          p_space_name: string
-          p_user_name: string
           p_nodes: Json
+          p_space_name: string
+          p_user_email: string
+          p_user_name: string
         }
         Returns: string
       }
@@ -585,12 +585,23 @@ export type Database = {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
       }
+      create_account_in_space: {
+        Args: {
+          space_id_: number
+          account_local_id_: string
+          name_: string
+          editor_?: boolean
+          email_trusted?: boolean
+          email_?: string
+        }
+        Returns: number
+      }
       end_sync_task: {
         Args: {
-          s_function: string
-          s_status: Database["public"]["Enums"]["task_status"]
-          s_worker: string
           s_target: number
+          s_function: string
+          s_worker: string
+          s_status: Database["public"]["Enums"]["task_status"]
         }
         Returns: undefined
       }
@@ -621,26 +632,26 @@ export type Database = {
         Returns: {
           content_id: number
           roam_uid: string
-          text_content: string
           similarity: number
+          text_content: string
         }[]
       }
       match_embeddings_for_subset_nodes: {
         Args: { p_query_embedding: string; p_subset_roam_uids: string[] }
         Returns: {
-          text_content: string
           content_id: number
           roam_uid: string
+          text_content: string
           similarity: number
         }[]
       }
       propose_sync_task: {
         Args: {
           timeout: unknown
-          task_interval: unknown
-          s_worker: string
           s_function: string
           s_target: number
+          task_interval: unknown
+          s_worker: string
         }
         Returns: string
       }
@@ -650,34 +661,35 @@ export type Database = {
       }
       upsert_content: {
         Args: {
-          v_space_id: number
           content_as_document?: boolean
           v_creator_id: number
           data: Json
+          v_space_id: number
         }
         Returns: number[]
       }
       upsert_content_embedding: {
-        Args: { embedding_array: number[]; model: string; content_id: number }
+        Args: { content_id: number; embedding_array: number[]; model: string }
         Returns: undefined
       }
       upsert_discourse_nodes: {
         Args: {
+          p_platform_name?: string
           p_space_url?: string
           p_document_source_id?: string
-          p_space_name: string
-          p_platform_name?: string
-          p_nodes: Json
-          p_user_name: string
-          p_user_email: string
-          p_content_scale?: string
           p_embedding_model?: string
-          p_platform_url?: string
+          p_content_scale?: string
           p_agent_type?: string
+          p_space_name: string
+          p_user_email: string
+          p_user_name: string
+          p_nodes: Json
+          p_platform_url?: string
         }
         Returns: {
           embedding_created: boolean
           action: string
+          embedding_created: boolean
           content_id: number
         }[]
       }
@@ -687,8 +699,8 @@ export type Database = {
       }
       upsert_platform_account_input: {
         Args: {
-          account_info: Database["public"]["Tables"]["PlatformAccount"]["Row"]
           p_platform: Database["public"]["Enums"]["Platform"]
+          account_info: Database["public"]["Tables"]["PlatformAccount"]["Row"]
         }
         Returns: number
       }

@@ -2,6 +2,7 @@ SET check_function_bodies = off;
 
 CREATE OR REPLACE FUNCTION public.alpha_delete_by_source_local_ids(p_space_name text, p_source_local_ids text [])
 RETURNS text
+SET search_path = ''
 LANGUAGE plpgsql
 AS $function$-- TEST EDIT
 DECLARE
@@ -138,6 +139,7 @@ END;$function$
 
 CREATE OR REPLACE FUNCTION public.alpha_get_last_update_time(p_space_name text)
 RETURNS TABLE (last_update_time timestamp with time zone)
+SET search_path = ''
 LANGUAGE plpgsql
 AS $function$
 BEGIN
@@ -157,6 +159,7 @@ $function$
 
 CREATE OR REPLACE FUNCTION public.upsert_discourse_nodes(p_space_name text, p_user_email text, p_user_name text, p_nodes jsonb, p_platform_name text DEFAULT 'roamresearch'::text, p_platform_url text DEFAULT 'https://roamresearch.com'::text, p_space_url text DEFAULT NULL::text, p_agent_type text DEFAULT 'Person'::text, p_content_scale text DEFAULT 'chunk_unit'::text, p_embedding_model text DEFAULT 'openai_text_embedding_3_small_1536'::text, p_document_source_id text DEFAULT NULL::text)
 RETURNS TABLE (content_id bigint, embedding_created boolean, action text)
+SET search_path = ''
 LANGUAGE plpgsql
 AS $function$
 DECLARE

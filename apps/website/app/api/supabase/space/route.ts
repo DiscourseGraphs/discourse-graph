@@ -18,16 +18,12 @@ import { spaceAnonUserEmail } from "@repo/ui/lib/utils";
 type SpaceDataInput = TablesInsert<"Space">;
 type SpaceRecord = Tables<"Space">;
 
-type SpaceCreationInput = {
-  space: SpaceDataInput;
-  account_id: number;
-  password: string;
-};
+type SpaceCreationInput = SpaceDataInput & { password: string };
 
-const spaceValidator: ItemValidator<SpaceDataInput> = (space) => {
+const spaceValidator: ItemValidator<SpaceCreationInput> = (space) => {
   if (!space || typeof space !== "object")
     return "Invalid request body: expected a JSON object.";
-  const { name, url, platform } = space;
+  const { name, url, platform, password } = space;
 
   if (!name || typeof name !== "string" || name.trim() === "")
     return "Missing or invalid name.";
@@ -35,6 +31,8 @@ const spaceValidator: ItemValidator<SpaceDataInput> = (space) => {
     return "Missing or invalid URL.";
   if (platform === undefined || !["Roam", "Obsidian"].includes(platform))
     return "Missing or invalid platform.";
+  if (!password || typeof password !== "string" || password.length < 8)
+    return "password must be at least 8 characters";
   return null;
 };
 
@@ -42,24 +40,9 @@ const processAndGetOrCreateSpace = async (
   supabasePromise: ReturnType<typeof createClient>,
   data: SpaceCreationInput,
 ): Promise<PostgrestSingleResponse<SpaceRecord>> => {
-  const { space, account_id, password } = data;
-  const { name, url, platform } = space;
-  const error = spaceValidator(space);
+  const { name, url, platform, password } = data;
+  const error = spaceValidator(data);
   if (error !== null) return asPostgrestFailure(error, "invalid space");
-  if (
-    typeof account_id !== "number" ||
-    !Number.isInteger(account_id) ||
-    account_id <= 0
-  )
-    return asPostgrestFailure(
-      "account_id is not a number",
-      "invalid account_id",
-    );
-  if (!password || typeof password !== "string" || password.length < 8)
-    return asPostgrestFailure(
-      "password must be at least 8 characters",
-      "invalid password",
-    );
 
   const supabase = await supabasePromise;
 
@@ -141,14 +124,6 @@ const processAndGetOrCreateSpace = async (
     uniqueOn: ["space_id", "account_id"],
   });
   if (resultAnonUserSpaceAccess.error) return resultAnonUserSpaceAccess; // space created but not connected, try again
-
-  const resultUserSpaceAccess = await getOrCreateEntity<"SpaceAccess">({
-    supabase,
-    tableName: "SpaceAccess",
-    insertData: { space_id, account_id, editor: true },
-    uniqueOn: ["space_id", "account_id"],
-  });
-  if (resultUserSpaceAccess.error) return resultUserSpaceAccess; // space created but not connected, try again
   return result;
 };
 
