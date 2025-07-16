@@ -350,7 +350,7 @@ const NodeTypeSettings = () => {
       handleNodeTypeChange(fieldConfig.key, newValue);
 
     return (
-      <FieldWrapper fieldConfig={fieldConfig} error={error}>
+      <FieldWrapper fieldConfig={fieldConfig} error={error} key={fieldConfig.key}>
         {fieldConfig.key === "template" ? (
           <TemplateField
             value={value}
