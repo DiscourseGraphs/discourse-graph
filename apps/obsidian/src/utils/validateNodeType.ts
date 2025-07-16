@@ -7,7 +7,8 @@ type ValidationResult = {
 
 export function validateNodeFormat(
   format: string,
-  nodeTypes: DiscourseNode[],
+  currentNode: DiscourseNode,
+  allNodes: DiscourseNode[],
 ): ValidationResult {
   if (!format) {
     return {
@@ -35,9 +36,14 @@ export function validateNodeFormat(
     return invalidCharsResult;
   }
 
-  const uniquenessResult = validateFormatUniqueness(nodeTypes);
-  if (!uniquenessResult.isValid) {
-    return uniquenessResult;
+  // Filter out the current node being edited from the comparison set
+  const otherNodes = allNodes.filter((node) => node.id !== currentNode.id);
+  const isDuplicate = otherNodes.some((node) => node.format === format);
+  if (isDuplicate) {
+    return {
+      isValid: false,
+      error: "Format must be unique across all node types",
+    };
   }
 
   return { isValid: true };
@@ -56,31 +62,18 @@ export const checkInvalidChars = (format: string): ValidationResult => {
   return { isValid: true };
 };
 
-const validateFormatUniqueness = (
-  nodeTypes: DiscourseNode[],
-): ValidationResult => {
-  const isDuplicate =
-    new Set(nodeTypes.map((nodeType) => nodeType.format)).size !==
-    nodeTypes.length;
-
-  if (isDuplicate) {
-    return { isValid: false, error: "Format must be unique" };
-  }
-
-  return { isValid: true };
-};
-
 export const validateNodeName = (
   name: string,
-  nodeTypes: DiscourseNode[],
+  currentNode: DiscourseNode,
+  allNodes: DiscourseNode[],
 ): ValidationResult => {
   if (!name || name.trim() === "") {
     return { isValid: false, error: "Name is required" };
   }
 
-  const isDuplicate =
-    new Set(nodeTypes.map((nodeType) => nodeType.name)).size !==
-    nodeTypes.length;
+  // Filter out the current node being edited from the comparison set
+  const otherNodes = allNodes.filter((node) => node.id !== currentNode.id);
+  const isDuplicate = otherNodes.some((node) => node.name === name);
 
   if (isDuplicate) {
     return { isValid: false, error: "Name must be unique" };
@@ -101,14 +94,22 @@ export const validateAllNodes = (
       return;
     }
 
-    const formatValidation = validateNodeFormat(nodeType.format, nodeTypes);
+    const formatValidation = validateNodeFormat(
+      nodeType.format,
+      nodeTypes[index]!,
+      nodeTypes,
+    );
     if (!formatValidation.isValid) {
       errorMap[index] = formatValidation.error || "Invalid format";
       hasErrors = true;
       return;
     }
 
-    const nameValidation = validateNodeName(nodeType.name, nodeTypes);
+    const nameValidation = validateNodeName(
+      nodeType.name,
+      nodeTypes[index]!,
+      nodeTypes,
+    );
     if (!nameValidation.isValid) {
       errorMap[index] = nameValidation.error || "Invalid name";
       hasErrors = true;

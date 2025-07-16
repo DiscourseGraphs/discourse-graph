@@ -31,7 +31,7 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
     required: true,
     type: "text",
     validate: (value, nodeType, existingNodes) =>
-      validateNodeName(value, [nodeType, ...existingNodes]),
+      validateNodeName(value, nodeType, existingNodes),
     placeholder: "Name",
   },
   format: {
@@ -42,8 +42,16 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
     required: true,
     type: "text",
     validate: (value, nodeType, existingNodes) =>
-      validateNodeFormat(value, [nodeType, ...existingNodes]),
+      validateNodeFormat(value, nodeType, existingNodes),
     placeholder: "Format (e.g., CLM - {content})",
+  },
+  description: {
+    key: "description",
+    label: "Description",
+    description: "A brief description of what this node type represents",
+    required: false,
+    type: "text",
+    placeholder: "Enter a description",
   },
   template: {
     key: "template",
@@ -371,32 +379,43 @@ const NodeTypeSettings = () => {
       {nodeTypes.map((nodeType, index) => (
         <div
           key={nodeType.id}
-          className="node-type-item hover:bg-secondary-lt flex cursor-pointer items-center justify-between p-2"
+          className="node-type-item hover:bg-secondary-lt flex cursor-pointer flex-col gap-1 p-2"
           onClick={() => startEditing(index)}
         >
-          <span>{nodeType.name}</span>
-          <div className="flex gap-2">
-            <button
-              className="icon-button"
-              onClick={(e) => {
-                e.stopPropagation();
-                startEditing(index);
-              }}
-              aria-label="Edit node type"
-            >
-              <div className="icon" ref={(el) => el && setIcon(el, "pencil")} />
-            </button>
-            <button
-              className="icon-button mod-warning"
-              onClick={(e) => {
-                e.stopPropagation();
-                confirmDeleteNodeType(index);
-              }}
-              aria-label="Delete node type"
-            >
-              <div className="icon" ref={(el) => el && setIcon(el, "trash")} />
-            </button>
+          <div className="flex items-center justify-between">
+            <span className="font-medium">{nodeType.name}</span>
+            <div className="flex gap-2">
+              <button
+                className="icon-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startEditing(index);
+                }}
+                aria-label="Edit node type"
+              >
+                <div
+                  className="icon"
+                  ref={(el) => el && setIcon(el, "pencil")}
+                />
+              </button>
+              <button
+                className="icon-button mod-warning"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  confirmDeleteNodeType(index);
+                }}
+                aria-label="Delete node type"
+              >
+                <div
+                  className="icon"
+                  ref={(el) => el && setIcon(el, "trash")}
+                />
+              </button>
+            </div>
           </div>
+          {nodeType.description && (
+            <span className="text-muted text-sm">{nodeType.description}</span>
+          )}
         </div>
       ))}
     </div>
