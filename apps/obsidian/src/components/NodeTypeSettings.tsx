@@ -31,7 +31,11 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
     required: true,
     type: "text",
     validate: (value, nodeType, existingNodes) =>
-      validateNodeName(value, nodeType, existingNodes),
+      validateNodeName({
+        name: value,
+        currentNode: nodeType,
+        allNodes: existingNodes,
+      }),
     placeholder: "Name",
   },
   format: {
@@ -42,7 +46,11 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
     required: true,
     type: "text",
     validate: (value, nodeType, existingNodes) =>
-      validateNodeFormat(value, nodeType, existingNodes),
+      validateNodeFormat({
+        format: value,
+        currentNode: nodeType,
+        allNodes: existingNodes,
+      }),
     placeholder: "Format (e.g., CLM - {content})",
   },
   description: {

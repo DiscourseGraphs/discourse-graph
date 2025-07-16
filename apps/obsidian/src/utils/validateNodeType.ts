@@ -5,11 +5,15 @@ type ValidationResult = {
   error?: string;
 };
 
-export function validateNodeFormat(
-  format: string,
-  currentNode: DiscourseNode,
-  allNodes: DiscourseNode[],
-): ValidationResult {
+export function validateNodeFormat({
+  format,
+  currentNode,
+  allNodes,
+}: {
+  format: string;
+  currentNode: DiscourseNode;
+  allNodes: DiscourseNode[];
+}): ValidationResult {
   if (!format) {
     return {
       isValid: false,
@@ -36,7 +40,6 @@ export function validateNodeFormat(
     return invalidCharsResult;
   }
 
-  // Filter out the current node being edited from the comparison set
   const otherNodes = allNodes.filter((node) => node.id !== currentNode.id);
   const isDuplicate = otherNodes.some((node) => node.format === format);
   if (isDuplicate) {
@@ -62,16 +65,19 @@ export const checkInvalidChars = (format: string): ValidationResult => {
   return { isValid: true };
 };
 
-export const validateNodeName = (
-  name: string,
-  currentNode: DiscourseNode,
-  allNodes: DiscourseNode[],
-): ValidationResult => {
+export const validateNodeName = ({
+  name,
+  currentNode,
+  allNodes,
+}: {
+  name: string;
+  currentNode: DiscourseNode;
+  allNodes: DiscourseNode[];
+}): ValidationResult => {
   if (!name || name.trim() === "") {
     return { isValid: false, error: "Name is required" };
   }
 
-  // Filter out the current node being edited from the comparison set
   const otherNodes = allNodes.filter((node) => node.id !== currentNode.id);
   const isDuplicate = otherNodes.some((node) => node.name === name);
 
@@ -94,22 +100,22 @@ export const validateAllNodes = (
       return;
     }
 
-    const formatValidation = validateNodeFormat(
-      nodeType.format,
-      nodeTypes[index]!,
-      nodeTypes,
-    );
+    const formatValidation = validateNodeFormat({
+      format: nodeType.format,
+      currentNode: nodeType,
+      allNodes: nodeTypes,
+    });
     if (!formatValidation.isValid) {
       errorMap[index] = formatValidation.error || "Invalid format";
       hasErrors = true;
       return;
     }
 
-    const nameValidation = validateNodeName(
-      nodeType.name,
-      nodeTypes[index]!,
-      nodeTypes,
-    );
+    const nameValidation = validateNodeName({
+      name: nodeType.name,
+      currentNode: nodeType,
+      allNodes: nodeTypes,
+    });
     if (!nameValidation.isValid) {
       errorMap[index] = nameValidation.error || "Invalid name";
       hasErrors = true;
