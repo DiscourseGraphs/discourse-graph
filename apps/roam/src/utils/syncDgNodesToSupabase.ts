@@ -69,6 +69,7 @@ export async function proposeSyncTask(): Promise<SyncTaskInfo> {
   try {
     // 1. Resolve (or create) the Supabase space to obtain its numeric Id
     const context = await getSupabaseContext();
+    console.log("proposeSyncTask: Supabase context:", context);
     if (!context) {
       console.error("proposeSyncTask: Unable to obtain Supabase context.");
       return {
@@ -168,37 +169,6 @@ const upsertNodeSchemaToContent = async (
     nodesUids,
   )) as unknown as RoamDiscourseNodeData[];
 
-  const docsData: LocalDocumentDataInput[] = result.map((node) => ({
-    source_local_id: node.source_local_id,
-    created: new Date(node.created || Date.now()).toISOString(),
-    last_modified: new Date(node.last_modified || Date.now()).toISOString(),
-    author_id: userId,
-  }));
-  console.log("upserting node schemas to documents");
-  {
-    const response = await fetch(
-      `${base_url}/api/supabase/rpc/upsert-documents`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          v_space_id: spaceId,
-          data: docsData as any,
-        }),
-      },
-    );
-    const { error } = await response.json();
-    if (error) {
-      console.error(
-        "runFullEmbeddingProcess: upsert_documents failed:",
-        error,
-        "Request body (full):",
-        JSON.stringify(docsData, null, 2),
-      );
-      console.log("Failed to upsert documents. Process halted.");
-      return;
-    }
-  }
-
   const contentData: LocalContentDataInput[] = result.map((node) => ({
     author_local_id: node.author_local_id,
     document_local_id: node.source_local_id,
@@ -214,7 +184,7 @@ const upsertNodeSchemaToContent = async (
       v_space_id: spaceId,
       v_creator_id: userId,
       data: contentData as any,
-      content_as_document: false,
+      content_as_document: true,
     }),
   });
   const { error } = await response.json();
@@ -361,42 +331,6 @@ export const runFullEmbeddingProcess = async (
   }
   console.log("runFullEmbeddingProcess: Embeddings generated successfully.");
 
-  const docsData: LocalDocumentDataInput[] = nodesWithEmbeddings.map(
-    (node) => ({
-      source_local_id: node.source_local_id,
-      created: new Date(node.created || Date.now()).toISOString(),
-      last_modified: new Date(node.last_modified || Date.now()).toISOString(),
-      author_id: userId,
-    }),
-  );
-
-  console.log("runFullEmbeddingProcess: Upserting documents…");
-  {
-    const response = await fetch(
-      `${base_url}/api/supabase/rpc/upsert-documents`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          v_space_id: spaceId,
-          data: docsData as any,
-        }),
-      },
-    );
-    const { error } = await response.json();
-    if (error) {
-      console.error(
-        "runFullEmbeddingProcess: upsert_documents failed:",
-        error,
-        "Request body (full):",
-        JSON.stringify(docsData, null, 2),
-      );
-      console.log("Failed to upsert documents. Process halted.");
-      return;
-    }
-  }
-
-  console.log(" Documents upserted successfully.");
-
   // 5. Build LocalContentDataInput objects and upsert them in batches
   const batchSize = 200;
 
@@ -429,7 +363,7 @@ export const runFullEmbeddingProcess = async (
           v_space_id: spaceId,
           v_creator_id: userId,
           data: contents as any,
-          content_as_document: false,
+          content_as_document: true,
         }),
       },
     );

@@ -22,10 +22,6 @@ import {
 import Description from "roamjs-components/components/Description";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
-import { runFullEmbeddingProcess } from "~/utils/embeddingWorkflow";
-import { getLastUpdateTimeByGraphName } from "~/utils/syncToEmbeddingDb";
-import getDiscourseRelations from "~/utils/getDiscourseRelations";
-import { upsertDiscourseNodes } from "~/utils/syncToEmbeddingDb";
 import getDiscourseNodes, {
   DiscourseNode,
   excludeDefaultNodes,
@@ -36,6 +32,8 @@ import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpr
 import { getSupabaseContext } from "~/utils/supabaseContext";
 import { getNodeEnv } from "roamjs-components/util/env";
 import { convertDgToSupabase } from "~/utils/convertDgToSupabase";
+import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
+import { LocalContentDataInput } from "../../../../../packages/database/inputTypes";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -119,21 +117,9 @@ const NodeTemplateConfig = ({
         .replace(/\\/g, "\\\\")
         .replace(/"/g, '\\"');
 
-      const query = `[
-      :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime
-      :keys node-title uid childCreateTime childEditTime
-      :where
-        [(re-pattern "${regexPattern}") ?title-regex]
-        [?node :node/title ?node-title]
-        [(re-find ?title-regex ?node-title)]
-        [?node :block/uid ?uid]
-        [?node :create/time ?nodeCreateTime]
-        [?node :edit/time ?nodeEditTime]
-        ]`;
-
       const childByOrder = `[
-      :find ?childUid ?childString ?nodeUid ?childCreateTime ?childEditTime
-      :keys blockUid blockString nodeUid childCreateTime childEditTime
+      :find ?childUid ?childString ?nodeUid ?childCreateTime ?childEditTime ?author_local_id
+      :keys source_local_id text document_local_id created last_modified author_local_id
       :in $ ?firstChildUid 
       :where
         [(re-pattern "${regexPattern}") ?title-regex]
@@ -151,6 +137,8 @@ const NodeTemplateConfig = ({
         [?child :block/string ?childString]
         [?child :create/time ?childCreateTime]
         [?child :edit/time ?childEditTime]
+        [?child :create/user ?user-eid]
+        [?user-eid :user/uid ?author_local_id]
         ]`;
 
       const results = rules.isFirstChild
@@ -159,8 +147,7 @@ const NodeTemplateConfig = ({
             childByOrder,
             rules.embeddingRef?.match(/\(\((.*)\)\)/)?.[1] ?? "",
           )
-        : // @ts-ignore - backend to be added to roamjs-components
-          await window.roamAlphaAPI.data.backend.q(query);
+        : [];
 
       console.log(
         "query",
@@ -176,12 +163,11 @@ const NodeTemplateConfig = ({
     }
   };
 
-  // get all discourse nodes types
-  // - get thes settings for where to put the embeddings
-
   const handleUpdateEmbeddings = async () => {
     setIsUpdating(true);
     console.log(`Starting embedding update for "${node.text}".`);
+    console.log("extensionAPI.settings", extensionAPI.settings);
+    console.log("settingsKey", extensionAPI.settings.get(settingsKey));
 
     const rules = extensionAPI.settings.get(settingsKey) as {
       isFirstChild?: boolean;
@@ -203,25 +189,42 @@ const NodeTemplateConfig = ({
       }
       const { spaceId, userId: authorId } = context;
 
+      const contentData: LocalContentDataInput[] = nodesOfType.map(
+        (node: any) => ({
+          author_local_id: node.author_local_id,
+          document_local_id: node.document_local_id,
+          source_local_id: node.source_local_id,
+          scale: "block",
+          created: new Date(node.created || Date.now()).toISOString(),
+          last_modified: new Date(
+            node.last_modified || Date.now(),
+          ).toISOString(),
+          text: node.text,
+        }),
+      );
+
       const apiBase =
         getNodeEnv() === "development"
           ? "http://localhost:3000/api/supabase"
           : "https://discoursegraphs.com/api/supabase";
-      const upsertRes = await fetch(`${apiBase}/content/upsert-for-page`, {
+      const upsertRes = await fetch(`${apiBase}/rpc/upsert-content`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          spaceId,
-          authorId,
-          items: nodesOfType,
+          v_space_id: spaceId,
+          v_creator_id: authorId,
+          data: contentData,
+          content_as_document: false,
         }),
       });
       if (!upsertRes.ok) {
-        throw new Error("Failed to upsert content");
+        const errorText = await upsertRes.text();
+        throw new Error(`Failed to upsert content: ${errorText}`);
       }
-      const data = (await upsertRes.json()) as any[];
+      const upsertJson = (await upsertRes.json()) as { data: any[] };
+      const data = upsertJson.data;
 
       console.log(`Embeddings for "${node.text}" updated successfully.`);
       setCanUpdate(false);
@@ -289,17 +292,6 @@ const NodeTemplateConfig = ({
     } else {
       setIsUpdating(false);
     }
-
-    // TODO:
-    // 2. For each node, get its content based on the rules.
-    // 3. Generate embeddings and upsert to the database.
-    // Example: await updateEmbeddingsForNodeType(node.type, rules);
-    // await new Promise((resolve) => setTimeout(resolve, 2000)); // Placeholder for async work
-    // console.log(`Finished updating embeddings for ${node.text}.`);
-    //
-    // setIsUpdating(false);
-    // console.log(`Embeddings for "${node.text}" updated successfully.`);
-    // setCanUpdate(false);
   };
 
   const templateUid = getSubTree({
@@ -357,7 +349,7 @@ const NodeTemplateConfig = ({
             text="Update Embeddings"
             intent={Intent.NONE}
             onClick={async () => {
-              await convertDgToSupabase();
+              await handleUpdateEmbeddings();
             }}
             style={{ minWidth: "140px" }}
             //disabled={!canUpdate}
@@ -459,13 +451,13 @@ const SuggestiveModeSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const [embeddingsUploaded, setEmbeddingsUploaded] = useState<boolean>(false);
 
   // Determine if embeddings have been uploaded on mount
-  useEffect(() => {
-    (async () => {
-      const graphName = window.roamAlphaAPI.graph.name;
-      const lastUpdateTime = await getLastUpdateTimeByGraphName(graphName);
-      setEmbeddingsUploaded(lastUpdateTime !== null);
-    })();
-  }, []);
+  // useEffect(() => {
+  //   (async () => {
+  //     const graphName = window.roamAlphaAPI.graph.name;
+  //     const lastUpdateTime = await getLastUpdateTimeByGraphName(graphName);
+  //     setEmbeddingsUploaded(lastUpdateTime !== null);
+  //   })();
+  // }, []);
 
   const embeddingsButtonText = embeddingsUploaded
     ? "Upload Updated Node Embeddings"
@@ -676,27 +668,7 @@ const SuggestiveModeSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           icon="cloud-upload"
           text={embeddingsButtonText}
           onClick={async () => {
-            console.log("get discourse relations", getDiscourseRelations());
-            console.log("handleGenerateEmbeddings: Starting process.");
-            // const allNodes = await getAllDiscourseNodes();
-            //const nodes = allNodes.slice(0, 101); // Take only the first 101 nodes
-            //console.log("Discourse nodes (first 101):", nodes);
-            // const nodesWithEmbeddings = await getEmbeddingsService(nodes);
-            // console.log("Nodes with embeddings:", nodesWithEmbeddings);
-            // Next: send nodesWithEmbeddings to Supabase
-
-            // Test the new function with a sample URL
-            const graphName = window.roamAlphaAPI.graph.name;
-            const lastUpdateTime =
-              await getLastUpdateTimeByGraphName(graphName);
-            console.log("Last update time for", graphName, ":", lastUpdateTime);
-
-            // if its null, then run the full embedding process
-            if (lastUpdateTime === null) {
-              await runFullEmbeddingProcess();
-            } else {
-              await upsertDiscourseNodes(lastUpdateTime);
-            }
+            await createOrUpdateDiscourseEmbedding();
           }}
           intent={Intent.PRIMARY}
           style={{ marginTop: "8px" }}
