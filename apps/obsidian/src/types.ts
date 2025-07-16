@@ -5,6 +5,7 @@ export type DiscourseNode = {
   name: string;
   format: string;
   template?: string;
+  description?: string;
   shortcut?: string;
   color?: string;
 };
