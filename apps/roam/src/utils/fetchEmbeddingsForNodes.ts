@@ -1,7 +1,9 @@
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 export type DiscourseGraphContent = {
   author_local_id: string;
+  author_name: string;
   source_local_id: string;
+  document_local_id?: string;
   created: string;
   last_modified: string;
   text: string;

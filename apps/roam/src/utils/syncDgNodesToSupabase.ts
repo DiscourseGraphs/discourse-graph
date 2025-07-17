@@ -20,6 +20,7 @@ import {
   discourseRelationDataToLocalConcept,
 } from "./conceptConversion";
 import getDiscourseRelationTriples from "./getDiscourseRelationTriples";
+import { OnloadArgs } from "roamjs-components/types";
 
 const base_url =
   process.env.NODE_ENV === "development"
@@ -151,8 +152,8 @@ const upsertNodeSchemaToContent = async (
   userId: number,
 ) => {
   const query = `[
-  :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title
-  :keys     source_local_id    created    last_modified    author_local_id    text
+  :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title ?author_name
+  :keys     source_local_id    created    last_modified    author_local_id    text author_name
   :in       $  [?uid ...]
   :where
     [?e :block/uid       ?uid]
@@ -161,6 +162,8 @@ const upsertNodeSchemaToContent = async (
     [?user-eid :user/uid ?user-uuid]
     [?e :create/time     ?create-time]
     [?e :edit/time       ?edit-time]
+    [?e :edit/user       ?eu]
+    [?eu :user/display-name ?author_name]
 ]
 `;
   // @ts-ignore - backend to be added to roamjs-components
@@ -170,13 +173,26 @@ const upsertNodeSchemaToContent = async (
   )) as unknown as RoamDiscourseNodeData[];
 
   const contentData: LocalContentDataInput[] = result.map((node) => ({
-    author_local_id: node.author_local_id,
-    document_local_id: node.source_local_id,
+    author_id: userId,
+    author_inline: {
+      account_local_id: node.author_local_id,
+      name: node.author_name,
+    },
     source_local_id: node.source_local_id,
-    scale: "document",
     created: new Date(node.created || Date.now()).toISOString(),
     last_modified: new Date(node.last_modified || Date.now()).toISOString(),
     text: node.text,
+    embedding_inline: {
+      model: "openai_text_embedding_3_small_1536",
+      vector: node.vector,
+    },
+    document_inline: {
+      source_local_id: node.source_local_id,
+      author_local_id: node.author_local_id,
+      created: new Date(node.created || Date.now()).toISOString(),
+      last_modified: new Date(node.last_modified || Date.now()).toISOString(),
+    },
+    scale: "document",
   }));
   const response = await fetch(`${base_url}/api/supabase/rpc/upsert-content`, {
     method: "POST",
@@ -283,10 +299,13 @@ export const convertDgToSupabaseConcepts = async (
   ];
 };
 
-export const runFullEmbeddingProcess = async (
+export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   roamNodes: RoamDiscourseNodeData[],
+  asDocument: boolean,
 ): Promise<void> => {
-  console.log("runFullEmbeddingProcess (upsert_content): Process started.");
+  console.log(
+    "upsertNodesToSupabaseAsContentWithEmbeddings (upsert_content): Process started.",
+  );
 
   // 1. Resolve Supabase context (space/user ids) and create a logged-in client
   const context = await getSupabaseContext();
@@ -312,7 +331,7 @@ export const runFullEmbeddingProcess = async (
     console.log(" Embeddings generated successfully.");
   } catch (error: any) {
     console.error(
-      `runFullEmbeddingProcess: Embedding service failed – ${error.message}`,
+      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${error.message}`,
     );
     console.log(
       "Critical Error: Failed to generate embeddings. Process halted.",
@@ -322,68 +341,102 @@ export const runFullEmbeddingProcess = async (
 
   if (nodesWithEmbeddings.length !== roamNodes.length) {
     console.error(
-      "runFullEmbeddingProcess: Mismatch between node and embedding counts.",
+      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
     );
     console.log(
       "Critical Error: Mismatch in embedding generation. Process halted.",
     );
     return;
   }
-  console.log("runFullEmbeddingProcess: Embeddings generated successfully.");
+  console.log(
+    "upsertNodesToSupabaseAsContentWithEmbeddings: Embeddings generated successfully.",
+  );
 
   // 5. Build LocalContentDataInput objects and upsert them in batches
   const batchSize = 200;
 
-  for (let i = 0; i < nodesWithEmbeddings.length; i += batchSize) {
-    const batch = nodesWithEmbeddings.slice(i, i + batchSize);
-
-    const contents: LocalContentDataInput[] = batch.map((node) => ({
-      author_local_id: node.author_local_id,
-      document_local_id: node.source_local_id,
-      source_local_id: node.source_local_id,
-      scale: "document",
-      created: new Date(node.created || Date.now()).toISOString(),
-      last_modified: new Date(node.last_modified || Date.now()).toISOString(),
-      text: node.text,
-      embedding_inline: {
-        model: "openai_text_embedding_3_small_1536",
-        vector: node.vector,
-      },
-    }));
-
-    console.log(
-      `Uploading batch ${i / batchSize + 1} (${contents.length} items)…`,
-    );
-
-    const response = await fetch(
-      `${base_url}/api/supabase/rpc/upsert-content`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          v_space_id: spaceId,
-          v_creator_id: userId,
-          data: contents as any,
-          content_as_document: true,
-        }),
-      },
-    );
-    const { data, error } = await response.json();
-
-    if (error) {
-      console.error(
-        `upsert_content failed for batch starting at index ${i}:`,
-        error,
-      );
-      throw error;
+  // Helper to chunk arrays
+  const chunk = <T>(array: T[], size: number): T[][] => {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
     }
+    return chunks;
+  };
 
-    console.log(`Successfully processed batch ${i / batchSize + 1}.`, data);
-  }
+  const uploadBatches = async (
+    batches: DiscourseGraphContent[][],
+    asDocumentFlag: boolean,
+  ) => {
+    for (let idx = 0; idx < batches.length; idx++) {
+      const batch = batches[idx];
+
+      // Don't pass the author_local_id or document_local_id to the upsert-content directly
+      // use document_inline or author_inline instead
+      const contents: LocalContentDataInput[] = batch.map((node) => ({
+        author_id: userId,
+        author_inline: {
+          account_local_id: node.author_local_id,
+          name: node.author_name,
+        },
+        source_local_id: node.source_local_id,
+        created: new Date(node.created || Date.now()).toISOString(),
+        last_modified: new Date(node.last_modified || Date.now()).toISOString(),
+        text: node.text,
+        embedding_inline: {
+          model: "openai_text_embedding_3_small_1536",
+          vector: node.vector,
+        },
+        document_inline: {
+          source_local_id: asDocumentFlag
+            ? node.source_local_id
+            : node.document_local_id,
+          author_local_id: node.author_local_id,
+          created: new Date(node.created || Date.now()).toISOString(),
+          last_modified: new Date(
+            node.last_modified || Date.now(),
+          ).toISOString(),
+        },
+        scale: asDocumentFlag ? "document" : "block",
+      }));
+
+      console.log(
+        `Uploading ${asDocumentFlag ? "document" : "block"} batch ${idx + 1} (${contents.length} items)…`,
+        contents,
+      );
+
+      const response = await fetch(
+        `${base_url}/api/supabase/rpc/upsert-content`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            v_space_id: spaceId,
+            v_creator_id: userId,
+            data: contents as any,
+            content_as_document: asDocumentFlag,
+          }),
+        },
+      );
+      const { data, error } = await response.json();
+
+      if (error) {
+        console.error(`upsert_content failed for batch ${idx + 1}:`, error);
+        throw error;
+      }
+
+      console.log(`Successfully processed batch ${idx + 1}.`, data);
+    }
+  };
+
+  // We simply process the provided list with the supplied flag
+  await uploadBatches(chunk(nodesWithEmbeddings, batchSize), asDocument);
 
   console.log("All batches processed successfully.");
 };
 
-export const createOrUpdateDiscourseEmbedding = async () => {
+export const createOrUpdateDiscourseEmbedding = async (
+  extensionAPI: OnloadArgs["extensionAPI"],
+) => {
   console.log("createOrUpdateDiscourseEmbedding: Starting process.");
 
   const syncInfo = await proposeSyncTask();
@@ -401,13 +454,25 @@ export const createOrUpdateDiscourseEmbedding = async () => {
   try {
     // if its null, then run the full embedding process
     if (lastUpdateTime === null) {
-      const allNodes = await getAllDiscourseNodesSince("1970-01-01");
-      await runFullEmbeddingProcess(allNodes);
-      await convertDgToSupabaseConcepts(allNodes);
+      console.log("running full embedding process");
+      const { pageNodes, blockNodes } = await getAllDiscourseNodesSince(
+        extensionAPI,
+        "1970-01-01",
+      );
+      console.log("upserting pageNodes", pageNodes);
+      await upsertNodesToSupabaseAsContentWithEmbeddings(pageNodes, true);
+      console.log("upserting blockNodes", blockNodes);
+      await upsertNodesToSupabaseAsContentWithEmbeddings(blockNodes, false);
+      console.log("upserting concepts");
+      await convertDgToSupabaseConcepts(pageNodes);
     } else {
-      const nodesSince = await getAllDiscourseNodesSince(lastUpdateTime);
-      await runFullEmbeddingProcess(nodesSince);
-      await convertDgToSupabaseConcepts(nodesSince);
+      const { pageNodes: p, blockNodes: b } = await getAllDiscourseNodesSince(
+        extensionAPI,
+        lastUpdateTime,
+      );
+      await upsertNodesToSupabaseAsContentWithEmbeddings(p, true);
+      await upsertNodesToSupabaseAsContentWithEmbeddings(b, false);
+      await convertDgToSupabaseConcepts(p);
       await cleanupOrphanedNodes();
     }
 

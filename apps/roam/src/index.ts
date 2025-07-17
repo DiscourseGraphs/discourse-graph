@@ -26,10 +26,11 @@ import {
   convertDgToSupabaseConcepts,
   endSyncTask,
   proposeSyncTask,
-  runFullEmbeddingProcess,
+  upsertNodesToSupabaseAsContentWithEmbeddings,
 } from "./utils/syncDgNodesToSupabase";
 import { cleanupOrphanedNodes } from "./utils/cleanupOrphanedNodes";
 import { getAllDiscourseNodesSince } from "./utils/getAllDiscourseNodesSince";
+import { OnloadArgs } from "roamjs-components/types";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -55,7 +56,7 @@ const initPostHog = () => {
   });
 };
 
-const initEmbeddingSync = async () => {
+const initEmbeddingSync = async (extensionAPI: OnloadArgs["extensionAPI"]) => {
   console.log("createOrUpdateDiscourseEmbedding: Starting process.");
 
   const syncInfo = await proposeSyncTask();
@@ -73,19 +74,32 @@ const initEmbeddingSync = async () => {
   try {
     if (lastUpdateTime === null) {
       console.log(
-        "createOrUpdateDiscourseEmbedding: No last update time, running full embedding process.",
+        "createOrUpdateDiscourseEmbedding: No last update time, create new embeddings.",
       );
+      console.log("index.ts getAllDiscourseNodesSince");
+      const { pageNodes, blockNodes } = await getAllDiscourseNodesSince(
+        extensionAPI,
+        "1970-01-01",
+      );
+      console.log("pageNodes", pageNodes, blockNodes);
+      await upsertNodesToSupabaseAsContentWithEmbeddings(pageNodes, true);
+      console.log("upserting blockNodes", blockNodes);
+      await upsertNodesToSupabaseAsContentWithEmbeddings(blockNodes, false);
+      console.log("upserting concepts");
+      await convertDgToSupabaseConcepts(pageNodes);
     } else {
-      const nodesSince = await getAllDiscourseNodesSince(lastUpdateTime);
-      await runFullEmbeddingProcess(nodesSince);
-      await convertDgToSupabaseConcepts(nodesSince);
+      console.log("index.ts getAllDiscourseNodesSince");
+      const { pageNodes, blockNodes } = await getAllDiscourseNodesSince(
+        extensionAPI,
+        lastUpdateTime,
+      );
+      console.log("pageNodes", pageNodes, blockNodes);
+      await upsertNodesToSupabaseAsContentWithEmbeddings(pageNodes, true);
+      await upsertNodesToSupabaseAsContentWithEmbeddings(blockNodes, false);
+      await convertDgToSupabaseConcepts(pageNodes);
       await cleanupOrphanedNodes();
     }
-
     await endSyncTask(spaceId, worker, "complete");
-    console.log(
-      "createOrUpdateDiscourseEmbedding: Process completed successfully.",
-    );
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
     await endSyncTask(spaceId, worker, "failed");
@@ -142,7 +156,7 @@ export default runExtension(async (onloadArgs) => {
 
   const extensionAPI = onloadArgs.extensionAPI;
 
-  initEmbeddingSync();
+  initEmbeddingSync(extensionAPI);
 
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);

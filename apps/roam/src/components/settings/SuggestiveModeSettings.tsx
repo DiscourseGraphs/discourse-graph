@@ -31,9 +31,11 @@ import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { getSupabaseContext } from "~/utils/supabaseContext";
 import { getNodeEnv } from "roamjs-components/util/env";
-import { convertDgToSupabase } from "~/utils/convertDgToSupabase";
-import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
 import { LocalContentDataInput } from "../../../../../packages/database/inputTypes";
+import {
+  getAllDiscourseNodesSince,
+} from "~/utils/getAllDiscourseNodesSince";
+import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -668,7 +670,7 @@ const SuggestiveModeSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           icon="cloud-upload"
           text={embeddingsButtonText}
           onClick={async () => {
-            await createOrUpdateDiscourseEmbedding();
+            await createOrUpdateDiscourseEmbedding(extensionAPI);
           }}
           intent={Intent.PRIMARY}
           style={{ marginTop: "8px" }}
