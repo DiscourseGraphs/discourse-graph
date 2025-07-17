@@ -10,11 +10,10 @@ import {
   App,
 } from "obsidian";
 import { SettingsTab } from "~/components/Settings";
-import { Settings } from "~/types";
+import { Settings, VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import {
-  VIEW_TYPE_DISCOURSE_CONTEXT,
   VIEW_TYPE_TLDRAW_DG_PREVIEW,
   FRONTMATTER_KEY,
 } from "~/constants";

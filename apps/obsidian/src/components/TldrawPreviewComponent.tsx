@@ -1,20 +1,8 @@
-"use client";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ContextMenu,
-  Editor,
-  ErrorBoundary,
-  Tldraw,
-  TldrawEditor,
-  TldrawUi,
-  TLStore,
-} from "tldraw";
-import { DefaultCanvas, getSnapshot } from "@tldraw/editor";
-import type DiscourseGraphPlugin from "~/index";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Editor, ErrorBoundary, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
 
 interface TldrawPreviewProps {
-  plugin: DiscourseGraphPlugin;
   store: TLStore;
   isReadonly?: boolean;
 }

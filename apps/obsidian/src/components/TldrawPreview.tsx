@@ -140,7 +140,6 @@ export class TldrawPreview extends TextFileView {
         <TldrawPreviewComponent
           store={store}
           isReadonly={false}
-          plugin={this.plugin}
         />
       </React.StrictMode>,
     );

@@ -14,7 +14,11 @@ export type TldrawPluginMetaData = {
 
 export type TLData = {
   meta: TldrawPluginMetaData;
-  raw: any; // Using any for now, we'll type this properly later
+  raw: {
+    tldrawFileFormatVersion: number;
+    schema: any;
+    records: any;
+  };
 };
 
 export function createRawTldrawFile(store?: TLStore): TldrawFile {
@@ -81,7 +85,6 @@ export function createEmptyTldrawContent(
     tldrawFile,
     window.crypto.randomUUID(),
   );
-  console.log("tlData", tlData);
   const frontmatter = frontmatterTemplate(`${FRONTMATTER_KEY}: true`, tags);
   const codeblock = codeBlockTemplate(tlData);
   return tlFileTemplate(frontmatter, codeblock);
