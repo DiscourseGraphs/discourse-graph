@@ -9,8 +9,9 @@ import {
   TldrawUi,
   TLStore,
 } from "tldraw";
-import { DefaultCanvas } from "@tldraw/editor";
+import { DefaultCanvas, getSnapshot } from "@tldraw/editor";
 import type DiscourseGraphPlugin from "~/index";
+import "tldraw/tldraw.css";
 
 interface TldrawPreviewProps {
   plugin: DiscourseGraphPlugin;
@@ -19,12 +20,12 @@ interface TldrawPreviewProps {
 }
 
 export const TldrawPreviewComponent = ({
-  plugin,
   store,
-  isReadonly = true,
+  isReadonly = false,
 }: TldrawPreviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     // Delay the mount to ensure proper context initialization
@@ -34,23 +35,40 @@ export const TldrawPreviewComponent = ({
     return () => clearTimeout(timer);
   }, []);
 
-  const handleMount = useCallback((editor: Editor) => {
-    editor.setCurrentTool("hand");
-    editor.updateInstanceState({
-      isReadonly: true,
-      isFocusMode: false,
-      isGridMode: false,
-      isDebugMode: false,
-    });
-    editor.zoomToFit();
+  const handleMount = useCallback(
+    (editor: Editor) => {
+      // Set initial editor state
+      editor.setCurrentTool("hand");
+      editor.updateInstanceState({});
+
+      // Get initial snapshot to ensure store is properly loaded
+      const snapshot = getSnapshot(editor.store);
+      console.log("Initial editor snapshot:", snapshot);
+
+      // Only zoom to fit if we have shapes
+      const shapes = editor.getCurrentPageShapes();
+      if (shapes.length > 0) {
+        editor.zoomToFit();
+      }
+    },
+    [isReadonly],
+  );
+
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
   }, []);
 
   return (
     <div
       ref={containerRef}
-      className="tldraw-container"
-      style={{ flex: 1, height: "100%" }}
+      className="tldraw__editor relative flex h-full w-full flex-1 overflow-hidden"
       onTouchStart={(e) => e.stopPropagation()}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
     >
       {isReady ? (
         <ErrorBoundary
@@ -58,7 +76,7 @@ export const TldrawPreviewComponent = ({
             <div>Error in Tldraw component: {JSON.stringify(error)}</div>
           )}
         >
-          <Tldraw store={store} autoFocus={false} />
+          <Tldraw store={store} onMount={handleMount} autoFocus={false} />
         </ErrorBoundary>
       ) : (
         <div>Loading Tldraw...</div>
