@@ -7,12 +7,7 @@ import { createDiscourseNode } from "./createNode";
 import { createEmptyTldrawContent } from "./tldraw";
 import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
 import moment from "moment";
-import {
-  RIBBON_NEW_FILE,
-  VIEW_TYPE_MARKDOWN,
-  VIEW_TYPE_TLDRAW_DG_PREVIEW,
-} from "~/constants";
-import { FRONTMATTER_KEY } from "~/constants";
+import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
@@ -125,11 +120,10 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
   const createCanvas = async () => {
     try {
-      // For now we'll create files in root, later we can add settings for default location
+      // TODO: For now we'll create files in root, later we can add settings for default location
       const filename = `Canvas-${moment().format("YYYY-MM-DD-HHmm")}`;
       const folderpath = "tldraw-dg";
 
-      // Create folder if needed and get unique filename
       await checkAndCreateFolder(folderpath, plugin.app.vault);
       const fname = getNewUniqueFilepath(
         plugin.app.vault,
@@ -137,11 +131,8 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         folderpath,
       );
 
-      // Create the file with empty canvas template
       const content = createEmptyTldrawContent(plugin.manifest.version);
       const file = await plugin.app.vault.create(fname, content);
-
-      // Open the file in current leaf
       const leaf = plugin.app.workspace.getLeaf(false);
       await leaf.openFile(file);
 

@@ -34,5 +34,3 @@ yarn-error.log*
 .DS_Store
 *.pem
 *.ipynb
-
-apps/tldraw-in-obsidian

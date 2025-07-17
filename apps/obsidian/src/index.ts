@@ -26,12 +26,6 @@ import { DEFAULT_SETTINGS } from "~/constants";
 import { CreateNodeModal } from "~/components/CreateNodeModal";
 import { TldrawPreview } from "~/components/TldrawPreview";
 
-declare global {
-  interface Window {
-    app: App;
-  }
-}
-
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = DEFAULT_SETTINGS;
   private styleElement: HTMLStyleElement | null = null;

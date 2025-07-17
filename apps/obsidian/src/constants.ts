@@ -70,7 +70,5 @@ export const VIEW_TYPE_MARKDOWN = "markdown";
 export const VIEW_TYPE_TLDRAW_DG_PREVIEW = "tldraw-dg-preview";
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";
 
-export const TLDRAW_VERSION = "2.3.0"; // Match the version from tldraw-in-obsidian
+export const TLDRAW_VERSION = "3.14.1";
 export const DEFAULT_SAVE_DELAY = 500; // in ms
-
-export const RIBBON_NEW_FILE = "Create new Discourse Graph canvas";
