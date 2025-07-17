@@ -1,4 +1,4 @@
-import { Editor, Notice } from "obsidian";
+import { Editor, Notice, TextFileView } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import { CreateNodeModal } from "~/components/CreateNodeModal";
@@ -9,9 +9,10 @@ import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
 import moment from "moment";
 import {
   RIBBON_NEW_FILE,
-  VIEW_TYPE_TLDRAW_DG,
+  VIEW_TYPE_MARKDOWN,
   VIEW_TYPE_TLDRAW_DG_PREVIEW,
 } from "~/constants";
+import { FRONTMATTER_KEY } from "~/constants";
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
@@ -96,7 +97,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
       if (!checking) {
         leaf.setViewState({
-          type: VIEW_TYPE_TLDRAW_DG,
+          type: VIEW_TYPE_MARKDOWN,
           state: leaf.view.getState(),
         });
       }

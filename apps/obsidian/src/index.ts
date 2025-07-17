@@ -15,7 +15,6 @@ import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
 import {
   VIEW_TYPE_DISCOURSE_CONTEXT,
-  VIEW_TYPE_TLDRAW_DG,
   VIEW_TYPE_TLDRAW_DG_PREVIEW,
   FRONTMATTER_KEY,
 } from "~/constants";
@@ -25,8 +24,6 @@ import {
 } from "~/utils/createNode";
 import { DEFAULT_SETTINGS } from "~/constants";
 import { CreateNodeModal } from "~/components/CreateNodeModal";
-import { around } from "monkey-around";
-import { TldrawView } from "~/components/TldrawView";
 import { TldrawPreview } from "~/components/TldrawPreview";
 
 declare global {
@@ -38,11 +35,60 @@ declare global {
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = DEFAULT_SETTINGS;
   private styleElement: HTMLStyleElement | null = null;
+  private currentViewActions: { leaf: WorkspaceLeaf; action: any }[] = [];
 
   async onload() {
     await this.loadSettings();
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
+
+    this.registerEvent(
+      this.app.workspace.on(
+        "active-leaf-change",
+        (leaf: WorkspaceLeaf | null) => {
+          this.cleanupViewActions();
+
+          if (!leaf) return;
+
+          const view = leaf.view;
+          if (!(view instanceof MarkdownView)) return;
+
+          const file = view.file;
+          if (!file) return;
+
+          const cache = this.app.metadataCache.getFileCache(file);
+          if (cache?.frontmatter?.[FRONTMATTER_KEY]) {
+            // Add new action and track it
+            const action = view.addAction(
+              "layout",
+              "View as canvas",
+              async () => {
+                await leaf.setViewState({
+                  type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
+                  state: view.getState(),
+                });
+              },
+            );
+
+            this.currentViewActions.push({ leaf, action });
+          }
+        },
+      ),
+      // @ts-ignore - file-open event exists but is not in the type definitions
+      this.app.workspace.on("file-open", (file: TFile) => {
+        const cache = this.app.metadataCache.getFileCache(file);
+        if (cache?.frontmatter?.[FRONTMATTER_KEY]) {
+          const leaf =
+            this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
+          if (leaf) {
+            leaf.setViewState({
+              type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
+              state: leaf.view.getState(),
+            });
+          }
+        }
+      }),
+    );
 
     this.registerView(
       VIEW_TYPE_DISCOURSE_CONTEXT,
@@ -55,12 +101,6 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // Initialize frontmatter CSS
     this.updateFrontmatterStyles();
-
-    // Register views
-    this.registerView(
-      VIEW_TYPE_TLDRAW_DG,
-      (leaf) => new TldrawView(leaf, this),
-    );
 
     this.registerView(
       VIEW_TYPE_TLDRAW_DG_PREVIEW,
@@ -144,68 +184,6 @@ export default class DiscourseGraphPlugin extends Plugin {
         });
       }),
     );
-
-    // Register event to intercept view changes
-    this.register(
-      around(WorkspaceLeaf.prototype, {
-        setViewState(next: Function) {
-          return async function (
-            this: WorkspaceLeaf,
-            state: ViewState,
-            ...rest: any[]
-          ) {
-            // Only intercept markdown view state changes
-            if (state.type === "markdown") {
-              const view = this.view as MarkdownView;
-              const file = view?.file;
-              if (file instanceof TFile) {
-                // Check frontmatter for our key
-                const fcache = window.app.metadataCache.getFileCache(file);
-                const frontmatter = fcache?.frontmatter;
-
-                if (frontmatter && frontmatter[FRONTMATTER_KEY]) {
-                  // For new files or files being opened, default to preview mode
-                  const newState = {
-                    type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
-                    state: {
-                      ...state.state,
-                      file: file.path,
-                      mode: "preview",
-                    },
-                  };
-                  return next.apply(this, [newState, ...rest]);
-                }
-              }
-            }
-
-            return next.apply(this, [state, ...rest]);
-          };
-        },
-      }),
-    );
-
-    // Switch existing files to tldraw view if needed
-    this.app.workspace.onLayoutReady(() => {
-      for (let leaf of this.app.workspace.getLeavesOfType("markdown")) {
-        if (leaf.view instanceof MarkdownView && leaf.view.file) {
-          const fcache = this.app.metadataCache.getFileCache(leaf.view.file);
-          const frontmatter = fcache?.frontmatter;
-
-          if (frontmatter && frontmatter[FRONTMATTER_KEY]) {
-            // Switch to appropriate view based on current mode
-            const viewType =
-              leaf.getViewState().state?.mode === "preview"
-                ? VIEW_TYPE_TLDRAW_DG_PREVIEW
-                : VIEW_TYPE_TLDRAW_DG;
-
-            leaf.setViewState({
-              type: viewType,
-              state: leaf.view.getState(),
-            });
-          }
-        }
-      }
-    });
   }
 
   private createStyleElement() {
@@ -292,11 +270,28 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.updateFrontmatterStyles();
   }
 
+  private cleanupViewActions() {
+    this.currentViewActions.forEach(({ leaf, action }) => {
+      try {
+        if (leaf?.view) {
+          if (action?.remove) {
+            action.remove();
+          } else if (action?.detach) {
+            action.detach();
+          }
+        }
+      } catch (e) {
+        console.error("Failed to cleanup view action:", e);
+      }
+    });
+    this.currentViewActions = [];
+  }
+
   async onunload() {
+    this.cleanupViewActions();
     if (this.styleElement) {
       this.styleElement.remove();
     }
-
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT);
   }
 }

@@ -66,7 +66,7 @@ export const TLDATA_DELIMITER_START =
 export const TLDATA_DELIMITER_END =
   "!!!_END_OF_TLDRAW_DG_DATA__DO_NOT_CHANGE_THIS_PHRASE_!!!";
 
-export const VIEW_TYPE_TLDRAW_DG = "tldraw-dg-view";
+export const VIEW_TYPE_MARKDOWN = "markdown";
 export const VIEW_TYPE_TLDRAW_DG_PREVIEW = "tldraw-dg-preview";
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";
 
