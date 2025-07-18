@@ -65,9 +65,9 @@ export const renderTextSelectionPopup = ({
 };
 
 export const removeTextSelectionPopup = () => {
-  if (currentPopupContainer) {
-    ReactDOM.unmountComponentAtNode(currentPopupContainer);
-    currentPopupContainer.remove();
-    currentPopupContainer = null;
+  const container = document.getElementById("discourse-text-selection-popup");
+  if (container) {
+    ReactDOM.unmountComponentAtNode(container);
+    container.remove();
   }
 };

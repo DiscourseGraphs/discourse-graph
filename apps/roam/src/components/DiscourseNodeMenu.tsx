@@ -100,7 +100,8 @@ const NodeMenu = ({
 
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+
       if (e.key === "ArrowDown") {
         const index = Number(
           menuRef.current?.getAttribute("data-active-index"),
