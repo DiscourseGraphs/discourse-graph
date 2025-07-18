@@ -282,12 +282,11 @@ const SuggestionsBody: React.FC<Props> = ({
               ) {
                 return null;
               }
-              const candidate = getCandidateNodeForPage(
-                pageUid,
-                pageName,
-                node.type,
-              );
-              return candidate;
+              return {
+                uid: pageUid,
+                text: pageName,
+                type: node.type,
+              } as SuggestedNode;
             })
             .filter((n): n is SuggestedNode => n !== null);
         } else {
@@ -318,12 +317,11 @@ const SuggestionsBody: React.FC<Props> = ({
               ) {
                 return null;
               }
-              const candidate = getCandidateNodeForPage(
-                n.uid,
-                n.text,
-                node.type,
-              );
-              return candidate;
+              return {
+                uid: n.uid,
+                text: n.text,
+                type: node.type,
+              } as SuggestedNode;
             })
             .filter((n): n is SuggestedNode => n !== null);
         }
