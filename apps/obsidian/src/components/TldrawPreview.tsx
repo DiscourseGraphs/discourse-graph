@@ -167,7 +167,7 @@ export class TldrawPreview extends TextFileView {
     if (this.reactRoot) {
       try {
         const container = this.tldrawContainer;
-        if (container && container.hasChildNodes()) {
+        if (container?.hasChildNodes()) {
           this.reactRoot.unmount();
         }
       } catch (e) {
@@ -200,7 +200,7 @@ export class TldrawPreview extends TextFileView {
     if (this.reactRoot) {
       try {
         const container = this.tldrawContainer;
-        if (container && container.hasChildNodes()) {
+        if (container?.hasChildNodes()) {
           this.reactRoot.unmount();
         }
       } catch (e) {

@@ -21,18 +21,15 @@ export const TldrawPreviewComponent = ({
     return () => clearTimeout(timer);
   }, []);
 
-  const handleMount = useCallback(
-    (editor: Editor) => {
-      editor.setCurrentTool("hand");
-      editor.updateInstanceState({});
+  const handleMount = useCallback((editor: Editor) => {
+    editor.setCurrentTool("hand");
+    editor.updateInstanceState({});
 
-      const shapes = editor.getCurrentPageShapes();
-      if (shapes.length > 0) {
-        editor.zoomToFit();
-      }
-    },
-    [isReadonly],
-  );
+    const shapes = editor.getCurrentPageShapes();
+    if (shapes.length > 0) {
+      editor.zoomToFit();
+    }
+  }, []);
 
   return (
     <div
