@@ -197,6 +197,7 @@ export type Database = {
           source_local_id: string | null
           space_id: number | null
           text: string
+          variant: Database["public"]["Enums"]["ContentVariant"]
         }
         Insert: {
           author_id?: number | null
@@ -211,6 +212,7 @@ export type Database = {
           source_local_id?: string | null
           space_id?: number | null
           text: string
+          variant?: Database["public"]["Enums"]["ContentVariant"]
         }
         Update: {
           author_id?: number | null
@@ -225,6 +227,7 @@ export type Database = {
           source_local_id?: string | null
           space_id?: number | null
           text?: string
+          variant?: Database["public"]["Enums"]["ContentVariant"]
         }
         Relationships: [
           {
@@ -547,6 +550,7 @@ export type Database = {
           source_local_id: string | null
           space_id: number | null
           text: string
+          variant: Database["public"]["Enums"]["ContentVariant"]
         }
       }
       _local_document_to_db_document: {
@@ -602,11 +606,11 @@ export type Database = {
       }
       create_account_in_space: {
         Args: {
-          email_trusted?: boolean
           space_id_: number
           account_local_id_: string
           name_: string
           email_?: string
+          email_trusted?: boolean
           editor_?: boolean
         }
         Returns: number
@@ -630,8 +634,8 @@ export type Database = {
       }
       generic_entity_access: {
         Args: {
-          target_id: number
           target_type: Database["public"]["Enums"]["EntityType"]
+          target_id: number
         }
         Returns: boolean
       }
@@ -643,8 +647,8 @@ export type Database = {
       }
       get_space_anonymous_email: {
         Args: {
-          space_id: number
           platform: Database["public"]["Enums"]["Platform"]
+          space_id: number
         }
         Returns: string
       }
@@ -681,11 +685,11 @@ export type Database = {
       }
       propose_sync_task: {
         Args: {
-          s_target: number
-          s_worker: string
-          timeout: unknown
-          task_interval: unknown
           s_function: string
+          s_target: number
+          task_interval: unknown
+          timeout: unknown
+          s_worker: string
         }
         Returns: string
       }
@@ -694,20 +698,20 @@ export type Database = {
         Returns: boolean
       }
       upsert_concepts: {
-        Args: { v_space_id: number; data: Json }
+        Args: { data: Json; v_space_id: number }
         Returns: number[]
       }
       upsert_content: {
         Args: {
           v_space_id: number
-          content_as_document?: boolean
           v_creator_id: number
+          content_as_document?: boolean
           data: Json
         }
         Returns: number[]
       }
       upsert_content_embedding: {
-        Args: { model: string; embedding_array: number[]; content_id: number }
+        Args: { content_id: number; embedding_array: number[]; model: string }
         Returns: undefined
       }
       upsert_discourse_nodes: {
@@ -731,13 +735,17 @@ export type Database = {
         }[]
       }
       upsert_documents: {
-        Args: { data: Json; v_space_id: number }
+        Args: { v_space_id: number; data: Json }
         Returns: number[]
       }
     }
     Enums: {
       AgentIdentifierType: "email" | "orcid"
       AgentType: "person" | "organization" | "automated_agent" | "anonymous"
+      ContentVariant:
+        | "direct"
+        | "direct_and_children"
+        | "direct_and_description"
       EmbeddingName:
         | "openai_text_embedding_ada2_1536"
         | "openai_text_embedding_3_small_512"
@@ -830,6 +838,7 @@ export type Database = {
         embedding_inline:
           | Database["public"]["CompositeTypes"]["inline_embedding_input"]
           | null
+        variant: Database["public"]["Enums"]["ContentVariant"] | null
       }
       document_local_input: {
         space_id: number | null
@@ -964,6 +973,11 @@ export const Constants = {
     Enums: {
       AgentIdentifierType: ["email", "orcid"],
       AgentType: ["person", "organization", "automated_agent", "anonymous"],
+      ContentVariant: [
+        "direct",
+        "direct_and_children",
+        "direct_and_description",
+      ],
       EmbeddingName: [
         "openai_text_embedding_ada2_1536",
         "openai_text_embedding_3_small_512",
