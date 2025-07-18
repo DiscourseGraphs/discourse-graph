@@ -13,6 +13,14 @@ CREATE TYPE public."Scale" AS ENUM (
 
 ALTER TYPE public."Scale" OWNER TO postgres;
 
+CREATE TYPE public."ContentVariant" AS ENUM (
+    'direct',
+    'direct_and_children',
+    'direct_and_description'
+);
+
+ALTER TYPE public."ContentVariant" OWNER TO postgres;
+
 CREATE TABLE IF NOT EXISTS public."Document" (
     id bigint DEFAULT nextval(
         'public.entity_id_seq'::regclass
@@ -68,6 +76,7 @@ CREATE TABLE IF NOT EXISTS public."Content" (
     ) NOT NULL,
     document_id bigint NOT NULL,
     source_local_id character varying,
+    variant public."ContentVariant" NOT NULL DEFAULT 'direct',
     author_id bigint,
     creator_id bigint,
     created timestamp without time zone NOT NULL,
@@ -119,8 +128,8 @@ CREATE INDEX "Content_part_of" ON public."Content" USING btree (
 
 CREATE INDEX "Content_space" ON public."Content" USING btree (space_id);
 
-CREATE UNIQUE INDEX content_space_and_local_id_idx ON public."Content" USING btree (
-    space_id, source_local_id
+CREATE UNIQUE INDEX content_space_local_id_variant_idx ON public."Content" USING btree (
+    space_id, source_local_id, variant
 ) NULLS DISTINCT;
 
 CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
@@ -178,6 +187,7 @@ CREATE TYPE public.content_local_input AS (
     -- content columns
     document_id bigint,
     source_local_id character varying,
+    variant public."ContentVariant",
     author_id bigint,
     creator_id bigint,
     created timestamp without time zone,
@@ -406,7 +416,6 @@ BEGIN
       local_content.document_inline.last_modified := db_content.last_modified;
       local_content.document_inline.created := db_content.created;
       local_content.document_inline.author_id := db_content.author_id;
-      local_content.document_inline.metadata := '{}';
     END IF;
     IF source_local_id(document_inline(local_content)) IS NOT NULL THEN
       db_document := _local_document_to_db_document(document_inline(local_content));
@@ -424,7 +433,7 @@ BEGIN
         db_document.source_local_id,
         db_document.url,
         db_document.created,
-        db_document.metadata,
+        COALESCE(db_document.metadata, '{}'::jsonb),
         db_document.last_modified,
         db_document.author_id,
         db_document.contents
@@ -442,6 +451,7 @@ BEGIN
     INSERT INTO public."Content" (
         document_id,
         source_local_id,
+        variant,
         author_id,
         creator_id,
         created,
@@ -454,17 +464,18 @@ BEGIN
     ) VALUES (
         db_content.document_id,
         db_content.source_local_id,
+        COALESCE(db_content.variant, 'direct'::public."ContentVariant"),
         db_content.author_id,
         db_content.creator_id,
         db_content.created,
         db_content.text,
-        db_content.metadata,
+        COALESCE(db_content.metadata, '{}'::jsonb),
         db_content.scale,
         db_content.space_id,
         db_content.last_modified,
         db_content.part_of_id
     )
-    ON CONFLICT (space_id, source_local_id) DO UPDATE SET
+    ON CONFLICT (space_id, source_local_id, variant) DO UPDATE SET
         document_id = COALESCE(db_content.document_id, EXCLUDED.document_id),
         author_id = COALESCE(db_content.author_id, EXCLUDED.author_id),
         creator_id = COALESCE(db_content.creator_id, EXCLUDED.creator_id),
@@ -508,9 +519,9 @@ COMMENT ON FUNCTION public.document_in_space IS 'security utility: does current 
 ALTER TABLE public."Document" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS document_policy ON public."Document";
-CREATE POLICY document_policy ON public."Document" FOR ALL USING (public.in_space (space_id));
+CREATE POLICY document_policy ON public."Document" FOR ALL USING (public.in_space(space_id));
 
 ALTER TABLE public."Content" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS content_policy ON public."Content";
-CREATE POLICY content_policy ON public."Content" FOR ALL USING (public.in_space (space_id));
+CREATE POLICY content_policy ON public."Content" FOR ALL USING (public.in_space(space_id));
