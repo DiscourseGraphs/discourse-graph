@@ -22,14 +22,7 @@ import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
-import {
-  convertDgToSupabaseConcepts,
-  endSyncTask,
-  proposeSyncTask,
-  upsertNodesToSupabaseAsContentWithEmbeddings,
-} from "./utils/syncDgNodesToSupabase";
-import { cleanupOrphanedNodes } from "./utils/cleanupOrphanedNodes";
-import { getAllDiscourseNodesSince } from "./utils/getAllDiscourseNodesSince";
+import { createOrUpdateDiscourseEmbedding } from "./utils/syncDgNodesToSupabase";
 import { OnloadArgs } from "roamjs-components/types";
 
 const initPostHog = () => {
@@ -57,54 +50,7 @@ const initPostHog = () => {
 };
 
 const initEmbeddingSync = async (extensionAPI: OnloadArgs["extensionAPI"]) => {
-  console.log("createOrUpdateDiscourseEmbedding: Starting process.");
-
-  const syncInfo = await proposeSyncTask();
-
-  if (!syncInfo.shouldProceed) {
-    console.log(
-      "createOrUpdateDiscourseEmbedding: Task already running or failed to acquire lock. Exiting.",
-    );
-    return;
-  }
-
-  const { lastUpdateTime, spaceId, worker } = syncInfo;
-  console.log("Last update time:", lastUpdateTime);
-
-  try {
-    if (lastUpdateTime === null) {
-      console.log(
-        "createOrUpdateDiscourseEmbedding: No last update time, create new embeddings.",
-      );
-      console.log("index.ts getAllDiscourseNodesSince");
-      const { pageNodes, blockNodes } = await getAllDiscourseNodesSince(
-        extensionAPI,
-        "1970-01-01",
-      );
-      console.log("pageNodes", pageNodes, blockNodes);
-      await upsertNodesToSupabaseAsContentWithEmbeddings(pageNodes, true);
-      console.log("upserting blockNodes", blockNodes);
-      await upsertNodesToSupabaseAsContentWithEmbeddings(blockNodes, false);
-      console.log("upserting concepts");
-      await convertDgToSupabaseConcepts(pageNodes);
-    } else {
-      console.log("index.ts getAllDiscourseNodesSince");
-      const { pageNodes, blockNodes } = await getAllDiscourseNodesSince(
-        extensionAPI,
-        lastUpdateTime,
-      );
-      console.log("pageNodes", pageNodes, blockNodes);
-      await upsertNodesToSupabaseAsContentWithEmbeddings(pageNodes, true);
-      await upsertNodesToSupabaseAsContentWithEmbeddings(blockNodes, false);
-      await convertDgToSupabaseConcepts(pageNodes);
-      await cleanupOrphanedNodes();
-    }
-    await endSyncTask(spaceId, worker, "complete");
-  } catch (error) {
-    console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
-    await endSyncTask(spaceId, worker, "failed");
-    throw error;
-  }
+  createOrUpdateDiscourseEmbedding(extensionAPI);
 };
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";

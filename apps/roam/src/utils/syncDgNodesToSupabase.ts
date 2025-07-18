@@ -1,4 +1,7 @@
-import { getAllDiscourseNodesSince } from "./getAllDiscourseNodesSince";
+import {
+  getAllDiscourseNodesSince,
+  forAllDiscourseNodeTypeBlockNodes,
+} from "./getAllDiscourseNodesSince";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import { getSupabaseContext } from "./supabaseContext";
 import {
@@ -11,7 +14,7 @@ import {
 } from "../../../../packages/database/inputTypes";
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import getDiscourseRelations from "./getDiscourseRelations";
-import getDiscourseNodes from "./getDiscourseNodes";
+import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
 import {
   discourseNodeBlockToLocalConcept,
   discourseNodeSchemaToLocalConcept,
@@ -152,8 +155,8 @@ const upsertNodeSchemaToContent = async (
   userId: number,
 ) => {
   const query = `[
-  :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title
-  :keys     source_local_id    created    last_modified    author_local_id    text
+  :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title ?author-name
+  :keys     source_local_id    created    last_modified    author_local_id    text author_name
   :in       $  [?uid ...]
   :where
     [?e :block/uid       ?uid]
@@ -163,6 +166,8 @@ const upsertNodeSchemaToContent = async (
     [?e :create/time     ?create-time]
     [?e :edit/time       ?edit-time]
     [?e :edit/user       ?eu]
+    [(get-else $ ?eu :user/display-name "Unknown-person") ?author-name]
+
 ]
 `;
   // @ts-ignore - backend to be added to roamjs-components
@@ -175,7 +180,7 @@ const upsertNodeSchemaToContent = async (
     author_id: userId,
     author_inline: {
       account_local_id: node.author_local_id,
-      name: "Unknown-maybe-dg-plugin",
+      name: node.author_name,
     },
     source_local_id: node.source_local_id,
     created: new Date(node.created || Date.now()).toISOString(),
@@ -211,21 +216,21 @@ const upsertNodeSchemaToContent = async (
 
 export const convertDgToSupabaseConcepts = async (
   nodesSince: RoamDiscourseNodeData[],
+  nodeTypes: DiscourseNode[],
 ) => {
   console.log("Upserting concepts to Supabase: Starting process.");
-  const nodes = getDiscourseNodes().filter((n) => n.backedBy === "user");
   const context = await getSupabaseContext();
   if (!context) {
     console.error("Could not get Supabase context. Aborting update.");
     return;
   }
   await upsertNodeSchemaToContent(
-    nodes.map((node) => node.type),
+    nodeTypes.map((node) => node.type),
     context.spaceId,
     context.userId,
   );
 
-  const nodesTypesToLocalConcepts = nodes.map((node) => {
+  const nodesTypesToLocalConcepts = nodeTypes.map((node) => {
     return discourseNodeSchemaToLocalConcept(context, node);
   });
 
@@ -272,8 +277,8 @@ export const convertDgToSupabaseConcepts = async (
     ...relationBlockToLocalConcepts,
   ];
   const { ordered, missing } = orderConceptsByDependency(conceptsToUpsert);
-  if (missing.length > 0) {
-  }
+  console.log("ordered", ordered);
+  console.log("missing", missing);
   console.log("upserting concepts to supabase", ordered);
   const response = await fetch(`${base_url}/api/supabase/rpc/upsert-concepts`, {
     method: "POST",
@@ -289,13 +294,6 @@ export const convertDgToSupabaseConcepts = async (
     );
   }
   console.log("Successfully upserted concepts.");
-
-  return [
-    ...nodesTypesToLocalConcepts,
-    ...relationsToEmbed,
-    ...nodeBlockToLocalConcepts,
-    ...relationBlockToLocalConcepts,
-  ];
 };
 
 export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
@@ -436,9 +434,8 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
 export const createOrUpdateDiscourseEmbedding = async (
   extensionAPI: OnloadArgs["extensionAPI"],
 ) => {
-  console.log("createOrUpdateDiscourseEmbedding: Starting process.");
-
   const syncInfo = await proposeSyncTask();
+  console.log("syncInfo", syncInfo);
 
   if (!syncInfo.shouldProceed) {
     console.log(
@@ -451,38 +448,26 @@ export const createOrUpdateDiscourseEmbedding = async (
   console.log("Last update time:", lastUpdateTime);
 
   try {
-    // if its null, then run the full embedding process
-    if (lastUpdateTime === null) {
-      console.log("running full embedding process");
-      const { pageNodes, blockNodes } = await getAllDiscourseNodesSince(
-        extensionAPI,
-        "1970-01-01",
-      );
-      console.log("upserting pageNodes", pageNodes);
-      await upsertNodesToSupabaseAsContentWithEmbeddings(pageNodes, true);
-      console.log("upserting blockNodes", blockNodes);
-      await upsertNodesToSupabaseAsContentWithEmbeddings(blockNodes, false);
-      console.log("upserting concepts");
-      await convertDgToSupabaseConcepts(pageNodes);
-    } else {
-      const { pageNodes: p, blockNodes: b } = await getAllDiscourseNodesSince(
-        extensionAPI,
-        lastUpdateTime,
-      );
-      await upsertNodesToSupabaseAsContentWithEmbeddings(p, true);
-      await upsertNodesToSupabaseAsContentWithEmbeddings(b, false);
-      await convertDgToSupabaseConcepts(p);
-      await cleanupOrphanedNodes();
-    }
-
-    // Mark task as complete
-    await endSyncTask(spaceId, worker, "complete");
-    console.log(
-      "createOrUpdateDiscourseEmbedding: Process completed successfully.",
+    const time = lastUpdateTime === null ? "1970-01-01" : lastUpdateTime;
+    console.log("last update time", time);
+    const nodeTypes = getDiscourseNodes().filter((n) => n.backedBy === "user");
+    console.log("nodeTypes", nodeTypes);
+    const blockNodes = await forAllDiscourseNodeTypeBlockNodes(
+      nodeTypes,
+      time,
+      extensionAPI as OnloadArgs["extensionAPI"],
     );
+    console.log("blockNodes", blockNodes);
+    console.log("index.ts getAllDiscourseNodesSince");
+    const pageNodes = await getAllDiscourseNodesSince(time);
+    console.log("pageNodes", pageNodes, blockNodes);
+    await upsertNodesToSupabaseAsContentWithEmbeddings(pageNodes, true);
+    await upsertNodesToSupabaseAsContentWithEmbeddings(blockNodes, false);
+    await convertDgToSupabaseConcepts(pageNodes, nodeTypes);
+    await cleanupOrphanedNodes();
+    await endSyncTask(spaceId, worker, "complete");
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
-    // Mark task as failed
     await endSyncTask(spaceId, worker, "failed");
     throw error;
   }

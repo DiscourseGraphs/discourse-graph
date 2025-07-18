@@ -34,8 +34,12 @@ import { getNodeEnv } from "roamjs-components/util/env";
 import { LocalContentDataInput } from "../../../../../packages/database/inputTypes";
 import {
   getAllDiscourseNodesSince,
+  getDiscourseNodeTypeBlockNodes,
 } from "~/utils/getAllDiscourseNodesSince";
-import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
+import {
+  createOrUpdateDiscourseEmbedding,
+  upsertNodesToSupabaseAsContentWithEmbeddings,
+} from "~/utils/syncDgNodesToSupabase";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -105,69 +109,9 @@ const NodeTemplateConfig = ({
     setCanUpdate(true);
   };
 
-  const searchNodesForType = async (
-    node: DiscourseNode,
-    rules: { isFirstChild?: boolean; embeddingRef?: string },
-  ): Promise<any[]> => {
-    if (!node.format) return [];
-
-    try {
-      const regex = getDiscourseNodeFormatExpression(node.format);
-      console.log("regex", regex);
-
-      const regexPattern = regex.source
-        .replace(/\\/g, "\\\\")
-        .replace(/"/g, '\\"');
-
-      const childByOrder = `[
-      :find ?childUid ?childString ?nodeUid ?childCreateTime ?childEditTime ?author_local_id
-      :keys source_local_id text document_local_id created last_modified author_local_id
-      :in $ ?firstChildUid 
-      :where
-        [(re-pattern "${regexPattern}") ?title-regex]
-        [?node :node/title ?node-title]
-        [(re-find ?title-regex ?node-title)]
-        [?node :block/uid ?nodeUid]
-        [?s :block/uid ?firstChildUid]
-        [?s :block/string ?firstChildString]
-        [?bg :block/page ?node]
-        [?node :node/title ?tit]
-        [?bg :block/string ?firstChildString]
-        [?bg :block/children ?child]
-        [?child :block/order 0]
-        [?child :block/uid ?childUid]
-        [?child :block/string ?childString]
-        [?child :create/time ?childCreateTime]
-        [?child :edit/time ?childEditTime]
-        [?child :create/user ?user-eid]
-        [?user-eid :user/uid ?author_local_id]
-        ]`;
-
-      const results = rules.isFirstChild
-        ? // @ts-ignore - backend to be added to roamjs-components
-          window.roamAlphaAPI.q(
-            childByOrder,
-            rules.embeddingRef?.match(/\(\((.*)\)\)/)?.[1] ?? "",
-          )
-        : [];
-
-      console.log(
-        "query",
-        childByOrder,
-        rules.embeddingRef?.match(/\(\((.*)\)\)/)?.[1] ?? "",
-      );
-      console.log("results", results);
-      return results;
-    } catch (error) {
-      console.error(`Error querying for node type ${node.type}:`, error);
-      console.error(`Node format:`, node.format);
-      return [];
-    }
-  };
-
   const handleUpdateEmbeddings = async () => {
     setIsUpdating(true);
-    console.log(`Starting embedding update for "${node.text}".`);
+    console.log(`Starting embedding update for "${node.text}" .`, node);
     console.log("extensionAPI.settings", extensionAPI.settings);
     console.log("settingsKey", extensionAPI.settings.get(settingsKey));
 
@@ -179,121 +123,16 @@ const NodeTemplateConfig = ({
       `Repopulating database for node type "${node.text}" with rules:`,
       rules,
     );
-    const nodesOfType = await searchNodesForType(node, rules);
+    const nodesOfType = getDiscourseNodeTypeBlockNodes(
+      node,
+      0,
+      extensionAPI as OnloadArgs["extensionAPI"],
+    );
     console.log("nodesOfType", nodesOfType);
-
-    if (rules.isFirstChild && Array.isArray(nodesOfType)) {
-      const context = await getSupabaseContext();
-      if (!context) {
-        console.error("Could not get Supabase context. Aborting update.");
-        setIsUpdating(false);
-        return;
-      }
-      const { spaceId, userId: authorId } = context;
-
-      const contentData: LocalContentDataInput[] = nodesOfType.map(
-        (node: any) => ({
-          author_local_id: node.author_local_id,
-          document_local_id: node.document_local_id,
-          source_local_id: node.source_local_id,
-          scale: "block",
-          created: new Date(node.created || Date.now()).toISOString(),
-          last_modified: new Date(
-            node.last_modified || Date.now(),
-          ).toISOString(),
-          text: node.text,
-        }),
-      );
-
-      const apiBase =
-        getNodeEnv() === "development"
-          ? "http://localhost:3000/api/supabase"
-          : "https://discoursegraphs.com/api/supabase";
-      const upsertRes = await fetch(`${apiBase}/rpc/upsert-content`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          v_space_id: spaceId,
-          v_creator_id: authorId,
-          data: contentData,
-          content_as_document: false,
-        }),
-      });
-      if (!upsertRes.ok) {
-        const errorText = await upsertRes.text();
-        throw new Error(`Failed to upsert content: ${errorText}`);
-      }
-      const upsertJson = (await upsertRes.json()) as { data: any[] };
-      const data = upsertJson.data;
-
-      console.log(`Embeddings for "${node.text}" updated successfully.`);
-      setCanUpdate(false);
-
-      if (data && Array.isArray(data)) {
-        // 1. Collect {id, text}
-        const textsToEmbed = data.map((row: any) => ({
-          contentId: row.id as number,
-          text: row.text as string,
-        }));
-
-        // 2. Hit your embeddings endpoint in one batch
-        const embedRes = await fetch(
-          `http://localhost:3000/api/embeddings/openai/small`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              input: textsToEmbed.map((t) => t.text),
-            }),
-          },
-        );
-        const embedJson = (await embedRes.json()) as {
-          data: { embedding: number[] }[];
-        };
-
-        // 3. Build rows for Supabase insert
-        const embeddingRows = textsToEmbed.map((t: any, i: number) => ({
-          target_id: t.contentId,
-          model: "openai_text_embedding_3_small_1536", // match Supabase table & validators
-          vector: embedJson.data[i].embedding,
-          obsolete: false,
-        }));
-
-        // 4. Persist embeddings via Supabase API
-        try {
-          const embedInsertRes = await fetch(
-            `${apiBase}/content-embedding/batch`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(embeddingRows),
-            },
-          );
-
-          if (!embedInsertRes.ok) {
-            const errorText = await embedInsertRes.text();
-            throw new Error(
-              `Failed to batch insert embeddings [${embedInsertRes.status}]: ${errorText}`,
-            );
-          }
-
-          console.log(
-            `Batch inserted ${embeddingRows.length} embeddings for node type "${node.text}"`,
-          );
-
-          // Reset updating state after successful insertion
-          setIsUpdating(false);
-        } catch (error) {
-          console.error("Error inserting embeddings:", error);
-          setIsUpdating(false);
-          throw error; // Surface to outer catch for user feedback
-        }
-      }
-    } else {
-      setIsUpdating(false);
+    if (nodesOfType) {
+      await upsertNodesToSupabaseAsContentWithEmbeddings(nodesOfType, false);
     }
+    setIsUpdating(false);
   };
 
   const templateUid = getSubTree({
@@ -354,7 +193,7 @@ const NodeTemplateConfig = ({
               await handleUpdateEmbeddings();
             }}
             style={{ minWidth: "140px" }}
-            //disabled={!canUpdate}
+            disabled={!canUpdate}
             loading={isUpdating}
           />
         </Tooltip>

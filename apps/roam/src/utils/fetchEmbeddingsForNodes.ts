@@ -24,7 +24,11 @@ export const fetchEmbeddingsForNodes = async (
   nodes: RoamDiscourseNodeData[],
 ): Promise<DiscourseGraphContent[]> => {
   const allEmbeddings: number[][] = [];
-  const allNodesTexts = nodes.map((node) => node.text);
+  console.log("nodes", nodes);
+  // if node.node-title then the text should be node.node-title + " " + node.text
+  const allNodesTexts = nodes.map((node) =>
+    node.node_title ? `${node.node_title} ${node.text}` : node.text,
+  );
 
   for (let i = 0; i < allNodesTexts.length; i += EMBEDDING_BATCH_SIZE) {
     const batch = allNodesTexts.slice(i, i + EMBEDDING_BATCH_SIZE);
