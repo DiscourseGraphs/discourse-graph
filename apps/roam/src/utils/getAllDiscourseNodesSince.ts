@@ -87,13 +87,7 @@ const getQuery = async (
         [?child :edit/user ?eu]
         [?eu :user/display-name ?author_name]
         ]`;
-    console.log(
-      "QUERY",
-      JSON.stringify(queryBlock),
-      String(firstChildUid),
-      String(node.type),
-      sinceMs,
-    );
+
     // @ts-ignore - backend to be added to roamjs-components
     const resultBlock = (await window.roamAlphaAPI.q(
       queryBlock,

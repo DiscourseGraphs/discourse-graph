@@ -152,8 +152,8 @@ const upsertNodeSchemaToContent = async (
   userId: number,
 ) => {
   const query = `[
-  :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title ?author_name
-  :keys     source_local_id    created    last_modified    author_local_id    text author_name
+  :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title
+  :keys     source_local_id    created    last_modified    author_local_id    text
   :in       $  [?uid ...]
   :where
     [?e :block/uid       ?uid]
@@ -163,20 +163,19 @@ const upsertNodeSchemaToContent = async (
     [?e :create/time     ?create-time]
     [?e :edit/time       ?edit-time]
     [?e :edit/user       ?eu]
-    [?eu :user/display-name ?author_name]
 ]
 `;
   // @ts-ignore - backend to be added to roamjs-components
   const result = (await window.roamAlphaAPI.data.backend.q(
     query,
     nodesUids,
-  )) as unknown as RoamDiscourseNodeData[];
+  )) as unknown[][] as RoamDiscourseNodeData[];
 
   const contentData: LocalContentDataInput[] = result.map((node) => ({
     author_id: userId,
     author_inline: {
       account_local_id: node.author_local_id,
-      name: node.author_name,
+      name: "Unknown-maybe-dg-plugin",
     },
     source_local_id: node.source_local_id,
     created: new Date(node.created || Date.now()).toISOString(),
