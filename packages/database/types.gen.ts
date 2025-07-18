@@ -577,10 +577,10 @@ export type Database = {
       }
       alpha_upsert_discourse_nodes: {
         Args: {
-          p_nodes: Json
+          p_user_name: string
           p_space_name: string
           p_user_email: string
-          p_user_name: string
+          p_nodes: Json
         }
         Returns: string
       }
@@ -590,21 +590,21 @@ export type Database = {
       }
       create_account_in_space: {
         Args: {
+          space_id_: number
+          email_trusted?: boolean
           email_?: string
           name_: string
-          editor_?: boolean
-          space_id_: number
           account_local_id_: string
-          email_trusted?: boolean
+          editor_?: boolean
         }
         Returns: number
       }
       end_sync_task: {
         Args: {
-          s_status: Database["public"]["Enums"]["task_status"]
           s_target: number
-          s_function: string
+          s_status: Database["public"]["Enums"]["task_status"]
           s_worker: string
+          s_function: string
         }
         Returns: undefined
       }
@@ -627,31 +627,31 @@ export type Database = {
       }
       match_content_embeddings: {
         Args: {
-          match_count: number
-          match_threshold: number
-          query_embedding: string
           current_document_id?: number
+          query_embedding: string
+          match_threshold: number
+          match_count: number
         }
         Returns: {
           text_content: string
-          similarity: number
           roam_uid: string
           content_id: number
+          similarity: number
         }[]
       }
       match_embeddings_for_subset_nodes: {
-        Args: { p_query_embedding: string; p_subset_roam_uids: string[] }
+        Args: { p_subset_roam_uids: string[]; p_query_embedding: string }
         Returns: {
-          content_id: number
           similarity: number
           text_content: string
           roam_uid: string
+          content_id: number
         }[]
       }
       propose_sync_task: {
         Args: {
-          timeout: unknown
           s_worker: string
+          timeout: unknown
           task_interval: unknown
           s_target: number
           s_function: string
@@ -659,24 +659,27 @@ export type Database = {
         Returns: string
       }
       upsert_concepts: {
-        Args: { v_space_id: number; data: Json }
+        Args: { data: Json; v_space_id: number }
         Returns: number[]
       }
       upsert_content: {
         Args: {
           data: Json
-          v_space_id: number
           content_as_document?: boolean
           v_creator_id: number
+          v_space_id: number
         }
         Returns: number[]
       }
       upsert_content_embedding: {
-        Args: { model: string; content_id: number; embedding_array: number[] }
+        Args: { content_id: number; model: string; embedding_array: number[] }
         Returns: undefined
       }
       upsert_discourse_nodes: {
         Args: {
+          p_space_name: string
+          p_user_email: string
+          p_user_name: string
           p_nodes: Json
           p_platform_name?: string
           p_platform_url?: string
@@ -685,18 +688,15 @@ export type Database = {
           p_content_scale?: string
           p_embedding_model?: string
           p_document_source_id?: string
-          p_space_name: string
-          p_user_email: string
-          p_user_name: string
         }
         Returns: {
+          action: string
           content_id: number
           embedding_created: boolean
-          action: string
         }[]
       }
       upsert_documents: {
-        Args: { v_space_id: number; data: Json }
+        Args: { data: Json; v_space_id: number }
         Returns: number[]
       }
     }
