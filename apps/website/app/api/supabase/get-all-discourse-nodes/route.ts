@@ -64,10 +64,28 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       return createApiResponse(request, conceptResponse);
     }
 
-    const result =
+    const nodeResult =
       conceptResponse.data
         ?.map((c) => c.Content?.source_local_id)
         .filter((id): id is string => !!id) || [];
+
+    const blockContentResponse = await supabase
+      .from("Content")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .eq("scale", "block")
+      .not("source_local_id", "is", null);
+
+    if (blockContentResponse.error) {
+      return createApiResponse(request, blockContentResponse);
+    }
+
+    const blockResult =
+      blockContentResponse.data
+        ?.map((c) => c.source_local_id)
+        .filter((id): id is string => !!id) || [];
+
+    const result = [...new Set([...nodeResult, ...blockResult])];
 
     const response = NextResponse.json(result, { status: 200 });
     return cors(request, response) as NextResponse;

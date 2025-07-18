@@ -47,9 +47,23 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
           asPostgrestFailure(conceptError.message, conceptError.code, 500),
         );
       }
+      const { error: contentDeleteError } = await supabase
+        .from("Content")
+        .delete()
+        .in("id", contentIds);
+
+      if (contentDeleteError) {
+        return createApiResponse(
+          request,
+          asPostgrestFailure(
+            contentDeleteError.message,
+            contentDeleteError.code,
+            500,
+          ),
+        );
+      }
     }
 
-    // TODO - Later we need to delete a discoursenode's content
     const { error: docError, count } = await supabase
       .from("Document")
       .delete({ count: "exact" })
