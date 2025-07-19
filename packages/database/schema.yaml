@@ -22,6 +22,12 @@ enums:
       quote:
       sentence:
       phrase:
+  ContentVariant:
+    description: Is the text taken as-is, or is it a computed variant?
+    permissible_values:
+      direct:
+      direct_and_children:
+      direct_and_description:
   Validation:
     description: Whether a given value was given by a person, or suggested by an automated agent (and then possibly infirmed.)
     permissible_values:
@@ -139,7 +145,7 @@ classes:
       active:
         range: boolean
         required: true
-        ifabsent: 'true'
+        ifabsent: "true"
       agent_type:
         required: true
         range: AgentType
@@ -147,7 +153,7 @@ classes:
       metadata:
         range: JSON
         description: Additional platform-specific information about the account
-        ifabsent: '{}'
+        ifabsent: "{}"
       dg_account:
         range: Users
     unique_keys:
@@ -298,7 +304,7 @@ classes:
       obsolete:
         description: Whether this embedding is obsolete (becauses the Content was modified)
         range: boolean
-        ifabsent: 'false'
+        ifabsent: "false"
   ContentEmbedding_openai_text_embedding_3_small_1536:
     is_a: ContentEmbedding
     description: The table for the openai text_embedding_3_small model (1536 dimensions)
@@ -318,7 +324,7 @@ classes:
       arity:
         range: integer
         required: true
-        ifabsent: '0'
+        ifabsent: "0"
         description: The number of roles in this relation; nodes have zero, binary relations have 2, etc.
       schema:
         range: ConceptSchema
@@ -327,16 +333,16 @@ classes:
         description: "Aspects of the concept that reference other concepts. `{[key: string]: number|number[]}`"
         range: JSON
         required: true
-        ifabsent: '{}'
+        ifabsent: "{}"
       literal_content:
         range: JSON
         required: true
         description: "Aspects of the concept that have literal values. `{[key: string]: any}`"
-        ifabsent: '{}'
+        ifabsent: "{}"
       is_schema:
         range: boolean
         required: true
-        ifabsent: 'false'
+        ifabsent: "false"
       represented_by:
         description: This concept is explicitly represented by a given content unit
         range: Content
@@ -445,13 +451,13 @@ slots:
   position:
     description: The ordinal position of the content within its parent, wrt other content units of the same scale
     range: integer
-    ifabsent: '0'
+    ifabsent: "0"
     required: true
   char_position:
     description: The character position of the content within its parent.
     # Does not apply to outline sub-elements
     range: integer
-    ifabsent: '0'
+    ifabsent: "0"
   validation:
     range: Validation
     required: true
