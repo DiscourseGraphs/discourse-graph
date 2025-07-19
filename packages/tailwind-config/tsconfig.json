@@ -1,5 +1,9 @@
 {
   "extends": "@repo/typescript-config/base.json",
   "include": ["."],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": true
+  },
   "exclude": ["dist", "build", "node_modules"]
 }
