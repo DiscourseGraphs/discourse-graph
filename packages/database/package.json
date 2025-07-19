@@ -17,6 +17,9 @@
     "lint:fix": "tsx scripts/lint.ts -f",
     "build": "tsx scripts/build.ts",
     "test": "tsc && cucumber-js",
+    "genenv:supabasebranch": "tsx scripts/create_supabase_branch_env.ts",
+    "genenv:production": "vercel env pull --environment preview .env.production",
+    "genenv:local": "tsx scripts/create_supabase_local_env.ts",
     "gentypes:production": "supabase start && supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > types.gen.ts",
     "dbdiff": "supabase stop && supabase db diff",
     "dbdiff:save": "supabase stop && supabase db diff -f",
@@ -28,7 +31,8 @@
     "prettier-plugin-gherkin": "^3.1.2",
     "supabase": "^2.30.4",
     "ts-node-maintained": "^10.9.5",
-    "tsx": "^4.20.3"
+    "tsx": "^4.20.3",
+    "vercel": "44.5.0"
   },
   "prettier": {
     "plugins": [
