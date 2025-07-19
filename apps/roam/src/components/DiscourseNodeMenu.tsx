@@ -100,6 +100,8 @@ const NodeMenu = ({
 
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+
       if (e.key === "ArrowDown") {
         const index = Number(
           menuRef.current?.getAttribute("data-active-index"),
@@ -170,6 +172,7 @@ const NodeMenu = ({
       canEscapeKeyClose
       minimal
       target={trigger || <span />}
+      className="relative z-50"
       position={Position.BOTTOM_LEFT}
       modifiers={{
         flip: { enabled: false },
@@ -242,9 +245,8 @@ export const TextSelectionNodeMenu = ({
 }) => {
   const trigger = (
     <Button
-      minimal
       small
-      className="rounded border border-[#d3d8de] bg-white px-2 py-1 shadow-md hover:border-[#bfccd6] hover:bg-[#f7f9fc]"
+      className="relative z-50 rounded border border-[#d3d8de] bg-white px-2 py-1 shadow-md hover:border-[#bfccd6] hover:bg-[#f7f9fc]"
       icon={
         <div className="flex items-center gap-1">
           <svg

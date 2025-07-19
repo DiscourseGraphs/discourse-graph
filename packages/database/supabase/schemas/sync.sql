@@ -262,4 +262,29 @@ GRANT ALL ON FUNCTION public.get_nodes_needing_sync(nodes_from_roam jsonb) TO "a
 GRANT ALL ON FUNCTION public.get_nodes_needing_sync(nodes_from_roam jsonb) TO "authenticated";
 GRANT ALL ON FUNCTION public.get_nodes_needing_sync(nodes_from_roam jsonb) TO "service_role";
 
+
+CREATE OR REPLACE FUNCTION public.generic_entity_access (target_id BIGINT, target_type public."EntityType") RETURNS boolean
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql AS $$
+    SELECT CASE
+        WHEN target_type = 'Space' THEN public.in_space(target_id)
+        WHEN target_type = 'Content' THEN public.content_in_space(target_id)
+        WHEN target_type = 'Concept' THEN public.concept_in_space(target_id)
+        WHEN target_type = 'Document' THEN public.document_in_space(target_id)
+        WHEN target_type = 'PlatformAccount' THEN public.account_in_shared_space(target_id)
+        ELSE false
+    END;
+$$ ;
+
+COMMENT ON FUNCTION public.generic_entity_access IS 'security utility: does current user have access to this generic entity?' ;
+
+
+ALTER TABLE public.sync_info ENABLE ROW LEVEL SECURITY ;
+
+-- Assuming the sync target is a always a space for now
+
+DROP POLICY IF EXISTS sync_info_policy ON public.sync_info ;
+CREATE POLICY sync_info_policy ON public.sync_info FOR ALL USING (public.generic_entity_access (sync_target, target_type)) ;
+
 RESET ALL;

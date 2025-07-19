@@ -4,7 +4,13 @@
     "baseUrl": ".",
     "rootDir": ".",
     "noEmit": true
+    "outDir": "dist"
   },
-  "include": ["."],
+  "include": [
+    ".",
+    "./*",
+    "./features/step-definitions/**/*",
+    "./features/support/**/*"
+  ],
   "exclude": ["supabase"]
 }

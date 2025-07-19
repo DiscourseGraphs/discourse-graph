@@ -29,3 +29,16 @@ All CLI commands below should be run in this directory (`packages/database`.)
       3. Regenerate the types file with `supabase gen types typescript --local > types.gen.ts`
       4. Copy it where appropriate
    8. You can start using your changes again `turbo dev`
+
+
+## Testing the backend
+
+There are cucumber scenarios to test the flow of database operations. We have not yet automated those tests, but you should run them when developing the database. You will need to
+
+1. Run `turbo dev` in one terminal (in the root directory)
+  1. Take note of the `API URL`, `anon key` and `service role key` in the `@repo/database task`
+2. In another other terminal, `cd` to this directory (`packages/database`)
+  1. Set the environment variables `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` to the values noted above, respectively.
+  2. Run the tests with `npm run test`
+
+Think of adding new tests if appropriate!

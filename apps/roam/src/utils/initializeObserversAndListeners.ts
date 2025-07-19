@@ -159,6 +159,7 @@ export const initObservers = async ({
       target.tagName === "TEXTAREA" &&
       target.classList.contains("rm-block-input")
     ) {
+      removeTextSelectionPopup();
       renderDiscourseNodeMenu({
         textarea: target as HTMLTextAreaElement,
         extensionAPI: onloadArgs.extensionAPI,
@@ -257,7 +258,10 @@ export const initObservers = async ({
 
     const selection = window.getSelection();
 
-    if (!selection || selection.rangeCount === 0) return;
+    if (!selection || selection.rangeCount === 0 || !selection.focusNode) {
+      removeTextSelectionPopup();
+      return;
+    }
 
     const selectedText = selection.toString().trim();
 
