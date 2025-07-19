@@ -74,22 +74,21 @@ CREATE OR REPLACE FUNCTION public.match_embeddings_for_subset_nodes (
   similarity double precision
 ) LANGUAGE sql STABLE SET search_path = 'extensions' AS $$
 WITH initial_content AS (
-  -- Step 1: Find the initial content entries for the given UIDs
+  -- Step 1: Find the initial content entries for the given UIDs to get their document_ids
   SELECT
-    c.id,
-    c.source_local_id,
-    c.text,
-    c.document_id
+    id,
+    source_local_id,
+    text,
+    document_id
   FROM
-    public."Content" c
+    public."Content"
   WHERE
-    c.source_local_id = ANY (p_subset_roam_uids)
-),
-document_content_counts AS (
-  -- Step 2: Count content items per document for documents linked to our initial content
+    source_local_id = ANY (p_subset_roam_uids)
+), latest_doc_content AS (
+  -- Step 2: For each document, find the content with the highest ID
   SELECT
     document_id,
-    COUNT(id) AS content_count
+    MAX(id) AS latest_content_id
   FROM
     public."Content"
   WHERE
@@ -100,55 +99,17 @@ document_content_counts AS (
         initial_content)
     GROUP BY
       document_id
-),
-special_case_documents AS (
-  -- Step 3: Identify documents that are special cases (exactly 2 content items)
-  SELECT
-    document_id
-  FROM
-    document_content_counts
-  WHERE
-    content_count = 2
-),
-block_content_for_special_docs AS (
-  -- Step 4: Find the 'block' scaled content for these special case documents
-  SELECT
-    c.document_id,
-    c.id AS block_content_id
-  FROM
-    public."Content" c
-  WHERE
-    c.document_id IN (
-      SELECT
-        document_id
-      FROM
-        special_case_documents)
-      AND c.scale = 'block'
-),
-content_with_embedding_source AS (
-  -- Step 5: Determine which content ID to use for fetching the embedding
-  SELECT
-    ic.id AS original_content_id,
-    ic.source_local_id AS roam_uid,
-    ic.text AS text_content,
-    COALESCE(bcsd.block_content_id, ic.id) AS embedding_target_id
-  FROM
-    initial_content ic
-  LEFT JOIN
-    block_content_for_special_docs bcsd
-    ON ic.document_id = bcsd.document_id
 )
--- Final Step: Join to get embeddings, calculate similarity, and return the results
+-- Final Step: Join back to initial content to keep original UIDs, join to get embeddings, and calculate similarity
 SELECT
-  cwes.original_content_id AS content_id,
-  cwes.roam_uid,
-  cwes.text_content,
+  ic.id AS content_id,
+  ic.source_local_id AS roam_uid,
+  ic.text AS text_content,
   1 - (ce.vector <=> p_query_embedding) AS similarity
 FROM
-  content_with_embedding_source cwes
-JOIN
-  public."ContentEmbedding_openai_text_embedding_3_small_1536" AS ce
-  ON cwes.embedding_target_id = ce.target_id
+  initial_content ic
+  JOIN latest_doc_content ldc ON ic.document_id = ldc.document_id
+  JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS ce ON ldc.latest_content_id = ce.target_id
 WHERE
   ce.obsolete = FALSE
 ORDER BY
