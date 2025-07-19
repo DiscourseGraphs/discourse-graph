@@ -3,7 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "noEmit": true
+    "noEmit": true,
     "outDir": "dist"
   },
   "include": [
