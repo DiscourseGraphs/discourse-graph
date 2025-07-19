@@ -10,7 +10,7 @@
   },
   "scripts": {
     "init": "supabase login",
-    "dev": "supabase start",
+    "dev": "supabase start && supabase functions serve",
     "stop": "supabase stop",
     "check-types": "npm run lint && supabase stop && npm run dbdiff",
     "lint": "tsx scripts/lint.ts",
