@@ -176,26 +176,24 @@ export const nodeTypeSince = async (
   nodeTypes: DiscourseNode[],
 ) => {
   console.log("nodeTypes", nodeTypes);
-  const nodesSince = nodeTypes.filter(async (node) => {
-    const regex = getDiscourseNodeFormatExpression(node.format);
-    const regexPattern = regex.source
-      .replace(/\\/g, "\\\\")
-      .replace(/"/g, '\\"');
-    const query = `
-      :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name
-      :keys text source_local_id created last_modified author_local_id author_name
-      :in $ ?since 
-      :where
-        [(re-pattern "${regexPattern}") ?title-regex]
+
+  const filterMap = await Promise.all(
+    nodeTypes.map((node) => {
+      const query = `
+      [:find ?node-title
+       :in $ ?since ?type
+       :where
+        [?node :block/uid ?type]
         [?node :node/title ?node-title]
-        [(re-find ?title-regex ?node-title)]
         [?node :edit/time ?nodeEditTime]
-        [(> ?nodeEditTime ?since)]
+        [(> ?nodeEditTime ?since)]]
     `;
-    const result = window.roamAlphaAPI.data.q(query, sinceMs);
-    console.log("result", result);
-    return result.length > 0;
-  });
+      const result = window.roamAlphaAPI.data.q(query, sinceMs, node.type);
+      return result.length > 0;
+    }),
+  );
+
+  const nodesSince = nodeTypes.filter((_, index) => filterMap[index]);
   console.log("nodesSince", nodesSince);
   return nodesSince;
 };
