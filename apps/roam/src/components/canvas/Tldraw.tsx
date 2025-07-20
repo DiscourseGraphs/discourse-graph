@@ -80,6 +80,7 @@ import {
 import ConvertToDialog from "./ConvertToDialog";
 import { createArrowShapeMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
+import sendErrorEmail from "~/utils/sendErrorEmail";
 
 declare global {
   interface Window {
@@ -337,6 +338,40 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     };
   }, [appRef, allNodes]);
 
+  // Catch a custom event we used patch-package to add
+  useEffect(() => {
+    const handleTldrawError = (
+      e: CustomEvent<{ message: string; stack: string | null }>,
+    ) => {
+      const error = new Error(e.detail.message);
+      if (e.detail.stack) {
+        error.stack = e.detail.stack;
+      }
+
+      sendErrorEmail({
+        error,
+        type: "Tldraw Error",
+        context: {
+          title: title,
+        },
+      }).catch(() => {});
+
+      console.error("Tldraw Error:", e.detail);
+    };
+
+    document.addEventListener(
+      "tldraw:error",
+      handleTldrawError as EventListener,
+    );
+
+    return () => {
+      document.removeEventListener(
+        "tldraw:error",
+        handleTldrawError as EventListener,
+      );
+    };
+  }, []);
+
   return (
     <div
       className={`z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white ${maximized ? "absolute inset-0" : "relative"}`}
@@ -390,7 +425,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             <p className="mb-4 text-gray-600">
               {error || assetLoading.error
                 ? "There was a problem loading the Tldraw canvas. Please try again later."
-                : "Loading Canvas"}
+                : ""}
             </p>
           </div>
         </div>
