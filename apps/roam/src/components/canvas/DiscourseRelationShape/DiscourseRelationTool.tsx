@@ -284,13 +284,11 @@ export const createAllReferencedNodeTools = (
             ) {
               this.editor.setCurrentTool("select");
               this.editor.setEditingShape(onlySelectedShape.id);
-              this.editor.root
-                .getCurrent()
-                ?.transition("editing_shape", {
-                  ...info,
-                  target: "shape",
-                  shape: onlySelectedShape,
-                });
+              this.editor.root.getCurrent()?.transition("editing_shape", {
+                ...info,
+                target: "shape",
+                shape: onlySelectedShape,
+              });
             }
           }
         };
@@ -583,13 +581,11 @@ export const createAllRelationShapeTools = (
             ) {
               this.editor.setCurrentTool("select");
               this.editor.setEditingShape(onlySelectedShape.id);
-              this.editor.root
-                .getCurrent()
-                ?.transition("editing_shape", {
-                  ...info,
-                  target: "shape",
-                  shape: onlySelectedShape,
-                });
+              this.editor.root.getCurrent()?.transition("editing_shape", {
+                ...info,
+                target: "shape",
+                shape: onlySelectedShape,
+              });
             }
           }
         };
