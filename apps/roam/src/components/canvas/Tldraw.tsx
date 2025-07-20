@@ -878,7 +878,7 @@ const TldrawCanvas = ({ title }: Props) => {
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">Canvas Upgraded</h2>
             <p className="mb-4 text-gray-600">
-              This Canvas is using the latest version.
+              This canvas is using the latest version.
               <br />
               Please upgrade your Discourse Graph extension to view this canvas.
             </p>
