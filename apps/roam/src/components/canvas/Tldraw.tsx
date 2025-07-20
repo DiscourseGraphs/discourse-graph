@@ -37,6 +37,8 @@ import {
   DEFAULT_SUPPORT_VIDEO_TYPES,
   registerDefaultExternalContentHandlers,
   registerDefaultSideEffects,
+  defaultEditorAssetUrls,
+  usePreloadAssets,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
@@ -265,6 +267,9 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     pageUid,
   });
 
+  // ASSETS
+  const assetLoading = usePreloadAssets(defaultEditorAssetUrls);
+
   // Handle actions (roamjs:query-builder:action)
   useEffect(() => {
     const handleMoveCameraToShapeAction = ({
@@ -374,14 +379,16 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             </button>
           </div>
         </div>
-      ) : !store ? (
+      ) : !store || !assetLoading.done ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
-              {error ? "Error Loading Canvas" : "Loading Canvas"}
+              {error || assetLoading.error
+                ? "Error Loading Canvas"
+                : "Loading Canvas"}
             </h2>
             <p className="mb-4 text-gray-600">
-              {error
+              {error || assetLoading.error
                 ? "There was a problem loading the Tldraw canvas. Please try again later."
                 : "Loading Canvas"}
             </p>
@@ -452,7 +459,11 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             });
           }}
         >
-          <TldrawUi overrides={uiOverrides} components={customUiComponents}>
+          <TldrawUi
+            overrides={uiOverrides}
+            components={customUiComponents}
+            assetUrls={defaultEditorAssetUrls}
+          >
             <InsideEditorAndUiContext
               extensionAPI={extensionAPI}
               allNodes={allNodes}
