@@ -13,23 +13,37 @@ const CanvasReferencesList = ({
     { uid: string; text: string }[]
   >([]);
   React.useEffect(() => {
-    const results = window.roamAlphaAPI.data.fast.q(`[:find
+    const oldCanvasReferences = window.roamAlphaAPI.data.fast.q(`[:find
+      (pull ?c [:block/uid :block/string :node/title])
+    :where
+      [?c :block/props ?props]
+      [(get ?props :roamjs-query-builder) ?rqb]
+      [(get ?rqb :tldraw) [[?k ?v]]]
+      [(get ?v :props) ?shape-props]
+      [(get ?shape-props :uid) ?uid]
+      [(= ?uid "${uid}")]
+    ]`) as [PullBlock][];
+    const newCanvasReferences = window.roamAlphaAPI.data.fast.q(`[:find
         (pull ?c [:block/uid :block/string :node/title])
       :where
         [?c :block/props ?props]
         [(get ?props :roamjs-query-builder) ?rqb]
-        [(get ?rqb :tldraw) [[?k ?v]]]
+        [(get ?rqb :tldraw) ?tldraw]
+        [(get ?tldraw :store) [[?k ?v]]]
         [(get ?v :props) ?shape-props]
         [(get ?shape-props :uid) ?uid]
         [(= ?uid "${uid}")]
       ]`) as [PullBlock][];
-    setReferences(
-      results.map((res) => ({
-        uid: res[0][":block/uid"] || "",
-        text: res[0][":block/string"] || res[0][":node/title"] || "",
-      })),
-    );
-    setReferenceCount(results.length);
+    const newReferences = newCanvasReferences.map((res) => ({
+      uid: res[0][":block/uid"] || "",
+      text: res[0][":block/string"] || res[0][":node/title"] || "",
+    }));
+    const oldReferences = oldCanvasReferences.map((res) => ({
+      uid: res[0][":block/uid"] || "",
+      text: res[0][":block/string"] || res[0][":node/title"] || "",
+    }));
+    setReferences([...oldReferences, ...newReferences]);
+    setReferenceCount(oldReferences.length + newReferences.length);
   }, [setReferences, uid, setReferenceCount]);
   return (
     <div className="m-1">
