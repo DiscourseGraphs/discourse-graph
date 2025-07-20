@@ -85,14 +85,12 @@ export default runExtension(async (onloadArgs) => {
       timeout: 500,
     });
   }
-
-  initializeDiscourseNodes();
-  refreshConfigTree();
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
+
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
@@ -110,6 +108,9 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
+
+  await initializeDiscourseNodes();
+  refreshConfigTree();
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
