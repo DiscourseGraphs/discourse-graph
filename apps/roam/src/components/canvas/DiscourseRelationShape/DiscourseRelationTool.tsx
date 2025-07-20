@@ -355,10 +355,12 @@ export const createAllRelationShapeTools = (
           if (relation) {
             this.shapeType = relation.id;
           } else {
+            const acceptableTypes = discourseContext.relations[name].map(
+              (r) => discourseContext.nodes[r.source].text,
+            );
+            const uniqueTypes = [...new Set(acceptableTypes)];
             this.cancelAndWarn(
-              `Starting node must be one of ${discourseContext.relations[name]
-                .map((r) => discourseContext.nodes[r.source].text)
-                .join(", ")}`,
+              `Starting node must be one of ${uniqueTypes.join(", ")}`,
             );
           }
           if (!target) {
