@@ -98,7 +98,7 @@ const processAndGetOrCreateSpace = async (
     }
     anonymousUser = resultCreateAnonymousUser.data.user;
   }
-
+  // NOTE: The next few steps could be done as the new user, except the SpaceAccess
   const anonPlatformUserResult = await getOrCreateEntity<"PlatformAccount">({
     supabase,
     tableName: "PlatformAccount",

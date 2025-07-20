@@ -24,7 +24,7 @@ export const fetchOrCreateSpaceId = async (data: {
   });
   if (!response.ok)
     throw new Error(
-      `Platform API failed: ${response.status} ${response.statusText} ${await response.text()}`,
+      `Platform API failed: ${response.status} ${response.statusText}`,
     );
   const space = await response.json();
   if (typeof space.id !== "number") throw new Error("API did not return space");
@@ -71,6 +71,6 @@ export const fetchOrCreatePlatformAccount = async ({
     email_: email,
   });
 
-  if (result.error) throw Error(result.error.message); // account created but not connected, try again
+  if (result.error) throw Error(result.error.message);
   return result.data;
 };

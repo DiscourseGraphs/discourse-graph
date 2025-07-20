@@ -45,13 +45,18 @@ export const useRoamStore = ({
     }
     const instanceId = TLInstance.createCustomId(pageUid);
     const userId = TLUser.createCustomId(getCurrentUserUid());
+
     const props = getBlockProps(pageUid) as Record<string, unknown>;
     const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
     const data = rjsqb?.tldraw as Parameters<TLStore["deserialize"]>[0];
-    return { data, instanceId, userId };
+
+    const isAlreadyUpgraded = !!rjsqb?.legacyTldraw;
+
+    return { data, instanceId, userId, isAlreadyUpgraded };
   }, [tree, pageUid]);
 
   const store = useMemo(() => {
+    if (initialData.isAlreadyUpgraded) return null;
     const _store = config.createStore({
       initialData: initialData.data,
       instanceId: initialData.instanceId,
@@ -186,6 +191,7 @@ export const useRoamStore = ({
   };
 
   useEffect(() => {
+    if (initialData.isAlreadyUpgraded || !store) return;
     const pullWatchProps: Parameters<AddPullWatch> = [
       "[:edit/user :block/props :block/string {:block/children ...}]",
       `[:block/uid "${pageUid}"]`,
@@ -220,5 +226,6 @@ export const useRoamStore = ({
     store,
     instanceId: initialData.instanceId,
     userId: initialData.userId,
+    isAlreadyUpgraded: initialData.isAlreadyUpgraded,
   };
 };

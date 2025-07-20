@@ -3,6 +3,7 @@ import { getFileContent } from "~/utils/getFileContent";
 import { notFound } from "next/navigation";
 import { PageFrontmatter, PageSchema } from "~/types/schema";
 import matter from "gray-matter";
+import path from "path";
 
 type Props = {
   slug: string;
@@ -28,10 +29,24 @@ export const getProcessedMarkdownFile = async ({
       throw new Error("Invalid path");
     }
 
-    const fileContent = await getFileContent({
-      filename: `${slug}.md`,
-      directory,
-    });
+
+    let fileContent: string | null = null;
+    let error: Error | null = null;
+
+    try {
+      fileContent = await getFileContent({
+        filename: `${slug}.md`,
+        directory,
+      });
+    } catch (e) {
+      error = e as Error;
+    }
+
+    if (!fileContent) {
+      console.error(`File not found: ${slug}.md`, error);
+      return notFound();
+    }
+
     const { data: rawData, content } = matter(fileContent);
     const data = PageSchema.parse(rawData);
 

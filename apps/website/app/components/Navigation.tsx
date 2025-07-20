@@ -24,7 +24,6 @@ export function Navigation({
   navigation: NavigationList;
 }) {
   let pathname = usePathname();
-
   return (
     <nav className={clsx("text-base lg:text-sm", className)}>
       <ul role="list" className="space-y-9">

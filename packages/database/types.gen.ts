@@ -197,6 +197,7 @@ export type Database = {
           source_local_id: string | null
           space_id: number | null
           text: string
+          variant: Database["public"]["Enums"]["ContentVariant"]
         }
         Insert: {
           author_id?: number | null
@@ -211,6 +212,7 @@ export type Database = {
           source_local_id?: string | null
           space_id?: number | null
           text: string
+          variant?: Database["public"]["Enums"]["ContentVariant"]
         }
         Update: {
           author_id?: number | null
@@ -225,6 +227,7 @@ export type Database = {
           source_local_id?: string | null
           space_id?: number | null
           text?: string
+          variant?: Database["public"]["Enums"]["ContentVariant"]
         }
         Relationships: [
           {
@@ -547,6 +550,7 @@ export type Database = {
           source_local_id: string | null
           space_id: number | null
           text: string
+          variant: Database["public"]["Enums"]["ContentVariant"]
         }
       }
       _local_document_to_db_document: {
@@ -565,6 +569,10 @@ export type Database = {
           url: string | null
         }
       }
+      account_in_shared_space: {
+        Args: { p_account_id: number }
+        Returns: boolean
+      }
       alpha_delete_by_source_local_ids: {
         Args: { p_source_local_ids: string[]; p_space_name: string }
         Returns: string
@@ -578,9 +586,9 @@ export type Database = {
       alpha_upsert_discourse_nodes: {
         Args: {
           p_user_name: string
+          p_nodes: Json
           p_space_name: string
           p_user_email: string
-          p_nodes: Json
         }
         Returns: string
       }
@@ -588,29 +596,48 @@ export type Database = {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
       }
+      concept_in_space: {
+        Args: { concept_id: number }
+        Returns: boolean
+      }
+      content_in_space: {
+        Args: { content_id: number }
+        Returns: boolean
+      }
       create_account_in_space: {
         Args: {
           space_id_: number
-          email_trusted?: boolean
-          email_?: string
-          name_: string
           account_local_id_: string
+          name_: string
+          email_?: string
+          email_trusted?: boolean
           editor_?: boolean
         }
         Returns: number
       }
+      document_in_space: {
+        Args: { document_id: number }
+        Returns: boolean
+      }
       end_sync_task: {
         Args: {
-          s_target: number
-          s_status: Database["public"]["Enums"]["task_status"]
           s_worker: string
+          s_status: Database["public"]["Enums"]["task_status"]
           s_function: string
+          s_target: number
         }
         Returns: undefined
       }
       extract_references: {
         Args: { refs: Json }
         Returns: number[]
+      }
+      generic_entity_access: {
+        Args: {
+          target_type: Database["public"]["Enums"]["EntityType"]
+          target_id: number
+        }
+        Returns: boolean
       }
       get_nodes_needing_sync: {
         Args: { nodes_from_roam: Json }
@@ -625,18 +652,22 @@ export type Database = {
         }
         Returns: string
       }
+      in_space: {
+        Args: { space_id: number }
+        Returns: boolean
+      }
       match_content_embeddings: {
         Args: {
           current_document_id?: number
-          query_embedding: string
-          match_threshold: number
           match_count: number
+          match_threshold: number
+          query_embedding: string
         }
         Returns: {
           text_content: string
+          similarity: number
           roam_uid: string
           content_id: number
-          similarity: number
         }[]
       }
       match_embeddings_for_subset_nodes: {
@@ -648,15 +679,23 @@ export type Database = {
           content_id: number
         }[]
       }
+      my_account: {
+        Args: { account_id: number }
+        Returns: boolean
+      }
       propose_sync_task: {
         Args: {
-          s_worker: string
-          timeout: unknown
-          task_interval: unknown
-          s_target: number
           s_function: string
+          s_target: number
+          task_interval: unknown
+          timeout: unknown
+          s_worker: string
         }
         Returns: string
+      }
+      unowned_account_in_shared_space: {
+        Args: { p_account_id: number }
+        Returns: boolean
       }
       upsert_concepts: {
         Args: { data: Json; v_space_id: number }
@@ -664,10 +703,10 @@ export type Database = {
       }
       upsert_content: {
         Args: {
-          data: Json
-          content_as_document?: boolean
-          v_creator_id: number
           v_space_id: number
+          v_creator_id: number
+          content_as_document?: boolean
+          data: Json
         }
         Returns: number[]
       }
@@ -703,6 +742,10 @@ export type Database = {
     Enums: {
       AgentIdentifierType: "email" | "orcid"
       AgentType: "person" | "organization" | "automated_agent" | "anonymous"
+      ContentVariant:
+        | "direct"
+        | "direct_and_children"
+        | "direct_and_description"
       EmbeddingName:
         | "openai_text_embedding_ada2_1536"
         | "openai_text_embedding_3_small_512"
@@ -795,6 +838,7 @@ export type Database = {
         embedding_inline:
           | Database["public"]["CompositeTypes"]["inline_embedding_input"]
           | null
+        variant: Database["public"]["Enums"]["ContentVariant"] | null
       }
       document_local_input: {
         space_id: number | null
@@ -929,6 +973,11 @@ export const Constants = {
     Enums: {
       AgentIdentifierType: ["email", "orcid"],
       AgentType: ["person", "organization", "automated_agent", "anonymous"],
+      ContentVariant: [
+        "direct",
+        "direct_and_children",
+        "direct_and_description",
+      ],
       EmbeddingName: [
         "openai_text_embedding_ada2_1536",
         "openai_text_embedding_3_small_512",
