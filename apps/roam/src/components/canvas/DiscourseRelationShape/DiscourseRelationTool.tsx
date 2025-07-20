@@ -104,7 +104,7 @@ export const createAllReferencedNodeTools = (
               shape: this.shape,
               handle: { id: "end", type: "vertex", index: "a3", x: 0, y: 0 },
               isCreating: true,
-              onInteractionEnd: this.shapeType,
+              onInteractionEnd: action,
             });
           }
         };
@@ -393,7 +393,7 @@ export const createAllRelationShapeTools = (
               shape: this.shape,
               handle: { id: "end", type: "vertex", index: "a3", x: 0, y: 0 },
               isCreating: true,
-              onInteractionEnd: this.shapeType,
+              onInteractionEnd: name,
             });
           }
         };
