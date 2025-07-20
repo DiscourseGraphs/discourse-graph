@@ -9,7 +9,6 @@ export type RoamDiscourseNodeData = {
   author_local_id: string;
   author_name: string;
   source_local_id: string;
-  document_local_id?: string;
   created: string;
   vector: number[];
   last_modified: string;
@@ -27,7 +26,7 @@ export const getDiscourseNodeTypeBlockNodes = (
   node: DiscourseNode,
   sinceMs: number,
   extensionAPI: OnloadArgs["extensionAPI"],
-): any => {
+): RoamDiscourseNodeData[] => {
   const settingsKey = `discourse-graph-node-rule-${node.type}`;
   const settings = extensionAPI.settings.get(settingsKey) as {
     embeddingRef: string;
@@ -40,38 +39,42 @@ export const getDiscourseNodeTypeBlockNodes = (
     const firstChildUid =
       settings.embeddingRef?.match(/\(\((.*?)\)\)/)?.[1] ?? "";
     const queryBlock = `[
-      :find ?childUid ?childString ?nodeUid ?childCreateTime ?childEditTime ?author_local_id ?type ?author_name ?node-title
-      :keys source_local_id text document_local_id created last_modified author_local_id type author_name node_title
+      :find ?childString ?nodeUid        ?nodeCreateTime ?nodeEditTime ?author_local_id ?type ?author_name ?node-title
+      :keys text         source_local_id created         last_modified author_local_id   type author_name  node_title
       :in $ ?firstChildUid ?type ?since
       :where
         [(re-pattern "${regexPattern}") ?title-regex]
         [?node :node/title ?node-title]
         [(re-find ?title-regex ?node-title)]
         [?node :block/uid ?nodeUid]
+        [?node :create/time ?nodeCreateTime]
+        [?node :edit/time ?nodeEditTime]
         [?s :block/uid ?firstChildUid]
         [?s :block/string ?firstChildString]
         [?bg :block/page ?node]
         [?bg :block/string ?firstChildString]
         [?bg :block/children ?child]
         [?child :block/order 0]
-        [?child :block/uid ?childUid]
         [?child :block/string ?childString]
-        [?child :create/time ?childCreateTime]
         [?child :edit/time ?childEditTime]
         [?child :create/user ?user-eid]
         [?user-eid :user/uid ?author_local_id]
         [?child :edit/user ?eu]
         [?eu :user/display-name ?author_name]
-        [(> ?childEditTime ?since)]
+        [or 
+         [(> ?childEditTime ?since)]
+         [(> ?nodeEditTime ?since)]]
         ]`;
     console.log("queryBlock", queryBlock, firstChildUid, node.type, sinceMs);
 
-    return window.roamAlphaAPI.data.q(
+    const blockNode = window.roamAlphaAPI.data.q(
       queryBlock,
       String(firstChildUid),
       String(node.type),
       sinceMs,
-    );
+    ) as unknown as Omit<RoamDiscourseNodeData, "vector">[];
+    console.log("blockNode", blockNode);
+    return blockNode.map((node) => ({ ...node, vector: [] }));
   }
   return [];
 };
@@ -98,8 +101,21 @@ export const forAllDiscourseNodeTypeBlockNodes = async (
 
 export const getAllDiscourseNodesSince = async (
   since: ISODateString,
+  nodeTypes: DiscourseNode[],
+  extensionAPI: OnloadArgs["extensionAPI"],
 ): Promise<RoamDiscourseNodeData[]> => {
   const sinceMs = new Date(since).getTime();
+  const pageNodes: RoamDiscourseNodeData[] = [];
+
+  if (nodeTypes.length > 0) {
+    const blockNodes = await forAllDiscourseNodeTypeBlockNodes(
+      nodeTypes,
+      since,
+      extensionAPI as OnloadArgs["extensionAPI"],
+    );
+    console.log("blockNodes", blockNodes);
+    pageNodes.push(...blockNodes);
+  }
 
   const query = `[
   :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name
@@ -123,26 +139,63 @@ export const getAllDiscourseNodesSince = async (
     sinceMs,
   )) as unknown[][] as RoamDiscourseNodeData[];
 
-  const discourseNodes = getDiscourseNodes();
+  console.log("result", result.length);
 
-  return result
-    .map((entity) => {
-      if (!entity.source_local_id) {
-        return null;
-      }
-      const node = findDiscourseNode(entity.source_local_id, discourseNodes);
-      if (
-        !node ||
-        node.backedBy === "default" ||
-        !entity.text ||
-        entity.text.trim() === ""
-      ) {
-        return null;
-      }
-      return {
-        ...entity,
-        type: node.type,
-      };
-    })
-    .filter((n): n is RoamDiscourseNodeData => n !== null);
+  const discourseNodes = getDiscourseNodes();
+  const nodeTypesSet = new Set(nodeTypes.map((nodeType) => nodeType.type));
+  console.log("nodeTypesSet", nodeTypesSet);
+
+  pageNodes.push(
+    ...result
+      .map((entity) => {
+        if (!entity.source_local_id) {
+          return null;
+        }
+        const node = findDiscourseNode(entity.source_local_id, discourseNodes);
+        if (
+          !node ||
+          node.backedBy === "default" ||
+          !entity.text ||
+          entity.text.trim() === "" ||
+          nodeTypesSet.has(node.type)
+        ) {
+          return null;
+        }
+        return {
+          ...entity,
+          type: node.type,
+        };
+      })
+      .filter((n): n is RoamDiscourseNodeData => n !== null),
+  );
+  return pageNodes;
+};
+
+export const nodeTypeSince = async (
+  sinceMs: number,
+  nodeTypes: DiscourseNode[],
+) => {
+  console.log("nodeTypes", nodeTypes);
+  const nodesSince = nodeTypes.filter(async (node) => {
+    const regex = getDiscourseNodeFormatExpression(node.format);
+    const regexPattern = regex.source
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"');
+    const query = `
+      :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name
+      :keys text source_local_id created last_modified author_local_id author_name
+      :in $ ?since 
+      :where
+        [(re-pattern "${regexPattern}") ?title-regex]
+        [?node :node/title ?node-title]
+        [(re-find ?title-regex ?node-title)]
+        [?node :edit/time ?nodeEditTime]
+        [(> ?nodeEditTime ?since)]
+    `;
+    const result = window.roamAlphaAPI.data.q(query, sinceMs);
+    console.log("result", result);
+    return result.length > 0;
+  });
+  console.log("nodesSince", nodesSince);
+  return nodesSince;
 };

@@ -1,15 +1,5 @@
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
-export type DiscourseGraphContent = {
-  author_local_id: string;
-  author_name: string;
-  source_local_id: string;
-  document_local_id?: string;
-  created: string;
-  last_modified: string;
-  text: string;
-  model: string;
-  vector: number[];
-};
+
 
 const EMBEDDING_BATCH_SIZE = 200;
 const API_URL = `https://discoursegraphs.com/api/embeddings/openai/small`;
@@ -22,7 +12,7 @@ type EmbeddingApiResponse = {
 
 export const fetchEmbeddingsForNodes = async (
   nodes: RoamDiscourseNodeData[],
-): Promise<DiscourseGraphContent[]> => {
+): Promise<RoamDiscourseNodeData[]> => {
   const allEmbeddings: number[][] = [];
   console.log("nodes", nodes);
   // if node.node-title then the text should be node.node-title + " " + node.text

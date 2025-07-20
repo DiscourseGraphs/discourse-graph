@@ -1,13 +1,11 @@
 import {
   getAllDiscourseNodesSince,
   forAllDiscourseNodeTypeBlockNodes,
+  nodeTypeSince,
 } from "./getAllDiscourseNodesSince";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import { getSupabaseContext } from "./supabaseContext";
-import {
-  fetchEmbeddingsForNodes,
-  DiscourseGraphContent,
-} from "./fetchEmbeddingsForNodes";
+import { fetchEmbeddingsForNodes } from "./fetchEmbeddingsForNodes";
 import {
   LocalDocumentDataInput,
   LocalContentDataInput,
@@ -178,10 +176,7 @@ const upsertNodeSchemaToContent = async (
 
   const contentData: LocalContentDataInput[] = result.map((node) => ({
     author_id: userId,
-    author_inline: {
-      account_local_id: node.author_local_id,
-      name: node.author_name,
-    },
+    account_local_id: node.author_local_id,
     source_local_id: node.source_local_id,
     created: new Date(node.created || Date.now()).toISOString(),
     last_modified: new Date(node.last_modified || Date.now()).toISOString(),
@@ -189,12 +184,6 @@ const upsertNodeSchemaToContent = async (
     embedding_inline: {
       model: "openai_text_embedding_3_small_1536",
       vector: node.vector,
-    },
-    document_inline: {
-      source_local_id: node.source_local_id,
-      author_local_id: node.author_local_id,
-      created: new Date(node.created || Date.now()).toISOString(),
-      last_modified: new Date(node.last_modified || Date.now()).toISOString(),
     },
     scale: "document",
   }));
@@ -216,14 +205,18 @@ const upsertNodeSchemaToContent = async (
 
 export const convertDgToSupabaseConcepts = async (
   nodesSince: RoamDiscourseNodeData[],
-  nodeTypes: DiscourseNode[],
+  since: string,
+  allNodeTypes: DiscourseNode[],
 ) => {
   console.log("Upserting concepts to Supabase: Starting process.");
+
   const context = await getSupabaseContext();
   if (!context) {
     console.error("Could not get Supabase context. Aborting update.");
     return;
   }
+  const sinceMsNumber = new Date(since).getTime();
+  const nodeTypes = await nodeTypeSince(sinceMsNumber, allNodeTypes);
   await upsertNodeSchemaToContent(
     nodeTypes.map((node) => node.type),
     context.spaceId,
@@ -248,7 +241,7 @@ export const convertDgToSupabaseConcepts = async (
     const localConcept = discourseNodeBlockToLocalConcept(context, {
       nodeUid: node.source_local_id,
       schemaUid: node.type,
-      text: node.text,
+      text: node.node_title ? `${node.node_title} ${node.text}` : node.text,
     });
     return localConcept;
   });
@@ -298,7 +291,6 @@ export const convertDgToSupabaseConcepts = async (
 
 export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   roamNodes: RoamDiscourseNodeData[],
-  asDocument: boolean,
 ): Promise<void> => {
   console.log(
     "upsertNodesToSupabaseAsContentWithEmbeddings (upsert_content): Process started.",
@@ -321,7 +313,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   console.log(`Found ${roamNodes.length} discourse nodes.`);
 
   // 3. Generate embeddings for every node title
-  let nodesWithEmbeddings: DiscourseGraphContent[];
+  let nodesWithEmbeddings: RoamDiscourseNodeData[];
   try {
     console.log(" Generating embeddings…");
     nodesWithEmbeddings = await fetchEmbeddingsForNodes(roamNodes);
@@ -361,44 +353,37 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     return chunks;
   };
 
-  const uploadBatches = async (
-    batches: DiscourseGraphContent[][],
-    asDocumentFlag: boolean,
-  ) => {
+  const uploadBatches = async (batches: RoamDiscourseNodeData[][]) => {
     for (let idx = 0; idx < batches.length; idx++) {
       const batch = batches[idx];
 
       // Don't pass the author_local_id or document_local_id to the upsert-content directly
       // use document_inline or author_inline instead
-      const contents: LocalContentDataInput[] = batch.map((node) => ({
-        author_id: userId,
-        author_inline: {
+      const contents: LocalContentDataInput[] = batch.map((node) => {
+        const variant = node.node_title ? "direct_and_description" : "direct";
+        const text = node.node_title
+          ? `${node.node_title} ${node.text}`
+          : node.text;
+        return {
+          author_id: userId,
           account_local_id: node.author_local_id,
-          name: node.author_name,
-        },
-        source_local_id: node.source_local_id,
-        created: new Date(node.created || Date.now()).toISOString(),
-        last_modified: new Date(node.last_modified || Date.now()).toISOString(),
-        text: node.text,
-        embedding_inline: {
-          model: "openai_text_embedding_3_small_1536",
-          vector: node.vector,
-        },
-        document_inline: {
-          source_local_id: asDocumentFlag
-            ? node.source_local_id
-            : node.document_local_id,
-          author_local_id: node.author_local_id,
+          source_local_id: node.source_local_id,
           created: new Date(node.created || Date.now()).toISOString(),
           last_modified: new Date(
             node.last_modified || Date.now(),
           ).toISOString(),
-        },
-        scale: asDocumentFlag ? "document" : "block",
-      }));
+          text: text,
+          variant: variant,
+          embedding_inline: {
+            model: "openai_text_embedding_3_small_1536",
+            vector: node.vector,
+          },
+          scale: "document",
+        };
+      });
 
       console.log(
-        `Uploading ${asDocumentFlag ? "document" : "block"} batch ${idx + 1} (${contents.length} items)…`,
+        `Uploading document batch ${idx + 1} (${contents.length} items)…`,
         contents,
       );
 
@@ -410,7 +395,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
             v_space_id: spaceId,
             v_creator_id: userId,
             data: contents as any,
-            content_as_document: asDocumentFlag,
+            content_as_document: true,
           }),
         },
       );
@@ -426,9 +411,24 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   };
 
   // We simply process the provided list with the supplied flag
-  await uploadBatches(chunk(nodesWithEmbeddings, batchSize), asDocument);
+  await uploadBatches(chunk(nodesWithEmbeddings, batchSize));
 
   console.log("All batches processed successfully.");
+};
+
+const specialNodes = (extensionAPI: OnloadArgs["extensionAPI"]) => {
+  const allNodeTypes = getDiscourseNodes().filter((n) => n.backedBy === "user");
+  const specialNodeTypes = allNodeTypes.filter((n) => {
+    const settingsKey = `discourse-graph-node-rule-${n.type}`;
+    const settings = extensionAPI.settings.get(settingsKey) as
+      | {
+          isFirstChild?: boolean;
+          embeddingRef?: string;
+        }
+      | undefined;
+    return settings?.isFirstChild || settings?.embeddingRef;
+  });
+  return { allNodeTypes, specialNodeTypes };
 };
 
 export const createOrUpdateDiscourseEmbedding = async (
@@ -450,20 +450,17 @@ export const createOrUpdateDiscourseEmbedding = async (
   try {
     const time = lastUpdateTime === null ? "1970-01-01" : lastUpdateTime;
     console.log("last update time", time);
-    const nodeTypes = getDiscourseNodes().filter((n) => n.backedBy === "user");
-    console.log("nodeTypes", nodeTypes);
-    const blockNodes = await forAllDiscourseNodeTypeBlockNodes(
-      nodeTypes,
+    const { allNodeTypes, specialNodeTypes } = specialNodes(extensionAPI);
+    console.log("special nodes", specialNodeTypes);
+
+    const pageNodes = await getAllDiscourseNodesSince(
       time,
+      specialNodeTypes,
       extensionAPI as OnloadArgs["extensionAPI"],
     );
-    console.log("blockNodes", blockNodes);
-    console.log("index.ts getAllDiscourseNodesSince");
-    const pageNodes = await getAllDiscourseNodesSince(time);
-    console.log("pageNodes", pageNodes, blockNodes);
-    await upsertNodesToSupabaseAsContentWithEmbeddings(pageNodes, true);
-    await upsertNodesToSupabaseAsContentWithEmbeddings(blockNodes, false);
-    await convertDgToSupabaseConcepts(pageNodes, nodeTypes);
+    console.log("pageNodes", pageNodes);
+    await upsertNodesToSupabaseAsContentWithEmbeddings(pageNodes);
+    await convertDgToSupabaseConcepts(pageNodes, time, allNodeTypes);
     await cleanupOrphanedNodes();
     await endSyncTask(spaceId, worker, "complete");
   } catch (error) {

@@ -40,6 +40,12 @@ import {
   createOrUpdateDiscourseEmbedding,
   upsertNodesToSupabaseAsContentWithEmbeddings,
 } from "~/utils/syncDgNodesToSupabase";
+import { discourseNodeBlockToLocalConcept } from "~/utils/conceptConversion";
+
+const base_url =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:3000"
+    : "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -123,14 +129,40 @@ const NodeTemplateConfig = ({
       `Repopulating database for node type "${node.text}" with rules:`,
       rules,
     );
-    const nodesOfType = getDiscourseNodeTypeBlockNodes(
+    const blockNodesSince = getDiscourseNodeTypeBlockNodes(
       node,
       0,
       extensionAPI as OnloadArgs["extensionAPI"],
     );
-    console.log("nodesOfType", nodesOfType);
-    if (nodesOfType) {
-      await upsertNodesToSupabaseAsContentWithEmbeddings(nodesOfType, false);
+    console.log("blockNodesSince", blockNodesSince);
+    const context = await getSupabaseContext();
+    if (context && blockNodesSince) {
+      await upsertNodesToSupabaseAsContentWithEmbeddings(blockNodesSince);
+      const nodeBlockToLocalConcepts = blockNodesSince.map((node) => {
+        const localConcept = discourseNodeBlockToLocalConcept(context, {
+          nodeUid: node.source_local_id,
+          schemaUid: node.type,
+          text: node.node_title ? `${node.node_title} ${node.text}` : node.text,
+        });
+        return localConcept;
+      });
+      const response = await fetch(
+        `${base_url}/api/supabase/rpc/upsert-concepts`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            v_space_id: context.spaceId,
+            data: nodeBlockToLocalConcepts,
+          }),
+        },
+      );
+      const { error } = await response.json();
+      if (error) {
+        throw new Error(
+          `upsert_concepts failed: ${JSON.stringify(error, null, 2)}`,
+        );
+      }
+      console.log("Successfully upserted concepts.");
     }
     setIsUpdating(false);
   };
