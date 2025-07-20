@@ -689,7 +689,7 @@ const TldrawCanvas = ({ title }: Props) => {
   const lastInsertRef = useRef<Vec2dModel>();
   const containerRef = useRef<HTMLDivElement>(null);
   const [maximized, setMaximized] = useState(false);
-  const { store, instanceId, userId } = useRoamStore({
+  const { store, instanceId, userId, isAlreadyUpgraded } = useRoamStore({
     config: customTldrawConfig,
     title,
   });
@@ -873,6 +873,17 @@ const TldrawCanvas = ({ title }: Props) => {
       </style>
       {isLoading ? (
         <></>
+      ) : isAlreadyUpgraded || !store ? (
+        <div className="flex h-full items-center justify-center">
+          <div className="text-center">
+            <h2 className="mb-2 text-2xl font-semibold">Canvas Upgraded</h2>
+            <p className="mb-4 text-gray-600">
+              This Canvas is using the latest version.
+              <br />
+              Please upgrade your Discourse Graph extension to view this canvas.
+            </p>
+          </div>
+        </div>
       ) : (
         <TldrawEditor
           baseUrl="https://samepage.network/assets/tldraw/"
