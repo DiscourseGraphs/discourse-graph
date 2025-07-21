@@ -23,7 +23,7 @@ import { CreateNodeModal } from "~/components/CreateNodeModal";
 import { TldrawView } from "~/components/TldrawView";
 
 export default class DiscourseGraphPlugin extends Plugin {
-  settings: Settings = DEFAULT_SETTINGS;
+  settings: Settings = { ...DEFAULT_SETTINGS };
   private styleElement: HTMLStyleElement | null = null;
   private currentViewActions: { leaf: WorkspaceLeaf; action: any }[] = [];
 

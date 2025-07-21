@@ -1,6 +1,6 @@
 import { TAbstractFile, TFolder, Vault, normalizePath } from "obsidian";
 
-export async function checkAndCreateFolder(folderpath: string, vault: Vault) {
+export const checkAndCreateFolder = async (folderpath: string, vault: Vault) => {
   if (!folderpath) return;
 
   const abstractItem = vault.getAbstractFileByPath(folderpath);
@@ -9,13 +9,17 @@ export async function checkAndCreateFolder(folderpath: string, vault: Vault) {
     throw new Error(`${folderpath} exists as a file`);
   }
   await vault.createFolder(folderpath);
-}
+};
 
-export function getNewUniqueFilepath(
-  vault: Vault,
-  filename: string,
-  folderpath: string,
-): string {
+export const getNewUniqueFilepath = ({
+  vault,
+  filename,
+  folderpath,
+}: {
+  vault: Vault;
+  filename: string;
+  folderpath: string;
+}): string => {
   let fname = normalizePath(`${folderpath}/${filename}`);
   let num = 1;
 
@@ -27,4 +31,4 @@ export function getNewUniqueFilepath(
   }
 
   return fname;
-}
+};

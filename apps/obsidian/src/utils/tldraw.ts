@@ -6,9 +6,9 @@ import {
   TLDRAW_VERSION,
 } from "../constants";
 import DiscourseGraphPlugin from "..";
-import moment from "moment";
 import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
 import { Notice } from "obsidian";
+import { format } from "date-fns";
 
 export type TldrawPluginMetaData = {
   "plugin-version": string;
@@ -32,7 +32,7 @@ export const createRawTldrawFile = (store?: TLStore): TldrawFile => {
     schema: store.schema.serialize(),
     records: store.allRecords(),
   };
-}
+};
 
 export const getTLMetaTemplate = (
   pluginVersion: string,
@@ -43,7 +43,7 @@ export const getTLMetaTemplate = (
     "plugin-version": pluginVersion,
     "tldraw-version": TLDRAW_VERSION,
   };
-}
+};
 
 export const getTLDataTemplate = ({
   pluginVersion,
@@ -58,7 +58,7 @@ export const getTLDataTemplate = ({
     meta: getTLMetaTemplate(pluginVersion, uuid),
     raw: tldrawFile,
   };
-}
+};
 
 export const frontmatterTemplate = (data: string, tags: string[] = []) => {
   let str = "---\n";
@@ -88,30 +88,28 @@ export const createEmptyTldrawContent = (
   tags: string[] = [],
 ): string => {
   const tldrawFile = createRawTldrawFile();
-  const tlData = getTLDataTemplate(
-    {
-      pluginVersion,
-      tldrawFile,
-      uuid: window.crypto.randomUUID(),
-    }
-  );
+  const tlData = getTLDataTemplate({
+    pluginVersion,
+    tldrawFile,
+    uuid: window.crypto.randomUUID(),
+  });
   const frontmatter = frontmatterTemplate(`${FRONTMATTER_KEY}: true`, tags);
   const codeblock = codeBlockTemplate(tlData);
   return tlFileTemplate(frontmatter, codeblock);
-}
+};
 
 export const createCanvas = async (plugin: DiscourseGraphPlugin) => {
   try {
-    const filename = `Canvas-${moment().format("YYYY-MM-DD-HHmm")}`;
+    const filename = `Canvas-${format(new Date(), "yyyy-MM-dd-HHmm")}`;
     // TODO: For now we'll create files in this default location, later we can add settings for this
     const folderpath = "tldraw-dg";
 
     await checkAndCreateFolder(folderpath, plugin.app.vault);
-    const fname = getNewUniqueFilepath(
-      plugin.app.vault,
-      filename + ".md",
+    const fname = getNewUniqueFilepath({
+      vault: plugin.app.vault,
+      filename: filename + ".md",
       folderpath,
-    );
+    });
 
     const content = createEmptyTldrawContent(plugin.manifest.version);
     const file = await plugin.app.vault.create(fname, content);
