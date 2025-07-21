@@ -1,13 +1,15 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { Database } from "@repo/database/types.gen.ts";
+import { Database } from "@repo/database/types.gen";
+import { envContents } from "@repo/database/dbdotenv";
 
 // Inspired by https://supabase.com/ui/docs/nextjs/password-based-auth
 
 export const createClient = async () => {
+  const dbEnv = envContents();
   const cookieStore = await cookies();
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY;
+  const supabaseUrl = dbEnv.SUPABASE_URL;
+  const supabaseKey = dbEnv.SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error("Missing required Supabase environment variables");

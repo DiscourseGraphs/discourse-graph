@@ -2,6 +2,7 @@ import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
+import { envContents } from "@repo/database/dbdotenv";
 
 // https://github.com/evanw/esbuild/issues/337#issuecomment-954633403
 const importAsGlobals = (
@@ -122,6 +123,7 @@ export const compile = ({
   fs.mkdirSync(outdir, { recursive: true });
 
   const buildPromises = [] as Promise<void>[];
+  const dbEnv = envContents();
   buildPromises.push(
     builder({
       absWorkingDir: process.cwd(),
@@ -130,9 +132,9 @@ export const compile = ({
       bundle: true,
       format,
       define: {
-        "process.env.SUPABASE_URL": `"${process.env.SUPABASE_URL}"`,
-        "process.env.SUPABASE_ANON_KEY": `"${process.env.SUPABASE_ANON_KEY}"`,
-        "process.env.NEXT_API_ROOT": `"${process.env.NEXT_API_ROOT || ""}"`,
+        "process.env.SUPABASE_URL": `"${dbEnv.SUPABASE_URL}"`,
+        "process.env.SUPABASE_ANON_KEY": `"${dbEnv.SUPABASE_ANON_KEY}"`,
+        "process.env.NEXT_API_ROOT": `"${dbEnv.NEXT_API_ROOT || ""}"`,
       },
       sourcemap: process.env.NODE_ENV === "production" ? undefined : "inline",
       minify: process.env.NODE_ENV === "production",
