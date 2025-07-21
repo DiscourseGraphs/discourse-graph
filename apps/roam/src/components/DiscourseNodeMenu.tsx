@@ -32,6 +32,8 @@ type Props = {
   textarea: HTMLTextAreaElement;
   extensionAPI: OnloadArgs["extensionAPI"];
   trigger?: JSX.Element;
+  isShift?: boolean;
+  isTextSelected?: boolean;
 };
 
 const NodeMenu = ({
@@ -39,10 +41,16 @@ const NodeMenu = ({
   textarea,
   extensionAPI,
   trigger,
+  isShift,
+  isTextSelected,
 }: { onClose: () => void } & Props) => {
+  const [showNodeTypes, setShowNodeTypes] = useState(isTextSelected || isShift);
   const discourseNodes = useMemo(
-    () => getDiscourseNodes().filter((n) => n.backedBy === "user"),
-    [],
+    () =>
+      getDiscourseNodes().filter(
+        (n) => n.backedBy === "user" && (showNodeTypes || n.tag),
+      ),
+    [showNodeTypes],
   );
   const indexBySC = useMemo(
     () => Object.fromEntries(discourseNodes.map((mi, i) => [mi.shortcut, i])),
@@ -56,51 +64,64 @@ const NodeMenu = ({
 
   const onSelect = useCallback(
     (index) => {
-      const menuItem =
-        menuRef.current?.children[index].querySelector(".bp3-menu-item");
-      if (!menuItem) return;
-      const nodeUid = menuItem.getAttribute("data-node") || "";
-      const highlighted = textarea.value.substring(
-        textarea.selectionStart,
-        textarea.selectionEnd,
-      );
-      setTimeout(async () => {
-        const pageName = await getNewDiscourseNodeText({
-          text: highlighted,
-          nodeType: nodeUid,
-          blockUid,
-        });
-
-        if (!pageName) {
-          return;
-        }
-
-        const currentBlockText = getTextByBlockUid(blockUid);
-        const newText = `${currentBlockText.substring(
-          0,
+      if (showNodeTypes) {
+        const menuItem =
+          menuRef.current?.children[index].querySelector(".bp3-menu-item");
+        if (!menuItem) return;
+        const nodeUid = menuItem.getAttribute("data-node") || "";
+        const highlighted = textarea.value.substring(
           textarea.selectionStart,
-        )}[[${pageName}]]${currentBlockText.substring(textarea.selectionEnd)}`;
+          textarea.selectionEnd,
+        );
+        setTimeout(async () => {
+          const pageName = await getNewDiscourseNodeText({
+            text: highlighted,
+            nodeType: nodeUid,
+            blockUid,
+          });
 
-        updateBlock({ text: newText, uid: blockUid });
-        posthog.capture("Discourse Node: Created via Node Menu", {
-          nodeType: nodeUid,
-          text: pageName,
-        });
+          if (!pageName) {
+            return;
+          }
 
-        createDiscourseNode({
-          text: pageName,
-          configPageUid: nodeUid,
-          extensionAPI,
+          const currentBlockText = getTextByBlockUid(blockUid);
+          const newText = `${currentBlockText.substring(
+            0,
+            textarea.selectionStart,
+          )}[[${pageName}]]${currentBlockText.substring(textarea.selectionEnd)}`;
+
+          updateBlock({ text: newText, uid: blockUid });
+          posthog.capture("Discourse Node: Created via Node Menu", {
+            nodeType: nodeUid,
+            text: pageName,
+          });
+
+          createDiscourseNode({
+            text: pageName,
+            configPageUid: nodeUid,
+            extensionAPI,
+          });
         });
-      });
+      } else {
+        const menuItem =
+          menuRef.current?.children[index].querySelector(".bp3-menu-item");
+        if (!menuItem) return;
+        const tag = menuItem.getAttribute("data-tag") || "";
+        console.log(`Tag selected: ${tag}`);
+      }
       onClose();
     },
-    [menuRef, blockUid, onClose, textarea, extensionAPI],
+    [menuRef, blockUid, onClose, textarea, extensionAPI, showNodeTypes],
   );
 
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+      if (e.metaKey || e.ctrlKey) return;
+      if (e.key === "Shift") {
+        setShowNodeTypes((s) => !s);
+        return;
+      }
+      if (e.shiftKey) return;
 
       if (e.key === "ArrowDown") {
         const index = Number(
@@ -190,7 +211,8 @@ const NodeMenu = ({
               <MenuItem
                 key={item.text}
                 data-node={item.type}
-                text={item.text}
+                data-tag={item.tag}
+                text={showNodeTypes ? item.text : `#${item.tag}`}
                 active={i === activeIndex}
                 onMouseEnter={() => setActiveIndex(i)}
                 onClick={() => onSelect(i)}
@@ -204,7 +226,9 @@ const NodeMenu = ({
                   />
                 }
                 labelElement={
-                  <span className="font-mono">{item.shortcut}</span>
+                  <span className="font-mono">
+                    {showNodeTypes ? item.shortcut : ""}
+                  </span>
                 }
               />
             );
@@ -238,10 +262,12 @@ export const TextSelectionNodeMenu = ({
   textarea,
   extensionAPI,
   onClose,
+  isTextSelected,
 }: {
   textarea: HTMLTextAreaElement;
   extensionAPI: OnloadArgs["extensionAPI"];
   onClose: () => void;
+  isTextSelected?: boolean;
 }) => {
   const trigger = (
     <Button
@@ -275,6 +301,7 @@ export const TextSelectionNodeMenu = ({
       extensionAPI={extensionAPI}
       trigger={trigger}
       onClose={onClose}
+      isTextSelected={isTextSelected}
     />
   );
 };

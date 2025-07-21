@@ -59,6 +59,7 @@ export const renderTextSelectionPopup = ({
       textarea={textarea}
       extensionAPI={extensionAPI}
       onClose={removeTextSelectionPopup}
+      isTextSelected={true}
     />,
     currentPopupContainer,
   );
