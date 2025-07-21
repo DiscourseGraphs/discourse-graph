@@ -52,6 +52,7 @@ import {
   API_URL_PROD,
 } from "~/constants";
 import { getNodeEnv } from "roamjs-components/util/env";
+import sendErrorEmail from "~/utils/sendErrorEmail";
 
 const CommentUidCache = new Set<string>();
 const CommentContainerUidCache = new Set<string>();
@@ -119,19 +120,38 @@ const getRoamCommentsContainerUid = async ({
   extensionAPI: OnloadArgs["extensionAPI"];
   matchingNode?: DiscourseNode;
 }) => {
-  const pageTitle = getPageTitleByPageUid(pageUid);
+  try {
+    const pageTitle = getPageTitleByPageUid(pageUid);
 
-  if (!matchingNode?.githubSync?.commentsQueryUid || !matchingNode) {
-    return;
+    if (!matchingNode?.githubSync?.commentsQueryUid || !matchingNode) {
+      return;
+    }
+
+    const results = await runQuery({
+      extensionAPI,
+      parentUid: matchingNode.githubSync?.commentsQueryUid,
+      inputs: { NODETEXT: pageTitle, NODEUID: pageUid },
+    });
+
+    return results.results[0]?.uid;
+  } catch (error) {
+    const e = error as Error;
+
+    await sendErrorEmail({
+      error: e,
+      type: "GitHub Sync - Comments Query Execution Failed",
+      context: {
+        pageUid,
+        pageTitle: getPageTitleByPageUid(pageUid),
+        matchingNode: matchingNode?.text || "unknown",
+        commentsQueryUid:
+          matchingNode?.githubSync?.commentsQueryUid || "missing",
+      },
+    }).catch(() => {});
+
+    console.error("Failed to get comments container UID:", e);
+    return undefined;
   }
-
-  const results = await runQuery({
-    extensionAPI,
-    parentUid: matchingNode.githubSync?.commentsQueryUid,
-    inputs: { NODETEXT: pageTitle, NODEUID: pageUid },
-  });
-
-  return results.results[0]?.uid;
 };
 export const insertNewCommentsFromGitHub = async ({
   pageUid,
@@ -244,6 +264,18 @@ export const insertNewCommentsFromGitHub = async ({
   } catch (error) {
     const e = error as Error;
     const message = e.message;
+
+    await sendErrorEmail({
+      error: e,
+      type: "GitHub Sync - Fetch Comments Failed",
+      context: {
+        pageUid,
+        issueNumber,
+        issueRepo,
+        gitHubAccessToken: gitHubAccessToken ? "present" : "missing",
+      },
+    }).catch(() => {});
+
     renderToast({
       intent: "danger",
       id: "github-issue-comments",
@@ -283,52 +315,68 @@ export const renderGitHubSyncPage = async ({
   onloadArgs: OnloadArgs;
   matchingNode: DiscourseNode;
 }) => {
-  const extensionAPI = onloadArgs.extensionAPI;
-  const pageUid = getPageUidByPageTitle(title);
+  try {
+    const extensionAPI = onloadArgs.extensionAPI;
+    const pageUid = getPageUidByPageTitle(title);
 
-  const commentsContainerUid = await getRoamCommentsContainerUid({
-    pageUid,
-    extensionAPI,
-    matchingNode,
-  });
-  const commentHeaderEl = document.querySelector(
-    `.rm-block__input[id$="${commentsContainerUid}"]`,
-  );
-  handleTitleAdditions(h1, <TitleButtons pageUid={pageUid} />);
+    const commentsContainerUid = await getRoamCommentsContainerUid({
+      pageUid,
+      extensionAPI,
+      matchingNode,
+    });
+    const commentHeaderEl = document.querySelector(
+      `.rm-block__input[id$="${commentsContainerUid}"]`,
+    );
+    handleTitleAdditions(h1, <TitleButtons pageUid={pageUid} />);
 
-  // Initial render for existing comments / comment container
-  if (commentHeaderEl && commentsContainerUid) {
-    const commentNodes = getShallowTreeByParentUid(commentsContainerUid);
-    commentNodes.map((comment) => {
-      const uid = comment.uid;
-      CommentUidCache.add(uid);
+    // Initial render for existing comments / comment container
+    if (commentHeaderEl && commentsContainerUid) {
+      const commentNodes = getShallowTreeByParentUid(commentsContainerUid);
+      commentNodes.map((comment) => {
+        const uid = comment.uid;
+        CommentUidCache.add(uid);
 
-      const commentDiv = document.querySelector(`[id*="${uid}"]`);
-      if (commentDiv && !commentDiv.hasAttribute("github-sync-comment")) {
+        const commentDiv = document.querySelector(`[id*="${uid}"]`);
+        if (commentDiv && !commentDiv.hasAttribute("github-sync-comment")) {
+          const containerDiv = document.createElement("div");
+          containerDiv.className = "inline-block ml-2";
+          containerDiv.onmousedown = (e) => e.stopPropagation();
+          commentDiv.append(containerDiv);
+          ReactDOM.render(<CommentsComponent blockUid={uid} />, containerDiv);
+        }
+      });
+
+      if (!commentHeaderEl.hasAttribute("github-sync-comment-container")) {
+        CommentContainerUidCache.add(commentsContainerUid);
+        commentHeaderEl.setAttribute("github-sync-comment-container", "true");
         const containerDiv = document.createElement("div");
         containerDiv.className = "inline-block ml-2";
         containerDiv.onmousedown = (e) => e.stopPropagation();
-        commentDiv.append(containerDiv);
-        ReactDOM.render(<CommentsComponent blockUid={uid} />, containerDiv);
+        commentHeaderEl.appendChild(containerDiv);
+        ReactDOM.render(
+          <CommentsContainerComponent
+            commentsContainerUid={commentsContainerUid}
+            extensionAPI={extensionAPI}
+            matchingNode={matchingNode}
+          />,
+          containerDiv,
+        );
       }
-    });
-
-    if (!commentHeaderEl.hasAttribute("github-sync-comment-container")) {
-      CommentContainerUidCache.add(commentsContainerUid);
-      commentHeaderEl.setAttribute("github-sync-comment-container", "true");
-      const containerDiv = document.createElement("div");
-      containerDiv.className = "inline-block ml-2";
-      containerDiv.onmousedown = (e) => e.stopPropagation();
-      commentHeaderEl.appendChild(containerDiv);
-      ReactDOM.render(
-        <CommentsContainerComponent
-          commentsContainerUid={commentsContainerUid}
-          extensionAPI={extensionAPI}
-          matchingNode={matchingNode}
-        />,
-        containerDiv,
-      );
     }
+  } catch (error) {
+    const e = error as Error;
+
+    await sendErrorEmail({
+      error: e,
+      type: "GitHub Sync - Page Rendering Failed",
+      context: {
+        title,
+        pageUid: getPageUidByPageTitle(title),
+        matchingNode: matchingNode?.text || "unknown",
+      },
+    }).catch(() => {});
+
+    console.error("Failed to render GitHub sync page:", e);
   }
 };
 
@@ -460,6 +508,20 @@ const CommentsComponent = ({ blockUid }: { blockUid: string }) => {
           } catch (error) {
             const e = error as Error;
             const message = e.message;
+
+            await sendErrorEmail({
+              error: e,
+              type: "GitHub Sync - Create Comment Failed",
+              context: {
+                blockUid: triggerUid,
+                pageUid,
+                issueNumber,
+                issueRepo,
+                commentLength: comment.length,
+                gitHubAccessToken: gitHubAccessToken ? "present" : "missing",
+              },
+            }).catch(() => {});
+
             renderToast({
               intent: "danger",
               id: "github-issue-comments",
@@ -535,13 +597,35 @@ const CommentsContainerComponent = ({
         loading={loadingComments}
         onClick={async () => {
           setLoadingComments(true);
-          const pageUid = getPageUidByBlockUid(commentsContainerUid);
-          await insertNewCommentsFromGitHub({
-            pageUid,
-            extensionAPI,
-            matchingNode,
-          });
-          setLoadingComments(false);
+          try {
+            const pageUid = getPageUidByBlockUid(commentsContainerUid);
+            await insertNewCommentsFromGitHub({
+              pageUid,
+              extensionAPI,
+              matchingNode,
+            });
+          } catch (error) {
+            const e = error as Error;
+
+            await sendErrorEmail({
+              error: e,
+              type: "GitHub Sync - Comment Sync Failed",
+              context: {
+                commentsContainerUid,
+                pageUid: getPageUidByBlockUid(commentsContainerUid),
+                matchingNode: matchingNode?.text || "unknown",
+                errorMessage: e.message,
+              },
+            }).catch(() => {});
+
+            renderToast({
+              intent: "danger",
+              id: "github-comment-sync",
+              content: `Failed to sync comments: ${e.message}`,
+            });
+          } finally {
+            setLoadingComments(false);
+          }
         }}
       />
     </div>
@@ -663,35 +747,54 @@ const NewCommentsConfirmationDialog = ({
             icon="add"
             intent="primary"
             onClick={async () => {
-              await Promise.all(
-                comments.map(async (c) => {
-                  const roamCreatedDate =
-                    window.roamAlphaAPI.util.dateToPageTitle(
-                      new Date(c.created_at),
-                    );
-                  const commentHeader = `${c.user.login} on [[${roamCreatedDate}]]`;
-                  const commentBody = c.body.trim();
-                  await createBlock({
-                    node: {
-                      text: commentHeader,
-                      children: [{ text: commentBody }],
-                      props: {
-                        "github-sync": {
-                          comment: c,
+              try {
+                await Promise.all(
+                  comments.map(async (c) => {
+                    const roamCreatedDate =
+                      window.roamAlphaAPI.util.dateToPageTitle(
+                        new Date(c.created_at),
+                      );
+                    const commentHeader = `${c.user.login} on [[${roamCreatedDate}]]`;
+                    const commentBody = c.body.trim();
+                    await createBlock({
+                      node: {
+                        text: commentHeader,
+                        children: [{ text: commentBody }],
+                        props: {
+                          "github-sync": {
+                            comment: c,
+                          },
                         },
                       },
-                    },
-                    parentUid: commentsContainerUid,
-                    order: "last",
-                  });
-                }),
-              );
-              renderToast({
-                intent: "success",
-                id: "github-issue-comments",
-                content: "GitHub Comments Added",
-              });
-              setIsOpen(false);
+                      parentUid: commentsContainerUid,
+                      order: "last",
+                    });
+                  }),
+                );
+                renderToast({
+                  intent: "success",
+                  id: "github-issue-comments",
+                  content: "GitHub Comments Added",
+                });
+                setIsOpen(false);
+              } catch (error) {
+                const e = error as Error;
+
+                await sendErrorEmail({
+                  error: e,
+                  type: "GitHub Sync - Bulk Comment Creation Failed",
+                  context: {
+                    commentsContainerUid,
+                    commentCount: comments.length,
+                  },
+                }).catch(() => {});
+
+                renderToast({
+                  intent: "danger",
+                  id: "github-issue-comments",
+                  content: `Failed to add comments: ${e.message}`,
+                });
+              }
             }}
           />
         </div>
@@ -731,6 +834,17 @@ const IssueDetailsDialog = ({ pageUid }: { pageUid: string }) => {
       setIsGitHubAppInstalled(isAppInstalled);
     } catch (error) {
       const e = error as Error;
+
+      await sendErrorEmail({
+        error: e,
+        type: "GitHub Sync - Installation Status Check Failed",
+        context: {
+          pageUid,
+          gitHubAccessToken: token ? "present" : "missing",
+          errorMessage: e.message,
+        },
+      }).catch(() => {});
+
       if (e.message === "Bad credentials") {
         setGitHubAccessToken("");
       }
@@ -903,40 +1017,55 @@ const initializeGitHubSync = async (onloadArgs: OnloadArgs) => {
     if (flag && !enabled) {
       const commentObserver = createBlockObserver({
         onBlockLoad: (b) => {
-          const { blockUid } = getUids(b);
-          if (CommentContainerUidCache.has(blockUid)) {
-            if (b.hasAttribute("github-sync-comment-container")) return;
+          try {
+            const { blockUid } = getUids(b);
+            if (CommentContainerUidCache.has(blockUid)) {
+              if (b.hasAttribute("github-sync-comment-container")) return;
 
-            // TODO: move this to renderGitHubSyncPage so we can pass in the matching node
-            const title = getPageTitleByBlockUid(blockUid);
-            const matchingNode = isGitHubSyncPage(title);
-            if (!matchingNode) return;
+              // TODO: move this to renderGitHubSyncPage so we can pass in the matching node
+              const title = getPageTitleByBlockUid(blockUid);
+              const matchingNode = isGitHubSyncPage(title);
+              if (!matchingNode) return;
 
-            b.setAttribute("github-sync-comment-container", "true");
-            const containerDiv = document.createElement("div");
-            containerDiv.className = "inline-block ml-2";
-            containerDiv.onmousedown = (e) => e.stopPropagation();
-            b.append(containerDiv);
-            ReactDOM.render(
-              <CommentsContainerComponent
-                commentsContainerUid={blockUid}
-                extensionAPI={onloadArgs.extensionAPI}
-                matchingNode={matchingNode}
-              />,
-              containerDiv,
-            );
-          }
-          if (CommentUidCache.has(blockUid)) {
-            if (b.hasAttribute("github-sync-comment")) return;
-            b.setAttribute("github-sync-comment", "true");
-            const containerDiv = document.createElement("div");
-            containerDiv.className = "inline-block ml-2";
-            containerDiv.onmousedown = (e) => e.stopPropagation();
-            b.append(containerDiv);
-            ReactDOM.render(
-              <CommentsComponent blockUid={blockUid} />,
-              containerDiv,
-            );
+              b.setAttribute("github-sync-comment-container", "true");
+              const containerDiv = document.createElement("div");
+              containerDiv.className = "inline-block ml-2";
+              containerDiv.onmousedown = (e) => e.stopPropagation();
+              b.append(containerDiv);
+              ReactDOM.render(
+                <CommentsContainerComponent
+                  commentsContainerUid={blockUid}
+                  extensionAPI={onloadArgs.extensionAPI}
+                  matchingNode={matchingNode}
+                />,
+                containerDiv,
+              );
+            }
+            if (CommentUidCache.has(blockUid)) {
+              if (b.hasAttribute("github-sync-comment")) return;
+              b.setAttribute("github-sync-comment", "true");
+              const containerDiv = document.createElement("div");
+              containerDiv.className = "inline-block ml-2";
+              containerDiv.onmousedown = (e) => e.stopPropagation();
+              b.append(containerDiv);
+              ReactDOM.render(
+                <CommentsComponent blockUid={blockUid} />,
+                containerDiv,
+              );
+            }
+          } catch (error) {
+            const e = error as Error;
+
+            sendErrorEmail({
+              error: e,
+              type: "GitHub Sync - Block Observer Failed",
+              context: {
+                blockUid: getUids(b).blockUid,
+                errorMessage: e.message,
+              },
+            }).catch(() => {});
+
+            console.error("GitHub Sync Block Observer Error:", e);
           }
         },
       });

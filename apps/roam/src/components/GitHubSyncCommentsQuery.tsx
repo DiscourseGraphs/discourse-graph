@@ -5,6 +5,7 @@ import type { OnloadArgs } from "roamjs-components/types/native";
 import QueryBuilder from "~/components/QueryBuilder";
 import parseQuery, { DEFAULT_RETURN_NODE } from "~/utils/parseQuery";
 import createBlock from "roamjs-components/writes/createBlock";
+import sendErrorEmail from "~/utils/sendErrorEmail";
 
 const CommentsQuery = ({
   parentUid,
@@ -85,18 +86,52 @@ const CommentsQuery = ({
   ];
 
   const createInitialQueryblocks = async () => {
-    for (const block of initialQueryConditionBlocks) {
-      await createBlock({
-        parentUid: initialQueryArgs.conditionsNodesUid,
-        order: "last",
-        node: block,
-      });
+    try {
+      for (const block of initialQueryConditionBlocks) {
+        await createBlock({
+          parentUid: initialQueryArgs.conditionsNodesUid,
+          order: "last",
+          node: block,
+        });
+      }
+      setShowQuery(true);
+    } catch (error) {
+      const e = error as Error;
+
+      await sendErrorEmail({
+        error: e,
+        type: "GitHub Sync - Query Block Creation Failed",
+        context: {
+          parentUid,
+          conditionsNodesUid: initialQueryArgs.conditionsNodesUid,
+          blockCount: initialQueryConditionBlocks.length,
+        },
+      }).catch(() => {});
+
+      console.error("Failed to create initial query blocks:", e);
+      // Still show the query even if block creation fails
+      setShowQuery(true);
     }
-    setShowQuery(true);
   };
 
   useEffect(() => {
-    if (!showQuery) createInitialQueryblocks();
+    if (!showQuery) {
+      createInitialQueryblocks().catch((error) => {
+        const e = error as Error;
+
+        sendErrorEmail({
+          error: e,
+          type: "GitHub Sync - Query Initialization Failed",
+          context: {
+            parentUid,
+            showQuery,
+            errorMessage: e.message,
+          },
+        }).catch(() => {});
+
+        console.error("Failed to initialize query:", e);
+      });
+    }
   }, [parentUid, initialQueryArgs, showQuery]);
 
   return (

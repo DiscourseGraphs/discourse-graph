@@ -23,6 +23,7 @@ import {
   API_URL_DEV,
   API_URL_PROD,
 } from "~/constants";
+import sendErrorEmail from "~/utils/sendErrorEmail";
 
 export type UserReposResponse = {
   data: [
@@ -71,6 +72,15 @@ export const fetchInstallationStatus = async (token: string) => {
     return isAppInstalled;
   } catch (error) {
     const e = error as Error;
+
+    await sendErrorEmail({
+      error: e,
+      type: "Export GitHub - Installation Status Check Failed",
+      context: {
+        token: token ? "present" : "missing",
+      },
+    }).catch(() => {});
+
     return false;
   }
 };
@@ -127,6 +137,14 @@ export const ExportGithub = ({
     } catch (error) {
       const e = error as Error;
 
+      await sendErrorEmail({
+        error: e,
+        type: "Export GitHub - Installation Status Check Failed",
+        context: {
+          gitHubAccessToken: gitHubAccessToken ? "present" : "missing",
+        },
+      }).catch(() => {});
+
       if (e.message === "Bad credentials") {
         setGitHubAccessToken("");
         setSetting("oauth-github", "");
@@ -177,6 +195,17 @@ export const ExportGithub = ({
         setError("");
         setRepos(res.data);
       } catch (error) {
+        const e = error as Error;
+
+        await sendErrorEmail({
+          error: e,
+          type: "Export GitHub - Repository Fetch Failed",
+          context: {
+            gitHubAccessToken: gitHubAccessToken ? "present" : "missing",
+            isGitHubAppInstalled,
+          },
+        }).catch(() => {});
+
         setError("Failed to fetch repositories");
       }
     };
