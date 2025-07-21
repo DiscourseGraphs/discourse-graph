@@ -1,4 +1,5 @@
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import { OnloadArgs, TreeNode } from "roamjs-components/types";
 import { DEFAULT_STYLE_PROPS, MAX_WIDTH } from "~/components/canvas/Tldraw";
 import { measureCanvasNodeText } from "./measureCanvasNodeText";
@@ -9,11 +10,80 @@ import resolveRefs from "roamjs-components/dom/resolveRefs";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { loadImage } from "./loadImage";
 import sendErrorEmail from "./sendErrorEmail";
+import { EMBED_REGEX, EMBED_CHILDREN_REGEX, SIMPLE_BLOCK_REF_REGEX } from "~/data/embedPatterns";
 
 const extractFirstImageUrl = (text: string): string | null => {
   const regex = /!\[.*?\]\((https:\/\/[^)]+)\)/;
   const result = text.match(regex) || resolveRefs(text).match(regex);
   return result ? result[1] : null;
+};
+
+const extractBlockUidsFromEmbeds = (text: string): string[] => {
+  const uids: string[] = [];
+  
+  // Extract from embed patterns
+  const embedMatch = text.match(EMBED_REGEX);
+  if (embedMatch) {
+    uids.push(embedMatch[1]);
+  }
+  
+  const embedChildrenMatch = text.match(EMBED_CHILDREN_REGEX);
+  if (embedChildrenMatch) {
+    uids.push(embedChildrenMatch[1]);
+  }
+  
+  // Extract from simple block references
+  const blockRefMatches = text.matchAll(SIMPLE_BLOCK_REF_REGEX);
+  for (const match of blockRefMatches) {
+    uids.push(match[1]);
+  }
+  
+  return uids;
+};
+
+const containsKeyFigure = (text: string): boolean => {
+  // Check if the text contains "key figure" (case insensitive)
+  return /key\s+figure/i.test(text);
+};
+
+const checkForKeyFigureInEmbeds = (nodeText: string, nodeUid: string): boolean => {
+  // First check if the node itself contains "key figure"
+  if (containsKeyFigure(nodeText)) {
+    return true;
+  }
+  
+  // Check if the node's tree contains "key figure"
+  const nodeTree = getFullTreeByParentUid(nodeUid);
+  const checkTreeForKeyFigure = (node: TreeNode): boolean => {
+    if (containsKeyFigure(node.text)) {
+      return true;
+    }
+    return node.children?.some(checkTreeForKeyFigure) || false;
+  };
+  
+  if (checkTreeForKeyFigure(nodeTree)) {
+    return true;
+  }
+  
+  // Extract UIDs from embeds and block references
+  const embeddedUids = extractBlockUidsFromEmbeds(nodeText);
+  
+  // Check each embedded/referenced block for "key figure"
+  for (const uid of embeddedUids) {
+    // Check the referenced block's text
+    const referencedText = getTextByBlockUid(uid);
+    if (referencedText && containsKeyFigure(referencedText)) {
+      return true;
+    }
+    
+    // Check the referenced block's tree
+    const referencedTree = getFullTreeByParentUid(uid);
+    if (checkTreeForKeyFigure(referencedTree)) {
+      return true;
+    }
+  }
+  
+  return false;
 };
 
 const getFirstImageByUid = (uid: string): string | null => {
@@ -57,10 +127,14 @@ const calcCanvasNodeSizeAndImg = async ({
     "key-image-option": keyImageOption = "",
   } = canvasSettings[nodeType] || {};
 
+  // Check if this node contains "key figure" in embeds or references
+  const hasKeyFigure = checkForKeyFigureInEmbeds(nodeText, uid);
+  const displayText = hasKeyFigure ? `${nodeText}\n\n🔑 Key Figure` : nodeText;
+  
   const { w, h } = measureCanvasNodeText({
     ...DEFAULT_STYLE_PROPS,
     maxWidth: MAX_WIDTH,
-    text: nodeText,
+    text: displayText,
   });
 
   if (!isKeyImage) return { w, h, imageUrl: "" };
