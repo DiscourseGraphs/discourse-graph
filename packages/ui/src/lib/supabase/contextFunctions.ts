@@ -82,8 +82,8 @@ export const fetchOrCreateSpaceIndirect = async (
 export const fetchOrCreateSpaceDirect = async (
   data: SpaceCreationInput,
 ): Promise<PostgrestSingleResponse<SpaceRecord>> => {
-  const error_v = spaceValidator(data);
-  if (error_v !== null) return asPostgrestFailure(error_v, "invalid space");
+  const error = spaceValidator(data);
+  if (error !== null) return asPostgrestFailure(error, "invalid space");
   data.url = data.url.trim().replace(/\/$/, "");
 
   const supabase = createClient();
