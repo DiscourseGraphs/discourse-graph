@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
@@ -12,7 +12,6 @@ import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
-import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 
 const NodeConfig = ({
@@ -43,72 +42,44 @@ const NodeConfig = ({
   });
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
+  const [tagError, setTagError] = useState("");
+  const [formatError, setFormatError] = useState("");
 
-  // State for tracking current values and validation
-  const [currentTagValue, setCurrentTagValue] = useState(node.tag || "");
-  const [currentFormatValue, setCurrentFormatValue] = useState(
-    node.format || "",
-  );
-
-  // Function to extract clean tag text (remove # if present)
   const getCleanTagText = (tag: string): string => {
     return tag.replace(/^#+/, "").trim().toUpperCase();
   };
 
-  // Function to check if tag text appears in format
-  const validateTagFormatConflict = useMemo(() => {
-    const cleanTag = getCleanTagText(currentTagValue);
-    if (!cleanTag) return { isValid: true, message: "" };
+  const validateOnBlur = useCallback(() => {
+    const tagValue = getBasicTreeByParentUid(tagUid)[0]?.text || "";
+    const formatValue = getBasicTreeByParentUid(formatUid)[0]?.text || "";
 
-    // Remove placeholders like {content} before validation
-    const formatWithoutPlaceholders = currentFormatValue.replace(
-      /{[^}]+}/g,
-      "",
-    );
+    const cleanTag = getCleanTagText(tagValue);
+
+    if (!cleanTag) {
+      setTagError("");
+      setFormatError("");
+      return;
+    }
+
+    const formatWithoutPlaceholders = formatValue.replace(/{[^}]+}/g, "");
     const formatUpper = formatWithoutPlaceholders.toUpperCase();
-
-    // Split format by non-alphanumeric characters to check for the exact tag
     const formatParts = formatUpper.split(/[^A-Z0-9]/);
     const hasConflict = formatParts.includes(cleanTag);
 
-    let message = "";
     if (hasConflict) {
       const formatForMessage = formatWithoutPlaceholders
         .trim()
         .replace(/(\s*-)*$/, "");
-      if (selectedTabId === "format") {
-        message = `Format "${formatForMessage}" conflicts with tag: "${currentTagValue}". Please use some other format.`;
-      } else {
-        // Default message for 'general' tab and any other case
-        message = `Tag "${currentTagValue}" conflicts with format "${formatForMessage}". Please use some other tag.`;
-      }
+      setFormatError(
+        `Format "${formatForMessage}" conflicts with tag: "${tagValue}". Please use some other format.`,
+      );
+      setTagError(
+        `Tag "${tagValue}" conflicts with format "${formatForMessage}". Please use some other tag.`,
+      );
+    } else {
+      setTagError("");
+      setFormatError("");
     }
-
-    return {
-      isValid: !hasConflict,
-      message,
-    };
-  }, [currentTagValue, currentFormatValue, selectedTabId]);
-
-  // Effect to update current values when they change in the blocks
-  useEffect(() => {
-    const updateValues = () => {
-      try {
-        const tagValue = getBasicTreeByParentUid(tagUid)[0]?.text || "";
-        const formatValue = getBasicTreeByParentUid(formatUid)[0]?.text || "";
-        setCurrentTagValue(tagValue);
-        setCurrentFormatValue(formatValue);
-      } catch (error) {
-        // Handle case where blocks might not exist yet
-        console.warn("Error updating tag/format values:", error);
-      }
-    };
-
-    // Update values initially and set up periodic updates
-    updateValues();
-    const interval = setInterval(updateValues, 500);
-
-    return () => clearInterval(interval);
   }, [tagUid, formatUid]);
 
   return (
@@ -139,7 +110,7 @@ const NodeConfig = ({
                 uid={shortcutUid}
                 defaultValue={node.shortcut}
               />
-              <div>
+              <div onBlur={validateOnBlur}>
                 <TextPanel
                   title="Tag"
                   description={`Designate a hashtag for marking potential ${node.text}.`}
@@ -148,9 +119,9 @@ const NodeConfig = ({
                   uid={tagUid}
                   defaultValue={node.tag}
                 />
-                {!validateTagFormatConflict.isValid && (
+                {tagError && (
                   <div className="mt-1 text-sm font-medium text-red-600">
-                    {validateTagFormatConflict.message}
+                    {tagError}
                   </div>
                 )}
               </div>
@@ -175,7 +146,7 @@ const NodeConfig = ({
           title="Format"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <div>
+              <div onBlur={validateOnBlur}>
                 <TextPanel
                   title="Format"
                   description={`DEPRECATED - Use specification instead. The format ${node.text} pages should have.`}
@@ -184,9 +155,9 @@ const NodeConfig = ({
                   uid={formatUid}
                   defaultValue={node.format}
                 />
-                {!validateTagFormatConflict.isValid && (
+                {formatError && (
                   <div className="mt-1 text-sm font-medium text-red-600">
-                    {validateTagFormatConflict.message}
+                    {formatError}
                   </div>
                 )}
               </div>
