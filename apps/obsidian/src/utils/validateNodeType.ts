@@ -5,7 +5,7 @@ type ValidationResult = {
   error?: string;
 };
 
-export function validateNodeFormat({
+export const validateNodeFormat = ({
   format,
   currentNode,
   allNodes,
@@ -13,7 +13,7 @@ export function validateNodeFormat({
   format: string;
   currentNode: DiscourseNode;
   allNodes: DiscourseNode[];
-}): ValidationResult {
+}): ValidationResult => {
   if (!format) {
     return {
       isValid: false,
@@ -50,7 +50,7 @@ export function validateNodeFormat({
   }
 
   return { isValid: true };
-}
+};
 
 export const checkInvalidChars = (format: string): ValidationResult => {
   const INVALID_FILENAME_CHARS_REGEX = /[#^\[\]|]/;
