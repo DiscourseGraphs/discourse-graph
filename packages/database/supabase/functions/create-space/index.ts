@@ -186,6 +186,8 @@ const processAndGetOrCreateSpace = async (
 
 Deno.serve(async (req) => {
   const input = await req.json();
+  // TODO: We should check whether the request comes from a vetted source, like
+  // the roam or obsidian plugin. A combination of CSRF, headers, etc.
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL"),
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
