@@ -6,16 +6,19 @@ export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
     id: generateUid("node"),
     name: "Question",
     format: "QUE - {content}",
+    color: "#99890e",
   },
   Claim: {
     id: generateUid("node"),
     name: "Claim",
     format: "CLM - {content}",
+    color: "#7DA13E",
   },
   Evidence: {
     id: generateUid("node"),
     name: "Evidence",
     format: "EVD - {content}",
+    color: "#DB134A",
   },
 };
 export const DEFAULT_RELATION_TYPES: Record<string, DiscourseRelationType> = {
