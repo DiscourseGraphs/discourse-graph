@@ -27,12 +27,14 @@ type SpaceCreationInput = {
 
 // these are duplicates, hence anti-DRY,
 // but edge function code cannot use code from the rest of the codebase unless we package it.
-// To be considered.
+// To be considered if it happens more often.
 
-export const spaceAnonUserEmail = (platform: string, space_id: number) =>
+// from packages/ui/src/lib/utils.ts
+const spaceAnonUserEmail = (platform: string, space_id: number) =>
   `${platform.toLowerCase()}-${space_id}-anon@database.discoursegraphs.com`;
 
-export const asPostgrestFailure = (
+// from packages/ui/src/lib/supabase/contextFunctions.ts
+const asPostgrestFailure = (
   message: string,
   code: string,
   status: number = 400,
@@ -52,6 +54,7 @@ export const asPostgrestFailure = (
   };
 };
 
+// from packages/ui/src/lib/supabase/contextFunctions.ts
 const spaceValidator = (space: SpaceCreationInput): string | null => {
   if (!space || typeof space !== "object")
     return "Invalid request body: expected a JSON object.";
