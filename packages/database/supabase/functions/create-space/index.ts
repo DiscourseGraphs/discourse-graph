@@ -3,13 +3,13 @@
 // This enables autocomplete, go to definition, etc.
 
 // Setup type definitions for built-in Supabase Runtime APIs
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import "runtime";
 import {
   createClient,
   type User,
   type PostgrestSingleResponse,
   PostgrestError,
-} from "jsr:@supabase/supabase-js@2";
+} from "supabase";
 
 type SpaceRecord = {
   id: number;
@@ -71,7 +71,7 @@ const spaceValidator = (space: SpaceCreationInput): string | null => {
 // end duplicates
 
 const processAndGetOrCreateSpace = async (
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createClient<any, "public", any>>,
   data: SpaceCreationInput,
 ): Promise<PostgrestSingleResponse<SpaceRecord>> => {
   const { name, url, platform, password } = data;
@@ -188,10 +188,15 @@ Deno.serve(async (req) => {
   const input = await req.json();
   // TODO: We should check whether the request comes from a vetted source, like
   // the roam or obsidian plugin. A combination of CSRF, headers, etc.
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL"),
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
-  );
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) {
+    return new Response("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY", {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const supabase = createClient<any, "public", any>(url, key);
 
   const { data, error } = await processAndGetOrCreateSpace(supabase, input);
   if (error) {
