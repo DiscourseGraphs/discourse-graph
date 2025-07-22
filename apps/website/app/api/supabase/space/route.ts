@@ -8,7 +8,6 @@ import {
 import { fetchOrCreateSpaceDirect } from "@repo/ui/lib/supabase/contextFunctions";
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
-  const supabasePromise = createClient();
   try {
     const body = await request.json();
     const result = await fetchOrCreateSpaceDirect(body);
