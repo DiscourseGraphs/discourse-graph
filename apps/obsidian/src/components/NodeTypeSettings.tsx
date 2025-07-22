@@ -7,14 +7,14 @@ import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
 
-type EditableFieldKey = keyof Omit<DiscourseNode, "id" | "shortcut" | "color">;
+type EditableFieldKey = keyof Omit<DiscourseNode, "id" | "shortcut">;
 
 type BaseFieldConfig = {
   key: EditableFieldKey;
   label: string;
   description: string;
   required?: boolean;
-  type: "text" | "select";
+  type: "text" | "select" | "color";
   placeholder?: string;
   validate?: (
     value: string,
@@ -68,6 +68,13 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
     type: "select",
     required: false,
   },
+  color: {
+    key: "color",
+    label: "Color",
+    description: "The color to use for this node type",
+    type: "color",
+    required: false,
+  },
 };
 
 const FIELD_CONFIG_ARRAY = Object.values(FIELD_CONFIGS);
@@ -89,6 +96,23 @@ const TextField = ({
     onChange={(e) => onChange(e.target.value)}
     placeholder={fieldConfig.placeholder}
     className={`w-full ${error ? "input-error" : ""}`}
+  />
+);
+
+const ColorField = ({
+  value,
+  error,
+  onChange,
+}: {
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+}) => (
+  <input
+    type="color"
+    value={value || "#000000"}
+    onChange={(e) => onChange(e.target.value)}
+    className={`h-8 w-20 ${error ? "input-error" : ""}`}
   />
 );
 
@@ -367,6 +391,8 @@ const NodeTypeSettings = () => {
             templateConfig={templateConfig}
             templateFiles={templateFiles}
           />
+        ) : fieldConfig.type === "color" ? (
+          <ColorField value={value} error={error} onChange={handleChange} />
         ) : (
           <TextField
             fieldConfig={fieldConfig}
@@ -391,7 +417,15 @@ const NodeTypeSettings = () => {
           onClick={() => startEditing(index)}
         >
           <div className="flex items-center justify-between">
-            <span className="font-medium">{nodeType.name}</span>
+            <div className="flex items-center gap-2">
+            {nodeType.color && (
+              <div
+                className="h-4 w-4 rounded-full"
+                style={{ backgroundColor: nodeType.color }}
+              />
+            )}
+            <span>{nodeType.name}</span>
+          </div>
             <div className="flex gap-2">
               <button
                 className="icon-button"
