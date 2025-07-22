@@ -1,17 +1,21 @@
 This contains the database schema for vector embeddings and concepts.
-All CLI commands below should be run in this directory (`packages/database`.)
 
-1. Setup
+There are three usage scenarios:
+
+## Local development setup
+
+Normal scenario: Your backend and frontend will work against a database instance within docker.
+It does mean you will have a fresh database with minimal data.
+
+1. Installation
    1. Install [Docker](https://www.docker.com)
-   2. Install the [supabase CLI](https://supabase.com/docs/guides/local-development). (There is a brew version)
-   3. `supabase login` with your (account-specific) supabase access token. (TODO: Create a group access token.)
-   4. `supabase link`. It will ask you for a project name, use `discourse-graphs`. (Production for now.) It will also ask you for the database password (See 1password.)
-   5. Install [sqruff](https://github.com/quarylabs/sqruff)
+   2. Set the `SUPABASE_WORKDIR` in your environment to the absolute path of the `packages/database` directory.
+   3. Install [sqruff](https://github.com/quarylabs/sqruff)
 2. Usage:
-   1. Use `turbo dev`, (alias for `supabase start`) before you use your local database. URLs will be given for your local supabase database, api endpoint, etc.
-   2. You may need to `supabase db pull` if changes are deployed while you work.
-   3. End you work session with `supabase end` to free docker resources.
-3. Development: We follow the supabase [Declarative Database Schema](https://supabase.com/docs/guides/local-development/declarative-database-schemas) process.
+   1. `turbo dev`, will do a `supabase start` so you can talk to your local database.
+   2. You can use the studio to look over things; its url is given by `supabase start`.
+   3. End your work session with `supabase end` to free docker resources.
+3. Database-specific development: We follow the supabase [Declarative Database Schema](https://supabase.com/docs/guides/local-development/declarative-database-schemas) process.
    1. Assuming you're working on a feature branch.
    2. Make changes to the schema, by editing files in `packages/database/supabase/schemas`
    3. If you created a new schema file, make sure to add it to `[db.migrations] schema_paths` in `packages/database/supabase/config.toml`. Schema files are applied in that order, you may need to be strategic in placing your file.
@@ -22,23 +26,47 @@ All CLI commands below should be run in this directory (`packages/database`.)
       3. See if there would be a migration to apply with `supabase db diff`
    5. If applying the new schema fails, repeat step 4
    6. If you are satisfied with the migration, create a migration file with `npm run dbdiff:save some_meaningful_migration_name`
-      1. If all goes well, there should be a new file named `supbase/migration/2..._some_meaningful_migration_name.sql` which you should `git add`.
+      1. If all goes well, there should be a new file named `supabase/migration/2..._some_meaningful_migration_name.sql` which you should `git add`.
    7. `turbo build`, which will do the following:
       1. Start supbase
       2. Apply the new migration locally
       3. Regenerate the types file with `supabase gen types typescript --local > types.gen.ts`
       4. Copy it where appropriate
    8. You can start using your changes again `turbo dev`
+   9. If schema changes are deployed to `main` while you work:
+      1. Rebase your branch on `main` so you have the latest migration.
+      2. If that new migration file has already been applied to your local database (step 7), you may have to revert it.
+         1. `supabase migration repair --status reverted <migration timestamp> --local`
+         2. If your migration is not idempotent (which you'll notice in stage 4), you may have to undo some changes in the local database, using the SQL editor in the studio, or `psql`.
+         3. If that fails, you can reset your local database with `supabase db reset --local`
+      3. If you have an ongoing migration file, the timestamp at the start of the name should come after the latest new migration. Rename as needed.
+      4. Apply `turbo build` again, so the incoming migrations are applied, and then your working migration. You may have to fix the schema and migration to take the changes into account.
+    10. When your migration is pushed in a branch, supabase will create a branch instance. Note there is a small cost to this, so we do not want those branches to linger.
+        The branch will be also created without data. (Seed data could be added to `.../supabase/seed.sql`)
+        The vercel branch instance will talk to this supabase branch. This is a wholly separate environment, and will not affect production.
 
+### Testing the backend
 
-## Testing the backend
-
-There are cucumber scenarios to test the flow of database operations. We have not yet automated those tests, but you should run them when developing the database. You will need to
+There are cucumber scenarios to test the flow of database operations. We have not yet automated those tests, but you should run against the local environment when developing the database. You will need to:
 
 1. Run `turbo dev` in one terminal (in the root directory)
-  1. Take note of the `API URL`, `anon key` and `service role key` in the `@repo/database task`
-2. In another other terminal, `cd` to this directory (`packages/database`)
-  1. Set the environment variables `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` to the values noted above, respectively.
-  2. Run the tests with `npm run test`
+2. In another other terminal, `cd` to this directory (`packages/database`) and run the tests with `npm run test`
 
 Think of adding new tests if appropriate!
+
+## Using local code against your supabase branch
+
+You may want to test your local code against the supabase branch database that was created after push (step 10 above) instead of using the branch database only through the vercel branch deployment.
+
+First, you will need to set `VERCEL_TOKEN` from 1password, and set it either as an environment variable or in `packages/database/.env`.
+
+If you are working on frontend code that only speaks to the database through the vercel api endpoints, the easiest is to use the vercel branch website, which will talk to the supabase branch. You would  run `npm run genenv:branch` in this directory; then set `NEXT_API_ROOT` to the value given in `packages/database/.env.branch`, which was generated by the previous step. It can be set in your console, or temporarily in `packages/database/.env`.
+
+In most other cases, you need to tell your code to fetch data from the branch. Set `SUPABASE_USE_DB=branch` in your console before running `turbo dev`. It will use the current git branch, but you can also override this with `SUPABASE_GIT_BRANCH=<branch name>`.
+
+## Using local code against the production branch
+
+This should be used with extreme caution, as there is not currently adequate security to prevent changes to the data.
+It may be appropriate if there is a problem in production that is due to corrupted data (vs schema issues), and it is somehow simpler to test code to repair it directly than to load the data locally.
+Again, if all your code is running through vercel api endpoints, the simplest way is to set `NEXT_API_ROOT` to the url of the api of the production vercel branch (`https://discoursegraphs.com/api`).
+But in most other cases, you will want your code to talk to the production database. set the `VERCEL_TOKEN` as above, and set `SUPABASE_USE_DB=production` in your console before running `turbo dev`.
