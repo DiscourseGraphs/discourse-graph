@@ -453,10 +453,10 @@ const ResultsTable = ({
     if (!leftColumnUid || !rightColumnUid || !tableRef.current) return;
 
     const leftHeader = tableRef.current?.querySelector(
-      `td[data-column="${leftColumnUid}"]`,
+      `thead td[data-column="${leftColumnUid}"]`,
     );
     const rightHeader = tableRef.current?.querySelector(
-      `td[data-column="${rightColumnUid}"]`,
+      `thead td[data-column="${rightColumnUid}"]`,
     );
 
     if (!leftHeader || !rightHeader) return;
@@ -523,7 +523,7 @@ const ResultsTable = ({
     const uids = columns.map((c) => c.uid);
     uids.forEach((uid) => {
       const header = tableRef.current?.querySelector(
-        `td[data-column="${uid}"]`,
+        `thead td[data-column="${uid}"]`,
       );
       if (header) {
         const headerWidth = (header as HTMLElement).offsetWidth;
