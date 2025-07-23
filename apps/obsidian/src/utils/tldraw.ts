@@ -7,7 +7,7 @@ import {
 } from "../constants";
 import DiscourseGraphPlugin from "..";
 import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
-import { Notice } from "obsidian";
+import { Notice, PluginManifest } from "obsidian";
 import { format } from "date-fns";
 
 export type TldrawPluginMetaData = {
@@ -121,4 +121,26 @@ export const createCanvas = async (plugin: DiscourseGraphPlugin) => {
     new Notice(e instanceof Error ? e.message : "Failed to create canvas file");
     console.error(e);
   }
+};
+
+export const replaceBetweenKeywords = (
+  input: string,
+  keyword1: string,
+  keyword2: string,
+  replacement: string,
+) => {
+  const regex = new RegExp(`${keyword1}[\\s\\S]*?${keyword2}`, "g");
+  return input.replace(regex, `${keyword1}\n${replacement}\n${keyword2}`);
+};
+
+export const updateFileData = async (
+  plugin: DiscourseGraphPlugin,
+  store: TLStore,
+): Promise<TLData> => {
+  const tldrawData = getTLDataTemplate({
+    pluginVersion: plugin.manifest.version,
+    tldrawFile: createRawTldrawFile(store),
+    uuid: window.crypto.randomUUID(),
+  });
+  return tldrawData;
 };

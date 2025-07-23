@@ -135,9 +135,15 @@ export class TldrawView extends TextFileView {
 
   private createReactRoot(entryPoint: Element, store: TLStore) {
     const root = createRoot(entryPoint);
+    if (!this.file) return root;
+
     root.render(
       <React.StrictMode>
-        <TldrawPreviewComponent store={store} isReadonly={false} />
+        <TldrawPreviewComponent
+          store={store}
+          plugin={this.plugin}
+          file={this.file}
+        />
       </React.StrictMode>,
     );
     return root;
