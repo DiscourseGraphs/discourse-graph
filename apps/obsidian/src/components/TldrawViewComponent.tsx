@@ -25,6 +25,8 @@ export const TldrawPreviewComponent = ({
   const [isReady, setIsReady] = useState(false);
   const editorRef = useRef<Editor | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const [isSaving, setIsSaving] = useState(false);
+  const lastSavedDataRef = useRef<string>("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -33,45 +35,72 @@ export const TldrawPreviewComponent = ({
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    const saveChanges = async () => {
-      try {
-        const newData = await updateFileData(plugin, store);
-        console.log("TLDraw data updated:", newData);
-        const stringifiedData = JSON.stringify(newData, null, "\t");
+  const saveChanges = useCallback(async () => {
+    if (isSaving) return; // Prevent concurrent saves
 
-        const currentContent = await plugin.app.vault.read(file);
-        if (!currentContent) {
-          console.error("Could not read file content");
-          return;
-        }
+    try {
+      setIsSaving(true);
+      const newData = await updateFileData(plugin, store);
+      const stringifiedData = JSON.stringify(newData, null, "\t");
 
-        const updatedString = replaceBetweenKeywords(
-          currentContent,
-          TLDATA_DELIMITER_START,
-          TLDATA_DELIMITER_END,
-          stringifiedData,
-        );
-
-        if (updatedString === currentContent) {
-          console.log("No changes to save");
-          return;
-        }
-
-        await plugin.app.vault.modify(file, updatedString);
-      } catch (error) {
-        console.error("Error updating TLDraw data:", error);
+      if (stringifiedData === lastSavedDataRef.current) {
+        return;
       }
-    };
 
+      const currentContent = await plugin.app.vault.read(file);
+      if (!currentContent) {
+        throw new Error("Could not read file content");
+      }
+
+      const updatedString = replaceBetweenKeywords(
+        currentContent,
+        TLDATA_DELIMITER_START,
+        TLDATA_DELIMITER_END,
+        stringifiedData,
+      );
+
+      if (updatedString === currentContent) {
+        return;
+      }
+
+      await plugin.app.vault.modify(file, updatedString);
+      lastSavedDataRef.current = stringifiedData;
+
+      // Verify save
+      const verifyContent = await plugin.app.vault.read(file);
+      if (!verifyContent.includes(stringifiedData)) {
+        throw new Error("Save verification failed");
+      }
+    } catch (error) {
+      console.error("Error saving TLDraw data:", error);
+      // Attempt to reload the editor state from file
+      try {
+        const fileContent = await plugin.app.vault.read(file);
+        const match = fileContent.match(
+          new RegExp(
+            `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
+          ),
+        );
+        if (match?.[1]) {
+          const data = JSON.parse(match[1]);
+          if (data.raw) {
+            store.loadSnapshot(data.raw);
+          }
+        }
+      } catch (recoveryError) {
+        console.error("Failed to recover editor state:", recoveryError);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }, [file, plugin, store]);
+
+  useEffect(() => {
     const unsubscribe = store.listen(
       () => {
-        // Clear any existing timeout
         if (saveTimeoutRef.current) {
           clearTimeout(saveTimeoutRef.current);
         }
-
-        // Set new timeout for debouncing
         saveTimeoutRef.current = setTimeout(saveChanges, DEFAULT_SAVE_DELAY);
       },
       { source: "user", scope: "document" },
@@ -83,7 +112,7 @@ export const TldrawPreviewComponent = ({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [store, plugin, file]);
+  }, [store, saveChanges]);
 
   const handleMount = useCallback((editor: Editor) => {
     editorRef.current = editor;
