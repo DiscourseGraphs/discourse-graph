@@ -634,8 +634,11 @@ const ResultsTable = ({
     <HTMLTable
       elementRef={tableRef}
       style={{
+        maxHeight: "400px",
+        overflowY: "scroll",
         width: "100%",
         tableLayout: "fixed",
+        borderRadius: 3,
       }}
       data-parent-uid={parentUid}
       {...tableProps}
