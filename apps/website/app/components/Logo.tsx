@@ -12,10 +12,10 @@ const DOCS_PLATFORMS = {
 
 export const Logo = () => {
   const pathname = usePathname();
-  
+
   const platform = Object.entries(DOCS_PLATFORMS).find(([path]) =>
-    pathname.startsWith(path),
-  )?.[1] as "obsidian" | "roam" | undefined;
+    pathname.includes(path),
+  )?.[1];
 
   return (
     <div className="flex items-center space-x-2">
