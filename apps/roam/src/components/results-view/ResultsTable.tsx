@@ -100,7 +100,7 @@ const ResultHeader = React.forwardRef<
       [c.key, activeSort],
     );
     return (
-      <th
+      <td
         style={{
           cursor: "pointer",
           textTransform: "capitalize",
@@ -151,7 +151,7 @@ const ResultHeader = React.forwardRef<
             )}
           </span>
         </div>
-      </th>
+      </td>
     );
   },
 );
@@ -401,7 +401,7 @@ const ResultsTable = ({
   allResults: Result[];
   showInterface?: boolean;
 }) => {
-  const tableContainerRef = useRef<HTMLDivElement | null>(null);
+  const tableRef = useRef<HTMLTableElement | null>(null);
   const dragInfo = useRef<DragInfo>({
     startX: 0,
     leftColumnUid: null,
@@ -450,13 +450,13 @@ const ResultsTable = ({
 
   const onDragStart = useCallback((e) => {
     const { leftColumnUid, rightColumnUid } = e.currentTarget.dataset;
-    if (!leftColumnUid || !rightColumnUid || !tableContainerRef.current) return;
+    if (!leftColumnUid || !rightColumnUid || !tableRef.current) return;
 
-    const leftHeader = tableContainerRef.current?.querySelector(
-      `th[data-column="${leftColumnUid}"]`,
+    const leftHeader = tableRef.current?.querySelector(
+      `td[data-column="${leftColumnUid}"]`,
     );
-    const rightHeader = tableContainerRef.current?.querySelector(
-      `th[data-column="${rightColumnUid}"]`,
+    const rightHeader = tableRef.current?.querySelector(
+      `td[data-column="${rightColumnUid}"]`,
     );
 
     if (!leftHeader || !rightHeader) return;
@@ -512,7 +512,7 @@ const ResultsTable = ({
       rafIdRef.current = null;
     }
 
-    const totalWidth = tableContainerRef.current?.offsetWidth;
+    const totalWidth = tableRef.current?.offsetWidth;
     if (!totalWidth || totalWidth === 0) {
       return;
     }
@@ -522,8 +522,8 @@ const ResultsTable = ({
     const finalWidths: ColumnWidths = {};
     const uids = columns.map((c) => c.uid);
     uids.forEach((uid) => {
-      const header = tableContainerRef.current?.querySelector(
-        `th[data-column="${uid}"]`,
+      const header = tableRef.current?.querySelector(
+        `td[data-column="${uid}"]`,
       );
       if (header) {
         const headerWidth = (header as HTMLElement).offsetWidth;
@@ -631,154 +631,144 @@ const ResultsTable = ({
     if (extraRowType === null) setExtraRowUid(null);
   }, [extraRowType, setExtraRowUid]);
   return (
-    <div
-      ref={tableContainerRef}
+    <HTMLTable
+      elementRef={tableRef}
       style={{
-        maxHeight: "400px",
-        overflowY: "scroll",
-        borderRadius: 3,
+        width: "100%",
+        tableLayout: "fixed",
       }}
+      data-parent-uid={parentUid}
+      {...tableProps}
     >
-      <HTMLTable
-        style={{
-          width: "100%",
-          tableLayout: "fixed",
-        }}
-        data-parent-uid={parentUid}
-        {...tableProps}
-      >
-        <thead style={{ background: "#eeeeee80" }}>
-          <tr style={{ visibility: !showInterface ? "collapse" : "visible" }}>
-            {columns.map((c) => (
-              <ResultHeader
-                key={c.uid}
-                c={c}
-                allResults={allResults}
-                activeSort={activeSort}
-                setActiveSort={setActiveSort}
-                filters={filters}
-                setFilters={resultHeaderSetFilters}
-                initialFilter={filters[c.key]}
-                columnWidth={columnWidths[c.uid]}
-              />
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {results.map((r) => (
-            <React.Fragment key={Object.values(r).join("-")}>
-              <ResultRow
-                r={r}
-                parentUid={parentUid}
-                views={views}
-                onRefresh={onRefresh}
-                columns={columns}
-                onDragStart={onDragStart}
-                onDrag={onDrag}
-                onDragEnd={onDragEnd}
-              />
-              {extraRowUid === r.uid && (
-                <tr className={`roamjs-${extraRowType}-row roamjs-extra-row`}>
-                  <td colSpan={columns.length}>
-                    {extraRowUid && extraRowType === "context" ? (
-                      <ExtraContextRow uid={extraRowUid} />
-                    ) : extraRowUid && extraRowType === "discourse" ? (
-                      <ContextContent uid={extraRowUid} />
-                    ) : null}
-                  </td>
-                </tr>
-              )}
-            </React.Fragment>
+      <thead style={{ background: "#eeeeee80" }}>
+        <tr style={{ visibility: !showInterface ? "collapse" : "visible" }}>
+          {columns.map((c) => (
+            <ResultHeader
+              key={c.uid}
+              c={c}
+              allResults={allResults}
+              activeSort={activeSort}
+              setActiveSort={setActiveSort}
+              filters={filters}
+              setFilters={resultHeaderSetFilters}
+              initialFilter={filters[c.key]}
+              columnWidth={columnWidths[c.uid]}
+            />
           ))}
-        </tbody>
-        <tfoot style={!showInterface ? { display: "none" } : {}}>
-          <tr>
-            <td
-              colSpan={columns.length}
-              style={{ padding: 0, background: "#eeeeee80" }}
+        </tr>
+      </thead>
+      <tbody>
+        {results.map((r) => (
+          <React.Fragment key={Object.values(r).join("-")}>
+            <ResultRow
+              r={r}
+              parentUid={parentUid}
+              views={views}
+              onRefresh={onRefresh}
+              columns={columns}
+              onDragStart={onDragStart}
+              onDrag={onDrag}
+              onDragEnd={onDragEnd}
+            />
+            {extraRowUid === r.uid && (
+              <tr className={`roamjs-${extraRowType}-row roamjs-extra-row`}>
+                <td colSpan={columns.length}>
+                  {extraRowUid && extraRowType === "context" ? (
+                    <ExtraContextRow uid={extraRowUid} />
+                  ) : extraRowUid && extraRowType === "discourse" ? (
+                    <ContextContent uid={extraRowUid} />
+                  ) : null}
+                </td>
+              </tr>
+            )}
+          </React.Fragment>
+        ))}
+      </tbody>
+      <tfoot style={!showInterface ? { display: "none" } : {}}>
+        <tr>
+          <td
+            colSpan={columns.length}
+            style={{ padding: 0, background: "#eeeeee80" }}
+          >
+            <div
+              className="flex items-center justify-between"
+              style={{ padding: 4 }}
             >
               <div
-                className="flex items-center justify-between"
-                style={{ padding: 4 }}
+                className="flex items-center gap-4"
+                style={{ paddingLeft: 4 }}
               >
-                <div
-                  className="flex items-center gap-4"
-                  style={{ paddingLeft: 4 }}
-                >
-                  <span>Rows per page:</span>
-                  <InputGroup
-                    defaultValue={pageSize.toString()}
-                    onChange={(e) => {
-                      clearTimeout(pageSizeTimeoutRef.current);
-                      pageSizeTimeoutRef.current = window.setTimeout(() => {
-                        setPageSize(Number(e.target.value));
+                <span>Rows per page:</span>
+                <InputGroup
+                  defaultValue={pageSize.toString()}
+                  onChange={(e) => {
+                    clearTimeout(pageSizeTimeoutRef.current);
+                    pageSizeTimeoutRef.current = window.setTimeout(() => {
+                      setPageSize(Number(e.target.value));
 
-                        if (preventSavingSettings) return;
-                        setInputSetting({
-                          key: "size",
-                          value: e.target.value,
-                          blockUid: parentUid,
-                        });
-                      }, 1000);
-                    }}
-                    type="number"
-                    style={{
-                      width: 60,
-                      maxWidth: 60,
-                      marginRight: 32,
-                      marginLeft: 16,
-                    }}
-                  />
-                </div>
-                <span>
-                  <Button
-                    minimal
-                    icon={"double-chevron-left"}
-                    onClick={() => setPage(1)}
-                    disabled={page === 1}
-                    small
-                  />
-                  <Button
-                    minimal
-                    icon={"chevron-left"}
-                    onClick={() => setPage(page - 1)}
-                    disabled={page === 1}
-                    small
-                  />
-                  <span style={{ margin: "4px 0" }} className={"text-sm"}>
-                    {page}
-                  </span>
-                  <Button
-                    minimal
-                    icon={"chevron-right"}
-                    onClick={() => setPage(page + 1)}
-                    disabled={
-                      page ===
-                        Math.ceil(allProcessedResults.length / pageSize) ||
-                      allProcessedResults.length === 0
-                    }
-                    small
-                  />
-                  <Button
-                    minimal
-                    icon={"double-chevron-right"}
-                    disabled={
-                      page ===
-                        Math.ceil(allProcessedResults.length / pageSize) ||
-                      allProcessedResults.length === 0
-                    }
-                    onClick={() =>
-                      setPage(Math.ceil(allProcessedResults.length / pageSize))
-                    }
-                    small
-                  />
-                </span>
+                      if (preventSavingSettings) return;
+                      setInputSetting({
+                        key: "size",
+                        value: e.target.value,
+                        blockUid: parentUid,
+                      });
+                    }, 1000);
+                  }}
+                  type="number"
+                  style={{
+                    width: 60,
+                    maxWidth: 60,
+                    marginRight: 32,
+                    marginLeft: 16,
+                  }}
+                />
               </div>
-            </td>
-          </tr>
-        </tfoot>
-      </HTMLTable>
-    </div>
+              <span>
+                <Button
+                  minimal
+                  icon={"double-chevron-left"}
+                  onClick={() => setPage(1)}
+                  disabled={page === 1}
+                  small
+                />
+                <Button
+                  minimal
+                  icon={"chevron-left"}
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                  small
+                />
+                <span style={{ margin: "4px 0" }} className={"text-sm"}>
+                  {page}
+                </span>
+                <Button
+                  minimal
+                  icon={"chevron-right"}
+                  onClick={() => setPage(page + 1)}
+                  disabled={
+                    page === Math.ceil(allProcessedResults.length / pageSize) ||
+                    allProcessedResults.length === 0
+                  }
+                  small
+                />
+                <Button
+                  minimal
+                  icon={"double-chevron-right"}
+                  disabled={
+                    page === Math.ceil(allProcessedResults.length / pageSize) ||
+                    allProcessedResults.length === 0
+                  }
+                  onClick={() =>
+                    setPage(Math.ceil(allProcessedResults.length / pageSize))
+                  }
+                  small
+                />
+              </span>
+            </div>
+          </td>
+        </tr>
+      </tfoot>
+    </HTMLTable>
   );
 };
 
