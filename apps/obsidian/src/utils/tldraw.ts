@@ -5,9 +5,9 @@ import {
   TLDATA_DELIMITER_START,
   TLDRAW_VERSION,
 } from "../constants";
-import DiscourseGraphPlugin from "..";
+import DiscourseGraphPlugin from "~/index";
 import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
-import { Notice, PluginManifest } from "obsidian";
+import { Notice } from "obsidian";
 import { format } from "date-fns";
 
 export type TldrawPluginMetaData = {
@@ -133,10 +133,10 @@ export const replaceBetweenKeywords = (
   return input.replace(regex, `${keyword1}\n${replacement}\n${keyword2}`);
 };
 
-export const updateFileData = async (
+export const getUpdatedFileData = (
   plugin: DiscourseGraphPlugin,
   store: TLStore,
-): Promise<TLData> => {
+): TLData => {
   const tldrawData = getTLDataTemplate({
     pluginVersion: plugin.manifest.version,
     tldrawFile: createRawTldrawFile(store),

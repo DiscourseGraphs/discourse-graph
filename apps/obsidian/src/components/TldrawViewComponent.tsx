@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Editor, ErrorBoundary, Tldraw, TLStore, useEditor } from "tldraw";
+import { Editor, ErrorBoundary, loadSnapshot, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
-import { replaceBetweenKeywords, updateFileData } from "~/utils/tldraw";
-import DiscourseGraphPlugin from "..";
+import { replaceBetweenKeywords, getUpdatedFileData } from "~/utils/tldraw";
+import DiscourseGraphPlugin from "~/index";
 import {
   DEFAULT_SAVE_DELAY,
   TLDATA_DELIMITER_END,
@@ -40,7 +40,7 @@ export const TldrawPreviewComponent = ({
 
     try {
       setIsSaving(true);
-      const newData = await updateFileData(plugin, store);
+      const newData = getUpdatedFileData(plugin, store);
       const stringifiedData = JSON.stringify(newData, null, "\t");
 
       if (stringifiedData === lastSavedDataRef.current) {
@@ -66,14 +66,18 @@ export const TldrawPreviewComponent = ({
       await plugin.app.vault.modify(file, updatedString);
       lastSavedDataRef.current = stringifiedData;
 
-      // Verify save
       const verifyContent = await plugin.app.vault.read(file);
-      if (!verifyContent.includes(stringifiedData)) {
-        throw new Error("Save verification failed");
+      const verifyMatch = verifyContent.match(
+        new RegExp(
+          `${TLDATA_DELIMITER_START}\\s*([\\s\\S]*?)\\s*${TLDATA_DELIMITER_END}`,
+        ),
+      );
+      if (!verifyMatch || verifyMatch[1]?.trim() !== stringifiedData.trim()) {
+        throw new Error("Failed to save TLDraw data");
       }
     } catch (error) {
       console.error("Error saving TLDraw data:", error);
-      // Attempt to reload the editor state from file
+      // Reload the editor state from file
       try {
         const fileContent = await plugin.app.vault.read(file);
         const match = fileContent.match(
@@ -84,7 +88,7 @@ export const TldrawPreviewComponent = ({
         if (match?.[1]) {
           const data = JSON.parse(match[1]);
           if (data.raw) {
-            store.loadSnapshot(data.raw);
+            loadSnapshot(store, data.raw);
           }
         }
       } catch (recoveryError) {
@@ -131,18 +135,14 @@ export const TldrawPreviewComponent = ({
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        editor.store.mergeRemoteChanges(() => {
-          editor.updateInstanceState({
-            isFocused: false,
-            isPenMode: false,
-          });
+        editor.updateInstanceState({
+          isFocused: false,
+          isPenMode: false,
         });
       } else {
-        editor.store.mergeRemoteChanges(() => {
-          editor.updateInstanceState({
-            isFocused: true,
-            isPenMode: false,
-          });
+        editor.updateInstanceState({
+          isFocused: true,
+          isPenMode: false,
         });
       }
     };
