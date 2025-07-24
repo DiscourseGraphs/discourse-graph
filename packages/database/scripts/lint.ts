@@ -44,12 +44,13 @@ const main = () => {
             files.forEach((file) => {
               if (file.isDirectory()) {
                 exec(
-                  `deno check -c ${join(file.path, file.name, "deno.json")} ${join(file.path, file.name, "index.ts")}`,
-                  {},
+                  "deno lint index.ts",
+                  { cwd: join(file.path, file.name) },
                   (err, stdout, stderr) => {
-                    if (err !== null || stderr.length > 0) {
+                    stderr = stderr.replace("Checked 1 file", "");
+                    if (err !== null || stderr.trim().length > 0) {
                       console.error(
-                        `deno errors for ${file.name}: ${err}\n${stderr}`,
+                        `deno errors for ${file.name}: ${err}\n${stdout}`,
                       );
                       denoError = true;
                     } else {
