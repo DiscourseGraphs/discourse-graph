@@ -484,20 +484,34 @@ const ResultsTable = ({
     if (!leftColumnUid || !rightColumnUid) return;
 
     const delta = e.clientX - startX;
-
     const minWidth = 40;
 
     let newLeftWidth = leftStartWidth + delta;
     let newRightWidth = rightStartWidth - delta;
 
-    if (newLeftWidth < minWidth) {
+    const leftBelow = newLeftWidth < minWidth;
+    const rightBelow = newRightWidth < minWidth;
+
+    if (leftBelow && !rightBelow) {
       const adjustment = minWidth - newLeftWidth;
       newLeftWidth = minWidth;
       newRightWidth -= adjustment;
-    } else if (newRightWidth < minWidth) {
+    } else if (rightBelow && !leftBelow) {
       const adjustment = minWidth - newRightWidth;
       newRightWidth = minWidth;
       newLeftWidth -= adjustment;
+    } else if (leftBelow && rightBelow) {
+      const totalMin = minWidth * 2;
+      const startTotal = leftStartWidth + rightStartWidth;
+
+      if (startTotal > totalMin) {
+        const scale = totalMin / startTotal;
+        newLeftWidth = Math.max(minWidth, leftStartWidth * scale);
+        newRightWidth = Math.max(minWidth, rightStartWidth * scale);
+      } else {
+        newLeftWidth = leftStartWidth;
+        newRightWidth = rightStartWidth;
+      }
     }
 
     throttledSetColumnWidths({
