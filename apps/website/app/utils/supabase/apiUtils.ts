@@ -6,10 +6,9 @@ import {
 
 import { Database } from "@repo/database/types.gen.ts";
 import { createClient } from "~/utils/supabase/server";
-import { asPostgrestFailure as apf_orig } from "@repo/ui/lib/supabase/contextFunctions";
+import { asPostgrestFailure } from "@repo/ui/lib/supabase/contextFunctions";
+export { asPostgrestFailure } from "@repo/ui/lib/supabase/contextFunctions";
 import cors from "~/utils/llm/cors";
-
-export const asPostgrestFailure = apf_orig;
 
 /**
  * Sends a standardized JSON response.
