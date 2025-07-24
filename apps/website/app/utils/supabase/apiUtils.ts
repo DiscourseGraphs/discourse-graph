@@ -7,6 +7,7 @@ import {
 import { Database } from "@repo/database/types.gen.ts";
 import { createClient } from "~/utils/supabase/server";
 import { asPostgrestFailure } from "@repo/ui/lib/supabase/contextFunctions";
+// Temporarily re-exporting because many imports point here. Will be moved to a future packages/utils.
 export { asPostgrestFailure } from "@repo/ui/lib/supabase/contextFunctions";
 import cors from "~/utils/llm/cors";
 
