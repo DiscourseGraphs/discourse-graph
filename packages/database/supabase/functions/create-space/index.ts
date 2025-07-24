@@ -181,11 +181,14 @@ const processAndGetOrCreateSpace = async (
   return result;
 };
 
+// @ts-ignore Deno is not visible to the IDE
 Deno.serve(async (req) => {
   const input = await req.json();
   // TODO: We should check whether the request comes from a vetted source, like
   // the roam or obsidian plugin. A combination of CSRF, headers, etc.
+  // @ts-ignore Deno is not visible to the IDE
   const url = Deno.env.get("SUPABASE_URL");
+  // @ts-ignore Deno is not visible to the IDE
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) {
     return new Response("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY", {
