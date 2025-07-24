@@ -2,7 +2,7 @@ import {
   type SupabaseClient,
   createClient as createSupabaseClient,
 } from "@supabase/supabase-js";
-import { Database } from "@repo/database/types.gen.ts";
+import { Database } from "@repo/database/types.gen";
 
 // Inspired by https://supabase.com/ui/docs/react/password-based-auth
 

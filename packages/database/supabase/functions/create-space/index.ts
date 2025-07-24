@@ -2,43 +2,37 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-// Setup type definitions for built-in Supabase Runtime APIs
-import "runtime";
+import "@supabase/functions-js/edge-runtime";
 import {
   createClient,
   type User,
   type PostgrestSingleResponse,
   PostgrestError,
-} from "supabase";
+} from "@supabase/supabase-js";
+import type { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
+import type {
+  SpaceRecord,
+  SpaceCreationInput,
+} from "@repo/ui/lib/supabase/contextFunctions";
 
-type SpaceRecord = {
-  id: number;
-  name: string;
-  url: string;
-  platform: string;
-};
+// Importing local functions works with deno compile, but fails in the edge context.
+// We may consider packaging these functions in the future.
+// import {
+//   spaceAnonUserEmail,
+//   asPostgrestFailure,
+//   spaceValidator,
+// } from "@repo/ui/lib/supabase/contextFunctions";
 
-type SpaceCreationInput = {
-  name: string;
-  url: string;
-  platform: string;
-  password: string;
-};
+// For now, duplicating the functions from @repo/ui/lib/supabase/contextFunctions
 
-// these are duplicates, hence anti-DRY,
-// but edge function code cannot use code from the rest of the codebase unless we package it.
-// To be considered if it happens more often.
-
-// from packages/ui/src/lib/utils.ts
 const spaceAnonUserEmail = (platform: string, space_id: number) =>
   `${platform.toLowerCase()}-${space_id}-anon@database.discoursegraphs.com`;
 
-// from packages/ui/src/lib/supabase/contextFunctions.ts
-const asPostgrestFailure = (
+const asPostgrestFailure = <T>(
   message: string,
   code: string,
   status: number = 400,
-): PostgrestSingleResponse<any> => {
+): PostgrestSingleResponse<T> => {
   return {
     data: null,
     error: {
@@ -54,7 +48,6 @@ const asPostgrestFailure = (
   };
 };
 
-// from packages/ui/src/lib/supabase/contextFunctions.ts
 const spaceValidator = (space: SpaceCreationInput): string | null => {
   if (!space || typeof space !== "object")
     return "Invalid request body: expected a JSON object.";
@@ -74,12 +67,13 @@ const spaceValidator = (space: SpaceCreationInput): string | null => {
 // end duplicates
 
 const processAndGetOrCreateSpace = async (
-  supabase: ReturnType<typeof createClient<any, "public", any>>,
+  supabase: DGSupabaseClient,
   data: SpaceCreationInput,
 ): Promise<PostgrestSingleResponse<SpaceRecord>> => {
   const { name, url, platform, password } = data;
   const error = spaceValidator(data);
-  if (error !== null) return asPostgrestFailure(error, "invalid space");
+  if (error !== null)
+    return asPostgrestFailure<SpaceRecord>(error, "invalid space");
   const result = await supabase
     .from("Space")
     .upsert(
@@ -199,7 +193,7 @@ Deno.serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     });
   }
-  const supabase = createClient<any, "public", any>(url, key);
+  const supabase: DGSupabaseClient = createClient(url, key);
 
   const { data, error } = await processAndGetOrCreateSpace(supabase, input);
   if (error) {

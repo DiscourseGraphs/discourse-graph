@@ -1,20 +1,23 @@
 import { Enums, Tables, TablesInsert } from "@repo/database/types.gen";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import type { FunctionsResponse } from "@supabase/functions-js";
-import { nextApiRoot, spaceAnonUserEmail } from "@repo/ui/lib/utils";
+import { nextApiRoot } from "@repo/ui/lib/execContext";
 import {
   createClient,
   type DGSupabaseClient,
 } from "@repo/ui/lib/supabase/client";
+
+export const spaceAnonUserEmail = (platform: string, space_id: number) =>
+  `${platform.toLowerCase()}-${space_id}-anon@database.discoursegraphs.com`;
 
 type Platform = Enums<"Platform">;
 
 const baseUrl = nextApiRoot() + "/supabase";
 
 type SpaceDataInput = TablesInsert<"Space">;
-type SpaceRecord = Tables<"Space">;
+export type SpaceRecord = Tables<"Space">;
 
-type SpaceCreationInput = SpaceDataInput & { password: string };
+export type SpaceCreationInput = SpaceDataInput & { password: string };
 
 export const asPostgrestFailure = (
   message: string,
@@ -36,7 +39,7 @@ export const asPostgrestFailure = (
   };
 };
 
-const spaceValidator = (space: SpaceCreationInput): string | null => {
+export const spaceValidator = (space: SpaceCreationInput): string | null => {
   if (!space || typeof space !== "object")
     return "Invalid request body: expected a JSON object.";
   const { name, url, platform, password } = space;

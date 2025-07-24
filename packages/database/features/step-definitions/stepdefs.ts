@@ -6,8 +6,8 @@ import {
   type Database,
   type Enums,
 } from "@repo/database/types.gen.ts";
-import { spaceAnonUserEmail } from "@repo/ui/lib/utils";
 import {
+  spaceAnonUserEmail,
   fetchOrCreateSpaceIndirect,
   fetchOrCreatePlatformAccount,
 } from "@repo/ui/lib/supabase/contextFunctions";
