@@ -8,7 +8,7 @@ const projectRoot = join(__dirname, "..");
 
 const main = () => {
   try {
-    exec("which sqruff", (err, stdout, stderr) => {
+    exec("which sqruff", (err) => {
       if (err) {
         console.error("Could not find sqruff, you may want to install it.");
         // Do not fail yet
@@ -27,41 +27,37 @@ const main = () => {
       }
     });
     let denoError = false;
-    exec("which deno", (err, stdout, stderr) => {
+    exec("which deno", (err) => {
       if (err) {
         console.error("Could not find deno, you may want to install it.");
         // Do not fail yet
       } else {
-        const fn_dir = join(projectRoot, "supabase", "functions");
-        const fn_dirs = readdir(
-          fn_dir,
-          { withFileTypes: true },
-          (err, files: Dirent[]) => {
-            if (err) {
-              console.error("error:", err);
-              return;
+        const fnDir = join(projectRoot, "supabase", "functions");
+        readdir(fnDir, { withFileTypes: true }, (err, files: Dirent[]) => {
+          if (err) {
+            console.error("error:", err);
+            return;
+          }
+          files.forEach((file) => {
+            if (file.isDirectory()) {
+              exec(
+                "deno lint index.ts",
+                { cwd: join(file.path, file.name) },
+                (err, stdout, stderr) => {
+                  stderr = stderr.replace("Checked 1 file", "");
+                  if (err !== null || stderr.trim().length > 0) {
+                    console.error(
+                      `deno errors for ${file.name}: ${err?.message ?? ""}\n${stdout}`,
+                    );
+                    denoError = true;
+                  } else {
+                    console.log(`deno checked types of ${file.name}`);
+                  }
+                },
+              );
             }
-            files.forEach((file) => {
-              if (file.isDirectory()) {
-                exec(
-                  "deno lint index.ts",
-                  { cwd: join(file.path, file.name) },
-                  (err, stdout, stderr) => {
-                    stderr = stderr.replace("Checked 1 file", "");
-                    if (err !== null || stderr.trim().length > 0) {
-                      console.error(
-                        `deno errors for ${file.name}: ${err}\n${stdout}`,
-                      );
-                      denoError = true;
-                    } else {
-                      console.log(`deno checked types of ${file.name}`);
-                    }
-                  },
-                );
-              }
-            });
-          },
-        );
+          });
+        });
       }
     });
     if (denoError) process.exit(1);

@@ -13,7 +13,7 @@
     "dev": "supabase start && supabase functions serve",
     "stop": "supabase stop",
     "check-types": "npm run lint && supabase stop && npm run dbdiff",
-    "lint": "tsx scripts/lint.ts",
+    "lint": "eslint . && tsx scripts/lint.ts",
     "lint:fix": "tsx scripts/lint.ts -f",
     "build": "tsx scripts/build.ts",
     "test": "tsc && cucumber-js",
