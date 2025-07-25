@@ -118,7 +118,9 @@ const NodeMenu = ({
     (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) return;
       if (e.key === "Shift") {
-        setShowNodeTypes((s) => !s);
+        if (!isTextSelected) {
+          setShowNodeTypes(true);
+        }
         return;
       }
       if (e.shiftKey) return;
@@ -155,14 +157,28 @@ const NodeMenu = ({
       e.stopPropagation();
       e.preventDefault();
     },
-    [onSelect, onClose, indexBySC],
+    [onSelect, onClose, indexBySC, isTextSelected],
   );
+
+  const keyupListener = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Shift") {
+        if (!isTextSelected) {
+          setShowNodeTypes(false);
+        }
+      }
+    },
+    [isTextSelected],
+  );
+
   useEffect(() => {
     const eventTarget = trigger ? document : textarea;
     const keydownHandler = (e: Event) => {
       keydownListener(e as KeyboardEvent);
     };
+
     eventTarget.addEventListener("keydown", keydownHandler);
+    eventTarget.addEventListener("keyup", keyupListener as EventListener);
 
     if (!trigger) {
       textarea.addEventListener("input", onClose);
@@ -170,11 +186,12 @@ const NodeMenu = ({
 
     return () => {
       eventTarget.removeEventListener("keydown", keydownHandler);
+      eventTarget.removeEventListener("keyup", keyupListener as EventListener);
       if (!trigger) {
         textarea.removeEventListener("input", onClose);
       }
     };
-  }, [keydownListener, onClose, textarea, trigger]);
+  }, [keydownListener, keyupListener, onClose, textarea, trigger]);
 
   const handlePopoverInteraction = useCallback(
     (nextOpenState: boolean) => {
