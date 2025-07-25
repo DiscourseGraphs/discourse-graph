@@ -5,10 +5,17 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { PlatformBadge } from "./PlatformBadge";
 
+const DOCS_PLATFORMS = {
+  "/docs/obsidian/": "obsidian",
+  "/docs/roam/": "roam",
+} as const;
+
 export const Logo = () => {
   const pathname = usePathname();
 
-  const platform = pathname.includes("/docs/obsidian/") ? "obsidian" : "roam";
+  const platform = Object.entries(DOCS_PLATFORMS).find(([path]) =>
+    pathname.includes(path),
+  )?.[1];
 
   return (
     <div className="flex items-center space-x-2">
