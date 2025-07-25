@@ -107,7 +107,20 @@ const NodeMenu = ({
           menuRef.current?.children[index].querySelector(".bp3-menu-item");
         if (!menuItem) return;
         const tag = menuItem.getAttribute("data-tag") || "";
-        console.log(`Tag selected: ${tag}`);
+        if (!tag) return;
+
+        setTimeout(() => {
+          const currentText = textarea.value;
+          const cursorPos = textarea.selectionStart;
+          const textToInsert = `#${tag} `;
+
+          const newText = `${currentText.substring(
+            0,
+            cursorPos,
+          )}${textToInsert}${currentText.substring(cursorPos)}`;
+
+          updateBlock({ text: newText, uid: blockUid });
+        });
       }
       onClose();
     },
