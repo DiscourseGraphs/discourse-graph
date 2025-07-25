@@ -40,10 +40,6 @@ import {
   removeTextSelectionPopup,
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
-import { renderNodeTagPopup, removeNodeTagPopup } from "./renderNodeTagPopup";
-import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import { renderCreateNodeDialog } from "~/components/CreateNodeDialog";
-import getUids from "roamjs-components/dom/getUids";
 
 export const initObservers = async ({
   onloadArgs,
@@ -57,7 +53,6 @@ export const initObservers = async ({
     nodeMenuTriggerListener: EventListener;
     discourseNodeSearchTriggerListener: EventListener;
     nodeCreationPopoverListener: EventListener;
-    nodeTagHoverListener: EventListener;
   };
 }> => {
   const pageTitleObserver = createHTMLObserver({
@@ -294,54 +289,6 @@ export const initObservers = async ({
     }
   };
 
-  const nodeTagHoverListener = (e: Event) => {
-    const target = e.target as HTMLElement | null;
-    if (!target || !target.classList?.contains("rm-page-ref")) return;
-
-    const textContent = target.textContent?.trim() || "";
-    const tagAttr = target.getAttribute("data-link-title") || textContent;
-    const tag = tagAttr.replace(/^#/, "").toLowerCase();
-    const discourseTagSet = new Set(
-      getDiscourseNodes()
-        .map((n) => n.tag?.toLowerCase())
-        .filter(Boolean) as string[],
-    );
-
-    if (!discourseTagSet.has(tag)) return;
-
-    const matchedNode = getDiscourseNodes().find(
-      (n) => n.tag?.toLowerCase() === tag,
-    );
-
-    if (!matchedNode) return;
-
-    const blockInputElement = (e.target as HTMLElement).closest(
-      ".rm-block__input",
-    );
-    const blockUid = blockInputElement
-      ? getUids(blockInputElement as HTMLDivElement).blockUid
-      : undefined;
-
-    const rawBlockText = blockUid ? getTextByBlockUid(blockUid) : "";
-    const cleanedBlockText = rawBlockText.replace(/#\w+/g, "").trim();
-
-    renderNodeTagPopup({
-      tagElement: target,
-      label: `+ Create ${matchedNode.text}`,
-      onClick: () => {
-        renderCreateNodeDialog({
-          onClose: removeNodeTagPopup,
-          nodeTypes: getDiscourseNodes(),
-          defaultNodeType: matchedNode,
-          extensionAPI: onloadArgs.extensionAPI,
-          blockUid,
-          originalTagText: textContent,
-          initialTitle: cleanedBlockText,
-        });
-      },
-    });
-  };
-
   return {
     observers: [
       pageTitleObserver,
@@ -356,7 +303,6 @@ export const initObservers = async ({
       nodeMenuTriggerListener,
       discourseNodeSearchTriggerListener,
       nodeCreationPopoverListener,
-      nodeTagHoverListener,
     },
   };
 };
