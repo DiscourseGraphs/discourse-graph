@@ -229,7 +229,7 @@ const NodeMenu = ({
                 key={item.text}
                 data-node={item.type}
                 data-tag={item.tag}
-                text={showNodeTypes ? item.text : `#${item.tag}`}
+                text={showNodeTypes ? item.text : `#${item.tag || 'untagged'}`}
                 active={i === activeIndex}
                 onMouseEnter={() => setActiveIndex(i)}
                 onClick={() => onSelect(i)}
