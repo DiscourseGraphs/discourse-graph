@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
@@ -6,13 +6,91 @@ import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
-import { Label, Tabs, Tab, TabId } from "@blueprintjs/core";
+import { Label, Tabs, Tab, TabId, InputGroup } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import createBlock from "roamjs-components/writes/createBlock";
+import updateBlock from "roamjs-components/writes/updateBlock";
+
+const ValidatedInputPanel = ({
+  label,
+  description,
+  value,
+  onChange,
+  onBlur,
+  error,
+}: {
+  label: string;
+  description: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur: () => void;
+  error: string;
+}) => (
+  <div>
+    <Label>
+      {label}
+      <Description description={description} />
+      <InputGroup value={value} onChange={onChange} onBlur={onBlur} />
+    </Label>
+    {error && (
+      <div className="mt-1 text-sm font-medium text-red-600">{error}</div>
+    )}
+  </div>
+);
+
+const useDebouncedRoamUpdater = (
+  uid: string,
+  initialValue: string,
+  isValid: boolean,
+) => {
+  const [value, setValue] = useState(initialValue);
+  const debounceRef = useRef(0);
+  const isValidRef = useRef(isValid);
+  isValidRef.current = isValid;
+
+  const saveToRoam = useCallback(
+    (text: string, timeout: boolean) => {
+      window.clearTimeout(debounceRef.current);
+      debounceRef.current = window.setTimeout(
+        () => {
+          if (!isValidRef.current) {
+            return;
+          }
+          const existingBlock = getBasicTreeByParentUid(uid)[0];
+          if (existingBlock) {
+            if (existingBlock.text !== text) {
+              updateBlock({ uid: existingBlock.uid, text });
+            }
+          } else if (text) {
+            createBlock({ parentUid: uid, node: { text } });
+          }
+        },
+        timeout ? 500 : 0,
+      );
+    },
+    [uid],
+  );
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
+      setValue(newValue);
+      saveToRoam(newValue, true);
+    },
+    [saveToRoam],
+  );
+
+  const handleBlur = useCallback(() => {
+    saveToRoam(value, false);
+  }, [value, saveToRoam]);
+
+  return { value, handleChange, handleBlur };
+};
 
 const NodeConfig = ({
   node,
@@ -44,16 +122,25 @@ const NodeConfig = ({
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
   const [tagError, setTagError] = useState("");
   const [formatError, setFormatError] = useState("");
+  const isValid = !tagError && !formatError;
+
+  const {
+    value: tagValue,
+    handleChange: handleTagChange,
+    handleBlur: handleTagBlurFromHook,
+  } = useDebouncedRoamUpdater(tagUid, node.tag, isValid);
+  const {
+    value: formatValue,
+    handleChange: handleFormatChange,
+    handleBlur: handleFormatBlurFromHook,
+  } = useDebouncedRoamUpdater(formatUid, node.format, isValid);
 
   const getCleanTagText = (tag: string): string => {
     return tag.replace(/^#+/, "").trim().toUpperCase();
   };
 
-  const validateOnBlur = useCallback(() => {
-    const tagValue = getBasicTreeByParentUid(tagUid)[0]?.text || "";
-    const formatValue = getBasicTreeByParentUid(formatUid)[0]?.text || "";
-
-    const cleanTag = getCleanTagText(tagValue);
+  const validate = useCallback((tag: string, format: string) => {
+    const cleanTag = getCleanTagText(tag);
 
     if (!cleanTag) {
       setTagError("");
@@ -61,7 +148,7 @@ const NodeConfig = ({
       return;
     }
 
-    const formatWithoutPlaceholders = formatValue.replace(/{[^}]+}/g, "");
+    const formatWithoutPlaceholders = format.replace(/{[^}]+}/g, "");
     const formatUpper = formatWithoutPlaceholders.toUpperCase();
     const formatParts = formatUpper.split(/[^A-Z0-9]/);
     const hasConflict = formatParts.includes(cleanTag);
@@ -71,16 +158,30 @@ const NodeConfig = ({
         .trim()
         .replace(/(\s*-)*$/, "");
       setFormatError(
-        `Format "${formatForMessage}" conflicts with tag: "${tagValue}". Please use some other format.`,
+        `Format "${formatForMessage}" conflicts with tag: "${tag}". Please use some other format.`,
       );
       setTagError(
-        `Tag "${tagValue}" conflicts with format "${formatForMessage}". Please use some other tag.`,
+        `Tag "${tag}" conflicts with format "${formatForMessage}". Please use some other tag.`,
       );
     } else {
       setTagError("");
       setFormatError("");
     }
-  }, [tagUid, formatUid]);
+  }, []);
+
+  useEffect(() => {
+    validate(tagValue, formatValue);
+  }, [tagValue, formatValue, validate]);
+
+  const handleTagBlur = useCallback(() => {
+    handleTagBlurFromHook();
+    validate(tagValue, formatValue);
+  }, [handleTagBlurFromHook, tagValue, formatValue, validate]);
+
+  const handleFormatBlur = useCallback(() => {
+    handleFormatBlurFromHook();
+    validate(tagValue, formatValue);
+  }, [handleFormatBlurFromHook, tagValue, formatValue, validate]);
 
   return (
     <>
@@ -110,21 +211,14 @@ const NodeConfig = ({
                 uid={shortcutUid}
                 defaultValue={node.shortcut}
               />
-              <div onBlur={validateOnBlur}>
-                <TextPanel
-                  title="Tag"
-                  description={`Designate a hashtag for marking potential ${node.text}.`}
-                  order={0}
-                  parentUid={node.type}
-                  uid={tagUid}
-                  defaultValue={node.tag}
-                />
-                {tagError && (
-                  <div className="mt-1 text-sm font-medium text-red-600">
-                    {tagError}
-                  </div>
-                )}
-              </div>
+              <ValidatedInputPanel
+                label="Tag"
+                description={`Designate a hashtag for marking potential ${node.text}.`}
+                value={tagValue}
+                onChange={handleTagChange}
+                onBlur={handleTagBlur}
+                error={tagError}
+              />
             </div>
           }
         />
@@ -146,21 +240,14 @@ const NodeConfig = ({
           title="Format"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <div onBlur={validateOnBlur}>
-                <TextPanel
-                  title="Format"
-                  description={`DEPRECATED - Use specification instead. The format ${node.text} pages should have.`}
-                  order={0}
-                  parentUid={node.type}
-                  uid={formatUid}
-                  defaultValue={node.format}
-                />
-                {formatError && (
-                  <div className="mt-1 text-sm font-medium text-red-600">
-                    {formatError}
-                  </div>
-                )}
-              </div>
+              <ValidatedInputPanel
+                label="Format"
+                description={`DEPRECATED - Use specification instead. The format ${node.text} pages should have.`}
+                value={formatValue}
+                onChange={handleFormatChange}
+                onBlur={handleFormatBlur}
+                error={formatError}
+              />
               <Label>
                 Specification
                 <Description
