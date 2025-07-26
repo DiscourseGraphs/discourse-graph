@@ -27,7 +27,7 @@ revoke trigger on table "public"."access_token" from "anon";
 grant select on table "public"."access_token" to "anon";
 grant insert on table "public"."access_token" to "anon";
 
-ALTER TABLE public.access_token ENABLE ROW LEVEL SECURITY ;
+alter table public.access_token enable row level security ;
 
-DROP POLICY IF EXISTS access_token_policy ON public.access_token ;
-CREATE POLICY access_token_policy ON public.access_token FOR ALL USING (public.my_account(platform_account_id)) ;
+drop policy if exists access_token_policy on public.access_token ;
+create policy access_token_policy on public.access_token for all using (public.my_account(platform_account_id)) ;
