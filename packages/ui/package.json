@@ -14,6 +14,7 @@
     ],
     "./components/*": "./src/components/*.tsx"
   },
+  "type": "module",
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -35,7 +36,7 @@
   },
   "dependencies": {
     "@supabase/auth-ui-react": "0.4.7",
-    "@supabase/supabase-js": "^2.50.0",
+    "@supabase/supabase-js": "^2.52.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",

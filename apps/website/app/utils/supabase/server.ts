@@ -4,12 +4,10 @@ import { Database } from "@repo/database/types.gen.ts";
 
 // Inspired by https://supabase.com/ui/docs/nextjs/password-based-auth
 
-export const createClient = async (service = true) => {
+export const createClient = async () => {
   const cookieStore = await cookies();
   const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = service
-    ? process.env.SUPABASE_SERVICE_ROLE_KEY
-    : process.env.SUPABASE_ANON_KEY;
+  const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error("Missing required Supabase environment variables");

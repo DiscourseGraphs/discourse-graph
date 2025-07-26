@@ -1,4 +1,4 @@
-import base from "@repo/eslint-config/react-internal";
+import { config as base } from "@repo/eslint-config/react-internal";
 
 export default [
   ...base,
@@ -6,6 +6,7 @@ export default [
     languageOptions: {
       parserOptions: {
         tsconfigRootDir: ".",
+        project: "./tsconfig.json",
       },
     },
   }
