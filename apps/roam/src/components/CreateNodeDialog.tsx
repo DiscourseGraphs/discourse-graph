@@ -40,8 +40,10 @@ const CreateNodeDialog = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 50);
-  }, []);
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
 
   const onCreate = async () => {
     if (!title.trim()) return;
