@@ -7,13 +7,12 @@ import {
   Button,
 } from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
-import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import { OnloadArgs } from "roamjs-components/types";
-import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getUids from "roamjs-components/dom/getUids";
+import { DiscourseNode } from "~/utils/getDiscourseNodes";
 
 export type CreateNodeDialogProps = {
   isOpen: boolean;
@@ -22,8 +21,7 @@ export type CreateNodeDialogProps = {
   defaultNodeType: DiscourseNode;
   extensionAPI: OnloadArgs["extensionAPI"];
   blockUid?: string;
-  originalTagText: string; // e.g. "#qa"
-  initialTitle: string; // cleaned text without tag
+  initialTitle: string;
 };
 
 const CreateNodeDialog = ({
@@ -33,7 +31,6 @@ const CreateNodeDialog = ({
   defaultNodeType,
   extensionAPI,
   blockUid,
-  originalTagText,
   initialTitle,
 }: CreateNodeDialogProps) => {
   const [title, setTitle] = useState(initialTitle);
@@ -51,28 +48,24 @@ const CreateNodeDialog = ({
     setLoading(true);
 
     const format = (
-      getDiscourseNodes().find((n) => n.type === selectedType.type)?.format ||
-      ""
+      nodeTypes.find((n) => n.type === selectedType.type)?.format || ""
     ).trim();
 
     let formattedTitle: string;
     if (!format) {
       formattedTitle = title.trim();
-    } else if (/{text}/i.test(format) || /{content}/i.test(format)) {
-      formattedTitle = format
-        .replace(/{text}/gi, title.trim())
-        .replace(/{content}/gi, title.trim());
+    } else if (/{content}/i.test(format)) {
+      formattedTitle = format.replace(/{content}/gi, title.trim());
     } else {
-      // If no placeholder, append the title after the format string
       formattedTitle = `${format} ${title.trim()}`.trim();
     }
 
     const newPageUid = await createDiscourseNode({
       text: formattedTitle,
-      configPageUid: selectedType.type, // In DiscourseNode struct type is uid
+      configPageUid: selectedType.type,
       extensionAPI,
     });
-    // Replace original tag with new page reference
+
     if (blockUid) {
       const pageRef = `[[${formattedTitle}]]`;
       await updateBlock({ uid: blockUid, text: pageRef });
@@ -103,7 +96,6 @@ const CreateNodeDialog = ({
       }
     }
 
-    // Toast confirmation
     renderToast({
       id: `discourse-node-created-${Date.now()}`,
       intent: "success",

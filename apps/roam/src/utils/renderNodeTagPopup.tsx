@@ -27,14 +27,12 @@ export const renderNodeTagPopup = ({
 
   currentPopup = document.createElement("div");
   currentPopup.id = "discourse-node-tag-popup";
-  currentPopup.style.position = "absolute";
+  currentPopup.className = "absolute z-[9999] max-w-none font-inherit bg-white";
   currentPopup.style.left = `${rect.left + window.scrollX}px`;
   currentPopup.style.top = `${rect.bottom + window.scrollY + 4}px`;
-  currentPopup.className = "z-[9999] max-w-none font-inherit bg-white";
 
   document.body.appendChild(currentPopup);
 
-  // Remove when pointer leaves the popup
   currentPopup.addEventListener("mouseleave", removeNodeTagPopup, {
     once: true,
   });

@@ -296,20 +296,21 @@ export const initObservers = async ({
 
   const nodeTagHoverListener = (e: Event) => {
     const target = e.target as HTMLElement | null;
-    if (!target || !target.classList?.contains("rm-page-ref")) return;
+    if (!target || !target.classList?.contains("rm-page-ref--tag")) return;
 
     const textContent = target.textContent?.trim() || "";
-    const tagAttr = target.getAttribute("data-link-title") || textContent;
+    const tagAttr = target.getAttribute("data-tag") || textContent;
     const tag = tagAttr.replace(/^#/, "").toLowerCase();
+    const discourseNodes = getDiscourseNodes();
     const discourseTagSet = new Set(
-      getDiscourseNodes()
+      discourseNodes
         .map((n) => n.tag?.toLowerCase())
         .filter(Boolean) as string[],
     );
 
     if (!discourseTagSet.has(tag)) return;
 
-    const matchedNode = getDiscourseNodes().find(
+    const matchedNode = discourseNodes.find(
       (n) => n.tag?.toLowerCase() === tag,
     );
 
@@ -323,7 +324,7 @@ export const initObservers = async ({
       : undefined;
 
     const rawBlockText = blockUid ? getTextByBlockUid(blockUid) : "";
-    const cleanedBlockText = rawBlockText.replace(/#\w+/g, "").trim();
+    const cleanedBlockText = rawBlockText.replace(textContent, "").trim();
 
     renderNodeTagPopup({
       tagElement: target,
@@ -331,11 +332,10 @@ export const initObservers = async ({
       onClick: () => {
         renderCreateNodeDialog({
           onClose: removeNodeTagPopup,
-          nodeTypes: getDiscourseNodes(),
+          nodeTypes: discourseNodes,
           defaultNodeType: matchedNode,
           extensionAPI: onloadArgs.extensionAPI,
           blockUid,
-          originalTagText: textContent,
           initialTitle: cleanedBlockText,
         });
       },
