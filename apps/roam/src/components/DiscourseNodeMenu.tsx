@@ -33,7 +33,6 @@ type Props = {
   extensionAPI: OnloadArgs["extensionAPI"];
   trigger?: JSX.Element;
   isShift?: boolean;
-  isTextSelected?: boolean;
 };
 
 const NodeMenu = ({
@@ -42,15 +41,20 @@ const NodeMenu = ({
   extensionAPI,
   trigger,
   isShift,
-  isTextSelected,
 }: { onClose: () => void } & Props) => {
-  const [showNodeTypes, setShowNodeTypes] = useState(isTextSelected || isShift);
+  const isInitialTextSelected =
+    textarea.selectionStart !== textarea.selectionEnd;
+
+  const [showNodeTypes, setShowNodeTypes] = useState(
+    isInitialTextSelected || (isShift ?? false),
+  );
+  const userDiscourseNodes = useMemo(
+    () => getDiscourseNodes().filter((n) => n.backedBy === "user"),
+    [],
+  );
   const discourseNodes = useMemo(
-    () =>
-      getDiscourseNodes().filter(
-        (n) => n.backedBy === "user" && (showNodeTypes || n.tag),
-      ),
-    [showNodeTypes],
+    () => userDiscourseNodes.filter((n) => showNodeTypes || n.tag),
+    [showNodeTypes, userDiscourseNodes],
   );
   const indexBySC = useMemo(
     () => Object.fromEntries(discourseNodes.map((mi, i) => [mi.shortcut, i])),
@@ -63,11 +67,12 @@ const NodeMenu = ({
   const [isOpen, setIsOpen] = useState(!trigger);
 
   const onSelect = useCallback(
-    (index) => {
+    (index: number) => {
+      const menuItem =
+        menuRef.current?.children[index].querySelector(".bp3-menu-item");
+      if (!menuItem) return;
+
       if (showNodeTypes) {
-        const menuItem =
-          menuRef.current?.children[index].querySelector(".bp3-menu-item");
-        if (!menuItem) return;
         const nodeUid = menuItem.getAttribute("data-node") || "";
         const highlighted = textarea.value.substring(
           textarea.selectionStart,
@@ -103,9 +108,6 @@ const NodeMenu = ({
           });
         });
       } else {
-        const menuItem =
-          menuRef.current?.children[index].querySelector(".bp3-menu-item");
-        if (!menuItem) return;
         const tag = menuItem.getAttribute("data-tag") || "";
         if (!tag) return;
 
@@ -120,6 +122,9 @@ const NodeMenu = ({
           )}${textToInsert}${currentText.substring(cursorPos)}`;
 
           updateBlock({ text: newText, uid: blockUid });
+          posthog.capture("Discourse Tag: Created via Node Menu", {
+            tag,
+          });
         });
       }
       onClose();
@@ -131,12 +136,11 @@ const NodeMenu = ({
     (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) return;
       if (e.key === "Shift") {
-        if (!isTextSelected) {
+        if (!isInitialTextSelected) {
           setShowNodeTypes(true);
         }
         return;
       }
-      if (e.shiftKey) return;
 
       if (e.key === "ArrowDown") {
         const index = Number(
@@ -170,18 +174,16 @@ const NodeMenu = ({
       e.stopPropagation();
       e.preventDefault();
     },
-    [onSelect, onClose, indexBySC, isTextSelected],
+    [onSelect, onClose, indexBySC, isInitialTextSelected],
   );
 
   const keyupListener = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Shift") {
-        if (!isTextSelected) {
-          setShowNodeTypes(false);
-        }
+      if (e.key === "Shift" && !isInitialTextSelected) {
+        setShowNodeTypes(false);
       }
     },
-    [isTextSelected],
+    [isInitialTextSelected],
   );
 
   useEffect(() => {
@@ -204,7 +206,14 @@ const NodeMenu = ({
         textarea.removeEventListener("input", onClose);
       }
     };
-  }, [keydownListener, keyupListener, onClose, textarea, trigger]);
+  }, [
+    keydownListener,
+    keyupListener,
+    onClose,
+    textarea,
+    trigger,
+    isInitialTextSelected,
+  ]);
 
   const handlePopoverInteraction = useCallback(
     (nextOpenState: boolean) => {
@@ -242,10 +251,13 @@ const NodeMenu = ({
                 key={item.text}
                 data-node={item.type}
                 data-tag={item.tag}
-                text={showNodeTypes ? item.text : `#${item.tag || "untagged"}`}
+                text={
+                  showNodeTypes ? item.text : item.tag ? `#${item.tag}` : ""
+                }
                 active={i === activeIndex}
                 onMouseEnter={() => setActiveIndex(i)}
                 onClick={() => onSelect(i)}
+                disabled={!showNodeTypes && !item.tag}
                 className="flex items-center"
                 icon={
                   <div
@@ -256,9 +268,7 @@ const NodeMenu = ({
                   />
                 }
                 labelElement={
-                  <span className="font-mono">
-                    {showNodeTypes ? item.shortcut : ""}
-                  </span>
+                  <span className="font-mono">{item.shortcut}</span>
                 }
               />
             );
@@ -292,12 +302,10 @@ export const TextSelectionNodeMenu = ({
   textarea,
   extensionAPI,
   onClose,
-  isTextSelected,
 }: {
   textarea: HTMLTextAreaElement;
   extensionAPI: OnloadArgs["extensionAPI"];
   onClose: () => void;
-  isTextSelected?: boolean;
 }) => {
   const trigger = (
     <Button
@@ -331,7 +339,7 @@ export const TextSelectionNodeMenu = ({
       extensionAPI={extensionAPI}
       trigger={trigger}
       onClose={onClose}
-      isTextSelected={isTextSelected}
+      isShift
     />
   );
 };
