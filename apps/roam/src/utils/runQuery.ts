@@ -1,5 +1,6 @@
 import type { OnloadArgs } from "roamjs-components/types/native";
-import fireQuery, { QueryArgs } from "./fireQuery";
+import fireQuery from "./fireQuery";
+import { QueryArgs } from "~/types/index";
 import parseQuery from "./parseQuery";
 import parseResultSettings from "./parseResultSettings";
 import postProcessResults from "./postProcessResults";

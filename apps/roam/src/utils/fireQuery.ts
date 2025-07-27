@@ -6,36 +6,21 @@ import type {
 } from "roamjs-components/types";
 import compileDatalog from "./compileDatalog";
 import { getNodeEnv } from "roamjs-components/util/env";
-import type { Condition, Result as QueryResult, Selection } from "./types";
 import gatherDatalogVariablesFromClause from "./gatherDatalogVariablesFromClause";
 import predefinedSelections, {
   PredefinedSelection,
 } from "./predefinedSelections";
 import { DEFAULT_RETURN_NODE } from "./parseQuery";
-import { DiscourseNode } from "./getDiscourseNodes";
-import { DiscourseRelation } from "./getDiscourseRelations";
 import nanoid from "nanoid";
-
-export type QueryArgs = {
-  returnNode?: string;
-  conditions: Condition[];
-  selections: Selection[];
-  inputs?: Record<string, string | number>;
-};
-type RelationInQuery = {
-  id: string;
-  text: string;
-  isComplement: boolean;
-};
-export type FireQueryArgs = QueryArgs & {
-  isCustomEnabled?: boolean;
-  customNode?: string;
-  context?: {
-    relationsInQuery?: RelationInQuery[];
-    customNodes?: DiscourseNode[];
-    customRelations?: DiscourseRelation[];
-  };
-};
+import {
+  Condition,
+  Result as QueryResult,
+  Selection,
+  QueryArgs,
+  FireQueryArgs,
+  DiscourseNode,
+  DiscourseRelation,
+} from "~/types/index";
 
 type FireQuery = (query: FireQueryArgs) => Promise<QueryResult[]>;
 

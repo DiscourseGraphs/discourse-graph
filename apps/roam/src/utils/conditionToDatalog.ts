@@ -9,7 +9,7 @@ import type {
   DatalogClause,
   PullBlock,
 } from "roamjs-components/types";
-import { Condition } from "./types";
+import { Condition } from "~/types/index";
 import gatherDatalogVariablesFromClause from "./gatherDatalogVariablesFromClause";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";

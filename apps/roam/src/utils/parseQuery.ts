@@ -2,7 +2,7 @@ import { RoamBasicNode } from "roamjs-components/types/native";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import getSubTree from "roamjs-components/util/getSubTree";
 import createBlock from "roamjs-components/writes/createBlock";
-import { Column, Condition, Selection } from "./types";
+import { Column, Condition, Selection } from "~/types/index";
 
 export const roamNodeToCondition = ({
   uid,

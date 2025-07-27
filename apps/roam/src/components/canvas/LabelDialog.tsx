@@ -22,7 +22,7 @@ import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import { getReferencedNodeInFormat } from "~/utils/formatUtils";
-import { DiscourseNode } from "~/utils/getDiscourseNodes";
+import { DiscourseNode } from "~/types/index";
 
 const LabelDialogAutocomplete = ({
   setLabel,

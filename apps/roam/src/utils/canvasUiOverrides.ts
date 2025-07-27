@@ -12,7 +12,7 @@ import {
   menuItem,
   SubMenu,
 } from "@tldraw/tldraw";
-import { DiscourseNode } from "~/utils/getDiscourseNodes";
+import { DiscourseNode } from "~/types/index";
 import { COLOR_ARRAY, discourseContext } from "~/components/canvas/Tldraw";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { openCanvasDrawer } from "~/components/canvas/CanvasDrawer";

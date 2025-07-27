@@ -1,4 +1,4 @@
-import { DiscourseNode } from "~/utils/getDiscourseNodes";
+import { DiscourseNode } from "~/types/index";
 
 const INITIAL_NODE_VALUES: Partial<DiscourseNode>[] = [
   {

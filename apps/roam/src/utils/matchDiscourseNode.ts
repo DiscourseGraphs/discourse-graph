@@ -3,7 +3,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import conditionToDatalog from "./conditionToDatalog";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
-import type { DiscourseNode } from "./getDiscourseNodes";
+import type { DiscourseNode } from "~/types/index";
 import replaceDatalogVariables from "./replaceDatalogVariables";
 
 const matchDiscourseNode = ({
