@@ -1,3 +1,5 @@
+import type { InputTextNode } from "roamjs-components/types/native";
+
 type QBBase = {
   uid: string;
 };
@@ -46,3 +48,30 @@ export type Result = {
   Record<string, string | number | Date>;
 
 export type Column = { key: string; uid: string; selection: string };
+
+export type Triple = readonly [string, string, string];
+
+export type DiscourseRelation = {
+  triples: Triple[];
+  id: string;
+  label: string;
+  source: string;
+  destination: string;
+  complement: string;
+};
+
+export type DiscourseNode = {
+  text: string;
+  type: string;
+  shortcut: string;
+  specification: Condition[];
+  backedBy: "user" | "default" | "relation";
+  canvasSettings: {
+    [k: string]: string;
+  };
+  // @deprecated - use specification instead
+  format: string;
+  graphOverview?: boolean;
+  description?: string;
+  template?: InputTextNode[];
+};

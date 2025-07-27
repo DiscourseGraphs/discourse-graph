@@ -3,29 +3,14 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import discourseConfigRef from "./discourseConfigRef";
 import getDiscourseRelations from "./getDiscourseRelations";
 import { roamNodeToCondition } from "./parseQuery";
-import { Condition } from "./types";
-import { InputTextNode, RoamBasicNode } from "roamjs-components/types";
+import { Condition, DiscourseNode } from "./types";
+import { RoamBasicNode } from "roamjs-components/types";
 
 export const excludeDefaultNodes = (node: DiscourseNode) => {
   return node.backedBy !== "default";
 };
 
-// TODO - only text and type should be required
-export type DiscourseNode = {
-  text: string;
-  type: string;
-  shortcut: string;
-  specification: Condition[];
-  backedBy: "user" | "default" | "relation";
-  canvasSettings: {
-    [k: string]: string;
-  };
-  // @deprecated - use specification instead
-  format: string;
-  graphOverview?: boolean;
-  description?: string;
-  template?: InputTextNode[];
-};
+export type { DiscourseNode } from "./types";
 
 const DEFAULT_NODES: DiscourseNode[] = [
   {
