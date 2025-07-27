@@ -186,7 +186,7 @@ COMMENT ON FUNCTION public.unowned_account_in_shared_space IS 'security utility:
 ALTER TABLE public."Space" ENABLE ROW LEVEL SECURITY ;
 
 DROP POLICY IF EXISTS space_policy ON public."Space" ;
-CREATE POLICY space_policy ON public."Space" FOR ALL USING (public.in_space (id)) ;
+CREATE POLICY space_policy ON public."Space" FOR ALL USING (public.in_space(id)) ;
 
 DROP POLICY IF EXISTS space_insert_policy ON public."Space" ;
 CREATE POLICY space_insert_policy ON public."Space" FOR INSERT WITH CHECK (true) ;
@@ -198,10 +198,10 @@ CREATE POLICY space_insert_policy ON public."Space" FOR INSERT WITH CHECK (true)
 ALTER TABLE public."PlatformAccount" ENABLE ROW LEVEL SECURITY ;
 
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount" ;
-CREATE POLICY platform_account_policy ON public."PlatformAccount" FOR ALL USING (dg_account = (select auth.uid ()) OR (dg_account IS NULL AND public.unowned_account_in_shared_space (id))) ;
+CREATE POLICY platform_account_policy ON public."PlatformAccount" FOR ALL USING (dg_account = (SELECT auth.uid()) OR (dg_account IS null AND public.unowned_account_in_shared_space(id))) ;
 
 DROP POLICY IF EXISTS platform_account_select_policy ON public."PlatformAccount" ;
-CREATE POLICY platform_account_select_policy ON public."PlatformAccount" FOR SELECT USING (dg_account = (select auth.uid ()) OR public.account_in_shared_space (id)) ;
+CREATE POLICY platform_account_select_policy ON public."PlatformAccount" FOR SELECT USING (dg_account = (SELECT auth.uid()) OR public.account_in_shared_space(id)) ;
 
 -- SpaceAccess: Created through the create_account_in_space and the Space create route, both of which bypass RLS.
 -- Can be updated by a space peer for now, unless claimed by a user.
@@ -213,7 +213,7 @@ DROP POLICY IF EXISTS space_access_policy ON public."SpaceAccess" ;
 CREATE POLICY space_access_policy ON public."SpaceAccess" FOR ALL USING (public.unowned_account_in_shared_space(account_id)) ;
 
 DROP POLICY IF EXISTS space_access_select_policy ON public."SpaceAccess" ;
-CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR ALL USING (public.in_space (space_id)) ;
+CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR ALL USING (public.in_space(space_id)) ;
 
 -- AgentIdentifier: Allow space members to do anything, to allow editing authors.
 -- Eventually: Once the account is claimed by a user, only allow this user to modify it.
@@ -221,7 +221,7 @@ CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR ALL USING (
 ALTER TABLE public."AgentIdentifier" ENABLE ROW LEVEL SECURITY ;
 
 DROP POLICY IF EXISTS agent_identifier_policy ON public."AgentIdentifier" ;
-CREATE POLICY agent_identifier_policy ON public."AgentIdentifier" FOR ALL USING (public.unowned_account_in_shared_space (account_id)) ;
+CREATE POLICY agent_identifier_policy ON public."AgentIdentifier" FOR ALL USING (public.unowned_account_in_shared_space(account_id)) ;
 
 DROP POLICY IF EXISTS agent_identifier_select_policy ON public."AgentIdentifier" ;
-CREATE POLICY agent_identifier_select_policy ON public."AgentIdentifier" FOR SELECT USING (public.account_in_shared_space (account_id)) ;
+CREATE POLICY agent_identifier_select_policy ON public."AgentIdentifier" FOR SELECT USING (public.account_in_shared_space(account_id)) ;
