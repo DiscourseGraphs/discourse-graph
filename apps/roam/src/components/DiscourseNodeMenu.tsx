@@ -42,7 +42,12 @@ const NodeMenu = ({
   trigger,
   isShift,
 }: { onClose: () => void } & Props) => {
-  const [showNodeTypes, setShowNodeTypes] = useState(!!isShift);
+  const isInitialTextSelected =
+    textarea.selectionStart !== textarea.selectionEnd;
+
+  const [showNodeTypes, setShowNodeTypes] = useState(
+    isInitialTextSelected || (isShift ?? false),
+  );
   const userDiscourseNodes = useMemo(
     () => getDiscourseNodes().filter((n) => n.backedBy === "user"),
     [],
@@ -131,10 +136,11 @@ const NodeMenu = ({
     (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) return;
       if (e.key === "Shift") {
-        setShowNodeTypes(true);
+        if (!isInitialTextSelected) {
+          setShowNodeTypes(true);
+        }
         return;
       }
-      if (e.shiftKey) return;
 
       if (e.key === "ArrowDown") {
         const index = Number(
@@ -168,14 +174,17 @@ const NodeMenu = ({
       e.stopPropagation();
       e.preventDefault();
     },
-    [onSelect, onClose, indexBySC],
+    [onSelect, onClose, indexBySC, isInitialTextSelected],
   );
 
-  const keyupListener = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Shift") {
-      setShowNodeTypes(false);
-    }
-  }, []);
+  const keyupListener = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Shift" && !isInitialTextSelected) {
+        setShowNodeTypes(false);
+      }
+    },
+    [isInitialTextSelected],
+  );
 
   useEffect(() => {
     const eventTarget = trigger ? document : textarea;
@@ -197,7 +206,14 @@ const NodeMenu = ({
         textarea.removeEventListener("input", onClose);
       }
     };
-  }, [keydownListener, keyupListener, onClose, textarea, trigger]);
+  }, [
+    keydownListener,
+    keyupListener,
+    onClose,
+    textarea,
+    trigger,
+    isInitialTextSelected,
+  ]);
 
   const handlePopoverInteraction = useCallback(
     (nextOpenState: boolean) => {
