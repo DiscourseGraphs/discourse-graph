@@ -1,38 +1,37 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Dialog,
-  Classes,
-  InputGroup,
-  HTMLSelect,
-  Button,
-} from "@blueprintjs/core";
+import { Dialog, Classes, InputGroup, Label, Button } from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import { OnloadArgs } from "roamjs-components/types";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import getUids from "roamjs-components/dom/getUids";
-import { DiscourseNode } from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, {
+  DiscourseNode,
+  excludeDefaultNodes,
+} from "~/utils/getDiscourseNodes";
+import { getNewDiscourseNodeText } from "~/utils/formatUtils";
+import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 
 export type CreateNodeDialogProps = {
-  isOpen: boolean;
   onClose: () => void;
-  nodeTypes: DiscourseNode[];
-  defaultNodeType: DiscourseNode;
+  defaultNodeTypeUid: string;
   extensionAPI: OnloadArgs["extensionAPI"];
-  blockUid?: string;
+  sourceBlockUid?: string;
   initialTitle: string;
 };
 
 const CreateNodeDialog = ({
-  isOpen,
   onClose,
-  nodeTypes,
-  defaultNodeType,
+  defaultNodeTypeUid,
   extensionAPI,
-  blockUid,
+  sourceBlockUid,
   initialTitle,
 }: CreateNodeDialogProps) => {
+  const discourseNodes = getDiscourseNodes().filter(excludeDefaultNodes);
+  const defaultNodeType =
+    discourseNodes.find((n) => n.type === defaultNodeTypeUid) ||
+    discourseNodes[0];
+
   const [title, setTitle] = useState(initialTitle);
   const [selectedType, setSelectedType] =
     useState<DiscourseNode>(defaultNodeType);
@@ -40,26 +39,24 @@ const CreateNodeDialog = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen && inputRef.current) {
+    if (inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isOpen]);
+  }, []);
 
   const onCreate = async () => {
     if (!title.trim()) return;
     setLoading(true);
 
-    const format = (
-      nodeTypes.find((n) => n.type === selectedType.type)?.format || ""
-    ).trim();
+    const formattedTitle = await getNewDiscourseNodeText({
+      text: title.trim(),
+      nodeType: selectedType.type,
+      blockUid: sourceBlockUid,
+    });
 
-    let formattedTitle: string;
-    if (!format) {
-      formattedTitle = title.trim();
-    } else if (/{content}/i.test(format)) {
-      formattedTitle = format.replace(/{content}/gi, title.trim());
-    } else {
-      formattedTitle = `${format} ${title.trim()}`.trim();
+    if (!formattedTitle) {
+      setLoading(false);
+      return;
     }
 
     const newPageUid = await createDiscourseNode({
@@ -68,41 +65,52 @@ const CreateNodeDialog = ({
       extensionAPI,
     });
 
-    if (blockUid) {
+    if (sourceBlockUid) {
+      // TODO: This assumes the new node is always a page. If the specification
+      // defines it as a block (e.g., "is in page with title"), this will not create
+      // the correct reference. The reference format should be determined by the
+      // node's specification.
       const pageRef = `[[${formattedTitle}]]`;
-      await updateBlock({ uid: blockUid, text: pageRef });
+      await updateBlock({ uid: sourceBlockUid, text: pageRef });
 
       const newCursorPosition = pageRef.length;
       const windowId =
         window.roamAlphaAPI.ui.getFocusedBlock?.()?.["window-id"] || "main";
 
-      if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
-        window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-          location: { "block-uid": blockUid, "window-id": windowId },
-          selection: { start: newCursorPosition },
-        });
-      } else {
-        setTimeout(() => {
-          const textareaElements = document.querySelectorAll("textarea");
-          for (const el of textareaElements) {
-            if (getUids(el as HTMLTextAreaElement).blockUid === blockUid) {
-              (el as HTMLTextAreaElement).focus();
-              (el as HTMLTextAreaElement).setSelectionRange(
-                newCursorPosition,
-                newCursorPosition,
-              );
-              break;
-            }
-          }
-        }, 50);
-      }
+      await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+        location: { "block-uid": sourceBlockUid, "window-id": windowId },
+        selection: { start: newCursorPosition },
+      });
     }
 
     renderToast({
       id: `discourse-node-created-${Date.now()}`,
       intent: "success",
       timeout: 10000,
-      content: `Created node [[${formattedTitle}]]`,
+      content: (
+        <span>
+          Created node{" "}
+          <a
+            className="cursor-pointer font-medium text-blue-500 hover:underline"
+            onClick={async (event) => {
+              if (event.shiftKey) {
+                await window.roamAlphaAPI.ui.rightSidebar.addWindow({
+                  window: {
+                    "block-uid": newPageUid,
+                    type: "outline",
+                  },
+                });
+              } else {
+                await window.roamAlphaAPI.ui.mainWindow.openPage({
+                  page: { uid: newPageUid },
+                });
+              }
+            }}
+          >
+            [[{formattedTitle}]]
+          </a>
+        </span>
+      ),
     });
     setLoading(false);
     onClose();
@@ -110,9 +118,9 @@ const CreateNodeDialog = ({
 
   return (
     <Dialog
-      isOpen={isOpen}
+      isOpen={true}
       onClose={onClose}
-      title="Create node"
+      title="Create Discourse node"
       autoFocus={false}
     >
       <div className={Classes.DIALOG_BODY}>
@@ -127,25 +135,20 @@ const CreateNodeDialog = ({
             />
           </div>
 
-          <div>
-            <label className="mb-1 block font-bold">Type</label>
-            <HTMLSelect
-              fill
-              value={selectedType.type}
-              onChange={(e) => {
-                const nt = nodeTypes.find(
-                  (n) => n.type === e.currentTarget.value,
-                );
+          <Label>
+            Type
+            <MenuItemSelect
+              items={discourseNodes.map((n) => n.type)}
+              transformItem={(t) =>
+                discourseNodes.find((n) => n.type === t)?.text || t
+              }
+              activeItem={selectedType.type}
+              onItemSelect={(t) => {
+                const nt = discourseNodes.find((n) => n.type === t);
                 if (nt) setSelectedType(nt);
               }}
-            >
-              {nodeTypes.map((nt) => (
-                <option key={nt.type} value={nt.type}>
-                  {nt.text}
-                </option>
-              ))}
-            </HTMLSelect>
-          </div>
+            />
+          </Label>
         </div>
       </div>
       <div className={Classes.DIALOG_FOOTER}>
@@ -167,10 +170,8 @@ const CreateNodeDialog = ({
   );
 };
 
-export const renderCreateNodeDialog = (
-  props: Omit<CreateNodeDialogProps, "isOpen">,
-) =>
+export const renderCreateNodeDialog = (props: CreateNodeDialogProps) =>
   renderOverlay({
     Overlay: CreateNodeDialog,
-    props: { ...props, isOpen: true },
+    props,
   });

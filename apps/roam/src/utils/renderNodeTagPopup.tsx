@@ -29,7 +29,7 @@ export const renderNodeTagPopup = ({
   currentPopup.id = "discourse-node-tag-popup";
   currentPopup.className = "absolute z-[9999] max-w-none font-inherit bg-white";
   currentPopup.style.left = `${rect.left + window.scrollX}px`;
-  currentPopup.style.top = `${rect.bottom + window.scrollY + 4}px`;
+  currentPopup.style.top = `${rect.top + window.scrollY - 35}px`;
 
   document.body.appendChild(currentPopup);
 
@@ -38,7 +38,7 @@ export const renderNodeTagPopup = ({
   });
 
   ReactDOM.render(
-    <Button intent="primary" minimal onClick={onClick} text={label} />,
+    <Button intent="primary" outlined onClick={onClick} text={label} />,
     currentPopup,
   );
 };

@@ -301,9 +301,7 @@ export const initObservers = async ({
     const tag = tagAttr.replace(/^#/, "").toLowerCase();
     const discourseNodes = getDiscourseNodes();
     const discourseTagSet = new Set(
-      discourseNodes
-        .map((n) => n.tag?.toLowerCase())
-        .filter(Boolean) as string[],
+      discourseNodes.map((n) => n.tag?.toLowerCase()).filter(Boolean),
     );
 
     if (!discourseTagSet.has(tag)) return;
@@ -328,12 +326,12 @@ export const initObservers = async ({
       tagElement: target,
       label: `+ Create ${matchedNode.text}`,
       onClick: () => {
+        removeNodeTagPopup();
         renderCreateNodeDialog({
-          onClose: removeNodeTagPopup,
-          nodeTypes: discourseNodes,
-          defaultNodeType: matchedNode,
+          onClose: () => {},
+          defaultNodeTypeUid: matchedNode.type,
           extensionAPI: onloadArgs.extensionAPI,
-          blockUid,
+          sourceBlockUid: blockUid,
           initialTitle: cleanedBlockText,
         });
       },
