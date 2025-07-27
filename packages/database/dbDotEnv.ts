@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import fs from "fs";
+import { readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -17,32 +17,34 @@ export const getVariant = (): string | null => {
   if (["local", "branch", "production"].indexOf(variant) === -1) {
     throw new Error("Invalid variant: " + variant);
   }
-  // console.log("Using variant: " + variant);
   return variant;
 };
 
 export const envFilePath = () => {
   const variant: string | null = getVariant();
   if (variant === null) return null;
-  return join(__dirname, `.env.${variant}`);
+  const name = join(__dirname, `.env.${variant}`);
+  return existsSync(name) ? name : null;
 };
 
 export const envContents = () => {
   const path = envFilePath();
   if (!path)
+    // Fallback to process.env when running in production environments
     return {
       SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+      NEXT_API_ROOT: process.env.NEXT_API_ROOT,
     };
-  const data = fs.readFileSync(path, "utf8");
+  const data = readFileSync(path, "utf8");
   return dotenv.parse(data);
 };
 
-let CONFIG_DONE = false;
+let configDone = false;
 
 export const config = () => {
-  if (CONFIG_DONE) return;
+  if (configDone) return;
   const path = envFilePath();
   if (path) dotenv.config({ path });
-  CONFIG_DONE = true;
+  configDone = true;
 };

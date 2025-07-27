@@ -15,7 +15,6 @@
     ],
     "./components/*": "./src/components/*.tsx"
   },
-  "type": "module",
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

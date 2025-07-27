@@ -3,7 +3,7 @@ import {
   createClient as createSupabaseClient,
 } from "@supabase/supabase-js";
 import { Database } from "@repo/database/types.gen";
-import { envContents } from "@repo/database/dbdotenv";
+import { envContents } from "@repo/database/dbDotEnv";
 
 // Inspired by https://supabase.com/ui/docs/react/password-based-auth
 

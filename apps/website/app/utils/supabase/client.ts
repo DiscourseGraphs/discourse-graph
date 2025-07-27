@@ -1,6 +1,6 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@repo/database/types.gen.ts";
-import { envContents } from "@repo/database/dbdotenv";
+import { envContents } from "@repo/database/dbDotEnv";
 
 // Inspired by https://supabase.com/ui/docs/nextjs/password-based-auth
 

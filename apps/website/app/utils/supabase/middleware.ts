@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { envContents } from "@repo/database/dbdotenv";
+import { envContents } from "@repo/database/dbDotEnv";
 
 // Inspired by https://supabase.com/ui/docs/nextjs/password-based-auth
 

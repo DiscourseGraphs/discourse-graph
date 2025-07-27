@@ -9,7 +9,7 @@ const projectRoot = join(__dirname, "..");
 if (process.env.HOME !== "/vercel") {
   try {
     execSync("supabase start");
-    execSync("supabase migrations up --include-all");
+    execSync("supabase migrations up");
     const stdout = execSync(
       "supabase gen types typescript --local --schema public",
       { encoding: "utf8" },

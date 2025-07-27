@@ -78,6 +78,8 @@ const makeBranchEnv = async (vercel: Vercel) => {
     if (branchM) branch = branchM;
     else throw new Error("Could not find the git branch");
   }
+  if (!/^[-\w]$/.test(branch))
+    throw new Error("Invalid branch name: " + branch);
   const result = await vercel.deployments.getDeployments({
     ...baseParams,
     projectId: projectIdOrName,
@@ -90,11 +92,15 @@ const makeBranchEnv = async (vercel: Vercel) => {
     return;
   }
   const url = result.deployments[0]!.url;
-  console.log(url);
-  execSync(
-    `vercel -t ${vercelToken} env pull --environment preview --git-branch ${branch} .env.branch`,
-    { encoding: "utf8" },
-  );
+  try {
+    execSync(
+      `vercel -t ${vercelToken} env pull --environment preview --git-branch ${branch} .env.branch`,
+      { encoding: "utf8" },
+    );
+  } catch (err) {
+    console.error(err);
+    throw err;
+  }
 
   appendFileSync(".env.branch", `NEXT_API_ROOT="${url}/api"\n`);
 };
@@ -123,10 +129,10 @@ try {
     makeLocalEnv();
   }
   if (variant === "branch" || variant === "all") {
-    await makeBranchEnv(vercel!);
+    await makeBranchEnv(vercel);
   }
   if (variant === "production" || variant === "all") {
-    await makeProductionEnv(vercel!);
+    await makeProductionEnv(vercel);
   }
 } catch (err) {
   console.error(err);
