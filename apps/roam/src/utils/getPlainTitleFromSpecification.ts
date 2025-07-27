@@ -1,4 +1,4 @@
-import { Condition, QBClause } from "./types";
+import { Condition, QBClause } from "~/types/index";
 
 export const getPlainTitleFromSpecification = ({
   specification,

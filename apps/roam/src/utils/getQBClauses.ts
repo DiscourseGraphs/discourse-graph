@@ -1,4 +1,4 @@
-import { Condition, QBClauseData } from "./types";
+import { Condition, QBClauseData } from "~/types/index";
 
 const getQBClauses = (cs: Condition[]): QBClauseData[] =>
   cs.flatMap((c) => {

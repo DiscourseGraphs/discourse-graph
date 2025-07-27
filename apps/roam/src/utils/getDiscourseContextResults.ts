@@ -3,10 +3,8 @@ import { Result } from "roamjs-components/types/query-builder";
 import findDiscourseNode from "./findDiscourseNode";
 import fireQuery from "./fireQuery";
 import getDiscourseNodes from "./getDiscourseNodes";
-import getDiscourseRelations, {
-  DiscourseRelation,
-} from "./getDiscourseRelations";
-import { Selection } from "./types";
+import getDiscourseRelations from "./getDiscourseRelations";
+import { DiscourseRelation, Selection } from "~/types/index";
 
 const resultCache: Record<string, Awaited<ReturnType<typeof fireQuery>>> = {};
 const CACHE_TIMEOUT = 1000 * 60 * 5;

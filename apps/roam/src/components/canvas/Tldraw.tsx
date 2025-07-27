@@ -33,10 +33,9 @@ import { InputTextNode, OnloadArgs } from "roamjs-components/types";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import createPage from "roamjs-components/writes/createPage";
-import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
-import getDiscourseRelations, {
-  DiscourseRelation,
-} from "~/utils/getDiscourseRelations";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import { DiscourseNode, DiscourseRelation } from "~/types/index";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import renderToast from "roamjs-components/components/Toast";
 import triplesToBlocks from "~/utils/triplesToBlocks";

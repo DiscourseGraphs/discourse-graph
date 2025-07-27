@@ -1,6 +1,5 @@
-import { DiscourseNode } from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
-import type { DiscourseRelation } from "./getDiscourseRelations";
+import type { DiscourseNode, DiscourseRelation } from "~/types/index";
 import type { SupabaseContext } from "~/utils/supabaseContext";
 
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";

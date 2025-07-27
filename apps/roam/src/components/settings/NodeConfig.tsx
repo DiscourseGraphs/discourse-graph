@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { DiscourseNode } from "~/utils/getDiscourseNodes";
+import { DiscourseNode } from "~/types/index";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";

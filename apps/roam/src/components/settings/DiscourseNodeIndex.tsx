@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { Spinner } from "@blueprintjs/core";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import type { OnloadArgs } from "roamjs-components/types/native";
-import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import type { DiscourseNode } from "~/types/index";
 import QueryBuilder from "~/components/QueryBuilder";
 import parseQuery, { DEFAULT_RETURN_NODE } from "~/utils/parseQuery";
 import createBlock from "roamjs-components/writes/createBlock";

@@ -14,7 +14,7 @@ import type { ExportDialogProps } from "~/components/Export";
 import getPageMetadata from "./getPageMetadata";
 import getDiscourseContextResults from "./getDiscourseContextResults";
 import fireQuery from "./fireQuery";
-import { ExportTypes } from "./types";
+import { ExportTypes } from "~/types/index";
 import {
   findReferencedNodeInText,
   getReferencedNodeInFormat,

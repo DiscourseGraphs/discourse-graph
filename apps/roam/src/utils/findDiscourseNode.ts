@@ -1,4 +1,5 @@
-import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
+import getDiscourseNodes from "./getDiscourseNodes";
+import { DiscourseNode } from "~/types/index";
 import matchDiscourseNode from "./matchDiscourseNode";
 
 const discourseNodeTypeCache: Record<string, DiscourseNode | false> = {};

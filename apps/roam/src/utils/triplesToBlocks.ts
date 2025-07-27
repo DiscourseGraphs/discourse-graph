@@ -1,5 +1,5 @@
 import type { InputTextNode } from "roamjs-components/types";
-import { Condition } from "./types";
+import { Condition } from "~/types/index";
 
 // TODO - this needs to be massively reworked to incorporate inverse functions on the conditionToDatalog mapping itself
 // similar to `update` on defaultSelections.ts. Something like:

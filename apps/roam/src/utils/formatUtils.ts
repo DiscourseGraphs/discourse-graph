@@ -2,13 +2,13 @@
 // https://github.com/RoamJS/query-builder/issues/189
 
 import { PullBlock } from "roamjs-components/types";
-import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
+import getDiscourseNodes from "./getDiscourseNodes";
 import compileDatalog from "./compileDatalog";
 import discourseNodeFormatToDatalog from "./discourseNodeFormatToDatalog";
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import FormDialog from "roamjs-components/components/FormDialog";
-import { QBClause, Result } from "./types";
+import { DiscourseNode, QBClause, Result } from "~/types/index";
 import findDiscourseNode from "./findDiscourseNode";
 import extractTag from "roamjs-components/util/extractTag";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";

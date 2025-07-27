@@ -8,7 +8,7 @@ import differenceInWeeks from "date-fns/differenceInWeeks";
 import differenceInMonths from "date-fns/differenceInMonths";
 import differenceInYears from "date-fns/differenceInYears";
 import datefnsFormat from "date-fns/format";
-import type { QBClause, Result as QueryResult } from "./types";
+import type { QBClause, Result as QueryResult } from "~/types/index";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import parseQuery from "./parseQuery";
