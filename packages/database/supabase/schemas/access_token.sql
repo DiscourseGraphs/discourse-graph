@@ -7,7 +7,7 @@ CREATE TABLE "access_token" (
     created_date timestamp with time zone DEFAULT timezone(
         'utc'::text, now()
     ) NOT NULL,
-    constraint access_token_code_check CHECK (
+    CONSTRAINT access_token_code_check CHECK (
         code IS NOT null
     ),
     CONSTRAINT access_token_platform_account_id_fkey FOREIGN KEY (
@@ -37,7 +37,7 @@ REVOKE TRIGGER ON TABLE "public"."access_token" FROM "anon";
 GRANT SELECT ON TABLE "public"."access_token" TO "anon";
 GRANT INSERT ON TABLE "public"."access_token" TO "anon";
 
-ALTER TABLE public.access_token ENABLE row LEVEL SECURITY ;
+ALTER TABLE public.access_token ENABLE ROW LEVEL SECURITY ;
 
 DROP POLICY IF EXISTS access_token_policy ON public.access_token ;
-CREATE POLICY access_token_policy ON public.access_token FOR ALL USING (public.my_account (platform_account_id)) ;
+CREATE POLICY access_token_policy ON public.access_token FOR ALL USING (public.my_account(platform_account_id)) ;
