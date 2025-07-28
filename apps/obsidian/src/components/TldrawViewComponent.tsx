@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Editor, ErrorBoundary, loadSnapshot, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
-import { getTLDataTemplate, createRawTldrawFile } from "~/utils/tldraw";
+import {
+  getTLDataTemplate,
+  createRawTldrawFile,
+  getUpdatedString,
+} from "~/utils/tldraw";
 import DiscourseGraphPlugin from "~/index";
 import {
   DEFAULT_SAVE_DELAY,
@@ -25,7 +29,6 @@ export const TldrawPreviewComponent = ({
   const [isReady, setIsReady] = useState(false);
   const editorRef = useRef<Editor | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
-  const [isSaving, setIsSaving] = useState(false);
   const lastSavedDataRef = useRef<string>("");
 
   useEffect(() => {
@@ -36,40 +39,30 @@ export const TldrawPreviewComponent = ({
   }, []);
 
   const saveChanges = useCallback(async () => {
-    if (isSaving) return; // Prevent concurrent saves
+    const newData = getTLDataTemplate({
+      pluginVersion: plugin.manifest.version,
+      tldrawFile: createRawTldrawFile(store),
+      uuid: window.crypto.randomUUID(),
+    });
+    const stringifiedData = JSON.stringify(newData, null, "\t");
+
+    if (stringifiedData === lastSavedDataRef.current) {
+      return;
+    }
+
+    const currentContent = await plugin.app.vault.read(file);
+    if (!currentContent) {
+      console.error("Could not read file content");
+      return;
+    }
+
+    const updatedString = getUpdatedString(currentContent, stringifiedData);
+    if (updatedString === currentContent) {
+      return;
+    }
 
     try {
-      setIsSaving(true);
-      const newData = getTLDataTemplate({
-        pluginVersion: plugin.manifest.version,
-        tldrawFile: createRawTldrawFile(store),
-        uuid: window.crypto.randomUUID(),
-      });
-      const stringifiedData = JSON.stringify(newData, null, "\t");
-
-      if (stringifiedData === lastSavedDataRef.current) {
-        return;
-      }
-
-      const currentContent = await plugin.app.vault.read(file);
-      if (!currentContent) {
-        throw new Error("Could not read file content");
-      }
-
-      const regex = new RegExp(
-        `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
-      );
-      const updatedString = currentContent.replace(
-        regex,
-        `${TLDATA_DELIMITER_START}\n${stringifiedData}\n${TLDATA_DELIMITER_END}`,
-      );
-
-      if (updatedString === currentContent) {
-        return;
-      }
-
       await plugin.app.vault.modify(file, updatedString);
-      lastSavedDataRef.current = stringifiedData;
 
       const verifyContent = await plugin.app.vault.read(file);
       const verifyMatch = verifyContent.match(
@@ -77,30 +70,27 @@ export const TldrawPreviewComponent = ({
           `${TLDATA_DELIMITER_START}\\s*([\\s\\S]*?)\\s*${TLDATA_DELIMITER_END}`,
         ),
       );
+
       if (!verifyMatch || verifyMatch[1]?.trim() !== stringifiedData.trim()) {
-        throw new Error("Failed to save TLDraw data");
+        throw new Error("Failed to verify saved TLDraw data");
       }
+
+      lastSavedDataRef.current = stringifiedData;
     } catch (error) {
-      console.error("Error saving TLDraw data:", error);
-      // Reload the editor state from file
-      try {
-        const fileContent = await plugin.app.vault.read(file);
-        const match = fileContent.match(
-          new RegExp(
-            `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
-          ),
-        );
-        if (match?.[1]) {
-          const data = JSON.parse(match[1]);
-          if (data.raw) {
-            loadSnapshot(store, data.raw);
-          }
+      console.error("Error saving/verifying TLDraw data:", error);
+      // Reload the editor state from file since save failed
+      const fileContent = await plugin.app.vault.read(file);
+      const match = fileContent.match(
+        new RegExp(
+          `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
+        ),
+      );
+      if (match?.[1]) {
+        const data = JSON.parse(match[1]);
+        if (data.raw) {
+          loadSnapshot(store, data.raw);
         }
-      } catch (recoveryError) {
-        console.error("Failed to recover editor state:", recoveryError);
       }
-    } finally {
-      setIsSaving(false);
     }
   }, [file, plugin, store]);
 
@@ -126,37 +116,11 @@ export const TldrawPreviewComponent = ({
   const handleMount = useCallback((editor: Editor) => {
     editorRef.current = editor;
     editor.setCurrentTool("select");
-    editor.updateInstanceState({
-      isReadonly: false,
-      isDebugMode: false,
-      isToolLocked: false,
-      isGridMode: false,
-    });
 
     const shapes = editor.getCurrentPageShapes();
     if (shapes.length > 0) {
       editor.zoomToFit();
     }
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        editor.updateInstanceState({
-          isFocused: false,
-          isPenMode: false,
-        });
-      } else {
-        editor.updateInstanceState({
-          isFocused: true,
-          isPenMode: false,
-        });
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
   }, []);
 
   return (
@@ -171,12 +135,7 @@ export const TldrawPreviewComponent = ({
             <div>Error in Tldraw component: {JSON.stringify(error)}</div>
           )}
         >
-          <Tldraw
-            store={store}
-            onMount={handleMount}
-            autoFocus={false}
-            hideUi={false}
-          />
+          <Tldraw store={store} onMount={handleMount} autoFocus={true} />
         </ErrorBoundary>
       ) : (
         <div>Loading Tldraw...</div>

@@ -122,3 +122,16 @@ export const createCanvas = async (plugin: DiscourseGraphPlugin) => {
     console.error(e);
   }
 };
+
+export const getUpdatedString = (
+  currentContent: string,
+  stringifiedData: string,
+) => {
+  const regex = new RegExp(
+    `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
+  );
+  return currentContent.replace(
+    regex,
+    `${TLDATA_DELIMITER_START}\n${stringifiedData}\n${TLDATA_DELIMITER_END}`,
+  );
+};
