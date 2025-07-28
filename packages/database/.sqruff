@@ -1,6 +1,7 @@
 [sqruff]
 dialect = postgres
-exclude_rules = CP05,LT05
+# Exclude LT01 until https://github.com/quarylabs/sqruff/issues/1786 is solved.
+exclude_rules = CP05,LT05,LT01
 
 [sqruff:indentation]
 indent_unit = space

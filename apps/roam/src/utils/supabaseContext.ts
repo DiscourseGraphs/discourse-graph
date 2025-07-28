@@ -9,7 +9,7 @@ import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
 import { type DGSupabaseClient } from "@repo/ui/lib/supabase/client";
 import {
-  fetchOrCreateSpaceId,
+  fetchOrCreateSpaceDirect,
   fetchOrCreatePlatformAccount,
   createLoggedInClient,
 } from "@repo/ui/lib/supabase/contextFunctions";
@@ -57,12 +57,14 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
       const url = getRoamUrl();
       const spaceName = window.roamAlphaAPI.graph.name;
       const platform: Platform = "Roam";
-      const spaceId = await fetchOrCreateSpaceId({
+      const spaceResult = await fetchOrCreateSpaceDirect({
         password: spacePassword,
         url,
         name: spaceName,
         platform,
       });
+      if (!spaceResult.data) throw new Error("Failed to create space");
+      const spaceId = spaceResult.data.id;
       const userId = await fetchOrCreatePlatformAccount({
         platform: "Roam",
         accountLocalId,

@@ -6,9 +6,9 @@ import {
   type Database,
   type Enums,
 } from "@repo/database/types.gen.ts";
-import { spaceAnonUserEmail } from "@repo/ui/lib/utils";
 import {
-  fetchOrCreateSpaceId,
+  spaceAnonUserEmail,
+  fetchOrCreateSpaceIndirect,
   fetchOrCreatePlatformAccount,
 } from "@repo/ui/lib/supabase/contextFunctions";
 
@@ -117,12 +117,17 @@ When(
     if (PLATFORMS.indexOf(platform) < 0)
       throw new Error(`Platform must be one of ${PLATFORMS}`);
     const localRefs: Record<string, any> = world.localRefs || {};
-    const spaceId = await fetchOrCreateSpaceId({
+    const spaceResponse = await fetchOrCreateSpaceIndirect({
       password: SPACE_ANONYMOUS_PASSWORD,
       url: `https://roamresearch.com/#/app/${spaceName}`,
       name: spaceName,
       platform,
     });
+    if (!spaceResponse.data)
+      throw new Error(
+        `Could not create space: ${JSON.stringify(spaceResponse.error)}`,
+      );
+    const spaceId = spaceResponse.data.id;
     localRefs[spaceName] = spaceId;
     const userId = await fetchOrCreatePlatformAccount({
       platform,
