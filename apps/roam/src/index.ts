@@ -102,12 +102,14 @@ export default runExtension(async (onloadArgs) => {
     nodeMenuTriggerListener,
     discourseNodeSearchTriggerListener,
     nodeCreationPopoverListener,
+    nodeTagHoverListener,
   } = listeners;
   document.addEventListener("roamjs:query-builder:action", pageActionListener);
   window.addEventListener("hashchange", hashChangeListener);
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
+  document.addEventListener("mouseover", nodeTagHoverListener);
 
   await initializeDiscourseNodes();
   refreshConfigTree();
@@ -146,6 +148,7 @@ export default runExtension(async (onloadArgs) => {
         "selectionchange",
         nodeCreationPopoverListener,
       );
+      document.removeEventListener("mouseover", nodeTagHoverListener);
       window.roamAlphaAPI.ui.graphView.wholeGraph.removeCallback({
         label: "discourse-node-styling",
       });
