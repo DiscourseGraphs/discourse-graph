@@ -5,7 +5,7 @@ import {
   TLDATA_DELIMITER_START,
   TLDRAW_VERSION,
 } from "../constants";
-import DiscourseGraphPlugin from "..";
+import DiscourseGraphPlugin from "~/index";
 import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
 import { Notice } from "obsidian";
 import { format } from "date-fns";
@@ -121,4 +121,17 @@ export const createCanvas = async (plugin: DiscourseGraphPlugin) => {
     new Notice(e instanceof Error ? e.message : "Failed to create canvas file");
     console.error(e);
   }
+};
+
+export const getUpdatedString = (
+  currentContent: string,
+  stringifiedData: string,
+) => {
+  const regex = new RegExp(
+    `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
+  );
+  return currentContent.replace(
+    regex,
+    `${TLDATA_DELIMITER_START}\n${stringifiedData}\n${TLDATA_DELIMITER_END}`,
+  );
 };

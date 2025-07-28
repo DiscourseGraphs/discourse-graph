@@ -1,18 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Editor, ErrorBoundary, Tldraw, TLStore } from "tldraw";
+import { Editor, ErrorBoundary, loadSnapshot, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
+import {
+  getTLDataTemplate,
+  createRawTldrawFile,
+  getUpdatedString,
+} from "~/utils/tldraw";
+import DiscourseGraphPlugin from "~/index";
+import {
+  DEFAULT_SAVE_DELAY,
+  TLDATA_DELIMITER_END,
+  TLDATA_DELIMITER_START,
+} from "~/constants";
+import { TFile } from "obsidian";
 
 interface TldrawPreviewProps {
   store: TLStore;
-  isReadonly?: boolean;
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
 }
 
 export const TldrawPreviewComponent = ({
   store,
-  isReadonly = false,
+  plugin,
+  file,
 }: TldrawPreviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
+  const editorRef = useRef<Editor | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastSavedDataRef = useRef<string>("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -21,9 +38,84 @@ export const TldrawPreviewComponent = ({
     return () => clearTimeout(timer);
   }, []);
 
+  const saveChanges = useCallback(async () => {
+    const newData = getTLDataTemplate({
+      pluginVersion: plugin.manifest.version,
+      tldrawFile: createRawTldrawFile(store),
+      uuid: window.crypto.randomUUID(),
+    });
+    const stringifiedData = JSON.stringify(newData, null, "\t");
+
+    if (stringifiedData === lastSavedDataRef.current) {
+      return;
+    }
+
+    const currentContent = await plugin.app.vault.read(file);
+    if (!currentContent) {
+      console.error("Could not read file content");
+      return;
+    }
+
+    const updatedString = getUpdatedString(currentContent, stringifiedData);
+    if (updatedString === currentContent) {
+      return;
+    }
+
+    try {
+      await plugin.app.vault.modify(file, updatedString);
+
+      const verifyContent = await plugin.app.vault.read(file);
+      const verifyMatch = verifyContent.match(
+        new RegExp(
+          `${TLDATA_DELIMITER_START}\\s*([\\s\\S]*?)\\s*${TLDATA_DELIMITER_END}`,
+        ),
+      );
+
+      if (!verifyMatch || verifyMatch[1]?.trim() !== stringifiedData.trim()) {
+        throw new Error("Failed to verify saved TLDraw data");
+      }
+
+      lastSavedDataRef.current = stringifiedData;
+    } catch (error) {
+      console.error("Error saving/verifying TLDraw data:", error);
+      // Reload the editor state from file since save failed
+      const fileContent = await plugin.app.vault.read(file);
+      const match = fileContent.match(
+        new RegExp(
+          `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
+        ),
+      );
+      if (match?.[1]) {
+        const data = JSON.parse(match[1]);
+        if (data.raw) {
+          loadSnapshot(store, data.raw);
+        }
+      }
+    }
+  }, [file, plugin, store]);
+
+  useEffect(() => {
+    const unsubscribe = store.listen(
+      () => {
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(saveChanges, DEFAULT_SAVE_DELAY);
+      },
+      { source: "user", scope: "document" },
+    );
+
+    return () => {
+      unsubscribe();
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [store, saveChanges]);
+
   const handleMount = useCallback((editor: Editor) => {
-    editor.setCurrentTool("hand");
-    editor.updateInstanceState({});
+    editorRef.current = editor;
+    editor.setCurrentTool("select");
 
     const shapes = editor.getCurrentPageShapes();
     if (shapes.length > 0) {
@@ -43,7 +135,7 @@ export const TldrawPreviewComponent = ({
             <div>Error in Tldraw component: {JSON.stringify(error)}</div>
           )}
         >
-          <Tldraw store={store} onMount={handleMount} autoFocus={false} />
+          <Tldraw store={store} onMount={handleMount} autoFocus={true} />
         </ErrorBoundary>
       ) : (
         <div>Loading Tldraw...</div>
