@@ -122,25 +122,3 @@ export const createCanvas = async (plugin: DiscourseGraphPlugin) => {
     console.error(e);
   }
 };
-
-export const replaceBetweenKeywords = (
-  input: string,
-  keyword1: string,
-  keyword2: string,
-  replacement: string,
-) => {
-  const regex = new RegExp(`${keyword1}[\\s\\S]*?${keyword2}`, "g");
-  return input.replace(regex, `${keyword1}\n${replacement}\n${keyword2}`);
-};
-
-export const getUpdatedFileData = (
-  plugin: DiscourseGraphPlugin,
-  store: TLStore,
-): TLData => {
-  const tldrawData = getTLDataTemplate({
-    pluginVersion: plugin.manifest.version,
-    tldrawFile: createRawTldrawFile(store),
-    uuid: window.crypto.randomUUID(),
-  });
-  return tldrawData;
-};

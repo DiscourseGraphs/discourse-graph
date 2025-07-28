@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Editor, ErrorBoundary, loadSnapshot, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
-import { replaceBetweenKeywords, getUpdatedFileData } from "~/utils/tldraw";
+import { getTLDataTemplate, createRawTldrawFile } from "~/utils/tldraw";
 import DiscourseGraphPlugin from "~/index";
 import {
   DEFAULT_SAVE_DELAY,
@@ -40,7 +40,11 @@ export const TldrawPreviewComponent = ({
 
     try {
       setIsSaving(true);
-      const newData = getUpdatedFileData(plugin, store);
+      const newData = getTLDataTemplate({
+        pluginVersion: plugin.manifest.version,
+        tldrawFile: createRawTldrawFile(store),
+        uuid: window.crypto.randomUUID(),
+      });
       const stringifiedData = JSON.stringify(newData, null, "\t");
 
       if (stringifiedData === lastSavedDataRef.current) {
@@ -52,11 +56,12 @@ export const TldrawPreviewComponent = ({
         throw new Error("Could not read file content");
       }
 
-      const updatedString = replaceBetweenKeywords(
-        currentContent,
-        TLDATA_DELIMITER_START,
-        TLDATA_DELIMITER_END,
-        stringifiedData,
+      const regex = new RegExp(
+        `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
+      );
+      const updatedString = currentContent.replace(
+        regex,
+        `${TLDATA_DELIMITER_START}\n${stringifiedData}\n${TLDATA_DELIMITER_END}`,
       );
 
       if (updatedString === currentContent) {
