@@ -323,7 +323,12 @@ DiscourseSuggestionsPanel.toggle = (
   newPanel.style.borderRadius = "0 0 4px 4px";
   newPanel.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
 
-  panelsContainer.appendChild(newPanel);
+  const header = panelsContainer.querySelector("#discourse-suggestions-header");
+  if (header) {
+    header.insertAdjacentElement("afterend", newPanel);
+  } else {
+    panelsContainer.appendChild(newPanel);
+  }
 
   const handleClosePanel = () => {
     ReactDOM.unmountComponentAtNode(newPanel);
