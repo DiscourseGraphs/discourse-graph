@@ -2,7 +2,7 @@ import { createClient } from "~/utils/supabase/server";
 import { NextResponse, NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import cors from "~/utils/llm/cors";
-import type { LocalContentDataInput } from "../../../../../../../packages/database/inputTypes.ts";
+import type { LocalContentDataInput } from "@repo/database/inputTypes";
 
 // Define a JSON compatible type for Supabase RPC parameters
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions

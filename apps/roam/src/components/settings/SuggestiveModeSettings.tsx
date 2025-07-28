@@ -28,14 +28,8 @@ import getDiscourseNodes, {
 } from "~/utils/getDiscourseNodes";
 import { getSubTree } from "roamjs-components/util";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
-import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { getSupabaseContext } from "~/utils/supabaseContext";
-import { getNodeEnv } from "roamjs-components/util/env";
-import { LocalContentDataInput } from "../../../../../packages/database/inputTypes";
-import {
-  getAllDiscourseNodesSince,
-  getDiscourseNodeTypeBlockNodes,
-} from "~/utils/getAllDiscourseNodesSince";
+import { getDiscourseNodeTypeBlockNodes } from "~/utils/getAllDiscourseNodesSince";
 import {
   createOrUpdateDiscourseEmbedding,
   upsertNodesToSupabaseAsContentWithEmbeddings,

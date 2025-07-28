@@ -6,10 +6,7 @@ import {
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import { getSupabaseContext } from "./supabaseContext";
 import { fetchEmbeddingsForNodes } from "./fetchEmbeddingsForNodes";
-import {
-  LocalDocumentDataInput,
-  LocalContentDataInput,
-} from "../../../../packages/database/inputTypes";
+import { LocalContentDataInput } from "@repo/database/inputTypes";
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import getDiscourseRelations from "./getDiscourseRelations";
 import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
