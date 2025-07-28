@@ -291,13 +291,33 @@ const SuggestionsBody: React.FC<Props> = ({
             .filter((n): n is SuggestedNode => n !== null);
         } else {
           // From selected pages
+          const grabFromReferencedPages = extensionAPI?.settings.get(
+            "context-grab-from-referenced-pages",
+          );
+          const shouldGrabFromReferencedPages =
+            grabFromReferencedPages === null
+              ? true
+              : Boolean(grabFromReferencedPages);
+
+          const grabParentChildContext = extensionAPI?.settings.get(
+            "context-grab-parent-child-context",
+          );
+          const shouldGrabParentChildContext =
+            grabParentChildContext === null
+              ? true
+              : Boolean(grabParentChildContext);
+
           let referenced: { uid: string; text: string }[] = [];
-          referenced.push(...getAllReferencesOnPage(tag));
-          selectedPages.forEach((p) => {
-            referenced.push(...getAllReferencesOnPage(p));
-          });
-          referenced.push(...extractPagesFromChildBlock(tag));
-          referenced.push(...extractPagesFromParentBlock(tag));
+          if (shouldGrabFromReferencedPages) {
+            referenced.push(...getAllReferencesOnPage(tag));
+            selectedPages.forEach((p) => {
+              referenced.push(...getAllReferencesOnPage(p));
+            });
+          }
+          if (shouldGrabParentChildContext) {
+            referenced.push(...extractPagesFromChildBlock(tag));
+            referenced.push(...extractPagesFromParentBlock(tag));
+          }
           const uniqueReferenced = Array.from(
             new Map(referenced.map((x) => [x.uid, x])).values(),
           );

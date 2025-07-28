@@ -44,9 +44,14 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
+          console.log("discourse-context-overlay", target.checked);
           extensionAPI.settings.set(
             "discourse-context-overlay",
             target.checked,
+          );
+          console.log(
+            "discourse-context-overlay",
+            extensionAPI.settings.get("discourse-context-overlay"),
           );
 
           onPageRefObserverChange(overlayHandler)(target.checked);

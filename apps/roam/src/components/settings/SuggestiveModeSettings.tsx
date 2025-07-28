@@ -282,6 +282,25 @@ const SuggestiveModeSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     Boolean(extensionAPI.settings.get("suggestion-display-inline")),
   );
 
+  const [grabFromReferencedPages, setGrabFromReferencedPages] =
+    useState<boolean>(() => {
+      const value = extensionAPI.settings.get(
+        "context-grab-from-referenced-pages",
+      );
+      // Default to true if the setting is not present
+      return value === null ? true : Boolean(value);
+    });
+
+  const [grabParentChildContext, setGrabParentChildContext] = useState<boolean>(
+    () => {
+      const value = extensionAPI.settings.get(
+        "context-grab-parent-child-context",
+      );
+      // Default to true if the setting is not present
+      return value === null ? true : Boolean(value);
+    },
+  );
+
   const [pageGroups, setPageGroups] = useState<Record<string, string[]>>(() => {
     const storedGroups = extensionAPI.settings.get("suggestion-page-groups") as
       | Record<string, string[]>
@@ -525,6 +544,45 @@ const SuggestiveModeSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     </div>
   );
 
+  const contextSettingsPanel = (
+    <div className="p-4">
+      <Label>
+        Context Sources
+        <Description
+          description={
+            "Configure where to source context from for suggestions."
+          }
+        />
+        <div className="flex flex-col gap-1 pl-2">
+          <Checkbox
+            label="Include relations from pages referenced on the current page"
+            checked={grabFromReferencedPages}
+            onChange={(e) => {
+              const checked = (e.target as HTMLInputElement).checked;
+              setGrabFromReferencedPages(checked);
+              extensionAPI.settings.set(
+                "context-grab-from-referenced-pages",
+                checked,
+              );
+            }}
+          />
+          <Checkbox
+            label="Include relations from parent and child blocks"
+            checked={grabParentChildContext}
+            onChange={(e) => {
+              const checked = (e.target as HTMLInputElement).checked;
+              setGrabParentChildContext(checked);
+              extensionAPI.settings.set(
+                "context-grab-parent-child-context",
+                checked,
+              );
+            }}
+          />
+        </div>
+      </Label>
+    </div>
+  );
+
   return (
     <div className="relative flex flex-col gap-4 p-1">
       <div className="mb-2 text-lg font-semibold text-neutral-dark">
@@ -557,6 +615,11 @@ const SuggestiveModeSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
               <NodeRules extensionAPI={extensionAPI} />
             </div>
           }
+        />
+        <Tab
+          id="context-settings"
+          title="Context Settings"
+          panel={contextSettingsPanel}
         />
       </Tabs>
     </div>

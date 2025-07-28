@@ -21,8 +21,8 @@ export const SplitViewButton = () => {
     const panelRoot = document.getElementById(
       PANEL_ROOT_ID,
     ) as HTMLElement | null;
-
     const isSplit = roamBodyMain.dataset.isSplit === "true";
+    console.log("isSplit", isSplit);
 
     if (isSplit) {
       // HIDE split view but keep its DOM so that panels persist
@@ -30,22 +30,28 @@ export const SplitViewButton = () => {
         panelRoot.style.display = "none";
       }
 
+      const mainContent = panelRoot?.nextElementSibling as HTMLElement | null;
+      console.log("mainContent on close", mainContent);
+
       const original = originalStylesRef.current;
       if (original) {
-        const mainContent =
-          roamBodyMain.firstElementChild as HTMLElement | null;
         // Restore original styles that existed before we first split
         roamBodyMain.style.cssText = original.roamBodyMain;
         if (mainContent) mainContent.style.cssText = original.mainContent;
       }
 
       roamBodyMain.removeAttribute("data-is-split");
+      if (mainContent) {
+        mainContent.classList.remove("rm-spacing--large");
+        mainContent.classList.add("rm-spacing--medium");
+      }
       // NOTE: we intentionally do NOT unmount or remove the panelRoot so that
       // its React tree (and state) survive until the next time we show it.
       originalStylesRef.current = null;
     } else {
       // OPEN split view
       const mainContent = roamBodyMain.firstElementChild as HTMLElement | null;
+      console.log("mainContent on open", mainContent);
       if (!mainContent) return;
 
       originalStylesRef.current = {
@@ -69,6 +75,10 @@ export const SplitViewButton = () => {
       root.style.flex = "0 0 40%";
       mainContent.style.flex = "1 1 60%";
       roamBodyMain.dataset.isSplit = "true";
+      if (mainContent) {
+        mainContent.classList.remove("rm-spacing--small");
+        mainContent.classList.add("rm-spacing--large");
+      }
     }
   };
 

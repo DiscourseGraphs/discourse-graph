@@ -2,7 +2,7 @@ import esbuild from "esbuild";
 import dotenv from "dotenv";
 import { compile, args } from "./compile";
 
-dotenv.config();
+dotenv.config({ path: ".env.local" });
 
 const dev = () => {
   process.env.NODE_ENV = process.env.NODE_ENV || "development";

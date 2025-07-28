@@ -132,7 +132,9 @@ export const SettingsDialog = ({
             vertical={true}
             renderActiveTabPanelOnly={true}
           >
-            <SectionHeader className="text-lg font-semibold text-neutral-dark">Personal Settings</SectionHeader>
+            <SectionHeader className="text-lg font-semibold text-neutral-dark">
+              Personal Settings
+            </SectionHeader>
             <Tab
               id="discourse-graph-home-personal"
               title="Home"
@@ -151,7 +153,9 @@ export const SettingsDialog = ({
               className="mb-8 overflow-y-auto"
               panel={<SuggestiveModeSettings onloadArgs={onloadArgs} />}
             />
-            <SectionHeader className="text-lg font-semibold text-neutral-dark">Global Settings</SectionHeader>
+            <SectionHeader className="text-lg font-semibold text-neutral-dark">
+              Global Settings
+            </SectionHeader>
             <Tab
               id="discourse-graph-home"
               title="Home"

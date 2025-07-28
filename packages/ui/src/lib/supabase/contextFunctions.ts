@@ -88,6 +88,7 @@ export const fetchOrCreateSpaceDirect = async (
   const error = spaceValidator(data);
   if (error !== null) return asPostgrestFailure(error, "invalid space");
   data.url = data.url.trim().replace(/\/$/, "");
+  console.log("data", data);
 
   const supabase = createClient();
   const result = await supabase
