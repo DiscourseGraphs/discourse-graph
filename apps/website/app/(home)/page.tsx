@@ -11,7 +11,8 @@ import { getLatestBlogs } from "~/(home)/blog/readBlogs";
 import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
 
-export default async function Home() {
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const Home = async () => {
   const blogs = await getLatestBlogs();
   return (
     <div>
@@ -134,10 +135,12 @@ export default async function Home() {
                 </p>
                 <p className="mb-4 text-neutral-dark">
                   The schema adds enough structure for you to revisit{" "}
-                  <span className="font-semibold">"high signal" findings</span>{" "}
+                  <span className="font-semibold">
+                    &ldquo;high signal&rdquo; findings
+                  </span>{" "}
                   as{" "}
                   <span className="font-semibold">
-                    "the minimal shareable insight"
+                    &ldquo;the minimal shareable insight&rdquo;
                   </span>{" "}
                   for others to build on.
                 </p>
@@ -284,8 +287,8 @@ export default async function Home() {
                         <strong className="font-semibold text-gray-900">
                           identifying gaps
                         </strong>{" "}
-                        in knowledge and tractable "starter projects" for new
-                        researchers
+                        in knowledge and tractable &ldquo;starter
+                        projects&rdquo; for new researchers
                       </span>
                     </li>
                     <li className="flex gap-x-3">
@@ -443,7 +446,7 @@ export default async function Home() {
               <div className="space-y-6">
                 <div>
                   <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
-                    IOSP '25 Winter Workshop: Discourse Graphs
+                    IOSP &apos;25 Winter Workshop: Discourse Graphs
                   </h3>
                   <p className="mb-2 text-neutral-dark">
                     February 23-24, 2025 | Denver Museum of Nature and Science
@@ -696,14 +699,15 @@ export default async function Home() {
                   <span className="font-bold">Get Involved! 🚀</span>
                 </p>
                 <p className="text-neutral-dark">
-                  We're building user-friendly Discourse Graph plugins in your
-                  favorite Tool for Thought and would love to hear from you.
+                  We&apos;re building user-friendly Discourse Graph plugins in
+                  your favorite Tool for Thought and would love to hear from
+                  you.
                 </p>
                 <p className="text-neutral-dark">
                   <Link href="mailto:discoursegraphs@homeworld.bio">
                     Send us a line
                   </Link>{" "}
-                  if you're interested in helping to{" "}
+                  if you&apos;re interested in helping to{" "}
                   <Link href="https://github.com/DiscourseGraphs">develop</Link>{" "}
                   or{" "}
                   <Link href="https://experiment.com/projects/sustainable-coordination-in-research-labs-via-graph-enabled-idea-boards/">
@@ -713,7 +717,10 @@ export default async function Home() {
                 </p>
                 <p className="text-neutral-dark">
                   And stay up to date by joining us on{" "}
-                  <Link href="https://discord.gg/vq83RRk2tg">Discord 🗣️</Link>!
+                  <Link href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg">
+                    Slack 💬
+                  </Link>
+                  !
                 </p>
               </div>
             </CardContent>
@@ -723,7 +730,9 @@ export default async function Home() {
 
       <footer className="mt-12 border-t border-neutral-light/10 bg-neutral-dark px-6 py-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <p className="text-secondary">© 2024 Homeworld Collective</p>
+          <p className="text-secondary">
+            © 2024-{new Date().getFullYear()} Homeworld Collective
+          </p>
           <div className="flex items-center space-x-4">
             <Link
               href="https://github.com/DiscourseGraphs"
@@ -737,10 +746,13 @@ export default async function Home() {
                 className="opacity-80 transition-opacity hover:opacity-100"
               />
             </Link>
-            <Link href="https://discord.gg/vq83RRk2tg" aria-label="Discord">
+            <Link
+              href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg"
+              aria-label="Slack"
+            >
               <Image
-                src="/discord.svg"
-                alt="Discord"
+                src="/slack.svg"
+                alt="Slack"
                 width={24}
                 height={24}
                 className="opacity-80 transition-opacity hover:opacity-100"
@@ -759,4 +771,6 @@ export default async function Home() {
       </footer>
     </div>
   );
-}
+};
+
+export default Home;
