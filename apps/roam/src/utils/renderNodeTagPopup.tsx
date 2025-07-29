@@ -128,12 +128,101 @@ export const renderNodeTagPopup = ({
   document.body.appendChild(currentPopup);
 
   ReactDOM.render(
-    <HoverControlledPopover
-      onClick={onClick}
-      label={label}
-      onClose={removeNodeTagPopup}
-      tagElement={tagElement}
+    <Popover
+      content={
+        <div>
+          <Button intent="primary" outlined onClick={onClick} text={label} />
+        </div>
+      }
+      target={
+        <div
+          style={{
+            position: "fixed",
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+            pointerEvents: "none",
+          }}
+        />
+      }
+      position={Position.TOP}
+      minimal
+      modifiers={{
+        preventOverflow: { enabled: true },
+        flip: { enabled: true },
+        offset: { enabled: true, offset: "0, 18" },
+      }}
+      portalClassName="discourse-node-tag-portal"
     />,
     currentPopup,
+  );
+};
+export const renderAttributeButton = (parent: HTMLSpanElement) => {
+  if (parent.dataset.attributeButtonRendered === "true") return;
+
+  parent.dataset.attributeButtonRendered = "true";
+
+  const wrapper = document.createElement("span");
+
+  wrapper.style.position = "relative";
+
+  wrapper.style.display = "inline-block";
+
+  parent.parentNode?.insertBefore(wrapper, parent);
+
+  wrapper.appendChild(parent);
+
+  const reactRoot = document.createElement("span");
+
+  reactRoot.style.position = "absolute";
+
+  reactRoot.style.top = "0";
+
+  reactRoot.style.left = "0";
+
+  reactRoot.style.width = "100%";
+
+  reactRoot.style.height = "100%";
+
+  reactRoot.style.pointerEvents = "auto";
+
+  reactRoot.style.zIndex = "10";
+
+  wrapper.appendChild(reactRoot);
+
+  ReactDOM.render(
+    <Popover
+      content={
+        <Button
+          minimal
+          outlined
+          onClick={() => {
+            console.log("clicked");
+          }}
+          text="Create node"
+        />
+      }
+      target={
+        <span
+          style={{
+            display: "block",
+            width: "100%",
+            height: "100%",
+          }}
+        />
+      }
+      interactionKind="hover"
+      position={Position.TOP}
+      modifiers={{
+        offset: {
+          offset: "0, 10",
+        },
+        arrow: {
+          enabled: false,
+        },
+      }}
+    />,
+    reactRoot,
   );
 };
