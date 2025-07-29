@@ -4,7 +4,12 @@ import { TextSelectionNodeMenu } from "~/components/DiscourseNodeMenu";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import { OnloadArgs } from "roamjs-components/types";
 
-export let currentPopupContainer: HTMLDivElement | null = null;
+let currentPopupContainer: HTMLDivElement | null = null;
+
+export const getCurrentPopupContainer = () => currentPopupContainer;
+export const setCurrentPopupContainer = (container: HTMLDivElement | null) => {
+  currentPopupContainer = container;
+};
 
 export const findBlockElementFromSelection = (): Element | null => {
   const selection = window.getSelection();
@@ -65,9 +70,10 @@ export const renderTextSelectionPopup = ({
 };
 
 export const removeTextSelectionPopup = () => {
-  if (currentPopupContainer) {
-    ReactDOM.unmountComponentAtNode(currentPopupContainer);
-    currentPopupContainer.remove();
-    currentPopupContainer = null;
+  const container = getCurrentPopupContainer();
+  if (container) {
+    ReactDOM.unmountComponentAtNode(container);
+    container.remove();
+    setCurrentPopupContainer(null);
   }
 };
