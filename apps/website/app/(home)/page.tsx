@@ -11,6 +11,7 @@ import { getLatestBlogs } from "~/(home)/blog/readBlogs";
 import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const Home = async () => {
   const blogs = await getLatestBlogs();
   return (
@@ -134,10 +135,12 @@ const Home = async () => {
                 </p>
                 <p className="mb-4 text-neutral-dark">
                   The schema adds enough structure for you to revisit{" "}
-                  <span className="font-semibold">"high signal" findings</span>{" "}
+                  <span className="font-semibold">
+                    &ldquo;high signal&rdquo; findings
+                  </span>{" "}
                   as{" "}
                   <span className="font-semibold">
-                    "the minimal shareable insight"
+                    &ldquo;the minimal shareable insight&rdquo;
                   </span>{" "}
                   for others to build on.
                 </p>
@@ -284,8 +287,8 @@ const Home = async () => {
                         <strong className="font-semibold text-gray-900">
                           identifying gaps
                         </strong>{" "}
-                        in knowledge and tractable "starter projects" for new
-                        researchers
+                        in knowledge and tractable &ldquo;starter
+                        projects&rdquo; for new researchers
                       </span>
                     </li>
                     <li className="flex gap-x-3">
@@ -443,7 +446,7 @@ const Home = async () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
-                    IOSP '25 Winter Workshop: Discourse Graphs
+                    IOSP &apos;25 Winter Workshop: Discourse Graphs
                   </h3>
                   <p className="mb-2 text-neutral-dark">
                     February 23-24, 2025 | Denver Museum of Nature and Science
@@ -696,14 +699,15 @@ const Home = async () => {
                   <span className="font-bold">Get Involved! 🚀</span>
                 </p>
                 <p className="text-neutral-dark">
-                  We're building user-friendly Discourse Graph plugins in your
-                  favorite Tool for Thought and would love to hear from you.
+                  We&apos;re building user-friendly Discourse Graph plugins in
+                  your favorite Tool for Thought and would love to hear from
+                  you.
                 </p>
                 <p className="text-neutral-dark">
                   <Link href="mailto:discoursegraphs@homeworld.bio">
                     Send us a line
                   </Link>{" "}
-                  if you're interested in helping to{" "}
+                  if you&apos;re interested in helping to{" "}
                   <Link href="https://github.com/DiscourseGraphs">develop</Link>{" "}
                   or{" "}
                   <Link href="https://experiment.com/projects/sustainable-coordination-in-research-labs-via-graph-enabled-idea-boards/">
