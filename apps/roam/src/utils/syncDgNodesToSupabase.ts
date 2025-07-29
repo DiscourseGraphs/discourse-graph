@@ -453,7 +453,7 @@ export const createOrUpdateDiscourseEmbedding = async (
     const pageNodes = await getAllDiscourseNodesSince(
       time,
       specialNodeTypes,
-      extensionAPI as OnloadArgs["extensionAPI"],
+      extensionAPI,
     );
     console.log("pageNodes", pageNodes);
     await upsertNodesToSupabaseAsContentWithEmbeddings(pageNodes);

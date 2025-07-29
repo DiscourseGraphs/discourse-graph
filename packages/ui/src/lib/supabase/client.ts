@@ -15,8 +15,6 @@ export type DGSupabaseClient = SupabaseClient<
 export const createClient = (): DGSupabaseClient => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
-  console.log("url", url);
-  console.log("key", key);
 
   if (!url || !key) {
     throw new Error("Missing required Supabase environment variables");

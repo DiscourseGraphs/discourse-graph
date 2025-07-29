@@ -50,7 +50,7 @@ const initPostHog = () => {
 };
 
 const initEmbeddingSync = async (extensionAPI: OnloadArgs["extensionAPI"]) => {
-  createOrUpdateDiscourseEmbedding(extensionAPI);
+  await createOrUpdateDiscourseEmbedding(extensionAPI);
 };
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
@@ -97,7 +97,7 @@ export default runExtension(async (onloadArgs) => {
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
 
-  // initEmbeddingSync(onloadArgs.extensionAPI);
+  await initEmbeddingSync(onloadArgs.extensionAPI);
 
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
