@@ -11,6 +11,9 @@ import {
 } from "tldraw";
 import React from "react";
 import DiscourseGraphPlugin from "~/index";
+import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
+
+const customShapeUtils = [...defaultShapeUtils, DiscourseNodeUtil];
 
 export class TldrawView extends TextFileView {
   plugin: DiscourseGraphPlugin;
@@ -116,12 +119,12 @@ export class TldrawView extends TextFileView {
       let store: TLStore;
       if (recordsData) {
         store = createTLStore({
-          shapeUtils: defaultShapeUtils,
+          shapeUtils: customShapeUtils, // Use our custom shape utils
           initialData: recordsData,
         });
       } else {
         store = createTLStore({
-          shapeUtils: defaultShapeUtils,
+          shapeUtils: customShapeUtils, // Use our custom shape utils
         });
         loadSnapshot(store, data.raw);
       }
