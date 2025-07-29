@@ -7,6 +7,9 @@ import React from "react";
 import DiscourseGraphPlugin from "~/index";
 import { processInitialData, TLData } from "~/utils/tldraw";
 import { ObsidianTLAssetStore } from "~/utils/assetStore";
+import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
+
+const customShapeUtils = [...defaultShapeUtils, DiscourseNodeUtil];
 
 export class TldrawView extends TextFileView {
   plugin: DiscourseGraphPlugin;
