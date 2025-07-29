@@ -87,6 +87,14 @@ export const getAllReferencesOnPage = (pageTitle: string) => {
   })) as Result[];
 };
 
+const getAllPageByUidAsync = async (): Promise<[string, string][]> => {
+  // @ts-ignore - backend to be added to roamjs-components
+  const pages = (await window.roamAlphaAPI.data.backend.q(
+    "[:find ?pageName ?pageUid :where [?e :node/title ?pageName] [?e :block/uid ?pageUid]]",
+  )) as [string, string][];
+  return pages;
+};
+
 const SuggestionsBody: React.FC<Props> = ({
   tag,
   blockUid,
@@ -265,9 +273,9 @@ const SuggestionsBody: React.FC<Props> = ({
 
       try {
         if (useAllPagesForSuggestions) {
-          candidateNodesForHyde = allPages
-            .map((pageName) => {
-              const pageUid = getPageUidByPageTitle(pageName);
+          console.time("get candidate nodes from all pages");
+          candidateNodesForHyde = (await getAllPageByUidAsync())
+            .map(([pageName, pageUid]) => {
               if (!pageUid || pageUid === tagUid) return null;
               const node = findDiscourseNode(pageUid);
               if (
@@ -289,6 +297,8 @@ const SuggestionsBody: React.FC<Props> = ({
               } as SuggestedNode;
             })
             .filter((n): n is SuggestedNode => n !== null);
+          console.timeEnd("get candidate nodes from all pages");
+          console.log("candidateNodesForHyde", candidateNodesForHyde);
         } else {
           // From selected pages
           const grabFromReferencedPages = extensionAPI?.settings.get(
@@ -347,11 +357,13 @@ const SuggestionsBody: React.FC<Props> = ({
         }
 
         if (candidateNodesForHyde.length && uniqueRelationTypeTriplets.length) {
+          console.time("find similar nodes using hyde");
           const found = await findSimilarNodesUsingHyde({
             candidateNodes: candidateNodesForHyde,
             currentNodeText: tag,
             relationDetails: uniqueRelationTypeTriplets,
           });
+          console.timeEnd("find similar nodes using hyde");
           setHydeFilteredNodes(found);
         } else {
           setHydeFilteredNodes([]);

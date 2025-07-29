@@ -17,6 +17,27 @@ import ExtensionApiContextProvider from "roamjs-components/components/ExtensionA
 
 const PANEL_ROOT_ID = "discourse-graph-suggestions-root";
 const PANELS_CONTAINER_ID = "discourse-graph-panels-container";
+const ARTICLE_WRAPPER_SELECTOR = ".rm-article-wrapper";
+let articleWrapperObserver: MutationObserver | null = null;
+
+const initializeObserver = (mainContent: HTMLElement) => {
+  if (articleWrapperObserver) {
+    return;
+  }
+  articleWrapperObserver = new MutationObserver(() => {
+    const root = document.getElementById(PANEL_ROOT_ID);
+    if (root && root.style.display !== "none") {
+      if (!mainContent.classList.contains("rm-spacing--large")) {
+        mainContent.classList.add("rm-spacing--large");
+        mainContent.classList.remove("rm-spacing--small");
+      }
+    }
+  });
+  articleWrapperObserver.observe(mainContent, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+};
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -152,7 +173,9 @@ DiscourseSuggestionsPanel.toggle = (
 
   // If the root does not exist yet, create it and apply the 40/60 split.
   if (!suggestionsRoot && roamBodyMain) {
-    const mainContent = roamBodyMain.firstElementChild as HTMLElement | null;
+    const mainContent = roamBodyMain.querySelector<HTMLElement>(
+      ARTICLE_WRAPPER_SELECTOR,
+    );
     if (!mainContent) return; // safety-guard – shouldn't happen in a normal Roam page
 
     suggestionsRoot = document.createElement("div");
@@ -166,6 +189,12 @@ DiscourseSuggestionsPanel.toggle = (
     roamBodyMain.style.display = "flex";
     mainContent.style.flex = "1 1 60%";
     roamBodyMain.dataset.isSplit = "true";
+
+    if (mainContent) {
+      mainContent.classList.remove("rm-spacing--small");
+      mainContent.classList.add("rm-spacing--large");
+      initializeObserver(mainContent);
+    }
   }
 
   // If we still don't have either container, bail
@@ -178,8 +207,9 @@ DiscourseSuggestionsPanel.toggle = (
     roamBodyMain &&
     !roamBodyMain.dataset.isSplit
   ) {
-    const mainContent =
-      suggestionsRoot.nextElementSibling as HTMLElement | null;
+    const mainContent = roamBodyMain.querySelector<HTMLElement>(
+      ARTICLE_WRAPPER_SELECTOR,
+    );
     suggestionsRoot.style.display = "flex";
     // Ensure the root is sized correctly.
     suggestionsRoot.style.flex = "0 0 40%";
@@ -190,6 +220,11 @@ DiscourseSuggestionsPanel.toggle = (
       mainContent.style.flex = "1 1 60%";
     }
     roamBodyMain.dataset.isSplit = "true";
+    if (mainContent) {
+      mainContent.classList.remove("rm-spacing--small");
+      mainContent.classList.add("rm-spacing--large");
+      initializeObserver(mainContent);
+    }
   }
 
   // From now on, always append the panels container to `suggestionsRoot`.
@@ -209,7 +244,7 @@ DiscourseSuggestionsPanel.toggle = (
     ) as HTMLElement | null;
     const remainingPanels = panelsContainer?.children.length || 0;
 
-    if (remainingPanels === 0 && panelsContainer) {
+    if (remainingPanels <= 1 && panelsContainer) {
       panelsContainer.remove();
       // Remove the suggestions root and restore layout
       if (suggestionsRoot?.parentElement) {
@@ -218,11 +253,18 @@ DiscourseSuggestionsPanel.toggle = (
       if (roamBodyMain && roamBodyMain.dataset.isSplit === "true") {
         roamBodyMain.removeAttribute("data-is-split");
         roamBodyMain.style.display = "";
-        const mainContent =
-          roamBodyMain.firstElementChild as HTMLElement | null;
+        const mainContent = roamBodyMain.querySelector<HTMLElement>(
+          ARTICLE_WRAPPER_SELECTOR,
+        );
         if (mainContent) {
           mainContent.style.flex = "";
+          mainContent.classList.remove("rm-spacing--large");
+          mainContent.classList.add("rm-spacing--small");
         }
+      }
+      if (articleWrapperObserver) {
+        articleWrapperObserver.disconnect();
+        articleWrapperObserver = null;
       }
     }
     return;
@@ -303,9 +345,17 @@ DiscourseSuggestionsPanel.toggle = (
           roamBodyMain.removeAttribute("data-is-split");
           roamBodyMain.style.display = "";
           const mainContent =
-            roamBodyMain.firstElementChild as HTMLElement | null;
-          if (mainContent) mainContent.style.flex = "";
+            panelRoot?.nextElementSibling as HTMLElement | null;
+          if (mainContent) {
+            mainContent.style.flex = "";
+            mainContent.classList.remove("rm-spacing--large");
+            mainContent.classList.add("rm-spacing--small");
+          }
         }
+      }
+      if (articleWrapperObserver) {
+        articleWrapperObserver.disconnect();
+        articleWrapperObserver = null;
       }
     };
 
@@ -337,7 +387,7 @@ DiscourseSuggestionsPanel.toggle = (
     // Check if there are any remaining panels
     const remainingPanels = panelsContainer?.children.length || 0;
 
-    if (remainingPanels === 0) {
+    if (remainingPanels === 1 && newPanel.parentElement === panelsContainer) {
       panelsContainer.remove();
       // Remove the suggestions root and restore layout
       if (suggestionsRoot?.parentElement) {
@@ -346,11 +396,18 @@ DiscourseSuggestionsPanel.toggle = (
       if (roamBodyMain && roamBodyMain.dataset.isSplit === "true") {
         roamBodyMain.removeAttribute("data-is-split");
         roamBodyMain.style.display = "";
-        const mainContent =
-          roamBodyMain.firstElementChild as HTMLElement | null;
+        const mainContent = roamBodyMain.querySelector<HTMLElement>(
+          ARTICLE_WRAPPER_SELECTOR,
+        );
         if (mainContent) {
           mainContent.style.flex = "";
+          mainContent.classList.remove("rm-spacing--large");
+          mainContent.classList.add("rm-spacing--small");
         }
+      }
+      if (articleWrapperObserver) {
+        articleWrapperObserver.disconnect();
+        articleWrapperObserver = null;
       }
     }
   };
