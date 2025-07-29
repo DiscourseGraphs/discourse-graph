@@ -11,7 +11,7 @@ import { getLatestBlogs } from "~/(home)/blog/readBlogs";
 import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
 
-export default async function Home() {
+const Home = async () => {
   const blogs = await getLatestBlogs();
   return (
     <div>
@@ -713,7 +713,10 @@ export default async function Home() {
                 </p>
                 <p className="text-neutral-dark">
                   And stay up to date by joining us on{" "}
-                  <Link href="https://discord.gg/vq83RRk2tg">Discord 🗣️</Link>!
+                  <Link href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg">
+                    Slack 💬
+                  </Link>
+                  !
                 </p>
               </div>
             </CardContent>
@@ -737,10 +740,13 @@ export default async function Home() {
                 className="opacity-80 transition-opacity hover:opacity-100"
               />
             </Link>
-            <Link href="https://discord.gg/vq83RRk2tg" aria-label="Discord">
+            <Link
+              href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg"
+              aria-label="Slack"
+            >
               <Image
-                src="/discord.svg"
-                alt="Discord"
+                src="/slack.svg"
+                alt="Slack"
                 width={24}
                 height={24}
                 className="opacity-80 transition-opacity hover:opacity-100"
@@ -759,4 +765,6 @@ export default async function Home() {
       </footer>
     </div>
   );
-}
+};
+
+export default Home;
