@@ -713,7 +713,7 @@ export default async function Home() {
                 </p>
                 <p className="text-neutral-dark">
                   And stay up to date by joining us on{" "}
-                  <Link href="https://discord.gg/vq83RRk2tg">Discord 🗣️</Link>!
+                  <Link href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg">Slack 🗣️</Link>!
                 </p>
               </div>
             </CardContent>
