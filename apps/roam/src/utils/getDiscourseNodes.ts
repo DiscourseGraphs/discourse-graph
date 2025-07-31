@@ -15,6 +15,7 @@ export type DiscourseNode = {
   text: string;
   type: string;
   shortcut: string;
+  tag?: string;
   specification: Condition[];
   backedBy: "user" | "default" | "relation";
   canvasSettings: {
@@ -85,6 +86,7 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
         format: getSettingValueFromTree({ tree: children, key: "format" }),
         text,
         shortcut: getSettingValueFromTree({ tree: children, key: "shortcut" }),
+        tag: getSettingValueFromTree({ tree: children, key: "tag" }),
         type,
         specification: getSpecification(children),
         backedBy: "user",

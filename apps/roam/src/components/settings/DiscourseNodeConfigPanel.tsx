@@ -80,6 +80,10 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   children: [{ text: label.slice(0, 1).toUpperCase() }],
                 },
                 {
+                  text: "Tag",
+                  children: [{ text: "" }],
+                },
+                {
                   text: "Format",
                   children: [
                     {
@@ -96,6 +100,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   type: valueUid,
                   text: label,
                   shortcut: "",
+                  tag: "",
                   specification: [],
                   backedBy: "user",
                   canvasSettings: {},

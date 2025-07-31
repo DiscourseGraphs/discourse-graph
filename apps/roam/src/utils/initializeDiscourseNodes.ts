@@ -16,6 +16,7 @@ const initializeDiscourseNodes = async () => {
             tree: [
               { text: "Format", children: [{ text: n.format || "" }] },
               { text: "Shortcut", children: [{ text: n.shortcut || "" }] },
+              { text: "Tag", children: [{ text: n.tag || "" }] },
               { text: "Graph Overview" },
               {
                 text: "Canvas",
