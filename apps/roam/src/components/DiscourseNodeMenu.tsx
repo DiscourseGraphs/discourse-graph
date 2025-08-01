@@ -100,7 +100,7 @@ const NodeMenu = ({
 
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+      if (!isOpen || e.metaKey || e.ctrlKey || e.shiftKey) return;
 
       if (e.key === "ArrowDown") {
         const index = Number(
@@ -134,7 +134,7 @@ const NodeMenu = ({
       e.stopPropagation();
       e.preventDefault();
     },
-    [onSelect, onClose, indexBySC],
+    [onSelect, onClose, indexBySC, isOpen],
   );
   useEffect(() => {
     const eventTarget = trigger ? document : textarea;
