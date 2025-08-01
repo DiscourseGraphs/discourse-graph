@@ -1,3 +1,4 @@
+import path from "path";
 import { BaseBoxShapeUtil, HTMLContainer, T, TLBaseShape } from "tldraw";
 import type { App, TFile } from "obsidian";
 import { resolveLinkedFileFromSrc } from "~/utils/assetStore";
