@@ -4,18 +4,11 @@ import {
   ErrorBoundary,
   Tldraw,
   TLStore,
-  useEditor,
-  TLUiAssetUrlOverrides,
   useTools,
-  DefaultMainMenu,
-  DefaultMainMenuContent,
-  TldrawUiMenuGroup,
   TldrawUiMenuItem,
   DefaultToolbar,
   DefaultToolbarContent,
   useIsToolSelected,
-  DefaultKeyboardShortcutsDialog,
-  DefaultKeyboardShortcutsDialogContent,
   DefaultStylePanel,
   Editor,
 } from "tldraw";
@@ -38,7 +31,6 @@ import { ObsidianTLAssetStore } from "~/utils/assetStore";
 import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
 import { DiscourseNodePanel } from "./DiscourseNodePanel";
 import { DiscourseNodeTool } from "~/utils/DiscourseNodeTool";
-import { DiscourseIcon } from "~/utils/DiscourseIcon";
 
 interface TldrawPreviewProps {
   store: TLStore;
