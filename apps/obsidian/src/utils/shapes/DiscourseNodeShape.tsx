@@ -1,3 +1,4 @@
+import path from "path";
 import { BaseBoxShapeUtil, HTMLContainer, T, TLBaseShape } from "tldraw";
 import { useApp } from "~/components/AppContext";
 
@@ -6,7 +7,6 @@ export type DiscourseNodeShape = TLBaseShape<
   {
     w: number;
     h: number;
-    text: string;
     filePath: string; // TODO: maybe re-introduce nodeInstanceId as the identifier
     nodeType: string;
   }
@@ -19,7 +19,6 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   static props = {
     w: T.number,
     h: T.number,
-    text: T.string,
     filePath: T.string,
     nodeType: T.string,
   };
@@ -28,7 +27,6 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     return {
       w: 200,
       h: 100,
-      text: "New Discourse Node",
       filePath: "",
       nodeType: "default",
     };
@@ -39,7 +37,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     return (
       <HTMLContainer>
         <div>
-          <h1>{shape.props.text}</h1>
+          <h1>{path.basename(shape.props.filePath, ".md")}</h1>
           <p>{shape.props.nodeType}</p>
         </div>
       </HTMLContainer>

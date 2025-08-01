@@ -6,18 +6,11 @@ import {
   loadSnapshot,
   Tldraw,
   TLStore,
-  useEditor,
-  TLUiAssetUrlOverrides,
   useTools,
-  DefaultMainMenu,
-  DefaultMainMenuContent,
-  TldrawUiMenuGroup,
   TldrawUiMenuItem,
   DefaultToolbar,
   DefaultToolbarContent,
   useIsToolSelected,
-  DefaultKeyboardShortcutsDialog,
-  DefaultKeyboardShortcutsDialogContent,
   DefaultStylePanel,
 } from "tldraw";
 import "tldraw/tldraw.css";
@@ -36,7 +29,6 @@ import { TFile } from "obsidian";
 import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
 import { DiscourseNodePanel } from "./DiscourseNodePanel";
 import { DiscourseNodeTool } from "~/utils/DiscourseNodeTool";
-import { DiscourseIcon } from "~/utils/DiscourseIcon";
 
 interface TldrawPreviewProps {
   store: TLStore;
