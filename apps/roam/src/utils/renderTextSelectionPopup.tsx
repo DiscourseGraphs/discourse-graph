@@ -6,6 +6,11 @@ import { OnloadArgs } from "roamjs-components/types";
 
 let currentPopupContainer: HTMLDivElement | null = null;
 
+export const getCurrentPopupContainer = () => currentPopupContainer;
+export const setCurrentPopupContainer = (container: HTMLDivElement | null) => {
+  currentPopupContainer = container;
+};
+
 export const findBlockElementFromSelection = (): Element | null => {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return null;
@@ -65,9 +70,10 @@ export const renderTextSelectionPopup = ({
 };
 
 export const removeTextSelectionPopup = () => {
-  const container = document.getElementById("discourse-text-selection-popup");
+  const container = getCurrentPopupContainer();
   if (container) {
     ReactDOM.unmountComponentAtNode(container);
     container.remove();
+    setCurrentPopupContainer(null);
   }
 };
