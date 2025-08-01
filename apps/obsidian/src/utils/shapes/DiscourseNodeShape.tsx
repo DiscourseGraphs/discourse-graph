@@ -1,5 +1,4 @@
 import { BaseBoxShapeUtil, HTMLContainer, T, TLBaseShape } from "tldraw";
-import * as React from "react";
 import { useApp } from "~/components/AppContext";
 
 export type DiscourseNodeShape = TLBaseShape<
@@ -23,7 +22,6 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     text: T.string,
     filePath: T.string,
     nodeType: T.string,
-    backgroundColor: T.string,
   };
 
   getDefaultProps(): DiscourseNodeShape["props"] {
@@ -37,12 +35,15 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   }
 
   component(shape: DiscourseNodeShape) {
-    return <HTMLContainer>
-      <div>
-        <h1>{shape.props.text}</h1>
-        <p>{shape.props.nodeType}</p>
-      </div>
-    </HTMLContainer>;
+    // TODO: Add a proper component for the discourse node (preview of file?)
+    return (
+      <HTMLContainer>
+        <div>
+          <h1>{shape.props.text}</h1>
+          <p>{shape.props.nodeType}</p>
+        </div>
+      </HTMLContainer>
+    );
   }
 
   indicator(shape: DiscourseNodeShape) {

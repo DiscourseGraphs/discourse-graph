@@ -6,6 +6,19 @@ import {
   loadSnapshot,
   Tldraw,
   TLStore,
+  useEditor,
+  TLUiAssetUrlOverrides,
+  useTools,
+  DefaultMainMenu,
+  DefaultMainMenuContent,
+  TldrawUiMenuGroup,
+  TldrawUiMenuItem,
+  DefaultToolbar,
+  DefaultToolbarContent,
+  useIsToolSelected,
+  DefaultKeyboardShortcutsDialog,
+  DefaultKeyboardShortcutsDialogContent,
+  DefaultStylePanel,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import {
@@ -21,6 +34,9 @@ import {
 } from "~/constants";
 import { TFile } from "obsidian";
 import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
+import { DiscourseNodePanel } from "./DiscourseNodePanel";
+import { DiscourseNodeTool } from "~/utils/DiscourseNodeTool";
+import { DiscourseIcon } from "~/utils/DiscourseIcon";
 
 interface TldrawPreviewProps {
   store: TLStore;
@@ -40,6 +56,7 @@ export const TldrawPreviewComponent = ({
   const lastSavedDataRef = useRef<string>("");
 
   const customShapeUtils = [...defaultShapeUtils, DiscourseNodeUtil];
+  const customTools = [DiscourseNodeTool];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -150,6 +167,64 @@ export const TldrawPreviewComponent = ({
             onMount={handleMount}
             autoFocus={true}
             shapeUtils={customShapeUtils}
+            tools={customTools}
+            assetUrls={{
+              icons: {
+                "discourse-node-icon":
+                  plugin.app.vault.adapter.getResourcePath("white-logo.svg"),
+              },
+            }}
+            overrides={{
+              tools: (editor, tools) => {
+                tools["discourse-node"] = {
+                  id: "discourse-node",
+                  label: "Discourse Node",
+                  readonlyOk: false,
+                  icon: "box",
+                  onSelect: () => {
+                    editor.setCurrentTool("discourse-node");
+                  },
+                };
+                console.log("tools", tools);
+                return tools;
+              },
+            }}
+            components={{
+              StylePanel: () => {
+                const tools = useTools();
+                const isDiscourseNodeSelected = useIsToolSelected(
+                  tools["discourse-node"],
+                );
+
+                if (!isDiscourseNodeSelected) {
+                  return <DefaultStylePanel />;
+                }
+
+                return <DiscourseNodePanel plugin={plugin} />;
+              },
+              Toolbar: (props) => {
+                const tools = useTools();
+                const isDiscourseNodeSelected = useIsToolSelected(
+                  tools["discourse-node"],
+                );
+                return (
+                  <DefaultToolbar {...props}>
+                    <TldrawUiMenuItem
+                      id="discourse-node"
+                      icon="box"
+                      label="Discourse Node"
+                      onSelect={() => {
+                        if (editorRef.current) {
+                          editorRef.current.setCurrentTool("discourse-node");
+                        }
+                      }}
+                      isSelected={isDiscourseNodeSelected}
+                    />
+                    <DefaultToolbarContent />
+                  </DefaultToolbar>
+                );
+              },
+            }}
           />
         </ErrorBoundary>
       ) : (
