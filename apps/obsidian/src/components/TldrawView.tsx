@@ -11,10 +11,6 @@ import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
 
 const customShapeUtils = [...defaultShapeUtils, DiscourseNodeUtil];
 
-console.log("defaultShapeUtils", defaultShapeUtils);
-
-console.log("customShapeUtils", customShapeUtils);
-
 export class TldrawView extends TextFileView {
   plugin: DiscourseGraphPlugin;
   private reactRoot?: Root;

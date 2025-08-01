@@ -4,6 +4,20 @@ import {
   ErrorBoundary,
   Tldraw,
   TLStore,
+  useEditor,
+  TLUiAssetUrlOverrides,
+  useTools,
+  DefaultMainMenu,
+  DefaultMainMenuContent,
+  TldrawUiMenuGroup,
+  TldrawUiMenuItem,
+  DefaultToolbar,
+  DefaultToolbarContent,
+  useIsToolSelected,
+  DefaultKeyboardShortcutsDialog,
+  DefaultKeyboardShortcutsDialogContent,
+  DefaultStylePanel,
+  Editor,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import {
@@ -22,6 +36,9 @@ import {
 import { TFile } from "obsidian";
 import { ObsidianTLAssetStore } from "~/utils/assetStore";
 import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
+import { DiscourseNodePanel } from "./DiscourseNodePanel";
+import { DiscourseNodeTool } from "~/utils/DiscourseNodeTool";
+import { DiscourseIcon } from "~/utils/DiscourseIcon";
 
 interface TldrawPreviewProps {
   store: TLStore;
@@ -41,6 +58,7 @@ export const TldrawPreviewComponent = ({
   const [isReady, setIsReady] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedDataRef = useRef<string>("");
+  const editorRef = useRef<Editor | null>(null);
 
   const customShapeUtils = [
     ...defaultShapeUtils,
@@ -50,6 +68,7 @@ export const TldrawPreviewComponent = ({
       plugin,
     }),
   ];
+  const customTools = [DiscourseNodeTool];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -139,6 +158,10 @@ export const TldrawPreviewComponent = ({
     };
   }, [currentStore, saveChanges]);
 
+  const handleMount = (editor: Editor) => {
+    editorRef.current = editor;
+  };
+
   return (
     <div ref={containerRef} className="tldraw__editor relative h-full">
       {isReady ? (
@@ -149,9 +172,68 @@ export const TldrawPreviewComponent = ({
         >
           <Tldraw
             store={currentStore}
+            onMount={handleMount}
             autoFocus={true}
             initialState="select"
             shapeUtils={customShapeUtils}
+            tools={customTools}
+            assetUrls={{
+              icons: {
+                "discourse-node-icon":
+                  plugin.app.vault.adapter.getResourcePath("white-logo.svg"),
+              },
+            }}
+            overrides={{
+              tools: (editor, tools) => {
+                tools["discourse-node"] = {
+                  id: "discourse-node",
+                  label: "Discourse Node",
+                  readonlyOk: false,
+                  icon: "box",
+                  onSelect: () => {
+                    editor.setCurrentTool("discourse-node");
+                  },
+                };
+                console.log("tools", tools);
+                return tools;
+              },
+            }}
+            components={{
+              StylePanel: () => {
+                const tools = useTools();
+                const isDiscourseNodeSelected = useIsToolSelected(
+                  tools["discourse-node"],
+                );
+
+                if (!isDiscourseNodeSelected) {
+                  return <DefaultStylePanel />;
+                }
+
+                return <DiscourseNodePanel plugin={plugin} />;
+              },
+              Toolbar: (props) => {
+                const tools = useTools();
+                const isDiscourseNodeSelected = useIsToolSelected(
+                  tools["discourse-node"],
+                );
+                return (
+                  <DefaultToolbar {...props}>
+                    <TldrawUiMenuItem
+                      id="discourse-node"
+                      icon="box"
+                      label="Discourse Node"
+                      onSelect={() => {
+                        if (editorRef.current) {
+                          editorRef.current.setCurrentTool("discourse-node");
+                        }
+                      }}
+                      isSelected={isDiscourseNodeSelected}
+                    />
+                    <DefaultToolbarContent />
+                  </DefaultToolbar>
+                );
+              },
+            }}
           />
         </ErrorBoundary>
       ) : (
