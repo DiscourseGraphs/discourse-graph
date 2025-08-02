@@ -259,10 +259,7 @@ export const initObservers = async ({
     const isTextSelectionPopupEnabled =
       onloadArgs.extensionAPI.settings.get("text-selection-popup") !== false;
 
-    if (!isTextSelectionPopupEnabled) {
-      removeTextSelectionPopup();
-      return;
-    }
+    if (!isTextSelectionPopupEnabled) return;
 
     const selection = window.getSelection();
 
