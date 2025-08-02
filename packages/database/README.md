@@ -11,7 +11,7 @@ It does mean you will have a fresh database with minimal data.
 
 1. Install [Docker](https://www.docker.com)
 2. Set the `SUPABASE_WORKDIR` in your environment to the absolute path of the `packages/database` directory.
-3. Install [sqruff](https://github.com/quarylabs/sqruff)
+3. Install [sqruff](https://github.com/quarylabs/sqruff), version >= 0.29.1
 
 ### General usage:
 
