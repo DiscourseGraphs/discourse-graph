@@ -152,15 +152,14 @@ export const discourseRelationDataToLocalConcept = (
     Math.max(...nodeData.map((nd) => new Date(nd.created).getTime())),
   ).toISOString();
   const author_local_id: string = nodeData[0].author_uid; // take any one; again until I get the relation object
-  const represented_by_local_id =
-    casting["target"] || Object.values(casting)[0]; // This one is tricky. Prefer the target for now.
+  const represented_by_local_id = `${relationSchemaUid}-${Object.values(casting).join("-")}`;
   return {
     space_id: context.spaceId,
     represented_by_local_id,
     author_local_id,
     created,
     last_modified,
-    name: `${relationSchemaUid}-${Object.values(casting).join("-")}`,
+    name: represented_by_local_id,
     is_schema: false,
     schema_represented_by_local_id: relationSchemaUid,
     local_reference_content: casting,
@@ -233,8 +232,36 @@ export const orderConceptsByDependency = (
 // the input to the upsert method would look like this:
 
 // const idata: LocalConceptDataInput[] = [
-//   { "name": "Claim", "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2", "represented_by_local_id": "a_roam_uid", "created": "2000/01/01", "last_modified": "2001/01/02", "is_schema": true },
-//   { "name": "A Claim", "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2", "represented_by_local_id": "a_roam_uid2", "created": "2000/01/03", "last_modified": "2001/01/04", "is_schema": false, "schema_represented_by_local_id": "a_roam_uid" },
-//   { "name": "test2", "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2", "created": "2000/01/04", "last_modified": "2001/01/05", "is_schema": false, "literal_content": { "source": "a_roam_uid", "target": ["a_roam_uid", "a_roam_uid2"] }, "local_reference_content": { "source": "a_roam_uid", "target": ["a_roam_uid", "a_roam_uid2"] } }]
+//   { "name": "Claim",
+//     "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2",
+//     "represented_by_local_id": "a_roam_uid",
+//     "created": "2000/01/01",
+//     "last_modified": "2001/01/02",
+//     "is_schema": true
+//   },
+//   { "name": "A Claim",
+//     "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2",
+//     "represented_by_local_id": "a_roam_uid2",
+//     "created": "2000/01/03",
+//     "last_modified": "2001/01/04",
+//     "is_schema": false,
+//     "schema_represented_by_local_id": "a_roam_uid"
+//   },
+//   { "name": "test2",
+//     "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2",
+//     "created": "2000/01/04",
+//     "last_modified": "2001/01/05",
+//     "is_schema": false,
+//     "literal_content": {
+//       "source": "a_roam_uid",
+//       "target": ["a_roam_uid", "a_roam_uid2"]
+//     },
+//     "local_reference_content": {
+//       "source": "a_roam_uid",
+//       "target": ["a_roam_uid", "a_roam_uid2"]
+//     }
+//   }
+// ]
 
 // const { data, error } = await supabase_client.rpc("upsert_concepts", { v_space_id: 12, data: idata });
+``;

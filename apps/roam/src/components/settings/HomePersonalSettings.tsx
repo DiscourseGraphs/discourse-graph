@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label, Checkbox } from "@blueprintjs/core";
+import { Label, Checkbox, Button, Intent } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
@@ -19,7 +19,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const overlayHandler = getOverlayHandler(onloadArgs);
 
   return (
-    <div className="flex flex-col gap-4 p-1">
+    <div className="relative flex flex-col gap-4 p-1">
       <Label>
         Personal Node Menu Trigger
         <Description
@@ -44,9 +44,14 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
+          console.log("discourse-context-overlay", target.checked);
           extensionAPI.settings.set(
             "discourse-context-overlay",
             target.checked,
+          );
+          console.log(
+            "discourse-context-overlay",
+            extensionAPI.settings.get("discourse-context-overlay"),
           );
 
           onPageRefObserverChange(overlayHandler)(target.checked);

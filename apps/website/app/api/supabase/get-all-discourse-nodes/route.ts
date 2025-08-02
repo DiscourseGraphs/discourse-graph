@@ -4,6 +4,7 @@ import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
+  asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
 import cors from "~/utils/llm/cors";
 
@@ -18,21 +19,73 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
     const supabase = await createClient();
 
-    // TODO - Later when we have discourse relations in Supabase, this function should only get the discourse nodes
-    const documentsResponse = await supabase
-      .from("Document")
-      .select("source_local_id")
+    const { data: schemas, error: schemasError } = await supabase
+      .from("Concept")
+      .select("id")
       .eq("space_id", spaceId)
-      .not("source_local_id", "is", null);
+      .eq("is_schema", true)
+      // A node schema has arity 0, whereas a relation schema has arity > 0
+      .eq("arity", 0);
 
-    if (documentsResponse.error) {
-      return createApiResponse(request, documentsResponse);
+    if (schemasError) {
+      return createApiResponse(
+        request,
+        asPostgrestFailure(schemasError.message, schemasError.code, 500),
+      );
+    }
+    console.log("data", schemas);
+
+    const schemaIds = schemas.map((s) => s.id);
+
+    console.log("schemaIds", schemaIds);
+
+    if (schemaIds.length === 0) {
+      const response = NextResponse.json([], { status: 200 });
+      return cors(request, response) as NextResponse;
     }
 
-    const result =
-      documentsResponse.data
-        ?.filter((doc) => doc.source_local_id)
-        .map((doc) => doc.source_local_id) || [];
+    const conceptResponse = await supabase
+      .from("Concept")
+      .select(
+        `
+        Content!inner (
+            source_local_id
+        )
+      `,
+      )
+      .eq("space_id", spaceId)
+      .eq("is_schema", false)
+      .in("schema_id", schemaIds)
+      .not("Content.source_local_id", "is", null);
+
+    console.log("conceptResponse", conceptResponse);
+
+    if (conceptResponse.error) {
+      return createApiResponse(request, conceptResponse);
+    }
+
+    const nodeResult =
+      conceptResponse.data
+        ?.map((c) => c.Content?.source_local_id)
+        .filter((id): id is string => !!id) || [];
+
+    const blockContentResponse = await supabase
+      .from("Content")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .eq("scale", "block")
+      .not("source_local_id", "is", null);
+
+    if (blockContentResponse.error) {
+      return createApiResponse(request, blockContentResponse);
+    }
+
+    const blockResult =
+      blockContentResponse.data
+        ?.map((c) => c.source_local_id)
+        .filter((id): id is string => !!id) || [];
+
+    const result = [...new Set([...nodeResult, ...blockResult])];
 
     const response = NextResponse.json(result, { status: 200 });
     return cors(request, response) as NextResponse;

@@ -22,6 +22,8 @@ import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
+import { createOrUpdateDiscourseEmbedding } from "./utils/syncDgNodesToSupabase";
+import { OnloadArgs } from "roamjs-components/types";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -95,6 +97,9 @@ export default runExtension(async (onloadArgs) => {
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
 
+  await initializeDiscourseNodes();
+  refreshConfigTree();
+
   const { observers, listeners } = await initObservers({ onloadArgs });
   const {
     pageActionListener,
@@ -109,9 +114,7 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  await initializeDiscourseNodes();
-  refreshConfigTree();
-
+  await createOrUpdateDiscourseEmbedding(onloadArgs.extensionAPI);
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>

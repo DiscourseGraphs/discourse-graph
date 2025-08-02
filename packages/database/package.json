@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     "./types.gen.ts": "./types.gen.ts",
-    "./types.gen": "./types.gen.ts"
+    "./types.gen": "./types.gen.ts",
+    "./inputTypes": "./inputTypes.ts"
   },
   "scripts": {
     "init": "supabase login",

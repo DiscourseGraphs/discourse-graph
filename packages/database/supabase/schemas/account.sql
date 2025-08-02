@@ -210,7 +210,7 @@ CREATE POLICY platform_account_select_policy ON public."PlatformAccount" FOR SEL
 ALTER TABLE public."SpaceAccess" ENABLE ROW LEVEL SECURITY ;
 
 DROP POLICY IF EXISTS space_access_policy ON public."SpaceAccess" ;
-CREATE POLICY space_access_policy ON public."SpaceAccess" FOR ALL USING (public.unowned_account_in_shared_space(account_id)) ;
+CREATE POLICY space_access_policy ON public."SpaceAccess" FOR ALL TO authenticated USING (public.unowned_account_in_shared_space(account_id)) ;
 
 DROP POLICY IF EXISTS space_access_select_policy ON public."SpaceAccess" ;
 CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR ALL USING (public.in_space(space_id)) ;

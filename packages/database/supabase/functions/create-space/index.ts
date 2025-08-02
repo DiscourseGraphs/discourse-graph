@@ -181,8 +181,19 @@ const processAndGetOrCreateSpace = async (
   return result;
 };
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization,x-client-info,apikey,content-type",
+};
+
 // @ts-ignore Deno is not visible to the IDE
 Deno.serve(async (req) => {
+  // Handle pre-flight requests
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   const input = await req.json();
   // TODO: We should check whether the request comes from a vetted source, like
   // the roam or obsidian plugin. A combination of CSRF, headers, etc.
@@ -193,7 +204,7 @@ Deno.serve(async (req) => {
   if (!url || !key) {
     return new Response("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY", {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
   const supabase: DGSupabaseClient = createClient(url, key);
@@ -203,12 +214,12 @@ Deno.serve(async (req) => {
     const status = error.code === "invalid space" ? 400 : 500;
     return new Response(JSON.stringify(error), {
       status,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
   return new Response(JSON.stringify(data), {
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...corsHeaders },
   });
 });
 
