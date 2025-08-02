@@ -7,7 +7,6 @@ export default [
       parserOptions: {
         project: true,
         tsconfigRootDir: ".",
-        project: "./tsconfig.json",
       },
     },
   },
