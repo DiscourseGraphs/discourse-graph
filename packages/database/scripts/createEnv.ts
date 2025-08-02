@@ -22,7 +22,6 @@ if (["local", "branch", "production", "all"].indexOf(variant) === -1) {
   process.exit(-1);
 }
 
-let vercel: Vercel | null = null;
 // option to override in .env, but otherwise use our values
 const projectIdOrName: string =
   process.env["VERCEL_PROJECT_ID"] ||
@@ -30,22 +29,6 @@ const projectIdOrName: string =
   "discourse-graph";
 const baseParams: Record<string, string> = {};
 const vercelToken = process.env["VERCEL_TOKEN"];
-
-if (variant !== "local") {
-  if (!vercelToken) {
-    console.error("Missing VERCEL_TOKEN in .env");
-    process.exit(-1);
-  }
-  // option to override in .env, but otherwise use our values
-  const teamId = process.env["VERCEL_TEAM_ID"];
-  const teamSlug = process.env["VERCEL_TEAM_SLUG"] || "discourse-graphs";
-  if (teamId) {
-    baseParams.teamId = teamId;
-  } else {
-    baseParams.slug = teamSlug;
-  }
-  vercel = new Vercel({ bearerToken: vercelToken });
-}
 
 const makeLocalEnv = () => {
   const stdout = execSync("supabase status -o env", {
@@ -127,7 +110,21 @@ const makeProductionEnv = async (vercel: Vercel) => {
 try {
   if (variant === "local" || variant === "all") {
     makeLocalEnv();
+    if (variant === "local") process.exit(0);
   }
+  if (!vercelToken) {
+    console.error("Missing VERCEL_TOKEN in .env");
+    process.exit(-1);
+  }
+  // option to override in .env, but otherwise use our values
+  const teamId = process.env["VERCEL_TEAM_ID"];
+  const teamSlug = process.env["VERCEL_TEAM_SLUG"] || "discourse-graphs";
+  if (teamId) {
+    baseParams.teamId = teamId;
+  } else {
+    baseParams.slug = teamSlug;
+  }
+  const vercel = new Vercel({ bearerToken: vercelToken });
   if (variant === "branch" || variant === "all") {
     await makeBranchEnv(vercel);
   }
