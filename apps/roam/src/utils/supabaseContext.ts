@@ -26,12 +26,10 @@ export type SupabaseContext = {
 };
 
 let _contextCache: SupabaseContext | null = null;
-
-const settingsConfigPageUid = getPageUidByPageTitle(
-  DISCOURSE_CONFIG_PAGE_TITLE,
-);
-
 const getOrCreateSpacePassword = () => {
+  const settingsConfigPageUid = getPageUidByPageTitle(
+    DISCOURSE_CONFIG_PAGE_TITLE,
+  );
   const props = getBlockProps(settingsConfigPageUid);
   const existing: string | unknown = props["space-user-password"];
   if (existing && typeof existing === "string") return existing;

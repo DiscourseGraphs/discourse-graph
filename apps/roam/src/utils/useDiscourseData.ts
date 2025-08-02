@@ -37,8 +37,7 @@ export const getOverlayInfo = async (
         nodes,
         relations,
       }),
-      // @ts-ignore - backend to be added to roamjs-components
-      window.roamAlphaAPI.data.backend.q(
+      await window.roamAlphaAPI.data.async.q(
         `[:find ?a :where [?b :node/title "${normalizePageTitle(
           tag,
         )}"] [?a :block/refs ?b]]`,

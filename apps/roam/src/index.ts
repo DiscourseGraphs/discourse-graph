@@ -49,10 +49,6 @@ const initPostHog = () => {
   });
 };
 
-const initEmbeddingSync = async (extensionAPI: OnloadArgs["extensionAPI"]) => {
-  await createOrUpdateDiscourseEmbedding(extensionAPI);
-};
-
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
@@ -97,8 +93,6 @@ export default runExtension(async (onloadArgs) => {
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
 
-  await initEmbeddingSync(onloadArgs.extensionAPI);
-
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
@@ -120,6 +114,7 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
+  await createOrUpdateDiscourseEmbedding(onloadArgs.extensionAPI);
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>

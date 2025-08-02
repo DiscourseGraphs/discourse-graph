@@ -28,7 +28,7 @@ import getDiscourseNodes, {
 } from "~/utils/getDiscourseNodes";
 import { getSubTree } from "roamjs-components/util";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
-import { getSupabaseContext } from "~/utils/supabaseContext";
+import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 import { getDiscourseNodeTypeBlockNodes } from "~/utils/getAllDiscourseNodesSince";
 import {
   createOrUpdateDiscourseEmbedding,
@@ -129,9 +129,14 @@ const NodeTemplateConfig = ({
       extensionAPI as OnloadArgs["extensionAPI"],
     );
     console.log("blockNodesSince", blockNodesSince);
+    const loggedInClient = await getLoggedInClient();
     const context = await getSupabaseContext();
     if (context && blockNodesSince) {
-      await upsertNodesToSupabaseAsContentWithEmbeddings(blockNodesSince);
+      await upsertNodesToSupabaseAsContentWithEmbeddings(
+        blockNodesSince,
+        loggedInClient,
+        context,
+      );
       const nodeBlockToLocalConcepts = blockNodesSince.map((node) => {
         const localConcept = discourseNodeBlockToLocalConcept(context, {
           nodeUid: node.source_local_id,

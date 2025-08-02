@@ -1,81 +1,135 @@
-import { getSupabaseContext } from "./supabaseContext";
+import { getSupabaseContext, type SupabaseContext } from "./supabaseContext";
 import { getNodeEnv } from "roamjs-components/util/env";
+import { type SupabaseClient } from "@supabase/supabase-js";
+import { type Database } from "@repo/database/types.gen";
 
-const getAllNodesFromSupabase = async (): Promise<string[]> => {
+type DGSupabaseClient = SupabaseClient<Database, "public", Database["public"]>;
+
+const getAllNodesFromSupabase = async (
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
+): Promise<string[]> => {
   try {
-    const context = await getSupabaseContext();
     if (!context) {
       console.error("Failed to get Supabase context");
       return [];
     }
+    const { spaceId } = context;
 
-    const baseUrl =
-      getNodeEnv() === "development"
-        ? "http://localhost:3000/api/supabase"
-        : "https://discoursegraphs.com/api/supabase";
+    const { data: schemas, error: schemasError } = await supabaseClient
+      .from("Concept")
+      .select("id")
+      .eq("space_id", spaceId)
+      .eq("is_schema", true)
+      .eq("arity", 0);
 
-    const getNodesResponse = await fetch(`${baseUrl}/get-all-discourse-nodes`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        spaceId: context.spaceId,
-      }),
-    });
-
-    if (!getNodesResponse.ok) {
-      const errorText = await getNodesResponse.text();
+    if (schemasError) {
       console.error(
-        `Failed to fetch nodes from Supabase: ${getNodesResponse.status} ${errorText}`,
+        "Failed to get all discourse node schemas from Supabase:",
+        schemasError,
       );
       return [];
     }
 
-    const supabaseUids = (await getNodesResponse.json()) as string[];
-    return supabaseUids;
+    const schemaIds = schemas.map((s) => s.id);
+    let nodeResult: string[] = [];
+
+    if (schemaIds.length > 0) {
+      const conceptResponse = await supabaseClient
+        .from("Concept")
+        .select(
+          `
+        Content!inner (
+            source_local_id
+        )
+      `,
+        )
+        .eq("space_id", spaceId)
+        .eq("is_schema", false)
+        .in("schema_id", schemaIds)
+        .not("Content.source_local_id", "is", null);
+
+      if (conceptResponse.error) {
+        console.error(
+          "Failed to get concepts from Supabase:",
+          conceptResponse.error,
+        );
+        return [];
+      }
+      nodeResult =
+        conceptResponse.data
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ?.map((c: any) => c.Content?.source_local_id)
+          .filter((id): id is string => !!id) || [];
+    }
+
+    const blockContentResponse = await supabaseClient
+      .from("Content")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .eq("scale", "block")
+      .not("source_local_id", "is", null);
+
+    if (blockContentResponse.error) {
+      console.error(
+        "Failed to get block content from Supabase:",
+        blockContentResponse.error,
+      );
+      return [];
+    }
+
+    const blockResult =
+      blockContentResponse.data
+        ?.map((c) => c.source_local_id)
+        .filter((id): id is string => !!id) || [];
+
+    const result = [...new Set([...nodeResult, ...blockResult])];
+
+    return result;
   } catch (error) {
     console.error("Error in getAllNodesFromSupabase:", error);
     return [];
   }
 };
 
-const getAllNodeSchemasFromSupabase = async (): Promise<string[]> => {
+const getAllNodeSchemasFromSupabase = async (
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
+): Promise<string[]> => {
   try {
-    const context = await getSupabaseContext();
     if (!context) {
       console.error("Failed to get Supabase context");
       return [];
     }
 
-    const baseUrl =
-      getNodeEnv() === "development"
-        ? "http://localhost:3000/api/supabase"
-        : "https://discoursegraphs.com/api/supabase";
+    const { data, error } = await supabaseClient
+      .from("Concept")
+      .select(
+        `
+        Content!inner (
+            source_local_id
+        )
+      `,
+      )
+      .eq("space_id", context.spaceId)
+      .eq("is_schema", true)
+      // Node schemas have arity 0 (relations have arity > 0)
+      .eq("arity", 0)
+      .not("Content.source_local_id", "is", null);
 
-    const getSchemasResponse = await fetch(
-      `${baseUrl}/get-all-discourse-node-schemas`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          spaceId: context.spaceId,
-        }),
-      },
-    );
-
-    if (!getSchemasResponse.ok) {
-      const errorText = await getSchemasResponse.text();
+    if (error) {
       console.error(
-        `Failed to fetch node schemas from Supabase: ${getSchemasResponse.status} ${errorText}`,
+        "Failed to get all discourse node schemas from Supabase:",
+        error,
       );
       return [];
     }
 
-    const supabaseUids = (await getSchemasResponse.json()) as string[];
-    return supabaseUids;
+    return (
+      data
+        ?.map((c) => c.Content?.source_local_id)
+        .filter((id): id is string => !!id) || []
+    );
   } catch (error) {
     console.error("Error in getAllNodeSchemasFromSupabase:", error);
     return [];
@@ -103,43 +157,29 @@ const getNonExistentRoamUids = (nodeUids: string[]): string[] => {
   }
 };
 
-const deleteNodesFromSupabase = async (uids: string[]): Promise<number> => {
+const deleteNodesFromSupabase = async (
+  uids: string[],
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
+): Promise<number> => {
   try {
-    const context = await getSupabaseContext();
     if (!context) {
       console.error("Failed to get Supabase context");
       return 0;
     }
 
-    const baseUrl =
-      getNodeEnv() === "development"
-        ? "http://localhost:3000/api/supabase"
-        : "https://discoursegraphs.com/api/supabase";
-
-    const deleteNodesResponse = await fetch(
-      `${baseUrl}/delete-discourse-nodes`,
+    const { data, error } = await supabaseClient.rpc(
+      "delete_discourse_nodes" as any,
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          spaceId: context.spaceId,
-          uids,
-        }),
+        space_id: context.spaceId,
+        uids,
       },
     );
-
-    if (!deleteNodesResponse.ok) {
-      const errorText = await deleteNodesResponse.text();
-      console.error(
-        `Failed to delete nodes from Supabase: ${deleteNodesResponse.status} ${errorText}`,
-      );
+    if (error) {
+      console.error("Failed to delete nodes from Supabase:", error);
       return 0;
     }
-
-    const { count } = await deleteNodesResponse.json();
-    return count;
+    return data.length;
   } catch (error) {
     console.error("Error in deleteNodesFromSupabase:", error);
     return 0;
@@ -148,53 +188,40 @@ const deleteNodesFromSupabase = async (uids: string[]): Promise<number> => {
 
 const deleteNodeSchemasFromSupabase = async (
   uids: string[],
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
 ): Promise<number> => {
   try {
-    const context = await getSupabaseContext();
     if (!context) {
       console.error("Failed to get Supabase context");
       return 0;
     }
 
-    const baseUrl =
-      getNodeEnv() === "development"
-        ? "http://localhost:3000/api/supabase"
-        : "https://discoursegraphs.com/api/supabase";
-
-    const deleteNodesResponse = await fetch(
-      `${baseUrl}/delete-discourse-node-schemas`,
+    const { data, error } = await supabaseClient.rpc(
+      "delete_discourse_node_schemas" as any,
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          spaceId: context.spaceId,
-          uids,
-        }),
+        space_id: context.spaceId,
+        uids,
       },
     );
-
-    if (!deleteNodesResponse.ok) {
-      const errorText = await deleteNodesResponse.text();
-      console.error(
-        `Failed to delete node schemas from Supabase: ${deleteNodesResponse.status} ${errorText}`,
-      );
+    if (error) {
+      console.error("Failed to delete node schemas from Supabase:", error);
       return 0;
     }
-
-    const { count } = await deleteNodesResponse.json();
-    return count;
+    return data.length;
   } catch (error) {
     console.error("Error in deleteNodeSchemasFromSupabase:", error);
     return 0;
   }
 };
 
-export const cleanupOrphanedNodes = async (): Promise<void> => {
+export const cleanupOrphanedNodes = async (
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
+): Promise<void> => {
   console.log("CleanupOrphanedNodes: Starting process.");
   try {
-    const supabaseUids = await getAllNodesFromSupabase();
+    const supabaseUids = await getAllNodesFromSupabase(supabaseClient, context);
     console.log("supabaseUids", supabaseUids);
     if (supabaseUids.length > 0) {
       const orphanedUids = getNonExistentRoamUids(supabaseUids);
@@ -203,14 +230,17 @@ export const cleanupOrphanedNodes = async (): Promise<void> => {
         console.log(
           `cleanupOrphanedNodes: Deleting ${orphanedUids.length} orphaned nodes from Supabase.`,
         );
-        await deleteNodesFromSupabase(orphanedUids);
+        await deleteNodesFromSupabase(orphanedUids, supabaseClient, context);
         console.log(
           `cleanupOrphanedNodes: Deleted orphaned nodes from Supabase.`,
         );
       }
     }
 
-    const supabaseSchemaUids = await getAllNodeSchemasFromSupabase();
+    const supabaseSchemaUids = await getAllNodeSchemasFromSupabase(
+      supabaseClient,
+      context,
+    );
     console.log("supabaseSchemaUids", supabaseSchemaUids);
     if (supabaseSchemaUids.length > 0) {
       const orphanedSchemaUids = getNonExistentRoamUids(supabaseSchemaUids);
@@ -219,7 +249,11 @@ export const cleanupOrphanedNodes = async (): Promise<void> => {
         console.log(
           `cleanupOrphanedNodes: Deleting ${orphanedSchemaUids.length} orphaned node schemas from Supabase.`,
         );
-        await deleteNodeSchemasFromSupabase(orphanedSchemaUids);
+        await deleteNodeSchemasFromSupabase(
+          orphanedSchemaUids,
+          supabaseClient,
+          context,
+        );
         console.log(
           `cleanupOrphanedNodes: Deleted orphaned node schemas from Supabase.`,
         );

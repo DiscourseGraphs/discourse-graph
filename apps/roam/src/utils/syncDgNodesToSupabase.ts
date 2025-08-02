@@ -4,7 +4,11 @@ import {
   nodeTypeSince,
 } from "./getAllDiscourseNodesSince";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
-import { getSupabaseContext } from "./supabaseContext";
+import {
+  getLoggedInClient,
+  getSupabaseContext,
+  SupabaseContext,
+} from "./supabaseContext";
 import { fetchEmbeddingsForNodes } from "./fetchEmbeddingsForNodes";
 import { LocalContentDataInput } from "@repo/database/inputTypes";
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
@@ -19,6 +23,7 @@ import {
 } from "./conceptConversion";
 import getDiscourseRelationTriples from "./getDiscourseRelationTriples";
 import { OnloadArgs } from "roamjs-components/types";
+import { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
 
 const base_url =
   process.env.NODE_ENV === "development"
@@ -32,43 +37,38 @@ type SyncTaskInfo = {
   shouldProceed: boolean;
 };
 
-export async function endSyncTask(
+export const endSyncTask = async (
   spaceId: number,
   worker: string,
   status: "complete" | "failed",
-): Promise<void> {
+): Promise<void> => {
   try {
-    const SYNC_FUNCTION_NAME = "embedding";
-    const endpoint = `${base_url}/api/supabase/sync-task/${SYNC_FUNCTION_NAME}/${spaceId}/${worker}`;
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(status),
+    const supabaseClient = await getLoggedInClient();
+    const context = await getSupabaseContext();
+    if (!context) {
+      console.error("endSyncTask: Unable to obtain Supabase context.");
+      return;
+    }
+    const { data, error } = await supabaseClient.rpc("end_sync_task", {
+      s_target: context.spaceId,
+      s_function: "embedding",
+      s_worker: worker,
+      s_status: status,
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        `endSyncTask: Failed to end sync task – ${response.status}: ${response.statusText}. Body: ${errorText}`,
-      );
-    } else {
-      console.log(`endSyncTask: Successfully marked task as ${status}`);
+    if (error) {
+      console.error("endSyncTask: Error calling end_sync_task:", error);
     }
   } catch (error) {
     console.error("endSyncTask: Error calling end_sync_task:", error);
   }
-}
+};
 
-export async function proposeSyncTask(): Promise<SyncTaskInfo> {
+export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
   // Switch to the semaphore-based sync mechanism using propose_sync_task
   try {
     // 1. Resolve (or create) the Supabase space to obtain its numeric Id
+    const supabaseClient = await getLoggedInClient();
     const context = await getSupabaseContext();
-    console.log("proposeSyncTask: Supabase context:", context);
     if (!context) {
       console.error("proposeSyncTask: Unable to obtain Supabase context.");
       return {
@@ -78,37 +78,28 @@ export async function proposeSyncTask(): Promise<SyncTaskInfo> {
         shouldProceed: false,
       };
     }
-
-    const { spaceId } = context;
-
-    // 2. Build the sync-task endpoint URL (function name can be any short identifier)
-    const SYNC_FUNCTION_NAME = "embedding";
-    const endpoint = `${base_url}/api/supabase/sync-task/${SYNC_FUNCTION_NAME}/${spaceId}`;
-
-    // 3. Provide a stable worker id so we can later mark the task complete
     const worker =
       (window as any).roamAlphaAPI?.user?.uid?.() ??
       (typeof crypto !== "undefined" ? crypto.randomUUID() : "unknown-worker");
 
-    // 4. Call the semaphore endpoint
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({ worker }),
+    const { data, error } = await supabaseClient.rpc("propose_sync_task", {
+      s_target: context.spaceId,
+      s_function: "embedding",
+      s_worker: worker,
+      task_interval: "45s",
+      timeout: "20s",
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    const { spaceId } = context;
+
+    // 2. Build the sync-task endpoint URL (function name can be any short identifier)
+
+    if (error) {
       console.error(
-        `proposeSyncTask: propose_sync_task failed – ${response.status}: ${response.statusText}. Body: ${errorText}`,
+        `proposeSyncTask: propose_sync_task failed – ${error.message}`,
       );
       return { lastUpdateTime: null, spaceId, worker, shouldProceed: false };
     }
-
-    const data = await response.json();
 
     console.log("proposeSyncTask: Response from propose_sync_task:", data);
 
@@ -143,11 +134,12 @@ export async function proposeSyncTask(): Promise<SyncTaskInfo> {
       shouldProceed: false,
     };
   }
-}
+};
 const upsertNodeSchemaToContent = async (
   nodesUids: string[],
   spaceId: number,
   userId: number,
+  supabaseClient: DGSupabaseClient,
 ) => {
   const query = `[
   :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title ?author-name
@@ -165,11 +157,10 @@ const upsertNodeSchemaToContent = async (
 
 ]
 `;
-  // @ts-ignore - backend to be added to roamjs-components
-  const result = (await window.roamAlphaAPI.data.backend.q(
+  const result = (await window.roamAlphaAPI.data.async.q(
     query,
     nodesUids,
-  )) as unknown[][] as RoamDiscourseNodeData[];
+  )) as unknown as RoamDiscourseNodeData[];
 
   const contentData: LocalContentDataInput[] = result.map((node) => ({
     author_id: userId,
@@ -184,30 +175,27 @@ const upsertNodeSchemaToContent = async (
     },
     scale: "document",
   }));
-  const response = await fetch(`${base_url}/api/supabase/rpc/upsert-content`, {
-    method: "POST",
-    body: JSON.stringify({
-      v_space_id: spaceId,
-      v_creator_id: userId,
-      data: contentData as any,
-      content_as_document: true,
-    }),
+  const { data, error } = await supabaseClient.rpc("upsert_content", {
+    data: contentData as any,
+    v_space_id: spaceId,
+    v_creator_id: userId,
+    content_as_document: true,
   });
-  const { error } = await response.json();
   if (error) {
     console.error("upsert_content failed:", error);
   }
-  console.log("contentData upserted successfully");
+  console.log("contentData upserted successfully", data);
 };
 
 export const convertDgToSupabaseConcepts = async (
   nodesSince: RoamDiscourseNodeData[],
   since: string,
   allNodeTypes: DiscourseNode[],
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
 ) => {
   console.log("Upserting concepts to Supabase: Starting process.");
 
-  const context = await getSupabaseContext();
   if (!context) {
     console.error("Could not get Supabase context. Aborting update.");
     return;
@@ -218,6 +206,7 @@ export const convertDgToSupabaseConcepts = async (
     nodeTypes.map((node) => node.type),
     context.spaceId,
     context.userId,
+    supabaseClient,
   );
 
   const nodesTypesToLocalConcepts = nodeTypes.map((node) => {
@@ -270,14 +259,10 @@ export const convertDgToSupabaseConcepts = async (
   console.log("ordered", ordered);
   console.log("missing", missing);
   console.log("upserting concepts to supabase", ordered);
-  const response = await fetch(`${base_url}/api/supabase/rpc/upsert-concepts`, {
-    method: "POST",
-    body: JSON.stringify({
-      v_space_id: context.spaceId,
-      data: ordered,
-    }),
+  const { data, error } = await supabaseClient.rpc("upsert_concepts", {
+    data: ordered,
+    v_space_id: context.spaceId,
   });
-  const { error } = await response.json();
   if (error) {
     throw new Error(
       `upsert_concepts failed: ${JSON.stringify(error, null, 2)}`,
@@ -288,13 +273,15 @@ export const convertDgToSupabaseConcepts = async (
 
 export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   roamNodes: RoamDiscourseNodeData[],
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
 ): Promise<void> => {
   console.log(
     "upsertNodesToSupabaseAsContentWithEmbeddings (upsert_content): Process started.",
   );
 
   // 1. Resolve Supabase context (space/user ids) and create a logged-in client
-  const context = await getSupabaseContext();
+
   if (!context) {
     console.error("No Supabase context found.");
     return;
@@ -384,19 +371,12 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
         contents,
       );
 
-      const response = await fetch(
-        `${base_url}/api/supabase/rpc/upsert-content`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            v_space_id: spaceId,
-            v_creator_id: userId,
-            data: contents as any,
-            content_as_document: true,
-          }),
-        },
-      );
-      const { data, error } = await response.json();
+      const { data, error } = await supabaseClient.rpc("upsert_content", {
+        data: contents as any,
+        v_space_id: spaceId,
+        v_creator_id: userId,
+        content_as_document: true,
+      });
 
       if (error) {
         console.error(`upsert_content failed for batch ${idx + 1}:`, error);
@@ -432,7 +412,6 @@ export const createOrUpdateDiscourseEmbedding = async (
   extensionAPI: OnloadArgs["extensionAPI"],
 ) => {
   const syncInfo = await proposeSyncTask();
-  console.log("syncInfo", syncInfo);
 
   if (!syncInfo.shouldProceed) {
     console.log(
@@ -456,9 +435,26 @@ export const createOrUpdateDiscourseEmbedding = async (
       extensionAPI,
     );
     console.log("pageNodes", pageNodes);
-    await upsertNodesToSupabaseAsContentWithEmbeddings(pageNodes);
-    await convertDgToSupabaseConcepts(pageNodes, time, allNodeTypes);
-    await cleanupOrphanedNodes();
+    const supabaseClient = await getLoggedInClient();
+    const context = await getSupabaseContext();
+    if (!context) {
+      console.error("No Supabase context found.");
+      return;
+    }
+    const { spaceId, userId } = context;
+    await upsertNodesToSupabaseAsContentWithEmbeddings(
+      pageNodes,
+      supabaseClient,
+      context,
+    );
+    await convertDgToSupabaseConcepts(
+      pageNodes,
+      time,
+      allNodeTypes,
+      supabaseClient,
+      context,
+    );
+    await cleanupOrphanedNodes(supabaseClient, context);
     await endSyncTask(spaceId, worker, "complete");
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);

@@ -1,3 +1,4 @@
+import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import { Result } from "./types";
 import { getNodeEnv } from "roamjs-components/util/env";
 
@@ -184,54 +185,33 @@ const searchEmbeddings: SearchFunc = async ({
   if (!indexData?.length) {
     return [];
   }
+  const supabaseClient = await getLoggedInClient();
 
   const subsetRoamUids = indexData.map((node) => node.uid);
-  const fullApiUrl = `${getBaseUrl()}${API_CONFIG.SUPABASE.MATCH_EMBEDDINGS_PATH}`;
 
-  try {
-    const response = await fetch(fullApiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        queryEmbedding: queryEmbedding,
-        subsetRoamUids: subsetRoamUids,
-      }),
-    });
+  const { data, error } = await supabaseClient.rpc(
+    "match_embeddings_for_subset_nodes",
+    {
+      p_query_embedding: queryEmbedding,
+      p_subset_roam_uids: subsetRoamUids,
+    },
+  );
 
-    if (!response.ok) {
-      await handleApiError(response, "Embedding search");
-    }
-
-    const results = await response.json();
-
-    if (!Array.isArray(results)) {
-      console.error("Embedding search response was not an array:", results);
-      throw new Error("Invalid API response format: Expected an array.");
-    }
-
-    const mappedResults = results.map((item: ApiSupabaseResultItem) => ({
-      object: { uid: item.roam_uid, text: item.text_content },
-      score: item.similarity,
-    }));
-    return mappedResults;
-  } catch (error: unknown) {
-    let errorMessage = `Embedding search failed for ${fullApiUrl}.`;
-    let errorStack;
-    if (error instanceof Error) {
-      errorMessage += ` Message: ${error.message}`;
-      errorStack = error.stack;
-    } else {
-      errorMessage += ` Error: ${String(error)}`;
-    }
-    console.error(
-      `Embedding search exception:`,
-      errorMessage,
-      errorStack && `Stack: ${errorStack}`,
-    );
-    return [];
+  if (error) {
+    console.error("Embedding search failed:", error);
+    throw new Error("Embedding search failed");
   }
+  const results = data;
+  if (!Array.isArray(results)) {
+    console.error("Embedding search response was not an array:", results);
+    throw new Error("Invalid API response format: Expected an array.");
+  }
+
+  const mappedResults = results.map((item: ApiSupabaseResultItem) => ({
+    object: { uid: item.roam_uid, text: item.text_content },
+    score: item.similarity,
+  }));
+  return mappedResults;
 };
 
 const searchAgainstCandidates = async ({

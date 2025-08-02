@@ -89,7 +89,7 @@ export const getAllReferencesOnPage = (pageTitle: string) => {
 
 const getAllPageByUidAsync = async (): Promise<[string, string][]> => {
   // @ts-ignore - backend to be added to roamjs-components
-  const pages = (await window.roamAlphaAPI.data.backend.q(
+  const pages = (await window.roamAlphaAPI.data.async.q(
     "[:find ?pageName ?pageUid :where [?e :node/title ?pageName] [?e :block/uid ?pageUid]]",
   )) as [string, string][];
   return pages;

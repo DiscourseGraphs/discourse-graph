@@ -87,7 +87,7 @@ export const forAllDiscourseNodeTypeBlockNodes = async (
   const sinceMs = new Date(since).getTime();
   const result: RoamDiscourseNodeData[] = [];
   for (const node of nodeTypes) {
-    const blockNode = await getDiscourseNodeTypeBlockNodes(
+    const blockNode = getDiscourseNodeTypeBlockNodes(
       node,
       sinceMs,
       extensionAPI,
@@ -133,17 +133,13 @@ export const getAllDiscourseNodesSince = async (
     [(> ?nodeEditTime ?since)]
 ]`;
 
-  // @ts-ignore - backend to be added to roamjs-components
-  const result = (await window.roamAlphaAPI.data.backend.q(
+  const result = (await window.roamAlphaAPI.data.async.q(
     query,
     sinceMs,
-  )) as unknown[][] as RoamDiscourseNodeData[];
-
-  console.log("result", result.length);
+  )) as unknown as RoamDiscourseNodeData[];
 
   const discourseNodes = getDiscourseNodes();
   const nodeTypesSet = new Set(nodeTypes.map((nodeType) => nodeType.type));
-  console.log("nodeTypesSet", nodeTypesSet);
 
   pageNodes.push(
     ...result
