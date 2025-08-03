@@ -52,9 +52,8 @@ const NodeMenu = ({
     () => getDiscourseNodes().filter((n) => n.backedBy === "user"),
     [],
   );
-  const discourseNodes = useMemo(
-    () => userDiscourseNodes.filter((n) => showNodeTypes || n.tag),
-    [showNodeTypes, userDiscourseNodes],
+  const discourseNodes = userDiscourseNodes.filter(
+    (n) => showNodeTypes || n.tag,
   );
   const indexBySC = useMemo(
     () => Object.fromEntries(discourseNodes.map((mi, i) => [mi.shortcut, i])),
