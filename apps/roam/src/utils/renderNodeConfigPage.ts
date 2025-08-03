@@ -91,6 +91,13 @@ export const renderNodeConfigPage = ({
             Panel: TextPanel,
           },
           {
+            title: "Tag",
+            description: `Designate a hashtag for marking potential ${nodeText}.`,
+            defaultValue: "",
+            // @ts-ignore
+            Panel: TextPanel,
+          },
+          {
             title: "Description",
             description: `Describing what the ${nodeText} node represents in your graph.`,
             // @ts-ignore
