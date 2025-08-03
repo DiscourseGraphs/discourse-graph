@@ -134,7 +134,7 @@ const NodeMenu = ({
 
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey) return;
+      if (!isOpen || e.metaKey || e.ctrlKey) return;
       if (e.key === "Shift") {
         if (!isInitialTextSelected) {
           setShowNodeTypes(true);
@@ -174,7 +174,7 @@ const NodeMenu = ({
       e.stopPropagation();
       e.preventDefault();
     },
-    [onSelect, onClose, indexBySC, isInitialTextSelected],
+    [onSelect, onClose, indexBySC, isOpen, isInitialTextSelected],
   );
 
   const keyupListener = useCallback(

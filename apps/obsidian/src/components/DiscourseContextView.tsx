@@ -49,7 +49,13 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
     return (
       <>
         <div className="mb-6">
-          <div className="text-md mb-2 font-bold">
+          <div className="text-md mb-2 flex items-center gap-2 font-bold">
+            {nodeType.color && (
+              <div
+                className="h-4 w-4 rounded-full"
+                style={{ backgroundColor: nodeType.color }}
+              />
+            )}
             {nodeType.name || "Unnamed Node Type"}
           </div>
 

@@ -84,7 +84,7 @@ Found a bug? Please [submit an issue](https://github.com/DiscourseGraphs/discour
 
 ## Community
 
-Have questions, comments or feedback? Join our [discord](https://discord.gg/atWk6gJyjE).
+Have questions, comments or feedback? Join our [Slack](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg).
 
 ## Supporters
 

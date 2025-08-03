@@ -15,7 +15,7 @@ export type DiscourseNode = {
   text: string;
   type: string;
   shortcut: string;
-  tag: string;
+  tag?: string;
   specification: Condition[];
   backedBy: "user" | "default" | "relation";
   canvasSettings: {
