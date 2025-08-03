@@ -280,15 +280,12 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     "upsertNodesToSupabaseAsContentWithEmbeddings (upsert_content): Process started.",
   );
 
-  // 1. Resolve Supabase context (space/user ids) and create a logged-in client
-
   if (!context) {
     console.error("No Supabase context found.");
     return;
   }
   const { spaceId, userId } = context;
 
-  // 2. Gather discourse nodes from Roam
   console.log("Fetching Roam discourse nodes…");
   if (roamNodes.length === 0) {
     console.log("No discourse nodes found. Exiting.");
@@ -296,7 +293,6 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   }
   console.log(`Found ${roamNodes.length} discourse nodes.`);
 
-  // 3. Generate embeddings for every node title
   let nodesWithEmbeddings: RoamDiscourseNodeData[];
   try {
     console.log(" Generating embeddings…");
@@ -348,6 +344,8 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
         const text = node.node_title
           ? `${node.node_title} ${node.text}`
           : node.text;
+        //console.log("node content", node);
+
         return {
           author_id: userId,
           account_local_id: node.author_local_id,
@@ -428,6 +426,7 @@ export const createOrUpdateDiscourseEmbedding = async (
     console.log("last update time", time);
     const { allNodeTypes, specialNodeTypes } = specialNodes(extensionAPI);
     console.log("special nodes", specialNodeTypes);
+    console.log("allNodeTypes", allNodeTypes);
 
     const pageNodes = await getAllDiscourseNodesSince(
       time,

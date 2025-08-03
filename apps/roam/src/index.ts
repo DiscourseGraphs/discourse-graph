@@ -114,7 +114,17 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  await createOrUpdateDiscourseEmbedding(onloadArgs.extensionAPI);
+  const embeddingsUploaded = Boolean(
+    onloadArgs.extensionAPI.settings.get("embeddings-uploaded"),
+  );
+  if (!embeddingsUploaded) {
+    console.log(
+      "Embeddings have not been uploaded for this graph. Please use the 'Generate & Upload All Node Embeddings' button to do so.",
+    );
+    return;
+  } else {
+    await createOrUpdateDiscourseEmbedding(onloadArgs.extensionAPI);
+  }
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>

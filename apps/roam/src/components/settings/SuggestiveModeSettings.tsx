@@ -339,16 +339,9 @@ const SuggestiveModeSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     Record<string, number>
   >({});
   const [selectedTabId, setSelectedTabId] = useState<TabId>("display");
-  const [embeddingsUploaded, setEmbeddingsUploaded] = useState<boolean>(false);
-
-  // Determine if embeddings have been uploaded on mount
-  // useEffect(() => {
-  //   (async () => {
-  //     const graphName = window.roamAlphaAPI.graph.name;
-  //     const lastUpdateTime = await getLastUpdateTimeByGraphName(graphName);
-  //     setEmbeddingsUploaded(lastUpdateTime !== null);
-  //   })();
-  // }, []);
+  const embeddingsUploaded = Boolean(
+    extensionAPI.settings.get("embeddings-uploaded"),
+  );
 
   const embeddingsButtonText = embeddingsUploaded
     ? "Upload Updated Node Embeddings"
@@ -599,6 +592,7 @@ const SuggestiveModeSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           text={embeddingsButtonText}
           onClick={async () => {
             await createOrUpdateDiscourseEmbedding(extensionAPI);
+            extensionAPI.settings.set("embeddings-uploaded", true);
           }}
           intent={Intent.PRIMARY}
           style={{ marginTop: "8px" }}

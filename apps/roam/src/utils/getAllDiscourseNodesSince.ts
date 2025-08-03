@@ -36,6 +36,7 @@ export const getDiscourseNodeTypeBlockNodes = (
   const regexPattern = regex.source.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
   if (settings && settings.isFirstChild) {
+    console.log("Node type", node.type, "isFirstChild", settings.isFirstChild);
     const firstChildUid =
       settings.embeddingRef?.match(/\(\((.*?)\)\)/)?.[1] ?? "";
     const queryBlock = `[
