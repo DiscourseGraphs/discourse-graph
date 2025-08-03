@@ -106,4 +106,4 @@ ALTER TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" ENABLE 
 
 DROP POLICY IF EXISTS embedding_openai_te3s_1536_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536" ;
 CREATE POLICY embedding_openai_te3s_1536_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536"
-    FOR ALL USING (public.content_in_space (target_id)) ;
+FOR ALL USING (public.content_in_space (target_id)) ;

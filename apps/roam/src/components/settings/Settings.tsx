@@ -100,6 +100,7 @@ export const SettingsDialog = ({
         <style>{`
           .dg-settings-tabs .bp3-tab-list {
             overflow-y: auto;
+            overflow-x: hidden;
             max-height: 100%;
             /* Firefox */
             scrollbar-width: thin;
@@ -141,7 +142,7 @@ export const SettingsDialog = ({
           <Tab
             id="query-settings"
             title="Queries"
-            className="mb-8 overflow-y-auto"
+            className="overflow-y-auto"
             panel={<QuerySettings extensionAPI={extensionAPI} />}
           />
           <SectionHeader className="text-lg font-semibold text-neutral-dark">

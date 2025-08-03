@@ -24,7 +24,14 @@ export class NodeTypeModal extends SuggestModal<DiscourseNode> {
   }
 
   renderSuggestion(nodeType: DiscourseNode, el: HTMLElement) {
-    el.createEl("div", { text: nodeType.name });
+    const container = el.createDiv({ cls: "flex items-center gap-2" });
+    if (nodeType.color) {
+      container.createDiv({
+        cls: "h-4 w-4 rounded-full",
+        attr: { style: `background-color: ${nodeType.color};` },
+      });
+    }
+    container.createDiv({ text: nodeType.name });
   }
 
   async onChooseSuggestion(nodeType: DiscourseNode) {

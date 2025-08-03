@@ -1,19 +1,23 @@
 import assert from "assert";
 import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import { createClient } from "@supabase/supabase-js";
+import { Constants, type Database, type Enums } from "@repo/database/types.gen";
+import { getVariant, config } from "@repo/database/dbDotEnv";
+
 import {
-  Constants,
-  type Database,
-  type Enums,
-} from "@repo/database/types.gen.ts";
-import { spaceAnonUserEmail } from "@repo/ui/lib/utils";
-import {
-  fetchOrCreateSpaceId,
+  spaceAnonUserEmail,
+  fetchOrCreateSpaceIndirect,
   fetchOrCreatePlatformAccount,
 } from "@repo/ui/lib/supabase/contextFunctions";
 
 type Platform = Enums<"Platform">;
 const PLATFORMS: readonly Platform[] = Constants.public.Enums.Platform;
+
+if (getVariant() === "production") {
+  console.error("Tests are destructive, not running against production");
+  process.exit(-1);
+}
+config();
 
 const getAnonymousClient = () => {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
@@ -117,12 +121,17 @@ When(
     if (PLATFORMS.indexOf(platform) < 0)
       throw new Error(`Platform must be one of ${PLATFORMS}`);
     const localRefs: Record<string, any> = world.localRefs || {};
-    const spaceId = await fetchOrCreateSpaceId({
+    const spaceResponse = await fetchOrCreateSpaceIndirect({
       password: SPACE_ANONYMOUS_PASSWORD,
       url: `https://roamresearch.com/#/app/${spaceName}`,
       name: spaceName,
       platform,
     });
+    if (!spaceResponse.data)
+      throw new Error(
+        `Could not create space: ${JSON.stringify(spaceResponse.error)}`,
+      );
+    const spaceId = spaceResponse.data.id;
     localRefs[spaceName] = spaceId;
     const userId = await fetchOrCreatePlatformAccount({
       platform,

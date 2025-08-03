@@ -585,10 +585,10 @@ export type Database = {
       }
       alpha_upsert_discourse_nodes: {
         Args: {
-          p_user_name: string
           p_nodes: Json
           p_space_name: string
           p_user_email: string
+          p_user_name: string
         }
         Returns: string
       }
@@ -606,12 +606,12 @@ export type Database = {
       }
       create_account_in_space: {
         Args: {
-          space_id_: number
           account_local_id_: string
-          name_: string
+          editor_?: boolean
           email_?: string
           email_trusted?: boolean
-          editor_?: boolean
+          name_: string
+          space_id_: number
         }
         Returns: number
       }
@@ -621,10 +621,10 @@ export type Database = {
       }
       end_sync_task: {
         Args: {
-          s_worker: string
-          s_status: Database["public"]["Enums"]["task_status"]
           s_function: string
+          s_status: Database["public"]["Enums"]["task_status"]
           s_target: number
+          s_worker: string
         }
         Returns: undefined
       }
@@ -634,8 +634,8 @@ export type Database = {
       }
       generic_entity_access: {
         Args: {
-          target_type: Database["public"]["Enums"]["EntityType"]
           target_id: number
+          target_type: Database["public"]["Enums"]["EntityType"]
         }
         Returns: boolean
       }
@@ -664,14 +664,14 @@ export type Database = {
           query_embedding: string
         }
         Returns: {
-          text_content: string
           similarity: number
+          text_content: string
           roam_uid: string
           content_id: number
         }[]
       }
       match_embeddings_for_subset_nodes: {
-        Args: { p_subset_roam_uids: string[]; p_query_embedding: string }
+        Args: { p_query_embedding: string; p_subset_roam_uids: string[] }
         Returns: {
           similarity: number
           text_content: string
@@ -687,9 +687,9 @@ export type Database = {
         Args: {
           s_function: string
           s_target: number
+          s_worker: string
           task_interval: unknown
           timeout: unknown
-          s_worker: string
         }
         Returns: string
       }
@@ -703,10 +703,10 @@ export type Database = {
       }
       upsert_content: {
         Args: {
-          v_space_id: number
-          v_creator_id: number
           content_as_document?: boolean
           data: Json
+          v_creator_id: number
+          v_space_id: number
         }
         Returns: number[]
       }
@@ -716,26 +716,26 @@ export type Database = {
       }
       upsert_discourse_nodes: {
         Args: {
-          p_space_name: string
-          p_user_email: string
-          p_user_name: string
+          p_agent_type?: string
+          p_content_scale?: string
+          p_document_source_id?: string
+          p_embedding_model?: string
           p_nodes: Json
           p_platform_name?: string
           p_platform_url?: string
+          p_space_name: string
           p_space_url?: string
-          p_agent_type?: string
-          p_content_scale?: string
-          p_embedding_model?: string
-          p_document_source_id?: string
+          p_user_email: string
+          p_user_name: string
         }
         Returns: {
-          action: string
           content_id: number
           embedding_created: boolean
+          action: string
         }[]
       }
       upsert_documents: {
-        Args: { v_space_id: number; data: Json }
+        Args: { data: Json; v_space_id: number }
         Returns: number[]
       }
     }
@@ -863,21 +863,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -895,14 +899,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -918,14 +924,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -941,14 +949,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -956,14 +966,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never

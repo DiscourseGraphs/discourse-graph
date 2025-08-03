@@ -7,14 +7,14 @@ import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
 
-type EditableFieldKey = keyof Omit<DiscourseNode, "id" | "shortcut" | "color">;
+type EditableFieldKey = keyof Omit<DiscourseNode, "id" | "shortcut">;
 
 type BaseFieldConfig = {
   key: EditableFieldKey;
   label: string;
   description: string;
   required?: boolean;
-  type: "text" | "select";
+  type: "text" | "select" | "color";
   placeholder?: string;
   validate?: (
     value: string,
@@ -31,7 +31,11 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
     required: true,
     type: "text",
     validate: (value, nodeType, existingNodes) =>
-      validateNodeName(value, [nodeType, ...existingNodes]),
+      validateNodeName({
+        name: value,
+        currentNode: nodeType,
+        allNodes: existingNodes,
+      }),
     placeholder: "Name",
   },
   format: {
@@ -42,14 +46,33 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
     required: true,
     type: "text",
     validate: (value, nodeType, existingNodes) =>
-      validateNodeFormat(value, [nodeType, ...existingNodes]),
+      validateNodeFormat({
+        format: value,
+        currentNode: nodeType,
+        allNodes: existingNodes,
+      }),
     placeholder: "Format (e.g., CLM - {content})",
+  },
+  description: {
+    key: "description",
+    label: "Description",
+    description: "A brief description of what this node type represents",
+    required: false,
+    type: "text",
+    placeholder: "Enter a description",
   },
   template: {
     key: "template",
     label: "Template",
     description: "The template to use for this node type",
     type: "select",
+    required: false,
+  },
+  color: {
+    key: "color",
+    label: "Color",
+    description: "The color to use for this node type",
+    type: "color",
     required: false,
   },
 };
@@ -73,6 +96,23 @@ const TextField = ({
     onChange={(e) => onChange(e.target.value)}
     placeholder={fieldConfig.placeholder}
     className={`w-full ${error ? "input-error" : ""}`}
+  />
+);
+
+const ColorField = ({
+  value,
+  error,
+  onChange,
+}: {
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+}) => (
+  <input
+    type="color"
+    value={value || "#000000"}
+    onChange={(e) => onChange(e.target.value)}
+    className={`h-8 w-20 ${error ? "input-error" : ""}`}
   />
 );
 
@@ -342,7 +382,7 @@ const NodeTypeSettings = () => {
       handleNodeTypeChange(fieldConfig.key, newValue);
 
     return (
-      <FieldWrapper fieldConfig={fieldConfig} error={error}>
+      <FieldWrapper fieldConfig={fieldConfig} error={error} key={fieldConfig.key}>
         {fieldConfig.key === "template" ? (
           <TemplateField
             value={value}
@@ -351,6 +391,8 @@ const NodeTypeSettings = () => {
             templateConfig={templateConfig}
             templateFiles={templateFiles}
           />
+        ) : fieldConfig.type === "color" ? (
+          <ColorField value={value} error={error} onChange={handleChange} />
         ) : (
           <TextField
             fieldConfig={fieldConfig}
@@ -371,32 +413,51 @@ const NodeTypeSettings = () => {
       {nodeTypes.map((nodeType, index) => (
         <div
           key={nodeType.id}
-          className="node-type-item hover:bg-secondary-lt flex cursor-pointer items-center justify-between p-2"
+          className="node-type-item hover:bg-secondary-lt flex cursor-pointer flex-col gap-1 p-2"
           onClick={() => startEditing(index)}
         >
-          <span>{nodeType.name}</span>
-          <div className="flex gap-2">
-            <button
-              className="icon-button"
-              onClick={(e) => {
-                e.stopPropagation();
-                startEditing(index);
-              }}
-              aria-label="Edit node type"
-            >
-              <div className="icon" ref={(el) => el && setIcon(el, "pencil")} />
-            </button>
-            <button
-              className="icon-button mod-warning"
-              onClick={(e) => {
-                e.stopPropagation();
-                confirmDeleteNodeType(index);
-              }}
-              aria-label="Delete node type"
-            >
-              <div className="icon" ref={(el) => el && setIcon(el, "trash")} />
-            </button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+            {nodeType.color && (
+              <div
+                className="h-4 w-4 rounded-full"
+                style={{ backgroundColor: nodeType.color }}
+              />
+            )}
+            <span>{nodeType.name}</span>
           </div>
+            <div className="flex gap-2">
+              <button
+                className="icon-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startEditing(index);
+                }}
+                aria-label="Edit node type"
+              >
+                <div
+                  className="icon"
+                  ref={(el) => el && setIcon(el, "pencil")}
+                />
+              </button>
+              <button
+                className="icon-button mod-warning"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  confirmDeleteNodeType(index);
+                }}
+                aria-label="Delete node type"
+              >
+                <div
+                  className="icon"
+                  ref={(el) => el && setIcon(el, "trash")}
+                />
+              </button>
+            </div>
+          </div>
+          {nodeType.description && (
+            <span className="text-muted text-sm">{nodeType.description}</span>
+          )}
         </div>
       ))}
     </div>

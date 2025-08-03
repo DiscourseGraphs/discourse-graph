@@ -99,12 +99,6 @@ const ResultHeader = React.forwardRef<
       () => activeSort.findIndex((s) => s.key === c.key),
       [c.key, activeSort],
     );
-    const refCallback = useCallback(
-      (r: HTMLTableDataCellElement) => {
-        if (ref && "current" in ref && ref.current) ref.current[c.uid] = r;
-      },
-      [ref, c.uid],
-    );
     return (
       <td
         style={{
@@ -113,7 +107,6 @@ const ResultHeader = React.forwardRef<
           width: columnWidth,
         }}
         data-column={c.uid}
-        ref={refCallback}
         key={c.uid}
         onClick={() => {
           if (sortIndex >= 0) {
@@ -194,28 +187,29 @@ export const CellEmbed = ({
   );
 };
 
-type OnWidthUpdate = (args: {
-  column: string;
-  width: string;
-  save?: boolean;
-}) => void;
-const ResultRow = ({
-  r,
-  parentUid,
-  ctrlClick,
-  views,
-  onRefresh,
-  columns,
-  onWidthUpdate,
-}: {
+type ResultRowProps = {
   r: Result;
+  columns: Column[];
+  onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDrag: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
   parentUid: string;
   ctrlClick?: (e: Result) => void;
   views: { column: string; mode: string; value: string }[];
-  columns: Column[];
   onRefresh: () => void;
-  onWidthUpdate: OnWidthUpdate;
-}) => {
+};
+
+const ResultRow = ({
+  r,
+  columns,
+  parentUid,
+  ctrlClick,
+  views,
+  onDragStart,
+  onDrag,
+  onDragEnd,
+  onRefresh,
+}: ResultRowProps) => {
   const cell = (key: string) => {
     const value = toCellValue({
       value: r[`${key}-display`] || r[key] || "",
@@ -264,32 +258,6 @@ const ResultRow = ({
     [views],
   );
   const trRef = useRef<HTMLTableRowElement>(null);
-  const dragHandler = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      const delta = e.clientX - e.currentTarget.getBoundingClientRect().left;
-      const cellWidth =
-        e.currentTarget.parentElement?.getBoundingClientRect().width;
-      if (typeof cellWidth === "undefined") return;
-      if (cellWidth + delta <= 0) return;
-      const rowWidth =
-        e.currentTarget.parentElement?.parentElement?.getBoundingClientRect()
-          .width;
-      if (typeof rowWidth === "undefined") return;
-      if (cellWidth + delta >= rowWidth) return;
-      const column = e.currentTarget.getAttribute("data-column");
-      const save = e.type === "dragend";
-      if (trRef.current) {
-        trRef.current.style.cursor = save ? "" : "ew-resize";
-      }
-      if (column)
-        onWidthUpdate({
-          column,
-          width: `${((cellWidth + delta) / rowWidth) * 100}%`,
-          save,
-        });
-    },
-    [onWidthUpdate],
-  );
   return (
     <>
       <tr ref={trRef} data-uid={r.uid}>
@@ -350,7 +318,7 @@ const ResultRow = ({
               {i < columns.length - 1 && (
                 <div
                   style={{
-                    width: 1,
+                    width: 2,
                     cursor: "ew-resize",
                     position: "absolute",
                     top: 0,
@@ -358,13 +326,17 @@ const ResultRow = ({
                     bottom: 0,
                     background: `rgba(16,22,26,0.15)`,
                   }}
+                  data-left-column-uid={columnUid}
+                  data-right-column-uid={columns[i + 1].uid}
                   data-column={columnUid}
                   draggable
-                  onDragStart={(e) =>
-                    e.dataTransfer.setDragImage(dragImage, 0, 0)
-                  }
-                  onDrag={dragHandler}
-                  onDragEnd={dragHandler}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", "");
+                    e.dataTransfer.setDragImage(dragImage, 0, 0);
+                    onDragStart(e);
+                  }}
+                  onDrag={onDrag}
+                  onDragEnd={onDragEnd}
                 />
               )}
             </td>
@@ -373,6 +345,18 @@ const ResultRow = ({
       </tr>
     </>
   );
+};
+
+type ColumnWidths = {
+  [key: string]: string;
+};
+
+type DragInfo = {
+  startX: number;
+  leftColumnUid: string | null;
+  rightColumnUid: string | null;
+  leftStartWidth: number;
+  rightStartWidth: number;
 };
 
 const ResultsTable = ({
@@ -417,42 +401,166 @@ const ResultsTable = ({
   allResults: Result[];
   showInterface?: boolean;
 }) => {
-  const columnWidths = useMemo(() => {
+  const tableRef = useRef<HTMLTableElement | null>(null);
+  const dragInfo = useRef<DragInfo>({
+    startX: 0,
+    leftColumnUid: null,
+    rightColumnUid: null,
+    leftStartWidth: 0,
+    rightStartWidth: 0,
+  });
+
+  const rafIdRef = useRef<number | null>(null);
+  const throttledSetColumnWidths = useCallback((update: ColumnWidths) => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+    rafIdRef.current = requestAnimationFrame(() =>
+      setColumnWidths(
+        (prev) =>
+          ({
+            ...prev,
+            ...update,
+          }) as ColumnWidths,
+      ),
+    );
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
+
+  const [columnWidths, setColumnWidths] = useState(() => {
     const widths =
       typeof layout.widths === "string" ? [layout.widths] : layout.widths || [];
-    return Object.fromEntries(
-      widths
-        .map((w) => {
-          const match = /^(.*) - ([^-]+)$/.exec(w);
-          return match;
-        })
-        .filter((m): m is RegExpExecArray => !!m)
-        .map((match) => {
-          return [match[1], match[2]];
-        }),
+    const fromLayout = Object.fromEntries(
+      widths.map((w) => w.split(" - ")).filter((p) => p.length === 2),
     );
-  }, [layout]);
-  const thRefs = useRef<Record<string, HTMLTableCellElement>>({});
-  const onWidthUpdate = useCallback<OnWidthUpdate>(
-    (args) => {
-      const cell = thRefs.current[args.column];
-      if (!cell) return;
-      cell.style.width = args.width;
-      if (args.save) {
-        const layoutUid = getSubTree({ parentUid, key: "layout" }).uid;
-        if (layoutUid)
-          setInputSettings({
-            blockUid: layoutUid,
-            key: "widths",
-            values: Object.entries(thRefs.current)
-              .map(([k, v]) => [k, v.style.width])
-              .filter(([k, v]) => !!k && !!v)
-              .map(([k, v]) => `${k} - ${v}`),
-          });
+    const allWidths: ColumnWidths = {};
+    const defaultWidth = `${100 / columns.length}%`;
+    columns.forEach((c) => {
+      allWidths[c.uid] = fromLayout[c.uid] || defaultWidth;
+    });
+    return allWidths;
+  });
+
+  const onDragStart = useCallback((e) => {
+    const { leftColumnUid, rightColumnUid } = e.currentTarget.dataset;
+    if (!leftColumnUid || !rightColumnUid || !tableRef.current) return;
+
+    const leftHeader = tableRef.current?.querySelector(
+      `thead td[data-column="${leftColumnUid}"]`,
+    );
+    const rightHeader = tableRef.current?.querySelector(
+      `thead td[data-column="${rightColumnUid}"]`,
+    );
+
+    if (!leftHeader || !rightHeader) return;
+
+    dragInfo.current = {
+      startX: e.clientX,
+      leftColumnUid,
+      rightColumnUid,
+      leftStartWidth: (leftHeader as HTMLElement).offsetWidth,
+      rightStartWidth: (rightHeader as HTMLElement).offsetWidth,
+    };
+  }, []);
+
+  const onDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (e.clientX === 0) return;
+
+    const {
+      startX,
+      leftColumnUid,
+      rightColumnUid,
+      leftStartWidth,
+      rightStartWidth,
+    } = dragInfo.current;
+
+    if (!leftColumnUid || !rightColumnUid) return;
+
+    const delta = e.clientX - startX;
+    const minWidth = 40;
+
+    let newLeftWidth = leftStartWidth + delta;
+    let newRightWidth = rightStartWidth - delta;
+
+    const leftBelow = newLeftWidth < minWidth;
+    const rightBelow = newRightWidth < minWidth;
+
+    if (leftBelow && !rightBelow) {
+      const adjustment = minWidth - newLeftWidth;
+      newLeftWidth = minWidth;
+      newRightWidth -= adjustment;
+    } else if (rightBelow && !leftBelow) {
+      const adjustment = minWidth - newRightWidth;
+      newRightWidth = minWidth;
+      newLeftWidth -= adjustment;
+    } else if (leftBelow && rightBelow) {
+      const totalMin = minWidth * 2;
+      const startTotal = leftStartWidth + rightStartWidth;
+
+      if (startTotal > totalMin) {
+        const scale = totalMin / startTotal;
+        newLeftWidth = Math.max(minWidth, leftStartWidth * scale);
+        newRightWidth = Math.max(minWidth, rightStartWidth * scale);
+      } else {
+        newLeftWidth = leftStartWidth;
+        newRightWidth = rightStartWidth;
       }
-    },
-    [thRefs, parentUid],
-  );
+    }
+
+    throttledSetColumnWidths({
+      [leftColumnUid]: `${newLeftWidth}px`,
+      [rightColumnUid]: `${newRightWidth}px`,
+    });
+  }, []);
+
+  const onDragEnd = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
+    const totalWidth = tableRef.current?.offsetWidth;
+    if (!totalWidth || totalWidth === 0) {
+      return;
+    }
+    const minWidth = 40;
+    const minPercent = (minWidth / totalWidth) * 100;
+
+    const finalWidths: ColumnWidths = {};
+    const uids = columns.map((c) => c.uid);
+    uids.forEach((uid) => {
+      const header = tableRef.current?.querySelector(
+        `thead td[data-column="${uid}"]`,
+      );
+      if (header) {
+        const headerWidth = (header as HTMLElement).offsetWidth;
+        if (headerWidth > 0) {
+          const percent = (headerWidth / totalWidth) * 100;
+          finalWidths[uid] = `${Math.max(minPercent, percent)}%`;
+        } else {
+          finalWidths[uid] = columnWidths[uid] || "5%";
+        }
+      }
+    });
+    setColumnWidths(finalWidths);
+
+    const layoutUid = getSubTree({ parentUid, key: "layout" }).uid;
+    if (layoutUid) {
+      setInputSettings({
+        blockUid: layoutUid,
+        key: "widths",
+        values: Object.entries(finalWidths).map(([k, v]) => `${k} - ${v}`),
+      });
+    }
+  }, [columns, parentUid, columnWidths]);
+
   const resultHeaderSetFilters = React.useCallback(
     (fs: FilterData) => {
       setFilters(fs);
@@ -538,6 +646,7 @@ const ResultsTable = ({
   }, [extraRowType, setExtraRowUid]);
   return (
     <HTMLTable
+      elementRef={tableRef}
       style={{
         maxHeight: "400px",
         overflowY: "scroll",
@@ -554,7 +663,6 @@ const ResultsTable = ({
             <ResultHeader
               key={c.uid}
               c={c}
-              ref={thRefs}
               allResults={allResults}
               activeSort={activeSort}
               setActiveSort={setActiveSort}
@@ -575,7 +683,9 @@ const ResultsTable = ({
               views={views}
               onRefresh={onRefresh}
               columns={columns}
-              onWidthUpdate={onWidthUpdate}
+              onDragStart={onDragStart}
+              onDrag={onDrag}
+              onDragEnd={onDragEnd}
             />
             {extraRowUid === r.uid && (
               <tr className={`roamjs-${extraRowType}-row roamjs-extra-row`}>

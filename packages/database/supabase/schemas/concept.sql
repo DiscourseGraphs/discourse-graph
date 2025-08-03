@@ -254,7 +254,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.concept_in_space (concept_id BIGINT) RETURNS boolean
+CREATE OR REPLACE FUNCTION public.concept_in_space(concept_id BIGINT) RETURNS boolean
 STABLE
 SET search_path = ''
 LANGUAGE sql
