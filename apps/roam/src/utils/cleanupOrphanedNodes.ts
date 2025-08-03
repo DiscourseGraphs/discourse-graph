@@ -1,11 +1,5 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
-import {
-  getSupabaseContext,
-  getLoggedInClient,
-  type SupabaseContext,
-} from "./supabaseContext";
-import { getNodeEnv } from "roamjs-components/util/env";
-import { asPostgrestFailure } from "@repo/ui/lib/supabase/contextFunctions";
+import { getSupabaseContext, getLoggedInClient } from "./supabaseContext";
 
 const getAllNodesFromSupabase = async (
   spaceId: number,
@@ -13,11 +7,9 @@ const getAllNodesFromSupabase = async (
 ): Promise<string[]> => {
   try {
     const allNodeInstanceIds = await supabaseClient
-      .from("Content")
+      .from("Concept")
       .select("source_local_id")
-      .eq("space_id", spaceId)
-      .eq("scale", "block")
-      .not("source_local_id", "is", null);
+      .not("schema_id", "is", null);
 
     if (allNodeInstanceIds.error) {
       console.error(
