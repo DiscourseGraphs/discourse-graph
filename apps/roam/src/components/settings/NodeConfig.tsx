@@ -15,7 +15,6 @@ import { OnloadArgs } from "roamjs-components/types";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
-import extractTag from "roamjs-components/util/extractTag";
 
 const ValidatedInputPanel = ({
   label,
