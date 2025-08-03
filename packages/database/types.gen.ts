@@ -620,12 +620,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      get_nodes_needing_sync: {
-        Args: { nodes_from_roam: Json }
-        Returns: {
-          uid_to_sync: string
-        }[]
-      }
       get_space_anonymous_email: {
         Args: {
           platform: Database["public"]["Enums"]["Platform"]
@@ -640,10 +634,10 @@ export type Database = {
       match_embeddings_for_subset_nodes: {
         Args: { p_query_embedding: string; p_subset_roam_uids: string[] }
         Returns: {
-          text_content: string
-          similarity: number
           content_id: number
           roam_uid: string
+          text_content: string
+          similarity: number
         }[]
       }
       my_account: {
