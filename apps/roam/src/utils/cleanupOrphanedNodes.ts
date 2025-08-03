@@ -159,56 +159,89 @@ const getNonExistentRoamUids = (nodeUids: string[]): string[] => {
 
 const deleteNodesFromSupabase = async (
   uids: string[],
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
-): Promise<number> => {
+  spaceId: number,
+  supabaseClient: SupabaseClient,
+): Promise<void> => {
   try {
-    if (!context) {
-      console.error("Failed to get Supabase context");
-      return 0;
+    const { data: contentData, error: contentError } = await supabaseClient
+      .from("Content")
+      .select("id")
+      .eq("space_id", spaceId)
+      .in("source_local_id", uids);
+
+    if (contentError) {
+      console.error("Failed to get content from Supabase:", contentError);
     }
 
-    const { data, error } = await supabaseClient.rpc(
-      "delete_discourse_nodes" as any,
-      {
-        space_id: context.spaceId,
-        uids,
-      },
-    );
-    if (error) {
-      console.error("Failed to delete nodes from Supabase:", error);
-      return 0;
+    const contentIds = contentData?.map((c) => c.id) || [];
+
+    if (contentIds.length > 0) {
+      const { error: conceptError } = await supabaseClient
+        .from("Concept")
+        .delete()
+        .in("represented_by_id", contentIds)
+        .eq("is_schema", false);
+
+      if (conceptError) {
+        console.error("Failed to delete concepts from Supabase:", conceptError);
+      }
+
+      const { error: contentDeleteError } = await supabaseClient
+        .from("Content")
+        .delete()
+        .in("id", contentIds);
+
+      if (contentDeleteError) {
+        console.error(
+          "Failed to delete content from Supabase:",
+          contentDeleteError,
+        );
+      }
     }
-    return data.length;
   } catch (error) {
     console.error("Error in deleteNodesFromSupabase:", error);
-    return 0;
   }
 };
 
 const deleteNodeSchemasFromSupabase = async (
   uids: string[],
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
 ): Promise<number> => {
   try {
+    const context = await getSupabaseContext();
     if (!context) {
       console.error("Failed to get Supabase context");
       return 0;
     }
 
-    const { data, error } = await supabaseClient.rpc(
-      "delete_discourse_node_schemas" as any,
+    const baseUrl =
+      getNodeEnv() === "development"
+        ? "http://localhost:3000/api/supabase"
+        : "https://discoursegraphs.com/api/supabase";
+
+    const deleteNodesResponse = await fetch(
+      `${baseUrl}/delete-discourse-node-schemas`,
       {
-        space_id: context.spaceId,
-        uids,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          spaceId: context.spaceId,
+          uids,
+        }),
       },
     );
-    if (error) {
-      console.error("Failed to delete node schemas from Supabase:", error);
+
+    if (!deleteNodesResponse.ok) {
+      const errorText = await deleteNodesResponse.text();
+      console.error(
+        `Failed to delete node schemas from Supabase: ${deleteNodesResponse.status} ${errorText}`,
+      );
       return 0;
     }
-    return data.length;
+
+    const { count } = await deleteNodesResponse.json();
+    return count;
   } catch (error) {
     console.error("Error in deleteNodeSchemasFromSupabase:", error);
     return 0;
@@ -230,7 +263,11 @@ export const cleanupOrphanedNodes = async (
         console.log(
           `cleanupOrphanedNodes: Deleting ${orphanedUids.length} orphaned nodes from Supabase.`,
         );
-        await deleteNodesFromSupabase(orphanedUids, supabaseClient, context);
+        await deleteNodesFromSupabase(
+          orphanedUids,
+          context.spaceId,
+          supabaseClient,
+        );
         console.log(
           `cleanupOrphanedNodes: Deleted orphaned nodes from Supabase.`,
         );
@@ -249,11 +286,7 @@ export const cleanupOrphanedNodes = async (
         console.log(
           `cleanupOrphanedNodes: Deleting ${orphanedSchemaUids.length} orphaned node schemas from Supabase.`,
         );
-        await deleteNodeSchemasFromSupabase(
-          orphanedSchemaUids,
-          supabaseClient,
-          context,
-        );
+        await deleteNodeSchemasFromSupabase(orphanedSchemaUids);
         console.log(
           `cleanupOrphanedNodes: Deleted orphaned node schemas from Supabase.`,
         );
