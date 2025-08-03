@@ -30,40 +30,6 @@ GRANT ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" 
 
 set search_path to public, extensions ;
 
-CREATE OR REPLACE FUNCTION public.match_content_embeddings (
-query_embedding extensions.vector,
-match_threshold double precision,
-match_count integer,
-current_document_id integer DEFAULT NULL::integer)
-RETURNS TABLE (
-content_id bigint,
-roam_uid Text,
-text_content Text,
-similarity double precision)
-SET search_path = 'extensions'
-LANGUAGE sql STABLE
-AS $$
-SELECT
-  c.id AS content_id,
-  c.source_local_id AS roam_uid,
-  c.text AS text_content,
-  1 - (ce.vector <=> query_embedding) AS similarity
-FROM public."ContentEmbedding_openai_text_embedding_3_small_1536" AS ce
-JOIN public."Content" AS c ON ce.target_id = c.id
-WHERE 1 - (ce.vector <=> query_embedding) > match_threshold
-  AND ce.obsolete = FALSE
-  AND (current_document_id IS NULL OR c.document_id = current_document_id)
-ORDER BY
-  ce.vector <=> query_embedding ASC
-LIMIT match_count;
-$$ ;
-
-ALTER FUNCTION public.match_content_embeddings (
-query_embedding extensions.vector,
-match_threshold double precision,
-match_count integer,
-current_document_id integer) OWNER TO "postgres" ;
-
 CREATE OR REPLACE FUNCTION public.match_embeddings_for_subset_nodes (
 "p_query_embedding" extensions.vector,
 "p_subset_roam_uids" Text [])
@@ -107,3 +73,5 @@ ALTER TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" ENABLE 
 DROP POLICY IF EXISTS embedding_openai_te3s_1536_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536" ;
 CREATE POLICY embedding_openai_te3s_1536_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536"
 FOR ALL USING (public.content_in_space (target_id)) ;
+
+DROP FUNCTION IF EXISTS public.match_content_embeddings(vector, double, integer, integer);
