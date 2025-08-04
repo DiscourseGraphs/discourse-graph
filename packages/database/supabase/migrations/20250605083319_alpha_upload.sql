@@ -136,6 +136,7 @@ BEGIN
 END;$function$
 ;
 
+DROP FUNCTION IF EXISTS public.alpha_get_last_update_time(text);
 CREATE OR REPLACE FUNCTION public.alpha_get_last_update_time(p_space_name text)
  RETURNS TABLE(last_update_time timestamp with time zone)
  LANGUAGE plpgsql
