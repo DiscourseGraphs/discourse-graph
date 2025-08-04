@@ -10,7 +10,7 @@ const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const { slug } = await params;
   const directory = docMap[slug] ?? docMap.default;
 
-  return <DocsPage params={Promise.resolve({ slug })} directory={directory} />;
+  return await DocsPage({ params: Promise.resolve({ slug }), directory });
 };
 
 export default Page;

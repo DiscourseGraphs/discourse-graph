@@ -1,10 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, Suspense } from "react";
+import { useEffect } from "react";
 import { usePostHog } from "posthog-js/react";
 
-function PostHogPageView() {
+const PostHogPageViewInner = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const posthog = usePostHog();
@@ -22,12 +23,11 @@ function PostHogPageView() {
   }, [pathname, searchParams, posthog]);
 
   return null;
-}
+};
 
-export default function SuspendedPostHogPageView() {
-  return (
-    <Suspense fallback={null}>
-      <PostHogPageView />
-    </Suspense>
-  );
-}
+// Use dynamic import to ensure this only runs on the client
+const PostHogPageView = dynamic(() => Promise.resolve(PostHogPageViewInner), {
+  ssr: false,
+});
+
+export default PostHogPageView;
