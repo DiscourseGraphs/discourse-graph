@@ -33,7 +33,7 @@ const ValidatedInputPanel = ({
   error: string;
   placeholder?: string;
 }) => (
-  <>
+  <div className="flex flex-col">
     <Label>
       {label}
       <Description description={description} />
@@ -47,7 +47,7 @@ const ValidatedInputPanel = ({
     {error && (
       <div className="mt-1 text-sm font-medium text-red-600">{error}</div>
     )}
-  </>
+  </div>
 );
 
 const useDebouncedRoamUpdater = (
