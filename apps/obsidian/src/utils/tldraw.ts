@@ -1,11 +1,11 @@
-import { createTLStore, TldrawFile, TLStore } from "tldraw";
+import { createTLStore, defaultShapeUtils, TldrawFile, TLRecord, TLStore } from "tldraw";
 import {
   FRONTMATTER_KEY,
   TLDATA_DELIMITER_END,
   TLDATA_DELIMITER_START,
   TLDRAW_VERSION,
 } from "../constants";
-import DiscourseGraphPlugin from "..";
+import DiscourseGraphPlugin from "~/index";
 import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
 import { Notice } from "obsidian";
 import { format } from "date-fns";
@@ -16,12 +16,47 @@ export type TldrawPluginMetaData = {
   uuid: string;
 };
 
+export type TldrawRawData = {
+  tldrawFileFormatVersion: number;
+  schema: any;
+  records: any;
+};
+
 export type TLData = {
   meta: TldrawPluginMetaData;
-  raw: {
-    tldrawFileFormatVersion: number;
-    schema: any;
-    records: any;
+  raw: TldrawRawData;
+};
+
+export const processInitialData = (
+  data: TLData,
+): { meta: TldrawPluginMetaData; store: TLStore } => {
+  const recordsData = Array.isArray(data.raw.records)
+    ? data.raw.records.reduce(
+        (acc: Record<string, TLRecord>, record: { id: string } & TLRecord) => {
+          acc[record.id] = {
+            ...record,
+          };
+          return acc;
+        },
+        {},
+      )
+    : data.raw.records;
+
+  let store: TLStore;
+  if (recordsData) {
+    store = createTLStore({
+      shapeUtils: defaultShapeUtils,
+      initialData: recordsData,
+    });
+  } else {
+    store = createTLStore({
+      shapeUtils: defaultShapeUtils,
+    });
+  }
+
+  return {
+    meta: data.meta,
+    store,
   };
 };
 
@@ -121,4 +156,23 @@ export const createCanvas = async (plugin: DiscourseGraphPlugin) => {
     new Notice(e instanceof Error ? e.message : "Failed to create canvas file");
     console.error(e);
   }
+};
+
+/**
+ * Get the updated markdown content with the new TLData
+ * @param currentContent - The current markdown content
+ * @param stringifiedData - The new TLData stringified
+ * @returns The updated markdown content
+ */
+export const getUpdatedMdContent = (
+  currentContent: string,
+  stringifiedData: string,
+) => {
+  const regex = new RegExp(
+    `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
+  );
+  return currentContent.replace(
+    regex,
+    `${TLDATA_DELIMITER_START}\n${stringifiedData}\n${TLDATA_DELIMITER_END}`,
+  );
 };
