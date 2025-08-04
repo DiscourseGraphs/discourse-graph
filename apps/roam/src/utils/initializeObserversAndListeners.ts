@@ -167,10 +167,12 @@ export const initObservers = async ({
       target.tagName === "TEXTAREA" &&
       target.classList.contains("rm-block-input")
     ) {
+      const textarea = target as HTMLTextAreaElement;
       removeTextSelectionPopup();
       renderDiscourseNodeMenu({
-        textarea: target as HTMLTextAreaElement,
+        textarea,
         extensionAPI: onloadArgs.extensionAPI,
+        isShift: evt.shiftKey,
       });
       evt.preventDefault();
       evt.stopPropagation();

@@ -33,6 +33,7 @@ const DEFAULT_NODES: DiscourseNode[] = [
     text: "Page",
     type: "page-node",
     shortcut: "p",
+    tag: "",
     format: "{content}",
     specification: [
       {
@@ -50,6 +51,7 @@ const DEFAULT_NODES: DiscourseNode[] = [
     text: "Block",
     type: "blck-node",
     shortcut: "b",
+    tag: "",
     format: "{content}",
     specification: [
       {
@@ -112,6 +114,7 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           text: r.label,
           type: r.id,
           shortcut: r.label.slice(0, 1),
+          tag: "",
           specification: r.triples.map(([source, relation, target]) => ({
             type: "clause",
             source: /anchor/i.test(source) ? r.label : source,

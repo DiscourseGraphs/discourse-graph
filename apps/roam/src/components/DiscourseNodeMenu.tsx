@@ -32,6 +32,7 @@ type Props = {
   textarea: HTMLTextAreaElement;
   extensionAPI: OnloadArgs["extensionAPI"];
   trigger?: JSX.Element;
+  isShift?: boolean;
 };
 
 const NodeMenu = ({
@@ -39,10 +40,20 @@ const NodeMenu = ({
   textarea,
   extensionAPI,
   trigger,
+  isShift,
 }: { onClose: () => void } & Props) => {
-  const discourseNodes = useMemo(
+  const isInitialTextSelected =
+    textarea.selectionStart !== textarea.selectionEnd;
+
+  const [showNodeTypes, setShowNodeTypes] = useState(
+    isInitialTextSelected || (isShift ?? false),
+  );
+  const userDiscourseNodes = useMemo(
     () => getDiscourseNodes().filter((n) => n.backedBy === "user"),
     [],
+  );
+  const discourseNodes = userDiscourseNodes.filter(
+    (n) => showNodeTypes || n.tag,
   );
   const indexBySC = useMemo(
     () => Object.fromEntries(discourseNodes.map((mi, i) => [mi.shortcut, i])),
@@ -55,52 +66,80 @@ const NodeMenu = ({
   const [isOpen, setIsOpen] = useState(!trigger);
 
   const onSelect = useCallback(
-    (index) => {
+    (index: number) => {
       const menuItem =
         menuRef.current?.children[index].querySelector(".bp3-menu-item");
       if (!menuItem) return;
-      const nodeUid = menuItem.getAttribute("data-node") || "";
-      const highlighted = textarea.value.substring(
-        textarea.selectionStart,
-        textarea.selectionEnd,
-      );
-      setTimeout(async () => {
-        const pageName = await getNewDiscourseNodeText({
-          text: highlighted,
-          nodeType: nodeUid,
-          blockUid,
-        });
 
-        if (!pageName) {
-          return;
-        }
-
-        const currentBlockText = getTextByBlockUid(blockUid);
-        const newText = `${currentBlockText.substring(
-          0,
+      if (showNodeTypes) {
+        const nodeUid = menuItem.getAttribute("data-node") || "";
+        const highlighted = textarea.value.substring(
           textarea.selectionStart,
-        )}[[${pageName}]]${currentBlockText.substring(textarea.selectionEnd)}`;
+          textarea.selectionEnd,
+        );
+        setTimeout(async () => {
+          const pageName = await getNewDiscourseNodeText({
+            text: highlighted,
+            nodeType: nodeUid,
+            blockUid,
+          });
 
-        updateBlock({ text: newText, uid: blockUid });
-        posthog.capture("Discourse Node: Created via Node Menu", {
-          nodeType: nodeUid,
-          text: pageName,
-        });
+          if (!pageName) {
+            return;
+          }
 
-        createDiscourseNode({
-          text: pageName,
-          configPageUid: nodeUid,
-          extensionAPI,
+          const currentBlockText = getTextByBlockUid(blockUid);
+          const newText = `${currentBlockText.substring(
+            0,
+            textarea.selectionStart,
+          )}[[${pageName}]]${currentBlockText.substring(textarea.selectionEnd)}`;
+
+          updateBlock({ text: newText, uid: blockUid });
+          posthog.capture("Discourse Node: Created via Node Menu", {
+            nodeType: nodeUid,
+            text: pageName,
+          });
+
+          createDiscourseNode({
+            text: pageName,
+            configPageUid: nodeUid,
+            extensionAPI,
+          });
         });
-      });
+      } else {
+        const tag = menuItem.getAttribute("data-tag") || "";
+        if (!tag) return;
+
+        setTimeout(() => {
+          const currentText = textarea.value;
+          const cursorPos = textarea.selectionStart;
+          const textToInsert = `#${tag} `;
+
+          const newText = `${currentText.substring(
+            0,
+            cursorPos,
+          )}${textToInsert}${currentText.substring(cursorPos)}`;
+
+          updateBlock({ text: newText, uid: blockUid });
+          posthog.capture("Discourse Tag: Created via Node Menu", {
+            tag,
+          });
+        });
+      }
       onClose();
     },
-    [menuRef, blockUid, onClose, textarea, extensionAPI],
+    [menuRef, blockUid, onClose, textarea, extensionAPI, showNodeTypes],
   );
 
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
-      if (!isOpen || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      if (!isOpen || e.metaKey || e.ctrlKey) return;
+      if (e.key === "Shift") {
+        if (!isInitialTextSelected) {
+          setShowNodeTypes(true);
+        }
+        return;
+      }
 
       if (e.key === "ArrowDown") {
         const index = Number(
@@ -134,14 +173,26 @@ const NodeMenu = ({
       e.stopPropagation();
       e.preventDefault();
     },
-    [onSelect, onClose, indexBySC, isOpen],
+    [onSelect, onClose, indexBySC, isOpen, isInitialTextSelected],
   );
+
+  const keyupListener = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Shift" && !isInitialTextSelected) {
+        setShowNodeTypes(false);
+      }
+    },
+    [isInitialTextSelected],
+  );
+
   useEffect(() => {
     const eventTarget = trigger ? document : textarea;
     const keydownHandler = (e: Event) => {
       keydownListener(e as KeyboardEvent);
     };
+
     eventTarget.addEventListener("keydown", keydownHandler);
+    eventTarget.addEventListener("keyup", keyupListener as EventListener);
 
     if (!trigger) {
       textarea.addEventListener("input", onClose);
@@ -149,11 +200,19 @@ const NodeMenu = ({
 
     return () => {
       eventTarget.removeEventListener("keydown", keydownHandler);
+      eventTarget.removeEventListener("keyup", keyupListener as EventListener);
       if (!trigger) {
         textarea.removeEventListener("input", onClose);
       }
     };
-  }, [keydownListener, onClose, textarea, trigger]);
+  }, [
+    keydownListener,
+    keyupListener,
+    onClose,
+    textarea,
+    trigger,
+    isInitialTextSelected,
+  ]);
 
   const handlePopoverInteraction = useCallback(
     (nextOpenState: boolean) => {
@@ -190,10 +249,14 @@ const NodeMenu = ({
               <MenuItem
                 key={item.text}
                 data-node={item.type}
-                text={item.text}
+                data-tag={item.tag}
+                text={
+                  showNodeTypes ? item.text : item.tag ? `#${item.tag}` : ""
+                }
                 active={i === activeIndex}
                 onMouseEnter={() => setActiveIndex(i)}
                 onClick={() => onSelect(i)}
+                disabled={!showNodeTypes && !item.tag}
                 className="flex items-center"
                 icon={
                   <div
@@ -275,6 +338,7 @@ export const TextSelectionNodeMenu = ({
       extensionAPI={extensionAPI}
       trigger={trigger}
       onClose={onClose}
+      isShift
     />
   );
 };
