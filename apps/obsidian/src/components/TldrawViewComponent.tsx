@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Editor, ErrorBoundary, loadSnapshot, Tldraw, TLStore } from "tldraw";
+import { Editor, ErrorBoundary, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
 import {
   getTLDataTemplate,
   createRawTldrawFile,
-  getUpdatedString,
+  getUpdatedMdContent,
+  TLData,
+  processInitialData,
 } from "~/utils/tldraw";
 import DiscourseGraphPlugin from "~/index";
 import {
@@ -26,6 +28,7 @@ export const TldrawPreviewComponent = ({
   file,
 }: TldrawPreviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [currentStore, setCurrentStore] = useState<TLStore>(store);
   const [isReady, setIsReady] = useState(false);
   const editorRef = useRef<Editor | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
@@ -41,7 +44,7 @@ export const TldrawPreviewComponent = ({
   const saveChanges = useCallback(async () => {
     const newData = getTLDataTemplate({
       pluginVersion: plugin.manifest.version,
-      tldrawFile: createRawTldrawFile(store),
+      tldrawFile: createRawTldrawFile(currentStore),
       uuid: window.crypto.randomUUID(),
     });
     const stringifiedData = JSON.stringify(newData, null, "\t");
@@ -56,7 +59,7 @@ export const TldrawPreviewComponent = ({
       return;
     }
 
-    const updatedString = getUpdatedString(currentContent, stringifiedData);
+    const updatedString = getUpdatedMdContent(currentContent, stringifiedData);
     if (updatedString === currentContent) {
       return;
     }
@@ -86,21 +89,23 @@ export const TldrawPreviewComponent = ({
         ),
       );
       if (match?.[1]) {
-        const data = JSON.parse(match[1]);
-        if (data.raw) {
-          loadSnapshot(store, data.raw);
-        }
+        const data = JSON.parse(match[1]) as TLData;
+        const { store: newStore } = processInitialData(data);
+        setCurrentStore(newStore);
       }
     }
-  }, [file, plugin, store]);
+  }, [file, plugin, currentStore]);
 
   useEffect(() => {
-    const unsubscribe = store.listen(
+    const unsubscribe = currentStore.listen(
       () => {
         if (saveTimeoutRef.current) {
           clearTimeout(saveTimeoutRef.current);
         }
-        saveTimeoutRef.current = setTimeout(saveChanges, DEFAULT_SAVE_DELAY);
+        saveTimeoutRef.current = setTimeout(
+          () => void saveChanges(),
+          DEFAULT_SAVE_DELAY,
+        );
       },
       { source: "user", scope: "document" },
     );
@@ -111,16 +116,11 @@ export const TldrawPreviewComponent = ({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [store, saveChanges]);
+  }, [currentStore, saveChanges]);
 
   const handleMount = useCallback((editor: Editor) => {
     editorRef.current = editor;
     editor.setCurrentTool("select");
-
-    const shapes = editor.getCurrentPageShapes();
-    if (shapes.length > 0) {
-      editor.zoomToFit();
-    }
   }, []);
 
   return (
@@ -135,7 +135,7 @@ export const TldrawPreviewComponent = ({
             <div>Error in Tldraw component: {JSON.stringify(error)}</div>
           )}
         >
-          <Tldraw store={store} onMount={handleMount} autoFocus={true} />
+          <Tldraw store={currentStore} onMount={handleMount} autoFocus={true} />
         </ErrorBoundary>
       ) : (
         <div>Loading Tldraw...</div>

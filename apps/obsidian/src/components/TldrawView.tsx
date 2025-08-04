@@ -2,15 +2,10 @@ import { TextFileView, TFile, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { Root, createRoot } from "react-dom/client";
 import { TldrawPreviewComponent } from "./TldrawViewComponent";
-import {
-  TLRecord,
-  TLStore,
-  createTLStore,
-  defaultShapeUtils,
-  loadSnapshot,
-} from "tldraw";
+import { TLStore } from "tldraw";
 import React from "react";
 import DiscourseGraphPlugin from "~/index";
+import { processInitialData, TLData } from "~/utils/tldraw";
 
 export class TldrawView extends TextFileView {
   plugin: DiscourseGraphPlugin;
@@ -71,17 +66,17 @@ export class TldrawView extends TextFileView {
 
     const fileData = await this.app.vault.read(file);
 
-    const store = await this.createStore(fileData);
+    const store = this.createStore(fileData);
 
     if (!store) {
       console.warn("No tldraw data found in file");
       return;
     }
 
-    await this.setStore(store);
+    this.setStore(store);
   }
 
-  private async createStore(fileData: string): Promise<TLStore | undefined> {
+  private createStore(fileData: string): TLStore | undefined {
     try {
       const match = fileData.match(
         /```json !!!_START_OF_TLDRAW_DG_DATA__DO_NOT_CHANGE_THIS_PHRASE_!!!([\s\S]*?)!!!_END_OF_TLDRAW_DG_DATA__DO_NOT_CHANGE_THIS_PHRASE_!!!\n```/,
@@ -92,39 +87,13 @@ export class TldrawView extends TextFileView {
         return;
       }
 
-      const data = JSON.parse(match[1]);
+      const data = JSON.parse(match[1]) as TLData;
       if (!data.raw) {
         console.warn("Invalid tldraw data format - missing raw field");
         return;
       }
 
-      const recordsData = Array.isArray(data.raw.records)
-        ? data.raw.records.reduce(
-            (
-              acc: Record<string, TLRecord>,
-              record: { id: string } & TLRecord,
-            ) => {
-              acc[record.id] = {
-                ...record,
-              };
-              return acc;
-            },
-            {},
-          )
-        : data.raw.records;
-
-      let store: TLStore;
-      if (recordsData) {
-        store = createTLStore({
-          shapeUtils: defaultShapeUtils,
-          initialData: recordsData,
-        });
-      } else {
-        store = createTLStore({
-          shapeUtils: defaultShapeUtils,
-        });
-        loadSnapshot(store, data.raw);
-      }
+      const { store } = processInitialData(data);
 
       return store;
     } catch (e) {
@@ -149,7 +118,7 @@ export class TldrawView extends TextFileView {
     return root;
   }
 
-  protected async setStore(store: TLStore) {
+  protected setStore(store: TLStore) {
     if (this.store) {
       try {
         this.store.dispose();
@@ -160,11 +129,11 @@ export class TldrawView extends TextFileView {
 
     this.store = store;
     if (this.tldrawContainer) {
-      await this.refreshView();
+      this.refreshView();
     }
   }
 
-  private async refreshView() {
+  private refreshView() {
     if (!this.store) return;
 
     if (this.reactRoot) {
