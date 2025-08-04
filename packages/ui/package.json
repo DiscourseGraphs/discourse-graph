@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
+  "type": "module",
   "exports": {
     "./globals.css": "./src/globals.css",
     "./postcss.config": "./postcss.config.mjs",
@@ -14,7 +15,6 @@
     ],
     "./components/*": "./src/components/*.tsx"
   },
-  "type": "module",
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

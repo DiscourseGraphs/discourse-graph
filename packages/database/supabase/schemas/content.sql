@@ -496,7 +496,7 @@ $$;
 
 COMMENT ON FUNCTION public.upsert_content IS 'batch content upsert';
 
-CREATE OR REPLACE FUNCTION public.content_in_space (content_id BIGINT) RETURNS boolean
+CREATE OR REPLACE FUNCTION public.content_in_space(content_id BIGINT) RETURNS boolean
 STABLE
 SET search_path = ''
 LANGUAGE sql
@@ -506,7 +506,7 @@ $$;
 
 COMMENT ON FUNCTION public.content_in_space IS 'security utility: does current user have access to this content''s space?';
 
-CREATE OR REPLACE FUNCTION public.document_in_space (document_id BIGINT) RETURNS boolean
+CREATE OR REPLACE FUNCTION public.document_in_space(document_id BIGINT) RETURNS boolean
 STABLE
 SET search_path = ''
 LANGUAGE sql

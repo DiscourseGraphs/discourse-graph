@@ -102,6 +102,7 @@ export const SettingsDialog = ({
         <style>{`
           .dg-settings-tabs .bp3-tab-list {
             overflow-y: auto;
+            overflow-x: hidden;
             max-height: 100%;
             /* Firefox */
             scrollbar-width: thin;

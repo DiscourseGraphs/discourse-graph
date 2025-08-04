@@ -1,11 +1,9 @@
 import assert from "assert";
 import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import { createClient } from "@supabase/supabase-js";
-import {
-  Constants,
-  type Database,
-  type Enums,
-} from "@repo/database/types.gen.ts";
+import { Constants, type Database, type Enums } from "@repo/database/types.gen";
+import { getVariant, config } from "@repo/database/dbDotEnv";
+
 import {
   spaceAnonUserEmail,
   fetchOrCreateSpaceIndirect,
@@ -14,6 +12,12 @@ import {
 
 type Platform = Enums<"Platform">;
 const PLATFORMS: readonly Platform[] = Constants.public.Enums.Platform;
+
+if (getVariant() === "production") {
+  console.error("Tests are destructive, not running against production");
+  process.exit(-1);
+}
+config();
 
 const getAnonymousClient = () => {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {

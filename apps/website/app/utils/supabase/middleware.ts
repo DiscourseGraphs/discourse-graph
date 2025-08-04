@@ -1,11 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { envContents } from "@repo/database/dbDotEnv";
 
 // Inspired by https://supabase.com/ui/docs/nextjs/password-based-auth
 
 export const updateSession = async (request: NextRequest) => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const dbEnv = envContents();
+  const supabaseUrl = dbEnv.SUPABASE_URL;
+  const supabaseKey = dbEnv.SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error("Missing required Supabase environment variables");

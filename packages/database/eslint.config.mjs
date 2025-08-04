@@ -5,9 +5,12 @@ export default [
   {
     languageOptions: {
       parserOptions: {
+        project: true,
         tsconfigRootDir: ".",
-        project: "./tsconfig.json",
       },
     },
-  }
+  },
+  {
+    ignores: ["types.gen.ts", "supabase/functions/**"],
+  },
 ];

@@ -15,6 +15,7 @@ export type DiscourseNode = {
   text: string;
   type: string;
   shortcut: string;
+  tag?: string;
   specification: Condition[];
   backedBy: "user" | "default" | "relation";
   canvasSettings: {
@@ -32,6 +33,7 @@ const DEFAULT_NODES: DiscourseNode[] = [
     text: "Page",
     type: "page-node",
     shortcut: "p",
+    tag: "",
     format: "{content}",
     specification: [
       {
@@ -49,6 +51,7 @@ const DEFAULT_NODES: DiscourseNode[] = [
     text: "Block",
     type: "blck-node",
     shortcut: "b",
+    tag: "",
     format: "{content}",
     specification: [
       {
@@ -85,6 +88,7 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
         format: getSettingValueFromTree({ tree: children, key: "format" }),
         text,
         shortcut: getSettingValueFromTree({ tree: children, key: "shortcut" }),
+        tag: getSettingValueFromTree({ tree: children, key: "tag" }),
         type,
         specification: getSpecification(children),
         backedBy: "user",
@@ -110,6 +114,7 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           text: r.label,
           type: r.id,
           shortcut: r.label.slice(0, 1),
+          tag: "",
           specification: r.triples.map(([source, relation, target]) => ({
             type: "clause",
             source: /anchor/i.test(source) ? r.label : source,

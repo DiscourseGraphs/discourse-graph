@@ -574,7 +574,7 @@ export type Database = {
         Returns: boolean
       }
       alpha_delete_by_source_local_ids: {
-        Args: { p_space_name: string; p_source_local_ids: string[] }
+        Args: { p_source_local_ids: string[]; p_space_name: string }
         Returns: string
       }
       alpha_get_last_update_time: {
@@ -585,15 +585,15 @@ export type Database = {
       }
       alpha_upsert_discourse_nodes: {
         Args: {
-          p_user_name: string
-          p_user_email: string
           p_nodes: Json
           p_space_name: string
+          p_user_email: string
+          p_user_name: string
         }
         Returns: string
       }
       compute_arity_local: {
-        Args: { schema_id: number; lit_content: Json }
+        Args: { lit_content: Json; schema_id: number }
         Returns: number
       }
       concept_in_space: {
@@ -606,12 +606,12 @@ export type Database = {
       }
       create_account_in_space: {
         Args: {
-          space_id_: number
           account_local_id_: string
-          name_: string
+          editor_?: boolean
           email_?: string
           email_trusted?: boolean
-          editor_?: boolean
+          name_: string
+          space_id_: number
         }
         Returns: number
       }
@@ -622,9 +622,9 @@ export type Database = {
       end_sync_task: {
         Args: {
           s_function: string
-          s_worker: string
           s_status: Database["public"]["Enums"]["task_status"]
           s_target: number
+          s_worker: string
         }
         Returns: undefined
       }
@@ -647,8 +647,8 @@ export type Database = {
       }
       get_space_anonymous_email: {
         Args: {
-          space_id: number
           platform: Database["public"]["Enums"]["Platform"]
+          space_id: number
         }
         Returns: string
       }
@@ -658,10 +658,10 @@ export type Database = {
       }
       match_content_embeddings: {
         Args: {
-          query_embedding: string
           current_document_id?: number
           match_count: number
           match_threshold: number
+          query_embedding: string
         }
         Returns: {
           similarity: number
@@ -685,11 +685,11 @@ export type Database = {
       }
       propose_sync_task: {
         Args: {
-          timeout: unknown
           s_function: string
           s_target: number
-          task_interval: unknown
           s_worker: string
+          task_interval: unknown
+          timeout: unknown
         }
         Returns: string
       }
@@ -705,28 +705,28 @@ export type Database = {
         Args: {
           content_as_document?: boolean
           data: Json
-          v_space_id: number
           v_creator_id: number
+          v_space_id: number
         }
         Returns: number[]
       }
       upsert_content_embedding: {
-        Args: { embedding_array: number[]; model: string; content_id: number }
+        Args: { content_id: number; embedding_array: number[]; model: string }
         Returns: undefined
       }
       upsert_discourse_nodes: {
         Args: {
+          p_agent_type?: string
           p_content_scale?: string
-          p_space_name: string
-          p_user_email: string
-          p_user_name: string
+          p_document_source_id?: string
+          p_embedding_model?: string
           p_nodes: Json
           p_platform_name?: string
           p_platform_url?: string
+          p_space_name: string
           p_space_url?: string
-          p_agent_type?: string
-          p_embedding_model?: string
-          p_document_source_id?: string
+          p_user_email: string
+          p_user_name: string
         }
         Returns: {
           content_id: number
