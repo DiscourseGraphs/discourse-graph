@@ -5,10 +5,15 @@ type ValidationResult = {
   error?: string;
 };
 
-export function validateNodeFormat(
-  format: string,
-  nodeTypes: DiscourseNode[],
-): ValidationResult {
+export const validateNodeFormat = ({
+  format,
+  currentNode,
+  allNodes,
+}: {
+  format: string;
+  currentNode: DiscourseNode;
+  allNodes: DiscourseNode[];
+}): ValidationResult => {
   if (!format) {
     return {
       isValid: false,
@@ -35,13 +40,17 @@ export function validateNodeFormat(
     return invalidCharsResult;
   }
 
-  const uniquenessResult = validateFormatUniqueness(nodeTypes);
-  if (!uniquenessResult.isValid) {
-    return uniquenessResult;
+  const otherNodes = allNodes.filter((node) => node.id !== currentNode.id);
+  const isDuplicate = otherNodes.some((node) => node.format === format);
+  if (isDuplicate) {
+    return {
+      isValid: false,
+      error: "Format must be unique across all node types",
+    };
   }
 
   return { isValid: true };
-}
+};
 
 export const checkInvalidChars = (format: string): ValidationResult => {
   const INVALID_FILENAME_CHARS_REGEX = /[#^\[\]|]/;
@@ -56,31 +65,21 @@ export const checkInvalidChars = (format: string): ValidationResult => {
   return { isValid: true };
 };
 
-const validateFormatUniqueness = (
-  nodeTypes: DiscourseNode[],
-): ValidationResult => {
-  const isDuplicate =
-    new Set(nodeTypes.map((nodeType) => nodeType.format)).size !==
-    nodeTypes.length;
-
-  if (isDuplicate) {
-    return { isValid: false, error: "Format must be unique" };
-  }
-
-  return { isValid: true };
-};
-
-export const validateNodeName = (
-  name: string,
-  nodeTypes: DiscourseNode[],
-): ValidationResult => {
+export const validateNodeName = ({
+  name,
+  currentNode,
+  allNodes,
+}: {
+  name: string;
+  currentNode: DiscourseNode;
+  allNodes: DiscourseNode[];
+}): ValidationResult => {
   if (!name || name.trim() === "") {
     return { isValid: false, error: "Name is required" };
   }
 
-  const isDuplicate =
-    new Set(nodeTypes.map((nodeType) => nodeType.name)).size !==
-    nodeTypes.length;
+  const otherNodes = allNodes.filter((node) => node.id !== currentNode.id);
+  const isDuplicate = otherNodes.some((node) => node.name === name);
 
   if (isDuplicate) {
     return { isValid: false, error: "Name must be unique" };
@@ -101,14 +100,22 @@ export const validateAllNodes = (
       return;
     }
 
-    const formatValidation = validateNodeFormat(nodeType.format, nodeTypes);
+    const formatValidation = validateNodeFormat({
+      format: nodeType.format,
+      currentNode: nodeType,
+      allNodes: nodeTypes,
+    });
     if (!formatValidation.isValid) {
       errorMap[index] = formatValidation.error || "Invalid format";
       hasErrors = true;
       return;
     }
 
-    const nameValidation = validateNodeName(nodeType.name, nodeTypes);
+    const nameValidation = validateNodeName({
+      name: nodeType.name,
+      currentNode: nodeType,
+      allNodes: nodeTypes,
+    });
     if (!nameValidation.isValid) {
       errorMap[index] = nameValidation.error || "Invalid name";
       hasErrors = true;

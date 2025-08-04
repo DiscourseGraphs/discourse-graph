@@ -45,6 +45,14 @@ import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import { renderCreateNodeDialog } from "~/components/CreateNodeDialog";
 import getUids from "roamjs-components/dom/getUids";
 
+const debounce = (fn: () => void, delay = 250) => {
+  let timeout: number;
+  return () => {
+    clearTimeout(timeout);
+    timeout = window.setTimeout(fn, delay);
+  };
+};
+
 export const initObservers = async ({
   onloadArgs,
 }: {
@@ -254,14 +262,11 @@ export const initObservers = async ({
     }
   };
 
-  const nodeCreationPopoverListener = () => {
+  const nodeCreationPopoverListener = debounce(() => {
     const isTextSelectionPopupEnabled =
       onloadArgs.extensionAPI.settings.get("text-selection-popup") !== false;
 
-    if (!isTextSelectionPopupEnabled) {
-      removeTextSelectionPopup();
-      return;
-    }
+    if (!isTextSelectionPopupEnabled) return;
 
     const selection = window.getSelection();
 
@@ -282,6 +287,7 @@ export const initObservers = async ({
     if (blockElement) {
       const textarea = blockElement.querySelector("textarea");
       if (!textarea) return;
+
       renderTextSelectionPopup({
         extensionAPI: onloadArgs.extensionAPI,
         blockElement,
@@ -290,7 +296,7 @@ export const initObservers = async ({
     } else {
       removeTextSelectionPopup();
     }
-  };
+  }, 150);
 
   const nodeTagHoverListener = (e: Event) => {
     const target = e.target as HTMLElement | null;

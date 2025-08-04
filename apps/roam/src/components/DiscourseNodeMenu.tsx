@@ -52,9 +52,8 @@ const NodeMenu = ({
     () => getDiscourseNodes().filter((n) => n.backedBy === "user"),
     [],
   );
-  const discourseNodes = useMemo(
-    () => userDiscourseNodes.filter((n) => showNodeTypes || n.tag),
-    [showNodeTypes, userDiscourseNodes],
+  const discourseNodes = userDiscourseNodes.filter(
+    (n) => showNodeTypes || n.tag,
   );
   const indexBySC = useMemo(
     () => Object.fromEntries(discourseNodes.map((mi, i) => [mi.shortcut, i])),
@@ -134,7 +133,7 @@ const NodeMenu = ({
 
   const keydownListener = useCallback(
     (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey) return;
+      if (!isOpen || e.metaKey || e.ctrlKey) return;
       if (e.key === "Shift") {
         if (!isInitialTextSelected) {
           setShowNodeTypes(true);
@@ -174,7 +173,7 @@ const NodeMenu = ({
       e.stopPropagation();
       e.preventDefault();
     },
-    [onSelect, onClose, indexBySC, isInitialTextSelected],
+    [onSelect, onClose, indexBySC, isOpen, isInitialTextSelected],
   );
 
   const keyupListener = useCallback(

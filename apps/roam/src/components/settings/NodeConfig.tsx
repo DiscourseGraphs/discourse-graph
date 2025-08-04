@@ -23,6 +23,7 @@ const ValidatedInputPanel = ({
   onChange,
   onBlur,
   error,
+  placeholder,
 }: {
   label: string;
   description: string;
@@ -30,17 +31,23 @@ const ValidatedInputPanel = ({
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur: () => void;
   error: string;
+  placeholder?: string;
 }) => (
-  <div>
+  <>
     <Label>
       {label}
       <Description description={description} />
-      <InputGroup value={value} onChange={onChange} onBlur={onBlur} />
+      <InputGroup
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+      />
     </Label>
     {error && (
       <div className="mt-1 text-sm font-medium text-red-600">{error}</div>
     )}
-  </div>
+  </>
 );
 
 const useDebouncedRoamUpdater = (
@@ -122,18 +129,18 @@ const NodeConfig = ({
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
   const [tagError, setTagError] = useState("");
   const [formatError, setFormatError] = useState("");
-  const isValid = !tagError && !formatError;
+  const isConfigurationValid = !tagError && !formatError;
 
   const {
     value: tagValue,
     handleChange: handleTagChange,
     handleBlur: handleTagBlurFromHook,
-  } = useDebouncedRoamUpdater(tagUid, node.tag, isValid);
+  } = useDebouncedRoamUpdater(tagUid, node.tag || "", isConfigurationValid);
   const {
     value: formatValue,
     handleChange: handleFormatChange,
     handleBlur: handleFormatBlurFromHook,
-  } = useDebouncedRoamUpdater(formatUid, node.format, isValid);
+  } = useDebouncedRoamUpdater(formatUid, node.format, isConfigurationValid);
 
   const getCleanTagText = (tag: string): string => {
     return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -148,20 +155,24 @@ const NodeConfig = ({
       return;
     }
 
-    const formatWithoutPlaceholders = format.replace(/{[^}]+}/g, "");
-    const formatUpper = formatWithoutPlaceholders.toUpperCase();
-    const formatParts = formatUpper.split(/[^A-Z0-9]/);
-    const hasConflict = formatParts.includes(cleanTag);
+    const roamTagRegex = /#?\[\[(.*?)\]\]|#(\S+)/g;
+    const matches = format.matchAll(roamTagRegex);
+    const formatTags: string[] = [];
+    for (const match of matches) {
+      const tagName = match[1] || match[2];
+      if (tagName) {
+        formatTags.push(tagName.toUpperCase());
+      }
+    }
+
+    const hasConflict = formatTags.includes(cleanTag);
 
     if (hasConflict) {
-      const formatForMessage = formatWithoutPlaceholders
-        .trim()
-        .replace(/(\s*-)*$/, "");
       setFormatError(
-        `Format "${formatForMessage}" conflicts with tag: "${tag}". Please use some other format.`,
+        `The format references the node's tag "${tag}". Please use a different format or tag.`,
       );
       setTagError(
-        `Tag "${tag}" conflicts with format "${formatForMessage}". Please use some other tag.`,
+        `The tag "${tag}" is referenced in the format. Please use a different tag or format.`,
       );
     } else {
       setTagError("");
@@ -218,6 +229,7 @@ const NodeConfig = ({
                 onChange={handleTagChange}
                 onBlur={handleTagBlur}
                 error={tagError}
+                placeholder={`#${node.text}`}
               />
             </div>
           }

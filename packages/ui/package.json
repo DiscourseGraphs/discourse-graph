@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
+  "type": "module",
   "exports": {
     "./globals.css": "./src/globals.css",
     "./postcss.config": "./postcss.config.mjs",
@@ -35,7 +36,7 @@
   },
   "dependencies": {
     "@supabase/auth-ui-react": "0.4.7",
-    "@supabase/supabase-js": "^2.50.0",
+    "@supabase/supabase-js": "^2.52.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
