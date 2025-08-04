@@ -22,8 +22,6 @@ import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
-import { createHTMLObserver } from "roamjs-components/dom";
-import { renderAttributeButton } from "./utils/renderNodeTagPopup";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -98,40 +96,18 @@ export default runExtension(async (onloadArgs) => {
   const settingsStyle = addStyle(settingsStyles);
 
   const { observers, listeners } = await initObservers({ onloadArgs });
-  const attributeObserver = createHTMLObserver({
-    className: "rm-page-ref--tag",
-
-    tag: "SPAN",
-
-    callback: (s: HTMLSpanElement) => {
-      // if (s.classList?.contains("rm-page-ref--tag")) {
-
-      // if (discourseTagSet.has(tag)) {
-
-      renderAttributeButton(s);
-
-      console.log("s", s);
-
-      // }
-
-      // }
-    },
-  });
-  observers.push(attributeObserver);
   const {
     pageActionListener,
     hashChangeListener,
     nodeMenuTriggerListener,
     discourseNodeSearchTriggerListener,
     nodeCreationPopoverListener,
-    nodeTagHoverListener,
   } = listeners;
   document.addEventListener("roamjs:query-builder:action", pageActionListener);
   window.addEventListener("hashchange", hashChangeListener);
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
-  //document.addEventListener("mouseover", nodeTagHoverListener);
 
   await initializeDiscourseNodes();
   refreshConfigTree();
@@ -170,7 +146,6 @@ export default runExtension(async (onloadArgs) => {
         "selectionchange",
         nodeCreationPopoverListener,
       );
-      //document.removeEventListener("mouseover", nodeTagHoverListener);
       window.roamAlphaAPI.ui.graphView.wholeGraph.removeCallback({
         label: "discourse-node-styling",
       });

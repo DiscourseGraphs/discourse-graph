@@ -120,7 +120,7 @@ const CreateNodeDialog = ({
     <Dialog
       isOpen={true}
       onClose={onClose}
-      title="Create Discourse node"
+      title="Create Discourse Node"
       autoFocus={false}
     >
       <div className={Classes.DIALOG_BODY}>
