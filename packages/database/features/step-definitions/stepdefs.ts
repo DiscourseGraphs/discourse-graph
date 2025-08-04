@@ -6,7 +6,7 @@ import { getVariant, config } from "@repo/database/dbDotEnv";
 
 import {
   spaceAnonUserEmail,
-  fetchOrCreateSpaceIndirect,
+  fetchOrCreateSpaceDirect,
   fetchOrCreatePlatformAccount,
 } from "@repo/ui/lib/supabase/contextFunctions";
 
@@ -121,7 +121,7 @@ When(
     if (PLATFORMS.indexOf(platform) < 0)
       throw new Error(`Platform must be one of ${PLATFORMS}`);
     const localRefs: Record<string, any> = world.localRefs || {};
-    const spaceResponse = await fetchOrCreateSpaceIndirect({
+    const spaceResponse = await fetchOrCreateSpaceDirect({
       password: SPACE_ANONYMOUS_PASSWORD,
       url: `https://roamresearch.com/#/app/${spaceName}`,
       name: spaceName,
