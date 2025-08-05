@@ -40,6 +40,7 @@ import {
   removeTextSelectionPopup,
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
+import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -91,6 +92,14 @@ export const initObservers = async ({
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
+  });
+
+  const nodeTagPopupButtonObserver = createHTMLObserver({
+    className: "rm-page-ref--tag",
+    tag: "SPAN",
+    callback: (s: HTMLSpanElement) => {
+      renderNodeTagPopupButton(s, onloadArgs.extensionAPI);
+    },
   });
 
   const pageActionListener = ((
@@ -300,6 +309,7 @@ export const initObservers = async ({
       configPageObserver,
       linkedReferencesObserver,
       graphOverviewExportObserver,
+      nodeTagPopupButtonObserver,
     ].filter((o): o is MutationObserver => !!o),
     listeners: {
       pageActionListener,
