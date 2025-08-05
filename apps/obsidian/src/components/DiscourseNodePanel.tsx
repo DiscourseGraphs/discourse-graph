@@ -6,11 +6,7 @@ import { DiscourseNode } from "~/types";
 import DiscourseGraphPlugin from "~/index";
 import { createDiscourseNode } from "~/utils/createNode";
 
-export function DiscourseNodePanel({
-  plugin,
-}: {
-  plugin: DiscourseGraphPlugin;
-}) {
+export const DiscourseNodePanel = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
   const editor = useEditor();
 
   const handleNodeTypeSelect = React.useCallback(
@@ -41,7 +37,7 @@ export function DiscourseNodePanel({
               y: finalPosition.y,
               props: {
                 nodeType: nodeType.id,
-                filePath: file?.path || "",
+                wikiLink: file ? `[[${file.basename}]]` : "",
                 w: 200,
                 h: 100,
               },
@@ -82,4 +78,4 @@ export function DiscourseNodePanel({
       </div>
     </div>
   );
-}
+};
