@@ -496,12 +496,15 @@ export const createAllRelationShapeUtils = (
         if (!relation) return;
         const possibleTargets = discourseContext.relations[relation.label]
           .filter((r) => r.source === relation.source)
-          .map((r) => discourseContext.nodes[r.destination].text);
-        const uniqueTargets = [...new Set(possibleTargets)];
+          .map((r) => r.destination);
 
         if (!possibleTargets.includes(target.type)) {
+          const uniqueTargets = [...new Set(possibleTargets)];
+          const uniqueTargetTexts = uniqueTargets.map(
+            (t) => discourseContext.nodes[t].text,
+          );
           return deleteAndWarn(
-            `Target node must be of type ${uniqueTargets.join(", ")}`,
+            `Target node must be of type ${uniqueTargetTexts.join(", ")}`,
           );
         }
         if (arrow.type !== target.type) {
