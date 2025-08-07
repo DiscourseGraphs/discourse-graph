@@ -219,7 +219,6 @@ GRANT ALL ON FUNCTION public.propose_sync_task(
     "task_interval" interval
 ) TO "service_role";
 
-DROP FUNCTION IF EXISTS public.get_nodes_needing_sync(jsonb);
 
 CREATE OR REPLACE FUNCTION public.generic_entity_access(target_id BIGINT, target_type public."EntityType") RETURNS boolean
 STABLE SECURITY DEFINER
