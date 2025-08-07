@@ -18,10 +18,10 @@
     "@sindresorhus/slugify": "^2.2.1",
     "@supabase/ssr": "^0.6.1",
     "gray-matter": "^4.0.3",
-    "next": "^15",
+    "next": "^15.4.2",
     "openai": "^4.98.0",
-    "react": "^19",
-    "react-dom": "^19",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "rehype-parse": "^9.0.1",
     "rehype-stringify": "^10.0.1",
     "remark": "^15.0.1",
@@ -37,11 +37,12 @@
     "@repo/typescript-config": "*",
     "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "19.1.0",
+    "@types/react-dom": "19.1.1",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.31.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
-    "typescript": "^5"
+    "typescript": "5.8.2"
   }
 }
