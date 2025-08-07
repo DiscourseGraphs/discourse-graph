@@ -20,7 +20,7 @@ interface TldrawPreviewProps {
   store: TLStore;
   plugin: DiscourseGraphPlugin;
   file: TFile;
-  assetStore: TLAssetStore;
+  assetStore: Required<TLAssetStore>;
 }
 
 export const TldrawPreviewComponent = ({
@@ -148,12 +148,7 @@ export const TldrawPreviewComponent = ({
             <div>Error in Tldraw component: {JSON.stringify(error)}</div>
           )}
         >
-          <Tldraw
-            store={currentStore}
-            onMount={handleMount}
-            autoFocus={true}
-            assets={assetStore}
-          />
+          <Tldraw store={currentStore} onMount={handleMount} autoFocus={true} />
         </ErrorBoundary>
       ) : (
         <div>Loading Tldraw...</div>
