@@ -6,11 +6,13 @@ import { TLStore } from "tldraw";
 import React from "react";
 import DiscourseGraphPlugin from "~/index";
 import { processInitialData, TLData } from "~/utils/tldraw";
+import { ObsidianTLAssetStore } from "~/utils/asset-store";
 
 export class TldrawView extends TextFileView {
   plugin: DiscourseGraphPlugin;
   private reactRoot?: Root;
   private store?: TLStore;
+  private assetStore?: ObsidianTLAssetStore;
   private onUnloadCallbacks: (() => void)[] = [];
 
   constructor(leaf: WorkspaceLeaf, plugin: DiscourseGraphPlugin) {
@@ -73,6 +75,16 @@ export class TldrawView extends TextFileView {
       return;
     }
 
+    // Create asset store
+    this.assetStore = new ObsidianTLAssetStore(`tldraw-${file.path}`, {
+      app: this.app,
+      file,
+    });
+
+    // Set the asset store on the TLStore
+    // store.props.assets = {};
+    // store.props.assets = this.assetStore;
+
     this.setStore(store);
   }
 
@@ -106,12 +118,20 @@ export class TldrawView extends TextFileView {
     const root = createRoot(entryPoint);
     if (!this.file) return;
 
+    if (!this.assetStore) {
+      console.error("Asset store is not set");
+      return;
+    }
+
+    console.log("assetStore", this.assetStore);
+
     root.render(
       <React.StrictMode>
         <TldrawPreviewComponent
           store={store}
           plugin={this.plugin}
           file={this.file}
+          assetStore={this.assetStore}
         />
       </React.StrictMode>,
     );
@@ -129,11 +149,11 @@ export class TldrawView extends TextFileView {
 
     this.store = store;
     if (this.tldrawContainer) {
-      this.refreshView();
+      void this.refreshView();
     }
   }
 
-  private refreshView() {
+  private async refreshView() {
     if (!this.store) return;
 
     if (this.reactRoot) {
@@ -151,6 +171,7 @@ export class TldrawView extends TextFileView {
     const container = this.tldrawContainer;
     if (container) {
       this.reactRoot = this.createReactRoot(container, this.store);
+      await new Promise((resolve) => setTimeout(resolve, 0)); // Wait for React to render
     }
   }
 
@@ -162,6 +183,12 @@ export class TldrawView extends TextFileView {
     const callbacks = [...this.onUnloadCallbacks];
     this.onUnloadCallbacks = [];
     callbacks.forEach((cb) => cb());
+
+    // Clean up asset store
+    if (this.assetStore) {
+      this.assetStore.dispose();
+      this.assetStore = undefined;
+    }
 
     return super.onUnloadFile(file);
   }
@@ -188,6 +215,12 @@ export class TldrawView extends TextFileView {
         console.error("Failed to dispose store", e);
       }
       this.store = undefined;
+    }
+
+    // Clean up asset store
+    if (this.assetStore) {
+      this.assetStore.dispose();
+      this.assetStore = undefined;
     }
   }
 }

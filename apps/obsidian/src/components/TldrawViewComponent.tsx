@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Editor, ErrorBoundary, Tldraw, TLStore } from "tldraw";
+import { Editor, ErrorBoundary, TLAssetStore, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
 import {
   getTLDataTemplate,
@@ -20,12 +20,14 @@ interface TldrawPreviewProps {
   store: TLStore;
   plugin: DiscourseGraphPlugin;
   file: TFile;
+  assetStore: TLAssetStore;
 }
 
 export const TldrawPreviewComponent = ({
   store,
   plugin,
   file,
+  assetStore,
 }: TldrawPreviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentStore, setCurrentStore] = useState<TLStore>(store);
@@ -91,6 +93,13 @@ export const TldrawPreviewComponent = ({
       if (match?.[1]) {
         const data = JSON.parse(match[1]) as TLData;
         const { store: newStore } = processInitialData(data);
+
+        // // Restore asset store if it exists
+        // if (assetStore) {
+        //   newStore.props.assetUrls = {};
+        //   newStore.props.assets = assetStore;
+        // }
+
         setCurrentStore(newStore);
       }
     }
@@ -118,10 +127,14 @@ export const TldrawPreviewComponent = ({
     };
   }, [currentStore, saveChanges]);
 
-  const handleMount = useCallback((editor: Editor) => {
-    editorRef.current = editor;
-    editor.setCurrentTool("select");
-  }, []);
+  const handleMount = useCallback(
+    (editor: Editor) => {
+      editorRef.current = editor;
+      editor.setCurrentTool("select");
+      currentStore.props.assets = assetStore;
+    },
+    [currentStore, assetStore],
+  );
 
   return (
     <div
@@ -135,7 +148,12 @@ export const TldrawPreviewComponent = ({
             <div>Error in Tldraw component: {JSON.stringify(error)}</div>
           )}
         >
-          <Tldraw store={currentStore} onMount={handleMount} autoFocus={true} />
+          <Tldraw
+            store={currentStore}
+            onMount={handleMount}
+            autoFocus={true}
+            assets={assetStore}
+          />
         </ErrorBoundary>
       ) : (
         <div>Loading Tldraw...</div>
