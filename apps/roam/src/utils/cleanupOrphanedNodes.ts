@@ -13,7 +13,7 @@ const getAllNodesFromSupabase = async (
 
     if (allNodeInstanceIds.error) {
       console.error(
-        "Failed to get all discourse node schemas from Supabase:",
+        "Failed to get all discourse node instances from Supabase:",
         allNodeInstanceIds.error,
       );
       return [];
