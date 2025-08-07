@@ -1,140 +1,148 @@
-import { App, TFile } from "obsidian"
-import { TLAsset, TLAssetStore, TLAssetId, TLAssetContext } from "tldraw"
-import { JsonObject } from "@tldraw/utils"
+import { App, TFile } from "obsidian";
+import { TLAsset, TLAssetStore, TLAssetId, TLAssetContext } from "tldraw";
+import { JsonObject } from "@tldraw/utils";
 
-const ASSET_PREFIX = "obsidian.blockref."
-type BlockRefAssetId = `${typeof ASSET_PREFIX}${string}`
-type AssetDataUrl = string
+const ASSET_PREFIX = "obsidian.blockref.";
+type BlockRefAssetId = `${typeof ASSET_PREFIX}${string}`;
+type AssetDataUrl = string;
 
 interface AssetStoreOptions {
-  app: App
-  file: TFile
+  app: App;
+  file: TFile;
 }
 
 /**
  * Proxy class that handles Obsidian-specific file operations for the TLDraw asset store
  */
 class ObsidianMarkdownFileTLAssetStoreProxy {
-  #resolvedAssetDataCache = new Map<BlockRefAssetId, AssetDataUrl>()
-  #app: App
-  #file: TFile
+  #resolvedAssetDataCache = new Map<BlockRefAssetId, AssetDataUrl>();
+  #app: App;
+  #file: TFile;
 
   constructor(options: AssetStoreOptions) {
-    this.#app = options.app
-    this.#file = options.file
+    this.#app = options.app;
+    this.#file = options.file;
   }
 
   async storeAsset(asset: TLAsset, file: File): Promise<BlockRefAssetId> {
     // Generate unique block reference ID
-    const blockRefId = crypto.randomUUID()
-    
-    // Create sanitized file name
-    const objectName = `${blockRefId}-${file.name}`.replace(/\W/g, '-')
-    const ext = file.type.split('/').at(1)
-    const fileName = !ext ? objectName : `${objectName}.${ext}`
+    const blockRefId = crypto.randomUUID();
 
-    console.log("fileName", fileName)
+    // Create sanitized file name
+    const objectName = `${blockRefId}-${file.name}`.replace(/\W/g, "-");
+    const ext = file.type.split("/").at(1);
+    const fileName = !ext ? objectName : `${objectName}.${ext}`;
+
+    console.log("fileName", fileName);
 
     // Get the attachment folder path
-    let attachmentFolder = this.#app.vault.getFolderByPath("attachments")
+    let attachmentFolder = this.#app.vault.getFolderByPath("attachments");
     if (!attachmentFolder) {
-      attachmentFolder = await this.#app.vault.createFolder("attachments")
+      attachmentFolder = await this.#app.vault.createFolder("attachments");
     }
-    const filePath = `${attachmentFolder.path}/${fileName}`
+    const filePath = `${attachmentFolder.path}/${fileName}`;
 
     // Store file in vault
-    const arrayBuffer = await file.arrayBuffer()
-    console.log("arrayBuffer", arrayBuffer)
-    const assetFile = await this.#app.vault.createBinary(filePath, arrayBuffer)
-    console.log("assetFile", assetFile)
+    const arrayBuffer = await file.arrayBuffer();
+    console.log("arrayBuffer", arrayBuffer);
+    const assetFile = await this.#app.vault.createBinary(filePath, arrayBuffer);
+    console.log("assetFile", assetFile);
 
     // Create markdown link and block reference
-    const internalLink = this.#app.fileManager.generateMarkdownLink(assetFile, this.#file.path)
-    const linkBlock = `${internalLink}\n^${blockRefId}`
+    const internalLink = this.#app.fileManager.generateMarkdownLink(
+      assetFile,
+      this.#file.path,
+    );
+    const linkBlock = `${internalLink}\n^${blockRefId}`;
 
-    // Add to top of file after frontmatter
-    await this.#addToTopOfFile(linkBlock)
+    await this.#addToTopOfFile(linkBlock);
 
-    // Cache the asset URL
-    const assetDataUri = URL.createObjectURL(file)
-    const assetId = `${ASSET_PREFIX}${blockRefId}` as BlockRefAssetId
-    this.#resolvedAssetDataCache.set(assetId, assetDataUri)
+    const assetDataUri = URL.createObjectURL(file);
+    const assetId = `${ASSET_PREFIX}${blockRefId}` as BlockRefAssetId;
+    this.#resolvedAssetDataCache.set(assetId, assetDataUri);
 
-    return assetId
+    return assetId;
   }
 
-  async getCached(blockRefAssetId: BlockRefAssetId): Promise<AssetDataUrl | null> {
+  async getCached(
+    blockRefAssetId: BlockRefAssetId,
+  ): Promise<AssetDataUrl | null> {
     try {
       // Check cache first
-      const cached = this.#resolvedAssetDataCache.get(blockRefAssetId)
-      if (cached) return cached
+      const cached = this.#resolvedAssetDataCache.get(blockRefAssetId);
+      if (cached) return cached;
 
       // Load and cache if needed
-      const assetData = await this.#getAssetData(blockRefAssetId)
-      if (!assetData) return null
+      const assetData = await this.#getAssetData(blockRefAssetId);
+      if (!assetData) return null;
 
-      const uri = URL.createObjectURL(new Blob([assetData]))
-      this.#resolvedAssetDataCache.set(blockRefAssetId, uri)
-      return uri
+      const uri = URL.createObjectURL(new Blob([assetData]));
+      this.#resolvedAssetDataCache.set(blockRefAssetId, uri);
+      return uri;
     } catch (error) {
-      console.error("Error getting cached asset:", error)
-      return null
+      console.error("Error getting cached asset:", error);
+      return null;
     }
   }
 
   dispose() {
     // Revoke all cached URLs
     for (const url of this.#resolvedAssetDataCache.values()) {
-      URL.revokeObjectURL(url)
+      URL.revokeObjectURL(url);
     }
-    this.#resolvedAssetDataCache.clear()
+    this.#resolvedAssetDataCache.clear();
   }
 
   // Private helper methods
   async #addToTopOfFile(content: string) {
-    const fileContent = await this.#app.vault.read(this.#file)
-    const fileCache = this.#app.metadataCache.getFileCache(this.#file)
-    
-    if (fileCache?.frontmatter?.position) {
-      const position = fileCache.frontmatter.position
-      const before = fileContent.slice(0, position.end.offset)
-      const after = fileContent.slice(position.end.offset)
-      const newContent = `${before}\n${content}${after}`
-      await this.#app.vault.modify(this.#file, newContent)
-    } else {
-      // No frontmatter, just add to top
-      const newContent = `${content}\n\n${fileContent}`
-      await this.#app.vault.modify(this.#file, newContent)
-    }
+    await this.#app.vault.process(this.#file, (data: string) => {
+      const fileCache = this.#app.metadataCache.getFileCache(this.#file);
+      const { start, end } = fileCache?.frontmatterPosition ?? {
+        start: { offset: 0 },
+        end: { offset: 0 },
+      };
+
+      const frontmatter = data.slice(start.offset, end.offset);
+      const rest = data.slice(end.offset);
+      return `${frontmatter}\n${content}\n${rest}`;
+    });
   }
 
-  async #getAssetData(blockRefAssetId: BlockRefAssetId): Promise<ArrayBuffer | null> {
+  async #getAssetData(
+    blockRefAssetId: BlockRefAssetId,
+  ): Promise<ArrayBuffer | null> {
     try {
-      const blockRef = blockRefAssetId.slice(ASSET_PREFIX.length)
-      if (!blockRef) return null
+      const blockRef = blockRefAssetId.slice(ASSET_PREFIX.length);
+      if (!blockRef) return null;
 
       // Get block from metadata cache
-      const fileCache = this.#app.metadataCache.getFileCache(this.#file)
-      if (!fileCache?.blocks?.[blockRef]) return null
+      const fileCache = this.#app.metadataCache.getFileCache(this.#file);
+      if (!fileCache?.blocks?.[blockRef]) return null;
 
-      const block = fileCache.blocks[blockRef]
-      const fileContent = await this.#app.vault.read(this.#file)
-      const blockContent = fileContent.substring(block.position.start.offset, block.position.end.offset)
+      const block = fileCache.blocks[blockRef];
+      const fileContent = await this.#app.vault.read(this.#file);
+      const blockContent = fileContent.substring(
+        block.position.start.offset,
+        block.position.end.offset,
+      );
 
       // Extract link from block content
-      const match = blockContent.match(/\[\[(.*?)\]\]/)
-      if (!match?.[1]) return null
+      const match = blockContent.match(/\[\[(.*?)\]\]/);
+      if (!match?.[1]) return null;
 
       // Resolve link to actual file
-      const linkPath = match[1]
-      const linkedFile = this.#app.metadataCache.getFirstLinkpathDest(linkPath, this.#file.path)
-      if (!linkedFile) return null
+      const linkPath = match[1];
+      const linkedFile = this.#app.metadataCache.getFirstLinkpathDest(
+        linkPath,
+        this.#file.path,
+      );
+      if (!linkedFile) return null;
 
       // Read the binary data
-      return await this.#app.vault.readBinary(linkedFile)
+      return await this.#app.vault.readBinary(linkedFile);
     } catch (error) {
-      console.error("Error getting asset data:", error)
-      return null
+      console.error("Error getting asset data:", error);
+      return null;
     }
   }
 }
@@ -142,7 +150,7 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
 /**
  * TLDraw asset store implementation for Obsidian
  */
-export class ObsidianTLAssetStore implements TLAssetStore {
+export class ObsidianTLAssetStore implements Required<TLAssetStore> {
   #proxy: ObsidianMarkdownFileTLAssetStoreProxy;
 
   constructor(
