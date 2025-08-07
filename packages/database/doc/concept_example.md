@@ -39,15 +39,16 @@ Content:
 |----|-------------|-------------|----------|---------------|----------------------------------------------|
 | 5  | nt1pgid         | 1       | document | 16            | discourse-graphs/nodes/Claim                 |
 | 6  | nt2pgid         | 2       | document | 17            | discourse-graphs/nodes/Hypothesis            |
-| 7  | et1bkid         | 3       | document | 18            | discourse-graphs/edges/OpposedBy             |
+| 12 | dgpgid          | 3       | document |               | roam/js/discourse-graph                      |
+| 7  | et1bkid         | 3       | block    | 18            | Opposes                                      |
+| 13 | et1r1bkid       | 3       | block    |               | source                                       |
+| 14 | et1r2bkid       | 3       | block    |               | destination                                  |
 | 8  | somepgid        | 4       | document |               | Some page                                    |
 | 24 | hyp1pgid        | 22      | document | 20            | [HYP] Some hypothesis                        |
 | 25 | clm1pgid        | 23      | document | 19            | [HYP] Some claim                             |
 | 9  | hyp1refbkid     | 4       | block    |               | a block referring to [[HYP] Some hypothesis] |
 | 10 | opp1bkid        | 4       | block    | 21            | OpposedBy                                    |
 | 11 | clm1refbkid     | 4       | block    |               | a block referring to [[CLM] Some claim]      |
-| 13 | et1r1bkid       | 3       | block    |               | source                                       |
-| 14 | et1r2bkid       | 3       | block    |               | destination                                  |
 
 Concept:
 
@@ -74,3 +75,6 @@ Note: I would probably create a sub-Content for the link text and use this as so
 OR use a char_start, char_end.
 
 Missing: Ontology
+
+This is what the rows would look like in diagram form:
+![Diagram showing the relationships between roam blocks and supabase rows.](./relation_diagram.svg)
