@@ -75,15 +75,10 @@ export class TldrawView extends TextFileView {
       return;
     }
 
-    // Create asset store
     this.assetStore = new ObsidianTLAssetStore(`tldraw-${file.path}`, {
       app: this.app,
       file,
     });
-
-    // Set the asset store on the TLStore
-    // store.props.assets = {};
-    // store.props.assets = this.assetStore;
 
     this.setStore(store);
   }
@@ -184,7 +179,6 @@ export class TldrawView extends TextFileView {
     this.onUnloadCallbacks = [];
     callbacks.forEach((cb) => cb());
 
-    // Clean up asset store
     if (this.assetStore) {
       this.assetStore.dispose();
       this.assetStore = undefined;
@@ -217,7 +211,6 @@ export class TldrawView extends TextFileView {
       this.store = undefined;
     }
 
-    // Clean up asset store
     if (this.assetStore) {
       this.assetStore.dispose();
       this.assetStore = undefined;

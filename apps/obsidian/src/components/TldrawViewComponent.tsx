@@ -93,13 +93,6 @@ export const TldrawPreviewComponent = ({
       if (match?.[1]) {
         const data = JSON.parse(match[1]) as TLData;
         const { store: newStore } = processInitialData(data);
-
-        // // Restore asset store if it exists
-        // if (assetStore) {
-        //   newStore.props.assetUrls = {};
-        //   newStore.props.assets = assetStore;
-        // }
-
         setCurrentStore(newStore);
       }
     }
