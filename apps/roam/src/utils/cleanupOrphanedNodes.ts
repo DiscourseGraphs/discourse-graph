@@ -1,39 +1,29 @@
-import { getSupabaseContext } from "./supabaseContext";
-import { getNodeEnv } from "roamjs-components/util/env";
+import { type SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseContext, getLoggedInClient } from "./supabaseContext";
 
-const getAllNodesFromSupabase = async (): Promise<string[]> => {
+const getAllNodesFromSupabase = async (
+  spaceId: number,
+  supabaseClient: SupabaseClient,
+): Promise<string[]> => {
   try {
-    const context = await getSupabaseContext();
-    if (!context) {
-      console.error("Failed to get Supabase context");
-      return [];
-    }
+    const allNodeInstanceIds = await supabaseClient
+      .from("Concept")
+      .select("source_local_id")
+      .not("schema_id", "is", null);
 
-    const baseUrl =
-      getNodeEnv() === "development"
-        ? "http://localhost:3000/api/supabase"
-        : "https://discoursegraphs.com/api/supabase";
-
-    const getNodesResponse = await fetch(`${baseUrl}/get-all-discourse-nodes`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        spaceId: context.spaceId,
-      }),
-    });
-
-    if (!getNodesResponse.ok) {
-      const errorText = await getNodesResponse.text();
+    if (allNodeInstanceIds.error) {
       console.error(
-        `Failed to fetch nodes from Supabase: ${getNodesResponse.status} ${errorText}`,
+        "Failed to get all discourse node instances from Supabase:",
+        allNodeInstanceIds.error,
       );
       return [];
     }
+    const result =
+      allNodeInstanceIds.data
+        ?.map((c) => c.source_local_id)
+        .filter((id): id is string => !!id) || [];
 
-    const supabaseUids = (await getNodesResponse.json()) as string[];
-    return supabaseUids;
+    return result;
   } catch (error) {
     console.error("Error in getAllNodesFromSupabase:", error);
     return [];
@@ -60,49 +50,63 @@ const getNonExistentRoamUids = (nodeUids: string[]): string[] => {
   }
 };
 
-const deleteNodesFromSupabase = async (uids: string[]): Promise<number> => {
+const deleteNodesFromSupabase = async (
+  uids: string[],
+  spaceId: number,
+  supabaseClient: SupabaseClient,
+): Promise<void> => {
   try {
-    const context = await getSupabaseContext();
-    if (!context) {
-      console.error("Failed to get Supabase context");
-      return 0;
+    const { data: contentData, error: contentError } = await supabaseClient
+      .from("Content")
+      .select("id")
+      .eq("space_id", spaceId)
+      .in("source_local_id", uids);
+
+    if (contentError) {
+      console.error("Failed to get content from Supabase:", contentError);
     }
 
-    const baseUrl =
-      getNodeEnv() === "development"
-        ? "http://localhost:3000/api/supabase"
-        : "https://discoursegraphs.com/api/supabase";
+    const contentIds = contentData?.map((c) => c.id) || [];
 
-    const deleteNodesResponse = await fetch(`${baseUrl}/delete-discourse-nodes`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        spaceId: context.spaceId,
-        uids,
-      }),
-    });
+    if (contentIds.length > 0) {
+      const { error: conceptError } = await supabaseClient
+        .from("Concept")
+        .delete()
+        .in("represented_by_id", contentIds)
+        .eq("is_schema", false);
 
-    if (!deleteNodesResponse.ok) {
-      const errorText = await deleteNodesResponse.text();
-      console.error(
-        `Failed to delete nodes from Supabase: ${deleteNodesResponse.status} ${errorText}`,
-      );
-      return 0;
+      if (conceptError) {
+        console.error("Failed to delete concepts from Supabase:", conceptError);
+      }
+
+      const { error: contentDeleteError } = await supabaseClient
+        .from("Content")
+        .delete()
+        .in("id", contentIds);
+
+      if (contentDeleteError) {
+        console.error(
+          "Failed to delete content from Supabase:",
+          contentDeleteError,
+        );
+      }
     }
-
-    const { count } = await deleteNodesResponse.json();
-    return count;
   } catch (error) {
     console.error("Error in deleteNodesFromSupabase:", error);
-    return 0;
   }
 };
 
 export const cleanupOrphanedNodes = async (): Promise<void> => {
+  const context = await getSupabaseContext();
+  if (!context) {
+    console.error("Failed to get Supabase context");
+    return;
+  }
+  const spaceId = context.spaceId;
+
+  const supabaseClient = await getLoggedInClient();
   try {
-    const supabaseUids = await getAllNodesFromSupabase();
+    const supabaseUids = await getAllNodesFromSupabase(spaceId, supabaseClient);
     if (supabaseUids.length === 0) {
       return;
     }
@@ -110,7 +114,7 @@ export const cleanupOrphanedNodes = async (): Promise<void> => {
     if (orphanedUids.length === 0) {
       return;
     }
-    await deleteNodesFromSupabase(orphanedUids);
+    await deleteNodesFromSupabase(orphanedUids, spaceId, supabaseClient);
   } catch (error) {
     console.error("Error in cleanupOrphanedNodes:", error);
   }
