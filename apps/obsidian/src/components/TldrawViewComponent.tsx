@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Editor, ErrorBoundary, Tldraw, TLStore } from "tldraw";
+import { Editor, ErrorBoundary, TLAssetStore, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
 import {
   getTLDataTemplate,
@@ -20,12 +20,14 @@ interface TldrawPreviewProps {
   store: TLStore;
   plugin: DiscourseGraphPlugin;
   file: TFile;
+  assetStore: Required<TLAssetStore>;
 }
 
 export const TldrawPreviewComponent = ({
   store,
   plugin,
   file,
+  assetStore,
 }: TldrawPreviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentStore, setCurrentStore] = useState<TLStore>(store);
@@ -118,10 +120,14 @@ export const TldrawPreviewComponent = ({
     };
   }, [currentStore, saveChanges]);
 
-  const handleMount = useCallback((editor: Editor) => {
-    editorRef.current = editor;
-    editor.setCurrentTool("select");
-  }, []);
+  const handleMount = useCallback(
+    (editor: Editor) => {
+      editorRef.current = editor;
+      editor.setCurrentTool("select");
+      currentStore.props.assets = assetStore;
+    },
+    [currentStore, assetStore],
+  );
 
   return (
     <div
