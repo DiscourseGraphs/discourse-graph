@@ -25,6 +25,7 @@ import sendErrorEmail from "~/utils/sendErrorEmail";
 import HomePersonalSettings from "./HomePersonalSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
+import SuggestiveModeSettings from "./SuggestiveModeSettings";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -159,6 +160,12 @@ export const SettingsDialog = ({
             title="Export"
             className="overflow-y-auto"
             panel={<DiscourseGraphExport />}
+          />
+          <Tab
+            id="suggestive-mode-settings"
+            title="Suggestive Mode"
+            className="mb-8 overflow-y-auto"
+            panel={<SuggestiveModeSettings />}
           />
           <SectionHeader>Grammar</SectionHeader>
           <Tab
