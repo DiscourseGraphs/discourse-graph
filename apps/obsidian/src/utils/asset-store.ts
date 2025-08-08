@@ -19,6 +19,21 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
   #app: App;
   #file: TFile;
 
+  /**
+   * Safely set a cached Blob URL for an asset id, revoking any previous URL to avoid leaks
+   */
+  #setCachedUrl(blockRefAssetId: BlockRefAssetId, url: AssetDataUrl) {
+    const previousUrl = this.#resolvedAssetDataCache.get(blockRefAssetId);
+    if (previousUrl && previousUrl !== url) {
+      try {
+        URL.revokeObjectURL(previousUrl);
+      } catch (err) {
+        console.warn("Failed to revoke previous object URL", err);
+      }
+    }
+    this.#resolvedAssetDataCache.set(blockRefAssetId, url);
+  }
+
   constructor(options: AssetStoreOptions) {
     this.#app = options.app;
     this.#file = options.file;
@@ -51,7 +66,7 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
 
     const assetDataUri = URL.createObjectURL(file);
     const assetId = `${ASSET_PREFIX}${blockRefId}` as BlockRefAssetId;
-    this.#resolvedAssetDataCache.set(assetId, assetDataUri);
+    this.#setCachedUrl(assetId, assetDataUri);
 
     return assetId;
   }
@@ -69,7 +84,7 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
       if (!assetData) return null;
 
       const uri = URL.createObjectURL(new Blob([assetData]));
-      this.#resolvedAssetDataCache.set(blockRefAssetId, uri);
+      this.#setCachedUrl(blockRefAssetId, uri);
       return uri;
     } catch (error) {
       console.error("Error getting cached asset:", error);
