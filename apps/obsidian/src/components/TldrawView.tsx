@@ -75,12 +75,15 @@ export class TldrawView extends TextFileView {
       return;
     }
 
-    this.assetStore = new ObsidianTLAssetStore(`tldraw-${file.path}`, {
-      app: this.app,
-      file,
-    });
+    this.assetStore = new ObsidianTLAssetStore(
+      `tldraw-${encodeURIComponent(file.path)}`,
+      {
+        app: this.app,
+        file,
+      },
+    );
 
-    this.setStore(store);
+    await this.setStore(store);
   }
 
   private createStore(fileData: string): TLStore | undefined {
@@ -114,11 +117,9 @@ export class TldrawView extends TextFileView {
     if (!this.file) return;
 
     if (!this.assetStore) {
-      console.error("Asset store is not set");
+      console.warn("Asset store is not set");
       return;
     }
-
-    console.log("assetStore", this.assetStore);
 
     root.render(
       <React.StrictMode>
@@ -133,7 +134,7 @@ export class TldrawView extends TextFileView {
     return root;
   }
 
-  protected setStore(store: TLStore) {
+  protected async setStore(store: TLStore) {
     if (this.store) {
       try {
         this.store.dispose();
@@ -144,7 +145,7 @@ export class TldrawView extends TextFileView {
 
     this.store = store;
     if (this.tldrawContainer) {
-      void this.refreshView();
+      await this.refreshView();
     }
   }
 
