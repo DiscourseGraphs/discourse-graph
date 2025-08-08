@@ -631,6 +631,20 @@ export type Database = {
         Args: { space_id: number }
         Returns: boolean
       }
+      match_content_embeddings: {
+        Args: {
+          current_document_id?: number
+          match_count: number
+          match_threshold: number
+          query_embedding: string
+        }
+        Returns: {
+          similarity: number
+          text_content: string
+          roam_uid: string
+          content_id: number
+        }[]
+      }
       match_embeddings_for_subset_nodes: {
         Args: { p_query_embedding: string; p_subset_roam_uids: string[] }
         Returns: {
