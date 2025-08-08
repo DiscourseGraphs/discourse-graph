@@ -132,11 +132,9 @@ export class TldrawView extends TextFileView {
       throw new Error("TldrawView not initialized: missing store");
 
     if (!this.assetStore) {
-      console.error("Asset store is not set");
+      console.warn("Asset store is not set");
       return;
     }
-
-    console.log("assetStore", this.assetStore);
 
     root.render(
       <React.StrictMode>
