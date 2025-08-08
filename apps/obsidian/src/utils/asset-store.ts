@@ -12,7 +12,7 @@ interface AssetStoreOptions {
 }
 
 /**
- * Proxy class that handles Obsidian-specific file operations for the TLDraw asset store
+ * Proxy class that handles Obsidian-specific file operations for the TLAssetStore
  */
 class ObsidianMarkdownFileTLAssetStoreProxy {
   #resolvedAssetDataCache = new Map<BlockRefAssetId, AssetDataUrl>();
@@ -25,30 +25,22 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
   }
 
   async storeAsset(asset: TLAsset, file: File): Promise<BlockRefAssetId> {
-    // Generate unique block reference ID
     const blockRefId = crypto.randomUUID();
 
-    // Create sanitized file name
     const objectName = `${blockRefId}-${file.name}`.replace(/\W/g, "-");
     const ext = file.type.split("/").at(1);
     const fileName = !ext ? objectName : `${objectName}.${ext}`;
 
-    console.log("fileName", fileName);
-
-    // Get the attachment folder path
+    // TODO: in the future, get this from the user's settings
     let attachmentFolder = this.#app.vault.getFolderByPath("attachments");
     if (!attachmentFolder) {
       attachmentFolder = await this.#app.vault.createFolder("attachments");
     }
     const filePath = `${attachmentFolder.path}/${fileName}`;
 
-    // Store file in vault
     const arrayBuffer = await file.arrayBuffer();
-    console.log("arrayBuffer", arrayBuffer);
     const assetFile = await this.#app.vault.createBinary(filePath, arrayBuffer);
-    console.log("assetFile", assetFile);
 
-    // Create markdown link and block reference
     const internalLink = this.#app.fileManager.generateMarkdownLink(
       assetFile,
       this.#file.path,
@@ -86,14 +78,12 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
   }
 
   dispose() {
-    // Revoke all cached URLs
     for (const url of this.#resolvedAssetDataCache.values()) {
       URL.revokeObjectURL(url);
     }
     this.#resolvedAssetDataCache.clear();
   }
 
-  // Private helper methods
   async #addToTopOfFile(content: string) {
     await this.#app.vault.process(this.#file, (data: string) => {
       const fileCache = this.#app.metadataCache.getFileCache(this.#file);
@@ -115,7 +105,6 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
       const blockRef = blockRefAssetId.slice(ASSET_PREFIX.length);
       if (!blockRef) return null;
 
-      // Get block from metadata cache
       const fileCache = this.#app.metadataCache.getFileCache(this.#file);
       if (!fileCache?.blocks?.[blockRef]) return null;
 
@@ -126,19 +115,17 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
         block.position.end.offset,
       );
 
-      // Extract link from block content
       const match = blockContent.match(/\[\[(.*?)\]\]/);
       if (!match?.[1]) return null;
 
-      // Resolve link to actual file
       const linkPath = match[1];
       const linkedFile = this.#app.metadataCache.getFirstLinkpathDest(
         linkPath,
         this.#file.path,
       );
-      if (!linkedFile) return null;
 
-      // Read the binary data
+      if (!linkedFile) return null;
+      // TODO: handle other file types too
       return await this.#app.vault.readBinary(linkedFile);
     } catch (error) {
       console.error("Error getting asset data:", error);
@@ -148,7 +135,7 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
 }
 
 /**
- * TLDraw asset store implementation for Obsidian
+ * TLAssetStore implementation for Obsidian
  */
 export class ObsidianTLAssetStore implements Required<TLAssetStore> {
   #proxy: ObsidianMarkdownFileTLAssetStoreProxy;
@@ -168,6 +155,9 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
       const blockRefAssetId = await this.#proxy.storeAsset(asset, file);
       return {
         src: `asset:${blockRefAssetId}`,
+        meta: {
+          mimeType: file.type,
+        },
       };
     } catch (error) {
       console.error("Error uploading asset:", error);
@@ -183,7 +173,18 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
       const assetId = assetSrc.split(":")[1] as BlockRefAssetId;
       if (!assetId) return null;
 
-      return await this.#proxy.getCached(assetId);
+      const mimeType =
+        (asset.props as unknown as { mimeType?: string })?.mimeType ??
+        (asset.meta as unknown as { mimeType?: string })?.mimeType ??
+        "";
+
+      if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
+        return await this.#proxy.getCached(assetId);
+      }
+
+      // Non-media (e.g., text/markdown, application/*): let custom shapes decide.
+      // Return null so default media shapes won't attempt to render it.
+      return null;
     } catch (error) {
       console.error("Error resolving asset:", error);
       return null;
