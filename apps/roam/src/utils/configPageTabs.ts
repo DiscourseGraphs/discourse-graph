@@ -14,6 +14,7 @@ import {
   CustomField,
   SelectField,
 } from "roamjs-components/components/ConfigPanels/types";
+import PageGroupsPanel from "~/components/settings/PageGroupPanel";
 
 export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
   {
@@ -113,6 +114,33 @@ export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
         Panel: FlagPanel,
         description:
           "If a referenced node is defined in a node's format, it will be appended to the discourse context",
+      },
+    ],
+  },
+  {
+    id: "suggestive-mode",
+    fields: [
+      {
+        title: "Include Current Page Relations",
+        // @ts-ignore
+        Panel: FlagPanel,
+        description:
+          "Include relations from pages referenced on the current page",
+      },
+      {
+        title: "Include Parent and Child Blocks",
+        // @ts-ignore
+        Panel: FlagPanel,
+        description: "Include relations from parent and child blocks",
+      },
+      {
+        title: "Page Groups",
+        // @ts-ignore
+        Panel: CustomPanel,
+        description: "Set page groups to use for discourse suggestions",
+        options: {
+          component: PageGroupsPanel,
+        },
       },
     ],
   },
