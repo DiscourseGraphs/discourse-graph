@@ -15,6 +15,7 @@ import { OnloadArgs } from "roamjs-components/types";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
+import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 
 const ValidatedInputPanel = ({
   label,
@@ -323,6 +324,22 @@ const NodeConfig = ({
                 parentUid={node.type}
                 uid={graphOverviewUid}
                 value={node.graphOverview}
+              />
+            </div>
+          }
+        />
+        <Tab
+          id="node-suggestive-rules"
+          title="Node Suggestive Rules"
+          panel={
+            <div className="flex flex-col gap-4 p-1">
+              <DiscourseNodeSuggestiveRules
+                node={node}
+                parentUid={
+                  getBasicTreeByParentUid(node.type).find(
+                    (n) => n.text === "Suggestive Rules",
+                  )?.uid || ""
+                }
               />
             </div>
           }
