@@ -16,7 +16,7 @@ const Page = async ({ params }: Params) => {
   const { slug } = await params;
   const directory = docMap[slug] ?? docMap.default;
 
-  return <DocsPage params={Promise.resolve({ slug })} directory={directory} />;
+  return await DocsPage({ params: Promise.resolve({ slug }), directory });
 };
 
 export default Page;
@@ -24,8 +24,10 @@ export default Page;
 export const generateStaticParams = () =>
   generateDocsStaticParams(docMap.default);
 
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
+export const generateMetadata = async ({
+  params,
+}: Params): Promise<Metadata> => {
   const { slug } = await params;
   const directory = docMap[slug] ?? docMap.default;
   return generateDocsMetadata({ params: Promise.resolve({ slug }), directory });
-}
+};

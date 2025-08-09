@@ -1,7 +1,7 @@
-diff --git a/node_modules/@tldraw/tldraw/node_modules/@tldraw/ui/dist/cjs/index.d.ts b/node_modules/@tldraw/tldraw/node_modules/@tldraw/ui/dist/cjs/index.d.ts
+diff --git a/node_modules/@tldraw/ui/dist/cjs/index.d.ts b/node_modules/@tldraw/ui/dist/cjs/index.d.ts
 index 0f93cb5..0e42591 100644
---- a/node_modules/@tldraw/tldraw/node_modules/@tldraw/ui/dist/cjs/index.d.ts
-+++ b/node_modules/@tldraw/tldraw/node_modules/@tldraw/ui/dist/cjs/index.d.ts
+--- a/node_modules/@tldraw/ui/dist/cjs/index.d.ts
++++ b/node_modules/@tldraw/ui/dist/cjs/index.d.ts
 @@ -737,6 +737,7 @@ export declare interface ToolItem {
      meta?: {
          [key: string]: any;
@@ -10,10 +10,10 @@ index 0f93cb5..0e42591 100644
  }
  
  /** @public */
-diff --git a/node_modules/@tldraw/tldraw/node_modules/@tldraw/ui/dist/esm/lib/components/Toolbar/Toolbar.mjs b/node_modules/@tldraw/tldraw/node_modules/@tldraw/ui/dist/esm/lib/components/Toolbar/Toolbar.mjs
+diff --git a/node_modules/@tldraw/ui/dist/esm/lib/components/Toolbar/Toolbar.mjs b/node_modules/@tldraw/ui/dist/esm/lib/components/Toolbar/Toolbar.mjs
 index 8c9610d..03a9b7c 100644
---- a/node_modules/@tldraw/tldraw/node_modules/@tldraw/ui/dist/esm/lib/components/Toolbar/Toolbar.mjs
-+++ b/node_modules/@tldraw/tldraw/node_modules/@tldraw/ui/dist/esm/lib/components/Toolbar/Toolbar.mjs
+--- a/node_modules/@tldraw/ui/dist/esm/lib/components/Toolbar/Toolbar.mjs
++++ b/node_modules/@tldraw/ui/dist/esm/lib/components/Toolbar/Toolbar.mjs
 @@ -151,7 +151,7 @@ const OverflowToolsContent = track(function OverflowToolsContent2({
    toolbarItems
  }) {
