@@ -33,7 +33,7 @@
     "@repo/types": "*",
     "@supabase/auth-js": "^2.71.1",
     "@supabase/supabase-js": "^2.52.0",
-    "@tldraw/tldraw": "^2.0.0-alpha.12",
+    "@tldraw/tldraw": "2.0.0-canary.ffda4cfb",
     "@vercel/blob": "^0.27.0",
     "contrast-color": "^1.0.1",
     "cytoscape-navigator": "^2.0.1",
@@ -43,13 +43,7 @@
     "react-draggable": "^4.4.5",
     "react-in-viewport": "^1.0.0-alpha.20",
     "react-vertical-timeline-component": "^3.5.2",
-    "roamjs-components": "^0.85.1",
+    "roamjs-components": "^0.85.3",
     "signia-react": "^0.1.1"
-  },
-  "overrides": {
-    "@tldraw/tldraw": {
-      "react": "^17.0.2",
-      "react-dom": "^17.0.2"
-    }
   }
 }
