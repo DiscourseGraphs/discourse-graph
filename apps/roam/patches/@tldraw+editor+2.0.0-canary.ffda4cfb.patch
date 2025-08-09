@@ -1,7 +1,7 @@
-diff --git a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/cjs/index.d.ts b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/cjs/index.d.ts
+diff --git a/node_modules/@tldraw/editor/dist/cjs/index.d.ts b/node_modules/@tldraw/editor/dist/cjs/index.d.ts
 index f87764a..20716f0 100644
---- a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/cjs/index.d.ts
-+++ b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/cjs/index.d.ts
+--- a/node_modules/@tldraw/editor/dist/cjs/index.d.ts
++++ b/node_modules/@tldraw/editor/dist/cjs/index.d.ts
 @@ -2478,7 +2478,7 @@ declare class Dragging extends StateNode {
      private complete;
  }
@@ -104,10 +104,10 @@ index f87764a..20716f0 100644
      static id: string;
      info: TLBaseEventInfo & {
          type: "pointer";
-diff --git a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/app/App.mjs b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/app/App.mjs
+diff --git a/node_modules/@tldraw/editor/dist/esm/lib/app/App.mjs b/node_modules/@tldraw/editor/dist/esm/lib/app/App.mjs
 index 41f58f9..51a4f78 100644
---- a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/app/App.mjs
-+++ b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/app/App.mjs
+--- a/node_modules/@tldraw/editor/dist/esm/lib/app/App.mjs
++++ b/node_modules/@tldraw/editor/dist/esm/lib/app/App.mjs
 @@ -2827,7 +2827,28 @@ const _App = class extends EventEmitter {
          newShape.index = index;
          index = getIndexAbove(index);
@@ -138,10 +138,10 @@ index 41f58f9..51a4f78 100644
          if (newShape.props.start.type === "binding") {
            const mappedId = idMap.get(newShape.props.start.boundShapeId);
            newShape.props.start = mappedId ? { ...newShape.props.start, boundShapeId: mappedId } : (
-diff --git a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/app/statechart/TLSelectTool/TLSelectTool.mjs b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/app/statechart/TLSelectTool/TLSelectTool.mjs
+diff --git a/node_modules/@tldraw/editor/dist/esm/lib/app/statechart/TLSelectTool/TLSelectTool.mjs b/node_modules/@tldraw/editor/dist/esm/lib/app/statechart/TLSelectTool/TLSelectTool.mjs
 index 185d39d..f19078a 100644
---- a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/app/statechart/TLSelectTool/TLSelectTool.mjs
-+++ b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/app/statechart/TLSelectTool/TLSelectTool.mjs
+--- a/node_modules/@tldraw/editor/dist/esm/lib/app/statechart/TLSelectTool/TLSelectTool.mjs
++++ b/node_modules/@tldraw/editor/dist/esm/lib/app/statechart/TLSelectTool/TLSelectTool.mjs
 @@ -40,6 +40,7 @@ class TLSelectTool extends StateNode {
    };
  }
@@ -151,10 +151,10 @@ index 185d39d..f19078a 100644
 +  DraggingHandle,
  };
  //# sourceMappingURL=TLSelectTool.mjs.map
-diff --git a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/components/ErrorBoundary/ErrorFallback.mjs b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/components/ErrorBoundary/ErrorFallback.mjs
+diff --git a/node_modules/@tldraw/editor/dist/esm/lib/components/ErrorBoundary/ErrorFallback.mjs b/node_modules/@tldraw/editor/dist/esm/lib/components/ErrorBoundary/ErrorFallback.mjs
 index 3a679a0..60332e1 100644
---- a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/components/ErrorBoundary/ErrorFallback.mjs
-+++ b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/components/ErrorBoundary/ErrorFallback.mjs
+--- a/node_modules/@tldraw/editor/dist/esm/lib/components/ErrorBoundary/ErrorFallback.mjs
++++ b/node_modules/@tldraw/editor/dist/esm/lib/components/ErrorBoundary/ErrorFallback.mjs
 @@ -15,6 +15,20 @@ function ErrorFallback({ error, app }) {
    const [shouldShowResetConfirmation, setShouldShowResetConfirmation] = useState(false);
    const errorMessage = error instanceof Error ? error.message : String(error);
@@ -176,10 +176,10 @@ index 3a679a0..60332e1 100644
    const isDarkModeFromApp = useValue(
      "isDarkMode",
      () => {
-diff --git a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/hooks/useCanvasEvents.mjs b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/hooks/useCanvasEvents.mjs
+diff --git a/node_modules/@tldraw/editor/dist/esm/lib/hooks/useCanvasEvents.mjs b/node_modules/@tldraw/editor/dist/esm/lib/hooks/useCanvasEvents.mjs
 index 043e7c0..f480bc6 100644
---- a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/hooks/useCanvasEvents.mjs
-+++ b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/hooks/useCanvasEvents.mjs
+--- a/node_modules/@tldraw/editor/dist/esm/lib/hooks/useCanvasEvents.mjs
++++ b/node_modules/@tldraw/editor/dist/esm/lib/hooks/useCanvasEvents.mjs
 @@ -78,7 +78,7 @@ function useCanvasEvents() {
          ;
          e.isKilled = true;
@@ -189,10 +189,10 @@ index 043e7c0..f480bc6 100644
        }
        function onTouchEnd(e) {
          ;
-diff --git a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/index.mjs b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/index.mjs
+diff --git a/node_modules/@tldraw/editor/dist/esm/lib/index.mjs b/node_modules/@tldraw/editor/dist/esm/lib/index.mjs
 index 57cb723..4be6ebd 100644
---- a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/index.mjs
-+++ b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/index.mjs
+--- a/node_modules/@tldraw/editor/dist/esm/lib/index.mjs
++++ b/node_modules/@tldraw/editor/dist/esm/lib/index.mjs
 @@ -3,6 +3,8 @@ export * from "./app/App.mjs";
  export * from "./app/shapeutils/index.mjs";
  export * from "./app/statechart/StateNode.mjs";
@@ -202,10 +202,10 @@ index 57cb723..4be6ebd 100644
  export * from "./app/types/clipboard-types.mjs";
  export * from "./app/types/event-types.mjs";
  export * from "./app/types/history-types.mjs";
-diff --git a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs
+diff --git a/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs b/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs
 index bc63c45..221a390 100644
---- a/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs
-+++ b/node_modules/@tldraw/tldraw/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs
+--- a/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs
++++ b/node_modules/@tldraw/editor/dist/esm/lib/utils/assets.mjs
 @@ -54,41 +54,70 @@ async function getResizedImageDataUrl(dataURLForImage, width, height) {
      img.src = dataURLForImage;
    });

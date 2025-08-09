@@ -3,7 +3,7 @@
   "version": "0.14.3",
   "description": "Discourse Graph Plugin for roamresearch.com",
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "patch-package && cd ../../ && patch-package",
     "dev": "tsx scripts/dev.ts",
     "build": "tsx scripts/build.ts",
     "deploy": "tsx scripts/deploy.ts",
