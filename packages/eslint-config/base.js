@@ -28,7 +28,25 @@ export const config = [
     },
     rules: {
       "max-params": ["error", 3],
-      "@typescript-eslint/naming-convention": "error",
+      "@typescript-eslint/naming-convention": [
+        "error",
+        // Default: camelCase for most identifiers
+        { selector: "default", format: ["camelCase"] },
+        // Const variables can be camelCase or UPPER_CASE
+        {
+          selector: "variable",
+          modifiers: ["const"],
+          format: ["camelCase", "UPPER_CASE"],
+        },
+        // Types, interfaces, enums, type aliases in PascalCase
+        { selector: "typeLike", format: ["PascalCase"] },
+        // Allow PascalCase for function variables (e.g., React components)
+        {
+          selector: "variable",
+          types: ["function"],
+          format: ["camelCase", "PascalCase"],
+        },
+      ],
       "preferArrows/prefer-arrow-functions": [
         "warn",
         {
