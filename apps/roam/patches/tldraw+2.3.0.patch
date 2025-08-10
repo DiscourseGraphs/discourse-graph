@@ -1,0 +1,148 @@
+diff --git a/node_modules/tldraw/dist-cjs/index.d.ts b/node_modules/tldraw/dist-cjs/index.d.ts
+index b1dfaf8..3bb83ab 100644
+--- a/node_modules/tldraw/dist-cjs/index.d.ts
++++ b/node_modules/tldraw/dist-cjs/index.d.ts
+@@ -1165,6 +1165,24 @@ export declare function RectangleToolbarItem(): JSX_2.Element;
+  */
+ export declare function removeFrame(editor: Editor, ids: TLShapeId[]): void;
+ 
++/** @public */
++// fixed in 3.0.0
++export declare function registerDefaultSideEffects(editor: Editor): (() => void)[];
++
++/** @public */
++// fixed in 3.0.0
++export declare function registerDefaultExternalContentHandlers(
++    editor: Editor,
++    {
++        maxImageDimension,
++        maxAssetSize,
++        acceptedImageMimeTypes,
++        acceptedVideoMimeTypes,
++    }: Required<TLExternalContentProps>,
++    { toasts, msg }: { toasts: TLUiToastsContextType; msg: ReturnType<typeof useTranslation> }
++): void;
++
++
+ /** @public @react */
+ export declare function RemoveFrameMenuItem(): JSX_2.Element | null;
+ 
+@@ -2280,6 +2298,7 @@ export declare interface TLUiToolItem<TranslationKey extends string = string, Ic
+     meta?: {
+         [key: string]: any;
+     };
++    style?: React.CSSProperties
+ }
+ 
+ /** @public */
+diff --git a/node_modules/tldraw/dist-esm/index.mjs b/node_modules/tldraw/dist-esm/index.mjs
+index e4d9298..1569f61 100644
+--- a/node_modules/tldraw/dist-esm/index.mjs
++++ b/node_modules/tldraw/dist-esm/index.mjs
+@@ -8,6 +8,8 @@ import { TldrawScribble } from "./lib/canvas/TldrawScribble.mjs";
+ import { TldrawSelectionBackground } from "./lib/canvas/TldrawSelectionBackground.mjs";
+ import { TldrawSelectionForeground } from "./lib/canvas/TldrawSelectionForeground.mjs";
+ import { defaultBindingUtils } from "./lib/defaultBindingUtils.mjs";
++import { registerDefaultExternalContentHandlers } from "./lib/defaultExternalContentHandlers.mjs"; // fixed in 3.0.0
++import { registerDefaultSideEffects } from "./lib/defaultSideEffects.mjs"; // fixed in 3.0.0
+ import { defaultShapeTools } from "./lib/defaultShapeTools.mjs";
+ import { defaultShapeUtils } from "./lib/defaultShapeUtils.mjs";
+ import { defaultTools } from "./lib/defaultTools.mjs";
+@@ -605,6 +607,8 @@ export {
+   useToasts,
+   useTools,
+   useTranslation,
++  registerDefaultExternalContentHandlers, // fixed in 3.0.0
++  registerDefaultSideEffects, // fixed in 3.0.0
+   useUiEvents
+ };
+ //# sourceMappingURL=index.mjs.map
+diff --git a/node_modules/tldraw/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs b/node_modules/tldraw/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs
+index 7a41748..9263e99 100644
+--- a/node_modules/tldraw/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs
++++ b/node_modules/tldraw/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs
+@@ -15,10 +15,15 @@ import {
+   TldrawUiDropdownMenuTrigger
+ } from "../primitives/TldrawUiDropdownMenu.mjs";
+ import { TldrawUiMenuContextProvider } from "../primitives/menus/TldrawUiMenuContext.mjs";
++import { nanoid } from "nanoid";
++
++// query builder note
++// useSafeId() uses React 18's useId()
++// we only have access to 17.0.2
+ const IsInOverflowContext = createContext(false);
+ function OverflowingToolbar({ children }) {
+   const editor = useEditor();
+-  const id = useSafeId();
++  const id = "overflowing-toolbar";
+   const breakpoint = useBreakpoint();
+   const msg = useTranslation();
+   const overflowIndex = Math.min(8, 5 + breakpoint);
+diff --git a/node_modules/tldraw/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs b/node_modules/tldraw/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs
+index fcb8268..812c7e7 100644
+--- a/node_modules/tldraw/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs
++++ b/node_modules/tldraw/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs
+@@ -1,7 +1,7 @@
+ import { jsx } from "react/jsx-runtime";
+ import { TldrawUiIcon } from "../TldrawUiIcon.mjs";
+-function TldrawUiButtonIcon({ icon, small, invertIcon }) {
+-  return /* @__PURE__ */ jsx(TldrawUiIcon, { className: "tlui-button__icon", icon, small, invertIcon });
++function TldrawUiButtonIcon({ icon, small, invertIcon, style }) {
++  return /* @__PURE__ */ jsx(TldrawUiIcon, { className: "tlui-button__icon", icon, small, invertIcon, style });
+ }
+ export {
+   TldrawUiButtonIcon
+diff --git a/node_modules/tldraw/dist-esm/lib/ui/components/primitives/TldrawUiIcon.mjs b/node_modules/tldraw/dist-esm/lib/ui/components/primitives/TldrawUiIcon.mjs
+index c588a43..fa7b127 100644
+--- a/node_modules/tldraw/dist-esm/lib/ui/components/primitives/TldrawUiIcon.mjs
++++ b/node_modules/tldraw/dist-esm/lib/ui/components/primitives/TldrawUiIcon.mjs
+@@ -8,6 +8,7 @@ const TldrawUiIcon = memo(function TldrawUiIcon2({
+   icon,
+   color,
+   className,
++  style,
+   ...props
+ }) {
+   const assetUrls = useAssetUrls();
+@@ -42,7 +43,8 @@ const TldrawUiIcon = memo(function TldrawUiIcon2({
+       style: {
+         color,
+         mask: `url(${asset}) center 100% / 100% no-repeat`,
+-        transform: invertIcon ? "scale(-1, 1)" : void 0
++        transform: invertIcon ? "scale(-1, 1)" : void 0,
++        ...style
+       }
+     }
+   );
+diff --git a/node_modules/tldraw/dist-esm/lib/ui/components/primitives/menus/TldrawUiMenuItem.mjs b/node_modules/tldraw/dist-esm/lib/ui/components/primitives/menus/TldrawUiMenuItem.mjs
+index d4533e5..a13759f 100644
+--- a/node_modules/tldraw/dist-esm/lib/ui/components/primitives/menus/TldrawUiMenuItem.mjs
++++ b/node_modules/tldraw/dist-esm/lib/ui/components/primitives/menus/TldrawUiMenuItem.mjs
+@@ -23,7 +23,8 @@ function TldrawUiMenuItem({
+   icon,
+   onSelect,
+   noClose,
+-  isSelected
++  isSelected,
++  style
+ }) {
+   const { type: menuType, sourceId } = useTldrawUiMenuContext();
+   const msg = useTranslation();
+@@ -153,7 +154,7 @@ function TldrawUiMenuItem({
+           },
+           role: "radio",
+           "aria-checked": isSelected ? "true" : "false",
+-          children: /* @__PURE__ */ jsx(TldrawUiButtonIcon, { icon })
++          children: /* @__PURE__ */ jsx(TldrawUiButtonIcon, { icon, style })
+         }
+       );
+     }
+@@ -171,7 +172,7 @@ function TldrawUiMenuItem({
+           role: "radio",
+           "aria-checked": isSelected ? "true" : "false",
+           "data-value": id,
+-          children: /* @__PURE__ */ jsx(TldrawUiButtonIcon, { icon })
++          children: /* @__PURE__ */ jsx(TldrawUiButtonIcon, { icon, style })
+         }
+       ) });
+     }

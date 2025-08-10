@@ -7,16 +7,12 @@ import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getBlockProps from "~/utils/getBlockProps";
-import { TLBaseShape } from "@tldraw/tldraw";
+import { TLBaseShape } from "tldraw";
 import { DiscourseNodeShape } from "./DiscourseNodeUtil";
-import posthog from "posthog-js";
 
 export type GroupedShapes = Record<string, DiscourseNodeShape[]>;
 
-type Props = {
-  groupedShapes: GroupedShapes;
-  pageUid: string;
-};
+type Props = { groupedShapes: GroupedShapes; pageUid: string };
 
 const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -68,18 +64,12 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
   }, [groupedShapes, showDuplicates, filterType, typeToTitleMap]);
 
   const toggleCollapse = (uid: string) => {
-    setOpenSections((prevState) => ({
-      ...prevState,
-      [uid]: !prevState[uid],
-    }));
+    setOpenSections((prevState) => ({ ...prevState, [uid]: !prevState[uid] }));
   };
   const moveCameraToShape = (shapeId: string) => {
     document.dispatchEvent(
       new CustomEvent("roamjs:query-builder:action", {
-        detail: {
-          action: "move-camera-to-shape",
-          shapeId,
-        },
+        detail: { action: "move-camera-to-shape", shapeId },
       }),
     );
   };
@@ -162,12 +152,11 @@ const CanvasDrawer = ({
 
 export const openCanvasDrawer = () => {
   const pageUid = getCurrentPageUid();
-  posthog.capture("Canvas Drawer: Opened", { pageUid: pageUid });
-
   const props = getBlockProps(pageUid) as Record<string, unknown>;
   const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
   const tldraw = (rjsqb?.tldraw as Record<string, unknown>) || {};
-  const shapes = Object.values(tldraw).filter((s) => {
+  const store = (tldraw?.["store"] as Record<string, unknown>) || {};
+  const shapes = Object.values(store).filter((s) => {
     const shape = s as TLBaseShape<string, { uid: string }>;
     const uid = shape.props?.uid;
     return !!uid;
