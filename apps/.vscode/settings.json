@@ -1,13 +1,13 @@
 {
   "files.exclude": {
-    "**/node_modules": true, // Hide dependencies
-    "**/dist": true, // Hide build outputs
-    "**/.turbo": true, // Hide turbo cache
-    "**/.next": true, // Hide Next.js build
-    "**/.vercel": true, // Hide vercel cache
-    "**/.vscode": true, // Hide vscode cache
-    "**/*.code-workspace": true, // Hide code workspace files
-    "**/next-env.d.ts": true // Hide Next.js environment variables
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.turbo": true,
+    "**/.next": true,
+    "**/.vercel": true,
+    "**/.vscode": true,
+    "**/*.code-workspace": true,
+    "**/next-env.d.ts": true
   },
   "files.watcherExclude": {
     "**/target": true,
