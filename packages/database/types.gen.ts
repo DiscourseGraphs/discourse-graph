@@ -573,25 +573,6 @@ export type Database = {
         Args: { p_account_id: number }
         Returns: boolean
       }
-      alpha_delete_by_source_local_ids: {
-        Args: { p_source_local_ids: string[]; p_space_name: string }
-        Returns: string
-      }
-      alpha_get_last_update_time: {
-        Args: { p_space_name: string }
-        Returns: {
-          last_update_time: string
-        }[]
-      }
-      alpha_upsert_discourse_nodes: {
-        Args: {
-          p_nodes: Json
-          p_space_name: string
-          p_user_email: string
-          p_user_name: string
-        }
-        Returns: string
-      }
       compute_arity_local: {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
@@ -639,12 +620,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      get_nodes_needing_sync: {
-        Args: { nodes_from_roam: Json }
-        Returns: {
-          uid_to_sync: string
-        }[]
-      }
       get_space_anonymous_email: {
         Args: {
           platform: Database["public"]["Enums"]["Platform"]
@@ -673,10 +648,10 @@ export type Database = {
       match_embeddings_for_subset_nodes: {
         Args: { p_query_embedding: string; p_subset_roam_uids: string[] }
         Returns: {
-          similarity: number
-          text_content: string
-          roam_uid: string
           content_id: number
+          roam_uid: string
+          text_content: string
+          similarity: number
         }[]
       }
       my_account: {
@@ -713,26 +688,6 @@ export type Database = {
       upsert_content_embedding: {
         Args: { content_id: number; embedding_array: number[]; model: string }
         Returns: undefined
-      }
-      upsert_discourse_nodes: {
-        Args: {
-          p_agent_type?: string
-          p_content_scale?: string
-          p_document_source_id?: string
-          p_embedding_model?: string
-          p_nodes: Json
-          p_platform_name?: string
-          p_platform_url?: string
-          p_space_name: string
-          p_space_url?: string
-          p_user_email: string
-          p_user_name: string
-        }
-        Returns: {
-          content_id: number
-          embedding_created: boolean
-          action: string
-        }[]
       }
       upsert_documents: {
         Args: { data: Json; v_space_id: number }
