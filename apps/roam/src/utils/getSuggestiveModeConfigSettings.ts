@@ -1,6 +1,6 @@
 import { getSubTree } from "roamjs-components/util";
-import configTreeRef from "./discourseConfigRef";
 import { BooleanSetting, getUidAndBooleanSetting } from "./getExportSettings";
+import { RoamBasicNode } from "roamjs-components/types";
 
 export type SuggestiveModeConfigWithUids = {
   parentUid: string;
@@ -14,14 +14,14 @@ export type SuggestiveModeConfigWithUids = {
 };
 
 export const getSuggestiveModeConfigAndUids =
-  (): SuggestiveModeConfigWithUids => {
+  (tree: RoamBasicNode[]): SuggestiveModeConfigWithUids => {
     const suggestiveModeNode = getSubTree({
-      tree: configTreeRef.tree,
+      tree,
       key: "Suggestive mode",
     });
     const pageGroupsNode = getSubTree({
       parentUid: suggestiveModeNode.uid,
-      key: "page groups",
+      key: "Page Groups",
     });
 
     return {
@@ -32,11 +32,11 @@ export const getSuggestiveModeConfigAndUids =
       }),
       grabParentAndChildren: getUidAndBooleanSetting({
         tree: suggestiveModeNode.children,
-        text: "Include Parent and Child Blocks",
+        text: "Include Parent And Child Blocks",
       }),
       pageGroups: {
         uid: pageGroupsNode?.uid || "",
-        name: "page groups",
+        name: "Page Groups",
         pages: [],
       },
     };

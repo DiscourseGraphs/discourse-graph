@@ -128,7 +128,7 @@ export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
           "Include relations from pages referenced on the current page",
       },
       {
-        title: "Include Parent and Child Blocks",
+        title: "Include Parent And Child Blocks",
         // @ts-ignore
         Panel: FlagPanel,
         description: "Include relations from parent and child blocks",

@@ -52,7 +52,7 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
       tree: configTreeRef.tree,
       text: "Canvas Page Format",
     }),
-    suggestiveMode: getSuggestiveModeConfigAndUids(),
+    suggestiveMode: getSuggestiveModeConfigAndUids(configTreeRef.tree),
   };
 };
 export default configTreeRef;

@@ -15,6 +15,23 @@ import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import getSubTree from "roamjs-components/util/getSubTree";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 
+const getNodeConfig = (parentUid: string) => {
+  const tree = getBasicTreeByParentUid(parentUid);
+  const embeddingRefNode = tree.find((n) =>
+    n.text.startsWith("Embedding Block Ref"),
+  );
+  const match = embeddingRefNode?.children?.[0]?.text?.match(/\(\((.*)\)\)/);
+  const blockRef = match ? `((${match[1]}))` : "";
+  return {
+    embeddingRef: blockRef,
+    embeddingRefUid: embeddingRefNode?.uid || "",
+    isFirstChild: getUidAndBooleanSetting({
+      tree: tree,
+      text: "First Child",
+    }),
+  };
+};
+
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -45,22 +62,13 @@ const DiscourseNodeSuggestiveRules = ({
   parentUid: string;
 }) => {
   const nodeUid = node.type;
-  const nodeConfigTree = useMemo(() => {
+  const [nodeConfigTree, setNodeConfigTree] = useState(() =>
+    getNodeConfig(parentUid),
+  );
+
+  useEffect(() => {
     refreshConfigTree();
-    const tree = getBasicTreeByParentUid(parentUid);
-    const embeddingRefNode = tree.find((n) =>
-      n.text.startsWith("Embedding Block Ref"),
-    );
-    const match = embeddingRefNode?.children?.[0]?.text?.match(/\(\((.*)\)\)/);
-    const blockRef = match ? `((${match[1]}))` : "";
-    return {
-      embeddingRef: blockRef,
-      embeddingRefUid: embeddingRefNode?.uid || "",
-      isFirstChild: getUidAndBooleanSetting({
-        tree: tree,
-        text: "First Child",
-      }),
-    };
+    setNodeConfigTree(getNodeConfig(parentUid));
   }, [parentUid]);
 
   const [embeddingRef, setEmbeddingRef] = useState(nodeConfigTree.embeddingRef);
@@ -101,7 +109,7 @@ const DiscourseNodeSuggestiveRules = ({
         order={0}
         parentUid={nodeUid}
         uid={templateUid}
-        defaultValue={node.template ? [{ text: node.template }] : undefined}
+        defaultValue={node.template}
       />
 
       <TextPanel
@@ -130,7 +138,7 @@ const DiscourseNodeSuggestiveRules = ({
         order={1}
         uid={nodeConfigTree.isFirstChild.uid}
         parentUid={parentUid}
-        value={nodeConfigTree.isFirstChild}
+        value={nodeConfigTree.isFirstChild.value}
       />
 
       <div className="flex items-center gap-2">
