@@ -6,7 +6,6 @@
     "**/.next": true,
     "**/.vercel": true,
     "**/.vscode": true,
-    "**/*.code-workspace": true,
     "**/next-env.d.ts": true
   },
   "files.watcherExclude": {

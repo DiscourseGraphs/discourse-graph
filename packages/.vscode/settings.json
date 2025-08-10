@@ -5,8 +5,7 @@
     "**/.turbo": true,
     "**/.next": true,
     "**/.vercel": true,
-    "**/.vscode": true,
-    "**/*.code-workspace": true
+    "**/.vscode": true
   },
   "files.watcherExclude": {
     "**/target": true,
