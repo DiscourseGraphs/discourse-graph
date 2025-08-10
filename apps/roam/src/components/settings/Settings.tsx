@@ -8,6 +8,7 @@ import {
   Button,
   TabId,
   Intent,
+  Checkbox,
 } from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import DiscourseRelationConfigPanel from "./DiscourseRelationConfigPanel";
@@ -25,6 +26,10 @@ import sendErrorEmail from "~/utils/sendErrorEmail";
 import HomePersonalSettings from "./HomePersonalSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
+import {
+  LeftSidebarGlobalSections,
+  LeftSidebarPersonalSections,
+} from "./LeftSidebar";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -159,6 +164,20 @@ export const SettingsDialog = ({
             title="Export"
             className="overflow-y-auto"
             panel={<DiscourseGraphExport />}
+          />
+
+          <SectionHeader>Left Sidebar</SectionHeader>
+          <Tab
+            id="left-sidebar-settings"
+            title="Global Sections"
+            className="overflow-y-auto"
+            panel={<LeftSidebarGlobalSections />}
+          />
+          <Tab
+            id="left-sidebar-settings"
+            title="Personal Sections"
+            className="overflow-y-auto"
+            panel={<LeftSidebarPersonalSections />}
           />
           <SectionHeader>Grammar</SectionHeader>
           <Tab
