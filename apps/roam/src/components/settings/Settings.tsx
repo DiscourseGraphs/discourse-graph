@@ -168,13 +168,13 @@ export const SettingsDialog = ({
 
           <SectionHeader>Left Sidebar</SectionHeader>
           <Tab
-            id="left-sidebar-settings"
+            id="left-sidebar-global-settings"
             title="Global Sections"
             className="overflow-y-auto"
             panel={<LeftSidebarGlobalSections />}
           />
           <Tab
-            id="left-sidebar-settings"
+            id="left-sidebar-personal-settings"
             title="Personal Sections"
             className="overflow-y-auto"
             panel={<LeftSidebarPersonalSections />}
