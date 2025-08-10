@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import { Label, Button, Intent, Tag } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 
 type PageGroupData = {

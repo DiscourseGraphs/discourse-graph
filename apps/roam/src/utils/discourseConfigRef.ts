@@ -4,56 +4,18 @@ import {
   StringSetting,
   ExportConfigWithUids,
   getUidAndStringSetting,
-  BooleanSetting,
-  getUidAndBooleanSetting,
 } from "./getExportSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { getSubTree } from "roamjs-components/util";
+import {
+  getSuggestiveModeConfigAndUids,
+  SuggestiveModeConfigWithUids,
+} from "./getSuggestiveModeConfigSettings";
 
 const configTreeRef: {
   tree: RoamBasicNode[];
   nodes: { [uid: string]: { text: string; children: RoamBasicNode[] } };
 } = { tree: [], nodes: {} };
-
-type SuggestiveModeConfigWithUids = {
-  parentUid: string;
-  grabFromReferencedPages: BooleanSetting;
-  grabParentAndChildren: BooleanSetting;
-  pageGroups: {
-    uid: string;
-    name: string;
-    pages: { uid: string; name: string }[];
-  };
-};
-
-const getSuggestiveModeConfigAndUids = (): SuggestiveModeConfigWithUids => {
-  const suggestiveModeNode = getSubTree({
-    tree: configTreeRef.tree,
-    key: "Suggestive mode",
-  });
-  const pageGroupsNode = getSubTree({
-    parentUid: suggestiveModeNode.uid,
-    key: "page groups",
-  });
-
-  return {
-    parentUid: suggestiveModeNode.uid,
-    grabFromReferencedPages: getUidAndBooleanSetting({
-      tree: suggestiveModeNode.children,
-      text: "Include Current Page Relations",
-    }),
-    grabParentAndChildren: getUidAndBooleanSetting({
-      tree: suggestiveModeNode.children,
-      text: "Include Parent and Child Blocks",
-    }),
-    pageGroups: {
-      uid: pageGroupsNode?.uid || "",
-      name: "page groups",
-      pages: [],
-    },
-  };
-};
 
 type FormattedConfigTree = {
   settingsUid: string;

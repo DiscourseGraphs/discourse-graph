@@ -13,13 +13,7 @@ import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import getSubTree from "roamjs-components/util/getSubTree";
-
-type DiscourseNode = {
-  type: string;
-  text: string;
-  template?: string;
-  uid: string;
-};
+import { DiscourseNode } from "~/utils/getDiscourseNodes";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
