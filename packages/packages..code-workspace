@@ -1,0 +1,10 @@
+{
+  "folders": [
+    { "path": "./database" },
+    { "path": "./ui" },
+    { "path": "./types" },
+    { "path": "./eslint-config" },
+    { "path": "./tailwind-config" },
+    { "path": "./typescript-config" },
+  ],
+}

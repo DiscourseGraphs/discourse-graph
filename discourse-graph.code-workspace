@@ -1,23 +1,8 @@
 {
   "folders": [
-    {
-      "path": ".",
-    },
-    {
-      "path": "./apps/obsidian",
-    },
-    {
-      "path": "./apps/roam",
-    },
-    {
-      "path": "./apps/website",
-    },
-    {
-      "path": "./packages/database",
-    },
-    {
-      "path": "./packages/ui",
-    },
+    { "path": "." },
+    { "path": "./apps", "name": "Apps" },
+    { "path": "./packages", "name": "Packages" },
   ],
   "settings": {
     "files.watcherExclude": {
