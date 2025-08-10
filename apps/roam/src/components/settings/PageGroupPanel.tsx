@@ -93,10 +93,12 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
 
   const getPageInput = (groupUid: string) => newPageInputs[groupUid] || "";
   const setPageInput = useCallback((groupUid: string, value: string) => {
-    setNewPageInputs((prev) => ({
-      ...prev,
-      [groupUid]: value,
-    }));
+    setTimeout(() => {
+      setNewPageInputs((prev) => ({
+        ...prev,
+        [groupUid]: value,
+      }));
+    }, 0);
   }, []);
   const getAutocompleteKey = (groupUid: string) =>
     autocompleteKeys[groupUid] || 0;

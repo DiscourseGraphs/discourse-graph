@@ -4,13 +4,29 @@ import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import PageGroupsPanel from "./PageGroupPanel";
+import createBlock from "roamjs-components/writes/createBlock";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 
 const SuggestiveModeSettings = () => {
-  const [settings, setSettings] = useState(() => getFormattedConfigTree());
-  useEffect(() => {
+  const [settings, setSettings] = useState(() => {
     refreshConfigTree();
-    setSettings(getFormattedConfigTree());
-  }, []);
+    return getFormattedConfigTree();
+  });
+
+  useEffect(() => {
+    const ensureSettings = async () => {
+      if (!settings.suggestiveMode.parentUid) {
+        await createBlock({
+          parentUid: getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
+          node: { text: "Suggestive mode" },
+        });
+        refreshConfigTree();
+        setSettings(getFormattedConfigTree());
+      }
+    };
+    ensureSettings();
+  }, [settings.suggestiveMode.parentUid]);
 
   return (
     <div className="relative flex flex-col gap-4 p-1">
