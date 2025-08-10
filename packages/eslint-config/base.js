@@ -30,15 +30,15 @@ export const config = [
       "max-params": ["error", 3],
       "@typescript-eslint/naming-convention": [
         "error",
-        // Default: camelCase for most identifiers
+        // Keep default
         { selector: "default", format: ["camelCase"] },
-        // Const variables can be camelCase or UPPER_CASE
+        // Keep default for const
         {
           selector: "variable",
           modifiers: ["const"],
           format: ["camelCase", "UPPER_CASE"],
         },
-        // Types, interfaces, enums, type aliases in PascalCase
+        // Keep default for types
         { selector: "typeLike", format: ["PascalCase"] },
         // Allow PascalCase for function variables (e.g., React components)
         {
