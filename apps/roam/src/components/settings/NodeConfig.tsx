@@ -336,9 +336,10 @@ const NodeConfig = ({
               <DiscourseNodeSuggestiveRules
                 node={node}
                 parentUid={
-                  getBasicTreeByParentUid(node.type).find(
-                    (n) => n.text === "Suggestive Rules",
-                  )?.uid || ""
+                  getSubTree({
+                    parentUid: node.type,
+                    key: "Suggestive Rules",
+                  }).uid
                 }
               />
             </div>

@@ -133,15 +133,15 @@ export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
         Panel: FlagPanel,
         description: "Include relations from parent and child blocks",
       },
+      // @ts-ignore
       {
         title: "Page Groups",
-        // @ts-ignore
         Panel: CustomPanel,
         description: "Set page groups to use for discourse suggestions",
         options: {
           component: PageGroupsPanel,
         },
-      },
+      } as Field<CustomField>,
     ],
   },
 ];

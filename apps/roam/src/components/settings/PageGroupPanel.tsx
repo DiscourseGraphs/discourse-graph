@@ -43,16 +43,22 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
 
   const addGroup = async (name: string) => {
     if (!name || pageGroups.some((g) => g.name === name)) return;
-    await createBlock({ parentUid: uid, node: { text: name } }).then(() => {
+    try {
+      await createBlock({ parentUid: uid, node: { text: name } });
       refreshGroups();
       setNewGroupName("");
-    });
+    } catch (e) {
+      console.error("Error adding group", e);
+    }
   };
 
   const removeGroup = async (groupUid: string) => {
-    await deleteBlock(groupUid).then(() => {
+    try {
+      await deleteBlock(groupUid);
       refreshGroups();
-    });
+    } catch (e) {
+      console.error("Error removing group", e);
+    }
   };
 
   const addPageToGroup = async (groupUid: string, page: string) => {
@@ -60,35 +66,37 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
     if (!page || group?.pages.some((p) => p.name === page)) {
       return;
     }
-    await createBlock({ parentUid: groupUid, node: { text: page } }).then(
-      () => {
-        refreshGroups();
-        setNewPageInputs((prev) => ({
-          ...prev,
-          [groupUid]: "",
-        }));
-        setAutocompleteKeys((prev) => ({
-          ...prev,
-          [groupUid]: (prev[groupUid] || 0) + 1,
-        }));
-      },
-    );
+    try {
+      await createBlock({ parentUid: groupUid, node: { text: page } });
+      refreshGroups();
+      setNewPageInputs((prev) => ({
+        ...prev,
+        [groupUid]: "",
+      }));
+      setAutocompleteKeys((prev) => ({
+        ...prev,
+        [groupUid]: (prev[groupUid] || 0) + 1,
+      }));
+    } catch (e) {
+      console.error("Error adding page to group", e);
+    }
   };
 
   const removePageFromGroup = async (pageUid: string) => {
-    await deleteBlock(pageUid).then(() => {
+    try {
+      await deleteBlock(pageUid);
       refreshGroups();
-    });
+    } catch (e) {
+      console.error("Error removing page from group", e);
+    }
   };
 
   const getPageInput = (groupUid: string) => newPageInputs[groupUid] || "";
   const setPageInput = useCallback((groupUid: string, value: string) => {
-    setTimeout(() => {
-      setNewPageInputs((prev) => ({
-        ...prev,
-        [groupUid]: value,
-      }));
-    }, 0);
+    setNewPageInputs((prev) => ({
+      ...prev,
+      [groupUid]: value,
+    }));
   }, []);
   const getAutocompleteKey = (groupUid: string) =>
     autocompleteKeys[groupUid] || 0;

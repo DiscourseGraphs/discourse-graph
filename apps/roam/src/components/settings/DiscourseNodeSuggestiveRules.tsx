@@ -105,7 +105,7 @@ const DiscourseNodeSuggestiveRules = ({
         title="Template"
         description={`The template that auto fills ${node.text} page when generated.`}
         order={0}
-        parentUid={node.uid}
+        parentUid={nodeUid}
         uid={templateUid}
         defaultValue={node.template ? [{ text: node.template }] : undefined}
       />

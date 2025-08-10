@@ -32,9 +32,10 @@ const getSuggestiveModeConfigAndUids = (): SuggestiveModeConfigWithUids => {
     tree: configTreeRef.tree,
     key: "suggestive-mode",
   });
-  const pageGroupsNode = suggestiveModeNode.children.find(
-    (node) => node.text === "Page Groups",
-  );
+  const pageGroupsNode = getSubTree({
+    parentUid: suggestiveModeNode.uid,
+    key: "page groups",
+  });
 
   return {
     parentUid: suggestiveModeNode.uid,

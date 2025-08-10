@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Intent } from "@blueprintjs/core";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
@@ -6,9 +6,10 @@ import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import PageGroupsPanel from "./PageGroupPanel";
 
 const SuggestiveModeSettings = () => {
-  const settings = useMemo(() => {
+  const [settings, setSettings] = useState(() => getFormattedConfigTree());
+  useEffect(() => {
     refreshConfigTree();
-    return getFormattedConfigTree();
+    setSettings(getFormattedConfigTree());
   }, []);
 
   return (
