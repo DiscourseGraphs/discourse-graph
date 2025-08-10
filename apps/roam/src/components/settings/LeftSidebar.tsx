@@ -11,7 +11,6 @@ import type { RoamBasicNode } from "roamjs-components/types";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
 import type { LeftSidebarPersonalSectionConfig } from "~/utils/getLeftSidebarSettings";
 

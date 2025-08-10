@@ -41,6 +41,7 @@ import {
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
+import { mountLeftSidebarInto } from "~/components/LeftSidebarView";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -99,6 +100,32 @@ export const initObservers = async ({
     tag: "SPAN",
     callback: (s: HTMLSpanElement) => {
       renderNodeTagPopupButton(s, onloadArgs.extensionAPI);
+    },
+  });
+
+  const attemptImmediateMount = () => {
+    try {
+      const candidate = document.querySelector(
+        ".roam-sidebar-container .starred-pages-wrapper",
+      ) as HTMLDivElement | null;
+      if (candidate) mountLeftSidebarInto(candidate);
+    } catch (e) {
+      console.error("[DG][LeftSidebar] attemptImmediateMount error", e);
+    }
+  };
+  attemptImmediateMount();
+
+  const leftSidebarObserver = createHTMLObserver({
+    tag: "DIV",
+    useBody: true,
+    className: "starred-pages-wrapper",
+    callback: (el) => {
+      try {
+        const container = el as HTMLDivElement;
+        mountLeftSidebarInto(container);
+      } catch (e) {
+        console.error("[DG][LeftSidebar] leftSidebarObserver error", e);
+      }
     },
   });
 
@@ -310,6 +337,7 @@ export const initObservers = async ({
       linkedReferencesObserver,
       graphOverviewExportObserver,
       nodeTagPopupButtonObserver,
+      leftSidebarObserver,
     ].filter((o): o is MutationObserver => !!o),
     listeners: {
       pageActionListener,
