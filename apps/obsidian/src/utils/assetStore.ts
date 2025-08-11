@@ -6,24 +6,24 @@ const ASSET_PREFIX = "obsidian.blockref.";
 type BlockRefAssetId = `${typeof ASSET_PREFIX}${string}`;
 type AssetDataUrl = string;
 
-interface AssetStoreOptions {
+type AssetStoreOptions = {
   app: App;
   file: TFile;
-}
+};
 
 /**
  * Proxy class that handles Obsidian-specific file operations for the TLAssetStore
  */
 class ObsidianMarkdownFileTLAssetStoreProxy {
-  #resolvedAssetDataCache = new Map<BlockRefAssetId, AssetDataUrl>();
-  #app: App;
-  #file: TFile;
+  private resolvedAssetDataCache = new Map<BlockRefAssetId, AssetDataUrl>();
+  private app: App;
+  private file: TFile;
 
   /**
    * Safely set a cached Blob URL for an asset id, revoking any previous URL to avoid leaks
    */
-  #setCachedUrl(blockRefAssetId: BlockRefAssetId, url: AssetDataUrl) {
-    const previousUrl = this.#resolvedAssetDataCache.get(blockRefAssetId);
+  private setCachedUrl(blockRefAssetId: BlockRefAssetId, url: AssetDataUrl) {
+    const previousUrl = this.resolvedAssetDataCache.get(blockRefAssetId);
     if (previousUrl && previousUrl !== url) {
       try {
         URL.revokeObjectURL(previousUrl);
@@ -31,15 +31,18 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
         console.warn("Failed to revoke previous object URL", err);
       }
     }
-    this.#resolvedAssetDataCache.set(blockRefAssetId, url);
+    this.resolvedAssetDataCache.set(blockRefAssetId, url);
   }
 
   constructor(options: AssetStoreOptions) {
-    this.#app = options.app;
-    this.#file = options.file;
+    this.app = options.app;
+    this.file = options.file;
   }
 
-  async storeAsset(asset: TLAsset, file: File): Promise<BlockRefAssetId> {
+  storeAsset = async (
+    _asset: TLAsset,
+    file: File,
+  ): Promise<BlockRefAssetId> => {
     const blockRefId = crypto.randomUUID();
 
     const objectName = `${blockRefId}-${file.name}`.replace(/\W/g, "-");
@@ -47,44 +50,47 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
     const fileName = !ext ? objectName : `${objectName}.${ext}`;
 
     // TODO: in the future, get this from the user's settings
-    let attachmentFolder = this.#app.vault.getFolderByPath("attachments");
+    let attachmentFolder = this.app.vault.getFolderByPath("attachments");
     if (!attachmentFolder) {
-      attachmentFolder = await this.#app.vault.createFolder("attachments");
+      attachmentFolder = await this.app.vault.createFolder("attachments");
     }
     const filePath = `${attachmentFolder.path}/${fileName}`;
 
     const arrayBuffer = await file.arrayBuffer();
-    const assetFile = await this.#app.vault.createBinary(filePath, arrayBuffer);
+    const assetFile = await this.app.vault.createBinary(filePath, arrayBuffer);
 
-    const internalLink = this.#app.fileManager.generateMarkdownLink(
+    // Generate a plain wikilink (without image embed bang) using Obsidian API
+    const linkText = this.app.metadataCache.fileToLinktext(
       assetFile,
-      this.#file.path,
+      this.file.path,
     );
+    const internalLink = `[[${linkText}]]`;
+    console.log("internalLink", internalLink);
     const linkBlock = `${internalLink}\n^${blockRefId}`;
 
-    await this.#addToTopOfFile(linkBlock);
+    await this.addToTopOfFile(linkBlock);
 
     const assetDataUri = URL.createObjectURL(file);
     const assetId = `${ASSET_PREFIX}${blockRefId}` as BlockRefAssetId;
-    this.#setCachedUrl(assetId, assetDataUri);
+    this.setCachedUrl(assetId, assetDataUri);
 
     return assetId;
   }
 
-  async getCached(
+  getCached = async (
     blockRefAssetId: BlockRefAssetId,
-  ): Promise<AssetDataUrl | null> {
+  ): Promise<AssetDataUrl | null> => {
     try {
       // Check cache first
-      const cached = this.#resolvedAssetDataCache.get(blockRefAssetId);
+      const cached = this.resolvedAssetDataCache.get(blockRefAssetId);
       if (cached) return cached;
 
       // Load and cache if needed
-      const assetData = await this.#getAssetData(blockRefAssetId);
+      const assetData = await this.getAssetData(blockRefAssetId);
       if (!assetData) return null;
 
       const uri = URL.createObjectURL(new Blob([assetData]));
-      this.#setCachedUrl(blockRefAssetId, uri);
+      this.setCachedUrl(blockRefAssetId, uri);
       return uri;
     } catch (error) {
       console.error("Error getting cached asset:", error);
@@ -92,16 +98,16 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
     }
   }
 
-  dispose() {
-    for (const url of this.#resolvedAssetDataCache.values()) {
+  dispose = () => {
+    for (const url of this.resolvedAssetDataCache.values()) {
       URL.revokeObjectURL(url);
     }
-    this.#resolvedAssetDataCache.clear();
+    this.resolvedAssetDataCache.clear();
   }
 
-  async #addToTopOfFile(content: string) {
-    await this.#app.vault.process(this.#file, (data: string) => {
-      const fileCache = this.#app.metadataCache.getFileCache(this.#file);
+  private addToTopOfFile = async (content: string) => {
+    await this.app.vault.process(this.file, (data: string) => {
+      const fileCache = this.app.metadataCache.getFileCache(this.file);
       const { start, end } = fileCache?.frontmatterPosition ?? {
         start: { offset: 0 },
         end: { offset: 0 },
@@ -113,18 +119,18 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
     });
   }
 
-  async #getAssetData(
+  private getAssetData = async (
     blockRefAssetId: BlockRefAssetId,
-  ): Promise<ArrayBuffer | null> {
+  ): Promise<ArrayBuffer | null> => {
     try {
       const blockRef = blockRefAssetId.slice(ASSET_PREFIX.length);
       if (!blockRef) return null;
 
-      const fileCache = this.#app.metadataCache.getFileCache(this.#file);
+      const fileCache = this.app.metadataCache.getFileCache(this.file);
       if (!fileCache?.blocks?.[blockRef]) return null;
 
       const block = fileCache.blocks[blockRef];
-      const fileContent = await this.#app.vault.read(this.#file);
+      const fileContent = await this.app.vault.read(this.file);
       const blockContent = fileContent.substring(
         block.position.start.offset,
         block.position.end.offset,
@@ -134,14 +140,14 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
       if (!match?.[1]) return null;
 
       const linkPath = match[1];
-      const linkedFile = this.#app.metadataCache.getFirstLinkpathDest(
+      const linkedFile = this.app.metadataCache.getFirstLinkpathDest(
         linkPath,
-        this.#file.path,
+        this.file.path,
       );
 
       if (!linkedFile) return null;
       // TODO: handle other file types too
-      return await this.#app.vault.readBinary(linkedFile);
+      return await this.app.vault.readBinary(linkedFile);
     } catch (error) {
       console.error("Error getting asset data:", error);
       return null;
@@ -153,21 +159,21 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
  * TLAssetStore implementation for Obsidian
  */
 export class ObsidianTLAssetStore implements Required<TLAssetStore> {
-  #proxy: ObsidianMarkdownFileTLAssetStoreProxy;
+  private proxy: ObsidianMarkdownFileTLAssetStoreProxy;
 
   constructor(
     public readonly persistenceKey: string,
     options: AssetStoreOptions,
   ) {
-    this.#proxy = new ObsidianMarkdownFileTLAssetStoreProxy(options);
+    this.proxy = new ObsidianMarkdownFileTLAssetStoreProxy(options);
   }
 
-  async upload(
+  upload = async (
     asset: TLAsset,
     file: File,
-  ): Promise<{ src: string; meta?: JsonObject }> {
+  ): Promise<{ src: string; meta?: JsonObject }> => {
     try {
-      const blockRefAssetId = await this.#proxy.storeAsset(asset, file);
+      const blockRefAssetId = await this.proxy.storeAsset(asset, file);
       return {
         src: `asset:${blockRefAssetId}`,
         meta: {
@@ -178,9 +184,12 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
       console.error("Error uploading asset:", error);
       throw error;
     }
-  }
+  };
 
-  async resolve(asset: TLAsset, ctx: TLAssetContext): Promise<string | null> {
+  resolve = async (
+    asset: TLAsset,
+    _ctx: TLAssetContext,
+  ): Promise<string | null> => {
     try {
       const assetSrc = asset.props.src;
       if (!assetSrc?.startsWith("asset:")) return assetSrc ?? null;
@@ -194,7 +203,7 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
         "";
 
       if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
-        return await this.#proxy.getCached(assetId);
+        return await this.proxy.getCached(assetId);
       }
 
       // Non-media (e.g., text/markdown, application/*): let custom shapes decide.
@@ -204,14 +213,14 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
       console.error("Error resolving asset:", error);
       return null;
     }
-  }
+  };
 
-  async remove(assetIds: TLAssetId[]): Promise<void> {
+  remove = async (_assetIds: TLAssetId[]): Promise<void> => {
     // No-op for now as we don't want to delete files from the vault
     // The files will remain in the vault and can be managed by the user
-  }
+  };
 
-  dispose() {
-    this.#proxy.dispose();
-  }
+  dispose = () => {
+    this.proxy.dispose();
+  };
 }

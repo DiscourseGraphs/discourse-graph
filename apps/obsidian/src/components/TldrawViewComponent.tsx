@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Editor, ErrorBoundary, TLAssetStore, Tldraw, TLStore } from "tldraw";
+import { ErrorBoundary, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
 import {
   getTLDataTemplate,
@@ -15,12 +15,13 @@ import {
   TLDATA_DELIMITER_START,
 } from "~/constants";
 import { TFile } from "obsidian";
+import { ObsidianTLAssetStore } from "~/utils/assetStore";
 
 interface TldrawPreviewProps {
   store: TLStore;
   plugin: DiscourseGraphPlugin;
   file: TFile;
-  assetStore: Required<TLAssetStore>;
+  assetStore: ObsidianTLAssetStore;
 }
 
 export const TldrawPreviewComponent = ({
@@ -32,7 +33,6 @@ export const TldrawPreviewComponent = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentStore, setCurrentStore] = useState<TLStore>(store);
   const [isReady, setIsReady] = useState(false);
-  const editorRef = useRef<Editor | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedDataRef = useRef<string>("");
 
@@ -92,7 +92,7 @@ export const TldrawPreviewComponent = ({
       );
       if (match?.[1]) {
         const data = JSON.parse(match[1]) as TLData;
-        const { store: newStore } = processInitialData(data);
+        const { store: newStore } = processInitialData(data, assetStore);
         setCurrentStore(newStore);
       }
     }
@@ -120,15 +120,6 @@ export const TldrawPreviewComponent = ({
     };
   }, [currentStore, saveChanges]);
 
-  const handleMount = useCallback(
-    (editor: Editor) => {
-      editorRef.current = editor;
-      editor.setCurrentTool("select");
-      currentStore.props.assets = assetStore;
-    },
-    [currentStore, assetStore],
-  );
-
   return (
     <div
       ref={containerRef}
@@ -141,7 +132,7 @@ export const TldrawPreviewComponent = ({
             <div>Error in Tldraw component: {JSON.stringify(error)}</div>
           )}
         >
-          <Tldraw store={currentStore} onMount={handleMount} autoFocus={true} />
+          <Tldraw store={currentStore} autoFocus={true} initialState="select" />
         </ErrorBoundary>
       ) : (
         <div>Loading Tldraw...</div>

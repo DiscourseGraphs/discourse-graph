@@ -9,6 +9,7 @@ import DiscourseGraphPlugin from "~/index";
 import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
 import { Notice } from "obsidian";
 import { format } from "date-fns";
+import { ObsidianTLAssetStore } from "./assetStore";
 
 export type TldrawPluginMetaData = {
   "plugin-version": string;
@@ -29,6 +30,7 @@ export type TLData = {
 
 export const processInitialData = (
   data: TLData,
+  assetStore: ObsidianTLAssetStore,
 ): { meta: TldrawPluginMetaData; store: TLStore } => {
   const recordsData = Array.isArray(data.raw.records)
     ? data.raw.records.reduce(
@@ -47,10 +49,12 @@ export const processInitialData = (
     store = createTLStore({
       shapeUtils: defaultShapeUtils,
       initialData: recordsData,
+      assets: assetStore,
     });
   } else {
     store = createTLStore({
       shapeUtils: defaultShapeUtils,
+      assets: assetStore,
     });
   }
 

@@ -6,13 +6,13 @@ import { TLStore } from "tldraw";
 import React from "react";
 import DiscourseGraphPlugin from "~/index";
 import { processInitialData, TLData } from "~/utils/tldraw";
-import { ObsidianTLAssetStore } from "~/utils/asset-store";
+import { ObsidianTLAssetStore } from "~/utils/assetStore";
 
 export class TldrawView extends TextFileView {
   plugin: DiscourseGraphPlugin;
   private reactRoot?: Root;
-  private store?: TLStore;
-  private assetStore?: ObsidianTLAssetStore;
+  private store: TLStore | null = null;
+  private assetStore: ObsidianTLAssetStore | null = null;
   private onUnloadCallbacks: (() => void)[] = [];
 
   constructor(leaf: WorkspaceLeaf, plugin: DiscourseGraphPlugin) {
@@ -33,7 +33,7 @@ export class TldrawView extends TextFileView {
     return this.data;
   }
 
-  setViewData(data: string, clear: boolean): void {
+  setViewData(data: string, _clear: boolean): void {
     this.data = data;
   }
 
@@ -68,25 +68,28 @@ export class TldrawView extends TextFileView {
 
     const fileData = await this.app.vault.read(file);
 
-    const store = this.createStore(fileData);
-
-    if (!store) {
-      console.warn("No tldraw data found in file");
-      return;
-    }
-
-    this.assetStore = new ObsidianTLAssetStore(
+    const assetStore = new ObsidianTLAssetStore(
       `tldraw-${encodeURIComponent(file.path)}`,
       {
         app: this.app,
         file,
       },
     );
+    const store = this.createStore(fileData, assetStore);
 
+    if (!store) {
+      console.warn("No tldraw data found in file");
+      return;
+    }
+
+    this.assetStore = assetStore;
     await this.setStore(store);
   }
 
-  private createStore(fileData: string): TLStore | undefined {
+  private createStore(
+    fileData: string,
+    assetStore: ObsidianTLAssetStore,
+  ): TLStore | undefined {
     try {
       const match = fileData.match(
         /```json !!!_START_OF_TLDRAW_DG_DATA__DO_NOT_CHANGE_THIS_PHRASE_!!!([\s\S]*?)!!!_END_OF_TLDRAW_DG_DATA__DO_NOT_CHANGE_THIS_PHRASE_!!!\n```/,
@@ -103,7 +106,7 @@ export class TldrawView extends TextFileView {
         return;
       }
 
-      const { store } = processInitialData(data);
+      const { store } = processInitialData(data, assetStore);
 
       return store;
     } catch (e) {
@@ -112,22 +115,25 @@ export class TldrawView extends TextFileView {
     }
   }
 
+  private assertInitialized(): void {
+    if (!this.file) throw new Error("TldrawView not initialized: missing file");
+    if (!this.assetStore)
+      throw new Error("TldrawView not initialized: missing assetStore");
+    if (!this.store)
+      throw new Error("TldrawView not initialized: missing store");
+  }
+
   private createReactRoot(entryPoint: Element, store: TLStore) {
     const root = createRoot(entryPoint);
-    if (!this.file) return;
-
-    if (!this.assetStore) {
-      console.warn("Asset store is not set");
-      return;
-    }
+    this.assertInitialized();
 
     root.render(
       <React.StrictMode>
         <TldrawPreviewComponent
           store={store}
           plugin={this.plugin}
-          file={this.file}
-          assetStore={this.assetStore}
+          file={this.file!}
+          assetStore={this.assetStore!}
         />
       </React.StrictMode>,
     );
@@ -182,7 +188,7 @@ export class TldrawView extends TextFileView {
 
     if (this.assetStore) {
       this.assetStore.dispose();
-      this.assetStore = undefined;
+      this.assetStore = null;
     }
 
     return super.onUnloadFile(file);
@@ -209,12 +215,12 @@ export class TldrawView extends TextFileView {
       } catch (e) {
         console.error("Failed to dispose store", e);
       }
-      this.store = undefined;
+      this.store = null;
     }
 
     if (this.assetStore) {
       this.assetStore.dispose();
-      this.assetStore = undefined;
+      this.assetStore = null;
     }
   }
 }
