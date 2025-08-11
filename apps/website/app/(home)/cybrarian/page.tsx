@@ -39,7 +39,7 @@ const CybrarianPage = () => {
           We&apos;re transforming how scientific research is communicated and
           coordinated through{" "}
           <a
-            href="http://discoursegraphs.com"
+            href="https://discoursegraphs.com"
             target="_blank"
             rel="noopener noreferrer"
           >
