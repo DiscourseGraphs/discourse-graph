@@ -36,9 +36,7 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
             {/* Job Openings Banner */}
             <div className="border-b border-primary/20 bg-gradient-to-r from-primary via-primary/90 to-primary px-4 py-3 text-center shadow-sm">
               <Link
-                href="https://docs.google.com/document/d/1UKwmUoAvgdLXFPj8bfsbMWUFbK8h6I8JgDv8lqHfJ_M/edit?usp=sharing"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/cybrarian"
                 className="group inline-flex items-center gap-2 text-sm font-semibold text-neutral-dark transition-colors hover:text-neutral-dark/80 focus:outline-none focus:ring-2 focus:ring-neutral-dark focus:ring-offset-2 focus:ring-offset-primary"
               >
                 <span className="animate-pulse" aria-hidden="true">
