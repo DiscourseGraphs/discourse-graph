@@ -2,8 +2,12 @@ import { App, TFile } from "obsidian";
 import { TLAsset, TLAssetStore, TLAssetId, TLAssetContext } from "tldraw";
 import { JsonObject } from "@tldraw/utils";
 
-const ASSET_PREFIX = "obsidian.blockref.";
-type BlockRefAssetId = `${typeof ASSET_PREFIX}${string}`;
+export const ASSET_PREFIX = "obsidian.blockref.";
+export type BlockRefAssetId = `${typeof ASSET_PREFIX}${string}`;
+export type BlockRefAssetSrc = `asset:${BlockRefAssetId}`;
+export const isBlockRefAssetSrc = (src?: string): src is BlockRefAssetSrc => {
+  return typeof src === "string" && src.startsWith(`asset:${ASSET_PREFIX}`);
+};
 type AssetDataUrl = string;
 
 type AssetStoreOptions = {
@@ -151,6 +155,39 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
       return null;
     }
   }
+
+  /**
+   * Resolve the TFile referenced by a block-ref asset id (if any)
+   */
+  async getLinkedFile(blockRefAssetId: BlockRefAssetId): Promise<TFile | null> {
+    try {
+      const blockRef = blockRefAssetId.slice(ASSET_PREFIX.length);
+      if (!blockRef) return null;
+
+      const fileCache = this.#app.metadataCache.getFileCache(this.#file);
+      if (!fileCache?.blocks?.[blockRef]) return null;
+
+      const block = fileCache.blocks[blockRef];
+      const fileContent = await this.#app.vault.read(this.#file);
+      const blockContent = fileContent.substring(
+        block.position.start.offset,
+        block.position.end.offset,
+      );
+
+      const match = blockContent.match(/\[\[(.*?)\]\]/);
+      if (!match?.[1]) return null;
+
+      const linkPath = match[1];
+      const linkedFile = this.#app.metadataCache.getFirstLinkpathDest(
+        linkPath,
+        this.#file.path,
+      );
+      return linkedFile ?? null;
+    } catch (error) {
+      console.error("Error resolving linked TFile:", error);
+      return null;
+    }
+  }
 }
 
 /**
@@ -221,4 +258,45 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
   dispose = () => {
     this.proxy.dispose();
   };
+}
+
+// -----------------------
+// Standalone helpers
+// -----------------------
+
+/** Resolve a TFile from an asset-style src (asset:obsidian.blockref.<id>) in the given canvas file */
+export async function resolveLinkedFileFromSrc(
+  app: App,
+  canvasFile: TFile,
+  src?: string,
+): Promise<TFile | null> {
+  if (!isBlockRefAssetSrc(src)) return null;
+  const blockRefId = src.split(":")[1] as BlockRefAssetId;
+  try {
+    const blockRef = blockRefId.slice(ASSET_PREFIX.length);
+    if (!blockRef) return null;
+
+    const fileCache = app.metadataCache.getFileCache(canvasFile);
+    if (!fileCache?.blocks?.[blockRef]) return null;
+
+    const block = fileCache.blocks[blockRef];
+    const fileContent = await app.vault.read(canvasFile);
+    const blockContent = fileContent.substring(
+      block.position.start.offset,
+      block.position.end.offset,
+    );
+
+    const match = blockContent.match(/\[\[(.*?)\]\]/);
+    if (!match?.[1]) return null;
+
+    const linkPath = match[1];
+    const linkedFile = app.metadataCache.getFirstLinkpathDest(
+      linkPath,
+      canvasFile.path,
+    );
+    return linkedFile ?? null;
+  } catch (error) {
+    console.error("Error resolving linked TFile from src:", error);
+    return null;
+  }
 }
