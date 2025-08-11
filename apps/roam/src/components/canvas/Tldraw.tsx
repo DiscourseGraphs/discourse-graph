@@ -759,7 +759,8 @@ export const renderTldrawCanvas = ({
     children.setAttribute("data-roamjs-discourse-playground", "true");
     const parent = document.createElement("div");
     children.parentElement.appendChild(parent);
-    parent.style.height = "500px";
+    parent.style.minHeight = "500px";
+    parent.style.height = "70vh";
     renderWithUnmount(
       <ExtensionApiContextProvider {...onloadArgs}>
         <TldrawCanvas title={title} />
