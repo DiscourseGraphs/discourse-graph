@@ -8,7 +8,6 @@ import {
   Button,
   TabId,
   Intent,
-  Checkbox,
 } from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import DiscourseRelationConfigPanel from "./DiscourseRelationConfigPanel";

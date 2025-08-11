@@ -17,7 +17,7 @@ const configTreeRef: {
   nodes: { [uid: string]: { text: string; children: RoamBasicNode[] } };
 } = { tree: [], nodes: {} };
 
-type FormattedConfigTree = {
+export type FormattedConfigTree = {
   settingsUid: string;
   grammarUid: string;
   relationsUid: string;

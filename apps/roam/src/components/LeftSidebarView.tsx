@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { Collapse, Icon } from "@blueprintjs/core";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -9,6 +9,8 @@ import type {
   LeftSidebarConfig,
   LeftSidebarPersonalSectionConfig,
 } from "~/utils/getLeftSidebarSettings";
+import { createBlock } from "roamjs-components/writes";
+import deleteBlock from "roamjs-components/writes/deleteBlock";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -56,10 +58,14 @@ const openTarget = async (
   }
 };
 
-const SectionChildren: React.FC<{
+type SectionChildrenProps = {
   childrenNodes: { uid: string; text: string }[];
   truncateAt?: number;
-}> = ({ childrenNodes, truncateAt }) => {
+};
+const SectionChildren = ({
+  childrenNodes,
+  truncateAt,
+}: SectionChildrenProps): JSX.Element | null => {
   if (!childrenNodes?.length) return null;
   return (
     <div>
@@ -73,11 +79,10 @@ const SectionChildren: React.FC<{
             return void openTarget(e, { kind: "block", uid: ref.uid });
           return void openTarget(e, { kind: "page", title: ref.display });
         };
-        const isTodo = /\{\{\[\[TODO\]\]\}\}/.test(ref.display);
         return (
           <div key={child.uid} style={{ padding: "4px 0 4px 4px" }}>
             <div
-              className={`section-child-item ${isTodo ? "todo-item" : "page"}`}
+              className={"section-child-item page"}
               style={{
                 color: "#495057",
                 lineHeight: 1.5,
@@ -95,9 +100,12 @@ const SectionChildren: React.FC<{
   );
 };
 
-const PersonalSectionItem: React.FC<{
+type PersonalSectionItemProps = {
   section: LeftSidebarPersonalSectionConfig;
-}> = ({ section }) => {
+};
+const PersonalSectionItem = ({
+  section,
+}: PersonalSectionItemProps): JSX.Element => {
   if (section.isSimple) {
     const ref = parseReference(section.text);
     const onClick = (e: React.MouseEvent) => {
@@ -157,7 +165,27 @@ const PersonalSectionItem: React.FC<{
 
     clickTimerRef.current = window.setTimeout(() => {
       if (clickCountRef.current === 1) {
-        if (collapsable) setIsOpen((prev) => !prev);
+        if (collapsable) {
+          setIsOpen((prev) => !prev);
+          if (section.settings?.open.uid) {
+            deleteBlock(section.settings.open.uid);
+            section.settings.open.uid = undefined;
+            section.settings.open.value = false;
+          } else {
+            if (section.settings?.uid) {
+              const newUid = window.roamAlphaAPI.util.generateUID();
+              createBlock({
+                parentUid: section.settings?.uid,
+                node: {
+                  text: "Open?",
+                  uid: newUid,
+                },
+              });
+              section.settings.open.uid = newUid;
+              section.settings.open.value = true;
+            }
+          }
+        }
       } else {
         if (titleRef.type === "page")
           void window.roamAlphaAPI.ui.mainWindow.openPage({
@@ -233,9 +261,12 @@ const PersonalSectionItem: React.FC<{
   );
 };
 
-const PersonalSections: React.FC<{ config: LeftSidebarConfig["personal"] }> = ({
+type PersonalSectionsProps = {
+  config: LeftSidebarConfig["personal"];
+};
+const PersonalSections = ({
   config,
-}) => {
+}: PersonalSectionsProps): JSX.Element | null => {
   const sections = config.sections || [];
   if (!sections.length) return null;
   return (
@@ -247,9 +278,10 @@ const PersonalSections: React.FC<{ config: LeftSidebarConfig["personal"] }> = ({
   );
 };
 
-const GlobalSection: React.FC<{ config: LeftSidebarConfig["global"] }> = ({
-  config,
-}) => {
+type GlobalSectionProps = {
+  config: LeftSidebarConfig["global"];
+};
+const GlobalSection = ({ config }: GlobalSectionProps): JSX.Element | null => {
   const [isOpen, setIsOpen] = useState<boolean>(!!config.open.value);
   if (!config.children?.length) return null;
 
@@ -301,32 +333,8 @@ const GlobalSection: React.FC<{ config: LeftSidebarConfig["global"] }> = ({
   );
 };
 
-const LeftSidebarView: React.FC = () => {
-  const [config, setConfig] = useState<LeftSidebarConfig | null>(null);
-
-  useEffect(() => {
-    let tries = 0;
-    const maxTries = 10;
-    const update = () => {
-      const cfg = getFormattedConfigTree().leftSidebar;
-      const globalCount = cfg.global.children?.length || 0;
-      const personalCount = cfg.personal.sections?.length || 0;
-      setConfig(cfg);
-      return globalCount > 0 || personalCount > 0;
-    };
-
-    if (update()) return;
-    const timer = window.setInterval(() => {
-      tries += 1;
-      if (update() || tries >= maxTries) {
-        window.clearInterval(timer);
-      }
-    }, 400);
-
-    return () => window.clearInterval(timer);
-  }, []);
-
-  if (!config) return null;
+const LeftSidebarView = (): JSX.Element | null => {
+  const config = getFormattedConfigTree().leftSidebar;
 
   return (
     <>
@@ -337,10 +345,6 @@ const LeftSidebarView: React.FC = () => {
         }
         .page:hover{
           color: #F5F8FA;
-          background-color: #10161A;
-        }
-        .todo-item:hover{
-          color: #F5F8FA !important;
           background-color: #10161A;
         }
       `}</style>
@@ -367,31 +371,29 @@ export const mountLeftSidebarInto = (wrapper: HTMLElement): void => {
     }
   }
 
-  // Ensure we only mount once per wrapper
   const id = "dg-left-sidebar-root";
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement | null;
   if (!root) {
     root = document.createElement("div");
     root.id = id;
-    // match Roam starred list container
     root.className = "starred-pages";
     root.style.overflow = "scroll";
     root.style.padding = "15px";
-    // Stop Roam's drag-to-reorder interactions from interfering
     root.onmousedown = (e) => e.stopPropagation();
     wrapper.appendChild(root);
   } else {
-    // make sure classes/styles are applied on reuse
     root.className = "starred-pages";
     root.style.overflow = "scroll";
     root.style.padding = "15px";
   }
 
-  try {
-    ReactDOM.render(<LeftSidebarView />, root);
-  } catch (e) {
-    console.error("[DG][LeftSidebar] render error", e);
-  }
+  setTimeout(() => {
+    try {
+      ReactDOM.render(<LeftSidebarView />, root);
+    } catch (e) {
+      console.error("[DG][LeftSidebar] render error", e);
+    }
+  }, 500);
 };
 
 export default LeftSidebarView;

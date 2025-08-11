@@ -5,8 +5,11 @@ import {
   IntSetting,
   getUidAndIntSetting,
 } from "./getExportSettings";
+import { getSubTree } from "roamjs-components/util";
+import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 
 export type LeftSidebarPersonalSectionSettings = {
+  uid: string;
   truncateResult: IntSetting;
   collapsable: BooleanSetting;
   open: BooleanSetting;
@@ -37,13 +40,21 @@ export type LeftSidebarConfig = {
 };
 
 export const getLeftSidebarSettings = (
-  tree: RoamBasicNode[],
+  globalTree: RoamBasicNode[],
 ): LeftSidebarConfig => {
-  const leftSidebarNode = tree.find((node) => node.text === "Left Sidebar");
+  const leftSidebarNode = globalTree.find(
+    (node) => node.text === "Left Sidebar",
+  );
   const leftSidebarChildren = leftSidebarNode?.children || [];
+  const userName = getCurrentUserDisplayName();
 
-  const global = getLeftSidebarGlobalSectionSettings(leftSidebarChildren);
-  const personal = getLeftSidebarPersonalSectionSettings(leftSidebarChildren);
+  const personalLeftSidebarNode = getSubTree({
+    tree: leftSidebarChildren,
+    key: userName + "/Personal Section",
+  });
+
+  const global = getLeftSidebarGlobalSectionConfig(leftSidebarChildren);
+  const personal = getLeftSidebarPersonalSectionConfig(personalLeftSidebarNode);
 
   return {
     global,
@@ -51,7 +62,7 @@ export const getLeftSidebarSettings = (
   };
 };
 
-export const getLeftSidebarGlobalSectionSettings = (
+export const getLeftSidebarGlobalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
 ): LeftSidebarGlobalSectionConfig => {
   const globalSectionNode = leftSidebarChildren.find(
@@ -72,14 +83,10 @@ export const getLeftSidebarGlobalSectionSettings = (
   };
 };
 
-export const getLeftSidebarPersonalSectionSettings = (
-  leftSidebarChildren: RoamBasicNode[],
+export const getLeftSidebarPersonalSectionConfig = (
+  personalContainerNode: RoamBasicNode,
 ): { uid: string; sections: LeftSidebarPersonalSectionConfig[] } => {
-  const personalSectionNode = leftSidebarChildren.find(
-    (node) => node.text === "Personal Section",
-  );
-
-  const sections = (personalSectionNode?.children || []).map(
+  const sections = (personalContainerNode?.children || []).map(
     (sectionNode): LeftSidebarPersonalSectionConfig => {
       const hasSettings = sectionNode.children?.some(
         (child) => child.text === "Settings",
@@ -110,7 +117,7 @@ export const getLeftSidebarPersonalSectionSettings = (
   );
 
   return {
-    uid: personalSectionNode?.uid || "",
+    uid: personalContainerNode?.uid || "",
     sections,
   };
 };
@@ -135,15 +142,16 @@ export const getPersonalSectionSettings = (
 
   const collapsableSetting = getBoolean("Collapsable?");
   if (!settingsNode?.uid || !collapsableSetting.uid) {
-    collapsableSetting.value = true;
+    collapsableSetting.value = false;
   }
 
   const openSetting = getBoolean("Open?");
   if (!settingsNode?.uid || !openSetting.uid) {
-    openSetting.value = true;
+    openSetting.value = false;
   }
 
   return {
+    uid: settingsNode?.uid || "",
     truncateResult: truncateResultSetting,
     collapsable: collapsableSetting,
     open: openSetting,

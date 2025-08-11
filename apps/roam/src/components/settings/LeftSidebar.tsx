@@ -1,4 +1,7 @@
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import {
+  FormattedConfigTree,
+  getFormattedConfigTree,
+} from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import React, { useCallback, useEffect, useState } from "react";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
@@ -8,17 +11,64 @@ import { Button, Dialog, Collapse } from "@blueprintjs/core";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
-import type { LeftSidebarPersonalSectionConfig } from "~/utils/getLeftSidebarSettings";
+import { ensureLeftSidebarReady } from "~/utils/ensureLeftSidebarStructure";
+import {
+  LeftSidebarGlobalSectionConfig,
+  LeftSidebarPersonalSectionConfig,
+} from "~/utils/getLeftSidebarSettings";
 
-export const LeftSidebarGlobalSections = () => {
-  const [settings, setSettings] = useState(getFormattedConfigTree());
-  const { leftSidebar } = settings;
+type LeftSidebarPersonalConfig = {
+  uid: string;
+  sections: LeftSidebarPersonalSectionConfig[];
+};
 
-  const globalSection = leftSidebar.global;
+export const useLeftSidebarConfig = () => {
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [settings, setSettings] = useState<FormattedConfigTree | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refreshSettings = useCallback(() => {
+    refreshConfigTree();
+    const config = getFormattedConfigTree();
+    setSettings(config);
+    return config;
+  }, []);
+
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        await ensureLeftSidebarReady();
+        const config = getFormattedConfigTree();
+        console.log("config", config);
+        setSettings(config);
+        setIsInitialized(true);
+      } catch (err) {
+        setError(err as Error);
+        const config = getFormattedConfigTree();
+        setSettings(config);
+      }
+    };
+
+    void initialize();
+  }, []);
+
+  return {
+    settings,
+    setSettings,
+    refreshSettings,
+    isInitialized,
+    error,
+  };
+};
+
+const LeftSidebarGlobalSectionsContent = ({
+  globalSection,
+  refreshSettings,
+}: {
+  globalSection: LeftSidebarGlobalSectionConfig;
+  refreshSettings: () => FormattedConfigTree;
+}) => {
   const parentUid = globalSection.uid;
 
   const [pages, setPages] = useState(globalSection.children);
@@ -30,50 +80,13 @@ export const LeftSidebarGlobalSections = () => {
   >({});
 
   useEffect(() => {
-    const ensureSettings = async () => {
-      const configTree = getBasicTreeByParentUid(
-        getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-      );
-      let sidebarNode = configTree.find((n) => n.text === "Left Sidebar");
-
-      if (!sidebarNode) {
-        const newSidebarUid = await createBlock({
-          parentUid: getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-          node: {
-            text: "Left Sidebar",
-            children: [
-              {
-                text: "Global Section",
-                children: [{ text: "Children" }],
-              },
-              {
-                text: "Personal Section",
-              },
-            ],
-          },
-        });
-        sidebarNode = {
-          uid: newSidebarUid,
-          text: "Left Sidebar",
-          children: [],
-        };
-      }
-      refreshConfigTree();
-      setSettings(getFormattedConfigTree());
-    };
-    ensureSettings();
-  }, []);
-
-  useEffect(() => {
     setPages(globalSection.children);
   }, [globalSection.children]);
 
   const refreshPages = useCallback(() => {
-    refreshConfigTree();
-    const newConfig = getFormattedConfigTree();
-    setSettings(newConfig);
+    const newConfig = refreshSettings();
     setPages(newConfig.leftSidebar.global.children);
-  }, []);
+  }, [refreshSettings]);
 
   const addPage = async (page: string) => {
     if (!page || pages.some((p) => p.text === page)) {
@@ -184,11 +197,33 @@ export const LeftSidebarGlobalSections = () => {
   );
 };
 
-export const LeftSidebarPersonalSections = () => {
-  const [settings, setSettings] = useState(getFormattedConfigTree());
-  const { leftSidebar } = settings;
-  const personalSection = leftSidebar.personal;
+export const LeftSidebarGlobalSections = () => {
+  const { settings, refreshSettings, isInitialized, error } =
+    useLeftSidebarConfig();
 
+  if (error) {
+    console.error("Failed to initialize left sidebar structure:", error);
+  }
+
+  if (!isInitialized || !settings) {
+    return <div>Loading settings...</div>;
+  }
+
+  return (
+    <LeftSidebarGlobalSectionsContent
+      globalSection={settings.leftSidebar.global}
+      refreshSettings={refreshSettings}
+    />
+  );
+};
+
+const LeftSidebarPersonalSectionsContent = ({
+  personalSection,
+  refreshSettings,
+}: {
+  personalSection: LeftSidebarPersonalConfig;
+  refreshSettings: () => FormattedConfigTree;
+}) => {
   const [sections, setSections] = useState<LeftSidebarPersonalSectionConfig[]>(
     personalSection.sections || [],
   );
@@ -208,57 +243,13 @@ export const LeftSidebarPersonalSections = () => {
   );
 
   useEffect(() => {
-    const ensureSettings = async () => {
-      const configTree = getBasicTreeByParentUid(
-        getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-      );
-      let sidebarNode = configTree.find((n) => n.text === "Left Sidebar");
-
-      if (!sidebarNode) {
-        await createBlock({
-          parentUid: getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-          node: {
-            text: "Left Sidebar",
-            children: [
-              {
-                text: "Global Section",
-                children: [{ text: "Children" }],
-              },
-              {
-                text: "Personal Section",
-              },
-            ],
-          },
-        });
-      } else {
-        const hasPersonalSection = sidebarNode.children?.some(
-          (n) => n.text === "Personal Section",
-        );
-
-        if (!hasPersonalSection) {
-          await createBlock({
-            parentUid: sidebarNode.uid,
-            node: { text: "Personal Section" },
-          });
-        }
-      }
-
-      refreshConfigTree();
-      setSettings(getFormattedConfigTree());
-    };
-    ensureSettings();
-  }, []);
-
-  useEffect(() => {
     setSections(personalSection.sections || []);
   }, [personalSection.sections]);
 
   const refreshSections = useCallback(() => {
-    refreshConfigTree();
-    const newConfig = getFormattedConfigTree();
-    setSettings(newConfig);
+    const newConfig = refreshSettings();
     setSections(newConfig.leftSidebar.personal.sections || []);
-  }, []);
+  }, [refreshSettings]);
 
   const addSection = async (sectionName: string) => {
     if (!sectionName || sections.some((s) => s.text === sectionName)) {
@@ -330,10 +321,7 @@ export const LeftSidebarPersonalSections = () => {
     }
   };
 
-  const addChildToSection = async (
-    childrenUid: string,
-    childName: string,
-  ) => {
+  const addChildToSection = async (childrenUid: string, childName: string) => {
     if (!childName) return;
 
     try {
@@ -372,7 +360,7 @@ export const LeftSidebarPersonalSections = () => {
           description="Allow section to be collapsed"
           order={1}
           uid={section.settings.collapsable.uid}
-          parentUid={section.uid}
+          parentUid={section.settings.uid}
           value={section.settings.collapsable.value}
         />
         <FlagPanel
@@ -380,7 +368,7 @@ export const LeftSidebarPersonalSections = () => {
           description="Open by default"
           order={2}
           uid={section.settings.open.uid}
-          parentUid={section.uid}
+          parentUid={section.settings.uid}
           value={section.settings.open.value}
         />
         <NumberPanel
@@ -388,7 +376,7 @@ export const LeftSidebarPersonalSections = () => {
           description="Maximum characters to display"
           order={3}
           uid={section.settings.truncateResult.uid}
-          parentUid={section.uid}
+          parentUid={section.settings.uid}
           value={section.settings.truncateResult.value}
         />
       </div>
@@ -434,9 +422,7 @@ export const LeftSidebarPersonalSections = () => {
             small
             minimal
             disabled={!childInput}
-            onClick={() =>
-              addChildToSection(section.childrenUid!, childInput)
-            }
+            onClick={() => addChildToSection(section.childrenUid!, childInput)}
           />
         </div>
         <div className="space-y-1">
@@ -595,5 +581,25 @@ export const LeftSidebarPersonalSections = () => {
         </Dialog>
       )}
     </div>
+  );
+};
+
+export const LeftSidebarPersonalSections = () => {
+  const { settings, refreshSettings, isInitialized, error } =
+    useLeftSidebarConfig();
+
+  if (!isInitialized || !settings) {
+    return <div>Loading settings...</div>;
+  }
+
+  if (error) {
+    console.error("Failed to initialize left sidebar structure:", error);
+  }
+
+  return (
+    <LeftSidebarPersonalSectionsContent
+      personalSection={settings.leftSidebar.personal}
+      refreshSettings={refreshSettings}
+    />
   );
 };
