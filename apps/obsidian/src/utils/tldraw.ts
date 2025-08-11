@@ -1,4 +1,10 @@
-import { createTLStore, defaultShapeUtils, TldrawFile, TLRecord, TLStore } from "tldraw";
+import {
+  createTLStore,
+  defaultShapeUtils,
+  TldrawFile,
+  TLRecord,
+  TLStore,
+} from "tldraw";
 import {
   FRONTMATTER_KEY,
   TLDATA_DELIMITER_END,
@@ -10,6 +16,7 @@ import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
 import { Notice } from "obsidian";
 import { format } from "date-fns";
 import { ObsidianTLAssetStore } from "./assetStore";
+import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
 
 export type TldrawPluginMetaData = {
   "plugin-version": string;
@@ -32,6 +39,8 @@ export const processInitialData = (
   data: TLData,
   assetStore: ObsidianTLAssetStore,
 ): { meta: TldrawPluginMetaData; store: TLStore } => {
+  const customShapeUtils = [...defaultShapeUtils, DiscourseNodeUtil];
+
   const recordsData = Array.isArray(data.raw.records)
     ? data.raw.records.reduce(
         (acc: Record<string, TLRecord>, record: { id: string } & TLRecord) => {
@@ -47,13 +56,13 @@ export const processInitialData = (
   let store: TLStore;
   if (recordsData) {
     store = createTLStore({
-      shapeUtils: defaultShapeUtils,
+      shapeUtils: customShapeUtils,
       initialData: recordsData,
       assets: assetStore,
     });
   } else {
     store = createTLStore({
-      shapeUtils: defaultShapeUtils,
+      shapeUtils: customShapeUtils,
       assets: assetStore,
     });
   }
