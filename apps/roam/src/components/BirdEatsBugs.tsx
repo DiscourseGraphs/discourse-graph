@@ -195,7 +195,7 @@ export const initFeedbackWidget = (
       },
       ui: {
         position: "bottom-right",
-        defaultButton: { icon: undefined },
+        defaultButton: false, // hide, will be triggered in DiscourseFloatingMenu
         text: {
           defaultButton: "Send feedback",
           previewScreen: {

@@ -1,0 +1,271 @@
+/* Adapted from birdeatsbug-sdk for visual consistency */
+/* May be worth culling so we only use what we need */
+
+#discourse-floating-menu {
+  --green-500: #00c57a;
+  --red-500: #ff6e64;
+  --gray-100: #f4faff;
+  --gray-200: #e2e8f4;
+  --gray-300: #c1cbdc;
+  --gray-400: #8c95a8;
+  --gray-500: #4b566b;
+  --gray-550: #3d485d;
+  --gray-650: #2c3443;
+  --gray-800: #1a202c;
+  --base-size-step: 4px;
+  --distance-to-window-edge: calc(6 * var(--base-size-step));
+  --distance-to-window-edge-horizontal: var(--distance-to-window-edge);
+  --distance-to-window-edge-vertical: var(--distance-to-window-edge);
+  --border-radius: var(--base-size-step);
+  --screen-box-shadow: 0px var(--base-size-step) calc(8 * var(--base-size-step))
+    rgba(0, 0, 0, 0.5);
+  --button-primary-bg-color: var(--green-500);
+  --button-primary-hover-color: #14ce8b;
+  --button-primary-text-color: white;
+  --button-secondary-bg-color: #00ba771a;
+  --button-secondary-hover-color: #00ba7738;
+  --button-secondary-text-color: var(--green-500);
+  --creation-confirmation-color: var(--green-500);
+  --destructive-confirmation-color: var(--red-500);
+  --error-color: var(--red-500);
+}
+
+#discourse-floating-menu.dark {
+  --text-color: var(--gray-300);
+  --screen-bg-color: var(--gray-800);
+  --secondary-bg-color: var(--gray-800);
+  --media-bg-color: var(--gray-650);
+  --border-color: var(--gray-650);
+  --form-input-color: var(--gray-100);
+  --form-input-placeholder-color: var(--gray-400);
+  --form-input-bg-color: var(--gray-650);
+  --form-input-focus-border-color: var(--gray-500);
+}
+
+#discourse-floating-menu.light {
+  --text-color: var(--gray-400);
+  --screen-bg-color: white;
+  --secondary-bg-color: var(--gray-650);
+  --media-bg-color: var(--gray-200);
+  --border-color: var(--gray-200);
+  --form-input-color: black;
+  --form-input-placeholder-color: var(--gray-400);
+  --form-input-bg-color: transparent;
+  --form-input-focus-border-color: var(--gray-300);
+}
+
+#discourse-floating-menu {
+  position: fixed;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  -moz-tab-size: 4;
+  tab-size: 4;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Ubuntu,
+    Cantarell,
+    Noto Sans,
+    sans-serif,
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    Segoe UI Symbol,
+    "Noto Color Emoji";
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-color);
+  z-index: 99999;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+#discourse-floating-menu *,
+#discourse-floating-menu:before,
+#discourse-floating-menu:after {
+  box-sizing: border-box;
+}
+
+#discourse-floating-menu.top-left {
+  top: var(--distance-to-window-edge-vertical);
+  left: var(--distance-to-window-edge-horizontal);
+}
+
+#discourse-floating-menu.top-right {
+  top: var(--distance-to-window-edge-vertical);
+  right: var(--distance-to-window-edge-horizontal);
+}
+
+#discourse-floating-menu.bottom-left {
+  bottom: var(--distance-to-window-edge-vertical);
+  left: var(--distance-to-window-edge-horizontal);
+}
+
+#discourse-floating-menu.bottom-right {
+  bottom: var(--distance-to-window-edge-vertical);
+  right: var(--distance-to-window-edge-horizontal);
+}
+
+#discourse-floating-menu:has(.screen) {
+  box-shadow: var(--screen-box-shadow);
+  border-radius: calc(3 * var(--border-radius));
+  border: 1px solid var(--secondary-bg-color);
+}
+
+#discourse-floating-menu .screen {
+  width: 340px;
+  padding-bottom: calc(2 * var(--base-size-step));
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  background-color: var(--screen-bg-color);
+}
+
+#discourse-floating-menu .screen > * {
+  padding: calc(2 * var(--base-size-step)) calc(4 * var(--base-size-step));
+}
+@media (max-width: 480px) {
+  #discourse-floating-menu .screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  #discourse-floating-menu .screen > * {
+    padding: calc(3 * var(--base-size-step)) calc(4 * var(--base-size-step));
+  }
+}
+
+#discourse-floating-menu button {
+  font-family: inherit;
+  font-size: 100%;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+  border: none;
+  width: fit-content;
+  margin: 0;
+  padding: calc(2 * var(--base-size-step)) calc(3 * var(--base-size-step));
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (pointer: coarse) {
+  #discourse-floating-menu .button {
+    padding: calc(3 * var(--base-size-step)) calc(4 * var(--base-size-step));
+  }
+}
+
+#discourse-floating-menu .bp3-button:not(.button-icon):disabled {
+  opacity: 0.9;
+  cursor: default;
+}
+
+#discourse-floating-menu .bp3-button:not(.button-icon):focus {
+  outline: none;
+}
+
+#discourse-floating-menu .bp3-button:not(.button-icon):focus-visible {
+  outline: 1px solid var(--form-input-focus-border-color);
+}
+
+#discourse-floating-menu .bp3-button:not(.button-icon) .bp3-intent-primary {
+  background-color: var(--button-primary-bg-color);
+  color: var(--button-primary-text-color);
+}
+
+#discourse-floating-menu
+  .bp3-button:not(.button-icon)
+  .bp3-intent-primary:hover,
+#discourse-floating-menu
+  .bp3-button:not(.button-icon)
+  .bp3-intent-primary:focus {
+  background-color: var(--button-primary-hover-color);
+}
+
+#discourse-floating-menu .bp3-button:not(.button-icon):not(.button-icon) > svg {
+  margin-left: calc(var(--base-size-step) * 0.75);
+}
+
+#discourse-floating-menu .rounded-none {
+  border-radius: 0;
+}
+
+#discourse-floating-menu .visual-proof {
+  display: flex;
+  flex-direction: column;
+  --visual-proof-border-color: var(--border-color);
+}
+
+#discourse-floating-menu .border-replace {
+  --visual-proof-border-color: var(--creation-confirmation-color);
+}
+
+#discourse-floating-menu .border-remove {
+  --visual-proof-border-color: var(--destructive-confirmation-color);
+}
+
+#discourse-floating-menu .media {
+  width: 100%;
+  max-height: 30vh;
+  background-color: var(--media-bg-color);
+  border: 1px solid var(--visual-proof-border-color);
+  border-bottom: 0;
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+
+/* Adapted from our custom css code in components/BirdEatsBugs.tsx */
+
+#discourse-floating-menu {
+  --distance-to-window-edge-vertical: 50px;
+  --distance-to-window-edge-horizontal: 20px;
+}
+
+#discourse-floating-menu .form-error {
+  font-size: 1.2rem;
+}
+
+#discourse-floating-menu:has(.screen) {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+#discourse-floating-menu.dark {
+  --button-primary-bg-color: #1976d2;
+  --text-color: var(--gray-200);
+}
+
+#discourse-floating-menu button {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+#discourse-floating-menu button::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-image: url("data:image/svg+xml,%3Csvg width='256' height='264' viewBox='0 0 256 264' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M156.705 252.012C140.72 267.995 114.803 267.995 98.8183 252.012L11.9887 165.182C-3.99622 149.197 -3.99622 123.28 11.9886 107.296L55.4035 63.8807C63.3959 55.8881 76.3541 55.8881 84.3467 63.8807C92.3391 71.8731 92.3391 84.8313 84.3467 92.8239L69.8751 107.296C53.8901 123.28 53.8901 149.197 69.8751 165.182L113.29 208.596C121.282 216.589 134.241 216.589 142.233 208.596C150.225 200.604 150.225 187.646 142.233 179.653L127.761 165.182C111.777 149.197 111.777 123.28 127.761 107.296C143.746 91.3105 143.746 65.3939 127.761 49.4091L113.29 34.9375C105.297 26.9452 105.297 13.9868 113.29 5.99432C121.282 -1.99811 134.241 -1.99811 142.233 5.99434L243.533 107.296C259.519 123.28 259.519 149.197 243.533 165.182L156.705 252.012ZM200.119 121.767C192.127 113.775 179.168 113.775 171.176 121.767C163.184 129.76 163.184 142.718 171.176 150.71C179.168 158.703 192.127 158.703 200.119 150.71C208.112 142.718 208.112 129.76 200.119 121.767Z' fill='%23FFFFFF'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+#discourse-floating-menu .caret {
+  height: initial;
+  width: initial;
+  border-top: initial;
+}
