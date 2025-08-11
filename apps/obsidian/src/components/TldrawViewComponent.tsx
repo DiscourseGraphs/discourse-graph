@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Editor, ErrorBoundary, TLAssetStore, Tldraw, TLStore } from "tldraw";
+import { ErrorBoundary, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
 import {
   getTLDataTemplate,
