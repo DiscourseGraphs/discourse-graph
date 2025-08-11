@@ -96,7 +96,7 @@ export const TldrawPreviewComponent = ({
         setCurrentStore(newStore);
       }
     }
-  }, [file, plugin, currentStore]);
+  }, [file, plugin, currentStore, assetStore]);
 
   useEffect(() => {
     const unsubscribe = currentStore.listen(

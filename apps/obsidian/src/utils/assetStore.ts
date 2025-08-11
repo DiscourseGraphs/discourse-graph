@@ -59,13 +59,11 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
     const arrayBuffer = await file.arrayBuffer();
     const assetFile = await this.app.vault.createBinary(filePath, arrayBuffer);
 
-    // Generate a plain wikilink (without image embed bang) using Obsidian API
     const linkText = this.app.metadataCache.fileToLinktext(
       assetFile,
       this.file.path,
     );
     const internalLink = `[[${linkText}]]`;
-    console.log("internalLink", internalLink);
     const linkBlock = `${internalLink}\n^${blockRefId}`;
 
     await this.addToTopOfFile(linkBlock);

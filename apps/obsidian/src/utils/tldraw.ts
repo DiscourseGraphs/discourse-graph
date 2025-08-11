@@ -4,7 +4,7 @@ import {
   TLDATA_DELIMITER_END,
   TLDATA_DELIMITER_START,
   TLDRAW_VERSION,
-} from "../constants";
+} from "~/constants";
 import DiscourseGraphPlugin from "~/index";
 import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
 import { Notice } from "obsidian";
