@@ -284,6 +284,8 @@ const CybrarianPage = () => {
             Apply Now
             <svg
               className="ml-2 h-5 w-5"
+              aria-hidden="true"
+              focusable="false"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
