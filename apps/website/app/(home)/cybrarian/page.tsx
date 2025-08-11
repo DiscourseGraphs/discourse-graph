@@ -4,17 +4,35 @@ import { Prose } from "~/components/Prose";
 export const metadata: Metadata = {
   title: "Product Adoption Facilitator / Cybrarian",
   description:
-    "Part-time role helping research groups adopt discourse graphs and build a community of users.",
+    "Part-time role helping research groups adopt Discourse Graphs and build a community of users.",
 };
 
 const CybrarianPage = () => {
   return (
     <div className="py-16">
-      <Prose className="mx-auto max-w-3xl px-4">
-        <h1>
-          Product adoption facilitator/Cybrarian - Discourse Graphs for
-          transforming scientific research
-        </h1>
+      <Prose className="mx-auto !max-w-3xl px-4">
+        {/* Hero section */}
+        <div className="mb-12 text-center">
+          <h1 className="mb-4 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            Product Adoption Facilitator / Cybrarian
+          </h1>
+          <p className="text-xl text-slate-600 dark:text-slate-400">
+            Help transform scientific research through Discourse Graphs
+          </p>
+        </div>
+
+        {/* Quick highlights */}
+        <div className="mb-12 rounded-lg bg-slate-50 p-6 dark:bg-slate-800/50">
+          <h3 className="mb-3 mt-0 text-lg font-semibold text-slate-900 dark:text-slate-100">
+            Position Highlights
+          </h3>
+          <div className="grid gap-2 text-sm text-slate-700 dark:text-slate-300 sm:grid-cols-2">
+            <div>• Part-time remote (10-25 hours/week)</div>
+            <div>• $2000-4000/mo depending on commitment</div>
+            <div>• 6-18 month contractor role</div>
+            <div>• Flexible availability across time zones</div>
+          </div>
+        </div>
 
         <h2>About the Project</h2>
         <p>
@@ -25,7 +43,7 @@ const CybrarianPage = () => {
             target="_blank"
             rel="noopener noreferrer"
           >
-            discourse graphs
+            Discourse Graphs
           </a>{" "}
           - a revolutionary approach that restructures research into
           interconnected, reusable knowledge components. Our team has developed
@@ -60,7 +78,7 @@ const CybrarianPage = () => {
           </a>
           /Research adoption facilitator to be the bridge between our
           development team and research users. You&apos;ll help scientists adopt
-          discourse graphs, modify and introduce existing templates, document
+          Discourse Graphs, modify and introduce existing templates, document
           best practices, and cultivate a supportive user community. This is a
           part-time remote position (10-25 hours/week) for someone passionate
           about improving research workflows and knowledge sharing.
@@ -68,7 +86,7 @@ const CybrarianPage = () => {
 
         <h2>About us</h2>
         <p>
-          We are a 7-person team (4 software engineers, 1 UX researcher,
+          We are a 7-person team (4 software engineers, 1 UX researcher, and 2
           principal investigators in{" "}
           <a
             href="https://joelchan.me/"
@@ -249,25 +267,46 @@ const CybrarianPage = () => {
 
         <h2>To Apply</h2>
         <p>
-          Please send a short pre-application by filling out the following form:{" "}
+          Please send a short pre-application by filling out the following form.
+          You&apos;ll describe your interest, relevant experience, and
+          availability. Preference will be given for pre-applications submitted
+          before <strong>August 20.</strong>
+        </p>
+
+        {/* CTA Button */}
+        <div className="my-8 text-center">
           <a
             href="https://forms.fillout.com/t/2DmzUKaY8Sus"
             target="_blank"
             rel="noopener noreferrer"
+            className="inline-flex items-center rounded-lg bg-orange-600 px-6 py-3 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-orange-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
           >
-            https://forms.fillout.com/t/2DmzUKaY8Sus
+            Apply Now
+            <svg
+              className="ml-2 h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
+            </svg>
           </a>
-          . You’ll describe your interest, relevant experience, and
-          availability. Preference will be given for pre-applications submitted
-          before <strong>August 20.</strong>
-        </p>
-        <p>
-          <em>
-            This position offers the unique opportunity to shape the future of
-            scientific communication while working with cutting-edge research
-            teams worldwide.
-          </em>
-        </p>
+        </div>
+
+        <div className="mt-8 rounded-lg bg-blue-50 p-6 dark:bg-blue-900/20">
+          <p className="text-center text-blue-900 dark:text-blue-100">
+            <em>
+              This position offers the unique opportunity to shape the future of
+              scientific communication while working with cutting-edge research
+              teams worldwide.
+            </em>
+          </p>
+        </div>
       </Prose>
     </div>
   );
