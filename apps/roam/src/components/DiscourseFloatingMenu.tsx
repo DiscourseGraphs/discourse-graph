@@ -2,8 +2,16 @@ import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import { Popover, Menu, MenuItem, Button, Position } from "@blueprintjs/core";
 
-export const DiscourseFloatingMenu = (position: string, theme: string) => (
-  <div id="discourse-floating-menu" className={`${position} ${theme}`}>
+type DiscourseFloatingMenuProps = {
+  position: string;
+  theme: string;
+};
+
+export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
+  <div
+    id="discourse-floating-menu"
+    className={`${props.position} ${props.theme}`}
+  >
     <Popover
       content={
         <Menu>
@@ -21,11 +29,13 @@ export const DiscourseFloatingMenu = (position: string, theme: string) => (
           <MenuItem
             text="Docs"
             href="https://discoursegraphs.com/docs"
+            rel="noopener noreferrer"
             target="_blank"
           />
           <MenuItem
             text="Community"
             href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg"
+            rel="noopener noreferrer"
             target="_blank"
           />
         </Menu>
@@ -39,17 +49,22 @@ export const DiscourseFloatingMenu = (position: string, theme: string) => (
 
 const ANCHOR_ID = "dg-floating-menu-anchor";
 
-export const installDiscourseFloatingMenu = ({
-  position = "bottom-right",
-  theme = "dark",
-}) => {
+export const installDiscourseFloatingMenu = (
+  props: DiscourseFloatingMenuProps = {
+    position: "bottom-right",
+    theme: "bp3-dark",
+  },
+) => {
   let floatingMenuAnchor = document.getElementById(ANCHOR_ID);
   if (!floatingMenuAnchor) {
     floatingMenuAnchor = document.createElement("div");
     floatingMenuAnchor.id = ANCHOR_ID;
     document.getElementById("app")?.appendChild(floatingMenuAnchor);
   }
-  ReactDOM.render(DiscourseFloatingMenu(position, theme), floatingMenuAnchor);
+  ReactDOM.render(
+    <DiscourseFloatingMenu position={props.position} theme={props.theme} />,
+    floatingMenuAnchor,
+  );
 };
 
 export const removeDiscourseFloatingMenu = () => {

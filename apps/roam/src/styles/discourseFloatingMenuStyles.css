@@ -30,7 +30,7 @@
   --error-color: var(--red-500);
 }
 
-#discourse-floating-menu.dark {
+#discourse-floating-menu.bp3-dark {
   --text-color: var(--gray-300);
   --screen-bg-color: var(--gray-800);
   --secondary-bg-color: var(--gray-800);
@@ -242,7 +242,7 @@
   border: none !important;
 }
 
-#discourse-floating-menu.dark {
+#discourse-floating-menu.bp3-dark {
   --button-primary-bg-color: #1976d2;
   --text-color: var(--gray-200);
 }
