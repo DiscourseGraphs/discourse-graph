@@ -118,7 +118,7 @@ export const configPageTabs = (args: OnloadArgs): ConfigTab[] => [
     ],
   },
   {
-    id: "Suggestive mode",
+    id: "Suggestive Mode",
     fields: [
       {
         title: "Include Current Page Relations",

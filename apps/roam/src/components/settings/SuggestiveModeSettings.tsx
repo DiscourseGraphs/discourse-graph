@@ -19,7 +19,7 @@ const SuggestiveModeSettings = () => {
       if (!settings.suggestiveMode.parentUid) {
         await createBlock({
           parentUid: getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-          node: { text: "Suggestive mode" },
+          node: { text: "Suggestive Mode" },
         });
         refreshConfigTree();
         setSettings(getFormattedConfigTree());

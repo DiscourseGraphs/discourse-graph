@@ -89,7 +89,7 @@ const DiscourseNodeSuggestiveRules = ({
       getSubTree({
         parentUid: nodeUid,
         key: "Template",
-      }).uid,
+      }).uid || "",
     [nodeUid],
   );
 
