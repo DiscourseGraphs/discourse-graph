@@ -106,7 +106,11 @@ export class TldrawView extends TextFileView {
         return;
       }
 
-      const { store } = processInitialData(data, assetStore);
+      const { store } = processInitialData(data, assetStore, {
+        app: this.app,
+        canvasFile: this.file!,
+        plugin: this.plugin,
+      });
 
       return store;
     } catch (e) {

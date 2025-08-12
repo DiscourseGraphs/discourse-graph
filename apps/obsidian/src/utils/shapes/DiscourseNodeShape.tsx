@@ -1,6 +1,8 @@
 import { BaseBoxShapeUtil, HTMLContainer, T, TLBaseShape } from "tldraw";
 import type { App, TFile } from "obsidian";
-import { resolveLinkedFileFromSrc } from "~/utils/asset-store";
+import { resolveLinkedFileFromSrc } from "~/utils/assetStore";
+import DiscourseGraphPlugin from "~/index";
+import { DiscourseNode } from "~/types";
 
 export type DiscourseNodeShape = TLBaseShape<
   "discourse-node",
@@ -9,18 +11,23 @@ export type DiscourseNodeShape = TLBaseShape<
     h: number;
     // asset-style source: asset:obsidian.blockref.<id>
     src: string | null;
-    nodeType: string;
   }
 >;
 
+export type DiscourseNodeUtilOptions = {
+  app: App;
+  plugin: DiscourseGraphPlugin;
+  canvasFile: TFile;
+};
+
 export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   static type = "discourse-node" as const;
+  declare options: DiscourseNodeUtilOptions;
 
   static props = {
     w: T.number,
     h: T.number,
     src: T.string,
-    nodeType: T.string,
     backgroundColor: T.string,
   };
 
@@ -29,16 +36,29 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       w: 200,
       h: 100,
       src: null,
-      nodeType: "default",
     };
   }
 
-  component(shape: DiscourseNodeShape) {
+  async component(shape: DiscourseNodeShape) {
+    const file = await this.getFile(shape, {
+      app: this.options.app,
+      canvasFile: this.options.canvasFile,
+    });
+
+    const nodeType = await this.getDiscourseNodeType(shape, {
+      app: this.options.app,
+      canvasFile: this.options.canvasFile,
+    });
     return (
-      <HTMLContainer>
+      <HTMLContainer
+        style={{
+          backgroundColor: nodeType?.color ?? "transparent",
+          borderRadius: "10px",
+        }}
+      >
         <div>
-          <h1>Discourse Node</h1>
-          <p>{shape.props.nodeType}</p>
+          <h1>{file?.basename}</h1>
+          <p>{nodeType?.name ?? "Unknown"}</p>
         </div>
       </HTMLContainer>
     );
@@ -50,37 +70,49 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
 
   async getFile(
     shape: DiscourseNodeShape,
-    ctx: { app: App; canvasFile: TFile },
+    ctx?: { app: App; canvasFile: TFile },
   ): Promise<TFile | null> {
-    return resolveLinkedFileFromSrc(ctx.app, ctx.canvasFile, shape.props.src ?? undefined);
+    const app = ctx?.app ?? this.options.app;
+    const canvasFile = ctx?.canvasFile ?? this.options.canvasFile;
+    return resolveLinkedFileFromSrc(
+      app,
+      canvasFile,
+      shape.props.src ?? undefined,
+    );
   }
 
   async getFrontmatter(
     shape: DiscourseNodeShape,
-    ctx: { app: App; canvasFile: TFile },
+    ctx?: { app: App; canvasFile: TFile },
   ): Promise<Record<string, unknown> | null> {
+    const app = ctx?.app ?? this.options.app;
     const file = await this.getFile(shape, ctx);
     if (!file) return null;
-    const fm = ctx.app.metadataCache.getFileCache(file)?.frontmatter ?? null;
+    const fm = app.metadataCache.getFileCache(file)?.frontmatter ?? null;
     return fm as unknown as Record<string, unknown> | null;
   }
 
   async getDiscourseNodeType(
     shape: DiscourseNodeShape,
-    ctx: { app: App; canvasFile: TFile },
-  ): Promise<string | null> {
+    ctx?: { app: App; canvasFile: TFile },
+  ): Promise<DiscourseNode | null> {
     const frontmatter = await this.getFrontmatter(shape, ctx);
     if (!frontmatter) return null;
-    return (frontmatter as { nodeTypeId?: string }).nodeTypeId ?? null;
+    const nodeTypeId = (frontmatter as { nodeTypeId?: string }).nodeTypeId;
+    if (!nodeTypeId) return null;
+    const nodeType = this.options.plugin.settings.nodeTypes.find(
+      (nodeType) => nodeType.id === nodeTypeId,
+    );
+    return nodeType ?? null;
   }
 
   async getRelations(
     shape: DiscourseNodeShape,
-    ctx: { app: App; canvasFile: TFile },
+    ctx?: { app: App; canvasFile: TFile },
   ): Promise<unknown[]> {
     const frontmatter = await this.getFrontmatter(shape, ctx);
     if (!frontmatter) return [];
-    // TODO: derive relations from frontmatter when schema is defined
+    // TODO: derive relations from frontmatter
     return [];
   }
 }
