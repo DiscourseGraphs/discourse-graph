@@ -42,7 +42,14 @@ export const TldrawPreviewComponent = ({
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedDataRef = useRef<string>("");
 
-  const customShapeUtils = [...defaultShapeUtils, DiscourseNodeUtil];
+  const customShapeUtils = [
+    ...defaultShapeUtils,
+    DiscourseNodeUtil.configure({
+      app: plugin.app,
+      canvasFile: file,
+      plugin,
+    }),
+  ];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -100,7 +107,11 @@ export const TldrawPreviewComponent = ({
       );
       if (match?.[1]) {
         const data = JSON.parse(match[1]) as TLData;
-        const { store: newStore } = processInitialData(data, assetStore);
+        const { store: newStore } = processInitialData(data, assetStore, {
+          app: plugin.app,
+          canvasFile: file,
+          plugin,
+        });
         setCurrentStore(newStore);
       }
     }
@@ -136,7 +147,12 @@ export const TldrawPreviewComponent = ({
             <div>Error in Tldraw component: {JSON.stringify(error)}</div>
           )}
         >
-          <Tldraw store={currentStore} autoFocus={true} initialState="select" shapeUtils={customShapeUtils}/>
+          <Tldraw
+            store={currentStore}
+            autoFocus={true}
+            initialState="select"
+            shapeUtils={customShapeUtils}
+          />
         </ErrorBoundary>
       ) : (
         <div>Loading Tldraw...</div>

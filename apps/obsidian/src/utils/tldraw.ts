@@ -13,10 +13,13 @@ import {
 } from "~/constants";
 import DiscourseGraphPlugin from "~/index";
 import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
-import { Notice } from "obsidian";
+import { App, Notice, TFile } from "obsidian";
 import { format } from "date-fns";
 import { ObsidianTLAssetStore } from "./assetStore";
-import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
+import {
+  DiscourseNodeUtil,
+  DiscourseNodeUtilOptions,
+} from "~/utils/shapes/DiscourseNodeShape";
 
 export type TldrawPluginMetaData = {
   "plugin-version": string;
@@ -38,8 +41,12 @@ export type TLData = {
 export const processInitialData = (
   data: TLData,
   assetStore: ObsidianTLAssetStore,
+  ctx: DiscourseNodeUtilOptions,
 ): { meta: TldrawPluginMetaData; store: TLStore } => {
-  const customShapeUtils = [...defaultShapeUtils, DiscourseNodeUtil];
+  const customShapeUtils = [
+    ...defaultShapeUtils,
+    DiscourseNodeUtil.configure(ctx),
+  ];
 
   const recordsData = Array.isArray(data.raw.records)
     ? data.raw.records.reduce(
