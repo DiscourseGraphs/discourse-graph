@@ -1,8 +1,13 @@
-import path from "path";
 import { BaseBoxShapeUtil, HTMLContainer, T, TLBaseShape } from "tldraw";
 import type { App, TFile } from "obsidian";
-import { resolveLinkedFileFromSrc } from "~/utils/assetStore";
+import { useEffect, useState } from "react";
 import DiscourseGraphPlugin from "~/index";
+import {
+  getLinkedFileFromSrc,
+  getFrontmatterForFile,
+  getNodeTypeIdFromFrontmatter,
+  getNodeTypeById,
+} from "./discourseNodeShapeUtils";
 import { DiscourseNode } from "~/types";
 
 export type DiscourseNodeShape = TLBaseShape<
@@ -29,7 +34,6 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     w: T.number,
     h: T.number,
     src: T.string,
-    backgroundColor: T.string,
   };
 
   getDefaultProps(): DiscourseNodeShape["props"] {
@@ -40,27 +44,16 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     };
   }
 
-  async component(shape: DiscourseNodeShape) {
-    const file = await this.getFile(shape, {
-      app: this.options.app,
-      canvasFile: this.options.canvasFile,
-    });
-
-    const nodeType = await this.getDiscourseNodeType(shape, {
-      app: this.options.app,
-      canvasFile: this.options.canvasFile,
-    });
+  component(shape: DiscourseNodeShape) {
+    const { app, canvasFile, plugin } = this.options;
     return (
-      <HTMLContainer
-        style={{
-          backgroundColor: nodeType?.color ?? "transparent",
-          borderRadius: "10px",
-        }}
-      >
-        <div>
-          <h1>{file?.basename}</h1>
-          <p>{nodeType?.name ?? "Unknown"}</p>
-        </div>
+      <HTMLContainer>
+        <DiscourseNodeContent
+          app={app}
+          canvasFile={canvasFile}
+          plugin={plugin}
+          src={shape.props.src ?? null}
+        />
       </HTMLContainer>
     );
   }
@@ -75,11 +68,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   ): Promise<TFile | null> {
     const app = ctx?.app ?? this.options.app;
     const canvasFile = ctx?.canvasFile ?? this.options.canvasFile;
-    return resolveLinkedFileFromSrc(
-      app,
-      canvasFile,
-      shape.props.src ?? undefined,
-    );
+    return getLinkedFileFromSrc(app, canvasFile, shape.props.src ?? null);
   }
 
   async getFrontmatter(
@@ -89,8 +78,10 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     const app = ctx?.app ?? this.options.app;
     const file = await this.getFile(shape, ctx);
     if (!file) return null;
-    const fm = app.metadataCache.getFileCache(file)?.frontmatter ?? null;
-    return fm as unknown as Record<string, unknown> | null;
+    return getFrontmatterForFile(app, file) as unknown as Record<
+      string,
+      unknown
+    > | null;
   }
 
   async getDiscourseNodeType(
@@ -98,13 +89,10 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     ctx?: { app: App; canvasFile: TFile },
   ): Promise<DiscourseNode | null> {
     const frontmatter = await this.getFrontmatter(shape, ctx);
-    if (!frontmatter) return null;
-    const nodeTypeId = (frontmatter as { nodeTypeId?: string }).nodeTypeId;
-    if (!nodeTypeId) return null;
-    const nodeType = this.options.plugin.settings.nodeTypes.find(
-      (nodeType) => nodeType.id === nodeTypeId,
+    const nodeTypeId = getNodeTypeIdFromFrontmatter(
+      frontmatter as unknown as Record<string, unknown> | null,
     );
-    return nodeType ?? null;
+    return getNodeTypeById(this.options.plugin, nodeTypeId);
   }
 
   async getRelations(
@@ -117,3 +105,80 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     return [];
   }
 }
+
+const DiscourseNodeContent = ({
+  app,
+  canvasFile,
+  plugin,
+  src,
+}: {
+  app: App;
+  canvasFile: TFile;
+  plugin: DiscourseGraphPlugin;
+  src: string | null;
+}) => {
+  const [title, setTitle] = useState<string>("...");
+  const [nodeTypeName, setNodeTypeName] = useState<string>("");
+  const [nodeColor, setNodeColor] = useState<string>("transparent");
+
+  useEffect(() => {
+    let isCancelled = false;
+    const run = async () => {
+      try {
+        if (!src) return;
+        const linkedFile = await getLinkedFileFromSrc(app, canvasFile, src);
+        if (!linkedFile) return;
+        if (isCancelled) return;
+        setTitle(linkedFile.basename);
+
+        const fm = getFrontmatterForFile(app, linkedFile);
+        const nodeTypeId = getNodeTypeIdFromFrontmatter(
+          fm as unknown as Record<string, unknown> | null,
+        );
+        const nodeType = getNodeTypeById(plugin, nodeTypeId);
+        if (isCancelled) return;
+        setNodeTypeName(nodeType?.name ?? "");
+        setNodeColor(nodeType?.color ?? "transparent");
+      } catch (err) {
+        console.error("Error fetching discourse node data:", err);
+      }
+    };
+    void run();
+    // Re-run when the canvas file's metadata changes (e.g., after we insert the blockref)
+    const refChanged = app.metadataCache.on("changed", (file) => {
+      if (file.path === canvasFile.path) {
+        void run();
+      }
+    });
+    const refResolved = app.metadataCache.on("resolved", () => {
+      void run();
+    });
+    return () => {
+      isCancelled = true;
+      if (refChanged) app.metadataCache.offref(refChanged);
+      if (refResolved) app.metadataCache.offref(refResolved);
+    };
+  }, [app, canvasFile, src, plugin]);
+
+  return (
+    <div
+      style={{
+        backgroundColor: nodeColor,
+        borderRadius: "10px",
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        padding: 8,
+        boxSizing: "border-box",
+      }}
+    >
+      <h1 style={{ margin: 0, fontSize: 16 }}>{title}</h1>
+      <p style={{ margin: 0, opacity: 0.8, fontSize: 12 }}>
+        {nodeTypeName || ""}
+      </p>
+    </div>
+  );
+};
