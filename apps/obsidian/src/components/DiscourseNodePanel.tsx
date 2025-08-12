@@ -1,19 +1,23 @@
 import { useEditor, createShapeId } from "tldraw";
 import * as React from "react";
 import { CreateNodeModal } from "./CreateNodeModal";
-import { Notice } from "obsidian";
+import { Notice, TFile } from "obsidian";
 import { DiscourseNode } from "~/types";
 import DiscourseGraphPlugin from "~/index";
 import { createDiscourseNode } from "~/utils/createNode";
+import { addWikilinkBlockrefForFile } from "~/utils/assetStore";
 
-export const DiscourseNodePanel = ({ plugin }: { plugin: DiscourseGraphPlugin }) => {
+export const DiscourseNodePanel = ({
+  plugin,
+  canvasFile,
+}: {
+  plugin: DiscourseGraphPlugin;
+  canvasFile: TFile;
+}) => {
   const editor = useEditor();
 
   const handleNodeTypeSelect = React.useCallback(
-    async (
-      selectedNodeType: DiscourseNode,
-      position?: { x: number; y: number },
-    ) => {
+    (selectedNodeType: DiscourseNode, position?: { x: number; y: number }) => {
       // Use provided position or viewport center
       const finalPosition = position || editor.getViewportScreenCenter();
 
@@ -23,11 +27,19 @@ export const DiscourseNodePanel = ({ plugin }: { plugin: DiscourseGraphPlugin })
         initialNodeType: selectedNodeType,
         onNodeCreate: async (nodeType, title) => {
           try {
-            const file = await createDiscourseNode({
+            const createdFile = await createDiscourseNode({
               plugin,
               nodeType,
               text: title,
             });
+
+            const src = createdFile
+              ? await addWikilinkBlockrefForFile(
+                  plugin.app,
+                  canvasFile,
+                  createdFile,
+                )
+              : null;
 
             const shapeId = createShapeId();
             editor.createShape({
@@ -36,10 +48,9 @@ export const DiscourseNodePanel = ({ plugin }: { plugin: DiscourseGraphPlugin })
               x: finalPosition.x,
               y: finalPosition.y,
               props: {
-                nodeType: nodeType.id,
-                wikiLink: file ? `[[${file.basename}]]` : "",
                 w: 200,
                 h: 100,
+                src: src ?? "",
               },
             });
 
@@ -54,7 +65,7 @@ export const DiscourseNodePanel = ({ plugin }: { plugin: DiscourseGraphPlugin })
 
       modal.open();
     },
-    [editor, plugin],
+    [editor, plugin, canvasFile],
   );
 
   const nodeTypes = plugin.settings.nodeTypes;
@@ -69,7 +80,9 @@ export const DiscourseNodePanel = ({ plugin }: { plugin: DiscourseGraphPlugin })
             <button
               key={nodeType.id}
               className="tlui-button tlui-button-grid"
-              onClick={() => handleNodeTypeSelect(nodeType)}
+              onClick={() => {
+                void handleNodeTypeSelect(nodeType);
+              }}
             >
               {nodeType.name}
             </button>

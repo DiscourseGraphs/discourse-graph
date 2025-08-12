@@ -1,4 +1,3 @@
-import path from "path";
 import { BaseBoxShapeUtil, HTMLContainer, T, TLBaseShape } from "tldraw";
 import type { App, TFile } from "obsidian";
 import { useEffect, useState } from "react";
