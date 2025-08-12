@@ -201,7 +201,7 @@ export const TldrawPreviewComponent = ({
                   return <DefaultStylePanel />;
                 }
 
-                return <DiscourseNodePanel plugin={plugin} />;
+                return <DiscourseNodePanel plugin={plugin} canvasFile={file} />;
               },
               Toolbar: (props) => {
                 const tools = useTools();
