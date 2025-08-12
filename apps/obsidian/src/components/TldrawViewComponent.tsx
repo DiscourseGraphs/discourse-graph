@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ErrorBoundary, Tldraw, TLStore } from "tldraw";
+import { Editor, ErrorBoundary, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
 import {
   getTLDataTemplate,
@@ -121,11 +121,7 @@ export const TldrawPreviewComponent = ({
   }, [currentStore, saveChanges]);
 
   return (
-    <div
-      ref={containerRef}
-      className="tldraw__editor relative flex h-full w-full flex-1 overflow-hidden"
-      onTouchStart={(e) => e.stopPropagation()}
-    >
+    <div ref={containerRef} className="tldraw__editor relative h-full">
       {isReady ? (
         <ErrorBoundary
           fallback={({ error }) => (
