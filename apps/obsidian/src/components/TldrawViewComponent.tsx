@@ -188,13 +188,6 @@ export const TldrawPreviewComponent = ({
     <div
       ref={containerRef}
       className="tldraw__editor relative h-full"
-      onDragOverCapture={(e) => {
-        // Allow drop if payload contains our node type
-        if (e.dataTransfer?.types.includes("application/x-dg-node-type")) {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "copy";
-        }
-      }}
       onDropCapture={(e) => {
         const editor = editorRef.current;
         if (!editor) return;
@@ -238,7 +231,7 @@ export const TldrawPreviewComponent = ({
             tools={customTools}
             assetUrls={{
               icons: {
-                "discourse-node-icon": iconUrl,
+                discourseNodeIcon: iconUrl,
               },
             }}
             overrides={{
@@ -247,7 +240,7 @@ export const TldrawPreviewComponent = ({
                   id: "discourse-node",
                   label: "Discourse Node",
                   readonlyOk: false,
-                  icon: "discourse-node-icon",
+                  icon: "discourseNodeIcon",
                   onSelect: () => {
                     editor.setCurrentTool("discourse-node");
                   },
@@ -277,7 +270,7 @@ export const TldrawPreviewComponent = ({
                   <DefaultToolbar {...props}>
                     <TldrawUiMenuItem
                       id="discourse-node"
-                      icon="discourse-node-icon"
+                      icon="discourseNodeIcon"
                       label="Discourse Node"
                       onSelect={() => {
                         if (editorRef.current) {
