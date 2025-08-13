@@ -2,18 +2,11 @@ import { TextFileView, TFile, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { Root, createRoot } from "react-dom/client";
 import { TldrawPreviewComponent } from "./TldrawViewComponent";
-import { defaultShapeUtils, TLStore } from "tldraw";
+import { TLStore } from "tldraw";
 import React from "react";
 import DiscourseGraphPlugin from "~/index";
 import { processInitialData, TLData } from "~/utils/tldraw";
 import { ObsidianTLAssetStore } from "~/utils/assetStore";
-import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
-
-const customShapeUtils = [...defaultShapeUtils, DiscourseNodeUtil];
-
-console.log("defaultShapeUtils", defaultShapeUtils);
-
-console.log("customShapeUtils", customShapeUtils);
 
 export class TldrawView extends TextFileView {
   plugin: DiscourseGraphPlugin;
