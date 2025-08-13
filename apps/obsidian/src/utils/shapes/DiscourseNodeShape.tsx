@@ -120,18 +120,20 @@ const DiscourseNodeContent = ({
   const [title, setTitle] = useState<string>("...");
   const [nodeTypeName, setNodeTypeName] = useState<string>("");
   const [nodeColor, setNodeColor] = useState<string>("transparent");
+  const [linkedFile, setLinkedFile] = useState<TFile | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
     const run = async () => {
       try {
         if (!src) return;
-        const linkedFile = await getLinkedFileFromSrc(app, canvasFile, src);
-        if (!linkedFile) return;
+        const linked = await getLinkedFileFromSrc(app, canvasFile, src);
+        if (!linked) return;
         if (isCancelled) return;
-        setTitle(linkedFile.basename);
+        setLinkedFile(linked);
+        setTitle(linked.basename);
 
-        const fm = getFrontmatterForFile(app, linkedFile);
+        const fm = getFrontmatterForFile(app, linked);
         const nodeTypeId = getNodeTypeIdFromFrontmatter(
           fm as unknown as Record<string, unknown> | null,
         );
@@ -164,16 +166,8 @@ const DiscourseNodeContent = ({
     <div
       style={{
         backgroundColor: nodeColor,
-        borderRadius: "10px",
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        padding: 8,
-        boxSizing: "border-box",
       }}
+      className="box-border flex h-full w-full flex-col items-start justify-center rounded-md border-2 p-2"
     >
       <h1 style={{ margin: 0, fontSize: 16 }}>{title}</h1>
       <p style={{ margin: 0, opacity: 0.8, fontSize: 12 }}>
