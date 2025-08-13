@@ -61,6 +61,8 @@ export const DEFAULT_SETTINGS: Settings = {
   ],
   showIdsInFrontmatter: false,
   nodesFolderPath: "",
+  canvasFolderPath: "Discourse Canvas",
+  canvasAttachmentsFolderPath: "attachments",
 };
 export const FRONTMATTER_KEY = "tldr-dg";
 export const TLDATA_DELIMITER_START =
