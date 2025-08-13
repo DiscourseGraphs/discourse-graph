@@ -156,10 +156,12 @@ export const createEmptyTldrawContent = (
 export const createCanvas = async (plugin: DiscourseGraphPlugin) => {
   try {
     const filename = `Canvas-${format(new Date(), "yyyy-MM-dd-HHmm")}`;
-    // TODO: For now we'll create files in this default location, later we can add settings for this
-    const folderpath = "tldraw-dg";
+    const folderpath = plugin.settings.canvasFolderPath;
+    const attachmentsFolder =
+      plugin.settings.canvasAttachmentsFolderPath;
 
     await checkAndCreateFolder(folderpath, plugin.app.vault);
+    await checkAndCreateFolder(attachmentsFolder, plugin.app.vault);
     const fname = getNewUniqueFilepath({
       vault: plugin.app.vault,
       filename: filename + ".md",
