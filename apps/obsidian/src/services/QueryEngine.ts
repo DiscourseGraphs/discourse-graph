@@ -26,6 +26,55 @@ export class QueryEngine {
     this.app = app;
   }
 
+  /**
+   * Search across all Discourse Nodes (files that have frontmatter nodeTypeId)
+   * Optionally restrict by a set of nodeTypeIds. Uses Datacore if available.
+   */
+  async searchDiscourseNodesByTitle(
+    query: string,
+    nodeTypeIds?: string[],
+  ): Promise<TFile[]> {
+    if (!query || query.length < this.MIN_QUERY_LENGTH) {
+      return [];
+    }
+    if (!this.dc) {
+      console.warn(
+        "Datacore API not available. Search functionality is not available.",
+      );
+      return [];
+    }
+
+    try {
+      const base = "@page and exists(nodeTypeId)";
+      const filter =
+        Array.isArray(nodeTypeIds) && nodeTypeIds.length > 0
+          ? ` and (${nodeTypeIds.map((id) => `nodeTypeId = "${id}"`).join(" or ")})`
+          : "";
+
+      const dcQuery = `${base}${filter}`;
+      const potentialNodes = await this.dc.query(dcQuery);
+
+      const searchResults = potentialNodes.filter((p: any) =>
+        this.fuzzySearch(p.$name, query),
+      );
+
+      const files = searchResults
+        .map((dcFile: any) => {
+          if (dcFile && dcFile.$path) {
+            const realFile = this.app.vault.getAbstractFileByPath(dcFile.$path);
+            if (realFile && realFile instanceof TFile) return realFile;
+          }
+          return dcFile as TFile;
+        })
+        .filter((f: TFile | null): f is TFile => Boolean(f));
+
+      return files;
+    } catch (error) {
+      console.error("Error in searchDiscourseNodesByTitle:", error);
+      return [];
+    }
+  }
+
   async searchCompatibleNodeByTitle(
     query: string,
     compatibleNodeTypeIds: string[],

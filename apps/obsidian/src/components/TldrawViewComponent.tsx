@@ -33,6 +33,7 @@ import { DiscourseNodePanel } from "./DiscourseNodePanel";
 import { DiscourseNodeTool } from "~/utils/DiscourseNodeTool";
 import { DiscourseNode } from "~/types";
 import { openCreateDiscourseNodeAt } from "~/utils/nodeCreationFlow";
+import { ExistingNodeSearch } from "./ExistingNodeSearch";
 
 interface TldrawPreviewProps {
   store: TLStore;

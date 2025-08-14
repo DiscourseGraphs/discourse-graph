@@ -2,6 +2,7 @@ import { TextFileView, TFile, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { Root, createRoot } from "react-dom/client";
 import { TldrawPreviewComponent } from "./TldrawViewComponent";
+import { PluginProvider } from "./PluginContext";
 import { TLStore } from "tldraw";
 import React from "react";
 import DiscourseGraphPlugin from "~/index";
@@ -133,12 +134,14 @@ export class TldrawView extends TextFileView {
 
     root.render(
       <React.StrictMode>
-        <TldrawPreviewComponent
-          store={store}
-          plugin={this.plugin}
-          file={this.file!}
-          assetStore={this.assetStore!}
-        />
+        <PluginProvider plugin={this.plugin}>
+          <TldrawPreviewComponent
+            store={store}
+            plugin={this.plugin}
+            file={this.file!}
+            assetStore={this.assetStore!}
+          />
+        </PluginProvider>
       </React.StrictMode>,
     );
     return root;

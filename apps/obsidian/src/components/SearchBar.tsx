@@ -74,6 +74,7 @@ const SearchBar = <T,>({
   renderItem,
   asyncSearch,
   disabled = false,
+  className,
 }: {
   onSelect: (item: T | null) => void;
   placeholder?: string;
@@ -81,6 +82,7 @@ const SearchBar = <T,>({
   renderItem?: (item: T, el: HTMLElement) => void;
   asyncSearch: (query: string) => Promise<T[]>;
   disabled?: boolean;
+  className?: string;
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<T | null>(null);
@@ -115,7 +117,7 @@ const SearchBar = <T,>({
   }, [onSelect]);
 
   return (
-    <div className="relative">
+    <div className={`relative`}>
       <input
         ref={inputRef}
         type="text"
@@ -124,7 +126,7 @@ const SearchBar = <T,>({
           selected ? "pr-9" : ""
         } border-modifier-border rounded border bg-${
           selected || disabled ? "secondary" : "primary"
-        } ${disabled ? "cursor-not-allowed opacity-70" : "cursor-text"}`}
+        } ${disabled ? "cursor-not-allowed opacity-70" : "cursor-text"} ${className}`}
         readOnly={!!selected || disabled}
         disabled={disabled}
       />

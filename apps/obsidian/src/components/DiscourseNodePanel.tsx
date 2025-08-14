@@ -4,6 +4,7 @@ import { TFile } from "obsidian";
 import { DiscourseNode } from "~/types";
 import DiscourseGraphPlugin from "~/index";
 import { openCreateDiscourseNodeAt } from "~/utils/nodeCreationFlow";
+import { ExistingNodeSearch } from "./ExistingNodeSearch";
 
 export const DiscourseNodePanel = ({
   plugin,
@@ -31,39 +32,46 @@ export const DiscourseNodePanel = ({
   const nodeTypes = plugin.settings.nodeTypes;
 
   return (
-    <div className="tlui-style-panel__wrapper p-2">
-      <h3 className="tlui-style-panel__header">Discourse Node Types</h3>
-      <div className="flex flex-col">
-        {nodeTypes.map((nodeType) => (
-          // TODO: add the ability to create node shape with drag and drop
-          <button
-            key={nodeType.id}
-            className="tlui-button tlui-button__menu flex w-full flex-row !justify-start gap-2"
-            draggable
-            onDragStart={(e) => {
-              try {
-                e.dataTransfer?.setData(
-                  "application/x-dg-node-type",
-                  nodeType.id,
-                );
-                if (e.dataTransfer) {
-                  e.dataTransfer.effectAllowed = "copyMove";
+    <div className="flex gap-2">
+      <ExistingNodeSearch
+        plugin={plugin}
+        canvasFile={canvasFile}
+        getEditor={() => editor}
+      />
+      <div className="tlui-style-panel__wrapper p-2">
+        <h3 className="tlui-style-panel__header">Discourse Node Types</h3>
+        <div className="flex flex-col">
+          {nodeTypes.map((nodeType) => (
+            // TODO: add the ability to create node shape with drag and drop
+            <button
+              key={nodeType.id}
+              className="tlui-button tlui-button__menu flex w-full flex-row !justify-start gap-2"
+              draggable
+              onDragStart={(e) => {
+                try {
+                  e.dataTransfer?.setData(
+                    "application/x-dg-node-type",
+                    nodeType.id,
+                  );
+                  if (e.dataTransfer) {
+                    e.dataTransfer.effectAllowed = "copyMove";
+                  }
+                } catch (_error) {
+                  // ignore drag data errors
                 }
-              } catch (_error) {
-                // ignore drag data errors
-              }
-            }}
-            onClick={() => {
-              void handleNodeTypeSelect(nodeType);
-            }}
-          >
-            <span className="text-sm">{nodeType.name}</span>
-            <div
-              className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: nodeType.color }}
-            ></div>
-          </button>
-        ))}
+              }}
+              onClick={() => {
+                void handleNodeTypeSelect(nodeType);
+              }}
+            >
+              <span className="text-sm">{nodeType.name}</span>
+              <div
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: nodeType.color }}
+              ></div>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
