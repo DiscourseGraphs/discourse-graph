@@ -109,12 +109,6 @@
   right: var(--distance-to-window-edge-horizontal);
 }
 
-#discourse-floating-menu:has(.screen) {
-  box-shadow: var(--screen-box-shadow);
-  border-radius: calc(3 * var(--border-radius));
-  border: 1px solid var(--secondary-bg-color);
-}
-
 #discourse-floating-menu .screen {
   width: 340px;
   padding-bottom: calc(2 * var(--base-size-step));
@@ -160,7 +154,7 @@
 }
 
 @media (pointer: coarse) {
-  #discourse-floating-menu .button {
+  #discourse-floating-menu .bp3-button {
     padding: calc(3 * var(--base-size-step)) calc(4 * var(--base-size-step));
   }
 }
@@ -178,17 +172,14 @@
   outline: 1px solid var(--form-input-focus-border-color);
 }
 
-#discourse-floating-menu .bp3-button:not(.button-icon) .bp3-intent-primary {
+#discourse-floating-menu .bp3-button.bp3-intent-primary:not(.button-icon) {
   background-color: var(--button-primary-bg-color);
   color: var(--button-primary-text-color);
 }
 
+#discourse-floating-menu .bp3-button.bp3-intent-primary:not(.button-icon):hover,
 #discourse-floating-menu
-  .bp3-button:not(.button-icon)
-  .bp3-intent-primary:hover,
-#discourse-floating-menu
-  .bp3-button:not(.button-icon)
-  .bp3-intent-primary:focus {
+  .bp3-button.bp3-intent-primary:not(.button-icon):focus {
   background-color: var(--button-primary-hover-color);
 }
 

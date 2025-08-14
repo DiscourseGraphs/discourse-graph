@@ -7,13 +7,15 @@ import {
   Button,
   Intent,
   Position,
+  PopoverInteractionKind,
 } from "@blueprintjs/core";
 import { FeedbackWidget } from "./BirdEatsBugs";
 
 type DiscourseFloatingMenuProps = {
-  position: Position;
-  theme: string;
-  buttonTheme?: string;
+  // CSS placement class
+  position: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  theme: string; // e.g., "bp3-light" | "bp3-dark"
+  buttonTheme?: string; // e.g., "bp3-light" | "bp3-dark"
 };
 
 const ANCHOR_ID = "dg-floating-menu-anchor";
@@ -56,7 +58,7 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
       }
       position={Position.TOP}
       className="bp3-popover-content-sizing"
-      interactionKind="hover"
+      interactionKind={PopoverInteractionKind.HOVER}
       boundary="viewport"
       modifiers={{
         arrow: {
@@ -98,5 +100,13 @@ export const installDiscourseFloatingMenu = (
 };
 
 export const removeDiscourseFloatingMenu = () => {
-  document.getElementById(ANCHOR_ID)?.remove();
+  const anchor = document.getElementById(ANCHOR_ID);
+  if (anchor) {
+    try {
+      ReactDOM.unmountComponentAtNode(anchor);
+    } catch (e) {
+      // no-op: unmount best-effort
+    }
+    anchor.remove();
+  }
 };
