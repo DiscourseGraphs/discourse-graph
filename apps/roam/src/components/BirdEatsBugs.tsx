@@ -15,9 +15,11 @@ export type FeedbackWidget = {
     publicAppId: string;
     ui?: {
       position?: string;
-      defaultButton?: {
-        icon?: string;
-      };
+      defaultButton?:
+        | {
+            icon?: string;
+          }
+        | boolean;
       text?: {
         defaultButton?: string;
         previewScreen?: {
@@ -141,22 +143,22 @@ export const initFeedbackWidget = (
 
   const customStyles = document.createElement("style");
   customStyles.textContent = `
-   
+
     #birdeatsbug-sdk {
       --distance-to-window-edge-vertical: 50px;
       --distance-to-window-edge-horizontal: 20px;
     }
-    
+
     #birdeatsbug-sdk .form-error {
       font-size: 1.2rem;
     }
-    
+
     #birdeatsbug-sdk:has(.screen) {
       box-shadow: none !important;
       border-radius: 0 !important;
       border: none !important;
     }
-    
+
     #birdeatsbug-sdk.dark {
       --button-primary-bg-color: #1976d2;
     }
@@ -180,7 +182,7 @@ export const initFeedbackWidget = (
 
     #birdeatsbug-sdk .caret {
       height: initial;
-      width: initial; 
+      width: initial;
       border-top: initial;
     }
   `;

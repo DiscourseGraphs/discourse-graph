@@ -146,7 +146,6 @@
   font-size: 100%;
   font-weight: inherit;
   line-height: inherit;
-  color: inherit;
   border: none;
   width: fit-content;
   margin: 0;
@@ -242,7 +241,8 @@
   border: none !important;
 }
 
-#discourse-floating-menu.bp3-dark {
+#discourse-floating-menu.bp3-dark,
+#discourse-floating-menu button.bp3-dark {
   --button-primary-bg-color: #1976d2;
   --text-color: var(--gray-200);
 }

@@ -1,11 +1,22 @@
-import React, { useState } from "react";
+import React from "react";
 import ReactDOM from "react-dom";
-import { Popover, Menu, MenuItem, Button, Position } from "@blueprintjs/core";
+import {
+  Popover,
+  Menu,
+  MenuItem,
+  Button,
+  Intent,
+  Position,
+} from "@blueprintjs/core";
+import { FeedbackWidget } from "./BirdEatsBugs";
 
 type DiscourseFloatingMenuProps = {
-  position: string;
+  position: Position;
   theme: string;
+  buttonTheme?: string;
 };
+
+const ANCHOR_ID = "dg-floating-menu-anchor";
 
 export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
   <div
@@ -13,6 +24,7 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
     className={`${props.position} ${props.theme}`}
   >
     <Popover
+      autoFocus={false}
       content={
         <Menu>
           <MenuItem
@@ -20,7 +32,7 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
             icon="send-message"
             onClick={() => {
               try {
-                window.birdeatsbug?.trigger?.();
+                (window.birdeatsbug as FeedbackWidget | undefined)?.trigger?.();
               } catch (error) {
                 console.error("Failed to trigger feedback widget:", error);
               }
@@ -28,31 +40,45 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
           />
           <MenuItem
             text="Docs"
-            href="https://discoursegraphs.com/docs"
+            icon="document-open"
+            href="https://discoursegraphs.com/docs/roam"
             rel="noopener noreferrer"
             target="_blank"
           />
           <MenuItem
             text="Community"
+            icon="people"
             href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg"
             rel="noopener noreferrer"
             target="_blank"
           />
         </Menu>
       }
-      position={Position.RIGHT_TOP}
+      position={Position.TOP}
+      className="bp3-popover-content-sizing"
+      interactionKind="hover"
+      boundary="viewport"
+      modifiers={{
+        arrow: {
+          enabled: false,
+        },
+      }}
     >
-      <Button text="Discourse Graph" className="bp3-intent-primary" />
+      <Button
+        intent={Intent.PRIMARY}
+        text="Discourse Graphs"
+        id="dg-floating-menu-button"
+        className={props.buttonTheme}
+      />
     </Popover>
   </div>
 );
 
-const ANCHOR_ID = "dg-floating-menu-anchor";
-
 export const installDiscourseFloatingMenu = (
   props: DiscourseFloatingMenuProps = {
     position: "bottom-right",
-    theme: "bp3-dark",
+    theme: "bp3-light",
+    buttonTheme: "bp3-dark",
   },
 ) => {
   let floatingMenuAnchor = document.getElementById(ANCHOR_ID);
@@ -62,7 +88,11 @@ export const installDiscourseFloatingMenu = (
     document.getElementById("app")?.appendChild(floatingMenuAnchor);
   }
   ReactDOM.render(
-    <DiscourseFloatingMenu position={props.position} theme={props.theme} />,
+    <DiscourseFloatingMenu
+      position={props.position}
+      theme={props.theme}
+      buttonTheme={props.buttonTheme}
+    />,
     floatingMenuAnchor,
   );
 };
