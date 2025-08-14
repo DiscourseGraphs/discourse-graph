@@ -1,3 +1,4 @@
+// DiscourseContextOverlay.tsx
 import { Button, Icon, Popover, Position, Tooltip } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
@@ -15,6 +16,9 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
+import { getBlockUidFromTarget } from "roamjs-components/dom";
+import { useDiscourseData } from "~/utils/useDiscourseData";
+import { PanelManager } from "./PanelManager";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -25,75 +29,52 @@ const cache: {
   [tag: string]: DiscourseData;
 } = {};
 
-const getOverlayInfo = async (tag: string): Promise<DiscourseData> => {
-  try {
-    if (cache[tag]) return cache[tag];
-
-    const relations = getDiscourseRelations();
-    const nodes = getDiscourseNodes(relations);
-
-    const [results, refs] = await Promise.all([
-      getDiscourseContextResults({
-        uid: getPageUidByPageTitle(tag),
-        nodes,
-        relations,
-      }),
-      // @ts-ignore - backend to be added to roamjs-components
-      window.roamAlphaAPI.data.backend.q(
-        `[:find ?a :where [?b :node/title "${normalizePageTitle(tag)}"] [?a :block/refs ?b]]`,
-      ),
-    ]);
-
-    return (cache[tag] = {
-      results,
-      refs: refs.length,
-    });
-  } catch (error) {
-    console.error(`Error getting overlay info for ${tag}:`, error);
-    return {
-      results: [],
-      refs: 0,
-    };
-  }
-};
-
-const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
-  const tagUid = useMemo(() => getPageUidByPageTitle(tag), [tag]);
-  const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState<DiscourseData["results"]>([]);
-  const [refs, setRefs] = useState(0);
-  const [score, setScore] = useState<number | string>(0);
-  const getInfo = useCallback(
-    () =>
-      getOverlayInfo(tag)
-        .then(({ refs, results }) => {
-          const discourseNode = findDiscourseNode(tagUid);
-          if (discourseNode) {
-            const attribute = getSettingValueFromTree({
-              tree: getBasicTreeByParentUid(discourseNode.type),
-              key: "Overlay",
-              defaultValue: "Overlay",
-            });
-            return deriveDiscourseNodeAttribute({
-              uid: tagUid,
-              attribute,
-            }).then((score) => {
-              setResults(results);
-              setRefs(refs);
-              setScore(score);
-            });
-          }
-        })
-        .finally(() => setLoading(false)),
-    [tag, setResults, setLoading, setRefs, setScore],
+const DiscourseContextOverlay = ({
+  tag,
+  id,
+  parentEl,
+  onloadArgs,
+}: {
+  tag: string;
+  id: string;
+  parentEl: HTMLElement;
+  onloadArgs: OnloadArgs;
+}) => {
+  const blockUid = useMemo(() => getBlockUidFromTarget(parentEl), [parentEl]);
+  const { loading, score, refs, results, tagUid } = useDiscourseData(tag);
+  const [isPanelOpen, setIsPanelOpen] = useState(() =>
+    PanelManager.isOpen(tag),
   );
-  const refresh = useCallback(() => {
-    setLoading(true);
-    getInfo();
-  }, [getInfo, setLoading]);
+
+  // Subscribe to panel state changes
   useEffect(() => {
-    getInfo();
-  }, [refresh, getInfo]);
+    const unsubscribe = PanelManager.subscribe((openTags) => {
+      setIsPanelOpen(openTags.includes(tag));
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [tag]);
+
+  const toggleHighlight = useCallback(
+    (on: boolean) => {
+      console.log("toggleHighlight", blockUid, on);
+      document
+        .querySelectorAll(`[data-dg-block-uid="${blockUid}"]`)
+        .forEach((el) => el.classList.toggle("dg-highlight", on));
+    },
+    [blockUid],
+  );
+
+  const handleTogglePanel = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      PanelManager.toggle(tag, blockUid, parentEl, onloadArgs);
+    },
+    [tag, blockUid, parentEl, onloadArgs],
+  );
+
   return (
     <Popover
       autoFocus={false}
@@ -113,6 +94,7 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
           className={`roamjs-discourse-context-overlay ${
             loading ? "animate-pulse" : ""
           }`}
+          {...{ "data-dg-block-uid": blockUid }}
           style={{
             minHeight: "initial",
             paddingTop: ".25rem",
@@ -120,12 +102,32 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
           }}
           minimal
           disabled={loading}
+          onMouseEnter={() => toggleHighlight(true)}
+          onMouseLeave={() => toggleHighlight(false)}
         >
           <div className="flex items-center gap-1.5">
             <Icon icon={"diagram-tree"} />
             <span className="mr-1 leading-none">{loading ? "-" : score}</span>
             <Icon icon={"link"} />
             <span className="leading-none">{loading ? "-" : refs}</span>
+            <Tooltip
+              content={
+                isPanelOpen
+                  ? "Close suggestions panel"
+                  : "Open suggestions panel"
+              }
+              hoverOpenDelay={200}
+              hoverCloseDelay={0}
+              position={Position.RIGHT}
+            >
+              <Button
+                icon={isPanelOpen ? "panel-table" : "panel-stats"}
+                minimal
+                small
+                intent={isPanelOpen ? "primary" : "none"}
+                onClick={handleTogglePanel}
+              />
+            </Tooltip>
           </div>
         </Button>
       }
@@ -134,7 +136,15 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
   );
 };
 
-const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
+const Wrapper = ({
+  parent,
+  tag,
+  onloadArgs,
+}: {
+  parent: HTMLElement;
+  tag: string;
+  onloadArgs: OnloadArgs;
+}) => {
   const id = useMemo(() => nanoid(), []);
   const { inViewport } = useInViewport(
     { current: parent },
@@ -143,7 +153,12 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
     {},
   );
   return inViewport ? (
-    <DiscourseContextOverlay tag={tag} id={id} />
+    <DiscourseContextOverlay
+      tag={tag}
+      id={id}
+      parentEl={parent}
+      onloadArgs={onloadArgs}
+    />
   ) : (
     <Button
       small
@@ -175,7 +190,7 @@ export const render = ({
   parent.onmousedown = (e) => e.stopPropagation();
   ReactDOM.render(
     <ExtensionApiContextProvider {...onloadArgs}>
-      <Wrapper tag={tag} parent={parent} />
+      <Wrapper tag={tag} parent={parent} onloadArgs={onloadArgs} />
     </ExtensionApiContextProvider>,
     parent,
   );
