@@ -15,6 +15,8 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
+import { DiscourseSuggestionsPanel } from "./DiscourseSuggestionsPanel";
+import { getBlockUidFromTarget } from "roamjs-components/dom";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -57,12 +59,23 @@ const getOverlayInfo = async (tag: string): Promise<DiscourseData> => {
   }
 };
 
-const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
+const DiscourseContextOverlay = ({
+  tag,
+  id,
+  parentEl,
+  onloadArgs,
+}: {
+  tag: string;
+  id: string;
+  parentEl: HTMLElement;
+  onloadArgs: OnloadArgs;
+}) => {
   const tagUid = useMemo(() => getPageUidByPageTitle(tag), [tag]);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<DiscourseData["results"]>([]);
   const [refs, setRefs] = useState(0);
   const [score, setScore] = useState<number | string>(0);
+  const blockUid = useMemo(() => getBlockUidFromTarget(parentEl), [parentEl]);
   const getInfo = useCallback(
     () =>
       getOverlayInfo(tag)
@@ -94,6 +107,14 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
   useEffect(() => {
     getInfo();
   }, [refresh, getInfo]);
+
+  const toggleHighlight = (uid: string, on: boolean) => {
+    console.log("toggleHighlight", uid, on);
+    document
+      .querySelectorAll(`[data-dg-block-uid="${uid}"]`)
+      .forEach((el) => el.classList.toggle("dg-highlight", on));
+  };
+
   return (
     <Popover
       autoFocus={false}
@@ -113,6 +134,7 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
           className={`roamjs-discourse-context-overlay ${
             loading ? "animate-pulse" : ""
           }`}
+          {...{ "data-dg-block-uid": blockUid }}
           style={{
             minHeight: "initial",
             paddingTop: ".25rem",
@@ -120,12 +142,36 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
           }}
           minimal
           disabled={loading}
+          onMouseEnter={() => toggleHighlight(blockUid, true)}
+          onMouseLeave={() => toggleHighlight(blockUid, false)}
         >
           <div className="flex items-center gap-1.5">
             <Icon icon={"diagram-tree"} />
             <span className="mr-1 leading-none">{loading ? "-" : score}</span>
             <Icon icon={"link"} />
             <span className="leading-none">{loading ? "-" : refs}</span>
+            <Tooltip
+              content="Open suggestions panel"
+              hoverOpenDelay={200}
+              hoverCloseDelay={0}
+              position={Position.RIGHT}
+            >
+              <Button
+                icon="panel-stats"
+                minimal
+                small
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  DiscourseSuggestionsPanel.toggle(
+                    tag,
+                    id,
+                    parentEl,
+                    onloadArgs,
+                  );
+                }}
+              />
+            </Tooltip>
           </div>
         </Button>
       }
@@ -134,7 +180,15 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
   );
 };
 
-const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
+const Wrapper = ({
+  parent,
+  tag,
+  onloadArgs,
+}: {
+  parent: HTMLElement;
+  tag: string;
+  onloadArgs: OnloadArgs;
+}) => {
   const id = useMemo(() => nanoid(), []);
   const { inViewport } = useInViewport(
     { current: parent },
@@ -143,7 +197,12 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
     {},
   );
   return inViewport ? (
-    <DiscourseContextOverlay tag={tag} id={id} />
+    <DiscourseContextOverlay
+      tag={tag}
+      id={id}
+      parentEl={parent}
+      onloadArgs={onloadArgs}
+    />
   ) : (
     <Button
       small
@@ -175,7 +234,7 @@ export const render = ({
   parent.onmousedown = (e) => e.stopPropagation();
   ReactDOM.render(
     <ExtensionApiContextProvider {...onloadArgs}>
-      <Wrapper tag={tag} parent={parent} />
+      <Wrapper tag={tag} parent={parent} onloadArgs={onloadArgs} />
     </ExtensionApiContextProvider>,
     parent,
   );
