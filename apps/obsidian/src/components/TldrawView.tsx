@@ -125,15 +125,19 @@ export class TldrawView extends TextFileView {
 
   private createReactRoot(entryPoint: Element, store: TLStore) {
     const root = createRoot(entryPoint);
-    this.assertInitialized();
+    if (!this.file) throw new Error("TldrawView not initialized: missing file");
+    if (!this.assetStore)
+      throw new Error("TldrawView not initialized: missing assetStore");
+    if (!this.store)
+      throw new Error("TldrawView not initialized: missing store");
 
     root.render(
       <React.StrictMode>
         <TldrawPreviewComponent
           store={store}
           plugin={this.plugin}
-          file={this.file!}
-          assetStore={this.assetStore!}
+          file={this.file}
+          assetStore={this.assetStore}
         />
       </React.StrictMode>,
     );
