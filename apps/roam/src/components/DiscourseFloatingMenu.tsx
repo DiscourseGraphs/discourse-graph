@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import { OnloadArgs } from "roamjs-components/types";
 import {
   Popover,
   Menu,
@@ -76,7 +77,18 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
   </div>
 );
 
+export const hideDiscourseFloatingMenu = () => {
+  const anchor = document.getElementById(ANCHOR_ID);
+  anchor?.classList.add("hidden");
+};
+
+export const showDiscourseFloatingMenu = () => {
+  const anchor = document.getElementById(ANCHOR_ID);
+  anchor?.classList.remove("hidden");
+};
+
 export const installDiscourseFloatingMenu = (
+  extensionAPI: OnloadArgs["extensionAPI"],
   props: DiscourseFloatingMenuProps = {
     position: "bottom-right",
     theme: "bp3-light",
@@ -88,6 +100,9 @@ export const installDiscourseFloatingMenu = (
     floatingMenuAnchor = document.createElement("div");
     floatingMenuAnchor.id = ANCHOR_ID;
     document.getElementById("app")?.appendChild(floatingMenuAnchor);
+  }
+  if (extensionAPI.settings.get("hide-feedback-button") as boolean) {
+    floatingMenuAnchor.classList.add("hidden");
   }
   ReactDOM.render(
     <DiscourseFloatingMenu

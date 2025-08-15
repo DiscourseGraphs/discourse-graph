@@ -70,7 +70,7 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-  initFeedbackWidget(onloadArgs.extensionAPI);
+  initFeedbackWidget();
 
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
@@ -134,7 +134,7 @@ export default runExtension(async (onloadArgs) => {
     getDiscourseNodes: getDiscourseNodes,
   };
 
-  installDiscourseFloatingMenu();
+  installDiscourseFloatingMenu(onloadArgs.extensionAPI);
 
   return {
     elements: [
