@@ -34,3 +34,9 @@
 .dg-create-node-button:hover {
   background: var(--interactive-accent-hover);
 }
+
+/* Neutralize host button styling inside our editor */
+.tldraw__editor button {
+  background: transparent !important;
+  color: inherit;
+}
