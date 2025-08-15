@@ -7,6 +7,7 @@ import {
   getFrontmatterForFile,
   getNodeTypeIdFromFrontmatter,
   getNodeTypeById,
+  FrontmatterRecord,
 } from "./discourseNodeShapeUtils";
 import { DiscourseNode } from "~/types";
 
@@ -74,14 +75,11 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   async getFrontmatter(
     shape: DiscourseNodeShape,
     ctx?: { app: App; canvasFile: TFile },
-  ): Promise<Record<string, unknown> | null> {
+  ): Promise<FrontmatterRecord | null> {
     const app = ctx?.app ?? this.options.app;
     const file = await this.getFile(shape, ctx);
     if (!file) return null;
-    return getFrontmatterForFile(app, file) as unknown as Record<
-      string,
-      unknown
-    > | null;
+    return getFrontmatterForFile(app, file);
   }
 
   async getDiscourseNodeType(
@@ -89,9 +87,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     ctx?: { app: App; canvasFile: TFile },
   ): Promise<DiscourseNode | null> {
     const frontmatter = await this.getFrontmatter(shape, ctx);
-    const nodeTypeId = getNodeTypeIdFromFrontmatter(
-      frontmatter as unknown as Record<string, unknown> | null,
-    );
+    const nodeTypeId = getNodeTypeIdFromFrontmatter(frontmatter);
     return getNodeTypeById(this.options.plugin, nodeTypeId);
   }
 
@@ -134,9 +130,7 @@ const DiscourseNodeContent = ({
         setTitle(linked.basename);
 
         const fm = getFrontmatterForFile(app, linked);
-        const nodeTypeId = getNodeTypeIdFromFrontmatter(
-          fm as unknown as Record<string, unknown> | null,
-        );
+        const nodeTypeId = getNodeTypeIdFromFrontmatter(fm);
         const nodeType = getNodeTypeById(plugin, nodeTypeId);
         if (isCancelled) return;
         setNodeTypeName(nodeType?.name ?? "");
