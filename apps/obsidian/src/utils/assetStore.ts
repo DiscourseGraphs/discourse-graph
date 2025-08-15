@@ -55,8 +55,9 @@ export const resolveLinkedTFileByBlockRef = async (
 
     const match = blockContent.match(/\[\[(.*?)\]\]/);
     if (!match?.[1]) return null;
-
-    const linkPath = match[1];
+    const rawLink = match[1].trim();
+    // Drop alias part in [[path|alias]]
+    const linkPath = rawLink.split("|")[0] ?? rawLink;
     return (
       app.metadataCache.getFirstLinkpathDest(linkPath, canvasFile.path) ?? null
     );
@@ -225,9 +226,6 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
       const blockRefAssetId = await this.proxy.storeAsset(asset, file);
       return {
         src: `asset:${blockRefAssetId}`,
-        meta: {
-          mimeType: file.type,
-        },
       };
     } catch (error) {
       console.error("Error uploading asset:", error);
@@ -245,19 +243,7 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
 
       const assetId = assetSrc.split(":")[1] as BlockRefAssetId;
       if (!assetId) return null;
-
-      const mimeType =
-        (asset.props as unknown as { mimeType?: string })?.mimeType ??
-        (asset.meta as unknown as { mimeType?: string })?.mimeType ??
-        "";
-
-      if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
-        return await this.proxy.getCached(assetId);
-      }
-
-      // Non-media (e.g., text/markdown, application/*): let custom shapes decide.
-      // Return null so default media shapes won't attempt to render it.
-      return null;
+      return await this.proxy.getCached(assetId);
     } catch (error) {
       console.error("Error resolving asset:", error);
       return null;
