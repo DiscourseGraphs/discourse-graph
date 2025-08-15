@@ -106,7 +106,11 @@ export class TldrawView extends TextFileView {
         return;
       }
 
-      const { store } = processInitialData(data, assetStore);
+      const { store } = processInitialData(data, assetStore, {
+        app: this.app,
+        canvasFile: this.file!,
+        plugin: this.plugin,
+      });
 
       return store;
     } catch (e) {
@@ -130,6 +134,11 @@ export class TldrawView extends TextFileView {
       throw new Error("TldrawView not initialized: missing assetStore");
     if (!this.store)
       throw new Error("TldrawView not initialized: missing store");
+
+    if (!this.assetStore) {
+      console.warn("Asset store is not set");
+      return;
+    }
 
     root.render(
       <React.StrictMode>
