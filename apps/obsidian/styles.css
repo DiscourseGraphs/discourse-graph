@@ -17,3 +17,9 @@
 .dg-h4 {
   @apply text-lg font-bold mb-2;
 }
+
+/* Neutralize host button styling inside our editor */
+.tldraw__editor button {
+  background: transparent !important;
+  color: inherit;
+}
