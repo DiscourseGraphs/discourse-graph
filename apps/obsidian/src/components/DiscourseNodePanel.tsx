@@ -35,13 +35,11 @@ export const DiscourseNodePanel = ({
       <h3 className="tlui-style-panel__header">Discourse Node Types</h3>
       <div className="flex flex-col">
         {nodeTypes.map((nodeType) => (
-          // TODO: add the ability to create node shape with drag and drop
           <button
             key={nodeType.id}
             className="tlui-button tlui-button__menu flex w-full flex-row !justify-start gap-2"
             draggable
             onDragStart={(e) => {
-              try {
                 e.dataTransfer?.setData(
                   "application/x-dg-node-type",
                   nodeType.id,
@@ -49,9 +47,6 @@ export const DiscourseNodePanel = ({
                 if (e.dataTransfer) {
                   e.dataTransfer.effectAllowed = "copyMove";
                 }
-              } catch (_error) {
-                // ignore drag data errors
-              }
             }}
             onClick={() => {
               void handleNodeTypeSelect(nodeType);
