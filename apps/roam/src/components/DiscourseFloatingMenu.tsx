@@ -71,6 +71,7 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
         intent={Intent.PRIMARY}
         text="Discourse Graphs"
         id="dg-floating-menu-button"
+        aria-label="Open Discourse Graphs menu"
         className={props.buttonTheme}
       />
     </Popover>

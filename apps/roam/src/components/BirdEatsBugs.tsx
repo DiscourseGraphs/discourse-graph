@@ -1,5 +1,6 @@
 import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
-import { OnloadArgs } from "roamjs-components/types";
+
+// Option types detailed in https://docs.birdeatsbug.com/latest/sdk/options.html
 
 export type FeedbackWidget = {
   initialize?: boolean;
@@ -165,7 +166,6 @@ export const initFeedbackWidget = (): void => {
         position: "bottom-right",
         defaultButton: false, // hide, will be triggered in DiscourseFloatingMenu
         text: {
-          defaultButton: "Send feedback",
           previewScreen: {
             title: "Discourse Graphs feedback",
           },

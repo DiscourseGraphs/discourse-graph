@@ -42,7 +42,7 @@
   --form-input-focus-border-color: var(--gray-500);
 }
 
-#discourse-floating-menu.light {
+#discourse-floating-menu.bp3-light {
   --text-color: var(--gray-400);
   --screen-bg-color: white;
   --secondary-bg-color: var(--gray-650);
@@ -227,9 +227,9 @@
 }
 
 #discourse-floating-menu:has(.screen) {
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  border: none !important;
+  box-shadow: none;
+  border-radius: 0;
+  border: none;
 }
 
 #discourse-floating-menu.bp3-dark,
