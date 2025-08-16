@@ -1,17 +1,13 @@
-import { DiscourseNode } from "./getDiscourseNodes";
-import { DiscourseRelation } from "./getDiscourseRelations";
-import { RelationDetails } from "./hyde";
 import getDiscourseContextResults from "./getDiscourseContextResults";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import findDiscourseNode from "./findDiscourseNode";
 import getDiscourseRelations from "./getDiscourseRelations";
-import getDiscourseNodes from "./getDiscourseNodes";
+import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import deriveDiscourseNodeAttribute from "./deriveDiscourseNodeAttribute";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
-import { Result } from "roamjs-components/types/query-builder";
 
 export type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -22,7 +18,7 @@ const cache: {
   [tag: string]: DiscourseData;
 } = {};
 
-export const getOverlayInfo = async (
+const getOverlayInfo = async (
   tag: string,
   relations: ReturnType<typeof getDiscourseRelations>,
 ): Promise<DiscourseData> => {
@@ -37,10 +33,9 @@ export const getOverlayInfo = async (
         nodes,
         relations,
       }),
-      await window.roamAlphaAPI.data.async.q(
-        `[:find ?a :where [?b :node/title "${normalizePageTitle(
-          tag,
-        )}"] [?a :block/refs ?b]]`,
+      // @ts-ignore - backend to be added to roamjs-components
+      window.roamAlphaAPI.data.backend.q(
+        `[:find ?a :where [?b :node/title "${normalizePageTitle(tag)}"] [?a :block/refs ?b]]`,
       ),
     ]);
 
@@ -91,13 +86,13 @@ export const useDiscourseData = (tag: string) => {
     [tag, tagUid, relations, discourseNode],
   );
 
-  const refresh = useCallback(() => {
+  const refresh = useCallback(async () => {
     setLoading(true);
-    getInfo();
+    await getInfo();
   }, [getInfo]);
 
   useEffect(() => {
-    getInfo();
+    void getInfo();
   }, [getInfo]);
 
   const validRelations = useMemo(() => {
@@ -110,7 +105,7 @@ export const useDiscourseData = (tag: string) => {
     );
   }, [relations, discourseNode]);
 
-  const uniqueRelationTypeTriplets = useMemo<RelationDetails[]>(() => {
+  const uniqueRelationTypeTriplets = useMemo(() => {
     if (!discourseNode) return [];
     const relatedNodeType = discourseNode.type;
 

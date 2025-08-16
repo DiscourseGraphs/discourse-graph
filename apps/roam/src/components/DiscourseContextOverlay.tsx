@@ -1,33 +1,14 @@
-// DiscourseContextOverlay.tsx
 import { Button, Icon, Popover, Position, Tooltip } from "@blueprintjs/core";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
 import { ContextContent } from "./DiscourseContext";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
-import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
-import deriveDiscourseNodeAttribute from "~/utils/deriveDiscourseNodeAttribute";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import nanoid from "nanoid";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
-import findDiscourseNode from "~/utils/findDiscourseNode";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
 import { useDiscourseData } from "~/utils/useDiscourseData";
-import { PanelManager } from "./PanelManager";
-
-type DiscourseData = {
-  results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
-  refs: number;
-};
-
-const cache: {
-  [tag: string]: DiscourseData;
-} = {};
+import { panelManager } from "./PanelManager";
 
 const DiscourseContextOverlay = ({
   tag,
@@ -43,18 +24,8 @@ const DiscourseContextOverlay = ({
   const blockUid = useMemo(() => getBlockUidFromTarget(parentEl), [parentEl]);
   const { loading, score, refs, results, tagUid } = useDiscourseData(tag);
   const [isPanelOpen, setIsPanelOpen] = useState(() =>
-    PanelManager.isOpen(tag),
+    panelManager.isOpen(tag),
   );
-
-  // Subscribe to panel state changes
-  useEffect(() => {
-    const unsubscribe = PanelManager.subscribe((openTags) => {
-      setIsPanelOpen(openTags.includes(tag));
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, [tag]);
 
   const toggleHighlight = useCallback(
     (on: boolean) => {
@@ -70,9 +41,10 @@ const DiscourseContextOverlay = ({
     (e: React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
-      PanelManager.toggle(tag, blockUid, parentEl, onloadArgs);
+      panelManager.toggle({ tag, blockUid, onloadArgs });
+      setIsPanelOpen(panelManager.isOpen(tag));
     },
-    [tag, blockUid, parentEl, onloadArgs],
+    [tag, blockUid, onloadArgs],
   );
 
   return (

@@ -94,6 +94,8 @@ export default runExtension(async (onloadArgs) => {
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
+  await initializeDiscourseNodes();
+  refreshConfigTree();
 
   const { observers, listeners } = await initObservers({ onloadArgs });
   const {
@@ -108,9 +110,6 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
-
-  await initializeDiscourseNodes();
-  refreshConfigTree();
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {

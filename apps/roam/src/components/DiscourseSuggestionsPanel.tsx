@@ -6,7 +6,7 @@ import {
   Navbar,
   Collapse,
 } from "@blueprintjs/core";
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import SuggestionsBody from "./SuggestionsBody";
 import { useDiscourseData } from "~/utils/useDiscourseData";
 
@@ -20,11 +20,10 @@ export const DiscourseSuggestionsPanel = ({
   onClose: () => void;
 }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const { results } = useDiscourseData(tag);
+  const { results, loading } = useDiscourseData(tag);
 
   const toggleHighlight = useCallback(
     (on: boolean) => {
-      console.log("toggleHighlight", blockUid, on);
       document
         .querySelectorAll(`[data-dg-block-uid="${blockUid}"]`)
         .forEach((el) => el.classList.toggle("dg-highlight", on));
@@ -55,7 +54,6 @@ export const DiscourseSuggestionsPanel = ({
           alignItems: "center",
         }}
       >
-        {/* Left-aligned group for panel heading */}
         <Navbar.Group align={Alignment.LEFT} style={{ flex: 1, minWidth: 0 }}>
           <Navbar.Heading
             className="truncate"
@@ -70,8 +68,6 @@ export const DiscourseSuggestionsPanel = ({
             {tag}
           </Navbar.Heading>
         </Navbar.Group>
-
-        {/* Right-aligned group for action buttons */}
         <Navbar.Group
           align={Alignment.RIGHT}
           style={{
@@ -110,6 +106,7 @@ export const DiscourseSuggestionsPanel = ({
             tag={tag}
             blockUid={blockUid}
             existingResults={results}
+            loading={loading}
           />
         </div>
       </Collapse>

@@ -1,92 +1,115 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import { Navbar, Alignment, Button } from "@blueprintjs/core";
 import { OnloadArgs } from "roamjs-components/types/native";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { DiscourseSuggestionsPanel } from "./DiscourseSuggestionsPanel";
 
-// Constants
 const PANEL_ROOT_ID = "discourse-graph-suggestions-root";
 const PANELS_CONTAINER_ID = "discourse-graph-panels-container";
 const ARTICLE_WRAPPER_SELECTOR = ".rm-article-wrapper";
 const MINIMIZED_BAR_ID = "discourse-suggestions-minimized";
+const SPACING_PREFIX = "rm-spacing--";
+const initialSpacingByWrapper = new WeakMap<HTMLElement, string | null>();
 
-// Track open panels globally
+const STYLES = {
+  minimizedBar: `
+    display: flex; align-items: center; gap: 4px; padding: 6px 8px;
+    background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    margin: 8px; width: fit-content;
+  `,
+  panelsContainer: `
+    display: flex; flex-direction: column; flex: 1 1 auto; gap: 8px;
+    padding: 8px; background-color: #f5f5f5; overflow-y: auto;
+  `,
+  header: `
+    flex: 0 0 auto; padding: 6px 8px; background-color: #fff;
+    border-radius: 4px 4px 0 0; margin-bottom: 0; font-weight: 600;
+    font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    display: flex; justify-content: space-between; align-items: center;
+  `,
+  headerButtons: `display: flex; gap: 4px; align-items: center;`,
+  button: `cursor: pointer; border: none; background: transparent; padding: 2px 6px;`,
+  minimizeButton: `cursor: pointer; border: none; background: transparent; padding: 2px 6px; font-size: 16px;`,
+  panelElement: `
+    flex: 0 0 auto; margin-bottom: 8px; background-color: #fff;
+    border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  `,
+} as const;
+
 type PanelState = {
   blockUid: string;
   element: HTMLElement;
   onloadArgs: OnloadArgs;
 };
+
+const getSpacingClass = (element: HTMLElement): string | null => {
+  for (const className of Array.from(element.classList)) {
+    if (className.startsWith(SPACING_PREFIX)) return className;
+  }
+  return null;
+};
+
+const setSpacingClass = (
+  element: HTMLElement,
+  spacingClass: string | null,
+): void => {
+  for (const className of Array.from(element.classList)) {
+    if (className.startsWith(SPACING_PREFIX))
+      element.classList.remove(className);
+  }
+  if (spacingClass) element.classList.add(spacingClass);
+};
+
+const SidebarHeader = ({
+  onMinimize,
+  onCloseAll,
+}: {
+  onMinimize: () => void;
+  onCloseAll: () => void;
+}) => (
+  <Navbar style={{ boxShadow: "none", borderRadius: "4px 4px 0 0" }}>
+    <Navbar.Group align={Alignment.LEFT}>
+      <Navbar.Heading style={{ fontWeight: 600, fontSize: 13 }}>
+        Suggested Discourse nodes
+      </Navbar.Heading>
+    </Navbar.Group>
+    <Navbar.Group align={Alignment.RIGHT}>
+      <Button
+        icon="minus"
+        minimal
+        small
+        title="Minimize sidebar"
+        onClick={onMinimize}
+      />
+      <Button
+        icon="cross"
+        minimal
+        small
+        title="Close all open panels"
+        onClick={onCloseAll}
+      />
+    </Navbar.Group>
+  </Navbar>
+);
+
 const openPanels = new Map<string, PanelState>();
 let isContainerMinimized = false;
-let articleWrapperObserver: MutationObserver | null = null;
-let navigationObserver: MutationObserver | null = null;
 
-// Initialize observer for article wrapper changes
-const initializeObserver = (mainContent: HTMLElement) => {
-  if (articleWrapperObserver) {
-    return;
-  }
-  articleWrapperObserver = new MutationObserver(() => {
-    const root = document.getElementById(PANEL_ROOT_ID);
-    if (root && root.style.display !== "none" && !isContainerMinimized) {
-      if (!mainContent.classList.contains("rm-spacing--full")) {
-        mainContent.classList.add("rm-spacing--full");
-        mainContent.classList.remove("rm-spacing--small");
-      }
-    }
-  });
-  articleWrapperObserver.observe(mainContent, {
-    attributes: true,
-    attributeFilter: ["class"],
-  });
-};
-
-// Initialize observer for navigation changes
-const initializeNavigationObserver = () => {
-  if (navigationObserver) {
-    return;
-  }
-
-  const roamApp = document.querySelector(".roam-app");
-  if (!roamApp) return;
-
-  navigationObserver = new MutationObserver((mutations) => {
-    // Check if we still have our panel root
-    const panelRoot = document.getElementById(PANEL_ROOT_ID);
-    const roamBodyMain = getRoamBodyMain();
-
-    // If we have open panels but the infrastructure is gone, recreate it
-    if (openPanels.size > 0 && (!panelRoot || !panelRoot.parentElement)) {
-      restorePanelInfrastructure();
-    }
-
-    // Ensure split view is maintained if panels are open
-    if (openPanels.size > 0 && roamBodyMain && panelRoot) {
-      const articleWrapper = getArticleWrapper(roamBodyMain);
-      if (articleWrapper && roamBodyMain.dataset.isSplit !== "true") {
-        setupSplitView(roamBodyMain, articleWrapper, panelRoot);
-      }
-    }
-  });
-
-  navigationObserver.observe(roamApp, {
-    childList: true,
-    subtree: true,
-  });
-};
-
-// Utility functions
 const getRoamBodyMain = () =>
-  document.querySelector(".roam-body-main") as HTMLElement | null;
-
+  document.querySelector<HTMLElement>(".roam-body-main");
 const getArticleWrapper = (container: HTMLElement) =>
   container.querySelector<HTMLElement>(ARTICLE_WRAPPER_SELECTOR);
 
-const setupSplitView = (
-  roamBodyMain: HTMLElement,
-  articleWrapper: HTMLElement,
-  panelRoot: HTMLElement,
-) => {
+const setupSplitView = ({
+  roamBodyMain,
+  articleWrapper,
+  panelRoot,
+}: {
+  roamBodyMain: HTMLElement;
+  articleWrapper: HTMLElement;
+  panelRoot: HTMLElement;
+}): void => {
   roamBodyMain.style.display = "flex";
   roamBodyMain.dataset.isSplit = "true";
 
@@ -95,13 +118,18 @@ const setupSplitView = (
   panelRoot.style.flex = "0 0 40%";
 
   articleWrapper.style.flex = "1 1 60%";
-  articleWrapper.classList.remove("rm-spacing--small");
-  articleWrapper.classList.add("rm-spacing--full");
+  if (!initialSpacingByWrapper.has(articleWrapper)) {
+    initialSpacingByWrapper.set(
+      articleWrapper,
+      getSpacingClass(articleWrapper),
+    );
+  }
+  setSpacingClass(articleWrapper, "rm-spacing--full");
 
-  initializeObserver(articleWrapper);
+  initializeArticleWrapperObserver({ mainContent: articleWrapper });
 };
 
-const teardownSplitView = () => {
+const teardownSplitView = (): void => {
   const roamBodyMain = getRoamBodyMain();
   const articleWrapper = roamBodyMain ? getArticleWrapper(roamBodyMain) : null;
 
@@ -109,60 +137,87 @@ const teardownSplitView = () => {
     roamBodyMain.removeAttribute("data-is-split");
     roamBodyMain.style.display = "";
     articleWrapper.style.flex = "";
-    articleWrapper.classList.remove("rm-spacing--full");
-    articleWrapper.classList.add("rm-spacing--small");
+    const initial = initialSpacingByWrapper.get(articleWrapper) ?? null;
+    setSpacingClass(articleWrapper, initial);
   }
 
+  cleanupArticleWrapperObserver();
+};
+
+let articleWrapperObserver: MutationObserver | null = null;
+
+const initializeArticleWrapperObserver = ({
+  mainContent,
+}: {
+  mainContent: HTMLElement;
+}): void => {
+  if (articleWrapperObserver) return;
+
+  articleWrapperObserver = new MutationObserver(() => {
+    const root = document.getElementById(PANEL_ROOT_ID);
+    if (root && root.style.display !== "none" && !isContainerMinimized) {
+      if (getSpacingClass(mainContent) !== "rm-spacing--full") {
+        setSpacingClass(mainContent, "rm-spacing--full");
+      }
+    }
+  });
+
+  articleWrapperObserver.observe(mainContent, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+};
+
+const cleanupArticleWrapperObserver = () => {
   if (articleWrapperObserver) {
     articleWrapperObserver.disconnect();
     articleWrapperObserver = null;
   }
 };
 
-// Minimized bar helpers
+const cleanupObservers = (): void => {
+  cleanupArticleWrapperObserver();
+};
+
+if (typeof window !== "undefined") {
+  const handleUnload = () => {
+    cleanupObservers();
+    openPanels.clear();
+  };
+
+  window.addEventListener("beforeunload", handleUnload);
+  window.addEventListener("pagehide", handleUnload);
+}
+
 const createMinimizedBar = (panelRoot: HTMLElement) => {
-  let minimizedBar = document.getElementById(
-    MINIMIZED_BAR_ID,
-  ) as HTMLElement | null;
+  let minimizedBar = document.getElementById(MINIMIZED_BAR_ID);
   if (minimizedBar) return minimizedBar;
 
   minimizedBar = document.createElement("div");
   minimizedBar.id = MINIMIZED_BAR_ID;
-  minimizedBar.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 8px;
-    background: #fff;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    margin: 8px;
-    width: fit-content;
-  `;
-
-  const restoreButton = document.createElement("button");
-  restoreButton.style.cssText = `
-    cursor: pointer;
-    border: none;
-    background: transparent;
-    padding: 2px 6px;
-  `;
-  restoreButton.title = "Restore sidebar";
-  restoreButton.onclick = () => PanelManager.toggleContainerMinimize();
-
-  const icon = document.createElement("span");
-  icon.className = "bp3-icon bp3-icon-panel-stats";
-  restoreButton.appendChild(icon);
-
-  minimizedBar.appendChild(restoreButton);
+  minimizedBar.style.cssText = STYLES.minimizedBar;
   panelRoot.appendChild(minimizedBar);
+
+  ReactDOM.render(
+    <Button
+      icon="panel-stats"
+      minimal
+      small
+      title="Restore sidebar"
+      onClick={() => panelManager.toggleContainerMinimize()}
+    />,
+    minimizedBar,
+  );
 
   return minimizedBar;
 };
 
 const removeMinimizedBar = () => {
   const minimizedBar = document.getElementById(MINIMIZED_BAR_ID);
-  if (minimizedBar) minimizedBar.remove();
+  if (minimizedBar) {
+    ReactDOM.unmountComponentAtNode(minimizedBar);
+    minimizedBar.remove();
+  }
 };
 
 const createPanelInfrastructure = () => {
@@ -172,136 +227,55 @@ const createPanelInfrastructure = () => {
   const articleWrapper = getArticleWrapper(roamBodyMain);
   if (!articleWrapper) return null;
 
-  // Check if panel root already exists (might have been hidden)
-  let panelRoot = document.getElementById(PANEL_ROOT_ID) as HTMLElement | null;
-
+  let panelRoot = document.getElementById(PANEL_ROOT_ID);
   if (panelRoot) {
-    // If it exists but is hidden, show it
-    if (panelRoot.style.display === "none") {
-      panelRoot.style.display = "flex";
-    }
-    // If it's not in the right place, move it
+    if (panelRoot.style.display === "none") panelRoot.style.display = "flex";
     if (panelRoot.parentElement !== roamBodyMain) {
       roamBodyMain.insertBefore(panelRoot, articleWrapper);
     }
   } else {
-    // Create panel root
     panelRoot = document.createElement("div");
     panelRoot.id = PANEL_ROOT_ID;
     roamBodyMain.insertBefore(panelRoot, articleWrapper);
   }
 
-  // Check if panels container exists
-  let panelsContainer = document.getElementById(
-    PANELS_CONTAINER_ID,
-  ) as HTMLElement | null;
-
+  let panelsContainer = document.getElementById(PANELS_CONTAINER_ID);
   if (!panelsContainer) {
-    // Create panels container
     panelsContainer = document.createElement("div");
     panelsContainer.id = PANELS_CONTAINER_ID;
-    panelsContainer.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      flex: 1 1 auto;
-      gap: 8px;
-      padding: 8px;
-      background-color: #f5f5f5;
-      overflow-y: auto;
-    `;
+    panelsContainer.style.cssText = STYLES.panelsContainer;
 
-    // Create header
     const header = document.createElement("div");
     header.id = "discourse-suggestions-header";
-    header.style.cssText = `
-      flex: 0 0 auto;
-      padding: 6px 8px;
-      background-color: #fff;
-      border-radius: 4px 4px 0 0;
-      margin-bottom: 0;
-      font-weight: 600;
-      font-size: 13px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    `;
-
-    const headerTitle = document.createElement("span");
-    headerTitle.textContent = "Suggested Discourse nodes";
-
-    const headerButtons = document.createElement("div");
-    headerButtons.style.cssText = `
-      display: flex;
-      gap: 4px;
-      align-items: center;
-    `;
-
-    const minimizeButton = document.createElement("button");
-    minimizeButton.innerHTML = "⎯";
-    minimizeButton.style.cssText = `
-      cursor: pointer;
-      border: none;
-      background: transparent;
-      padding: 2px 6px;
-      font-size: 16px;
-    `;
-    minimizeButton.title = "Minimize sidebar";
-    minimizeButton.onclick = () => PanelManager.toggleContainerMinimize();
-
-    const closeButton = document.createElement("button");
-    closeButton.textContent = "✕";
-    closeButton.style.cssText = `
-      cursor: pointer;
-      border: none;
-      background: transparent;
-      padding: 2px 6px;
-    `;
-    closeButton.title = "Close all open panels";
-    closeButton.onclick = () => PanelManager.closeAll();
-
-    header.appendChild(headerTitle);
-    headerButtons.appendChild(minimizeButton);
-    headerButtons.appendChild(closeButton);
-    header.appendChild(headerButtons);
     panelsContainer.appendChild(header);
-
+    ReactDOM.render(
+      <SidebarHeader
+        onMinimize={() => panelManager.toggleContainerMinimize()}
+        onCloseAll={() => panelManager.closeAll()}
+      />,
+      header,
+    );
     panelRoot.appendChild(panelsContainer);
   }
 
-  // Apply split view
-  setupSplitView(roamBodyMain, articleWrapper, panelRoot);
-
-  // Initialize navigation observer
-  initializeNavigationObserver();
-
+  setupSplitView({ roamBodyMain, articleWrapper, panelRoot });
   return panelsContainer;
 };
 
 const restorePanelInfrastructure = () => {
-  // Don't restore if no panels are open
   if (openPanels.size === 0) return;
 
   const panelsContainer = createPanelInfrastructure();
   if (!panelsContainer) return;
 
-  // Recreate all open panels
   const panelsToRestore = Array.from(openPanels.entries());
   openPanels.clear();
 
   panelsToRestore.forEach(([tag, state]) => {
-    // Create new panel element
     const panelElement = document.createElement("div");
     panelElement.id = `discourse-panel-${tag.replace(/[^a-zA-Z0-9]/g, "-")}`;
-    panelElement.style.cssText = `
-      flex: 0 0 auto;
-      margin-bottom: 8px;
-      background-color: #fff;
-      border-radius: 4px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    `;
+    panelElement.style.cssText = STYLES.panelElement;
 
-    // Insert after header
     const header = panelsContainer.querySelector(
       "#discourse-suggestions-header",
     );
@@ -311,144 +285,137 @@ const restorePanelInfrastructure = () => {
       panelsContainer.appendChild(panelElement);
     }
 
-    // Update state with new element
     openPanels.set(tag, { ...state, element: panelElement });
 
-    // Render React component
     ReactDOM.render(
       <ExtensionApiContextProvider {...state.onloadArgs}>
         <DiscourseSuggestionsPanel
           tag={tag}
           blockUid={state.blockUid}
-          onClose={() => PanelManager.removePanel(tag)}
+          onClose={() => panelManager.removePanel(tag)}
         />
       </ExtensionApiContextProvider>,
       panelElement,
     );
   });
 
-  // Restore minimized state if needed
   if (isContainerMinimized) {
-    PanelManager.toggleContainerMinimize();
+    panelManager.toggleContainerMinimize();
   }
 };
 
 const cleanupPanelInfrastructure = () => {
-  // Unmount all React components
   openPanels.forEach(({ element }) => {
     ReactDOM.unmountComponentAtNode(element);
   });
   openPanels.clear();
 
-  // Remove DOM elements (but keep them in DOM if hidden for potential restoration)
   const panelRoot = document.getElementById(PANEL_ROOT_ID);
   if (panelRoot) {
+    const header = panelRoot.querySelector(
+      "#discourse-suggestions-header",
+    ) as HTMLElement | null;
+    if (header) ReactDOM.unmountComponentAtNode(header);
     panelRoot.remove();
   }
 
-  // Restore layout
   teardownSplitView();
-
-  // Disconnect observers
-  if (navigationObserver) {
-    navigationObserver.disconnect();
-    navigationObserver = null;
-  }
+  cleanupObservers();
 };
 
-// Main Panel Manager
-export const PanelManager = {
-  toggle: (
-    tag: string,
-    blockUid: string,
-    parentEl: HTMLElement,
-    onloadArgs: OnloadArgs,
-  ) => {
-    // If this panel is already open, close it
+export const panelManager = {
+  toggle: ({
+    tag,
+    blockUid,
+    onloadArgs,
+  }: {
+    tag: string;
+    blockUid: string;
+    onloadArgs: OnloadArgs;
+  }) => {
     if (openPanels.has(tag)) {
-      PanelManager.removePanel(tag);
-      return;
+      panelManager.removePanel(tag);
+    } else {
+      panelManager.addPanel({ tag, blockUid, onloadArgs });
     }
-
-    // Add the panel
-    PanelManager.addPanel(tag, blockUid, parentEl, onloadArgs);
   },
 
-  addPanel: (
-    tag: string,
-    blockUid: string,
-    parentEl: HTMLElement,
-    onloadArgs: OnloadArgs,
-  ) => {
-    // Get or create infrastructure
-    let panelsContainer = document.getElementById(PANELS_CONTAINER_ID);
-    if (!panelsContainer) {
-      panelsContainer = createPanelInfrastructure();
-      if (!panelsContainer) return; // Failed to create
+  addPanel: ({
+    tag,
+    blockUid,
+    onloadArgs,
+  }: {
+    tag: string;
+    blockUid: string;
+    onloadArgs: OnloadArgs;
+  }) => {
+    try {
+      let panelsContainer = document.getElementById(PANELS_CONTAINER_ID);
+      if (!panelsContainer) {
+        panelsContainer = createPanelInfrastructure();
+        if (!panelsContainer) {
+          console.error("Failed to create panel infrastructure");
+          return;
+        }
+      }
+
+      const panelElement = document.createElement("div");
+      panelElement.id = `discourse-panel-${tag.replace(/[^a-zA-Z0-9]/g, "-")}`;
+      panelElement.style.cssText = STYLES.panelElement;
+
+      const header = panelsContainer.querySelector(
+        "#discourse-suggestions-header",
+      );
+      if (header && header.nextSibling) {
+        panelsContainer.insertBefore(panelElement, header.nextSibling);
+      } else {
+        panelsContainer.appendChild(panelElement);
+      }
+
+      openPanels.set(tag, { blockUid, element: panelElement, onloadArgs });
+
+      ReactDOM.render(
+        <ExtensionApiContextProvider {...onloadArgs}>
+          <DiscourseSuggestionsPanel
+            tag={tag}
+            blockUid={blockUid}
+            onClose={() => panelManager.removePanel(tag)}
+          />
+        </ExtensionApiContextProvider>,
+        panelElement,
+      );
+    } catch (error) {
+      console.error(`Failed to add panel for ${tag}:`, error);
     }
-
-    // Create panel element
-    const panelElement = document.createElement("div");
-    panelElement.id = `discourse-panel-${tag.replace(/[^a-zA-Z0-9]/g, "-")}`;
-    panelElement.style.cssText = `
-      flex: 0 0 auto;
-      margin-bottom: 8px;
-      background-color: #fff;
-      border-radius: 4px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    `;
-
-    // Insert after header (new panels on top)
-    const header = panelsContainer.querySelector(
-      "#discourse-suggestions-header",
-    );
-    if (header && header.nextSibling) {
-      panelsContainer.insertBefore(panelElement, header.nextSibling);
-    } else {
-      panelsContainer.appendChild(panelElement);
-    }
-
-    // Track this panel with onloadArgs for restoration
-    openPanels.set(tag, { blockUid, element: panelElement, onloadArgs });
-
-    // Render React component
-    ReactDOM.render(
-      <ExtensionApiContextProvider {...onloadArgs}>
-        <DiscourseSuggestionsPanel
-          tag={tag}
-          blockUid={blockUid}
-          onClose={() => PanelManager.removePanel(tag)}
-        />
-      </ExtensionApiContextProvider>,
-      panelElement,
-    );
-
-    // Notify listeners about panel state change
-    PanelManager.notifyStateChange();
   },
 
   removePanel: (tag: string) => {
-    const panelInfo = openPanels.get(tag);
-    if (!panelInfo) return;
+    try {
+      const panelInfo = openPanels.get(tag);
+      if (!panelInfo) return;
 
-    // Unmount React and remove element
-    ReactDOM.unmountComponentAtNode(panelInfo.element);
-    panelInfo.element.remove();
-    openPanels.delete(tag);
+      ReactDOM.unmountComponentAtNode(panelInfo.element);
+      panelInfo.element.remove();
+      openPanels.delete(tag);
 
-    // If no panels left, cleanup everything
-    if (openPanels.size === 0) {
-      cleanupPanelInfrastructure();
+      if (openPanels.size === 0) {
+        cleanupPanelInfrastructure();
+      }
+    } catch (error) {
+      console.error(`Failed to remove panel ${tag}:`, error);
+      openPanels.delete(tag);
     }
-
-    // Notify listeners about panel state change
-    PanelManager.notifyStateChange();
   },
 
   closeAll: () => {
-    isContainerMinimized = false;
-    cleanupPanelInfrastructure();
-    PanelManager.notifyStateChange();
+    try {
+      isContainerMinimized = false;
+      cleanupPanelInfrastructure();
+    } catch (error) {
+      console.error("Failed to close all panels:", error);
+      openPanels.clear();
+      isContainerMinimized = false;
+    }
   },
 
   toggleContainerMinimize: () => {
@@ -460,79 +427,30 @@ export const PanelManager = {
     isContainerMinimized = !isContainerMinimized;
 
     if (isContainerMinimized) {
-      // Hide the full container and show a compact minimized bar
-      (panelsContainer as HTMLElement).style.display = "none";
-
-      // Shrink the panel root width and add minimized bar
+      panelsContainer.style.display = "none";
       panelRoot.style.flex = "0 0 auto";
       panelRoot.style.width = "auto";
-      createMinimizedBar(panelRoot as HTMLElement);
+      createMinimizedBar(panelRoot);
 
-      // Adjust main content
       const roamBodyMain = getRoamBodyMain();
       const articleWrapper = roamBodyMain
         ? getArticleWrapper(roamBodyMain)
         : null;
-      if (articleWrapper) {
-        articleWrapper.style.flex = "1 1 auto";
-      }
+      if (articleWrapper) articleWrapper.style.flex = "1 1 auto";
     } else {
-      // Restore full container
-      (panelsContainer as HTMLElement).style.display = "";
-
-      // Remove minimized bar
+      panelsContainer.style.display = "flex";
       removeMinimizedBar();
-
-      // Restore panel root width
       panelRoot.style.flex = "0 0 40%";
       panelRoot.style.width = "";
 
-      // Update minimize button, if present
-      const minimizeBtn = panelsContainer.querySelector<HTMLButtonElement>(
-        'button[title="Restore sidebar"], button[title="Minimize sidebar"]',
-      );
-      if (minimizeBtn) {
-        minimizeBtn.innerHTML = "⎯";
-        minimizeBtn.title = "Minimize sidebar";
-      }
-
-      // Restore split view
       const roamBodyMain = getRoamBodyMain();
       const articleWrapper = roamBodyMain
         ? getArticleWrapper(roamBodyMain)
         : null;
-      if (articleWrapper) {
-        articleWrapper.style.flex = "1 1 60%";
-      }
+      if (articleWrapper) articleWrapper.style.flex = "1 1 60%";
     }
-
-    PanelManager.notifyStateChange();
   },
 
-  isOpen: (tag: string) => {
-    return openPanels.has(tag);
-  },
-
-  isContainerMinimized: () => {
-    return isContainerMinimized;
-  },
-
-  // Simple event system for state changes
-  listeners: new Set<
-    (openTags: string[], containerMinimized: boolean) => void
-  >(),
-
-  subscribe: (
-    callback: (openTags: string[], containerMinimized: boolean) => void,
-  ) => {
-    PanelManager.listeners.add(callback);
-    return () => PanelManager.listeners.delete(callback);
-  },
-
-  notifyStateChange: () => {
-    const openTags = Array.from(openPanels.keys());
-    PanelManager.listeners.forEach((callback) =>
-      callback(openTags, isContainerMinimized),
-    );
-  },
+  isOpen: (tag: string) => openPanels.has(tag),
+  isContainerMinimized: () => isContainerMinimized,
 };
