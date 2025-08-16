@@ -9,9 +9,9 @@ import {
   previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
 import {
-  hideFeedbackButton,
-  showFeedbackButton,
-} from "~/components/BirdEatsBugs";
+  showDiscourseFloatingMenu,
+  hideDiscourseFloatingMenu,
+} from "~/components/DiscourseFloatingMenu";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
@@ -127,9 +127,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           extensionAPI.settings.set("hide-feedback-button", target.checked);
 
           if (target.checked) {
-            hideFeedbackButton();
+            hideDiscourseFloatingMenu();
           } else {
-            showFeedbackButton();
+            showDiscourseFloatingMenu();
           }
         }}
         labelElement={

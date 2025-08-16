@@ -17,11 +17,16 @@ import { addGraphViewNodeStyling } from "./utils/graphViewNodeStyling";
 import { setQueryPages } from "./utils/setQueryPages";
 import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
 import styles from "./styles/styles.css";
+import discourseFloatingMenuStyles from "./styles/discourseFloatingMenuStyles.css";
 import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
+import {
+  installDiscourseFloatingMenu,
+  removeDiscourseFloatingMenu,
+} from "./components/DiscourseFloatingMenu";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -65,7 +70,7 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-  initFeedbackWidget(onloadArgs.extensionAPI);
+  initFeedbackWidget();
 
   if (window?.roamjs?.loaded?.has("query-builder")) {
     renderToast({
@@ -94,6 +99,7 @@ export default runExtension(async (onloadArgs) => {
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
+  const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
 
   const { observers, listeners } = await initObservers({ onloadArgs });
   const {
@@ -128,8 +134,15 @@ export default runExtension(async (onloadArgs) => {
     getDiscourseNodes: getDiscourseNodes,
   };
 
+  installDiscourseFloatingMenu(onloadArgs.extensionAPI);
+
   return {
-    elements: [style, settingsStyle, discourseGraphStyle],
+    elements: [
+      style,
+      settingsStyle,
+      discourseGraphStyle,
+      discourseFloatingMenuStyle,
+    ],
     observers: observers,
     unload: () => {
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
@@ -146,6 +159,7 @@ export default runExtension(async (onloadArgs) => {
         "selectionchange",
         nodeCreationPopoverListener,
       );
+      removeDiscourseFloatingMenu();
       window.roamAlphaAPI.ui.graphView.wholeGraph.removeCallback({
         label: "discourse-node-styling",
       });

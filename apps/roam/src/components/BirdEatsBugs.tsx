@@ -1,5 +1,6 @@
 import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
-import { OnloadArgs } from "roamjs-components/types";
+
+// Option types detailed in https://docs.birdeatsbug.com/latest/sdk/options.html
 
 export type FeedbackWidget = {
   initialize?: boolean;
@@ -15,9 +16,11 @@ export type FeedbackWidget = {
     publicAppId: string;
     ui?: {
       position?: string;
-      defaultButton?: {
-        icon?: string;
-      };
+      defaultButton?:
+        | {
+            icon?: string;
+          }
+        | boolean;
       text?: {
         defaultButton?: string;
         previewScreen?: {
@@ -42,41 +45,7 @@ declare global {
   }
 }
 
-const STYLE_ID = "feedback-button-hiding-styles";
-
-const addFeedbackButtonHidingStyles = () => {
-  if (document.getElementById(STYLE_ID)) {
-    return;
-  }
-
-  const styleElement = document.createElement("style");
-  styleElement.id = STYLE_ID;
-  styleElement.textContent = `
-    #birdeatsbug-default-button {
-      display: none !important;
-    }
-  `;
-
-  document.head.appendChild(styleElement);
-};
-
-const removeFeedbackButtonHidingStyles = () => {
-  const styleElement = document.getElementById(STYLE_ID);
-  if (styleElement) {
-    styleElement.remove();
-  }
-};
-
-export const initFeedbackWidget = (
-  extensionAPI: OnloadArgs["extensionAPI"],
-): void => {
-  if (extensionAPI.settings.get("hide-feedback-button") as boolean) {
-    addFeedbackButtonHidingStyles();
-    return;
-  }
-
-  removeFeedbackButtonHidingStyles();
-
+export const initFeedbackWidget = (): void => {
   const birdeatsbug = (window.birdeatsbug =
     window.birdeatsbug || []) as FeedbackWidget;
 
@@ -141,22 +110,22 @@ export const initFeedbackWidget = (
 
   const customStyles = document.createElement("style");
   customStyles.textContent = `
-   
+
     #birdeatsbug-sdk {
       --distance-to-window-edge-vertical: 50px;
       --distance-to-window-edge-horizontal: 20px;
     }
-    
+
     #birdeatsbug-sdk .form-error {
       font-size: 1.2rem;
     }
-    
+
     #birdeatsbug-sdk:has(.screen) {
       box-shadow: none !important;
       border-radius: 0 !important;
       border: none !important;
     }
-    
+
     #birdeatsbug-sdk.dark {
       --button-primary-bg-color: #1976d2;
     }
@@ -180,7 +149,7 @@ export const initFeedbackWidget = (
 
     #birdeatsbug-sdk .caret {
       height: initial;
-      width: initial; 
+      width: initial;
       border-top: initial;
     }
   `;
@@ -195,9 +164,8 @@ export const initFeedbackWidget = (
       },
       ui: {
         position: "bottom-right",
-        defaultButton: { icon: undefined },
+        defaultButton: false, // hide, will be triggered in DiscourseFloatingMenu
         text: {
-          defaultButton: "Send feedback",
           previewScreen: {
             title: "Discourse Graphs feedback",
           },
@@ -211,6 +179,3 @@ export const initFeedbackWidget = (
     });
   }
 };
-
-export const hideFeedbackButton = addFeedbackButtonHidingStyles;
-export const showFeedbackButton = removeFeedbackButtonHidingStyles;
