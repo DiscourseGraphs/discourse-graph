@@ -96,6 +96,49 @@ const SidebarHeader = ({
 const openPanels = new Map<string, PanelState>();
 let isContainerMinimized = false;
 
+const cssEscape = (value: string) =>
+  (window as any).CSS && (window as any).CSS.escape
+    ? (window as any).CSS.escape(value)
+    : value.replace(/[^a-zA-Z0-9_\-]/g, (c: string) => `\\${c}`);
+
+const updateOverlayToggleButtons = (tag: string, isOpen: boolean): void => {
+  try {
+    const selector = `button[data-dg-role="panel-toggle"][data-dg-tag="${cssEscape(tag)}"]`;
+    const buttons = Array.from(document.querySelectorAll(selector));
+    buttons.forEach((btn) => {
+      const buttonEl = btn as HTMLButtonElement;
+      buttonEl.dataset.dgPanelOpen = isOpen ? "true" : "false";
+      if (isOpen) buttonEl.classList.add("bp3-intent-primary");
+      else buttonEl.classList.remove("bp3-intent-primary");
+      buttonEl.title = isOpen
+        ? "Close suggestions panel"
+        : "Open suggestions panel";
+      const icon = buttonEl.querySelector(".bp3-icon");
+      if (icon) {
+        icon.classList.remove(
+          isOpen ? "bp3-icon-panel-stats" : "bp3-icon-panel-table",
+        );
+        icon.classList.add(
+          isOpen ? "bp3-icon-panel-table" : "bp3-icon-panel-stats",
+        );
+      }
+    });
+  } catch (e) {
+    // ignore DOM sync failures
+  }
+};
+
+const clearBlockHighlight = (blockUid: string): void => {
+  try {
+    const nodes = document.querySelectorAll(
+      `[data-dg-block-uid="${blockUid}"]`,
+    );
+    nodes.forEach((el) => el.classList.remove("dg-highlight"));
+  } catch {
+    // no-op
+  }
+};
+
 const getRoamBodyMain = () =>
   document.querySelector<HTMLElement>(".roam-body-main");
 const getArticleWrapper = (container: HTMLElement) =>
@@ -373,6 +416,7 @@ export const panelManager = {
       }
 
       openPanels.set(tag, { blockUid, element: panelElement, onloadArgs });
+      updateOverlayToggleButtons(tag, true);
 
       ReactDOM.render(
         <ExtensionApiContextProvider {...onloadArgs}>
@@ -396,7 +440,10 @@ export const panelManager = {
 
       ReactDOM.unmountComponentAtNode(panelInfo.element);
       panelInfo.element.remove();
+      const { blockUid } = panelInfo;
       openPanels.delete(tag);
+      updateOverlayToggleButtons(tag, false);
+      clearBlockHighlight(blockUid);
 
       if (openPanels.size === 0) {
         cleanupPanelInfrastructure();
@@ -410,7 +457,12 @@ export const panelManager = {
   closeAll: () => {
     try {
       isContainerMinimized = false;
+      const entries = Array.from(openPanels.entries());
       cleanupPanelInfrastructure();
+      entries.forEach(([t, state]) => {
+        updateOverlayToggleButtons(t, false);
+        clearBlockHighlight(state.blockUid);
+      });
     } catch (error) {
       console.error("Failed to close all panels:", error);
       openPanels.clear();

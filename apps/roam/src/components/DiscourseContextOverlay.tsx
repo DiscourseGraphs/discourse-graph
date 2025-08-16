@@ -29,10 +29,18 @@ const DiscourseContextOverlay = ({
 
   const toggleHighlight = useCallback(
     (on: boolean) => {
-      console.log("toggleHighlight", blockUid, on);
-      document
-        .querySelectorAll(`[data-dg-block-uid="${blockUid}"]`)
-        .forEach((el) => el.classList.toggle("dg-highlight", on));
+      const nodes = document.querySelectorAll(
+        `[data-dg-block-uid="${blockUid}"]`,
+      );
+      nodes.forEach((el) => {
+        const elem = el as HTMLElement;
+        if (
+          elem.classList.contains("roamjs-discourse-context-overlay") ||
+          elem.closest(".roamjs-discourse-context-overlay")
+        )
+          return;
+        elem.classList.toggle("dg-highlight", on);
+      });
     },
     [blockUid],
   );
@@ -41,10 +49,11 @@ const DiscourseContextOverlay = ({
     (e: React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
+      toggleHighlight(false);
       panelManager.toggle({ tag, blockUid, onloadArgs });
       setIsPanelOpen(panelManager.isOpen(tag));
     },
-    [tag, blockUid, onloadArgs],
+    [tag, blockUid, onloadArgs, toggleHighlight],
   );
 
   return (
@@ -93,6 +102,9 @@ const DiscourseContextOverlay = ({
               position={Position.RIGHT}
             >
               <Button
+                data-dg-role="panel-toggle"
+                data-dg-tag={tag}
+                data-dg-panel-open={isPanelOpen ? "true" : "false"}
                 icon={isPanelOpen ? "panel-table" : "panel-stats"}
                 minimal
                 small
