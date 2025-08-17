@@ -111,7 +111,6 @@ export const isPageUid = (uid: string) =>
   ];
 
 const TldrawCanvas = ({ title }: { title: string }) => {
-  console.log("TldrawCanvas", title);
   const appRef = useRef<TldrawApp | null>(null);
   const lastInsertRef = useRef<VecModel>();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -186,6 +185,101 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   const allAddReferencedNodeActions = useMemo(() => {
     return Object.keys(allAddReferencedNodeByAction);
   }, [allAddReferencedNodeByAction]);
+
+  const isRelationTool = (toolId: string) => {
+    return (
+      allRelationNames.includes(toolId) ||
+      allAddReferencedNodeActions.includes(toolId)
+    );
+  };
+
+  const isDiscourseNodeShape = (
+    shape: TLShape,
+  ): shape is DiscourseNodeShape => {
+    return allNodes.some((node) => node.type === shape.type);
+  };
+
+  // Add state for tracking relation creation
+  const relationCreationRef = useRef<{
+    isCreating: boolean;
+    relationShapeId?: TLShapeId;
+    sourceShapeId?: TLShapeId;
+    toolType?: string;
+  }>({
+    isCreating: false,
+  });
+
+  const handleRelationCreation = (app: TldrawApp, e: TLPointerEventInfo) => {
+    // Handle relation creation on pointer_down
+    if (e.type === "pointer" && e.name === "pointer_down") {
+      const currentTool = app.getCurrentTool();
+      const currentToolId = currentTool.id;
+      const pagePoint = app.screenToPage(e.point);
+      const shapeAtPoint = app.getShapeAtPoint(pagePoint);
+
+      // Check if current tool is a relation tool
+      if (isRelationTool(currentToolId)) {
+        relationCreationRef.current.isCreating = true;
+        relationCreationRef.current.toolType = currentToolId;
+
+        // If we clicked on a discourse node, record it as the source
+        if (shapeAtPoint && isDiscourseNodeShape(shapeAtPoint)) {
+          relationCreationRef.current.sourceShapeId = shapeAtPoint.id;
+        }
+      }
+    }
+
+    // Handle relation creation on pointer_up
+    if (e.type === "pointer" && e.name === "pointer_up") {
+      const pagePoint = app.screenToPage(e.point);
+      const shapeAtPoint = app.getShapeAtPoint(pagePoint);
+
+      // Handle relation creation completion
+      if (relationCreationRef.current.isCreating) {
+        // Find the relation shape that was just created
+        const selectedShapes = app.getSelectedShapes();
+        const relationShape = selectedShapes.find(
+          (shape) =>
+            allRelationIds.includes(shape.type) ||
+            allAddReferencedNodeActions.includes(shape.type),
+        );
+
+        if (relationShape) {
+          relationCreationRef.current.relationShapeId = relationShape.id;
+
+          // Check if we have a target shape
+          if (shapeAtPoint && isDiscourseNodeShape(shapeAtPoint)) {
+            // We have a valid target, call the relation creation method
+            const util = app.getShapeUtil(relationShape);
+            if (
+              util &&
+              typeof (util as any).handleCreateRelationsInRoam === "function"
+            ) {
+              (util as any).handleCreateRelationsInRoam({
+                arrow: relationShape,
+                targetId: shapeAtPoint.id,
+              });
+            }
+          } else {
+            // No target shape, delete the relation and show toast
+            app.deleteShapes([relationShape.id]);
+            dispatchToastEvent({
+              id: "tldraw-relation-no-target",
+              title: "Relation must connect to a node. Relation deleted.",
+              severity: "warning",
+            });
+          }
+        } else {
+          console.log("No relation shape found in selection");
+        }
+
+        // Reset relation creation state
+        relationCreationRef.current = {
+          isCreating: false,
+        };
+      }
+    }
+  };
 
   const extensionAPI = useExtensionAPI();
   if (!extensionAPI) return null;
@@ -448,11 +542,16 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
             appRef.current = app;
 
-            // TODO - this should move to one of DiscourseNodeTool's children classes instead
             app.on("event", (event) => {
               const e = event as TLPointerEventInfo;
 
               discourseContext.lastAppEvent = e.name;
+
+              // Handle relation creation on pointer_down
+              handleRelationCreation(app, e);
+
+              // Open Node in main window or sidebar
+              // TODO - this should move to one of DiscourseNodeTool's children classes instead
 
               // handle node clicked with modifiers
               // navigate / open in sidebar

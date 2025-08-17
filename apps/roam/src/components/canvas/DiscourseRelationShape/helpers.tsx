@@ -1,3 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-floating-promises */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable max-params */
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
+/* eslint-disable preferArrows/prefer-arrow-functions */
+/* eslint-disable @typescript-eslint/naming-convention */
+
 import React, { useRef, useEffect, useState } from "react";
 import {
   createComputedCache,
@@ -1628,6 +1642,7 @@ export function createOrUpdateArrowBinding(
   relation: DiscourseRelationShape,
   target: TLShape | TLShapeId,
   props: TLArrowBindingProps,
+  shouldCreateRelation = false,
 ) {
   const arrowId = typeof relation === "string" ? relation : relation.id;
   const targetId = typeof target === "string" ? target : target.id;
@@ -1662,7 +1677,7 @@ export function createOrUpdateArrowBinding(
       id: relation.id,
       type: relation.type,
     });
-    if (util instanceof BaseDiscourseRelationUtil) {
+    if (util instanceof BaseDiscourseRelationUtil && shouldCreateRelation) {
       // @ts-expect-error TODO: fix this
       util?.handleCreateRelationsInRoam({
         arrow: relation,
