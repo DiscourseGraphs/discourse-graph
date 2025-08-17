@@ -4,6 +4,13 @@ import {
   ErrorBoundary,
   Tldraw,
   TLStore,
+  useTools,
+  TldrawUiMenuItem,
+  DefaultToolbar,
+  DefaultToolbarContent,
+  useIsToolSelected,
+  DefaultStylePanel,
+  Editor,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import {
@@ -18,10 +25,15 @@ import {
   DEFAULT_SAVE_DELAY,
   TLDATA_DELIMITER_END,
   TLDATA_DELIMITER_START,
+  WHITE_LOGO_SVG,
 } from "~/constants";
 import { TFile } from "obsidian";
 import { ObsidianTLAssetStore } from "~/utils/assetStore";
 import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
+import { DiscourseNodePanel } from "./DiscourseNodePanel";
+import { DiscourseNodeTool } from "~/utils/DiscourseNodeTool";
+import { DiscourseNode } from "~/types";
+import { openCreateDiscourseNodeAt } from "~/utils/nodeCreationFlow";
 
 interface TldrawPreviewProps {
   store: TLStore;
@@ -41,6 +53,7 @@ export const TldrawPreviewComponent = ({
   const [isReady, setIsReady] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedDataRef = useRef<string>("");
+  const editorRef = useRef<Editor | null>(null);
 
   const customShapeUtils = [
     ...defaultShapeUtils,
@@ -50,6 +63,32 @@ export const TldrawPreviewComponent = ({
       plugin,
     }),
   ];
+  const customTools = [DiscourseNodeTool];
+
+  const svgToDataUrl = (svg: string) =>
+    `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+
+  const [iconUrl, setIconUrl] = useState<string>(() => {
+    const isDark = document.body.classList.contains("theme-dark");
+    const svg = isDark
+      ? WHITE_LOGO_SVG
+      : WHITE_LOGO_SVG.replace('fill="white"', 'fill="black"');
+    return svgToDataUrl(svg);
+  });
+
+  useEffect(() => {
+    const updateIcon = () => {
+      const isDark = document.body.classList.contains("theme-dark");
+      const svg = isDark
+        ? WHITE_LOGO_SVG
+        : WHITE_LOGO_SVG.replace('fill="white"', 'fill="black"');
+      setIconUrl(svgToDataUrl(svg));
+    };
+    const ref = plugin.app.workspace.on("css-change", updateIcon);
+    return () => {
+      if (ref) plugin.app.workspace.offref(ref);
+    };
+  }, [plugin]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -139,8 +178,42 @@ export const TldrawPreviewComponent = ({
     };
   }, [currentStore, saveChanges]);
 
+  const handleMount = (editor: Editor) => {
+    editorRef.current = editor;
+  };
+
   return (
-    <div ref={containerRef} className="tldraw__editor relative h-full">
+    <div
+      ref={containerRef}
+      className="tldraw__editor relative h-full"
+      onDropCapture={(e) => {
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        const nodeTypeId = e.dataTransfer?.getData(
+          "application/x-dg-node-type",
+        );
+        if (!nodeTypeId) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const pagePoint = editor.screenToPage({ x: e.clientX, y: e.clientY });
+
+        const nodeType = plugin.settings.nodeTypes.find(
+          (nt) => nt.id === nodeTypeId,
+        );
+        if (!nodeType) return;
+
+        openCreateDiscourseNodeAt({
+          plugin,
+          canvasFile: file,
+          tldrawEditor: editor,
+          position: pagePoint,
+          initialNodeType: nodeType,
+        });
+      }}
+    >
       {isReady ? (
         <ErrorBoundary
           fallback={({ error }) => (
@@ -149,9 +222,66 @@ export const TldrawPreviewComponent = ({
         >
           <Tldraw
             store={currentStore}
+            onMount={handleMount}
             autoFocus={true}
             initialState="select"
             shapeUtils={customShapeUtils}
+            tools={customTools}
+            assetUrls={{
+              icons: {
+                discourseNodeIcon: iconUrl,
+              },
+            }}
+            overrides={{
+              tools: (editor, tools) => {
+                tools["discourse-node"] = {
+                  id: "discourse-node",
+                  label: "Discourse Node",
+                  readonlyOk: false,
+                  icon: "discourseNodeIcon",
+                  onSelect: () => {
+                    editor.setCurrentTool("discourse-node");
+                  },
+                };
+                return tools;
+              },
+            }}
+            components={{
+              StylePanel: () => {
+                const tools = useTools();
+                const isDiscourseNodeSelected = useIsToolSelected(
+                  tools["discourse-node"],
+                );
+
+                if (!isDiscourseNodeSelected) {
+                  return <DefaultStylePanel />;
+                }
+
+                return <DiscourseNodePanel plugin={plugin} canvasFile={file} />;
+              },
+              Toolbar: (props) => {
+                const tools = useTools();
+                const isDiscourseNodeSelected = useIsToolSelected(
+                  tools["discourse-node"],
+                );
+                return (
+                  <DefaultToolbar {...props}>
+                    <TldrawUiMenuItem
+                      id="discourse-node"
+                      icon="discourseNodeIcon"
+                      label="Discourse Node"
+                      onSelect={() => {
+                        if (editorRef.current) {
+                          editorRef.current.setCurrentTool("discourse-node");
+                        }
+                      }}
+                      isSelected={isDiscourseNodeSelected}
+                    />
+                    <DefaultToolbarContent />
+                  </DefaultToolbar>
+                );
+              },
+            }}
           />
         </ErrorBoundary>
       ) : (
