@@ -147,10 +147,10 @@ const upsertNodeSchemaToContent = async (
   ]
   `;
   //@ts-ignore - backend to be added to roamjs-components
-  const result = await window.roamAlphaAPI.data.backend.q(
+  const result = (await window.roamAlphaAPI.data.backend.q(
     query,
     nodeTypesUids,
-  ) as unknown as RoamDiscourseNodeData[];
+  )) as unknown as RoamDiscourseNodeData[];
 
   const contentData: LocalContentDataInput[] = result.map((node) => ({
     author_id: userId,
@@ -238,7 +238,7 @@ export const convertDgToSupabaseConcepts = async (
     ...relationBlockToLocalConcepts,
   ];
   const { ordered } = orderConceptsByDependency(conceptsToUpsert);
-  const {  error } = await supabaseClient.rpc("upsert_concepts", {
+  const { error } = await supabaseClient.rpc("upsert_concepts", {
     data: ordered,
     v_space_id: context.spaceId,
   });
@@ -373,6 +373,7 @@ export const createOrUpdateDiscourseEmbedding = async (
     const context = await getSupabaseContext();
     if (!context) {
       console.error("No Supabase context found.");
+      await endSyncTask(worker, "failed");
       return;
     }
     await upsertNodesToSupabaseAsContentWithEmbeddings(

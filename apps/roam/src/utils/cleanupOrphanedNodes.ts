@@ -1,8 +1,4 @@
-import {
-  getSupabaseContext,
-  getLoggedInClient,
-  type SupabaseContext,
-} from "./supabaseContext";
+import { type SupabaseContext } from "./supabaseContext";
 import { type SupabaseClient } from "@supabase/supabase-js";
 import { type Database } from "@repo/database/types.gen";
 
@@ -10,14 +6,9 @@ type DGSupabaseClient = SupabaseClient<Database, "public", Database["public"]>;
 
 const getAllNodesFromSupabase = async (
   supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
+  spaceId: number,
 ): Promise<string[]> => {
   try {
-    if (!context) {
-      console.error("Failed to get Supabase context");
-      return [];
-    }
-    const { spaceId } = context;
 
     const { data: schemas, error: schemasError } = await supabaseClient
       .from("Concept")
@@ -96,14 +87,9 @@ const getAllNodesFromSupabase = async (
 
 const getAllNodeSchemasFromSupabase = async (
   supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
+  spaceId: number,
 ): Promise<string[]> => {
   try {
-    if (!context) {
-      console.error("Failed to get Supabase context");
-      return [];
-    }
-
     const { data, error } = await supabaseClient
       .from("Concept")
       .select(
@@ -113,7 +99,7 @@ const getAllNodeSchemasFromSupabase = async (
         )
       `,
       )
-      .eq("space_id", context.spaceId)
+      .eq("space_id", spaceId)
       .eq("is_schema", true)
       .eq("arity", 0)
       .not("Content.source_local_id", "is", null);
@@ -205,17 +191,11 @@ const deleteNodesFromSupabase = async (
 
 const deleteNodeSchemasFromSupabase = async (
   uids: string[],
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
 ): Promise<number> => {
   try {
-    const context = await getSupabaseContext();
-    if (!context) {
-      console.error("Failed to get Supabase context");
-      return 0;
-    }
     if (uids.length === 0) return 0;
-
-    const supabaseClient = await getLoggedInClient();
-    const { spaceId } = context;
 
     const { data: schemaContentData, error: contentLookupError } =
       await supabaseClient
@@ -375,7 +355,10 @@ export const cleanupOrphanedNodes = async (
   context: SupabaseContext,
 ): Promise<void> => {
   try {
-    const supabaseUids = await getAllNodesFromSupabase(supabaseClient, context);
+    const supabaseUids = await getAllNodesFromSupabase(
+      supabaseClient,
+      context.spaceId,
+    );
     if (supabaseUids.length > 0) {
       const orphanedUids = getNonExistentRoamUids(supabaseUids);
       if (orphanedUids.length > 0) {
@@ -389,12 +372,16 @@ export const cleanupOrphanedNodes = async (
 
     const supabaseSchemaUids = await getAllNodeSchemasFromSupabase(
       supabaseClient,
-      context,
+      context.spaceId,
     );
     if (supabaseSchemaUids.length > 0) {
       const orphanedSchemaUids = getNonExistentRoamUids(supabaseSchemaUids);
       if (orphanedSchemaUids.length > 0) {
-        await deleteNodeSchemasFromSupabase(orphanedSchemaUids);
+        await deleteNodeSchemasFromSupabase(
+          orphanedSchemaUids,
+          supabaseClient,
+          context.spaceId,
+        );
       }
     }
   } catch (error) {

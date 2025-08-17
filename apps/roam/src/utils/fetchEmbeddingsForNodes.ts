@@ -21,7 +21,7 @@ export const fetchEmbeddingsForNodes = async (
   for (let i = 0; i < allNodesTexts.length; i += EMBEDDING_BATCH_SIZE) {
     const batch = allNodesTexts.slice(i, i + EMBEDDING_BATCH_SIZE);
     console.log(
-      `fetchEmbeddingsForNodes: Fetching batch ${i / EMBEDDING_BATCH_SIZE + 1} of ${allNodesTexts.length / EMBEDDING_BATCH_SIZE}`,
+      `fetchEmbeddingsForNodes: Fetching batch ${i / EMBEDDING_BATCH_SIZE + 1} of ${Math.ceil(allNodesTexts.length / EMBEDDING_BATCH_SIZE)}`,
     );
 
     const response = await fetch(API_URL, {
