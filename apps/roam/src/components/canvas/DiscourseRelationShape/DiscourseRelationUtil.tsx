@@ -271,14 +271,15 @@ export const createAllReferencedNodeUtils = (
           // find out why
           target.id === shape.id
         ) {
-          if (
-            currentBinding &&
-            otherBinding &&
-            currentBinding.toId !== otherBinding.toId
-          ) {
-            this.cancelAndWarn("Cannot remove handle.");
-            return update;
-          }
+          // TODO re-implement this on pointer up
+          // if (
+          //   currentBinding &&
+          //   otherBinding &&
+          //   currentBinding.toId !== otherBinding.toId
+          // ) {
+          //   this.cancelAndWarn("Cannot remove handle.");
+          //   return update;
+          // }
 
           // todo: maybe double check that this isn't equal to the other handle too?
           removeArrowBinding(this.editor, shape, handleId);
@@ -673,14 +674,15 @@ export const createAllRelationShapeUtils = (
           // find out why
           target.id === shape.id
         ) {
-          if (
-            currentBinding &&
-            otherBinding &&
-            currentBinding.toId !== otherBinding.toId
-          ) {
-            this.cancelAndWarn("Cannot remove handle.");
-            return update;
-          }
+          // TODO re-implement this on pointer up
+          // if (
+          //   currentBinding &&
+          //   otherBinding &&
+          //   currentBinding.toId !== otherBinding.toId
+          // ) {
+          //   this.cancelAndWarn("Cannot remove handle.");
+          //   return update;
+          // }
 
           // todo: maybe double check that this isn't equal to the other handle too?
           removeArrowBinding(this.editor, shape, handleId);
