@@ -287,7 +287,9 @@ const ExportDialog: ExportDialogComponent = ({
     if (existingShapes.length > 0) {
       const highestIndex = existingShapes.reduce((highest: IndexKey, shape) => {
         const shapeWithIndex = shape as TLShape;
-        return shapeWithIndex.index > highest ? shapeWithIndex.index : highest;
+        return shapeWithIndex.index.localeCompare(highest) > 0
+          ? shapeWithIndex.index
+          : highest;
       }, "a1" as IndexKey);
       currentIndex = highestIndex;
     }
