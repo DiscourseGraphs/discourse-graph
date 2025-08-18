@@ -9,8 +9,9 @@ import {
 } from "tldraw";
 import { createMigrationIds } from "tldraw";
 import { RelationBinding } from "./DiscourseRelationBindings";
+import { getRelationColor } from "./DiscourseRelationUtil";
 
-const SEQUENCE_ID_BASE = "com.roam-research.query-builder";
+const SEQUENCE_ID_BASE = "com.roam-research.discourse-graphs";
 
 export const createArrowShapeMigrations = ({
   allRelationIds,
@@ -22,26 +23,12 @@ export const createArrowShapeMigrations = ({
   const allShapeIds = [...allRelationIds, ...allAddReferencedNodeActions];
   return allShapeIds.map((shapeId) => {
     const versions = createMigrationIds(`${SEQUENCE_ID_BASE}.${shapeId}`, {
-      "2.3.0": 1,
-      ExtractBindings: 2,
+      ExtractBindings: 1,
+      "2.3.0": 2,
     });
     return createMigrationSequence({
       sequenceId: `${SEQUENCE_ID_BASE}.${shapeId}`,
       sequence: [
-        {
-          id: versions["2.3.0"],
-          scope: "record",
-          filter: (r: any) => r.type === shapeId && r.typeName === "shape",
-          up: (arrow: any) => {
-            arrow.props.start = { x: 0, y: 0 };
-            arrow.props.end = { x: 0, y: 0 };
-            arrow.props.labelPosition = 0.5;
-            arrow.props.scale = 1;
-
-            // TODO: migrate colors
-            arrow.props.color = "black";
-          },
-        },
         {
           id: versions["ExtractBindings"],
           scope: "store",
@@ -120,6 +107,21 @@ export const createArrowShapeMigrations = ({
                 delete arrow.props.end.type;
               }
             }
+          },
+        },
+        {
+          id: versions["2.3.0"],
+          scope: "record",
+          filter: (r: any) => r.type === shapeId && r.typeName === "shape",
+          up: (arrow: any) => {
+            arrow.props.start = { x: 0, y: 0 };
+            arrow.props.end = { x: 0, y: 0 };
+            arrow.props.labelPosition = 0.5;
+            arrow.props.scale = 1;
+
+            const color = getRelationColor(arrow.props.text || "");
+            arrow.props.color = color;
+            arrow.props.labelColor = color;
           },
         },
       ],

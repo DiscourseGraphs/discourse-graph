@@ -43,6 +43,7 @@ import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { openCanvasDrawer } from "./CanvasDrawer";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import { dispatchToastEvent } from "./ToastListener";
+import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 
 const convertToDiscourseNode = async ({
   text,
@@ -349,13 +350,7 @@ export const createUiOverrides = ({
           editor.setCurrentTool(name);
         },
         style: {
-          // TODO: get color from canvasSettings
-          color:
-            name === "Supports" || name === "Supported By"
-              ? "green"
-              : name === "Opposes" || name === "Opposed By"
-                ? "red"
-                : `${COLOR_ARRAY[index + 1]}`,
+          color: getRelationColor(name, index),
         },
       };
     });

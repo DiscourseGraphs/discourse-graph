@@ -30,6 +30,8 @@ import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { createTextJsxFromSpans } from "./DiscourseRelationShape/helpers";
+import { loadImage } from "~/utils/loadImage";
+import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -69,28 +71,6 @@ const COLOR_PALETTE: Record<string, string> = {
   violet: "#ae3ec9",
   white: "#ffffff",
   yellow: "#ffc078",
-};
-
-export const loadImage = (
-  url: string,
-): Promise<{ width: number; height: number }> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-
-    img.onload = () => {
-      resolve({ width: img.width, height: img.height });
-    };
-
-    img.onerror = () => {
-      reject(new Error("Failed to load image"));
-    };
-
-    setTimeout(() => {
-      reject(new Error("Image load timeout"));
-    }, 3000);
-
-    img.src = url;
-  });
 };
 
 const getRelationIds = () =>
@@ -288,16 +268,12 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
         return { relationId, complement, nodeId, arrowId, label };
       });
 
-    const shapesToCreate = toCreate.map(({ relationId, arrowId, label }) => {
-      // TODO: add color selector to relations
-      const color =
-        label === "Supports" || label === "Supported By"
-          ? "green"
-          : label === "Opposes" || label === "Opposed By"
-            ? "red"
-            : "black";
-      return { id: arrowId, type: relationId, props: { color } };
-    });
+    const shapesToCreate = toCreate.map(
+      ({ relationId, arrowId, label }, index) => {
+        const color = getRelationColor(label, index);
+        return { id: arrowId, type: relationId, props: { color } };
+      },
+    );
 
     const bindingsToCreate = toCreate.flatMap(
       ({ relationId, complement, nodeId, arrowId }) => {

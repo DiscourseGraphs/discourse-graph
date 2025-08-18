@@ -79,9 +79,32 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 
-const COLOR_ARRAY = Array.from(
-  textShapeProps.color.values,
-).reverse() as readonly TLDefaultColorStyle[];
+const COLOR_ARRAY = Array.from(textShapeProps.color.values)
+  .filter((c) => !["red", "green", "grey"].includes(c))
+  .reverse() as readonly TLDefaultColorStyle[];
+
+export const getRelationColor = (
+  relationName: string,
+  index?: number,
+): TLDefaultColorStyle => {
+  if (relationName === "Supports" || relationName === "Supported By") {
+    return "green";
+  }
+
+  if (relationName === "Opposes" || relationName === "Opposed By") {
+    return "red";
+  }
+
+  if (relationName === "Informs" || relationName === "Informed By") {
+    return "grey";
+  }
+
+  if (relationName === "Add Source") {
+    return "grey";
+  }
+
+  return `${COLOR_ARRAY[index || 0]}`;
+};
 
 export const createAllReferencedNodeUtils = (
   allAddReferencedNodeByAction: AddReferencedNodeType,

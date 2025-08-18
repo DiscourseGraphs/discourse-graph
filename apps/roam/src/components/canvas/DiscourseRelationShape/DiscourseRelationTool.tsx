@@ -5,7 +5,10 @@ import {
   createShapeId,
   TLStateNodeConstructor,
 } from "tldraw";
-import { DiscourseRelationShape } from "./DiscourseRelationUtil";
+import {
+  DiscourseRelationShape,
+  getRelationColor,
+} from "./DiscourseRelationUtil";
 import { discourseContext } from "~/components/canvas/Tldraw";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 
@@ -431,13 +434,7 @@ export const createAllRelationShapeTools = (
           this.markId = `creating:${id}`;
           this.editor.mark(this.markId);
 
-          // TODO: add color selector to relations
-          const color =
-            name === "Supports" || name === " Supported By"
-              ? "green"
-              : name === "Opposes" || name === "Opposed By"
-                ? "red"
-                : "black";
+          const color = getRelationColor(name);
 
           if (!this.shapeType) {
             this.cancelAndWarn("Must start on a node");
