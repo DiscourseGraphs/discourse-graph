@@ -34,10 +34,8 @@ import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
-import findDiscourseNode from "~/utils/findDiscourseNode";
-import { createShapeId } from "@tldraw/tlschema";
-import { MAX_WIDTH } from "./canvas/Tldraw";
-import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
+import findDiscourseNode from "../utils/findDiscourseNode";
+import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 import { Column } from "~/utils/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { getNodeEnv } from "roamjs-components/util/env";
@@ -46,8 +44,10 @@ import apiPut from "roamjs-components/util/apiPut";
 import { ExportGithub } from "./ExportGithub";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import createPage from "roamjs-components/writes/createPage";
-import { createInitialTldrawProps } from "~/utils/createInitialTldrawProps";
-import { isCanvasPage as checkIfCanvasPage } from "~/utils/isCanvasPage";
+import { createShapeId, IndexKey, TLParentId } from "tldraw";
+import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
+import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
+import { MAX_WIDTH } from "~/components/canvas/Tldraw";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 
@@ -145,14 +145,18 @@ const ExportDialog: ExportDialogComponent = ({
   const [activeExportDestination, setActiveExportDestination] =
     useState<string>(EXPORT_DESTINATIONS[0].id);
 
+  const checkForCanvasPage = (title: string) => {
+    const canvasPageFormat =
+      (getExtensionAPI().settings.get("canvas-page-format") as string) ||
+      DEFAULT_CANVAS_PAGE_FORMAT;
+    return new RegExp(`^${canvasPageFormat}$`.replace(/\*/g, ".+")).test(title);
+  };
   const firstColumnKey = columns?.[0]?.key || "text";
   const currentPageUid = getCurrentPageUid();
   const currentPageTitle = getPageTitleByPageUid(currentPageUid);
   const [selectedPageTitle, setSelectedPageTitle] = useState(currentPageTitle);
   const [selectedPageUid, setSelectedPageUid] = useState(currentPageUid);
-  const isCanvasPage = checkIfCanvasPage({
-    title: selectedPageTitle,
-  });
+  const isCanvasPage = checkForCanvasPage(selectedPageTitle);
   const [activeSendToDestination, setActiveSendToDestination] =
     useState<(typeof SEND_TO_DESTINATIONS)[number]>("page");
   const isSendToGraph = activeSendToDestination === "graph";
@@ -183,13 +187,8 @@ const ExportDialog: ExportDialogComponent = ({
       const response = await apiPut({
         domain: "https://api.github.com",
         path: `repos/${selectedRepo}/contents/${filename}`,
-        headers: {
-          Authorization: `token ${gitHubAccessToken}`,
-        },
-        data: {
-          message: `Add ${filename}`,
-          content: base64Content,
-        },
+        headers: { Authorization: `token ${gitHubAccessToken}` },
+        data: { message: `Add ${filename}`, content: base64Content },
       });
       if (response.status === 401) {
         setGitHubAccessToken(null);
@@ -224,48 +223,53 @@ const ExportDialog: ExportDialogComponent = ({
     const MAX_COLUMNS = 5;
     const COLUMN_WIDTH = Number(MAX_WIDTH.replace("px", ""));
     const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
-    const tldraw =
-      (rjsqb?.["tldraw"] as Record<string, unknown>) ||
-      createInitialTldrawProps();
+    const tldraw = (rjsqb?.["tldraw"] as Record<string, unknown>) || {};
+    const store = (tldraw?.["store"] as Record<string, unknown>) || {
+      "document:document": {
+        gridSize: 10,
+        name: "",
+        meta: {},
+        id: "document:document",
+        typeName: "document",
+      },
+      "page:page": {
+        meta: {},
+        id: "page:page",
+        name: "Page 1",
+        index: "a1",
+        typeName: "page",
+      },
+    };
 
-    const getPageKey = (obj: Record<string, unknown>): string => {
+    const getPageKey = (
+      obj: Record<string, unknown>,
+    ): TLParentId | undefined => {
       for (const key in obj) {
         if (
           obj[key] &&
           typeof obj[key] === "object" &&
           (obj[key] as any)["typeName"] === "page"
         ) {
-          return key;
+          return key as TLParentId;
         }
       }
-      return "";
+      return undefined;
     };
-    const pageKey = getPageKey(tldraw);
+    const pageKey = getPageKey(store);
+    if (!pageKey) return console.log("no page key");
 
-    type TLdrawProps = {
-      [key: string]: any;
-    };
-    type ShapeBounds = {
-      x: number;
-      y: number;
-      w: number;
-      h: number;
-    };
-    const extractShapesBounds = (tldraw: TLdrawProps): ShapeBounds[] => {
-      if (!tldraw) return [];
-      return Object.keys(tldraw)
-        .filter((key) => tldraw[key].typeName === "shape")
+    type TLdrawProps = { [key: string]: any };
+    type ShapeBounds = { x: number; y: number; w: number; h: number };
+    const extractShapesBounds = (store: TLdrawProps): ShapeBounds[] => {
+      if (!store) return [];
+      return Object.keys(store)
+        .filter((key) => store[key].typeName === "shape")
         .map((key) => {
-          const shape = tldraw[key];
-          return {
-            x: shape.x,
-            y: shape.y,
-            w: shape.props.w,
-            h: shape.props.h,
-          };
+          const shape = store[key];
+          return { x: shape.x, y: shape.y, w: shape.props.w, h: shape.props.h };
         });
     };
-    const shapeBounds = extractShapesBounds(tldraw);
+    const shapeBounds = extractShapesBounds(store);
 
     type CommonBounds = {
       top: number;
@@ -311,22 +315,19 @@ const ExportDialog: ExportDialogComponent = ({
         extensionAPI,
       });
       const newShapeId = createShapeId();
-      const newShape = {
+      const newShape: DiscourseNodeShape = {
+        index: "a1" as IndexKey, // TODO does this need to be unique?
         rotation: 0,
         isLocked: false,
         type: nodeType,
-        props: {
-          w,
-          h,
-          uid: r.uid,
-          title: r[firstColumnKey],
-          imageUrl,
-        },
+        props: { w, h, uid: r.uid, title: String(r[firstColumnKey]), imageUrl },
         parentId: pageKey,
         y: shapeY,
         id: newShapeId,
         typeName: "shape",
         x: commonBounds.right + nextShapeX,
+        meta: {},
+        opacity: 1,
       };
 
       nextShapeX += COLUMN_WIDTH + PADDING_BETWEEN_SHAPES;
@@ -337,7 +338,7 @@ const ExportDialog: ExportDialogComponent = ({
         nextShapeX = COMMON_BOUNDS_XOFFSET;
       }
 
-      tldraw[newShapeId] = newShape;
+      store[newShapeId] = newShape;
     }
 
     const newStateId = nanoid();
@@ -348,7 +349,7 @@ const ExportDialog: ExportDialogComponent = ({
           ...props,
           ["roamjs-query-builder"]: {
             ...rjsqb,
-            tldraw,
+            tldraw: { ...tldraw, store },
             stateId: newStateId,
           },
         },
@@ -410,14 +411,13 @@ const ExportDialog: ExportDialogComponent = ({
             <a
               onClick={(event) => {
                 if (event.shiftKey) {
-                  window.roamAlphaAPI.ui.rightSidebar.addWindow({
-                    window: {
-                      "block-uid": uid,
-                      type: "outline",
-                    },
+                  void window.roamAlphaAPI.ui.rightSidebar.addWindow({
+                    // @ts-expect-error - todo test
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    window: { "block-uid": uid, type: "outline" },
                   });
                 } else {
-                  window.roamAlphaAPI.ui.mainWindow.openPage({
+                  void window.roamAlphaAPI.ui.mainWindow.openPage({
                     page: { uid: uid },
                   });
                 }
@@ -441,10 +441,7 @@ const ExportDialog: ExportDialogComponent = ({
         intent: "danger",
         id: "discourse-graphs-error",
       });
-      sendErrorEmail({
-        error,
-        type: "Export Dialog Failed",
-      }).catch(() => {});
+      sendErrorEmail({ error, type: "Export Dialog Failed" }).catch(() => {});
     } finally {
       setLoading(false);
       onClose();
@@ -452,10 +449,7 @@ const ExportDialog: ExportDialogComponent = ({
   };
 
   const handlePdfExport = async (
-    files: {
-      title: string;
-      content: string;
-    }[],
+    files: { title: string; content: string }[],
     filename: string,
   ) => {
     const preparedFiles = files.map((f) => ({
@@ -471,10 +465,7 @@ const ExportDialog: ExportDialogComponent = ({
       const response = await apiPost({
         domain,
         path: "pdf",
-        data: {
-          files: preparedFiles,
-          filename,
-        },
+        data: { files: preparedFiles, filename },
       });
       const responseData = JSON.parse(response.data);
       const path = JSON.parse(responseData.body);
@@ -590,6 +581,7 @@ const ExportDialog: ExportDialogComponent = ({
               setLoading(true);
               updateExportProgress({ progress: 0, id: exportId });
               setError("");
+              // eslint-disable-next-line @typescript-eslint/no-misused-promises
               setTimeout(async () => {
                 try {
                   const exportType = exportTypes.find(
@@ -598,10 +590,7 @@ const ExportDialog: ExportDialogComponent = ({
                   if (exportType && window.RoamLazy) {
                     setDialogOpen(true);
                     setLoading(false);
-                    updateExportProgress({
-                      progress: 0.0001,
-                      id: exportId,
-                    });
+                    updateExportProgress({ progress: 0.0001, id: exportId });
                     const files = await exportType.callback({
                       filename,
                       includeDiscourseContext,
@@ -614,7 +603,7 @@ const ExportDialog: ExportDialogComponent = ({
                     }
 
                     if (activeExportType === "PDF") {
-                      handlePdfExport(files, filename);
+                      void handlePdfExport(files, filename);
                       return;
                     }
 
@@ -658,7 +647,7 @@ const ExportDialog: ExportDialogComponent = ({
                     files.forEach(({ title, content }) =>
                       zip.file(title, content),
                     );
-                    zip.generateAsync({ type: "blob" }).then((content) => {
+                    void zip.generateAsync({ type: "blob" }).then((content) => {
                       saveAs(content, `${filename}.zip`);
                       onClose();
                     });
@@ -676,11 +665,7 @@ const ExportDialog: ExportDialogComponent = ({
                   sendErrorEmail({
                     error,
                     type: "Export Dialog Failed",
-                    context: {
-                      activeExportType,
-                      filename,
-                      results,
-                    },
+                    context: { activeExportType, filename, results },
                   }).catch(() => {});
                   setDialogOpen(true);
                   setError((e as Error).message);
