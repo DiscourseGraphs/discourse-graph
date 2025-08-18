@@ -848,59 +848,68 @@ const InsideEditorAndUiContext = ({
 const renderTldrawCanvasHelper = ({
   title,
   onloadArgs,
-  selector,
+  h1,
+  rootSelector,
   minHeight,
   height,
 }: {
   title: string;
   onloadArgs: OnloadArgs;
-  selector: string;
+  h1: HTMLHeadingElement;
+  rootSelector: string;
   minHeight: string;
   height: string;
 }) => {
-  const blockChildrenEl = document.querySelector<HTMLDivElement>(selector);
-  if (
-    blockChildrenEl &&
-    blockChildrenEl.parentElement &&
-    !blockChildrenEl.parentElement.hasAttribute(TLDRAW_DATA_ATTRIBUTE)
-  ) {
-    blockChildrenEl.parentElement.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
+  // Find the root element using the H1 context to avoid scope issues
+  const rootElement = h1.closest(rootSelector) as HTMLDivElement;
+  if (!rootElement) return () => {};
 
-    const wrapperEl = document.createElement("div");
-    blockChildrenEl.parentElement.appendChild(wrapperEl);
+  if (rootElement.hasAttribute(TLDRAW_DATA_ATTRIBUTE)) return () => {};
 
-    wrapperEl.style.minHeight = minHeight;
-    wrapperEl.style.height = height;
+  const blockChildrenContainer =
+    rootElement.querySelector<HTMLDivElement>(".rm-block-children");
+  if (!blockChildrenContainer) return () => {};
 
-    const unmount = renderWithUnmount(
-      <ExtensionApiContextProvider {...onloadArgs}>
-        <TldrawCanvas title={title} />
-      </ExtensionApiContextProvider>,
-      wrapperEl,
-    );
+  rootElement.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
 
-    const originalUnmount = unmount;
-    return () => {
-      originalUnmount();
-      if (blockChildrenEl.parentElement) {
-        blockChildrenEl.parentElement.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
-      }
-    };
-  }
-  return () => {};
+  const canvasWrapperEl = document.createElement("div");
+  canvasWrapperEl.style.minHeight = minHeight;
+  canvasWrapperEl.style.height = height;
+
+  blockChildrenContainer.parentElement?.insertBefore(
+    canvasWrapperEl,
+    blockChildrenContainer.nextSibling,
+  );
+
+  const unmount = renderWithUnmount(
+    <ExtensionApiContextProvider {...onloadArgs}>
+      <TldrawCanvas title={title} />
+    </ExtensionApiContextProvider>,
+    canvasWrapperEl,
+  );
+
+  const originalUnmount = unmount;
+  return () => {
+    originalUnmount();
+    rootElement.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
+    canvasWrapperEl.remove();
+  };
 };
 
 export const renderTldrawCanvas = ({
   title,
   onloadArgs,
+  h1,
 }: {
   title: string;
   onloadArgs: OnloadArgs;
+  h1: HTMLHeadingElement;
 }) => {
   return renderTldrawCanvasHelper({
     title,
     onloadArgs,
-    selector: ".roam-article .rm-block-children",
+    h1,
+    rootSelector: ".roam-article",
     minHeight: "500px",
     height: "70vh",
   });
@@ -909,14 +918,17 @@ export const renderTldrawCanvas = ({
 export const renderTldrawCanvasInSidebar = ({
   title,
   onloadArgs,
+  h1,
 }: {
   title: string;
   onloadArgs: OnloadArgs;
+  h1: HTMLHeadingElement;
 }) => {
   return renderTldrawCanvasHelper({
     title,
     onloadArgs,
-    selector: ".rm-sidebar-outline .rm-block-children",
+    h1,
+    rootSelector: ".rm-sidebar-outline",
     minHeight: "400px",
     height: "60vh",
   });

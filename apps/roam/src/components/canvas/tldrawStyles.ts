@@ -2,7 +2,7 @@
 export const TLDRAW_DATA_ATTRIBUTE = "dg-tldraw-canvas-wrapper";
 export default `
   /* Hide Roam Blocks only when canvas is present */
-  .roam-article div[${TLDRAW_DATA_ATTRIBUTE}="true"] .rm-block-children {
+  .roam-article[${TLDRAW_DATA_ATTRIBUTE}="true"] .rm-block-children {
     display: none;
   }
   
