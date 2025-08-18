@@ -1,7 +1,13 @@
 // tldrawStyles.ts because some of these styles need to be inlined
+export const TLDRAW_DATA_ATTRIBUTE = "dg-tldraw-canvas-wrapper";
 export default `
-  /* Hide Roam Blocks */
-  .roam-article .rm-block-children {
+  /* Hide Roam Blocks only when canvas is present */
+  .roam-article div[${TLDRAW_DATA_ATTRIBUTE}="true"] .rm-block-children {
+    display: none;
+  }
+  
+  /* Hide Roam Blocks in sidebar when canvas is present */
+  .rm-sidebar-outline[${TLDRAW_DATA_ATTRIBUTE}="true"] .rm-block-children {
     display: none;
   }
   
@@ -13,7 +19,7 @@ export default `
   /* CANVAS */
   /* fixes drawing arrows in north-west direction */
   /* and selection context not being shown */
-  #roamjs-tldraw-canvas-container svg {
+  .roamjs-tldraw-canvas-container svg {
     overflow: visible;
   }
   
@@ -43,7 +49,7 @@ export default `
     padding: initial;
   }
   
-  /* #roamjs-tldraw-canvas-container
+  /* .roamjs-tldraw-canvas-container
     .tl-shape
     .roamjs-tldraw-node
     .rm-block-main

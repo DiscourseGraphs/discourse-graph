@@ -81,6 +81,7 @@ import ConvertToDialog from "./ConvertToDialog";
 import { createArrowShapeMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import sendErrorEmail from "~/utils/sendErrorEmail";
+import { TLDRAW_DATA_ATTRIBUTE } from "./tldrawStyles";
 
 declare global {
   interface Window {
@@ -467,8 +468,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   return (
     <div
-      className={`z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white ${maximized ? "absolute inset-0" : "relative"}`}
-      id={`roamjs-tldraw-canvas-container`}
+      className={`roamjs-tldraw-canvas-container z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white ${maximized ? "absolute inset-0" : "relative"}`}
       ref={containerRef}
       tabIndex={-1}
     >
@@ -845,6 +845,51 @@ const InsideEditorAndUiContext = ({
   return <CustomContextMenu extensionAPI={extensionAPI} allNodes={allNodes} />;
 };
 
+const renderTldrawCanvasHelper = ({
+  title,
+  onloadArgs,
+  selector,
+  minHeight,
+  height,
+}: {
+  title: string;
+  onloadArgs: OnloadArgs;
+  selector: string;
+  minHeight: string;
+  height: string;
+}) => {
+  const blockChildrenEl = document.querySelector<HTMLDivElement>(selector);
+  if (
+    blockChildrenEl &&
+    blockChildrenEl.parentElement &&
+    !blockChildrenEl.parentElement.hasAttribute(TLDRAW_DATA_ATTRIBUTE)
+  ) {
+    blockChildrenEl.parentElement.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
+
+    const wrapperEl = document.createElement("div");
+    blockChildrenEl.parentElement.appendChild(wrapperEl);
+
+    wrapperEl.style.minHeight = minHeight;
+    wrapperEl.style.height = height;
+
+    const unmount = renderWithUnmount(
+      <ExtensionApiContextProvider {...onloadArgs}>
+        <TldrawCanvas title={title} />
+      </ExtensionApiContextProvider>,
+      wrapperEl,
+    );
+
+    const originalUnmount = unmount;
+    return () => {
+      originalUnmount();
+      if (blockChildrenEl.parentElement) {
+        blockChildrenEl.parentElement.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
+      }
+    };
+  }
+  return () => {};
+};
+
 export const renderTldrawCanvas = ({
   title,
   onloadArgs,
@@ -852,24 +897,27 @@ export const renderTldrawCanvas = ({
   title: string;
   onloadArgs: OnloadArgs;
 }) => {
-  const children = document.querySelector<HTMLDivElement>(
-    ".roam-article .rm-block-children",
-  );
-  if (
-    children &&
-    children.parentElement &&
-    !children.hasAttribute("data-roamjs-discourse-playground")
-  ) {
-    children.setAttribute("data-roamjs-discourse-playground", "true");
-    const parent = document.createElement("div");
-    children.parentElement.appendChild(parent);
-    parent.style.minHeight = "500px";
-    parent.style.height = "70vh";
-    renderWithUnmount(
-      <ExtensionApiContextProvider {...onloadArgs}>
-        <TldrawCanvas title={title} />
-      </ExtensionApiContextProvider>,
-      parent,
-    );
-  }
+  return renderTldrawCanvasHelper({
+    title,
+    onloadArgs,
+    selector: ".roam-article .rm-block-children",
+    minHeight: "500px",
+    height: "70vh",
+  });
+};
+
+export const renderTldrawCanvasInSidebar = ({
+  title,
+  onloadArgs,
+}: {
+  title: string;
+  onloadArgs: OnloadArgs;
+}) => {
+  return renderTldrawCanvasHelper({
+    title,
+    onloadArgs,
+    selector: ".rm-sidebar-outline .rm-block-children",
+    minHeight: "400px",
+    height: "60vh",
+  });
 };
