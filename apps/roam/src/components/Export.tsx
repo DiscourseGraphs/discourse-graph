@@ -29,7 +29,7 @@ import apiPost from "roamjs-components/util/apiPost";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getExtensionAPI from "roamjs-components/util/extensionApiContext";
-import getBlockProps from "../utils/getBlockProps";
+import getBlockProps from "~/utils/getBlockProps";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -411,11 +411,13 @@ const ExportDialog: ExportDialogComponent = ({
             <a
               onClick={(event) => {
                 if (event.shiftKey) {
-                  window.roamAlphaAPI.ui.rightSidebar.addWindow({
+                  void window.roamAlphaAPI.ui.rightSidebar.addWindow({
+                    // @ts-expect-error - todo test
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     window: { "block-uid": uid, type: "outline" },
                   });
                 } else {
-                  window.roamAlphaAPI.ui.mainWindow.openPage({
+                  void window.roamAlphaAPI.ui.mainWindow.openPage({
                     page: { uid: uid },
                   });
                 }
@@ -579,6 +581,7 @@ const ExportDialog: ExportDialogComponent = ({
               setLoading(true);
               updateExportProgress({ progress: 0, id: exportId });
               setError("");
+              // eslint-disable-next-line @typescript-eslint/no-misused-promises
               setTimeout(async () => {
                 try {
                   const exportType = exportTypes.find(
@@ -600,7 +603,7 @@ const ExportDialog: ExportDialogComponent = ({
                     }
 
                     if (activeExportType === "PDF") {
-                      handlePdfExport(files, filename);
+                      void handlePdfExport(files, filename);
                       return;
                     }
 
@@ -644,7 +647,7 @@ const ExportDialog: ExportDialogComponent = ({
                     files.forEach(({ title, content }) =>
                       zip.file(title, content),
                     );
-                    zip.generateAsync({ type: "blob" }).then((content) => {
+                    void zip.generateAsync({ type: "blob" }).then((content) => {
                       saveAs(content, `${filename}.zip`);
                       onClose();
                     });

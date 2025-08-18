@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/naming-convention */
 import {
   createMigrationSequence,
   createBindingId,
@@ -43,7 +45,7 @@ export const createArrowShapeMigrations = ({
         {
           id: versions["ExtractBindings"],
           scope: "store",
-          up(oldStore) {
+          up: (oldStore) => {
             type OldArrowTerminal =
               | { type: "point"; x: number; y: number }
               | {
@@ -80,8 +82,8 @@ export const createArrowShapeMigrations = ({
                   typeName: "binding",
                   id,
                   type: arrow.type,
-                  fromId: arrow.id as TLShapeId,
-                  toId: start.boundShapeId as TLShapeId,
+                  fromId: arrow.id,
+                  toId: start.boundShapeId,
                   meta: {},
                   props: {
                     terminal: "start",
@@ -102,8 +104,8 @@ export const createArrowShapeMigrations = ({
                   typeName: "binding",
                   id,
                   type: arrow.type,
-                  fromId: arrow.id as TLShapeId,
-                  toId: end.boundShapeId as TLShapeId,
+                  fromId: arrow.id,
+                  toId: end.boundShapeId,
                   meta: {},
                   props: {
                     terminal: "end",

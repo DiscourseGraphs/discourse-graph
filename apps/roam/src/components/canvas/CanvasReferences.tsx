@@ -48,16 +48,16 @@ const CanvasReferencesList = ({
   return (
     <div className="m-1">
       {references.map((r) => (
-        <div>
+        <div key={r.uid}>
           <a>
             <span
               tabIndex={-1}
               className="rm-page__title cursor-pointer"
               onClick={(e) => {
                 if (e.shiftKey) {
-                  openBlockInSidebar(r.uid);
+                  void openBlockInSidebar(r.uid);
                 } else {
-                  window.roamAlphaAPI.ui.mainWindow.openBlock({
+                  void window.roamAlphaAPI.ui.mainWindow.openBlock({
                     block: { uid: r.uid },
                   });
                 }

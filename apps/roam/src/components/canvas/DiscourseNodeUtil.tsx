@@ -8,9 +8,7 @@ import {
   Editor,
   TLOnResizeHandler,
   resizeBox,
-  TLShape,
   createShapeId,
-  SvgExportContext,
   TLDefaultHorizontalAlignStyle,
   TLDefaultVerticalAlignStyle,
   Box,
@@ -46,7 +44,7 @@ const TEXT_PROPS = {
 // // FONT_FAMILIES.sans or tldraw_sans not working in toSvg()
 // // maybe check getSvg()
 // // in node_modules\@tldraw\tldraw\node_modules\@tldraw\editor\dist\cjs\lib\app\App.js
-const SVG_FONT_FAMILY = `"Inter", "sans-serif"`;
+// const SVG_FONT_FAMILY = `"Inter", "sans-serif"`;
 
 export const DEFAULT_STYLE_PROPS = {
   ...TEXT_PROPS,
@@ -129,7 +127,6 @@ export const createNodeShapeTools = (
 
 export const createNodeShapeUtils = (nodes: DiscourseNode[]) => {
   return nodes.map((node) => {
-    // Create a subclass of CardShapeUtil for each type
     class DiscourseNodeUtil extends BaseDiscourseNodeUtil {
       constructor(editor: Editor) {
         super(editor, node.type);
@@ -373,11 +370,11 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     let imageElement = null;
     if (props.imageUrl) {
       // https://github.com/tldraw/tldraw/blob/v2.3.0/packages/tldraw/src/lib/shapes/image/ImageShapeUtil.tsx#L31
-      async function getDataURIFromURL(url: string): Promise<string> {
+      const getDataURIFromURL = async (url: string): Promise<string> => {
         const response = await fetch(url);
         const blob = await response.blob();
         return FileHelpers.blobToDataUrl(blob);
-      }
+      };
       const src = await getDataURIFromURL(props.imageUrl);
       const { width: imageWidth, height: imageHeight } = await loadImage(src);
       const aspectRatio = imageWidth / imageHeight;
@@ -434,15 +431,20 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     this.editor.updateShapes([{ id, props, type }]);
   }
   component(shape: DiscourseNodeShape) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const editor = useEditor();
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const extensionAPI = useExtensionAPI();
     const {
       canvasSettings: { alias = "", "key-image": isKeyImage = "" } = {},
     } = discourseContext.nodes[shape.type] || {};
 
     const isEditing = this.editor.getEditingShapeId() === shape.id;
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const contentRef = useRef<HTMLDivElement>(null);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const [loaded, setLoaded] = useState("");
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       if (
         shape.props.uid !== loaded &&
@@ -522,7 +524,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               }
 
               if (action === "creating" && !getPageUidByPageTitle(text)) {
-                createDiscourseNode({
+                void createDiscourseNode({
                   configPageUid: shape.type,
                   text,
                   newPageUid: uid,
@@ -530,7 +532,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               }
 
               // Update Shape Props
-              setSizeAndImgProps({ context: this, text, uid });
+              void setSizeAndImgProps({ context: this, text, uid });
               this.updateProps(shape.id, shape.type, { title: text, uid });
 
               // Update Shape Relations

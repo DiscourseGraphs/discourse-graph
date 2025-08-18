@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import React from "react";
 import {
   RecordPropsType,
@@ -33,6 +35,8 @@ import {
   textShapeProps,
   TLShapeId,
   TLShapeUtilConstructor,
+  TLShape,
+  TLDefaultColorStyle,
 } from "tldraw";
 import { RelationBindings } from "./DiscourseRelationBindings";
 import {
@@ -75,7 +79,9 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 
-const COLOR_ARRAY = Array.from(Object.values(textShapeProps.color)).reverse();
+const COLOR_ARRAY = Array.from(
+  textShapeProps.color.values,
+).reverse() as readonly TLDefaultColorStyle[];
 
 export const createAllReferencedNodeUtils = (
   allAddReferencedNodeByAction: AddReferencedNodeType,
@@ -84,7 +90,7 @@ export const createAllReferencedNodeUtils = (
     class ReferencedNodeUtil extends BaseDiscourseRelationUtil {
       static override type = action;
 
-      isDiscourseNodeShape(shape: any): shape is DiscourseNodeShape {
+      isDiscourseNodeShape(shape: TLShape): shape is DiscourseNodeShape {
         const shapeUtil = this.editor.getShapeUtil(shape.type);
         return shapeUtil instanceof BaseDiscourseNodeUtil;
       }
@@ -470,7 +476,7 @@ export const createAllRelationShapeUtils = (
     class DiscourseRelationUtil extends BaseDiscourseRelationUtil {
       static override type = id;
 
-      handleCreateRelationsInRoam = ({
+      handleCreateRelationsInRoam = async ({
         arrow,
         targetId,
       }: {
@@ -534,7 +540,7 @@ export const createAllRelationShapeUtils = (
           .map(([source, relation, target]) => ({ source, relation, target }));
         const parentUid = getCurrentPageUid();
         const title = getPageTitleByPageUid(parentUid);
-        triplesToBlocks({
+        await triplesToBlocks({
           defaultPageTitle: `Auto generated from [[${title}]]`,
           toPage: async (title: string, blocks: InputTextNode[]) => {
             const parentUid =
@@ -1188,7 +1194,7 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     shape: DiscourseRelationShape,
     handle: TLHandle,
   ): TLShapePartial<DiscourseRelationShape> | void => {
-    switch (handle.id) {
+    switch (handle.id as ARROW_HANDLES) {
       case ARROW_HANDLES.START: {
         return {
           id: shape.id,

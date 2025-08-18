@@ -1,4 +1,11 @@
-import React, { useRef, useState, useMemo, useEffect } from "react";
+/* eslint-disable @typescript-eslint/naming-convention */
+import React, {
+  useRef,
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+} from "react";
 import {
   Button,
   Callout,
@@ -61,7 +68,7 @@ const LabelDialogAutocomplete = ({
 
     setTimeout(() => {
       if (nodeType) {
-        fireQuery({
+        void fireQuery({
           returnNode: "node",
           selections: [],
           conditions: [
@@ -78,7 +85,7 @@ const LabelDialogAutocomplete = ({
         });
       }
       if (referencedNode) {
-        fireQuery({
+        void fireQuery({
           returnNode: "node",
           selections: [],
           conditions: [
@@ -103,6 +110,7 @@ const LabelDialogAutocomplete = ({
     referencedNode?.nodeType,
     setOptions,
     setReferencedNodeOptions,
+    referencedNode,
   ]);
   const inputDivRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -113,7 +121,7 @@ const LabelDialogAutocomplete = ({
     }
   }, [isAddReferencedNode, inputDivRef]);
 
-  const setValue = React.useCallback(
+  const setValue = useCallback(
     (r: Result) => {
       if (action === "creating" && r.uid === initialUid) {
         // replace when migrating from format to specification
@@ -134,9 +142,18 @@ const LabelDialogAutocomplete = ({
       setUid(r.uid);
       setContent(r.text);
     },
-    [setLabel, setUid, isAddReferencedNode, referencedNode],
+    [
+      setLabel,
+      setUid,
+      isAddReferencedNode,
+      referencedNode,
+      action,
+      initialUid,
+      format,
+      referencedNodeValue,
+    ],
   );
-  const setValueFromReferencedNode = React.useCallback(
+  const setValueFromReferencedNode = useCallback(
     (r: Result) => {
       if (!referencedNode) return;
       if (action === "editing") {
@@ -160,17 +177,14 @@ const LabelDialogAutocomplete = ({
       }
       setReferencedNodeValue(r.text);
     },
-    [setLabel, referencedNode, content, referencedNodeValue],
+    [setLabel, referencedNode, content, action, format],
   );
-  const onNewItem = React.useCallback(
+  const onNewItem = useCallback(
     (text: string) => ({ text, uid: initialUid }),
     [initialUid],
   );
-  const itemToQuery = React.useCallback(
-    (result?: Result) => result?.text || "",
-    [],
-  );
-  const filterOptions = React.useCallback(
+  const itemToQuery = useCallback((result?: Result) => result?.text || "", []);
+  const filterOptions = useCallback(
     (o: Result[], q: string) =>
       fuzzy
         .filter(q, o, { extract: itemToQuery })
@@ -198,13 +212,7 @@ const LabelDialogAutocomplete = ({
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
+      <div className="flex items-center justify-between">
         {action === "editing" ? (
           <Checkbox
             label={`Edit`}
@@ -307,7 +315,7 @@ const LabelDialog = ({
     const { specification, text } = discourseContext.nodes[nodeType];
     if (!specification.length) return "";
     return getPlainTitleFromSpecification({ specification, text });
-  }, [_label, nodeType]);
+  }, [_label, nodeType, discourseContext.nodes]);
   const initialValue = useMemo(() => {
     return { text: initialLabel, uid: initialUid };
   }, [initialLabel, initialUid]);
@@ -378,10 +386,10 @@ const LabelDialog = ({
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   };
-  const onCancelClick = () => {
+  const onCancelClick = useCallback(() => {
     onCancel();
     onClose();
-  };
+  }, [onCancel, onClose]);
 
   // Listens for touch outside container to trigger close
   const touchRef = useRef<EventTarget | null>();
@@ -389,7 +397,7 @@ const LabelDialog = ({
     const { current } = containerRef;
     if (!current) return;
     const touchStartListener = (e: TouchEvent) => {
-      if (!!(e.target as HTMLElement)?.closest(".roamjs-autocomplete-input"))
+      if ((e.target as HTMLElement)?.closest(".roamjs-autocomplete-input"))
         return;
       touchRef.current = e.target;
     };

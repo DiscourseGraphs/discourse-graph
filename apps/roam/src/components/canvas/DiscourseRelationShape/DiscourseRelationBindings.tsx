@@ -148,6 +148,7 @@ export class BaseRelationBindingUtil extends BindingUtil<RelationBinding> {
   }
 }
 
+// eslint-disable-next-line preferArrows/prefer-arrow-functions
 function arrowDidUpdate(editor: Editor, arrow: DiscourseRelationShape) {
   const bindings = getArrowBindings(editor, arrow);
   // if the shape is an arrow and its bound shape is on another page
@@ -168,6 +169,8 @@ function arrowDidUpdate(editor: Editor, arrow: DiscourseRelationShape) {
   // always check the arrow parents
   reparentArrow(editor, arrow.id);
 }
+
+// eslint-disable-next-line preferArrows/prefer-arrow-functions
 function reparentArrow(editor: Editor, arrowId: TLShapeId) {
   const arrow = editor.getShape<DiscourseRelationShape>(arrowId);
   if (!arrow) return;
@@ -229,6 +232,7 @@ function reparentArrow(editor: Editor, arrowId: TLShapeId) {
   const higherSiblings = editor
     .getSortedChildIdsForParent(highestSibling.parentId)
     .map((id) => editor.getShape(id)!)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     .filter((sibling) => sibling.index > highestSibling!.index);
 
   if (higherSiblings.length) {
@@ -268,6 +272,8 @@ function reparentArrow(editor: Editor, arrowId: TLShapeId) {
     ]);
   }
 }
+
+// eslint-disable-next-line preferArrows/prefer-arrow-functions
 function getShapeNearestSibling(
   editor: Editor,
   siblingShape: TLShape,
@@ -287,6 +293,8 @@ function getShapeNearestSibling(
 
   return ancestor;
 }
+
+// eslint-disable-next-line preferArrows/prefer-arrow-functions
 export function updateArrowTerminal({
   editor,
   arrow,
@@ -351,6 +359,8 @@ export function updateArrowTerminal({
     removeArrowBinding(editor, arrow, terminal);
   }
 }
+
+// eslint-disable-next-line preferArrows/prefer-arrow-functions, max-params
 function intersectLineSegmentCircle(
   a1: VecLike,
   a2: VecLike,

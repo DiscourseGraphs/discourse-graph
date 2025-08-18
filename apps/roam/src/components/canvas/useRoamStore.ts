@@ -6,7 +6,11 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import setInputSetting from "roamjs-components/util/setInputSetting";
 import createBlock from "roamjs-components/writes/createBlock";
 import getBlockProps, { json, normalizeProps } from "~/utils/getBlockProps";
-import { createTLStore } from "@tldraw/editor";
+import {
+  createTLStore,
+  TLAnyBindingUtilConstructor,
+  TLAnyShapeUtilConstructor,
+} from "@tldraw/editor";
 import { SerializedStore, StoreSnapshot } from "@tldraw/store";
 import {
   defaultBindingUtils,
@@ -17,10 +21,11 @@ import {
   sortByIndex,
   TLShape,
   TLStoreSnapshot,
+  TLStore,
 } from "tldraw";
 import { AddPullWatch } from "roamjs-components/types";
 import { LEGACY_SCHEMA } from "~/data/legacyTldrawSchema";
-import apiPost from "roamjs-components/util/apiPost";
+import sendErrorEmail from "~/utils/sendErrorEmail";
 
 const THROTTLE = 350;
 
@@ -58,7 +63,7 @@ const fixShapeIndices = (
     Object.entries(data).map(([key, value]) => {
       if (value.typeName === "shape") {
         const updatedShape = fixedShapes.find((s) => s.id === value.id);
-        return [key, updatedShape || value];
+        return [key, (updatedShape || value) as TLRecord];
       }
       return [key, value];
     }),
@@ -81,8 +86,8 @@ export const useRoamStore = ({
   pageUid,
   migrations,
 }: {
-  customShapeUtils: any[];
-  customBindingUtils: any[];
+  customShapeUtils: readonly TLAnyShapeUtilConstructor[];
+  customBindingUtils: readonly TLAnyBindingUtilConstructor[];
   pageUid: string;
   migrations: MigrationSequence[];
 }) => {
@@ -104,7 +109,7 @@ export const useRoamStore = ({
   useEffect(() => {
     const persisted = getSubTree({ parentUid: pageUid, tree, key: "State" });
     if (!persisted.uid) {
-      createBlock({ node: { text: "State" }, parentUid: pageUid });
+      void createBlock({ node: { text: "State" }, parentUid: pageUid });
     }
     const props = getBlockProps(pageUid) as Record<string, unknown>;
     const rjsqb =
@@ -112,7 +117,7 @@ export const useRoamStore = ({
         ? (props["roamjs-query-builder"] as Record<string, unknown>)
         : {};
     if (isTLStoreSnapshot(rjsqb.tldraw)) {
-      setInitialSnapshot(rjsqb.tldraw as TLStoreSnapshot);
+      setInitialSnapshot(rjsqb.tldraw);
       setLoading(false);
     } else if (rjsqb?.tldraw) {
       const oldStore = rjsqb.tldraw as SerializedStore<TLRecord>;
@@ -127,7 +132,8 @@ export const useRoamStore = ({
   }, [tree, pageUid]);
   const store = useMemo(() => {
     if (needsUpgrade || error || loading) return null;
-    let _store;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    let _store: TLStore;
     try {
       _store = createTLStore({
         initialData: initialSnapshot?.store,
@@ -153,6 +159,8 @@ export const useRoamStore = ({
         );
       if (!validChanges.length) return;
       clearTimeout(serializeRef.current);
+      // TODO
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       serializeRef.current = window.setTimeout(async () => {
         const state = _store.serialize();
         const props = getBlockProps(pageUid) as Record<string, unknown>;
@@ -175,7 +183,7 @@ export const useRoamStore = ({
         const newstateId = nanoid();
         localStateIds.current.push(newstateId);
         localStateIds.current.splice(0, localStateIds.current.length - 25);
-        window.roamAlphaAPI.updateBlock({
+        void window.roamAlphaAPI.updateBlock({
           block: {
             uid: pageUid,
             props: {
@@ -191,7 +199,17 @@ export const useRoamStore = ({
       }, THROTTLE);
     });
     return _store;
-  }, [initialSnapshot, serializeRef, needsUpgrade, error, loading]);
+  }, [
+    initialSnapshot,
+    serializeRef,
+    needsUpgrade,
+    error,
+    loading,
+    customShapeUtils,
+    customBindingUtils,
+    migrations,
+    pageUid,
+  ]);
 
   const personalRecordTypes = new Set([
     "camera",
@@ -199,7 +217,7 @@ export const useRoamStore = ({
     "instance_page_state",
   ]);
 
-  const performUpgrade = async () => {
+  const performUpgrade = () => {
     if (!oldData) return;
     try {
       const newStore = createTLStore({
@@ -220,7 +238,7 @@ export const useRoamStore = ({
         typeof props["roamjs-query-builder"] === "object"
           ? (props["roamjs-query-builder"] as Record<string, unknown>)
           : {};
-      window.roamAlphaAPI.updateBlock({
+      void window.roamAlphaAPI.updateBlock({
         block: {
           uid: pageUid,
           props: {
@@ -244,22 +262,12 @@ export const useRoamStore = ({
       const error = e as Error;
       setNeedsUpgrade(false);
       setInitialSnapshot(null);
-      setError(error as Error);
-      apiPost({
-        domain: "https://api.samepage.network",
-        path: "errors",
-        data: {
-          method: "extension-error",
-          type: "Failed to perform Canvas upgrade",
+      setError(error);
+      sendErrorEmail({
+        error,
+        type: "Failed to perform Canvas upgrade",
+        context: {
           data: { oldData },
-          message: error.message,
-          stack: error.stack,
-          version: process.env.VERSION,
-          notebookUuid: JSON.stringify({
-            owner: "RoamJS",
-            app: "query-builder",
-            workspace: window.roamAlphaAPI.graph.name,
-          }),
         },
       }).catch(() => {});
       console.error("Failed to perform Canvas upgrade", error);

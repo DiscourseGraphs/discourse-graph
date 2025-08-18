@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {
   StateNode,
   TLEventHandlers,
@@ -305,7 +306,6 @@ export const createAllRelationShapeTools = (
     class RelationShapeTool extends StateNode {
       static override initial = "idle";
       static override id = name;
-      // override shapeType = name;
       static override children = (): TLStateNodeConstructor[] => [
         this.Idle,
         this.Pointing,

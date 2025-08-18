@@ -124,9 +124,11 @@ export const getOnSelectForShape = ({
       const file = await fetch(asset.props.src)
         .then((r) => r.arrayBuffer())
         .then((buf) => new File([buf], shape.id));
+      // this is a promise
+      // eslint-disable-next-line @typescript-eslint/await-thenable
       const src = await window.roamAlphaAPI.util.uploadFile({ file });
       const text = nodeType === "blck-node" ? `![](${src})` : "";
-      convertToDiscourseNode({
+      void convertToDiscourseNode({
         text,
         type: nodeType,
         imageShapeUrl: src,
@@ -138,7 +140,7 @@ export const getOnSelectForShape = ({
   } else if (shape.type === "text") {
     return () => {
       const { text } = (shape as TLTextShape).props;
-      convertToDiscourseNode({
+      void convertToDiscourseNode({
         text,
         type: nodeType,
         editor,
@@ -188,6 +190,7 @@ export const CustomContextMenu = ({
               .map((node) => {
                 return (
                   <TldrawUiMenuItem
+                    key={node.type}
                     id={`convert-to-${node.type}`}
                     label={`Convert To ${node.text}`}
                     readonlyOk
@@ -225,6 +228,7 @@ export const createUiComponents = ({
             <TldrawUiMenuItem
               key={n.type}
               {...tools[n.type]}
+              // eslint-disable-next-line react-hooks/rules-of-hooks
               isSelected={useIsToolSelected(tools[n.type])}
             />
           ))}
@@ -232,6 +236,7 @@ export const createUiComponents = ({
             <TldrawUiMenuItem
               key={name}
               {...tools[name]}
+              // eslint-disable-next-line react-hooks/rules-of-hooks
               isSelected={useIsToolSelected(tools[name])}
             />
           ))}
@@ -239,6 +244,7 @@ export const createUiComponents = ({
             <TldrawUiMenuItem
               key={action}
               {...tools[action]}
+              // eslint-disable-next-line react-hooks/rules-of-hooks
               isSelected={useIsToolSelected(tools[action])}
             />
           ))}
@@ -251,7 +257,7 @@ export const createUiComponents = ({
       return (
         <DefaultKeyboardShortcutsDialog {...props}>
           {allNodes.map((n) => (
-            <TldrawUiMenuItem {...tools[n.type]} />
+            <TldrawUiMenuItem key={n.type} {...tools[n.type]} />
           ))}
           {/* {allRelationNames.map((name) => (
             <TldrawUiMenuItem {...tools[name]} />
@@ -266,7 +272,7 @@ export const createUiComponents = ({
         </DefaultKeyboardShortcutsDialog>
       );
     },
-    MainMenu: (props) => {
+    MainMenu: () => {
       const CustomViewMenu = () => {
         const actions = useActions();
         return (
@@ -312,7 +318,7 @@ export const createUiOverrides = ({
   setMaximized: (maximized: boolean) => void;
   setConvertToDialogOpen: (open: boolean) => void;
 }): TLUiOverrides => ({
-  tools(editor, tools) {
+  tools: (editor, tools) => {
     allNodes.forEach((node, index) => {
       const nodeId = node.type;
       tools[nodeId] = {
@@ -342,7 +348,6 @@ export const createUiOverrides = ({
         onSelect: () => {
           editor.setCurrentTool(name);
         },
-        //@ts-ignore - patch
         style: {
           // TODO: get color from canvasSettings
           color:
@@ -372,7 +377,6 @@ export const createUiOverrides = ({
         onSelect: () => {
           editor.setCurrentTool(`${name}`);
         },
-        //@ts-ignore - patch
         style: {
           color: formatHexColor(color) ?? `var(--palette-${COLOR_ARRAY[0]})`,
         },
@@ -381,7 +385,8 @@ export const createUiOverrides = ({
 
     return tools;
   },
-  actions(editor, actions) {
+  actions: (editor, actions) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const { addToast } = useToasts();
     actions["convert-to"] = {
       id: "convert-to",
@@ -405,7 +410,7 @@ export const createUiOverrides = ({
       ...originalCopyAsSvgAction,
       kbd: "$!X",
       onSelect: (source) => {
-        originalCopyAsSvgAction.onSelect(source);
+        void originalCopyAsSvgAction.onSelect(source);
         addToast({ title: "Copied as SVG" });
       },
     };
@@ -413,7 +418,7 @@ export const createUiOverrides = ({
       ...originalCopyAsPngAction,
       kbd: "$!C",
       onSelect: (source) => {
-        originalCopyAsPngAction.onSelect(source);
+        void originalCopyAsPngAction.onSelect(source);
         addToast({ title: "Copied as PNG" });
       },
     };

@@ -35,13 +35,9 @@ const ConvertToDialog = ({
       onClose={onClose}
       canOutsideClickClose
       canEscapeKeyClose
-      className={`roamjs-canvas-dialog`}
-      style={{ width: isNodeSelected ? "20rem" : "24rem" }}
+      className={`roamjs-canvas-dialog ${isNodeSelected ? "w-80" : "w-96"}`}
     >
-      <div
-        className={Classes.DIALOG_BODY}
-        style={{ padding: "1rem 0rem", margin: "0px" }}
-      >
+      <div className={`${Classes.DIALOG_BODY} m-0 py-4`}>
         <div className="flex flex-col">
           {/* Dialog title messes with keyboard focus */}
           <div className="mx-5 mb-2 mt-0 p-2 text-lg font-bold">Convert To</div>
@@ -59,10 +55,9 @@ const ConvertToDialog = ({
                       ? `#${node.canvasSettings.color}`
                       : node.canvasSettings.color;
                   return (
-                    <div className="flex items-center">
+                    <div className="flex items-center" key={node.type}>
                       <Button
                         minimal
-                        key={node.type}
                         text={node.text}
                         className="flex-grow justify-start p-2 px-7 focus:bg-gray-300 focus:outline-none"
                         style={{ caretColor: "transparent" }}

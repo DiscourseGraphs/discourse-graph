@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 export const LEGACY_SCHEMA = {
   schemaVersion: 1 as const,
   storeVersion: 1,

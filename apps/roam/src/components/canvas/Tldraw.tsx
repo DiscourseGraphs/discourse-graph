@@ -144,7 +144,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   }, [allRelationsById]);
   const allRelationNames = useMemo(() => {
     return Object.keys(discourseContext.relations);
-  }, [allRelations]);
+  }, []);
   const allNodes = useMemo(() => {
     const allNodes = getDiscourseNodes(allRelations);
     discourseContext.nodes = Object.fromEntries(
@@ -282,7 +282,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   };
 
   const extensionAPI = useExtensionAPI();
-  if (!extensionAPI) return null;
 
   // COMPONENTS
   const defaultEditorComponents: TLEditorComponents = {
@@ -479,13 +478,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
           ? "div.roam-body div.roam-app div.roam-main div.roam-article { position: inherit; }"
           : ""}
       </style>
-      <ConvertToDialog
-        allNodes={allNodes}
-        extensionAPI={extensionAPI}
-        isOpen={isConvertToDialogOpen}
-        onClose={() => setConvertToDialogOpen(false)}
-        editor={appRef.current}
-      />
+
       {needsUpgrade ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
@@ -495,20 +488,23 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             </p>
             <button
               className="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
-              onClick={async () => {
-                await performUpgrade();
-                renderToast({
-                  id: "tldraw-upgrade",
-                  intent: "success",
-                  content: "Canvas upgraded.",
-                });
+              onClick={() => {
+                const handleUpgrade = async () => {
+                  await performUpgrade();
+                  renderToast({
+                    id: "tldraw-upgrade",
+                    intent: "success",
+                    content: "Canvas upgraded.",
+                  });
+                };
+                void handleUpgrade();
               }}
             >
               Upgrade Canvas
             </button>
           </div>
         </div>
-      ) : !store || !assetLoading.done ? (
+      ) : !store || !assetLoading.done || !extensionAPI ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
@@ -524,88 +520,97 @@ const TldrawCanvas = ({ title }: { title: string }) => {
           </div>
         </div>
       ) : (
-        <TldrawEditor
-          // baseUrl="https://samepage.network/assets/tldraw/"
-          // instanceId={initialState.instanceId}
-          initialState="select"
-          shapeUtils={[...defaultShapeUtils, ...customShapeUtils]}
-          tools={[...defaultTools, ...defaultShapeTools, ...customTools]}
-          bindingUtils={[...defaultBindingUtils, ...customBindingUtils]}
-          components={editorComponents}
-          store={store}
-          onMount={(app) => {
-            if (process.env.NODE_ENV !== "production") {
-              if (!window.tldrawApps) window.tldrawApps = {};
-              const { tldrawApps } = window;
-              tldrawApps[title] = app;
-            }
-
-            appRef.current = app;
-
-            app.on("event", (event) => {
-              const e = event as TLPointerEventInfo;
-
-              discourseContext.lastAppEvent = e.name;
-
-              // Handle relation creation on pointer_down
-              handleRelationCreation(app, e);
-
-              // Open Node in main window or sidebar
-              // TODO - this should move to one of DiscourseNodeTool's children classes instead
-
-              // handle node clicked with modifiers
-              // navigate / open in sidebar
-              const validModifier = e.shiftKey || e.ctrlKey; // || e.metaKey;
-              if (!(e.name === "pointer_up" && validModifier)) return;
-              if (app.getSelectedShapes().length) return; // User is positioning selected shape
-              const shape = app.getShapeAtPoint(
-                app.inputs.currentPagePoint,
-              ) as DiscourseNodeShape;
-              if (!shape) return;
-              const shapeUid = shape.props.uid;
-
-              if (!isLiveBlock(shapeUid)) {
-                if (!shape.props.title) return;
-                dispatchToastEvent({
-                  id: "tldraw-warning",
-                  title: `Not a valid UID. Cannot Open.`,
-                  severity: "warning",
-                });
+        <>
+          <ConvertToDialog
+            allNodes={allNodes}
+            extensionAPI={extensionAPI}
+            isOpen={isConvertToDialogOpen}
+            onClose={() => setConvertToDialogOpen(false)}
+            editor={appRef.current}
+          />
+          <TldrawEditor
+            // baseUrl="https://samepage.network/assets/tldraw/"
+            // instanceId={initialState.instanceId}
+            initialState="select"
+            shapeUtils={[...defaultShapeUtils, ...customShapeUtils]}
+            tools={[...defaultTools, ...defaultShapeTools, ...customTools]}
+            bindingUtils={[...defaultBindingUtils, ...customBindingUtils]}
+            components={editorComponents}
+            store={store}
+            onMount={(app) => {
+              if (process.env.NODE_ENV !== "production") {
+                if (!window.tldrawApps) window.tldrawApps = {};
+                const { tldrawApps } = window;
+                tldrawApps[title] = app;
               }
 
-              if (e.shiftKey) openBlockInSidebar(shapeUid);
+              appRef.current = app;
 
-              if (
-                e.ctrlKey
-                // || e.metaKey
-              ) {
-                const isPage = !!getPageTitleByPageUid(shapeUid);
-                if (isPage) {
-                  window.roamAlphaAPI.ui.mainWindow.openPage({
-                    page: { uid: shapeUid },
-                  });
-                } else {
-                  window.roamAlphaAPI.ui.mainWindow.openBlock({
-                    block: { uid: shapeUid },
+              app.on("event", (event) => {
+                const e = event as TLPointerEventInfo;
+
+                discourseContext.lastAppEvent = e.name;
+
+                // Handle relation creation on pointer_down
+                handleRelationCreation(app, e);
+
+                // Open Node in main window or sidebar
+                // TODO - this should move to one of DiscourseNodeTool's children classes instead
+
+                // handle node clicked with modifiers
+                // navigate / open in sidebar
+                const validModifier = e.shiftKey || e.ctrlKey; // || e.metaKey;
+                if (!(e.name === "pointer_up" && validModifier)) return;
+                if (app.getSelectedShapes().length) return; // User is positioning selected shape
+                const shape = app.getShapeAtPoint(
+                  app.inputs.currentPagePoint,
+                ) as DiscourseNodeShape;
+                if (!shape) return;
+                const shapeUid = shape.props.uid;
+
+                if (!isLiveBlock(shapeUid)) {
+                  if (!shape.props.title) return;
+                  dispatchToastEvent({
+                    id: "tldraw-warning",
+                    title: `Not a valid UID. Cannot Open.`,
+                    severity: "warning",
                   });
                 }
-              }
-            });
-          }}
-        >
-          <TldrawUi
-            overrides={uiOverrides}
-            components={customUiComponents}
-            assetUrls={defaultEditorAssetUrls}
+
+                if (e.shiftKey) openBlockInSidebar(shapeUid);
+
+                if (
+                  e.ctrlKey
+                  // || e.metaKey
+                ) {
+                  const isPage = !!getPageTitleByPageUid(shapeUid);
+                  if (isPage) {
+                    void window.roamAlphaAPI.ui.mainWindow.openPage({
+                      page: { uid: shapeUid },
+                    });
+                  } else {
+                    void window.roamAlphaAPI.ui.mainWindow.openBlock({
+                      block: { uid: shapeUid },
+                    });
+                  }
+                }
+              });
+            }}
           >
-            <InsideEditorAndUiContext
-              extensionAPI={extensionAPI}
-              allNodes={allNodes}
-              allRelationIds={allRelationIds}
-              allAddReferencedNodeActions={allAddReferencedNodeActions}
-            />
-          </TldrawUi>
-        </TldrawEditor>
+            <TldrawUi
+              overrides={uiOverrides}
+              components={customUiComponents}
+              assetUrls={defaultEditorAssetUrls}
+            >
+              <InsideEditorAndUiContext
+                extensionAPI={extensionAPI}
+                allNodes={allNodes}
+                allRelationIds={allRelationIds}
+                allAddReferencedNodeActions={allAddReferencedNodeActions}
+              />
+            </TldrawUi>
+          </TldrawEditor>
+        </>
       )}
     </div>
   );
@@ -662,6 +667,7 @@ const InsideEditorAndUiContext = ({
     );
     editor.registerExternalContentHandler(
       "files",
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       async (content: TLExternalContent) => {
         if (content.type !== "files") {
           console.error("Expected files, received:", content.type);
@@ -669,7 +675,6 @@ const InsideEditorAndUiContext = ({
         }
         const file = content.files[0];
 
-        //@ts-ignore
         const url = await window.roamAlphaAPI.file.upload({ file });
         const dataUrl = url.replace(/^!\[\]\(/, "").replace(/\)$/, "");
         // TODO add video support
@@ -713,6 +718,7 @@ const InsideEditorAndUiContext = ({
     //https://github.com/tldraw/tldraw/blob/v2.3.x/packages/tldraw/src/lib/defaultExternalContentHandlers.ts#L183
     editor.registerExternalContentHandler(
       "svg-text",
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       async (content: TLExternalContent) => {
         if (content.type !== "svg-text") {
           console.error("Expected svg-text, received:", content.type);
@@ -746,7 +752,6 @@ const InsideEditorAndUiContext = ({
           type: "image/svg+xml",
         });
 
-        //@ts-ignore
         const url = await window.roamAlphaAPI.file.upload({ file });
         const dataUrl = url.replace(/^!\[\]\(/, "").replace(/\)$/, "");
 
@@ -817,7 +822,7 @@ const InsideEditorAndUiContext = ({
         editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
           const util = editor.getShapeUtil(shape);
           if (util instanceof BaseDiscourseNodeUtil) {
-            util.createExistingRelations({
+            void util.createExistingRelations({
               shape: shape as DiscourseNodeShape,
             });
           }
