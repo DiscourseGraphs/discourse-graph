@@ -81,6 +81,7 @@ import ConvertToDialog from "./ConvertToDialog";
 import { createArrowShapeMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import sendErrorEmail from "~/utils/sendErrorEmail";
+import { TLDRAW_DATA_ATTRIBUTE } from "./tldrawStyles";
 
 declare global {
   interface Window {
@@ -467,8 +468,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   return (
     <div
-      className={`z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white ${maximized ? "absolute inset-0" : "relative"}`}
-      id={`roamjs-tldraw-canvas-container`}
+      className={`roamjs-tldraw-canvas-container z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white ${maximized ? "absolute inset-0" : "relative"}`}
       ref={containerRef}
       tabIndex={-1}
     >
@@ -845,31 +845,91 @@ const InsideEditorAndUiContext = ({
   return <CustomContextMenu extensionAPI={extensionAPI} allNodes={allNodes} />;
 };
 
-export const renderTldrawCanvas = ({
+const renderTldrawCanvasHelper = ({
   title,
   onloadArgs,
+  h1,
+  rootSelector,
+  minHeight,
+  height,
 }: {
   title: string;
   onloadArgs: OnloadArgs;
+  h1: HTMLHeadingElement;
+  rootSelector: string;
+  minHeight: string;
+  height: string;
 }) => {
-  const children = document.querySelector<HTMLDivElement>(
-    ".roam-article .rm-block-children",
+  // Find the root element using the H1 context to avoid scope issues
+  const rootElement = h1.closest(rootSelector) as HTMLDivElement;
+  if (!rootElement) return () => {};
+
+  if (rootElement.hasAttribute(TLDRAW_DATA_ATTRIBUTE)) return () => {};
+
+  const blockChildrenContainer =
+    rootElement.querySelector<HTMLDivElement>(".rm-block-children");
+  if (!blockChildrenContainer) return () => {};
+
+  rootElement.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
+
+  const canvasWrapperEl = document.createElement("div");
+  canvasWrapperEl.style.minHeight = minHeight;
+  canvasWrapperEl.style.height = height;
+
+  blockChildrenContainer.parentElement?.insertBefore(
+    canvasWrapperEl,
+    blockChildrenContainer.nextSibling,
   );
-  if (
-    children &&
-    children.parentElement &&
-    !children.hasAttribute("data-roamjs-discourse-playground")
-  ) {
-    children.setAttribute("data-roamjs-discourse-playground", "true");
-    const parent = document.createElement("div");
-    children.parentElement.appendChild(parent);
-    parent.style.minHeight = "500px";
-    parent.style.height = "70vh";
-    renderWithUnmount(
-      <ExtensionApiContextProvider {...onloadArgs}>
-        <TldrawCanvas title={title} />
-      </ExtensionApiContextProvider>,
-      parent,
-    );
-  }
+
+  const unmount = renderWithUnmount(
+    <ExtensionApiContextProvider {...onloadArgs}>
+      <TldrawCanvas title={title} />
+    </ExtensionApiContextProvider>,
+    canvasWrapperEl,
+  );
+
+  const originalUnmount = unmount;
+  return () => {
+    originalUnmount();
+    rootElement.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
+    canvasWrapperEl.remove();
+  };
+};
+
+export const renderTldrawCanvas = ({
+  title,
+  onloadArgs,
+  h1,
+}: {
+  title: string;
+  onloadArgs: OnloadArgs;
+  h1: HTMLHeadingElement;
+}) => {
+  return renderTldrawCanvasHelper({
+    title,
+    onloadArgs,
+    h1,
+    rootSelector: ".roam-article",
+    minHeight: "500px",
+    height: "70vh",
+  });
+};
+
+export const renderTldrawCanvasInSidebar = ({
+  title,
+  onloadArgs,
+  h1,
+}: {
+  title: string;
+  onloadArgs: OnloadArgs;
+  h1: HTMLHeadingElement;
+}) => {
+  return renderTldrawCanvasHelper({
+    title,
+    onloadArgs,
+    h1,
+    rootSelector: ".rm-sidebar-outline",
+    minHeight: "400px",
+    height: "60vh",
+  });
 };
