@@ -44,7 +44,13 @@ import apiPut from "roamjs-components/util/apiPut";
 import { ExportGithub } from "./ExportGithub";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import createPage from "roamjs-components/writes/createPage";
-import { createShapeId, IndexKey, TLParentId } from "tldraw";
+import {
+  createShapeId,
+  IndexKey,
+  TLParentId,
+  getIndexAbove,
+  TLShape,
+} from "tldraw";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
 import { MAX_WIDTH } from "~/components/canvas/Tldraw";
@@ -271,6 +277,23 @@ const ExportDialog: ExportDialogComponent = ({
     };
     const shapeBounds = extractShapesBounds(store);
 
+    // Get existing shapes to determine the highest index
+    const existingShapes = Object.values(store).filter(
+      (shape) => (shape as TLShape).typeName === "shape",
+    );
+
+    // Find the highest index among existing shapes
+    let currentIndex: IndexKey = "a1" as IndexKey;
+    if (existingShapes.length > 0) {
+      const highestIndex = existingShapes.reduce((highest: IndexKey, shape) => {
+        const shapeWithIndex = shape as TLShape;
+        return shapeWithIndex.index.localeCompare(highest) > 0
+          ? shapeWithIndex.index
+          : highest;
+      }, "a1" as IndexKey);
+      currentIndex = highestIndex;
+    }
+
     type CommonBounds = {
       top: number;
       right: number;
@@ -315,8 +338,10 @@ const ExportDialog: ExportDialogComponent = ({
         extensionAPI,
       });
       const newShapeId = createShapeId();
+      currentIndex = getIndexAbove(currentIndex);
+
       const newShape: DiscourseNodeShape = {
-        index: "a1" as IndexKey, // TODO does this need to be unique?
+        index: currentIndex,
         rotation: 0,
         isLocked: false,
         type: nodeType,
