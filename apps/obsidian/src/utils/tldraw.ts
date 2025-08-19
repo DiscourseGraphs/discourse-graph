@@ -13,7 +13,7 @@ import {
 } from "~/constants";
 import DiscourseGraphPlugin from "~/index";
 import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
-import { App, Notice, TFile } from "obsidian";
+import { Notice } from "obsidian";
 import { format } from "date-fns";
 import { ObsidianTLAssetStore } from "./assetStore";
 import {
