@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {
   getAllDiscourseNodesSince,
   nodeTypeSince,
@@ -124,12 +125,17 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
   }
 };
 
-const upsertNodeSchemaToContent = async (
-  nodeTypesUids: string[],
-  spaceId: number,
-  userId: number,
-  supabaseClient: DGSupabaseClient,
-) => {
+const upsertNodeSchemaToContent = async ({
+  nodeTypesUids,
+  spaceId,
+  userId,
+  supabaseClient,
+}: {
+  nodeTypesUids: string[];
+  spaceId: number;
+  userId: number;
+  supabaseClient: DGSupabaseClient;
+}) => {
   const query = `[
     :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title ?author-name
     :keys     source_local_id    created    last_modified    author_local_id    text author_name
@@ -166,7 +172,7 @@ const upsertNodeSchemaToContent = async (
     scale: "document",
   }));
   const { error } = await supabaseClient.rpc("upsert_content", {
-    data: contentData as any,
+    data: contentData,
     v_space_id: spaceId,
     v_creator_id: userId,
     content_as_document: true,
@@ -176,20 +182,26 @@ const upsertNodeSchemaToContent = async (
   }
 };
 
-export const convertDgToSupabaseConcepts = async (
-  nodesSince: RoamDiscourseNodeData[],
-  since: string,
-  allNodeTypes: DiscourseNode[],
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
-) => {
+export const convertDgToSupabaseConcepts = async ({
+  nodesSince,
+  since,
+  allNodeTypes,
+  supabaseClient,
+  context,
+}: {
+  nodesSince: RoamDiscourseNodeData[];
+  since: string;
+  allNodeTypes: DiscourseNode[];
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+}) => {
   const nodeTypes = await nodeTypeSince(since, allNodeTypes);
-  await upsertNodeSchemaToContent(
-    nodeTypes.map((node) => node.type),
-    context.spaceId,
-    context.userId,
+  await upsertNodeSchemaToContent({
+    nodeTypesUids: nodeTypes.map((node) => node.type),
+    spaceId: context.spaceId,
+    userId: context.userId,
     supabaseClient,
-  );
+  });
 
   const nodesTypesToLocalConcepts = nodeTypes.map((node) => {
     return discourseNodeSchemaToLocalConcept(context, node);
@@ -263,9 +275,10 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   let nodesWithEmbeddings: RoamDiscourseNodeData[];
   try {
     nodesWithEmbeddings = await fetchEmbeddingsForNodes(roamNodes);
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${error.message}`,
+      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${message}`,
     );
     return;
   }
@@ -314,7 +327,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
       });
 
       const { error } = await supabaseClient.rpc("upsert_content", {
-        data: contents as any,
+        data: contents,
         v_space_id: spaceId,
         v_creator_id: userId,
         content_as_document: true,
@@ -381,13 +394,13 @@ export const createOrUpdateDiscourseEmbedding = async (
       supabaseClient,
       context,
     );
-    await convertDgToSupabaseConcepts(
-      allNodeInstances,
-      time,
-      allDgNodeTypes,
+    await convertDgToSupabaseConcepts({
+      nodesSince: allNodeInstances,
+      since: time,
+      allNodeTypes: allDgNodeTypes,
       supabaseClient,
       context,
-    );
+    });
     await cleanupOrphanedNodes(supabaseClient, context);
     await endSyncTask(worker, "complete");
   } catch (error) {

@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import { SupabaseContext } from "./supabaseContext";
 import { LocalContentDataInput } from "@repo/database/inputTypes";
 import { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
-
+import { Json } from "@repo/database/types.gen";
 
 const EMBEDDING_BATCH_SIZE = 200;
 const API_URL = `https://discoursegraphs.com/api/embeddings/openai/small`;
@@ -37,7 +38,7 @@ export const fetchEmbeddingsForNodes = async (
     if (!response.ok) {
       let errorData;
       try {
-        errorData = await response.json();
+        errorData = (await response.json()) as { error: string };
       } catch (e) {
         errorData = {
           error: `Server responded with ${response.status}: ${await response.text()}`,
@@ -50,7 +51,7 @@ export const fetchEmbeddingsForNodes = async (
       );
     }
 
-    const data: EmbeddingApiResponse = await response.json();
+    const data = (await response.json()) as EmbeddingApiResponse;
     if (!data || !Array.isArray(data.data)) {
       throw new Error(
         `Invalid API response format for batch ${
@@ -105,7 +106,7 @@ const uploadBatches = async (
     });
 
     const { error } = await supabaseClient.rpc("upsert_content", {
-      data: contents as any,
+      data: contents as unknown as Json,
       v_space_id: spaceId,
       v_creator_id: userId,
       content_as_document: true,
@@ -127,7 +128,6 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     console.error("No Supabase context found.");
     return;
   }
-  const { spaceId, userId } = context;
 
   if (roamNodes.length === 0) {
     return;
@@ -136,9 +136,10 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   let nodesWithEmbeddings: RoamDiscourseNodeData[];
   try {
     nodesWithEmbeddings = await fetchEmbeddingsForNodes(roamNodes);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${error.message}`,
+      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${errorMessage}`,
     );
     return;
   }

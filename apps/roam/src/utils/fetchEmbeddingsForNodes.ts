@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 
 const EMBEDDING_BATCH_SIZE = 200;
@@ -20,10 +21,6 @@ export const fetchEmbeddingsForNodes = async (
 
   for (let i = 0; i < allNodesTexts.length; i += EMBEDDING_BATCH_SIZE) {
     const batch = allNodesTexts.slice(i, i + EMBEDDING_BATCH_SIZE);
-    console.log(
-      `fetchEmbeddingsForNodes: Fetching batch ${i / EMBEDDING_BATCH_SIZE + 1} of ${Math.ceil(allNodesTexts.length / EMBEDDING_BATCH_SIZE)}`,
-    );
-
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -31,9 +28,9 @@ export const fetchEmbeddingsForNodes = async (
     });
 
     if (!response.ok) {
-      let errorData;
+      let errorData: { error: string };
       try {
-        errorData = await response.json();
+        errorData = (await response.json()) as { error: string };
       } catch (e) {
         errorData = {
           error: `Server responded with ${response.status}: ${await response.text()}`,
@@ -46,7 +43,7 @@ export const fetchEmbeddingsForNodes = async (
       );
     }
 
-    const data: EmbeddingApiResponse = await response.json();
+    const data = (await response.json()) as EmbeddingApiResponse;
     if (!data || !Array.isArray(data.data)) {
       throw new Error(
         `Invalid API response format for batch ${

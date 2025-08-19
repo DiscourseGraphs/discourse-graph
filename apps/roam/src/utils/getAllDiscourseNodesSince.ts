@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
 import findDiscourseNode from "./findDiscourseNode";
 import { OnloadArgs } from "roamjs-components/types";
