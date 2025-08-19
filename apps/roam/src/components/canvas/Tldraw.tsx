@@ -78,7 +78,10 @@ import {
   createAllRelationBindings,
 } from "./DiscourseRelationShape/DiscourseRelationBindings";
 import ConvertToDialog from "./ConvertToDialog";
-import { createArrowShapeMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
+import {
+  createArrowShapeMigrations,
+  createDiscourseNodeMigrations,
+} from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { TLDRAW_DATA_ATTRIBUTE } from "./tldrawStyles";
@@ -354,7 +357,11 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       }),
     [allRelationIds, allAddReferencedNodeActions],
   );
-  const migrations = [...arrowShapeMigrations];
+  const discourseNodeMigrations = useMemo(
+    () => createDiscourseNodeMigrations(allNodes.map((node) => node.type)),
+    [allNodes],
+  );
+  const migrations = [...arrowShapeMigrations, ...discourseNodeMigrations];
   const { store, needsUpgrade, performUpgrade, error } = useRoamStore({
     migrations,
     customShapeUtils,
@@ -415,7 +422,12 @@ const TldrawCanvas = ({ title }: { title: string }) => {
           {
             type: nodeType.type,
             id: createShapeId(),
-            props: { uid: e.detail.uid, title: e.detail.val },
+            props: {
+              uid: e.detail.uid,
+              title: e.detail.val,
+              size: "m",
+              fontFamily: "draw",
+            },
             ...position,
           },
         ]);

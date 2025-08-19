@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/naming-convention */
 import {
@@ -13,6 +16,28 @@ import { getRelationColor } from "./DiscourseRelationUtil";
 
 const SEQUENCE_ID_BASE = "com.roam-research.discourse-graphs";
 
+export const createDiscourseNodeMigrations = (allNodeTypes: string[]) => {
+  return allNodeTypes.map((shapeId) => {
+    const versions = createMigrationIds(`${SEQUENCE_ID_BASE}.${shapeId}`, {
+      AddSizeAndFontFamily: 1,
+    });
+    return createMigrationSequence({
+      sequenceId: `${SEQUENCE_ID_BASE}.${shapeId}`,
+      sequence: [
+        {
+          id: versions.AddSizeAndFontFamily,
+          scope: "record",
+          filter: (r: any) => r.type === shapeId && r.typeName === "shape",
+          up: (shape: any) => {
+            console.log("shape", shape);
+            shape.props.size = "m";
+            shape.props.fontFamily = "draw";
+          },
+        },
+      ],
+    });
+  });
+};
 export const createArrowShapeMigrations = ({
   allRelationIds,
   allAddReferencedNodeActions,
