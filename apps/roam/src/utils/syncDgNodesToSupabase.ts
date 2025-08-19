@@ -153,7 +153,7 @@ const upsertNodeSchemaToContent = async ({
   ]
   `;
   //@ts-ignore - backend to be added to roamjs-components
-  const result = (await window.roamAlphaAPI.data.backend.q(
+  const result = (await window.roamAlphaAPI.data.async.q(
     query,
     nodeTypesUids,
   )) as unknown as RoamDiscourseNodeData[];

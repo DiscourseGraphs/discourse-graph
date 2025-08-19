@@ -112,7 +112,7 @@ export const getAllDiscourseNodesSince = async (
 ]`;
 
   //@ts-ignore - backend to be added to roamjs-components
-  const allNodes = (await window.roamAlphaAPI.data.backend.q(
+  const allNodes = (await window.roamAlphaAPI.data.async.q(
     query,
     sinceMs,
   )) as unknown as RoamDiscourseNodeData[];
