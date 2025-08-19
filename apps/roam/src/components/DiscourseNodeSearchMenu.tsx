@@ -57,6 +57,7 @@ const NodeSearchMenu = ({
   triggerPosition,
   triggerText,
 }: { onClose: () => void } & Props) => {
+  const MENU_WIDTH = 400;
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(true);
@@ -361,20 +362,17 @@ const NodeSearchMenu = ({
 
   let currentGlobalIndex = -1;
 
-    const refocusTextarea = useCallback(() => {
-      setTimeout(() => {
-        if (!textarea) return;
-        textarea.focus();
-        const cursorPos = textarea.selectionStart;
-        textarea.setSelectionRange(cursorPos, cursorPos);
-      }, 0);
-    }, [textarea]);
+  const refocusTextarea = useCallback(() => {
+    setTimeout(() => {
+      if (!textarea) return;
+      textarea.focus();
+      const cursorPos = textarea.selectionStart;
+      textarea.setSelectionRange(cursorPos, cursorPos);
+    }, 0);
+  }, [textarea]);
 
   const handleTypeCheckChange = useCallback(
-    (typeKey: string, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
+    (typeKey: string) => {
       setCheckedTypes((prev) => ({
         ...prev,
         [typeKey]: !prev[typeKey],
@@ -442,7 +440,7 @@ const NodeSearchMenu = ({
       content={
         <div
           className="discourse-node-search-menu"
-          style={{ width: "400px" }}
+          style={{ width: MENU_WIDTH }}
           onMouseDown={remainFocusOnTextarea}
           onClick={remainFocusOnTextarea}
         >
@@ -452,7 +450,7 @@ const NodeSearchMenu = ({
             <>
               <div
                 className="discourse-node-search-menu"
-                style={{ width: "400px" }}
+                style={{ width: MENU_WIDTH }}
                 onMouseDown={remainFocusOnTextarea}
                 onClick={remainFocusOnTextarea}
               >
@@ -474,20 +472,7 @@ const NodeSearchMenu = ({
                     <div className="mb-2 flex items-center justify-between text-sm">
                       <div>Filter by type:</div>
                       <div>
-                        <div
-                          onPointerDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                          className="inline-flex items-center gap-2 align-middle text-sm"
-                        >
+                        <div className="inline-flex items-center gap-2 align-middle text-sm">
                           <span className="align-middle font-semibold leading-none">
                             Select All
                           </span>
@@ -495,10 +480,9 @@ const NodeSearchMenu = ({
                             className="m-0 align-middle"
                             style={{ marginBottom: 0 }}
                             checked={isAllSelected}
-                            onFocus={() => refocusTextarea()}
-                            onChange={() => {
-                              handleToggleAll(!isAllSelected);
-                            }}
+                            aria-label="Select All"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onChange={() => handleToggleAll(!isAllSelected)}
                           />
                         </div>
                       </div>
@@ -506,18 +490,14 @@ const NodeSearchMenu = ({
 
                     <div className="flex flex-wrap gap-2">
                       {discourseTypes.map((type) => (
-                        <div
+                        <Checkbox
                           key={type.type}
-                          className="inline-flex cursor-pointer items-center"
-                          onClick={(e) => handleTypeCheckChange(type.type, e)}
-                        >
-                          <Checkbox
-                            label={type.text}
-                            checked={checkedTypes[type.type]}
-                            onChange={() => {}}
-                            className="m-0"
-                          />
-                        </div>
+                          label={type.text}
+                          checked={checkedTypes[type.type]}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onChange={() => handleTypeCheckChange(type.type)}
+                          className="m-0"
+                        />
                       ))}
                     </div>
                   </div>
