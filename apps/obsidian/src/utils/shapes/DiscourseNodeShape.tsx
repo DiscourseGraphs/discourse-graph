@@ -116,7 +116,6 @@ const DiscourseNodeContent = ({
   const [title, setTitle] = useState<string>("...");
   const [nodeTypeName, setNodeTypeName] = useState<string>("");
   const [nodeColor, setNodeColor] = useState<string>("transparent");
-  const [linkedFile, setLinkedFile] = useState<TFile | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -126,7 +125,6 @@ const DiscourseNodeContent = ({
         const linked = await getLinkedFileFromSrc(app, canvasFile, src);
         if (!linked) return;
         if (isCancelled) return;
-        setLinkedFile(linked);
         setTitle(linked.basename);
 
         const fm = getFrontmatterForFile(app, linked);
@@ -163,8 +161,8 @@ const DiscourseNodeContent = ({
       }}
       className="box-border flex h-full w-full flex-col items-start justify-center rounded-md border-2 p-2"
     >
-      <h1 style={{ margin: 0, fontSize: 16 }}>{title}</h1>
-      <p style={{ margin: 0, opacity: 0.8, fontSize: 12 }}>
+      <h1 className="m-0 text-base">{title}</h1>
+      <p className="m-0 text-sm opacity-80">
         {nodeTypeName || ""}
       </p>
     </div>
