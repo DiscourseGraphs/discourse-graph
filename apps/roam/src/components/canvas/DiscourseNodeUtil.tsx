@@ -15,6 +15,12 @@ import {
   FileHelpers,
   StateNode,
   TLStateNodeConstructor,
+  TLDefaultSizeStyle,
+  DefaultSizeStyle,
+  T,
+  FONT_FAMILIES,
+  TLDefaultFontStyle,
+  DefaultFontStyle,
 } from "tldraw";
 import React, { useState, useEffect, useRef } from "react";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
@@ -42,6 +48,12 @@ const TEXT_PROPS = {
   fontStyle: "normal",
   padding: "0px",
   maxWidth: "auto",
+};
+const FONT_SIZES: Record<TLDefaultSizeStyle, number> = {
+  m: 25,
+  l: 38,
+  xl: 48,
+  s: 16,
 };
 // // FONT_FAMILIES.sans or tldraw_sans not working in toSvg()
 // // maybe check getSvg()
@@ -133,6 +145,8 @@ export type DiscourseNodeShape = TLBaseShape<
     uid: string;
     title: string;
     imageUrl?: string;
+    size: TLDefaultSizeStyle;
+    fontFamily: TLDefaultFontStyle;
   }
 >;
 export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
@@ -142,6 +156,17 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     super(editor);
     this.type = type;
   }
+
+  static override props = {
+    w: T.number,
+    h: T.number,
+    // opacity: T.number,
+    uid: T.string,
+    title: T.string,
+    imageUrl: T.optional(T.string),
+    size: DefaultSizeStyle,
+    fontFamily: DefaultFontStyle,
+  };
 
   override isAspectRatioLocked = () => false;
   override canResize = () => true;
@@ -162,6 +187,8 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
       h: 64,
       uid: window.roamAlphaAPI.util.generateUID(),
       title: "",
+      size: "s",
+      fontFamily: "sans",
     };
   }
 
@@ -476,7 +503,12 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
 
           <div
             ref={contentRef}
-            style={{ ...DEFAULT_STYLE_PROPS, maxWidth: "" }}
+            style={{
+              ...DEFAULT_STYLE_PROPS,
+              maxWidth: "",
+              fontFamily: FONT_FAMILIES[shape.props.fontFamily],
+              fontSize: FONT_SIZES[shape.props.size],
+            }}
           >
             {alias
               ? new RegExp(alias).exec(shape.props.title)?.[1] ||
