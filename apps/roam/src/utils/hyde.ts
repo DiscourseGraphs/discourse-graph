@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { getLoggedInClient } from "./supabaseContext";
 import { Result } from "./types";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import findDiscourseNode from "./findDiscourseNode";
-import { getNodeEnv } from "roamjs-components/util/env";
 
 type ApiEmbeddingResponse = {
   data: Array<{
@@ -37,6 +37,12 @@ export type NodeSearchResult = {
   score: number;
 };
 
+type ResultItemMin = { uid: string };
+type ExistingResultGroup = {
+  label: string;
+  results: Record<string, ResultItemMin>;
+};
+
 type HypotheticalNodeGenerator = (params: {
   node: string;
   relationType: RelationDetails;
@@ -57,31 +63,15 @@ const API_CONFIG = {
     MAX_TOKENS: 104,
     TEMPERATURE: 0.9,
   },
-  BASE_URL: {
-    DEV: "http://localhost:3000",
-    PROD: "http://localhost:54321",
-    // "https://discourse-graph-git-store-in-supabase-discourse-graphs.vercel.app",
-  },
-  EMBEDDINGS: {
-    PATH: "/api/embeddings/openai/small",
-  },
-  SUPABASE: {
-    MATCH_EMBEDDINGS_PATH:
-      "/api/supabase/rpc/match-embeddings-for-subset-nodes",
-  },
+  EMBEDDINGS_URL: "https://discoursegraphs.com/api/embeddings/openai/small",
 } as const;
-
-const getBaseUrl = (): string => {
-  const isDevelopment = getNodeEnv() === "development";
-  return isDevelopment ? API_CONFIG.BASE_URL.DEV : API_CONFIG.BASE_URL.PROD;
-};
 
 const handleApiError = async (
   response: Response,
   context: string,
 ): Promise<never> => {
   const errorText = await response.text();
-  let errorData;
+  let errorData: unknown;
   try {
     errorData = JSON.parse(errorText);
   } catch (e) {
@@ -92,8 +82,7 @@ const handleApiError = async (
     errorData,
   );
   throw new Error(
-    errorData.error ||
-      `${context} failed with status ${response.status}. Response: ${errorText}`,
+    `${context} failed with status ${response.status}. Response: ${errorText}`,
   );
 };
 
@@ -156,10 +145,8 @@ const createEmbedding: EmbeddingFunc = async (
 ): Promise<EmbeddingVectorType> => {
   if (!text.trim()) throw new Error("Input text for embedding is empty.");
 
-  const apiUrl = `${getBaseUrl()}${API_CONFIG.EMBEDDINGS.PATH}`;
-
   try {
-    const response = await fetch(apiUrl, {
+    const response = await fetch(API_CONFIG.EMBEDDINGS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ input: text }),
@@ -194,7 +181,7 @@ const searchEmbeddings: SearchFunc = async ({
   const { data, error } = await supabaseClient.rpc(
     "match_embeddings_for_subset_nodes",
     {
-      p_query_embedding: queryEmbedding,
+      p_query_embedding: JSON.stringify(queryEmbedding),
       p_subset_roam_uids: subsetRoamUids,
     },
   );
@@ -354,11 +341,9 @@ export const findSimilarNodesUsingHyde = async ({
   }
 };
 
-// --- Roam data helpers (shared by Suggestions components) ---
-
 export const getAllPageByUidAsync = async (): Promise<[string, string][]> => {
   // @ts-ignore - backend to be added to roamjs-components
-  const pages = (await window.roamAlphaAPI.data.async.q(
+  const pages = (await window.roamAlphaAPI.data.backend.q(
     "[:find ?pageName ?pageUid :where [?e :node/title ?pageName] [?e :block/uid ?pageUid]]",
   )) as [string, string][];
   return pages;
@@ -367,39 +352,40 @@ export const getAllPageByUidAsync = async (): Promise<[string, string][]> => {
 export const extractPagesFromChildBlock = (
   tag: string,
 ): { uid: string; text: string }[] => {
-  return window.roamAlphaAPI.data
-    .q(
-      `[:find ?uid ?title
+  // @ts-ignore - backend to be added to roamjs-components
+  const results = window.roamAlphaAPI.data.backend.q(
+    `[:find ?uid ?title
       :where [?b :node/title "${normalizePageTitle(tag)}"]
         [?a :block/refs ?b]
         [?p :block/children ?a]
         [?p :block/refs ?rf]
         [?rf :block/uid ?uid]
         [?rf :node/title ?title]]]`,
-    )
-    .map(([uid, title]) => ({ uid, text: title }));
+  ) as Array<[string, string]>;
+  return results.map(([uid, title]) => ({ uid, text: title }));
 };
 
 export const extractPagesFromParentBlock = (
   tag: string,
 ): { uid: string; text: string }[] => {
-  return window.roamAlphaAPI.data
-    .q(
-      `[:find ?uid ?title
+  // @ts-ignore - backend to be added to roamjs-components
+  const results = window.roamAlphaAPI.data.backend.q(
+    `[:find ?uid ?title
       :where [?b :node/title "${normalizePageTitle(tag)}"]
         [?a :block/refs ?b]
         [?p :block/parents ?a]
         [?p :block/refs ?rf]
         [?rf :block/uid ?uid]
         [?rf :node/title ?title]]]`,
-    )
-    .map(([uid, title]) => ({ uid, text: title }));
+  ) as Array<[string, string]>;
+  return results.map(([uid, title]) => ({ uid, text: title }));
 };
 
 export const getAllReferencesOnPage = (
   pageTitle: string,
 ): { uid: string; text: string }[] => {
-  const referencedPages = window.roamAlphaAPI.data.q(
+  // @ts-ignore - backend to be added to roamjs-components
+  const referencedPages = window.roamAlphaAPI.data.backend.q(
     `[:find ?uid ?text
       :where
         [?page :node/title "${normalizePageTitle(pageTitle)}"]
@@ -407,7 +393,7 @@ export const getAllReferencesOnPage = (
         [?b :block/refs ?refPage]
         [?refPage :block/uid ?uid]
         [?refPage :node/title ?text]]`,
-  );
+  ) as Array<[string, string]>;
   return referencedPages.map(([uid, text]) => ({ uid, text }));
 };
 
@@ -417,7 +403,7 @@ export type PerformHydeSearchParams = {
   discourseNodeExists: boolean;
   tagUid: string;
   validTypes: string[];
-  existingResults: any[];
+  existingResults: ExistingResultGroup[];
   uniqueRelationTypeTriplets: RelationDetails[];
   tag: string;
   shouldGrabFromReferencedPages: boolean;
@@ -446,8 +432,14 @@ export const performHydeSearch = async ({
 
   let candidateNodesForHyde: SuggestedNode[] = [];
 
+  const existingUids = new Set<string>(
+    existingResults.flatMap((group) =>
+      Object.values(group.results).map((item) => item.uid),
+    ),
+  );
+
   if (useAllPagesForSuggestions) {
-    console.time("get candidate nodes from all pages");
+    // TODO: Use Supabase to get all pages
     candidateNodesForHyde = (await getAllPageByUidAsync())
       .map(([pageName, pageUid]) => {
         if (!pageUid || pageUid === tagUid) return null;
@@ -456,11 +448,7 @@ export const performHydeSearch = async ({
           !node ||
           node.backedBy === "default" ||
           !validTypes.includes(node.type) ||
-          existingResults.some((r: any) =>
-            (Object.values<any>(r.results) as any[]).some(
-              (result: any) => result.uid === pageUid,
-            ),
-          )
+          existingUids.has(pageUid)
         ) {
           return null;
         }
@@ -468,13 +456,11 @@ export const performHydeSearch = async ({
           uid: pageUid,
           text: pageName,
           type: node.type,
-        } as SuggestedNode;
+        } as SuggestedNodeb;
       })
       .filter((n): n is SuggestedNode => n !== null);
-    console.timeEnd("get candidate nodes from all pages");
   } else {
-    // From selected pages
-    let referenced: { uid: string; text: string }[] = [];
+    const referenced: { uid: string; text: string }[] = [];
     if (shouldGrabFromReferencedPages) {
       referenced.push(...getAllReferencesOnPage(tag));
       selectedPages.forEach((p) => {
@@ -495,11 +481,7 @@ export const performHydeSearch = async ({
           !node ||
           node.backedBy === "default" ||
           !validTypes.includes(node.type) ||
-          existingResults.some((r: any) =>
-            (Object.values<any>(r.results) as any[]).some(
-              (result: any) => result.uid === n.uid,
-            ),
-          ) ||
+          existingUids.has(n.uid) ||
           n.uid === tagUid
         ) {
           return null;
