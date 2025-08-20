@@ -5,15 +5,6 @@ import { resolveLinkedFileFromSrc } from "~/components/canvas/stores/assetStore"
 
 export type FrontmatterRecord = Record<string, unknown>;
 
-export const getLinkedFileFromSrc = async (
-  app: App,
-  canvasFile: TFile,
-  src?: string | null,
-): Promise<TFile | null> => {
-  if (!src) return null;
-  return resolveLinkedFileFromSrc(app, canvasFile, src);
-};
-
 export const getFrontmatterForFile = (
   app: App,
   file: TFile,
@@ -44,9 +35,13 @@ export const getNodeTypeForLinkedSrc = async (
   app: App,
   plugin: DiscourseGraphPlugin,
   canvasFile: TFile,
-  src?: string | null,
+  src?: string,
 ): Promise<DiscourseNode | null> => {
-  const file = await getLinkedFileFromSrc(app, canvasFile, src);
+  const file = await resolveLinkedFileFromSrc({
+    app,
+    canvasFile,
+    src,
+  });
   if (!file) return null;
   const fm = getFrontmatterForFile(app, file);
   const id = getNodeTypeIdFromFrontmatter(fm);

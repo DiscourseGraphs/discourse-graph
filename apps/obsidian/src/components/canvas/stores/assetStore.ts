@@ -67,11 +67,16 @@ export const resolveLinkedTFileByBlockRef = async (
   }
 };
 
-export const resolveLinkedFileFromSrc = async (
-  app: App,
-  canvasFile: TFile,
-  src?: string,
-): Promise<TFile | null> => {
+export const resolveLinkedFileFromSrc = async ({
+  app,
+  canvasFile,
+  src,
+}: {
+  app: App;
+  canvasFile: TFile;
+  src?: string;
+}): Promise<TFile | null> => {
+  if (!src) return null;
   const blockRef = extractBlockRefId(src);
   if (!blockRef) return null;
   return resolveLinkedTFileByBlockRef(app, canvasFile, blockRef);

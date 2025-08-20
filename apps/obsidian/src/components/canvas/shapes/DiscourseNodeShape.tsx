@@ -3,7 +3,6 @@ import type { App, TFile } from "obsidian";
 import { memo, createElement } from "react";
 import DiscourseGraphPlugin from "~/index";
 import {
-  getLinkedFileFromSrc,
   getFrontmatterForFile,
   getNodeTypeIdFromFrontmatter,
   getNodeTypeById,
@@ -11,6 +10,7 @@ import {
 } from "./discourseNodeShapeUtils";
 import { DiscourseNode } from "~/types";
 import { useNodeData } from "~/components/canvas/hooks/useNodeData";
+import { resolveLinkedFileFromSrc } from "~/components/canvas/stores/assetStore";
 
 export type DiscourseNodeShape = TLBaseShape<
   "discourse-node",
@@ -64,7 +64,11 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   ): Promise<TFile | null> {
     const app = ctx?.app ?? this.options.app;
     const canvasFile = ctx?.canvasFile ?? this.options.canvasFile;
-    return getLinkedFileFromSrc(app, canvasFile, shape.props.src ?? null);
+    return resolveLinkedFileFromSrc({
+      app,
+      canvasFile,
+      src: shape.props.src ?? undefined,
+    });
   }
 
   async getFrontmatter(
