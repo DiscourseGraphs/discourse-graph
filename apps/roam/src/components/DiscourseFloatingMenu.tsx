@@ -43,14 +43,14 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
           />
           <MenuItem
             text="Docs"
-            icon="document-open"
+            icon="book"
             href="https://discoursegraphs.com/docs/roam"
             rel="noopener noreferrer"
             target="_blank"
           />
           <MenuItem
             text="Community"
-            icon="people"
+            icon="social-media"
             href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg"
             rel="noopener noreferrer"
             target="_blank"
@@ -65,11 +65,14 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
         arrow: {
           enabled: false,
         },
+        offset: {
+          enabled: true,
+          offset: "-70, 15",
+        },
       }}
     >
       <Button
         intent={Intent.PRIMARY}
-        text="Discourse Graphs"
         id="dg-floating-menu-button"
         aria-label="Open Discourse Graphs menu"
         className={props.buttonTheme}
@@ -93,7 +96,7 @@ export const installDiscourseFloatingMenu = (
   props: DiscourseFloatingMenuProps = {
     position: "bottom-right",
     theme: "bp3-light",
-    buttonTheme: "bp3-dark",
+    buttonTheme: "bp3-light",
   },
 ) => {
   let floatingMenuAnchor = document.getElementById(ANCHOR_ID);
