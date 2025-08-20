@@ -137,7 +137,6 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
 
   /**
    * Resolve and refresh the snapshot for a single `src`.
-   * Handles unlink, metadata derivation, and error cases.
    */
   const resolveForSrc = async (src: SrcKey) => {
     try {
@@ -181,7 +180,6 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
     }
   };
 
-  /** Debounced refresh of all known snapshots, used for canvas/meta changes. */
   const debouncedRefreshAll = debounce(
     async () => {
       const srcs = Array.from(entries.keys());
@@ -191,7 +189,6 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
     true,
   );
 
-  // Global listeners scoped to this store instance
   const onModify = app.vault.on("modify", (file: TAbstractFile) => {
     if (!(file instanceof TFile)) return;
     for (const [src, entry] of entries) {
@@ -219,7 +216,6 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
 
   const onCanvasMetaChanged = app.metadataCache.on("changed", (file: TFile) => {
     if (file.path === canvasFile.path) {
-      // Blockref mapping in canvas may have changed
       void debouncedRefreshAll();
     }
   });
@@ -229,13 +225,11 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
   });
 
   return {
-    /** Read the latest snapshot for a given `src`. */
     get: (src: SrcKey | null) => {
       if (!src) return DEFAULT_SNAPSHOT;
       const entry = entries.get(src);
       return entry?.snapshot ?? DEFAULT_SNAPSHOT;
     },
-    /** Subscribe to changes for a given `src`. Returns an unsubscribe function. */
     subscribe: (src: SrcKey | null, callback: Listener) => {
       if (!src) return () => {};
       let entry = entries.get(src);
@@ -253,33 +247,14 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
         const e = entries.get(src);
         if (!e) return;
         e.listeners.delete(callback);
-        if (e.listeners.size === 0) {
-          // Keep entry cached for now; could add LRU eviction if needed
-        }
       };
     },
-    /** Remove global listeners and clear state. */
     dispose: () => {
-      try {
-        app.vault.offref(onModify);
-      } catch {
-        /* offref may throw if already removed; safe to ignore */
-      }
-      try {
-        app.vault.offref(onRename);
-      } catch {
-        /* offref may throw if already removed; safe to ignore */
-      }
-      try {
-        app.metadataCache.offref(onCanvasMetaChanged);
-      } catch {
-        /* offref may throw if already removed; safe to ignore */
-      }
-      try {
-        app.metadataCache.offref(onResolved);
-      } catch {
-        /* offref may throw if already removed; safe to ignore */
-      }
+      app.vault.offref(onModify);
+      app.vault.offref(onRename);
+      app.metadataCache.offref(onCanvasMetaChanged);
+      app.metadataCache.offref(onResolved);
+
       entries.clear();
     },
   };
