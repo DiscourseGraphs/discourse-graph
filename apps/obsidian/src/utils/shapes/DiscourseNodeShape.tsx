@@ -1,6 +1,6 @@
 import { BaseBoxShapeUtil, HTMLContainer, T, TLBaseShape } from "tldraw";
 import type { App, TFile } from "obsidian";
-import { useEffect, useState } from "react";
+import { memo, createElement } from "react";
 import DiscourseGraphPlugin from "~/index";
 import {
   getLinkedFileFromSrc,
@@ -10,6 +10,7 @@ import {
   FrontmatterRecord,
 } from "./discourseNodeShapeUtils";
 import { DiscourseNode } from "~/types";
+import { useNodeData } from "~/hooks/useNodeData";
 
 export type DiscourseNodeShape = TLBaseShape<
   "discourse-node",
@@ -46,15 +47,9 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   }
 
   component(shape: DiscourseNodeShape) {
-    const { app, canvasFile, plugin } = this.options;
     return (
       <HTMLContainer>
-        <DiscourseNodeContent
-          app={app}
-          canvasFile={canvasFile}
-          plugin={plugin}
-          src={shape.props.src ?? null}
-        />
+        {createElement(discourseNodeContent, { src: shape.props.src ?? null })}
       </HTMLContainer>
     );
   }
@@ -102,69 +97,19 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   }
 }
 
-const DiscourseNodeContent = ({
-  app,
-  canvasFile,
-  plugin,
-  src,
-}: {
-  app: App;
-  canvasFile: TFile;
-  plugin: DiscourseGraphPlugin;
-  src: string | null;
-}) => {
-  const [title, setTitle] = useState<string>("...");
-  const [nodeTypeName, setNodeTypeName] = useState<string>("");
-  const [nodeColor, setNodeColor] = useState<string>("transparent");
-
-  useEffect(() => {
-    let isCancelled = false;
-    const run = async () => {
-      try {
-        if (!src) return;
-        const linked = await getLinkedFileFromSrc(app, canvasFile, src);
-        if (!linked) return;
-        if (isCancelled) return;
-        setTitle(linked.basename);
-
-        const fm = getFrontmatterForFile(app, linked);
-        const nodeTypeId = getNodeTypeIdFromFrontmatter(fm);
-        const nodeType = getNodeTypeById(plugin, nodeTypeId);
-        if (isCancelled) return;
-        setNodeTypeName(nodeType?.name ?? "");
-        setNodeColor(nodeType?.color ?? "transparent");
-      } catch (err) {
-        console.error("Error fetching discourse node data:", err);
-      }
-    };
-    void run();
-    // Re-run when the canvas file's metadata changes (e.g., after we insert the blockref)
-    const refChanged = app.metadataCache.on("changed", (file) => {
-      if (file.path === canvasFile.path) {
-        void run();
-      }
-    });
-    const refResolved = app.metadataCache.on("resolved", () => {
-      void run();
-    });
-    return () => {
-      isCancelled = true;
-      if (refChanged) app.metadataCache.offref(refChanged);
-      if (refResolved) app.metadataCache.offref(refResolved);
-    };
-  }, [app, canvasFile, src, plugin]);
-
+const discourseNodeContent = memo(({ src }: { src: string | null }) => {
+  const { title, nodeTypeName, color } = useNodeData(src);
   return (
     <div
       style={{
-        backgroundColor: nodeColor,
+        backgroundColor: color,
       }}
       className="box-border flex h-full w-full flex-col items-start justify-center rounded-md border-2 p-2"
     >
       <h1 className="m-0 text-base">{title}</h1>
-      <p className="m-0 text-sm opacity-80">
-        {nodeTypeName || ""}
-      </p>
+      <p className="m-0 text-sm opacity-80">{nodeTypeName || ""}</p>
     </div>
   );
-};
+});
+
+discourseNodeContent.displayName = "DiscourseNodeContent";

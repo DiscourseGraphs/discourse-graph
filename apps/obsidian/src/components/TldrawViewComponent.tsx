@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  defaultShapeUtils,
-  ErrorBoundary,
-  Tldraw,
-  TLStore,
-} from "tldraw";
+import { defaultShapeUtils, ErrorBoundary, Tldraw, TLStore } from "tldraw";
 import "tldraw/tldraw.css";
 import {
   getTLDataTemplate,
@@ -22,6 +17,7 @@ import {
 import { TFile } from "obsidian";
 import { ObsidianTLAssetStore } from "~/utils/assetStore";
 import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
+import { NodeDataStoreProvider } from "~/components/NodeDataStoreProvider";
 
 interface TldrawPreviewProps {
   store: TLStore;
@@ -147,12 +143,18 @@ export const TldrawPreviewComponent = ({
             <div>Error in Tldraw component: {JSON.stringify(error)}</div>
           )}
         >
-          <Tldraw
-            store={currentStore}
-            autoFocus={true}
-            initialState="select"
-            shapeUtils={customShapeUtils}
-          />
+          <NodeDataStoreProvider
+            app={plugin.app}
+            canvasFile={file}
+            plugin={plugin}
+          >
+            <Tldraw
+              store={currentStore}
+              autoFocus={true}
+              initialState="select"
+              shapeUtils={customShapeUtils}
+            />
+          </NodeDataStoreProvider>
         </ErrorBoundary>
       ) : (
         <div>Loading Tldraw...</div>
