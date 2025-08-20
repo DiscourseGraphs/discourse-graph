@@ -106,9 +106,14 @@ export class TldrawView extends TextFileView {
         return;
       }
 
+      if (!this.file) {
+        console.warn("TldrawView not initialized: missing file");
+        return;
+      }
+
       const { store } = processInitialData(data, assetStore, {
         app: this.app,
-        canvasFile: this.file!,
+        canvasFile: this.file,
         plugin: this.plugin,
       });
 

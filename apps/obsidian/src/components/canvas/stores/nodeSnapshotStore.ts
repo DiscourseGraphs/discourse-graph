@@ -2,10 +2,10 @@ import { App, TFile, TAbstractFile, debounce, FrontMatterCache } from "obsidian"
 import DiscourseGraphPlugin from "~/index";
 import {
   getFrontmatterForFile,
-  getLinkedFileFromSrc,
   getNodeTypeById,
   getNodeTypeIdFromFrontmatter,
 } from "~/components/canvas/shapes/discourseNodeShapeUtils";
+import { resolveLinkedFileFromSrc } from "./assetStore";
 
 /**
  * A lightweight snapshot of the data needed to render a canvas discourse node.
@@ -57,7 +57,7 @@ export type NodeSnapshotStore = {
   get: (src: SrcKey | null) => NodeSnapshot;
   subscribe: (src: SrcKey | null, callback: Listener) => () => void;
   dispose: () => void;
-}
+};
 
 const DEFAULT_SNAPSHOT: NodeSnapshot = {
   title: "...",
@@ -105,7 +105,10 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
    * Merge partial updates into an entry and emit if something meaningful changed.
    * Keeps a cached `linkedPath` to quickly identify relevant vault events.
    */
-  const updateEntry = (src: SrcKey, next: Partial<NodeSnapshot> & { linkedPath?: string | null }) => {
+  const updateEntry = (
+    src: SrcKey,
+    next: Partial<NodeSnapshot> & { linkedPath?: string | null },
+  ) => {
     const prev = entries.get(src);
     const prevSnap = prev?.snapshot ?? DEFAULT_SNAPSHOT;
     const snapshot: NodeSnapshot = {
@@ -122,7 +125,10 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
       emit(src);
       return;
     }
-    if (!shallowEqualSnapshot(prev.snapshot, snapshot) || prev.linkedPath !== linkedPath) {
+    if (
+      !shallowEqualSnapshot(prev.snapshot, snapshot) ||
+      prev.linkedPath !== linkedPath
+    ) {
       prev.snapshot = snapshot;
       prev.linkedPath = linkedPath;
       emit(src);
@@ -136,7 +142,11 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
   const resolveForSrc = async (src: SrcKey) => {
     try {
       updateEntry(src, { isLoading: true, error: undefined });
-      const linked = await getLinkedFileFromSrc(app, canvasFile, src);
+      const linked = await resolveLinkedFileFromSrc({
+        app,
+        canvasFile,
+        src,
+      });
       if (!linked) {
         updateEntry(src, {
           isLoading: false,
@@ -172,10 +182,14 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
   };
 
   /** Debounced refresh of all known snapshots, used for canvas/meta changes. */
-  const debouncedRefreshAll = debounce(async () => {
-    const srcs = Array.from(entries.keys());
-    await Promise.all(srcs.map((src) => resolveForSrc(src)));
-  }, 100, true);
+  const debouncedRefreshAll = debounce(
+    async () => {
+      const srcs = Array.from(entries.keys());
+      await Promise.all(srcs.map((src) => resolveForSrc(src)));
+    },
+    100,
+    true,
+  );
 
   // Global listeners scoped to this store instance
   const onModify = app.vault.on("modify", (file: TAbstractFile) => {
@@ -187,15 +201,21 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
     }
   });
 
-  const onRename = app.vault.on("rename", (file: TAbstractFile, oldPath: string) => {
-    console.log("onRename", file, oldPath);
-    if (!(file instanceof TFile)) return;
-    for (const [src, entry] of entries) {
-      if (entry.linkedPath && (oldPath === entry.linkedPath || file.path === entry.linkedPath)) {
-        void resolveForSrc(src);
+  const onRename = app.vault.on(
+    "rename",
+    (file: TAbstractFile, oldPath: string) => {
+      console.log("onRename", file, oldPath);
+      if (!(file instanceof TFile)) return;
+      for (const [src, entry] of entries) {
+        if (
+          entry.linkedPath &&
+          (oldPath === entry.linkedPath || file.path === entry.linkedPath)
+        ) {
+          void resolveForSrc(src);
+        }
       }
-    }
-  });
+    },
+  );
 
   const onCanvasMetaChanged = app.metadataCache.on("changed", (file: TFile) => {
     if (file.path === canvasFile.path) {
@@ -263,6 +283,6 @@ export const createNodeSnapshotStore = (ctx: StoreCtx): NodeSnapshotStore => {
       entries.clear();
     },
   };
-}
+};
 
 
