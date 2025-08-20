@@ -7,7 +7,7 @@ import {
   getUpdatedMdContent,
   TLData,
   processInitialData,
-} from "~/utils/tldraw";
+} from "~/components/canvas/tldraw";
 import DiscourseGraphPlugin from "~/index";
 import {
   DEFAULT_SAVE_DELAY,
@@ -15,8 +15,8 @@ import {
   TLDATA_DELIMITER_START,
 } from "~/constants";
 import { TFile } from "obsidian";
-import { ObsidianTLAssetStore } from "~/utils/assetStore";
-import { DiscourseNodeUtil } from "~/utils/shapes/DiscourseNodeShape";
+import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
+import { DiscourseNodeUtil } from "~/components/canvas/shapes/DiscourseNodeShape";
 import { NodeDataStoreProvider } from "~/components/NodeDataStoreProvider";
 
 interface TldrawPreviewProps {

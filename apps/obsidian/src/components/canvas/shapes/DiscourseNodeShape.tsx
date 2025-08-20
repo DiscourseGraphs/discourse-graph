@@ -10,7 +10,7 @@ import {
   FrontmatterRecord,
 } from "./discourseNodeShapeUtils";
 import { DiscourseNode } from "~/types";
-import { useNodeData } from "~/hooks/useNodeData";
+import { useNodeData } from "~/components/canvas/hooks/useNodeData";
 
 export type DiscourseNodeShape = TLBaseShape<
   "discourse-node",

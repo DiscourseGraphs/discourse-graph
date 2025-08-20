@@ -1,7 +1,10 @@
 import React, { PropsWithChildren, useContext, useEffect, useMemo } from "react";
 import type { App, TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
-import { createNodeSnapshotStore, NodeSnapshotStore } from "~/utils/nodeSnapshotStore";
+import {
+  createNodeSnapshotStore,
+  NodeSnapshotStore,
+} from "~/components/canvas/stores/nodeSnapshotStore";
 
 const nodeDataStoreContext = React.createContext<NodeSnapshotStore | null>(null);
 

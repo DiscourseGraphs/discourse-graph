@@ -12,14 +12,14 @@ import {
   TLDRAW_VERSION,
 } from "~/constants";
 import DiscourseGraphPlugin from "~/index";
-import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
+import { checkAndCreateFolder, getNewUniqueFilepath } from "../../utils/file";
 import { Notice } from "obsidian";
 import { format } from "date-fns";
-import { ObsidianTLAssetStore } from "./assetStore";
+import { ObsidianTLAssetStore } from "./stores/assetStore";
 import {
   DiscourseNodeUtil,
   DiscourseNodeUtilOptions,
-} from "~/utils/shapes/DiscourseNodeShape";
+} from "~/components/canvas/shapes/DiscourseNodeShape";
 
 export type TldrawPluginMetaData = {
   "plugin-version": string;
