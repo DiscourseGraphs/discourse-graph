@@ -39,4 +39,6 @@
 .tldraw__editor button {
   background: transparent !important;
   color: inherit;
+  border: none !important;
+  box-shadow: none !important;
 }
