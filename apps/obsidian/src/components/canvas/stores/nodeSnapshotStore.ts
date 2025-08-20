@@ -5,7 +5,7 @@ import {
   getLinkedFileFromSrc,
   getNodeTypeById,
   getNodeTypeIdFromFrontmatter,
-} from "~/utils/shapes/discourseNodeShapeUtils";
+} from "~/components/canvas/shapes/discourseNodeShapeUtils";
 
 /**
  * A lightweight snapshot of the data needed to render a canvas discourse node.

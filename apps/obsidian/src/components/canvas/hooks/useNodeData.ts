@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { useNodeDataStore } from "~/components/NodeDataStoreProvider";
-import type { NodeSnapshot } from "~/utils/nodeSnapshotStore";
+import type { NodeSnapshot } from "~/components/canvas/stores/nodeSnapshotStore";
 
 export const useNodeData = (src: string | null): NodeSnapshot => {
   const nodeDataStore = useNodeDataStore();
