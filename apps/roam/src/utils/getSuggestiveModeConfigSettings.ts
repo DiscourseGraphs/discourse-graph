@@ -1,15 +1,20 @@
 import { getSubTree } from "roamjs-components/util";
 import { BooleanSetting, getUidAndBooleanSetting } from "./getExportSettings";
 import { RoamBasicNode } from "roamjs-components/types";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 
+export type PageGroup = {
+  uid: string;
+  name: string;
+  pages: { uid: string; name: string }[];
+};
 export type SuggestiveModeConfigWithUids = {
   parentUid: string;
-  grabFromReferencedPages: BooleanSetting;
-  grabParentAndChildren: BooleanSetting;
+  includePageRelations: BooleanSetting;
+  includeParentAndChildren: BooleanSetting;
   pageGroups: {
     uid: string;
-    name: string;
-    pages: { uid: string; name: string }[];
+    groups: PageGroup[];
   };
 };
 
@@ -24,21 +29,27 @@ export const getSuggestiveModeConfigAndUids = (
     parentUid: suggestiveModeNode.uid,
     key: "Page Groups",
   });
+  const pageGroups = getBasicTreeByParentUid(pageGroupsNode.uid).map(
+    (node) => ({
+      uid: node.uid,
+      name: node.text,
+      pages: node.children.map((c) => ({ uid: c.uid, name: c.text })),
+    }),
+  );
 
   return {
     parentUid: suggestiveModeNode.uid,
-    grabFromReferencedPages: getUidAndBooleanSetting({
+    includePageRelations: getUidAndBooleanSetting({
       tree: suggestiveModeNode.children,
       text: "Include Current Page Relations",
     }),
-    grabParentAndChildren: getUidAndBooleanSetting({
+    includeParentAndChildren: getUidAndBooleanSetting({
       tree: suggestiveModeNode.children,
       text: "Include Parent And Child Blocks",
     }),
     pageGroups: {
-      uid: pageGroupsNode?.uid || "",
-      name: "Page Groups",
-      pages: [],
+      uid: pageGroupsNode.uid,
+      groups: pageGroups,
     },
   };
 };

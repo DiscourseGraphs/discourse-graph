@@ -5,6 +5,7 @@ import getDiscourseRelations from "./getDiscourseRelations";
 import { roamNodeToCondition } from "./parseQuery";
 import { Condition } from "./types";
 import { InputTextNode, RoamBasicNode } from "roamjs-components/types";
+import extractRef from "roamjs-components/util/extractRef";
 
 export const excludeDefaultNodes = (node: DiscourseNode) => {
   return node.backedBy !== "default";
@@ -26,6 +27,12 @@ export type DiscourseNode = {
   graphOverview?: boolean;
   description?: string;
   template?: InputTextNode[];
+  embeddingRef?: string;
+  embeddingRefUid?: string;
+  isFirstChild?: {
+    uid: string;
+    value: boolean;
+  };
 };
 
 const DEFAULT_NODES: DiscourseNode[] = [
@@ -81,9 +88,30 @@ const getSpecification = (children: RoamBasicNode[] | undefined) => {
   return specs;
 };
 
+const getUidAndBooleanSetting = ({
+  tree,
+  text,
+}: {
+  tree: RoamBasicNode[];
+  text: string;
+}) => {
+  const node = tree.find((t) => t.text === text);
+  const value = !!node?.children?.length;
+  return {
+    uid: node?.uid || "",
+    value,
+  };
+};
+
 const getDiscourseNodes = (relations = getDiscourseRelations()) => {
   const configuredNodes = Object.entries(discourseConfigRef.nodes)
     .map(([type, { text, children }]): DiscourseNode => {
+      const embeddingRefNode = children.find((n) =>
+        n.text.startsWith("Embedding Block Ref"),
+      );
+      const refText = embeddingRefNode?.children?.[0]?.text || "";
+      const refUid = extractRef(refText);
+      const blockRef = refUid ? `((${refUid}))` : "";
       return {
         format: getSettingValueFromTree({ tree: children, key: "format" }),
         text,
@@ -104,6 +132,12 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           key: "description",
         }),
         template: getSubTree({ tree: children, key: "template" }).children,
+        embeddingRef: blockRef,
+        embeddingRefUid: embeddingRefNode?.uid || "",
+        isFirstChild: getUidAndBooleanSetting({
+          tree: children,
+          text: "First Child",
+        }),
       };
     })
     .concat(

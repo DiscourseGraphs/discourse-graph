@@ -164,7 +164,7 @@ export const SettingsDialog = ({
           <Tab
             id="suggestive-mode-settings"
             title="Suggestive Mode"
-            className="mb-8 overflow-y-auto"
+            className="overflow-y-auto"
             panel={<SuggestiveModeSettings />}
           />
           <SectionHeader>Grammar</SectionHeader>

@@ -1,36 +1,23 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import React, { useState, useCallback } from "react";
 import { Label, Button, Intent, Tag } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
+import { PageGroup } from "~/utils/getSuggestiveModeConfigSettings";
 
-type PageGroupData = {
+type PageGroupData = PageGroup;
+
+const PageGroupsPanel = ({
+  uid,
+  initialGroups,
+}: {
   uid: string;
-  name: string;
-  pages: { uid: string; name: string }[];
-};
-
-const PageGroupsPanel = ({ uid }: { uid: string }) => {
-  const [pageGroups, setPageGroups] = useState<PageGroupData[]>(() =>
-    getBasicTreeByParentUid(uid).map((node) => ({
-      uid: node.uid,
-      name: node.text,
-      pages: node.children.map((c) => ({ uid: c.uid, name: c.text })),
-    })),
-  );
-
-  const refreshGroups = useCallback(() => {
-    setPageGroups(
-      getBasicTreeByParentUid(uid).map((node) => ({
-        uid: node.uid,
-        name: node.text,
-        pages: node.children.map((c) => ({ uid: c.uid, name: c.text })),
-      })),
-    );
-  }, [uid, setPageGroups]);
+  initialGroups: PageGroupData[];
+}) => {
+  const [pageGroups, setPageGroups] = useState<PageGroupData[]>(initialGroups);
 
   const [newGroupName, setNewGroupName] = useState("");
   const [newPageInputs, setNewPageInputs] = useState<Record<string, string>>(
@@ -43,8 +30,11 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
   const addGroup = async (name: string) => {
     if (!name || pageGroups.some((g) => g.name === name)) return;
     try {
-      await createBlock({ parentUid: uid, node: { text: name } });
-      refreshGroups();
+      const newGroupUid = await createBlock({
+        parentUid: uid,
+        node: { text: name },
+      });
+      setPageGroups([...pageGroups, { uid: newGroupUid, name, pages: [] }]);
       setNewGroupName("");
     } catch (e) {
       console.error("Error adding group", e);
@@ -54,7 +44,7 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
   const removeGroup = async (groupUid: string) => {
     try {
       await deleteBlock(groupUid);
-      refreshGroups();
+      setPageGroups(pageGroups.filter((g) => g.uid !== groupUid));
     } catch (e) {
       console.error("Error removing group", e);
     }
@@ -66,8 +56,17 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
       return;
     }
     try {
-      await createBlock({ parentUid: groupUid, node: { text: page } });
-      refreshGroups();
+      const newPageUid = await createBlock({
+        parentUid: groupUid,
+        node: { text: page },
+      });
+      setPageGroups(
+        pageGroups.map((g) =>
+          g.uid === groupUid
+            ? { ...g, pages: [...g.pages, { uid: newPageUid, name: page }] }
+            : g,
+        ),
+      );
       setNewPageInputs((prev) => ({
         ...prev,
         [groupUid]: "",
@@ -81,10 +80,16 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
     }
   };
 
-  const removePageFromGroup = async (pageUid: string) => {
+  const removePageFromGroup = async (groupUid: string, pageUid: string) => {
     try {
       await deleteBlock(pageUid);
-      refreshGroups();
+      setPageGroups(
+        pageGroups.map((g) =>
+          g.uid === groupUid
+            ? { ...g, pages: g.pages.filter((p) => p.uid !== pageUid) }
+            : g,
+        ),
+      );
     } catch (e) {
       console.error("Error removing page from group", e);
     }
@@ -103,21 +108,21 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
     autocompleteKeys[groupUid] || 0;
 
   return (
-    <div className="p-4">
+    <div>
       <Label>
-        Default Page Groups
+        Page Groups
         <Description
           description={
-            "Organize pages into named groups that will be used by default when generating Discourse Suggestions."
+            "Organize pages into named groups that will be can be selected when generating Discourse Suggestions."
           }
         />
-        <div className="flex flex-col gap-2 pl-2">
+        <div className="flex flex-col gap-2">
           {/* Add Group */}
           <div className="flex items-center gap-2">
             <AutocompleteInput
               value={newGroupName}
               setValue={setNewGroupName}
-              placeholder="New group name…"
+              placeholder="Page group name…"
               options={[]}
             />
             <Button
@@ -127,7 +132,7 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
               disabled={
                 !newGroupName || pageGroups.some((g) => g.name === newGroupName)
               }
-              onClick={() => addGroup(newGroupName)}
+              onClick={() => void addGroup(newGroupName)}
             />
           </div>
 
@@ -144,7 +149,7 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
                   minimal
                   small
                   intent={Intent.DANGER}
-                  onClick={() => removeGroup(group.uid)}
+                  onClick={() => void removeGroup(group.uid)}
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -154,7 +159,7 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
                     if (e.key === "Enter" && getPageInput(group.uid)) {
                       e.preventDefault();
                       e.stopPropagation();
-                      addPageToGroup(group.uid, getPageInput(group.uid));
+                      void addPageToGroup(group.uid, getPageInput(group.uid));
                     }
                   }}
                 >
@@ -171,8 +176,8 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
                   icon="plus"
                   small
                   minimal
-                  onClick={async () =>
-                    await addPageToGroup(group.uid, getPageInput(group.uid))
+                  onClick={() =>
+                    void addPageToGroup(group.uid, getPageInput(group.uid))
                   }
                   disabled={
                     !getPageInput(group.uid) ||
@@ -185,7 +190,9 @@ const PageGroupsPanel = ({ uid }: { uid: string }) => {
                   {group.pages.map((p) => (
                     <Tag
                       key={p.uid}
-                      onRemove={async () => await removePageFromGroup(p.uid)}
+                      onRemove={() =>
+                        void removePageFromGroup(group.uid, p.uid)
+                      }
                       round
                       minimal
                     >

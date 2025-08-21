@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+
 import React, {
   useState,
   useMemo,
@@ -7,30 +9,11 @@ import React, {
 } from "react";
 import { Button, Intent, Tooltip, Position } from "@blueprintjs/core";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import refreshConfigTree from "~/utils/refreshConfigTree";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
-import { getUidAndBooleanSetting } from "~/utils/getExportSettings";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import getSubTree from "roamjs-components/util/getSubTree";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-
-const getNodeConfig = (parentUid: string) => {
-  const tree = getBasicTreeByParentUid(parentUid);
-  const embeddingRefNode = tree.find((n) =>
-    n.text.startsWith("Embedding Block Ref"),
-  );
-  const match = embeddingRefNode?.children?.[0]?.text?.match(/\(\((.*)\)\)/);
-  const blockRef = match ? `((${match[1]}))` : "";
-  return {
-    embeddingRef: blockRef,
-    embeddingRefUid: embeddingRefNode?.uid || "",
-    isFirstChild: getUidAndBooleanSetting({
-      tree: tree,
-      text: "First Child",
-    }),
-  };
-};
+import extractRef from "roamjs-components/util/extractRef";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -38,9 +21,7 @@ const BlockRenderer = ({ uid }: { uid: string }) => {
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
-      while (container.firstChild) {
-        container.removeChild(container.firstChild);
-      }
+      container.innerHTML = "";
 
       if (uid) {
         window.roamAlphaAPI.ui.components.renderBlock({
@@ -62,27 +43,19 @@ const DiscourseNodeSuggestiveRules = ({
   parentUid: string;
 }) => {
   const nodeUid = node.type;
-  const [nodeConfigTree, setNodeConfigTree] = useState(() =>
-    getNodeConfig(parentUid),
-  );
+
+  const [embeddingRef, setEmbeddingRef] = useState(node.embeddingRef || "");
 
   useEffect(() => {
-    refreshConfigTree();
-    setNodeConfigTree(getNodeConfig(parentUid));
-  }, [parentUid]);
-
-  const [embeddingRef, setEmbeddingRef] = useState(nodeConfigTree.embeddingRef);
-
-  useEffect(() => {
-    if (nodeConfigTree.embeddingRef !== embeddingRef) {
-      setEmbeddingRef(nodeConfigTree.embeddingRef);
+    if (node.embeddingRef !== embeddingRef) {
+      setEmbeddingRef(node.embeddingRef || "");
     }
-  }, [nodeConfigTree.embeddingRef]);
+  }, [node.embeddingRef, embeddingRef]);
 
-  const blockUidToRender = useMemo(() => {
-    const match = embeddingRef?.match(/\(\((.*)\)\)/);
-    return match ? match[1] : "";
-  }, [embeddingRef]);
+  const blockUidToRender = useMemo(
+    () => extractRef(embeddingRef),
+    [embeddingRef],
+  );
 
   const templateUid = useMemo(
     () =>
@@ -116,9 +89,9 @@ const DiscourseNodeSuggestiveRules = ({
         title="Embedding Block Ref"
         description="Copy block ref from template which you want to be embedded and ranked."
         order={0}
-        uid={nodeConfigTree.embeddingRefUid}
+        uid={node.embeddingRefUid || ""}
         parentUid={parentUid}
-        defaultValue={nodeConfigTree.embeddingRef}
+        defaultValue={node.embeddingRef || ""}
         options={{
           placeholder: "((block-uid))",
           onChange: handleEmbeddingRefChange,
@@ -134,11 +107,11 @@ const DiscourseNodeSuggestiveRules = ({
 
       <FlagPanel
         title="First Child"
-        description="If the block is the first child of the template, it will be embedded and ranked."
+        description="If the block is the first child of the embedding block ref, it will be embedded and ranked."
         order={1}
-        uid={nodeConfigTree.isFirstChild.uid}
+        uid={node.isFirstChild?.uid || ""}
         parentUid={parentUid}
-        value={nodeConfigTree.isFirstChild.value}
+        value={node.isFirstChild?.value || false}
       />
 
       <div className="flex items-center gap-2">

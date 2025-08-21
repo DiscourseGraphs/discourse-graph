@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
@@ -122,6 +123,7 @@ const NodeConfig = ({
   const graphOverviewUid = getUid("Graph Overview");
   const specificationUid = getUid("Specification");
   const indexUid = getUid("Index");
+  const suggestiveRulesUid = getUid("Suggestive Rules");
   const attributeNode = getSubTree({
     parentUid: node.type,
     key: "Attributes",
@@ -329,18 +331,13 @@ const NodeConfig = ({
           }
         />
         <Tab
-          id="node-suggestive-rules"
-          title="Node Suggestive Rules"
+          id="suggestive-mode"
+          title="Suggestive Mode"
           panel={
             <div className="flex flex-col gap-4 p-1">
               <DiscourseNodeSuggestiveRules
                 node={node}
-                parentUid={
-                  getSubTree({
-                    parentUid: node.type,
-                    key: "Suggestive Rules",
-                  }).uid
-                }
+                parentUid={suggestiveRulesUid}
               />
             </div>
           }
