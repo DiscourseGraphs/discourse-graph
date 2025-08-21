@@ -3,6 +3,7 @@ import { getLoggedInClient } from "./supabaseContext";
 import { Result } from "./types";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import findDiscourseNode from "./findDiscourseNode";
+import { nextApiRoot } from "@repo/ui/lib/execContext";
 
 type ApiEmbeddingResponse = {
   data: Array<{
@@ -63,7 +64,7 @@ const API_CONFIG = {
     MAX_TOKENS: 104,
     TEMPERATURE: 0.9,
   },
-  EMBEDDINGS_URL: "https://discoursegraphs.com/api/embeddings/openai/small",
+  EMBEDDINGS_URL: `${nextApiRoot()}/embeddings/openai/small`,
 } as const;
 
 const handleApiError = async (
@@ -343,7 +344,7 @@ export const findSimilarNodesUsingHyde = async ({
 
 export const getAllPageByUidAsync = async (): Promise<[string, string][]> => {
   // @ts-ignore - backend to be added to roamjs-components
-  const pages = (await window.roamAlphaAPI.data.backend.q(
+  const pages = (await window.roamAlphaAPI.data.async.q(
     "[:find ?pageName ?pageUid :where [?e :node/title ?pageName] [?e :block/uid ?pageUid]]",
   )) as [string, string][];
   return pages;
@@ -353,7 +354,7 @@ export const extractPagesFromChildBlock = (
   tag: string,
 ): { uid: string; text: string }[] => {
   // @ts-ignore - backend to be added to roamjs-components
-  const results = window.roamAlphaAPI.data.backend.q(
+  const results = window.roamAlphaAPI.data.async.q(
     `[:find ?uid ?title
       :where [?b :node/title "${normalizePageTitle(tag)}"]
         [?a :block/refs ?b]
@@ -369,7 +370,7 @@ export const extractPagesFromParentBlock = (
   tag: string,
 ): { uid: string; text: string }[] => {
   // @ts-ignore - backend to be added to roamjs-components
-  const results = window.roamAlphaAPI.data.backend.q(
+  const results = window.roamAlphaAPI.data.async.q(
     `[:find ?uid ?title
       :where [?b :node/title "${normalizePageTitle(tag)}"]
         [?a :block/refs ?b]
@@ -385,7 +386,7 @@ export const getAllReferencesOnPage = (
   pageTitle: string,
 ): { uid: string; text: string }[] => {
   // @ts-ignore - backend to be added to roamjs-components
-  const referencedPages = window.roamAlphaAPI.data.backend.q(
+  const referencedPages = window.roamAlphaAPI.data.async.q(
     `[:find ?uid ?text
       :where
         [?page :node/title "${normalizePageTitle(pageTitle)}"]
@@ -456,7 +457,7 @@ export const performHydeSearch = async ({
           uid: pageUid,
           text: pageName,
           type: node.type,
-        } as SuggestedNodeb;
+        } as SuggestedNode;
       })
       .filter((n): n is SuggestedNode => n !== null);
   } else {
