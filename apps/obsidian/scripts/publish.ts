@@ -258,7 +258,7 @@ const copyDirectory = ({
 const buildPlugin = async (dir: string): Promise<void> => {
   log("Building plugin...");
 
-  await execCommand("npm run build", { cwd: dir });
+  await execCommand("pnpm run build", { cwd: dir });
 
   const buildDir = path.join(dir, "dist");
   const missingFiles = REQUIRED_BUILD_FILES.filter(
