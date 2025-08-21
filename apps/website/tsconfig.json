@@ -2,10 +2,11 @@
   "extends": "@repo/typescript-config/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "rootDir": ".",
+    "rootDir": "../..",
     "paths": {
+      "@repo/*": ["../../packages/*"],
       "~/*": ["./app/*"]
-    },
+    }
   },
   "include": [
     "next-env.d.ts",
@@ -15,5 +16,5 @@
     "scripts/*tx",
     ".next/types/**/*.ts",
     "postcss.config.mjs"
-  ],
+  ]
 }

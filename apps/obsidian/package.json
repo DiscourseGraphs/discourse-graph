@@ -17,6 +17,7 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@octokit/core": "^6.1.2",
+    "@repo/typescript-config": "workspace:*",
     "@types/node": "^20",
     "autoprefixer": "^10.4.21",
     "builtin-modules": "3.3.0",
@@ -30,8 +31,9 @@
     "typescript": "5.5.4"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "nanoid": "^4.0.2",
+    "react": "catalog:obsidian",
+    "react-dom": "catalog:obsidian",
     "tailwindcss-animate": "^1.0.7"
   }
 }
