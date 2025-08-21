@@ -10,11 +10,10 @@ import {
   MenuItem,
   Popover,
   Position,
-  Checkbox,
   Button,
   InputGroup,
-  Switch,
 } from "@blueprintjs/core";
+import { MultiSelect, ItemRenderer, ItemPredicate } from "@blueprintjs/select";
 import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -184,6 +183,11 @@ const NodeSearchMenu = ({
       .filter((type) => checkedTypes[type.type])
       .filter((type) => searchResults[type.type]?.length > 0);
   }, [discourseTypes, checkedTypes, searchResults]);
+
+  const selectedTypes = useMemo(
+    () => discourseTypes.filter((t) => checkedTypes[t.type]),
+    [discourseTypes, checkedTypes],
+  );
 
   const allItems = useMemo(() => {
     const items: {
@@ -364,9 +368,11 @@ const NodeSearchMenu = ({
 
   const refocusTextarea = useCallback(() => {
     setTimeout(() => {
+      console.log("refocusing textarea", Date.now());
       if (!textarea) return;
       textarea.focus();
       const cursorPos = textarea.selectionStart;
+      console.log("cursorPos", cursorPos);
       textarea.setSelectionRange(cursorPos, cursorPos);
     }, 0);
   }, [textarea]);
@@ -383,10 +389,14 @@ const NodeSearchMenu = ({
     [refocusTextarea],
   );
 
-  const remainFocusOnTextarea = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
+  const remainFocusOnTextarea = useCallback(
+    (e: React.MouseEvent) => {
+      // Prevent default to avoid moving focus away from the textarea
+      e.preventDefault();
+      setTimeout(() => refocusTextarea(), 0);
+    },
+    [refocusTextarea],
+  );
 
   const toggleFilterMenu = useCallback(
     (e: React.MouseEvent) => {
@@ -395,15 +405,9 @@ const NodeSearchMenu = ({
 
       setIsFilterMenuOpen((prev) => !prev);
 
-      setTimeout(() => {
-        if (textarea) {
-          textarea.focus();
-          const cursorPos = textarea.selectionStart;
-          textarea.setSelectionRange(cursorPos, cursorPos);
-        }
-      }, 0);
+      refocusTextarea();
     },
-    [textarea],
+    [refocusTextarea],
   );
 
   const handleToggleAll = useCallback(
@@ -414,6 +418,58 @@ const NodeSearchMenu = ({
     [typeIds, refocusTextarea],
   );
 
+  const handleSelectOnly = useCallback(
+    (node: DiscourseNode) => {
+      const next = Object.fromEntries(
+        typeIds.map((id) => [id, id === node.type]),
+      );
+      setCheckedTypes(next as Record<string, boolean>);
+      refocusTextarea();
+    },
+    [typeIds, refocusTextarea],
+  );
+
+  const renderType: ItemRenderer<DiscourseNode> = (
+    item,
+    { modifiers, handleClick },
+  ) => {
+    if (!modifiers.matchesPredicate) return null;
+    const isSelected = !!checkedTypes[item.type];
+    return (
+      <MenuItem
+        key={item.type}
+        className="group"
+        text={item.text}
+        icon={isSelected ? "tick" : "blank"}
+        active={modifiers.active}
+        shouldDismissPopover={false}
+        onClick={(e) => handleClick(e)}
+        onMouseDown={(e) => e.preventDefault()}
+        labelElement={
+          <Button
+            minimal
+            small
+            className="opacity-0 transition-opacity group-hover:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSelectOnly(item);
+            }}
+          >
+            Only
+          </Button>
+        }
+      />
+    );
+  };
+
+  const filterType: ItemPredicate<DiscourseNode> = (query, item) => {
+    const q = query.trim().toLowerCase();
+    if (q.length === 0) return true;
+    return (
+      item.text.toLowerCase().includes(q) || item.type.toLowerCase().includes(q)
+    );
+  };
+
   return (
     <Popover
       onClose={onClose}
@@ -422,7 +478,6 @@ const NodeSearchMenu = ({
       minimal
       target={<span />}
       position={Position.BOTTOM_LEFT}
-      enforceFocus={false}
       modifiers={{
         flip: { enabled: true },
         preventOverflow: { enabled: true },
@@ -441,8 +496,6 @@ const NodeSearchMenu = ({
         <div
           className="discourse-node-search-menu"
           style={{ width: MENU_WIDTH }}
-          onMouseDown={remainFocusOnTextarea}
-          onClick={remainFocusOnTextarea}
         >
           {isLoading ? (
             <div className="p-3 text-center text-gray-500">Loading...</div>
@@ -451,8 +504,6 @@ const NodeSearchMenu = ({
               <div
                 className="discourse-node-search-menu"
                 style={{ width: MENU_WIDTH }}
-                onMouseDown={remainFocusOnTextarea}
-                onClick={remainFocusOnTextarea}
               >
                 <div className="flex items-center justify-between border-b border-gray-200 p-2">
                   <div className="text-sm font-semibold">Search Results</div>
@@ -462,7 +513,6 @@ const NodeSearchMenu = ({
                     small
                     active={isFilterMenuOpen}
                     onClick={toggleFilterMenu}
-                    onMouseDown={remainFocusOnTextarea}
                     title="Filter by type"
                   />
                 </div>
@@ -471,35 +521,45 @@ const NodeSearchMenu = ({
                   <div className="border-b border-gray-200 p-2">
                     <div className="mb-2 flex items-center justify-between text-sm">
                       <div>Filter by type:</div>
-                      <div>
-                        <div className="inline-flex items-center gap-2 align-middle text-sm">
-                          <span className="align-middle font-semibold leading-none">
-                            Select All
-                          </span>
-                          <Switch
-                            className="m-0 align-middle"
-                            style={{ marginBottom: 0 }}
-                            checked={isAllSelected}
-                            aria-label="Select All"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onChange={() => handleToggleAll(!isAllSelected)}
-                          />
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          small
+                          minimal
+                          icon={isAllSelected ? "tick" : undefined}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleToggleAll(!isAllSelected)}
+                        >
+                          Select all
+                        </Button>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      {discourseTypes.map((type) => (
-                        <Checkbox
-                          key={type.type}
-                          label={type.text}
-                          checked={checkedTypes[type.type]}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onChange={() => handleTypeCheckChange(type.type)}
-                          className="m-0"
-                        />
-                      ))}
-                    </div>
+                    <MultiSelect<DiscourseNode>
+                      items={discourseTypes}
+                      itemRenderer={renderType}
+                      itemPredicate={filterType}
+                      onItemSelect={(item: DiscourseNode) =>
+                        handleTypeCheckChange(item.type)
+                      }
+                      selectedItems={selectedTypes}
+                      tagRenderer={(item: DiscourseNode) => item.text}
+                      tagInputProps={{
+                        onRemove: (_tag, index) => {
+                          const removed = selectedTypes[index];
+                          if (removed) handleTypeCheckChange(removed.type);
+                        },
+                      }}
+                      placeholder="Select types..."
+                      popoverProps={{
+                        minimal: true,
+                        enforceFocus: false,
+                        autoFocus: false,
+                        usePortal: true,
+                        onOpening: () => setTimeout(() => {}, 0),
+                      }}
+                      resetOnSelect={false}
+                      fill
+                    />
                   </div>
                 )}
               </div>
@@ -520,6 +580,7 @@ const NodeSearchMenu = ({
                             multiline
                             data-active={isActive}
                             active={isActive}
+                            shouldDismissPopover={false}
                             onClick={() => onSelect(item)}
                           />
                         );
