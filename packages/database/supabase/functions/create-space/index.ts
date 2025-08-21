@@ -181,10 +181,11 @@ const processAndGetOrCreateSpace = async (
   return result;
 };
 
+// The following lines are duplicated from apps/website/app/utils/llm/cors.ts
 const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000"];
 
 const isVercelPreviewUrl = (origin: string): boolean =>
-  origin.includes(".vercel.app") || origin.includes("discourse-graph");
+    /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin)
 
 const isAllowedOrigin = (origin: string): boolean =>
   allowedOrigins.some((allowed) => origin.startsWith(allowed)) ||
