@@ -61,7 +61,7 @@ const makeBranchEnv = async (vercel: Vercel) => {
     if (branchM) branch = branchM;
     else throw new Error("Could not find the git branch");
   }
-  if (!/^[-\w]$/.test(branch))
+  if (!/^[-\w]+$/.test(branch))
     throw new Error("Invalid branch name: " + branch);
   const result = await vercel.deployments.getDeployments({
     ...baseParams,

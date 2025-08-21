@@ -1,0 +1,17 @@
+{
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.turbo": true,
+    "**/.next": true,
+    "**/.vercel": true,
+    "**/.vscode": true
+  },
+  "files.watcherExclude": {
+    "**/target": true,
+    "**/dist": true,
+    "**/.turbo": true,
+    "**/.next": true,
+    "**/.vercel": true
+  }
+}

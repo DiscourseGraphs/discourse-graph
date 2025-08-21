@@ -17,3 +17,13 @@ export const isCurrentPageCanvas = ({
 }) => {
   return isCanvasPage({ title }) && !!h1.closest(".roam-article");
 };
+
+export const isSidebarCanvas = ({
+  title,
+  h1,
+}: {
+  title: string;
+  h1: HTMLHeadingElement;
+}) => {
+  return isCanvasPage({ title }) && !!h1.closest(".rm-sidebar-outline");
+};
