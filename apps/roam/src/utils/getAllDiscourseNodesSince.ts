@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
 import findDiscourseNode from "./findDiscourseNode";
 import { OnloadArgs } from "roamjs-components/types";
@@ -10,7 +11,6 @@ export type RoamDiscourseNodeData = {
   author_name: string;
   source_local_id: string;
   created: string;
-  vector: number[];
   last_modified: string;
   text: string;
   type: string;
@@ -69,8 +69,8 @@ export const getDiscourseNodeTypeWithSettingsBlockNodes = (
     String(firstChildUid),
     String(node.type),
     sinceMs,
-  ) as unknown as Omit<RoamDiscourseNodeData, "vector">[];
-  return blockNode.map((node) => ({ ...node, vector: [] }));
+  ) as unknown as RoamDiscourseNodeData[];
+  return blockNode;
 };
 
 export const getAllDiscourseNodesSince = async (
@@ -111,7 +111,7 @@ export const getAllDiscourseNodesSince = async (
 ]`;
 
   //@ts-ignore - backend to be added to roamjs-components
-  const allNodes = (await window.roamAlphaAPI.data.backend.q(
+  const allNodes = (await window.roamAlphaAPI.data.async.q(
     query,
     sinceMs,
   )) as unknown as RoamDiscourseNodeData[];
@@ -120,27 +120,27 @@ export const getAllDiscourseNodesSince = async (
   const nodeTypesSet = new Set(nodeTypes.map((nodeType) => nodeType.type));
 
   result.push(
-    ...allNodes
-      .map((entity) => {
-        if (!entity.source_local_id) {
-          return null;
-        }
-        const node = findDiscourseNode(entity.source_local_id, discourseNodes);
-        if (
-          !node ||
-          node.backedBy === "default" ||
-          !entity.text ||
-          entity.text.trim() === "" ||
-          nodeTypesSet.has(node.type)
-        ) {
-          return null;
-        }
-        return {
+    ...allNodes.flatMap((entity) => {
+      if (!entity.source_local_id) {
+        return [];
+      }
+      const node = findDiscourseNode(entity.source_local_id, discourseNodes);
+      if (
+        !node ||
+        node.backedBy === "default" ||
+        !entity.text ||
+        entity.text.trim() === "" ||
+        nodeTypesSet.has(node.type)
+      ) {
+        return [];
+      }
+      return [
+        {
           ...entity,
           type: node.type,
-        };
-      })
-      .filter((n): n is RoamDiscourseNodeData => n !== null),
+        },
+      ];
+    }),
   );
   return result;
 };

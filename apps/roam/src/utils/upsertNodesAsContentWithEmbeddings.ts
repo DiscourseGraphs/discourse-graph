@@ -1,11 +1,13 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import { SupabaseContext } from "./supabaseContext";
 import { LocalContentDataInput } from "@repo/database/inputTypes";
 import { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
-
+import { Json } from "@repo/database/types.gen";
+import { nextApiRoot } from "@repo/ui/lib/execContext";
 
 const EMBEDDING_BATCH_SIZE = 200;
-const API_URL = `https://discoursegraphs.com/api/embeddings/openai/small`;
+const EMBEDDING_MODEL = "openai_text_embedding_3_small_1536";
 
 type EmbeddingApiResponse = {
   data: {
@@ -13,22 +15,40 @@ type EmbeddingApiResponse = {
   }[];
 };
 
+export const convertRoamNodeToLocalContent = ({
+  nodes,
+  userId,
+}: {
+  nodes: RoamDiscourseNodeData[];
+  userId: number;
+}): LocalContentDataInput[] => {
+  return nodes.map((node) => {
+    const variant = node.node_title ? "direct_and_description" : "direct";
+    const text = node.node_title
+      ? `${node.node_title} ${node.text}`
+      : node.text;
+    return {
+      author_id: userId,
+      author_local_id: node.author_local_id,
+      source_local_id: node.source_local_id,
+      created: new Date(node.created || Date.now()).toISOString(),
+      last_modified: new Date(node.last_modified || Date.now()).toISOString(),
+      text: text,
+      variant: variant,
+      scale: "document",
+    };
+  });
+};
+
 export const fetchEmbeddingsForNodes = async (
-  nodes: RoamDiscourseNodeData[],
-): Promise<RoamDiscourseNodeData[]> => {
+  nodes: LocalContentDataInput[],
+): Promise<LocalContentDataInput[]> => {
   const allEmbeddings: number[][] = [];
-  console.log("nodes", nodes);
-  const allNodesTexts = nodes.map((node) =>
-    node.node_title ? `${node.node_title} ${node.text}` : node.text,
-  );
+  const allNodesTexts = nodes.map((node) => node.text || "");
 
   for (let i = 0; i < allNodesTexts.length; i += EMBEDDING_BATCH_SIZE) {
     const batch = allNodesTexts.slice(i, i + EMBEDDING_BATCH_SIZE);
-    console.log(
-      `fetchEmbeddingsForNodes: Fetching batch ${i / EMBEDDING_BATCH_SIZE + 1} of ${allNodesTexts.length / EMBEDDING_BATCH_SIZE}`,
-    );
-
-    const response = await fetch(API_URL, {
+    const response = await fetch(nextApiRoot() + "/embeddings/openai/small", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ input: batch }),
@@ -37,7 +57,7 @@ export const fetchEmbeddingsForNodes = async (
     if (!response.ok) {
       let errorData;
       try {
-        errorData = await response.json();
+        errorData = (await response.json()) as { error: string };
       } catch (e) {
         errorData = {
           error: `Server responded with ${response.status}: ${await response.text()}`,
@@ -50,7 +70,7 @@ export const fetchEmbeddingsForNodes = async (
       );
     }
 
-    const data: EmbeddingApiResponse = await response.json();
+    const data = (await response.json()) as EmbeddingApiResponse;
     if (!data || !Array.isArray(data.data)) {
       throw new Error(
         `Invalid API response format for batch ${
@@ -66,46 +86,26 @@ export const fetchEmbeddingsForNodes = async (
       `Mismatch between nodes (${nodes.length}) and embeddings (${allEmbeddings.length})`,
     );
   }
+
   return nodes.map((node, i) => ({
     ...node,
-    model: "openai_text_embedding_3_small_1536",
-    vector: allEmbeddings[i],
+    embedding_inline: {
+      model: EMBEDDING_MODEL,
+      vector: allEmbeddings[i],
+    },
   }));
 };
 
 const uploadBatches = async (
-  batches: RoamDiscourseNodeData[][],
+  batches: LocalContentDataInput[][],
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
 ) => {
   const { spaceId, userId } = context;
   for (let idx = 0; idx < batches.length; idx++) {
     const batch = batches[idx];
-
-    const contents: LocalContentDataInput[] = batch.map((node) => {
-      const variant = node.node_title ? "direct_and_description" : "direct";
-      const text = node.node_title
-        ? `${node.node_title} ${node.text}`
-        : node.text;
-
-      return {
-        author_id: userId,
-        account_local_id: node.author_local_id,
-        source_local_id: node.source_local_id,
-        created: new Date(node.created || Date.now()).toISOString(),
-        last_modified: new Date(node.last_modified || Date.now()).toISOString(),
-        text: text,
-        variant: variant,
-        embedding_inline: {
-          model: "openai_text_embedding_3_small_1536",
-          vector: node.vector,
-        },
-        scale: "document",
-      };
-    });
-
     const { error } = await supabaseClient.rpc("upsert_content", {
-      data: contents as any,
+      data: batch as unknown as Json,
       v_space_id: spaceId,
       v_creator_id: userId,
       content_as_document: true,
@@ -123,22 +123,26 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
 ): Promise<void> => {
-  if (!context) {
+  if (!context?.userId) {
     console.error("No Supabase context found.");
     return;
   }
-  const { spaceId, userId } = context;
 
   if (roamNodes.length === 0) {
     return;
   }
+  const localContentNodes = convertRoamNodeToLocalContent({
+    nodes: roamNodes,
+    userId: context.userId,
+  });
 
-  let nodesWithEmbeddings: RoamDiscourseNodeData[];
+  let nodesWithEmbeddings: LocalContentDataInput[];
   try {
-    nodesWithEmbeddings = await fetchEmbeddingsForNodes(roamNodes);
-  } catch (error: any) {
+    nodesWithEmbeddings = await fetchEmbeddingsForNodes(localContentNodes);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${error.message}`,
+      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${errorMessage}`,
     );
     return;
   }
