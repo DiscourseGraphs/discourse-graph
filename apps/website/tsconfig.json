@@ -6,6 +6,7 @@
     "paths": {
       "~/*": ["./app/*"]
     },
+    "types": ["react", "react-dom", "node"]
   },
   "include": [
     "next-env.d.ts",
@@ -15,5 +16,5 @@
     "scripts/*tx",
     ".next/types/**/*.ts",
     "postcss.config.mjs"
-  ],
+  ]
 }

@@ -52,7 +52,7 @@
     "lint": "eslint . && tsx scripts/lint.ts",
     "lint:fix": "tsx scripts/lint.ts -f",
     "build": "tsc",
-    "build-schema": "tsx scripts/build.ts && npm run genenv -- local",
+    "build-schema": "tsx scripts/build.ts && pnpm run genenv -- local",
     "test": "tsc && cucumber-js",
     "genenv": "tsx scripts/createEnv.mts",
     "gentypes:production": "supabase start && supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > src/dbTypes.ts",
@@ -62,16 +62,17 @@
     "deploy:functions": "tsx scripts/lint.ts -f"
   },
   "dependencies": {
-    "@repo/utils": "*",
+    "@repo/utils": "workspace:*",
     "@supabase/auth-js": "2.71.1",
     "@supabase/functions-js": "2.4.5",
     "@supabase/supabase-js": "2.55.0",
     "dotenv": "^16.6.1"
   },
   "devDependencies": {
-    "@repo/typescript-config": "*",
+    "@repo/typescript-config": "workspace:*",
     "@cucumber/cucumber": "^12.1.0",
     "@vercel/sdk": "^1.10.6",
+    "dotenv": "^16.6.1",
     "prettier-plugin-gherkin": "^3.1.2",
     "supabase": "^2.39.2",
     "ts-node-maintained": "^10.9.5",
