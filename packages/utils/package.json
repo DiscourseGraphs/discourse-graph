@@ -10,6 +10,10 @@
       "default": "./dist/src/*.js"
     }
   },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^20.11.24"
+  },
   "typesVersions": {
     "*": {
       "*": [

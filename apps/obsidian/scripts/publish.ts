@@ -162,16 +162,16 @@ Release Type Auto-Detection:
 BRAT Version Priority:
   BRAT uses alphabetical ordering, so alpha < beta < stable
   - 0.1.0-alpha-feature (lowest priority)
-  - 0.1.0-beta.1 (higher priority) 
+  - 0.1.0-beta.1 (higher priority)
   - 0.1.0 (highest priority)
 
 Examples:
   # Internal release with custom name
   tsx scripts/publish-obsidian.ts --version 0.1.0-alpha-canvas --release-name "Canvas Integration Feature"
-  
+
   # Beta release with feature description
   tsx scripts/publish-obsidian.ts --version 1.0.0-beta.1 --release-name "Beta: New Graph View"
-  
+
   # Stable release (uses default name)
   tsx scripts/publish-obsidian.ts --version 1.0.0
 `);
@@ -258,7 +258,7 @@ const copyDirectory = ({
 const buildPlugin = async (dir: string): Promise<void> => {
   log("Building plugin...");
 
-  await execCommand("npm run build", { cwd: dir });
+  await execCommand("pnpm run build", { cwd: dir });
 
   const buildDir = path.join(dir, "dist");
   const missingFiles = REQUIRED_BUILD_FILES.filter(

@@ -44,7 +44,8 @@ git clone https://github.com/DiscourseGraphs/discourse-graph.git
 
 ```bash
 cd discourse-graph
-npm install
+npm install -g pnpm@10
+pnpm install
 ```
 
 3. Run all applications in development mode:

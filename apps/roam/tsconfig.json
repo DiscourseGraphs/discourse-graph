@@ -9,8 +9,10 @@
   ],
   "compilerOptions": {
     "baseUrl": ".",
+    "rootDir": ".",
     "outDir": "dist",
     "allowJs": false,
-    "noUncheckedIndexedAccess": false
+    "noUncheckedIndexedAccess": false,
+    "types": ["react", "react-dom"]
   }
 }
