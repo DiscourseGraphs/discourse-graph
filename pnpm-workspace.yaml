@@ -1,0 +1,62 @@
+packages:
+  - packages/*
+  - apps/*
+
+catalog:
+  react: ^19.1.0
+  react-dom: ^19.1.0
+  "@types/react": ^19.1.0
+  "@types/react-dom": ^19.1.0
+
+catalogs:
+  obsidian:
+    react: 19.0.0
+    react-dom: 19.0.0
+    "@types/react": ^19.0.0
+    "@types/react-dom": ^19.0.0
+  roam:
+    react: 18.2.0
+    react-dom: 18.2.0
+    "@types/react": 18.2.0
+    "@types/react-dom": 18.2.0
+
+onlyBuiltDependencies:
+  - core-js
+  - core-js-pure
+  - esbuild
+  - react-vertical-timeline-component
+  - roamjs-components
+  - sharp
+  - supabase
+  - unrs-resolver
+
+overrides:
+  react: 19.1.0
+  react-dom: 19.1.0
+  "@types/react": 19.1.0
+  "@types/react-dom": 19.1.0
+  "roam>react": catalog:roam
+  "roam>react-dom": catalog:roam
+  "roam>@types/react": catalog:roam
+  "roam>@types/react-dom": catalog:roam
+  "@discourse-graphs/obsidian>react": catalog:obsidian
+  "@discourse-graphs/obsidian>react-dom": catalog:obsidian
+  "@discourse-graphs/obsidian>@types/react": catalog:obsidian
+  "@discourse-graphs/obsidian>@types/react-dom": catalog:obsidian
+
+peerDependencyRules:
+  allowedVersions:
+    "@blueprintjs/core>react": catalog:roam
+    "@blueprintjs/datetime>react": catalog:roam
+    "@blueprintjs/select>react": catalog:roam
+    "roamjs-components>react": catalog:roam
+    "@blueprintjs/core>react-dom": catalog:roam
+    "@blueprintjs/datetime>react-dom": catalog:roam
+    "@blueprintjs/select>react-dom": catalog:roam
+    "roamjs-components>react-dom": catalog:roam
+
+patchedDependencies:
+  tldraw@^2.3.0: patches/tldraw@2.3.0.patch
+  "@tldraw/editor@^2.3.0": patches/@tldraw__editor@2.3.0.patch
+
+allowUnusedPatches: false

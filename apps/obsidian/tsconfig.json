@@ -12,5 +12,9 @@
     "importHelpers": true,
     "isolatedModules": true,
     "strictNullChecks": true,
+    "paths": {
+      "~/*": ["./src/*"]
+    },
+    "types": ["react", "react-dom"]
   }
 }

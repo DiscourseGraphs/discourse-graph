@@ -18,7 +18,7 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "npm@10.8.2",
+  "packageManager": "pnpm@10.15.0",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -31,24 +31,5 @@
   },
   "dependencies": {
     "posthog-js": "^1.203.1"
-  },
-  "//": "Roam Research still uses React 18",
-  "overrides": {
-    "@blueprintjs/core": {
-      "react": "18.2.0",
-      "react-dom": "18.2.0"
-    },
-    "@blueprintjs/datetime": {
-      "react": "18.2.0",
-      "react-dom": "18.2.0"
-    },
-    "@blueprintjs/select": {
-      "react": "18.2.0",
-      "react-dom": "18.2.0"
-    },
-    "roamjs-components": {
-      "react": "18.2.0",
-      "react-dom": "18.2.0"
-    }
   }
 }
