@@ -9,7 +9,6 @@ import {
   getSupabaseContext,
   SupabaseContext,
 } from "./supabaseContext";
-import { fetchEmbeddingsForNodes } from "./fetchEmbeddingsForNodes";
 import { LocalContentDataInput } from "@repo/database/inputTypes";
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import getDiscourseRelations from "./getDiscourseRelations";
@@ -24,13 +23,15 @@ import {
 import getDiscourseRelationTriples from "./getDiscourseRelationTriples";
 import { OnloadArgs } from "roamjs-components/types";
 import { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
+import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
+import { Json } from "@repo/database/types.gen";
+import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
 
 const SYNC_FUNCTION = "embedding";
 const SYNC_INTERVAL = "45s";
 const SYNC_TIMEOUT = "20s";
 const BATCH_SIZE = 200;
 const DEFAULT_TIME = "1970-01-01";
-const EMBEDDING_MODEL = "openai_text_embedding_3_small_1536";
 
 type SyncTaskInfo = {
   lastUpdateTime: string | null;
@@ -78,6 +79,15 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
       };
     }
     const worker = window.roamAlphaAPI.user.uid();
+    if (!worker) {
+      console.error("proposeSyncTask: Unable to obtain user UID.");
+      return {
+        lastUpdateTime: null,
+        spaceId: 0,
+        worker: "",
+        shouldProceed: false,
+      };
+    }
 
     const { data, error } = await supabaseClient.rpc("propose_sync_task", {
       s_target: context.spaceId,
@@ -158,21 +168,12 @@ const upsertNodeSchemaToContent = async ({
     nodeTypesUids,
   )) as unknown as RoamDiscourseNodeData[];
 
-  const contentData: LocalContentDataInput[] = result.map((node) => ({
-    author_id: userId,
-    account_local_id: node.author_local_id,
-    source_local_id: node.source_local_id,
-    created: new Date(node.created || Date.now()).toISOString(),
-    last_modified: new Date(node.last_modified || Date.now()).toISOString(),
-    text: node.text,
-    embedding_inline: {
-      model: EMBEDDING_MODEL,
-      vector: node.vector,
-    },
-    scale: "document",
-  }));
+  const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
+    nodes: result,
+    userId,
+  });
   const { error } = await supabaseClient.rpc("upsert_content", {
-    data: contentData,
+    data: contentData as Json,
     v_space_id: spaceId,
     v_creator_id: userId,
     content_as_document: true,
@@ -266,15 +267,19 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
 ): Promise<void> => {
-  const { spaceId, userId } = context;
+  const { userId } = context;
 
   if (roamNodes.length === 0) {
     return;
   }
+  const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
+    nodes: roamNodes,
+    userId: context.userId,
+  });
 
-  let nodesWithEmbeddings: RoamDiscourseNodeData[];
+  let nodesWithEmbeddings: LocalContentDataInput[];
   try {
-    nodesWithEmbeddings = await fetchEmbeddingsForNodes(roamNodes);
+    nodesWithEmbeddings = await fetchEmbeddingsForNodes(allNodeInstancesAsLocalContent);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(
@@ -283,7 +288,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     return;
   }
 
-  if (nodesWithEmbeddings.length !== roamNodes.length) {
+  if (nodesWithEmbeddings.length !== allNodeInstancesAsLocalContent.length) {
     console.error(
       "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
     );
@@ -298,37 +303,13 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     return chunks;
   };
 
-  const uploadBatches = async (batches: RoamDiscourseNodeData[][]) => {
+  const uploadBatches = async (batches: LocalContentDataInput[][]) => {
     for (let idx = 0; idx < batches.length; idx++) {
       const batch = batches[idx];
 
-      const contents: LocalContentDataInput[] = batch.map((node) => {
-        const variant = node.node_title ? "direct_and_description" : "direct";
-        const text = node.node_title
-          ? `${node.node_title} ${node.text}`
-          : node.text;
-
-        return {
-          author_id: userId,
-          account_local_id: node.author_local_id,
-          source_local_id: node.source_local_id,
-          created: new Date(node.created || Date.now()).toISOString(),
-          last_modified: new Date(
-            node.last_modified || Date.now(),
-          ).toISOString(),
-          text: text,
-          variant: variant,
-          embedding_inline: {
-            model: EMBEDDING_MODEL,
-            vector: node.vector,
-          },
-          scale: "document",
-        };
-      });
-
       const { error } = await supabaseClient.rpc("upsert_content", {
-        data: contents,
-        v_space_id: spaceId,
+        data: batch as Json,
+        v_space_id: context.spaceId,
         v_creator_id: userId,
         content_as_document: true,
       });
