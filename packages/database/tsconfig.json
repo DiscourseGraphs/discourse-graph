@@ -7,7 +7,8 @@
     "outDir": "dist"
   },
   "include": [
-    "./src/*",
+    "./src/**/*",
+    "./scripts/**/*",
     "./features/step-definitions/**/*",
     "./features/support/**/*"
   ],

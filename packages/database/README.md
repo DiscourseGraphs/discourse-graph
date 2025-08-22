@@ -37,7 +37,7 @@ We follow the Supabase [Declarative Database Schema](https://supabase.com/docs/g
 7. `turbo build`, which will do the following:
     1. Start Supabase
     2. Apply the new migration locally
-    3. Regenerate the types file with `supabase gen types typescript --local > types.gen.ts`
+    3. Regenerate the types file with `supabase gen types typescript --local > src/dbTypes.ts`
     4. Copy it where appropriate
 8. You can start using your changes again `turbo dev`
 9. When your migration is pushed in a branch, Supabase will create a branch instance. Note there is a small cost to this, so we do not want those branches to linger.

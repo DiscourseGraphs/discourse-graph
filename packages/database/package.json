@@ -7,7 +7,8 @@
   "exports": {
     "./lib/*": "./src/lib/*.ts",
     "./dbDotEnv": "./src/dbDotEnv.ts",
-    "./dbTypes": "./src/dbTypes.ts"
+    "./dbTypes": "./src/dbTypes.ts",
+    "./inputTypes": "./src/inputTypes.ts"
   },
   "scripts": {
     "init": "supabase login",
@@ -28,7 +29,7 @@
   "dependencies": {
     "@repo/utils": "*",
     "@supabase/auth-js": "2.71.1",
-    "@supabase/functions-js": "^2.4.5",
+    "@supabase/functions-js": "2.4.5",
     "@supabase/supabase-js": "2.55.0"
   },
   "devDependencies": {
