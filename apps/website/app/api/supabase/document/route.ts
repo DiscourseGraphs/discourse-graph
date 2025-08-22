@@ -3,13 +3,13 @@ import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 import { createClient } from "~/utils/supabase/server";
 import { getOrCreateEntity, ItemValidator } from "~/utils/supabase/dbUtils";
+import { asPostgrestFailure } from "@repo/database/lib/contextFunctions";
 import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
-  asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
-import { Tables, TablesInsert } from "@repo/database/types.gen.ts";
+import { Tables, TablesInsert } from "@repo/database/dbTypes";
 
 type DocumentDataInput = TablesInsert<"Document">;
 type DocumentRecord = Tables<"Document">;

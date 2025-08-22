@@ -6,10 +6,5 @@
     "noEmit": true,
     "outDir": "dist"
   },
-  "include": [
-    "./src/*",
-    "./features/step-definitions/**/*",
-    "./features/support/**/*"
-  ],
-  "exclude": ["supabase"]
+  "include": ["./src/*"]
 }

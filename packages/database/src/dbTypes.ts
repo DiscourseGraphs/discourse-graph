@@ -639,10 +639,10 @@ export type Database = {
           query_embedding: string
         }
         Returns: {
+          content_id: number
+          roam_uid: string
           similarity: number
           text_content: string
-          roam_uid: string
-          content_id: number
         }[]
       }
       match_embeddings_for_subset_nodes: {
@@ -650,8 +650,8 @@ export type Database = {
         Returns: {
           content_id: number
           roam_uid: string
-          text_content: string
           similarity: number
+          text_content: string
         }[]
       }
       my_account: {

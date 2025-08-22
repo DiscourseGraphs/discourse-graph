@@ -4,8 +4,8 @@
     "@supabase/supabase-js": "jsr:@supabase/supabase-js@2",
     "@supabase/functions-js": "jsr:@supabase/functions-js@2",
     "@repo/database/types.gen": "../../../types.gen.ts",
-    "@repo/ui/lib/supabase/contextFunctions": "../../../../ui/src/lib/supabase/contextFunctions.ts",
-    "@repo/ui/lib/supabase/client": "../../../../ui/src/lib/supabase/client.ts",
+    "@repo/database/lib/contextFunctions": "../../../src/lib/contextFunctions.ts",
+    "@repo/database/lib/client": "../../../src/lib/client.ts",
     "@repo/ui/lib/execContext": "../../../../ui/src/lib/execContext.ts"
   }
 }

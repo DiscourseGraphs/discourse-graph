@@ -9,11 +9,11 @@ import {
   type PostgrestSingleResponse,
   PostgrestError,
 } from "@supabase/supabase-js";
-import type { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type {
   SpaceRecord,
   SpaceCreationInput,
-} from "@repo/ui/lib/supabase/contextFunctions";
+} from "@repo/database/lib/contextFunctions";
 
 // Importing local functions works with deno compile, but fails in the edge context.
 // We may consider packaging these functions in the future.
@@ -21,9 +21,9 @@ import type {
 //   spaceAnonUserEmail,
 //   asPostgrestFailure,
 //   spaceValidator,
-// } from "@repo/ui/lib/supabase/contextFunctions";
+// } from "@repo/database/lib/contextFunctions";
 
-// For now, duplicating the functions from @repo/ui/lib/supabase/contextFunctions
+// For now, duplicating the functions from @repo/database/lib/contextFunctions
 
 const spaceAnonUserEmail = (platform: string, space_id: number) =>
   `${platform.toLowerCase()}-${space_id}-anon@database.discoursegraphs.com`;

@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = dirname(dirname(fileURLToPath(import.meta.url)));
 
 export const getVariant = (): string | null => {
   if (process.env.HOME === "/vercel" || process.env.GITHUB_ACTIONS === "true")

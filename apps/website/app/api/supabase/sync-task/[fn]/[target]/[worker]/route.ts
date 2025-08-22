@@ -1,12 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
-import { Database, Constants } from "@repo/database/types.gen.ts";
+import { Database, Constants } from "@repo/database/dbTypes";
+import { asPostgrestFailure } from "@repo/database/lib/contextFunctions";
 import { createClient } from "~/utils/supabase/server";
-import {
-  createApiResponse,
-  asPostgrestFailure,
-  handleRouteError,
-} from "~/utils/supabase/apiUtils";
+import { createApiResponse, handleRouteError } from "~/utils/supabase/apiUtils";
 
 type ApiParams = Promise<{ target: string; fn: string; worker: string }>;
 export type SegmentDataType = { params: ApiParams };

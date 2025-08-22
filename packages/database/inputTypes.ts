@@ -1,4 +1,4 @@
-import { Database, TablesInsert } from "@repo/database/types.gen";
+import { Database, TablesInsert } from "@repo/database/dbTypes";
 
 export type LocalDocumentDataInput = Partial<
   Omit<Database['public']["CompositeTypes"]["document_local_input"], "author_inline">

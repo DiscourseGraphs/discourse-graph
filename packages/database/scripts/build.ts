@@ -14,7 +14,7 @@ if (process.env.HOME !== "/vercel") {
       "supabase gen types typescript --local --schema public",
       { encoding: "utf8" },
     );
-    writeFileSync(join(projectRoot, "types.gen.ts"), stdout);
+    writeFileSync(join(projectRoot, "src", "dbTypes.ts"), stdout);
   } catch (err) {
     console.error(err);
     throw err;

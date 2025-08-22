@@ -2,13 +2,13 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { createClient } from "~/utils/supabase/server";
 import { getOrCreateEntity, ItemValidator } from "~/utils/supabase/dbUtils";
+import { asPostgrestFailure } from "@repo/database/lib/contextFunctions";
 import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
-  asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
-import { TablesInsert, Constants } from "@repo/database/types.gen.ts";
+import { TablesInsert, Constants } from "@repo/database/dbTypes";
 
 const { AgentType, Platform } = Constants.public.Enums;
 

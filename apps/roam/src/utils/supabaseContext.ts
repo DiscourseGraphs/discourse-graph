@@ -3,16 +3,16 @@ import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserD
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 
-import { Enums } from "@repo/database/types.gen";
+import { Enums } from "@repo/database/dbTypes";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
-import { type DGSupabaseClient } from "@repo/ui/lib/supabase/client";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
   fetchOrCreateSpaceDirect,
   fetchOrCreatePlatformAccount,
   createLoggedInClient,
-} from "@repo/ui/lib/supabase/contextFunctions";
+} from "@repo/database/lib/contextFunctions";
 
 declare const crypto: { randomUUID: () => string };
 

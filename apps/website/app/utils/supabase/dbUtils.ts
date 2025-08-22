@@ -3,7 +3,7 @@ import type {
   PostgrestResponse,
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
-import { Database, Tables, TablesInsert } from "@repo/database/types.gen.ts";
+import { Database, Tables, TablesInsert } from "@repo/database/dbTypes";
 
 export const KNOWN_EMBEDDING_TABLES: {
   [key: string]: {
