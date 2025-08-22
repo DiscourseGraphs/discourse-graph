@@ -27,6 +27,7 @@ import {
   installDiscourseFloatingMenu,
   removeDiscourseFloatingMenu,
 } from "./components/DiscourseFloatingMenu";
+import { createOrUpdateDiscourseEmbedding } from "./utils/syncDgNodesToSupabase";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -133,6 +134,9 @@ export default runExtension(async (onloadArgs) => {
     // @ts-ignore - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
   };
+
+  // TODO: REMOVE AFTER TESTING
+  await createOrUpdateDiscourseEmbedding(onloadArgs.extensionAPI);
 
   installDiscourseFloatingMenu(onloadArgs.extensionAPI);
 

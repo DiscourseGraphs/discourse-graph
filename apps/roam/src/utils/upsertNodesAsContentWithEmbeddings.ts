@@ -36,6 +36,12 @@ export const convertRoamNodeToLocalContent = ({
       text: text,
       variant: variant,
       scale: "document",
+      document_inline: {
+        source_local_id: node.source_local_id,
+        created: new Date(node.created || Date.now()).toISOString(),
+        last_modified: new Date(node.last_modified || Date.now()).toISOString(),
+        author_local_id: node.author_local_id,
+      },
     };
   });
 };

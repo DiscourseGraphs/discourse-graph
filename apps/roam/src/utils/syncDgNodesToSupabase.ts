@@ -11,16 +11,12 @@ import {
 } from "./supabaseContext";
 import { LocalContentDataInput } from "@repo/database/inputTypes";
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
-import getDiscourseRelations from "./getDiscourseRelations";
 import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
 import {
   discourseNodeBlockToLocalConcept,
   discourseNodeSchemaToLocalConcept,
   orderConceptsByDependency,
-  discourseRelationSchemaToLocalConcept,
-  discourseRelationDataToLocalConcept,
 } from "./conceptConversion";
-import getDiscourseRelationTriples from "./getDiscourseRelationTriples";
 import { OnloadArgs } from "roamjs-components/types";
 import { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
@@ -208,16 +204,6 @@ export const convertDgToSupabaseConcepts = async ({
     return discourseNodeSchemaToLocalConcept(context, node);
   });
 
-  const relationSchemas = getDiscourseRelations();
-
-  const relationsToEmbed = relationSchemas.map((relation) => {
-    const localConcept = discourseRelationSchemaToLocalConcept(
-      context,
-      relation,
-    );
-    return localConcept;
-  });
-
   const nodeBlockToLocalConcepts = nodesSince.map((node) => {
     const localConcept = discourseNodeBlockToLocalConcept(context, {
       nodeUid: node.source_local_id,
@@ -227,28 +213,9 @@ export const convertDgToSupabaseConcepts = async ({
     return localConcept;
   });
 
-  const relationTriples = getDiscourseRelationTriples();
-  const relationLabelToId = Object.fromEntries(
-    relationSchemas.map((r) => [r.label, r.id]),
-  );
-  const relationBlockToLocalConcepts = relationTriples
-    .map(({ relation, source, target }) => {
-      const relationSchemaUid = relationLabelToId[relation];
-      if (!relationSchemaUid) {
-        return null;
-      }
-      return discourseRelationDataToLocalConcept(context, relationSchemaUid, {
-        source,
-        target,
-      });
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null);
-
   const conceptsToUpsert = [
     ...nodesTypesToLocalConcepts,
-    ...relationsToEmbed,
     ...nodeBlockToLocalConcepts,
-    ...relationBlockToLocalConcepts,
   ];
   const { ordered } = orderConceptsByDependency(conceptsToUpsert);
   const { error } = await supabaseClient.rpc("upsert_concepts", {
@@ -279,7 +246,9 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
 
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
-    nodesWithEmbeddings = await fetchEmbeddingsForNodes(allNodeInstancesAsLocalContent);
+    nodesWithEmbeddings = await fetchEmbeddingsForNodes(
+      allNodeInstancesAsLocalContent,
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(
