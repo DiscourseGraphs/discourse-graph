@@ -16,12 +16,12 @@ import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import DiscourseGraphHome from "./GeneralSettings";
 import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
+import AdminPanel from "./AdminPanel";
 import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
 import getDiscourseNodes, {
   excludeDefaultNodes,
 } from "~/utils/getDiscourseNodes";
 import NodeConfig from "./NodeConfig";
-import sendErrorEmail from "~/utils/sendErrorEmail";
 import HomePersonalSettings from "./HomePersonalSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
@@ -76,10 +76,10 @@ export const SettingsDialog = ({
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === "D") {
+      if (e.ctrlKey && e.shiftKey && e.key === "A") {
         e.stopPropagation();
         e.preventDefault();
-        setSelectedTabId("secret-dev-panel");
+        setSelectedTabId("secret-admin-panel");
       }
     };
 
@@ -210,31 +210,10 @@ export const SettingsDialog = ({
           {/* Secret Dev Panel */}
           <Tab
             hidden={true}
-            id="secret-dev-panel"
-            title="Secret Dev Panel"
+            id="secret-admin-panel"
+            title="Secret Admin Panel"
             className="overflow-y-auto"
-            panel={
-              <div className="flex gap-4 p-4">
-                <Button
-                  onClick={() => {
-                    console.log("NODE_ENV:", process.env.NODE_ENV);
-                  }}
-                >
-                  Log Node Env
-                </Button>
-                <Button
-                  onClick={() => {
-                    console.log("sending error email");
-                    sendErrorEmail({
-                      error: new Error("test"),
-                      type: "Test",
-                    });
-                  }}
-                >
-                  sendErrorEmail()
-                </Button>
-              </div>
-            }
+            panel={<AdminPanel onloadArgs={onloadArgs} />}
           />
         </Tabs>
       </div>
