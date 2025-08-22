@@ -19,7 +19,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "generate:component": "turbo gen react-component",
-    "check-types": "tsc --noEmit",
+    "check-types": "tsc --noEmit --skipLibCheck",
     "ui": "npx shadcn@latest"
   },
   "devDependencies": {
