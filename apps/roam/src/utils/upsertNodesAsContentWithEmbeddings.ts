@@ -5,6 +5,7 @@ import { LocalContentDataInput } from "@repo/database/inputTypes";
 import { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
 import { Json } from "@repo/database/types.gen";
 import { nextApiRoot } from "@repo/ui/lib/execContext";
+import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 
 const EMBEDDING_BATCH_SIZE = 200;
 const EMBEDDING_MODEL = "openai_text_embedding_3_small_1536";
