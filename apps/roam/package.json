@@ -19,6 +19,7 @@
     "@types/contrast-color": "^1.0.0",
     "@types/react-vertical-timeline-component": "^3.3.3",
     "axios": "^0.27.2",
+    "dotenv": "^16.0.3",
     "esbuild": "0.17.14",
     "tsx": "^4.19.2"
   },
