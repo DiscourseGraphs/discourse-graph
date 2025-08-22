@@ -181,11 +181,34 @@ const processAndGetOrCreateSpace = async (
   return result;
 };
 
+// The following lines are duplicated from apps/website/app/utils/llm/cors.ts
+const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000"];
+
+const isVercelPreviewUrl = (origin: string): boolean =>
+    /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin)
+
+const isAllowedOrigin = (origin: string): boolean =>
+  allowedOrigins.some((allowed) => origin.startsWith(allowed)) ||
+  isVercelPreviewUrl(origin);
+
 // @ts-ignore Deno is not visible to the IDE
 Deno.serve(async (req) => {
+    const origin = req.headers.get("origin");
+    const originIsAllowed = origin && isAllowedOrigin(origin);
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...(originIsAllowed ? { "Access-Control-Allow-Origin": origin } : {}),
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers":
+            "Content-Type, Authorization, x-vercel-protection-bypass, x-client-info, apikey",
+          "Access-Control-Max-Age": "86400",
+        },
+      });
+    }
+
   const input = await req.json();
-  // TODO: We should check whether the request comes from a vetted source, like
-  // the roam or obsidian plugin. A combination of CSRF, headers, etc.
   // @ts-ignore Deno is not visible to the IDE
   const url = Deno.env.get("SUPABASE_URL");
   // @ts-ignore Deno is not visible to the IDE
@@ -207,9 +230,20 @@ Deno.serve(async (req) => {
     });
   }
 
-  return new Response(JSON.stringify(data), {
+  const res = new Response(JSON.stringify(data), {
     headers: { "Content-Type": "application/json" },
   });
+
+  if (originIsAllowed) {
+    res.headers.set("Access-Control-Allow-Origin", origin as string);
+    res.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.headers.set(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, x-vercel-protection-bypass, x-client-info, apikey",
+    );
+  }
+
+  return res;
 });
 
 /* To invoke locally:
