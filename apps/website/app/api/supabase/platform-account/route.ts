@@ -8,7 +8,7 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
-import { TablesInsert, Constants } from "@repo/database/dbTypes";
+import { type TablesInsert, Constants } from "@repo/database/dbTypes";
 
 const { AgentType, Platform } = Constants.public.Enums;
 

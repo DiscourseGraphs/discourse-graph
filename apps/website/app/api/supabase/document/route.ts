@@ -9,7 +9,7 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
-import { Tables, TablesInsert } from "@repo/database/dbTypes";
+import type { Tables, TablesInsert } from "@repo/database/dbTypes";
 
 type DocumentDataInput = TablesInsert<"Document">;
 type DocumentRecord = Tables<"Document">;

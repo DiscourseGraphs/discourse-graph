@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
-import { Database, Constants } from "@repo/database/dbTypes";
+import { type Database, Constants } from "@repo/database/dbTypes";
 import { asPostgrestFailure } from "@repo/database/lib/contextFunctions";
 import { createClient } from "~/utils/supabase/server";
 import { createApiResponse, handleRouteError } from "~/utils/supabase/apiUtils";

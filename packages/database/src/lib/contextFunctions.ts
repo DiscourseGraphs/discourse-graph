@@ -1,4 +1,4 @@
-import { Enums, Tables, TablesInsert } from "@repo/database/dbTypes";
+import type { Enums, Tables, TablesInsert } from "@repo/database/dbTypes";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import type { FunctionsResponse } from "@supabase/functions-js";
 import { nextApiRoot } from "@repo/utils/execContext";

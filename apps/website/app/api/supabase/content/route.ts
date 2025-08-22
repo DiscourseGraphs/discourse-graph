@@ -10,7 +10,7 @@ import {
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
 import { contentInputValidation } from "~/utils/supabase/validators";
-import { Tables, TablesInsert } from "@repo/database/dbTypes";
+import type { Tables, TablesInsert } from "@repo/database/dbTypes";
 
 type ContentDataInput = TablesInsert<"Content">;
 type ContentRecord = Tables<"Content">;
