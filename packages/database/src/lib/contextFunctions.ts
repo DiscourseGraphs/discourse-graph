@@ -1,11 +1,11 @@
-import { Enums, Tables, TablesInsert } from "@repo/database/types.gen";
+import type { Enums, Tables, TablesInsert } from "@repo/database/dbTypes";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import type { FunctionsResponse } from "@supabase/functions-js";
-import { nextApiRoot } from "@repo/ui/lib/execContext";
+import { nextApiRoot } from "@repo/utils/execContext";
 import {
   createClient,
   type DGSupabaseClient,
-} from "@repo/ui/lib/supabase/client";
+} from "@repo/database/lib/client";
 
 export const spaceAnonUserEmail = (platform: string, space_id: number) =>
   `${platform.toLowerCase()}-${space_id}-anon@database.discoursegraphs.com`;

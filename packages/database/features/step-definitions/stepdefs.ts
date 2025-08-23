@@ -1,14 +1,14 @@
 import assert from "assert";
 import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import { createClient } from "@supabase/supabase-js";
-import { Constants, type Database, type Enums } from "@repo/database/types.gen";
+import { Constants, type Database, type Enums } from "@repo/database/dbTypes";
 import { getVariant, config } from "@repo/database/dbDotEnv";
 
 import {
   spaceAnonUserEmail,
   fetchOrCreateSpaceDirect,
   fetchOrCreatePlatformAccount,
-} from "@repo/ui/lib/supabase/contextFunctions";
+} from "@repo/database/lib/contextFunctions";
 
 type Platform = Enums<"Platform">;
 const PLATFORMS: readonly Platform[] = Constants.public.Enums.Platform;
