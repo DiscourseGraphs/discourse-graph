@@ -4,5 +4,10 @@
       "source": "/releases/:path*",
       "destination": "https://6b4k1ntlti17rkf1.public.blob.vercel-storage.com/releases/:path*"
     }
-  ]
+  ],
+  "functions": {
+    "app/**": {
+      "excludeFiles": "{.next,*.cache,node_modules,public,app}/**"
+    }
+  }
 }
