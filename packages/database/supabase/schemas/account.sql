@@ -159,7 +159,7 @@ BEGIN
     FOR account_row IN SELECT * FROM jsonb_array_elements(accounts)
     LOOP
         local_account := jsonb_populate_record(NULL::public.account_local_input, account_row);
-        RETURN NEXT public.upsert_account_in_space(space_id, local_account);
+        RETURN NEXT public.upsert_account_in_space(space_id_, local_account);
     END LOOP;
 END;
 $$;
