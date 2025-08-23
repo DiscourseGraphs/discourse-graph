@@ -19,6 +19,8 @@
     "@octokit/core": "^6.1.2",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^20",
+    "@types/react": "catalog:obsidian",
+    "@types/react-dom": "catalog:obsidian",
     "autoprefixer": "^10.4.21",
     "builtin-modules": "3.3.0",
     "dotenv": "^16.4.5",
