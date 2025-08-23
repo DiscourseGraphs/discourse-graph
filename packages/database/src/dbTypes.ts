@@ -673,6 +673,17 @@ export type Database = {
         Args: { p_account_id: number }
         Returns: boolean
       }
+      upsert_account_in_space: {
+        Args: {
+          local_account: Database["public"]["CompositeTypes"]["account_local_input"]
+          space_id_: number
+        }
+        Returns: number
+      }
+      upsert_accounts_in_space: {
+        Args: { accounts: Json; space_id_: number }
+        Returns: number[]
+      }
       upsert_concepts: {
         Args: { data: Json; v_space_id: number }
         Returns: number[]
@@ -746,6 +757,13 @@ export type Database = {
       task_status: "active" | "timeout" | "complete" | "failed"
     }
     CompositeTypes: {
+      account_local_input: {
+        name: string | null
+        account_local_id: string | null
+        email: string | null
+        email_trusted: boolean | null
+        space_editor: boolean | null
+      }
       concept_local_input: {
         epistemic_status: Database["public"]["Enums"]["EpistemicStatus"] | null
         name: string | null
@@ -786,10 +804,10 @@ export type Database = {
           | Database["public"]["CompositeTypes"]["document_local_input"]
           | null
         author_inline:
-          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | Database["public"]["CompositeTypes"]["account_local_input"]
           | null
         creator_inline:
-          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | Database["public"]["CompositeTypes"]["account_local_input"]
           | null
         embedding_inline:
           | Database["public"]["CompositeTypes"]["inline_embedding_input"]
@@ -808,7 +826,7 @@ export type Database = {
         author_local_id: string | null
         space_url: string | null
         author_inline:
-          | Database["public"]["Tables"]["PlatformAccount"]["Row"]
+          | Database["public"]["CompositeTypes"]["account_local_input"]
           | null
       }
       inline_embedding_input: {
