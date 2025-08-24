@@ -7,20 +7,20 @@ import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import {
   getLoggedInClient,
   getSupabaseContext,
-  SupabaseContext,
+  type SupabaseContext,
 } from "./supabaseContext";
-import { LocalContentDataInput } from "@repo/database/inputTypes";
-import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
-import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
+import { type LocalContentDataInput } from "@repo/database/inputTypes";
+import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
+import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import {
   discourseNodeBlockToLocalConcept,
   discourseNodeSchemaToLocalConcept,
   orderConceptsByDependency,
 } from "./conceptConversion";
-import { OnloadArgs } from "roamjs-components/types";
-import { DGSupabaseClient } from "@repo/database/lib/client";
+import { type OnloadArgs } from "roamjs-components/types";
+import { type DGSupabaseClient } from "@repo/database/lib/client";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
-import { Database, Json } from "@repo/database/dbTypes";
+import { type Database, type Json } from "@repo/database/dbTypes";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
 
 type AccountLocalInput =

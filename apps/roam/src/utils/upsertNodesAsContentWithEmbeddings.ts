@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
-import { SupabaseContext } from "./supabaseContext";
-import { LocalContentDataInput } from "@repo/database/inputTypes";
-import { DGSupabaseClient } from "@repo/database/lib/client";
-import { Json } from "@repo/database/dbTypes";
+import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
+import { type SupabaseContext } from "./supabaseContext";
+import { type LocalContentDataInput } from "@repo/database/inputTypes";
+import { type DGSupabaseClient } from "@repo/database/lib/client";
+import { type Json } from "@repo/database/dbTypes";
 import { nextApiRoot } from "@repo/utils/execContext";
 
 const EMBEDDING_BATCH_SIZE = 200;

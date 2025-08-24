@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
+import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import findDiscourseNode from "./findDiscourseNode";
-import { OnloadArgs } from "roamjs-components/types";
+import { type OnloadArgs } from "roamjs-components/types";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
 
 type ISODateString = string;
