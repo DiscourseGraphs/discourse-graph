@@ -191,9 +191,10 @@ const orderConceptsRec = (
     if (relatedConcept === undefined) {
       missing.add(relatedConceptId);
     } else {
-      missing = missing.union(
-        orderConceptsRec(ordered, relatedConcept, remainder),
-      );
+      missing = new Set([
+        ...missing,
+        ...orderConceptsRec(ordered, relatedConcept, remainder),
+      ]);
       delete remainder[relatedConceptId];
     }
   }
@@ -225,7 +226,10 @@ export const orderConceptsByDependency = (
   let missing: Set<string> = new Set();
   while (Object.keys(conceptById).length > 0) {
     const first = Object.values(conceptById)[0];
-    missing = missing.union(orderConceptsRec(ordered, first, conceptById));
+    missing = new Set([
+      ...missing,
+      ...orderConceptsRec(ordered, first, conceptById),
+    ]);
   }
   return { ordered, missing: [...missing] };
 };

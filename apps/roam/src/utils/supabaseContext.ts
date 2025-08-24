@@ -51,6 +51,7 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
   if (_contextCache === null) {
     try {
       const accountLocalId = window.roamAlphaAPI.user.uid();
+      if (!accountLocalId) throw new Error("Could not get user UID");
       const spacePassword = getOrCreateSpacePassword();
       const personEmail = getCurrentUserEmail();
       const personName = getCurrentUserDisplayName();
