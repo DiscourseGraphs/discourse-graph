@@ -46,14 +46,14 @@ overrides:
 
 peerDependencyRules:
   allowedVersions:
-    "@blueprintjs/core>react": "18.2.0"
-    "@blueprintjs/datetime>react": "18.2.0"
-    "@blueprintjs/select>react": "18.2.0"
-    "roamjs-components>react": "18.2.0"
-    "@blueprintjs/core>react-dom": "18.2.0"
-    "@blueprintjs/datetime>react-dom": "18.2.0"
-    "@blueprintjs/select>react-dom": "18.2.0"
-    "roamjs-components>react-dom": "18.2.0"
+    "@blueprintjs/core>react": catalog:roam
+    "@blueprintjs/datetime>react": catalog:roam
+    "@blueprintjs/select>react": catalog:roam
+    "roamjs-components>react": catalog:roam
+    "@blueprintjs/core>react-dom": catalog:roam
+    "@blueprintjs/datetime>react-dom": catalog:roam
+    "@blueprintjs/select>react-dom": catalog:roam
+    "roamjs-components>react-dom": catalog:roam
 
 patchedDependencies:
   tldraw@^2.3.0: patches/tldraw@2.3.0.patch
