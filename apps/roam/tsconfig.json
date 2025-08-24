@@ -16,11 +16,10 @@
     "forceConsistentCasingInFileNames": true,
     "jsx": "react",
     "noUncheckedIndexedAccess": false,
+    "types": ["react", "react-dom"],
     "paths": {
       "@repo/*": ["../../packages/*"],
-      "~/*": ["./src/*"],
-      "react": ["./node_modules/@types/react"],
-      "react-dom": ["./node_modules/@types/react-dom"]
+      "~/*": ["./src/*"]
     }
   }
 }
