@@ -38,6 +38,8 @@ import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { createTextJsxFromSpans } from "./DiscourseRelationShape/helpers";
 import { loadImage } from "~/utils/loadImage";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
+import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
+import { getSetting } from "~/utils/extensionSettings";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -544,13 +546,19 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               this.updateProps(shape.id, shape.type, { title: text, uid });
 
               // Update Shape Relations
-              const relationIds = getRelationIds();
-              this.deleteRelationsInCanvas({ shape, relationIds });
-              await this.createExistingRelations({
-                shape,
-                relationIds,
-                finalUid: uid,
-              });
+              const autoCanvasRelations = getSetting<boolean>(
+                AUTO_CANVAS_RELATIONS_KEY,
+                false,
+              );
+              if (autoCanvasRelations) {
+                const relationIds = getRelationIds();
+                this.deleteRelationsInCanvas({ shape, relationIds });
+                await this.createExistingRelations({
+                  shape,
+                  relationIds,
+                  finalUid: uid,
+                });
+              }
 
               editor.setEditingShape(null);
             }}
