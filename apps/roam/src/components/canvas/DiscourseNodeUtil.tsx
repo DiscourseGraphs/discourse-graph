@@ -103,6 +103,13 @@ export const createNodeShapeTools = (
       static initial = "idle";
       shapeType = n.type;
 
+      override onEnter = () => {
+        this.editor.setCursor({
+          type: "cross",
+          rotation: 45,
+        });
+      };
+
       override onPointerDown = () => {
         const { currentPagePoint } = this.editor.inputs;
         const shapeId = createShapeId();
