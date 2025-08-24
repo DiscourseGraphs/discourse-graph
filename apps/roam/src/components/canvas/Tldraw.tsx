@@ -833,7 +833,7 @@ const InsideEditorAndUiContext = ({
           if (util instanceof BaseDiscourseNodeUtil) {
             const autoCanvasRelations = getSetting<boolean>(
               AUTO_CANVAS_RELATIONS_KEY,
-              true,
+              false,
             );
             if (autoCanvasRelations) {
               void util.createExistingRelations({

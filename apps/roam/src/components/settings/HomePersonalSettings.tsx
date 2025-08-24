@@ -146,7 +146,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       />
       <Checkbox
         defaultChecked={
-          extensionAPI.settings.get(AUTO_CANVAS_RELATIONS_KEY) !== false
+          extensionAPI.settings.get(AUTO_CANVAS_RELATIONS_KEY) === true
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;

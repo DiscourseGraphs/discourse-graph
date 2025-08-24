@@ -551,7 +551,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
 
               const autoCanvasRelations = getSetting<boolean>(
                 AUTO_CANVAS_RELATIONS_KEY,
-                true,
+                false,
               );
               if (autoCanvasRelations) {
                 await this.createExistingRelations({
