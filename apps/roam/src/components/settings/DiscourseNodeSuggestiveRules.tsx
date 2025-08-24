@@ -44,13 +44,11 @@ const DiscourseNodeSuggestiveRules = ({
 }) => {
   const nodeUid = node.type;
 
-  const [embeddingRef, setEmbeddingRef] = useState(node.embeddingRef || "");
+  const [embeddingRef, setEmbeddingRef] = useState(node.embeddingRef);
 
   useEffect(() => {
-    if (node.embeddingRef !== embeddingRef) {
-      setEmbeddingRef(node.embeddingRef || "");
-    }
-  }, [node.embeddingRef, embeddingRef]);
+    setEmbeddingRef(node.embeddingRef || "");
+  }, [node.embeddingRef]);
 
   const blockUidToRender = useMemo(
     () => extractRef(embeddingRef),
@@ -91,7 +89,7 @@ const DiscourseNodeSuggestiveRules = ({
         order={0}
         uid={node.embeddingRefUid || ""}
         parentUid={parentUid}
-        defaultValue={node.embeddingRef || ""}
+        Value={node.embeddingRef || ""}
         options={{
           placeholder: "((block-uid))",
           onChange: handleEmbeddingRefChange,

@@ -136,9 +136,6 @@ export default runExtension(async (onloadArgs) => {
     getDiscourseNodes: getDiscourseNodes,
   };
 
-  // TODO: REMOVE AFTER TESTING
-  await createOrUpdateDiscourseEmbedding(onloadArgs.extensionAPI);
-
   installDiscourseFloatingMenu(onloadArgs.extensionAPI);
 
   return {

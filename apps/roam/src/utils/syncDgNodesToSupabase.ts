@@ -16,7 +16,6 @@ import {
   discourseNodeSchemaToLocalConcept,
   orderConceptsByDependency,
 } from "./conceptConversion";
-import { type OnloadArgs } from "roamjs-components/types";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
 // https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
@@ -111,6 +110,8 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
       if (timestamp > now) {
         console.log(
           "proposeSyncTask: Another worker is already running this task",
+          timestamp,
+          now,
         );
         return { lastUpdateTime: null, spaceId, worker, shouldProceed: false };
       } else {
@@ -293,19 +294,12 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
 };
 
-const getDgNodeTypes = (extensionAPI: OnloadArgs["extensionAPI"]) => {
+const getDgNodeTypes = () => {
   const allDgNodeTypes = getDiscourseNodes().filter(
     (n) => n.backedBy === "user",
   );
   const dgNodeTypesWithSettings = allDgNodeTypes.filter((n) => {
-    const settingsKey = `discourse-graph-node-rule-${n.type}`;
-    const settings = extensionAPI.settings.get(settingsKey) as
-      | {
-          isFirstChild?: boolean;
-          embeddingRef?: string;
-        }
-      | undefined;
-    return settings?.isFirstChild || settings?.embeddingRef;
+    return n.isFirstChild?.value || n.embeddingRef !== undefined;
   });
   return { allDgNodeTypes, dgNodeTypesWithSettings };
 };
@@ -345,9 +339,7 @@ const upsertUsers = async (
   }
 };
 
-export const createOrUpdateDiscourseEmbedding = async (
-  extensionAPI: OnloadArgs["extensionAPI"],
-) => {
+export const createOrUpdateDiscourseEmbedding = async () => {
   const { shouldProceed, lastUpdateTime, worker } = await proposeSyncTask();
 
   if (!shouldProceed) {
@@ -360,13 +352,11 @@ export const createOrUpdateDiscourseEmbedding = async (
   try {
     const allUsers = await getAllUsers();
     const time = lastUpdateTime === null ? DEFAULT_TIME : lastUpdateTime;
-    const { allDgNodeTypes, dgNodeTypesWithSettings } =
-      getDgNodeTypes(extensionAPI);
+    const { allDgNodeTypes, dgNodeTypesWithSettings } = getDgNodeTypes();
 
     const allNodeInstances = await getAllDiscourseNodesSince(
       time,
       dgNodeTypesWithSettings,
-      extensionAPI,
     );
     const supabaseClient = await getLoggedInClient();
     const context = await getSupabaseContext();

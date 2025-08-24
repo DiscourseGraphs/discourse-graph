@@ -106,12 +106,15 @@ const getUidAndBooleanSetting = ({
 const getDiscourseNodes = (relations = getDiscourseRelations()) => {
   const configuredNodes = Object.entries(discourseConfigRef.nodes)
     .map(([type, { text, children }]): DiscourseNode => {
-      const embeddingRefNode = children.find((n) =>
-        n.text.startsWith("Embedding Block Ref"),
-      );
-      const refText = embeddingRefNode?.children?.[0]?.text || "";
-      const refUid = extractRef(refText);
-      const blockRef = refUid ? `((${refUid}))` : "";
+      const suggestiveRules = getSubTree({
+        tree: children,
+        key: "Suggestive Rules",
+      });
+      const embeddingBlockRef = getSubTree({
+        tree: suggestiveRules.children,
+        key: "Embedding Block Ref",
+      }).children?.[0];
+
       return {
         format: getSettingValueFromTree({ tree: children, key: "format" }),
         text,
@@ -132,10 +135,10 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           key: "description",
         }),
         template: getSubTree({ tree: children, key: "template" }).children,
-        embeddingRef: blockRef,
-        embeddingRefUid: embeddingRefNode?.uid || "",
+        embeddingRef: embeddingBlockRef?.text,
+        embeddingRefUid: embeddingBlockRef?.uid,
         isFirstChild: getUidAndBooleanSetting({
-          tree: children,
+          tree: suggestiveRules.children,
           text: "First Child",
         }),
       };

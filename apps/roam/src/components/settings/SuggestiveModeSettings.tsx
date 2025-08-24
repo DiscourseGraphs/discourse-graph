@@ -7,6 +7,7 @@ import PageGroupsPanel from "./PageGroupPanel";
 import createBlock from "roamjs-components/writes/createBlock";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
 
 const SuggestiveModeSettings = () => {
   const settings = getFormattedConfigTree();
@@ -34,7 +35,11 @@ const SuggestiveModeSettings = () => {
         <Button
           icon="cloud-upload"
           text={"Generate & Upload All Node Embeddings"}
-          onClick={() => console.log("Not implemented")}
+          onClick={() =>
+            void (async () => {
+              await createOrUpdateDiscourseEmbedding();
+            })()
+          }
           intent={Intent.PRIMARY}
           className={"mt-2"}
         />
@@ -48,6 +53,9 @@ const SuggestiveModeSettings = () => {
           parentUid={effectiveSuggestiveModeUid}
           value={settings.suggestiveMode.includePageRelations.value}
         />
+
+        {/* TODO: if "Include Current Page Relations" is checked "Include Parent and Child Blocks"
+         should be checked and disabled, use `selection` instead */}
         <FlagPanel
           title="Include Parent And Child Blocks"
           description="Include relations from parent and child blocks"
