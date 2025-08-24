@@ -82,6 +82,8 @@ import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigr
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { TLDRAW_DATA_ATTRIBUTE } from "./tldrawStyles";
+import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
+import { getSetting } from "~/utils/extensionSettings";
 
 declare global {
   interface Window {
@@ -829,9 +831,16 @@ const InsideEditorAndUiContext = ({
         editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
           const util = editor.getShapeUtil(shape);
           if (util instanceof BaseDiscourseNodeUtil) {
-            void util.createExistingRelations({
-              shape: shape as DiscourseNodeShape,
-            });
+            // Check if auto canvas relations is enabled
+            const autoCanvasRelations = getSetting<boolean>(
+              AUTO_CANVAS_RELATIONS_KEY,
+              true,
+            );
+            if (autoCanvasRelations) {
+              void util.createExistingRelations({
+                shape: shape as DiscourseNodeShape,
+              });
+            }
           }
         });
 

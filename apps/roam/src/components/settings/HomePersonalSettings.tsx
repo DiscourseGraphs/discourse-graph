@@ -13,6 +13,7 @@ import {
   hideDiscourseFloatingMenu,
 } from "~/components/DiscourseFloatingMenu";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
+import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -138,6 +139,28 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             <Description
               description={
                 "Hide the 'Send feedback' button at the bottom right of the screen."
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={
+          extensionAPI.settings.get(AUTO_CANVAS_RELATIONS_KEY) !== false
+        }
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          void extensionAPI.settings.set(
+            AUTO_CANVAS_RELATIONS_KEY,
+            target.checked,
+          );
+        }}
+        labelElement={
+          <>
+            Auto Canvas Relations
+            <Description
+              description={
+                "Automatically add discourse relations to canvas when a node is added"
               }
             />
           </>
