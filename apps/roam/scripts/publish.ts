@@ -3,8 +3,11 @@ import * as path from "path";
 import * as fs from "fs";
 import { exec } from "child_process";
 import util from "util";
-import { Octokit } from "@octokit/core";
-import { createAppAuth } from "@octokit/auth-app";
+// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
+// import { Octokit } from "@octokit/core";
+// import { createAppAuth } from "@octokit/auth-app";
+const { Octokit } = require("@octokit/core");
+const { createAppAuth } = require("@octokit/auth-app");
 
 dotenv.config();
 
