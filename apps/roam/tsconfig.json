@@ -12,7 +12,7 @@
     "rootDir": "../..",
     "outDir": "dist",
     "allowJs": false,
-    "esModuleInterop": false,
+    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react",
     "noUncheckedIndexedAccess": false,
