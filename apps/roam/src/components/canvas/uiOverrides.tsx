@@ -400,6 +400,7 @@ export const createUiOverrides = ({
 
     const originalCopyAsSvgAction = actions["copy-as-svg"];
     const originalCopyAsPngAction = actions["copy-as-png"];
+    const originalPrintAction = actions["print"];
 
     actions["copy-as-svg"] = {
       ...originalCopyAsSvgAction,
@@ -417,6 +418,15 @@ export const createUiOverrides = ({
         addToast({ title: "Copied as PNG" });
       },
     };
+    
+    // Disable print keyboard binding to prevent conflict with command palette
+    if (originalPrintAction) {
+      actions["print"] = {
+        ...originalPrintAction,
+        kbd: "", // Remove keyboard shortcut to prevent conflict
+      };
+    }
+    
     return actions;
   },
   translations: {
