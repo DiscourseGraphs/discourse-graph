@@ -51,6 +51,11 @@ export const fetchEmbeddingsForNodes = async (
       body: JSON.stringify({ input: batch }),
     });
 
+    // TODO: Future: https://github.com/DiscourseGraphs/discourse-graph/pull/343#discussion_r2285566007
+    //At some point there were a lot of transient errors with openAI, and retrying was expected. Do you know if this is still the case?
+    // One case where I know this would still be true is if we ever run into request throttling, in which case we probably want incremental backoff.
+    //  I know we're far from that much usage, but that will become an issue with more adopters. Punting that should at least be a conscious decision.
+
     if (!response.ok) {
       let errorData;
       try {
