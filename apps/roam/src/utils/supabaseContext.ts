@@ -2,7 +2,6 @@ import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
-
 import type { Enums } from "@repo/database/dbTypes";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getBlockProps from "~/utils/getBlockProps";

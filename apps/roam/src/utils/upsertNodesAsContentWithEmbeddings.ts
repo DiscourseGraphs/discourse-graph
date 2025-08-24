@@ -2,9 +2,9 @@
 import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import { SupabaseContext } from "./supabaseContext";
 import { LocalContentDataInput } from "@repo/database/inputTypes";
-import { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
-import { Json } from "@repo/database/types.gen";
-import { nextApiRoot } from "@repo/ui/lib/execContext";
+import { DGSupabaseClient } from "@repo/database/lib/client";
+import { Json } from "@repo/database/dbTypes";
+import { nextApiRoot } from "@repo/utils/execContext";
 
 const EMBEDDING_BATCH_SIZE = 200;
 const EMBEDDING_MODEL = "openai_text_embedding_3_small_1536";
@@ -17,10 +17,8 @@ type EmbeddingApiResponse = {
 
 export const convertRoamNodeToLocalContent = ({
   nodes,
-  userId,
 }: {
   nodes: RoamDiscourseNodeData[];
-  userId: number;
 }): LocalContentDataInput[] => {
   return nodes.map((node) => {
     const variant = node.node_title ? "direct_and_description" : "direct";
@@ -28,7 +26,6 @@ export const convertRoamNodeToLocalContent = ({
       ? `${node.node_title} ${node.text}`
       : node.text;
     return {
-      author_id: userId,
       author_local_id: node.author_local_id,
       source_local_id: node.source_local_id,
       created: new Date(node.created || Date.now()).toISOString(),
@@ -36,12 +33,6 @@ export const convertRoamNodeToLocalContent = ({
       text: text,
       variant: variant,
       scale: "document",
-      document_inline: {
-        source_local_id: node.source_local_id,
-        created: new Date(node.created || Date.now()).toISOString(),
-        last_modified: new Date(node.last_modified || Date.now()).toISOString(),
-        author_local_id: node.author_local_id,
-      },
     };
   });
 };
@@ -139,7 +130,6 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   }
   const localContentNodes = convertRoamNodeToLocalContent({
     nodes: roamNodes,
-    userId: context.userId,
   });
 
   let nodesWithEmbeddings: LocalContentDataInput[];

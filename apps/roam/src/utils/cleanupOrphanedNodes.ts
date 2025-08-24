@@ -1,6 +1,6 @@
 import { type SupabaseContext } from "./supabaseContext";
 import { type SupabaseClient } from "@supabase/supabase-js";
-import { type Database } from "@repo/database/types.gen";
+import { type Database } from "@repo/database/dbTypes";
 
 type DGSupabaseClient = SupabaseClient<Database, "public", Database["public"]>;
 

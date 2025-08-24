@@ -18,10 +18,13 @@ import {
   orderConceptsByDependency,
 } from "./conceptConversion";
 import { OnloadArgs } from "roamjs-components/types";
-import { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
+import { DGSupabaseClient } from "@repo/database/lib/client";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
-import { Json } from "@repo/database/types.gen";
+import { Database, Json } from "@repo/database/dbTypes";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
+
+type AccountLocalInput =
+  Database["public"]["CompositeTypes"]["account_local_input"];
 
 const SYNC_FUNCTION = "embedding";
 const SYNC_INTERVAL = "45s";
@@ -166,7 +169,6 @@ const upsertNodeSchemaToContent = async ({
 
   const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
     nodes: result,
-    userId,
   });
   const { error } = await supabaseClient.rpc("upsert_content", {
     data: contentData as Json,
@@ -241,7 +243,6 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   }
   const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
     nodes: roamNodes,
-    userId: context.userId,
   });
 
   let nodesWithEmbeddings: LocalContentDataInput[];
@@ -310,6 +311,41 @@ const getDgNodeTypes = (extensionAPI: OnloadArgs["extensionAPI"]) => {
   return { allDgNodeTypes, dgNodeTypesWithSettings };
 };
 
+const getAllUsers = async (): Promise<AccountLocalInput[]> => {
+  const query = `[:find ?author_local_id ?author_name 
+  :keys author_local_id name
+  :where
+    [?user-eid :user/uid ?author_local_id]
+    [(get-else $ ?user-eid :user/display-name "") ?author_name]
+]`;
+  //@ts-ignore - backend to be added to roamjs-components
+  const result = (await window.roamAlphaAPI.data.async.q(query)) as unknown as {
+    author_local_id: string;
+    name: string;
+  }[];
+  return result.map((user) => ({
+    account_local_id: user.author_local_id,
+    name: user.name,
+    email: null,
+    email_trusted: null,
+    space_editor: null,
+  }));
+};
+
+const upsertUsers = async (
+  users: AccountLocalInput[],
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
+) => {
+  const { error } = await supabaseClient.rpc("upsert_accounts_in_space", {
+    accounts: users,
+    space_id_: context.spaceId,
+  });
+  if (error) {
+    console.error("upsert_accounts_in_space failed:", error);
+  }
+};
+
 export const createOrUpdateDiscourseEmbedding = async (
   extensionAPI: OnloadArgs["extensionAPI"],
 ) => {
@@ -323,6 +359,7 @@ export const createOrUpdateDiscourseEmbedding = async (
   }
 
   try {
+    const allUsers = await getAllUsers();
     const time = lastUpdateTime === null ? DEFAULT_TIME : lastUpdateTime;
     const { allDgNodeTypes, dgNodeTypesWithSettings } =
       getDgNodeTypes(extensionAPI);
@@ -339,6 +376,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       await endSyncTask(worker, "failed");
       return;
     }
+    await upsertUsers(allUsers, supabaseClient, context);
     await upsertNodesToSupabaseAsContentWithEmbeddings(
       allNodeInstances,
       supabaseClient,
