@@ -78,8 +78,6 @@ const getAllNodesFromSupabase = async (
 
     const result = [...new Set([...nodeResult, ...blockResult])];
 
-    const result = [...new Set([...nodeResult, ...blockResult])];
-
     return result;
   } catch (error) {
     console.error("Error in getAllNodesFromSupabase:", error);
