@@ -3,7 +3,10 @@ import fs from "fs";
 import path from "path";
 import { exec } from "child_process";
 import util from "util";
-import { Octokit } from "@octokit/core";
+// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
+// TODO: Change to apps/obsidian to ESM
+// import { Octokit } from "@octokit/core";
+const { Octokit } = require("@octokit/core");
 import os from "os";
 
 dotenv.config();
