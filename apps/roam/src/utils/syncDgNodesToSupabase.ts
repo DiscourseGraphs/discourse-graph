@@ -18,11 +18,14 @@ import {
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
+import { getRoamUrl } from "roamjs-components/dom";
+import { render as renderToast } from "roamjs-components/components/Toast";
 // https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
 type LocalContentDataInput = any;
 type DGSupabaseClient = any;
 type Json = any;
 type AccountLocalInput = any;
+const { createClient } = require("@repo/database/lib/client");
 
 const SYNC_FUNCTION = "embedding";
 const SYNC_INTERVAL = "45s";
@@ -56,9 +59,37 @@ export const endSyncTask = async (
     });
     if (error) {
       console.error("endSyncTask: Error calling end_sync_task:", error);
+      renderToast({
+        id: "discourse-embedding-error",
+        content: "Failed to complete discourse node embeddings sync",
+        intent: "danger",
+        timeout: 5000,
+      });
+    } else {
+      if (status === "complete") {
+        renderToast({
+          id: "discourse-embedding-complete",
+          content: "Successfully completed discourse node embeddings sync",
+          intent: "success",
+          timeout: 4000,
+        });
+      } else if (status === "failed") {
+        renderToast({
+          id: "discourse-embedding-failed",
+          content: "Discourse node embeddings sync failed",
+          intent: "danger",
+          timeout: 5000,
+        });
+      }
     }
   } catch (error) {
     console.error("endSyncTask: Error calling end_sync_task:", error);
+    renderToast({
+      id: "discourse-embedding-error",
+      content: "Failed to complete discourse node embeddings sync",
+      intent: "danger",
+      timeout: 5000,
+    });
   }
 };
 
@@ -384,5 +415,20 @@ export const createOrUpdateDiscourseEmbedding = async () => {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
     await endSyncTask(worker, "failed");
     throw error;
+  }
+};
+
+export const initializeSupabaseSync = async () => {
+  const supabase = createClient();
+  const result = await supabase
+    .from("Space")
+    .select()
+    .eq("url", getRoamUrl())
+    .maybeSingle();
+  if (!result.data) {
+    console.log("initializeSupabaseSync: No space found.");
+    return;
+  } else {
+    createOrUpdateDiscourseEmbedding();
   }
 };

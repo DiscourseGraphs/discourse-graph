@@ -27,7 +27,7 @@ import {
   installDiscourseFloatingMenu,
   removeDiscourseFloatingMenu,
 } from "./components/DiscourseFloatingMenu";
-import { createOrUpdateDiscourseEmbedding } from "./utils/syncDgNodesToSupabase";
+import { initializeSupabaseSync } from "./utils/syncDgNodesToSupabase";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -119,6 +119,8 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
+
+  initializeSupabaseSync();
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {

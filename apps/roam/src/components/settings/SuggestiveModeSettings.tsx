@@ -8,6 +8,7 @@ import createBlock from "roamjs-components/writes/createBlock";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
+import { render as renderToast } from "roamjs-components/components/Toast";
 
 const SuggestiveModeSettings = () => {
   const settings = getFormattedConfigTree();
@@ -37,6 +38,13 @@ const SuggestiveModeSettings = () => {
           text={"Generate & Upload All Node Embeddings"}
           onClick={() =>
             void (async () => {
+              renderToast({
+                id: "discourse-embedding-start",
+                content:
+                  "Creating and uploading your discourse node's embeddings to supabase",
+                intent: "primary",
+                timeout: 3000,
+              });
               await createOrUpdateDiscourseEmbedding();
             })()
           }
