@@ -90,6 +90,7 @@ const DiscourseNodeSuggestiveRules = ({
         uid={node.embeddingRefUid || ""}
         parentUid={parentUid}
         Value={node.embeddingRef || ""}
+        defaultValue={node.embeddingRef || ""}
         options={{
           placeholder: "((block-uid))",
           onChange: handleEmbeddingRefChange,
