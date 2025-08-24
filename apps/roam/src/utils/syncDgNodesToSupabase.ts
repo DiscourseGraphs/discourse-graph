@@ -9,7 +9,6 @@ import {
   getSupabaseContext,
   type SupabaseContext,
 } from "./supabaseContext";
-import { type LocalContentDataInput } from "@repo/database/inputTypes";
 import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import {
@@ -18,13 +17,13 @@ import {
   orderConceptsByDependency,
 } from "./conceptConversion";
 import { type OnloadArgs } from "roamjs-components/types";
-import { type DGSupabaseClient } from "@repo/database/lib/client";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
-import { type Database, type Json } from "@repo/database/dbTypes";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
-
-type AccountLocalInput =
-  Database["public"]["CompositeTypes"]["account_local_input"];
+// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
+type LocalContentDataInput = any;
+type DGSupabaseClient = any;
+type Json = any;
+type AccountLocalInput = any;
 
 const SYNC_FUNCTION = "embedding";
 const SYNC_INTERVAL = "45s";
