@@ -44,6 +44,17 @@ overrides:
   "@discourse-graphs/obsidian>@types/react": catalog:obsidian
   "@discourse-graphs/obsidian>@types/react-dom": catalog:obsidian
 
+peerDependencyRules:
+  allowedVersions:
+    "@blueprintjs/core>react": "18.2.0"
+    "@blueprintjs/datetime>react": "18.2.0"
+    "@blueprintjs/select>react": "18.2.0"
+    "roamjs-components>react": "18.2.0"
+    "@blueprintjs/core>react-dom": "18.2.0"
+    "@blueprintjs/datetime>react-dom": "18.2.0"
+    "@blueprintjs/select>react-dom": "18.2.0"
+    "roamjs-components>react-dom": "18.2.0"
+
 patchedDependencies:
   tldraw@^2.3.0: patches/tldraw@2.3.0.patch
   "@tldraw/editor@^2.3.0": patches/@tldraw__editor@2.3.0.patch
