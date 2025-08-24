@@ -549,7 +549,6 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               const relationIds = getRelationIds();
               this.deleteRelationsInCanvas({ shape, relationIds });
 
-              // Check if auto canvas relations is enabled
               const autoCanvasRelations = getSetting<boolean>(
                 AUTO_CANVAS_RELATIONS_KEY,
                 true,

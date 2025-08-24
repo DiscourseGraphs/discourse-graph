@@ -831,7 +831,6 @@ const InsideEditorAndUiContext = ({
         editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
           const util = editor.getShapeUtil(shape);
           if (util instanceof BaseDiscourseNodeUtil) {
-            // Check if auto canvas relations is enabled
             const autoCanvasRelations = getSetting<boolean>(
               AUTO_CANVAS_RELATIONS_KEY,
               true,
