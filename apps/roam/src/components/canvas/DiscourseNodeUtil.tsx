@@ -546,14 +546,13 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               this.updateProps(shape.id, shape.type, { title: text, uid });
 
               // Update Shape Relations
-              const relationIds = getRelationIds();
-              this.deleteRelationsInCanvas({ shape, relationIds });
-
               const autoCanvasRelations = getSetting<boolean>(
                 AUTO_CANVAS_RELATIONS_KEY,
                 false,
               );
               if (autoCanvasRelations) {
+                const relationIds = getRelationIds();
+                this.deleteRelationsInCanvas({ shape, relationIds });
                 await this.createExistingRelations({
                   shape,
                   relationIds,
