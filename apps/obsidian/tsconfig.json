@@ -13,9 +13,8 @@
     "isolatedModules": true,
     "strictNullChecks": true,
     "paths": {
-      "~/*": ["./src/*"],
-      "react": ["./node_modules/@types/react"],
-      "react-dom": ["./node_modules/@types/react-dom"]
-    }
+      "~/*": ["./src/*"]
+    },
+    "types": ["react", "react-dom"]
   }
 }

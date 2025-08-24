@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import { usePostHog } from "posthog-js/react";
+import { usePostHog, type PostHog } from "posthog-js/react";
+import type { FunctionComponent } from "react";
 
 const PostHogPageViewInner = () => {
   const pathname = usePathname();
@@ -28,6 +29,6 @@ const PostHogPageViewInner = () => {
 // Use dynamic import to ensure this only runs on the client
 const PostHogPageView = dynamic(() => Promise.resolve(PostHogPageViewInner), {
   ssr: false,
-});
+}) as FunctionComponent<{}>;
 
 export default PostHogPageView;
