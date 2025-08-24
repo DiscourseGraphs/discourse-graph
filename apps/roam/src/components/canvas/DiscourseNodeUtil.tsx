@@ -15,6 +15,12 @@ import {
   FileHelpers,
   StateNode,
   TLStateNodeConstructor,
+  TLDefaultSizeStyle,
+  DefaultSizeStyle,
+  T,
+  FONT_FAMILIES,
+  TLDefaultFontStyle,
+  DefaultFontStyle,
 } from "tldraw";
 import React, { useState, useEffect, useRef } from "react";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
@@ -32,6 +38,8 @@ import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { createTextJsxFromSpans } from "./DiscourseRelationShape/helpers";
 import { loadImage } from "~/utils/loadImage";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
+import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
+import { getSetting } from "~/utils/extensionSettings";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -42,6 +50,12 @@ const TEXT_PROPS = {
   fontStyle: "normal",
   padding: "0px",
   maxWidth: "auto",
+};
+const FONT_SIZES: Record<TLDefaultSizeStyle, number> = {
+  m: 25,
+  l: 38,
+  xl: 48,
+  s: 16,
 };
 // // FONT_FAMILIES.sans or tldraw_sans not working in toSvg()
 // // maybe check getSvg()
@@ -133,6 +147,8 @@ export type DiscourseNodeShape = TLBaseShape<
     uid: string;
     title: string;
     imageUrl?: string;
+    size: TLDefaultSizeStyle;
+    fontFamily: TLDefaultFontStyle;
   }
 >;
 export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
@@ -142,6 +158,17 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     super(editor);
     this.type = type;
   }
+
+  static override props = {
+    w: T.number,
+    h: T.number,
+    // opacity: T.number,
+    uid: T.string,
+    title: T.string,
+    imageUrl: T.optional(T.string),
+    size: DefaultSizeStyle,
+    fontFamily: DefaultFontStyle,
+  };
 
   override isAspectRatioLocked = () => false;
   override canResize = () => true;
@@ -162,6 +189,8 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
       h: 64,
       uid: window.roamAlphaAPI.util.generateUID(),
       title: "",
+      size: "m",
+      fontFamily: "draw",
     };
   }
 
@@ -476,7 +505,12 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
 
           <div
             ref={contentRef}
-            style={{ ...DEFAULT_STYLE_PROPS, maxWidth: "" }}
+            style={{
+              ...DEFAULT_STYLE_PROPS,
+              maxWidth: "",
+              fontFamily: FONT_FAMILIES[shape.props.fontFamily],
+              fontSize: FONT_SIZES[shape.props.size],
+            }}
           >
             {alias
               ? new RegExp(alias).exec(shape.props.title)?.[1] ||
@@ -512,13 +546,19 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               this.updateProps(shape.id, shape.type, { title: text, uid });
 
               // Update Shape Relations
-              const relationIds = getRelationIds();
-              this.deleteRelationsInCanvas({ shape, relationIds });
-              await this.createExistingRelations({
-                shape,
-                relationIds,
-                finalUid: uid,
-              });
+              const autoCanvasRelations = getSetting<boolean>(
+                AUTO_CANVAS_RELATIONS_KEY,
+                false,
+              );
+              if (autoCanvasRelations) {
+                const relationIds = getRelationIds();
+                this.deleteRelationsInCanvas({ shape, relationIds });
+                await this.createExistingRelations({
+                  shape,
+                  relationIds,
+                  finalUid: uid,
+                });
+              }
 
               editor.setEditingShape(null);
             }}

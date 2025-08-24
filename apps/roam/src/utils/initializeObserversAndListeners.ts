@@ -150,6 +150,8 @@ export const initObservers = async ({
         tabs: configPageTabs(onloadArgs),
       },
     });
+  // refresh config tree after config page is created
+  refreshConfigTree();
 
   const hashChangeListener = (e: Event) => {
     const evt = e as HashChangeEvent;

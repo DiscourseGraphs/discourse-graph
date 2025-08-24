@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
-import { SupabaseContext } from "./supabaseContext";
-import { LocalContentDataInput } from "@repo/database/inputTypes";
-import { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
-import { Json } from "@repo/database/types.gen";
-import { nextApiRoot } from "@repo/ui/lib/execContext";
+import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
+import { type SupabaseContext } from "./supabaseContext";
+// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
+const { nextApiRoot } = require("@repo/utils/execContext");
+type LocalContentDataInput = any;
+type DGSupabaseClient = any;
+type Json = any;
 
 const EMBEDDING_BATCH_SIZE = 200;
 const EMBEDDING_MODEL = "openai_text_embedding_3_small_1536";
@@ -17,10 +18,8 @@ type EmbeddingApiResponse = {
 
 export const convertRoamNodeToLocalContent = ({
   nodes,
-  userId,
 }: {
   nodes: RoamDiscourseNodeData[];
-  userId: number;
 }): LocalContentDataInput[] => {
   return nodes.map((node) => {
     const variant = node.node_title ? "direct_and_description" : "direct";
@@ -28,7 +27,6 @@ export const convertRoamNodeToLocalContent = ({
       ? `${node.node_title} ${node.text}`
       : node.text;
     return {
-      author_id: userId,
       author_local_id: node.author_local_id,
       source_local_id: node.source_local_id,
       created: new Date(node.created || Date.now()).toISOString(),
@@ -53,6 +51,11 @@ export const fetchEmbeddingsForNodes = async (
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ input: batch }),
     });
+
+    // TODO: Future: https://github.com/DiscourseGraphs/discourse-graph/pull/343#discussion_r2285566007
+    //At some point there were a lot of transient errors with openAI, and retrying was expected. Do you know if this is still the case?
+    // One case where I know this would still be true is if we ever run into request throttling, in which case we probably want incremental backoff.
+    //  I know we're far from that much usage, but that will become an issue with more adopters. Punting that should at least be a conscious decision.
 
     if (!response.ok) {
       let errorData;
@@ -133,7 +136,6 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   }
   const localContentNodes = convertRoamNodeToLocalContent({
     nodes: roamNodes,
-    userId: context.userId,
   });
 
   let nodesWithEmbeddings: LocalContentDataInput[];

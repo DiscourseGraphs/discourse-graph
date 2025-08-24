@@ -19,7 +19,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "generate:component": "turbo gen react-component",
-    "check-types": "tsc --noEmit",
+    "check-types": "tsc --noEmit --skipLibCheck",
     "ui": "npx shadcn@latest"
   },
   "devDependencies": {
@@ -35,7 +35,6 @@
     "typescript": "5.5.4"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.52.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",

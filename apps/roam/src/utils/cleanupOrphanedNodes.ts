@@ -1,15 +1,12 @@
 import { type SupabaseContext } from "./supabaseContext";
-import { type SupabaseClient } from "@supabase/supabase-js";
-import { type Database } from "@repo/database/types.gen";
-
-type DGSupabaseClient = SupabaseClient<Database, "public", Database["public"]>;
+// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
+type DGSupabaseClient = any;
 
 const getAllNodesFromSupabase = async (
   supabaseClient: DGSupabaseClient,
   spaceId: number,
 ): Promise<string[]> => {
   try {
-
     const { data: schemas, error: schemasError } = await supabaseClient
       .from("Concept")
       .select("id")
@@ -25,7 +22,7 @@ const getAllNodesFromSupabase = async (
       return [];
     }
 
-    const schemaIds = schemas.map((s) => s.id);
+    const schemaIds = schemas.map((s: { id: string }) => s.id);
     let nodeResult: string[] = [];
 
     if (schemaIds.length > 0) {
@@ -52,8 +49,11 @@ const getAllNodesFromSupabase = async (
       }
       nodeResult =
         conceptResponse.data
-          ?.map((c) => c.Content?.source_local_id)
-          .filter((id): id is string => !!id) || [];
+          ?.map(
+            (c: { Content?: { source_local_id: string } }) =>
+              c.Content?.source_local_id,
+          )
+          .filter((id: string): id is string => !!id) || [];
     }
 
     const blockContentResponse = await supabaseClient
@@ -73,8 +73,10 @@ const getAllNodesFromSupabase = async (
 
     const blockResult =
       blockContentResponse.data
-        ?.map((c) => c.source_local_id)
-        .filter((id): id is string => !!id) || [];
+        ?.map((c: { source_local_id: string }) => c.source_local_id)
+        .filter((id: string): id is string => !!id) || [];
+
+    const result = [...new Set([...nodeResult, ...blockResult])];
 
     const result = [...new Set([...nodeResult, ...blockResult])];
 
@@ -114,8 +116,11 @@ const getAllNodeSchemasFromSupabase = async (
 
     return (
       data
-        ?.map((c) => c.Content?.source_local_id)
-        .filter((id): id is string => !!id) || []
+        ?.map(
+          (c: { Content?: { source_local_id: string } }) =>
+            c.Content?.source_local_id,
+        )
+        .filter((id: string): id is string => !!id) || []
     );
   } catch (error) {
     console.error("Error in getAllNodeSchemasFromSupabase:", error);
@@ -159,7 +164,7 @@ const deleteNodesFromSupabase = async (
       console.error("Failed to get content from Supabase:", contentError);
     }
 
-    const contentIds = contentData?.map((c) => c.id) || [];
+    const contentIds = contentData?.map((c: { id: string }) => c.id) || [];
 
     if (contentIds.length > 0) {
       const { error: conceptError } = await supabaseClient
@@ -216,7 +221,7 @@ const deleteNodeSchemasFromSupabase = async (
       return 0;
     }
 
-    const schemaContentIds = schemaContentData.map((c) => c.id);
+    const schemaContentIds = schemaContentData.map((c: { id: string }) => c.id);
 
     const { data: schemaConceptData, error: schemaConceptError } =
       await supabaseClient
@@ -234,7 +239,9 @@ const deleteNodeSchemasFromSupabase = async (
       return 0;
     }
 
-    const schemaConceptIds = (schemaConceptData || []).map((c) => c.id);
+    const schemaConceptIds = (schemaConceptData || []).map(
+      (c: { id: string }) => c.id,
+    );
 
     let instanceConceptIds: number[] = [];
     let instanceContentIds: number[] = [];
@@ -257,10 +264,12 @@ const deleteNodeSchemasFromSupabase = async (
         return 0;
       }
 
-      instanceConceptIds = (instanceConceptData || []).map((ic) => ic.id);
+      instanceConceptIds = (instanceConceptData || []).map(
+        (ic: { id: string }) => ic.id,
+      );
       instanceContentIds = (instanceConceptData || [])
-        .map((ic) => ic.represented_by_id)
-        .filter((x): x is number => typeof x === "number");
+        .map((ic: { represented_by_id: number }) => ic.represented_by_id)
+        .filter((x: number): x is number => typeof x === "number");
 
       if (instanceContentIds.length > 0) {
         const { data: instanceContentData, error: instanceContentLookupError } =
@@ -277,8 +286,8 @@ const deleteNodeSchemasFromSupabase = async (
           return 0;
         }
         instanceSourceLocalIds = (instanceContentData || [])
-          .map((c) => c.source_local_id)
-          .filter((id): id is string => !!id);
+          .map((c: { source_local_id: string }) => c.source_local_id)
+          .filter((id: string): id is string => !!id);
       }
     }
 

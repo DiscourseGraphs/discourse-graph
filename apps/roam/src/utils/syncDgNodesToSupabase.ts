@@ -7,25 +7,23 @@ import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import {
   getLoggedInClient,
   getSupabaseContext,
-  SupabaseContext,
+  type SupabaseContext,
 } from "./supabaseContext";
-import { LocalContentDataInput } from "@repo/database/inputTypes";
-import { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
-import getDiscourseRelations from "./getDiscourseRelations";
-import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
+import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
+import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import {
   discourseNodeBlockToLocalConcept,
   discourseNodeSchemaToLocalConcept,
   orderConceptsByDependency,
-  discourseRelationSchemaToLocalConcept,
-  discourseRelationDataToLocalConcept,
 } from "./conceptConversion";
-import getDiscourseRelationTriples from "./getDiscourseRelationTriples";
-import { OnloadArgs } from "roamjs-components/types";
-import { DGSupabaseClient } from "@repo/ui/lib/supabase/client";
+import { type OnloadArgs } from "roamjs-components/types";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
-import { Json } from "@repo/database/types.gen";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
+// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
+type LocalContentDataInput = any;
+type DGSupabaseClient = any;
+type Json = any;
+type AccountLocalInput = any;
 
 const SYNC_FUNCTION = "embedding";
 const SYNC_INTERVAL = "45s";
@@ -170,7 +168,6 @@ const upsertNodeSchemaToContent = async ({
 
   const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
     nodes: result,
-    userId,
   });
   const { error } = await supabaseClient.rpc("upsert_content", {
     data: contentData as Json,
@@ -208,16 +205,6 @@ export const convertDgToSupabaseConcepts = async ({
     return discourseNodeSchemaToLocalConcept(context, node);
   });
 
-  const relationSchemas = getDiscourseRelations();
-
-  const relationsToEmbed = relationSchemas.map((relation) => {
-    const localConcept = discourseRelationSchemaToLocalConcept(
-      context,
-      relation,
-    );
-    return localConcept;
-  });
-
   const nodeBlockToLocalConcepts = nodesSince.map((node) => {
     const localConcept = discourseNodeBlockToLocalConcept(context, {
       nodeUid: node.source_local_id,
@@ -227,28 +214,9 @@ export const convertDgToSupabaseConcepts = async ({
     return localConcept;
   });
 
-  const relationTriples = getDiscourseRelationTriples();
-  const relationLabelToId = Object.fromEntries(
-    relationSchemas.map((r) => [r.label, r.id]),
-  );
-  const relationBlockToLocalConcepts = relationTriples
-    .map(({ relation, source, target }) => {
-      const relationSchemaUid = relationLabelToId[relation];
-      if (!relationSchemaUid) {
-        return null;
-      }
-      return discourseRelationDataToLocalConcept(context, relationSchemaUid, {
-        source,
-        target,
-      });
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null);
-
   const conceptsToUpsert = [
     ...nodesTypesToLocalConcepts,
-    ...relationsToEmbed,
     ...nodeBlockToLocalConcepts,
-    ...relationBlockToLocalConcepts,
   ];
   const { ordered } = orderConceptsByDependency(conceptsToUpsert);
   const { error } = await supabaseClient.rpc("upsert_concepts", {
@@ -274,12 +242,13 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   }
   const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
     nodes: roamNodes,
-    userId: context.userId,
   });
 
   let nodesWithEmbeddings: LocalContentDataInput[];
   try {
-    nodesWithEmbeddings = await fetchEmbeddingsForNodes(allNodeInstancesAsLocalContent);
+    nodesWithEmbeddings = await fetchEmbeddingsForNodes(
+      allNodeInstancesAsLocalContent,
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(
@@ -341,6 +310,41 @@ const getDgNodeTypes = (extensionAPI: OnloadArgs["extensionAPI"]) => {
   return { allDgNodeTypes, dgNodeTypesWithSettings };
 };
 
+const getAllUsers = async (): Promise<AccountLocalInput[]> => {
+  const query = `[:find ?author_local_id ?author_name 
+  :keys author_local_id name
+  :where
+    [?user-eid :user/uid ?author_local_id]
+    [(get-else $ ?user-eid :user/display-name "") ?author_name]
+]`;
+  //@ts-ignore - backend to be added to roamjs-components
+  const result = (await window.roamAlphaAPI.data.async.q(query)) as unknown as {
+    author_local_id: string;
+    name: string;
+  }[];
+  return result.map((user) => ({
+    account_local_id: user.author_local_id,
+    name: user.name,
+    email: null,
+    email_trusted: null,
+    space_editor: null,
+  }));
+};
+
+const upsertUsers = async (
+  users: AccountLocalInput[],
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
+) => {
+  const { error } = await supabaseClient.rpc("upsert_accounts_in_space", {
+    accounts: users,
+    space_id_: context.spaceId,
+  });
+  if (error) {
+    console.error("upsert_accounts_in_space failed:", error);
+  }
+};
+
 export const createOrUpdateDiscourseEmbedding = async (
   extensionAPI: OnloadArgs["extensionAPI"],
 ) => {
@@ -354,6 +358,7 @@ export const createOrUpdateDiscourseEmbedding = async (
   }
 
   try {
+    const allUsers = await getAllUsers();
     const time = lastUpdateTime === null ? DEFAULT_TIME : lastUpdateTime;
     const { allDgNodeTypes, dgNodeTypesWithSettings } =
       getDgNodeTypes(extensionAPI);
@@ -370,6 +375,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       await endSyncTask(worker, "failed");
       return;
     }
+    await upsertUsers(allUsers, supabaseClient, context);
     await upsertNodesToSupabaseAsContentWithEmbeddings(
       allNodeInstances,
       supabaseClient,

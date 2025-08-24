@@ -78,10 +78,12 @@ import {
   createAllRelationBindings,
 } from "./DiscourseRelationShape/DiscourseRelationBindings";
 import ConvertToDialog from "./ConvertToDialog";
-import { createArrowShapeMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
+import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { TLDRAW_DATA_ATTRIBUTE } from "./tldrawStyles";
+import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
+import { getSetting } from "~/utils/extensionSettings";
 
 declare global {
   interface Window {
@@ -348,13 +350,15 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
   const arrowShapeMigrations = useMemo(
     () =>
-      createArrowShapeMigrations({
+      createMigrations({
         allRelationIds,
         allAddReferencedNodeActions,
+        allNodeTypes: allNodes.map((node) => node.type),
       }),
-    [allRelationIds, allAddReferencedNodeActions],
+    [allRelationIds, allAddReferencedNodeActions, allNodes],
   );
-  const migrations = [...arrowShapeMigrations];
+
+  const migrations = [arrowShapeMigrations];
   const { store, needsUpgrade, performUpgrade, error } = useRoamStore({
     migrations,
     customShapeUtils,
@@ -415,7 +419,12 @@ const TldrawCanvas = ({ title }: { title: string }) => {
           {
             type: nodeType.type,
             id: createShapeId(),
-            props: { uid: e.detail.uid, title: e.detail.val },
+            props: {
+              uid: e.detail.uid,
+              title: e.detail.val,
+              size: "m",
+              fontFamily: "draw",
+            },
             ...position,
           },
         ]);
@@ -822,9 +831,15 @@ const InsideEditorAndUiContext = ({
         editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
           const util = editor.getShapeUtil(shape);
           if (util instanceof BaseDiscourseNodeUtil) {
-            void util.createExistingRelations({
-              shape: shape as DiscourseNodeShape,
-            });
+            const autoCanvasRelations = getSetting<boolean>(
+              AUTO_CANVAS_RELATIONS_KEY,
+              false,
+            );
+            if (autoCanvasRelations) {
+              void util.createExistingRelations({
+                shape: shape as DiscourseNodeShape,
+              });
+            }
           }
         });
 
