@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
@@ -39,6 +40,7 @@ import {
   registerDefaultSideEffects,
   defaultEditorAssetUrls,
   usePreloadAssets,
+  StateNode,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
@@ -317,12 +319,17 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   ];
 
   // TOOLS
+  const discourseGraphTool = class DiscourseGraphTool extends StateNode {
+    static override id = "discourse-tool";
+    static override initial = "idle";
+  };
   const discourseNodeTools = createNodeShapeTools(allNodes);
   const discourseRelationTools = createAllRelationShapeTools(allRelationNames);
   const referencedNodeTools = createAllReferencedNodeTools(
     allAddReferencedNodeByAction,
   );
   const customTools = [
+    discourseGraphTool,
     ...discourseNodeTools,
     ...discourseRelationTools,
     ...referencedNodeTools,
