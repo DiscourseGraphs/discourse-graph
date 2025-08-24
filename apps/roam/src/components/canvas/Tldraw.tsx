@@ -78,10 +78,7 @@ import {
   createAllRelationBindings,
 } from "./DiscourseRelationShape/DiscourseRelationBindings";
 import ConvertToDialog from "./ConvertToDialog";
-import {
-  createArrowShapeMigrations,
-  createDiscourseNodeMigrations,
-} from "./DiscourseRelationShape/discourseRelationMigrations";
+import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { TLDRAW_DATA_ATTRIBUTE } from "./tldrawStyles";
@@ -351,17 +348,15 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
   const arrowShapeMigrations = useMemo(
     () =>
-      createArrowShapeMigrations({
+      createMigrations({
         allRelationIds,
         allAddReferencedNodeActions,
+        allNodeTypes: allNodes.map((node) => node.type),
       }),
-    [allRelationIds, allAddReferencedNodeActions],
+    [allRelationIds, allAddReferencedNodeActions, allNodes],
   );
-  const discourseNodeMigrations = useMemo(
-    () => createDiscourseNodeMigrations(allNodes.map((node) => node.type)),
-    [allNodes],
-  );
-  const migrations = [...arrowShapeMigrations, ...discourseNodeMigrations];
+
+  const migrations = [arrowShapeMigrations];
   const { store, needsUpgrade, performUpgrade, error } = useRoamStore({
     migrations,
     customShapeUtils,

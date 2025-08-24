@@ -187,8 +187,8 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
       h: 64,
       uid: window.roamAlphaAPI.util.generateUID(),
       title: "",
-      size: "s",
-      fontFamily: "sans",
+      size: "m",
+      fontFamily: "draw",
     };
   }
 
