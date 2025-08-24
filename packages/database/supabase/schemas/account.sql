@@ -98,6 +98,73 @@ GRANT ALL ON TABLE public."SpaceAccess" TO anon;
 GRANT ALL ON TABLE public."SpaceAccess" TO authenticated;
 GRANT ALL ON TABLE public."SpaceAccess" TO service_role;
 
+CREATE TYPE public.account_local_input AS (
+    -- PlatformAccount columns
+    name VARCHAR,
+    account_local_id VARCHAR,
+    -- local values
+    email VARCHAR,
+    email_trusted BOOLEAN,
+    space_editor BOOLEAN
+);
+
+CREATE OR REPLACE FUNCTION public.upsert_account_in_space(
+    space_id_ BIGINT,
+    local_account public.account_local_input
+) RETURNS BIGINT
+SECURITY DEFINER
+SET search_path = ''
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    platform_ public."Platform";
+    account_id_ BIGINT;
+BEGIN
+    SELECT platform INTO STRICT platform_ FROM public."Space" WHERE id = space_id_;
+    INSERT INTO public."PlatformAccount" AS pa (
+            account_local_id, name, platform
+        ) VALUES (
+            local_account.account_local_id, local_account.name, platform_
+        ) ON CONFLICT (account_local_id, platform) DO UPDATE SET
+            name = coalesce(local_account.name, pa.name)
+        RETURNING id INTO STRICT account_id_;
+    INSERT INTO public."SpaceAccess" as sa (space_id, account_id, editor) values (space_id_, account_id_, COALESCE(local_account.space_editor, true))
+        ON CONFLICT (space_id, account_id)
+        DO UPDATE SET editor = COALESCE(local_account.space_editor, sa.editor, true);
+    IF local_account.email IS NOT NULL THEN
+        -- TODO: how to distinguish basic untrusted from platform placeholder email?
+        INSERT INTO public."AgentIdentifier" as ai (account_id, value, identifier_type, trusted) VALUES (account_id_, local_account.email, 'email', COALESCE(local_account.email_trusted, false))
+        ON CONFLICT (value, identifier_type, account_id)
+        DO UPDATE SET trusted = COALESCE(local_account.email_trusted, ai.trusted, false);
+    END IF;
+    RETURN account_id_;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.upsert_accounts_in_space (
+space_id_ BIGINT,
+accounts JSONB
+) RETURNS SETOF BIGINT
+SECURITY DEFINER
+SET search_path = ''
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    platform_ public."Platform";
+    account_id_ BIGINT;
+    account_row JSONB;
+    local_account public.account_local_input;
+BEGIN
+    SELECT platform INTO STRICT platform_ FROM public."Space" WHERE id = space_id_;
+    FOR account_row IN SELECT * FROM jsonb_array_elements(accounts)
+    LOOP
+        local_account := jsonb_populate_record(NULL::public.account_local_input, account_row);
+        RETURN NEXT public.upsert_account_in_space(space_id_, local_account);
+    END LOOP;
+END;
+$$;
+
+-- legacy
 CREATE OR REPLACE FUNCTION public.create_account_in_space(
     space_id_ BIGINT,
     account_local_id_ varchar,
@@ -108,31 +175,11 @@ CREATE OR REPLACE FUNCTION public.create_account_in_space(
 ) RETURNS BIGINT
 SECURITY DEFINER
 SET search_path = ''
-LANGUAGE plpgsql
+LANGUAGE sql
 AS $$
-DECLARE
-    platform_ public."Platform";
-    account_id_ BIGINT;
-BEGIN
-    SELECT platform INTO platform_ STRICT FROM public."Space" WHERE id = space_id_;
-    INSERT INTO public."PlatformAccount" AS pa (
-            account_local_id, name, platform
-        ) VALUES (
-            account_local_id_, name_, platform_
-        ) ON CONFLICT (account_local_id, platform) DO UPDATE SET
-            name = coalesce(name_, pa.name)
-        RETURNING id INTO STRICT account_id_;
-    INSERT INTO public."SpaceAccess" (space_id, account_id, editor) values (space_id_, account_id_, editor_)
-        ON CONFLICT (space_id, account_id)
-        DO UPDATE SET editor = editor_;
-    IF email_ IS NOT NULL THEN
-        INSERT INTO public."AgentIdentifier" (account_id, value, identifier_type, trusted) VALUES (account_id_, email_, 'email', email_trusted)
-         ON CONFLICT (value, identifier_type, account_id)
-         DO UPDATE SET trusted = email_trusted;
-    END IF;
-    RETURN account_id_;
-END;
+    SELECT public.upsert_account_in_space(space_id_, ROW(name_, account_local_id_ ,email_, email_trusted, editor_)::public.account_local_input);
 $$;
+
 
 CREATE OR REPLACE FUNCTION public.my_account(account_id BIGINT) RETURNS boolean
 STABLE SECURITY DEFINER

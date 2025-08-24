@@ -3,7 +3,11 @@ import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
 import type { SupabaseContext } from "~/utils/supabaseContext";
 
-import type { LocalConceptDataInput } from "@repo/database/inputTypes";
+// import type { LocalConceptDataInput } from "@repo/database/inputTypes";
+// TODO: Change to apps/roam to ESM and delete below
+// // linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
+// Define the type locally to avoid ESM import issues
+type LocalConceptDataInput = any;
 
 const getNodeExtraData = (
   node_uid: string,
@@ -191,9 +195,10 @@ const orderConceptsRec = (
     if (relatedConcept === undefined) {
       missing.add(relatedConceptId);
     } else {
-      missing = missing.union(
-        orderConceptsRec(ordered, relatedConcept, remainder),
-      );
+      missing = new Set([
+        ...missing,
+        ...orderConceptsRec(ordered, relatedConcept, remainder),
+      ]);
       delete remainder[relatedConceptId];
     }
   }
@@ -225,7 +230,10 @@ export const orderConceptsByDependency = (
   let missing: Set<string> = new Set();
   while (Object.keys(conceptById).length > 0) {
     const first = Object.values(conceptById)[0];
-    missing = missing.union(orderConceptsRec(ordered, first, conceptById));
+    missing = new Set([
+      ...missing,
+      ...orderConceptsRec(ordered, first, conceptById),
+    ]);
   }
   return { ordered, missing: [...missing] };
 };

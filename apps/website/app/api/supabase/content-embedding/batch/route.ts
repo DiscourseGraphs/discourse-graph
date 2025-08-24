@@ -2,11 +2,11 @@ import { NextResponse, NextRequest } from "next/server";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 
 import { createClient } from "~/utils/supabase/server";
+import { asPostgrestFailure } from "@repo/database/lib/contextFunctions";
 import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
-  asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
 import {
   processAndInsertBatch,

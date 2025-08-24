@@ -4,7 +4,7 @@ import {
   handleRouteError,
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
-import { fetchOrCreateSpaceDirect } from "@repo/ui/lib/supabase/contextFunctions";
+import { fetchOrCreateSpaceDirect } from "@repo/database/lib/contextFunctions";
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
   try {
