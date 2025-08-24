@@ -91,6 +91,10 @@ export default runExtension(async (onloadArgs) => {
       timeout: 500,
     });
   }
+
+  await initializeDiscourseNodes();
+  refreshConfigTree();
+
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
@@ -115,9 +119,6 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("keydown", nodeMenuTriggerListener);
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
-
-  await initializeDiscourseNodes();
-  refreshConfigTree();
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {

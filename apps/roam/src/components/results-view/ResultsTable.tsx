@@ -39,13 +39,13 @@ const ExtraContextRow = ({ uid }: { uid: string }) => {
       window.roamAlphaAPI.ui.components.renderPage({
         uid,
         el: containerRef.current,
-        hideMentions: true,
+        "hide-mentions?": true,
       });
     } else {
       window.roamAlphaAPI.ui.components.renderBlock({
         uid,
         el: containerRef.current,
-        zoomPath: true,
+        "zoom-path?": true,
       });
     }
   }, [containerRef, uid]);
