@@ -5,20 +5,17 @@ import type { SupabaseContext } from "~/utils/supabaseContext";
 
 // import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 // TODO: Change to apps/roam to ESM and delete below
-// linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
+// // linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
 // Define the type locally to avoid ESM import issues
-// type LocalConceptDataInput = any;
-import type { LocalConceptDataInput } from "@repo/database/inputTypes";
+type LocalConceptDataInput = any;
 
 const getNodeExtraData = (
   node_uid: string,
-  add_page_uid: boolean,
 ): {
   author_uid: string;
   created: string;
   last_modified: string;
   page_uid: string;
-  page_title: string;
 } => {
   const result = window.roamAlphaAPI.q(
     `[
