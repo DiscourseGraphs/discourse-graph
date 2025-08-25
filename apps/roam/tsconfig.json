@@ -1,7 +1,15 @@
 {
   "extends": "@repo/typescript-config/react-library.json",
-  "include": ["src", "src/types.d.ts", "tailwind.config.ts", "tests", "scripts"],
+  "include": [
+    "src",
+    "src/types.d.ts",
+    "tailwind.config.ts",
+    "tests",
+    "scripts"
+  ],
   "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "baseUrl": ".",
     "outDir": "dist",
     "allowJs": false,

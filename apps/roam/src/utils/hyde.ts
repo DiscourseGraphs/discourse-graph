@@ -3,7 +3,7 @@ import { getLoggedInClient } from "./supabaseContext";
 import { Result } from "./types";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import findDiscourseNode from "./findDiscourseNode";
-const { nextApiRoot } = require("@repo/utils/execContext");
+import { nextApiRoot } from "@repo/utils/execContext";
 
 type ApiEmbeddingResponse = {
   data: Array<{

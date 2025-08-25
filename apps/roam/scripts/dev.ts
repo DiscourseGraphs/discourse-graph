@@ -1,6 +1,7 @@
 import esbuild from "esbuild";
 import dotenv from "dotenv";
 import { compile, args } from "./compile";
+import { pathToFileURL } from "url";
 
 dotenv.config();
 
@@ -24,4 +25,7 @@ const main = async () => {
     process.exit(1);
   }
 };
-if (require.main === module) main();
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}

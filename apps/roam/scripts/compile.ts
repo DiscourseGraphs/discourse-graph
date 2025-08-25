@@ -2,9 +2,8 @@ import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
-// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
-// import { envContents } from "@repo/database/dbDotEnv";
-const { envContents } = require("@repo/database/dbDotEnv");
+import { envContents } from "@repo/database/dbDotEnv";
+import { pathToFileURL } from "url";
 
 // https://github.com/evanw/esbuild/issues/337#issuecomment-954633403
 const importAsGlobals = (
@@ -191,4 +190,7 @@ const main = async () => {
     process.exit(1);
   }
 };
-if (require.main === module) main();
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}

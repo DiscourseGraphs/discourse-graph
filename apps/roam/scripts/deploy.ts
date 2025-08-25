@@ -2,6 +2,7 @@ import { put } from "@vercel/blob";
 import fs, { readFileSync } from "fs";
 import { join } from "path";
 import { compile } from "./compile";
+import { pathToFileURL } from "url";
 
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
@@ -95,6 +96,8 @@ const main = async () => {
     process.exit(1);
   }
 };
-if (require.main === module) main();
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}
 
 export default deploy;
