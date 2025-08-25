@@ -78,20 +78,23 @@ export const initObservers = async ({
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
       else if (isQueryPage(props)) renderQueryPage(props);
       else if (isCurrentPageCanvas(props)) {
-        // Try to render tldraw, catch errors and retry
-        try {
-          console.log("Rendering tldraw canvas");
-          renderTldrawCanvas(props);
-        } catch (error) {
-          console.log("Canvas render failed, retrying in 1s:", error);
-          setTimeout(() => {
-            try {
-              renderTldrawCanvas(props);
-            } catch (retryError) {
-              console.warn("Canvas render retry failed:", retryError);
-            }
-          }, 1000);
-        }
+        // Add 2 second delay before initial render attempt
+        setTimeout(() => {
+          // Try to render tldraw, catch errors and retry
+          try {
+            console.log("Rendering tldraw canvas");
+            renderTldrawCanvas(props);
+          } catch (error) {
+            console.log("Canvas render failed, retrying in 1s:", error);
+            setTimeout(() => {
+              try {
+                renderTldrawCanvas(props);
+              } catch (retryError) {
+                console.warn("Canvas render retry failed:", retryError);
+              }
+            }, 1000);
+          }
+        }, 2000);
       } else if (isSidebarCanvas(props)) {
         // Try to render sidebar tldraw, catch errors and retry
         try {
