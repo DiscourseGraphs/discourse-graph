@@ -1,8 +1,19 @@
 {
   "folders": [
-    { "path": "." },
-    { "path": "./apps", "name": "Apps" },
-    { "path": "./packages", "name": "Packages" },
+    {
+      "path": ".",
+    },
+    {
+      "path": "./apps",
+      "name": "Apps",
+    },
+    {
+      "path": "./packages",
+      "name": "Packages",
+    },
+    {
+      "path": "../../Dev/tldraw-2-3-0",
+    },
   ],
   "settings": {
     "files.watcherExclude": {
