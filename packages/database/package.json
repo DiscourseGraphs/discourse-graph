@@ -5,10 +5,10 @@
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
-    "./lib/*": "./src/lib/*.ts",
-    "./dbDotEnv": "./src/dbDotEnv.ts",
-    "./dbTypes": "./src/dbTypes.ts",
-    "./inputTypes": "./src/inputTypes.ts"
+    "./inputTypes": "./dist/src/inputTypes.d.ts",
+    "./dbTypes": "./dist/src/dbTypes.d.ts",
+    "./*": "./dist/src/*.js",
+    "./lib/*": "./dist/src/lib/*.js"
   },
   "scripts": {
     "init": "supabase login",

@@ -6,23 +6,16 @@ import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
-// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
-// import type { Enums } from "@repo/database/dbTypes";
-// import type { DGSupabaseClient } from "@repo/database/lib/client";
-// import {
-//   fetchOrCreateSpaceDirect,
-//   fetchOrCreatePlatformAccount,
-//   createLoggedInClient,
-// } from "@repo/database/lib/contextFunctions";
-const {
+// @ts-expect-error
+import type { Enums } from "@repo/database/dbTypes";
+// @ts-expect-error
+import type { DGSupabaseClient } from "@repo/database/lib/client";
+import {
   fetchOrCreateSpaceDirect,
   fetchOrCreatePlatformAccount,
   createLoggedInClient,
-} = require("@repo/database/lib/contextFunctions");
-// TEMP TODO: Change to apps/roam to ESM
-// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
-type DGSupabaseClient = any; // Supabase client type
-type Enums<T> = T extends "Platform" ? "Roam" | "Obsidian" : never;
+  // @ts-expect-error
+} from "@repo/database/lib/contextFunctions";
 
 declare const crypto: { randomUUID: () => string };
 

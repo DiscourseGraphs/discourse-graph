@@ -1,13 +1,21 @@
 {
   "extends": "@repo/typescript-config/react-library.json",
-  "include": ["src", "src/types.d.ts", "tailwind.config.ts", "tests", "scripts"],
+  "include": [
+    "src",
+    "src/types.d.ts",
+    "tailwind.config.ts",
+    "tests",
+    "scripts"
+  ],
+  "types": ["@repo/database", "react", "react-dom"],
   "compilerOptions": {
     "baseUrl": ".",
+    "rootDir": ".",
     "outDir": "dist",
-    "allowJs": false,
-    "esModuleInterop": false,
-    "forceConsistentCasingInFileNames": true,
-    "jsx": "react",
+    "allowJs": true,
+    "checkJs": false,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "noUncheckedIndexedAccess": false
   }
 }

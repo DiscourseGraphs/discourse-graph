@@ -2,12 +2,8 @@ import { DiscourseNode } from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
 import type { SupabaseContext } from "~/utils/supabaseContext";
-
-// import type { LocalConceptDataInput } from "@repo/database/inputTypes";
-// TODO: Change to apps/roam to ESM and delete below
-// // linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
-// Define the type locally to avoid ESM import issues
-type LocalConceptDataInput = any;
+// @ts-expect-error
+import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 
 const getNodeExtraData = (
   node_uid: string,

@@ -3,14 +3,14 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "noEmit": true,
+    "noEmitOnError": false,
     "outDir": "dist"
   },
   "include": [
-    "./src/**/*",
-    "./scripts/**/*",
-    "./features/step-definitions/**/*",
-    "./features/support/**/*"
+    "./src/**/*.ts",
+    "./scripts/**/*.ts",
+    "./features/step-definitions/**/*.ts",
+    "./features/support/**/*.ts"
   ],
-  "exclude": ["supabase"]
+  "exclude": ["supabase", "node_modules", "dist"]
 }

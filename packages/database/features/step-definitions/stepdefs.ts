@@ -1,8 +1,9 @@
 import assert from "assert";
 import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import { createClient } from "@supabase/supabase-js";
-import { Constants, type Database, type Enums } from "@repo/database/dbTypes";
-import { getVariant, config } from "@repo/database/dbDotEnv";
+import type { Database, Enums } from "../../src/dbTypes.d.ts";
+import { Constants } from "../../src/dbTypes.js";
+import { getVariant, config } from "../../src/dbDotEnv.js";
 
 import {
   spaceAnonUserEmail,
