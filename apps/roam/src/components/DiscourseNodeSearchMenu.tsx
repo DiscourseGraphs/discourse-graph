@@ -12,8 +12,8 @@ import {
   Position,
   Button,
   InputGroup,
+  Intent,
 } from "@blueprintjs/core";
-import { MultiSelect, ItemRenderer, ItemPredicate } from "@blueprintjs/select";
 import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -59,7 +59,6 @@ const NodeSearchMenu = ({
   const MENU_WIDTH = 400;
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(true);
   const [discourseTypes, setDiscourseTypes] = useState<DiscourseNode[]>([]);
   const [checkedTypes, setCheckedTypes] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -184,10 +183,7 @@ const NodeSearchMenu = ({
       .filter((type) => searchResults[type.type]?.length > 0);
   }, [discourseTypes, checkedTypes, searchResults]);
 
-  const selectedTypes = useMemo(
-    () => discourseTypes.filter((t) => checkedTypes[t.type]),
-    [discourseTypes, checkedTypes],
-  );
+  // derived selection set from checkedTypes; no separate selected list needed
 
   const allItems = useMemo(() => {
     const items: {
@@ -377,45 +373,18 @@ const NodeSearchMenu = ({
     }, 0);
   }, [textarea]);
 
-  const handleTypeCheckChange = useCallback(
-    (typeKey: string) => {
-      setCheckedTypes((prev) => ({
-        ...prev,
-        [typeKey]: !prev[typeKey],
-      }));
-
-      refocusTextarea();
-    },
-    [refocusTextarea],
-  );
-
-  const remainFocusOnTextarea = useCallback(
-    (e: React.MouseEvent) => {
-      // Prevent default to avoid moving focus away from the textarea
-      e.preventDefault();
-      setTimeout(() => refocusTextarea(), 0);
-    },
-    [refocusTextarea],
-  );
-
-  const toggleFilterMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      setIsFilterMenuOpen((prev) => !prev);
-
-      refocusTextarea();
-    },
-    [refocusTextarea],
-  );
+  const handleTypeCheckChange = useCallback((typeKey: string) => {
+    setCheckedTypes((prev) => ({
+      ...prev,
+      [typeKey]: !prev[typeKey],
+    }));
+  }, []);
 
   const handleToggleAll = useCallback(
     (checked: boolean) => {
       setCheckedTypes(Object.fromEntries(typeIds.map((id) => [id, checked])));
-      refocusTextarea();
     },
-    [typeIds, refocusTextarea],
+    [typeIds],
   );
 
   const handleSelectOnly = useCallback(
@@ -424,51 +393,43 @@ const NodeSearchMenu = ({
         typeIds.map((id) => [id, id === node.type]),
       );
       setCheckedTypes(next as Record<string, boolean>);
-      refocusTextarea();
     },
-    [typeIds, refocusTextarea],
+    [typeIds],
   );
 
-  const renderType: ItemRenderer<DiscourseNode> = (
-    item,
-    { modifiers, handleClick },
-  ) => {
-    if (!modifiers.matchesPredicate) return null;
-    const isSelected = !!checkedTypes[item.type];
-    return (
-      <MenuItem
-        key={item.type}
-        className="group"
-        text={item.text}
-        icon={isSelected ? "tick" : "blank"}
-        active={modifiers.active}
-        shouldDismissPopover={false}
-        onClick={(e) => handleClick(e)}
-        onMouseDown={(e) => e.preventDefault()}
-        labelElement={
-          <Button
-            minimal
-            small
-            className="opacity-0 transition-opacity group-hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSelectOnly(item);
-            }}
-          >
-            Only
-          </Button>
-        }
-      />
-    );
-  };
-
-  const filterType: ItemPredicate<DiscourseNode> = (query, item) => {
-    const q = query.trim().toLowerCase();
-    if (q.length === 0) return true;
-    return (
-      item.text.toLowerCase().includes(q) || item.type.toLowerCase().includes(q)
-    );
-  };
+  const renderTypeItem = useCallback(
+    (item: DiscourseNode) => {
+      const isSelected = !!checkedTypes[item.type];
+      return (
+        <MenuItem
+          key={item.type}
+          className="group"
+          text={item.text}
+          icon={isSelected ? "tick" : "blank"}
+          shouldDismissPopover={false}
+          onClick={(e) => {
+            e.preventDefault();
+            handleTypeCheckChange(item.type);
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+          labelElement={
+            <Button
+              minimal
+              small
+              className="opacity-0 transition-opacity group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelectOnly(item);
+              }}
+            >
+              Only
+            </Button>
+          }
+        />
+      );
+    },
+    [checkedTypes, handleTypeCheckChange, handleSelectOnly],
+  );
 
   return (
     <Popover
@@ -476,11 +437,12 @@ const NodeSearchMenu = ({
       isOpen={true}
       canEscapeKeyClose
       minimal
+      usePortal={true}
       target={<span />}
       position={Position.BOTTOM_LEFT}
       modifiers={{
         flip: { enabled: true },
-        preventOverflow: { enabled: true },
+        preventOverflow: { enabled: true, boundariesElement: "viewport" },
         offset: {
           enabled: true,
           fn: (data) => {
@@ -506,62 +468,42 @@ const NodeSearchMenu = ({
                 style={{ width: MENU_WIDTH }}
               >
                 <div className="flex items-center justify-between border-b border-gray-200 p-2">
-                  <div className="text-sm font-semibold">Search Results</div>
-                  <Button
-                    icon="filter"
+                  <Popover
                     minimal
-                    small
-                    active={isFilterMenuOpen}
-                    onClick={toggleFilterMenu}
-                    title="Filter by type"
-                  />
-                </div>
-
-                {isFilterMenuOpen && (
-                  <div className="border-b border-gray-200 p-2">
-                    <div className="mb-2 flex items-center justify-between text-sm">
-                      <div>Filter by type:</div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          small
-                          minimal
-                          icon={isAllSelected ? "tick" : undefined}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => handleToggleAll(!isAllSelected)}
-                        >
-                          Select all
-                        </Button>
+                    position={Position.BOTTOM_LEFT}
+                    autoFocus={false}
+                    enforceFocus={false}
+                    usePortal={false}
+                    content={
+                      <div className="w-64 p-2">
+                        <div className="mb-2 flex items-center justify-between text-sm">
+                          <Button
+                            small
+                            intent={
+                              isAllSelected ? Intent.SUCCESS : Intent.PRIMARY
+                            }
+                            icon={isAllSelected ? "tick" : "multi-select"}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => handleToggleAll(!isAllSelected)}
+                          >
+                            {isAllSelected ? "All selected" : "Select all"}
+                          </Button>
+                        </div>
+                        <Menu>
+                          {discourseTypes.map((t) => renderTypeItem(t))}
+                        </Menu>
                       </div>
-                    </div>
-
-                    <MultiSelect<DiscourseNode>
-                      items={discourseTypes}
-                      itemRenderer={renderType}
-                      itemPredicate={filterType}
-                      onItemSelect={(item: DiscourseNode) =>
-                        handleTypeCheckChange(item.type)
-                      }
-                      selectedItems={selectedTypes}
-                      tagRenderer={(item: DiscourseNode) => item.text}
-                      tagInputProps={{
-                        onRemove: (_tag, index) => {
-                          const removed = selectedTypes[index];
-                          if (removed) handleTypeCheckChange(removed.type);
-                        },
-                      }}
-                      placeholder="Select types..."
-                      popoverProps={{
-                        minimal: true,
-                        enforceFocus: false,
-                        autoFocus: false,
-                        usePortal: true,
-                        onOpening: () => setTimeout(() => {}, 0),
-                      }}
-                      resetOnSelect={false}
-                      fill
+                    }
+                    onClosed={() => refocusTextarea()}
+                  >
+                    <Button
+                      icon="filter"
+                      minimal
+                      small
+                      title="Filter by type"
                     />
-                  </div>
-                )}
+                  </Popover>
+                </div>
               </div>
               <div className="h-64 overflow-y-auto" ref={scrollContainerRef}>
                 {filteredTypes.map((type) => (
