@@ -75,7 +75,6 @@ export const initObservers = async ({
       const title = getPageTitleValueByHtmlElement(h1);
       const props = { title, h1, onloadArgs };
 
-      // Add a small delay to ensure DOM is fully ready before rendering canvas
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
       else if (isQueryPage(props)) renderQueryPage(props);
       else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);

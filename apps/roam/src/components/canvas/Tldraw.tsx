@@ -448,6 +448,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     };
   }, [appRef, allNodes]);
 
+  // Catch a custom event we used patch-package to add
   useEffect(() => {
     const handleTldrawError = (
       e: CustomEvent<{ message: string; stack: string | null }>,
@@ -467,7 +468,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         console.warn(
           "Detected Tldraw initialization race condition, retrying...",
         );
-        // Reset initialization state to trigger a retry
       }
 
       sendErrorEmail({
@@ -492,7 +492,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         handleTldrawError as EventListener,
       );
     };
-  }, [title]);
+  }, []);
 
   return (
     <div
