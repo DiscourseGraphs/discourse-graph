@@ -39,6 +39,7 @@ export const isRoamAndPluginLoaded = async (
 ): Promise<boolean> => {
   // Check if Roam's core API is available
   if (!window.roamAlphaAPI) {
+    console.log("Roam's core API is not ready");
     return false;
   }
 
