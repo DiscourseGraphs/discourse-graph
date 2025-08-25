@@ -135,3 +135,15 @@
   width: 100px;
   justify-content: space-between;
 }
+
+.rm-select-menu__item--highlighted {
+  background-color: #e6f0f5;
+}
+
+.dg-popover .bp3-popover {
+  z-index: 10000;
+}
+
+.text-selection-popup {
+  z-index: 1000;
+}

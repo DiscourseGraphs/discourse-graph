@@ -26,7 +26,7 @@ export const renderNodeTagPopupButton = (
   reactRoot.style.left = "0";
   reactRoot.style.width = "100%";
   reactRoot.style.height = "100%";
-  reactRoot.style.pointerEvents = "auto";
+  reactRoot.style.pointerEvents = "none";
   reactRoot.style.zIndex = "10";
 
   wrapper.appendChild(reactRoot);
@@ -76,10 +76,13 @@ export const renderNodeTagPopupButton = (
             display: "block",
             width: "100%",
             height: "100%",
+            pointerEvents: "auto",
           }}
         />
       }
       interactionKind="hover"
+      usePortal={true}
+      portalClassName="dg-popover"
       position={Position.TOP}
       modifiers={{
         offset: {
