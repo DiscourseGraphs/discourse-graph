@@ -19,7 +19,7 @@ const logWindowDependencies = (): void => {
   const dependencies = [
     // Core Roam API
     "window.roamAlphaAPI",
-    "window.roamjs.extension.querybuilder",
+    "window.roamjs.extension.queryBuilder",
 
     // React and ReactDOM
     "window.React",

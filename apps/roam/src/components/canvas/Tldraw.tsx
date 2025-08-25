@@ -115,7 +115,13 @@ export const isPageUid = (uid: string) =>
     ":node/title"
   ];
 
-const TldrawCanvas = ({ title }: { title: string }) => {
+const TldrawCanvas = ({
+  title,
+  loading = false,
+}: {
+  title: string;
+  loading?: boolean;
+}) => {
   const appRef = useRef<TldrawApp | null>(null);
   const lastInsertRef = useRef<VecModel>();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -532,7 +538,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             </button>
           </div>
         </div>
-      ) : !store || !assetLoading.done || !extensionAPI ? (
+      ) : !store || !assetLoading.done || !extensionAPI || loading ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
@@ -886,6 +892,7 @@ const renderTldrawCanvasHelper = ({
   rootSelector,
   minHeight,
   height,
+  loading = false,
 }: {
   title: string;
   onloadArgs: OnloadArgs;
@@ -893,6 +900,7 @@ const renderTldrawCanvasHelper = ({
   rootSelector: string;
   minHeight: string;
   height: string;
+  loading?: boolean;
 }) => {
   // Find the root element using the H1 context to avoid scope issues
   const rootElement = h1.closest(rootSelector) as HTMLDivElement;
@@ -926,7 +934,7 @@ const renderTldrawCanvasHelper = ({
 
   const unmount = renderWithUnmount(
     <ExtensionApiContextProvider {...onloadArgs}>
-      <TldrawCanvas title={title} />
+      <TldrawCanvas title={title} loading={loading} />
     </ExtensionApiContextProvider>,
     canvasWrapperEl,
   );
@@ -943,10 +951,12 @@ export const renderTldrawCanvas = ({
   title,
   onloadArgs,
   h1,
+  loading = false,
 }: {
   title: string;
   onloadArgs: OnloadArgs;
   h1: HTMLHeadingElement;
+  loading?: boolean;
 }) => {
   return renderTldrawCanvasHelper({
     title,
@@ -955,6 +965,7 @@ export const renderTldrawCanvas = ({
     rootSelector: ".roam-article",
     minHeight: "500px",
     height: "70vh",
+    loading,
   });
 };
 
@@ -962,10 +973,12 @@ export const renderTldrawCanvasInSidebar = ({
   title,
   onloadArgs,
   h1,
+  loading = false,
 }: {
   title: string;
   onloadArgs: OnloadArgs;
   h1: HTMLHeadingElement;
+  loading?: boolean;
 }) => {
   return renderTldrawCanvasHelper({
     title,
@@ -974,5 +987,6 @@ export const renderTldrawCanvasInSidebar = ({
     rootSelector: ".rm-sidebar-outline",
     minHeight: "400px",
     height: "60vh",
+    loading,
   });
 };

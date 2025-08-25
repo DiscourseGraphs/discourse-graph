@@ -91,10 +91,11 @@ export const initObservers = async ({
           console.log("Plugin timer ready, rendering tldraw canvas");
           renderTldrawCanvas(props);
         } else {
-          console.log("Plugin timer not ready, waiting...");
+          console.log("Plugin timer not ready, showing loading state");
+          renderTldrawCanvas({ ...props, loading: true });
           waitForPluginTimer().then((isReady) => {
             if (isReady) {
-              console.log("Plugin timer ready, rendering tldraw canvas");
+              console.log("Plugin timer ready, re-rendering tldraw canvas");
               renderTldrawCanvas(props);
             } else {
               console.warn("Plugin timer timeout, skipping tldraw render");
@@ -102,21 +103,24 @@ export const initObservers = async ({
           });
         }
       } else if (isSidebarCanvas(props)) {
-        // Wait for plugin timer to be ready before rendering sidebar tldraw
+        // Wait for plugin timer to be ready before rendering tldraw in sidebar
         if (isPluginTimerReady()) {
-          console.log("Plugin timer ready, rendering sidebar tldraw canvas");
+          console.log("Plugin timer ready, rendering tldraw canvas in sidebar");
           renderTldrawCanvasInSidebar(props);
         } else {
-          console.log("Plugin timer not ready, waiting for sidebar...");
+          console.log(
+            "Plugin timer not ready, showing loading state in sidebar",
+          );
+          renderTldrawCanvasInSidebar({ ...props, loading: true });
           waitForPluginTimer().then((isReady) => {
             if (isReady) {
               console.log(
-                "Plugin timer ready, rendering sidebar tldraw canvas",
+                "Plugin timer ready, re-rendering tldraw canvas in sidebar",
               );
               renderTldrawCanvasInSidebar(props);
             } else {
               console.warn(
-                "Plugin timer timeout, skipping sidebar tldraw render",
+                "Plugin timer timeout, skipping tldraw sidebar render",
               );
             }
           });
