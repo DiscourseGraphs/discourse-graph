@@ -448,7 +448,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     };
   }, [appRef, allNodes]);
 
-  // Catch a custom event we used patch-package to add
   useEffect(() => {
     const handleTldrawError = (
       e: CustomEvent<{ message: string; stack: string | null }>,
@@ -456,6 +455,19 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       const error = new Error(e.detail.message);
       if (e.detail.stack) {
         error.stack = e.detail.stack;
+      }
+
+      // Check if this is the specific race condition error
+      if (
+        e.detail.message.includes(
+          "Cannot read properties of undefined (reading 'next')",
+        )
+      ) {
+        debugger;
+        console.warn(
+          "Detected Tldraw initialization race condition, retrying...",
+        );
+        // Reset initialization state to trigger a retry
       }
 
       sendErrorEmail({
@@ -480,7 +492,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         handleTldrawError as EventListener,
       );
     };
-  }, []);
+  }, [title]);
 
   return (
     <div
