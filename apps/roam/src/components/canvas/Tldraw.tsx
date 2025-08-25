@@ -458,6 +458,18 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         error.stack = e.detail.stack;
       }
 
+      // Check if this is the specific race condition error
+      if (
+        e.detail.message.includes(
+          "Cannot read properties of undefined (reading 'next')",
+        )
+      ) {
+        debugger;
+        console.warn(
+          "Detected Tldraw initialization race condition, retrying...",
+        );
+      }
+
       sendErrorEmail({
         error,
         type: "Tldraw Error",
