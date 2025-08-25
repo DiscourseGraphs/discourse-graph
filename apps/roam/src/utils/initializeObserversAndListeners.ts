@@ -15,7 +15,11 @@ import {
   DISCOURSE_CONFIG_PAGE_TITLE,
   renderNodeConfigPage,
 } from "~/utils/renderNodeConfigPage";
-import { isCurrentPageCanvas, isSidebarCanvas } from "~/utils/isCanvasPage";
+import {
+  isCurrentPageCanvas,
+  isSidebarCanvas,
+  safeRenderCanvas,
+} from "~/utils/isCanvasPage";
 import { isDiscourseNodeConfigPage as isNodeConfigPage } from "~/utils/isDiscourseNodeConfigPage";
 import { isQueryPage } from "~/utils/isQueryPage";
 import {
@@ -77,8 +81,20 @@ export const initObservers = async ({
 
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
       else if (isQueryPage(props)) renderQueryPage(props);
-      else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);
-      else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
+      else if (isCurrentPageCanvas(props)) {
+        const props = { title, h1, onloadArgs };
+        // Safely render tldraw with retry logic for race conditions
+        void safeRenderCanvas({
+          renderFunction: () => renderTldrawCanvas(props),
+          onloadArgs,
+        });
+      } else if (isSidebarCanvas(props)) {
+        // Safely render sidebar tldraw with retry logic for race conditions
+        void safeRenderCanvas({
+          renderFunction: () => renderTldrawCanvasInSidebar(props),
+          onloadArgs,
+        });
+      }
     },
   });
 
