@@ -3,9 +3,11 @@ import fs, { readFileSync } from "fs";
 import { join } from "path";
 import { compile } from "./compile";
 import { pathToFileURL } from "url";
+import { config } from "dotenv";
+import { execSync } from "node:child_process";
 
 if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config();
+  config();
 }
 
 const deploy = async () => {
@@ -39,10 +41,7 @@ const deploy = async () => {
       // 2. GitHub Actions environment variable for pushes/tags
       process.env.GITHUB_REF_NAME ||
       // 3. Local Git branch resolution
-      require("child_process")
-        .execSync("git rev-parse --abbrev-ref HEAD")
-        .toString()
-        .trim() ||
+      execSync("git rev-parse --abbrev-ref HEAD").toString().trim() ||
       // 4. Final fallback
       "main";
 
