@@ -28,6 +28,7 @@ import {
   removeDiscourseFloatingMenu,
 } from "./components/DiscourseFloatingMenu";
 import { createOrUpdateDiscourseEmbedding } from "./utils/syncDgNodesToSupabase";
+import { initPluginTimer } from "./utils/pluginTimer";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -91,6 +92,9 @@ export default runExtension(async (onloadArgs) => {
       timeout: 500,
     });
   }
+
+  // Initialize the global plugin timer
+  initPluginTimer();
 
   await initializeDiscourseNodes();
   refreshConfigTree();

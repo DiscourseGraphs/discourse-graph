@@ -44,6 +44,7 @@ import {
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
+import { isPluginTimerReady, waitForPluginTimer } from "./pluginTimer";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -78,36 +79,40 @@ export const initObservers = async ({
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
       else if (isQueryPage(props)) renderQueryPage(props);
       else if (isCurrentPageCanvas(props)) {
-        // Add 2 second delay before initial render attempt
-        setTimeout(() => {
-          // Try to render tldraw, catch errors and retry
-          try {
-            console.log("Rendering tldraw canvas");
-            renderTldrawCanvas(props);
-          } catch (error) {
-            console.log("Canvas render failed, retrying in 1s:", error);
-            setTimeout(() => {
-              try {
-                renderTldrawCanvas(props);
-              } catch (retryError) {
-                console.warn("Canvas render retry failed:", retryError);
-              }
-            }, 1000);
-          }
-        }, 2000);
-      } else if (isSidebarCanvas(props)) {
-        // Try to render sidebar tldraw, catch errors and retry
-        try {
-          renderTldrawCanvasInSidebar(props);
-        } catch (error) {
-          console.log("Sidebar canvas render failed, retrying in 1s:", error);
-          setTimeout(() => {
-            try {
-              renderTldrawCanvasInSidebar(props);
-            } catch (retryError) {
-              console.warn("Sidebar canvas render retry failed:", retryError);
+        // Wait for plugin timer to be ready before rendering tldraw
+        if (isPluginTimerReady()) {
+          console.log("Plugin timer ready, rendering tldraw canvas");
+          renderTldrawCanvas(props);
+        } else {
+          console.log("Plugin timer not ready, waiting...");
+          waitForPluginTimer().then((isReady) => {
+            if (isReady) {
+              console.log("Plugin timer ready, rendering tldraw canvas");
+              renderTldrawCanvas(props);
+            } else {
+              console.warn("Plugin timer timeout, skipping tldraw render");
             }
-          }, 1000);
+          });
+        }
+      } else if (isSidebarCanvas(props)) {
+        // Wait for plugin timer to be ready before rendering sidebar tldraw
+        if (isPluginTimerReady()) {
+          console.log("Plugin timer ready, rendering sidebar tldraw canvas");
+          renderTldrawCanvasInSidebar(props);
+        } else {
+          console.log("Plugin timer not ready, waiting for sidebar...");
+          waitForPluginTimer().then((isReady) => {
+            if (isReady) {
+              console.log(
+                "Plugin timer ready, rendering sidebar tldraw canvas",
+              );
+              renderTldrawCanvasInSidebar(props);
+            } else {
+              console.warn(
+                "Plugin timer timeout, skipping sidebar tldraw render",
+              );
+            }
+          });
         }
       }
     },
