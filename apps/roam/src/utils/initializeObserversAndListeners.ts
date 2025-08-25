@@ -106,6 +106,49 @@ export const initObservers = async ({
     },
   });
 
+  const tableTagObserver = createHTMLObserver({
+    tag: "TD",
+    className: "relative", // Changed: Added a className to satisfy the type
+    callback: (el: HTMLElement) => {
+      if (!(el instanceof HTMLTableCellElement)) {
+        return;
+      }
+      const td = el;
+      if (!td.hasAttribute("data-cell-content")) {
+        return;
+      }
+
+      const content = td.dataset.cellContent || "";
+      if (!content.includes("#")) {
+        return;
+      }
+
+      const innerSpan = td.querySelector("a.rm-page-ref > span");
+      if (!innerSpan || innerSpan.querySelector(".rm-page-ref--tag")) {
+        return;
+      }
+
+      const discourseNodes = getDiscourseNodes();
+      const discourseTagSet = new Set(
+        discourseNodes.map((n) => n.tag?.toLowerCase()).filter(Boolean),
+      );
+
+      const newHtml = innerSpan.innerHTML.replace(
+        /#([\w-]+)/g,
+        (match, tagName) => {
+          if (discourseTagSet.has(tagName.toLowerCase())) {
+            return `<span class="rm-page-ref rm-page-ref--tag" data-tag="${tagName}">${match}</span>`;
+          }
+          return match;
+        },
+      );
+
+      if (innerSpan.innerHTML !== newHtml) {
+        innerSpan.innerHTML = newHtml;
+      }
+    },
+  });
+
   const pageActionListener = ((
     e: CustomEvent<{
       action: string;
@@ -316,6 +359,7 @@ export const initObservers = async ({
       linkedReferencesObserver,
       graphOverviewExportObserver,
       nodeTagPopupButtonObserver,
+      tableTagObserver,
     ].filter((o): o is MutationObserver => !!o),
     listeners: {
       pageActionListener,

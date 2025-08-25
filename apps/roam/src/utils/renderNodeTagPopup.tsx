@@ -81,6 +81,8 @@ export const renderNodeTagPopupButton = (
         />
       }
       interactionKind="hover"
+      usePortal={true}
+      portalClassName="dg-popover"
       position={Position.TOP}
       modifiers={{
         offset: {
