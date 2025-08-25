@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Global timer utility for the Discourse Graph plugin
  * Tracks when 3 seconds have passed since plugin initialization
@@ -16,162 +18,92 @@ const logWindowDependencies = (): void => {
 
   // Core Roam API
   console.log(
-    "window.roamalphaapi:",
-    typeof (window as any).roamalphaapi !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).roamAlphaAPI !== "undefined" ? "✅" : "❌"} window.roamalphaapi`,
   );
 
   // Roam Extensions
   console.log(
-    "window.roamjs.extensions.querybuilder:",
-    typeof (window as any).roamjs?.extensions?.querybuilder !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).roamjs?.extensions?.querybuilder !== "undefined" ? "✅" : "❌"} window.roamjs.extensions.querybuilder`,
   );
 
   // React and ReactDOM
   console.log(
-    "window.React:",
-    typeof (window as any).React !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).React !== "undefined" ? "✅" : "❌"} window.React`,
   );
   console.log(
-    "window.ReactDOM:",
-    typeof (window as any).ReactDOM !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).ReactDOM !== "undefined" ? "✅" : "❌"} window.ReactDOM`,
   );
   console.log(
-    "window.React.useSyncExternalStore:",
-    typeof (window as any).React?.useSyncExternalStore !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).React?.useSyncExternalStore !== "undefined" ? "✅" : "❌"} window.React.useSyncExternalStore`,
   );
 
   // Blueprint UI Components
   console.log(
-    "window.Blueprint.Core:",
-    typeof (window as any).Blueprint?.Core !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).Blueprint?.Core !== "undefined" ? "✅" : "❌"} window.Blueprint.Core`,
   );
   console.log(
-    "window.Blueprint.DateTime:",
-    typeof (window as any).Blueprint?.DateTime !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).Blueprint?.DateTime !== "undefined" ? "✅" : "❌"} window.Blueprint.DateTime`,
   );
   console.log(
-    "window.Blueprint.Select:",
-    typeof (window as any).Blueprint?.Select !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).Blueprint?.Select !== "undefined" ? "✅" : "❌"} window.Blueprint.Select`,
   );
 
   // Utility Libraries
   console.log(
-    "window.ChronoNode:",
-    typeof (window as any).ChronoNode !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).ChronoNode !== "undefined" ? "✅" : "❌"} window.ChronoNode`,
   );
   console.log(
-    "window.CryptoJS:",
-    typeof (window as any).CryptoJS !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).CryptoJS !== "undefined" ? "✅" : "❌"} window.CryptoJS`,
   );
   console.log(
-    "window.Nanoid:",
-    typeof (window as any).Nanoid !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).Nanoid !== "undefined" ? "✅" : "❌"} window.Nanoid`,
   );
   console.log(
-    "window.TSLib:",
-    typeof (window as any).TSLib !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).TSLib !== "undefined" ? "✅" : "❌"} window.TSLib`,
   );
 
   // File and Data Handling
   console.log(
-    "window.FileSaver:",
-    typeof (window as any).FileSaver !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).FileSaver !== "undefined" ? "✅" : "❌"} window.FileSaver`,
   );
   console.log(
-    "window.idb:",
-    typeof (window as any).idb !== "undefined" ? "✅ Available" : "❌ Missing",
+    `${typeof (window as any).idb !== "undefined" ? "✅" : "❌"} window.idb`,
   );
 
   // RoamLazy Components (loaded on demand)
   console.log(
-    "window.RoamLazy.Cytoscape:",
-    typeof (window as any).RoamLazy?.Cytoscape !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).RoamLazy?.Cytoscape !== "undefined" ? "✅" : "❌"} window.RoamLazy.Cytoscape`,
   );
   console.log(
-    "window.RoamLazy.JSZip:",
-    typeof (window as any).RoamLazy?.JSZip !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).RoamLazy?.JSZip !== "undefined" ? "✅" : "❌"} window.RoamLazy.JSZip`,
   );
   console.log(
-    "window.RoamLazy.Insect:",
-    typeof (window as any).RoamLazy?.Insect !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).RoamLazy?.Insect !== "undefined" ? "✅" : "❌"} window.RoamLazy.Insect`,
   );
   console.log(
-    "window.RoamLazy.Marked:",
-    typeof (window as any).RoamLazy?.Marked !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).RoamLazy?.Marked !== "undefined" ? "✅" : "❌"} window.RoamLazy.Marked`,
   );
   console.log(
-    "window.RoamLazy.MarkedReact:",
-    typeof (window as any).RoamLazy?.MarkedReact !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).RoamLazy?.MarkedReact !== "undefined" ? "✅" : "❌"} window.RoamLazy.MarkedReact`,
   );
 
   // Additional React-related
   console.log(
-    "window.ReactYoutube:",
-    typeof (window as any).ReactYoutube !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof (window as any).ReactYoutube !== "undefined" ? "✅" : "❌"} window.ReactYoutube`,
   );
 
   // DOM and Browser APIs (for tldraw)
   console.log(
-    "window.requestAnimationFrame:",
-    typeof window.requestAnimationFrame !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof window.requestAnimationFrame !== "undefined" ? "✅" : "❌"} window.requestAnimationFrame`,
   );
   console.log(
-    "window.cancelAnimationFrame:",
-    typeof window.cancelAnimationFrame !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof window.cancelAnimationFrame !== "undefined" ? "✅" : "❌"} window.cancelAnimationFrame`,
   );
   console.log(
-    "window.ResizeObserver:",
-    typeof window.ResizeObserver !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof window.ResizeObserver !== "undefined" ? "✅" : "❌"} window.ResizeObserver`,
   );
   console.log(
-    "window.IntersectionObserver:",
-    typeof window.IntersectionObserver !== "undefined"
-      ? "✅ Available"
-      : "❌ Missing",
+    `${typeof window.IntersectionObserver !== "undefined" ? "✅" : "❌"} window.IntersectionObserver`,
   );
 
   console.groupEnd();
