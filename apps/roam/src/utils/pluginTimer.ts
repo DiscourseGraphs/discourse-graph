@@ -16,95 +16,59 @@ let isTimerReady = false;
 const logWindowDependencies = (): void => {
   console.group("🔍 Roam Research Window Dependencies Check");
 
-  // Core Roam API
-  console.log(
-    `${typeof (window as any).roamAlphaAPI !== "undefined" ? "✅" : "❌"} window.roamalphaapi`,
-  );
+  const dependencies = [
+    // Core Roam API
+    "window.roamAlphaAPI",
+    "window.roamjs.extension.querybuilder",
 
-  // Roam Extensions
-  console.log(
-    `${typeof (window as any).roamjs?.extensions?.querybuilder !== "undefined" ? "✅" : "❌"} window.roamjs.extensions.querybuilder`,
-  );
+    // React and ReactDOM
+    "window.React",
+    "window.ReactDOM",
+    "window.React.useSyncExternalStore",
 
-  // React and ReactDOM
-  console.log(
-    `${typeof (window as any).React !== "undefined" ? "✅" : "❌"} window.React`,
-  );
-  console.log(
-    `${typeof (window as any).ReactDOM !== "undefined" ? "✅" : "❌"} window.ReactDOM`,
-  );
-  console.log(
-    `${typeof (window as any).React?.useSyncExternalStore !== "undefined" ? "✅" : "❌"} window.React.useSyncExternalStore`,
-  );
+    // Blueprint UI Components
+    "window.Blueprint.Core",
+    "window.Blueprint.DateTime",
+    "window.Blueprint.Select",
 
-  // Blueprint UI Components
-  console.log(
-    `${typeof (window as any).Blueprint?.Core !== "undefined" ? "✅" : "❌"} window.Blueprint.Core`,
-  );
-  console.log(
-    `${typeof (window as any).Blueprint?.DateTime !== "undefined" ? "✅" : "❌"} window.Blueprint.DateTime`,
-  );
-  console.log(
-    `${typeof (window as any).Blueprint?.Select !== "undefined" ? "✅" : "❌"} window.Blueprint.Select`,
-  );
+    // Utility Libraries
+    "window.ChronoNode",
+    "window.CryptoJS",
+    "window.Nanoid",
+    "window.TSLib",
 
-  // Utility Libraries
-  console.log(
-    `${typeof (window as any).ChronoNode !== "undefined" ? "✅" : "❌"} window.ChronoNode`,
-  );
-  console.log(
-    `${typeof (window as any).CryptoJS !== "undefined" ? "✅" : "❌"} window.CryptoJS`,
-  );
-  console.log(
-    `${typeof (window as any).Nanoid !== "undefined" ? "✅" : "❌"} window.Nanoid`,
-  );
-  console.log(
-    `${typeof (window as any).TSLib !== "undefined" ? "✅" : "❌"} window.TSLib`,
-  );
+    // File and Data Handling
+    "window.FileSaver",
+    "window.idb",
 
-  // File and Data Handling
-  console.log(
-    `${typeof (window as any).FileSaver !== "undefined" ? "✅" : "❌"} window.FileSaver`,
-  );
-  console.log(
-    `${typeof (window as any).idb !== "undefined" ? "✅" : "❌"} window.idb`,
-  );
+    // RoamLazy Components (loaded on demand)
+    "window.RoamLazy.Cytoscape",
+    "window.RoamLazy.JSZip",
+    "window.RoamLazy.Insect",
+    "window.RoamLazy.Marked",
+    "window.RoamLazy.MarkedReact",
 
-  // RoamLazy Components (loaded on demand)
-  console.log(
-    `${typeof (window as any).RoamLazy?.Cytoscape !== "undefined" ? "✅" : "❌"} window.RoamLazy.Cytoscape`,
-  );
-  console.log(
-    `${typeof (window as any).RoamLazy?.JSZip !== "undefined" ? "✅" : "❌"} window.RoamLazy.JSZip`,
-  );
-  console.log(
-    `${typeof (window as any).RoamLazy?.Insect !== "undefined" ? "✅" : "❌"} window.RoamLazy.Insect`,
-  );
-  console.log(
-    `${typeof (window as any).RoamLazy?.Marked !== "undefined" ? "✅" : "❌"} window.RoamLazy.Marked`,
-  );
-  console.log(
-    `${typeof (window as any).RoamLazy?.MarkedReact !== "undefined" ? "✅" : "❌"} window.RoamLazy.MarkedReact`,
-  );
+    // Additional React-related
+    "window.ReactYoutube",
 
-  // Additional React-related
-  console.log(
-    `${typeof (window as any).ReactYoutube !== "undefined" ? "✅" : "❌"} window.ReactYoutube`,
-  );
+    // DOM and Browser APIs (for tldraw)
+    "window.requestAnimationFrame",
+    "window.cancelAnimationFrame",
+    "window.ResizeObserver",
+    "window.IntersectionObserver",
+  ];
 
-  // DOM and Browser APIs (for tldraw)
-  console.log(
-    `${typeof window.requestAnimationFrame !== "undefined" ? "✅" : "❌"} window.requestAnimationFrame`,
-  );
-  console.log(
-    `${typeof window.cancelAnimationFrame !== "undefined" ? "✅" : "❌"} window.cancelAnimationFrame`,
-  );
-  console.log(
-    `${typeof window.ResizeObserver !== "undefined" ? "✅" : "❌"} window.ResizeObserver`,
-  );
-  console.log(
-    `${typeof window.IntersectionObserver !== "undefined" ? "✅" : "❌"} window.IntersectionObserver`,
-  );
+  dependencies.forEach((dependency) => {
+    const path = dependency.replace("window.", "").split(".");
+    let value: any = window;
+
+    for (const key of path) {
+      value = value?.[key];
+    }
+
+    const isAvailable = typeof value !== "undefined";
+    console.log(`${isAvailable ? "✅" : "❌"} ${dependency}`);
+  });
 
   console.groupEnd();
 };
