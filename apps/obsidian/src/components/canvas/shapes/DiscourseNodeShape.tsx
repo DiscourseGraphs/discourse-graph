@@ -1,6 +1,12 @@
-import { BaseBoxShapeUtil, HTMLContainer, T, TLBaseShape } from "tldraw";
+import {
+  BaseBoxShapeUtil,
+  HTMLContainer,
+  T,
+  TLBaseShape,
+  useEditor,
+} from "tldraw";
 import type { App, TFile } from "obsidian";
-import { memo, createElement } from "react";
+import { memo, createElement, useEffect } from "react";
 import DiscourseGraphPlugin from "~/index";
 import {
   getFrontmatterForFile,
@@ -9,7 +15,6 @@ import {
   FrontmatterRecord,
 } from "./discourseNodeShapeUtils";
 import { DiscourseNode } from "~/types";
-import { useNodeData } from "~/components/canvas/hooks/useNodeData";
 import { resolveLinkedFileFromSrc } from "~/components/canvas/stores/assetStore";
 
 export type DiscourseNodeShape = TLBaseShape<
@@ -19,6 +24,9 @@ export type DiscourseNodeShape = TLBaseShape<
     h: number;
     // asset-style source: asset:obsidian.blockref.<id>
     src: string | null;
+    // Cached display data
+    title: string;
+    nodeTypeId: string;
   }
 >;
 
@@ -35,7 +43,10 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   static props = {
     w: T.number,
     h: T.number,
-    src: T.string,
+    src: T.string.nullable(),
+    title: T.string.optional(),
+    nodeTypeId: T.string.nullable().optional(),
+    nodeTypeName: T.string.optional(),
   };
 
   getDefaultProps(): DiscourseNodeShape["props"] {
@@ -43,13 +54,20 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       w: 200,
       h: 100,
       src: null,
+      title: "",
+      nodeTypeId: "",
     };
   }
 
   component(shape: DiscourseNodeShape) {
     return (
       <HTMLContainer>
-        {createElement(discourseNodeContent, { src: shape.props.src ?? null })}
+        {createElement(discourseNodeContent, {
+          shape,
+          app: this.options.app,
+          canvasFile: this.options.canvasFile,
+          plugin: this.options.plugin,
+        })}
       </HTMLContainer>
     );
   }
@@ -101,19 +119,88 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   }
 }
 
-const discourseNodeContent = memo(({ src }: { src: string | null }) => {
-  const { title, nodeTypeName, color } = useNodeData(src);
-  return (
-    <div
-      style={{
-        backgroundColor: color,
-      }}
-      className="box-border flex h-full w-full flex-col items-start justify-center rounded-md border-2 p-2"
-    >
-      <h1 className="m-0 text-base">{title}</h1>
-      <p className="m-0 text-sm opacity-80">{nodeTypeName || ""}</p>
-    </div>
-  );
-});
+const discourseNodeContent = memo(
+  ({
+    shape,
+    app,
+    canvasFile,
+    plugin,
+  }: {
+    shape: DiscourseNodeShape;
+    app: App;
+    canvasFile: TFile;
+    plugin: DiscourseGraphPlugin;
+  }) => {
+    const editor = useEditor();
+    const { src, title, nodeTypeId } = shape.props;
+    const nodeType = getNodeTypeById(plugin, nodeTypeId);
+
+    useEffect(() => {
+      const loadNodeData = async () => {
+        if (!src) {
+          editor.updateShape<DiscourseNodeShape>({
+            id: shape.id,
+            type: "discourse-node",
+            props: {
+              ...shape.props,
+              title: "(no source)",
+            },
+          });
+          return;
+        }
+
+        try {
+          const linkedFile = await resolveLinkedFileFromSrc({
+            app,
+            canvasFile,
+            src,
+          });
+
+          if (!linkedFile) {
+            editor.updateShape<DiscourseNodeShape>({
+              id: shape.id,
+              type: "discourse-node",
+              props: {
+                ...shape.props,
+                title: "(unlinked)",
+              },
+            });
+            return;
+          }
+
+          editor.updateShape<DiscourseNodeShape>({
+            id: shape.id,
+            type: "discourse-node",
+            props: {
+              ...shape.props,
+              title: linkedFile.basename,
+            },
+          });
+        } catch (error) {
+          console.error("Error loading node data", error);
+          return;
+        }
+      };
+
+      void loadNodeData();
+
+      return () => {
+        return;
+      };
+    }, [src, shape.id, shape.props, editor, app, canvasFile, plugin]);
+
+    return (
+      <div
+        style={{
+          backgroundColor: nodeType?.color ?? "",
+        }}
+        className="box-border flex h-full w-full flex-col items-start justify-center rounded-md border-2 p-2"
+      >
+        <h1 className="m-0 text-base">{title || "..."}</h1>
+        <p className="m-0 text-sm opacity-80">{nodeType?.name || ""}</p>
+      </div>
+    );
+  },
+);
 
 discourseNodeContent.displayName = "DiscourseNodeContent";

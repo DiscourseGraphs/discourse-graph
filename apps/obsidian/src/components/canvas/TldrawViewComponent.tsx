@@ -17,7 +17,7 @@ import {
 import { TFile } from "obsidian";
 import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import { DiscourseNodeUtil } from "~/components/canvas/shapes/DiscourseNodeShape";
-import { NodeDataStoreProvider } from "~/components/NodeDataStoreProvider";
+
 
 interface TldrawPreviewProps {
   store: TLStore;
@@ -143,18 +143,12 @@ export const TldrawPreviewComponent = ({
             <div>Error in Tldraw component: {JSON.stringify(error)}</div>
           )}
         >
-          <NodeDataStoreProvider
-            app={plugin.app}
-            canvasFile={file}
-            plugin={plugin}
-          >
-            <Tldraw
-              store={currentStore}
-              autoFocus={true}
-              initialState="select"
-              shapeUtils={customShapeUtils}
-            />
-          </NodeDataStoreProvider>
+          <Tldraw
+            store={currentStore}
+            autoFocus={true}
+            initialState="select"
+            shapeUtils={customShapeUtils}
+          />
         </ErrorBoundary>
       ) : (
         <div>Loading Tldraw...</div>
