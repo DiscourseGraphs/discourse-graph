@@ -1,6 +1,6 @@
 {
   "default": {
-    "loader": ["ts-node/esm"],
+    "loader": ["ts-node-maintained/esm"],
     "import": ["features/step-definitions/**/*.ts"]
   }
 }

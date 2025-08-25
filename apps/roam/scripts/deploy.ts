@@ -72,6 +72,7 @@ const deploy = async () => {
       const blob = await put(pathname, content, {
         access: "public",
         addRandomSuffix: false,
+        allowOverwrite: true,
         token,
       });
 

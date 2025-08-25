@@ -9,7 +9,7 @@ This directory contains a script for publishing the Discourse Graph Obsidian plu
 
 ## Prerequisites
 
-1. **Node.js and npm** - Ensure you have Node.js 18+ installed
+1. **Node.js and pnpm** - Ensure you have Node.js 20+ installed, with pnpm@10 installed globally (`npm install -g pnpm`)
 2. **Git** - For repository operations
 3. **GitHub Token** - For authentication (see Authentication section)
 
@@ -42,7 +42,7 @@ The script automatically determines release type based on version format and alw
 ### BRAT Version Priority
 
 BRAT uses alphabetical ordering for pre-release identifiers. This is why we enforce:
-- **Internal**: `alpha-*` (comes first alphabetically) 
+- **Internal**: `alpha-*` (comes first alphabetically)
 - **External**: `beta-*` (comes after alpha, gets higher priority)
 
 This ensures that external beta releases always take precedence over internal alpha releases for BRAT auto-updates.
@@ -53,7 +53,7 @@ The script automatically determines the release type based on version format:
 
 **🧪 Pre-release** (automatic detection)
 - **Triggers**: Any version with `alpha` or `beta` suffixes
-- **GitHub**: Marked as "Pre-release" 
+- **GitHub**: Marked as "Pre-release"
 - **Main Branch**: Not updated (keeps stable code in main)
 - **Use Case**: Testing, beta versions, internal releases
 
@@ -122,7 +122,7 @@ tsx scripts/publish.ts --version 0.1.0-alpha-canvas-feature --release-name "Canv
 tsx scripts/publish.ts --version 0.1.0-canvas-feature
 ```
 
-### Beta Release for Public Testing  
+### Beta Release for Public Testing
 ```bash
 # ✅ Correct format with beta prefix - creates pre-release automatically
 tsx scripts/publish.ts --version 1.0.0-beta.1 --release-name "Beta: New Graph View"
@@ -137,10 +137,10 @@ tsx scripts/publish.ts --version 1.0.0-test.1
 tsx scripts/publish.ts --version 1.0.0
 ```
 
-### Using npm script from obsidian directory
+### Using pnpm script from obsidian directory
 ```bash
 cd apps/obsidian
-npm run publish -- --version 1.0.0-beta.1
+pnpm run publish -- --version 1.0.0-beta.1
 ```
 
 ## What the Script Does
@@ -148,7 +148,7 @@ npm run publish -- --version 1.0.0-beta.1
 ### For All Releases:
 1. **Validates input** - Checks version format and arguments
 2. **Detects release type** - Internal vs External based on version format
-3. **Builds the plugin** - Runs `npm run build` to create distribution files
+3. **Builds the plugin** - Runs `pnpm run build` to create distribution files
 4. **Copies source files** - Copies plugin source (excluding build artifacts)
 5. **Creates GitHub release** - Always creates a release with:
    - Custom or default release name
@@ -184,7 +184,7 @@ Publishes to: `DiscourseGraphs/discourse-graph-obsidian`
 ### Repository State by Release Type:
 
 **Internal Release**: Repository unchanged, GitHub pre-release created
-**External Pre-release**: Repository unchanged, GitHub pre-release created  
+**External Pre-release**: Repository unchanged, GitHub pre-release created
 **External Stable**: Repository main branch updated + GitHub stable release created
 
 ## Troubleshooting
@@ -195,8 +195,8 @@ Publishes to: `DiscourseGraphs/discourse-graph-obsidian`
    ```bash
    # ❌ Wrong
    tsx scripts/publish.ts
-   
-   # ✅ Correct  
+
+   # ✅ Correct
    tsx scripts/publish.ts --version 1.0.0
    ```
 
@@ -204,7 +204,7 @@ Publishes to: `DiscourseGraphs/discourse-graph-obsidian`
    ```bash
    # ❌ Wrong
    tsx scripts/publish.ts --version "beta-1"
-   
+
    # ✅ Correct
    tsx scripts/publish.ts --version 1.0.0-beta.1
    ```
@@ -219,7 +219,7 @@ Publishes to: `DiscourseGraphs/discourse-graph-obsidian`
    - Verify repository exists and is accessible
 
 5. **"Required build files missing"**
-   - Run `npm run build` manually to check for build errors
+   - Run `pnpm run build` manually to check for build errors
    - Ensure TypeScript compiles without errors
 
 6. **BRAT picking wrong version**
@@ -247,7 +247,7 @@ This is why the naming convention is critical for ensuring the right version get
 
 ### Key Functions:
 - `isExternalRelease()` - Determines if version is external (stable/beta) or internal (alpha)
-- `updateMainBranch()` - Uses GitHub API to create proper commits  
+- `updateMainBranch()` - Uses GitHub API to create proper commits
 - `createGithubRelease()` - Creates releases with assets and automatic pre-release detection
 - `updateManifest()` - Updates version in manifest.json
 
