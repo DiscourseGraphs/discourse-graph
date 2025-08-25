@@ -76,19 +76,10 @@ export const initObservers = async ({
       const props = { title, h1, onloadArgs };
 
       // Add a small delay to ensure DOM is fully ready before rendering canvas
-      const renderWithDelay = () => {
-        if (isNodeConfigPage(title)) renderNodeConfigPage(props);
-        else if (isQueryPage(props)) renderQueryPage(props);
-        else if (isCurrentPageCanvas(props)) {
-          // Add extra delay for canvas pages to prevent race conditions
-          setTimeout(() => renderTldrawCanvas(props), 200);
-        } else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
-      };
-
-      // Use requestAnimationFrame to ensure DOM is ready
-      requestAnimationFrame(() => {
-        requestAnimationFrame(renderWithDelay);
-      });
+      if (isNodeConfigPage(title)) renderNodeConfigPage(props);
+      else if (isQueryPage(props)) renderQueryPage(props);
+      else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);
+      else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
     },
   });
 
