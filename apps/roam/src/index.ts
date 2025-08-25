@@ -137,7 +137,7 @@ export default runExtension(async (onloadArgs) => {
   };
 
   // TODO: REMOVE AFTER TESTING
-  await createOrUpdateDiscourseEmbedding(onloadArgs.extensionAPI);
+  // await createOrUpdateDiscourseEmbedding(onloadArgs.extensionAPI);
 
   installDiscourseFloatingMenu(onloadArgs.extensionAPI);
 
