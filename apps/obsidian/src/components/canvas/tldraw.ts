@@ -1,4 +1,10 @@
-import { createTLStore, defaultShapeUtils, TldrawFile, TLRecord, TLStore } from "tldraw";
+import {
+  createTLStore,
+  defaultShapeUtils,
+  TldrawFile,
+  TLRecord,
+  TLStore,
+} from "tldraw";
 import {
   FRONTMATTER_KEY,
   TLDATA_DELIMITER_END,
@@ -6,10 +12,14 @@ import {
   TLDRAW_VERSION,
 } from "~/constants";
 import DiscourseGraphPlugin from "~/index";
-import { checkAndCreateFolder, getNewUniqueFilepath } from "./file";
+import { checkAndCreateFolder, getNewUniqueFilepath } from "../../utils/file";
 import { Notice } from "obsidian";
 import { format } from "date-fns";
-import { ObsidianTLAssetStore } from "./assetStore";
+import { ObsidianTLAssetStore } from "./stores/assetStore";
+import {
+  DiscourseNodeUtil,
+  DiscourseNodeUtilOptions,
+} from "~/components/canvas/shapes/DiscourseNodeShape";
 
 export type TldrawPluginMetaData = {
   "plugin-version": string;
@@ -31,7 +41,13 @@ export type TLData = {
 export const processInitialData = (
   data: TLData,
   assetStore: ObsidianTLAssetStore,
+  ctx: DiscourseNodeUtilOptions,
 ): { meta: TldrawPluginMetaData; store: TLStore } => {
+  const customShapeUtils = [
+    ...defaultShapeUtils,
+    DiscourseNodeUtil.configure(ctx),
+  ];
+
   const recordsData = Array.isArray(data.raw.records)
     ? data.raw.records.reduce(
         (acc: Record<string, TLRecord>, record: { id: string } & TLRecord) => {
@@ -47,13 +63,13 @@ export const processInitialData = (
   let store: TLStore;
   if (recordsData) {
     store = createTLStore({
-      shapeUtils: defaultShapeUtils,
+      shapeUtils: customShapeUtils,
       initialData: recordsData,
       assets: assetStore,
     });
   } else {
     store = createTLStore({
-      shapeUtils: defaultShapeUtils,
+      shapeUtils: customShapeUtils,
       assets: assetStore,
     });
   }

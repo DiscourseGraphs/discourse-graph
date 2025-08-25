@@ -12,6 +12,77 @@ type AssetStoreOptions = {
 };
 
 /**
+ * Extract the block reference id from either an asset src string (e.g.,
+ * `asset:obsidian.blockref.<id>`) or from the internal asset id with the
+ * `obsidian.blockref.` prefix. Returns null if the input is not a blockref.
+ */
+export const extractBlockRefId = (assetIdOrSrc?: string): string | null => {
+  if (!assetIdOrSrc) return null;
+  // From app-level src: asset:obsidian.blockref.<id>
+  if (assetIdOrSrc.startsWith("asset:")) {
+    const raw = assetIdOrSrc.split(":")[1] ?? "";
+    if (!raw.startsWith(ASSET_PREFIX)) return null;
+    return raw.slice(ASSET_PREFIX.length);
+  }
+  // From internal asset id: obsidian.blockref.<id>
+  if (assetIdOrSrc.startsWith(ASSET_PREFIX)) {
+    return assetIdOrSrc.slice(ASSET_PREFIX.length);
+  }
+  return null;
+};
+
+/**
+ * Given a block reference id present in the current canvas markdown file, resolve
+ * the linked Obsidian file referenced by the block (i.e., the file inside the [[link]]).
+ */
+export const resolveLinkedTFileByBlockRef = async (
+  app: App,
+  canvasFile: TFile,
+  blockRefId: string,
+): Promise<TFile | null> => {
+  try {
+    if (!blockRefId) return null;
+
+    const fileCache = app.metadataCache.getFileCache(canvasFile);
+    if (!fileCache?.blocks?.[blockRefId]) return null;
+
+    const block = fileCache.blocks[blockRefId];
+    const fileContent = await app.vault.read(canvasFile);
+    const blockContent = fileContent.substring(
+      block.position.start.offset,
+      block.position.end.offset,
+    );
+
+    const match = blockContent.match(/\[\[(.*?)\]\]/);
+    if (!match?.[1]) return null;
+    const rawLink = match[1].trim();
+    // Drop alias part in [[path|alias]]
+    const linkPath = rawLink.split("|")[0] ?? rawLink;
+    return (
+      app.metadataCache.getFirstLinkpathDest(linkPath, canvasFile.path) ?? null
+    );
+  } catch (error) {
+    console.error("Error resolving linked TFile from blockRef:", error);
+    return null;
+  }
+};
+
+export const resolveLinkedFileFromSrc = async ({
+  app,
+  canvasFile,
+  src,
+}: {
+  app: App;
+  canvasFile: TFile;
+  src?: string;
+}): Promise<TFile | null> => {
+  if (!src) return null;
+  const blockRef = extractBlockRefId(src);
+  if (!blockRef) return null;
+  return resolveLinkedTFileByBlockRef(app, canvasFile, blockRef);
+};
+
+/**
  * Proxy class that handles Obsidian-specific file operations for the TLAssetStore
  */
 class ObsidianMarkdownFileTLAssetStoreProxy {
@@ -73,7 +144,7 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
     this.setCachedUrl(assetId, assetDataUri);
 
     return assetId;
-  }
+  };
 
   getCached = async (
     blockRefAssetId: BlockRefAssetId,
@@ -94,14 +165,14 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
       console.error("Error getting cached asset:", error);
       return null;
     }
-  }
+  };
 
   dispose = () => {
     for (const url of this.resolvedAssetDataCache.values()) {
       URL.revokeObjectURL(url);
     }
     this.resolvedAssetDataCache.clear();
-  }
+  };
 
   private addToTopOfFile = async (content: string) => {
     await this.app.vault.process(this.file, (data: string) => {
@@ -115,34 +186,20 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
       const rest = data.slice(end.offset);
       return `${frontmatter}\n${content}\n${rest}`;
     });
-  }
+  };
 
   private getAssetData = async (
     blockRefAssetId: BlockRefAssetId,
   ): Promise<ArrayBuffer | null> => {
     try {
-      const blockRef = blockRefAssetId.slice(ASSET_PREFIX.length);
+      const blockRef = extractBlockRefId(blockRefAssetId);
       if (!blockRef) return null;
 
-      const fileCache = this.app.metadataCache.getFileCache(this.file);
-      if (!fileCache?.blocks?.[blockRef]) return null;
-
-      const block = fileCache.blocks[blockRef];
-      const fileContent = await this.app.vault.read(this.file);
-      const blockContent = fileContent.substring(
-        block.position.start.offset,
-        block.position.end.offset,
+      const linkedFile = await resolveLinkedTFileByBlockRef(
+        this.app,
+        this.file,
+        blockRef,
       );
-
-      const match = blockContent.match(/\[\[(.*?)\]\]/);
-      if (!match?.[1]) return null;
-
-      const linkPath = match[1];
-      const linkedFile = this.app.metadataCache.getFirstLinkpathDest(
-        linkPath,
-        this.file.path,
-      );
-
       if (!linkedFile) return null;
       // TODO: handle other file types too
       return await this.app.vault.readBinary(linkedFile);
@@ -150,7 +207,7 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
       console.error("Error getting asset data:", error);
       return null;
     }
-  }
+  };
 }
 
 /**
@@ -174,9 +231,6 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
       const blockRefAssetId = await this.proxy.storeAsset(asset, file);
       return {
         src: `asset:${blockRefAssetId}`,
-        meta: {
-          mimeType: file.type,
-        },
       };
     } catch (error) {
       console.error("Error uploading asset:", error);
@@ -194,19 +248,7 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
 
       const assetId = assetSrc.split(":")[1] as BlockRefAssetId;
       if (!assetId) return null;
-
-      const mimeType =
-        (asset.props as unknown as { mimeType?: string })?.mimeType ??
-        (asset.meta as unknown as { mimeType?: string })?.mimeType ??
-        "";
-
-      if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
-        return await this.proxy.getCached(assetId);
-      }
-
-      // Non-media (e.g., text/markdown, application/*): let custom shapes decide.
-      // Return null so default media shapes won't attempt to render it.
-      return null;
+      return await this.proxy.getCached(assetId);
     } catch (error) {
       console.error("Error resolving asset:", error);
       return null;

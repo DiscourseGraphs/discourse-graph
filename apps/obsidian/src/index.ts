@@ -20,7 +20,7 @@ import {
 } from "~/utils/createNode";
 import { DEFAULT_SETTINGS } from "~/constants";
 import { CreateNodeModal } from "~/components/CreateNodeModal";
-import { TldrawView } from "~/components/TldrawView";
+import { TldrawView } from "~/components/canvas/TldrawView";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
