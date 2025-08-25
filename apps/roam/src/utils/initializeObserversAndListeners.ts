@@ -85,6 +85,7 @@ export const initObservers = async ({
         const props = { title, h1, onloadArgs };
         // Safely render tldraw with retry logic for race conditions
         void safeRenderCanvas({
+          title,
           renderFunction: () => renderTldrawCanvas(props),
           onloadArgs,
         });

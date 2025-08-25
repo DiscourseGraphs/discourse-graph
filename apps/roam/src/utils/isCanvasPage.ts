@@ -33,12 +33,22 @@ export const isSidebarCanvas = ({
  * Checks if Roam Research and the plugin are properly loaded
  * This helps prevent race conditions when directly loading Canvas/* pages
  */
-export const isRoamAndPluginLoaded = (onloadArgs: OnloadArgs): boolean => {
+export const isRoamAndPluginLoaded = async (
+  onloadArgs: OnloadArgs,
+  title?: string,
+): Promise<boolean> => {
   // Check if Roam's core API is available
   if (!window.roamAlphaAPI) {
     return false;
   }
 
+  // do a query just to see if the page is loaded
+  const uid = await window.roamAlphaAPI.data.async.q(`[:find
+    (pull ?node [:block/uid])
+  :where
+    [?node :node/title "${title}"]
+  ]`);
+  console.log("uid", uid);
   // Check if Roam's UI is ready (main window exists)
   if (!window.roamAlphaAPI.ui?.mainWindow) {
     console.log("Roam's UI is not ready");
@@ -61,6 +71,7 @@ export const isRoamAndPluginLoaded = (onloadArgs: OnloadArgs): boolean => {
   if (typeof window !== "undefined" && !window.tldrawApps) {
     console.log("tldrawApps is not ready");
     window.tldrawApps = {};
+    return false;
   }
 
   return true;
@@ -71,15 +82,16 @@ export const isRoamAndPluginLoaded = (onloadArgs: OnloadArgs): boolean => {
  * Returns true if loaded, false if timeout reached
  */
 export const waitForRoamAndPluginLoaded = (
-  timeoutMs: number = 5000,
   onloadArgs: OnloadArgs,
+  title?: string,
+  timeoutMs: number = 5000,
 ): Promise<boolean> => {
   return new Promise((resolve) => {
     const startTime = Date.now();
 
-    const check = () => {
+    const check = async () => {
       console.log("Checking if Roam and plugin are loaded");
-      if (isRoamAndPluginLoaded(onloadArgs)) {
+      if (await isRoamAndPluginLoaded(onloadArgs, title)) {
         resolve(true);
         return;
       }
@@ -108,9 +120,11 @@ type SafeRenderOptions = {
   maxRetries?: number;
   retryDelay?: number;
   onloadArgs: OnloadArgs;
+  title?: string;
 };
 
 export const safeRenderCanvas = async ({
+  title,
   renderFunction,
   maxRetries = 3,
   retryDelay = 1000,
@@ -124,7 +138,11 @@ export const safeRenderCanvas = async ({
 
     try {
       // Wait for Roam and plugin to be loaded
-      const isLoaded = await waitForRoamAndPluginLoaded(retryDelay, onloadArgs);
+      const isLoaded = await waitForRoamAndPluginLoaded(
+        onloadArgs,
+        title,
+        retryDelay,
+      );
 
       if (isLoaded) {
         renderFunction();
