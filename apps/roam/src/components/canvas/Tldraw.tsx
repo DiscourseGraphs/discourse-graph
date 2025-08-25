@@ -886,22 +886,31 @@ const renderTldrawCanvasHelper = ({
   const rootElement = h1.closest(rootSelector) as HTMLDivElement;
   if (!rootElement) return () => {};
 
-  if (rootElement.hasAttribute(TLDRAW_DATA_ATTRIBUTE)) return () => {};
-
-  const blockChildrenContainer =
+  const childFromRoot =
     rootElement.querySelector<HTMLDivElement>(".rm-block-children");
-  if (!blockChildrenContainer) return () => {};
-
-  rootElement.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
+  if (!childFromRoot) return () => {};
 
   const canvasWrapperEl = document.createElement("div");
-  canvasWrapperEl.style.minHeight = minHeight;
-  canvasWrapperEl.style.height = height;
+  if (
+    childFromRoot &&
+    childFromRoot.parentElement &&
+    !childFromRoot.hasAttribute(TLDRAW_DATA_ATTRIBUTE)
+  ) {
+    childFromRoot.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
+    const parentEl = childFromRoot.parentElement;
+    parentEl.appendChild(canvasWrapperEl);
+    canvasWrapperEl.style.minHeight = minHeight;
+    canvasWrapperEl.style.height = height;
+  }
 
-  blockChildrenContainer.parentElement?.insertBefore(
-    canvasWrapperEl,
-    blockChildrenContainer.nextSibling,
-  );
+  // console.log(
+  //   "blockChildrenContainer.parentElement",
+  //   articleChildren.parentElement,
+  // );
+  // articleChildren.parentElement?.insertBefore(
+  //   canvasWrapperEl,
+  //   articleChildren.nextSibling,
+  // );
 
   const unmount = renderWithUnmount(
     <ExtensionApiContextProvider {...onloadArgs}>
@@ -913,7 +922,7 @@ const renderTldrawCanvasHelper = ({
   const originalUnmount = unmount;
   return () => {
     originalUnmount();
-    rootElement.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
+    childFromRoot.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
     canvasWrapperEl.remove();
   };
 };
