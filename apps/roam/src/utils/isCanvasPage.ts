@@ -41,21 +41,25 @@ export const isRoamAndPluginLoaded = (onloadArgs: OnloadArgs): boolean => {
 
   // Check if Roam's UI is ready (main window exists)
   if (!window.roamAlphaAPI.ui?.mainWindow) {
+    console.log("Roam's UI is not ready");
     return false;
   }
 
   // Check if the plugin's extension API is available
   if (!onloadArgs) {
+    console.log("Plugin's extension API is not ready");
     return false;
   }
 
   // Check if Roam's DOM is ready (article container exists)
   if (!document.querySelector(".roam-article")) {
+    console.log("Roam's DOM is not ready");
     return false;
   }
 
   // Check if tldraw is available (prevent .next errors)
   if (typeof window !== "undefined" && !window.tldrawApps) {
+    console.log("tldrawApps is not ready");
     window.tldrawApps = {};
   }
 
@@ -74,6 +78,7 @@ export const waitForRoamAndPluginLoaded = (
     const startTime = Date.now();
 
     const check = () => {
+      console.log("Checking if Roam and plugin are loaded");
       if (isRoamAndPluginLoaded(onloadArgs)) {
         resolve(true);
         return;
@@ -114,6 +119,7 @@ export const safeRenderCanvas = async ({
   let attempts = 0;
 
   const attemptRender = async (): Promise<void> => {
+    console.log("Attempting to render canvas");
     attempts++;
 
     try {
