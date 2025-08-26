@@ -131,7 +131,7 @@ const KeyboardShortcutInput = ({
   const handleClear = useCallback(() => {
     setComboKey({ modifiers: 0, key: "" });
     extensionAPI.settings
-      .set(settingKey, "")
+      .set(settingKey, { modifiers: 0, key: "" })
       .catch(() => console.error("Failed to set setting"));
   }, [extensionAPI, settingKey]);
 
