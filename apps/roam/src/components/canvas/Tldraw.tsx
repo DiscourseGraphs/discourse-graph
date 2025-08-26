@@ -41,6 +41,7 @@ import {
   defaultEditorAssetUrls,
   usePreloadAssets,
   StateNode,
+  DefaultSpinner,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
@@ -86,6 +87,7 @@ import sendErrorEmail from "~/utils/sendErrorEmail";
 import { TLDRAW_DATA_ATTRIBUTE } from "./tldrawStyles";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
+import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 
 declare global {
   interface Window {
@@ -123,6 +125,38 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   const [maximized, setMaximized] = useState(false);
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
 
+  // Workaround to avoid a race condition when loading a canvas page directly
+  // Start false to avoid noisy warnings on first render if timer isn't initialized yet
+  const [isPluginReady, setIsPluginReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isPluginReady) {
+      // If already ready, flip immediately
+      if (isPluginTimerReady()) {
+        setIsPluginReady(true);
+        return;
+      }
+
+      // Otherwise, wait up to the timeout and proceed either way
+      void (async () => {
+        const ready = await waitForPluginTimer();
+        if (cancelled) return;
+
+        if (!ready) {
+          console.warn("Plugin timer timeout — proceeding with canvas mount anyway.");
+          // Optional: dispatchToastEvent({ id: 'tldraw-plugin-timer-timeout', title: 'Timed out waiting for plugin init', severity: 'warning' })
+        }
+
+        setIsPluginReady(true);
+      })();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPluginReady]);
   const allRelations = useMemo(() => {
     const relations = getDiscourseRelations();
     discourseContext.relations = relations.reduce(
@@ -520,7 +554,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             </button>
           </div>
         </div>
-      ) : !store || !assetLoading.done || !extensionAPI ? (
+      ) : !store || !assetLoading.done || !extensionAPI || !isPluginReady ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
@@ -529,9 +563,11 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                 : "Loading Canvas"}
             </h2>
             <p className="mb-4 text-gray-600">
-              {error || assetLoading.error
-                ? "There was a problem loading the Tldraw canvas. Please try again later."
-                : ""}
+              {error || assetLoading.error ? (
+                "There was a problem loading the Tldraw canvas. Please try again later."
+              ) : (
+                <DefaultSpinner />
+              )}
             </p>
           </div>
         </div>
