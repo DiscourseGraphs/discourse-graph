@@ -43,7 +43,6 @@ import {
   DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
 } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
-import { getPageTitleByPageUid } from "roamjs-components/queries/getPageTitleByPageUid";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
