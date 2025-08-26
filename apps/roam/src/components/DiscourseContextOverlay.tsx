@@ -67,15 +67,14 @@ const DiscourseContextOverlay = ({
   id,
   uid,
 }: DiscourseContextOverlayProps) => {
-  const newTag = tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : "");
-  const tagUid = uid || getPageUidByPageTitle(newTag);
+  const tagUid = useMemo(() => uid ?? getPageUidByPageTitle(tag), [uid, tag]);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<DiscourseData["results"]>([]);
   const [refs, setRefs] = useState(0);
   const [score, setScore] = useState<number | string>(0);
   const getInfo = useCallback(
     () =>
-      getOverlayInfo(newTag)
+      getOverlayInfo(tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : ""))
         .then(({ refs, results }) => {
           const discourseNode = findDiscourseNode(tagUid);
           if (discourseNode) {
@@ -95,7 +94,7 @@ const DiscourseContextOverlay = ({
           }
         })
         .finally(() => setLoading(false)),
-    [tag, setResults, setLoading, setRefs, setScore],
+    [tag, uid, tagUid, setResults, setLoading, setRefs, setScore],
   );
   const refresh = useCallback(() => {
     setLoading(true);
