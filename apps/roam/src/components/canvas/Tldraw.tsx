@@ -145,7 +145,9 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         if (cancelled) return;
 
         if (!ready) {
-          console.warn("Plugin timer timeout — proceeding with canvas mount anyway.");
+          console.warn(
+            "Plugin timer timeout — proceeding with canvas mount anyway.",
+          );
           // Optional: dispatchToastEvent({ id: 'tldraw-plugin-timer-timeout', title: 'Timed out waiting for plugin init', severity: 'warning' })
         }
 

@@ -32,6 +32,7 @@ import {
   useValue,
   useToasts,
 } from "tldraw";
+import { IKeyCombo } from "@blueprintjs/core";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import createDiscourseNode from "~/utils/createDiscourseNode";
@@ -45,6 +46,9 @@ import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelatio
 import { dispatchToastEvent } from "./ToastListener";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
+import { convertComboToTldrawFormat } from "~/utils/keyboardShortcutUtils";
+import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
+import { getSetting } from "~/utils/extensionSettings";
 
 const convertToDiscourseNode = async ({
   text,
@@ -326,11 +330,20 @@ export const createUiOverrides = ({
   setConvertToDialogOpen: (open: boolean) => void;
 }): TLUiOverrides => ({
   tools: (editor, tools) => {
+    // Get the custom keyboard shortcut for the discourse tool
+    const discourseToolCombo = getSetting(DISCOURSE_TOOL_SHORTCUT_KEY, {
+      key: "",
+      modifiers: 0,
+    }) as IKeyCombo;
+
+    // For discourse tool, just use the key directly since we don't allow modifiers
+    const discourseToolShortcut = discourseToolCombo?.key?.toUpperCase() || "";
+
     tools["discourse-tool"] = {
       id: "discourse-tool",
       icon: "none",
       label: "tool.discourse-tool" as TLUiTranslationKey,
-      kbd: "",
+      kbd: discourseToolShortcut,
       readonlyOk: true,
       onSelect: () => {
         editor.setCurrentTool("discourse-tool");

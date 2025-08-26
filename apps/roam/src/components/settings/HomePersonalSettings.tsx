@@ -13,7 +13,11 @@ import {
   hideDiscourseFloatingMenu,
 } from "~/components/DiscourseFloatingMenu";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
-import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
+import {
+  AUTO_CANVAS_RELATIONS_KEY,
+  DISCOURSE_TOOL_SHORTCUT_KEY,
+} from "~/data/userSettings";
+import KeyboardShortcutInput from "./KeyboardShortcutInput";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -39,6 +43,13 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         />
         <NodeSearchMenuTriggerSetting onloadArgs={onloadArgs} />
       </Label>
+      <KeyboardShortcutInput
+        onloadArgs={onloadArgs}
+        settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
+        label="Discourse Tool Keyboard Shortcut"
+        description="Set a single key to activate the Discourse Tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
+        placeholder="Click to set single key..."
+      />
       <Checkbox
         defaultChecked={
           extensionAPI.settings.get("discourse-context-overlay") as boolean
