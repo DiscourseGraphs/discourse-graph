@@ -22,7 +22,7 @@ import {
   TLDefaultFontStyle,
   DefaultFontStyle,
 } from "tldraw";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
@@ -38,8 +38,13 @@ import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { createTextJsxFromSpans } from "./DiscourseRelationShape/helpers";
 import { loadImage } from "~/utils/loadImage";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
-import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
+import {
+  AUTO_CANVAS_RELATIONS_KEY,
+  DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
+} from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
+import { getPageTitleByPageUid } from "roamjs-components/queries/getPageTitleByPageUid";
+import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -450,12 +455,19 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     const {
       canvasSettings: { alias = "", "key-image": isKeyImage = "" } = {},
     } = discourseContext.nodes[shape.type] || {};
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const isOverlayEnabled = useMemo(
+      () => getSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, false),
+      [],
+    );
 
     const isEditing = this.editor.getEditingShapeId() === shape.id;
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const contentRef = useRef<HTMLDivElement>(null);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [loaded, setLoaded] = useState("");
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [overlayMounted, setOverlayMounted] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       if (
@@ -498,7 +510,11 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
       <HTMLContainer
         id={shape.id}
         className="roamjs-tldraw-node pointer-events-auto flex items-center justify-center overflow-hidden rounded-2xl"
-        style={{ background: backgroundColor, color: textColor }}
+        style={{
+          background: backgroundColor,
+          color: textColor,
+        }}
+        onPointerEnter={() => setOverlayMounted(true)}
       >
         <div style={{ pointerEvents: "all" }}>
           {shape.props.imageUrl && isKeyImage ? (
@@ -519,6 +535,17 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               fontSize: FONT_SIZES[shape.props.size],
             }}
           >
+            {overlayMounted && isOverlayEnabled && (
+              <div
+                className="roamjs-discourse-context-overlay-container absolute right-0 top-0"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <DiscourseContextOverlay
+                  tag={getPageTitleByPageUid(shape.props.uid)}
+                  id={`${shape.id}-overlay`}
+                />
+              </div>
+            )}
             {alias
               ? new RegExp(alias).exec(shape.props.title)?.[1] ||
                 shape.props.title
