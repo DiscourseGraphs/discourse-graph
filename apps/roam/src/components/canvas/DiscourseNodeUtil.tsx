@@ -541,7 +541,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
                 onPointerDown={(e) => e.stopPropagation()}
               >
                 <DiscourseContextOverlay
-                  tag={getPageTitleByPageUid(shape.props.uid)}
+                  uid={shape.props.uid}
                   id={`${shape.id}-overlay`}
                 />
               </div>
