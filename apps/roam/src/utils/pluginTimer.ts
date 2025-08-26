@@ -82,7 +82,7 @@ export const initPluginTimer = (): void => {
   console.log("Discourse Graph plugin timer initialized");
 
   // Log initial dependency check
-  logWindowDependencies();
+  // logWindowDependencies();
 
   // Set a timeout to mark the timer as ready after 3 seconds
   setTimeout(() => {
@@ -90,7 +90,7 @@ export const initPluginTimer = (): void => {
     console.log("Discourse Graph plugin timer ready (3 seconds elapsed)");
 
     // Log final dependency check
-    logWindowDependencies();
+    // logWindowDependencies();
   }, 3000);
 };
 
@@ -105,7 +105,7 @@ export const isPluginTimerReady = (): boolean => {
   }
 
   // Log dependencies every time timer is checked
-  logWindowDependencies();
+  // logWindowDependencies();
 
   return isTimerReady;
 };
@@ -118,8 +118,9 @@ export const getPluginElapsedTime = (): number => {
   if (pluginStartTime === null) {
     return 0;
   }
-
-  return Date.now() - pluginStartTime;
+  const time = Date.now() - pluginStartTime;
+  console.log("Plugin elapsed time:", time);
+  return time;
 };
 
 /**
