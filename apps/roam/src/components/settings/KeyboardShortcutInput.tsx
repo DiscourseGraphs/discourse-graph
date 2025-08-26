@@ -1,6 +1,12 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { InputGroup, Button, getKeyCombo, IKeyCombo } from "@blueprintjs/core";
+import {
+  InputGroup,
+  Button,
+  getKeyCombo,
+  IKeyCombo,
+  Label,
+} from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 
@@ -125,11 +131,9 @@ const KeyboardShortcutInput = ({
   }, [extensionAPI, settingKey]);
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <span className="font-medium">{label}</span>
-        <Description description={description} />
-      </div>
+    <Label>
+      {label}
+      <Description description={description} />
       <InputGroup
         inputRef={inputRef}
         placeholder={isActive ? "Press keys ..." : placeholder}
@@ -146,7 +150,7 @@ const KeyboardShortcutInput = ({
           />
         }
       />
-    </div>
+    </Label>
   );
 };
 
