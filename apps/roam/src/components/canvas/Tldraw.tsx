@@ -851,23 +851,25 @@ const InsideEditorAndUiContext = ({
         editor.sideEffects.registerBeforeChangeHandler(
           "shape",
           (prevShape, nextShape) => {
-            // prevent accidental arrow reposition
-            if (isCustomArrowShape(prevShape)) {
-              const bindings = editor.getBindingsFromShape(
-                prevShape,
-                prevShape.type,
-              );
-              const isTranslating = editor.isIn("select.translating");
-              if (bindings.length && isTranslating) {
-                editor.setSelectedShapes([]);
-                toasts.addToast({
-                  id: "tldraw-toast-cannot-move-relation",
-                  title: "Cannot move relation.",
-                  severity: "warning",
-                });
-                return prevShape;
-              }
-            }
+            // TODO: Re-enable relation movement prevention with a different mechanism
+            // This was disabled because it was firing when it shouldn't
+            // The original logic prevented moving relations with bindings
+            // if (isCustomArrowShape(prevShape)) {
+            //   const bindings = editor.getBindingsFromShape(
+            //     prevShape,
+            //     prevShape.type,
+            //   );
+            //   const isTranslating = editor.isIn("select.translating");
+            //   if (bindings.length && isTranslating) {
+            //     editor.setSelectedShapes([]);
+            //     toasts.addToast({
+            //       id: "tldraw-toast-cannot-move-relation",
+            //       title: "Cannot move relation.",
+            //       severity: "warning",
+            //     });
+            //     return prevShape;
+            //   }
+            // }
             return nextShape;
           },
         );
