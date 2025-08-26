@@ -123,7 +123,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   const [maximized, setMaximized] = useState(false);
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
-  const [isPluginReady, setIsPluginReady] = useState(!isPluginTimerReady());
+  const [isPluginReady, setIsPluginReady] = useState(isPluginTimerReady());
 
   // this is a workaround to avoid race condition when loading a canvas page directly
   useEffect(() => {
@@ -553,7 +553,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             </button>
           </div>
         </div>
-      ) : !store || !assetLoading.done || !extensionAPI || isPluginReady ? (
+      ) : !store || !assetLoading.done || !extensionAPI || !isPluginReady ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
