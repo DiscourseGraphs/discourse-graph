@@ -86,6 +86,7 @@ import sendErrorEmail from "~/utils/sendErrorEmail";
 import { TLDRAW_DATA_ATTRIBUTE } from "./tldrawStyles";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
+import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 
 declare global {
   interface Window {
@@ -115,19 +116,33 @@ export const isPageUid = (uid: string) =>
     ":node/title"
   ];
 
-const TldrawCanvas = ({
-  title,
-  loading = false,
-}: {
-  title: string;
-  loading?: boolean;
-}) => {
+const TldrawCanvas = ({ title }: { title: string }) => {
   const appRef = useRef<TldrawApp | null>(null);
   const lastInsertRef = useRef<VecModel>();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [maximized, setMaximized] = useState(false);
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(isPluginTimerReady());
+
+  // this is a workaround to avoid race condition when loading a canvas page directly
+  useEffect(() => {
+    if (!isLoading) {
+      console.log("Plugin timer not ready, waiting...");
+      void waitForPluginTimer()
+        .then((isReady: boolean) => {
+          if (isReady) {
+            console.log("Plugin timer ready, updating state");
+            setIsLoading(true);
+          } else {
+            console.warn("Plugin timer timeout");
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isLoading]);
+
+  // Show loading state if either external loading prop is true OR plugin timer is not ready
 
   const allRelations = useMemo(() => {
     const relations = getDiscourseRelations();
@@ -538,7 +553,7 @@ const TldrawCanvas = ({
             </button>
           </div>
         </div>
-      ) : !store || !assetLoading.done || !extensionAPI || loading ? (
+      ) : !store || !assetLoading.done || !extensionAPI || isLoading ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
@@ -892,7 +907,6 @@ const renderTldrawCanvasHelper = ({
   rootSelector,
   minHeight,
   height,
-  loading = false,
 }: {
   title: string;
   onloadArgs: OnloadArgs;
@@ -900,7 +914,6 @@ const renderTldrawCanvasHelper = ({
   rootSelector: string;
   minHeight: string;
   height: string;
-  loading?: boolean;
 }) => {
   // Find the root element using the H1 context to avoid scope issues
   const rootElement = h1.closest(rootSelector) as HTMLDivElement;
@@ -934,7 +947,7 @@ const renderTldrawCanvasHelper = ({
 
   const unmount = renderWithUnmount(
     <ExtensionApiContextProvider {...onloadArgs}>
-      <TldrawCanvas title={title} loading={loading} />
+      <TldrawCanvas title={title} />
     </ExtensionApiContextProvider>,
     canvasWrapperEl,
   );
@@ -951,12 +964,10 @@ export const renderTldrawCanvas = ({
   title,
   onloadArgs,
   h1,
-  loading = false,
 }: {
   title: string;
   onloadArgs: OnloadArgs;
   h1: HTMLHeadingElement;
-  loading?: boolean;
 }) => {
   return renderTldrawCanvasHelper({
     title,
@@ -965,7 +976,6 @@ export const renderTldrawCanvas = ({
     rootSelector: ".roam-article",
     minHeight: "500px",
     height: "70vh",
-    loading,
   });
 };
 
@@ -973,12 +983,10 @@ export const renderTldrawCanvasInSidebar = ({
   title,
   onloadArgs,
   h1,
-  loading = false,
 }: {
   title: string;
   onloadArgs: OnloadArgs;
   h1: HTMLHeadingElement;
-  loading?: boolean;
 }) => {
   return renderTldrawCanvasHelper({
     title,
@@ -987,6 +995,5 @@ export const renderTldrawCanvasInSidebar = ({
     rootSelector: ".rm-sidebar-outline",
     minHeight: "400px",
     height: "60vh",
-    loading,
   });
 };
