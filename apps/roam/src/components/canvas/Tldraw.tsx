@@ -41,6 +41,7 @@ import {
   defaultEditorAssetUrls,
   usePreloadAssets,
   StateNode,
+  DefaultSpinner,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
@@ -123,9 +124,9 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   const [maximized, setMaximized] = useState(false);
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
-  const [isPluginReady, setIsPluginReady] = useState(isPluginTimerReady());
 
   // this is a workaround to avoid race condition when loading a canvas page directly
+  const [isPluginReady, setIsPluginReady] = useState(isPluginTimerReady());
   useEffect(() => {
     if (!isPluginReady) {
       console.log("Plugin timer not ready, waiting...");
@@ -141,8 +142,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         .catch(() => {});
     }
   }, [isPluginReady]);
-
-  // Show loading state if either external loading prop is true OR plugin timer is not ready
 
   const allRelations = useMemo(() => {
     const relations = getDiscourseRelations();
@@ -479,18 +478,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         error.stack = e.detail.stack;
       }
 
-      // Check if this is the specific race condition error
-      if (
-        e.detail.message.includes(
-          "Cannot read properties of undefined (reading 'next')",
-        )
-      ) {
-        debugger;
-        console.warn(
-          "Detected Tldraw initialization race condition, retrying...",
-        );
-      }
-
       sendErrorEmail({
         error,
         type: "Tldraw Error",
@@ -562,9 +549,11 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                 : "Loading Canvas"}
             </h2>
             <p className="mb-4 text-gray-600">
-              {error || assetLoading.error
-                ? "There was a problem loading the Tldraw canvas. Please try again later."
-                : ""}
+              {error || assetLoading.error ? (
+                "There was a problem loading the Tldraw canvas. Please try again later."
+              ) : (
+                <DefaultSpinner />
+              )}
             </p>
           </div>
         </div>

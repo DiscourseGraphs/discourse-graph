@@ -6,7 +6,6 @@
     "postinstall": "patch-package && cd ../../ && patch-package",
     "dev": "tsx scripts/dev.ts",
     "build": "tsx scripts/build.ts",
-    "build:debug": "NODE_ENV=development tsx scripts/build.ts",
     "deploy": "tsx scripts/deploy.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

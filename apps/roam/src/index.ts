@@ -93,7 +93,6 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-  // Initialize the global plugin timer
   initPluginTimer();
 
   await initializeDiscourseNodes();

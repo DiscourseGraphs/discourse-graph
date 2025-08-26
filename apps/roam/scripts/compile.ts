@@ -139,7 +139,7 @@ export const compile = ({
         "process.env.NEXT_API_ROOT": `"${dbEnv.NEXT_API_ROOT || ""}"`,
       },
       sourcemap: process.env.NODE_ENV === "production" ? undefined : "inline",
-      minify: false,
+      minify: process.env.NODE_ENV === "production",
       entryNames: out,
       external: externalModules.map(([e]) => e).concat(["crypto"]),
       plugins: [
