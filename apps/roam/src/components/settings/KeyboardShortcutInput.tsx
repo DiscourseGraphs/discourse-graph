@@ -82,9 +82,14 @@ const KeyboardShortcutInput = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      // Allow focus navigation & cancel without intercepting
+      if (e.key === "Tab") return;
+      if (e.key === "Escape") {
+        inputRef.current?.blur();
+        return;
+      }
       e.stopPropagation();
       e.preventDefault();
-
       // For discourse tool, only allow single keys without modifiers
       if (settingKey === DISCOURSE_TOOL_SHORTCUT_KEY) {
         // Ignore modifier keys
