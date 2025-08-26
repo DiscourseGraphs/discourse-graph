@@ -3,7 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
-  "type": "module",
   "exports": {
     "./globals.css": "./src/globals.css",
     "./postcss.config": "./postcss.config.mjs",
@@ -17,6 +16,7 @@
   },
   "scripts": {
     "lint": "eslint .",
+    "build": "tsc",
     "lint:fix": "eslint . --fix",
     "generate:component": "turbo gen react-component",
     "check-types": "tsc --noEmit --skipLibCheck",

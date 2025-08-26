@@ -3,11 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
-  "type": "module",
   "exports": {
     "./*": "./src/*.ts"
   },
   "scripts": {
+    "build": "tsc",
+    "check-types": "tsc --noEmit --skipLibCheck",
     "lint": "eslint ."
   }
 }

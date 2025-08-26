@@ -3,7 +3,7 @@ import { getLoggedInClient } from "./supabaseContext";
 import { Result } from "./types";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import findDiscourseNode from "./findDiscourseNode";
-const { nextApiRoot } = require("@repo/utils/execContext");
+import { nextApiRoot } from "@repo/utils/execContext";
 
 type ApiEmbeddingResponse = {
   data: Array<{
@@ -93,11 +93,11 @@ const generateHypotheticalNode: HypotheticalNodeGenerator = async ({
 }) => {
   const { relationLabel, relatedNodeText, relatedNodeFormat } = relationType;
 
-  const userPromptContent = `Given the source discourse node \`\`\`${node}\`\`\`, 
-and considering the relation \`\`\`${relationLabel}\`\`\` 
-which typically connects to a node of type \`\`\`${relatedNodeText}\`\`\` 
-(formatted like \`\`\`${relatedNodeFormat}\`\`\`), 
-generate a hypothetical related discourse node text that would plausibly fit this relationship. 
+  const userPromptContent = `Given the source discourse node \`\`\`${node}\`\`\`,
+and considering the relation \`\`\`${relationLabel}\`\`\`
+which typically connects to a node of type \`\`\`${relatedNodeText}\`\`\`
+(formatted like \`\`\`${relatedNodeFormat}\`\`\`),
+generate a hypothetical related discourse node text that would plausibly fit this relationship.
 Only return the text of the hypothetical node.`;
   const requestBody = {
     documents: [{ role: "user", content: userPromptContent }],

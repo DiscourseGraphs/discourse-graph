@@ -3,7 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "noEmit": true,
+    "esModuleInterop": true,
     "outDir": "dist"
   },
   "include": [
