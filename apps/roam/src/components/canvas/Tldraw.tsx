@@ -125,24 +125,38 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   const [maximized, setMaximized] = useState(false);
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
 
-  // this is a workaround to avoid race condition when loading a canvas page directly
-  const [isPluginReady, setIsPluginReady] = useState(isPluginTimerReady());
-  useEffect(() => {
-    if (!isPluginReady) {
-      console.log("Plugin timer not ready, waiting...");
-      void waitForPluginTimer()
-        .then((isReady: boolean) => {
-          if (isReady) {
-            console.log("Plugin timer ready, updating state");
-            setIsPluginReady(true);
-          } else {
-            console.warn("Plugin timer timeout");
-          }
-        })
-        .catch(() => {});
-    }
-  }, [isPluginReady]);
+  // Workaround to avoid a race condition when loading a canvas page directly
+  // Start false to avoid noisy warnings on first render if timer isn't initialized yet
+  const [isPluginReady, setIsPluginReady] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isPluginReady) {
+      // If already ready, flip immediately
+      if (isPluginTimerReady()) {
+        setIsPluginReady(true);
+        return;
+      }
+
+      // Otherwise, wait up to the timeout and proceed either way
+      void (async () => {
+        const ready = await waitForPluginTimer();
+        if (cancelled) return;
+
+        if (!ready) {
+          console.warn("Plugin timer timeout — proceeding with canvas mount anyway.");
+          // Optional: dispatchToastEvent({ id: 'tldraw-plugin-timer-timeout', title: 'Timed out waiting for plugin init', severity: 'warning' })
+        }
+
+        setIsPluginReady(true);
+      })();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPluginReady]);
   const allRelations = useMemo(() => {
     const relations = getDiscourseRelations();
     discourseContext.relations = relations.reduce(
