@@ -83,6 +83,46 @@ export const resolveLinkedFileFromSrc = async ({
 };
 
 /**
+ * Ensure there is a block reference in the canvas file that links to the given file.
+ * Return the blockRef id; create it if it doesn't exist yet.
+ */
+export const ensureBlockRefForFile = async (
+  app: App,
+  canvasFile: TFile,
+  targetFile: TFile,
+): Promise<string> => {
+  // First, scan existing blocks to see if any link to the target file
+  const fileCache = app.metadataCache.getFileCache(canvasFile);
+  const blocks = fileCache?.blocks ?? {};
+  for (const [blockId] of Object.entries(blocks)) {
+    const linked = await resolveLinkedTFileByBlockRef(app, canvasFile, blockId);
+    if (linked && linked.path === targetFile.path) {
+      return blockId;
+    }
+  }
+
+  // Create a new block ref at the top that links to the target file
+  const blockRefId = crypto.randomUUID();
+  const linkText = app.metadataCache.fileToLinktext(targetFile, canvasFile.path);
+  const internalLink = `[[${linkText}]]`;
+  const linkBlock = `${internalLink}\n^${blockRefId}`;
+
+  // Insert right after frontmatter
+  await app.vault.process(canvasFile, (data: string) => {
+    const cache = app.metadataCache.getFileCache(canvasFile);
+    const { start, end } = cache?.frontmatterPosition ?? {
+      start: { offset: 0 },
+      end: { offset: 0 },
+    } as any;
+    const frontmatter = data.slice(start.offset, end.offset);
+    const rest = data.slice(end.offset);
+    return `${frontmatter}\n${linkBlock}\n${rest}`;
+  });
+
+  return blockRefId;
+};
+
+/**
  * Proxy class that handles Obsidian-specific file operations for the TLAssetStore
  */
 class ObsidianMarkdownFileTLAssetStoreProxy {

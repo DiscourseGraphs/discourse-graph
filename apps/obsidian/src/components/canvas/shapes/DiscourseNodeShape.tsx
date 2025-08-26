@@ -3,6 +3,7 @@ import {
   HTMLContainer,
   T,
   TLBaseShape,
+  TLShapeUtilCanBindOpts,
   useEditor,
 } from "tldraw";
 import type { App, TFile } from "obsidian";
@@ -57,6 +58,9 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       title: "",
       nodeTypeId: "",
     };
+  }
+  override canBind(): boolean {
+    return true;
   }
 
   component(shape: DiscourseNodeShape) {

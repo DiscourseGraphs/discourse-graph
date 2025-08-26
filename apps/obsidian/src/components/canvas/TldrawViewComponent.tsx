@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { defaultShapeUtils, ErrorBoundary, Tldraw, TLStore } from "tldraw";
+import {
+  defaultBindingUtils,
+  defaultShapeUtils,
+  ErrorBoundary,
+  Tldraw,
+  TLStore,
+} from "tldraw";
 import "tldraw/tldraw.css";
 import {
   getTLDataTemplate,
@@ -17,7 +23,9 @@ import {
 import { TFile } from "obsidian";
 import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import { DiscourseNodeUtil } from "~/components/canvas/shapes/DiscourseNodeShape";
-
+import { DiscourseRelationUtil } from "~/components/canvas/shapes/DiscourseRelationShape";
+import { RelationsOverlay } from "~/components/canvas/RelationsOverlay";
+import { DiscourseRelationBindingUtil } from "~/components/canvas/bindings/DiscourseRelationBinding";
 
 interface TldrawPreviewProps {
   store: TLStore;
@@ -45,6 +53,16 @@ export const TldrawPreviewComponent = ({
       canvasFile: file,
       plugin,
     }),
+    DiscourseRelationUtil.configure({
+      app: plugin.app,
+      canvasFile: file,
+      plugin,
+    }),
+  ];
+
+  const customBindingUtils = [
+    ...defaultBindingUtils,
+    DiscourseRelationBindingUtil,
   ];
 
   useEffect(() => {
@@ -148,6 +166,12 @@ export const TldrawPreviewComponent = ({
             autoFocus={true}
             initialState="select"
             shapeUtils={customShapeUtils}
+            bindingUtils={customBindingUtils}
+            components={{
+              InFrontOfTheCanvas: () => (
+                <RelationsOverlay plugin={plugin} file={file} />
+              ),
+            }}
           />
         </ErrorBoundary>
       ) : (

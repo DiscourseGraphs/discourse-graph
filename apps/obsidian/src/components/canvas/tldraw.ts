@@ -1,5 +1,6 @@
 import {
   createTLStore,
+  defaultBindingUtils,
   defaultShapeUtils,
   TldrawFile,
   TLRecord,
@@ -20,6 +21,8 @@ import {
   DiscourseNodeUtil,
   DiscourseNodeUtilOptions,
 } from "~/components/canvas/shapes/DiscourseNodeShape";
+import { DiscourseRelationUtil } from "~/components/canvas/shapes/DiscourseRelationShape";
+import { DiscourseRelationBindingUtil } from "~/components/canvas/bindings/DiscourseRelationBinding";
 
 export type TldrawPluginMetaData = {
   "plugin-version": string;
@@ -46,6 +49,11 @@ export const processInitialData = (
   const customShapeUtils = [
     ...defaultShapeUtils,
     DiscourseNodeUtil.configure(ctx),
+    DiscourseRelationUtil.configure(ctx),
+  ];
+  const customBindingUtils = [
+    ...defaultBindingUtils,
+    DiscourseRelationBindingUtil,
   ];
 
   const recordsData = Array.isArray(data.raw.records)
@@ -64,12 +72,14 @@ export const processInitialData = (
   if (recordsData) {
     store = createTLStore({
       shapeUtils: customShapeUtils,
+      bindingUtils: customBindingUtils,
       initialData: recordsData,
       assets: assetStore,
     });
   } else {
     store = createTLStore({
       shapeUtils: customShapeUtils,
+      bindingUtils: customBindingUtils,
       assets: assetStore,
     });
   }
