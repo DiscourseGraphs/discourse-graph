@@ -159,9 +159,8 @@
   color: var(--button-primary-text-color);
 }
 
-#discourse-floating-menu .bp3-button.bp3-intent-primary:not(.button-icon):hover,
 #discourse-floating-menu
-  .bp3-button.bp3-intent-primary:not(.button-icon):focus {
+  .bp3-button.bp3-intent-primary:not(.button-icon):hover {
   background-color: var(--button-primary-hover-color);
 }
 
