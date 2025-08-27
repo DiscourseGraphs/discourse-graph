@@ -36,11 +36,15 @@ export const renderNodeTagPopupButton = (
   const tag = tagAttr.replace(/^#/, "").toLowerCase();
   const discourseNodes = getDiscourseNodes();
   const discourseTagSet = new Set(
-    discourseNodes.map((n) => n.tag?.toLowerCase()).filter(Boolean),
+    discourseNodes
+      .map((n) => n.tag?.replace(/^#/, "").toLowerCase())
+      .filter(Boolean),
   );
   if (!discourseTagSet.has(tag)) return;
 
-  const matchedNode = discourseNodes.find((n) => n.tag?.toLowerCase() === tag);
+  const matchedNode = discourseNodes.find(
+    (n) => n.tag?.replace(/^#/, "").toLowerCase() === tag,
+  );
 
   if (!matchedNode) return;
 
@@ -67,7 +71,7 @@ export const renderNodeTagPopupButton = (
               initialTitle: cleanedBlockText,
             });
           }}
-          text={`Create ${matchedNode.text}`}
+          text={`Create #${matchedNode.tag?.replace(/^#/, "").toLowerCase()}`}
         />
       }
       target={
