@@ -936,21 +936,13 @@ const renderTldrawCanvasHelper = ({
     childFromRoot.parentElement &&
     !childFromRoot.hasAttribute(TLDRAW_DATA_ATTRIBUTE)
   ) {
+    rootElement.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
     childFromRoot.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
     const parentEl = childFromRoot.parentElement;
     parentEl.appendChild(canvasWrapperEl);
     canvasWrapperEl.style.minHeight = minHeight;
     canvasWrapperEl.style.height = height;
   }
-
-  // console.log(
-  //   "blockChildrenContainer.parentElement",
-  //   articleChildren.parentElement,
-  // );
-  // articleChildren.parentElement?.insertBefore(
-  //   canvasWrapperEl,
-  //   articleChildren.nextSibling,
-  // );
 
   const unmount = renderWithUnmount(
     <ExtensionApiContextProvider {...onloadArgs}>
@@ -963,6 +955,7 @@ const renderTldrawCanvasHelper = ({
   return () => {
     originalUnmount();
     childFromRoot.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
+    rootElement.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
     canvasWrapperEl.remove();
   };
 };
