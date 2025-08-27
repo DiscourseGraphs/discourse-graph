@@ -955,6 +955,7 @@ const renderTldrawCanvasHelper = ({
   return () => {
     originalUnmount();
     childFromRoot.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
+    rootElement.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
     canvasWrapperEl.remove();
   };
 };
