@@ -5,8 +5,8 @@ import { TldrawPreviewComponent } from "./TldrawViewComponent";
 import { TLStore } from "tldraw";
 import React from "react";
 import DiscourseGraphPlugin from "~/index";
-import { processInitialData, TLData } from "~/utils/tldraw";
-import { ObsidianTLAssetStore } from "~/utils/assetStore";
+import { processInitialData, TLData } from "~/components/canvas/tldraw";
+import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 
 export class TldrawView extends TextFileView {
   plugin: DiscourseGraphPlugin;
@@ -106,7 +106,16 @@ export class TldrawView extends TextFileView {
         return;
       }
 
-      const { store } = processInitialData(data, assetStore);
+      if (!this.file) {
+        console.warn("TldrawView not initialized: missing file");
+        return;
+      }
+
+      const { store } = processInitialData(data, assetStore, {
+        app: this.app,
+        canvasFile: this.file,
+        plugin: this.plugin,
+      });
 
       return store;
     } catch (e) {
@@ -130,6 +139,11 @@ export class TldrawView extends TextFileView {
       throw new Error("TldrawView not initialized: missing assetStore");
     if (!this.store)
       throw new Error("TldrawView not initialized: missing store");
+
+    if (!this.assetStore) {
+      console.warn("Asset store is not set");
+      return;
+    }
 
     root.render(
       <React.StrictMode>
