@@ -1,10 +1,15 @@
 import dotenv from "dotenv";
 import { readFileSync, existsSync } from "fs";
-import { join, dirname } from "path";
+import { join, dirname, basename } from "path";
 import { fileURLToPath } from "url";
 
-const __dirname = dirname(dirname(__filename));
-console.log("dirname: ", __dirname);
+const findRoot = (): string => {
+  let dir = __filename;
+  while (basename(dir) !== "database") {
+    dir = dirname(dir);
+  }
+  return dir;
+};
 
 export const getVariant = (): string | null => {
   if (process.env.HOME === "/vercel" || process.env.GITHUB_ACTIONS === "true")
@@ -24,7 +29,7 @@ export const getVariant = (): string | null => {
 export const envFilePath = () => {
   const variant: string | null = getVariant();
   if (variant === null) return null;
-  const name = join(__dirname, `.env.${variant}`);
+  const name = join(findRoot(), `.env.${variant}`);
   return existsSync(name) ? name : null;
 };
 
