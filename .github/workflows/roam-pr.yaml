@@ -31,5 +31,8 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Build dependent package
+        run: npx turbo run build --filter=@repo/database
+
       - name: Deploy
         run: npx turbo run deploy --filter=roam
