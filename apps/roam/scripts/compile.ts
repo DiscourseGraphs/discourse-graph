@@ -2,7 +2,18 @@ import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
-import { envContents } from "@repo/database/dbDotEnv";
+let envContents = null;
+
+try {
+  const dbDotEnv = require("@repo/database/dbDotEnv");
+  envContents = dbDotEnv.envContents;
+} catch (error) {
+  if (error.message.includes("Cannot find module")) {
+    console.error("Build the database module before compiling roam");
+    process.exit(1);
+  }
+  throw error;
+}
 
 // https://github.com/evanw/esbuild/issues/337#issuecomment-954633403
 const importAsGlobals = (
