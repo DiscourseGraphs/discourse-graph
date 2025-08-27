@@ -1,7 +1,6 @@
 import { exec } from "node:child_process";
 import { readdir, Dirent } from "node:fs";
 import { join, dirname } from "path";
-import { fileURLToPath } from "url";
 
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, "..");
