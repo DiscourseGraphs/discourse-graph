@@ -88,6 +88,8 @@ import { TLDRAW_DATA_ATTRIBUTE } from "./tldrawStyles";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
+import { HistoryEntry } from "@tldraw/store";
+import { TLRecord } from "@tldraw/tlschema";
 
 declare global {
   interface Window {
@@ -100,12 +102,14 @@ export type DiscourseContextType = {
   // { [Relation.Label] => DiscourseRelation[] }
   relations: Record<string, DiscourseRelation[]>;
   lastAppEvent: string;
+  lastActions: HistoryEntry<TLRecord>[];
 };
 
 export const discourseContext: DiscourseContextType = {
   nodes: {},
   relations: {},
   lastAppEvent: "",
+  lastActions: [],
 };
 
 const DEFAULT_WIDTH = 160;
@@ -121,6 +125,9 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   const appRef = useRef<TldrawApp | null>(null);
   const lastInsertRef = useRef<VecModel>();
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastActionsRef = useRef<HistoryEntry<TLRecord>[]>(
+    discourseContext.lastActions,
+  );
 
   const [maximized, setMaximized] = useState(false);
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
@@ -499,6 +506,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         type: "Tldraw Error",
         context: {
           title: title,
+          lastActions: lastActionsRef.current,
         },
       }).catch(() => {});
 
@@ -599,6 +607,12 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               }
 
               appRef.current = app;
+
+              app.on("change", (entry) => {
+                lastActionsRef.current.push(entry);
+                if (lastActionsRef.current.length > 10)
+                  lastActionsRef.current.shift();
+              });
 
               app.on("event", (event) => {
                 const e = event as TLPointerEventInfo;
