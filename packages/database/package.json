@@ -15,6 +15,7 @@
     "dev": "supabase start && tsx scripts/createEnv.ts && supabase functions serve",
     "stop": "supabase stop",
     "check-types": "tsc --noEmit --skipLibCheck",
+    "check-schema": "npm run lint && supabase stop && npm run dbdiff",
     "lint": "eslint . && tsx scripts/lint.ts",
     "lint:fix": "tsx scripts/lint.ts -f",
     "build": "tsx scripts/build.ts && npm run genenv -- local",

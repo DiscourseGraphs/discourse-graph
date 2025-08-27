@@ -26,23 +26,23 @@ We follow the Supabase [Declarative Database Schema](https://supabase.com/docs/g
 1. Assuming you're working on a feature branch.
 2. Make changes to the schema, by editing files in `packages/database/supabase/schemas`
 3. If you created a new schema file, make sure to add it to `[db.migrations] schema_paths` in `packages/database/supabase/config.toml`. Schema files are applied in that order, you may need to be strategic in placing your file.
-4. `turbo check-types`, which will do the following:
-    1. Check your logic with `sqruff lint supabase/schemas`
-        1. If there are errors there, you can fix them with `npm run lint:fix`
-    2. Stop Supabase.
-    3. See if there would be a migration to apply with `supabase db diff`
+4. `turbo check-schema`, which will do the following:
+   1. Check your logic with `sqruff lint supabase/schemas`
+      1. If there are errors there, you can fix them with `npm run lint:fix`
+   2. Stop Supabase.
+   3. See if there would be a migration to apply with `supabase db diff`
 5. If applying the new schema fails, repeat step 4
 6. If you are satisfied with the migration, create a migration file with `npm run dbdiff:save some_meaningful_migration_name`
-    1. If all goes well, there should be a new file named `supabase/migration/2..._some_meaningful_migration_name.sql` which you should `git add`.
+   1. If all goes well, there should be a new file named `supabase/migration/2..._some_meaningful_migration_name.sql` which you should `git add`.
 7. `turbo build`, which will do the following:
-    1. Start Supabase
-    2. Apply the new migration locally
-    3. Regenerate the types file with `supabase gen types typescript --local > src/dbTypes.ts`
-    4. Copy it where appropriate
+   1. Start Supabase
+   2. Apply the new migration locally
+   3. Regenerate the types file with `supabase gen types typescript --local > src/dbTypes.ts`
+   4. Copy it where appropriate
 8. You can start using your changes again `turbo dev`
 9. When your migration is pushed in a branch, Supabase will create a branch instance. Note there is a small cost to this, so we do not want those branches to linger.
-    The branch will be also created without data. (Seed data could be added to `.../supabase/seed.sql`)
-    The Vercel branch instance will talk to this Supabase branch. This is a wholly separate environment, and will not affect production.
+   The branch will be also created without data. (Seed data could be added to `.../supabase/seed.sql`)
+   The Vercel branch instance will talk to this Supabase branch. This is a wholly separate environment, and will not affect production.
 
 #### Concurrent development
 
@@ -50,10 +50,10 @@ If schema changes are deployed to `main` by another developer while you work on 
 
 1. Rebase your branch on `main` so you have the latest migration.
 2. If your new migration file has already been applied to your local database (step 7 above), you may have to revert it.
-    1. `supabase migration repair --status reverted <migration timestamp> --local`
-        * Note: This does not actually revert the migration, it tells Supabase that the migration was not applied, even if it was.
-    2. If your migration is not idempotent (which you'll notice in stage 4), you may have to revert some of your migration's changes in the local database, using the SQL editor in the studio, or `psql`.
-    3. If all else fails, you can reset your local database with `supabase db reset --local`
+   1. `supabase migration repair --status reverted <migration timestamp> --local`
+      - Note: This does not actually revert the migration, it tells Supabase that the migration was not applied, even if it was.
+   2. If your migration is not idempotent (which you'll notice in stage 4), you may have to revert some of your migration's changes in the local database, using the SQL editor in the studio, or `psql`.
+   3. If all else fails, you can reset your local database with `supabase db reset --local`
 3. If you have an ongoing migration file, the timestamp at the start of the name should come after the latest new migration. Rename (or `git mv`) as needed.
 4. Apply `turbo build` again, so the incoming migrations are applied, and then your working migration. You may have to fix the schema and migration to take the changes into account.
 
