@@ -66,9 +66,13 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
           />
         </Menu>
       }
+      onClosed={() => {
+        document.getElementById("dg-floating-menu-button")?.blur();
+      }}
       position={Position.TOP}
       className="bp3-popover-content-sizing"
       interactionKind={PopoverInteractionKind.CLICK}
+      shouldReturnFocusOnClose={true}
       boundary="viewport"
       modifiers={{
         arrow: {
