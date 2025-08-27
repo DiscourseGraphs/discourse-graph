@@ -76,10 +76,10 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     return <rect width={shape.props.w} height={shape.props.h} />;
   }
 
-  async getFile(
+  getFile = async (
     shape: DiscourseNodeShape,
-    ctx?: { app: App; canvasFile: TFile },
-  ): Promise<TFile | null> {
+    ctx: { app: App; canvasFile: TFile },
+  ): Promise<TFile | null> => {
     const app = ctx?.app ?? this.options.app;
     const canvasFile = ctx?.canvasFile ?? this.options.canvasFile;
     return resolveLinkedFileFromSrc({
@@ -87,36 +87,27 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       canvasFile,
       src: shape.props.src ?? undefined,
     });
-  }
+  };
 
-  async getFrontmatter(
+  getFrontmatter = async (
     shape: DiscourseNodeShape,
-    ctx?: { app: App; canvasFile: TFile },
-  ): Promise<FrontmatterRecord | null> {
+    ctx: { app: App; canvasFile: TFile },
+  ): Promise<FrontmatterRecord | null> => {
     const app = ctx?.app ?? this.options.app;
     const file = await this.getFile(shape, ctx);
     if (!file) return null;
     return getFrontmatterForFile(app, file);
-  }
+  };
 
-  async getDiscourseNodeType(
+  getRelations = async (
     shape: DiscourseNodeShape,
-    ctx?: { app: App; canvasFile: TFile },
-  ): Promise<DiscourseNode | null> {
-    const frontmatter = await this.getFrontmatter(shape, ctx);
-    const nodeTypeId = getNodeTypeIdFromFrontmatter(frontmatter);
-    return getNodeTypeById(this.options.plugin, nodeTypeId);
-  }
-
-  async getRelations(
-    shape: DiscourseNodeShape,
-    ctx?: { app: App; canvasFile: TFile },
-  ): Promise<unknown[]> {
+    ctx: { app: App; canvasFile: TFile },
+  ): Promise<unknown[]> => {
     const frontmatter = await this.getFrontmatter(shape, ctx);
     if (!frontmatter) return [];
     // TODO: derive relations from frontmatter
     return [];
-  }
+  };
 }
 
 const discourseNodeContent = memo(
@@ -168,14 +159,16 @@ const discourseNodeContent = memo(
             return;
           }
 
-          editor.updateShape<DiscourseNodeShape>({
-            id: shape.id,
-            type: "discourse-node",
-            props: {
-              ...shape.props,
-              title: linkedFile.basename,
-            },
-          });
+          if (linkedFile.basename !== shape.props.title) {
+            editor.updateShape<DiscourseNodeShape>({
+              id: shape.id,
+              type: "discourse-node",
+              props: {
+                ...shape.props,
+                title: linkedFile.basename,
+              },
+            });
+          }
         } catch (error) {
           console.error("Error loading node data", error);
           return;

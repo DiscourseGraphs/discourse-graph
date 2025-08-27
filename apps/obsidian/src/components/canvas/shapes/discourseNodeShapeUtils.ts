@@ -31,23 +31,6 @@ export const getNodeTypeById = (
   );
 };
 
-export const getNodeTypeForLinkedSrc = async (
-  app: App,
-  plugin: DiscourseGraphPlugin,
-  canvasFile: TFile,
-  src?: string,
-): Promise<DiscourseNode | null> => {
-  const file = await resolveLinkedFileFromSrc({
-    app,
-    canvasFile,
-    src,
-  });
-  if (!file) return null;
-  const fm = getFrontmatterForFile(app, file);
-  const id = getNodeTypeIdFromFrontmatter(fm);
-  return getNodeTypeById(plugin, id);
-};
-
 export const getRelationsFromFrontmatter = (
   _frontmatter: FrontmatterRecord | null,
 ): unknown[] => {
