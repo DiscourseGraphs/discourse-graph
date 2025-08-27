@@ -1,11 +1,14 @@
 import {
   BindingOnShapeChangeOptions,
   BindingUtil,
+  Editor,
   TLBaseBinding,
   Vec,
 } from "tldraw";
 import { DiscourseRelationShape } from "~/components/canvas/shapes/DiscourseRelationShape";
 import { DiscourseNodeShape } from "~/components/canvas/shapes/DiscourseNodeShape";
+import { App, TFile } from "obsidian";
+import DiscourseGraphPlugin from "~/index";
 
 export type DGRelationBinding = TLBaseBinding<
   "dg-relation",
@@ -14,16 +17,27 @@ export type DGRelationBinding = TLBaseBinding<
   }
 >;
 
+export type DiscourseRelationBindingUtilOptions = {
+  app: App;
+  plugin: DiscourseGraphPlugin;
+  canvasFile: TFile;
+};
+
 export class DiscourseRelationBindingUtil extends BindingUtil<DGRelationBinding> {
   static override type = "dg-relation" as const;
+  declare options: DiscourseRelationBindingUtilOptions;
 
   override getDefaultProps() {
     return { terminal: "start" as const };
   }
 
   // When the node we are bound to changes, reposition the relation endpoints
-  override onAfterChangeToShape({ binding }: BindingOnShapeChangeOptions<DGRelationBinding>): void {
-    const relation = this.editor.getShape<DiscourseRelationShape>(binding.fromId);
+  override onAfterChangeToShape({
+    binding,
+  }: BindingOnShapeChangeOptions<DGRelationBinding>): void {
+    const relation = this.editor.getShape<DiscourseRelationShape>(
+      binding.fromId,
+    );
     const boundNode = this.editor.getShape<DiscourseNodeShape>(binding.toId);
     if (!relation || !boundNode) return;
 
@@ -34,7 +48,10 @@ export class DiscourseRelationBindingUtil extends BindingUtil<DGRelationBinding>
     };
 
     // Find the other binding for the relation
-    const allBindings = this.editor.getBindingsFromShape<DGRelationBinding>(relation, "dg-relation");
+    const allBindings = this.editor.getBindingsFromShape<DGRelationBinding>(
+      relation,
+      "dg-relation",
+    );
     const other = allBindings.find((b) => b.id !== binding.id);
     let otherCenter = boundCenter;
     if (other) {
@@ -47,7 +64,8 @@ export class DiscourseRelationBindingUtil extends BindingUtil<DGRelationBinding>
       }
     }
 
-    const start = binding.props.terminal === "start" ? boundCenter : otherCenter;
+    const start =
+      binding.props.terminal === "start" ? boundCenter : otherCenter;
     const end = binding.props.terminal === "start" ? otherCenter : boundCenter;
 
     // Convert to local coordinates by moving the relation to the segment's top-left

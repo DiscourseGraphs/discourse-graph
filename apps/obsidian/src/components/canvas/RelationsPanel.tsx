@@ -187,25 +187,21 @@ export const RelationsPanel = ({
 
       const startBinding = {
         id: createBindingId(),
-        type: "arrow" as const,
+        type: "dg-relation" as const,
         fromId: shape.id,
         toId: sourceNode.id,
         props: {
           terminal: "start" as const,
-          normalizedAnchor: { x: 0.5, y: 0.5 },
-          isExact: false,
         },
       };
 
       const endBinding = {
         id: createBindingId(),
-        type: "arrow" as const,
+        type: "dg-relation" as const,
         fromId: shape.id,
         toId: destNode.id,
         props: {
           terminal: "end" as const,
-          normalizedAnchor: { x: 0.5, y: 0.5 },
-          isExact: false,
         },
       };
 
@@ -213,27 +209,6 @@ export const RelationsPanel = ({
       console.log("endBinding", endBinding);
 
       editor.createBindings([startBinding, endBinding]);
-
-      // Tell the arrow to use bindings for its terminals so it follows the nodes
-      editor.updateShape({
-        id: shape.id,
-        type: "discourse-relation",
-        props: {
-          ...shape.props,
-          start: {
-            type: "binding",
-            boundShapeId: sourceNode.id,
-            normalizedAnchor: { x: 0.5, y: 0.5 },
-            isExact: false,
-          },
-          end: {
-            type: "binding",
-            boundShapeId: destNode.id,
-            normalizedAnchor: { x: 0.5, y: 0.5 },
-            isExact: false,
-          },
-        },
-      });
     } catch (e) {
       console.error("Failed to create relation to file", e);
     }
