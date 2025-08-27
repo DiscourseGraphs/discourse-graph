@@ -1,9 +1,8 @@
 import { exec } from "node:child_process";
 import { readdir, Dirent } from "node:fs";
 import { join, dirname } from "path";
-import { fileURLToPath } from "url";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, "..");
 
 const main = () => {
@@ -66,4 +65,4 @@ const main = () => {
     process.exit(1);
   }
 };
-if (import.meta.url === `file://${process.argv[1]}`) main();
+if (__filename === process.argv[1]) main();

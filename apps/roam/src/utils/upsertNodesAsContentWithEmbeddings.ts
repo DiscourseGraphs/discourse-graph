@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import { type SupabaseContext } from "./supabaseContext";
-// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
-const { nextApiRoot } = require("@repo/utils/execContext");
+import { nextApiRoot } from "@repo/utils/execContext";
 type LocalContentDataInput = any;
 type DGSupabaseClient = any;
 type Json = any;
