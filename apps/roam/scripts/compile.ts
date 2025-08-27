@@ -8,7 +8,7 @@ try {
   const dbDotEnv = require("@repo/database/dbDotEnv");
   envContents = dbDotEnv.envContents;
 } catch (error) {
-  if (error.message.includes("Cannot find module")) {
+  if ((error as Error).message.includes("Cannot find module")) {
     console.error("Build the database module before compiling roam");
     process.exit(1);
   }
