@@ -11,12 +11,14 @@ import {
   PopoverInteractionKind,
 } from "@blueprintjs/core";
 import { FeedbackWidget } from "./BirdEatsBugs";
+import { render as renderSettings } from "~/components/settings/Settings";
 
 type DiscourseFloatingMenuProps = {
   // CSS placement class
   position: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   theme: string; // e.g., "bp3-light" | "bp3-dark"
   buttonTheme?: string; // e.g., "bp3-light" | "bp3-dark"
+  onloadArgs?: OnloadArgs;
 };
 
 const ANCHOR_ID = "dg-floating-menu-anchor";
@@ -52,6 +54,13 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
             text="Community"
             icon="social-media"
             href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg"
+            rel="noopener noreferrer"
+            target="_blank"
+          />
+          <MenuItem
+            text="Settings"
+            icon="cog"
+            onClick={() => renderSettings({ onloadArgs: props.onloadArgs! })}
             rel="noopener noreferrer"
             target="_blank"
           />
@@ -92,7 +101,7 @@ export const showDiscourseFloatingMenu = () => {
 };
 
 export const installDiscourseFloatingMenu = (
-  extensionAPI: OnloadArgs["extensionAPI"],
+  onLoadArgs: OnloadArgs,
   props: DiscourseFloatingMenuProps = {
     position: "bottom-right",
     theme: "bp3-light",
@@ -105,7 +114,7 @@ export const installDiscourseFloatingMenu = (
     floatingMenuAnchor.id = ANCHOR_ID;
     document.getElementById("app")?.appendChild(floatingMenuAnchor);
   }
-  if (extensionAPI.settings.get("hide-feedback-button") as boolean) {
+  if (onLoadArgs.extensionAPI.settings.get("hide-feedback-button") as boolean) {
     floatingMenuAnchor.classList.add("hidden");
   }
   ReactDOM.render(
@@ -113,6 +122,7 @@ export const installDiscourseFloatingMenu = (
       position={props.position}
       theme={props.theme}
       buttonTheme={props.buttonTheme}
+      onloadArgs={onLoadArgs}
     />,
     floatingMenuAnchor,
   );
