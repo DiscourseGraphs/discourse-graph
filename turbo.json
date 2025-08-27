@@ -58,7 +58,8 @@
     },
     "deploy": {
       "cache": false,
-      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "dependsOn": ["@repo/database#build"]
     },
     "publish": {
       "cache": false,
