@@ -139,11 +139,6 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
       const now = new Date();
 
       if (timestamp > now) {
-        console.log(
-          "proposeSyncTask: Another worker is already running this task",
-          timestamp,
-          now,
-        );
         return { lastUpdateTime: null, spaceId, worker, shouldProceed: false };
       } else {
         return { lastUpdateTime: data, spaceId, worker, shouldProceed: true };
@@ -374,9 +369,6 @@ export const createOrUpdateDiscourseEmbedding = async () => {
   const { shouldProceed, lastUpdateTime, worker } = await proposeSyncTask();
 
   if (!shouldProceed) {
-    console.log(
-      "createOrUpdateDiscourseEmbedding: Task already running or failed to acquire lock. Exiting.",
-    );
     return;
   }
 
@@ -426,7 +418,6 @@ export const initializeSupabaseSync = async () => {
     .eq("url", getRoamUrl())
     .maybeSingle();
   if (!result.data) {
-    console.log("initializeSupabaseSync: No space found.");
     return;
   } else {
     createOrUpdateDiscourseEmbedding();

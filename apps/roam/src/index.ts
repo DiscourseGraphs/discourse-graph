@@ -120,7 +120,7 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  initializeSupabaseSync();
+  await initializeSupabaseSync();
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {

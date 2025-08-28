@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-
 import React, {
   useState,
   useMemo,
@@ -7,7 +6,7 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { Button, Intent, Tooltip, Position } from "@blueprintjs/core";
+import { Button, Intent } from "@blueprintjs/core";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
@@ -23,12 +22,10 @@ const BlockRenderer = ({ uid }: { uid: string }) => {
     if (container) {
       container.innerHTML = "";
 
-      if (uid) {
-        window.roamAlphaAPI.ui.components.renderBlock({
-          uid: uid,
-          el: container,
-        });
-      }
+      window.roamAlphaAPI.ui.components.renderBlock({
+        uid: uid,
+        el: container,
+      });
     }
   }, [uid]);
 
@@ -113,19 +110,12 @@ const DiscourseNodeSuggestiveRules = ({
         value={node.isFirstChild?.value || false}
       />
 
-      <div className="flex items-center gap-2">
-        <Tooltip
-          content="Save changes before updating embeddings"
-          position={Position.TOP}
-        >
-          <Button
-            text="Update Embeddings"
-            intent={Intent.NONE}
-            onClick={() => console.log("Not implemented")}
-            style={{ minWidth: "140px" }}
-          />
-        </Tooltip>
-      </div>
+      <Button
+        text="Update Embeddings"
+        intent={Intent.NONE}
+        onClick={() => console.log("Not implemented")}
+        className="w-52"
+      />
     </div>
   );
 };

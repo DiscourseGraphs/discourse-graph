@@ -6,18 +6,16 @@ import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
-import { PageGroup } from "~/utils/getSuggestiveModeConfigSettings";
-
-type PageGroupData = PageGroup;
+import { type PageGroup } from "~/utils/getSuggestiveModeConfigSettings";
 
 const PageGroupsPanel = ({
   uid,
   initialGroups,
 }: {
   uid: string;
-  initialGroups: PageGroupData[];
+  initialGroups: PageGroup[];
 }) => {
-  const [pageGroups, setPageGroups] = useState<PageGroupData[]>(initialGroups);
+  const [pageGroups, setPageGroups] = useState<PageGroup[]>(initialGroups);
 
   const [newGroupName, setNewGroupName] = useState("");
   const [newPageInputs, setNewPageInputs] = useState<Record<string, string>>(
@@ -108,104 +106,100 @@ const PageGroupsPanel = ({
     autocompleteKeys[groupUid] || 0;
 
   return (
-    <div>
-      <Label>
-        Page Groups
-        <Description
-          description={
-            "Organize pages into named groups that will be can be selected when generating Discourse Suggestions."
-          }
-        />
-        <div className="flex flex-col gap-2">
-          {/* Add Group */}
-          <div className="flex items-center gap-2">
-            <AutocompleteInput
-              value={newGroupName}
-              setValue={setNewGroupName}
-              placeholder="Page group name…"
-              options={[]}
-            />
-            <Button
-              icon="plus"
-              small
-              minimal
-              disabled={
-                !newGroupName || pageGroups.some((g) => g.name === newGroupName)
-              }
-              onClick={() => void addGroup(newGroupName)}
-            />
-          </div>
-
-          {/* Existing Groups */}
-          {Object.keys(pageGroups).length === 0 && (
-            <div className="text-sm italic text-gray-500">No groups added.</div>
-          )}
-          {pageGroups.map((group) => (
-            <div key={group.uid} className="rounded border p-2">
-              <div className="mb-1 flex items-center justify-between">
-                <span className="font-semibold">{group.name}</span>
-                <Button
-                  icon="trash"
-                  minimal
-                  small
-                  intent={Intent.DANGER}
-                  onClick={() => void removeGroup(group.uid)}
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div
-                  className="flex-0 min-w-[160px]"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && getPageInput(group.uid)) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      void addPageToGroup(group.uid, getPageInput(group.uid));
-                    }
-                  }}
-                >
-                  <AutocompleteInput
-                    key={getAutocompleteKey(group.uid)}
-                    value={getPageInput(group.uid)}
-                    placeholder="Add page…"
-                    setValue={(v) => setPageInput(group.uid, v)}
-                    options={getAllPageNames()}
-                    maxItemsDisplayed={50}
-                  />
-                </div>
-                <Button
-                  icon="plus"
-                  small
-                  minimal
-                  onClick={() =>
-                    void addPageToGroup(group.uid, getPageInput(group.uid))
-                  }
-                  disabled={
-                    !getPageInput(group.uid) ||
-                    group.pages.some((p) => p.name === getPageInput(group.uid))
-                  }
-                />
-              </div>
-              {group.pages.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {group.pages.map((p) => (
-                    <Tag
-                      key={p.uid}
-                      onRemove={() =>
-                        void removePageFromGroup(group.uid, p.uid)
-                      }
-                      round
-                      minimal
-                    >
-                      {p.name}
-                    </Tag>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+    <Label>
+      Page Groups
+      <Description
+        description={
+          "Organize pages into named groups that will be can be selected when generating Discourse Suggestions."
+        }
+      />
+      <div className="flex flex-col gap-2">
+        {/* Add Group */}
+        <div className="flex items-center gap-2">
+          <AutocompleteInput
+            value={newGroupName}
+            setValue={setNewGroupName}
+            placeholder="Page group name…"
+            options={[]}
+          />
+          <Button
+            icon="plus"
+            small
+            minimal
+            disabled={
+              !newGroupName || pageGroups.some((g) => g.name === newGroupName)
+            }
+            onClick={() => void addGroup(newGroupName)}
+          />
         </div>
-      </Label>
-    </div>
+
+        {/* Existing Groups */}
+        {Object.keys(pageGroups).length === 0 && (
+          <div className="text-sm italic text-gray-500">No groups added.</div>
+        )}
+        {pageGroups.map((group) => (
+          <div key={group.uid} className="rounded border p-2">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="font-semibold">{group.name}</span>
+              <Button
+                icon="trash"
+                minimal
+                small
+                intent={Intent.DANGER}
+                onClick={() => void removeGroup(group.uid)}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div
+                className="flex-0 min-w-[160px]"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && getPageInput(group.uid)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void addPageToGroup(group.uid, getPageInput(group.uid));
+                  }
+                }}
+              >
+                <AutocompleteInput
+                  key={getAutocompleteKey(group.uid)}
+                  value={getPageInput(group.uid)}
+                  placeholder="Add page…"
+                  setValue={(v) => setPageInput(group.uid, v)}
+                  options={getAllPageNames()}
+                  maxItemsDisplayed={50}
+                />
+              </div>
+              <Button
+                icon="plus"
+                small
+                minimal
+                onClick={() =>
+                  void addPageToGroup(group.uid, getPageInput(group.uid))
+                }
+                disabled={
+                  !getPageInput(group.uid) ||
+                  group.pages.some((p) => p.name === getPageInput(group.uid))
+                }
+              />
+            </div>
+            {group.pages.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {group.pages.map((p) => (
+                  <Tag
+                    key={p.uid}
+                    onRemove={() => void removePageFromGroup(group.uid, p.uid)}
+                    round
+                    minimal
+                  >
+                    {p.name}
+                  </Tag>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </Label>
   );
 };
 
