@@ -5,6 +5,7 @@ import type DiscourseGraphPlugin from "../index";
 import { BulkImportCandidate, BulkImportPattern } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
 import { TFile } from "obsidian";
+import { getNodeTypeById } from "~/utils/utils";
 
 type BulkImportModalProps = {
   plugin: DiscourseGraphPlugin;
@@ -216,9 +217,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
       <div className="mb-6 h-80 overflow-y-auto rounded border p-4">
         <div className="flex flex-col gap-4">
           {patterns.map((pattern, index) => {
-            const nodeType = plugin.settings.nodeTypes.find(
-              (n) => n.id === pattern.nodeTypeId,
-            );
+            const nodeType = getNodeTypeById(plugin, pattern.nodeTypeId);
             return (
               <div key={pattern.nodeTypeId} className="rounded border p-3">
                 <div

@@ -29,13 +29,15 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
           text: title,
         });
 
-        const src = createdFile
-          ? await addWikilinkBlockrefForFile({
-              app: plugin.app,
-              canvasFile,
-              linkedFile: createdFile,
-            })
-          : null;
+        if (!createdFile) {
+          throw new Error("Failed to create discourse node file");
+        }
+
+        const src = await addWikilinkBlockrefForFile({
+          app: plugin.app,
+          canvasFile,
+          linkedFile: createdFile,
+        });
 
         const shapeId = createShapeId();
         tldrawEditor.createShape({
@@ -47,16 +49,18 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
             w: 200,
             h: 100,
             src: src ?? "",
-            title: title,
+            title: createdFile.basename,
             nodeTypeId: selectedNodeType.id,
           },
         });
 
-        tldrawEditor.markHistoryStoppingPoint("create discourse node");
+        tldrawEditor.markHistoryStoppingPoint(
+          `create discourse node ${selectedNodeType.id}`,
+        );
         tldrawEditor.setSelectedShapes([shapeId]);
       } catch (error) {
         console.error("Error creating discourse node:", error);
-        new Notice("Failed to create discourse node");
+        new Notice(`Failed to create discourse node: ${JSON.stringify(error)}`);
       }
     },
   });

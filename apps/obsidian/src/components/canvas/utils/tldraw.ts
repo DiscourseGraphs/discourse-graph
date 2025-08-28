@@ -12,10 +12,10 @@ import {
   TLDRAW_VERSION,
 } from "~/constants";
 import DiscourseGraphPlugin from "~/index";
-import { checkAndCreateFolder, getNewUniqueFilepath } from "../../../utils/file";
+import { checkAndCreateFolder, getNewUniqueFilepath } from "~/utils/file";
 import { Notice } from "obsidian";
 import { format } from "date-fns";
-import { ObsidianTLAssetStore } from "../stores/assetStore";
+import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import {
   DiscourseNodeUtil,
   DiscourseNodeUtilOptions,
@@ -119,7 +119,7 @@ export const frontmatterTemplate = (data: string, tags: string[] = []) => {
   let str = "---\n";
   str += `${data}\n`;
   if (tags.length) {
-    str += `tags:\n[${tags.join(", ")}]\n`;
+    str += `tags: [${tags.map((t) => JSON.stringify(t)).join(", ")}]\n`;
   }
   str += "---\n";
   return str;

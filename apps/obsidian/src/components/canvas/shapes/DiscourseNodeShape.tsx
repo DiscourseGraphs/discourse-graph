@@ -10,10 +10,10 @@ import { memo, createElement, useEffect } from "react";
 import DiscourseGraphPlugin from "~/index";
 import {
   getFrontmatterForFile,
-  getNodeTypeById,
   FrontmatterRecord,
 } from "./discourseNodeShapeUtils";
 import { resolveLinkedFileFromSrc } from "~/components/canvas/stores/assetStore";
+import { getNodeTypeById } from "~/utils/utils";
 
 export type DiscourseNodeShape = TLBaseShape<
   "discourse-node",

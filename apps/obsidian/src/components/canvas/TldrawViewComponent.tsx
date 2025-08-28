@@ -31,7 +31,6 @@ import { TFile } from "obsidian";
 import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import { DiscourseNodeUtil } from "~/components/canvas/shapes/DiscourseNodeShape";
 import { DiscourseNodeTool } from "./DiscourseNodeTool";
-import { openCreateDiscourseNodeAt } from "./utils/nodeCreationFlow";
 import { DiscourseNodePanel } from "./DiscourseNodePanel";
 
 interface TldrawPreviewProps {
@@ -65,30 +64,7 @@ export const TldrawPreviewComponent = ({
 
   const customTools = [DiscourseNodeTool];
 
-  const svgToDataUrl = (svg: string) =>
-    `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-
-  const [iconUrl, setIconUrl] = useState<string>(() => {
-    const isDark = document.body.classList.contains("theme-dark");
-    const svg = isDark
-      ? WHITE_LOGO_SVG
-      : WHITE_LOGO_SVG.replace('fill="white"', 'fill="black"');
-    return svgToDataUrl(svg);
-  });
-
-  useEffect(() => {
-    const updateIcon = () => {
-      const isDark = document.body.classList.contains("theme-dark");
-      const svg = isDark
-        ? WHITE_LOGO_SVG
-        : WHITE_LOGO_SVG.replace('fill="white"', 'fill="black"');
-      setIconUrl(svgToDataUrl(svg));
-    };
-    const ref = plugin.app.workspace.on("css-change", updateIcon);
-    return () => {
-      if (ref) plugin.app.workspace.offref(ref);
-    };
-  }, [plugin]);
+  const iconUrl = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -183,37 +159,7 @@ export const TldrawPreviewComponent = ({
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="tldraw__editor relative h-full"
-      onDropCapture={(e) => {
-        const editor = editorRef.current;
-        if (!editor) return;
-
-        const nodeTypeId = e.dataTransfer?.getData(
-          "application/x-dg-node-type",
-        );
-        if (!nodeTypeId) return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        const pagePoint = editor.screenToPage({ x: e.clientX, y: e.clientY });
-
-        const nodeType = plugin.settings.nodeTypes.find(
-          (nt) => nt.id === nodeTypeId,
-        );
-        if (!nodeType) return;
-
-        openCreateDiscourseNodeAt({
-          plugin,
-          canvasFile: file,
-          tldrawEditor: editor,
-          position: pagePoint,
-          initialNodeType: nodeType,
-        });
-      }}
-    >
+    <div ref={containerRef} className="tldraw__editor relative h-full">
       {isReady ? (
         <ErrorBoundary
           fallback={({ error }) => (
