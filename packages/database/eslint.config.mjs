@@ -11,6 +11,6 @@ export default [
     },
   },
   {
-    ignores: ["types.gen.ts", "supabase/functions/**"],
+    ignores: ["src/dbTypes.ts", "supabase/functions/**"],
   },
 ];

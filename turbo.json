@@ -42,7 +42,7 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "types.gen.ts"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "src/dbTypes.ts"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -58,7 +58,8 @@
     },
     "deploy": {
       "cache": false,
-      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "dependsOn": ["@repo/database#build"]
     },
     "publish": {
       "cache": false,

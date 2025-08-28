@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { Database } from "@repo/database/types.gen";
+import type { Database } from "@repo/database/dbTypes";
 import { envContents } from "@repo/database/dbDotEnv";
 
 // Inspired by https://supabase.com/ui/docs/nextjs/password-based-auth

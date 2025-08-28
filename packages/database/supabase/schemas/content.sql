@@ -175,7 +175,7 @@ CREATE TYPE public.document_local_input AS (
     author_local_id character varying,
     space_url character varying,
     -- inline values
-    author_inline public."PlatformAccount"
+    author_inline public.account_local_input
 );
 
 CREATE TYPE public.inline_embedding_input AS (
@@ -187,7 +187,6 @@ CREATE TYPE public.content_local_input AS (
     -- content columns
     document_id bigint,
     source_local_id character varying,
-    variant public."ContentVariant",
     author_id bigint,
     creator_id bigint,
     created timestamp without time zone,
@@ -205,9 +204,10 @@ CREATE TYPE public.content_local_input AS (
     space_url character varying,
     -- inline values
     document_inline public.document_local_input,
-    author_inline public."PlatformAccount",
-    creator_inline public."PlatformAccount",
-    embedding_inline public.inline_embedding_input
+    author_inline public.account_local_input,
+    creator_inline public.account_local_input,
+    embedding_inline public.inline_embedding_input,
+    variant public."ContentVariant"
 );
 
 
@@ -228,6 +228,9 @@ BEGIN
   IF data.author_local_id IS NOT NULL THEN
     SELECT id FROM public."PlatformAccount"
       WHERE account_local_id = data.author_local_id INTO document.author_id;
+  ELSIF account_local_id(author_inline(data)) IS NOT NULL THEN
+    SELECT id FROM public."PlatformAccount"
+        WHERE account_local_id = account_local_id(author_inline(data)) INTO document.author_id;
   END IF;
   IF data.space_url IS NOT NULL THEN
     SELECT id FROM public."Space"
@@ -264,10 +267,16 @@ BEGIN
   IF data.creator_local_id IS NOT NULL THEN
     SELECT id FROM public."PlatformAccount"
       WHERE account_local_id = data.creator_local_id INTO content.creator_id;
+  ELSIF account_local_id(creator_inline(data)) IS NOT NULL THEN
+    SELECT id FROM public."PlatformAccount"
+      WHERE account_local_id = account_local_id(creator_inline(data)) INTO content.creator_id;
   END IF;
   IF data.author_local_id IS NOT NULL THEN
     SELECT id FROM public."PlatformAccount"
       WHERE account_local_id = data.author_local_id INTO content.author_id;
+  ELSIF account_local_id(author_inline(data)) IS NOT NULL THEN
+    SELECT id FROM public."PlatformAccount"
+      WHERE account_local_id = account_local_id(author_inline(data)) INTO content.author_id;
   END IF;
   IF data.part_of_local_id IS NOT NULL THEN
     SELECT id FROM public."Content"
@@ -315,6 +324,9 @@ BEGIN
       local_document.author_id := upsert_id;
     END IF;
     db_document := public._local_document_to_db_document(local_document);
+    IF (db_document.author_id IS NULL AND author_inline(local_document) IS NOT NULL) THEN
+      db_document.author_id := upsert_account_in_space(v_space_id, author_inline(local_document));
+    END IF;
     INSERT INTO public."Document" (
         space_id,
         source_local_id,
@@ -374,6 +386,7 @@ COMMENT ON FUNCTION public.upsert_content_embedding IS 'single content embedding
 -- This may trigger creation of PlatformAccounts and Documents appropriately.
 CREATE OR REPLACE FUNCTION public.upsert_content(v_space_id bigint, data jsonb, v_creator_id BIGINT, content_as_document boolean DEFAULT true)
 RETURNS SETOF BIGINT
+SET search_path = ''
 LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -397,7 +410,7 @@ BEGIN
         account_local_id(author_inline(local_content)),
         name(author_inline(local_content))
       ) INTO STRICT upsert_id;
-      local_content.author_id := upsert_id;
+      db_content.author_id := upsert_id;
     END IF;
     IF account_local_id(creator_inline(local_content)) IS NOT NULL THEN
       SELECT public.create_account_in_space(
@@ -405,7 +418,7 @@ BEGIN
         account_local_id(creator_inline(local_content)),
         name(creator_inline(local_content))
       ) INTO STRICT upsert_id;
-      local_content.creator_id := upsert_id;
+      db_content.creator_id := upsert_id;
     END IF;
     IF content_as_document THEN
       db_content.scale = 'document';
@@ -418,7 +431,10 @@ BEGIN
       local_content.document_inline.author_id := db_content.author_id;
     END IF;
     IF source_local_id(document_inline(local_content)) IS NOT NULL THEN
-      db_document := _local_document_to_db_document(document_inline(local_content));
+      db_document := public._local_document_to_db_document(document_inline(local_content));
+      IF (db_document.author_id IS NULL AND author_inline(local_content) IS NOT NULL) THEN
+        db_document.author_id := upsert_account_in_space(v_space_id, author_inline(local_content));
+      END IF;
       INSERT INTO public."Document" (
         space_id,
         source_local_id,

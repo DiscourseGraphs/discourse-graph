@@ -6,13 +6,16 @@ import {
 import { createBlock } from "roamjs-components/writes";
 import { renderLinkedReferenceAdditions } from "~/utils/renderLinkedReferenceAdditions";
 import { createConfigObserver } from "roamjs-components/components/ConfigPage";
-import { renderTldrawCanvas } from "~/components/canvas/Tldraw";
+import {
+  renderTldrawCanvas,
+  renderTldrawCanvasInSidebar,
+} from "~/components/canvas/Tldraw";
 import { renderQueryPage, renderQueryBlock } from "~/components/QueryBuilder";
 import {
   DISCOURSE_CONFIG_PAGE_TITLE,
   renderNodeConfigPage,
 } from "~/utils/renderNodeConfigPage";
-import { isCurrentPageCanvas as isCanvasPage } from "~/utils/isCanvasPage";
+import { isCurrentPageCanvas, isSidebarCanvas } from "~/utils/isCanvasPage";
 import { isDiscourseNodeConfigPage as isNodeConfigPage } from "~/utils/isDiscourseNodeConfigPage";
 import { isQueryPage } from "~/utils/isQueryPage";
 import {
@@ -74,7 +77,8 @@ export const initObservers = async ({
 
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
       else if (isQueryPage(props)) renderQueryPage(props);
-      else if (isCanvasPage(props)) renderTldrawCanvas(props);
+      else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);
+      else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
     },
   });
 
@@ -146,6 +150,8 @@ export const initObservers = async ({
         tabs: configPageTabs(onloadArgs),
       },
     });
+  // refresh config tree after config page is created
+  refreshConfigTree();
 
   const hashChangeListener = (e: Event) => {
     const evt = e as HashChangeEvent;

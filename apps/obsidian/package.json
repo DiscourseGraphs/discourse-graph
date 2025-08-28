@@ -9,7 +9,8 @@
     "build": "tsx scripts/build.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "publish": "tsx scripts/publish-obsidian.ts"
+    "publish": "tsx scripts/publish-obsidian.ts",
+    "check-types": "tsc --noEmit --skipLibCheck"
   },
   "keywords": [],
   "author": "",

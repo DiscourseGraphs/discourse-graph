@@ -9,10 +9,17 @@ import {
   previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
 import {
-  hideFeedbackButton,
-  showFeedbackButton,
-} from "~/components/BirdEatsBugs";
+  showDiscourseFloatingMenu,
+  hideDiscourseFloatingMenu,
+} from "~/components/DiscourseFloatingMenu";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
+import {
+  AUTO_CANVAS_RELATIONS_KEY,
+  DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
+  DISCOURSE_TOOL_SHORTCUT_KEY,
+} from "~/data/userSettings";
+import KeyboardShortcutInput from "./KeyboardShortcutInput";
+import { getSetting, setSetting } from "~/utils/extensionSettings";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -38,6 +45,13 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         />
         <NodeSearchMenuTriggerSetting onloadArgs={onloadArgs} />
       </Label>
+      <KeyboardShortcutInput
+        onloadArgs={onloadArgs}
+        settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
+        label="Discourse Tool Keyboard Shortcut"
+        description="Set a single key to activate the Discourse Tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
+        placeholder="Click to set single key..."
+      />
       <Checkbox
         defaultChecked={
           extensionAPI.settings.get("discourse-context-overlay") as boolean
@@ -127,9 +141,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           extensionAPI.settings.set("hide-feedback-button", target.checked);
 
           if (target.checked) {
-            hideFeedbackButton();
+            hideDiscourseFloatingMenu();
           } else {
-            showFeedbackButton();
+            showDiscourseFloatingMenu();
           }
         }}
         labelElement={
@@ -138,6 +152,48 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             <Description
               description={
                 "Hide the 'Send feedback' button at the bottom right of the screen."
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={
+          extensionAPI.settings.get(AUTO_CANVAS_RELATIONS_KEY) === true
+        }
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          void extensionAPI.settings.set(
+            AUTO_CANVAS_RELATIONS_KEY,
+            target.checked,
+          );
+        }}
+        labelElement={
+          <>
+            Auto Canvas Relations
+            <Description
+              description={
+                "Automatically add discourse relations to canvas when a node is added"
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={getSetting(
+          DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
+          false,
+        )}
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          setSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, target.checked);
+        }}
+        labelElement={
+          <>
+            (BETA) Overlay in Canvas
+            <Description
+              description={
+                "Whether or not to overlay Discourse Context information over Canvas Nodes."
               }
             />
           </>

@@ -3,12 +3,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "noEmit": true,
     "outDir": "dist"
   },
   "include": [
-    ".",
-    "./*",
+    "./src/**/*",
+    "./scripts/**/*",
     "./features/step-definitions/**/*",
     "./features/support/**/*"
   ],

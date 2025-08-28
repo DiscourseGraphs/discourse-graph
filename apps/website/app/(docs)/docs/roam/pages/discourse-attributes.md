@@ -18,7 +18,7 @@ These attributes can be handy for sorting/querying nodes. For instance, if you c
 
 ![](/docs/roam/settings-discourse-attributes.png)
 
-You can add discourse attributes as a column to display and sort/filter by when [Querying your discourse graph](./querying-discourse-graph.md) by adding a `Discourse:{label}` selection.
+You can add discourse attributes as a column to display and sort/filter by when [Querying your discourse graph](./querying-discourse-graph.md) by adding a `discourse:{label}` selection.
 
 For example, in the index for Claims, you can return the Evidence attribute as a column (Select), and then sort in descending order by that attribute.
 

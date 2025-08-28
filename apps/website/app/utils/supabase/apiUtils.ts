@@ -4,11 +4,9 @@ import {
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
 
-import { Database } from "@repo/database/types.gen.ts";
+import type { Database } from "@repo/database/dbTypes";
 import { createClient } from "~/utils/supabase/server";
-import { asPostgrestFailure } from "@repo/ui/lib/supabase/contextFunctions";
-// Temporarily re-exporting because many imports point here. Will be moved to a future packages/utils.
-export { asPostgrestFailure } from "@repo/ui/lib/supabase/contextFunctions";
+import { asPostgrestFailure } from "@repo/database/lib/contextFunctions";
 import cors from "~/utils/llm/cors";
 
 /**

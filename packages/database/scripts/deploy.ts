@@ -72,4 +72,4 @@ const main = () => {
     process.exit(1);
   }
 };
-if (import.meta.url === `file://${process.argv[1]}`) main();
+if (__filename === process.argv[1]) main();
