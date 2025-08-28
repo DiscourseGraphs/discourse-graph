@@ -10,7 +10,8 @@
       "default": "./dist/src/lib/*.js"
     },
     "./dbDotEnv": {
-      "types": "./src/dbDotEnv.d.ts",
+      "types": "./types/dbDotEnv.d.ts",
+      "import": "./src/dbDotEnv.js",
       "require": "./src/dbDotEnv.js",
       "default": "./src/dbDotEnv.js"
     },
@@ -30,7 +31,7 @@
         "dist/src/lib/*.d.ts"
       ],
       "./dbDotEnv": [
-        "dist/src/dbDotEnv.d.ts"
+        "src/dbDotEnv.d.ts"
       ],
       "./dbTypes": [
         "dist/src/dbTypes.d.ts"
@@ -64,7 +65,8 @@
     "@repo/utils": "*",
     "@supabase/auth-js": "2.71.1",
     "@supabase/functions-js": "2.4.5",
-    "@supabase/supabase-js": "2.55.0"
+    "@supabase/supabase-js": "2.55.0",
+    "dotenv": "^16.6.1"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",

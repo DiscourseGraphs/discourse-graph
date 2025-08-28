@@ -12,7 +12,7 @@ const findRoot = () => {
 
 export const getVariant = () => {
   if (process.env.HOME === "/vercel" || process.env.GITHUB_ACTIONS === "true")
-    return null;
+    return "implicit";
   const useDbArgPos = process.argv.indexOf("--use-db");
   const variant =
     (useDbArgPos > 0
@@ -27,7 +27,7 @@ export const getVariant = () => {
 
 export const envFilePath = () => {
   const variant = getVariant();
-  if (variant === null || variant === "none") return null;
+  if (variant === "implicit" || variant === "none") return null;
   const name = join(findRoot(), `.env.${variant}`);
   return existsSync(name) ? name : null;
 };
