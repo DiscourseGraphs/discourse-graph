@@ -74,6 +74,7 @@ const SearchBar = <T,>({
   renderItem,
   asyncSearch,
   disabled = false,
+  className,
 }: {
   onSelect: (item: T | null) => void;
   placeholder?: string;
@@ -81,30 +82,41 @@ const SearchBar = <T,>({
   renderItem?: (item: T, el: HTMLElement) => void;
   asyncSearch: (query: string) => Promise<T[]>;
   disabled?: boolean;
+  className?: string;
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<T | null>(null);
   const plugin = usePlugin();
   const app = plugin.app;
+  const asyncSearchRef = useRef(asyncSearch);
 
   useEffect(() => {
-    if (inputRef.current && app) {
-      const suggest = new GenericSuggest(
-        app,
-        inputRef.current,
-        (item) => {
-          setSelected(item);
-          onSelect(item);
+    asyncSearchRef.current = asyncSearch;
+  }, [asyncSearch]);
+
+  useEffect(() => {
+    if (!inputRef.current || !app) return;
+    const suggest = new GenericSuggest<T>(
+      app,
+      inputRef.current,
+      (item) => {
+        setSelected(item);
+        onSelect(item);
+      },
+      {
+        getItemText: (item: T) => getItemText(item),
+        renderItem: (item: T, el: HTMLElement) => {
+          if (renderItem) {
+            renderItem(item, el);
+            return;
+          }
+          el.setText(getItemText(item));
         },
-        {
-          getItemText,
-          renderItem,
-          asyncSearch,
-        },
-      );
-      return () => suggest.close();
-    }
-  }, [onSelect, app, getItemText, renderItem, asyncSearch]);
+        asyncSearch: (query: string) => asyncSearchRef.current(query),
+      },
+    );
+    return () => suggest.close();
+  }, [app, getItemText, renderItem, onSelect, asyncSearch]);
 
   const clearSelection = useCallback(() => {
     if (inputRef.current) {
@@ -124,7 +136,7 @@ const SearchBar = <T,>({
           selected ? "pr-9" : ""
         } border-modifier-border rounded border bg-${
           selected || disabled ? "secondary" : "primary"
-        } ${disabled ? "cursor-not-allowed opacity-70" : "cursor-text"}`}
+        } ${disabled ? "cursor-not-allowed opacity-70" : "cursor-text"} ${className}`}
         readOnly={!!selected || disabled}
         disabled={disabled}
       />
