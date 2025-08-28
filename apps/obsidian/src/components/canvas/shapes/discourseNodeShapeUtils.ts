@@ -1,7 +1,6 @@
 import type { App, TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import type { DiscourseNode } from "~/types";
-import { resolveLinkedFileFromSrc } from "~/components/canvas/stores/assetStore";
 
 export type FrontmatterRecord = Record<string, unknown>;
 

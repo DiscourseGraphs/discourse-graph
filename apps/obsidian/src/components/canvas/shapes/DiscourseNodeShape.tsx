@@ -10,11 +10,9 @@ import { memo, createElement, useEffect } from "react";
 import DiscourseGraphPlugin from "~/index";
 import {
   getFrontmatterForFile,
-  getNodeTypeIdFromFrontmatter,
   getNodeTypeById,
   FrontmatterRecord,
 } from "./discourseNodeShapeUtils";
-import { DiscourseNode } from "~/types";
 import { resolveLinkedFileFromSrc } from "~/components/canvas/stores/assetStore";
 
 export type DiscourseNodeShape = TLBaseShape<
@@ -148,14 +146,6 @@ const discourseNodeContent = memo(
           });
 
           if (!linkedFile) {
-            editor.updateShape<DiscourseNodeShape>({
-              id: shape.id,
-              type: "discourse-node",
-              props: {
-                ...shape.props,
-                title: "(unlinked)",
-              },
-            });
             return;
           }
 
