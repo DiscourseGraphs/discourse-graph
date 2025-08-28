@@ -3,11 +3,23 @@
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
-  "type": "module",
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": {
+      "types": "./dist/src/*.d.ts",
+      "require": "./dist/src/*.js",
+      "default": "./dist/src/*.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "dist/src/*.d.ts"
+      ]
+    }
   },
   "scripts": {
+    "build": "tsc",
+    "check-types": "tsc --emitDeclarationOnly --skipLibCheck",
     "lint": "eslint ."
   }
 }

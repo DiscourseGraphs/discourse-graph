@@ -3,23 +3,54 @@
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
-  "type": "module",
   "exports": {
-    "./lib/*": "./src/lib/*.ts",
-    "./dbDotEnv": "./src/dbDotEnv.ts",
-    "./dbTypes": "./src/dbTypes.ts",
-    "./inputTypes": "./src/inputTypes.ts"
+    "./lib/*": {
+      "types": "./dist/src/lib/*.d.ts",
+      "require": "./dist/src/lib/*.js",
+      "default": "./dist/src/lib/*.js"
+    },
+    "./dbDotEnv": {
+      "types": "./dist/src/dbDotEnv.d.ts",
+      "require": "./dist/src/dbDotEnv.js",
+      "default": "./dist/src/dbDotEnv.js"
+    },
+    "./dbTypes": {
+      "types": "./dist/src/dbTypes.d.ts",
+      "require": "./dist/src/dbTypes.js",
+      "default": "./dist/src/dbTypes.js"
+    },
+    "./inputTypes": {
+      "types": "./dist/src/inputTypes.d.ts",
+      "default": "./dist/src/inputTypes.d.ts"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "lib/*": [
+        "dist/src/lib/*.d.ts"
+      ],
+      "./dbDotEnv": [
+        "dist/src/dbDotEnv.d.ts"
+      ],
+      "./dbTypes": [
+        "dist/src/dbTypes.d.ts"
+      ],
+      "./inputTypes": [
+        "dist/src/inputTypes.d.ts"
+      ]
+    }
   },
   "scripts": {
     "init": "supabase login",
-    "dev": "supabase start && tsx scripts/createEnv.ts && supabase functions serve",
+    "dev": "supabase start && tsx scripts/createEnv.mts && supabase functions serve",
     "stop": "supabase stop",
-    "check-types": "tsc --noEmit --skipLibCheck",
+    "check-types": "tsc --emitDeclarationOnly --skipLibCheck",
+    "check-schema": "tsx scripts/lint.ts && supabase stop && npm run dbdiff",
     "lint": "eslint . && tsx scripts/lint.ts",
     "lint:fix": "tsx scripts/lint.ts -f",
-    "build": "tsx scripts/build.ts && npm run genenv -- local",
+    "build": "tsc && tsx scripts/build.ts && npm run genenv -- local",
     "test": "tsc && cucumber-js",
-    "genenv": "tsx scripts/createEnv.ts",
+    "genenv": "tsx scripts/createEnv.mts",
     "gentypes:production": "supabase start && supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > src/dbTypes.ts",
     "dbdiff": "supabase stop && supabase db diff",
     "dbdiff:save": "supabase stop && supabase db diff -f",

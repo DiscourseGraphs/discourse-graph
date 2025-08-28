@@ -26,7 +26,7 @@ We follow the Supabase [Declarative Database Schema](https://supabase.com/docs/g
 1. Assuming you're working on a feature branch.
 2. Make changes to the schema, by editing files in `packages/database/supabase/schemas`
 3. If you created a new schema file, make sure to add it to `[db.migrations] schema_paths` in `packages/database/supabase/config.toml`. Schema files are applied in that order, you may need to be strategic in placing your file.
-4. `turbo check-types`, which will do the following:
+4. `turbo check-schema`, which will do the following:
     1. Check your logic with `sqruff lint supabase/schemas`
         1. If there are errors there, you can fix them with `npm run lint:fix`
     2. Stop Supabase.

@@ -32,6 +32,7 @@ import {
   useValue,
   useToasts,
 } from "tldraw";
+import { IKeyCombo } from "@blueprintjs/core";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import createDiscourseNode from "~/utils/createDiscourseNode";
@@ -44,6 +45,10 @@ import { openCanvasDrawer } from "./CanvasDrawer";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import { dispatchToastEvent } from "./ToastListener";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
+import DiscourseGraphPanel from "./DiscourseToolPanel";
+import { convertComboToTldrawFormat } from "~/utils/keyboardShortcutUtils";
+import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
+import { getSetting } from "~/utils/extensionSettings";
 
 const convertToDiscourseNode = async ({
   text,
@@ -224,8 +229,13 @@ export const createUiComponents = ({
       const tools = useTools();
       return (
         <DefaultToolbar {...props}>
+          <TldrawUiMenuItem
+            key="discourse-tool"
+            {...tools["discourse-tool"]}
+            isSelected={useIsToolSelected(tools["discourse-tool"])}
+          />
           <DefaultToolbarContent />
-          {allNodes.map((n) => (
+          {/* {allNodes.map((n) => (
             <TldrawUiMenuItem
               key={n.type}
               {...tools[n.type]}
@@ -248,7 +258,7 @@ export const createUiComponents = ({
               // eslint-disable-next-line react-hooks/rules-of-hooks
               isSelected={useIsToolSelected(tools[action])}
             />
-          ))}
+          ))} */}
         </DefaultToolbar>
       );
     },
@@ -260,13 +270,6 @@ export const createUiComponents = ({
           {allNodes.map((n) => (
             <TldrawUiMenuItem key={n.type} {...tools[n.type]} />
           ))}
-          {/* {allRelationNames.map((name) => (
-            <TldrawUiMenuItem {...tools[name]} />
-          ))}
-          {allAddRefNodeActions.map((action) => (
-            <TldrawUiMenuItem {...tools[action]} />
-          ))}
-          */}
           <TldrawUiMenuItem {...actions["toggle-full-screen"]} />
           <TldrawUiMenuItem {...actions["convert-to"]} />
           <DefaultKeyboardShortcutsDialogContent />
@@ -300,6 +303,13 @@ export const createUiComponents = ({
         </DefaultMainMenu>
       );
     },
+    SharePanel: () => {
+      const allRelations = [
+        ...allRelationNames,
+        ...allAddReferencedNodeActions,
+      ];
+      return <DiscourseGraphPanel nodes={allNodes} relations={allRelations} />;
+    },
   };
 };
 export const createUiOverrides = ({
@@ -320,6 +330,25 @@ export const createUiOverrides = ({
   setConvertToDialogOpen: (open: boolean) => void;
 }): TLUiOverrides => ({
   tools: (editor, tools) => {
+    // Get the custom keyboard shortcut for the discourse tool
+    const discourseToolCombo = getSetting(DISCOURSE_TOOL_SHORTCUT_KEY, {
+      key: "",
+      modifiers: 0,
+    }) as IKeyCombo;
+
+    // For discourse tool, just use the key directly since we don't allow modifiers
+    const discourseToolShortcut = discourseToolCombo?.key?.toUpperCase() || "";
+
+    tools["discourse-tool"] = {
+      id: "discourse-tool",
+      icon: "none",
+      label: "tool.discourse-tool" as TLUiTranslationKey,
+      kbd: discourseToolShortcut,
+      readonlyOk: true,
+      onSelect: () => {
+        editor.setCurrentTool("discourse-tool");
+      },
+    };
     allNodes.forEach((node, index) => {
       const nodeId = node.type;
       tools[nodeId] = {
@@ -418,7 +447,6 @@ export const createUiOverrides = ({
         addToast({ title: "Copied as PNG" });
       },
     };
-    
     // Disable print keyboard binding to prevent conflict with command palette
     if (originalPrintAction) {
       actions["print"] = {
@@ -426,7 +454,6 @@ export const createUiOverrides = ({
         kbd: "", // Remove keyboard shortcut to prevent conflict
       };
     }
-    
     return actions;
   },
   translations: {
@@ -442,6 +469,7 @@ export const createUiOverrides = ({
       //   allAddRefNodeActions.map((name) => [`shape.referenced.${name}`, name])
       // ),
       "action.toggle-full-screen": "Toggle Full Screen",
+      "tool.discourse-tool": "Discourse Graph",
       // "action.convert-to": "Convert to",
       // ...Object.fromEntries(
       //   allNodes.map((node) => [

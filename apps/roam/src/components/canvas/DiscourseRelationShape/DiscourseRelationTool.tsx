@@ -33,6 +33,12 @@ export const createAllReferencedNodeTools = (
         this.Pointing,
       ];
 
+      override onEnter = () => {
+        this.editor.setCursor({
+          type: "cross",
+        });
+      };
+
       static Pointing = class extends StateNode {
         static override id = "pointing";
         shape?: DiscourseRelationShape;
@@ -268,7 +274,7 @@ export const createAllReferencedNodeTools = (
         };
 
         override onEnter = () => {
-          this.editor.setCursor({ type: "cross", rotation: 0 });
+          this.editor.setCursor({ type: "cross" });
         };
 
         override onCancel = () => {
@@ -313,6 +319,12 @@ export const createAllRelationShapeTools = (
         this.Idle,
         this.Pointing,
       ];
+
+      override onEnter = () => {
+        this.editor.setCursor({
+          type: "cross",
+        });
+      };
 
       static Pointing = class extends StateNode {
         static override id = "pointing";

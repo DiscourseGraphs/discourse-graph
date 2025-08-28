@@ -28,6 +28,7 @@ import {
   removeDiscourseFloatingMenu,
 } from "./components/DiscourseFloatingMenu";
 import { initializeSupabaseSync } from "./utils/syncDgNodesToSupabase";
+import { initPluginTimer } from "./utils/pluginTimer";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -92,6 +93,8 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
+  initPluginTimer();
+
   await initializeDiscourseNodes();
   refreshConfigTree();
 
@@ -138,7 +141,7 @@ export default runExtension(async (onloadArgs) => {
     getDiscourseNodes: getDiscourseNodes,
   };
 
-  installDiscourseFloatingMenu(onloadArgs.extensionAPI);
+  installDiscourseFloatingMenu(onloadArgs);
 
   return {
     elements: [
