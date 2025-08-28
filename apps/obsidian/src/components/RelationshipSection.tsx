@@ -148,12 +148,12 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
         const nodeTypeIdsToSearch = compatibleNodeTypes.map((type) => type.id);
 
         const results =
-          await queryEngineRef.current?.searchCompatibleNodeByTitle(
+          await queryEngineRef.current.searchCompatibleNodeByTitle({
             query,
-            nodeTypeIdsToSearch,
+            compatibleNodeTypeIds: nodeTypeIdsToSearch,
             activeFile,
             selectedRelationType,
-          );
+          });
 
         if (results.length === 0 && query.length >= 2) {
           setSearchError(

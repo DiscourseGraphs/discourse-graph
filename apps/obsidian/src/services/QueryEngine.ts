@@ -26,12 +26,61 @@ export class QueryEngine {
     this.app = app;
   }
 
-  async searchCompatibleNodeByTitle(
+  /**
+   * Search across all Discourse Nodes (files that have frontmatter nodeTypeId)
+   */
+  searchDiscourseNodesByTitle = async (
     query: string,
-    compatibleNodeTypeIds: string[],
-    activeFile: TFile,
-    selectedRelationType: string,
-  ): Promise<TFile[]> {
+    nodeTypeId?: string,
+  ): Promise<TFile[]> => {
+    if (!query || query.length < this.MIN_QUERY_LENGTH) {
+      return [];
+    }
+    if (!this.dc) {
+      console.warn(
+        "Datacore API not available. Search functionality is not available.",
+      );
+      return [];
+    }
+
+    try {
+      const dcQuery = nodeTypeId
+        ? `@page and exists(nodeTypeId) and nodeTypeId = "${nodeTypeId}"`
+        : "@page and exists(nodeTypeId)";
+      const potentialNodes = await this.dc.query(dcQuery);
+
+      const searchResults = potentialNodes.filter((p: any) =>
+        this.fuzzySearch(p.$name, query),
+      );
+
+      const files = searchResults
+        .map((dcFile: any) => {
+          if (dcFile && dcFile.$path) {
+            const realFile = this.app.vault.getAbstractFileByPath(dcFile.$path);
+            if (realFile && realFile instanceof TFile) return realFile;
+          }
+          return dcFile as TFile;
+        })
+        .filter((f: TFile | null): f is TFile => Boolean(f));
+
+      return files;
+    } catch (error) {
+      console.error("Error in searchDiscourseNodesByTitle:", error);
+      return [];
+    }
+  };
+
+  searchCompatibleNodeByTitle = async ({
+    query,
+    compatibleNodeTypeIds,
+    activeFile,
+    selectedRelationType,
+  }: {
+    query: string;
+    compatibleNodeTypeIds: string[];
+    activeFile: TFile;
+    selectedRelationType: string;
+  }): Promise<TFile[]> => {
     if (!query || query.length < this.MIN_QUERY_LENGTH) {
       return [];
     }
@@ -96,7 +145,7 @@ export class QueryEngine {
       console.error("Error in searchNodeByTitle:", error);
       return [];
     }
-  }
+  };
 
   /**
    * Enhanced fuzzy search implementation
