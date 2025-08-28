@@ -54,7 +54,8 @@
       "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH"],
       "cache": false,
       "persistent": true,
-      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "dependsOn": ["@repo/database#build"]
     },
     "deploy": {
       "cache": false,
