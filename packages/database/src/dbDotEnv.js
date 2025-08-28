@@ -1,9 +1,8 @@
 import dotenv from "dotenv";
 import { readFileSync, existsSync } from "fs";
 import { join, dirname, basename } from "path";
-import { fileURLToPath } from "url";
 
-const findRoot = (): string => {
+const findRoot = () => {
   let dir = __filename;
   while (basename(dir) !== "database") {
     dir = dirname(dir);
@@ -11,24 +10,24 @@ const findRoot = (): string => {
   return dir;
 };
 
-export const getVariant = (): string | null => {
+export const getVariant = () => {
   if (process.env.HOME === "/vercel" || process.env.GITHUB_ACTIONS === "true")
     return null;
   const useDbArgPos = process.argv.indexOf("--use-db");
   const variant =
     (useDbArgPos > 0
       ? process.argv[useDbArgPos + 1]
-      : process.env["SUPABASE_USE_DB"]) || "local";
+      : process.env["SUPABASE_USE_DB"]) || "none";
 
-  if (["local", "branch", "production"].indexOf(variant) === -1) {
+  if (["local", "branch", "production", "none"].indexOf(variant) === -1) {
     throw new Error("Invalid variant: " + variant);
   }
   return variant;
 };
 
 export const envFilePath = () => {
-  const variant: string | null = getVariant();
-  if (variant === null) return null;
+  const variant = getVariant();
+  if (variant === null || variant === "none") return null;
   const name = join(findRoot(), `.env.${variant}`);
   return existsSync(name) ? name : null;
 };

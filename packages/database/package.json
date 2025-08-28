@@ -10,9 +10,9 @@
       "default": "./dist/src/lib/*.js"
     },
     "./dbDotEnv": {
-      "types": "./dist/src/dbDotEnv.d.ts",
-      "require": "./dist/src/dbDotEnv.js",
-      "default": "./dist/src/dbDotEnv.js"
+      "types": "./src/dbDotEnv.d.ts",
+      "require": "./src/dbDotEnv.js",
+      "default": "./src/dbDotEnv.js"
     },
     "./dbTypes": {
       "types": "./dist/src/dbTypes.d.ts",
@@ -42,7 +42,9 @@
   },
   "scripts": {
     "init": "supabase login",
-    "dev": "supabase start && tsx scripts/createEnv.mts && supabase functions serve",
+    "dev": "tsx scripts/dev.ts",
+    "compile": "tsc",
+    "serve": "supabase start && tsx scripts/createEnv.mts && supabase functions serve",
     "stop": "supabase stop",
     "check-types": "tsc --emitDeclarationOnly --skipLibCheck",
     "check-schema": "tsx scripts/lint.ts && supabase stop && npm run dbdiff",

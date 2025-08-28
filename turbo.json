@@ -40,7 +40,7 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["@repo/database#build-schema", "^build"],
+      "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
@@ -59,13 +59,11 @@
       "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH"],
       "cache": false,
       "persistent": true,
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "dependsOn": ["@repo/database#build"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
     "deploy": {
       "cache": false,
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "dependsOn": ["@repo/database#build"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
     "publish": {
       "cache": false,
