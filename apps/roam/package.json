@@ -41,6 +41,7 @@
     "@supabase/functions-js": "2.4.5",
     "@supabase/supabase-js": "2.55.0",
     "@tldraw/editor": "2.3.0",
+    "@tldraw/state": "2.3.0",
     "@tldraw/utils": "2.3.0",
     "@tldraw/validate": "2.3.0",
     "@use-gesture/react": "^10.2.27",

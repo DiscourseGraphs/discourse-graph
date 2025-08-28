@@ -13,6 +13,9 @@
     "outDir": "dist",
     "allowJs": false,
     "noUncheckedIndexedAccess": false,
-    "types": ["react", "react-dom"]
+    "types": ["react", "react-dom"],
+    "paths": {
+      "~/*": ["./src/*"]
+    }
   }
 }
