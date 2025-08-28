@@ -1,11 +1,17 @@
 This contains the database schema for vector embeddings and concepts.
 
-There are three usage scenarios:
+There are four usage scenarios:
+
+## Developing without the database
+
+Your frontend will not use the database.
+Optional: Set `SUPABASE_USE_DB=none` in your console before running `turbo dev`. (This is now the default.)
 
 ## Local development setup
 
 Normal scenario: Your backend and frontend will work against a database instance within docker.
 It does mean you will have a fresh database with minimal data.
+Set `SUPABASE_USE_DB=local` in your console before running `turbo dev`.
 
 ### Installation
 
