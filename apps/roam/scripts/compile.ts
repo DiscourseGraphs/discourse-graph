@@ -3,11 +3,11 @@ import fs from "fs";
 import path from "path";
 import { z } from "zod";
 
-const getVersion = (root: string): string => {
+const getVersion = (): string => {
   try {
     const packageJson = JSON.parse(
-      fs.readFileSync(path.join(root, "package.json"), "utf8"),
-    );
+      fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
+    ) as { version?: string };
     return packageJson.version || "-";
   } catch (error) {
     console.warn("Failed to read version from package.json:", error);
@@ -162,7 +162,7 @@ export const compile = ({
         "process.env.SUPABASE_URL": `"${dbEnv.SUPABASE_URL}"`,
         "process.env.SUPABASE_ANON_KEY": `"${dbEnv.SUPABASE_ANON_KEY}"`,
         "process.env.NEXT_API_ROOT": `"${dbEnv.NEXT_API_ROOT || ""}"`,
-        "window.__DISCOURSE_GRAPH_VERSION__": `"${getVersion(root)}"`,
+        "window.__DISCOURSE_GRAPH_VERSION__": `"${getVersion()}"`,
         "window.__DISCOURSE_GRAPH_BUILD_DATE__": `"${getBuildDate()}"`,
       },
       sourcemap: process.env.NODE_ENV === "production" ? undefined : "inline",
