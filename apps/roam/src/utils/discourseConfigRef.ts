@@ -7,6 +7,10 @@ import {
 } from "./getExportSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import {
+  getSuggestiveModeConfigAndUids,
+  SuggestiveModeConfigWithUids,
+} from "./getSuggestiveModeConfigSettings";
 
 const configTreeRef: {
   tree: RoamBasicNode[];
@@ -21,6 +25,7 @@ type FormattedConfigTree = {
   trigger: StringSetting;
   export: ExportConfigWithUids;
   canvasPageFormat: StringSetting;
+  suggestiveMode: SuggestiveModeConfigWithUids;
 };
 
 export const getFormattedConfigTree = (): FormattedConfigTree => {
@@ -47,6 +52,7 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
       tree: configTreeRef.tree,
       text: "Canvas Page Format",
     }),
+    suggestiveMode: getSuggestiveModeConfigAndUids(configTreeRef.tree),
   };
 };
 export default configTreeRef;
