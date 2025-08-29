@@ -73,18 +73,6 @@ export const getAllDiscourseNodesSince = async (
   const sinceMs = new Date(since).getTime();
   const result: RoamDiscourseNodeData[] = [];
 
-  if (nodeTypes.length > 0) {
-    for (const node of nodeTypes) {
-      const blockNode = getDiscourseNodeTypeWithSettingsBlockNodes(
-        node,
-        sinceMs,
-      );
-      if (blockNode) {
-        result.push(...blockNode);
-      }
-    }
-  }
-
   const query = `[
   :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name
   :keys text source_local_id created last_modified author_local_id author_name
@@ -108,7 +96,6 @@ export const getAllDiscourseNodesSince = async (
   )) as unknown as RoamDiscourseNodeData[];
 
   const discourseNodes = getDiscourseNodes();
-  const nodeTypesSet = new Set(nodeTypes.map((nodeType) => nodeType.type));
 
   result.push(
     ...allNodes.flatMap((entity) => {
@@ -120,8 +107,7 @@ export const getAllDiscourseNodesSince = async (
         !node ||
         node.backedBy === "default" ||
         !entity.text ||
-        entity.text.trim() === "" ||
-        nodeTypesSet.has(node.type)
+        entity.text.trim() === ""
       ) {
         return [];
       }
@@ -133,6 +119,18 @@ export const getAllDiscourseNodesSince = async (
       ];
     }),
   );
+
+  if (nodeTypes.length > 0) {
+    for (const node of nodeTypes) {
+      const blockNode = getDiscourseNodeTypeWithSettingsBlockNodes(
+        node,
+        sinceMs,
+      );
+      if (blockNode) {
+        result.push(...blockNode);
+      }
+    }
+  }
   return result;
 };
 

@@ -13,6 +13,10 @@ import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import getSubTree from "roamjs-components/util/getSubTree";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import extractRef from "roamjs-components/util/extractRef";
+import { getDiscourseNodeTypeWithSettingsBlockNodes } from "~/utils/getAllDiscourseNodesSince";
+import { upsertNodesToSupabaseAsContentWithEmbeddings } from "~/utils/syncDgNodesToSupabase";
+import { discourseNodeBlockToLocalConcept } from "~/utils/conceptConversion";
+import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,6 +73,41 @@ const DiscourseNodeSuggestiveRules = ({
     [],
   );
 
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleUpdateEmbeddings = async () => {
+    setIsUpdating(true);
+    const blockNodesSince = getDiscourseNodeTypeWithSettingsBlockNodes(node, 0);
+    const supabaseClient = await getLoggedInClient();
+    const context = await getSupabaseContext();
+    if (context && blockNodesSince) {
+      await upsertNodesToSupabaseAsContentWithEmbeddings(
+        blockNodesSince,
+        supabaseClient,
+        context,
+      );
+      const nodeBlockToLocalConcepts = blockNodesSince.map((node) => {
+        const localConcept = discourseNodeBlockToLocalConcept(context, {
+          nodeUid: node.source_local_id,
+          schemaUid: node.type,
+          text: node.node_title ? `${node.node_title} ${node.text}` : node.text,
+        });
+        return localConcept;
+      });
+
+      const { error } = await supabaseClient.rpc("upsert_concepts", {
+        data: nodeBlockToLocalConcepts,
+        v_space_id: context.spaceId,
+      });
+      if (error) {
+        throw new Error(
+          `upsert_concepts failed: ${JSON.stringify(error, null, 2)}`,
+        );
+      }
+    }
+    setIsUpdating(false);
+  };
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <BlocksPanel
@@ -84,10 +123,10 @@ const DiscourseNodeSuggestiveRules = ({
         title="Embedding Block Ref"
         description="Copy block ref from template which you want to be embedded and ranked."
         order={0}
-        uid={node.embeddingRefUid || ""}
+        uid={node.embeddingRefUid}
         parentUid={parentUid}
-        Value={node.embeddingRef || ""}
-        defaultValue={node.embeddingRef || ""}
+        value={node.embeddingRef}
+        defaultValue={node.embeddingRef}
         options={{
           placeholder: "((block-uid))",
           onChange: handleEmbeddingRefChange,
@@ -113,7 +152,8 @@ const DiscourseNodeSuggestiveRules = ({
       <Button
         text="Update Embeddings"
         intent={Intent.NONE}
-        onClick={() => console.log("Not implemented")}
+        onClick={() => void handleUpdateEmbeddings()}
+        loading={isUpdating}
         className="w-52"
       />
     </div>
