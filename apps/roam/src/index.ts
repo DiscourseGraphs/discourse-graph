@@ -27,7 +27,7 @@ import {
   installDiscourseFloatingMenu,
   removeDiscourseFloatingMenu,
 } from "./components/DiscourseFloatingMenu";
-import { createOrUpdateDiscourseEmbedding } from "./utils/syncDgNodesToSupabase";
+import { initializeSupabaseSync } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
 
 const initPostHog = () => {
@@ -125,6 +125,8 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
+  await initializeSupabaseSync();
+
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>
@@ -140,9 +142,6 @@ export default runExtension(async (onloadArgs) => {
     // @ts-ignore - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
   };
-
-  // TODO: REMOVE AFTER TESTING
-  // await createOrUpdateDiscourseEmbedding(onloadArgs.extensionAPI);
 
   installDiscourseFloatingMenu(onloadArgs);
 

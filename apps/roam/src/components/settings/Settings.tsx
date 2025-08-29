@@ -25,6 +25,8 @@ import sendErrorEmail from "~/utils/sendErrorEmail";
 import HomePersonalSettings from "./HomePersonalSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
+import SuggestiveModeSettings from "./SuggestiveModeSettings";
+import { getVersionWithDate } from "~/utils/getVersion";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -160,6 +162,12 @@ export const SettingsDialog = ({
             className="overflow-y-auto"
             panel={<DiscourseGraphExport />}
           />
+          <Tab
+            id="suggestive-mode-settings"
+            title="Suggestive Mode"
+            className="overflow-y-auto"
+            panel={<SuggestiveModeSettings />}
+          />
           <SectionHeader>Grammar</SectionHeader>
           <Tab
             id="discourse-relations"
@@ -230,17 +238,23 @@ export const SettingsDialog = ({
           />
         </Tabs>
       </div>
-      <Button
-        icon="send-message"
-        intent={Intent.PRIMARY}
-        onClick={() => {
-          const birdeatsbug = window.birdeatsbug as FeedbackWidget;
-          birdeatsbug.trigger?.();
-        }}
-        className="absolute bottom-4 left-4"
-      >
-        Send Feedback
-      </Button>
+      <div className="absolute bottom-4 left-4 flex items-center gap-4">
+        <Button
+          icon="send-message"
+          intent={Intent.PRIMARY}
+          onClick={() => {
+            const birdeatsbug = window.birdeatsbug as FeedbackWidget;
+            birdeatsbug.trigger?.();
+          }}
+        >
+          Send Feedback
+        </Button>
+      </div>
+      <div className="absolute bottom-4 right-4">
+        <span className="text-xs text-gray-500">
+          v{getVersionWithDate().version}-{getVersionWithDate().buildDate}
+        </span>
+      </div>
       {/* <Button
         icon="cross"
         minimal

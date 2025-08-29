@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import findDiscourseNode from "./findDiscourseNode";
-import { type OnloadArgs } from "roamjs-components/types";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import { extractRef } from "roamjs-components/util";
 
 type ISODateString = string;
 
@@ -25,17 +25,10 @@ export type DiscourseNodesSinceResult = {
 export const getDiscourseNodeTypeWithSettingsBlockNodes = (
   node: DiscourseNode,
   sinceMs: number,
-  extensionAPI: OnloadArgs["extensionAPI"],
 ): RoamDiscourseNodeData[] => {
-  const settingsKey = `discourse-graph-node-rule-${node.type}`;
-  const settings = extensionAPI.settings.get(settingsKey) as {
-    embeddingRef: string;
-    isFirstChild: boolean;
-  };
   const regex = getDiscourseNodeFormatExpression(node.format);
   const regexPattern = regex.source.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  const firstChildUid =
-    settings.embeddingRef?.match(/\(\((.*?)\)\)/)?.[1] ?? "";
+  const firstChildUid = extractRef(node.embeddingRef);
   const queryBlock = `[
       :find ?childString ?nodeUid        ?nodeCreateTime ?nodeEditTime ?author_local_id ?type ?author_name ?node-title
       :keys text         source_local_id created         last_modified author_local_id   type author_name  node_title
@@ -76,23 +69,9 @@ export const getDiscourseNodeTypeWithSettingsBlockNodes = (
 export const getAllDiscourseNodesSince = async (
   since: ISODateString,
   nodeTypes: DiscourseNode[],
-  extensionAPI: OnloadArgs["extensionAPI"],
 ): Promise<RoamDiscourseNodeData[]> => {
   const sinceMs = new Date(since).getTime();
   const result: RoamDiscourseNodeData[] = [];
-
-  if (nodeTypes.length > 0) {
-    for (const node of nodeTypes) {
-      const blockNode = getDiscourseNodeTypeWithSettingsBlockNodes(
-        node,
-        sinceMs,
-        extensionAPI,
-      );
-      if (blockNode) {
-        result.push(...blockNode);
-      }
-    }
-  }
 
   const query = `[
   :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name
@@ -117,7 +96,6 @@ export const getAllDiscourseNodesSince = async (
   )) as unknown as RoamDiscourseNodeData[];
 
   const discourseNodes = getDiscourseNodes();
-  const nodeTypesSet = new Set(nodeTypes.map((nodeType) => nodeType.type));
 
   result.push(
     ...allNodes.flatMap((entity) => {
@@ -129,8 +107,7 @@ export const getAllDiscourseNodesSince = async (
         !node ||
         node.backedBy === "default" ||
         !entity.text ||
-        entity.text.trim() === "" ||
-        nodeTypesSet.has(node.type)
+        entity.text.trim() === ""
       ) {
         return [];
       }
@@ -142,6 +119,18 @@ export const getAllDiscourseNodesSince = async (
       ];
     }),
   );
+
+  if (nodeTypes.length > 0) {
+    for (const node of nodeTypes) {
+      const blockNode = getDiscourseNodeTypeWithSettingsBlockNodes(
+        node,
+        sinceMs,
+      );
+      if (blockNode) {
+        result.push(...blockNode);
+      }
+    }
+  }
   return result;
 };
 

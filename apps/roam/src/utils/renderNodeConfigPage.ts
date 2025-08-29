@@ -24,6 +24,7 @@ import {
 } from "~/components";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { render as configPageRender } from "roamjs-components/components/ConfigPage";
+import DiscourseNodeSuggestiveRules from "~/components/settings/DiscourseNodeSuggestiveRules";
 
 export const DISCOURSE_CONFIG_PAGE_TITLE = "roam/js/discourse-graph";
 export const NODE_CONFIG_PAGE_TITLE = "discourse-graph/nodes/";
@@ -147,6 +148,18 @@ export const renderNodeConfigPage = ({
             description: `Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification.`,
             defaultValue: true,
           } as FieldPanel<FlagField>,
+          // @ts-ignore
+          {
+            title: "Suggestive Rules",
+            Panel: CustomPanel,
+            options: {
+              component: ({ uid }) =>
+                React.createElement(DiscourseNodeSuggestiveRules, {
+                  node,
+                  parentUid: uid,
+                }),
+            },
+          } as Field<CustomField>,
         ],
       });
 

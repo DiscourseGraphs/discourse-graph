@@ -16,14 +16,16 @@ import {
   discourseNodeSchemaToLocalConcept,
   orderConceptsByDependency,
 } from "./conceptConversion";
-import { type OnloadArgs } from "roamjs-components/types";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
+import { getRoamUrl } from "roamjs-components/dom";
+import { render as renderToast } from "roamjs-components/components/Toast";
 // https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
 type LocalContentDataInput = any;
 type DGSupabaseClient = any;
 type Json = any;
 type AccountLocalInput = any;
+const { createClient } = require("@repo/database/lib/client");
 
 const SYNC_FUNCTION = "embedding";
 const SYNC_INTERVAL = "45s";
@@ -57,9 +59,37 @@ export const endSyncTask = async (
     });
     if (error) {
       console.error("endSyncTask: Error calling end_sync_task:", error);
+      renderToast({
+        id: "discourse-embedding-error",
+        content: "Failed to complete discourse node embeddings sync",
+        intent: "danger",
+        timeout: 5000,
+      });
+    } else {
+      if (status === "complete") {
+        renderToast({
+          id: "discourse-embedding-complete",
+          content: "Successfully completed discourse node embeddings sync",
+          intent: "success",
+          timeout: 4000,
+        });
+      } else if (status === "failed") {
+        renderToast({
+          id: "discourse-embedding-failed",
+          content: "Discourse node embeddings sync failed",
+          intent: "danger",
+          timeout: 5000,
+        });
+      }
     }
   } catch (error) {
     console.error("endSyncTask: Error calling end_sync_task:", error);
+    renderToast({
+      id: "discourse-embedding-error",
+      content: "Failed to complete discourse node embeddings sync",
+      intent: "danger",
+      timeout: 5000,
+    });
   }
 };
 
@@ -109,9 +139,6 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
       const now = new Date();
 
       if (timestamp > now) {
-        console.log(
-          "proposeSyncTask: Another worker is already running this task",
-        );
         return { lastUpdateTime: null, spaceId, worker, shouldProceed: false };
       } else {
         return { lastUpdateTime: data, spaceId, worker, shouldProceed: true };
@@ -293,19 +320,12 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
 };
 
-const getDgNodeTypes = (extensionAPI: OnloadArgs["extensionAPI"]) => {
+const getDgNodeTypes = () => {
   const allDgNodeTypes = getDiscourseNodes().filter(
     (n) => n.backedBy === "user",
   );
   const dgNodeTypesWithSettings = allDgNodeTypes.filter((n) => {
-    const settingsKey = `discourse-graph-node-rule-${n.type}`;
-    const settings = extensionAPI.settings.get(settingsKey) as
-      | {
-          isFirstChild?: boolean;
-          embeddingRef?: string;
-        }
-      | undefined;
-    return settings?.isFirstChild || settings?.embeddingRef;
+    return n.isFirstChild?.value || n.embeddingRef !== undefined;
   });
   return { allDgNodeTypes, dgNodeTypesWithSettings };
 };
@@ -345,28 +365,21 @@ const upsertUsers = async (
   }
 };
 
-export const createOrUpdateDiscourseEmbedding = async (
-  extensionAPI: OnloadArgs["extensionAPI"],
-) => {
+export const createOrUpdateDiscourseEmbedding = async () => {
   const { shouldProceed, lastUpdateTime, worker } = await proposeSyncTask();
 
   if (!shouldProceed) {
-    console.log(
-      "createOrUpdateDiscourseEmbedding: Task already running or failed to acquire lock. Exiting.",
-    );
     return;
   }
 
   try {
     const allUsers = await getAllUsers();
     const time = lastUpdateTime === null ? DEFAULT_TIME : lastUpdateTime;
-    const { allDgNodeTypes, dgNodeTypesWithSettings } =
-      getDgNodeTypes(extensionAPI);
+    const { allDgNodeTypes, dgNodeTypesWithSettings } = getDgNodeTypes();
 
     const allNodeInstances = await getAllDiscourseNodesSince(
       time,
       dgNodeTypesWithSettings,
-      extensionAPI,
     );
     const supabaseClient = await getLoggedInClient();
     const context = await getSupabaseContext();
@@ -394,5 +407,19 @@ export const createOrUpdateDiscourseEmbedding = async (
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
     await endSyncTask(worker, "failed");
     throw error;
+  }
+};
+
+export const initializeSupabaseSync = async () => {
+  const supabase = createClient();
+  const result = await supabase
+    .from("Space")
+    .select()
+    .eq("url", getRoamUrl())
+    .maybeSingle();
+  if (!result.data) {
+    return;
+  } else {
+    createOrUpdateDiscourseEmbedding();
   }
 };
