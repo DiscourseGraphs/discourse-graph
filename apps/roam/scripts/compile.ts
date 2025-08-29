@@ -2,6 +2,22 @@ import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
+
+const getVersion = (): string => {
+  try {
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
+    );
+    return packageJson.version || "unknown";
+  } catch (error) {
+    console.warn("Failed to read version from package.json:", error);
+    return "unknown";
+  }
+};
+
+const getBuildDate = (): string => {
+  return new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+};
 let envContents = null;
 
 try {
@@ -146,6 +162,8 @@ export const compile = ({
         "process.env.SUPABASE_URL": `"${dbEnv.SUPABASE_URL}"`,
         "process.env.SUPABASE_ANON_KEY": `"${dbEnv.SUPABASE_ANON_KEY}"`,
         "process.env.NEXT_API_ROOT": `"${dbEnv.NEXT_API_ROOT || ""}"`,
+        "window.__DISCOURSE_GRAPH_VERSION__": `"${getVersion()}"`,
+        "window.__DISCOURSE_GRAPH_BUILD_DATE__": `"${getBuildDate()}"`,
       },
       sourcemap: process.env.NODE_ENV === "production" ? undefined : "inline",
       minify: process.env.NODE_ENV === "production",
