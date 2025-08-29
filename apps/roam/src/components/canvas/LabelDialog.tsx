@@ -52,6 +52,7 @@ const LabelDialogAutocomplete = ({
   format: string;
   label: string;
 }) => {
+  const requestIdRef = useRef(0);
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<Result[]>([]);
   const [referencedNodeOptions, setReferencedNodeOptions] = useState<Result[]>(
@@ -62,9 +63,10 @@ const LabelDialogAutocomplete = ({
   const [isEditExistingLabel, setIsEditExistingLabel] = useState(false);
   const [content, setContent] = useState(label);
   useEffect(() => {
+    let alive = true;
+    const req = ++requestIdRef.current;
+    setIsLoading(true);
     const fetchOptions = async () => {
-      setIsLoading(true);
-
       try {
         // Fetch main options
         if (nodeType) {
@@ -82,7 +84,7 @@ const LabelDialogAutocomplete = ({
               },
             ],
           });
-          setOptions(results);
+          if (requestIdRef.current === req && alive) setOptions(results);
         }
 
         // Fetch referenced node options if needed
@@ -101,16 +103,23 @@ const LabelDialogAutocomplete = ({
               },
             ],
           });
-          setReferencedNodeOptions(results);
+          if (requestIdRef.current === req && alive) {
+            setReferencedNodeOptions(results);
+          }
         }
       } catch (error) {
-        console.error("Error fetching options:", error);
+        if (requestIdRef.current === req && alive) {
+          console.error("Error fetching options:", error);
+        }
       } finally {
-        setIsLoading(false);
+        if (requestIdRef.current === req && alive) setIsLoading(false);
       }
     };
 
     void fetchOptions();
+    return () => {
+      alive = false;
+    };
   }, [nodeType, isAddReferencedNode, referencedNode]);
 
   const inputDivRef = useRef<HTMLDivElement>(null);
