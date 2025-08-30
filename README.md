@@ -1,3 +1,9 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/69705f59-03d8-4b9b-898f-ad32188b6d05">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/07732ca9-fd37-4e78-8326-086ec3f35d12">
+  <img alt="Shows project promo image in light and dark mode">
+</picture>
+
 Welcome to the monorepo for [Discourse Graphs](https://discoursegraphs.com). Discourse Graphs serve as a tool and ecosystem for collaborative knowledge synthesis.
 
 ## Local development
