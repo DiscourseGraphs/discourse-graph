@@ -210,6 +210,7 @@ export const DiscourseNodePanel = ({
       if (!editorContainer || !target) return;
       if (!editorContainer.contains(target)) return;
       if (panelEl.contains(target)) return;
+      if (target.closest(".suggestion-container")) return;
       if (target.closest("[class^='tlui-']")) return;
 
       const screenPoint = new Vec(e.clientX, e.clientY);
