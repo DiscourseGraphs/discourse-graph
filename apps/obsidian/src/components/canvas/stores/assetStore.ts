@@ -12,6 +12,48 @@ type AssetStoreOptions = {
 };
 
 /**
+ * Create a wikilink + block reference at the top of the provided canvas markdown file
+ * that points to the provided linked file, and return an asset-style src that encodes
+ * the generated block ref id (e.g., `asset:obsidian.blockref.<id>`).
+ *
+ * This mirrors how media assets are added/resolved in the ObsidianTLAssetStore, but
+ * for arbitrarily linked markdown files. Shapes can store the returned `src` and use
+ * `resolveLinkedFileFromSrc` to obtain the `TFile` later.
+ */
+export const addWikilinkBlockrefForFile = async ({
+  app,
+  canvasFile,
+  linkedFile,
+}: {
+  app: App;
+  canvasFile: TFile;
+  linkedFile: TFile;
+}): Promise<string> => {
+  const blockRefId = crypto.randomUUID();
+  const linkText = app.metadataCache.fileToLinktext(
+    linkedFile,
+    canvasFile.path,
+  );
+  const content = `[[${linkText}]]\n^${blockRefId}`;
+
+  await app.vault.process(canvasFile, (data: string) => {
+    const fileCache = app.metadataCache.getFileCache(canvasFile);
+    const { start, end } =
+      fileCache?.frontmatterPosition ??
+      ({
+        start: { offset: 0 },
+        end: { offset: 0 },
+      } as { start: { offset: number }; end: { offset: number } });
+
+    const frontmatter = data.slice(start.offset, end.offset);
+    const rest = data.slice(end.offset);
+    return `${frontmatter}\n${content}\n${rest}`;
+  });
+
+  return `asset:${ASSET_PREFIX}${blockRefId}`;
+};
+
+/**
  * Extract the block reference id from either an asset src string (e.g.,
  * `asset:obsidian.blockref.<id>`) or from the internal asset id with the
  * `obsidian.blockref.` prefix. Returns null if the input is not a blockref.
