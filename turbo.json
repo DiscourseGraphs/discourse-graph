@@ -61,7 +61,7 @@
       "persistent": true,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "dependsOn": [
-        "@repo/database#build",
+        "@repo/utils#build",
         "@repo/ui#build",
         "@repo/database#build"
       ]
