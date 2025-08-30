@@ -7,7 +7,6 @@ const projectRoot = join(__dirname, "..");
 
 if (process.env.HOME !== "/vercel") {
   try {
-    execSync("npm run compile", { cwd: projectRoot, stdio: "inherit" });
     if (getVariant() === "none") {
       console.log("Not using the database");
       process.exit(0);
