@@ -20,7 +20,6 @@ import {
   TLData,
   processInitialData,
 } from "~/components/canvas/utils/tldraw";
-import DiscourseGraphPlugin from "~/index";
 import {
   DEFAULT_SAVE_DELAY,
   TLDATA_DELIMITER_END,
@@ -32,17 +31,16 @@ import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import { DiscourseNodeUtil } from "~/components/canvas/shapes/DiscourseNodeShape";
 import { DiscourseNodeTool } from "./DiscourseNodeTool";
 import { DiscourseNodePanel } from "./DiscourseNodePanel";
+import { usePlugin } from "~/components/PluginContext";
 
 interface TldrawPreviewProps {
   store: TLStore;
-  plugin: DiscourseGraphPlugin;
   file: TFile;
   assetStore: ObsidianTLAssetStore;
 }
 
 export const TldrawPreviewComponent = ({
   store,
-  plugin,
   file,
   assetStore,
 }: TldrawPreviewProps) => {
@@ -52,6 +50,7 @@ export const TldrawPreviewComponent = ({
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedDataRef = useRef<string>("");
   const editorRef = useRef<Editor>();
+  const plugin = usePlugin();
 
   const customShapeUtils = [
     ...defaultShapeUtils,
