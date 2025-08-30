@@ -51,7 +51,7 @@ export const endSyncTask = async (
     }
     const { error } = await supabaseClient.rpc("end_sync_task", {
       s_target: context.spaceId,
-      s_function: "embedding",
+      s_function: SYNC_FUNCTION,
       s_worker: worker,
       s_status: status,
     });
