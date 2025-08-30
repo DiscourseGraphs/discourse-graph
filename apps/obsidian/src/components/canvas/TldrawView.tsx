@@ -151,7 +151,6 @@ export class TldrawView extends TextFileView {
         <PluginProvider plugin={this.plugin}>
           <TldrawPreviewComponent
             store={store}
-            plugin={this.plugin}
             file={this.file}
             assetStore={this.assetStore}
           />

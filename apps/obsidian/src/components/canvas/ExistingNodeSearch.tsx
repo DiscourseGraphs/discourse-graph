@@ -6,7 +6,6 @@ import { QueryEngine } from "~/services/QueryEngine";
 import SearchBar from "~/components/SearchBar";
 import { addWikilinkBlockrefForFile } from "./stores/assetStore";
 import { getFrontmatterForFile } from "./shapes/discourseNodeShapeUtils";
-import { DiscourseNode } from "~/types";
 
 export const ExistingNodeSearch = ({
   plugin,
@@ -23,7 +22,7 @@ export const ExistingNodeSearch = ({
 
   const search = useCallback(
     async (query: string) => {
-      return engine.searchDiscourseNodesByTitle(query, nodeTypeId);
+      return await engine.searchDiscourseNodesByTitle(query, nodeTypeId);
     },
     [engine, nodeTypeId],
   );
