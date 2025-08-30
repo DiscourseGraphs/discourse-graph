@@ -60,11 +60,7 @@
       "cache": false,
       "persistent": true,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "dependsOn": [
-        "@repo/utils#build",
-        "@repo/ui#build",
-        "@repo/database#build"
-      ]
+      "dependsOn": ["^build"]
     },
     "deploy": {
       "cache": false,
