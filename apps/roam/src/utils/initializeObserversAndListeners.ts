@@ -24,6 +24,7 @@ import {
   getPageRefObserversSize,
   previewPageRefHandler,
   overlayPageRefHandler,
+  getSuggestiveOverlayHandler,
 } from "~/utils/pageRefObserverHandlers";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
@@ -140,6 +141,9 @@ export const initObservers = async ({
     addPageRefObserver(previewPageRefHandler);
   if (onloadArgs.extensionAPI.settings.get("discourse-context-overlay")) {
     addPageRefObserver((s) => overlayPageRefHandler(s, onloadArgs));
+  }
+  if (onloadArgs.extensionAPI.settings.get("suggestive-mode-overlay")) {
+    addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
   if (!!getPageRefObserversSize()) enablePageRefObserver();
 

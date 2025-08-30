@@ -42,7 +42,7 @@ export const DiscourseSuggestionsPanel = ({
       }}
       onMouseEnter={() => toggleHighlight(true)}
       onMouseLeave={() => toggleHighlight(false)}
-      className="roamjs-discourse-suggestions-panel"
+      className="discourse-suggestions-panel"
     >
       <Navbar
         style={{
