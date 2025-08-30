@@ -12,6 +12,7 @@ import DiscourseGraphPlugin from "~/index";
 import { openCreateDiscourseNodeAt } from "./utils/nodeCreationFlow";
 import { getNodeTypeById } from "~/utils/utils";
 import { useEffect } from "react";
+import { ExistingNodeSearch } from "./ExistingNodeSearch";
 
 export const DiscourseNodePanel = ({
   plugin,
@@ -25,8 +26,8 @@ export const DiscourseNodePanel = ({
   const rDraggingImage = React.useRef<HTMLDivElement>(null);
   const didDragRef = React.useRef(false);
   const [focusedNodeTypeId, setFocusedNodeTypeId] = React.useState<
-    string | null
-  >(null);
+    string | undefined
+  >(undefined);
 
   type DragState =
     | { name: "idle" }
@@ -187,7 +188,7 @@ export const DiscourseNodePanel = ({
   useEffect(() => {
     if (!focusedNodeTypeId) return;
     const exists = !!getNodeTypeById(plugin, focusedNodeTypeId);
-    if (!exists) setFocusedNodeTypeId(null);
+    if (!exists) setFocusedNodeTypeId(undefined);
   }, [focusedNodeTypeId, plugin]);
 
   const focusedNodeType = focusedNodeTypeId
@@ -209,13 +210,14 @@ export const DiscourseNodePanel = ({
       if (!editorContainer || !target) return;
       if (!editorContainer.contains(target)) return;
       if (panelEl.contains(target)) return;
+      if (target.closest(".suggestion-container")) return;
       if (target.closest("[class^='tlui-']")) return;
 
       const screenPoint = new Vec(e.clientX, e.clientY);
       const pagePoint = editor.screenToPage(screenPoint);
       const nodeType = getNodeTypeById(plugin, focusedNodeTypeId);
       if (!nodeType) {
-        setFocusedNodeTypeId(null);
+        setFocusedNodeTypeId(undefined);
         return;
       }
 
@@ -227,14 +229,14 @@ export const DiscourseNodePanel = ({
         initialNodeType: nodeType,
       });
 
-      setFocusedNodeTypeId(null);
+      setFocusedNodeTypeId(undefined);
       e.preventDefault();
       e.stopPropagation();
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setFocusedNodeTypeId(null);
+        setFocusedNodeTypeId(undefined);
       }
     };
 
@@ -264,33 +266,38 @@ export const DiscourseNodePanel = ({
   const handleItemClick = (id: string) => {
     if (didDragRef.current) return;
     if (focusedNodeTypeId) {
-      setFocusedNodeTypeId(null);
+      setFocusedNodeTypeId(undefined);
       return;
     }
     setFocusedNodeTypeId(id);
   };
 
   return (
-    <div className="tlui-layout__top__right">
-      <div
-        className="tlui-style-panel tlui-style-panel__wrapper p-2"
-        ref={rPanelContainer}
-      >
-        <div className="flex flex-col">
-          {displayNodeTypes.map((nodeType) => (
-            <NodeTypeButton
-              key={nodeType.id}
-              nodeType={nodeType}
-              handlers={handlers}
-              didDragRef={didDragRef}
-              onClickNoDrag={() => handleItemClick(nodeType.id)}
-            />
-          ))}
-        </div>
-        <div ref={rDraggingImage}>
-          {state.name === "dragging"
-            ? (getNodeTypeById(plugin, state.nodeTypeId)?.name ?? "")
-            : null}
+    <div className="flex flex-row">
+      <ExistingNodeSearch
+        plugin={plugin}
+        canvasFile={canvasFile}
+        getEditor={() => editor}
+        nodeTypeId={focusedNodeTypeId}
+      />
+      <div className="tlui-layout__top__right">
+        <div className="tlui-style-panel tlui-style-panel__wrapper p-2" ref={rPanelContainer}>
+          <div className="flex flex-col">
+            {displayNodeTypes.map((nodeType) => (
+              <NodeTypeButton
+                key={nodeType.id}
+                nodeType={nodeType}
+                handlers={handlers}
+                didDragRef={didDragRef}
+                onClickNoDrag={() => handleItemClick(nodeType.id)}
+              />
+            ))}
+          </div>
+          <div ref={rDraggingImage}>
+            {state.name === "dragging"
+              ? (getNodeTypeById(plugin, state.nodeTypeId)?.name ?? "")
+              : null}
+          </div>
         </div>
       </div>
     </div>
