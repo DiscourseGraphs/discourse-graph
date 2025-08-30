@@ -102,6 +102,7 @@ const SearchBar = <T,>({
       (item) => {
         setSelected(item);
         onSelect(item);
+        inputRef.current?.blur();
       },
       {
         getItemText: (item: T) => getItemText(item),
