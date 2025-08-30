@@ -102,6 +102,7 @@ const SearchBar = <T,>({
       (item) => {
         setSelected(item);
         onSelect(item);
+        inputRef.current?.blur();
       },
       {
         getItemText: (item: T) => getItemText(item),
@@ -127,14 +128,12 @@ const SearchBar = <T,>({
   }, [onSelect]);
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center">
       <input
         ref={inputRef}
         type="text"
         placeholder={placeholder || "Search..."}
-        className={`w-full p-2 ${
-          selected ? "pr-9" : ""
-        } border-modifier-border rounded border bg-${
+        className={`border-modifier-border flex-1 rounded border p-2 pr-8 bg-${
           selected || disabled ? "secondary" : "primary"
         } ${disabled ? "cursor-not-allowed opacity-70" : "cursor-text"} ${className}`}
         readOnly={!!selected || disabled}
@@ -143,7 +142,7 @@ const SearchBar = <T,>({
       {selected && !disabled && (
         <button
           onClick={clearSelection}
-          className="text-muted absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer rounded border-0 bg-transparent p-1"
+          className="text-muted hover:text-normal absolute right-2 flex h-4 w-4 cursor-pointer items-center justify-center rounded border-0 bg-transparent text-xs"
           aria-label="Clear selection"
         >
           ✕
