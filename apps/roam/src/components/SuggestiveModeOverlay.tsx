@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { Button, Tooltip } from "@blueprintjs/core";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
 import { OnloadArgs } from "roamjs-components/types/native";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
-import { panelManager } from "./PanelManager";
+import { panelManager, subscribeToPanelState } from "./PanelManager";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 
 const SuggestiveModeOverlay = ({
@@ -21,6 +21,10 @@ const SuggestiveModeOverlay = ({
   const [isPanelOpen, setIsPanelOpen] = useState(() =>
     panelManager.isOpen(tag),
   );
+  useEffect(() => {
+    const unsubscribe = subscribeToPanelState(tag, setIsPanelOpen);
+    return unsubscribe;
+  }, [tag]);
 
   const toggleHighlight = useCallback(
     (on: boolean) => {
@@ -46,13 +50,12 @@ const SuggestiveModeOverlay = ({
       e.preventDefault();
       toggleHighlight(false);
       panelManager.toggle({ tag, blockUid, onloadArgs });
-      setIsPanelOpen(panelManager.isOpen(tag));
     },
     [tag, blockUid, onloadArgs, toggleHighlight],
   );
 
   return (
-    <div className="suggestive-mode-overlay flex max-w-3xl items-center gap-1.5">
+    <div className="suggestive-mode-overlay flex max-w-3xl">
       <Tooltip
         content={
           isPanelOpen ? "Close suggestions panel" : "Open suggestions panel"
@@ -62,7 +65,7 @@ const SuggestiveModeOverlay = ({
         <Button
           data-dg-role="panel-toggle"
           data-dg-tag={tag}
-          data-dg-panel-open={isPanelOpen ? "true" : "false"}
+          data-dg-block-uid={blockUid}
           icon={isPanelOpen ? "panel-table" : "panel-stats"}
           minimal
           small
@@ -70,7 +73,6 @@ const SuggestiveModeOverlay = ({
           onClick={handleTogglePanel}
           onMouseEnter={() => toggleHighlight(true)}
           onMouseLeave={() => toggleHighlight(false)}
-          {...{ "data-dg-block-uid": blockUid }}
         />
       </Tooltip>
     </div>

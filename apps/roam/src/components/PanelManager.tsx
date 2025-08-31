@@ -43,6 +43,37 @@ type PanelState = {
   onloadArgs: OnloadArgs;
 };
 
+const panelSubscribers = new Map<string, Set<(isOpen: boolean) => void>>();
+
+const notifySubscribers = (tag: string, isOpen: boolean) => {
+  const subscribers = panelSubscribers.get(tag);
+  if (subscribers) {
+    subscribers.forEach((callback) => callback(isOpen));
+  }
+};
+
+export const subscribeToPanelState = (
+  tag: string,
+  callback: (isOpen: boolean) => void,
+) => {
+  if (!panelSubscribers.has(tag)) {
+    panelSubscribers.set(tag, new Set());
+  }
+  panelSubscribers.get(tag)!.add(callback);
+
+  callback(openPanels.has(tag));
+
+  return () => {
+    const subscribers = panelSubscribers.get(tag);
+    if (subscribers) {
+      subscribers.delete(callback);
+      if (subscribers.size === 0) {
+        panelSubscribers.delete(tag);
+      }
+    }
+  };
+};
+
 const getSpacingClass = (element: HTMLElement): string | null => {
   for (const className of Array.from(element.classList)) {
     if (className.startsWith(SPACING_PREFIX)) return className;
@@ -401,6 +432,21 @@ export const panelManager = {
           return;
         }
       }
+      const grabFromReferencedPages = onloadArgs.extensionAPI.settings.get(
+        "context-grab-from-referenced-pages",
+      );
+      const shouldGrabFromReferencedPages =
+        grabFromReferencedPages === null
+          ? true
+          : Boolean(grabFromReferencedPages);
+
+      const grabParentChildContext = onloadArgs.extensionAPI.settings.get(
+        "context-grab-parent-child-context",
+      );
+      const shouldGrabParentChildContext =
+        grabParentChildContext === null
+          ? true
+          : Boolean(grabParentChildContext);
 
       const panelElement = document.createElement("div");
       panelElement.id = `discourse-panel-${tag.replace(/[^a-zA-Z0-9]/g, "-")}`;
@@ -417,6 +463,7 @@ export const panelManager = {
 
       openPanels.set(tag, { blockUid, element: panelElement, onloadArgs });
       updateOverlayToggleButtons(tag, true);
+      notifySubscribers(tag, true);
 
       ReactDOM.render(
         <ExtensionApiContextProvider {...onloadArgs}>
@@ -424,6 +471,8 @@ export const panelManager = {
             tag={tag}
             blockUid={blockUid}
             onClose={() => panelManager.removePanel(tag)}
+            shouldGrabFromReferencedPages={shouldGrabFromReferencedPages}
+            shouldGrabParentChildContext={shouldGrabParentChildContext}
           />
         </ExtensionApiContextProvider>,
         panelElement,
@@ -444,6 +493,7 @@ export const panelManager = {
       openPanels.delete(tag);
       updateOverlayToggleButtons(tag, false);
       clearBlockHighlight(blockUid);
+      notifySubscribers(tag, false);
 
       if (openPanels.size === 0) {
         cleanupPanelInfrastructure();
@@ -462,6 +512,7 @@ export const panelManager = {
       entries.forEach(([t, state]) => {
         updateOverlayToggleButtons(t, false);
         clearBlockHighlight(state.blockUid);
+        notifySubscribers(t, false);
       });
     } catch (error) {
       console.error("Failed to close all panels:", error);
