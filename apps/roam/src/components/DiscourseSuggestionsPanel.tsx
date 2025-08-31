@@ -8,19 +8,21 @@ import {
 } from "@blueprintjs/core";
 import React, { useState, useCallback } from "react";
 import SuggestionsBody from "./SuggestionsBody";
-import { useDiscourseData } from "~/utils/useDiscourseData";
 
 export const DiscourseSuggestionsPanel = ({
   tag,
   blockUid,
   onClose,
+  shouldGrabFromReferencedPages,
+  shouldGrabParentChildContext,
 }: {
   tag: string;
   blockUid: string;
   onClose: () => void;
+  shouldGrabFromReferencedPages: boolean;
+  shouldGrabParentChildContext: boolean;
 }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const { results, loading } = useDiscourseData(tag);
 
   const toggleHighlight = useCallback(
     (on: boolean) => {
@@ -33,7 +35,7 @@ export const DiscourseSuggestionsPanel = ({
 
   return (
     <Card
-      {...{ "data-dg-block-uid": blockUid }}
+      data-dg-block-uid={blockUid}
       style={{
         backgroundColor: "#fff",
         display: "flex",
@@ -105,8 +107,8 @@ export const DiscourseSuggestionsPanel = ({
           <SuggestionsBody
             tag={tag}
             blockUid={blockUid}
-            existingResults={results}
-            loading={loading}
+            shouldGrabFromReferencedPages={shouldGrabFromReferencedPages}
+            shouldGrabParentChildContext={shouldGrabParentChildContext}
           />
         </div>
       </Collapse>
