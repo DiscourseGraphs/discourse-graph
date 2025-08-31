@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
-import { envContents } from "@repo/database/dbDotEnv";
+import { config } from "@repo/database/dbDotEnv";
 
-Object.entries(envContents()).map(([k, v]) => {
-  if (v) process.env[k] = v;
-});
+config();
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,

@@ -12,7 +12,6 @@ const findRoot = () => {
 };
 
 export const getVariant = () => {
-  // this can be used in either browser or node context
   const processHasVars =
     !!process.env["SUPABASE_URL"] && !!process.env["SUPABASE_ANON_KEY"];
   const useDbArgPos = (process.argv || []).indexOf("--use-db");
@@ -63,13 +62,15 @@ export const envFilePath = () => {
 
 export const envContents = () => {
   const path = envFilePath();
-  if (!path)
+  if (!path) {
     // Fallback to process.env when running in production environments
-    return {
+    const raw = {
       SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
       NEXT_API_ROOT: process.env.NEXT_API_ROOT,
     };
+    return Object.fromEntries(Object.entries(raw).filter(([, v]) => !!v));
+  }
   const data = readFileSync(path, "utf8");
   return dotenv.parse(data);
 };
