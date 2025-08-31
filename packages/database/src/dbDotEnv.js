@@ -1,9 +1,10 @@
+import { readFileSync, existsSync } from "node:fs";
+import { join, dirname, basename } from "node:path";
+import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
-import { readFileSync, existsSync } from "fs";
-import { join, dirname, basename } from "path";
 
 const findRoot = () => {
-  let dir = __filename;
+  let dir = fileURLToPath(import.meta.url);
   while (basename(dir) !== "database") {
     dir = dirname(dir);
   }
@@ -11,17 +12,44 @@ const findRoot = () => {
 };
 
 export const getVariant = () => {
-  if (process.env.HOME === "/vercel" || process.env.GITHUB_ACTIONS === "true")
-    return "implicit";
-  const useDbArgPos = process.argv.indexOf("--use-db");
-  const variant =
-    (useDbArgPos > 0
+  const processHasVars =
+    !!process.env["SUPABASE_URL"] && !!process.env["SUPABASE_ANON_KEY"];
+  const useDbArgPos = (process.argv || []).indexOf("--use-db");
+  let variant =
+    useDbArgPos > 0
       ? process.argv[useDbArgPos + 1]
-      : process.env["SUPABASE_USE_DB"]) || "none";
+      : process.env["SUPABASE_USE_DB"];
 
-  if (["local", "branch", "production", "none"].indexOf(variant) === -1) {
+  if (
+    ["local", "branch", "production", "none", "implicit", undefined].indexOf(
+      variant,
+    ) === -1
+  ) {
     throw new Error("Invalid variant: " + variant);
   }
+
+  if (process.env.HOME === "/vercel" || process.env.GITHUB_ACTIONS === "true") {
+    // deployment should have variables
+    if (!processHasVars) {
+      console.error("Missing SUPABASE variables in deployment");
+      variant = "none";
+    } else {
+      variant = "implicit";
+    }
+  }
+  if (variant === undefined) {
+    if (processHasVars) {
+      console.warn(
+        "please define explicitly which database to use (set SUPABASE_USE_DB)",
+      );
+      variant = "implicit";
+    } else {
+      console.warn("Not using the database");
+      variant = "none";
+    }
+  }
+  // avoid repeating warnings
+  process.env["SUPABASE_USE_DB"] = variant;
   return variant;
 };
 
@@ -34,13 +62,15 @@ export const envFilePath = () => {
 
 export const envContents = () => {
   const path = envFilePath();
-  if (!path)
+  if (!path) {
     // Fallback to process.env when running in production environments
-    return {
+    const raw = {
       SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
       NEXT_API_ROOT: process.env.NEXT_API_ROOT,
     };
+    return Object.fromEntries(Object.entries(raw).filter(([, v]) => !!v));
+  }
   const data = readFileSync(path, "utf8");
   return dotenv.parse(data);
 };
