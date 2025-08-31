@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
+import { envContents } from "@repo/database/dbDotEnv";
 
-const nextConfig = {
+Object.entries(envContents()).map(([k, v]) => {
+  if (v) process.env[k] = v;
+});
+
+const nextConfig: NextConfig = {
   reactStrictMode: true,
   serverRuntimeConfig: {
     maxDuration: 300,
