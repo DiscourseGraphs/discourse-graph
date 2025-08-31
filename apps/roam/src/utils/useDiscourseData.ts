@@ -4,9 +4,6 @@ import findDiscourseNode from "./findDiscourseNode";
 import getDiscourseRelations from "./getDiscourseRelations";
 import getDiscourseNodes from "./getDiscourseNodes";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import deriveDiscourseNodeAttribute from "./deriveDiscourseNodeAttribute";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 
 export type DiscourseData = {
