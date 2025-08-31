@@ -3,9 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { exec } from "child_process";
 import util from "util";
-// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
-// import { Octokit } from "@octokit/core";
-// import { createAppAuth } from "@octokit/auth-app";
+// Module configuration in roam does not allow ESM import, we need to use require here.
 const { Octokit } = require("@octokit/core");
 const { createAppAuth } = require("@octokit/auth-app");
 
