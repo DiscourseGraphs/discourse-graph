@@ -2,7 +2,7 @@ import getDiscourseContextResults from "./getDiscourseContextResults";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import findDiscourseNode from "./findDiscourseNode";
 import getDiscourseRelations from "./getDiscourseRelations";
-import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
+import getDiscourseNodes from "./getDiscourseNodes";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
@@ -53,10 +53,7 @@ const getOverlayInfo = async (
 };
 
 export const useDiscourseData = (tag: string) => {
-  const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<DiscourseData["results"]>([]);
-  const [refs, setRefs] = useState(0);
-  const [score, setScore] = useState<number | string>(0);
 
   const tagUid = useMemo(() => getPageUidByPageTitle(tag), [tag]);
   const discourseNode = useMemo(() => findDiscourseNode(tagUid), [tagUid]);
@@ -66,30 +63,12 @@ export const useDiscourseData = (tag: string) => {
   const getInfo = useCallback(
     () =>
       getOverlayInfo(tag, relations)
-        .then(({ refs, results }) => {
-          if (!discourseNode) return;
-          const attribute = getSettingValueFromTree({
-            tree: getBasicTreeByParentUid(discourseNode.type),
-            key: "Overlay",
-            defaultValue: "Overlay",
-          });
-          return deriveDiscourseNodeAttribute({
-            uid: tagUid,
-            attribute,
-          }).then((score) => {
-            setResults(results);
-            setRefs(refs);
-            setScore(score);
-          });
+        .then(({ results }) => {
+          setResults(results);
         })
-        .finally(() => setLoading(false)),
-    [tag, tagUid, relations, discourseNode],
+        .finally(() => {}),
+    [tag, relations],
   );
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    await getInfo();
-  }, [getInfo]);
 
   useEffect(() => {
     void getInfo();
@@ -161,16 +140,9 @@ export const useDiscourseData = (tag: string) => {
   }, [discourseNode, validRelations]);
 
   return {
-    loading,
     results,
-    refs,
-    score,
-    refresh,
-    tagUid,
     discourseNode,
-    relations,
     allNodes,
-    validRelations,
     uniqueRelationTypeTriplets,
     validTypes,
   };
