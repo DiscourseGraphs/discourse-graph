@@ -126,6 +126,7 @@ const SidebarHeader = ({
 
 const openPanels = new Map<string, PanelState>();
 let isContainerMinimized = false;
+let navigationObserver: MutationObserver | null = null;
 
 const cssEscape = (value: string) =>
   (window as any).CSS && (window as any).CSS.escape
@@ -219,6 +220,12 @@ const teardownSplitView = (): void => {
 };
 
 let articleWrapperObserver: MutationObserver | null = null;
+const cleanupNavigationObserver = () => {
+  if (navigationObserver) {
+    navigationObserver.disconnect();
+    navigationObserver = null;
+  }
+};
 
 const initializeArticleWrapperObserver = ({
   mainContent,
@@ -249,8 +256,38 @@ const cleanupArticleWrapperObserver = () => {
   }
 };
 
+const initializeNavigationObserver = () => {
+  if (navigationObserver) {
+    return;
+  }
+
+  const roamApp = document.querySelector(".roam-app");
+  if (!roamApp) return;
+
+  navigationObserver = new MutationObserver(() => {
+    const panelRoot = document.getElementById(PANEL_ROOT_ID);
+    const roamBodyMain = getRoamBodyMain();
+
+    if (openPanels.size > 0) {
+      if (!panelRoot || !panelRoot.parentElement) {
+        restorePanelInfrastructure();
+      } else if (roamBodyMain) {
+        const articleWrapper = getArticleWrapper(roamBodyMain);
+        if (articleWrapper && roamBodyMain.dataset.isSplit !== "true") {
+          setupSplitView({ roamBodyMain, articleWrapper, panelRoot });
+        }
+      }
+    }
+  });
+
+  navigationObserver.observe(roamApp, {
+    childList: true,
+    subtree: true,
+  });
+};
 const cleanupObservers = (): void => {
   cleanupArticleWrapperObserver();
+  cleanupNavigationObserver();
 };
 
 if (typeof window !== "undefined") {
@@ -333,6 +370,7 @@ const createPanelInfrastructure = () => {
   }
 
   setupSplitView({ roamBodyMain, articleWrapper, panelRoot });
+  initializeNavigationObserver();
   return panelsContainer;
 };
 
@@ -360,6 +398,20 @@ const restorePanelInfrastructure = () => {
     }
 
     openPanels.set(tag, { ...state, element: panelElement });
+    const { onloadArgs } = state;
+    const grabFromReferencedPages = onloadArgs.extensionAPI.settings.get(
+      "context-grab-from-referenced-pages",
+    );
+    const shouldGrabFromReferencedPages =
+      grabFromReferencedPages === null
+        ? true
+        : Boolean(grabFromReferencedPages);
+
+    const grabParentChildContext = onloadArgs.extensionAPI.settings.get(
+      "context-grab-parent-child-context",
+    );
+    const shouldGrabParentChildContext =
+      grabParentChildContext === null ? true : Boolean(grabParentChildContext);
 
     ReactDOM.render(
       <ExtensionApiContextProvider {...state.onloadArgs}>
@@ -367,6 +419,8 @@ const restorePanelInfrastructure = () => {
           tag={tag}
           blockUid={state.blockUid}
           onClose={() => panelManager.removePanel(tag)}
+          shouldGrabFromReferencedPages={shouldGrabFromReferencedPages}
+          shouldGrabParentChildContext={shouldGrabParentChildContext}
         />
       </ExtensionApiContextProvider>,
       panelElement,
