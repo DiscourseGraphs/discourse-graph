@@ -2,9 +2,10 @@
 import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import { type SupabaseContext } from "./supabaseContext";
 import { nextApiRoot } from "@repo/utils/execContext";
-type LocalContentDataInput = any;
-type DGSupabaseClient = any;
-type Json = any;
+import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Json, CompositeTypes } from "@repo/database/dbTypes";
+
+type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 
 const EMBEDDING_BATCH_SIZE = 200;
 const EMBEDDING_MODEL = "openai_text_embedding_3_small_1536";
