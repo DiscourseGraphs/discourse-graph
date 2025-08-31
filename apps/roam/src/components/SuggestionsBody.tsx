@@ -223,9 +223,10 @@ const SuggestionsBody = ({
               const performSearch = async () => {
                 setUseAllPagesForSuggestions(false);
                 setIsSearchingHyde(true);
+                const pages = [...selectedPages];
                 const results = await performHydeSearch({
-                  useAllPagesForSuggestions,
-                  selectedPages,
+                  useAllPagesForSuggestions: false,
+                  selectedPages: pages,
                   discourseNode,
                   blockUid,
                   validTypes,
@@ -255,6 +256,25 @@ const SuggestionsBody = ({
                   setSelectedPages([]);
                   setCurrentPageInput("");
                   setAutocompleteKey((prev) => prev + 1);
+                  const performSearch = async () => {
+                    setUseAllPagesForSuggestions(true);
+                    setIsSearchingHyde(true);
+                    const results = await performHydeSearch({
+                      useAllPagesForSuggestions: true,
+                      selectedPages: [],
+                      discourseNode,
+                      blockUid,
+                      validTypes,
+                      existingResults,
+                      uniqueRelationTypeTriplets,
+                      pageTitle: tag,
+                      shouldGrabFromReferencedPages,
+                      shouldGrabParentChildContext,
+                    });
+                    setHydeFilteredNodes(results);
+                    setIsSearchingHyde(false);
+                  };
+                  performSearch().catch(console.error);
                 }}
                 className="whitespace-nowrap"
               />
