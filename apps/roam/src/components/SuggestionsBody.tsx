@@ -41,14 +41,13 @@ const SuggestionsBody = ({
   shouldGrabFromReferencedPages: boolean;
   shouldGrabParentChildContext: boolean;
 }) => {
-  const [loading, setLoading] = useState(false);
   const {
     results: existingResults,
     discourseNode,
     uniqueRelationTypeTriplets,
     validTypes,
     allNodes,
-  } = useDiscourseData(tag, setLoading);
+  } = useDiscourseData(tag);
   const allPages = useMemo(() => getAllPageNames(), []);
   const cachedState = suggestionsCache.get(blockUid);
   const extensionAPI = useExtensionAPI();
