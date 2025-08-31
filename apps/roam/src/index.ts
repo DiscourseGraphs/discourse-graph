@@ -107,8 +107,6 @@ export default runExtension(async (onloadArgs) => {
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
   const settingsStyle = addStyle(settingsStyles);
-  await initializeDiscourseNodes();
-  refreshConfigTree();
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
 
   const { observers, listeners } = await initObservers({ onloadArgs });
