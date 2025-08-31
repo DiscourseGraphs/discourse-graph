@@ -1,6 +1,9 @@
+import { readFileSync, existsSync } from "node:fs";
+import { join, dirname, basename } from "node:path";
+import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
-import { readFileSync, existsSync } from "fs";
-import { join, dirname, basename } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
 
 const findRoot = () => {
   let dir = __filename;
