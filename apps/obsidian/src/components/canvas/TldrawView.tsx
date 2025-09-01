@@ -5,7 +5,7 @@ import { TldrawPreviewComponent } from "./TldrawViewComponent";
 import { TLStore } from "tldraw";
 import React from "react";
 import DiscourseGraphPlugin from "~/index";
-import { processInitialData, TLData } from "~/components/canvas/tldraw";
+import { processInitialData, TLData } from "~/components/canvas/utils/tldraw";
 import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 
 export class TldrawView extends TextFileView {
