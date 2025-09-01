@@ -6,9 +6,10 @@
   "exports": {
     "./lib/*": "./src/lib/*.ts",
     "./dbDotEnv": {
-      "types": "./types/dbDotEnv.d.ts",
-      "import": "./src/dbDotEnv.mjs",
-      "default": "./src/dbDotEnv.mjs"
+      "types": "./dist/src/dbDotEnv.d.mts",
+      "import": "./dist/src/dbDotEnv.mjs",
+      "require": "./dist/src/dbDotEnv.mjs",
+      "default": "./dist/src/dbDotEnv.mjs"
     },
     "./dbTypes": "./src/dbTypes.ts",
     "./inputTypes": "./src/inputTypes.ts"
@@ -16,7 +17,7 @@
   "typesVersions": {
     "*": {
       "./dbDotEnv": [
-        "types/dbDotEnv.d.ts"
+        "dist/src/dbDotEnv.d.mts"
       ]
     }
   },
@@ -25,7 +26,7 @@
     "dev": "tsx scripts/dev.ts",
     "serve": "supabase start && tsx scripts/createEnv.mts && supabase functions serve",
     "stop": "supabase stop",
-    "check-types": "tsc --noEmit --skipLibCheck",
+    "check-types": "tsc -p tsconfig_lint.json",
     "check-schema": "tsx scripts/lint.ts && supabase stop && npm run dbdiff",
     "lint": "eslint . && tsx scripts/lint.ts",
     "lint:fix": "tsx scripts/lint.ts -f",
@@ -55,6 +56,7 @@
     "supabase": "^2.39.2",
     "ts-node-maintained": "^10.9.5",
     "tsx": "^4.20.3",
+    "typescript": "^5.9.2",
     "vercel": "46.1.1"
   },
   "prettier": {

@@ -3,9 +3,12 @@ import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
-// Note: This file is written as mjs so it can be used before typescript compilation.
-// This means the corresponding .d.ts file is currently maintained by hand.
-// Remember to update it as needed.
+export type Variant =
+  | "none"
+  | "local"
+  | "branch"
+  | "production"
+  | "implicit";
 
 const findRoot = () => {
   let dir = fileURLToPath(import.meta.url);
@@ -15,20 +18,24 @@ const findRoot = () => {
   return dir;
 };
 
-export const getVariant = () => {
+const VARIANTS = new Set<Variant>([
+    "none",
+    "local",
+    "branch",
+    "production",
+    "implicit",
+  ]);
+
+export const getVariant = (): Variant => {
   const processHasVars =
     !!process.env["SUPABASE_URL"] && !!process.env["SUPABASE_ANON_KEY"];
   const useDbArgPos = (process.argv || []).indexOf("--use-db");
   let variant =
-    useDbArgPos > 0
-      ? process.argv[useDbArgPos + 1]
-      : process.env["SUPABASE_USE_DB"];
+      (useDbArgPos > 0
+        ? (process.argv[useDbArgPos + 1])
+        : (process.env["SUPABASE_USE_DB"])) as Variant | undefined;
 
-  if (
-    ["local", "branch", "production", "none", "implicit", undefined].indexOf(
-      variant,
-    ) === -1
-  ) {
+  if (variant !== undefined && !VARIANTS.has(variant)) {
     throw new Error("Invalid variant: " + variant);
   }
 
@@ -57,14 +64,14 @@ export const getVariant = () => {
   return variant;
 };
 
-export const envFilePath = () => {
+export const envFilePath = (): string | null => {
   const variant = getVariant();
   if (variant === "implicit" || variant === "none") return null;
   const name = join(findRoot(), `.env.${variant}`);
   return existsSync(name) ? name : null;
 };
 
-export const envContents = () => {
+export const envContents = (): Partial<Record<string, string>> => {
   const path = envFilePath();
   if (!path) {
     // Fallback to process.env when running in production environments
@@ -81,7 +88,7 @@ export const envContents = () => {
 
 let configDone = false;
 
-export const config = () => {
+export const config = (): void => {
   if (configDone) return;
   const path = envFilePath();
   if (path) dotenv.config({ path });

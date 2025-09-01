@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { config } from "@repo/database/dbDotEnv";
+const { config } = require("@repo/database/dbDotEnv");
 
 config();
 

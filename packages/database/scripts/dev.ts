@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import { join, dirname } from "path";
-import { getVariant } from "@repo/database/dbDotEnv";
+import { getVariant } from "../src/dbDotEnv.mts";
 
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, "..");

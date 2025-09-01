@@ -2,7 +2,7 @@ import { put } from "@vercel/blob";
 import fs, { readFileSync } from "fs";
 import { join } from "path";
 import { compile } from "./compile";
-import { config } from "@repo/database/dbDotEnv";
+const { config } = require("@repo/database/dbDotEnv");
 import { execSync } from "child_process";
 
 if (process.env.NODE_ENV !== "production") {
