@@ -4,9 +4,10 @@
     "baseUrl": ".",
     "rootDir": ".",
     "outDir": "dist",
+    "allowImportingTsExtensions": true,
     "module": "esnext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "declaration": true,
     "emitDeclarationOnly": true
   },
   "include": [

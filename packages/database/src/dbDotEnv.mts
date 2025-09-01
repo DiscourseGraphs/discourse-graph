@@ -18,20 +18,24 @@ const findRoot = () => {
   return dir;
 };
 
+const VARIANTS = new Set<Variant>([
+    "none",
+    "local",
+    "branch",
+    "production",
+    "implicit",
+  ]);
+
 export const getVariant = (): Variant => {
   const processHasVars =
     !!process.env["SUPABASE_URL"] && !!process.env["SUPABASE_ANON_KEY"];
   const useDbArgPos = (process.argv || []).indexOf("--use-db");
   let variant =
-    useDbArgPos > 0
-      ? process.argv[useDbArgPos + 1]
-      : process.env["SUPABASE_USE_DB"];
+      (useDbArgPos > 0
+        ? (process.argv[useDbArgPos + 1])
+        : (process.env["SUPABASE_USE_DB"])) as Variant | undefined;
 
-  if (
-    ["local", "branch", "production", "none", "implicit", undefined].indexOf(
-      variant,
-    ) === -1
-  ) {
+  if (variant !== undefined && !VARIANTS.has(variant)) {
     throw new Error("Invalid variant: " + variant);
   }
 
@@ -57,7 +61,7 @@ export const getVariant = (): Variant => {
   }
   // avoid repeating warnings
   process.env["SUPABASE_USE_DB"] = variant;
-  return variant as Variant;
+  return variant;
 };
 
 export const envFilePath = (): string | null => {

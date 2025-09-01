@@ -31,7 +31,7 @@
         "dist/src/lib/*.d.ts"
       ],
       "./dbDotEnv": [
-        "src/dbDotEnv.d.ts"
+        "dist/src/dbDotEnv.d.mts"
       ],
       "./dbTypes": [
         "dist/src/dbTypes.d.ts"
