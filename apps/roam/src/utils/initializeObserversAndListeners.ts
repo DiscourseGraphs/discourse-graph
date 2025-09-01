@@ -44,6 +44,7 @@ import {
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
+import configTreeRef from "./discourseConfigRef";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -102,7 +103,22 @@ export const initObservers = async ({
     className: "rm-page-ref--tag",
     tag: "SPAN",
     callback: (s: HTMLSpanElement) => {
-      renderNodeTagPopupButton(s, onloadArgs.extensionAPI);
+      const tag = s.getAttribute("data-tag");
+      if (tag) {
+        for (const [type, { text, children }] of Object.entries(
+          configTreeRef.nodes,
+        )) {
+          const nodeTag = getSettingValueFromTree({
+            tree: children,
+            key: "tag",
+          });
+          if (tag.toLowerCase() === nodeTag.toLowerCase()) {
+            const matchedNode = { tag: nodeTag, type, text };
+            renderNodeTagPopupButton(s, matchedNode, onloadArgs.extensionAPI);
+            break;
+          }
+        }
+      }
     },
   });
 
