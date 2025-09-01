@@ -64,6 +64,7 @@
     },
     "deploy": {
       "cache": false,
+      "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
     "publish": {
