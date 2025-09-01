@@ -7,6 +7,7 @@ import React from "react";
 import DiscourseGraphPlugin from "~/index";
 import { processInitialData, TLData } from "~/components/canvas/utils/tldraw";
 import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
+import { PluginProvider } from "../PluginContext";
 
 export class TldrawView extends TextFileView {
   plugin: DiscourseGraphPlugin;
@@ -147,12 +148,13 @@ export class TldrawView extends TextFileView {
 
     root.render(
       <React.StrictMode>
-        <TldrawPreviewComponent
-          store={store}
-          plugin={this.plugin}
-          file={this.file}
-          assetStore={this.assetStore}
-        />
+        <PluginProvider plugin={this.plugin}>
+          <TldrawPreviewComponent
+            store={store}
+            file={this.file}
+            assetStore={this.assetStore}
+          />
+        </PluginProvider>
       </React.StrictMode>,
     );
     return root;
