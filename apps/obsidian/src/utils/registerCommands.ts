@@ -5,7 +5,7 @@ import { CreateNodeModal } from "~/components/CreateNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
 import { createDiscourseNode } from "./createNode";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
-import { createCanvas } from "../components/canvas/tldraw";
+import { createCanvas } from "~/components/canvas/utils/tldraw";
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({

@@ -1,12 +1,9 @@
 import { useState } from "react";
-import {
-  DiscourseRelation,
-  DiscourseNode,
-  DiscourseRelationType,
-} from "~/types";
+import { DiscourseRelation, DiscourseRelationType } from "~/types";
 import { Notice } from "obsidian";
 import { usePlugin } from "./PluginContext";
 import { ConfirmationModal } from "./ConfirmationModal";
+import { getNodeTypeById } from "~/utils/utils";
 
 const RelationshipSettings = () => {
   const plugin = usePlugin();
@@ -14,10 +11,6 @@ const RelationshipSettings = () => {
     DiscourseRelation[]
   >(() => plugin.settings.discourseRelations ?? []);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  const findNodeById = (id: string): DiscourseNode | undefined => {
-    return plugin.settings.nodeTypes.find((node) => node.id === id);
-  };
 
   const findRelationTypeById = (
     id: string,
@@ -72,8 +65,8 @@ const RelationshipSettings = () => {
       relation.destinationId &&
       relation.relationshipTypeId
     ) {
-      const sourceNode = findNodeById(relation.sourceId);
-      const targetNode = findNodeById(relation.destinationId);
+      const sourceNode = getNodeTypeById(plugin, relation.sourceId);
+      const targetNode = getNodeTypeById(plugin, relation.destinationId);
       const relationType = findRelationTypeById(relation.relationshipTypeId);
 
       if (sourceNode && targetNode && relationType) {
@@ -202,7 +195,7 @@ const RelationshipSettings = () => {
                     <div className="text-normal mt-2 p-2">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          {findNodeById(relation.sourceId)?.name ||
+                          {getNodeTypeById(plugin, relation.sourceId)?.name ||
                             "Unknown Node"}
                         </div>
 
@@ -224,8 +217,8 @@ const RelationshipSettings = () => {
                         </div>
 
                         <div className="flex-1 text-right">
-                          {findNodeById(relation.destinationId)?.name ||
-                            "Unknown Node"}
+                          {getNodeTypeById(plugin, relation.destinationId)
+                            ?.name || "Unknown Node"}
                         </div>
                       </div>
                     </div>

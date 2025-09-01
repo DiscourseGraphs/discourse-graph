@@ -5,6 +5,7 @@ import SearchBar from "./SearchBar";
 import { DiscourseNode } from "~/types";
 import DropdownSelect from "./DropdownSelect";
 import { usePlugin } from "./PluginContext";
+import { getNodeTypeById } from "~/utils/utils";
 
 type RelationTypeOption = {
   id: string;
@@ -60,12 +61,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
     );
 
     const compatibleNodeTypes = compatibleNodeTypeIds
-      .map((id) => {
-        const nodeType = plugin.settings.nodeTypes.find(
-          (type) => type.id === id,
-        );
-        return nodeType;
-      })
+      .map((id) => getNodeTypeById(plugin, id))
       .filter(Boolean) as DiscourseNode[];
 
     setCompatibleNodeTypes(compatibleNodeTypes);
