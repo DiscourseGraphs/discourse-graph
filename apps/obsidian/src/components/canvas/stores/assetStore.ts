@@ -1,6 +1,7 @@
 import { App, TFile } from "obsidian";
 import { TLAsset, TLAssetStore, TLAssetId, TLAssetContext } from "tldraw";
 import { JsonObject } from "@tldraw/utils";
+import DiscourseGraphPlugin from "~/index";
 
 const ASSET_PREFIX = "obsidian.blockref.";
 type BlockRefAssetId = `${typeof ASSET_PREFIX}${string}`;
@@ -9,6 +10,7 @@ type AssetDataUrl = string;
 type AssetStoreOptions = {
   app: App;
   file: TFile;
+  plugin: DiscourseGraphPlugin;
 };
 
 /**
@@ -131,6 +133,7 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
   private resolvedAssetDataCache = new Map<BlockRefAssetId, AssetDataUrl>();
   private app: App;
   private file: TFile;
+  private plugin: DiscourseGraphPlugin;
 
   /**
    * Safely set a cached Blob URL for an asset id, revoking any previous URL to avoid leaks
@@ -150,6 +153,7 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
   constructor(options: AssetStoreOptions) {
     this.app = options.app;
     this.file = options.file;
+    this.plugin = options.plugin;
   }
 
   storeAsset = async (
@@ -161,11 +165,12 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
     const objectName = `${blockRefId}-${file.name}`.replace(/\W/g, "-");
     const ext = file.type.split("/").at(1);
     const fileName = !ext ? objectName : `${objectName}.${ext}`;
-
-    // TODO: in the future, get this from the user's settings
-    let attachmentFolder = this.app.vault.getFolderByPath("attachments");
+    const attachmentFolderPath =
+      this.plugin.settings.canvasAttachmentsFolderPath ?? "attachments";
+    let attachmentFolder = this.app.vault.getFolderByPath(attachmentFolderPath);
     if (!attachmentFolder) {
-      attachmentFolder = await this.app.vault.createFolder("attachments");
+      attachmentFolder =
+        await this.app.vault.createFolder(attachmentFolderPath);
     }
     const filePath = `${attachmentFolder.path}/${fileName}`;
 
