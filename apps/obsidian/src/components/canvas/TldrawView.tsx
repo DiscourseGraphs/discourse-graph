@@ -74,6 +74,7 @@ export class TldrawView extends TextFileView {
       {
         app: this.app,
         file,
+        plugin: this.plugin,
       },
     );
     const store = this.createStore(fileData, assetStore);

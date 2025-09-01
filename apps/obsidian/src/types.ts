@@ -28,6 +28,8 @@ export type Settings = {
   relationTypes: DiscourseRelationType[];
   showIdsInFrontmatter: boolean;
   nodesFolderPath: string;
+  canvasFolderPath: string;
+  canvasAttachmentsFolderPath: string;
 };
 
 export type BulkImportCandidate = {
