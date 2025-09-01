@@ -1,4 +1,4 @@
-import { App, Editor, Notice, TFile } from "obsidian";
+import { Editor, Notice, TFile } from "obsidian";
 import { DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "./getDiscourseNodeFormatExpression";
 import { checkInvalidChars } from "./validateNodeType";
