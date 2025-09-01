@@ -102,7 +102,15 @@ export const initObservers = async ({
     className: "rm-page-ref--tag",
     tag: "SPAN",
     callback: (s: HTMLSpanElement) => {
-      renderNodeTagPopupButton(s, onloadArgs.extensionAPI);
+      const tag = s.getAttribute("data-tag");
+      if (tag) {
+        for (const node of getDiscourseNodes()) {
+          if (tag.toLowerCase() === node.tag?.toLowerCase()) {
+            renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
+            break;
+          }
+        }
+      }
     },
   });
 
