@@ -2,7 +2,7 @@ import assert from "assert";
 import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import { createClient } from "@supabase/supabase-js";
 import { Constants, type Database, type Enums } from "@repo/database/dbTypes";
-import { getVariant, config } from "@repo/database/dbDotEnv";
+const { getVariant, config } = require("@repo/database/dbDotEnv");
 
 import {
   spaceAnonUserEmail,

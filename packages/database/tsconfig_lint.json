@@ -1,0 +1,19 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "outDir": "dist",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true
+  },
+  "include": [
+    "./src/**/*",
+    "./scripts/**/*",
+    "./features/step-definitions/**/*",
+    "./features/support/**/*"
+  ],
+  "exclude": ["supabase"]
+}
