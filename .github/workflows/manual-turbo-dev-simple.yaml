@@ -1,0 +1,35 @@
+name: Manual Turbo Dev (Simple)
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to run turbo dev on"
+        required: true
+        default: "main"
+        type: string
+
+jobs:
+  turbo-dev:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build dependencies
+        run: npm run build
+
+      - name: Run turbo dev
+        run: npm run dev

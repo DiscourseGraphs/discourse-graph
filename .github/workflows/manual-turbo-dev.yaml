@@ -1,0 +1,47 @@
+name: Manual Turbo Dev
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to run turbo dev on"
+        required: true
+        default: "main"
+        type: string
+      workspace:
+        description: "Specific workspace to run dev on (optional)"
+        required: false
+        type: string
+
+jobs:
+  turbo-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build dependencies
+        run: npm run build
+
+      - name: Run turbo dev (non-persistent)
+        run: |
+          # Run turbo dev with a timeout to prevent it from running indefinitely
+          # This simulates the dev experience without keeping the workflow running
+          timeout 300s npm run dev || echo "Dev session completed or timed out"
+
+      - name: Dev session summary
+        run: |
+          echo "Turbo dev session completed on branch: ${{ github.event.inputs.branch }}"
+          echo "Workspace: ${{ github.event.inputs.workspace || 'all' }}"
+          echo "This was a one-time execution - not a persistent dev server"
