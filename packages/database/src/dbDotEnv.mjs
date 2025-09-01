@@ -3,6 +3,10 @@ import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
+// Note: This file is written as mjs so it can be used before typescript compilation.
+// This means the corresponding .d.ts file is currently maintained by hand.
+// Remember to update it as needed.
+
 const findRoot = () => {
   let dir = fileURLToPath(import.meta.url);
   while (basename(dir) !== "database") {
