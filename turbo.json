@@ -40,9 +40,15 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["@repo/database#genenv"],
+      "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "src/dbTypes.ts"]
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        "src/dbTypes.ts",
+        ".env*"
+      ]
     },
     "build-schema": {
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
@@ -58,8 +64,10 @@
       "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH"],
       "cache": false,
       "persistent": true,
-      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "dependsOn": ["@repo/database#bootstrap"]
     },
+    "bootstrap": {},
     "roam#dev": {
       "with": ["@repo/database#dev"]
     },
