@@ -69,11 +69,11 @@ const GeneralSettings = () => {
   const [nodesFolderPath, setNodesFolderPath] = useState(
     plugin.settings.nodesFolderPath,
   );
-  const [canvasFolderPath, setCanvasFolderPath] = useState(
+  const [canvasFolderPath, setCanvasFolderPath] = useState<string>(
     plugin.settings.canvasFolderPath,
   );
   const [canvasAttachmentsFolderPath, setCanvasAttachmentsFolderPath] =
-    useState(plugin.settings.canvasAttachmentsFolderPath);
+    useState<string>(plugin.settings.canvasAttachmentsFolderPath);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const handleToggleChange = (newValue: boolean) => {
