@@ -1,7 +1,4 @@
 import type { App, TFile } from "obsidian";
-import type DiscourseGraphPlugin from "~/index";
-import type { DiscourseNode } from "~/types";
-import { resolveLinkedFileFromSrc } from "~/components/canvas/stores/assetStore";
 
 export type FrontmatterRecord = Record<string, unknown>;
 
@@ -18,17 +15,6 @@ export const getNodeTypeIdFromFrontmatter = (
 ): string | null => {
   if (!frontmatter) return null;
   return (frontmatter as { nodeTypeId?: string })?.nodeTypeId ?? null;
-};
-
-export const getNodeTypeById = (
-  plugin: DiscourseGraphPlugin,
-  nodeTypeId: string | null,
-): DiscourseNode | null => {
-  if (!nodeTypeId) return null;
-  return (
-    plugin.settings.nodeTypes.find((nodeType) => nodeType.id === nodeTypeId) ??
-    null
-  );
 };
 
 export const getRelationsFromFrontmatter = (
