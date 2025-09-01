@@ -11,9 +11,9 @@
     },
     "./dbDotEnv": {
       "types": "./types/dbDotEnv.d.ts",
-      "import": "./src/dbDotEnv.js",
-      "require": "./src/dbDotEnv.js",
-      "default": "./src/dbDotEnv.js"
+      "import": "./src/dbDotEnv.mjs",
+      "require": "./src/dbDotEnv.mjs",
+      "default": "./src/dbDotEnv.mjs"
     },
     "./dbTypes": {
       "types": "./dist/src/dbTypes.d.ts",
