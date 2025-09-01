@@ -33,7 +33,6 @@ export const renderNodeTagPopupButton = (
   wrapper.appendChild(reactRoot);
 
   const textContent = parent.textContent?.trim() || "";
-
   const blockInputElement = parent.closest(".rm-block__input");
   const blockUid = blockInputElement
     ? getUids(blockInputElement as HTMLDivElement).blockUid

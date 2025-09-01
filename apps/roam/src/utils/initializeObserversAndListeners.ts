@@ -25,7 +25,7 @@ import {
   previewPageRefHandler,
   overlayPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { render as renderGraphOverviewExport } from "~/components/ExportDiscourseContext";
@@ -44,6 +44,16 @@ import {
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
+
+let discourseNodes: DiscourseNode[] = [];
+let discourseTagSet: Set<string> = new Set();
+
+const refreshDiscourseNodeCache = () => {
+  discourseNodes = getDiscourseNodes();
+  discourseTagSet = new Set(
+    discourseNodes.flatMap((n) => (n.tag ? [n.tag.toLowerCase()] : [])),
+  );
+};
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -67,6 +77,7 @@ export const initObservers = async ({
     nodeCreationPopoverListener: EventListener;
   };
 }> => {
+  refreshDiscourseNodeCache();
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
@@ -160,6 +171,7 @@ export const initObservers = async ({
     });
   // refresh config tree after config page is created
   refreshConfigTree();
+  refreshDiscourseNodeCache();
 
   const hashChangeListener = (e: Event) => {
     const evt = e as HashChangeEvent;
@@ -170,6 +182,7 @@ export const initObservers = async ({
       getDiscourseNodes().some(({ type }) => evt.oldURL.endsWith(type))
     ) {
       refreshConfigTree();
+      refreshDiscourseNodeCache();
     }
   };
 
