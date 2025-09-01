@@ -1,6 +1,10 @@
-name: Manual Turbo Dev
+name: Auto Turbo Dev
 
 on:
+  push:
+    branches: [main, develop, feature/*, bugfix/*, hotfix/*]
+  pull_request:
+    branches: [main, develop]
   workflow_dispatch:
     inputs:
       branch:
@@ -20,7 +24,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -42,6 +46,6 @@ jobs:
 
       - name: Dev session summary
         run: |
-          echo "Turbo dev session completed on branch: ${{ github.event.inputs.branch }}"
+          echo "Turbo dev session completed on branch: ${{ github.event.inputs.branch || github.ref_name }}"
           echo "Workspace: ${{ github.event.inputs.workspace || 'all' }}"
           echo "This was a one-time execution - not a persistent dev server"

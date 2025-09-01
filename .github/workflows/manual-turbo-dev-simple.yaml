@@ -1,6 +1,10 @@
-name: Manual Turbo Dev (Simple)
+name: Auto Turbo Dev (Simple)
 
 on:
+  push:
+    branches: [main, develop, feature/*, bugfix/*, hotfix/*]
+  pull_request:
+    branches: [main, develop]
   workflow_dispatch:
     inputs:
       branch:
@@ -17,7 +21,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
