@@ -131,7 +131,33 @@ class AdminPanel extends React.Component<AdminPanelProps, AdminPanelState> {
                           data-link-uid="{node.Content?.source_local_id}"
                         >
                           <span className="rm-page-ref__brackets">[[</span>
-                          <span className="rm-page-ref rm-page-ref--link">
+                          <span
+                            className="rm-page-ref rm-page-ref--link"
+                            onClick={async (event) => {
+                              if (event.shiftKey) {
+                                if (node.Content?.source_local_id) {
+                                  await window.roamAlphaAPI.ui.rightSidebar.addWindow(
+                                    {
+                                      window: {
+                                        // @ts-expect-error TODO: fix this
+                                        "block-uid":
+                                          node.Content.source_local_id,
+                                        type: "outline",
+                                      },
+                                    },
+                                  );
+                                }
+                              } else if (
+                                node.Content?.Document?.source_local_id
+                              ) {
+                                window.roamAlphaAPI.ui.mainWindow.openPage({
+                                  page: {
+                                    uid: node.Content.Document.source_local_id,
+                                  },
+                                });
+                              }
+                            }}
+                          >
                             {node.Content?.text}
                           </span>
                           <span className="rm-page-ref__brackets">]]</span>
