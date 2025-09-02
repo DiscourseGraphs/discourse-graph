@@ -11,6 +11,7 @@ import {
   Editor,
   useIsToolSelected,
   useTools,
+  defaultBindingUtils,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import {
@@ -32,6 +33,8 @@ import { DiscourseNodeUtil } from "~/components/canvas/shapes/DiscourseNodeShape
 import { DiscourseNodeTool } from "./DiscourseNodeTool";
 import { DiscourseNodePanel } from "./DiscourseNodePanel";
 import { usePlugin } from "~/components/PluginContext";
+import { DiscourseRelationUtil } from "~/components/canvas/shapes/DiscourseRelationShape";
+import { DiscourseRelationBindingUtil } from "~/components/canvas/shapes/DiscourseRelationBinding";
 
 interface TldrawPreviewProps {
   store: TLStore;
@@ -55,6 +58,11 @@ export const TldrawPreviewComponent = ({
   const customShapeUtils = [
     ...defaultShapeUtils,
     DiscourseNodeUtil.configure({
+      app: plugin.app,
+      canvasFile: file,
+      plugin,
+    }),
+    DiscourseRelationUtil.configure({
       app: plugin.app,
       canvasFile: file,
       plugin,
@@ -172,6 +180,10 @@ export const TldrawPreviewComponent = ({
             initialState="select"
             shapeUtils={customShapeUtils}
             tools={customTools}
+            bindingUtils={[
+              ...defaultBindingUtils,
+              DiscourseRelationBindingUtil,
+            ]}
             assetUrls={{
               icons: {
                 discourseNodeIcon: iconUrl,
