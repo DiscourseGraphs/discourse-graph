@@ -41,7 +41,7 @@ const main = () => {
             if (file.isDirectory()) {
               exec(
                 "deno lint index.ts",
-                { cwd: join(file.path, file.name) },
+                { cwd: join(fnDir, file.name) },
                 (err, stdout, stderr) => {
                   stderr = stderr.replace("Checked 1 file", "");
                   if (err !== null || stderr.trim().length > 0) {

@@ -1,6 +1,6 @@
 {
   "default": {
-    "requireModule": ["ts-node/register"],
+    "requireModule": ["ts-node-maintained/register"],
     "require": ["features/step-definitions/**/*.ts"]
   }
 }
