@@ -1,10 +1,11 @@
-import { Notice, TFile } from "obsidian";
+import { TFile } from "obsidian";
 import { Editor, createShapeId } from "tldraw";
 import DiscourseGraphPlugin from "~/index";
 import { DiscourseNode } from "~/types";
 import { CreateNodeModal } from "~/components/CreateNodeModal";
 import { createDiscourseNode } from "~/utils/createNode";
 import { addWikilinkBlockrefForFile } from "~/components/canvas/stores/assetStore";
+import { showErrorToast } from "./toastUtils";
 
 export type CreateNodeAtArgs = {
   plugin: DiscourseGraphPlugin;
@@ -60,7 +61,10 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
         tldrawEditor.setSelectedShapes([shapeId]);
       } catch (error) {
         console.error("Error creating discourse node:", error);
-        new Notice(`Failed to create discourse node: ${JSON.stringify(error)}`);
+        showErrorToast(
+          "Failed to Create Node",
+          `Could not create discourse node: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
       }
     },
   });
