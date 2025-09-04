@@ -45,10 +45,13 @@ const defaultState: AdminPanelState = {
 };
 
 class AdminPanel extends React.Component<AdminPanelProps, AdminPanelState> {
-  constructor({ onloadArgs }: { onloadArgs: OnloadArgs }) {
-    super({ onloadArgs });
+  constructor(props: AdminPanelProps) {
+    super(props);
     this.state = defaultState;
-    setTimeout(async () => {
+  }
+
+  async componentDidMount() {
+    try {
       const context = await getSupabaseContext();
       this.setState({ ...this.state, context });
       if (context) {
@@ -60,16 +63,20 @@ class AdminPanel extends React.Component<AdminPanelProps, AdminPanelState> {
           nodes,
           showingSchema: nodeSchemaSignature,
         });
-      } else {
-        this.setState({ context });
       }
-    }, 0);
+    } catch (e) {
+      console.error("AdminPanel init failed", e);
+    }
   }
+
   render() {
     return (
       <div>
         <p>
-          Context: <code>{JSON.stringify(this.state.context)}</code>
+          Context:{" "}
+          <code>
+            {JSON.stringify({ ...this.state.context, spacePassword: "****" })}
+          </code>
         </p>
         {Object.keys(this.state.schemas).length > 0 ? (
           <div>
@@ -127,8 +134,8 @@ class AdminPanel extends React.Component<AdminPanelProps, AdminPanelState> {
                           )}
                         </pre>
                         <span
-                          data-link-title="{node.Content?.text}"
-                          data-link-uid="{node.Content?.source_local_id}"
+                          data-link-title={node.Content?.text}
+                          data-link-uid={node.Content?.source_local_id}
                         >
                           <span className="rm-page-ref__brackets">[[</span>
                           <span
@@ -190,6 +197,10 @@ class AdminPanel extends React.Component<AdminPanelProps, AdminPanelState> {
       .eq("space_id", this.state.context.spaceId)
       .eq("is_schema", true)
       .eq("arity", 0);
+    if (res.error) {
+      console.error("getNodeSchemas failed", res.error);
+      return [nodeSchemaSignature];
+    }
     return [nodeSchemaSignature, ...(res.data || [])];
   }
 
@@ -243,6 +254,10 @@ class AdminPanel extends React.Component<AdminPanelProps, AdminPanelState> {
       query = query.eq("is_schema", true).eq("arity", 0);
     }
     const { error, data } = await query;
+    if (error) {
+      console.error("getNodes failed", error);
+      return [];
+    }
     return data || [];
   }
 }
