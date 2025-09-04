@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
+import { config } from "@repo/database/dbDotEnv";
 
-const nextConfig = {
+config();
+
+const nextConfig: NextConfig = {
   reactStrictMode: true,
   serverRuntimeConfig: {
     maxDuration: 300,
   },
-  transpilePackages: ["@repo/database", "@repo/utils", "@repo/ui"],
 };
 export default nextConfig;

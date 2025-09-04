@@ -2,12 +2,12 @@
 export const TLDRAW_DATA_ATTRIBUTE = "dg-tldraw-canvas-wrapper";
 export default `
   /* Hide Roam Blocks only when canvas is present */
-  .roam-article .rm-block-children[${TLDRAW_DATA_ATTRIBUTE}="true"]  {
+  .roam-article[${TLDRAW_DATA_ATTRIBUTE}="true"] .rm-block-children  {
     display: none;
   }
   
   /* Hide Roam Blocks in sidebar when canvas is present */
-  .rm-sidebar-outline .rm-block-children[${TLDRAW_DATA_ATTRIBUTE}="true"] {
+  .rm-sidebar-outline[${TLDRAW_DATA_ATTRIBUTE}="true"] .rm-block-children {
     display: none;
   }
   

@@ -2,9 +2,34 @@ import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
-// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
-// import { envContents } from "@repo/database/dbDotEnv";
-const { envContents } = require("@repo/database/dbDotEnv");
+
+const getVersion = (): string => {
+  try {
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
+    ) as { version?: string };
+    return packageJson.version || "-";
+  } catch (error) {
+    console.warn("Failed to read version from package.json:", error);
+    return "-";
+  }
+};
+
+const getBuildDate = (): string => {
+  return new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+};
+let envContents = null;
+
+try {
+  const dbDotEnv = require("@repo/database/dbDotEnv");
+  envContents = dbDotEnv.envContents;
+} catch (error) {
+  if ((error as Error).message.includes("Cannot find module")) {
+    console.error("Build the database module before compiling roam");
+    process.exit(1);
+  }
+  throw error;
+}
 
 // https://github.com/evanw/esbuild/issues/337#issuecomment-954633403
 const importAsGlobals = (
@@ -137,6 +162,8 @@ export const compile = ({
         "process.env.SUPABASE_URL": `"${dbEnv.SUPABASE_URL}"`,
         "process.env.SUPABASE_ANON_KEY": `"${dbEnv.SUPABASE_ANON_KEY}"`,
         "process.env.NEXT_API_ROOT": `"${dbEnv.NEXT_API_ROOT || ""}"`,
+        "window.__DISCOURSE_GRAPH_VERSION__": `"${getVersion()}"`,
+        "window.__DISCOURSE_GRAPH_BUILD_DATE__": `"${getBuildDate()}"`,
       },
       sourcemap: process.env.NODE_ENV === "production" ? undefined : "inline",
       minify: process.env.NODE_ENV === "production",

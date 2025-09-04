@@ -41,6 +41,7 @@ import {
   defaultEditorAssetUrls,
   usePreloadAssets,
   StateNode,
+  DefaultSpinner,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
@@ -86,6 +87,9 @@ import sendErrorEmail from "~/utils/sendErrorEmail";
 import { TLDRAW_DATA_ATTRIBUTE } from "./tldrawStyles";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
+import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
+import { HistoryEntry } from "@tldraw/store";
+import { TLRecord } from "@tldraw/tlschema";
 
 declare global {
   interface Window {
@@ -98,12 +102,14 @@ export type DiscourseContextType = {
   // { [Relation.Label] => DiscourseRelation[] }
   relations: Record<string, DiscourseRelation[]>;
   lastAppEvent: string;
+  lastActions: HistoryEntry<TLRecord>[];
 };
 
 export const discourseContext: DiscourseContextType = {
   nodes: {},
   relations: {},
   lastAppEvent: "",
+  lastActions: [],
 };
 
 const DEFAULT_WIDTH = 160;
@@ -119,10 +125,47 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   const appRef = useRef<TldrawApp | null>(null);
   const lastInsertRef = useRef<VecModel>();
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastActionsRef = useRef<HistoryEntry<TLRecord>[]>(
+    discourseContext.lastActions,
+  );
 
   const [maximized, setMaximized] = useState(false);
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
 
+  // Workaround to avoid a race condition when loading a canvas page directly
+  // Start false to avoid noisy warnings on first render if timer isn't initialized yet
+  const [isPluginReady, setIsPluginReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isPluginReady) {
+      // If already ready, flip immediately
+      if (isPluginTimerReady()) {
+        setIsPluginReady(true);
+        return;
+      }
+
+      // Otherwise, wait up to the timeout and proceed either way
+      void (async () => {
+        const ready = await waitForPluginTimer();
+        if (cancelled) return;
+
+        if (!ready) {
+          console.warn(
+            "Plugin timer timeout — proceeding with canvas mount anyway.",
+          );
+          // Optional: dispatchToastEvent({ id: 'tldraw-plugin-timer-timeout', title: 'Timed out waiting for plugin init', severity: 'warning' })
+        }
+
+        setIsPluginReady(true);
+      })();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPluginReady]);
   const allRelations = useMemo(() => {
     const relations = getDiscourseRelations();
     discourseContext.relations = relations.reduce(
@@ -463,6 +506,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         type: "Tldraw Error",
         context: {
           title: title,
+          lastActions: lastActionsRef.current,
         },
       }).catch(() => {});
 
@@ -520,7 +564,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             </button>
           </div>
         </div>
-      ) : !store || !assetLoading.done || !extensionAPI ? (
+      ) : !store || !assetLoading.done || !extensionAPI || !isPluginReady ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
@@ -529,9 +573,11 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                 : "Loading Canvas"}
             </h2>
             <p className="mb-4 text-gray-600">
-              {error || assetLoading.error
-                ? "There was a problem loading the Tldraw canvas. Please try again later."
-                : ""}
+              {error || assetLoading.error ? (
+                "There was a problem loading the Tldraw canvas. Please try again later."
+              ) : (
+                <DefaultSpinner />
+              )}
             </p>
           </div>
         </div>
@@ -561,6 +607,12 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               }
 
               appRef.current = app;
+
+              app.on("change", (entry) => {
+                lastActionsRef.current.push(entry);
+                if (lastActionsRef.current.length > 10)
+                  lastActionsRef.current.shift();
+              });
 
               app.on("event", (event) => {
                 const e = event as TLPointerEventInfo;
@@ -813,23 +865,25 @@ const InsideEditorAndUiContext = ({
         editor.sideEffects.registerBeforeChangeHandler(
           "shape",
           (prevShape, nextShape) => {
-            // prevent accidental arrow reposition
-            if (isCustomArrowShape(prevShape)) {
-              const bindings = editor.getBindingsFromShape(
-                prevShape,
-                prevShape.type,
-              );
-              const isTranslating = editor.isIn("select.translating");
-              if (bindings.length && isTranslating) {
-                editor.setSelectedShapes([]);
-                toasts.addToast({
-                  id: "tldraw-toast-cannot-move-relation",
-                  title: "Cannot move relation.",
-                  severity: "warning",
-                });
-                return prevShape;
-              }
-            }
+            // TODO: Re-enable relation movement prevention with a different mechanism
+            // This was disabled because it was firing when it shouldn't
+            // The original logic prevented moving relations with bindings
+            // if (isCustomArrowShape(prevShape)) {
+            //   const bindings = editor.getBindingsFromShape(
+            //     prevShape,
+            //     prevShape.type,
+            //   );
+            //   const isTranslating = editor.isIn("select.translating");
+            //   if (bindings.length && isTranslating) {
+            //     editor.setSelectedShapes([]);
+            //     toasts.addToast({
+            //       id: "tldraw-toast-cannot-move-relation",
+            //       title: "Cannot move relation.",
+            //       severity: "warning",
+            //     });
+            //     return prevShape;
+            //   }
+            // }
             return nextShape;
           },
         );
@@ -896,21 +950,13 @@ const renderTldrawCanvasHelper = ({
     childFromRoot.parentElement &&
     !childFromRoot.hasAttribute(TLDRAW_DATA_ATTRIBUTE)
   ) {
+    rootElement.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
     childFromRoot.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
     const parentEl = childFromRoot.parentElement;
     parentEl.appendChild(canvasWrapperEl);
     canvasWrapperEl.style.minHeight = minHeight;
     canvasWrapperEl.style.height = height;
   }
-
-  // console.log(
-  //   "blockChildrenContainer.parentElement",
-  //   articleChildren.parentElement,
-  // );
-  // articleChildren.parentElement?.insertBefore(
-  //   canvasWrapperEl,
-  //   articleChildren.nextSibling,
-  // );
 
   const unmount = renderWithUnmount(
     <ExtensionApiContextProvider {...onloadArgs}>
@@ -923,6 +969,7 @@ const renderTldrawCanvasHelper = ({
   return () => {
     originalUnmount();
     childFromRoot.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
+    rootElement.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
     canvasWrapperEl.remove();
   };
 };

@@ -52,6 +52,7 @@ const LabelDialogAutocomplete = ({
   format: string;
   label: string;
 }) => {
+  const requestIdRef = useRef(0);
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<Result[]>([]);
   const [referencedNodeOptions, setReferencedNodeOptions] = useState<Result[]>(
@@ -61,57 +62,66 @@ const LabelDialogAutocomplete = ({
   const [isAddReferencedNode, setAddReferencedNode] = useState(false);
   const [isEditExistingLabel, setIsEditExistingLabel] = useState(false);
   const [content, setContent] = useState(label);
-
   useEffect(() => {
+    let alive = true;
+    const req = ++requestIdRef.current;
     setIsLoading(true);
-    const conditionUid = window.roamAlphaAPI.util.generateUID();
+    const fetchOptions = async () => {
+      try {
+        // Fetch main options
+        if (nodeType) {
+          const conditionUid = window.roamAlphaAPI.util.generateUID();
+          const results = await fireQuery({
+            returnNode: "node",
+            selections: [],
+            conditions: [
+              {
+                source: "node",
+                relation: "is a",
+                target: nodeType,
+                uid: conditionUid,
+                type: "clause",
+              },
+            ],
+          });
+          if (requestIdRef.current === req && alive) setOptions(results);
+        }
 
-    setTimeout(() => {
-      if (nodeType) {
-        void fireQuery({
-          returnNode: "node",
-          selections: [],
-          conditions: [
-            {
-              source: "node",
-              relation: "is a",
-              target: nodeType,
-              uid: conditionUid,
-              type: "clause",
-            },
-          ],
-        }).then((results) => {
-          setOptions(results);
-        });
+        // Fetch referenced node options if needed
+        if (isAddReferencedNode && referencedNode) {
+          const conditionUid = window.roamAlphaAPI.util.generateUID();
+          const results = await fireQuery({
+            returnNode: "node",
+            selections: [],
+            conditions: [
+              {
+                source: "node",
+                relation: "is a",
+                target: referencedNode.nodeType,
+                uid: conditionUid,
+                type: "clause",
+              },
+            ],
+          });
+          if (requestIdRef.current === req && alive) {
+            setReferencedNodeOptions(results);
+          }
+        }
+      } catch (error) {
+        if (requestIdRef.current === req && alive) {
+          console.error("Error fetching options:", error);
+        }
+      } finally {
+        if (requestIdRef.current === req && alive) setIsLoading(false);
       }
-      if (referencedNode) {
-        void fireQuery({
-          returnNode: "node",
-          selections: [],
-          conditions: [
-            {
-              source: "node",
-              relation: "is a",
-              target: referencedNode.nodeType,
-              uid: conditionUid,
-              type: "clause",
-            },
-          ],
-        }).then((results) => {
-          setReferencedNodeOptions(results);
-          setIsLoading(false);
-        });
-      } else {
-        setIsLoading(false);
-      }
-    }, 100);
-  }, [
-    nodeType,
-    referencedNode?.nodeType,
-    setOptions,
-    setReferencedNodeOptions,
-    referencedNode,
-  ]);
+    };
+
+    void fetchOptions();
+    return () => {
+      alive = false;
+    };
+  }, [nodeType, isAddReferencedNode, referencedNode]);
+
   const inputDivRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (isAddReferencedNode && inputDivRef.current) {
@@ -324,7 +334,7 @@ const LabelDialog = ({
   const [loading, setLoading] = useState(false);
   const isCreateCanvasNode = !isLiveBlock(initialUid);
   const { format } = discourseContext.nodes[nodeType];
-  const getReferencedNodeInFormat = () => {
+  const referencedNode = useMemo(() => {
     const regex = /{([\w\d-]*)}/g;
     const matches = [...format.matchAll(regex)];
 
@@ -342,8 +352,7 @@ const LabelDialog = ({
     }
 
     return null;
-  };
-  const referencedNode = getReferencedNodeInFormat();
+  }, [format, discourseContext.nodes]);
 
   const renderCalloutText = () => {
     let title = "Please provide a label";

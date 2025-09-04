@@ -19,11 +19,11 @@ import {
 import { type OnloadArgs } from "roamjs-components/types";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
-// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
-type LocalContentDataInput = any;
-type DGSupabaseClient = any;
-type Json = any;
-type AccountLocalInput = any;
+import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Json, CompositeTypes } from "@repo/database/dbTypes";
+
+type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
+type AccountLocalInput = CompositeTypes<"account_local_input">;
 
 const SYNC_FUNCTION = "embedding";
 const SYNC_INTERVAL = "45s";
@@ -51,7 +51,7 @@ export const endSyncTask = async (
     }
     const { error } = await supabaseClient.rpc("end_sync_task", {
       s_target: context.spaceId,
-      s_function: "embedding",
+      s_function: SYNC_FUNCTION,
       s_worker: worker,
       s_status: status,
     });
@@ -157,7 +157,7 @@ const upsertNodeSchemaToContent = async ({
       [?e :edit/time       ?edit-time]
       [?e :edit/user       ?eu]
       [(get-else $ ?eu :user/display-name "Unknown-person") ?author-name]
-  
+
   ]
   `;
   //@ts-ignore - backend to be added to roamjs-components
@@ -311,7 +311,7 @@ const getDgNodeTypes = (extensionAPI: OnloadArgs["extensionAPI"]) => {
 };
 
 const getAllUsers = async (): Promise<AccountLocalInput[]> => {
-  const query = `[:find ?author_local_id ?author_name 
+  const query = `[:find ?author_local_id ?author_name
   :keys author_local_id name
   :where
     [?user-eid :user/uid ?author_local_id]

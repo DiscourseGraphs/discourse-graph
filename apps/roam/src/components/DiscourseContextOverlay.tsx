@@ -15,6 +15,7 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -57,15 +58,23 @@ const getOverlayInfo = async (tag: string): Promise<DiscourseData> => {
   }
 };
 
-const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
-  const tagUid = useMemo(() => getPageUidByPageTitle(tag), [tag]);
+type DiscourseContextOverlayProps =
+  | { id: string; tag: string; uid?: never }
+  | { id: string; uid: string; tag?: never }
+  | { id: string; tag: string; uid: string };
+const DiscourseContextOverlay = ({
+  tag,
+  id,
+  uid,
+}: DiscourseContextOverlayProps) => {
+  const tagUid = useMemo(() => uid ?? getPageUidByPageTitle(tag), [uid, tag]);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<DiscourseData["results"]>([]);
   const [refs, setRefs] = useState(0);
   const [score, setScore] = useState<number | string>(0);
   const getInfo = useCallback(
     () =>
-      getOverlayInfo(tag)
+      getOverlayInfo(tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : ""))
         .then(({ refs, results }) => {
           const discourseNode = findDiscourseNode(tagUid);
           if (discourseNode) {
@@ -85,7 +94,7 @@ const DiscourseContextOverlay = ({ tag, id }: { tag: string; id: string }) => {
           }
         })
         .finally(() => setLoading(false)),
-    [tag, setResults, setLoading, setRefs, setScore],
+    [tag, uid, tagUid, setResults, setLoading, setRefs, setScore],
   );
   const refresh = useCallback(() => {
     setLoading(true);
