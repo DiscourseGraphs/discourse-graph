@@ -1,4 +1,8 @@
-# Discourse Graphs
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/54299890-47b2-44f8-beed-738a49eb53cc">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/099e3134-b6b5-47d9-997f-df34426e4cde">
+  <img alt="Shows project promo image in light and dark mode">
+</picture>
 
 The Discourse Graph extension enables Roam users to seamlessly add additional semantic structure to their notes, including specified page types and link types that model scientific discourse, to enable more complex and structured knowledge synthesis work, such as a complex interdisciplinary literature review, and enhanced collaboration with others on this work.
 
