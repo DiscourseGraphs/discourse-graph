@@ -44,14 +44,24 @@ import {
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 
 let discourseNodes: DiscourseNode[] = [];
-let discourseTagSet: Set<string> = new Set();
+let discourseTagToStyle: Record<string, { backgroundColor: string }> = {};
 
 const refreshDiscourseNodeCache = () => {
   discourseNodes = getDiscourseNodes();
-  discourseTagSet = new Set(
-    discourseNodes.flatMap((n) => (n.tag ? [n.tag.toLowerCase()] : [])),
+  discourseTagToStyle = discourseNodes.reduce(
+    (acc, n) => {
+      if (n.tag && n.canvasSettings?.color) {
+        const backgroundColor = formatHexColor(n.canvasSettings.color);
+        acc[n.tag.toLowerCase()] = {
+          backgroundColor,
+        };
+      }
+      return acc;
+    },
+    {} as Record<string, { backgroundColor: string }>,
   );
 };
 
@@ -115,8 +125,12 @@ export const initObservers = async ({
     callback: (s: HTMLSpanElement) => {
       const tag = s.getAttribute("data-tag");
       if (tag) {
-        if (discourseTagSet.has(tag.toLowerCase())) {
+        const style = discourseTagToStyle[tag.toLowerCase()];
+        if (style) {
           renderNodeTagPopupButton(s, discourseNodes, onloadArgs.extensionAPI);
+          s.style.backgroundColor = style.backgroundColor;
+          s.style.padding = "2px 4px";
+          s.style.borderRadius = "4px";
         }
       }
     },
