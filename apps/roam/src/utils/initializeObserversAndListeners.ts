@@ -44,14 +44,24 @@ import {
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 
 let discourseNodes: DiscourseNode[] = [];
-let discourseTagSet: Set<string> = new Set();
+let discourseTagToStyle: Record<string, { backgroundColor: string }> = {};
 
 const refreshDiscourseNodeCache = () => {
   discourseNodes = getDiscourseNodes();
-  discourseTagSet = new Set(
-    discourseNodes.flatMap((n) => (n.tag ? [n.tag.toLowerCase()] : [])),
+  discourseTagToStyle = discourseNodes.reduce(
+    (acc, n) => {
+      if (n.tag && n.canvasSettings?.color) {
+        const backgroundColor = formatHexColor(n.canvasSettings.color);
+        acc[n.tag.toLowerCase()] = {
+          backgroundColor,
+        };
+      }
+      return acc;
+    },
+    {} as Record<string, { backgroundColor: string }>,
   );
 };
 
