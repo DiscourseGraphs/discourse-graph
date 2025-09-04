@@ -28,7 +28,7 @@ import {
   TEXT_PROPS,
   TextLabel,
 } from "tldraw";
-import { Notice, type App, type TFile } from "obsidian";
+import { type App, type TFile } from "obsidian";
 import DiscourseGraphPlugin from "~/index";
 import {
   ARROW_HANDLES,
@@ -55,6 +55,12 @@ import {
   updateArrowTerminal,
 } from "~/components/canvas/utils/relationUtils";
 import { RelationBindings } from "./DiscourseRelationBinding";
+import { DiscourseNodeShape, DiscourseNodeUtil } from "./DiscourseNodeShape";
+import { addRelationToFrontmatter } from "~/components/canvas/utils/frontmatterUtils";
+import {
+  showErrorToast,
+  showSuccessToast,
+} from "~/components/canvas/utils/toastUtils";
 
 export enum ArrowHandles {
   start = "start",
@@ -372,9 +378,9 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
             (rt) => rt.id === shape.props.relationTypeId,
           );
 
-          // Show error notice and delete the entire relation shape
+          // Show error toast and delete the entire relation shape
           const errorMessage = `Cannot connect "${sourceNodeType?.name}" to "${targetNodeType?.name}" with "${relationType?.label}" relation`;
-          new Notice(errorMessage, 3000);
+          showErrorToast("Invalid Connection", errorMessage);
 
           // Remove binding and return without creating connection
           removeArrowBinding(this.editor, shape, handleId);
@@ -938,6 +944,7 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
       ]);
     }
   }
+
   override toSvg(shape: DiscourseRelationShape, ctx: SvgExportContext) {
     ctx.addExportDef(getFillDefForExport(shape.props.fill));
     if (shape.props.text)
@@ -1071,5 +1078,83 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
     );
 
     return reverseConnection;
+  }
+
+  /**
+   * Reifies the relation in the frontmatter of both connected files.
+   * This creates the bidirectional links that make the relation persistent.
+   */
+  async reifyRelationInFrontmatter(
+    shape: DiscourseRelationShape,
+    bindings: RelationBindings,
+  ): Promise<void> {
+    if (!bindings.start || !bindings.end || !shape.props.relationTypeId) {
+      return;
+    }
+
+    try {
+      const startNode = this.editor.getShape(bindings.start.toId);
+      const endNode = this.editor.getShape(bindings.end.toId);
+
+      if (
+        !startNode ||
+        !endNode ||
+        startNode.type !== "discourse-node" ||
+        endNode.type !== "discourse-node"
+      ) {
+        return;
+      }
+
+      const startNodeUtil = this.editor.getShapeUtil(startNode);
+      const endNodeUtil = this.editor.getShapeUtil(endNode);
+
+      // Get the files associated with both nodes
+      const startFile = await (startNodeUtil as DiscourseNodeUtil).getFile(
+        startNode as DiscourseNodeShape,
+        {
+          app: this.options.app,
+          canvasFile: this.options.canvasFile,
+        },
+      );
+      const endFile = await (endNodeUtil as DiscourseNodeUtil).getFile(
+        endNode as DiscourseNodeShape,
+        {
+          app: this.options.app,
+          canvasFile: this.options.canvasFile,
+        },
+      );
+
+      if (!startFile || !endFile) {
+        console.warn("Could not resolve files for relation nodes");
+        return;
+      }
+
+      // Add the bidirectional relation to frontmatter
+      await addRelationToFrontmatter(
+        this.options.app,
+        this.options.plugin,
+        startFile,
+        endFile,
+        shape.props.relationTypeId,
+      );
+
+      // Show success notice
+      const relationType = this.options.plugin.settings.relationTypes.find(
+        (rt) => rt.id === shape.props.relationTypeId,
+      );
+
+      if (relationType) {
+        showSuccessToast(
+          "Relation Created",
+          `Added ${relationType.label} relation between ${startFile.basename} and ${endFile.basename}`,
+        );
+      }
+    } catch (error) {
+      console.error("Failed to reify relation in frontmatter:", error);
+      showErrorToast(
+        "Failed to Save Relation",
+        "Could not save relation to files",
+      );
+    }
   }
 }
