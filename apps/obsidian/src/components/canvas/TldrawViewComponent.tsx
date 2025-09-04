@@ -12,6 +12,7 @@ import {
   useIsToolSelected,
   useTools,
   defaultBindingUtils,
+  TLPointerEventInfo,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import {
@@ -31,16 +32,23 @@ import { TFile } from "obsidian";
 import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import { createDiscourseNodeUtil } from "~/components/canvas/shapes/DiscourseNodeShape";
 import { DiscourseNodeTool } from "./DiscourseNodeTool";
-import { DiscourseNodePanel } from "./DiscourseNodePanel";
+import { DiscourseToolPanel } from "./DiscourseToolPanel";
 import { usePlugin } from "~/components/PluginContext";
 import { createDiscourseRelationUtil } from "~/components/canvas/shapes/DiscourseRelationShape";
-import { DiscourseRelationBindingUtil } from "~/components/canvas/shapes/DiscourseRelationBinding";
+import { DiscourseRelationTool } from "./DiscourseRelationTool";
+import {
+  DiscourseRelationBindingUtil,
+  BaseRelationBindingUtil,
+} from "~/components/canvas/shapes/DiscourseRelationBinding";
+import ToastListener from "./ToastListener";
 
 interface TldrawPreviewProps {
   store: TLStore;
   file: TFile;
   assetStore: ObsidianTLAssetStore;
 }
+
+// No longer needed - using tldraw's event system instead
 
 export const TldrawPreviewComponent = ({
   store,
@@ -50,6 +58,7 @@ export const TldrawPreviewComponent = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentStore, setCurrentStore] = useState<TLStore>(store);
   const [isReady, setIsReady] = useState(false);
+  const isCreatingRelationRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const lastSavedDataRef = useRef<string>("");
   const editorRef = useRef<Editor>();
@@ -69,7 +78,7 @@ export const TldrawPreviewComponent = ({
     }),
   ];
 
-  const customTools = [DiscourseNodeTool];
+  const customTools = [DiscourseNodeTool, DiscourseRelationTool];
 
   const iconUrl = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
 
@@ -163,6 +172,25 @@ export const TldrawPreviewComponent = ({
 
   const handleMount = (editor: Editor) => {
     editorRef.current = editor;
+
+    editor.on("event", (event) => {
+      const e = event as TLPointerEventInfo;
+      if (e.type === "pointer" && e.name === "pointer_down") {
+        const currentTool = editor.getCurrentTool();
+        const currentToolId = currentTool.id;
+
+        if (currentToolId === "discourse-relation") {
+          isCreatingRelationRef.current = true;
+        }
+      }
+
+      if (e.type === "pointer" && e.name === "pointer_up") {
+        if (isCreatingRelationRef.current) {
+          BaseRelationBindingUtil.checkAndReifyRelation(editor);
+          isCreatingRelationRef.current = false;
+        }
+      }
+    });
   };
 
   return (
@@ -200,6 +228,15 @@ export const TldrawPreviewComponent = ({
                     editor.setCurrentTool("discourse-node");
                   },
                 };
+                tools["discourse-relation"] = {
+                  id: "discourse-relation",
+                  label: "Discourse Relation",
+                  readonlyOk: false,
+                  icon: "tool-arrow",
+                  onSelect: () => {
+                    editor.setCurrentTool("discourse-relation");
+                  },
+                };
                 return tools;
               },
             }}
@@ -209,13 +246,17 @@ export const TldrawPreviewComponent = ({
                 const isDiscourseNodeSelected = useIsToolSelected(
                   tools["discourse-node"],
                 );
+                const isDiscourseRelationSelected = useIsToolSelected(
+                  tools["discourse-relation"],
+                );
 
-                if (!isDiscourseNodeSelected) {
+                if (!isDiscourseNodeSelected && !isDiscourseRelationSelected) {
                   return <DefaultStylePanel />;
                 }
 
-                return <DiscourseNodePanel plugin={plugin} canvasFile={file} />;
+                return <DiscourseToolPanel plugin={plugin} canvasFile={file} />;
               },
+              OnTheCanvas: () => <ToastListener />,
               Toolbar: (props) => {
                 const tools = useTools();
                 const isDiscourseNodeSelected = useIsToolSelected(
