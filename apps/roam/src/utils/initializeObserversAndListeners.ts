@@ -47,21 +47,21 @@ import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 
 let discourseNodes: DiscourseNode[] = [];
-let discourseTagToStyle: Record<string, { backgroundColor: string }> = {};
+let discourseTagToStyle: Record<string, { color: string }> = {};
 
 const refreshDiscourseNodeCache = () => {
   discourseNodes = getDiscourseNodes();
   discourseTagToStyle = discourseNodes.reduce(
     (acc, n) => {
       if (n.tag && n.canvasSettings?.color) {
-        const backgroundColor = formatHexColor(n.canvasSettings.color);
+        const color = formatHexColor(n.canvasSettings.color);
         acc[n.tag.toLowerCase()] = {
-          backgroundColor,
+          color,
         };
       }
       return acc;
     },
-    {} as Record<string, { backgroundColor: string }>,
+    {} as Record<string, { color: string }>,
   );
 };
 
@@ -128,7 +128,7 @@ export const initObservers = async ({
         const style = discourseTagToStyle[tag.toLowerCase()];
         if (style) {
           renderNodeTagPopupButton(s, discourseNodes, onloadArgs.extensionAPI);
-          s.style.backgroundColor = style.backgroundColor;
+          s.style.color = style.color;
           s.style.padding = "2px 4px";
           s.style.borderRadius = "4px";
         }
