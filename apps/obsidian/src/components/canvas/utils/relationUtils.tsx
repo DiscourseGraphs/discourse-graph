@@ -2643,12 +2643,3 @@ function centerOfCircleFromThreePoints(a: VecLike, b: VecLike, c: VecLike) {
       u,
   );
 }
-
-export const getRelationTypeById = (
-  plugin: DiscourseGraphPlugin,
-  relationTypeId: string,
-) => {
-  return plugin.settings.relationTypes.find(
-    (type) => type.id === relationTypeId,
-  );
-};
