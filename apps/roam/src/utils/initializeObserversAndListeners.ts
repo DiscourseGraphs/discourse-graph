@@ -108,44 +108,99 @@ export const initObservers = async ({
 
   const tableTagObserver = createHTMLObserver({
     tag: "TD",
-    className: "relative", // Changed: Added a className to satisfy the type
+    className: "relative",
     callback: (el: HTMLElement) => {
-      if (!(el instanceof HTMLTableCellElement)) {
-        return;
-      }
+      if (!(el instanceof HTMLTableCellElement)) return;
+
       const td = el;
-      if (!td.hasAttribute("data-cell-content")) {
-        return;
-      }
+      if (!td.hasAttribute("data-cell-content")) return;
 
       const content = td.dataset.cellContent || "";
-      if (!content.includes("#")) {
-        return;
-      }
-
-      const innerSpan = td.querySelector("a.rm-page-ref > span");
-      if (!innerSpan || innerSpan.querySelector(".rm-page-ref--tag")) {
-        return;
-      }
+      if (!content.includes("#")) return;
 
       const discourseNodes = getDiscourseNodes();
       const discourseTagSet = new Set(
         discourseNodes.map((n) => n.tag?.toLowerCase()).filter(Boolean),
       );
 
-      const newHtml = innerSpan.innerHTML.replace(
-        /#([\w-]+)/g,
-        (match, tagName) => {
+      const existingTags = td.querySelectorAll(".rm-page-ref--tag");
+      existingTags.forEach((tag) => {
+        const tagName = tag.getAttribute("data-tag");
+        if (
+          tagName &&
+          discourseTagSet.has(tagName.toLowerCase()) &&
+          tag instanceof HTMLSpanElement
+        ) {
+          tag.removeAttribute("data-attribute-button-rendered");
+          renderNodeTagPopupButton(tag, onloadArgs.extensionAPI);
+        }
+      });
+
+      const innerContainers = [
+        td.querySelector("a.rm-page-ref > span"),
+        td.querySelector("div.rm-block__input > span"),
+        td.querySelector("div.rm-block__input"),
+        td.querySelector("div.roamjs-query-embed span"),
+      ].filter(Boolean);
+
+      innerContainers.forEach((innerSpan) => {
+        if (!innerSpan) return;
+
+        const formattedTagsInside =
+          innerSpan.querySelectorAll(".rm-page-ref--tag");
+        if (formattedTagsInside.length > 0) return;
+
+        const textContent = innerSpan.textContent || "";
+        const unformattedDiscourseTagsFound = [];
+
+        discourseNodes.forEach((node) => {
+          const tag = node.tag;
+          if (!tag) return;
+
+          const pattern = new RegExp(`#${tag}(?![\\w-])`, "i");
+          if (pattern.test(textContent)) {
+            const alreadyFormatted = innerSpan.querySelector(
+              `.rm-page-ref--tag[data-tag="${tag}"]`,
+            );
+            if (!alreadyFormatted) {
+              unformattedDiscourseTagsFound.push(tag);
+            }
+          }
+        });
+
+        if (unformattedDiscourseTagsFound.length === 0) return;
+
+        const originalHtml = innerSpan.innerHTML;
+        const newHtml = originalHtml.replace(/#([\w-]+)/g, (match, tagName) => {
+          if (
+            innerSpan.querySelector(`.rm-page-ref--tag[data-tag="${tagName}"]`)
+          ) {
+            return match;
+          }
+
           if (discourseTagSet.has(tagName.toLowerCase())) {
             return `<span class="rm-page-ref rm-page-ref--tag" data-tag="${tagName}">${match}</span>`;
           }
-          return match;
-        },
-      );
 
-      if (innerSpan.innerHTML !== newHtml) {
-        innerSpan.innerHTML = newHtml;
-      }
+          return match;
+        });
+
+        if (originalHtml !== newHtml) {
+          innerSpan.innerHTML = newHtml;
+
+          setTimeout(() => {
+            const newTags = innerSpan.querySelectorAll(
+              '.rm-page-ref--tag:not([data-attribute-button-rendered="true"])',
+            );
+
+            newTags.forEach((tag) => {
+              if (tag instanceof HTMLSpanElement) {
+                renderNodeTagPopupButton(tag, onloadArgs.extensionAPI);
+              }
+            });
+          }, 50);
+        }
+      });
     },
   });
 
