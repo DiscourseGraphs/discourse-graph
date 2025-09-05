@@ -65,7 +65,9 @@ const refreshDiscourseNodeCache = () => {
     {} as Record<string, { color: string }>,
   );
   discourseTagSet = new Set(
-    discourseNodes.flatMap((n) => (n.tag ? [n.tag.toLowerCase()] : [])),
+    discourseNodes.flatMap((n) =>
+      n.tag ? [n.tag.replace(/^#/, "").toLowerCase()] : [],
+    ),
   );
 };
 
