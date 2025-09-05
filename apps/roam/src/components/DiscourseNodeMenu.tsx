@@ -113,7 +113,7 @@ const NodeMenu = ({
         setTimeout(() => {
           const currentText = textarea.value;
           const cursorPos = textarea.selectionStart;
-          const textToInsert = `#${tag} `;
+          const textToInsert = `#${tag.replace(/^#/, "")} `;
 
           const newText = `${currentText.substring(
             0,
@@ -249,9 +249,13 @@ const NodeMenu = ({
               <MenuItem
                 key={item.text}
                 data-node={item.type}
-                data-tag={item.tag}
+                data-tag={item.tag?.replace(/^#/, "")}
                 text={
-                  showNodeTypes ? item.text : item.tag ? `#${item.tag}` : ""
+                  showNodeTypes
+                    ? item.text
+                    : item.tag
+                      ? `#${item.tag.replace(/^#/, "")}`
+                      : ""
                 }
                 active={i === activeIndex}
                 onMouseEnter={() => setActiveIndex(i)}

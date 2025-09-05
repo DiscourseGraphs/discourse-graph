@@ -14,6 +14,7 @@ export const renderNodeTagPopupButton = (
 ) => {
   if (parent.dataset.attributeButtonRendered === "true") return;
 
+  const rect = parent.getBoundingClientRect();
   parent.dataset.attributeButtonRendered = "true";
   const wrapper = document.createElement("span");
   wrapper.style.position = "relative";
@@ -25,8 +26,8 @@ export const renderNodeTagPopupButton = (
   reactRoot.style.position = "absolute";
   reactRoot.style.top = "0";
   reactRoot.style.left = "0";
-  reactRoot.style.width = "100%";
-  reactRoot.style.height = "100%";
+  reactRoot.style.width = `${rect.width}px`;
+  reactRoot.style.height = `${rect.height}px`;
   reactRoot.style.pointerEvents = "none";
   reactRoot.style.zIndex = "10";
 
@@ -63,8 +64,11 @@ export const renderNodeTagPopupButton = (
         <span
           style={{
             display: "block",
-            width: "100%",
-            height: "100%",
+            top: "0",
+            left: "0",
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+            position: "absolute",
             pointerEvents: "auto",
           }}
         />
@@ -73,7 +77,7 @@ export const renderNodeTagPopupButton = (
       position={Position.TOP}
       modifiers={{
         offset: {
-          offset: "0, 10",
+          offset: `${rect.width / 2}px, 10`,
         },
         arrow: {
           enabled: false,
