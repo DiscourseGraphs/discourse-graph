@@ -35,7 +35,9 @@ export const renderNodeTagPopupButton = (
   const textContent = parent.textContent?.trim() || "";
   const tagAttr = parent.getAttribute("data-tag") || textContent;
   const tag = tagAttr.replace(/^#/, "").toLowerCase();
-  const matchedNode = discourseNodes.find((n) => n.tag?.toLowerCase() === tag);
+  const matchedNode = discourseNodes.find(
+    (n) => n.tag?.replace(/^#/, "").toLowerCase() === tag,
+  );
 
   if (!matchedNode) return;
 

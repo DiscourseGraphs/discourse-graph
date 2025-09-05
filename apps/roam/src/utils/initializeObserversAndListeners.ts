@@ -48,6 +48,8 @@ import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSetting
 
 let discourseNodes: DiscourseNode[] = [];
 let discourseTagToStyle: Record<string, { color: string }> = {};
+let discourseTagSet: Set<string> = new Set();
+
 
 const refreshDiscourseNodeCache = () => {
   discourseNodes = getDiscourseNodes();
@@ -62,6 +64,11 @@ const refreshDiscourseNodeCache = () => {
       return acc;
     },
     {} as Record<string, { color: string }>,
+  );
+  discourseTagSet = new Set(
+    discourseNodes.flatMap((n) =>
+      n.tag ? [n.tag.replace(/^#/, "").toLowerCase()] : [],
+    ),
   );
 };
 
