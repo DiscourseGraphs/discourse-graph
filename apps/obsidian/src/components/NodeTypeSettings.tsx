@@ -382,7 +382,11 @@ const NodeTypeSettings = () => {
       handleNodeTypeChange(fieldConfig.key, newValue);
 
     return (
-      <FieldWrapper fieldConfig={fieldConfig} error={error} key={fieldConfig.key}>
+      <FieldWrapper
+        fieldConfig={fieldConfig}
+        error={error}
+        key={fieldConfig.key}
+      >
         {fieldConfig.key === "template" ? (
           <TemplateField
             value={value}
@@ -418,14 +422,14 @@ const NodeTypeSettings = () => {
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-            {nodeType.color && (
-              <div
-                className="h-4 w-4 rounded-full"
-                style={{ backgroundColor: nodeType.color }}
-              />
-            )}
-            <span>{nodeType.name}</span>
-          </div>
+              {nodeType.color && (
+                <div
+                  className="h-4 w-4 rounded-full"
+                  style={{ backgroundColor: nodeType.color }}
+                />
+              )}
+              <span>{nodeType.name}</span>
+            </div>
             <div className="flex gap-2">
               <button
                 className="icon-button"
@@ -437,7 +441,7 @@ const NodeTypeSettings = () => {
               >
                 <div
                   className="icon"
-                  ref={(el) => el && setIcon(el, "pencil")}
+                  ref={(el) => (el && setIcon(el, "pencil")) || undefined}
                 />
               </button>
               <button
@@ -450,7 +454,7 @@ const NodeTypeSettings = () => {
               >
                 <div
                   className="icon"
-                  ref={(el) => el && setIcon(el, "trash")}
+                  ref={(el) => (el && setIcon(el, "trash")) || undefined}
                 />
               </button>
             </div>
@@ -476,7 +480,7 @@ const NodeTypeSettings = () => {
           >
             <div
               className="icon"
-              ref={(el) => el && setIcon(el, "arrow-left")}
+              ref={(el) => (el && setIcon(el, "arrow-left")) || undefined}
             />
           </button>
           <h3 className="dg-h3">Edit Node Type</h3>

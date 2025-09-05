@@ -1,7 +1,7 @@
-diff --git a/node_modules/@tldraw/editor/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs b/node_modules/@tldraw/editor/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
-index f27802f..3c36f1b 100644
---- a/node_modules/@tldraw/editor/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
-+++ b/node_modules/@tldraw/editor/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
+diff --git a/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs b/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
+index f27802fae3e92e148c1121b2331b036f55b31f37..3c36f1b103641bc544278df8d53bcdf9300f7af7 100644
+--- a/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
++++ b/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
 @@ -22,6 +22,22 @@ const DefaultErrorFallback = ({ error, editor }) => {
    }
    const errorMessage = error instanceof Error ? error.message : String(error);
@@ -25,10 +25,10 @@ index f27802f..3c36f1b 100644
    const isDarkModeFromApp = useValue(
      "isDarkMode",
      () => {
-diff --git a/node_modules/@tldraw/editor/dist-esm/lib/editor/Editor.mjs b/node_modules/@tldraw/editor/dist-esm/lib/editor/Editor.mjs
-index 2789a72..398c086 100644
---- a/node_modules/@tldraw/editor/dist-esm/lib/editor/Editor.mjs
-+++ b/node_modules/@tldraw/editor/dist-esm/lib/editor/Editor.mjs
+diff --git a/dist-esm/lib/editor/Editor.mjs b/dist-esm/lib/editor/Editor.mjs
+index 2789a72c4ef85fc2ac3e0d2e26724ee7b01210a1..398c086c16e09edd8fb9b5992cdc583c0d6ab122 100644
+--- a/dist-esm/lib/editor/Editor.mjs
++++ b/dist-esm/lib/editor/Editor.mjs
 @@ -53,7 +53,8 @@ import {
  } from "@tldraw/utils";
  import EventEmitter from "eventemitter3";
