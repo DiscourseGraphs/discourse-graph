@@ -19,6 +19,11 @@ catalogs:
     react-dom: 18.2.0
     "@types/react": 18.2.0
     "@types/react-dom": 18.2.0
+  blueprint:
+    react: 17.0.2
+    react-dom: 17.0.2
+    "@types/react": 17.0.2
+    "@types/react-dom": 17.0.2
 
 onlyBuiltDependencies:
   - core-js
@@ -30,30 +35,35 @@ onlyBuiltDependencies:
   - supabase
   - unrs-resolver
 
-overrides:
-  react: 19.1.0
-  react-dom: 19.1.0
-  "@types/react": 19.1.0
-  "@types/react-dom": 19.1.0
-  "roam>react": catalog:roam
-  "roam>react-dom": catalog:roam
-  "roam>@types/react": catalog:roam
-  "roam>@types/react-dom": catalog:roam
-  "@discourse-graphs/obsidian>react": catalog:obsidian
-  "@discourse-graphs/obsidian>react-dom": catalog:obsidian
-  "@discourse-graphs/obsidian>@types/react": catalog:obsidian
-  "@discourse-graphs/obsidian>@types/react-dom": catalog:obsidian
+packageExtensions:
+  "@blueprintjs/core":
+    dependencies:
+      react: 17.0.2
+      react-dom: 17.0.2
+      "@types/react": 17.0.2
+      "@types/react-dom": 17.0.2
+  "@blueprintjs/datetime":
+    dependencies:
+      react: 17.0.2
+      react-dom: 17.0.2
+      "@types/react": 17.0.2
+      "@types/react-dom": 17.0.2
+  "@blueprintjs/select":
+    dependencies:
+      react: 17.0.2
+      react-dom: 17.0.2
+      "@types/react": 17.0.2
+      "@types/react-dom": 17.0.2
+  "@types/react-dom@18.2.0":
+    dependencies:
+      "@types/react": 18.2.0
+  "@types/react-dom@17.0.2":
+    dependencies:
+      "@types/react": 17.0.2
 
 peerDependencyRules:
   allowedVersions:
-    "@blueprintjs/core>react": catalog:roam
-    "@blueprintjs/datetime>react": catalog:roam
-    "@blueprintjs/select>react": catalog:roam
-    "roamjs-components>react": catalog:roam
-    "@blueprintjs/core>react-dom": catalog:roam
-    "@blueprintjs/datetime>react-dom": catalog:roam
-    "@blueprintjs/select>react-dom": catalog:roam
-    "roamjs-components>react-dom": catalog:roam
+    "roamjs-components>tslib": ^2
 
 patchedDependencies:
   tldraw@^2.3.0: patches/tldraw@2.3.0.patch
