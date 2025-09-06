@@ -378,13 +378,11 @@ export const mountLeftSidebarInto = (wrapper: HTMLElement): void => {
     root.id = id;
     root.className = "starred-pages";
     root.style.overflow = "scroll";
-    root.style.padding = "15px";
     root.onmousedown = (e) => e.stopPropagation();
     wrapper.appendChild(root);
   } else {
     root.className = "starred-pages";
     root.style.overflow = "scroll";
-    root.style.padding = "15px";
   }
 
   setTimeout(() => {
