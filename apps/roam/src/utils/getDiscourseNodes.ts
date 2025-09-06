@@ -26,6 +26,12 @@ export type DiscourseNode = {
   graphOverview?: boolean;
   description?: string;
   template?: InputTextNode[];
+  embeddingRef?: string;
+  embeddingRefUid?: string;
+  isFirstChild?: {
+    uid: string;
+    value: boolean;
+  };
 };
 
 const DEFAULT_NODES: DiscourseNode[] = [
@@ -81,9 +87,33 @@ const getSpecification = (children: RoamBasicNode[] | undefined) => {
   return specs;
 };
 
+const getUidAndBooleanSetting = ({
+  tree,
+  text,
+}: {
+  tree: RoamBasicNode[];
+  text: string;
+}) => {
+  const node = tree.find((t) => t.text === text);
+  const value = !!node?.children?.length;
+  return {
+    uid: node?.uid || "",
+    value,
+  };
+};
+
 const getDiscourseNodes = (relations = getDiscourseRelations()) => {
   const configuredNodes = Object.entries(discourseConfigRef.nodes)
     .map(([type, { text, children }]): DiscourseNode => {
+      const suggestiveRules = getSubTree({
+        tree: children,
+        key: "Suggestive Rules",
+      });
+      const embeddingBlockRef = getSubTree({
+        tree: suggestiveRules.children,
+        key: "Embedding Block Ref",
+      }).children?.[0];
+
       return {
         format: getSettingValueFromTree({ tree: children, key: "format" }),
         text,
@@ -104,6 +134,12 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           key: "description",
         }),
         template: getSubTree({ tree: children, key: "template" }).children,
+        embeddingRef: embeddingBlockRef?.text,
+        embeddingRefUid: embeddingBlockRef?.uid,
+        isFirstChild: getUidAndBooleanSetting({
+          tree: suggestiveRules.children,
+          text: "First Child",
+        }),
       };
     })
     .concat(
