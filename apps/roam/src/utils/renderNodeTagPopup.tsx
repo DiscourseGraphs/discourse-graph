@@ -49,6 +49,8 @@ export const renderNodeTagPopupButton = (
   const rawBlockText = blockUid ? getTextByBlockUid(blockUid) : "";
   const cleanedBlockText = rawBlockText.replace(textContent, "").trim();
 
+  const rect = parent.getBoundingClientRect();
+
   ReactDOM.render(
     <Popover
       content={
@@ -71,8 +73,8 @@ export const renderNodeTagPopupButton = (
         <span
           style={{
             display: "block",
-            width: "100%",
-            height: "100%",
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
             pointerEvents: "auto",
           }}
         />
