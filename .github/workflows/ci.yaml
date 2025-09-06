@@ -21,6 +21,9 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Check TypeScript Types
+        run: npx turbo check-types
+
         # TODO: Add future linting, testing, style checks, etc.
         # name: Lint
         # run: npm run lint

@@ -28,7 +28,30 @@ export const config = [
     },
     rules: {
       "max-params": ["error", 3],
-      "@typescript-eslint/naming-convention": "error",
+      "@typescript-eslint/naming-convention": [
+        "error",
+        // Keep default
+        { selector: "default", format: ["camelCase"] },
+        // Keep default for const
+        {
+          selector: "variable",
+          modifiers: ["const"],
+          format: ["camelCase", "UPPER_CASE"],
+        },
+        // Keep default for types
+        { selector: "typeLike", format: ["PascalCase"] },
+        // Allow PascalCase for function variables (e.g., React components)
+        {
+          selector: "variable",
+          types: ["function"],
+          format: ["camelCase", "PascalCase"],
+        },
+        // Allow PascalCase for React imports
+        {
+          selector: "import",
+          format: ["camelCase", "PascalCase"],
+        },
+      ],
       "preferArrows/prefer-arrow-functions": [
         "warn",
         {

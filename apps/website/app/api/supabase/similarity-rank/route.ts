@@ -1,10 +1,10 @@
 import { NextResponse, NextRequest } from "next/server";
 import { createClient } from "~/utils/supabase/server";
+import { asPostgrestFailure } from "@repo/database/lib/contextFunctions";
 import {
   createApiResponse,
   handleRouteError,
   defaultOptionsHandler,
-  asPostgrestFailure,
 } from "~/utils/supabase/apiUtils";
 
 type SimilarityRankInput = {

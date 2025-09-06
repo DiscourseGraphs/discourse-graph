@@ -1,11 +1,17 @@
 This contains the database schema for vector embeddings and concepts.
 
-There are three usage scenarios:
+There are four usage scenarios:
+
+## Developing without the database
+
+Your frontend will not use the database.
+Optional: Set `SUPABASE_USE_DB=none` in your console before running `turbo dev`. (This is now the default.)
 
 ## Local development setup
 
 Normal scenario: Your backend and frontend will work against a database instance within docker.
 It does mean you will have a fresh database with minimal data.
+Set `SUPABASE_USE_DB=local` in your console before running `turbo dev`.
 
 ### Installation
 
@@ -26,7 +32,7 @@ We follow the Supabase [Declarative Database Schema](https://supabase.com/docs/g
 1. Assuming you're working on a feature branch.
 2. Make changes to the schema, by editing files in `packages/database/supabase/schemas`
 3. If you created a new schema file, make sure to add it to `[db.migrations] schema_paths` in `packages/database/supabase/config.toml`. Schema files are applied in that order, you may need to be strategic in placing your file.
-4. `turbo check-types`, which will do the following:
+4. `turbo check-schema`, which will do the following:
     1. Check your logic with `sqruff lint supabase/schemas`
         1. If there are errors there, you can fix them with `npm run lint:fix`
     2. Stop Supabase.
@@ -37,7 +43,7 @@ We follow the Supabase [Declarative Database Schema](https://supabase.com/docs/g
 7. `turbo build`, which will do the following:
     1. Start Supabase
     2. Apply the new migration locally
-    3. Regenerate the types file with `supabase gen types typescript --local > types.gen.ts`
+    3. Regenerate the types file with `supabase gen types typescript --local > src/dbTypes.ts`
     4. Copy it where appropriate
 8. You can start using your changes again `turbo dev`
 9. When your migration is pushed in a branch, Supabase will create a branch instance. Note there is a small cost to this, so we do not want those branches to linger.

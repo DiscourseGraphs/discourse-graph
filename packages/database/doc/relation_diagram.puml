@@ -1,0 +1,401 @@
+@startuml
+skinparam package<<Layout>> {
+  borderColor Transparent
+  backgroundColor Transparent
+  fontColor Transparent
+  stereotypeFontColor Transparent
+}
+
+package "Roam" {
+
+    map "Some hypothesis instance" as hyp1pgid << page >> {
+        id=>hyp1pgid
+        title=>[CLM] Some hypothesis
+    }
+
+    map "Hypothesis definition" as nt2pgid << page >> {
+        id=>nt2pgid
+        title=>discourse-graphs/nodes/Hypothesis
+    }
+
+    package dgpglayout << Layout >> {
+        map "discourse graphs configuration" as dgpgid << page >> {
+            id=>dgpgid
+            title=>roam/js/discourse-graph
+        }
+        map "Opposes Definition" as et1bkid  << block >> {
+            id => et1bkid
+            title=> Opposes
+        }
+        map "source role" as et1r1bkid << block >> {
+            id => et1r1bkid
+            parent_id => et1bkid
+            title=> source
+        }
+        map "target role" as et1r2bkid << block >> {
+            id => et1r2bkid
+            parent_id => et1bkid
+            title=> target
+        }
+        dgpgid o-[#darkorange] et1bkid
+        et1bkid o-[#darkorange] et1r1bkid
+        et1bkid o-[#darkorange] et1r2bkid
+    }
+
+    map "Claim definition" as nt1pgid << page >> {
+        id=>nt1pgid
+        title=>discourse-graphs/nodes/Claim
+    }
+
+    map "Some claim instance" as clm1pgid << page >> {
+        id=>clm1pgid
+        title=>[CLM] Some claim
+    }
+
+    package somepglayout << Layout >>  {
+        map "Some page" as somepgid << page >> {
+            id=>somepgid
+            title=>Some page
+        }
+
+        map "hypothesis ref" as hyp1refbkid  << block >> {
+            id => hyp1refbkid
+            title=> a block referring to [[HYP] Some hypothesis]
+        }
+
+        map "opposes" as opp1bkid << block >> {
+            id => opp1bkid
+            parent_id => hyp1refbkid
+            title=> OpposedBy
+        }
+
+        map "claim ref" as clm1refbkid  << block >> {
+            id => clm1refbkid
+            parent_id => opp1bkid
+            title=> a block referring to [[HYP] Some hypothesis]
+        }
+        somepgid o-[#darkorange] hyp1refbkid
+        hyp1refbkid o-[#darkorange] opp1bkid
+        opp1bkid o-[#darkorange] clm1refbkid
+
+    }
+
+    /' layout, seemingly no impact '/
+    hyp1pgid <.[hidden] nt2pgid
+    nt2pgid <.[hidden] dgpglayout
+    dgpglayout <.[hidden] nt1pgid
+    nt1pgid <.[hidden] clm1pgid
+    clm1pgid <.[hidden] somepglayout
+
+}
+package "Supabase" {
+    package "classes" << Layout >> {
+        class Document {
+            {field} id : integer
+            {field} source_local_id : string
+            {field} created : datetime
+            {field} metadata : JSON
+            {field} last_modified : datetime
+            {field} url : string
+            {field} contents : blob
+        }
+        class Content {
+            {field} id : integer
+            {field} source_local_id : string
+            {field} created : datetime
+            {field} text : string
+            {field} metadata : JSON
+            {field} scale : Scale
+            {field} last_modified : datetime
+        }
+        class Concept {
+            {field} id : integer
+            {field} epistemic_status : EpistemicStatus
+            {field} name : string
+            {field} description : string
+            {field} created : datetime
+            {field} last_modified : datetime
+            {field} arity : integer
+            {field} reference_content : JSON
+            {field} literal_content : JSON
+            {field} is_schema : boolean
+        }
+        Document "1" o-- Content  : document
+        Content "0..1" <-[#green]-  Concept : represented_by
+
+        Content ..[#orange]> Content : references
+        Content --[#blue]> Concept : occurences
+        Concept -[#purple]> Concept : schema
+    }
+
+    package "documents" << Layout >> {
+
+        map "Some hypothesis instance page" as d22 {
+            id=>22
+            source_local_id=>hyp1pgid
+        }
+        /' Document <|. d22 '/
+
+        map "Hypothesis Definition page" as d2 {
+            id=>2
+            source_local_id=>nt2pgid
+        }
+        /' Document <|. d2 '/
+
+        map "DiscourseGraph settings" as d3 {
+            id=>3
+            source_local_id=>dgpgid
+        }
+        /' Document <|. d3 '/
+
+        map "Some claim instance page" as d23 {
+            id=>23
+            source_local_id=>clm1pgid
+        }
+        /' Document <|. d23 '/
+
+        map "Claim Definition page" as d1 {
+            id=>1
+            source_local_id=>nt1pgid
+        }
+        /' Document <|. d1 '/
+
+        map "Some page" as d4 {
+            id=>4
+            source_local_id=>somepgid
+        }
+        /' Document <|. d4 '/
+
+        /' layout, seemingly no impact '/
+        d22 <.[hidden] d2
+        d2 <.[hidden] d3
+        d3 <.[hidden] d23
+        d23 <.[hidden] d1
+        d1 <.[hidden] d4
+
+    }
+
+    package "top blocks" << Layout >> {
+
+        map "Some hypothesis instance block" as c24 {
+            id => 24
+            source_local_id => hyp1pgid
+            page_id => 22
+            scale => document
+            represents_id=> 20
+            text=> [HYP] Some hypothesis
+        }
+        /' Content <|. c24 '/
+        d22 *-- c24
+
+        map "Hypothesis definition block" as c6 {
+            id => 6
+            source_local_id => nt2pgid
+            page_id => 2
+            scale => document
+            represents_id => 17
+            text => discourse-graphs/nodes/Hypothesis
+        }
+        /' Content <|. c6 '/
+        d2 *-- c6
+
+        map "Discourse graphs configuration block" as c12 {
+            id=> 12
+            source_local_id=> dgpgid
+            page_id=> 3
+            scale=> document
+            title=> "roam/js/discourse-graph"
+        }
+        /' Content <|. c12 '/
+        d3 *-- c12
+
+        map "Some claim instance block" as c25 {
+            id=> 25
+            source_local_id=> clm1pgid
+            page_id=> 4
+            scale=> document
+            represents_id=> 19
+            text=> [CLM] Some claim
+        }
+        /' Content <|. c25 '/
+        d23 *-- c25
+
+        map "Claim definition block" as c5 {
+            id=> 5
+            source_local_id=> nt1pgid
+            page_id=> 1
+            scale=> document
+            represents_id=> 16
+            text=> discourse-graphs/nodes/Claim
+        }
+        /' Content <|. c5 '/
+        d1 *-- c5
+
+        map "Some page block" as c8 {
+            id=> 8
+            source_local_id=> somepgid
+            page_id=> 4
+            scale=> document
+            text=> Some page
+        }
+        /' Content <|. c8 '/
+        d4 *-- c8
+
+        /' layout, seemingly no impact '/
+        c24 <.[hidden] c6
+        c6 <.[hidden] c12
+        c12 <.[hidden] c25
+        c25 <.[hidden] c5
+        c5 <.[hidden] c8
+
+    }
+
+    package "sub blocks" << Layout >> {
+        map "opposes definition block" as c7 {
+            id=> 7
+            source_local_id=> et1bkid
+            page_id=> 3
+            scale=> block
+            title=> "Opposes"
+        }
+        /' Content <|. c7 '/
+
+        map "Hypothesis reference block" as c9 {
+            id=> 9
+            source_local_id=> clm1refbkid
+            page_id=> 4
+            scale=> block
+            title=> "a block referring to [[HYP] Some hypothesis]"
+        }
+        /' Content <|. c9 '/
+
+        map "opposed by block" as c10 {
+            id=> 10
+            source_local_id=> opp1bkid
+            page_id=> 4
+            scale=> block
+            title=> "OpposedBy"
+        }
+        /' Content <|. c10 '/
+        c9 o-[#darkorange] c10
+
+        map "Claim reference block" as c11 {
+            id=> 11
+            source_local_id=> clm1refbkid
+            page_id=> 4
+            scale=> block
+            title=> "a block referring to [[CLM] Some claim]"
+        }
+
+        /' Content <|. c11 '/
+        c10 o-[#darkorange] c11
+
+    }
+    c8 o-[#darkorange]- c9
+    c12 o-[#darkorange]- c7
+
+    package concepts << Layout >> {
+        map "Hypothesis definition concept" as c17 {
+        id=>17
+            is_schema=> true
+            name=> Claim
+            content=> {}
+        }
+        /' Concept <|. c17 '/
+        c6 --[#green]> c17
+
+        map "Hypothesis instance concept" as c20 {
+            id=>20
+            schema=> 17
+            name=> [HYP] some hypothesis
+            content=> {}
+        }
+        /' Concept <|. c20 '/
+        c24 --[#green]> c20
+        c17 <-[#purple] c20
+
+        map "Claim instance concept" as c19 {
+            id=>19
+            schema => 16
+            name=> [CLM] some claim
+            content=> {}
+        }
+        /' Concept <|. c19 '/
+        c25 --[#green]> c19
+
+        map "Claim definition concept" as c16 {
+            id=>16
+            is_schema=> true
+            name=> Claim
+            content=> {}
+        }
+        /' Concept <|. c16 '/
+        c5 --[#green]> c16
+        c19 -[#purple]> c16
+
+        json "Opposes definition concept" as c18 {
+            "id":18,
+            "is_schema": true,
+            "name": "Opposed-by",
+            "content": { "roles": ["source", "destination"], "representation": ["source", "sourceref", "destination", "destinationref", "predicate"] }
+        }
+        /' Concept <|. c18 '/
+        c7 --[#green]> c18
+
+        json "Opposes instance concept" as c21 {
+            "id": 21,
+            "schema": 18,
+            "name": "OpposedBy",
+            "reference_content": { "concepts": {"source": 19, "destination": 20}, "occurences": [{"sourceref": 11, "destinationref": 9, "source": 25, "destination": 24, "predicate": 10 }] }
+        }
+        /' Concept <|. c21 '/
+
+        c10 --[#green]> c21
+        c21 -[#purple]> c18
+        c25 <.. c21 : source
+        c24 <.. c21 : destination
+        c9 <.. c21 : sourceref
+        c11 <.. c21 : destinationref
+        c10 <.. c21 : predicate
+
+        c21 --> c19: source
+        c21 --> c20: target
+        /'
+        c19 <-- c21: source
+        c20 <-- c21: target
+        '/
+
+        /' layout, seemingly no impact '/
+        c17 <.[hidden] c19
+        c19 <.[hidden] c20
+        c20 <.[hidden] c16
+
+    }
+
+    c11 ..[#orange]> c25
+    c9 ..[#orange]> c24
+    /' Accurate but ruins layout
+    c11 ..> c19 : occurence
+    c9 ..> c20 : occurence
+    '/
+
+    /' layout, seemingly limited impact '/
+    Document <|-[hidden] d2
+    Content <|-[hidden] c6
+    Concept <|-[hidden] c17
+    "top blocks" <.[hidden].. "sub blocks"
+    "sub blocks" <.[hidden].. "concepts"
+
+}
+
+nt1pgid <.. d1
+nt2pgid <.. d2
+dgpgid <.. d3
+clm1pgid <.. d23
+hyp1pgid <.. d22
+somepgid <.. d4
+clm1refbkid <.. c11
+opp1bkid <.. c10
+hyp1refbkid <.. c9
+
+@enduml

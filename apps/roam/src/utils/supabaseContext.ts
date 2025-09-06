@@ -3,16 +3,16 @@ import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserD
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 
-import { Enums } from "@repo/database/types.gen";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
-import { type DGSupabaseClient } from "@repo/ui/lib/supabase/client";
+import type { Enums } from "@repo/database/dbTypes";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
   fetchOrCreateSpaceDirect,
   fetchOrCreatePlatformAccount,
   createLoggedInClient,
-} from "@repo/ui/lib/supabase/contextFunctions";
+} from "@repo/database/lib/contextFunctions";
 
 declare const crypto: { randomUUID: () => string };
 
@@ -27,11 +27,10 @@ export type SupabaseContext = {
 
 let _contextCache: SupabaseContext | null = null;
 
-const settingsConfigPageUid = getPageUidByPageTitle(
-  DISCOURSE_CONFIG_PAGE_TITLE,
-);
-
 const getOrCreateSpacePassword = () => {
+  const settingsConfigPageUid = getPageUidByPageTitle(
+    DISCOURSE_CONFIG_PAGE_TITLE,
+  );
   const props = getBlockProps(settingsConfigPageUid);
   const existing: string | unknown = props["space-user-password"];
   if (existing && typeof existing === "string") return existing;
@@ -51,6 +50,7 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
   if (_contextCache === null) {
     try {
       const accountLocalId = window.roamAlphaAPI.user.uid();
+      if (!accountLocalId) throw new Error("Could not get user UID");
       const spacePassword = getOrCreateSpacePassword();
       const personEmail = getCurrentUserEmail();
       const personName = getCurrentUserDisplayName();

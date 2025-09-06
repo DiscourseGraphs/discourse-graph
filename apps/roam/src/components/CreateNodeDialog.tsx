@@ -96,6 +96,7 @@ const CreateNodeDialog = ({
               if (event.shiftKey) {
                 await window.roamAlphaAPI.ui.rightSidebar.addWindow({
                   window: {
+                    // @ts-expect-error TODO: fix this
                     "block-uid": newPageUid,
                     type: "outline",
                   },

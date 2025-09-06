@@ -3,7 +3,10 @@ import fs from "fs";
 import path from "path";
 import { exec } from "child_process";
 import util from "util";
-import { Octokit } from "@octokit/core";
+// https://linear.app/discourse-graphs/issue/ENG-766/upgrade-all-commonjs-to-esm
+// TODO if possible: change apps/obsidian to ESM. Use require until then.
+// import { Octokit } from "@octokit/core";
+const { Octokit } = require("@octokit/core");
 import os from "os";
 
 dotenv.config();
@@ -159,16 +162,16 @@ Release Type Auto-Detection:
 BRAT Version Priority:
   BRAT uses alphabetical ordering, so alpha < beta < stable
   - 0.1.0-alpha-feature (lowest priority)
-  - 0.1.0-beta.1 (higher priority) 
+  - 0.1.0-beta.1 (higher priority)
   - 0.1.0 (highest priority)
 
 Examples:
   # Internal release with custom name
   tsx scripts/publish-obsidian.ts --version 0.1.0-alpha-canvas --release-name "Canvas Integration Feature"
-  
+
   # Beta release with feature description
   tsx scripts/publish-obsidian.ts --version 1.0.0-beta.1 --release-name "Beta: New Graph View"
-  
+
   # Stable release (uses default name)
   tsx scripts/publish-obsidian.ts --version 1.0.0
 `);

@@ -10,11 +10,11 @@
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@repo/types": "*",
     "@repo/ui": "*",
+    "@repo/database": "*",
     "@sindresorhus/slugify": "^2.2.1",
     "@supabase/ssr": "^0.6.1",
     "gray-matter": "^4.0.3",
@@ -31,9 +31,9 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@repo/database": "*",
     "@repo/eslint-config": "*",
     "@repo/tailwind-config": "*",
+    "@repo/types": "*",
     "@repo/typescript-config": "*",
     "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^20",

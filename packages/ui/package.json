@@ -3,23 +3,45 @@
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
-  "type": "module",
   "exports": {
     "./globals.css": "./src/globals.css",
     "./postcss.config": "./postcss.config.mjs",
     "./tailwind.config": "./tailwind.config.ts",
-    "./lib/*": "./src/lib/*.ts",
-    "./hooks/*": [
-      "./src/hooks/*.ts",
-      "./src/hooks/*.tsx"
-    ],
-    "./components/*": "./src/components/*.tsx"
+    "./lib/*": {
+      "types": "./dist/src/lib/*.d.ts",
+      "require": "./dist/src/lib/*.js",
+      "default": "./dist/src/lib/*.js"
+    },
+    "./hooks/*": {
+      "types": "./dist/src/hooks/*.d.ts",
+      "require": "./dist/src/hooks/*.js",
+      "default": "./dist/src/hooks/*.js"
+    },
+    "./components/*": {
+      "types": "./dist/src/components/*.d.ts",
+      "require": "./dist/src/components/*.js",
+      "default": "./dist/src/components/*.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "lib/*": [
+        "dist/lib/*.d.ts"
+      ],
+      "hooks/*": [
+        "dist/hooks/*.d.ts"
+      ],
+      "components/*": [
+        "dist/components/*.d.ts"
+      ]
+    }
   },
   "scripts": {
     "lint": "eslint .",
+    "build": "tsc",
     "lint:fix": "eslint . --fix",
     "generate:component": "turbo gen react-component",
-    "check-types": "tsc --noEmit",
+    "check-types": "tsc --emitDeclarationOnly --skipLibCheck",
     "ui": "npx shadcn@latest"
   },
   "devDependencies": {
@@ -35,7 +57,6 @@
     "typescript": "5.5.4"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.52.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
