@@ -6,7 +6,14 @@ import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
-import { Label, Tabs, Tab, TabId, InputGroup } from "@blueprintjs/core";
+import {
+  Label,
+  Tabs,
+  Tab,
+  TabId,
+  InputGroup,
+  TextArea,
+} from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
@@ -50,7 +57,40 @@ const ValidatedInputPanel = ({
   </div>
 );
 
-const useDebouncedRoamUpdater = (
+const ValidatedTextareaPanel = ({
+  label,
+  description,
+  value,
+  onChange,
+  onBlur,
+  placeholder,
+}: {
+  label: string;
+  description: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  onBlur: () => void;
+  placeholder?: string;
+}) => (
+  <div className="flex flex-col">
+    <Label>
+      {label}
+      <Description description={description} />
+      <TextArea
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        className="w-full"
+        style={{ minHeight: 80, resize: "vertical" }}
+      />
+    </Label>
+  </div>
+);
+
+const useDebouncedRoamUpdater = <
+  T extends HTMLInputElement | HTMLTextAreaElement,
+>(
   uid: string,
   initialValue: string,
   isValid: boolean,
@@ -71,10 +111,10 @@ const useDebouncedRoamUpdater = (
           const existingBlock = getBasicTreeByParentUid(uid)[0];
           if (existingBlock) {
             if (existingBlock.text !== text) {
-              updateBlock({ uid: existingBlock.uid, text });
+              void updateBlock({ uid: existingBlock.uid, text });
             }
           } else if (text) {
-            createBlock({ parentUid: uid, node: { text } });
+            void createBlock({ parentUid: uid, node: { text } });
           }
         },
         timeout ? 500 : 0,
@@ -84,7 +124,7 @@ const useDebouncedRoamUpdater = (
   );
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<T>) => {
       const newValue = e.target.value;
       setValue(newValue);
       saveToRoam(newValue, true);
@@ -135,12 +175,29 @@ const NodeConfig = ({
     value: tagValue,
     handleChange: handleTagChange,
     handleBlur: handleTagBlurFromHook,
-  } = useDebouncedRoamUpdater(tagUid, node.tag || "", isConfigurationValid);
+  } = useDebouncedRoamUpdater<HTMLInputElement>(
+    tagUid,
+    node.tag || "",
+    isConfigurationValid,
+  );
   const {
     value: formatValue,
     handleChange: handleFormatChange,
     handleBlur: handleFormatBlurFromHook,
-  } = useDebouncedRoamUpdater(formatUid, node.format, isConfigurationValid);
+  } = useDebouncedRoamUpdater<HTMLInputElement>(
+    formatUid,
+    node.format,
+    isConfigurationValid,
+  );
+  const {
+    value: descriptionValue,
+    handleChange: handleDescriptionChange,
+    handleBlur: handleDescriptionBlur,
+  } = useDebouncedRoamUpdater<HTMLTextAreaElement>(
+    descriptionUid,
+    node.description || "",
+    true,
+  );
 
   const getCleanTagText = (tag: string): string => {
     return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -205,14 +262,13 @@ const NodeConfig = ({
           id="general"
           title="General"
           panel={
-            <div className="flex flex-row gap-4 p-1">
-              <TextPanel
-                title="Description"
+            <div className="flex flex-col gap-4 p-1">
+              <ValidatedTextareaPanel
+                label="Description"
                 description={`Describing what the ${node.text} node represents in your graph.`}
-                order={0}
-                parentUid={node.type}
-                uid={descriptionUid}
-                defaultValue={node.description}
+                value={descriptionValue}
+                onChange={handleDescriptionChange}
+                onBlur={handleDescriptionBlur}
               />
               <TextPanel
                 title="Shortcut"
