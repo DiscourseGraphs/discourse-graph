@@ -317,14 +317,14 @@ export const createUiOverrides = ({
   allRelationNames,
   allAddReferencedNodeByAction,
   discourseContext,
-  setMaximized,
+  toggleMaximized,
   setConvertToDialogOpen,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
   allAddReferencedNodeByAction: AddReferencedNodeType;
   discourseContext: DiscourseContextType;
-  setMaximized: () => void;
+  toggleMaximized: () => void;
   setConvertToDialogOpen: (open: boolean) => void;
 }): TLUiOverrides => ({
   tools: (editor, tools) => {
@@ -421,7 +421,7 @@ export const createUiOverrides = ({
       id: "toggle-full-screen",
       label: "action.toggle-full-screen" as TLUiTranslationKey,
       kbd: "!3",
-      onSelect: () => setMaximized(),
+      onSelect: () => toggleMaximized(),
       readonlyOk: true,
     };
 

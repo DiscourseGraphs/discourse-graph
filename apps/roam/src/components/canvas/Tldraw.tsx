@@ -419,7 +419,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     allNodes,
     allRelationNames,
     allAddReferencedNodeByAction,
-    setMaximized: handleMaximizedChange,
+    toggleMaximized: handleMaximizedChange,
     setConvertToDialogOpen,
     discourseContext,
   });
