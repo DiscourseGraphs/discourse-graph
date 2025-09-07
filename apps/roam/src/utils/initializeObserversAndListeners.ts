@@ -25,7 +25,7 @@ import {
   previewPageRefHandler,
   overlayPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
-import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { render as renderGraphOverviewExport } from "~/components/ExportDiscourseContext";
@@ -45,6 +45,8 @@ import {
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import configTreeRef from "./discourseConfigRef";
+import { getSubTree } from "roamjs-components/util";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -115,6 +117,14 @@ export const initObservers = async ({
           if (tag.toLowerCase() === nodeTag.toLowerCase()) {
             const matchedNode = { tag: nodeTag, type, text };
             renderNodeTagPopupButton(s, matchedNode, onloadArgs.extensionAPI);
+            const canvas = Object.fromEntries(
+              getSubTree({ tree: children, key: "canvas" }).children.map(
+                (c) => [c.text, c.children[0]?.text || ""] as const,
+              ),
+            );
+            if (canvas.color) {
+              s.style.color = formatHexColor(canvas.color);
+            }
             break;
           }
         }
