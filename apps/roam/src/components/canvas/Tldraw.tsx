@@ -42,6 +42,7 @@ import {
   usePreloadAssets,
   StateNode,
   DefaultSpinner,
+  Box,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
@@ -129,8 +130,36 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     discourseContext.lastActions,
   );
 
-  const [maximized, setMaximized] = useState(false);
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
+
+  const updateViewportScreenBounds = (el: HTMLDivElement) => {
+    // Use tldraw's built-in viewport bounds update with centering
+    const rect = el.getBoundingClientRect();
+    appRef.current?.updateViewportScreenBounds(
+      new Box(rect.left, rect.top, rect.width, rect.height),
+      true,
+    );
+  };
+  const handleMaximizedChange = () => {
+    // Direct DOM manipulation to avoid React re-renders
+    if (!containerRef.current) return;
+    const tldrawEl = containerRef.current;
+    const wrapper = tldrawEl.closest(".roam-article, .rm-sidebar-outline");
+
+    if (tldrawEl.classList.contains("relative")) {
+      // Going to fullscreen
+      if (wrapper) wrapper.classList.add("dg-tldraw-maximized");
+      tldrawEl.classList.add("absolute", "inset-0");
+      tldrawEl.classList.remove("relative");
+      updateViewportScreenBounds(tldrawEl);
+    } else {
+      // Going back to normal
+      if (wrapper) wrapper.classList.remove("dg-tldraw-maximized");
+      tldrawEl.classList.add("relative");
+      tldrawEl.classList.remove("absolute", "inset-0");
+      updateViewportScreenBounds(tldrawEl);
+    }
+  };
 
   // Workaround to avoid a race condition when loading a canvas page directly
   // Start false to avoid noisy warnings on first render if timer isn't initialized yet
@@ -390,8 +419,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     allNodes,
     allRelationNames,
     allAddReferencedNodeByAction,
-    maximized,
-    setMaximized,
+    setMaximized: handleMaximizedChange,
     setConvertToDialogOpen,
     discourseContext,
   });
@@ -528,16 +556,11 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   return (
     <div
-      className={`roamjs-tldraw-canvas-container z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white ${maximized ? "absolute inset-0" : "relative"}`}
+      className="roamjs-tldraw-canvas-container relative z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white"
       ref={containerRef}
       tabIndex={-1}
     >
       <style>{tldrawStyles}</style>
-      <style>
-        {maximized
-          ? "div.roam-body div.roam-app div.roam-main div.roam-article { position: inherit; }"
-          : ""}
-      </style>
 
       {needsUpgrade ? (
         <div className="flex h-full items-center justify-center">
