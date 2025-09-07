@@ -5,11 +5,16 @@ import { renderCreateNodeDialog } from "~/components/CreateNodeDialog";
 import { OnloadArgs } from "roamjs-components/types";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import { DiscourseNode } from "./getDiscourseNodes";
+
+export type NodeTagPopupButtonNode = {
+  tag: string;
+  type: string;
+  text: string;
+};
 
 export const renderNodeTagPopupButton = (
   parent: HTMLSpanElement,
-  discourseNodes: DiscourseNode[],
+  matchedNode: NodeTagPopupButtonNode,
   extensionAPI: OnloadArgs["extensionAPI"],
 ) => {
   if (parent.dataset.attributeButtonRendered === "true") return;
@@ -33,11 +38,6 @@ export const renderNodeTagPopupButton = (
   wrapper.appendChild(reactRoot);
 
   const textContent = parent.textContent?.trim() || "";
-  const tagAttr = parent.getAttribute("data-tag") || textContent;
-  const tag = tagAttr.replace(/^#/, "").toLowerCase();
-  const matchedNode = discourseNodes.find((n) => n.tag?.toLowerCase() === tag);
-
-  if (!matchedNode) return;
 
   const blockInputElement = parent.closest(".rm-block__input");
   const blockUid = blockInputElement

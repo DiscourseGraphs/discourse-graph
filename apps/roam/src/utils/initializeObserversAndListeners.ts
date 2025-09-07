@@ -44,26 +44,7 @@ import {
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
-import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
-
-let discourseNodes: DiscourseNode[] = [];
-let discourseTagToStyle: Record<string, { color: string }> = {};
-
-const refreshDiscourseNodeCache = () => {
-  discourseNodes = getDiscourseNodes();
-  discourseTagToStyle = discourseNodes.reduce(
-    (acc, n) => {
-      if (n.tag && n.canvasSettings?.color) {
-        const color = formatHexColor(n.canvasSettings.color);
-        acc[n.tag.toLowerCase()] = {
-          color,
-        };
-      }
-      return acc;
-    },
-    {} as Record<string, { color: string }>,
-  );
-};
+import configTreeRef from "./discourseConfigRef";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -87,7 +68,6 @@ export const initObservers = async ({
     nodeCreationPopoverListener: EventListener;
   };
 }> => {
-  refreshDiscourseNodeCache();
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
@@ -125,12 +105,18 @@ export const initObservers = async ({
     callback: (s: HTMLSpanElement) => {
       const tag = s.getAttribute("data-tag");
       if (tag) {
-        const style = discourseTagToStyle[tag.toLowerCase()];
-        if (style) {
-          renderNodeTagPopupButton(s, discourseNodes, onloadArgs.extensionAPI);
-          s.style.color = style.color;
-          s.style.padding = "2px 4px";
-          s.style.borderRadius = "4px";
+        for (const [type, { text, children }] of Object.entries(
+          configTreeRef.nodes,
+        )) {
+          const nodeTag = getSettingValueFromTree({
+            tree: children,
+            key: "tag",
+          });
+          if (tag.toLowerCase() === nodeTag.toLowerCase()) {
+            const matchedNode = { tag: nodeTag, type, text };
+            renderNodeTagPopupButton(s, matchedNode, onloadArgs.extensionAPI);
+            break;
+          }
         }
       }
     },
@@ -182,7 +168,6 @@ export const initObservers = async ({
     });
   // refresh config tree after config page is created
   refreshConfigTree();
-  refreshDiscourseNodeCache();
 
   const hashChangeListener = (e: Event) => {
     const evt = e as HashChangeEvent;
@@ -193,7 +178,6 @@ export const initObservers = async ({
       getDiscourseNodes().some(({ type }) => evt.oldURL.endsWith(type))
     ) {
       refreshConfigTree();
-      refreshDiscourseNodeCache();
     }
   };
 
