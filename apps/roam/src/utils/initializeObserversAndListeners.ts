@@ -25,7 +25,7 @@ import {
   previewPageRefHandler,
   overlayPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
-import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { render as renderGraphOverviewExport } from "~/components/ExportDiscourseContext";
@@ -45,25 +45,6 @@ import {
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
-
-let discourseNodes: DiscourseNode[] = [];
-let discourseTagToStyle: Record<string, { color: string }> = {};
-
-const refreshDiscourseNodeCache = () => {
-  discourseNodes = getDiscourseNodes();
-  discourseTagToStyle = discourseNodes.reduce(
-    (acc, n) => {
-      if (n.tag && n.canvasSettings?.color) {
-        const color = formatHexColor(n.canvasSettings.color);
-        acc[n.tag.toLowerCase()] = {
-          color,
-        };
-      }
-      return acc;
-    },
-    {} as Record<string, { color: string }>,
-  );
-};
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -87,7 +68,6 @@ export const initObservers = async ({
     nodeCreationPopoverListener: EventListener;
   };
 }> => {
-  refreshDiscourseNodeCache();
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
@@ -128,6 +108,9 @@ export const initObservers = async ({
         for (const node of getDiscourseNodes()) {
           if (tag.toLowerCase() === node.tag?.toLowerCase()) {
             renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
+            if (node.canvasSettings?.color) {
+              s.style.color = formatHexColor(node.canvasSettings.color);
+            }
             break;
           }
         }
@@ -181,7 +164,6 @@ export const initObservers = async ({
     });
   // refresh config tree after config page is created
   refreshConfigTree();
-  refreshDiscourseNodeCache();
 
   const hashChangeListener = (e: Event) => {
     const evt = e as HashChangeEvent;
@@ -192,7 +174,6 @@ export const initObservers = async ({
       getDiscourseNodes().some(({ type }) => evt.oldURL.endsWith(type))
     ) {
       refreshConfigTree();
-      refreshDiscourseNodeCache();
     }
   };
 
