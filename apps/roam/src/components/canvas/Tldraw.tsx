@@ -134,11 +134,13 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   const updateViewportScreenBounds = (el: HTMLDivElement) => {
     // Use tldraw's built-in viewport bounds update with centering
-    const rect = el.getBoundingClientRect();
-    appRef.current?.updateViewportScreenBounds(
-      new Box(rect.left, rect.top, rect.width, rect.height),
-      true,
-    );
+    requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect();
+      appRef.current?.updateViewportScreenBounds(
+        new Box(rect.left, rect.top, rect.width, rect.height),
+        true,
+      );
+    });
   };
   const handleMaximizedChange = () => {
     // Direct DOM manipulation to avoid React re-renders
