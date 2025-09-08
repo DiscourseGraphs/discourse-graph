@@ -5,14 +5,16 @@ import { renderCreateNodeDialog } from "~/components/CreateNodeDialog";
 import { OnloadArgs } from "roamjs-components/types";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
-import getDiscourseNodes from "./getDiscourseNodes";
+import { type DiscourseNode } from "./getDiscourseNodes";
 
 export const renderNodeTagPopupButton = (
   parent: HTMLSpanElement,
+  matchedNode: DiscourseNode,
   extensionAPI: OnloadArgs["extensionAPI"],
 ) => {
   if (parent.dataset.attributeButtonRendered === "true") return;
 
+  const rect = parent.getBoundingClientRect();
   parent.dataset.attributeButtonRendered = "true";
   const wrapper = document.createElement("span");
   wrapper.style.position = "relative";
@@ -24,26 +26,14 @@ export const renderNodeTagPopupButton = (
   reactRoot.style.position = "absolute";
   reactRoot.style.top = "0";
   reactRoot.style.left = "0";
-  reactRoot.style.width = "100%";
-  reactRoot.style.height = "100%";
+  reactRoot.style.width = `${rect.width}px`;
+  reactRoot.style.height = `${rect.height}px`;
   reactRoot.style.pointerEvents = "none";
   reactRoot.style.zIndex = "10";
 
   wrapper.appendChild(reactRoot);
 
   const textContent = parent.textContent?.trim() || "";
-  const tagAttr = parent.getAttribute("data-tag") || textContent;
-  const tag = tagAttr.replace(/^#/, "").toLowerCase();
-  const discourseNodes = getDiscourseNodes();
-  const discourseTagSet = new Set(
-    discourseNodes.map((n) => n.tag?.toLowerCase()).filter(Boolean),
-  );
-  if (!discourseTagSet.has(tag)) return;
-
-  const matchedNode = discourseNodes.find((n) => n.tag?.toLowerCase() === tag);
-
-  if (!matchedNode) return;
-
   const blockInputElement = parent.closest(".rm-block__input");
   const blockUid = blockInputElement
     ? getUids(blockInputElement as HTMLDivElement).blockUid
@@ -74,8 +64,11 @@ export const renderNodeTagPopupButton = (
         <span
           style={{
             display: "block",
-            width: "100%",
-            height: "100%",
+            top: "0",
+            left: "0",
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+            position: "absolute",
             pointerEvents: "auto",
           }}
         />
@@ -84,7 +77,7 @@ export const renderNodeTagPopupButton = (
       position={Position.TOP}
       modifiers={{
         offset: {
-          offset: "0, 10",
+          offset: `${rect.width / 2}px, 10`,
         },
         arrow: {
           enabled: false,
