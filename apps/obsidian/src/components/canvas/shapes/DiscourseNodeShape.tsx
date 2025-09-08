@@ -187,3 +187,10 @@ const discourseNodeContent = memo(
 );
 
 discourseNodeContent.displayName = "DiscourseNodeContent";
+
+export const createDiscourseNodeUtil = (options: DiscourseNodeUtilOptions) => {
+  const configuredUtil = class extends DiscourseNodeUtil {
+    options = options;
+  };
+  return configuredUtil;
+};

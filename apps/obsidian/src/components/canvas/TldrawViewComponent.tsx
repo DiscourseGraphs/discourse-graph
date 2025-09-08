@@ -11,6 +11,7 @@ import {
   Editor,
   useIsToolSelected,
   useTools,
+  defaultBindingUtils,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import {
@@ -28,10 +29,12 @@ import {
 } from "~/constants";
 import { TFile } from "obsidian";
 import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
-import { DiscourseNodeUtil } from "~/components/canvas/shapes/DiscourseNodeShape";
+import { createDiscourseNodeUtil } from "~/components/canvas/shapes/DiscourseNodeShape";
 import { DiscourseNodeTool } from "./DiscourseNodeTool";
 import { DiscourseNodePanel } from "./DiscourseNodePanel";
 import { usePlugin } from "~/components/PluginContext";
+import { createDiscourseRelationUtil } from "~/components/canvas/shapes/DiscourseRelationShape";
+import { DiscourseRelationBindingUtil } from "~/components/canvas/shapes/DiscourseRelationBinding";
 
 interface TldrawPreviewProps {
   store: TLStore;
@@ -54,7 +57,12 @@ export const TldrawPreviewComponent = ({
 
   const customShapeUtils = [
     ...defaultShapeUtils,
-    DiscourseNodeUtil.configure({
+    createDiscourseNodeUtil({
+      app: plugin.app,
+      canvasFile: file,
+      plugin,
+    }),
+    createDiscourseRelationUtil({
       app: plugin.app,
       canvasFile: file,
       plugin,
@@ -172,6 +180,10 @@ export const TldrawPreviewComponent = ({
             initialState="select"
             shapeUtils={customShapeUtils}
             tools={customTools}
+            bindingUtils={[
+              ...defaultBindingUtils,
+              DiscourseRelationBindingUtil,
+            ]}
             assetUrls={{
               icons: {
                 discourseNodeIcon: iconUrl,
