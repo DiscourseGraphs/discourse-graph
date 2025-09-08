@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
@@ -22,6 +23,7 @@ import { OnloadArgs } from "roamjs-components/types";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
+import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 
 const ValidatedInputPanel = ({
   label,
@@ -161,6 +163,7 @@ const NodeConfig = ({
   const graphOverviewUid = getUid("Graph Overview");
   const specificationUid = getUid("Specification");
   const indexUid = getUid("Index");
+  const suggestiveRulesUid = getUid("Suggestive Rules");
   const attributeNode = getSubTree({
     parentUid: node.type,
     key: "Attributes",
@@ -379,6 +382,18 @@ const NodeConfig = ({
                 parentUid={node.type}
                 uid={graphOverviewUid}
                 value={node.graphOverview}
+              />
+            </div>
+          }
+        />
+        <Tab
+          id="suggestive-mode"
+          title="Suggestive Mode"
+          panel={
+            <div className="flex flex-col gap-4 p-1">
+              <DiscourseNodeSuggestiveRules
+                node={node}
+                parentUid={suggestiveRulesUid}
               />
             </div>
           }
