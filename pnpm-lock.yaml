@@ -7,10 +7,10 @@ settings:
 catalogs:
   default:
     '@types/react':
-      specifier: ^19.1.0
+      specifier: ^19.1.12
       version: 19.1.12
     '@types/react-dom':
-      specifier: ^19.1.0
+      specifier: ^19.1.9
       version: 19.1.9
     react:
       specifier: ^19.1.0
@@ -20,10 +20,10 @@ catalogs:
       version: 19.1.1
   obsidian:
     '@types/react':
-      specifier: ^19.0.0
+      specifier: ^19.0.12
       version: 19.1.12
     '@types/react-dom':
-      specifier: ^19.0.0
+      specifier: ^19.0.4
       version: 19.1.9
     react:
       specifier: 19.0.0
@@ -39,6 +39,8 @@ overrides:
   roam>@types/react-dom: 17.0.13
   '@types/react-vertical-timeline-component@3.3.6>@types/react': 17.0.39
   '@types/react-dom@17.0.13>@types/react': 17.0.39
+  react-charts@3.0.0-beta.57>@types/react: 17.0.39
+  react-charts@3.0.0-beta.57>@types/react-dom: 17.0.13
 
 patchedDependencies:
   '@tldraw/editor@^2.3.0':
@@ -53,8 +55,8 @@ importers:
   .:
     dependencies:
       posthog-js:
-        specifier: ^1.203.1
-        version: 1.261.7
+        specifier: ^1.261.8
+        version: 1.261.8
     devDependencies:
       prettier:
         specifier: ^3.6.0
@@ -6707,6 +6709,17 @@ packages:
 
   posthog-js@1.261.7:
     resolution: {integrity: sha512-Fjpbz6VfIMsEbKIN/UyTWhU1DGgVIngqoRjPGRolemIMOVzTfI77OZq8WwiBhMug+rU+wNhGCQhC41qRlR5CxA==}
+    peerDependencies:
+      '@rrweb/types': 2.0.0-alpha.17
+      rrweb-snapshot: 2.0.0-alpha.17
+    peerDependenciesMeta:
+      '@rrweb/types':
+        optional: true
+      rrweb-snapshot:
+        optional: true
+
+  posthog-js@1.261.8:
+    resolution: {integrity: sha512-HohKQ5Fuvei/3ZLIdayq6lDpeXsG891t2y2izpHu6q/1SoCS+HlYjViz3WCu9KlE7AfjfpwvN1kjnFNNPWeOig==}
     peerDependencies:
       '@rrweb/types': 2.0.0-alpha.17
       rrweb-snapshot: 2.0.0-alpha.17
@@ -15500,6 +15513,14 @@ snapshots:
       source-map-js: 1.2.1
 
   posthog-js@1.261.7:
+    dependencies:
+      '@posthog/core': 1.0.2
+      core-js: 3.45.1
+      fflate: 0.4.8
+      preact: 10.27.1
+      web-vitals: 4.2.4
+
+  posthog-js@1.261.8:
     dependencies:
       '@posthog/core': 1.0.2
       core-js: 3.45.1
