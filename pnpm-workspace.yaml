@@ -82,5 +82,6 @@ peerDependencyRules:
 patchedDependencies:
   tldraw@^2.3.0: patches/tldraw@2.3.0.patch
   "@tldraw/editor@^2.3.0": patches/@tldraw__editor@2.3.0.patch
+  "@blueprintjs/core@^3.50.4": patches/@blueprintjs__core@3.50.4.patch
 
 allowUnusedPatches: false

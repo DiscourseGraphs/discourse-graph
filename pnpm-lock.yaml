@@ -43,6 +43,9 @@ overrides:
   react-charts@3.0.0-beta.57>@types/react-dom: 18.2.17
 
 patchedDependencies:
+  '@blueprintjs/core@^3.50.4':
+    hash: 51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0
+    path: patches/@blueprintjs__core@3.50.4.patch
   '@tldraw/editor@^2.3.0':
     hash: 25605a291545fd9178c96ca8de0c8e72a65fe30baa18605d1a57f4a91b059857
     path: patches/@tldraw__editor@2.3.0.patch
@@ -139,7 +142,7 @@ importers:
     dependencies:
       '@blueprintjs/core':
         specifier: 3.50.4
-        version: 3.50.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/icons':
         specifier: 3.30.2
         version: 3.30.2
@@ -244,7 +247,7 @@ importers:
         version: 3.5.2(react@18.2.0)
       roamjs-components:
         specifier: 0.85.4
-        version: 0.85.4(e8a957ab00603cc42b60fa411247dc27)
+        version: 0.85.4(25a676ee162ebca189f6cdb527ca8daa)
       tldraw:
         specifier: 2.3.0
         version: 2.3.0(patch_hash=53157a9866fb748b22a548ab8d9aca2a557f98c0487b201b01f0a4ca89c71708)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -9106,7 +9109,7 @@ snapshots:
     dependencies:
       tslib: 2.5.1
 
-  '@blueprintjs/core@3.50.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+  '@blueprintjs/core@3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
       '@blueprintjs/colors': 4.2.1
       '@blueprintjs/icons': 3.30.2
@@ -9123,7 +9126,7 @@ snapshots:
       resize-observer-polyfill: 1.5.1
       tslib: 1.13.0
 
-  '@blueprintjs/core@3.54.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+  '@blueprintjs/core@3.54.0(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
       '@blueprintjs/colors': 4.2.1
       '@blueprintjs/icons': 3.33.0
@@ -9142,7 +9145,7 @@ snapshots:
 
   '@blueprintjs/datetime@3.23.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@blueprintjs/core': 3.50.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@blueprintjs/core': 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       classnames: 2.5.1
       react: 18.2.0
       react-day-picker: 7.4.9(react@18.2.0)
@@ -9162,7 +9165,7 @@ snapshots:
 
   '@blueprintjs/select@3.19.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@blueprintjs/core': 3.54.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@blueprintjs/core': 3.54.0(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       classnames: 2.5.1
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
@@ -16025,9 +16028,9 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
-  roamjs-components@0.85.4(e8a957ab00603cc42b60fa411247dc27):
+  roamjs-components@0.85.4(25a676ee162ebca189f6cdb527ca8daa):
     dependencies:
-      '@blueprintjs/core': 3.50.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@blueprintjs/core': 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/datetime': 3.23.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/select': 3.19.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@samepage/scripts': 0.74.5(@aws-sdk/client-lambda@3.882.0)(@aws-sdk/client-s3@3.882.0)(@samepage/testing@0.74.5(@playwright/test@1.29.0)(@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(@types/jsdom@20.0.1)(c8@7.14.0)(debug@4.4.1)(dotenv@16.6.1)(jsdom@20.0.3)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4)))(archiver@5.3.2)(axios@0.27.2(debug@4.4.1))(debug@4.4.1)(dotenv@16.6.1)(esbuild@0.17.14)(patch-package@6.5.1)(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4)))(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4))(zod@3.25.76)
