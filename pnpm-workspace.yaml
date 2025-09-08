@@ -17,13 +17,8 @@ catalogs:
   roam:
     react: 18.2.0
     react-dom: 18.2.0
-    "@types/react": 18.2.0
-    "@types/react-dom": 18.2.0
-  blueprint:
-    react: 17.0.2
-    react-dom: 17.0.2
-    "@types/react": 17.0.2
-    "@types/react-dom": 17.0.2
+    "@types/react": 17.0.39
+    "@types/react-dom": 17.0.13
 
 onlyBuiltDependencies:
   - core-js
@@ -35,31 +30,13 @@ onlyBuiltDependencies:
   - supabase
   - unrs-resolver
 
-packageExtensions:
-  "@blueprintjs/core":
-    dependencies:
-      react: 17.0.2
-      react-dom: 17.0.2
-      "@types/react": 17.0.2
-      "@types/react-dom": 17.0.2
-  "@blueprintjs/datetime":
-    dependencies:
-      react: 17.0.2
-      react-dom: 17.0.2
-      "@types/react": 17.0.2
-      "@types/react-dom": 17.0.2
-  "@blueprintjs/select":
-    dependencies:
-      react: 17.0.2
-      react-dom: 17.0.2
-      "@types/react": 17.0.2
-      "@types/react-dom": 17.0.2
-  "@types/react-dom@18.2.0":
-    dependencies:
-      "@types/react": 18.2.0
-  "@types/react-dom@17.0.2":
-    dependencies:
-      "@types/react": 17.0.2
+overrides:
+  "roam>react": 18.2.0
+  "roam>react-dom": 18.2.0
+  "roam>@types/react": 17.0.39
+  "roam>@types/react-dom": 17.0.13
+  "@types/react-vertical-timeline-component@3.3.6>@types/react": "17.0.39"
+  "@types/react-dom@17.0.13>@types/react": "17.0.39"
 
 peerDependencyRules:
   allowedVersions:
