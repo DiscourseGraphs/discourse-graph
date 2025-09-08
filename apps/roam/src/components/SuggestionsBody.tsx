@@ -18,8 +18,10 @@ import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import { Result } from "roamjs-components/types/query-builder";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import { performHydeSearch } from "../utils/hyde";
-import { useDiscourseData } from "~/utils/useDiscourseData";
+import { useDiscourseNodeFilters } from "~/utils/useDiscourseData";
 import { createBlock } from "roamjs-components/writes";
+
+const MAX_CACHE_SIZE = 50;
 
 type SuggestedNode = Result & { type: string };
 type SuggestionsCache = {
@@ -47,7 +49,7 @@ const SuggestionsBody = ({
     uniqueRelationTypeTriplets,
     validTypes,
     allNodes,
-  } = useDiscourseData(tag);
+  } = useDiscourseNodeFilters(tag);
   const allPages = useMemo(() => getAllPageNames(), []);
   const cachedState = suggestionsCache.get(blockUid);
   const extensionAPI = useExtensionAPI();
@@ -125,6 +127,22 @@ const SuggestionsBody = ({
   }, [extensionAPI]);
 
   useEffect(() => {
+    const data = suggestionsCache.get(blockUid);
+    if (!data) return;
+    suggestionsCache.delete(blockUid);
+    suggestionsCache.set(blockUid, data);
+  }, [blockUid]);
+
+  useEffect(() => {
+    const firstKey = suggestionsCache.keys().next().value as string | undefined;
+    if (
+      !suggestionsCache.has(blockUid) &&
+      suggestionsCache.size >= MAX_CACHE_SIZE &&
+      firstKey
+    ) {
+      suggestionsCache.delete(firstKey);
+    }
+
     suggestionsCache.set(blockUid, {
       selectedPages,
       useAllPagesForSuggestions,

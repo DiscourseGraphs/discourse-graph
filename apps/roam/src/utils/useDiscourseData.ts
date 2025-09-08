@@ -49,7 +49,7 @@ const getOverlayInfo = async (
   }
 };
 
-export const useDiscourseData = (tag: string) => {
+export const useDiscourseNodeFilters = (tag: string) => {
   const [results, setResults] = useState<DiscourseData["results"]>([]);
 
   const tagUid = useMemo(() => getPageUidByPageTitle(tag), [tag]);
@@ -98,6 +98,10 @@ export const useDiscourseData = (tag: string) => {
       } else if (isSelfDestination) {
         targetNodeType = relation.source;
         currentRelationLabel = relation.complement;
+      }
+      if (isSelfSource && isSelfDestination) {
+        targetNodeType = relation.destination;
+        currentRelationLabel = relation.label;
       } else {
         return [];
       }

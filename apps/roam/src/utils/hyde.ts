@@ -60,7 +60,7 @@ type SearchFunc = (params: {
 
 const API_CONFIG = {
   LLM: {
-    URL: "https://discoursegraphs.com/api/llm/openai/chat",
+    URL: `${nextApiRoot()}/llm/openai/chat`,
     MODEL: "gpt-4.1",
     TIMEOUT_MS: 30_000,
     MAX_TOKENS: 104,
