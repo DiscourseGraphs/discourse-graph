@@ -404,15 +404,6 @@ const Home = async () => {
                       <li className="text-neutral-dark">
                         <Link href="/docs/roam/">Documentation</Link>
                       </li>
-                      <li className="text-neutral-dark">
-                        <Link href="https://roamresearch.com/#/app/DiscourseGraphTemplate/page/ChgjmeLuR">
-                          Discourse Graph Template
-                        </Link>
-                        <span className="text-neutral-dark">
-                          {" "}
-                          – get cracking building your graphs!
-                        </span>
-                      </li>
                     </ul>
                   </li>
                   <li className="text-neutral-dark">
