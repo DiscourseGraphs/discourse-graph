@@ -288,7 +288,7 @@ const NodeConfig = ({
                 onChange={handleTagChange}
                 onBlur={handleTagBlur}
                 error={tagError}
-                placeholder={`${node.text}`}
+                placeholder={`#${node.text.toLowerCase()}`}
               />
             </div>
           }
