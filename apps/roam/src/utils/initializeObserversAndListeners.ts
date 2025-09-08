@@ -44,6 +44,7 @@ import {
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -107,6 +108,9 @@ export const initObservers = async ({
         for (const node of getDiscourseNodes()) {
           if (tag.toLowerCase() === node.tag?.toLowerCase()) {
             renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
+            if (node.canvasSettings?.color) {
+              s.style.color = formatHexColor(node.canvasSettings.color);
+            }
             break;
           }
         }
