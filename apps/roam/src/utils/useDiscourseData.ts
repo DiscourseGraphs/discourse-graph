@@ -5,6 +5,7 @@ import getDiscourseRelations from "./getDiscourseRelations";
 import getDiscourseNodes from "./getDiscourseNodes";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
+import { type RelationDetails } from "./hyde";
 
 export type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -84,41 +85,46 @@ export const useDiscourseNodeFilters = (tag: string) => {
   const uniqueRelationTypeTriplets = useMemo(() => {
     if (!discourseNode) return [];
     const relatedNodeType = discourseNode.type;
+    const uniqueTriplets = new Map<string, RelationDetails>();
 
-    return validRelations.flatMap((relation) => {
+    validRelations.forEach((relation) => {
       const isSelfSource = relation.source === relatedNodeType;
       const isSelfDestination = relation.destination === relatedNodeType;
 
-      let targetNodeType: string;
-      let currentRelationLabel: string;
-
       if (isSelfSource) {
-        targetNodeType = relation.destination;
-        currentRelationLabel = relation.label;
-      } else if (isSelfDestination) {
-        targetNodeType = relation.source;
-        currentRelationLabel = relation.complement;
-      }
-      if (isSelfSource && isSelfDestination) {
-        targetNodeType = relation.destination;
-        currentRelationLabel = relation.label;
-      } else {
-        return [];
+        const targetNodeType = relation.destination;
+        const identifiedTargetNode = allNodes.find(
+          (node) => node.type === targetNodeType,
+        );
+
+        if (identifiedTargetNode) {
+          const key = `${relation.label}-${identifiedTargetNode.text}`;
+          uniqueTriplets.set(key, {
+            relationLabel: relation.label,
+            relatedNodeText: identifiedTargetNode.text,
+            relatedNodeFormat: identifiedTargetNode.format,
+          });
+        }
       }
 
-      const identifiedTargetNode = allNodes.find(
-        (node) => node.type === targetNodeType,
-      );
-      if (!identifiedTargetNode) return [];
+      if (isSelfDestination) {
+        const targetNodeType = relation.source;
+        const identifiedTargetNode = allNodes.find(
+          (node) => node.type === targetNodeType,
+        );
 
-      return [
-        {
-          relationLabel: currentRelationLabel,
-          relatedNodeText: identifiedTargetNode.text,
-          relatedNodeFormat: identifiedTargetNode.format,
-        },
-      ];
+        if (identifiedTargetNode) {
+          const key = `${relation.complement}-${identifiedTargetNode.text}`;
+          uniqueTriplets.set(key, {
+            relationLabel: relation.complement,
+            relatedNodeText: identifiedTargetNode.text,
+            relatedNodeFormat: identifiedTargetNode.format,
+          });
+        }
+      }
     });
+
+    return Array.from(uniqueTriplets.values());
   }, [validRelations, discourseNode, allNodes]);
 
   const validTypes = useMemo(() => {

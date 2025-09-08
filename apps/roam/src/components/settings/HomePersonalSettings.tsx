@@ -59,7 +59,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set(
+          void extensionAPI.settings.set(
             "discourse-context-overlay",
             target.checked,
           );
@@ -83,7 +83,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("suggestive-mode-overlay", target.checked);
+          void extensionAPI.settings.set(
+            "suggestive-mode-overlay",
+            target.checked,
+          );
           onPageRefObserverChange(getSuggestiveOverlayHandler(onloadArgs))(
             target.checked,
           );
@@ -105,7 +108,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("text-selection-popup", target.checked);
+          void extensionAPI.settings.set(
+            "text-selection-popup",
+            target.checked,
+          );
         }}
         labelElement={
           <>
@@ -124,7 +130,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("disable-sidebar-open", target.checked);
+          void extensionAPI.settings.set(
+            "disable-sidebar-open",
+            target.checked,
+          );
         }}
         labelElement={
           <>
@@ -141,7 +150,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         defaultChecked={extensionAPI.settings.get("page-preview") as boolean}
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("page-preview", target.checked);
+          void extensionAPI.settings.set("page-preview", target.checked);
           onPageRefObserverChange(previewPageRefHandler)(target.checked);
         }}
         labelElement={
@@ -161,7 +170,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("hide-feedback-button", target.checked);
+          void extensionAPI.settings.set(
+            "hide-feedback-button",
+            target.checked,
+          );
 
           if (target.checked) {
             hideDiscourseFloatingMenu();

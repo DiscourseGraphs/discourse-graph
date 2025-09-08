@@ -12,30 +12,12 @@ const MINIMIZED_BAR_ID = "discourse-suggestions-minimized";
 const SPACING_PREFIX = "rm-spacing--";
 const initialSpacingByWrapper = new WeakMap<HTMLElement, string | null>();
 
-const STYLES = {
-  minimizedBar: `
-    display: flex; align-items: center; gap: 4px; padding: 6px 8px;
-    background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    margin: 8px; width: fit-content;
-  `,
-  panelsContainer: `
-    display: flex; flex-direction: column; flex: 1 1 auto; gap: 8px;
-    padding: 8px; background-color: #f5f5f5; overflow-y: auto;
-  `,
-  header: `
-    flex: 0 0 auto; padding: 6px 8px; background-color: #fff;
-    border-radius: 4px 4px 0 0; margin-bottom: 0; font-weight: 600;
-    font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    display: flex; justify-content: space-between; align-items: center;
-  `,
-  headerButtons: `display: flex; gap: 4px; align-items: center;`,
-  button: `cursor: pointer; border: none; background: transparent; padding: 2px 6px;`,
-  minimizeButton: `cursor: pointer; border: none; background: transparent; padding: 2px 6px; font-size: 16px;`,
-  panelElement: `
-    flex: 0 0 auto; margin-bottom: 8px; background-color: #fff;
-    border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  `,
-} as const;
+const CLASS_NAMES = {
+  minimizedBar:
+    "flex items-center gap-1 py-[6px] px-2 bg-white rounded shadow-sm m-2 w-fit",
+  panelsContainer: "flex flex-col flex-1 gap-2 p-2 bg-gray-100 overflow-y-auto",
+  panelElement: "flex-shrink-0 mb-2 bg-white rounded shadow",
+};
 
 type PanelState = {
   blockUid: string;
@@ -99,9 +81,9 @@ const SidebarHeader = ({
   onMinimize: () => void;
   onCloseAll: () => void;
 }) => (
-  <Navbar style={{ boxShadow: "none", borderRadius: "4px 4px 0 0" }}>
+  <Navbar className="rounded-t shadow-none">
     <Navbar.Group align={Alignment.LEFT}>
-      <Navbar.Heading style={{ fontWeight: 600, fontSize: 13 }}>
+      <Navbar.Heading className="text-[13px] font-semibold">
         Suggested Discourse nodes
       </Navbar.Heading>
     </Navbar.Group>
@@ -129,8 +111,8 @@ let isContainerMinimized = false;
 let navigationObserver: MutationObserver | null = null;
 
 const cssEscape = (value: string) =>
-  (window as any).CSS && (window as any).CSS.escape
-    ? (window as any).CSS.escape(value)
+  window.CSS && window.CSS.escape
+    ? window.CSS.escape(value)
     : value.replace(/[^a-zA-Z0-9_\-]/g, (c: string) => `\\${c}`);
 
 const updateOverlayToggleButtons = (tag: string, isOpen: boolean): void => {
@@ -306,7 +288,7 @@ const createMinimizedBar = (panelRoot: HTMLElement) => {
 
   minimizedBar = document.createElement("div");
   minimizedBar.id = MINIMIZED_BAR_ID;
-  minimizedBar.style.cssText = STYLES.minimizedBar;
+  minimizedBar.className = CLASS_NAMES.minimizedBar;
   panelRoot.appendChild(minimizedBar);
 
   ReactDOM.render(
@@ -354,7 +336,7 @@ const createPanelInfrastructure = () => {
   if (!panelsContainer) {
     panelsContainer = document.createElement("div");
     panelsContainer.id = PANELS_CONTAINER_ID;
-    panelsContainer.style.cssText = STYLES.panelsContainer;
+    panelsContainer.className = CLASS_NAMES.panelsContainer;
 
     const header = document.createElement("div");
     header.id = "discourse-suggestions-header";
@@ -386,7 +368,7 @@ const restorePanelInfrastructure = () => {
   panelsToRestore.forEach(([tag, state]) => {
     const panelElement = document.createElement("div");
     panelElement.id = `discourse-panel-${tag.replace(/[^a-zA-Z0-9]/g, "-")}`;
-    panelElement.style.cssText = STYLES.panelElement;
+    panelElement.className = CLASS_NAMES.panelElement;
 
     const header = panelsContainer.querySelector(
       "#discourse-suggestions-header",
@@ -440,9 +422,7 @@ const cleanupPanelInfrastructure = () => {
 
   const panelRoot = document.getElementById(PANEL_ROOT_ID);
   if (panelRoot) {
-    const header = panelRoot.querySelector(
-      "#discourse-suggestions-header",
-    ) as HTMLElement | null;
+    const header = panelRoot.querySelector("#discourse-suggestions-header");
     if (header) ReactDOM.unmountComponentAtNode(header);
     panelRoot.remove();
   }
@@ -504,7 +484,7 @@ export const panelManager = {
 
       const panelElement = document.createElement("div");
       panelElement.id = `discourse-panel-${tag.replace(/[^a-zA-Z0-9]/g, "-")}`;
-      panelElement.style.cssText = STYLES.panelElement;
+      panelElement.className = CLASS_NAMES.panelElement;
 
       const header = panelsContainer.querySelector(
         "#discourse-suggestions-header",
