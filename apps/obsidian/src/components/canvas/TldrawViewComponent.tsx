@@ -31,10 +31,12 @@ import { TFile } from "obsidian";
 import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import { createDiscourseNodeUtil } from "~/components/canvas/shapes/DiscourseNodeShape";
 import { DiscourseNodeTool } from "./DiscourseNodeTool";
-import { DiscourseNodePanel } from "./DiscourseNodePanel";
+import { DiscourseToolPanel } from "./DiscourseToolPanel";
 import { usePlugin } from "~/components/PluginContext";
 import { createDiscourseRelationUtil } from "~/components/canvas/shapes/DiscourseRelationShape";
+import { DiscourseRelationTool } from "./DiscourseRelationTool";
 import { DiscourseRelationBindingUtil } from "~/components/canvas/shapes/DiscourseRelationBinding";
+import ToastListener from "./ToastListener";
 
 interface TldrawPreviewProps {
   store: TLStore;
@@ -69,7 +71,7 @@ export const TldrawPreviewComponent = ({
     }),
   ];
 
-  const customTools = [DiscourseNodeTool];
+  const customTools = [DiscourseNodeTool, DiscourseRelationTool];
 
   const iconUrl = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
 
@@ -200,6 +202,15 @@ export const TldrawPreviewComponent = ({
                     editor.setCurrentTool("discourse-node");
                   },
                 };
+                tools["discourse-relation"] = {
+                  id: "discourse-relation",
+                  label: "Discourse Relation",
+                  readonlyOk: false,
+                  icon: "tool-arrow",
+                  onSelect: () => {
+                    editor.setCurrentTool("discourse-relation");
+                  },
+                };
                 return tools;
               },
             }}
@@ -209,13 +220,17 @@ export const TldrawPreviewComponent = ({
                 const isDiscourseNodeSelected = useIsToolSelected(
                   tools["discourse-node"],
                 );
+                const isDiscourseRelationSelected = useIsToolSelected(
+                  tools["discourse-relation"],
+                );
 
-                if (!isDiscourseNodeSelected) {
+                if (!isDiscourseNodeSelected && !isDiscourseRelationSelected) {
                   return <DefaultStylePanel />;
                 }
 
-                return <DiscourseNodePanel plugin={plugin} canvasFile={file} />;
+                return <DiscourseToolPanel plugin={plugin} canvasFile={file} />;
               },
+              OnTheCanvas: () => <ToastListener />,
               Toolbar: (props) => {
                 const tools = useTools();
                 const isDiscourseNodeSelected = useIsToolSelected(

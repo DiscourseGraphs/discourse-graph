@@ -14,8 +14,9 @@ import { getNodeTypeById } from "~/utils/utils";
 import { useEffect } from "react";
 import { setDiscourseNodeToolContext } from "./DiscourseNodeTool";
 import { ExistingNodeSearch } from "./ExistingNodeSearch";
+import { setDiscourseRelationToolContext } from "./DiscourseRelationTool";
 
-export const DiscourseNodePanel = ({
+export const DiscourseToolPanel = ({
   plugin,
   canvasFile,
 }: {
@@ -27,6 +28,9 @@ export const DiscourseNodePanel = ({
   const rDraggingImage = React.useRef<HTMLDivElement>(null);
   const didDragRef = React.useRef(false);
   const [focusedNodeTypeId, setFocusedNodeTypeId] = React.useState<
+    string | undefined
+  >(undefined);
+  const [focusedRelationTypeId, setFocusedRelationTypeId] = React.useState<
     string | undefined
   >(undefined);
 
@@ -185,6 +189,7 @@ export const DiscourseNodePanel = ({
   );
 
   const nodeTypes = plugin.settings.nodeTypes;
+  const relationTypes = plugin.settings.relationTypes;
 
   useEffect(() => {
     if (!focusedNodeTypeId) return;
@@ -196,8 +201,19 @@ export const DiscourseNodePanel = ({
     ? getNodeTypeById(plugin, focusedNodeTypeId)
     : null;
 
-  const displayNodeTypes = focusedNodeType ? [focusedNodeType] : nodeTypes;
+  // Only show the focused item, hide everything else when something is focused
+  const displayNodeTypes = focusedNodeTypeId
+    ? [focusedNodeType!]
+    : focusedRelationTypeId
+      ? []
+      : nodeTypes;
 
+  const displayRelationTypes = focusedRelationTypeId
+    ? [relationTypes.find((rel) => rel.id === focusedRelationTypeId)!]
+    : focusedNodeTypeId
+      ? []
+      : relationTypes;
+    
   useEffect(() => {
     const cursor = focusedNodeTypeId ? "cross" : "default";
     editor.setCursor({ type: cursor });
@@ -208,13 +224,28 @@ export const DiscourseNodePanel = ({
 
   const handleItemClick = (id: string) => {
     if (didDragRef.current) return;
-    if (focusedNodeTypeId) {
-      setFocusedNodeTypeId(undefined);
-      return;
+    
+    // Clear other focus and toggle this one
+    setFocusedRelationTypeId(undefined);
+    const shouldUnfocus = focusedNodeTypeId === id;
+    setFocusedNodeTypeId(shouldUnfocus ? undefined : id);
+    
+    if (!shouldUnfocus) {
+      setDiscourseNodeToolContext({ plugin, canvasFile, nodeTypeId: id });
+      editor.setCurrentTool("discourse-node");
     }
-    setFocusedNodeTypeId(id);
-    setDiscourseNodeToolContext({ plugin, canvasFile, nodeTypeId: id });
-    editor.setCurrentTool("discourse-node");
+  };
+
+  const handleCreateRelationClick = (relationTypeId: string) => {    
+    // Clear other focus and toggle this one
+    setFocusedNodeTypeId(undefined);
+    const shouldUnfocus = focusedRelationTypeId === relationTypeId;
+    setFocusedRelationTypeId(shouldUnfocus ? undefined : relationTypeId);
+    
+    if (!shouldUnfocus) {
+      setDiscourseRelationToolContext({ plugin, canvasFile, relationTypeId });
+      editor.setCurrentTool("discourse-relation");
+    }
   };
 
   return (
@@ -226,7 +257,10 @@ export const DiscourseNodePanel = ({
         nodeTypeId={focusedNodeTypeId}
       />
       <div className="tlui-layout__top__right">
-        <div className="tlui-style-panel tlui-style-panel__wrapper" ref={rPanelContainer}>
+        <div
+          className="tlui-style-panel tlui-style-panel__wrapper"
+          ref={rPanelContainer}
+        >
           <div className="flex flex-col">
             {displayNodeTypes.map((nodeType) => (
               <NodeTypeButton
@@ -235,6 +269,13 @@ export const DiscourseNodePanel = ({
                 handlers={handlers}
                 didDragRef={didDragRef}
                 onClickNoDrag={() => handleItemClick(nodeType.id)}
+              />
+            ))}
+            {displayRelationTypes.map((rel) => (
+              <RelationTypeButton
+                key={rel.id}
+                relationType={{ id: rel.id, label: rel.label }}
+                onClick={() => handleCreateRelationClick(rel.id)}
               />
             ))}
           </div>
@@ -293,4 +334,28 @@ type NodeTypeButtonProps = {
   };
   didDragRef: React.MutableRefObject<boolean>;
   onClickNoDrag: () => void;
+};
+
+const RelationTypeButton = ({
+  relationType,
+  onClick,
+}: {
+  relationType: { id: string; label: string };
+  onClick: () => void;
+}) => {
+  return (
+    <button
+      key={relationType.id}
+      className="tlui-style-panel__row tlui-button flex h-5 cursor-pointer items-center !justify-start gap-2 px-3"
+      onClick={onClick}
+    >
+      <span
+        className="tlui-icon tlui-button__icon mr-2"
+        style={{
+          mask: `url("https://cdn.tldraw.com/2.3.0/icons/icon/tool-arrow.svg") center 100% / 100% no-repeat`,
+        }}
+      />
+      <span className="text-sm">{relationType.label}</span>
+    </button>
+  );
 };
