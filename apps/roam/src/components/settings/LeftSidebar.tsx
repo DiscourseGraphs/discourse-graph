@@ -12,11 +12,108 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
 import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
+import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { ensureLeftSidebarReady } from "~/utils/ensureLeftSidebarStructure";
 import {
   LeftSidebarGlobalSectionConfig,
   LeftSidebarPersonalSectionConfig,
 } from "~/utils/getLeftSidebarSettings";
+import { extractRef } from "roamjs-components/util";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+
+const SectionItem = ({
+  section,
+  expandedChildLists,
+  convertToComplexSection,
+  setSettingsDialogSectionUid,
+  removeSection,
+  toggleChildrenList,
+}: {
+  section: LeftSidebarPersonalSectionConfig;
+  expandedChildLists: Set<string>;
+  convertToComplexSection: (section: LeftSidebarPersonalSectionConfig) => void;
+  setSettingsDialogSectionUid: (uid: string | null) => void;
+  removeSection: (section: LeftSidebarPersonalSectionConfig) => void;
+  toggleChildrenList: (uid: string) => void;
+}) => {
+  const ref = extractRef(section.text);
+  const blockText = getTextByBlockUid(ref);
+  const alias = section.settings?.alias?.value;
+
+  return (
+    <div key={section.uid} className="rounded-md border p-2 hover:bg-gray-50">
+      <div className="flex items-center">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-medium">{blockText || section.text}</span>
+          {alias && <span className="text-s font-bold">Alias: ({alias})</span>}
+        </div>
+        <div>
+          {section.isSimple ? (
+            <Button
+              icon="settings"
+              small
+              minimal
+              title="Convert to section with settings"
+              onClick={() => convertToComplexSection(section)}
+            />
+          ) : (
+            <Button
+              icon="settings"
+              small
+              minimal
+              title="Edit section settings"
+              onClick={() => setSettingsDialogSectionUid(section.uid)}
+            />
+          )}
+          <Button
+            icon="trash"
+            minimal
+            small
+            onClick={() => removeSection(section)}
+          />
+        </div>
+      </div>
+
+      {!section.isSimple && (section.children?.length || 0) > 0 && (
+        <div className="mt-2">
+          <div className="flex items-center justify-between">
+            <Button
+              icon={
+                expandedChildLists.has(section.uid)
+                  ? "chevron-down"
+                  : "chevron-right"
+              }
+              minimal
+              small
+              onClick={() => toggleChildrenList(section.uid)}
+            >
+              Children ({section.children?.length || 0})
+            </Button>
+            <Button
+              icon="edit"
+              minimal
+              small
+              onClick={() => setSettingsDialogSectionUid(section.uid)}
+              title="Manage children"
+            />
+          </div>
+          <Collapse isOpen={expandedChildLists.has(section.uid)}>
+            <div className="mt-1 space-y-1 pl-2">
+              {(section.children || []).map((child) => (
+                <div
+                  key={child.uid}
+                  className="flex items-center justify-between rounded p-1 hover:bg-gray-50"
+                >
+                  <span className="text-sm">{child.text}</span>
+                </div>
+              ))}
+            </div>
+          </Collapse>
+        </div>
+      )}
+    </div>
+  );
+};
 
 type LeftSidebarPersonalConfig = {
   uid: string;
@@ -40,7 +137,6 @@ export const useLeftSidebarConfig = () => {
       try {
         await ensureLeftSidebarReady();
         const config = getFormattedConfigTree();
-        console.log("config", config);
         setSettings(config);
         setIsInitialized(true);
       } catch (err) {
@@ -371,10 +467,18 @@ const LeftSidebarPersonalSectionsContent = ({
           parentUid={section.settings.uid}
           value={section.settings.open.value}
         />
+        <TextPanel
+          title="Alias"
+          description="Set an alias for the section"
+          order={3}
+          uid={section.settings.alias?.uid}
+          parentUid={section.settings.uid}
+          value={section.settings.alias?.value}
+        />
         <NumberPanel
           title="Truncate-result?"
           description="Maximum characters to display"
-          order={3}
+          order={4}
           uid={section.settings.truncateResult.uid}
           parentUid={section.settings.uid}
           value={section.settings.truncateResult.value}
@@ -447,6 +551,9 @@ const LeftSidebarPersonalSectionsContent = ({
 
   const activeDialogSection =
     sections.find((s) => s.uid === settingsDialogSectionUid) || null;
+  const ref = extractRef(activeDialogSection?.text);
+  const blockText = getTextByBlockUid(ref);
+  const alias = activeDialogSection?.settings?.alias?.value;
 
   return (
     <div className="flex flex-col gap-4 p-1">
@@ -487,84 +594,15 @@ const LeftSidebarPersonalSectionsContent = ({
 
       <div className="mt-2 space-y-2">
         {sections.map((section) => (
-          <div
+          <SectionItem
             key={section.uid}
-            className="rounded-md border p-2 hover:bg-gray-50"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{section.text}</span>
-                {section.isSimple && (
-                  <span className="text-xs text-gray-500">
-                    (simple reference)
-                  </span>
-                )}
-              </div>
-              <div>
-                {section.isSimple ? (
-                  <Button
-                    icon="settings"
-                    small
-                    minimal
-                    title="Convert to section with settings"
-                    onClick={() => convertToComplexSection(section)}
-                  />
-                ) : (
-                  <Button
-                    icon="settings"
-                    small
-                    minimal
-                    title="Edit section settings"
-                    onClick={() => setSettingsDialogSectionUid(section.uid)}
-                  />
-                )}
-                <Button
-                  icon="trash"
-                  minimal
-                  small
-                  onClick={() => removeSection(section)}
-                />
-              </div>
-            </div>
-
-            {!section.isSimple && (section.children?.length || 0) > 0 && (
-              <div className="mt-2">
-                <div className="flex items-center justify-between">
-                  <Button
-                    icon={
-                      expandedChildLists.has(section.uid)
-                        ? "chevron-down"
-                        : "chevron-right"
-                    }
-                    minimal
-                    small
-                    onClick={() => toggleChildrenList(section.uid)}
-                  >
-                    Children ({section.children?.length || 0})
-                  </Button>
-                  <Button
-                    icon="edit"
-                    minimal
-                    small
-                    onClick={() => setSettingsDialogSectionUid(section.uid)}
-                    title="Manage children"
-                  />
-                </div>
-                <Collapse isOpen={expandedChildLists.has(section.uid)}>
-                  <div className="mt-1 space-y-1 pl-2">
-                    {(section.children || []).map((child) => (
-                      <div
-                        key={child.uid}
-                        className="flex items-center justify-between rounded p-1 hover:bg-gray-50"
-                      >
-                        <span className="text-sm">{child.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Collapse>
-              </div>
-            )}
-          </div>
+            section={section}
+            expandedChildLists={expandedChildLists}
+            convertToComplexSection={convertToComplexSection}
+            setSettingsDialogSectionUid={setSettingsDialogSectionUid}
+            removeSection={removeSection}
+            toggleChildrenList={toggleChildrenList}
+          />
         ))}
       </div>
 
@@ -572,7 +610,7 @@ const LeftSidebarPersonalSectionsContent = ({
         <Dialog
           isOpen={true}
           onClose={() => setSettingsDialogSectionUid(null)}
-          title={`Edit "${activeDialogSection.text}"`}
+          title={`Edit "${alias || blockText || activeDialogSection.text}"`}
         >
           <div className="space-y-4 p-4">
             {renderSectionSettings(activeDialogSection)}

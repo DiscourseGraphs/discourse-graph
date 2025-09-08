@@ -2,8 +2,10 @@ import { RoamBasicNode } from "roamjs-components/types";
 import {
   BooleanSetting,
   getUidAndBooleanSetting,
+  getUidAndStringSetting,
   IntSetting,
   getUidAndIntSetting,
+  StringSetting,
 } from "./getExportSettings";
 import { getSubTree } from "roamjs-components/util";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
@@ -13,6 +15,7 @@ export type LeftSidebarPersonalSectionSettings = {
   truncateResult: IntSetting;
   collapsable: BooleanSetting;
   open: BooleanSetting;
+  alias: StringSetting | null;
 };
 
 export type LeftSidebarPersonalSectionConfig = {
@@ -134,6 +137,8 @@ export const getPersonalSectionSettings = (
     getUidAndIntSetting({ tree: settingsTree, text });
   const getBoolean = (text: string) =>
     getUidAndBooleanSetting({ tree: settingsTree, text });
+  const getString = (text: string) =>
+    getUidAndStringSetting({ tree: settingsTree, text });
 
   const truncateResultSetting = getInt("Truncate-result?");
   if (!settingsNode?.uid || !truncateResultSetting.uid) {
@@ -150,10 +155,18 @@ export const getPersonalSectionSettings = (
     openSetting.value = false;
   }
 
+  const aliasString = getString("Alias");
+  const alias =
+    aliasString.value === "Alias" ||
+    (aliasString.value === "" && aliasString.uid)
+      ? null
+      : aliasString;
+
   return {
     uid: settingsNode?.uid || "",
     truncateResult: truncateResultSetting,
     collapsable: collapsableSetting,
     open: openSetting,
+    alias,
   };
 };

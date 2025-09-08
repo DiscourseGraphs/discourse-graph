@@ -11,6 +11,7 @@ import type {
 } from "~/utils/getLeftSidebarSettings";
 import { createBlock } from "roamjs-components/writes";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -106,6 +107,8 @@ type PersonalSectionItemProps = {
 const PersonalSectionItem = ({
   section,
 }: PersonalSectionItemProps): JSX.Element => {
+  const ref = extractRef(section.text);
+  const blockText = getTextByBlockUid(ref);
   if (section.isSimple) {
     const ref = parseReference(section.text);
     const onClick = (e: React.MouseEvent) => {
@@ -128,7 +131,7 @@ const PersonalSectionItem = ({
           }}
           onClick={onClick}
         >
-          {ref.display}
+          {blockText || ref.display}
         </div>
         <hr
           style={{
@@ -146,7 +149,7 @@ const PersonalSectionItem = ({
   const collapsable = !!section.settings?.collapsable.value;
   const defaultOpen = !!section.settings?.open.value;
   const [isOpen, setIsOpen] = useState<boolean>(defaultOpen);
-
+  const alias = section.settings?.alias?.value;
   const titleRef = parseReference(section.text);
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<number | null>(null);
@@ -228,7 +231,7 @@ const PersonalSectionItem = ({
             width: "100%",
           }}
         >
-          <span>{titleRef.display}</span>
+          <span>{alias || blockText || titleRef.display}</span>
           {collapsable && (section.children?.length || 0) > 0 && (
             <span>
               <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
