@@ -20,6 +20,7 @@ import {
 } from "~/data/userSettings";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
+import { getSuggestiveOverlayHandler } from "~/utils/pageRefObserverHandlers";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -58,7 +59,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set(
+          void extensionAPI.settings.set(
             "discourse-context-overlay",
             target.checked,
           );
@@ -78,11 +79,39 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       />
       <Checkbox
         defaultChecked={
+          extensionAPI.settings.get("suggestive-mode-overlay") as boolean
+        }
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          void extensionAPI.settings.set(
+            "suggestive-mode-overlay",
+            target.checked,
+          );
+          onPageRefObserverChange(getSuggestiveOverlayHandler(onloadArgs))(
+            target.checked,
+          );
+        }}
+        labelElement={
+          <>
+            Suggestive Mode Overlay
+            <Description
+              description={
+                "Whether or not to overlay Suggestive Mode button over Discourse Node references."
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={
           extensionAPI.settings.get("text-selection-popup") !== false
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("text-selection-popup", target.checked);
+          void extensionAPI.settings.set(
+            "text-selection-popup",
+            target.checked,
+          );
         }}
         labelElement={
           <>
@@ -101,7 +130,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("disable-sidebar-open", target.checked);
+          void extensionAPI.settings.set(
+            "disable-sidebar-open",
+            target.checked,
+          );
         }}
         labelElement={
           <>
@@ -118,7 +150,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         defaultChecked={extensionAPI.settings.get("page-preview") as boolean}
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("page-preview", target.checked);
+          void extensionAPI.settings.set("page-preview", target.checked);
           onPageRefObserverChange(previewPageRefHandler)(target.checked);
         }}
         labelElement={
@@ -138,7 +170,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("hide-feedback-button", target.checked);
+          void extensionAPI.settings.set(
+            "hide-feedback-button",
+            target.checked,
+          );
 
           if (target.checked) {
             hideDiscourseFloatingMenu();
