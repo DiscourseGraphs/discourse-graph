@@ -46,7 +46,7 @@ const composeQuery = ({
     q += ")";
   }
   let query = supabase.from("Concept").select(q).eq("arity", 0);
-  if (spaceId !== null) query = query.eq("space_id", spaceId);
+  if (spaceId !== undefined) query = query.eq("space_id", spaceId);
   if (schemaName === NODE_SCHEMAS) {
     query = query.eq("is_schema", true);
   } else {
