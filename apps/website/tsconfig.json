@@ -5,8 +5,7 @@
     "rootDir": ".",
     "paths": {
       "~/*": ["./app/*"]
-    },
-    "types": ["react", "react-dom", "node"]
+    }
   },
   "include": [
     "next-env.d.ts",

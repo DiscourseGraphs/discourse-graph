@@ -13,7 +13,6 @@
     "allowJs": false,
     "jsx": "react",
     "noUncheckedIndexedAccess": false,
-    "types": ["react", "react-dom"],
     "paths": {
       "~/*": ["./src/*"],
       "react": ["./node_modules/@types/react"],

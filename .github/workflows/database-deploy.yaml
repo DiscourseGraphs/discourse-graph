@@ -18,7 +18,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10.15.0
+          version: 10.15.1
           run_install: false
 
       - uses: actions/setup-node@v4
@@ -27,7 +27,7 @@ jobs:
           cache: "pnpm"
 
       - name: Install Dependencies
-        run: pnpm install --prefer-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - uses: supabase/setup-cli@v1
         with:
