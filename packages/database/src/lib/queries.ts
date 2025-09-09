@@ -12,8 +12,8 @@ export type NodeSignature = { id: number; name: string };
 
 export const nodeSchemaSignature: NodeSignature = { id: 0, name: NODE_SCHEMAS };
 
-type PDocument = Partial<Tables<"Document">>;
-type PContent = Partial<Tables<"Content">> & {
+export type PDocument = Partial<Tables<"Document">>;
+export type PContent = Partial<Tables<"Content">> & {
   Document: PDocument | null;
 };
 export type PConcept = Partial<Tables<"Concept">> & {
@@ -23,7 +23,7 @@ export type PConcept = Partial<Tables<"Concept">> & {
 
 const composeQuery = ({
   supabase,
-  spaceId = undefined,
+  spaceId,
   schemaName = NODE_SCHEMAS,
   conceptFields = ["id", "name"],
   contentFields = [],
@@ -116,7 +116,7 @@ export const DOCUMENT_FIELDS: (keyof Document)[] = [
 
 export const getNodes = async ({
   supabase,
-  spaceId = undefined,
+  spaceId,
   schemaName = NODE_SCHEMAS,
   conceptFields = CONCEPT_FIELDS,
   contentFields = CONTENT_FIELDS,
