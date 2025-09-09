@@ -31,7 +31,6 @@ export const renderLinkedReferenceAdditions = async (
         createElement(DiscourseContext, {
           uid,
           results: [],
-          onloadArgs,
         }),
         p,
         onloadArgs,

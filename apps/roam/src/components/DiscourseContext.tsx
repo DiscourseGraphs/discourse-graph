@@ -50,7 +50,7 @@ const ExtraColumnRow = (r: Result) => {
       r["context-uid"]
         ? window.roamAlphaAPI
             .q(
-              `[:find (pull ?p [:node/title :block/string :block/uid]) :where 
+              `[:find (pull ?p [:node/title :block/string :block/uid]) :where
               [?b :block/uid "${r["context-uid"]}"]
               [?b :block/parents ?p]
             ]`,
@@ -240,7 +240,7 @@ const ContextTab = ({
     [groupByTarget, r.results],
   );
   const getFilteredResults = useCallback(
-    (id) =>
+    (id: number) =>
       Object.entries(r.results).filter(([, res]) => res.target === subTabs[id]),
     [subTabs, r.results],
   );

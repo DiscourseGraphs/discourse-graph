@@ -178,7 +178,6 @@ export const CustomContextMenu = ({
     <DefaultContextMenu>
       <DefaultContextMenuContent />
       {!selectedShape && (
-        // @ts-ignore React type mismatch
         <TldrawUiMenuGroup id="open-canvas-drawer-group">
           <TldrawUiMenuItem
             id="open-canvas-drawer"
@@ -189,10 +188,7 @@ export const CustomContextMenu = ({
         </TldrawUiMenuGroup>
       )}
       {(isTextSelected || isImageSelected) && (
-        // @ts-ignore React type mismatch
         <TldrawUiMenuGroup id="convert-to-group">
-          {/*
-          // @ts-ignore */}
           <TldrawUiMenuSubmenu id="convert-to-submenu" label="Convert To">
             {allNodes
               // Page not yet supported: requires page-node to have image flag option
@@ -284,10 +280,7 @@ export const createUiComponents = ({
       const CustomViewMenu = () => {
         const actions = useActions();
         return (
-          // @ts-ignore React type mismatch
           <TldrawUiMenuSubmenu id="view" label="menu.view">
-            {/*
-            // @ts-ignore */}
             <TldrawUiMenuGroup id="view-actions">
               <TldrawUiMenuItem {...actions["zoom-in"]} />
               <TldrawUiMenuItem {...actions["zoom-out"]} />
