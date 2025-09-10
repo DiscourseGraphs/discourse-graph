@@ -39,6 +39,7 @@
   "scripts": {
     "lint": "eslint .",
     "build": "tsc",
+    "dev": "tsc --watch",
     "lint:fix": "eslint . --fix",
     "generate:component": "turbo gen react-component",
     "check-types": "tsc --emitDeclarationOnly --skipLibCheck",

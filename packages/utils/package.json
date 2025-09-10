@@ -19,6 +19,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "dev": "tsc --watch",
     "check-types": "tsc --emitDeclarationOnly --skipLibCheck",
     "lint": "eslint ."
   }
