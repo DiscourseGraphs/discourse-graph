@@ -8,7 +8,6 @@
     "./dbDotEnv": {
       "types": "./types/dbDotEnv.d.ts",
       "import": "./src/dbDotEnv.mjs",
-      "require": "./src/dbDotEnv.mjs",
       "default": "./src/dbDotEnv.mjs"
     },
     "./dbTypes": "./src/dbTypes.ts",

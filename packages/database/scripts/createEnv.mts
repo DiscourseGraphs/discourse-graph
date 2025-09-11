@@ -105,6 +105,7 @@ const makeProductionEnv = async (vercel: Vercel, vercelToken: string) => {
 };
 
 const main = async (variant: Variant) => {
+  // Do not execute in deployment or github action.
   if (
     process.env.HOME === "/vercel" ||
     process.env.GITHUB_ACTIONS !== undefined
@@ -138,7 +139,7 @@ const main = async (variant: Variant) => {
       await makeProductionEnv(vercel, vercelToken);
     }
   } catch (err) {
-    console.error(err);
+    console.error("variant ", variant, " error ", err);
     throw err;
   }
 };

@@ -68,7 +68,7 @@
       "with": ["@repo/database#dev"]
     },
     "genenv": {
-      "inputs": ["SUPABASE_USE_DB"],
+      "env": ["SUPABASE_USE_DB"],
       "outputs": [".env*"]
     },
     "deploy": {

@@ -11,19 +11,6 @@
     "./hooks/*": "./src/hooks/*.ts",
     "./components/*": "./src/components/*.tsx"
   },
-  "typesVersions": {
-    "*": {
-      "lib/*": [
-        "dist/lib/*.d.ts"
-      ],
-      "hooks/*": [
-        "dist/hooks/*.d.ts"
-      ],
-      "components/*": [
-        "dist/components/*.d.ts"
-      ]
-    }
-  },
   "scripts": {
     "lint": "eslint .",
     "build": "tsc",
