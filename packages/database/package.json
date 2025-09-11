@@ -54,6 +54,7 @@
     "supabase": "^2.39.2",
     "ts-node-maintained": "^10.9.5",
     "tsx": "^4.20.3",
+    "typescript": "5.9.2",
     "vercel": "46.1.1"
   },
   "prettier": {
