@@ -4,55 +4,33 @@
   "private": true,
   "license": "Apache-2.0",
   "exports": {
-    "./lib/*": {
-      "types": "./dist/src/lib/*.d.ts",
-      "require": "./dist/src/lib/*.js",
-      "default": "./dist/src/lib/*.js"
-    },
+    "./lib/*": "./src/lib/*.ts",
     "./dbDotEnv": {
       "types": "./types/dbDotEnv.d.ts",
       "import": "./src/dbDotEnv.mjs",
-      "require": "./src/dbDotEnv.mjs",
       "default": "./src/dbDotEnv.mjs"
     },
-    "./dbTypes": {
-      "types": "./dist/src/dbTypes.d.ts",
-      "require": "./dist/src/dbTypes.js",
-      "default": "./dist/src/dbTypes.js"
-    },
-    "./inputTypes": {
-      "types": "./dist/src/inputTypes.d.ts",
-      "default": "./dist/src/inputTypes.d.ts"
-    }
+    "./dbTypes": "./src/dbTypes.ts",
+    "./inputTypes": "./src/inputTypes.ts"
   },
   "typesVersions": {
     "*": {
-      "lib/*": [
-        "dist/src/lib/*.d.ts"
-      ],
       "./dbDotEnv": [
-        "src/dbDotEnv.d.ts"
-      ],
-      "./dbTypes": [
-        "dist/src/dbTypes.d.ts"
-      ],
-      "./inputTypes": [
-        "dist/src/inputTypes.d.ts"
+        "types/dbDotEnv.d.ts"
       ]
     }
   },
   "scripts": {
     "init": "supabase login",
     "dev": "tsx scripts/dev.ts",
-    "compile": "tsc",
     "serve": "supabase start && tsx scripts/createEnv.mts && supabase functions serve",
     "stop": "supabase stop",
-    "check-types": "tsc --emitDeclarationOnly --skipLibCheck",
+    "check-types": "tsc --noEmit --skipLibCheck",
     "check-schema": "tsx scripts/lint.ts && supabase stop && npm run dbdiff",
     "lint": "eslint . && tsx scripts/lint.ts",
     "lint:fix": "tsx scripts/lint.ts -f",
-    "build": "tsc",
-    "build-schema": "tsx scripts/build.ts && npm run genenv -- local",
+    "build": "tsx scripts/createEnv.mts && tsc",
+    "build-schema": "tsx scripts/build.ts && tsx scripts/createEnv.mts -- local",
     "test": "tsc && cucumber-js",
     "genenv": "tsx scripts/createEnv.mts",
     "gentypes:production": "supabase start && supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > src/dbTypes.ts",
