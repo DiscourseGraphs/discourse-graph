@@ -351,7 +351,7 @@ const ExportDialog: ExportDialogComponent = ({
           uid: r.uid,
           title: String(r[firstColumnKey]),
           imageUrl,
-          size: "m",
+          size: "s",
           fontFamily: "sans",
         },
         parentId: pageKey,
