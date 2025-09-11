@@ -1,25 +1,20 @@
 import { execSync } from "node:child_process";
-import { appendFileSync, writeFileSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { appendFileSync, writeFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { Vercel } from "@vercel/sdk";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
+const baseParams: Record<string, string> = {};
 
-if (process.env.HOME === "/vercel") process.exit(0);
-
-dotenv.config();
-
-const variant =
-  (process.argv.length === 3
-    ? process.argv[2]
-    : process.env["SUPABASE_USE_DB"]) || "local";
-
-if (["local", "branch", "production", "all"].indexOf(variant) === -1) {
-  console.error("Invalid variant: " + variant);
-  process.exit(-1);
+enum Variant {
+  local = "local",
+  branch = "branch",
+  production = "production",
+  all = "all",
+  none = "none",
 }
 
 // option to override in .env, but otherwise use our values
@@ -27,8 +22,11 @@ const projectIdOrName: string =
   process.env["VERCEL_PROJECT_ID"] ||
   process.env["VERCEL_PROJECT_NAME"] ||
   "discourse-graph";
-const baseParams: Record<string, string> = {};
-const vercelToken = process.env["VERCEL_TOKEN"];
+
+const getVercelToken = () => {
+  dotenv.config();
+  return process.env["VERCEL_TOKEN"];
+};
 
 const makeLocalEnv = () => {
   const stdout = execSync("supabase status -o env", {
@@ -49,7 +47,7 @@ const makeLocalEnv = () => {
   );
 };
 
-const makeBranchEnv = async (vercel: Vercel) => {
+const makeBranchEnv = async (vercel: Vercel, vercelToken: string) => {
   let branch: string;
   if (process.env.SUPABASE_GIT_BRANCH) {
     // allow to override current branch
@@ -88,7 +86,7 @@ const makeBranchEnv = async (vercel: Vercel) => {
   appendFileSync(".env.branch", `NEXT_API_ROOT="${url}/api"\n`);
 };
 
-const makeProductionEnv = async (vercel: Vercel) => {
+const makeProductionEnv = async (vercel: Vercel, vercelToken: string) => {
   const result = await vercel.deployments.getDeployments({
     ...baseParams,
     projectId: projectIdOrName,
@@ -100,38 +98,61 @@ const makeProductionEnv = async (vercel: Vercel) => {
     throw new Error("No production deployment found");
   }
   const url = result.deployments[0]!.url;
-  console.log(url);
   execSync(
     `vercel -t ${vercelToken} env pull --environment production .env.production`,
   );
   appendFileSync(".env.production", `NEXT_API_ROOT="${url}/api"\n`);
 };
 
-try {
-  if (variant === "local" || variant === "all") {
-    makeLocalEnv();
-    if (variant === "local") process.exit(0);
+const main = async (variant: Variant) => {
+  if (
+    process.env.HOME === "/vercel" ||
+    process.env.GITHUB_ACTIONS !== undefined
+  )
+    return;
+
+  if (variant === Variant.none) return;
+
+  try {
+    if (variant === Variant.local || variant === Variant.all) {
+      makeLocalEnv();
+      if (variant === Variant.local) return;
+    }
+    const vercelToken = getVercelToken();
+    if (!vercelToken) {
+      throw Error("Missing VERCEL_TOKEN in .env");
+    }
+    // option to override in .env, but otherwise use our values
+    const teamId = process.env["VERCEL_TEAM_ID"];
+    const teamSlug = process.env["VERCEL_TEAM_SLUG"] || "discourse-graphs";
+    if (teamId) {
+      baseParams.teamId = teamId;
+    } else {
+      baseParams.slug = teamSlug;
+    }
+    const vercel = new Vercel({ bearerToken: vercelToken });
+    if (variant === Variant.branch || variant === Variant.all) {
+      await makeBranchEnv(vercel, vercelToken);
+    }
+    if (variant === Variant.production || variant === Variant.all) {
+      await makeProductionEnv(vercel, vercelToken);
+    }
+  } catch (err) {
+    console.error(err);
+    throw err;
   }
-  if (!vercelToken) {
-    console.error("Missing VERCEL_TOKEN in .env");
-    process.exit(-1);
+};
+
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  const variantS: string =
+    (process.argv.length === 3
+      ? process.argv[2]
+      : process.env["SUPABASE_USE_DB"]) || "none";
+
+  const variant = (Variant as Record<string, Variant>)[variantS];
+  if (variant === undefined) {
+    throw Error("Invalid variant: " + variant);
   }
-  // option to override in .env, but otherwise use our values
-  const teamId = process.env["VERCEL_TEAM_ID"];
-  const teamSlug = process.env["VERCEL_TEAM_SLUG"] || "discourse-graphs";
-  if (teamId) {
-    baseParams.teamId = teamId;
-  } else {
-    baseParams.slug = teamSlug;
-  }
-  const vercel = new Vercel({ bearerToken: vercelToken });
-  if (variant === "branch" || variant === "all") {
-    await makeBranchEnv(vercel);
-  }
-  if (variant === "production" || variant === "all") {
-    await makeProductionEnv(vercel);
-  }
-} catch (err) {
-  console.error(err);
-  throw err;
+  console.log(variant);
+  await main(variant);
 }
