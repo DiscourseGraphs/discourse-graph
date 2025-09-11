@@ -4,41 +4,19 @@
   "private": true,
   "license": "Apache-2.0",
   "exports": {
-    "./lib/*": {
-      "types": "./dist/src/lib/*.d.ts",
-      "require": "./dist/src/lib/*.js",
-      "default": "./dist/src/lib/*.js"
-    },
+    "./lib/*": "./src/lib/*.ts",
     "./dbDotEnv": {
       "types": "./dist/src/dbDotEnv.d.mts",
       "import": "./dist/src/dbDotEnv.mjs",
       "require": "./dist/src/dbDotEnv.mjs",
       "default": "./dist/src/dbDotEnv.mjs"
     },
-    "./dbTypes": {
-      "types": "./dist/src/dbTypes.d.ts",
-      "require": "./dist/src/dbTypes.js",
-      "default": "./dist/src/dbTypes.js"
-    },
-    "./inputTypes": {
-      "types": "./dist/src/inputTypes.d.ts",
-      "default": "./dist/src/inputTypes.d.ts"
-    }
+    "./dbTypes": "./src/dbTypes.ts",
+    "./inputTypes": "./src/inputTypes.ts"
   },
   "typesVersions": {
     "*": {
-      "lib/*": [
-        "dist/src/lib/*.d.ts"
-      ],
-      "./dbDotEnv": [
-        "dist/src/dbDotEnv.d.mts"
-      ],
-      "./dbTypes": [
-        "dist/src/dbTypes.d.ts"
-      ],
-      "./inputTypes": [
-        "dist/src/inputTypes.d.ts"
-      ]
+      "./dbDotEnv": ["dist/src/dbDotEnv.d.mts"]
     }
   },
   "scripts": {
