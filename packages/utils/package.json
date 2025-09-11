@@ -4,26 +4,15 @@
   "private": true,
   "license": "Apache-2.0",
   "exports": {
-    "./*": {
-      "types": "./dist/src/*.d.ts",
-      "require": "./dist/src/*.js",
-      "default": "./dist/src/*.js"
-    }
+    "./*": "./src/*.ts"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^20.11.24"
   },
-  "typesVersions": {
-    "*": {
-      "*": [
-        "dist/src/*.d.ts"
-      ]
-    }
-  },
   "scripts": {
     "build": "tsc",
-    "check-types": "tsc --emitDeclarationOnly --skipLibCheck",
+    "check-types": "tsc --noEmit --skipLibCheck",
     "lint": "eslint ."
   }
 }
