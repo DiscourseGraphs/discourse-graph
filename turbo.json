@@ -40,12 +40,11 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["@repo/database#genenv"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "src/dbTypes.ts"]
     },
     "build-schema": {
-      "dependsOn": ["^build-schema"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["src/dbTypes.ts"]
     },
@@ -60,7 +59,17 @@
       "cache": false,
       "persistent": true,
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "dependsOn": ["^build"]
+      "dependsOn": ["@repo/database#genenv"]
+    },
+    "roam#dev": {
+      "with": ["@repo/database#dev"]
+    },
+    "website#dev": {
+      "with": ["@repo/database#dev"]
+    },
+    "genenv": {
+      "inputs": ["SUPABASE_USE_DB"],
+      "outputs": [".env*"]
     },
     "deploy": {
       "cache": false,

@@ -27,7 +27,7 @@
     "compile": "tsc",
     "serve": "supabase start && tsx scripts/createEnv.mts && supabase functions serve",
     "stop": "supabase stop",
-    "check-types": "tsc --emitDeclarationOnly --skipLibCheck",
+    "check-types": "tsc --noEmit --skipLibCheck",
     "check-schema": "tsx scripts/lint.ts && supabase stop && npm run dbdiff",
     "lint": "eslint . && tsx scripts/lint.ts",
     "lint:fix": "tsx scripts/lint.ts -f",
