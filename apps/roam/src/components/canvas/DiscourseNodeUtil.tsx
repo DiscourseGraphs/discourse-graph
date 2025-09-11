@@ -122,6 +122,7 @@ export const createNodeShapeTools = (
           type: this.shapeType,
           x: currentPagePoint.x,
           y: currentPagePoint.y,
+          props: { fontFamily: "sans", size: "s" },
         });
         this.editor.setEditingShape(shapeId);
         this.editor.setCurrentTool("select");
@@ -200,8 +201,8 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
       h: 64,
       uid: window.roamAlphaAPI.util.generateUID(),
       title: "",
-      size: "m",
-      fontFamily: "draw",
+      size: "s",
+      fontFamily: "sans",
     };
   }
 

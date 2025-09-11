@@ -103,7 +103,15 @@ const convertToDiscourseNode = async ({
     {
       type,
       id: createShapeId(),
-      props: { uid, title: nodeText, h, w, imageUrl },
+      props: {
+        uid,
+        title: nodeText,
+        h,
+        w,
+        imageUrl,
+        fontFamily: "sans",
+        size: "s",
+      },
       x,
       y,
     },

@@ -352,7 +352,7 @@ const ExportDialog: ExportDialogComponent = ({
           title: String(r[firstColumnKey]),
           imageUrl,
           size: "m",
-          fontFamily: "draw",
+          fontFamily: "sans",
         },
         parentId: pageKey,
         y: shapeY,

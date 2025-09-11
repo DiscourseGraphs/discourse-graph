@@ -157,6 +157,7 @@ const DiscourseGraphPanel = ({
               type: current.item.id,
               x: pagePoint.x,
               y: pagePoint.y,
+              props: { fontFamily: "sans", size: "s" },
             });
             editor.setEditingShape(shapeId);
             editor.setCurrentTool("select");
