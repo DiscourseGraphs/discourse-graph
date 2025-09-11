@@ -65,6 +65,7 @@ const NodeSearchMenu = ({
   const [searchResults, setSearchResults] = useState<Record<string, Result[]>>(
     {},
   );
+  const [isFilterMenuVisible, setIsFilterMenuVisible] = useState(false);
   const typeIds = useMemo(
     () => discourseTypes.map((t) => t.type),
     [discourseTypes],
@@ -204,7 +205,7 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: Result) => {
-      waitForBlock(blockUid, textarea.value).then(() => {
+      void waitForBlock(blockUid, textarea.value).then(() => {
         onClose();
 
         setTimeout(() => {
@@ -362,17 +363,6 @@ const NodeSearchMenu = ({
 
   let currentGlobalIndex = -1;
 
-  const refocusTextarea = useCallback(() => {
-    setTimeout(() => {
-      console.log("refocusing textarea", Date.now());
-      if (!textarea) return;
-      textarea.focus();
-      const cursorPos = textarea.selectionStart;
-      console.log("cursorPos", cursorPos);
-      textarea.setSelectionRange(cursorPos, cursorPos);
-    }, 0);
-  }, [textarea]);
-
   const handleTypeCheckChange = useCallback((typeKey: string) => {
     setCheckedTypes((prev) => ({
       ...prev,
@@ -409,6 +399,7 @@ const NodeSearchMenu = ({
           shouldDismissPopover={false}
           onClick={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             handleTypeCheckChange(item.type);
           }}
           onMouseDown={(e) => e.preventDefault()}
@@ -468,42 +459,46 @@ const NodeSearchMenu = ({
                 style={{ width: MENU_WIDTH }}
               >
                 <div className="flex items-center justify-between border-b border-gray-200 p-2">
-                  <Popover
+                  <Button
+                    icon="filter"
                     minimal
-                    position={Position.BOTTOM_LEFT}
-                    autoFocus={false}
-                    enforceFocus={false}
-                    usePortal={false}
-                    content={
-                      <div className="w-64 p-2">
-                        <div className="mb-2 flex items-center justify-between text-sm">
-                          <Button
-                            small
-                            intent={
-                              isAllSelected ? Intent.SUCCESS : Intent.PRIMARY
-                            }
-                            icon={isAllSelected ? "tick" : "multi-select"}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => handleToggleAll(!isAllSelected)}
-                          >
-                            {isAllSelected ? "All selected" : "Select all"}
-                          </Button>
-                        </div>
-                        <Menu>
-                          {discourseTypes.map((t) => renderTypeItem(t))}
-                        </Menu>
-                      </div>
-                    }
-                    onClosed={() => refocusTextarea()}
-                  >
-                    <Button
-                      icon="filter"
-                      minimal
-                      small
-                      title="Filter by type"
-                    />
-                  </Popover>
+                    small
+                    title="Filter by type"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setIsFilterMenuVisible(!isFilterMenuVisible);
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                  />
                 </div>
+                {isFilterMenuVisible && (
+                  <div>
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        Filter by Type
+                      </span>
+                      <Button
+                        small
+                        intent={isAllSelected ? Intent.SUCCESS : Intent.PRIMARY}
+                        icon={isAllSelected ? "tick" : "multi-select"}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleToggleAll(!isAllSelected);
+                        }}
+                      >
+                        {isAllSelected ? "All selected" : "Select all"}
+                      </Button>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      <Menu>
+                        {discourseTypes.map((t) => renderTypeItem(t))}
+                      </Menu>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="h-64 overflow-y-auto" ref={scrollContainerRef}>
                 {filteredTypes.map((type) => (
