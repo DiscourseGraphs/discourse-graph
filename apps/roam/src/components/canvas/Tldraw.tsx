@@ -502,8 +502,8 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             props: {
               uid: e.detail.uid,
               title: e.detail.val,
-              size: "m",
-              fontFamily: "draw",
+              size: "s",
+              fontFamily: "sans",
             },
             ...position,
           },
