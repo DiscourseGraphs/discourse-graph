@@ -1,9 +1,8 @@
 # Tagging Candidate Nodes
 
-## Purpose - mark a potential item for later
+## Purpose - quickly bookmark notes that could later become formal discourse nodes
 
-While you're taking notes, often you'll recognize a potential item to revisit later. Like: "might be evidence?"
-
+While you're taking notes, often you'll write down something that could later become a formal discourse node like a Claim, Evidence, or Result. But sometimes you don't want to break your flow to formalize it in the moment, or you may want to clarify/revisit it later to be sure that you want to turn it into a Claim/Evidence/Result. 
 It's helpful to quickly tag these. Later, you can search for them and formalize them in one click.
 
 ## Setup - define candidate nodes
