@@ -7,10 +7,14 @@ on:
     paths:
       - "apps/roam/**"
       - "packages/tailwind-config/**"
+      - "packages/utils/**"
+      - "packages/database/**"
       - "packages/ui/**"
 
 env:
   BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
 
 jobs:
   deploy:
