@@ -20,7 +20,12 @@ const RelationshipTypeSettings = () => {
     const updatedRelationTypes = [...relationTypes];
     if (!updatedRelationTypes[index]) {
       const newId = generateUid("rel");
-      updatedRelationTypes[index] = { id: newId, label: "", complement: "", color: "black" };
+      updatedRelationTypes[index] = {
+        id: newId,
+        label: "",
+        complement: "",
+        color: "#000000",
+      };
     }
 
     updatedRelationTypes[index][field] = value;
@@ -37,7 +42,7 @@ const RelationshipTypeSettings = () => {
         id: newId,
         label: "",
         complement: "",
-        color: "black",
+        color: "#000000",
       },
     ];
     setRelationTypes(updatedRelationTypes);
@@ -48,6 +53,7 @@ const RelationshipTypeSettings = () => {
     const relationType = relationTypes[index] || {
       label: "Unnamed",
       complement: "",
+      color: "#000000",
     };
     const modal = new ConfirmationModal(plugin.app, {
       title: "Delete Relation Type",

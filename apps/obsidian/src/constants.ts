@@ -26,19 +26,19 @@ export const DEFAULT_RELATION_TYPES: Record<string, DiscourseRelationType> = {
     id: generateUid("relation"),
     label: "supports",
     complement: "is supported by",
-    color: "green",
+    color: "#008000",
   },
   opposes: {
     id: generateUid("relation"),
     label: "opposes",
     complement: "is opposed by",
-    color: "red",
+    color: "#FF0000",
   },
   informs: {
     id: generateUid("relation"),
     label: "informs",
     complement: "is informed by",
-    color: "blue",
+    color: "#0000FF",
   },
 };
 
