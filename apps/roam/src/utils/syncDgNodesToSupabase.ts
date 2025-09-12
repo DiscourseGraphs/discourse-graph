@@ -46,6 +46,7 @@ export const endSyncTask = async (
 ): Promise<void> => {
   try {
     const supabaseClient = await getLoggedInClient();
+    if (!supabaseClient) return;
     const context = await getSupabaseContext();
     if (!context) {
       console.error("endSyncTask: Unable to obtain Supabase context.");
@@ -96,8 +97,8 @@ export const endSyncTask = async (
 export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
   try {
     const supabaseClient = await getLoggedInClient();
-    const context = await getSupabaseContext();
-    if (!context) {
+    const context = supabaseClient ? await getSupabaseContext() : null;
+    if (!context || !supabaseClient) {
       console.error("proposeSyncTask: Unable to obtain Supabase context.");
       return {
         lastUpdateTime: null,
@@ -382,6 +383,7 @@ export const createOrUpdateDiscourseEmbedding = async () => {
       dgNodeTypesWithSettings,
     );
     const supabaseClient = await getLoggedInClient();
+    if (!supabaseClient) return null;
     const context = await getSupabaseContext();
     if (!context) {
       console.error("No Supabase context found.");
@@ -412,6 +414,7 @@ export const createOrUpdateDiscourseEmbedding = async () => {
 
 export const initializeSupabaseSync = async () => {
   const supabase = createClient();
+  if (supabase === null) return;
   const result = await supabase
     .from("Space")
     .select()

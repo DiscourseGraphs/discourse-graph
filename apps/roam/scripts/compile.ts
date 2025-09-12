@@ -159,8 +159,12 @@ export const compile = ({
       bundle: true,
       format,
       define: {
-        "process.env.SUPABASE_URL": `"${dbEnv.SUPABASE_URL}"`,
-        "process.env.SUPABASE_ANON_KEY": `"${dbEnv.SUPABASE_ANON_KEY}"`,
+        "process.env.SUPABASE_URL": dbEnv.SUPABASE_URL
+          ? `"${dbEnv.SUPABASE_URL}"`
+          : "null",
+        "process.env.SUPABASE_ANON_KEY": dbEnv.SUPABASE_ANON_KEY
+          ? `"${dbEnv.SUPABASE_ANON_KEY}"`
+          : "null",
         "process.env.NEXT_API_ROOT": `"${dbEnv.NEXT_API_ROOT || ""}"`,
         "window.__DISCOURSE_GRAPH_VERSION__": `"${getVersion()}"`,
         "window.__DISCOURSE_GRAPH_BUILD_DATE__": `"${getBuildDate()}"`,

@@ -12,12 +12,13 @@ export type DGSupabaseClient = SupabaseClient<
   Database["public"]
 >;
 
-export const createClient = (): DGSupabaseClient => {
+export const createClient = (): DGSupabaseClient | null => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
 
   if (!url || !key) {
-    throw new Error("Missing required Supabase environment variables");
+    console.error("Missing required Supabase environment variables");
+    return null;
   }
 
   return createSupabaseClient<Database, "public", Database["public"]>(url, key);

@@ -90,6 +90,7 @@ export const fetchOrCreateSpaceDirect = async (
   data.url = data.url.trim().replace(/\/$/, "");
 
   const supabase = createClient();
+  if (!supabase) return asPostgrestFailure("No database", "");
   const result = await supabase
     .from("Space")
     .select()
@@ -122,8 +123,9 @@ export const createLoggedInClient = async (
   platform: Platform,
   spaceId: number,
   password: string,
-): Promise<DGSupabaseClient> => {
-  const loggedInClient: DGSupabaseClient = createClient();
+): Promise<DGSupabaseClient|null> => {
+  const loggedInClient: DGSupabaseClient|null = createClient();
+  if (!loggedInClient) return null;
   const { error } = await loggedInClient.auth.signInWithPassword({
     email: spaceAnonUserEmail(platform, spaceId),
     password: password,
@@ -150,6 +152,7 @@ export const fetchOrCreatePlatformAccount = async ({
   password: string;
 }): Promise<number> => {
   const supabase = await createLoggedInClient(platform, spaceId, password);
+  if (!supabase) throw Error("Missing database connection");
 
   const result = await supabase.rpc("create_account_in_space", {
     space_id_: spaceId,
