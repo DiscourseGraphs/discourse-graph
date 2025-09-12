@@ -14,6 +14,7 @@ export type DiscourseRelationType = {
   id: string;
   label: string;
   complement: string;
+  color: string;
 };
 
 export type DiscourseRelation = {
