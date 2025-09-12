@@ -139,7 +139,7 @@ const getLocalToDbIdMapping = async (
   let dbIds: Record<string, number | null> = Object.fromEntries(
     partialResult.map(([k, v]) => [k, getDbId(v)]),
   );
-  let numMissing = Object.values(dbIds).filter((x) => x === null).length;
+  const numMissing = Object.values(dbIds).filter((x) => x === null).length;
   if (numMissing === 0) return dbIds;
   const previousMisses = Object.fromEntries(
     partialResult.filter(([k, v]) => typeof v === "number"),
