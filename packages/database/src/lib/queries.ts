@@ -20,12 +20,14 @@ export type NodeSignature = {
 export const nodeSchemaSignature: NodeSignature = {
   spaceId: 0,
   sourceLocalId: NODE_SCHEMAS,
-  name: "Node types",
+  name: "Node Types",
   dbId: 0,
 };
 
-let NODE_SCHEMA_CACHE: Record<string, NodeSignature | number> = {
-  NODE_SCHEMAS: nodeSchemaSignature,
+type CacheMissTimestamp = number;
+type CacheEntry = NodeSignature | CacheMissTimestamp;
+let NODE_SCHEMA_CACHE: Record<string, CacheEntry> = {
+  [NODE_SCHEMAS]: nodeSchemaSignature,
 };
 
 export type PDocument = Partial<Tables<"Document">>;
@@ -74,8 +76,10 @@ const composeQuery = ({
     query = query.eq("is_schema", true);
   } else {
     query = query.eq("is_schema", false);
-    if (Array.isArray(schemaDbIds)) query = query.in("schema_id", schemaDbIds);
-    else if (typeof schemaDbIds === "number")
+    if (Array.isArray(schemaDbIds)) {
+      if (schemaDbIds.length > 0) query = query.in("schema_id", schemaDbIds);
+      // else we'll get all nodes
+    } else if (typeof schemaDbIds === "number")
       query = query.eq("schema_id", schemaDbIds);
     else throw new Error("schemaDbIds should be a number or number[]");
   }
@@ -86,12 +90,12 @@ const composeQuery = ({
 export const getNodeSchemas = async (
   supabase: DGSupabaseClient,
   spaceId: number,
-  forceReload: boolean = false,
+  forceCacheReload: boolean = false,
 ): Promise<NodeSignature[]> => {
   let result = Object.values(NODE_SCHEMA_CACHE)
     .filter((x) => typeof x === "object")
     .filter((x) => x.spaceId === spaceId);
-  if (forceReload || result.length === 0) {
+  if (forceCacheReload || result.length === 0) {
     const q = composeQuery({ supabase, spaceId });
     const res = (await q) as PostgrestResponse<defaultQueryShape>;
     if (res.error) {
@@ -121,16 +125,16 @@ export const getNodeSchemas = async (
 
 const INTERVAL = 5000;
 
-// Utility function: Get the databaseIds from the schema's Uids, looking first in Cache then querying db.
-const getDbIds = async (
+// Utility function: Get the mapping of local ids to db Ids, looking first in Cache then querying db.
+const getLocalToDbIdMapping = async (
   supabase: DGSupabaseClient,
-  localUids: string[],
+  localLocalIds: string[],
   spaceId?: number,
 ): Promise<Record<string, number | null>> => {
   // assuming no collision with types' local Ids.
-  const partialResult: [k: string, v: number | NodeSignature | undefined][] =
-    localUids.map((x) => [x, NODE_SCHEMA_CACHE[x]]);
-  const getDbId = (x: NodeSignature | number | undefined) =>
+  const partialResult: [k: string, v: CacheEntry | undefined][] =
+    localLocalIds.map((x) => [x, NODE_SCHEMA_CACHE[x]]);
+  const getDbId = (x: CacheEntry | undefined) =>
     typeof x === "object" ? x.dbId : null;
   let dbIds: Record<string, number | null> = Object.fromEntries(
     partialResult.map(([k, v]) => [k, getDbId(v)]),
@@ -153,7 +157,7 @@ const getDbIds = async (
     if (Object.keys(NODE_SCHEMA_CACHE).length > 1) {
       // Non-empty cache, query selectively
       q = q
-        .in("Content.source_local_id", localUids)
+        .in("Content.source_local_id", localLocalIds)
         .not("Content.source_local_id", "is", null);
     } // otherwise populate the cache
     const res = (await q) as PostgrestResponse<defaultQueryShape>;
@@ -175,12 +179,12 @@ const getDbIds = async (
         ]),
       ),
     };
-    for (const uid of localUids) {
-      if (typeof NODE_SCHEMA_CACHE[uid] !== "object")
-        NODE_SCHEMA_CACHE[uid] = now;
+    for (const localId of localLocalIds) {
+      if (typeof NODE_SCHEMA_CACHE[localId] !== "object")
+        NODE_SCHEMA_CACHE[localId] = now;
     }
     dbIds = Object.fromEntries(
-      localUids.map((x) => [x, getDbId(NODE_SCHEMA_CACHE[x])]),
+      localLocalIds.map((x) => [x, getDbId(NODE_SCHEMA_CACHE[x])]),
     );
   }
   return dbIds;
@@ -233,27 +237,34 @@ export const DOCUMENT_FIELDS: (keyof Document)[] = [
 export const getNodes = async ({
   supabase,
   spaceId,
-  schemaUids = NODE_SCHEMAS,
+  schemaLocalIds = NODE_SCHEMAS,
   conceptFields = CONCEPT_FIELDS,
   contentFields = CONTENT_FIELDS,
   documentFields = DOCUMENT_FIELDS,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
-  schemaUids?: string | string[];
+  schemaLocalIds?: string | string[];
   conceptFields?: (keyof Concept)[];
   contentFields?: (keyof Content)[];
   documentFields?: (keyof Document)[];
 }): Promise<PConcept[]> => {
   let schemaDbIds: number | number[] = 0;
-  const uidsArray = typeof schemaUids === "string" ? [schemaUids] : schemaUids;
-  if (schemaUids !== NODE_SCHEMAS) {
-    const dbIdsMap = await getDbIds(supabase, uidsArray);
-    schemaDbIds = Object.values(dbIdsMap).filter((x) => x !== null);
-    if (schemaDbIds.length < schemaUids.length) {
+  const localIdsArray =
+    typeof schemaLocalIds === "string" ? [schemaLocalIds] : schemaLocalIds;
+  if (schemaLocalIds !== NODE_SCHEMAS) {
+    const dbIdsMapping = await getLocalToDbIdMapping(
+      supabase,
+      localIdsArray,
+      spaceId,
+    );
+    schemaDbIds = Object.values(dbIdsMapping).filter((x) => x !== null);
+    if (schemaDbIds.length < localIdsArray.length) {
       console.error(
-        "Some uids are not yet in database: ",
-        uidsArray.filter((uid) => dbIdsMap[uid] === undefined).join(", "),
+        "Some localIds are not yet in database: ",
+        localIdsArray
+          .filter((localId) => dbIdsMapping[localId] === null)
+          .join(", "),
       );
     }
   }
