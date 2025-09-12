@@ -5,7 +5,7 @@
     "rootDir": ".",
     "paths": {
       "~/*": ["./app/*"]
-    },
+    }
   },
   "include": [
     "next-env.d.ts",
@@ -15,5 +15,5 @@
     "scripts/*tx",
     ".next/types/**/*.ts",
     "postcss.config.mjs"
-  ],
+  ]
 }

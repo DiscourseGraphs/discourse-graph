@@ -96,7 +96,7 @@ const QueryClause = ({
     [setConditions, con.uid],
   );
   const setConditionTarget = useCallback(
-    (e, timeout: boolean = true) => {
+    (e: string, timeout: boolean = true) => {
       window.clearTimeout(debounceRef.current);
       setConditions((_conditions) =>
         _conditions.map((c) => (c.uid === con.uid ? { ...c, target: e } : c)),
@@ -301,7 +301,10 @@ const QuerySelection = ({
 }) => {
   const debounceRef = useRef(0);
   const setSelectionLabel = useCallback(
-    (e, timeout: boolean = true) => {
+    (
+      e: React.FocusEvent<HTMLInputElement, Element>,
+      timeout: boolean = true,
+    ) => {
       window.clearTimeout(debounceRef.current);
       const label = e.target.value;
       setSelections((selections) =>

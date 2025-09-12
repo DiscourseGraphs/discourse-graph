@@ -12,5 +12,8 @@
     "importHelpers": true,
     "isolatedModules": true,
     "strictNullChecks": true,
+    "paths": {
+      "~/*": ["./src/*"]
+    }
   }
 }

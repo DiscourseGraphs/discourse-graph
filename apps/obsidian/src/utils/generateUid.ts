@@ -1,4 +1,4 @@
-import nanoid from "nanoid";
+const { nanoid } = require("nanoid");
 
 const generateUid = (prefix = "dg") => {
   return `${prefix}_${nanoid()}`;
