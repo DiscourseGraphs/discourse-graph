@@ -13,12 +13,11 @@ import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserD
 type LeftSidebarPersonalSectionSettings = {
   uid: string;
   truncateResult: IntSetting;
-  collapsable: BooleanSetting;
   folded: BooleanSetting;
   alias: StringSetting | null;
 };
 
-type LeftSidebarPersonalSectionConfig = {
+export type LeftSidebarPersonalSectionConfig = {
   uid: string;
   text: string;
   sectionWithoutSettingsAndChildren: boolean;
@@ -29,6 +28,7 @@ type LeftSidebarPersonalSectionConfig = {
 
 type LeftSidebarGlobalSectionConfig = {
   uid: string;
+  collapsable: BooleanSetting;
   folded: BooleanSetting;
   children: RoamBasicNode[];
   childrenUid: string;
@@ -50,8 +50,6 @@ const getLeftSidebarGlobalSectionConfig = (
     key: "Global-Section",
   });
   const globalChildren = globalSectionNode?.children || [];
-  const getBoolean = (text: string) =>
-    getUidAndBooleanSetting({ tree: globalChildren, text });
 
   const childrenNode = getSubTree({
     tree: globalChildren,
@@ -60,7 +58,11 @@ const getLeftSidebarGlobalSectionConfig = (
 
   return {
     uid: globalSectionNode?.uid || "",
-    folded: getBoolean("Folded"),
+    collapsable: getUidAndBooleanSetting({
+      tree: globalChildren,
+      text: "Collapsable",
+    }),
+    folded: getUidAndBooleanSetting({ tree: globalChildren, text: "Folded" }),
     children: childrenNode?.children || [],
     childrenUid: childrenNode?.uid || "",
   };
@@ -79,13 +81,9 @@ const getPersonalSectionSettings = (
   if (truncateResultSetting.value === 0) {
     truncateResultSetting.value = 75;
   }
-  const collapsableSetting = getUidAndBooleanSetting({
-    tree: settingsTree,
-    text: "Collapsable?",
-  });
   const foldedSetting = getUidAndBooleanSetting({
     tree: settingsTree,
-    text: "Folded?",
+    text: "Folded",
   });
 
   const aliasString = getUidAndStringSetting({
@@ -101,7 +99,6 @@ const getPersonalSectionSettings = (
   return {
     uid: settingsNode.uid,
     truncateResult: truncateResultSetting,
-    collapsable: collapsableSetting,
     folded: foldedSetting,
     alias,
   };
@@ -116,6 +113,13 @@ const getLeftSidebarPersonalSectionConfig = (
     tree: leftSidebarChildren,
     key: userName + "/Personal-Section",
   });
+
+  if (personalLeftSidebarNode.uid === "") {
+    return {
+      uid: "",
+      sections: [],
+    };
+  }
 
   const sections = (personalLeftSidebarNode?.children || []).map(
     (sectionNode): LeftSidebarPersonalSectionConfig => {
