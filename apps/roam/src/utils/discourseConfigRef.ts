@@ -11,6 +11,10 @@ import {
   getSuggestiveModeConfigAndUids,
   SuggestiveModeConfigWithUids,
 } from "./getSuggestiveModeConfigSettings";
+import {
+  getLeftSidebarSettings,
+  LeftSidebarConfig,
+} from "./getLeftSidebarSettings";
 
 const configTreeRef: {
   tree: RoamBasicNode[];
@@ -26,6 +30,7 @@ type FormattedConfigTree = {
   export: ExportConfigWithUids;
   canvasPageFormat: StringSetting;
   suggestiveMode: SuggestiveModeConfigWithUids;
+  leftSidebar: LeftSidebarConfig;
 };
 
 export const getFormattedConfigTree = (): FormattedConfigTree => {
@@ -53,6 +58,7 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
       text: "Canvas Page Format",
     }),
     suggestiveMode: getSuggestiveModeConfigAndUids(configTreeRef.tree),
+    leftSidebar: getLeftSidebarSettings(configTreeRef.tree),
   };
 };
 export default configTreeRef;
