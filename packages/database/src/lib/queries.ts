@@ -150,7 +150,7 @@ const getLocalToDbIdMapping = async (
     numPreviousMisses > 0 ? Math.min(...Object.values(previousMisses)) : now;
   if (numMissing > numPreviousMisses || now - oldestMiss > INTERVAL) {
     if (spaceId === undefined) {
-      console.error("Cannot populate cache without spaceId");
+      console.warn("Cannot populate cache without spaceId");
       return dbIds;
     }
     let q = composeQuery({ supabase, spaceId });
