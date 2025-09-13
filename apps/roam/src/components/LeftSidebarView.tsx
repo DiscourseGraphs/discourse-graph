@@ -138,15 +138,15 @@ const PersonalSectionItem = ({
       return void openTarget(e, section.text);
     };
     return (
-      <div className="py-1">
+      <>
         <div
-          className="page cursor-pointer rounded-sm font-medium leading-normal text-gray-600"
+          className="sidebar-title-button cursor-pointer rounded-sm py-1 font-semibold leading-normal"
           onClick={onClick}
         >
           {blockText || titleRef.title}
         </div>
         <hr className="mb-1 mt-0.5 rounded border border-solid border-[#CED9E0]" />
-      </div>
+      </>
     );
   }
 
@@ -170,7 +170,7 @@ const PersonalSectionItem = ({
 
   return (
     <>
-      <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent py-1 text-sm font-semibold outline-none transition-colors duration-200 ease-in">
+      <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent py-1 font-semibold outline-none transition-colors duration-200 ease-in">
         <div className="flex w-full items-center justify-between">
           <span onDoubleClick={handleDoubleClick}>
             {alias || blockText || titleRef.display}
@@ -217,7 +217,7 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
   return (
     <>
       <div
-        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent py-1 text-sm font-semibold outline-none transition-colors duration-200 ease-in"
+        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent py-1 font-semibold outline-none transition-colors duration-200 ease-in"
         onClick={() => {
           if (!isCollapsable) return;
           toggleFoldedState({
