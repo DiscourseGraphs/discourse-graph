@@ -45,6 +45,7 @@ import {
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
+import { mountLeftSidebar } from "~/components/LeftSidebarView";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -97,6 +98,17 @@ export const initObservers = async ({
   const queryBlockObserver = createButtonObserver({
     attribute: "query-block",
     render: (b) => renderQueryBlock(b, onloadArgs),
+  });
+
+  const leftSidebarObserver = createHTMLObserver({
+    tag: "DIV",
+    useBody: true,
+    className: "starred-pages-wrapper",
+    callback: (el) => {
+      console.log("[DG][LeftSidebar] leftSidebarObserver callback", el);
+      const container = el as HTMLDivElement;
+      mountLeftSidebar(container);
+    },
   });
 
   const nodeTagPopupButtonObserver = createHTMLObserver({
@@ -328,6 +340,7 @@ export const initObservers = async ({
       linkedReferencesObserver,
       graphOverviewExportObserver,
       nodeTagPopupButtonObserver,
+      leftSidebarObserver,
     ].filter((o): o is MutationObserver => !!o),
     listeners: {
       pageActionListener,
