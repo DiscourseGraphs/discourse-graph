@@ -632,6 +632,26 @@ export type Database = {
         Args: { space_id: number }
         Returns: boolean
       }
+      instances_of_schema: {
+        Args: { schema: Database["public"]["Tables"]["Concept"]["Row"] }
+        Returns: {
+          arity: number | null
+          author_id: number | null
+          created: string
+          description: string | null
+          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
+          id: number
+          is_schema: boolean
+          last_modified: string
+          literal_content: Json
+          name: string
+          reference_content: Json
+          refs: number[]
+          represented_by_id: number | null
+          schema_id: number | null
+          space_id: number
+        }[]
+      }
       match_content_embeddings: {
         Args: {
           current_document_id?: number
@@ -668,6 +688,26 @@ export type Database = {
           timeout: unknown
         }
         Returns: string
+      }
+      schema_of_concept: {
+        Args: { concept: Database["public"]["Tables"]["Concept"]["Row"] }
+        Returns: {
+          arity: number | null
+          author_id: number | null
+          created: string
+          description: string | null
+          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
+          id: number
+          is_schema: boolean
+          last_modified: string
+          literal_content: Json
+          name: string
+          reference_content: Json
+          refs: number[]
+          represented_by_id: number | null
+          schema_id: number | null
+          space_id: number
+        }[]
       }
       unowned_account_in_shared_space: {
         Args: { p_account_id: number }
