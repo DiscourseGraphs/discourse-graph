@@ -47,6 +47,10 @@ type defaultQueryShape = {
 };
 
 // Utility function to compose a generic query to fetch concepts, content and document.
+//  - schemaDbIds = 0  → fetch schemas (is_schema = true)
+//  - schemaDbIds = n  → fetch nodes under schema with dbId n (is_schema = false, eq schema_id)
+//  - schemaDbIds = [] → fetch all nodes (is_schema = false, no filter on schema_id)
+//  - schemaDbIds = [a,b,...] → fetch nodes under any of those schemas
 const composeQuery = ({
   supabase,
   spaceId,
@@ -234,6 +238,10 @@ export const DOCUMENT_FIELDS: (keyof Document)[] = [
 // get all nodes that belong to a certain number of schemas.
 // This query will return Concept objects, and associated Content and Document,
 // according to which fields are requested. Defaults to maximal information.
+// Main call options:
+// • ALL schemas:              schemaLocalIds = "__schemas" (default)
+// • ALL nodes (instances):    schemaLocalIds = []
+// • Nodes from X,Y schemas:   schemaLocalIds = ["localIdX","localIdY",...]
 export const getNodes = async ({
   supabase,
   spaceId,
