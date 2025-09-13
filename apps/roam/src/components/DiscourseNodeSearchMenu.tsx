@@ -10,9 +10,9 @@ import {
   MenuItem,
   Popover,
   Position,
-  Checkbox,
   Button,
   InputGroup,
+  Intent,
 } from "@blueprintjs/core";
 import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
@@ -56,14 +56,23 @@ const NodeSearchMenu = ({
   triggerPosition,
   triggerText,
 }: { onClose: () => void } & Props) => {
+  const MENU_WIDTH = 400;
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [discourseTypes, setDiscourseTypes] = useState<DiscourseNode[]>([]);
   const [checkedTypes, setCheckedTypes] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchResults, setSearchResults] = useState<Record<string, Result[]>>(
     {},
+  );
+  const [isFilterMenuVisible, setIsFilterMenuVisible] = useState(false);
+  const typeIds = useMemo(
+    () => discourseTypes.map((t) => t.type),
+    [discourseTypes],
+  );
+  const isAllSelected = useMemo(
+    () => typeIds.length > 0 && typeIds.every((id) => !!checkedTypes[id]),
+    [typeIds, checkedTypes],
   );
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -175,6 +184,8 @@ const NodeSearchMenu = ({
       .filter((type) => searchResults[type.type]?.length > 0);
   }, [discourseTypes, checkedTypes, searchResults]);
 
+  // derived selection set from checkedTypes; no separate selected list needed
+
   const allItems = useMemo(() => {
     const items: {
       typeIndex: number;
@@ -194,7 +205,7 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: Result) => {
-      waitForBlock(blockUid, textarea.value).then(() => {
+      void waitForBlock(blockUid, textarea.value).then(() => {
         onClose();
 
         setTimeout(() => {
@@ -352,46 +363,63 @@ const NodeSearchMenu = ({
 
   let currentGlobalIndex = -1;
 
-  const handleTypeCheckChange = useCallback(
-    (typeKey: string, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      setCheckedTypes((prev) => ({
-        ...prev,
-        [typeKey]: !prev[typeKey],
-      }));
-
-      setTimeout(() => {
-        textarea.focus();
-        const cursorPos = textarea.selectionStart;
-        textarea.setSelectionRange(cursorPos, cursorPos);
-      }, 0);
-    },
-    [textarea],
-  );
-
-  const remainFocusOnTextarea = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleTypeCheckChange = useCallback((typeKey: string) => {
+    setCheckedTypes((prev) => ({
+      ...prev,
+      [typeKey]: !prev[typeKey],
+    }));
   }, []);
 
-  const toggleFilterMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      setIsFilterMenuOpen((prev) => !prev);
-
-      setTimeout(() => {
-        if (textarea) {
-          textarea.focus();
-          const cursorPos = textarea.selectionStart;
-          textarea.setSelectionRange(cursorPos, cursorPos);
-        }
-      }, 0);
+  const handleToggleAll = useCallback(
+    (checked: boolean) => {
+      setCheckedTypes(Object.fromEntries(typeIds.map((id) => [id, checked])));
     },
-    [textarea],
+    [typeIds],
+  );
+
+  const handleSelectOnly = useCallback(
+    (node: DiscourseNode) => {
+      const next = Object.fromEntries(
+        typeIds.map((id) => [id, id === node.type]),
+      );
+      setCheckedTypes(next as Record<string, boolean>);
+    },
+    [typeIds],
+  );
+
+  const renderTypeItem = useCallback(
+    (item: DiscourseNode) => {
+      const isSelected = !!checkedTypes[item.type];
+      return (
+        <MenuItem
+          key={item.type}
+          className="group"
+          text={item.text}
+          icon={isSelected ? "tick" : "blank"}
+          shouldDismissPopover={false}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleTypeCheckChange(item.type);
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+          labelElement={
+            <Button
+              minimal
+              small
+              className="opacity-0 transition-opacity group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelectOnly(item);
+              }}
+            >
+              Only
+            </Button>
+          }
+        />
+      );
+    },
+    [checkedTypes, handleTypeCheckChange, handleSelectOnly],
   );
 
   return (
@@ -400,11 +428,12 @@ const NodeSearchMenu = ({
       isOpen={true}
       canEscapeKeyClose
       minimal
+      usePortal={true}
       target={<span />}
       position={Position.BOTTOM_LEFT}
       modifiers={{
         flip: { enabled: true },
-        preventOverflow: { enabled: true },
+        preventOverflow: { enabled: true, boundariesElement: "viewport" },
         offset: {
           enabled: true,
           fn: (data) => {
@@ -419,9 +448,7 @@ const NodeSearchMenu = ({
       content={
         <div
           className="discourse-node-search-menu"
-          style={{ width: "250px" }}
-          onMouseDown={remainFocusOnTextarea}
-          onClick={remainFocusOnTextarea}
+          style={{ width: MENU_WIDTH }}
         >
           {isLoading ? (
             <div className="p-3 text-center text-gray-500">Loading...</div>
@@ -429,43 +456,46 @@ const NodeSearchMenu = ({
             <>
               <div
                 className="discourse-node-search-menu"
-                style={{ width: "250px" }}
-                onMouseDown={remainFocusOnTextarea}
-                onClick={remainFocusOnTextarea}
+                style={{ width: MENU_WIDTH }}
               >
                 <div className="flex items-center justify-between border-b border-gray-200 p-2">
-                  <div className="text-sm font-semibold">Search Results</div>
                   <Button
                     icon="filter"
                     minimal
                     small
-                    active={isFilterMenuOpen}
-                    onClick={toggleFilterMenu}
-                    onMouseDown={remainFocusOnTextarea}
                     title="Filter by type"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setIsFilterMenuVisible(!isFilterMenuVisible);
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
                   />
                 </div>
-
-                {isFilterMenuOpen && (
-                  <div className="border-b border-gray-200 p-2">
-                    <div className="mb-2 text-sm font-semibold">
-                      Filter by type:
+                {isFilterMenuVisible && (
+                  <div>
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        Filter by Type
+                      </span>
+                      <Button
+                        small
+                        intent={isAllSelected ? Intent.SUCCESS : Intent.PRIMARY}
+                        icon={isAllSelected ? "tick" : "multi-select"}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleToggleAll(!isAllSelected);
+                        }}
+                      >
+                        {isAllSelected ? "All selected" : "Select all"}
+                      </Button>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {discourseTypes.map((type) => (
-                        <div
-                          key={type.type}
-                          className="inline-flex cursor-pointer items-center"
-                          onClick={(e) => handleTypeCheckChange(type.type, e)}
-                        >
-                          <Checkbox
-                            label={type.text}
-                            checked={checkedTypes[type.type]}
-                            onChange={() => {}}
-                            className="m-0"
-                          />
-                        </div>
-                      ))}
+                    <div className="max-h-48 overflow-y-auto">
+                      <Menu>
+                        {discourseTypes.map((t) => renderTypeItem(t))}
+                      </Menu>
                     </div>
                   </div>
                 )}
@@ -484,8 +514,10 @@ const NodeSearchMenu = ({
                           <MenuItem
                             key={item.uid}
                             text={item.text}
+                            multiline
                             data-active={isActive}
                             active={isActive}
+                            shouldDismissPopover={false}
                             onClick={() => onSelect(item)}
                           />
                         );
