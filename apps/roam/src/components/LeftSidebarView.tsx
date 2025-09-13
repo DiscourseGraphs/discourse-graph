@@ -124,14 +124,17 @@ const PersonalSectionItem = ({
 }: {
   section: LeftSidebarPersonalSectionConfig;
 }) => {
-  const ref = useMemo(() => extractRef(section.text), [section.text]);
-  const blockText = useMemo(() => getTextByBlockUid(ref), [ref]);
+  const titleRef = parseReference(section.text);
+  const blockText = useMemo(
+    () =>
+      titleRef.type === "block" ? getTextByBlockUid(titleRef.uid) : undefined,
+    [titleRef],
+  );
   const truncateAt = section.settings?.truncateResult.value;
   const [isOpen, setIsOpen] = useState<boolean>(
     !!section.settings?.folded.value || false,
   );
   const alias = section.settings?.alias?.value;
-  const titleRef = parseReference(section.text);
 
   if (section.sectionWithoutSettingsAndChildren) {
     const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -264,21 +267,13 @@ export const mountLeftSidebar = (wrapper: HTMLElement): void => {
   if (!wrapper) return;
   wrapper.innerHTML = "";
 
-  const existingStarred = wrapper.querySelector(".starred-pages");
-  if (existingStarred && !existingStarred.id.includes("dg-left-sidebar-root")) {
-    try {
-      existingStarred.remove();
-    } catch (e) {
-      console.warn(
-        "[DG][LeftSidebar] failed to remove default starred-pages",
-        e,
-      );
-    }
-  }
-
   const id = "dg-left-sidebar-root";
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
   if (!root) {
+    const existingStarred = wrapper.querySelector(".starred-pages");
+    if (existingStarred) {
+      existingStarred.remove();
+    }
     root = document.createElement("div");
     root.id = id;
     root.className = "starred-pages overflow-scroll";
