@@ -63,6 +63,8 @@ const LeftSidebarGlobalSectionsContent = ({
       const existingGlobalSection = leftSidebar.children.find(
         (n) => n.text === globalSectionText,
       );
+      const config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
+      setGlobalSection(config);
 
       if (!existingGlobalSection) {
         try {
@@ -84,20 +86,12 @@ const LeftSidebarGlobalSectionsContent = ({
             },
           });
 
-          const config = getLeftSidebarGlobalSectionConfig(
-            leftSidebar.children,
-          );
-          setGlobalSection(config);
           setChildrenUid(childrenUid || null);
           setPages([]);
         } catch (error) {
           console.error("Failed to create global section:", error);
         }
       } else {
-        const config = getLeftSidebarGlobalSectionConfig(
-          existingGlobalSection.children,
-        );
-        setGlobalSection(config);
         setChildrenUid(config.childrenUid || null);
         setPages(config.children || []);
       }

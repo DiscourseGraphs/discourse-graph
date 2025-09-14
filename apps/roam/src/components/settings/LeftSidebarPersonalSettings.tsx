@@ -66,7 +66,6 @@ const SectionItem = React.memo(
 
     return (
       <div key={section.uid} className="rounded-md border p-3 hover:bg-gray-50">
-        {/* Header Row */}
         <div className="flex items-end justify-between">
           <div className="flex flex-grow gap-2">
             {!section.sectionWithoutSettingsAndChildren && (
@@ -119,7 +118,6 @@ const SectionItem = React.memo(
         {!section.sectionWithoutSettingsAndChildren && (
           <Collapse isOpen={isExpanded}>
             <div className="ml-6 mt-3">
-              {/* Add Child Input */}
               <div
                 className="mb-2 flex items-center gap-2"
                 onKeyDown={(e) => {
@@ -299,13 +297,22 @@ const LeftSidebarPersonalSectionsContent = ({
         const settingsUid = await createBlock({
           parentUid: section.uid,
           order: 0,
-          node: {
-            text: "Settings",
-            children: [
-              { text: "Folded" },
-              { text: "Truncate-result?", children: [{ text: "75" }] },
-            ],
-          },
+          node: { text: "Settings" },
+        });
+        const foldedUid = await createBlock({
+          parentUid: settingsUid,
+          order: 0,
+          node: { text: "Folded" },
+        });
+        const truncateSettingUid = await createBlock({
+          parentUid: settingsUid,
+          order: 1,
+          node: { text: "Truncate-result?", children: [{ text: "75" }] },
+        });
+        const aliasUid = await createBlock({
+          parentUid: settingsUid,
+          order: 2,
+          node: { text: "Alias" },
         });
 
         const childrenUid = await createBlock({
@@ -322,11 +329,11 @@ const LeftSidebarPersonalSectionsContent = ({
                 sectionWithoutSettingsAndChildren: false,
                 settings: {
                   uid: settingsUid,
-                  folded: { uid: "", value: false },
-                  truncateResult: { uid: "", value: 75 },
-                  alias: { uid: "", value: "" },
+                  folded: { uid: foldedUid, value: false },
+                  truncateResult: { uid: truncateSettingUid, value: 75 },
+                  alias: { uid: aliasUid, value: "" },
                 },
-                childrenUid: childrenUid,
+                childrenUid,
                 children: [],
               };
             }
