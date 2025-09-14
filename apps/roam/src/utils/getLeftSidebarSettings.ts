@@ -31,7 +31,7 @@ type LeftSidebarGlobalSectionSettings = {
   folded: BooleanSetting;
 };
 
-type LeftSidebarGlobalSectionConfig = {
+export type LeftSidebarGlobalSectionConfig = {
   uid: string;
   settings?: LeftSidebarGlobalSectionSettings;
   children: RoamBasicNode[];
@@ -39,6 +39,7 @@ type LeftSidebarGlobalSectionConfig = {
 };
 
 export type LeftSidebarConfig = {
+  uid: string;
   global: LeftSidebarGlobalSectionConfig;
   personal: {
     uid: string;
@@ -65,7 +66,7 @@ const getGlobalSectionSettings = (
   };
 };
 
-const getLeftSidebarGlobalSectionConfig = (
+export const getLeftSidebarGlobalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
 ): LeftSidebarGlobalSectionConfig => {
   const globalSectionNode = getSubTree({
@@ -131,7 +132,7 @@ const getPersonalSectionSettings = (
   };
 };
 
-const getLeftSidebarPersonalSectionConfig = (
+export const getLeftSidebarPersonalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
 ): { uid: string; sections: LeftSidebarPersonalSectionConfig[] } => {
   const userUid = window.roamAlphaAPI.user.uid();
@@ -192,10 +193,12 @@ export const getLeftSidebarSettings = (
   const leftSidebarNode = globalTree.find(
     (node) => node.text === "Left Sidebar",
   );
+  const leftSidebarUid = leftSidebarNode?.uid || "";
   const leftSidebarChildren = leftSidebarNode?.children || [];
   const global = getLeftSidebarGlobalSectionConfig(leftSidebarChildren);
   const personal = getLeftSidebarPersonalSectionConfig(leftSidebarChildren);
   return {
+    uid: leftSidebarUid,
     global,
     personal,
   };
