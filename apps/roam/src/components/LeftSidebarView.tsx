@@ -43,7 +43,7 @@ const openTarget = async (e: React.MouseEvent, sectionTitle: string) => {
     return;
   }
 
-  const uid = getPageUidByPageTitle(target.title);
+  const uid = getPageUidByPageTitle(sectionTitle);
   if (!uid) return;
   if (e.shiftKey) {
     await window.roamAlphaAPI.ui.rightSidebar.addWindow({
@@ -153,10 +153,7 @@ const PersonalSectionItem = ({
     );
   }
 
-  const handleTitleClick = (e: React.MouseEvent) => {
-    if (e.shiftKey) {
-      return void openTarget(e, section.text);
-    }
+  const handleChevronClick = (e: React.MouseEvent) => {
     if (!section.settings) return;
 
     toggleFoldedState({
@@ -171,15 +168,21 @@ const PersonalSectionItem = ({
     return void openTarget(e, section.text);
   };
 
+  const handleTitleClick = (e: React.MouseEvent) => {
+    if (e.shiftKey) {
+      return void openTarget(e, section.text);
+    }
+  };
+
   return (
     <>
       <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent py-1 font-semibold outline-none transition-colors duration-200 ease-in">
         <div className="flex w-full items-center justify-between">
-          <span onDoubleClick={handleDoubleClick}>
+          <span onDoubleClick={handleDoubleClick} onClick={handleTitleClick}>
             {alias || blockText || titleRef.display}
           </span>
           {(section.children?.length || 0) > 0 && (
-            <span onClick={handleTitleClick}>
+            <span onClick={handleChevronClick}>
               <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
             </span>
           )}
@@ -213,21 +216,23 @@ const PersonalSections = ({
 };
 
 const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
-  const [isOpen, setIsOpen] = useState<boolean>(!!config.folded.value);
+  const [isOpen, setIsOpen] = useState<boolean>(
+    !!config.settings?.folded.value,
+  );
   if (!config.children?.length) return null;
-  const isCollapsable = config.collapsable.value;
+  const isCollapsable = config.settings?.collapsable.value;
 
   return (
     <>
       <div
         className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent py-1 font-semibold outline-none transition-colors duration-200 ease-in"
         onClick={() => {
-          if (!isCollapsable) return;
+          if (!isCollapsable || !config.settings) return;
           toggleFoldedState({
             isOpen,
             setIsOpen,
-            folded: config.folded,
-            parentUid: config.uid,
+            folded: config.settings.folded,
+            parentUid: config.settings.uid,
           });
         }}
       >
