@@ -16,18 +16,14 @@ export const config = [
   ...tseslint.configs.recommendedTypeChecked, // added TypeChecked
   {
     plugins: {
-      turbo: turboPlugin,
-    },
-    rules: {
-      "turbo/no-undeclared-env-vars": "warn",
-    },
-  },
-  {
-    plugins: {
+      turboPlugin,
       preferArrows,
+      onlyWarn,
     },
     rules: {
+      "turboPlugin/no-undeclared-env-vars": "warn",
       "max-params": ["error", 3],
+      "@typescript-eslint/consistent-type-definitions": ["error", "type"],
       "@typescript-eslint/naming-convention": [
         "error",
         // Keep default
@@ -62,11 +58,6 @@ export const config = [
           singleReturnOnly: false,
         },
       ],
-    },
-  },
-  {
-    plugins: {
-      onlyWarn,
     },
   },
   {
