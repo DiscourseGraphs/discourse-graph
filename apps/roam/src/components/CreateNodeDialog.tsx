@@ -49,20 +49,6 @@ const CreateNodeDialog = ({
     if (!title.trim()) return;
     setLoading(true);
 
-    const query = `[:find ?parentUid ?order
-  :keys parentUid order
-      :in $ ?block-uid
-      :where
-        [?e :block/uid ?block-uid]
-        [?e :block/order ?order]
-        [?p :block/children ?e]
-        [?p :block/uid ?parentUid]
-        ]`;
-
-    const blockData = (
-      await window.roamAlphaAPI.data.async.q(query, sourceBlockUid)
-    )?.[0] as unknown as { parentUid: string; order: number };
-
     const formattedTitle = await getNewDiscourseNodeText({
       text: title.trim(),
       nodeType: selectedType.type,
@@ -86,24 +72,16 @@ const CreateNodeDialog = ({
       // the correct reference. The reference format should be determined by the
       // node's specification.
       const pageRef = `[[${formattedTitle}]]`;
-      const newBlockUid = await createBlock({
-        node: { text: pageRef },
-        parentUid: blockData.parentUid,
-        order: blockData.order,
+      await updateBlock({
+        uid: sourceBlockUid,
+        text: pageRef,
       });
-
-      await window.roamAlphaAPI.moveBlock({
-        block: { uid: sourceBlockUid },
-        location: { "parent-uid": newBlockUid, order: 0 },
-      });
-
-      const newCursorPosition = pageRef.length;
-      const windowId =
-        window.roamAlphaAPI.ui.getFocusedBlock?.()?.["window-id"] || "main";
-
-      await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-        location: { "block-uid": sourceBlockUid, "window-id": windowId },
-        selection: { start: newCursorPosition },
+      await createBlock({
+        parentUid: sourceBlockUid,
+        order: 0,
+        node: {
+          text: initialTitle,
+        },
       });
     }
 
