@@ -26,10 +26,15 @@ export type LeftSidebarPersonalSectionConfig = {
   childrenUid?: string;
 };
 
-type LeftSidebarGlobalSectionConfig = {
+type LeftSidebarGlobalSectionSettings = {
   uid: string;
   collapsable: BooleanSetting;
   folded: BooleanSetting;
+};
+
+type LeftSidebarGlobalSectionConfig = {
+  uid: string;
+  settings?: LeftSidebarGlobalSectionSettings;
   children: RoamBasicNode[];
   childrenUid: string;
 };
@@ -39,6 +44,25 @@ export type LeftSidebarConfig = {
   personal: {
     uid: string;
     sections: LeftSidebarPersonalSectionConfig[];
+  };
+};
+
+const getGlobalSectionSettings = (
+  settingsNode: RoamBasicNode,
+): LeftSidebarGlobalSectionSettings => {
+  const settingsTree = settingsNode?.children || [];
+  const collapsableSetting = getUidAndBooleanSetting({
+    tree: settingsTree,
+    text: "Collapsable",
+  });
+  const foldedSetting = getUidAndBooleanSetting({
+    tree: settingsTree,
+    text: "Folded",
+  });
+  return {
+    uid: settingsNode.uid,
+    collapsable: collapsableSetting,
+    folded: foldedSetting,
   };
 };
 
@@ -56,13 +80,17 @@ const getLeftSidebarGlobalSectionConfig = (
     key: "Children",
   });
 
+  const settingsNode = getSubTree({
+    tree: globalChildren,
+    key: "Settings",
+  });
+  const settings = settingsNode
+    ? getGlobalSectionSettings(settingsNode)
+    : undefined;
+
   return {
     uid: globalSectionNode?.uid || "",
-    collapsable: getUidAndBooleanSetting({
-      tree: globalChildren,
-      text: "Collapsable",
-    }),
-    folded: getUidAndBooleanSetting({ tree: globalChildren, text: "Folded" }),
+    settings,
     children: childrenNode?.children || [],
     childrenUid: childrenNode?.uid || "",
   };
@@ -108,11 +136,18 @@ const getLeftSidebarPersonalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
 ): { uid: string; sections: LeftSidebarPersonalSectionConfig[] } => {
   const userName = getCurrentUserDisplayName();
+  console.log(
+    "userName",
+    userName,
+    leftSidebarChildren,
+    "[[" + userName + "]]/Personal-Section",
+  );
 
   const personalLeftSidebarNode = getSubTree({
     tree: leftSidebarChildren,
-    key: userName + "/Personal-Section",
+    key: "\\\\[\\\\[" + userName + "\\\\]\\\\]/Personal-Section",
   });
+  console.log("personalLeftSidebarNode", personalLeftSidebarNode);
 
   if (personalLeftSidebarNode.uid === "") {
     return {
