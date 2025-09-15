@@ -50,6 +50,7 @@ import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
+import tinycolor from "tinycolor2";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -104,6 +105,27 @@ export const initObservers = async ({
     render: (b) => renderQueryBlock(b, onloadArgs),
   });
 
+  const generateTagColorScheme = (hexColor: string) => {
+    const base = tinycolor(hexColor);
+    const hsl = base.toHsl();
+
+    return {
+      text: hexColor,
+
+      background: tinycolor({
+        h: hsl.h,
+        s: 0.75,
+        l: 0.9,
+      }).toHexString(),
+
+      border: tinycolor({
+        h: hsl.h,
+        s: 0.4,
+        l: 0.7,
+      }).toHexString(),
+    };
+  };
+
   const nodeTagPopupButtonObserver = createHTMLObserver({
     className: "rm-page-ref--tag",
     tag: "SPAN",
@@ -117,7 +139,24 @@ export const initObservers = async ({
           if (normalizedTag === normalizedNodeTag) {
             renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
             if (node.canvasSettings?.color) {
-              s.style.color = formatHexColor(node.canvasSettings.color);
+              const colors = generateTagColorScheme(
+                formatHexColor(node.canvasSettings.color),
+              );
+
+              Object.assign(s.style, {
+                backgroundColor: colors.background,
+                color: colors.text,
+                border: `1px solid ${colors.border}`,
+                fontWeight: "500",
+                padding: "2px 6px",
+                borderRadius: "12px",
+                margin: "0 2px",
+                fontSize: "0.9em",
+                whiteSpace: "nowrap",
+                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                display: "inline-block",
+                cursor: "pointer",
+              });
             }
             break;
           }
