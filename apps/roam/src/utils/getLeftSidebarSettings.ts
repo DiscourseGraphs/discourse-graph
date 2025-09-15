@@ -136,18 +136,11 @@ const getLeftSidebarPersonalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
 ): { uid: string; sections: LeftSidebarPersonalSectionConfig[] } => {
   const userName = getCurrentUserDisplayName();
-  console.log(
-    "userName",
-    userName,
-    leftSidebarChildren,
-    "[[" + userName + "]]/Personal-Section",
-  );
 
   const personalLeftSidebarNode = getSubTree({
     tree: leftSidebarChildren,
-    key: "\\\\[\\\\[" + userName + "\\\\]\\\\]/Personal-Section",
+    key: userName + "/Personal-Section",
   });
-  console.log("personalLeftSidebarNode", personalLeftSidebarNode);
 
   if (personalLeftSidebarNode.uid === "") {
     return {
