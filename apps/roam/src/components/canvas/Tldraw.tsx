@@ -91,6 +91,7 @@ import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import { HistoryEntry } from "@tldraw/store";
 import { TLRecord } from "@tldraw/tlschema";
+import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 
 declare global {
   interface Window {
@@ -536,6 +537,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         type: "Tldraw Error",
         context: {
           title: title,
+          user: getCurrentUserDisplayName(),
           lastActions: lastActionsRef.current,
         },
       }).catch(() => {});
@@ -635,7 +637,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
               app.on("change", (entry) => {
                 lastActionsRef.current.push(entry);
-                if (lastActionsRef.current.length > 10)
+                if (lastActionsRef.current.length > 5)
                   lastActionsRef.current.shift();
               });
 
