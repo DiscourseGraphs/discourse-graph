@@ -1,3 +1,10 @@
+---
+title: "Tagging Candidate Nodes"
+date: "2025-09-16"
+author: ""
+published: true
+---
+
 # Tagging Candidate Nodes
 
 ## Purpose - quickly bookmark notes that could later become formal discourse nodes
