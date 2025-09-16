@@ -14,7 +14,7 @@ It's helpful to quickly tag these. Later, you can search for them and formalize 
 
 In the discourse graphs settings, for each node type, list a "candidate node" tag label:
 
-![Tagging Candidate Nodes Demo](../assets/tagging-config.gif)
+![Tagging Candidate Nodes Demo](/docs/roam/tagging-config.gif)
 
 > ⚠️ Important: A tag cannot use text that is already part of its associated node's format. For example, if the "Claim" node format is CLM, you cannot use #CLM as its tag. You'll get an error message if you attempt to do this.
 
@@ -22,7 +22,7 @@ In the discourse graphs settings, for each node type, list a "candidate node" ta
 
 Tag candidate nodes with the keyboard shortcut: `\`
 
-![Tagging Candidate Nodes keyboard shortcut](../assets/tagging-demo.gif)
+![Tagging Candidate Nodes keyboard shortcut](/docs/roam/tagging-demo.gif)
 
 Click or use the down arrow key to select a candidate node type.
 
@@ -34,7 +34,7 @@ Hover your mouse over the node tag, and click "Create Evidence"
 
 <!-- TODO: update this gif with smoother UX, including auto-remove tag -->
 
-![Formalizing Candidate Nodes](../assets/tagging-formalization.gif)
+![Formalizing Candidate Nodes](/docs/roam/tagging-formalization.gif)
 
 ## Candidate node styling
 
