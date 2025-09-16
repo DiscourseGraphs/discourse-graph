@@ -536,7 +536,7 @@ export const NodeSearchMenuTriggerSetting = ({
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const [nodeSearchTrigger, setNodeSearchTrigger] = useState<string>(
-    extensionAPI.settings.get("node-search-trigger") as string,
+    (extensionAPI.settings.get("node-search-trigger") as string) || "@",
   );
 
   const handleNodeSearchTriggerChange = (

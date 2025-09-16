@@ -230,9 +230,9 @@ export const initObservers = async ({
     }
   };
 
-  const customTrigger = onloadArgs.extensionAPI.settings.get(
+  const customTrigger = (onloadArgs.extensionAPI.settings.get(
     "node-search-trigger",
-  ) as string;
+  ) as string) || "@";
 
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
