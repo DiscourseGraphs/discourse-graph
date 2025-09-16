@@ -184,8 +184,6 @@ const NodeSearchMenu = ({
       .filter((type) => searchResults[type.type]?.length > 0);
   }, [discourseTypes, checkedTypes, searchResults]);
 
-  // derived selection set from checkedTypes; no separate selected list needed
-
   const allItems = useMemo(() => {
     const items: {
       typeIndex: number;
@@ -393,9 +391,28 @@ const NodeSearchMenu = ({
       return (
         <MenuItem
           key={item.type}
-          className="group"
-          text={item.text}
-          icon={isSelected ? "tick" : "blank"}
+          className="group !p-0"
+          text={
+            <div className="flex w-full items-center justify-between">
+              <div className="flex flex-1 items-center px-2 py-1.5">
+                <span className="mr-2">{isSelected ? "✓" : " "}</span>
+                <span>{item.text}</span>
+              </div>
+              <Button
+                minimal
+                small
+                className="flex !h-full items-center justify-center !rounded-none px-3 opacity-0 transition-opacity group-hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelectOnly(item);
+                }}
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                Only
+              </Button>
+            </div>
+          }
+          icon={null}
           shouldDismissPopover={false}
           onClick={(e) => {
             e.preventDefault();
@@ -403,19 +420,6 @@ const NodeSearchMenu = ({
             handleTypeCheckChange(item.type);
           }}
           onMouseDown={(e) => e.preventDefault()}
-          labelElement={
-            <Button
-              minimal
-              small
-              className="opacity-0 transition-opacity group-hover:opacity-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSelectOnly(item);
-              }}
-            >
-              Only
-            </Button>
-          }
         />
       );
     },
