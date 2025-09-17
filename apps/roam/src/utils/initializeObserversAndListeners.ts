@@ -106,7 +106,6 @@ export const initObservers = async ({
     useBody: true,
     className: "starred-pages-wrapper",
     callback: (el) => {
-      console.log("[DG][LeftSidebar] leftSidebarObserver callback", el);
       const container = el as HTMLDivElement;
       mountLeftSidebar(container);
     },

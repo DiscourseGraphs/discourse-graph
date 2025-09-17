@@ -146,9 +146,8 @@ const PersonalSectionItem = ({
           className="sidebar-title-button cursor-pointer rounded-sm py-1 font-semibold leading-normal"
           onClick={onClick}
         >
-          {blockText || titleRef.title}
+          {(blockText || titleRef.title)?.toUpperCase()}
         </div>
-        <hr className="mb-1 mt-0.5 rounded border border-solid border-[#CED9E0]" />
       </>
     );
   }
@@ -164,22 +163,12 @@ const PersonalSectionItem = ({
     });
   };
 
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    return void openTarget(e, section.text);
-  };
-
-  const handleTitleClick = (e: React.MouseEvent) => {
-    if (e.shiftKey) {
-      return void openTarget(e, section.text);
-    }
-  };
-
   return (
     <>
       <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent py-1 font-semibold outline-none transition-colors duration-200 ease-in">
         <div className="flex w-full items-center justify-between">
-          <span onDoubleClick={handleDoubleClick} onClick={handleTitleClick}>
-            {alias || blockText || titleRef.display}
+          <span onClick={(e) => void openTarget(e, section.text)}>
+            {(alias || blockText || titleRef.display).toUpperCase()}
           </span>
           {(section.children?.length || 0) > 0 && (
             <span onClick={handleChevronClick}>
@@ -188,7 +177,6 @@ const PersonalSectionItem = ({
           )}
         </div>
       </div>
-      <hr className="mb-1 mt-0.5 rounded border border-solid border-[#CED9E0]" />
       <Collapse isOpen={isOpen}>
         <SectionChildren
           childrenNodes={section.children || []}
@@ -237,7 +225,7 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
         }}
       >
         <div className="flex w-full items-center justify-between">
-          <span>Global</span>
+          <span>GLOBAL</span>
           {isCollapsable && (
             <span>
               <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
@@ -245,7 +233,6 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
           )}
         </div>
       </div>
-      <hr className="mb-1 mt-0.5 rounded border border-solid border-[#CED9E0]" />
       {isCollapsable ? (
         <Collapse isOpen={isOpen}>
           <SectionChildren childrenNodes={config.children} />
