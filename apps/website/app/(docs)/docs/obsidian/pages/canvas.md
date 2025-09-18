@@ -4,7 +4,7 @@ date: "2025-01-01"
 author: ""
 published: true
 ---
-The Canvas feature in Discourse Graph provides an interactive visual workspace for creating and connecting discourse nodes and relations. Built on top of tldraw, it allows you to visually map out discourse structures with drag-and-drop functionality.
+The Canvas feature in Discourse Graph provides an interactive visual workspace for creating and connecting Discourse Nodes and Relations. Built on top of tldraw, it allows you to visually map out discourse structures with drag-and-drop functionality, adding other visual elements like texts, scribbles, embeddings, and images.
 
 ## Creating a New Canvas
 
@@ -30,14 +30,14 @@ Or click on the Canvas icon at the top right corner
 ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FDziMHaUNq9.png?alt=media&token=85e2ed2d-01b0-49ac-ae05-a34e20218a5a)
 
 
-*Warning*: DO NOT MODIFY MARKDOWN CONTENT OF FILE
+***Warning*: DO NOT MODIFY MARKDOWN CONTENT OF FILE**
 
 ## Adding Nodes to Canvas
 
 ### Creating New Discourse Nodes
 
 1. **Using the Discourse Node Tool**:
-   - Click the discourse node icon in the toolbar
+   - Click the Discourse Node icon in the toolbar
    - Select a node type from the right side panel
    - Click anywhere on the canvas to place a new node
    - Or drag the selected node type to the canvas
@@ -50,7 +50,7 @@ Or click on the Canvas icon at the top right corner
 
 1. **Using Node Search**:
    - Use the search bar in the top-left of the canvas
-   - Type to search for existing discourse nodes
+   - Type to search for existing Discourse Nodes
    - Click on a node from the search results to add it to the canvas
 
 ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2F1DYLHGFHbN.gif?alt=media&token=41d4460a-9ab6-4030-8631-da8c2a2d3a67)
@@ -63,7 +63,7 @@ Or click on the Canvas icon at the top right corner
 
 ## Creating Relations Between Nodes
 ### Create New Relations Between Nodes
-   - Click the discourse node icon in the toolbar
+   - Click the Discourse Node icon in the toolbar
    - Click the type of relations you want to create between two nodes
    - Click and drag the arrow from the source node to target node
 
