@@ -12,6 +12,7 @@ import discourseConfigRef from "~/utils/discourseConfigRef";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import { getLeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { LeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
+import { render as renderToast } from "roamjs-components/components/Toast";
 
 const PageItem = React.memo(
   ({
@@ -88,7 +89,11 @@ const LeftSidebarGlobalSectionsContent = ({
           setChildrenUid(childrenUid || null);
           setPages([]);
         } catch (error) {
-          console.error("Failed to create global section:", error);
+          renderToast({
+            content: "Failed to create global section",
+            intent: "danger",
+            id: "create-global-section-error",
+          });
         }
       } else {
         setChildrenUid(config.childrenUid || null);
@@ -127,7 +132,11 @@ const LeftSidebarGlobalSectionsContent = ({
         setNewPageInput("");
         setAutocompleteKey((prev) => prev + 1);
       } catch (error) {
-        console.error("Failed to add page:", error);
+        renderToast({
+          content: "Failed to add page",
+          intent: "danger",
+          id: "add-page-error",
+        });
       }
     },
     [childrenUid, pages],
@@ -138,7 +147,11 @@ const LeftSidebarGlobalSectionsContent = ({
       await deleteBlock(page.uid);
       setPages((prev) => prev.filter((p) => p.uid !== page.uid));
     } catch (error) {
-      console.error("Failed to remove page:", error);
+      renderToast({
+        content: "Failed to remove page",
+        intent: "danger",
+        id: "remove-page-error",
+      });
     }
   }, []);
 
@@ -252,7 +265,11 @@ const LeftSidebarGlobalSectionsContent = ({
             {pages.length > 0 ? (
               <div className="space-y-1">
                 {pages.map((page) => (
-                  <PageItem key={page.uid} page={page} onRemove={removePage} />
+                  <PageItem
+                    key={page.uid}
+                    page={page}
+                    onRemove={() => void removePage(page)}
+                  />
                 ))}
               </div>
             ) : (

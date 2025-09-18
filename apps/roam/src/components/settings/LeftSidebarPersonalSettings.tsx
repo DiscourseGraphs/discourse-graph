@@ -16,6 +16,7 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 import { getLeftSidebarPersonalSectionConfig } from "~/utils/getLeftSidebarSettings";
+import { render as renderToast } from "roamjs-components/components/Toast";
 
 const SectionItem = React.memo(
   ({
@@ -147,7 +148,7 @@ const SectionItem = React.memo(
                   small
                   minimal
                   disabled={!childInput}
-                  onClick={handleAddChild}
+                  onClick={() => void handleAddChild()}
                   title="Add child"
                 />
               </div>
@@ -266,7 +267,11 @@ const LeftSidebarPersonalSectionsContent = ({
         setNewSectionInput("");
         setAutocompleteKey((prev) => prev + 1);
       } catch (error) {
-        console.error("Failed to add section:", error);
+        renderToast({
+          content: "Failed to add section",
+          intent: "danger",
+          id: "add-section-error",
+        });
       }
     },
     [personalSectionUid, sections],
@@ -279,7 +284,11 @@ const LeftSidebarPersonalSectionsContent = ({
 
         setSections((prev) => prev.filter((s) => s.uid !== section.uid));
       } catch (error) {
-        console.error("Failed to remove section:", error);
+        renderToast({
+          content: "Failed to remove section",
+          intent: "danger",
+          id: "remove-section-error",
+        });
       }
     },
     [],
@@ -349,7 +358,11 @@ const LeftSidebarPersonalSectionsContent = ({
 
         setExpandedChildLists((prev) => new Set([...prev, section.uid]));
       } catch (error) {
-        console.error("Failed to convert to complex section:", error);
+        renderToast({
+          content: "Failed to convert to complex section",
+          intent: "danger",
+          id: "convert-to-complex-section-error",
+        });
       }
     },
     [],
@@ -389,7 +402,11 @@ const LeftSidebarPersonalSectionsContent = ({
           }),
         );
       } catch (error) {
-        console.error("Failed to add child:", error);
+        renderToast({
+          content: "Failed to add child",
+          intent: "danger",
+          id: "add-child-error",
+        });
       }
     },
     [],
@@ -412,7 +429,11 @@ const LeftSidebarPersonalSectionsContent = ({
           }),
         );
       } catch (error) {
-        console.error("Failed to remove child:", error);
+        renderToast({
+          content: "Failed to remove child",
+          intent: "danger",
+          id: "remove-child-error",
+        });
       }
     },
     [],
