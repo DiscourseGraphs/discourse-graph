@@ -74,7 +74,7 @@ const SectionItem = React.memo(
         }}
       >
         <div className="flex items-end justify-between">
-          <div className="flex flex-grow gap-2">
+          <div className="flex flex-grow items-center gap-2">
             {!section.sectionWithoutSettingsAndChildren && (
               <Button
                 icon={isExpanded ? "chevron-down" : "chevron-right"}
