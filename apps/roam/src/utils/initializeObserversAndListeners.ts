@@ -45,6 +45,7 @@ import {
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
+import { getSetting } from "./extensionSettings";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -230,9 +231,7 @@ export const initObservers = async ({
     }
   };
 
-  const customTrigger = onloadArgs.extensionAPI.settings.get(
-    "node-search-trigger",
-  ) as string;
+  const customTrigger = getSetting("node-search-trigger", "@");
 
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
