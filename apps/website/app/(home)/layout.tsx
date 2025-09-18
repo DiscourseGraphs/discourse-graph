@@ -33,27 +33,6 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
           <div
             className={`flex min-h-screen flex-col bg-neutral-light ${inter.className}`}
           >
-            {/* Job Openings Banner */}
-            <div className="border-b border-primary/20 bg-gradient-to-r from-primary via-primary/90 to-primary px-4 py-3 text-center shadow-sm">
-              <Link
-                href="/cybrarian"
-                className="group inline-flex items-center gap-2 text-sm font-semibold text-neutral-dark transition-colors hover:text-neutral-dark/80 focus:outline-none focus:ring-2 focus:ring-neutral-dark focus:ring-offset-2 focus:ring-offset-primary"
-              >
-                <span className="animate-pulse" aria-hidden="true">
-                  🚀
-                </span>
-                <span>
-                  We&apos;re hiring a Product Adoption Facilitator / Cybrarian!
-                </span>
-                <span
-                  className="transition-transform group-hover:translate-x-1"
-                  aria-hidden="true"
-                >
-                  →
-                </span>
-              </Link>
-            </div>
-
             <header className="flex flex-col items-center justify-between space-y-4 px-6 py-4 md:flex-row md:space-y-0">
               <Logo />
               <nav className="w-full md:w-auto">
