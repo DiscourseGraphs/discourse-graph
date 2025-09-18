@@ -656,11 +656,11 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                 // navigate / open in sidebar
                 const validModifier = e.shiftKey || e.ctrlKey; // || e.metaKey;
                 if (!(e.name === "pointer_up" && validModifier)) return;
-                if (app.getSelectedShapes().length) return; // User is positioning selected shape
-                const shape = app.getShapeAtPoint(
-                  app.inputs.currentPagePoint,
-                ) as DiscourseNodeShape;
-                if (!shape) return;
+                
+                // Get shape at mouse coordinates instead of requiring selection
+                const pagePoint = app.screenToPage(e.point);
+                const shape = app.getShapeAtPoint(pagePoint) as DiscourseNodeShape;
+                if (!shape || !isDiscourseNodeShape(shape)) return;
                 const shapeUid = shape.props.uid;
 
                 if (!isLiveBlock(shapeUid)) {
