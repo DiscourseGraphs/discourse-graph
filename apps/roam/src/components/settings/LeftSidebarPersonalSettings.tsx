@@ -65,7 +65,13 @@ const SectionItem = React.memo(
     }, [childInput, section, addChildToSection]);
 
     return (
-      <div key={section.uid} className="rounded-md border p-3 hover:bg-gray-50">
+      <div
+        key={section.uid}
+        className="personal-section rounded-md p-3 hover:bg-gray-50"
+        style={{
+          border: "1px solid rgba(51, 51, 51, 0.2)",
+        }}
+      >
         <div className="flex items-end justify-between">
           <div className="flex flex-grow gap-2">
             {!section.sectionWithoutSettingsAndChildren && (
@@ -87,23 +93,23 @@ const SectionItem = React.memo(
             </div>
           </div>
           <div className="flex justify-end gap-1">
-            {section.sectionWithoutSettingsAndChildren ? (
-              <Button
-                icon="settings"
-                small
-                minimal
-                title="Convert to section with settings"
-                onClick={() => convertToComplexSection(section)}
-              />
-            ) : (
-              <Button
-                icon="settings"
-                small
-                minimal
-                title="Edit section settings"
-                onClick={() => setSettingsDialogSectionUid(section.uid)}
-              />
-            )}
+            <Button
+              icon={
+                section.sectionWithoutSettingsAndChildren ? "plus" : "settings"
+              }
+              small
+              minimal
+              title={
+                section.sectionWithoutSettingsAndChildren
+                  ? "Add children"
+                  : "Edit section settings"
+              }
+              onClick={() =>
+                section.sectionWithoutSettingsAndChildren
+                  ? convertToComplexSection(section)
+                  : setSettingsDialogSectionUid(section.uid)
+              }
+            />
             <Button
               icon="trash"
               minimal
@@ -491,11 +497,11 @@ const LeftSidebarPersonalSectionsContent = ({
             <div className="space-y-3">
               <FlagPanel
                 title="Folded"
-                description="Start with section collapsed"
+                description="If children are present, start with personal section collapsed in left sidebar"
                 order={0}
-                uid={activeDialogSection.settings.folded?.uid}
+                uid={activeDialogSection.settings.folded?.uid || ""}
                 parentUid={activeDialogSection.settings.uid}
-                value={activeDialogSection.settings.folded?.value}
+                disabled={!activeDialogSection.children?.length}
               />
               <NumberPanel
                 title="Truncate-result?"

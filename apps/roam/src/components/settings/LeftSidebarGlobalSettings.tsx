@@ -59,12 +59,11 @@ const LeftSidebarGlobalSectionsContent = ({
     const initialize = async () => {
       setIsInitializing(true);
       const globalSectionText = "Global-Section";
+      let config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
 
       const existingGlobalSection = leftSidebar.children.find(
         (n) => n.text === globalSectionText,
       );
-      const config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
-      setGlobalSection(config);
 
       if (!existingGlobalSection) {
         try {
@@ -85,7 +84,7 @@ const LeftSidebarGlobalSectionsContent = ({
               ],
             },
           });
-
+          config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
           setChildrenUid(childrenUid || null);
           setPages([]);
         } catch (error) {
@@ -95,6 +94,7 @@ const LeftSidebarGlobalSectionsContent = ({
         setChildrenUid(config.childrenUid || null);
         setPages(config.children || []);
       }
+      setGlobalSection(config);
       setIsInitializing(false);
     };
 
@@ -178,27 +178,36 @@ const LeftSidebarGlobalSectionsContent = ({
 
   return (
     <div className="flex flex-col gap-4 p-1">
-      <div className="rounded-md border p-3">
-        <div className="mb-2 text-sm font-medium text-gray-700">Settings</div>
+      <div
+        className="global-section-settings rounded-md p-3 hover:bg-gray-50"
+        style={{
+          border: "1px solid rgba(51, 51, 51, 0.2)",
+        }}
+      >
         <FlagPanel
           title="Folded"
-          description="Start with global section collapsed in left sidebar"
+          description="If children are present, start with global section collapsed in left sidebar"
           order={0}
-          uid={globalSection.folded?.uid || ""}
+          uid={globalSection.settings?.folded?.uid || ""}
           parentUid={globalSection.uid || parentUid}
-          value={globalSection.folded?.value || false}
+          disabled={!globalSection.children?.length}
         />
         <FlagPanel
           title="Collapsable"
           description="Make global section collapsable"
           order={1}
-          uid={globalSection.collapsable?.uid || ""}
+          uid={globalSection.settings?.collapsable?.uid || ""}
           parentUid={globalSection.uid || parentUid}
-          value={globalSection.collapsable?.value || false}
+          value={globalSection.settings?.collapsable?.value || false}
         />
       </div>
 
-      <div className="rounded-md border p-3">
+      <div
+        className="global-section-children rounded-md p-3 hover:bg-gray-50"
+        style={{
+          border: "1px solid rgba(51, 51, 51, 0.2)",
+        }}
+      >
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
