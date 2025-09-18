@@ -25,6 +25,7 @@ import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { escapeCljString } from "~/utils/formatUtils";
 import { Result } from "~/utils/types";
+import { getSetting } from "~/utils/extensionSettings";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -572,7 +573,7 @@ export const NodeSearchMenuTriggerSetting = ({
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const [nodeSearchTrigger, setNodeSearchTrigger] = useState<string>(
-    extensionAPI.settings.get("node-search-trigger") as string,
+    getSetting("node-search-trigger", "@"),
   );
 
   const handleNodeSearchTriggerChange = (
