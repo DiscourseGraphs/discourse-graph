@@ -13,6 +13,8 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import { getLeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { LeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import refreshConfigTree from "~/utils/refreshConfigTree";
+import { refreshAndNotify } from "../LeftSidebarView";
 
 const PageItem = React.memo(
   ({
@@ -88,6 +90,7 @@ const LeftSidebarGlobalSectionsContent = ({
           config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
           setChildrenUid(childrenUid || null);
           setPages([]);
+          refreshAndNotify();
         } catch (error) {
           renderToast({
             content: "Failed to create global section",
@@ -131,6 +134,7 @@ const LeftSidebarGlobalSectionsContent = ({
         setPages((prev) => [...prev, newPage]);
         setNewPageInput("");
         setAutocompleteKey((prev) => prev + 1);
+        refreshAndNotify();
       } catch (error) {
         renderToast({
           content: "Failed to add page",
@@ -146,6 +150,7 @@ const LeftSidebarGlobalSectionsContent = ({
     try {
       await deleteBlock(page.uid);
       setPages((prev) => prev.filter((p) => p.uid !== page.uid));
+      refreshAndNotify();
     } catch (error) {
       renderToast({
         content: "Failed to remove page",
@@ -285,14 +290,32 @@ const LeftSidebarGlobalSectionsContent = ({
 };
 
 export const LeftSidebarGlobalSections = () => {
-  const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
-  const settings = discourseConfigRef.tree;
+  const [leftSidebar, setLeftSidebar] = useState<RoamBasicNode | null>(null);
 
-  const leftSidebar = getSubTree({
-    tree: settings,
-    parentUid: configPageUid,
-    key: "Left Sidebar",
-  });
+  useEffect(() => {
+    const loadData = () => {
+      refreshConfigTree();
+
+      const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
+      const updatedSettings = discourseConfigRef.tree;
+      const leftSidebarNode = getSubTree({
+        tree: updatedSettings,
+        parentUid: configPageUid,
+        key: "Left Sidebar",
+      });
+
+      setTimeout(() => {
+        refreshAndNotify();
+      }, 10);
+      setLeftSidebar(leftSidebarNode);
+    };
+
+    void loadData();
+  }, []);
+
+  if (!leftSidebar) {
+    return null;
+  }
 
   return <LeftSidebarGlobalSectionsContent leftSidebar={leftSidebar} />;
 };

@@ -17,6 +17,8 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 import { getLeftSidebarPersonalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import refreshConfigTree from "~/utils/refreshConfigTree";
+import { refreshAndNotify } from "../LeftSidebarView";
 
 const SectionItem = React.memo(
   ({
@@ -62,6 +64,7 @@ const SectionItem = React.memo(
         await addChildToSection(section, section.childrenUid, childInput);
         setChildInput("");
         setChildInputKey((prev) => prev + 1);
+        refreshAndNotify();
       }
     }, [childInput, section, addChildToSection]);
 
@@ -266,6 +269,7 @@ const LeftSidebarPersonalSectionsContent = ({
 
         setNewSectionInput("");
         setAutocompleteKey((prev) => prev + 1);
+        refreshAndNotify();
       } catch (error) {
         renderToast({
           content: "Failed to add section",
@@ -283,6 +287,7 @@ const LeftSidebarPersonalSectionsContent = ({
         await deleteBlock(section.uid);
 
         setSections((prev) => prev.filter((s) => s.uid !== section.uid));
+        refreshAndNotify();
       } catch (error) {
         renderToast({
           content: "Failed to remove section",
@@ -357,6 +362,7 @@ const LeftSidebarPersonalSectionsContent = ({
         );
 
         setExpandedChildLists((prev) => new Set([...prev, section.uid]));
+        refreshAndNotify();
       } catch (error) {
         renderToast({
           content: "Failed to convert to complex section",
@@ -401,6 +407,7 @@ const LeftSidebarPersonalSectionsContent = ({
             return s;
           }),
         );
+        refreshAndNotify();
       } catch (error) {
         renderToast({
           content: "Failed to add child",
@@ -428,6 +435,7 @@ const LeftSidebarPersonalSectionsContent = ({
             return s;
           }),
         );
+        refreshAndNotify();
       } catch (error) {
         renderToast({
           content: "Failed to remove child",
@@ -565,14 +573,32 @@ const LeftSidebarPersonalSectionsContent = ({
 };
 
 export const LeftSidebarPersonalSections = () => {
-  const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
-  const settings = discourseConfigRef.tree;
+  const [leftSidebar, setLeftSidebar] = useState<RoamBasicNode | null>(null);
 
-  const leftSidebar = getSubTree({
-    tree: settings,
-    parentUid: configPageUid,
-    key: "Left Sidebar",
-  });
+  useEffect(() => {
+    const loadData = () => {
+      refreshConfigTree();
+
+      const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
+      const updatedSettings = discourseConfigRef.tree;
+      const leftSidebarNode = getSubTree({
+        tree: updatedSettings,
+        parentUid: configPageUid,
+        key: "Left Sidebar",
+      });
+
+      setTimeout(() => {
+        refreshAndNotify();
+      }, 10);
+      setLeftSidebar(leftSidebarNode);
+    };
+
+    void loadData();
+  }, []);
+
+  if (!leftSidebar) {
+    return null;
+  }
 
   return <LeftSidebarPersonalSectionsContent leftSidebar={leftSidebar} />;
 };
