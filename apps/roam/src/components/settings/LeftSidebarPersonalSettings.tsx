@@ -134,7 +134,7 @@ const SectionItem = React.memo(
           });
         }
       },
-      [],
+      [setSections],
     );
 
     const addChildToSection = useCallback(
@@ -179,7 +179,7 @@ const SectionItem = React.memo(
           });
         }
       },
-      [],
+      [setSections],
     );
     const removeChild = useCallback(
       async (
