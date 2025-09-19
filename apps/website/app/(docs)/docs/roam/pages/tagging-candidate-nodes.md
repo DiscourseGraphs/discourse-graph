@@ -16,7 +16,7 @@ In the discourse graphs settings, for each node type, list a "candidate node" ta
 
 ![Tagging Candidate Nodes Demo](/docs/roam/tagging-config.gif)
 
-⚠️ __Important: A tag cannot use text that is already part of its associated node's format. For example, if the "Claim" node format is CLM, you cannot use #CLM as its tag. You'll get an error message if you attempt to do this.__
+⚠️ _Important: A tag cannot use text that is already part of its associated node's format. For example, if the "Claim" node format is CLM, you cannot use #CLM as its tag. You'll get an error message if you attempt to do this._
 
 ## Tag candidate nodes
 
@@ -26,7 +26,7 @@ Tag candidate nodes with the keyboard shortcut: `\`
 
 Click or use the down arrow key to select a candidate node type.
 
-💡 __If you've customized the keyboard shortcut for creating nodes, this keyboard shortcut will change too__
+💡 _If you've customized the keyboard shortcut for creating nodes, this keyboard shortcut will change too_
 
 ## Formalize candidate nodes
 
