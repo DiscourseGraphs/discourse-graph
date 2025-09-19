@@ -18,7 +18,7 @@ export const navigation: NavigationList = [
         href: `${ROOT}/creating-discourse-nodes`,
       },
       {
-        title: "Tagging Potential Nodes",
+        title: "Tagging Candidate Nodes",
         href: `${ROOT}/tagging-candidate-nodes`,
       },
       {
