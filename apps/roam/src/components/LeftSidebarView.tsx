@@ -23,7 +23,7 @@ const parseReference = (text: string) => {
   if (text.startsWith("((") && text.endsWith("))")) {
     return { type: "block" as const, uid: extracted, display: text };
   } else {
-    return { type: "page" as const, title: extracted, display: extracted };
+    return { type: "page" as const, display: text };
   }
 };
 
@@ -141,23 +141,7 @@ const PersonalSectionItem = ({
   );
   const alias = section.settings?.alias?.value;
 
-  if (section.sectionWithoutSettingsAndChildren) {
-    const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      return void openTarget(e, section.text);
-    };
-    return (
-      <>
-        <div
-          className="sidebar-title-button cursor-pointer rounded-sm py-1 font-semibold leading-normal"
-          onClick={onClick}
-        >
-          {(blockText || titleRef.title)?.toUpperCase()}
-        </div>
-      </>
-    );
-  }
-
-  const handleChevronClick = (e: React.MouseEvent) => {
+  const handleChevronClick = () => {
     if (!section.settings) return;
 
     toggleFoldedState({

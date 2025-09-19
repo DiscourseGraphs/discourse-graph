@@ -19,7 +19,6 @@ type LeftSidebarPersonalSectionSettings = {
 export type LeftSidebarPersonalSectionConfig = {
   uid: string;
   text: string;
-  sectionWithoutSettingsAndChildren: boolean;
   settings?: LeftSidebarPersonalSectionSettings;
   children?: RoamBasicNode[];
   childrenUid?: string;
@@ -157,27 +156,15 @@ export const getLeftSidebarPersonalSectionConfig = (
       const childrenNode = sectionNode.children?.find(
         (child) => child.text === "Children",
       );
-
-      const sectionWithoutSettingsAndChildren = !settingsNode && !childrenNode;
-
-      if (sectionWithoutSettingsAndChildren) {
-        return {
-          uid: sectionNode.uid,
-          text: sectionNode.text,
-          sectionWithoutSettingsAndChildren: true,
-        };
-      } else {
-        return {
-          uid: sectionNode.uid,
-          text: sectionNode.text,
-          settings: settingsNode
-            ? getPersonalSectionSettings(settingsNode)
-            : undefined,
-          children: childrenNode?.children || [],
-          childrenUid: childrenNode?.uid || "",
-          sectionWithoutSettingsAndChildren: false,
-        };
-      }
+      return {
+        uid: sectionNode.uid,
+        text: sectionNode.text,
+        settings: settingsNode
+          ? getPersonalSectionSettings(settingsNode)
+          : undefined,
+        children: childrenNode?.children || [],
+        childrenUid: childrenNode?.uid || "",
+      };
     },
   );
 

@@ -23,32 +23,15 @@ import { refreshAndNotify } from "../LeftSidebarView";
 const SectionItem = React.memo(
   ({
     section,
-    expandedChildLists,
-    convertToComplexSection,
     setSettingsDialogSectionUid,
-    removeSection,
-    toggleChildrenList,
-    addChildToSection,
-    removeChild,
     pageNames,
+    setSections,
   }: {
     section: LeftSidebarPersonalSectionConfig;
-    expandedChildLists: Set<string>;
-    convertToComplexSection: (
-      section: LeftSidebarPersonalSectionConfig,
-    ) => void;
+    setSections: React.Dispatch<
+      React.SetStateAction<LeftSidebarPersonalSectionConfig[]>
+    >;
     setSettingsDialogSectionUid: (uid: string | null) => void;
-    removeSection: (section: LeftSidebarPersonalSectionConfig) => void;
-    toggleChildrenList: (uid: string) => void;
-    addChildToSection: (
-      section: LeftSidebarPersonalSectionConfig,
-      childrenUid: string,
-      childName: string,
-    ) => Promise<void>;
-    removeChild: (
-      section: LeftSidebarPersonalSectionConfig,
-      child: RoamBasicNode,
-    ) => Promise<void>;
     pageNames: string[];
   }) => {
     const ref = extractRef(section.text);
@@ -57,7 +40,177 @@ const SectionItem = React.memo(
     const alias = section.settings?.alias?.value;
     const [childInput, setChildInput] = useState("");
     const [childInputKey, setChildInputKey] = useState(0);
+
+    const [expandedChildLists, setExpandedChildLists] = useState<Set<string>>(
+      new Set(),
+    );
     const isExpanded = expandedChildLists.has(section.uid);
+    const toggleChildrenList = useCallback((sectionUid: string) => {
+      setExpandedChildLists((prev) => {
+        const next = new Set(prev);
+        if (next.has(sectionUid)) {
+          next.delete(sectionUid);
+        } else {
+          next.add(sectionUid);
+        }
+        return next;
+      });
+    }, []);
+
+    const convertToComplexSection = useCallback(
+      async (section: LeftSidebarPersonalSectionConfig) => {
+        try {
+          const settingsUid = await createBlock({
+            parentUid: section.uid,
+            order: 0,
+            node: { text: "Settings" },
+          });
+          const foldedUid = await createBlock({
+            parentUid: settingsUid,
+            order: 0,
+            node: { text: "Folded" },
+          });
+          const truncateSettingUid = await createBlock({
+            parentUid: settingsUid,
+            order: 1,
+            node: { text: "Truncate-result?", children: [{ text: "75" }] },
+          });
+          const aliasUid = await createBlock({
+            parentUid: settingsUid,
+            order: 2,
+            node: { text: "Alias" },
+          });
+
+          const childrenUid = await createBlock({
+            parentUid: section.uid,
+            order: 1,
+            node: { text: "Children" },
+          });
+
+          setSections((prev) =>
+            prev.map((s) => {
+              if (s.uid === section.uid) {
+                return {
+                  ...s,
+                  settings: {
+                    uid: settingsUid,
+                    folded: { uid: foldedUid, value: false },
+                    truncateResult: { uid: truncateSettingUid, value: 75 },
+                    alias: { uid: aliasUid, value: "" },
+                  },
+                  childrenUid,
+                  children: [],
+                };
+              }
+              return s;
+            }),
+          );
+
+          setExpandedChildLists((prev) => new Set([...prev, section.uid]));
+          refreshAndNotify();
+        } catch (error) {
+          renderToast({
+            content: "Failed to convert to complex section",
+            intent: "danger",
+            id: "convert-to-complex-section-error",
+          });
+        }
+      },
+      [setSections],
+    );
+
+    const removeSection = useCallback(
+      async (section: LeftSidebarPersonalSectionConfig) => {
+        try {
+          await deleteBlock(section.uid);
+
+          setSections((prev) => prev.filter((s) => s.uid !== section.uid));
+          refreshAndNotify();
+        } catch (error) {
+          renderToast({
+            content: "Failed to remove section",
+            intent: "danger",
+            id: "remove-section-error",
+          });
+        }
+      },
+      [],
+    );
+
+    const addChildToSection = useCallback(
+      async (
+        section: LeftSidebarPersonalSectionConfig,
+        childrenUid: string,
+        childName: string,
+      ) => {
+        if (!childName || !childrenUid) return;
+
+        try {
+          const newChild = await createBlock({
+            parentUid: childrenUid,
+            order: "last",
+            node: { text: childName },
+          });
+
+          setSections((prev) =>
+            prev.map((s) => {
+              if (s.uid === section.uid) {
+                return {
+                  ...s,
+                  children: [
+                    ...(s.children || []),
+                    {
+                      text: childName,
+                      uid: newChild,
+                      children: [],
+                    },
+                  ],
+                };
+              }
+              return s;
+            }),
+          );
+          refreshAndNotify();
+        } catch (error) {
+          renderToast({
+            content: "Failed to add child",
+            intent: "danger",
+            id: "add-child-error",
+          });
+        }
+      },
+      [],
+    );
+    const removeChild = useCallback(
+      async (
+        section: LeftSidebarPersonalSectionConfig,
+        child: RoamBasicNode,
+      ) => {
+        try {
+          await deleteBlock(child.uid);
+
+          setSections((prev) =>
+            prev.map((s) => {
+              if (s.uid === section.uid) {
+                return {
+                  ...s,
+                  children: s.children?.filter((c) => c.uid !== child.uid),
+                };
+              }
+              return s;
+            }),
+          );
+          refreshAndNotify();
+        } catch (error) {
+          renderToast({
+            content: "Failed to remove child",
+            intent: "danger",
+            id: "remove-child-error",
+          });
+        }
+      },
+      [setSections],
+    );
 
     const handleAddChild = useCallback(async () => {
       if (childInput && section.childrenUid) {
@@ -67,6 +220,9 @@ const SectionItem = React.memo(
         refreshAndNotify();
       }
     }, [childInput, section, addChildToSection]);
+
+    const sectionWithoutSettingsAndChildren =
+      !section.settings && !section.children;
 
     return (
       <div
@@ -78,7 +234,7 @@ const SectionItem = React.memo(
       >
         <div className="flex items-end justify-between">
           <div className="flex flex-grow items-center gap-2">
-            {!section.sectionWithoutSettingsAndChildren && (
+            {!sectionWithoutSettingsAndChildren && (
               <Button
                 icon={isExpanded ? "chevron-down" : "chevron-right"}
                 minimal
@@ -98,20 +254,18 @@ const SectionItem = React.memo(
           </div>
           <div className="flex justify-end gap-1">
             <Button
-              icon={
-                section.sectionWithoutSettingsAndChildren ? "plus" : "settings"
-              }
+              icon={sectionWithoutSettingsAndChildren ? "plus" : "settings"}
               small
               minimal
               title={
-                section.sectionWithoutSettingsAndChildren
+                sectionWithoutSettingsAndChildren
                   ? "Add children"
                   : "Edit section settings"
               }
               onClick={() =>
-                section.sectionWithoutSettingsAndChildren
-                  ? convertToComplexSection(section)
-                  : setSettingsDialogSectionUid(section.uid)
+                sectionWithoutSettingsAndChildren
+                  ? void convertToComplexSection(section)
+                  : void setSettingsDialogSectionUid(section.uid)
               }
             />
             <Button
@@ -119,13 +273,13 @@ const SectionItem = React.memo(
               minimal
               small
               intent="danger"
-              onClick={() => removeSection(section)}
+              onClick={() => void removeSection(section)}
               title="Remove section"
             />
           </div>
         </div>
 
-        {!section.sectionWithoutSettingsAndChildren && (
+        {!sectionWithoutSettingsAndChildren && (
           <Collapse isOpen={isExpanded}>
             <div className="ml-6 mt-3">
               <div
@@ -208,9 +362,6 @@ const LeftSidebarPersonalSectionsContent = ({
   const [settingsDialogSectionUid, setSettingsDialogSectionUid] = useState<
     string | null
   >(null);
-  const [expandedChildLists, setExpandedChildLists] = useState<Set<string>>(
-    new Set(),
-  );
 
   useEffect(() => {
     const initialize = async () => {
@@ -260,7 +411,6 @@ const LeftSidebarPersonalSectionsContent = ({
           {
             text: sectionName,
             uid: newBlock,
-            sectionWithoutSettingsAndChildren: true,
             settings: undefined,
             children: undefined,
             childrenUid: undefined,
@@ -279,172 +429,6 @@ const LeftSidebarPersonalSectionsContent = ({
       }
     },
     [personalSectionUid, sections],
-  );
-
-  const removeSection = useCallback(
-    async (section: LeftSidebarPersonalSectionConfig) => {
-      try {
-        await deleteBlock(section.uid);
-
-        setSections((prev) => prev.filter((s) => s.uid !== section.uid));
-        refreshAndNotify();
-      } catch (error) {
-        renderToast({
-          content: "Failed to remove section",
-          intent: "danger",
-          id: "remove-section-error",
-        });
-      }
-    },
-    [],
-  );
-
-  const toggleChildrenList = useCallback((sectionUid: string) => {
-    setExpandedChildLists((prev) => {
-      const next = new Set(prev);
-      if (next.has(sectionUid)) {
-        next.delete(sectionUid);
-      } else {
-        next.add(sectionUid);
-      }
-      return next;
-    });
-  }, []);
-
-  const convertToComplexSection = useCallback(
-    async (section: LeftSidebarPersonalSectionConfig) => {
-      try {
-        const settingsUid = await createBlock({
-          parentUid: section.uid,
-          order: 0,
-          node: { text: "Settings" },
-        });
-        const foldedUid = await createBlock({
-          parentUid: settingsUid,
-          order: 0,
-          node: { text: "Folded" },
-        });
-        const truncateSettingUid = await createBlock({
-          parentUid: settingsUid,
-          order: 1,
-          node: { text: "Truncate-result?", children: [{ text: "75" }] },
-        });
-        const aliasUid = await createBlock({
-          parentUid: settingsUid,
-          order: 2,
-          node: { text: "Alias" },
-        });
-
-        const childrenUid = await createBlock({
-          parentUid: section.uid,
-          order: 1,
-          node: { text: "Children" },
-        });
-
-        setSections((prev) =>
-          prev.map((s) => {
-            if (s.uid === section.uid) {
-              return {
-                ...s,
-                sectionWithoutSettingsAndChildren: false,
-                settings: {
-                  uid: settingsUid,
-                  folded: { uid: foldedUid, value: false },
-                  truncateResult: { uid: truncateSettingUid, value: 75 },
-                  alias: { uid: aliasUid, value: "" },
-                },
-                childrenUid,
-                children: [],
-              };
-            }
-            return s;
-          }),
-        );
-
-        setExpandedChildLists((prev) => new Set([...prev, section.uid]));
-        refreshAndNotify();
-      } catch (error) {
-        renderToast({
-          content: "Failed to convert to complex section",
-          intent: "danger",
-          id: "convert-to-complex-section-error",
-        });
-      }
-    },
-    [],
-  );
-
-  const addChildToSection = useCallback(
-    async (
-      section: LeftSidebarPersonalSectionConfig,
-      childrenUid: string,
-      childName: string,
-    ) => {
-      if (!childName || !childrenUid) return;
-
-      try {
-        const newChild = await createBlock({
-          parentUid: childrenUid,
-          order: "last",
-          node: { text: childName },
-        });
-
-        setSections((prev) =>
-          prev.map((s) => {
-            if (s.uid === section.uid) {
-              return {
-                ...s,
-                children: [
-                  ...(s.children || []),
-                  {
-                    text: childName,
-                    uid: newChild,
-                    children: [],
-                  },
-                ],
-              };
-            }
-            return s;
-          }),
-        );
-        refreshAndNotify();
-      } catch (error) {
-        renderToast({
-          content: "Failed to add child",
-          intent: "danger",
-          id: "add-child-error",
-        });
-      }
-    },
-    [],
-  );
-
-  const removeChild = useCallback(
-    async (section: LeftSidebarPersonalSectionConfig, child: RoamBasicNode) => {
-      try {
-        await deleteBlock(child.uid);
-
-        setSections((prev) =>
-          prev.map((s) => {
-            if (s.uid === section.uid) {
-              return {
-                ...s,
-                children: s.children?.filter((c) => c.uid !== child.uid),
-              };
-            }
-            return s;
-          }),
-        );
-        refreshAndNotify();
-      } catch (error) {
-        renderToast({
-          content: "Failed to remove child",
-          intent: "danger",
-          id: "remove-child-error",
-        });
-      }
-    },
-    [],
   );
 
   const handleNewSectionInputChange = useCallback((value: string) => {
@@ -503,14 +487,9 @@ const LeftSidebarPersonalSectionsContent = ({
           <SectionItem
             key={section.uid}
             section={section}
-            expandedChildLists={expandedChildLists}
-            convertToComplexSection={convertToComplexSection}
             setSettingsDialogSectionUid={setSettingsDialogSectionUid}
-            removeSection={removeSection}
-            toggleChildrenList={toggleChildrenList}
-            addChildToSection={addChildToSection}
-            removeChild={removeChild}
             pageNames={pageNames}
+            setSections={setSections}
           />
         ))}
       </div>
