@@ -8,7 +8,6 @@ import {
   StringSetting,
 } from "./getExportSettings";
 import { getSubTree } from "roamjs-components/util";
-import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 
 type LeftSidebarPersonalSectionSettings = {
   uid: string;
@@ -135,11 +134,11 @@ const getPersonalSectionSettings = (
 const getLeftSidebarPersonalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
 ): { uid: string; sections: LeftSidebarPersonalSectionConfig[] } => {
-  const userName = getCurrentUserDisplayName();
+  const userUid = window.roamAlphaAPI.user.uid();
 
   const personalLeftSidebarNode = getSubTree({
     tree: leftSidebarChildren,
-    key: userName + "/Personal-Section",
+    key: userUid + "/Personal-Section",
   });
 
   if (personalLeftSidebarNode.uid === "") {
