@@ -42,6 +42,7 @@ export type ExportTypes = {
 export type Result = {
   text: string;
   uid: string;
+  disabled?: boolean;
 } & Record<`${string}-uid`, string> &
   Record<string, string | number | Date>;
 

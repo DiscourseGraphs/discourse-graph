@@ -133,6 +133,9 @@ const LabelDialogAutocomplete = ({
 
   const setValue = useCallback(
     (r: Result) => {
+      // Don't allow selection of disabled items
+      if (r.disabled) return;
+      
       if (action === "creating" && r.uid === initialUid) {
         // replace when migrating from format to specification
         const pageName = format.replace(/{([\w\d-]*)}/g, (_, val) => {
@@ -165,6 +168,9 @@ const LabelDialogAutocomplete = ({
   );
   const setValueFromReferencedNode = useCallback(
     (r: Result) => {
+      // Don't allow selection of disabled items
+      if (r.disabled) return;
+      
       if (!referencedNode) return;
       if (action === "editing") {
         // Hack for default shipped EVD format: [[EVD]] - {content} - {Source},
@@ -195,11 +201,19 @@ const LabelDialogAutocomplete = ({
   );
   const itemToQuery = useCallback((result?: Result) => result?.text || "", []);
   const filterOptions = useCallback(
-    (o: Result[], q: string) =>
-      fuzzy
+    (o: Result[], q: string) => {
+      const filtered = fuzzy
         .filter(q, o, { extract: itemToQuery })
         .map((f) => f.original)
-        .filter((f): f is Result => !!f),
+        .filter((f): f is Result => !!f);
+      
+      // Add "No Nodes Exist Yet" disabled item if no options available
+      if (o.length === 0) {
+        return [{ text: "No Nodes Exist Yet", uid: "", disabled: true }];
+      }
+      
+      return filtered;
+    },
     [itemToQuery],
   );
 
