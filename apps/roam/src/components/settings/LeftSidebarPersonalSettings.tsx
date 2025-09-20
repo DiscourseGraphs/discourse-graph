@@ -9,18 +9,20 @@ import deleteBlock from "roamjs-components/writes/deleteBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
 import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
-import { LeftSidebarPersonalSectionConfig } from "~/utils/getLeftSidebarSettings";
+import {
+  LeftSidebarPersonalSectionConfig,
+  getLeftSidebarPersonalSectionConfig,
+} from "~/utils/getLeftSidebarSettings";
 import { extractRef, getSubTree } from "roamjs-components/util";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
-import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
-import { getLeftSidebarPersonalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-import { refreshAndNotify } from "../LeftSidebarView";
+import { refreshAndNotify } from "~/components/LeftSidebarView";
+import { memo, Dispatch, SetStateAction } from "react";
 
-const SectionItem = React.memo(
+const SectionItem = memo(
   ({
     section,
     setSettingsDialogSectionUid,
@@ -28,9 +30,7 @@ const SectionItem = React.memo(
     setSections,
   }: {
     section: LeftSidebarPersonalSectionConfig;
-    setSections: React.Dispatch<
-      React.SetStateAction<LeftSidebarPersonalSectionConfig[]>
-    >;
+    setSections: Dispatch<SetStateAction<LeftSidebarPersonalSectionConfig[]>>;
     setSettingsDialogSectionUid: (uid: string | null) => void;
     pageNames: string[];
   }) => {
@@ -232,51 +232,54 @@ const SectionItem = React.memo(
           border: "1px solid rgba(51, 51, 51, 0.2)",
         }}
       >
-        <div className="flex items-end justify-between">
-          <div className="flex flex-grow items-center gap-2">
-            {!sectionWithoutSettingsAndChildren && (
-              <Button
-                icon={isExpanded ? "chevron-down" : "chevron-right"}
-                minimal
-                small
-                onClick={() => toggleChildrenList(section.uid)}
-              />
+        <div className="flex items-center">
+          {!sectionWithoutSettingsAndChildren && (
+            <Button
+              icon={isExpanded ? "chevron-down" : "chevron-right"}
+              minimal
+              small
+              onClick={() => toggleChildrenList(section.uid)}
+            />
+          )}
+          <div
+            className="flex-1 truncate"
+            style={{
+              cursor: sectionWithoutSettingsAndChildren ? "default" : "pointer",
+            }}
+            onClick={() =>
+              !sectionWithoutSettingsAndChildren &&
+              toggleChildrenList(section.uid)
+            }
+          >
+            {alias ? (
+              <Tooltip content={originalName} placement="top">
+                <span className="font-medium">{alias}</span>
+              </Tooltip>
+            ) : (
+              <span className="font-medium">{originalName}</span>
             )}
-            <div className="flex-1 truncate">
-              {alias ? (
-                <Tooltip content={originalName} placement="top">
-                  <span className="font-medium">{alias}</span>
-                </Tooltip>
-              ) : (
-                <span className="font-medium">{originalName}</span>
-              )}
-            </div>
           </div>
-          <div className="flex justify-end gap-1">
-            <Button
-              icon={sectionWithoutSettingsAndChildren ? "plus" : "settings"}
-              small
-              minimal
-              title={
-                sectionWithoutSettingsAndChildren
-                  ? "Add children"
-                  : "Edit section settings"
-              }
-              onClick={() =>
-                sectionWithoutSettingsAndChildren
-                  ? void convertToComplexSection(section)
-                  : void setSettingsDialogSectionUid(section.uid)
-              }
-            />
-            <Button
-              icon="trash"
-              minimal
-              small
-              intent="danger"
-              onClick={() => void removeSection(section)}
-              title="Remove section"
-            />
-          </div>
+          <Button
+            icon={sectionWithoutSettingsAndChildren ? "plus" : "settings"}
+            minimal
+            title={
+              sectionWithoutSettingsAndChildren
+                ? "Add children"
+                : "Edit section settings"
+            }
+            onClick={() =>
+              sectionWithoutSettingsAndChildren
+                ? void convertToComplexSection(section)
+                : void setSettingsDialogSectionUid(section.uid)
+            }
+          />
+          <Button
+            icon="trash"
+            minimal
+            intent="danger"
+            onClick={() => void removeSection(section)}
+            title="Remove section"
+          />
         </div>
 
         {!sectionWithoutSettingsAndChildren && (
@@ -365,8 +368,8 @@ const LeftSidebarPersonalSectionsContent = ({
 
   useEffect(() => {
     const initialize = async () => {
-      const userName = getCurrentUserDisplayName();
-      const personalSectionText = userName + "/Personal-Section";
+      const userUid = window.roamAlphaAPI.user.uid();
+      const personalSectionText = userUid + "/Personal-Section";
 
       const personalSection = leftSidebar.children.find(
         (n) => n.text === personalSectionText,

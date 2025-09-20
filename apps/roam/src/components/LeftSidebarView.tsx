@@ -17,6 +17,7 @@ import { createBlock } from "roamjs-components/writes";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
+import { Dispatch, SetStateAction } from "react";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -68,7 +69,7 @@ const toggleFoldedState = ({
   parentUid,
 }: {
   isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsOpen: Dispatch<SetStateAction<boolean>>;
   folded: { uid?: string; value: boolean };
   parentUid: string;
 }) => {

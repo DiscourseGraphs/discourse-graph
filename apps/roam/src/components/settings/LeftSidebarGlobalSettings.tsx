@@ -14,9 +14,10 @@ import { getLeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSetting
 import { LeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-import { refreshAndNotify } from "../LeftSidebarView";
+import { refreshAndNotify } from "~/components/LeftSidebarView";
+import { memo } from "react";
 
-const PageItem = React.memo(
+const PageItem = memo(
   ({
     page,
     onRemove,
@@ -62,7 +63,7 @@ const LeftSidebarGlobalSectionsContent = ({
     const initialize = async () => {
       setIsInitializing(true);
       const globalSectionText = "Global-Section";
-      let config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
+      const config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
 
       const existingGlobalSection = leftSidebar.children.find(
         (n) => n.text === globalSectionText,
@@ -70,26 +71,33 @@ const LeftSidebarGlobalSectionsContent = ({
 
       if (!existingGlobalSection) {
         try {
-          const childrenUid = window.roamAlphaAPI.util.generateUID();
-          await createBlock({
+          const globalSectionUid = await createBlock({
             parentUid: leftSidebar.uid,
             order: 0,
-            node: {
-              text: globalSectionText,
-              children: [
-                {
-                  text: "Folded",
-                },
-                {
-                  text: "Children",
-                  uid: childrenUid,
-                },
-              ],
-            },
+            node: { text: globalSectionText },
           });
-          config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
+          const settingsUid = await createBlock({
+            parentUid: globalSectionUid,
+            order: 0,
+            node: { text: "Settings" },
+          });
+          const childrenUid = await createBlock({
+            parentUid: globalSectionUid,
+            order: 0,
+            node: { text: "Children" },
+          });
           setChildrenUid(childrenUid || null);
           setPages([]);
+          setGlobalSection({
+            uid: globalSectionUid,
+            settings: {
+              uid: settingsUid,
+              collapsable: { uid: undefined, value: false },
+              folded: { uid: undefined, value: false },
+            },
+            childrenUid,
+            children: [],
+          });
           refreshAndNotify();
         } catch (error) {
           renderToast({
@@ -101,8 +109,8 @@ const LeftSidebarGlobalSectionsContent = ({
       } else {
         setChildrenUid(config.childrenUid || null);
         setPages(config.children || []);
+        setGlobalSection(config);
       }
-      setGlobalSection(config);
       setIsInitializing(false);
     };
 
@@ -184,8 +192,6 @@ const LeftSidebarGlobalSectionsContent = ({
     [newPageInput, pages],
   );
 
-  const parentUid = leftSidebar.uid;
-
   if (isInitializing || !globalSection) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -207,7 +213,7 @@ const LeftSidebarGlobalSectionsContent = ({
           description="If children are present, start with global section collapsed in left sidebar"
           order={0}
           uid={globalSection.settings?.folded?.uid || ""}
-          parentUid={globalSection.uid || parentUid}
+          parentUid={globalSection.settings?.uid || ""}
           disabled={!globalSection.children?.length}
         />
         <FlagPanel
@@ -215,7 +221,7 @@ const LeftSidebarGlobalSectionsContent = ({
           description="Make global section collapsable"
           order={1}
           uid={globalSection.settings?.collapsable?.uid || ""}
-          parentUid={globalSection.uid || parentUid}
+          parentUid={globalSection.settings?.uid || ""}
           value={globalSection.settings?.collapsable?.value || false}
         />
       </div>
