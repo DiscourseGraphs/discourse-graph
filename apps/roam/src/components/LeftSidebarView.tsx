@@ -165,13 +165,19 @@ const PersonalSectionItem = ({
 
   return (
     <>
-      <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent py-1 font-semibold outline-none transition-colors duration-200 ease-in">
+      <div className="sidebar-title-container flex w-full cursor-pointer items-center border-none bg-transparent font-semibold outline-none">
         <div className="flex w-full items-center justify-between">
-          <span onClick={(e) => void openTarget(e, section.text)}>
+          <span
+            className="sidebar-title-button flex-1 pb-1 pl-0 pr-1 pt-2"
+            onClick={(e) => void openTarget(e, section.text)}
+          >
             {(alias || blockText || titleRef.display).toUpperCase()}
           </span>
           {(section.children?.length || 0) > 0 && (
-            <span onClick={handleChevronClick}>
+            <span
+              className="sidebar-title-button-chevron p-1"
+              onClick={handleChevronClick}
+            >
               <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
             </span>
           )}
@@ -213,7 +219,7 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
   return (
     <>
       <div
-        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent py-1 font-semibold outline-none transition-colors duration-200 ease-in"
+        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent font-semibold outline-none"
         onClick={() => {
           if (!isCollapsable || !config.settings) return;
           toggleFoldedState({
@@ -227,7 +233,7 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
         <div className="flex w-full items-center justify-between">
           <span>GLOBAL</span>
           {isCollapsable && (
-            <span>
+            <span className="sidebar-title-button-chevron p-1">
               <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
             </span>
           )}

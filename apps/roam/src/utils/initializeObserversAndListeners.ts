@@ -47,6 +47,7 @@ import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
+import { LEFT_SIDEBAR_ENABLED_KEY } from "~/data/userSettings";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -106,6 +107,8 @@ export const initObservers = async ({
     useBody: true,
     className: "starred-pages-wrapper",
     callback: (el) => {
+      const isLeftSidebarEnabled = getSetting(LEFT_SIDEBAR_ENABLED_KEY, false);
+      if (!isLeftSidebarEnabled) return;
       const container = el as HTMLDivElement;
       mountLeftSidebar(container);
     },

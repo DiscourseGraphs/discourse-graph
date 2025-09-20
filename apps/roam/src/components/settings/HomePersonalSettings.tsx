@@ -17,6 +17,7 @@ import {
   AUTO_CANVAS_RELATIONS_KEY,
   DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
   DISCOURSE_TOOL_SHORTCUT_KEY,
+  LEFT_SIDEBAR_ENABLED_KEY,
 } from "~/data/userSettings";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
@@ -195,6 +196,21 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
               description={
                 "Whether or not to overlay Discourse Context information over Canvas Nodes."
               }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={getSetting(LEFT_SIDEBAR_ENABLED_KEY, false)}
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          setSetting(LEFT_SIDEBAR_ENABLED_KEY, target.checked);
+        }}
+        labelElement={
+          <>
+            (BETA) Left Sidebar
+            <Description
+              description={"Whether or not to enable the left sidebar."}
             />
           </>
         }
