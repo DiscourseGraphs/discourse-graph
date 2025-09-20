@@ -27,6 +27,8 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import { getVersionWithDate } from "~/utils/getVersion";
+import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
+import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -147,6 +149,12 @@ export const SettingsDialog = ({
             className="overflow-y-auto"
             panel={<QuerySettings extensionAPI={extensionAPI} />}
           />
+          <Tab
+            id="left-sidebar-personal-settings"
+            title="Left Sidebar"
+            className="overflow-y-auto"
+            panel={<LeftSidebarPersonalSections />}
+          />
           <SectionHeader className="text-lg font-semibold text-neutral-dark">
             Global Settings
           </SectionHeader>
@@ -161,6 +169,12 @@ export const SettingsDialog = ({
             title="Export"
             className="overflow-y-auto"
             panel={<DiscourseGraphExport />}
+          />
+          <Tab
+            id="left-sidebar-global-settings"
+            title="Left Sidebar"
+            className="overflow-y-auto"
+            panel={<LeftSidebarGlobalSections />}
           />
           <Tab
             id="suggestive-mode-settings"

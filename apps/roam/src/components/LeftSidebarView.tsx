@@ -1,10 +1,14 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
 import { Collapse, Icon } from "@blueprintjs/core";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import extractRef from "roamjs-components/util/extractRef";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import {
+  getFormattedConfigTree,
+  notify,
+  subscribe,
+} from "~/utils/discourseConfigRef";
 import type {
   LeftSidebarConfig,
   LeftSidebarPersonalSectionConfig,
@@ -12,13 +16,15 @@ import type {
 import { createBlock } from "roamjs-components/writes";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import refreshConfigTree from "~/utils/refreshConfigTree";
+import { Dispatch, SetStateAction } from "react";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
   if (text.startsWith("((") && text.endsWith("))")) {
     return { type: "block" as const, uid: extracted, display: text };
   } else {
-    return { type: "page" as const, title: extracted, display: extracted };
+    return { type: "page" as const, display: text };
   }
 };
 
@@ -63,7 +69,7 @@ const toggleFoldedState = ({
   parentUid,
 }: {
   isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsOpen: Dispatch<SetStateAction<boolean>>;
   folded: { uid?: string; value: boolean };
   parentUid: string;
 }) => {
@@ -136,23 +142,7 @@ const PersonalSectionItem = ({
   );
   const alias = section.settings?.alias?.value;
 
-  if (section.sectionWithoutSettingsAndChildren) {
-    const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      return void openTarget(e, section.text);
-    };
-    return (
-      <>
-        <div
-          className="sidebar-title-button cursor-pointer rounded-sm py-1 font-semibold leading-normal"
-          onClick={onClick}
-        >
-          {(blockText || titleRef.title)?.toUpperCase()}
-        </div>
-      </>
-    );
-  }
-
-  const handleChevronClick = (e: React.MouseEvent) => {
+  const handleChevronClick = () => {
     if (!section.settings) return;
 
     toggleFoldedState({
@@ -250,8 +240,30 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
   );
 };
 
+export const useConfig = () => {
+  const [config, setConfig] = useState(
+    () => getFormattedConfigTree().leftSidebar,
+  );
+  useEffect(() => {
+    const handleUpdate = () => {
+      setConfig(getFormattedConfigTree().leftSidebar);
+    };
+    const unsubscribe = subscribe(handleUpdate);
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+  return config;
+};
+
+export const refreshAndNotify = () => {
+  refreshConfigTree();
+  notify();
+};
+
+
 const LeftSidebarView = () => {
-  const config = useMemo(() => getFormattedConfigTree().leftSidebar, []);
+  const config = useConfig();
 
   return (
     <>

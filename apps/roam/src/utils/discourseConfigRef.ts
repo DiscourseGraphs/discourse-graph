@@ -21,6 +21,18 @@ const configTreeRef: {
   nodes: { [uid: string]: { text: string; children: RoamBasicNode[] } };
 } = { tree: [], nodes: {} };
 
+const listeners = new Set<() => void>();
+
+export const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+export const notify = () => {
+  listeners.forEach(listener => listener());
+};
+
+
 type FormattedConfigTree = {
   settingsUid: string;
   grammarUid: string;
