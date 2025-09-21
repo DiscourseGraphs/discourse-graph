@@ -109,14 +109,26 @@ export const initObservers = async ({
     const base = tinycolor(hexColor);
     const hsl = base.toHsl();
 
-    return {
-      text: hexColor,
+    const backgroundColor = tinycolor({
+      h: hsl.h,
+      s: 0.75,
+      l: 0.9,
+    }).toHexString();
 
-      background: tinycolor({
-        h: hsl.h,
-        s: 0.75,
-        l: 0.9,
-      }).toHexString(),
+    const backgroundLuminance = tinycolor(backgroundColor).getLuminance();
+    const baseLuminance = tinycolor(hexColor).getLuminance();
+
+    const textColor =
+      backgroundLuminance > 0.5
+        ? baseLuminance > 0.4
+          ? tinycolor(hexColor).darken(40).toHexString()
+          : hexColor
+        : "#ffffff";
+
+    return {
+      text: textColor,
+
+      background: backgroundColor,
 
       border: tinycolor({
         h: hsl.h,
