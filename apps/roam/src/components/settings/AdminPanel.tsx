@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { HTMLTable, Button, MenuItem } from "@blueprintjs/core";
+import { HTMLTable, Button, MenuItem, Spinner } from "@blueprintjs/core";
 import { Select } from "@blueprintjs/select";
 import {
   getSupabaseContext,
@@ -98,6 +98,9 @@ const AdminPanel = () => {
   const [showingSchema, setShowingSchema] =
     useState<NodeSignature>(nodeSchemaSignature);
   const [nodes, setNodes] = useState<PConcept[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingNodes, setLoadingNodes] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -105,9 +108,12 @@ const AdminPanel = () => {
       try {
         if (!ignore) {
           setContext(await getSupabaseContext());
+        }
+        if (!ignore) {
           setSupabase(await getLoggedInClient());
         }
       } catch (e) {
+        setError(`${e}`);
         console.error("AdminPanel init failed", e);
       }
     })();
@@ -120,8 +126,14 @@ const AdminPanel = () => {
     let ignore = false;
     void (async () => {
       if (!ignore && supabase !== null && context !== null) {
-        setSchemas(await getNodeSchemas(supabase, context.spaceId));
+        try {
+          setSchemas(await getNodeSchemas(supabase, context.spaceId));
+        } catch (e) {
+          setError(`${e}`);
+          console.error("getNodeSchemas failed", e);
+        }
       }
+      setLoading(false);
     })();
     return () => {
       ignore = true;
@@ -138,19 +150,39 @@ const AdminPanel = () => {
         context !== null
       ) {
         const spaceId = context.spaceId;
-        setNodes(
-          await getNodes({
-            supabase,
-            spaceId,
-            schemaLocalIds: showingSchema.sourceLocalId,
-          }),
-        );
+        try {
+          setLoadingNodes(true);
+          setNodes(
+            await getNodes({
+              supabase,
+              spaceId,
+              schemaLocalIds: showingSchema.sourceLocalId,
+            }),
+          );
+          setLoadingNodes(false);
+        } catch (e) {
+          setError(`${e}`);
+          console.error("getNodes failed", e);
+        }
       }
     })();
     return () => {
       ignore = true;
     };
   }, [schemas, showingSchema, context, supabase]);
+
+  if (loading) {
+    return (
+      <div className="p-3">
+        <Spinner />
+        <span style={{ marginLeft: 8 }}>Loading admin data…</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <p style={{ color: "red" }}>{error}</p>;
+  }
 
   return (
     <div>
@@ -179,9 +211,7 @@ const AdminPanel = () => {
               <Button text={`display: ${showingSchema.name}`} />
             </Select>
           </div>
-          <div>
-            <NodeTable nodes={nodes} />
-          </div>
+          <div>{loadingNodes ? <Spinner /> : <NodeTable nodes={nodes} />}</div>
         </div>
       ) : (
         <p>No node schemas found</p>
