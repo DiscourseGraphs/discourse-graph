@@ -14,6 +14,7 @@ import {
   type PConcept,
 } from "@repo/database/lib/queries";
 import { DGSupabaseClient } from "@repo/database/lib/client";
+import { OnLoadArgs } from "esbuild";
 
 const NodeRow = ({ node }: { node: PConcept }) => {
   return (
@@ -113,7 +114,7 @@ const AdminPanel = () => {
           setSupabase(await getLoggedInClient());
         }
       } catch (e) {
-        setError(`${e}`);
+        setError((e as Error).message);
         console.error("AdminPanel init failed", e);
       }
     })();
@@ -129,7 +130,7 @@ const AdminPanel = () => {
         try {
           setSchemas(await getNodeSchemas(supabase, context.spaceId));
         } catch (e) {
-          setError(`${e}`);
+          setError((e as Error).message);
           console.error("getNodeSchemas failed", e);
         }
       }
@@ -161,7 +162,7 @@ const AdminPanel = () => {
           );
           setLoadingNodes(false);
         } catch (e) {
-          setError(`${e}`);
+          setError((e as Error).message);
           console.error("getNodes failed", e);
         }
       }
