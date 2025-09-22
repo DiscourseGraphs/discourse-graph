@@ -122,7 +122,7 @@ export const getNodeSchemas = async (
     };
     result = Object.values(NODE_SCHEMA_CACHE)
       .filter((x) => typeof x === "object")
-      .filter((x) => x.spaceId === spaceId);
+      .filter((x) => x.spaceId === spaceId || x.spaceId === 0);
   }
   return result;
 };
