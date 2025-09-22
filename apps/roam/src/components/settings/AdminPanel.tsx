@@ -115,6 +115,7 @@ const AdminPanel = () => {
         }
       } catch (e) {
         setError((e as Error).message);
+        setLoading(false);
         console.error("AdminPanel init failed", e);
       }
     })();
@@ -133,8 +134,8 @@ const AdminPanel = () => {
           setError((e as Error).message);
           console.error("getNodeSchemas failed", e);
         }
+        setLoading(false);
       }
-      setLoading(false);
     })();
     return () => {
       ignore = true;
