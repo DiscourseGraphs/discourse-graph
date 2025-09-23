@@ -24,7 +24,7 @@ Here’s how to contribute:
 
 ## Adding Documentation to the Website
 
-The Discourse Graphs website hosts documentation for both plugins and general information. Here's how to add or edit documentation:
+The Discourse Graphs website hosts documentation for plugins and general information. Here's how to add or edit documentation:
 
 ### Blog Posts
 
@@ -33,6 +33,7 @@ Blog posts are located in `/apps/website/app/(home)/blog/posts/`
 1. **Create your post file**: Copy `EXAMPLE.md` as a starting template and rename it to your desired URL slug (e.g., `my-new-post.md`)
 
 2. **Required metadata**: Every blog post must start with YAML frontmatter (reference `EXAMPLE.md` for the exact format):
+
    ```yaml
    ---
    title: "Your Post Title"
@@ -47,24 +48,24 @@ Blog posts are located in `/apps/website/app/(home)/blog/posts/`
 ### Plugin Documentation
 
 Plugin documentation is organized in `/apps/website/app/(docs)/docs/` with separate folders:
+
 - `/obsidian/pages/` - Obsidian plugin documentation
-- `/roam/pages/` - Roam Research extension documentation  
-- `/shared/` - Shared configuration files
+- `/roam/pages/` - Roam Research extension documentation
 - `/sharedPages/` - Documentation shared between platforms
 
 1. **Create your documentation file**: Add a new `.md` file in the appropriate platform's `pages/` folder
 2. **Use standard Markdown**: No special frontmatter is required for documentation files
 3. **Update navigation**: You may need to update the corresponding `navigation.ts` file to include your new page in the sidebar
 
-### Images and Media
+### Documentation Images
 
-All images should be placed in `/apps/website/public/` following this structure:
-- **General images**: `/public/` (root level for general website images)
-- **Documentation images**: `/public/docs/[platform]/` (e.g., `/public/docs/roam/` for Roam documentation images)
-- **Team photos**: `/public/team/`
-- **Other assets**: Use appropriate subfolders like `/public/social/`, `/public/supporter-logos/`, etc.
+All documentation images should be placed in `/apps/website/public/docs/[platform]/` following this structure:
+
+- **Platform-specific images**: `/public/docs/[platform]/` (e.g., `/public/docs/roam/`, `/public/docs/obsidian/`)
+- **General documentation images**: `/public/docs/`
 
 When referencing images in your documentation, use relative paths from the public folder:
+
 ```markdown
 ![Alt text](/docs/roam/my-image.png)
 ```
