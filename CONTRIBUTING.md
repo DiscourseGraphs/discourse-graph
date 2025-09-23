@@ -74,9 +74,9 @@ When referencing images in your documentation, use relative paths from the publi
 
 To preview your changes locally:
 
-1. **Environment setup**: Copy `/apps/website/.env.example` to `/apps/website/.env.local` and configure any necessary environment variables
+1. **Environment setup**: Copy `/apps/website/.env.example` to `/apps/website/.env` and configure any necessary environment variables
 2. **Install dependencies**: Run `npm install` from the project root
-3. **Start development server**: Run `npm run dev` or `turbo dev` to start the website locally
+3. **Start development server**: Run `npm run dev` or `npx turbo dev` to start the website locally
 4. **View your changes**: Navigate to `http://localhost:3000` to see your documentation
 
 The website uses Next.js with the App Router, so changes to Markdown files should be reflected automatically during development.
