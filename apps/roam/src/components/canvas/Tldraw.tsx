@@ -656,7 +656,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                 // navigate / open in sidebar
                 const validModifier = e.shiftKey || e.ctrlKey; // || e.metaKey;
                 if (!(e.name === "pointer_up" && validModifier)) return;
-                if (app.getSelectedShapes().length) return; // User is positioning selected shape
                 const shape = app.getShapeAtPoint(
                   app.inputs.currentPagePoint,
                 ) as DiscourseNodeShape;
@@ -672,7 +671,11 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                   });
                 }
 
-                if (e.shiftKey) openBlockInSidebar(shapeUid);
+                if (e.shiftKey) {
+                  if (app.getSelectedShapes().length > 1) return; // User is selecting multiple shapes
+                  void openBlockInSidebar(shapeUid);
+                  app.selectNone();
+                }
 
                 if (
                   e.ctrlKey
