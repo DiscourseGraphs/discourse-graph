@@ -98,8 +98,8 @@ export const getNodeSchemas = async (
 ): Promise<NodeSignature[]> => {
   let result = Object.values(NODE_SCHEMA_CACHE)
     .filter((x) => typeof x === "object")
-    .filter((x) => x.spaceId === spaceId);
-  if (forceCacheReload || result.length === 0) {
+    .filter((x) => x.spaceId === spaceId || x.spaceId === 0);
+  if (forceCacheReload || result.length === 1) {
     const q = composeQuery({ supabase, spaceId });
     const res = (await q) as PostgrestResponse<defaultQueryShape>;
     if (res.error) {

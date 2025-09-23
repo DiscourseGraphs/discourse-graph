@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { HTMLTable, Button, MenuItem, Spinner } from "@blueprintjs/core";
+import { HTMLTable, Button, MenuItem, Spinner, Label } from "@blueprintjs/core";
 import { Select } from "@blueprintjs/select";
 import {
   getSupabaseContext,
@@ -14,11 +14,10 @@ import {
   type PConcept,
 } from "@repo/database/lib/queries";
 import { DGSupabaseClient } from "@repo/database/lib/client";
-import { OnLoadArgs } from "esbuild";
 
 const NodeRow = ({ node }: { node: PConcept }) => {
   return (
-    <tr key={node.id}>
+    <tr>
       <td>{node.name}</td>
       <td>{node.created}</td>
       <td>{node.last_modified}</td>
@@ -110,13 +109,15 @@ const AdminPanel = () => {
         if (!ignore) {
           setContext(await getSupabaseContext());
         }
+        // Ask for logged-in client _after_ the context
         if (!ignore) {
           setSupabase(await getLoggedInClient());
         }
       } catch (e) {
         setError((e as Error).message);
-        setLoading(false);
         console.error("AdminPanel init failed", e);
+      } finally {
+        setLoading(false);
       }
     })();
     return () => {
@@ -133,8 +134,9 @@ const AdminPanel = () => {
         } catch (e) {
           setError((e as Error).message);
           console.error("getNodeSchemas failed", e);
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       }
     })();
     return () => {
@@ -161,10 +163,11 @@ const AdminPanel = () => {
               schemaLocalIds: showingSchema.sourceLocalId,
             }),
           );
-          setLoadingNodes(false);
         } catch (e) {
           setError((e as Error).message);
           console.error("getNodes failed", e);
+        } finally {
+          setLoadingNodes(false);
         }
       }
     })();
@@ -177,48 +180,51 @@ const AdminPanel = () => {
     return (
       <div className="p-3">
         <Spinner />
-        <span style={{ marginLeft: 8 }}>Loading admin data…</span>
+        <span className="mx-2">Loading admin data…</span>
       </div>
     );
   }
 
   if (error) {
-    return <p style={{ color: "red" }}>{error}</p>;
+    return <p className="text-red-700">{error}</p>;
   }
 
   return (
-    <div>
+    <>
       <p>
         Context:{" "}
         <code>{JSON.stringify({ ...context, spacePassword: "****" })}</code>
       </p>
-      {Object.keys(schemas).length > 0 ? (
-        <div>
-          <div>
-            <Select
-              items={schemas}
-              onItemSelect={(choice) => {
-                setShowingSchema(choice);
-              }}
-              itemRenderer={(node, { handleClick, modifiers }) => (
-                <MenuItem
-                  active={modifiers.active}
-                  key={node.sourceLocalId}
-                  label={node.name}
-                  onClick={handleClick}
-                  text={node.name}
-                />
-              )}
-            >
-              <Button text={`display: ${showingSchema.name}`} />
-            </Select>
-          </div>
+      {schemas.length > 0 ? (
+        <>
+          <Label>
+            Display:
+            <div className="mx-2 inline-block">
+              <Select
+                items={schemas}
+                onItemSelect={(choice) => {
+                  setShowingSchema(choice);
+                }}
+                itemRenderer={(node, { handleClick, modifiers }) => (
+                  <MenuItem
+                    active={modifiers.active}
+                    key={node.sourceLocalId}
+                    label={node.name}
+                    onClick={handleClick}
+                    text={node.name}
+                  />
+                )}
+              >
+                <Button text={showingSchema.name} />
+              </Select>
+            </div>
+          </Label>
           <div>{loadingNodes ? <Spinner /> : <NodeTable nodes={nodes} />}</div>
-        </div>
+        </>
       ) : (
         <p>No node schemas found</p>
       )}
-    </div>
+    </>
   );
 };
 
