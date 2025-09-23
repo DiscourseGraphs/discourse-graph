@@ -7,24 +7,6 @@ const projectRoot = join(__dirname, "..");
 
 const main = () => {
   try {
-    exec("which sqruff", (err) => {
-      if (err) {
-        console.error("Could not find sqruff, you may want to install it.");
-        // Do not fail yet
-      } else {
-        const command =
-          process.argv.length == 3 && process.argv[2] == "-f" ? "fix" : "lint";
-        exec(
-          `sqruff ${command} supabase/schemas`,
-          {},
-          (err, stdout, stderr) => {
-            console.log(`${stdout}`);
-            console.log(`${stderr}`);
-            process.exit(err ? err.code : 0);
-          },
-        );
-      }
-    });
     let denoError = false;
     exec("which deno", (err) => {
       if (err) {
@@ -32,6 +14,7 @@ const main = () => {
         // Do not fail yet
       } else {
         const fnDir = join(projectRoot, "supabase", "functions");
+        const fix = process.argv.length == 3 && process.argv[2] == "-f";
         readdir(fnDir, { withFileTypes: true }, (err, files: Dirent[]) => {
           if (err) {
             console.error("error:", err);
@@ -40,7 +23,7 @@ const main = () => {
           files.forEach((file) => {
             if (file.isDirectory()) {
               exec(
-                "deno lint index.ts",
+                fix ? "deno lint --fix index.ts" : "deno lint index.ts",
                 { cwd: join(fnDir, file.name) },
                 (err, stdout, stderr) => {
                   stderr = stderr.replace("Checked 1 file", "");
