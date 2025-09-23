@@ -80,5 +80,5 @@ cucumber_js
     build -> prepare
     build -> tsc
     s_genTypes -> generate_schema
-
+    s_migrate -> sup_start
 }

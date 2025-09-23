@@ -18,7 +18,7 @@ if (getVariant() === "none") {
   console.log("Not using the database");
   process.exit(0);
 }
-if (getVariant() === "production") {
+if (getVariant() === "production" || getVariant() === "implicit") {
   console.log("Not updating the production database");
   process.exit(0);
 }
