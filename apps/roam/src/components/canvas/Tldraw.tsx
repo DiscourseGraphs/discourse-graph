@@ -674,6 +674,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                 if (e.shiftKey) {
                   if (app.getSelectedShapes().length > 1) return; // User is selecting multiple shapes
                   void openBlockInSidebar(shapeUid);
+                  app.selectNone();
                 }
 
                 if (
