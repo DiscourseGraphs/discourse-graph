@@ -151,6 +151,97 @@ const DEFAULT_RELATION_VALUES: InputTextNode[] = [
               },
             ],
           },
+          {
+            text: "And",
+            children: [
+              {
+                text: "Page",
+                children: [
+                  {
+                    text: "is a",
+                    children: [{ text: "destination", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "Block",
+                children: [
+                  {
+                    text: "references",
+                    children: [{ text: "Page", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "SBlock",
+                children: [
+                  {
+                    text: "references",
+                    children: [{ text: "SPage", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "SPage",
+                children: [
+                  {
+                    text: "has title",
+                    children: [{ text: "Supports", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "SBlock",
+                children: [
+                  {
+                    text: "has child",
+                    children: [{ text: "Block", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "PBlock",
+                children: [
+                  {
+                    text: "references",
+                    children: [{ text: "ParentPage", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "PBlock",
+                children: [
+                  {
+                    text: "has child",
+                    children: [{ text: "SBlock", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "ParentPage",
+                children: [
+                  {
+                    text: "is a",
+                    children: [{ text: "source", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "Node Positions",
+                children: [
+                  { text: "7", children: [{ text: "250 325" }] },
+                  { text: "8", children: [{ text: "100 325" }] },
+                  { text: "9", children: [{ text: "100 200" }] },
+                  { text: "10", children: [{ text: "250 200" }] },
+                  { text: "11", children: [{ text: "400 200" }] },
+                  { text: "12", children: [{ text: "100 75" }] },
+                  { text: "13", children: [{ text: "250 75" }] },
+                  { text: "source", children: [{ text: "400 75" }] },
+                  { text: "destination", children: [{ text: "400 325" }] },
+                ],
+              },
+            ],
+          },
         ],
       },
     ],
@@ -251,6 +342,97 @@ const DEFAULT_RELATION_VALUES: InputTextNode[] = [
                   { text: "6", children: [{ text: "250 75" }] },
                   { text: "source", children: [{ text: "400 325" }] },
                   { text: "destination", children: [{ text: "400 75" }] },
+                ],
+              },
+            ],
+          },
+          {
+            text: "And",
+            children: [
+              {
+                text: "Page",
+                children: [
+                  {
+                    text: "is a",
+                    children: [{ text: "destination", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "Block",
+                children: [
+                  {
+                    text: "references",
+                    children: [{ text: "Page", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "SBlock",
+                children: [
+                  {
+                    text: "references",
+                    children: [{ text: "SPage", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "SPage",
+                children: [
+                  {
+                    text: "has title",
+                    children: [{ text: "Opposes", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "SBlock",
+                children: [
+                  {
+                    text: "has child",
+                    children: [{ text: "Block", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "PBlock",
+                children: [
+                  {
+                    text: "references",
+                    children: [{ text: "ParentPage", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "PBlock",
+                children: [
+                  {
+                    text: "has child",
+                    children: [{ text: "SBlock", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "ParentPage",
+                children: [
+                  {
+                    text: "is a",
+                    children: [{ text: "source", children: [] }],
+                  },
+                ],
+              },
+              {
+                text: "Node Positions",
+                children: [
+                  { text: "7", children: [{ text: "250 325" }] },
+                  { text: "8", children: [{ text: "100 325" }] },
+                  { text: "9", children: [{ text: "100 200" }] },
+                  { text: "10", children: [{ text: "250 200" }] },
+                  { text: "11", children: [{ text: "400 200" }] },
+                  { text: "12", children: [{ text: "100 75" }] },
+                  { text: "13", children: [{ text: "250 75" }] },
+                  { text: "source", children: [{ text: "400 75" }] },
+                  { text: "destination", children: [{ text: "400 325" }] },
                 ],
               },
             ],
