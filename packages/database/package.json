@@ -28,7 +28,7 @@
     "serve": "supabase start && supabase functions serve",
     "stop": "supabase stop",
     "check-types": "tsc --noEmit --skipLibCheck",
-    "check-schema": "tsx scripts/lint.ts && supabase stop && npm run dbdiff",
+    "check-schema": "tsx scripts/lint_sql.ts && supabase stop && npm run dbdiff",
     "lint": "eslint . && tsx scripts/lint_schemas.ts && tsx scripts/lint_functions.ts",
     "lint:fix": "eslint --fix . && tsx scripts/lint_schemas.ts -f && tsx scripts/lint_functions.ts",
     "migrate": "tsx scripts/migrate.ts",
