@@ -29,6 +29,7 @@
     "check-schema": "tsx scripts/lint.ts && supabase stop && npm run dbdiff",
     "lint": "eslint . && tsx scripts/lint.ts",
     "lint:fix": "tsx scripts/lint.ts -f",
+    "migrate": "tsx scripts/migrate.ts",
     "build": "tsx scripts/createEnv.mts && tsc",
     "build-schema": "tsx scripts/build.ts && tsx scripts/createEnv.mts -- local",
     "test": "tsc && cucumber-js",
