@@ -17,3 +17,20 @@
 .dg-h4 {
   @apply text-lg font-bold mb-2;
 }
+
+.dg-create-node-button {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 11px;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+.dg-create-node-button:hover {
+  background: var(--interactive-accent-hover);
+}
