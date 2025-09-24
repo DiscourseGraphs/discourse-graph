@@ -2,7 +2,7 @@ import { exec } from "node:child_process";
 
 const main = () => {
   try {
-    exec("which sqruff", (err) => {
+    exec("sqruff --version", (err) => {
       if (err) {
         console.error("Could not find sqruff, you may want to install it.");
         // Do not fail yet
@@ -14,7 +14,7 @@ const main = () => {
           {},
           (err, stdout, stderr) => {
             console.log(`${stdout}`);
-            console.log(`${stderr}`);
+            if (stderr) console.log(`${stderr}`);
             process.exit(err ? err.code : 0);
           },
         );

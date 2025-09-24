@@ -26,8 +26,10 @@ const main = () => {
                 fix ? "deno lint --fix index.ts" : "deno lint index.ts",
                 { cwd: join(fnDir, file.name) },
                 (err, stdout, stderr) => {
-                  stderr = stderr.replace("Checked 1 file", "");
-                  if (err !== null || stderr.trim().length > 0) {
+                  const filteredStderr = stderr
+                    .replace("Checked 1 file", "")
+                    .trim();
+                  if (err !== null || filteredStderr.length > 0) {
                     console.error(
                       `deno errors for ${file.name}: ${err?.message ?? ""}\n${stdout}`,
                     );

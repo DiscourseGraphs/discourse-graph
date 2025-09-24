@@ -22,9 +22,9 @@
   },
   "scripts": {
     "init": "supabase login",
-    "prepare": "npm run genenv && npm run migrate",
-    "dev": "npm run prepare && npm run serve",
-    "build": "npm run prepare && tsc",
+    "setup": "npm run genenv && npm run migrate",
+    "dev": "npm run setup && npm run serve",
+    "build": "npm run setup && tsc",
     "serve": "supabase start && supabase functions serve",
     "stop": "supabase stop",
     "check-types": "tsc --noEmit --skipLibCheck",

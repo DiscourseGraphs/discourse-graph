@@ -6,35 +6,53 @@ import { getVariant } from "@repo/database/dbDotEnv";
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, "..");
 
-if (process.env.HOME === "/vercel") {
-  console.log("Not running in production environment");
+if (process.env.HOME === "/vercel" || process.env.GITHUB_ACTIONS === "true") {
+  console.log("Skipping in production environment");
   process.exit(0);
 }
 
-const includeAll = process.argv[process.argv.length - 1] === "--include-all";
-const reapply = process.argv[process.argv.length - 2] === "--reapply";
-const reapplyVersion = reapply ? process.argv[process.argv.length - 1]! : "";
+const argv = process.argv.slice(2);
+const includeAll = argv.includes("--include-all");
+const reapplyIdx = argv.indexOf("--reapply");
+const reapply = reapplyIdx !== -1;
+const reapplyVersion = reapply ? (argv[reapplyIdx + 1] ?? "") : "";
+if (reapply && !reapplyVersion) {
+  console.error("Missing <migration timestamp> after --reapply");
+  process.exit(1);
+}
+
 if (getVariant() === "none") {
   console.log("Not using the database");
   process.exit(0);
 }
-if (getVariant() === "production" || getVariant() === "implicit") {
-  console.log("Not updating the production database");
+if (
+  getVariant() === "production" ||
+  (getVariant() === "implicit" &&
+    !(process.env.SUPABASE_URL || "").includes("127.0.0.1"))
+) {
+  console.log("Refusing to update the production database");
   process.exit(0);
 }
-const startResult = spawnSync("supabase start", {
+const startResult = spawnSync("supabase", ["start"], {
   cwd: projectRoot,
+  stdio: "inherit",
 });
 if (startResult.status) {
-  process.exit(1);
+  process.exit(startResult.status);
 }
 if (reapply) {
   const dir = opendirSync(join(projectRoot, "supabase", "migrations"));
   const files = [];
+  const fre = /^\d{14}_.*/;
   while (true) {
     const f = dir.readSync();
-    if (f === null) break;
-    files.push(f.name.substring(0, 14));
+    if (f === null) {
+      dir.closeSync();
+      break;
+    }
+    if (fre.test(f.name)) {
+      files.push(f.name.substring(0, 14));
+    }
   }
   if (!files.length) {
     console.error("No migration files found");
@@ -54,11 +72,11 @@ if (reapply) {
     ["migration", "repair", "--status", "reverted", "--local", reapplyVersion],
     {
       cwd: projectRoot,
+      stdio: "inherit",
     },
   );
   if (result.status) {
-    console.error(result.stderr?.toString());
-    process.exit(1);
+    process.exit(result.status);
   }
 }
 let migrationArgs = ["migration", "up", "--local"];
@@ -89,6 +107,7 @@ if (migrationLines.length > 0) {
   console.log("Migrations were applied, regenerating dbTypes");
   const generateResult = spawnSync("npm", ["run", "gentypes"], {
     cwd: projectRoot,
+    stdio: "inherit",
   });
   if (generateResult.status) {
     console.error("Failed to generate types");
