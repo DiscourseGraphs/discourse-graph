@@ -41,6 +41,7 @@ import {
   BaseRelationBindingUtil,
 } from "~/components/canvas/shapes/DiscourseRelationBinding";
 import ToastListener from "./ToastListener";
+import { RelationsOverlay } from "./overlays/RelationOverlay";
 
 interface TldrawPreviewProps {
   store: TLStore;
@@ -279,6 +280,9 @@ export const TldrawPreviewComponent = ({
                   </DefaultToolbar>
                 );
               },
+              InFrontOfTheCanvas: () => (
+                <RelationsOverlay plugin={plugin} file={file} />
+              ),
             }}
           />
         </ErrorBoundary>

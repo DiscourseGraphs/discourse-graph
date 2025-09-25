@@ -1,4 +1,4 @@
-import { App, TFile } from "obsidian";
+import { App, CachedMetadata, TFile } from "obsidian";
 import { TLAsset, TLAssetStore, TLAssetId, TLAssetContext } from "tldraw";
 import { JsonObject } from "@tldraw/utils";
 import DiscourseGraphPlugin from "~/index";
@@ -79,18 +79,23 @@ export const extractBlockRefId = (assetIdOrSrc?: string): string | null => {
  * Given a block reference id present in the current canvas markdown file, resolve
  * the linked Obsidian file referenced by the block (i.e., the file inside the [[link]]).
  */
-export const resolveLinkedTFileByBlockRef = async (
-  app: App,
-  canvasFile: TFile,
-  blockRefId: string,
-): Promise<TFile | null> => {
+export const resolveLinkedTFileByBlockRef = async ({
+  app,
+  canvasFile,
+  blockRefId,
+  canvasFileCache,
+}: {
+  app: App;
+  canvasFile: TFile;
+  blockRefId: string;
+  canvasFileCache: CachedMetadata;
+}): Promise<TFile | null> => {
   try {
     if (!blockRefId) return null;
 
-    const fileCache = app.metadataCache.getFileCache(canvasFile);
-    if (!fileCache?.blocks?.[blockRefId]) return null;
+    if (!canvasFileCache?.blocks?.[blockRefId]) return null;
 
-    const block = fileCache.blocks[blockRefId];
+    const block = canvasFileCache.blocks[blockRefId];
     const fileContent = await app.vault.read(canvasFile);
     const blockContent = fileContent.substring(
       block.position.start.offset,
@@ -111,6 +116,59 @@ export const resolveLinkedTFileByBlockRef = async (
   }
 };
 
+/**
+ * Ensure there is a block reference in the canvas file that links to the given file.
+ * Return the blockRef id; create it if it doesn't exist yet.
+ */
+export const ensureBlockRefForFile = async ({
+  app,
+  canvasFile,
+  targetFile,
+}: {
+  app: App;
+  canvasFile: TFile;
+  targetFile: TFile;
+}): Promise<string> => {
+  // First, scan existing blocks to see if any link to the target file
+  const fileCache = app.metadataCache.getFileCache(canvasFile);
+  if (!fileCache) return "";
+  const blocks = fileCache.blocks ?? {};
+  for (const [blockId] of Object.entries(blocks)) {
+    const linked = await resolveLinkedTFileByBlockRef({
+      app,
+      canvasFile,
+      blockRefId: blockId,
+      canvasFileCache: fileCache,
+    });
+    if (linked && linked.path === targetFile.path) {
+      return blockId;
+    }
+  }
+
+  // Create a new block ref at the top that links to the target file
+  const blockRefId = crypto.randomUUID();
+  const linkText = app.metadataCache.fileToLinktext(
+    targetFile,
+    canvasFile.path,
+  );
+  const internalLink = `[[${linkText}]]`;
+  const linkBlock = `${internalLink}\n^${blockRefId}`;
+
+  // Insert right after frontmatter
+  await app.vault.process(canvasFile, (data: string) => {
+    const cache = app.metadataCache.getFileCache(canvasFile);
+    const { start, end } = cache?.frontmatterPosition ?? {
+      start: { offset: 0 },
+      end: { offset: 0 },
+    };
+    const frontmatter = data.slice(start.offset, end.offset);
+    const rest = data.slice(end.offset);
+    return `${frontmatter}\n${linkBlock}\n${rest}`;
+  });
+
+  return blockRefId;
+};
+
 export const resolveLinkedFileFromSrc = async ({
   app,
   canvasFile,
@@ -122,8 +180,14 @@ export const resolveLinkedFileFromSrc = async ({
 }): Promise<TFile | null> => {
   if (!src) return null;
   const blockRef = extractBlockRefId(src);
-  if (!blockRef) return null;
-  return resolveLinkedTFileByBlockRef(app, canvasFile, blockRef);
+  const canvasFileCache = app.metadataCache.getFileCache(canvasFile);
+  if (!blockRef || !canvasFileCache) return null;
+  return resolveLinkedTFileByBlockRef({
+    app,
+    canvasFile,
+    blockRefId: blockRef,
+    canvasFileCache,
+  });
 };
 
 /**
@@ -240,13 +304,15 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
   ): Promise<ArrayBuffer | null> => {
     try {
       const blockRef = extractBlockRefId(blockRefAssetId);
-      if (!blockRef) return null;
+      const canvasFileCache = this.app.metadataCache.getFileCache(this.file);
+      if (!blockRef || !canvasFileCache) return null;
 
-      const linkedFile = await resolveLinkedTFileByBlockRef(
-        this.app,
-        this.file,
-        blockRef,
-      );
+      const linkedFile = await resolveLinkedTFileByBlockRef({
+        app: this.app,
+        canvasFile: this.file,
+        blockRefId: blockRef,
+        canvasFileCache,
+      });
       if (!linkedFile) return null;
       // TODO: handle other file types too
       return await this.app.vault.readBinary(linkedFile);
