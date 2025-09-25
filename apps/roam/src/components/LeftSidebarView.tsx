@@ -175,7 +175,7 @@ const PersonalSectionItem = ({
 
   return (
     <>
-      <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-7 pr-2.5 font-semibold outline-none">
+      <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none">
         <div className="flex w-full items-center justify-between">
           <div
             className="flex items-center"
@@ -235,7 +235,7 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
   return (
     <>
       <div
-        className="sidebar-title-button flex w-full items-center border-none bg-transparent py-1 pl-7 pr-2.5 font-semibold outline-none"
+        className="sidebar-title-button flex w-full items-center border-none bg-transparent py-1 pl-6 pr-2.5 font-semibold outline-none"
         onClick={() => {
           if (!isCollapsable || !config.settings) return;
           toggleFoldedState({
@@ -352,7 +352,7 @@ const FavouritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     <>
       <Divider className="mx-5" style={{ borderColor: "rgb(57, 75, 89)" }} />
       <div style={{ height: "8px" }}></div>
-      <div className="flex w-full items-center justify-between pb-1 pl-7 pr-2.5 font-semibold">
+      <div className="flex w-full items-center justify-between pb-1 pl-6 pr-2.5 font-semibold">
         <span className="flex items-baseline">
           <Icon icon="star" iconSize={14} />
           <div style={{ width: 8 }}></div>

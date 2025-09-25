@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
 import { Button, Collapse } from "@blueprintjs/core";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
@@ -15,7 +15,6 @@ import { LeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
-import { memo } from "react";
 
 const PageItem = memo(
   ({
