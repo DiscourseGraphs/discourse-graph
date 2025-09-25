@@ -25,7 +25,10 @@ import {
   approximately,
   BindingOnShapeDeleteOptions,
 } from "tldraw";
-import { DiscourseRelationShape } from "./DiscourseRelationShape";
+import {
+  DiscourseRelationShape,
+  DiscourseRelationUtil,
+} from "./DiscourseRelationShape";
 import {
   assert,
   getArrowBindings,
@@ -62,6 +65,7 @@ export type RelationInfo =
 export type RelationBinding = TLBaseBinding<string, TLArrowBindingProps>;
 export class BaseRelationBindingUtil extends BindingUtil<RelationBinding> {
   static override props = arrowBindingProps;
+  private static reifiedArrows = new Set<string>();
 
   override getDefaultProps(): Partial<TLArrowBindingProps> {
     return {
@@ -76,10 +80,10 @@ export class BaseRelationBindingUtil extends BindingUtil<RelationBinding> {
   override onAfterCreate({
     binding,
   }: BindingOnCreateOptions<RelationBinding>): void {
-    arrowDidUpdate(
-      this.editor,
-      this.editor.getShape(binding.fromId) as DiscourseRelationShape,
-    );
+    const arrow = this.editor.getShape(
+      binding.fromId,
+    ) as DiscourseRelationShape;
+    arrowDidUpdate(this.editor, arrow);
   }
 
   // when the binding itself changes
@@ -113,6 +117,8 @@ export class BaseRelationBindingUtil extends BindingUtil<RelationBinding> {
     const arrow = this.editor.getShape<DiscourseRelationShape>(binding.fromId);
     if (!arrow) return;
     // this.editor.deleteShape(arrow.id); // we don't want to keep the arrow
+    // Clean up tracking when arrow becomes unbound
+    BaseRelationBindingUtil.reifiedArrows.delete(arrow.id);
 
     updateArrowTerminal({
       editor: this.editor,
@@ -127,7 +133,40 @@ export class BaseRelationBindingUtil extends BindingUtil<RelationBinding> {
     const arrow = this.editor.getShape<DiscourseRelationShape>(binding.fromId);
     // if toShape is deleted, delete the arrow
     // we don't want any unbound arrows hanging around
-    if (arrow) this.editor.deleteShape(arrow.id);
+    if (arrow) {
+      BaseRelationBindingUtil.reifiedArrows.delete(arrow.id);
+      this.editor.deleteShape(arrow.id);
+    }
+  }
+
+  /**
+   * Check selected relation shapes for completed bindings
+   * Called from mouseup event handler
+   */
+  static checkAndReifyRelation(editor: Editor): void {
+    const selectedShapes = editor.getSelectedShapes();
+    const relationShapes = selectedShapes.filter(
+      (shape) => shape.type === "discourse-relation",
+    ) as DiscourseRelationShape[];
+
+    relationShapes.forEach((arrow) => {
+      const bindings = getArrowBindings(editor, arrow);
+      if (
+        bindings.start &&
+        bindings.end &&
+        !BaseRelationBindingUtil.reifiedArrows.has(arrow.id)
+      ) {
+        BaseRelationBindingUtil.reifiedArrows.add(arrow.id);
+        const util = editor.getShapeUtil(arrow);
+        if (util instanceof DiscourseRelationUtil) {
+          util.reifyRelationInFrontmatter(arrow, bindings).catch((error) => {
+            console.error("Failed to reify relation in frontmatter:", error);
+            // Remove from reified set on error so it can be retried
+            BaseRelationBindingUtil.reifiedArrows.delete(arrow.id);
+          });
+        }
+      }
+    });
   }
 }
 

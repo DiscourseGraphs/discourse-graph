@@ -44,7 +44,6 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     src: T.string.nullable(),
     title: T.string.optional(),
     nodeTypeId: T.string.nullable().optional(),
-    nodeTypeName: T.string.optional(),
   };
 
   getDefaultProps(): DiscourseNodeShape["props"] {
