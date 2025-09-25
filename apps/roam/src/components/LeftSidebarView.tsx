@@ -8,6 +8,17 @@ import React, {
 } from "react";
 import ReactDOM from "react-dom";
 import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+  DraggableProvided,
+  DraggableStateSnapshot,
+  DroppableProvided,
+  DragStart,
+  DraggingRubric,
+} from "@hello-pangea/dnd";
+import {
   Collapse,
   Icon,
   Popover,
@@ -147,8 +158,10 @@ const SectionChildren = ({
 
 const PersonalSectionItem = ({
   section,
+  activeDragSourceId,
 }: {
   section: LeftSidebarPersonalSectionConfig;
+  activeDragSourceId: string | null;
 }) => {
   const titleRef = parseReference(section.text);
   const blockText = useMemo(
@@ -160,7 +173,33 @@ const PersonalSectionItem = ({
   const [isOpen, setIsOpen] = useState<boolean>(
     !!section.settings?.folded.value || false,
   );
-  const alias = section.settings?.alias?.value;
+
+  const renderChild = (
+    dragProvided: DraggableProvided,
+    child: { text: string; uid: string },
+  ) => {
+    const ref = parseReference(child.text);
+    const label = truncate(ref.display, truncateAt);
+    const onClick = (e: React.MouseEvent) => {
+      return void openTarget(e, child.text);
+    };
+    return (
+      <div
+        ref={dragProvided.innerRef}
+        {...dragProvided.draggableProps}
+        {...dragProvided.dragHandleProps}
+        style={dragProvided.draggableProps.style}
+        className="pl-8 pr-2.5"
+      >
+        <div
+          className="section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
+          onClick={onClick}
+        >
+          {label}
+        </div>
+      </div>
+    );
+  };
 
   const handleChevronClick = () => {
     if (!section.settings) return;
@@ -187,7 +226,7 @@ const PersonalSectionItem = ({
               }
             }}
           >
-            {(alias || blockText || titleRef.display).toUpperCase()}
+            {(blockText || titleRef.display).toUpperCase()}
           </div>
           {(section.children?.length || 0) > 0 && (
             <span
@@ -200,10 +239,39 @@ const PersonalSectionItem = ({
         </div>
       </div>
       <Collapse isOpen={isOpen}>
-        <SectionChildren
-          childrenNodes={section.children || []}
-          truncateAt={truncateAt}
-        />
+        <Droppable
+          droppableId={section.uid}
+          type="ITEMS"
+          isDropDisabled={
+            !!activeDragSourceId && activeDragSourceId !== section.uid
+          }
+          renderClone={(
+            provided: DraggableProvided,
+            _: DraggableStateSnapshot,
+            rubric: DraggingRubric,
+          ) => {
+            const child = (section.children || [])[rubric.source.index];
+            return renderChild(provided, child);
+          }}
+        >
+          {(provided: DroppableProvided) => (
+            <div ref={provided.innerRef} {...provided.droppableProps}>
+              {(section.children || []).map((child, index) => (
+                <Draggable
+                  key={child.uid}
+                  draggableId={child.uid}
+                  index={index}
+                  isDragDisabled={(section.children || []).length <= 1}
+                >
+                  {(dragProvided: DraggableProvided) => {
+                    return renderChild(dragProvided, child);
+                  }}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
       </Collapse>
     </>
   );
@@ -211,17 +279,122 @@ const PersonalSectionItem = ({
 
 const PersonalSections = ({
   config,
+  setConfig,
 }: {
-  config: LeftSidebarConfig["personal"];
+  config: LeftSidebarConfig;
+  setConfig: Dispatch<SetStateAction<LeftSidebarConfig>>;
 }) => {
-  const sections = config.sections || [];
+  const sections = config.personal.sections || [];
+
   if (!sections.length) return null;
+  const [activeDragSourceId, setActiveDragSourceId] = useState<string | null>(
+    null,
+  );
+
+  const handleDragStart = (start: DragStart) => {
+    if (start.type === "ITEMS") {
+      setActiveDragSourceId(start.source.droppableId);
+    }
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    setActiveDragSourceId(null);
+    const { source, destination, type } = result;
+
+    if (!destination) return;
+
+    if (type === "SECTIONS") {
+      if (destination.index === source.index) return;
+
+      const newPersonalSections = Array.from(config.personal.sections);
+      const [removed] = newPersonalSections.splice(source.index, 1);
+      newPersonalSections.splice(destination.index, 0, removed);
+
+      setConfig({
+        ...config,
+        personal: { ...config.personal, sections: newPersonalSections },
+      });
+      const finalIndex =
+        destination.index > source.index
+          ? destination.index + 1
+          : destination.index;
+      void window.roamAlphaAPI.moveBlock({
+        location: { "parent-uid": config.personal.uid, order: finalIndex },
+        block: { uid: removed.uid },
+      });
+      return;
+    }
+
+    if (type === "ITEMS") {
+      if (source.droppableId !== destination.droppableId) {
+        return;
+      }
+
+      if (destination.index === source.index) {
+        return;
+      }
+
+      const newConfig = JSON.parse(JSON.stringify(config)) as LeftSidebarConfig;
+      const { personal } = newConfig;
+
+      const listToReorder = personal.sections.find(
+        (s) => s.uid === source.droppableId,
+      );
+      const parentUid = listToReorder?.childrenUid;
+      const listToReorderChildren = listToReorder?.children;
+
+      if (!listToReorderChildren) return;
+
+      const [removedItem] = listToReorderChildren.splice(source.index, 1);
+      listToReorderChildren.splice(destination.index, 0, removedItem);
+
+      setConfig(newConfig);
+      const finalIndex =
+        destination.index > source.index
+          ? destination.index + 1
+          : destination.index;
+      void window.roamAlphaAPI.moveBlock({
+        location: { "parent-uid": parentUid || "", order: finalIndex },
+        block: { uid: removedItem.uid },
+      });
+    }
+  };
   return (
-    <div className="personal-left-sidebar-sections">
-      {sections.map((s) => (
-        <PersonalSectionItem key={s.uid} section={s} />
-      ))}
-    </div>
+    <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+      <Droppable droppableId="personal-sections" type="SECTIONS">
+        {(provided: DroppableProvided) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className="personal-left-sidebar-sections"
+          >
+            {sections.map((section, index) => (
+              <Draggable
+                key={section.uid}
+                draggableId={section.uid}
+                index={index}
+                isDragDisabled={sections.length <= 1}
+              >
+                {(dragProvided: DraggableProvided) => (
+                  <div
+                    ref={dragProvided.innerRef}
+                    {...dragProvided.draggableProps}
+                    {...dragProvided.dragHandleProps}
+                    style={dragProvided.draggableProps.style}
+                  >
+                    <PersonalSectionItem
+                      section={section}
+                      activeDragSourceId={activeDragSourceId}
+                    />
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+    </DragDropContext>
   );
 };
 
@@ -400,12 +573,16 @@ const FavouritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 };
 
 const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const config = useConfig();
+  const initialConfig = useConfig();
+  const [config, setConfig] = useState(initialConfig);
+  useEffect(() => {
+    setConfig(initialConfig);
+  }, [initialConfig]);
   return (
     <>
       <FavouritesPopover onloadArgs={onloadArgs} />
       <GlobalSection config={config.global} />
-      <PersonalSections config={config.personal} />
+      <PersonalSections config={config} setConfig={setConfig} />
     </>
   );
 };

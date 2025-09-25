@@ -13,6 +13,13 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import { getLeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { LeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+  DraggableProvided,
+} from "@hello-pangea/dnd";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 
@@ -20,12 +27,20 @@ const PageItem = memo(
   ({
     page,
     onRemove,
+    dragProvided,
   }: {
     page: RoamBasicNode;
     onRemove: (page: RoamBasicNode) => void;
+    dragProvided: DraggableProvided;
   }) => {
     return (
-      <div className="flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100">
+      <div
+        ref={dragProvided.innerRef}
+        {...dragProvided.draggableProps}
+        {...dragProvided.dragHandleProps}
+        style={dragProvided.draggableProps.style}
+        className="flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100"
+      >
         <span className="flex-grow truncate">{page.text}</span>
         <Button
           icon="trash"
@@ -115,6 +130,33 @@ const LeftSidebarGlobalSectionsContent = ({
 
     void initialize();
   }, [leftSidebar]);
+
+  const handleDragEnd = useCallback(
+    (result: DropResult) => {
+      const { source, destination } = result;
+      if (!destination || destination.index === source.index) {
+        return;
+      }
+
+      const newPages = Array.from(pages);
+      const [removed] = newPages.splice(source.index, 1);
+      newPages.splice(destination.index, 0, removed);
+
+      setPages(newPages);
+
+      if (childrenUid) {
+        void window.roamAlphaAPI
+          .moveBlock({
+            location: { "parent-uid": childrenUid, order: destination.index },
+            block: { uid: removed.uid },
+          })
+          .then(() => {
+            refreshAndNotify();
+          });
+      }
+    },
+    [pages, childrenUid],
+  );
 
   const addPage = useCallback(
     async (pageName: string) => {
@@ -273,15 +315,46 @@ const LeftSidebarGlobalSectionsContent = ({
               />
             </div>
             {pages.length > 0 ? (
-              <div className="space-y-1">
-                {pages.map((page) => (
-                  <PageItem
-                    key={page.uid}
-                    page={page}
-                    onRemove={() => void removePage(page)}
-                  />
-                ))}
-              </div>
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <Droppable
+                  droppableId="global-section-pages"
+                  renderClone={(provided, snapshot, rubric) => {
+                    const page = pages[rubric.source.index];
+                    return (
+                      <PageItem
+                        page={page}
+                        onRemove={() => void removePage(page)}
+                        dragProvided={provided}
+                      />
+                    );
+                  }}
+                >
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className="space-y-1"
+                    >
+                      {pages.map((page, index) => (
+                        <Draggable
+                          key={page.uid}
+                          draggableId={page.uid}
+                          index={index}
+                        >
+                          {(dragProvided) => (
+                            <PageItem
+                              page={page}
+                              onRemove={() => void removePage(page)}
+                              dragProvided={dragProvided}
+                            />
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
             ) : (
               <div className="text-sm italic text-gray-400">
                 No pages added yet
