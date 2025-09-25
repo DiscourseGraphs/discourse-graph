@@ -194,7 +194,7 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: Result) => {
-      waitForBlock(blockUid, textarea.value).then(() => {
+      void waitForBlock(blockUid, textarea.value).then(() => {
         onClose();
 
         setTimeout(() => {
@@ -205,11 +205,11 @@ const NodeSearchMenu = ({
           const pageRef = `[[${item.text}]]`;
 
           const newText = `${prefix}${pageRef}${suffix}`;
-          updateBlock({ uid: blockUid, text: newText }).then(() => {
+          void updateBlock({ uid: blockUid, text: newText }).then(() => {
             const newCursorPosition = triggerPosition + pageRef.length;
 
             if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
-              window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+              void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
                 location: {
                   "block-uid": blockUid,
                   "window-id": windowId,
