@@ -2,7 +2,7 @@ import { StateNode, TLEventHandlers, TLStateNodeConstructor } from "@tldraw/edit
 import { createShapeId } from "tldraw";
 import type { TFile } from "obsidian";
 import DiscourseGraphPlugin from "~/index";
-import { getRelationTypeById } from "./utils/relationUtils";
+import { getRelationTypeById } from "~/utils/utils";
 import { DiscourseRelationShape } from "./shapes/DiscourseRelationShape";
 import { getNodeTypeById } from "~/utils/utils";
 import { showToast } from "./utils/toastUtils";
