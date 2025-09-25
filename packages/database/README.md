@@ -1,6 +1,10 @@
 This contains the database schema for vector embeddings and concepts.
 
-There are four usage scenarios:
+The following describes four usage scenarios.
+Which one is used depends on the `SUPABASE_USE_DB` variable.
+By default, it is unset and no database is used.
+It can be set as an environment variable before using `turbo`, or in the `.env` file of each
+package and project that uses the database, currently: `./packages/database`, `app/features`, `app/website`.
 
 ## Developing without the database
 
