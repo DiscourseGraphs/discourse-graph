@@ -202,7 +202,7 @@ export const SettingsDialog = ({
           <Tab
             id="discourse-nodes"
             title="Nodes"
-            className="overflow-y-auto"
+            className="rm-settings__tab overflow-y-auto"
             panel={
               <DiscourseNodeConfigPanel
                 title="Nodes"
