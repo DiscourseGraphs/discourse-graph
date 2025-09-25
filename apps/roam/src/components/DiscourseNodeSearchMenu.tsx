@@ -193,7 +193,7 @@ const NodeSearchMenu = ({
   }, [filteredTypes, searchResults]);
 
   const onSelect = useCallback(
-    async (item: Result) => {
+    (item: Result) => {
       void waitForBlock(blockUid, textarea.value).then(() => {
         onClose();
 
