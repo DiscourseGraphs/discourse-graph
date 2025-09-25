@@ -64,24 +64,32 @@ export const SettingsDialog = ({
   onloadArgs,
   isOpen,
   onClose,
+  selectedTabId,
 }: {
   onloadArgs: OnloadArgs;
   isOpen?: boolean;
   onClose?: () => void;
+  selectedTabId?: TabId;
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const settings = getFormattedConfigTree();
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
-  const [selectedTabId, setSelectedTabId] = useState<TabId>(
-    "discourse-graph-home-personal",
+  const [activeTabId, setActiveTabId] = useState<TabId>(
+    selectedTabId ?? "discourse-graph-home-personal",
   );
+
+  useEffect(() => {
+    if (selectedTabId) {
+      setActiveTabId(selectedTabId);
+    }
+  }, [selectedTabId]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === "A") {
         e.stopPropagation();
         e.preventDefault();
-        setSelectedTabId("secret-admin-panel");
+        setActiveTabId("secret-admin-panel");
       }
     };
 
@@ -129,8 +137,8 @@ export const SettingsDialog = ({
         `}</style>
         <Tabs
           className="dg-settings-tabs flex h-full"
-          onChange={(id) => setSelectedTabId(id)}
-          selectedTabId={selectedTabId}
+          onChange={(id) => setActiveTabId(id)}
+          selectedTabId={activeTabId}
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
@@ -206,7 +214,7 @@ export const SettingsDialog = ({
                 uid={settings.nodesUid}
                 parentUid={settings.grammarUid}
                 defaultValue={[]}
-                setSelectedTabId={setSelectedTabId}
+                setSelectedTabId={setActiveTabId}
                 isPopup={true}
               />
             }

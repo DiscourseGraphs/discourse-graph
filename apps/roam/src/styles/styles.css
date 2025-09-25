@@ -137,7 +137,11 @@
 }
 
 .sidebar-title-button:hover,
-.sidebar-title-button-chevron:hover {
+.sidebar-title-button-add:hover {
   background-color: #10161a;
   color: #f5f8fa;
+}
+
+.starred-pages-wrapper {
+  padding: 0 !important;
 }

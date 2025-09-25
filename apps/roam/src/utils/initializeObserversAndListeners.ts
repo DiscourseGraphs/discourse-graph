@@ -110,7 +110,7 @@ export const initObservers = async ({
       const isLeftSidebarEnabled = getSetting(LEFT_SIDEBAR_ENABLED_KEY, false);
       if (!isLeftSidebarEnabled) return;
       const container = el as HTMLDivElement;
-      mountLeftSidebar(container);
+      mountLeftSidebar(container, onloadArgs);
     },
   });
 

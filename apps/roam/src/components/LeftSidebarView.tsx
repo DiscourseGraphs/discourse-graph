@@ -1,6 +1,24 @@
-import React, { useEffect, useMemo, useState } from "react";
+/* eslint-disable @typescript-eslint/naming-convention */
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ReactDOM from "react-dom";
-import { Collapse, Icon } from "@blueprintjs/core";
+import {
+  Collapse,
+  Icon,
+  Popover,
+  Menu,
+  MenuItem,
+  MenuDivider,
+  Divider,
+  Position,
+  PopoverInteractionKind,
+  TabId,
+} from "@blueprintjs/core";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import extractRef from "roamjs-components/util/extractRef";
@@ -18,6 +36,9 @@ import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { Dispatch, SetStateAction } from "react";
+import { SettingsDialog } from "./settings/Settings";
+import { OnloadArgs } from "roamjs-components/types";
+import renderOverlay from "roamjs-components/util/renderOverlay";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -37,7 +58,6 @@ const openTarget = async (e: React.MouseEvent, sectionTitle: string) => {
   e.preventDefault();
   e.stopPropagation();
   const target = parseReference(sectionTitle);
-
   if (target.type === "block") {
     if (e.shiftKey) {
       await openBlockInSidebar(target.uid);
@@ -109,7 +129,7 @@ const SectionChildren = ({
           return void openTarget(e, child.text);
         };
         return (
-          <div key={child.uid} className="py-1 pl-1">
+          <div key={child.uid} className="pl-8 pr-2.5">
             <div
               className={
                 "section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
@@ -155,14 +175,20 @@ const PersonalSectionItem = ({
 
   return (
     <>
-      <div className="sidebar-title-container flex w-full cursor-pointer items-center border-none bg-transparent font-semibold outline-none">
+      <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-7 pr-2.5 font-semibold outline-none">
         <div className="flex w-full items-center justify-between">
-          <span
-            className="sidebar-title-button flex-1 pb-1 pl-0 pr-1 pt-2"
-            onClick={(e) => void openTarget(e, section.text)}
+          <div
+            className="flex items-center"
+            onClick={(e: React.MouseEvent) => {
+              if ((section.children?.length || 0) > 0) {
+                handleChevronClick();
+              } else {
+                void openTarget(e, section.text);
+              }
+            }}
           >
             {(alias || blockText || titleRef.display).toUpperCase()}
-          </span>
+          </div>
           {(section.children?.length || 0) > 0 && (
             <span
               className="sidebar-title-button-chevron p-1"
@@ -209,7 +235,7 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
   return (
     <>
       <div
-        className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent font-semibold outline-none"
+        className="sidebar-title-button flex w-full items-center border-none bg-transparent py-1 pl-7 pr-2.5 font-semibold outline-none"
         onClick={() => {
           if (!isCollapsable || !config.settings) return;
           toggleFoldedState({
@@ -261,19 +287,133 @@ export const refreshAndNotify = () => {
   notify();
 };
 
+const FavouritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLSpanElement | null>(null);
 
-const LeftSidebarView = () => {
-  const config = useConfig();
+  const handleGlobalPointerDownCapture = useCallback(
+    (e: Event) => {
+      if (!isMenuOpen) return;
+      const target = e.target as Node | null;
+      if (!target) return;
+
+      if (menuTriggerRef.current && menuTriggerRef.current.contains(target)) {
+        return;
+      }
+      const popoverEl = document.querySelector(".dg-leftsidebar-popover");
+      if (popoverEl && popoverEl.contains(target)) {
+        return;
+      }
+
+      setIsMenuOpen(false);
+    },
+    [isMenuOpen],
+  );
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    console.log("handleGlobalPointerDownCapture");
+    const opts = { capture: true } as AddEventListenerOptions;
+    window.addEventListener(
+      "mousedown",
+      handleGlobalPointerDownCapture as EventListener,
+      opts,
+    );
+    window.addEventListener(
+      "pointerdown",
+      handleGlobalPointerDownCapture as EventListener,
+      opts,
+    );
+    return () => {
+      window.removeEventListener(
+        "mousedown",
+        handleGlobalPointerDownCapture as EventListener,
+        opts,
+      );
+      window.removeEventListener(
+        "pointerdown",
+        handleGlobalPointerDownCapture as EventListener,
+        opts,
+      );
+    };
+  }, [handleGlobalPointerDownCapture]);
+
+  const renderSettingsDialog = (tabId: TabId) => {
+    renderOverlay({
+      Overlay: SettingsDialog,
+      props: {
+        onloadArgs,
+        selectedTabId: tabId,
+      },
+    });
+  };
 
   return (
     <>
+      <Divider className="mx-5" style={{ borderColor: "rgb(57, 75, 89)" }} />
+      <div style={{ height: "8px" }}></div>
+      <div className="flex w-full items-center justify-between pb-1 pl-7 pr-2.5 font-semibold">
+        <span className="flex items-baseline">
+          <Icon icon="star" iconSize={14} />
+          <div style={{ width: 8 }}></div>
+          FAVOURITES
+        </span>
+        <Popover
+          interactionKind={PopoverInteractionKind.CLICK}
+          position={Position.BOTTOM_RIGHT}
+          autoFocus={false}
+          enforceFocus={false}
+          captureDismiss
+          hasBackdrop
+          isOpen={isMenuOpen}
+          onInteraction={(next) => setIsMenuOpen(next)}
+          onClose={() => setIsMenuOpen(false)}
+          popoverClassName="dg-leftsidebar-popover"
+          minimal
+          content={
+            <Menu>
+              <MenuDivider title="Add Or Edit" />
+              <MenuItem
+                text="Global Section"
+                onClick={() => {
+                  renderSettingsDialog("left-sidebar-global-settings");
+                  setIsMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                text="Personal Section"
+                onClick={() => {
+                  renderSettingsDialog("left-sidebar-personal-settings");
+                  setIsMenuOpen(false);
+                }}
+              />
+            </Menu>
+          }
+        >
+          <span ref={menuTriggerRef} className="sidebar-title-button-add p-1">
+            <Icon icon="plus" iconSize={14} />
+          </span>
+        </Popover>
+      </div>
+    </>
+  );
+};
+
+const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
+  const config = useConfig();
+  return (
+    <>
+      <FavouritesPopover onloadArgs={onloadArgs} />
       <GlobalSection config={config.global} />
       <PersonalSections config={config.personal} />
     </>
   );
 };
 
-export const mountLeftSidebar = (wrapper: HTMLElement): void => {
+export const mountLeftSidebar = (
+  wrapper: HTMLElement,
+  onloadArgs: OnloadArgs,
+): void => {
   if (!wrapper) return;
   wrapper.innerHTML = "";
 
@@ -292,7 +432,7 @@ export const mountLeftSidebar = (wrapper: HTMLElement): void => {
   } else {
     root.className = "starred-pages overflow-scroll";
   }
-  ReactDOM.render(<LeftSidebarView />, root);
+  ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
 };
 
 export default LeftSidebarView;
