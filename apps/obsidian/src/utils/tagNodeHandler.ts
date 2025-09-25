@@ -367,7 +367,6 @@ export class TagNodeHandler {
         border: 1px solid var(--background-modifier-border);
         border-radius: 6px;
         padding: 6px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         z-index: 9999;
         white-space: nowrap;
         font-size: 12px;
