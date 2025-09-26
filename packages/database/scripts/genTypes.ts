@@ -13,7 +13,6 @@ if (process.env.HOME !== "/vercel") {
       process.exit(0);
     }
     execSync("supabase start", { cwd: projectRoot, stdio: "inherit" });
-    execSync("supabase migrations up", { cwd: projectRoot, stdio: "inherit" });
     const stdout = execSync(
       "supabase gen types typescript --local --schema public",
       { encoding: "utf8", cwd: projectRoot },

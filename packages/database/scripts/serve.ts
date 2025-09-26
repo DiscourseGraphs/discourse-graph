@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import { writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { getVariant } from "@repo/database/dbDotEnv";
 
@@ -11,7 +12,11 @@ if (process.env.HOME !== "/vercel") {
       console.log("Not using the database");
       process.exit(0);
     }
-    execSync("npm run serve", { cwd: projectRoot, stdio: "inherit" });
+    execSync("supabase start", { cwd: projectRoot, stdio: "inherit" });
+    execSync("supabase functions serve", {
+      cwd: projectRoot,
+      stdio: "inherit",
+    });
   } catch (err) {
     console.error(err);
     throw err;
