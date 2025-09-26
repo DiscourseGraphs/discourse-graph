@@ -26,7 +26,7 @@ import {
   DropResult,
   DraggableProvided,
   DroppableProvided,
-  DraggingRubric,
+  DraggableRubric,
   DraggableStateSnapshot,
 } from "@hello-pangea/dnd";
 
@@ -225,7 +225,8 @@ const SectionItem = memo(
     }, [childInput, section, addChildToSection]);
 
     const sectionWithoutSettingsAndChildren =
-      (!section.settings && section.children?.length == 0) || !section.children;
+      (!section.settings && section.children?.length === 0) ||
+      !section.children;
 
     return (
       <div
@@ -320,8 +321,8 @@ const SectionItem = memo(
                   type="ITEMS"
                   renderClone={(
                     provided: DraggableProvided,
-                    _: DraggableStateSnapshot,
-                    rubric: DraggingRubric,
+                    _snapshot,
+                    rubric: DraggableRubric,
                   ) => {
                     const child = (section.children || [])[rubric.source.index];
                     return (
@@ -625,8 +626,8 @@ const LeftSidebarPersonalSectionsContent = ({
           type="SECTIONS"
           renderClone={(
             provided: DraggableProvided,
-            _: DraggableStateSnapshot,
-            rubric: DraggingRubric,
+            _snapshot,
+            rubric: DraggableRubric,
           ) => {
             const section = sections[rubric.source.index];
             return (

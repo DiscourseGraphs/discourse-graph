@@ -19,6 +19,7 @@ import {
   Draggable,
   DropResult,
   DraggableProvided,
+  DraggableRubric,
 } from "@hello-pangea/dnd";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
@@ -145,9 +146,14 @@ const LeftSidebarGlobalSectionsContent = ({
       setPages(newPages);
 
       if (childrenUid) {
+        const order =
+          destination.index > source.index
+            ? destination.index + 1
+            : destination.index;
+
         void window.roamAlphaAPI
           .moveBlock({
-            location: { "parent-uid": childrenUid, order: destination.index },
+            location: { "parent-uid": childrenUid, order: order },
             block: { uid: removed.uid },
           })
           .then(() => {
@@ -318,7 +324,11 @@ const LeftSidebarGlobalSectionsContent = ({
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable
                   droppableId="global-section-pages"
-                  renderClone={(provided, snapshot, rubric) => {
+                  renderClone={(
+                    provided: DraggableProvided,
+                    _snapshot,
+                    rubric: DraggableRubric,
+                  ) => {
                     const page = pages[rubric.source.index];
                     return (
                       <PageItem
