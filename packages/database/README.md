@@ -43,12 +43,12 @@ We follow the Supabase [Declarative Database Schema](https://supabase.com/docs/g
     3. See if there would be a migration to apply with `supabase db diff`
 5. If applying the new schema fails, repeat step 4
 6. If you are satisfied with the migration, create a migration file with `npm run dbdiff:save some_meaningful_migration_name`
-    1. If all goes well, there should be a new file named `supabase/migration/2..._some_meaningful_migration_name.sql` which you should `git add`.
-7. `turbo build`, which will do the following:
+    1. If all goes well, there should be a new file named `supabase/migrations/2..._some_meaningful_migration_name.sql` which you should `git add`.
+7. `npm run migrate`, which will do the following:
     1. Start Supabase
     2. Apply the new migration locally
     3. Regenerate the types file with `supabase gen types typescript --local > src/dbTypes.ts`
-    4. Copy it where appropriate
+    4. Note that you can reapply an idempotent migration with `npm run migrate -- --reapply <migration timestamp>`. This will tell supabase to reapply the migration as if it were new; it may fail if your migration is not idempotent. It allows you to iterate on a migration. If your migration is not idempotent, you should revert changes in the supabase studio before reapplying.
 8. You can start using your changes again `turbo dev`
 9. When your migration is pushed in a branch, Supabase will create a branch instance. Note there is a small cost to this, so we do not want those branches to linger.
     The branch will be also created without data. (Seed data could be added to `.../supabase/seed.sql`)
@@ -65,7 +65,7 @@ If schema changes are deployed to `main` by another developer while you work on 
     2. If your migration is not idempotent (which you'll notice in stage 4), you may have to revert some of your migration's changes in the local database, using the SQL editor in the studio, or `psql`.
     3. If all else fails, you can reset your local database with `supabase db reset --local`
 3. If you have an ongoing migration file, the timestamp at the start of the name should come after the latest new migration. Rename (or `git mv`) as needed.
-4. Apply `turbo build` again, so the incoming migrations are applied, and then your working migration. You may have to fix the schema and migration to take the changes into account.
+4. Out-of-order incoming migrations may be applied with `npm run migrate -- --include-all`. You may have to fix the schema and reapply your own migration to take the changes into account.
 
 ### Testing the backend
 
