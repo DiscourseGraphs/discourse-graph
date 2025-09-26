@@ -1,5 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
-import { Button, Collapse } from "@blueprintjs/core";
+/* eslint-disable @typescript-eslint/naming-convention */
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  memo,
+  ReactNode,
+} from "react";
+import { Button, Collapse, Icon } from "@blueprintjs/core";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
@@ -20,6 +28,7 @@ import {
   DropResult,
   DraggableProvided,
   DraggableRubric,
+  DraggableStateSnapshot,
 } from "@hello-pangea/dnd";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
@@ -38,10 +47,12 @@ const PageItem = memo(
       <div
         ref={dragProvided.innerRef}
         {...dragProvided.draggableProps}
-        {...dragProvided.dragHandleProps}
         style={dragProvided.draggableProps.style}
         className="flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100"
       >
+        <div {...dragProvided.dragHandleProps} className="pr-2">
+          <Icon icon="drag-handle-vertical" className="cursor-grab" />
+        </div>
         <span className="flex-grow truncate">{page.text}</span>
         <Button
           icon="trash"
@@ -326,7 +337,7 @@ const LeftSidebarGlobalSectionsContent = ({
                   droppableId="global-section-pages"
                   renderClone={(
                     provided: DraggableProvided,
-                    _snapshot,
+                    _: DraggableStateSnapshot,
                     rubric: DraggableRubric,
                   ) => {
                     const page = pages[rubric.source.index];
@@ -351,7 +362,7 @@ const LeftSidebarGlobalSectionsContent = ({
                           draggableId={page.uid}
                           index={index}
                         >
-                          {(dragProvided) => (
+                          {(dragProvided: DraggableProvided): ReactNode => (
                             <PageItem
                               page={page}
                               onRemove={() => void removePage(page)}

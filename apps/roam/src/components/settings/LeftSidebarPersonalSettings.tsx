@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import discourseConfigRef from "~/utils/discourseConfigRef";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
@@ -321,7 +322,7 @@ const SectionItem = memo(
                   type="ITEMS"
                   renderClone={(
                     provided: DraggableProvided,
-                    _snapshot,
+                    _: DraggableStateSnapshot,
                     rubric: DraggableRubric,
                   ) => {
                     const child = (section.children || [])[rubric.source.index];
@@ -626,7 +627,7 @@ const LeftSidebarPersonalSectionsContent = ({
           type="SECTIONS"
           renderClone={(
             provided: DraggableProvided,
-            _snapshot,
+            _: DraggableStateSnapshot,
             rubric: DraggableRubric,
           ) => {
             const section = sections[rubric.source.index];
