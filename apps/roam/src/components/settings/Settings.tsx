@@ -78,11 +78,6 @@ export const SettingsDialog = ({
     selectedTabId ?? "discourse-graph-home-personal",
   );
 
-  useEffect(() => {
-    if (selectedTabId) {
-      setActiveTabId(selectedTabId);
-    }
-  }, [selectedTabId]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
