@@ -19,7 +19,6 @@ type LeftSidebarPersonalSectionSettings = {
 export type LeftSidebarPersonalSectionConfig = {
   uid: string;
   text: string;
-  sectionWithoutSettingsAndChildren: boolean;
   settings?: LeftSidebarPersonalSectionSettings;
   children?: RoamBasicNode[];
   childrenUid?: string;
@@ -31,7 +30,7 @@ type LeftSidebarGlobalSectionSettings = {
   folded: BooleanSetting;
 };
 
-type LeftSidebarGlobalSectionConfig = {
+export type LeftSidebarGlobalSectionConfig = {
   uid: string;
   settings?: LeftSidebarGlobalSectionSettings;
   children: RoamBasicNode[];
@@ -39,6 +38,7 @@ type LeftSidebarGlobalSectionConfig = {
 };
 
 export type LeftSidebarConfig = {
+  uid: string;
   global: LeftSidebarGlobalSectionConfig;
   personal: {
     uid: string;
@@ -65,7 +65,7 @@ const getGlobalSectionSettings = (
   };
 };
 
-const getLeftSidebarGlobalSectionConfig = (
+export const getLeftSidebarGlobalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
 ): LeftSidebarGlobalSectionConfig => {
   const globalSectionNode = getSubTree({
@@ -131,7 +131,7 @@ const getPersonalSectionSettings = (
   };
 };
 
-const getLeftSidebarPersonalSectionConfig = (
+export const getLeftSidebarPersonalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
 ): { uid: string; sections: LeftSidebarPersonalSectionConfig[] } => {
   const userUid = window.roamAlphaAPI.user.uid();
@@ -156,27 +156,15 @@ const getLeftSidebarPersonalSectionConfig = (
       const childrenNode = sectionNode.children?.find(
         (child) => child.text === "Children",
       );
-
-      const sectionWithoutSettingsAndChildren = !settingsNode && !childrenNode;
-
-      if (sectionWithoutSettingsAndChildren) {
-        return {
-          uid: sectionNode.uid,
-          text: sectionNode.text,
-          sectionWithoutSettingsAndChildren: true,
-        };
-      } else {
-        return {
-          uid: sectionNode.uid,
-          text: sectionNode.text,
-          settings: settingsNode
-            ? getPersonalSectionSettings(settingsNode)
-            : undefined,
-          children: childrenNode?.children || [],
-          childrenUid: childrenNode?.uid || "",
-          sectionWithoutSettingsAndChildren: false,
-        };
-      }
+      return {
+        uid: sectionNode.uid,
+        text: sectionNode.text,
+        settings: settingsNode
+          ? getPersonalSectionSettings(settingsNode)
+          : undefined,
+        children: childrenNode?.children || [],
+        childrenUid: childrenNode?.uid || "",
+      };
     },
   );
 
@@ -192,10 +180,12 @@ export const getLeftSidebarSettings = (
   const leftSidebarNode = globalTree.find(
     (node) => node.text === "Left Sidebar",
   );
+  const leftSidebarUid = leftSidebarNode?.uid || "";
   const leftSidebarChildren = leftSidebarNode?.children || [];
   const global = getLeftSidebarGlobalSectionConfig(leftSidebarChildren);
   const personal = getLeftSidebarPersonalSectionConfig(leftSidebarChildren);
   return {
+    uid: leftSidebarUid,
     global,
     personal,
   };
