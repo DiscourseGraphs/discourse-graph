@@ -25,7 +25,7 @@
     "setup": "npm run genenv && npm run migrate",
     "dev": "npm run setup && npm run serve",
     "build": "npm run setup && tsc",
-    "serve": "supabase start && supabase functions serve",
+    "serve": "tsx scripts/serve.ts",
     "stop": "supabase stop",
     "check-types": "tsc --noEmit --skipLibCheck",
     "check-schema": "tsx scripts/lintSchemas.ts && supabase stop && npm run dbdiff",

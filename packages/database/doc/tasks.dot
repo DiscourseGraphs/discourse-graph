@@ -43,6 +43,7 @@ s_migrate
 s_lint_schemas
 s_lint_functions
 s_deploy
+s_serve
 
 /* Other scripts */
 node [color=black]
@@ -59,8 +60,9 @@ cucumber_js
     dev -> serve
     setup -> genenv
     setup -> migrate
-    serve -> sup_start
-    serve -> sup_functions
+    serve -> s_serve
+    s_serve -> sup_start
+    s_serve -> sup_functions
     s_createEnv -> sup_start
     stop -> sup_stop
     check_types -> tsc
