@@ -44,6 +44,10 @@ type DragState =
       currentPosition: Vec;
     };
 
+const TOOL_ARROW_ICON_URL =
+  "https://discoursegraphs.com/apps/assets/tool-arrow-icon.svg";
+const NODE_COLOR_ICON_URL =
+  "https://discoursegraphs.com/apps/assets/node-color-icon.svg";
 const DiscourseGraphPanel = ({
   nodes,
   relations,
@@ -291,7 +295,7 @@ const DiscourseGraphPanel = ({
               <span
                 className="tlui-icon tlui-button__icon mr-2"
                 style={{
-                  mask: `url("https://cdn.tldraw.com/2.3.0/icons/icon/color.svg") center 100% / 100% no-repeat`,
+                  mask: `url("${NODE_COLOR_ICON_URL}") center 100% / 100% no-repeat`,
                   backgroundColor:
                     formatHexColor(currentNodeTool.canvasSettings.color) ||
                     "black",
@@ -327,7 +331,7 @@ const DiscourseGraphPanel = ({
                 className="tlui-icon tlui-button__icon mr-2"
                 style={{
                   color,
-                  mask: `url("https://cdn.tldraw.com/2.3.0/icons/icon/tool-arrow.svg") center 100% / 100% no-repeat`,
+                  mask: `url("${TOOL_ARROW_ICON_URL}") center 100% / 100% no-repeat`,
                 }}
               ></div>
               <span>{currentRelationTool}</span>
@@ -365,8 +369,8 @@ const DiscourseGraphPanel = ({
                   style={{
                     mask:
                       item.type === "node"
-                        ? `url("https://cdn.tldraw.com/2.3.0/icons/icon/color.svg") center 100% / 100% no-repeat`
-                        : `url("https://cdn.tldraw.com/2.3.0/icons/icon/tool-arrow.svg") center 100% / 100% no-repeat`,
+                        ? `url("${NODE_COLOR_ICON_URL}") center 100% / 100% no-repeat`
+                        : `url("${TOOL_ARROW_ICON_URL}") center 100% / 100% no-repeat`,
                     backgroundColor: item.color,
                   }}
                 />
