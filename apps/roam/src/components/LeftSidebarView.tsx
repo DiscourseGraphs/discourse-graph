@@ -16,7 +16,7 @@ import {
   DraggableStateSnapshot,
   DroppableProvided,
   DragStart,
-  DraggingRubric,
+  DraggableRubric,
 } from "@hello-pangea/dnd";
 import {
   Collapse,
@@ -248,7 +248,7 @@ const PersonalSectionItem = ({
           renderClone={(
             provided: DraggableProvided,
             _: DraggableStateSnapshot,
-            rubric: DraggingRubric,
+            rubric: DraggableRubric,
           ) => {
             const child = (section.children || [])[rubric.source.index];
             return renderChild(provided, child);
@@ -485,7 +485,6 @@ const FavouritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 
   useEffect(() => {
     if (!isMenuOpen) return;
-    console.log("handleGlobalPointerDownCapture");
     const opts = { capture: true } as AddEventListenerOptions;
     window.addEventListener(
       "mousedown",
