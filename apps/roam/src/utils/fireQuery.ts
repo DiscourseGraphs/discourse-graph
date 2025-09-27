@@ -192,7 +192,8 @@ export const getDatalogQuery = ({
   const expectedInputs = getConditionTargets(conditions)
     .filter((c) => /^:in /.test(c))
     .map((c) => c.substring(4))
-    .filter((c) => !!inputs[c]);
+    .filter((c) => !!inputs[c])
+    .filter((value, index, array) => array.indexOf(value) === index); // Remove duplicates
   const whereClauses = optimizeQuery(
     getWhereClauses({ conditions, returnNode }),
     new Set([]),
