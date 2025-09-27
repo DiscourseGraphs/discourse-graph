@@ -6,7 +6,8 @@ import type {
 
 const indent = (n: number) => "".padStart(n * 2, " ");
 
-const toVar = (v = "undefined") => v.replace(/[\s"()[\]{}/\\^@,~`]/g, "");
+export const toVar = (v = "undefined") =>
+  v.replace(/[\s"()[\]{}/\\^@,~`]/g, "");
 
 const compileDatalog = (
   d: DatalogClause | DatalogArgument | DatalogBinding,
