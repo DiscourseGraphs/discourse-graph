@@ -5,15 +5,23 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getSubTree from "roamjs-components/util/getSubTree";
 import discourseNodeFormatToDatalog from "./discourseNodeFormatToDatalog";
 import conditionToDatalog, {
+  getTitleDatalog,
   registerDatalogTranslator,
 } from "./conditionToDatalog";
 import { ANY_RELATION_REGEX } from "./deriveDiscourseNodeAttribute";
-import getDiscourseNodes, { excludeDefaultNodes } from "./getDiscourseNodes";
+import getDiscourseNodes, {
+  excludeDefaultNodes,
+  type DiscourseNode,
+} from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
 import matchDiscourseNode from "./matchDiscourseNode";
 import replaceDatalogVariables from "./replaceDatalogVariables";
 import parseQuery from "./parseQuery";
 import { fireQuerySync, getWhereClauses } from "./fireQuery";
+import { toVar } from "./compileDatalog";
+
+const hasTag = (node: DiscourseNode): node is DiscourseNode & { tag: string } =>
+  !!node.tag;
 
 const collectVariables = (
   clauses: (DatalogClause | DatalogAndClause)[],
@@ -45,6 +53,7 @@ const ANY_DISCOURSE_NODE = "Any Discourse Node";
 const registerDiscourseDatalogTranslators = () => {
   const discourseRelations = getDiscourseRelations();
   const discourseNodes = getDiscourseNodes(discourseRelations);
+
   const isACallback: Parameters<
     typeof registerDatalogTranslator
   >[0]["callback"] = ({ source, target }) => {
@@ -89,12 +98,82 @@ const registerDiscourseDatalogTranslators = () => {
           })
         : [];
   };
+  const isACandidateCallback: Parameters<
+    typeof registerDatalogTranslator
+  >[0]["callback"] = ({ source, target }) => {
+    const nodeByTypeOrText = Object.fromEntries([
+      ...discourseNodes.map((n) => [n.type, n] as const),
+      ...discourseNodes.map((n) => [n.text, n] as const),
+    ]);
+
+    if (target === ANY_DISCOURSE_NODE) {
+      const nodesWithTags = discourseNodes.filter(hasTag);
+      if (nodesWithTags.length === 0) return [];
+      return [
+        {
+          type: "or-join-clause" as const,
+          variables: [{ type: "variable" as const, value: source }],
+          clauses: nodesWithTags.map((node) => {
+            const variableRef = `${toVar(node.tag)}-ref`;
+            return {
+              type: "and-clause" as const,
+              clauses: [
+                {
+                  type: "data-pattern" as const,
+                  arguments: [
+                    { type: "variable" as const, value: source },
+                    { type: "constant" as const, value: ":block/refs" },
+                    {
+                      type: "variable" as const,
+                      value: variableRef,
+                    },
+                  ],
+                },
+                ...getTitleDatalog({ source: variableRef, target: node.tag }),
+              ],
+            };
+          }),
+        },
+      ];
+    }
+
+    const targetNodeTag = nodeByTypeOrText[target]?.tag;
+    if (!targetNodeTag) return [];
+    const variableRef = `${toVar(targetNodeTag)}-ref`;
+
+    return [
+      {
+        type: "data-pattern" as const,
+        arguments: [
+          { type: "variable" as const, value: source },
+          { type: "constant" as const, value: ":block/refs" },
+          {
+            type: "variable" as const,
+            value: variableRef,
+          },
+        ],
+      },
+      ...getTitleDatalog({ source: variableRef, target: targetNodeTag }),
+    ];
+  };
   const unregisters = new Set<() => void>();
   unregisters.add(
     registerDatalogTranslator({
       key: "is a",
       callback: isACallback,
       targetOptions: discourseNodes
+        .map((d) => d.text)
+        .concat(ANY_DISCOURSE_NODE),
+      placeholder: "Enter a discourse node",
+    }),
+  );
+
+  unregisters.add(
+    registerDatalogTranslator({
+      key: "is a candidate",
+      callback: isACandidateCallback,
+      targetOptions: discourseNodes
+        .filter((d) => d.tag)
         .map((d) => d.text)
         .concat(ANY_DISCOURSE_NODE),
       placeholder: "Enter a discourse node",

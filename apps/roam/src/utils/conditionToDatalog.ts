@@ -29,7 +29,7 @@ const regexRePatternValue = (str: string) => {
     ? `"(?i)${str.slice(1, -2).replace(/\\/g, "\\\\")}"`
     : `"${str.slice(1, -1).replace(/\\/g, "\\\\")}"`;
 };
-const getTitleDatalog = ({
+export const getTitleDatalog = ({
   source,
   target,
   uid,
