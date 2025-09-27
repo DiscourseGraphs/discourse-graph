@@ -5,16 +5,23 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getSubTree from "roamjs-components/util/getSubTree";
 import discourseNodeFormatToDatalog from "./discourseNodeFormatToDatalog";
 import conditionToDatalog, {
+  getTitleDatalog,
   registerDatalogTranslator,
 } from "./conditionToDatalog";
 import { ANY_RELATION_REGEX } from "./deriveDiscourseNodeAttribute";
-import getDiscourseNodes, { excludeDefaultNodes } from "./getDiscourseNodes";
+import getDiscourseNodes, {
+  excludeDefaultNodes,
+  type DiscourseNode,
+} from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
 import matchDiscourseNode from "./matchDiscourseNode";
 import replaceDatalogVariables from "./replaceDatalogVariables";
 import parseQuery from "./parseQuery";
 import { fireQuerySync, getWhereClauses } from "./fireQuery";
 import { toVar } from "./compileDatalog";
+
+const hasTag = (node: DiscourseNode): node is DiscourseNode & { tag: string } =>
+  !!node.tag;
 
 const collectVariables = (
   clauses: (DatalogClause | DatalogAndClause)[],
@@ -100,63 +107,41 @@ const registerDiscourseDatalogTranslators = () => {
     ]);
 
     if (target === ANY_DISCOURSE_NODE) {
-      const nodesWithTags = discourseNodes.filter((n) => n.tag);
-      if (nodesWithTags.length === 0) {
-        return [];
-      }
-
+      const nodesWithTags = discourseNodes.filter(hasTag);
+      if (nodesWithTags.length === 0) return [];
       return [
         {
           type: "or-join-clause" as const,
           variables: [{ type: "variable" as const, value: source }],
-          clauses: nodesWithTags.map((node) => ({
-            type: "and-clause" as const,
-            clauses: [
-              {
-                type: "data-pattern" as const,
-                arguments: [
-                  {
-                    type: "variable" as const,
-                    value: `${source}-${toVar(node.tag)}-ref`,
-                  },
-                  { type: "constant" as const, value: ":node/title" },
-                  { type: "constant" as const, value: `"${toVar(node.tag)}"` },
-                ],
-              },
-              {
-                type: "data-pattern" as const,
-                arguments: [
-                  { type: "variable" as const, value: source },
-                  { type: "constant" as const, value: ":block/refs" },
-                  {
-                    type: "variable" as const,
-                    value: `${source}-${toVar(node.tag)}-ref`,
-                  },
-                ],
-              },
-            ],
-          })),
+          clauses: nodesWithTags.map((node) => {
+            const variableRef = `${toVar(node.tag)}-ref`;
+            return {
+              type: "and-clause" as const,
+              clauses: [
+                {
+                  type: "data-pattern" as const,
+                  arguments: [
+                    { type: "variable" as const, value: source },
+                    { type: "constant" as const, value: ":block/refs" },
+                    {
+                      type: "variable" as const,
+                      value: variableRef,
+                    },
+                  ],
+                },
+                ...getTitleDatalog({ source: variableRef, target: node.tag }),
+              ],
+            };
+          }),
         },
       ];
     }
 
-    const targetNode = nodeByTypeOrText[target];
-    if (!targetNode || !targetNode.tag) {
-      return [];
-    }
+    const targetNodeTag = nodeByTypeOrText[target].tag;
+    if (!targetNodeTag) return [];
+    const variableRef = `${toVar(targetNodeTag)}-ref`;
 
     return [
-      {
-        type: "data-pattern" as const,
-        arguments: [
-          {
-            type: "variable" as const,
-            value: `${source}-${toVar(targetNode.tag)}-ref`,
-          },
-          { type: "constant" as const, value: ":node/title" },
-          { type: "constant" as const, value: `"${toVar(targetNode.tag)}"` },
-        ],
-      },
       {
         type: "data-pattern" as const,
         arguments: [
@@ -164,10 +149,11 @@ const registerDiscourseDatalogTranslators = () => {
           { type: "constant" as const, value: ":block/refs" },
           {
             type: "variable" as const,
-            value: `${source}-${toVar(targetNode.tag)}-ref`,
+            value: variableRef,
           },
         ],
       },
+      ...getTitleDatalog({ source: variableRef, target: targetNodeTag }),
     ];
   };
   const unregisters = new Set<() => void>();
