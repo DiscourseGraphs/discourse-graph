@@ -1,0 +1,11 @@
+{
+  "lsp": {
+    "eslint": {
+      "settings": {
+        "experimental": {
+          "useFlatConfig": true
+        }
+      }
+    }
+  }
+}
