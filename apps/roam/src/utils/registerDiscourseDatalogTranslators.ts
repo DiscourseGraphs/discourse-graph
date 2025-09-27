@@ -14,6 +14,7 @@ import matchDiscourseNode from "./matchDiscourseNode";
 import replaceDatalogVariables from "./replaceDatalogVariables";
 import parseQuery from "./parseQuery";
 import { fireQuerySync, getWhereClauses } from "./fireQuery";
+import { toVar } from "./compileDatalog";
 
 const collectVariables = (
   clauses: (DatalogClause | DatalogAndClause)[],
@@ -45,6 +46,7 @@ const ANY_DISCOURSE_NODE = "Any Discourse Node";
 const registerDiscourseDatalogTranslators = () => {
   const discourseRelations = getDiscourseRelations();
   const discourseNodes = getDiscourseNodes(discourseRelations);
+
   const isACallback: Parameters<
     typeof registerDatalogTranslator
   >[0]["callback"] = ({ source, target }) => {
@@ -89,12 +91,103 @@ const registerDiscourseDatalogTranslators = () => {
           })
         : [];
   };
+  const isACandidateCallback: Parameters<
+    typeof registerDatalogTranslator
+  >[0]["callback"] = ({ source, target }) => {
+    const nodeByTypeOrText = Object.fromEntries([
+      ...discourseNodes.map((n) => [n.type, n] as const),
+      ...discourseNodes.map((n) => [n.text, n] as const),
+    ]);
+
+    if (target === ANY_DISCOURSE_NODE) {
+      const nodesWithTags = discourseNodes.filter((n) => n.tag);
+      if (nodesWithTags.length === 0) {
+        return [];
+      }
+
+      return [
+        {
+          type: "or-join-clause" as const,
+          variables: [{ type: "variable" as const, value: source }],
+          clauses: nodesWithTags.map((node) => ({
+            type: "and-clause" as const,
+            clauses: [
+              {
+                type: "data-pattern" as const,
+                arguments: [
+                  {
+                    type: "variable" as const,
+                    value: `${source}-${toVar(node.tag)}-ref`,
+                  },
+                  { type: "constant" as const, value: ":node/title" },
+                  { type: "constant" as const, value: `"${node.tag}"` },
+                ],
+              },
+              {
+                type: "data-pattern" as const,
+                arguments: [
+                  { type: "variable" as const, value: source },
+                  { type: "constant" as const, value: ":block/refs" },
+                  {
+                    type: "variable" as const,
+                    value: `${source}-${toVar(node.tag)}-ref`,
+                  },
+                ],
+              },
+            ],
+          })),
+        },
+      ];
+    }
+
+    const targetNode = nodeByTypeOrText[target];
+    if (!targetNode || !targetNode.tag) {
+      return [];
+    }
+
+    return [
+      {
+        type: "data-pattern" as const,
+        arguments: [
+          {
+            type: "variable" as const,
+            value: `${source}-${toVar(targetNode.tag)}-ref`,
+          },
+          { type: "constant" as const, value: ":node/title" },
+          { type: "constant" as const, value: `"${targetNode.tag}"` },
+        ],
+      },
+      {
+        type: "data-pattern" as const,
+        arguments: [
+          { type: "variable" as const, value: source },
+          { type: "constant" as const, value: ":block/refs" },
+          {
+            type: "variable" as const,
+            value: `${source}-${toVar(targetNode.tag)}-ref`,
+          },
+        ],
+      },
+    ];
+  };
   const unregisters = new Set<() => void>();
   unregisters.add(
     registerDatalogTranslator({
       key: "is a",
       callback: isACallback,
       targetOptions: discourseNodes
+        .map((d) => d.text)
+        .concat(ANY_DISCOURSE_NODE),
+      placeholder: "Enter a discourse node",
+    }),
+  );
+
+  unregisters.add(
+    registerDatalogTranslator({
+      key: "is a candidate",
+      callback: isACandidateCallback,
+      targetOptions: discourseNodes
+        .filter((d) => d.tag)
         .map((d) => d.text)
         .concat(ANY_DISCOURSE_NODE),
       placeholder: "Enter a discourse node",
