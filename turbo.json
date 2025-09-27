@@ -58,8 +58,7 @@
       "passThroughEnv": ["OBSIDIAN_PLUGIN_PATH"],
       "cache": false,
       "persistent": true,
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "dependsOn": ["@repo/database#genenv"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
     "roam#dev": {
       "with": ["@repo/database#dev"]
@@ -69,6 +68,7 @@
     },
     "genenv": {
       "env": ["SUPABASE_USE_DB"],
+      "cache": false,
       "outputs": [".env*"]
     },
     "deploy": {
