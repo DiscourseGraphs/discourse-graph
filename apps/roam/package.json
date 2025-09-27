@@ -57,6 +57,7 @@
     "contrast-color": "^1.0.1",
     "core-js": "^3.45.0",
     "cytoscape": "^3.21.0",
+    "@repo/types": "*",
     "cytoscape-navigator": "^2.0.1",
     "date-fns": "^2.30.0",
     "eslint": "catalog:",

@@ -50,7 +50,8 @@ import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
-import tinycolor from "tinycolor2";
+import getContrastingColor from "@repo/utils/getContrastingColor";
+import { colord } from "colord";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -105,39 +106,6 @@ export const initObservers = async ({
     render: (b) => renderQueryBlock(b, onloadArgs),
   });
 
-  const generateTagColorScheme = (hexColor: string) => {
-    const base = tinycolor(hexColor);
-    const hsl = base.toHsl();
-
-    const backgroundColor = tinycolor({
-      h: hsl.h,
-      s: 0.75,
-      l: 0.9,
-    }).toHexString();
-
-    const backgroundLuminance = tinycolor(backgroundColor).getLuminance();
-    const baseLuminance = tinycolor(hexColor).getLuminance();
-
-    const textColor =
-      backgroundLuminance > 0.5
-        ? baseLuminance > 0.4
-          ? tinycolor(hexColor).darken(40).toHexString()
-          : hexColor
-        : "#ffffff";
-
-    return {
-      text: textColor,
-
-      background: backgroundColor,
-
-      border: tinycolor({
-        h: hsl.h,
-        s: 0.4,
-        l: 0.7,
-      }).toHexString(),
-    };
-  };
-
   const nodeTagPopupButtonObserver = createHTMLObserver({
     className: "rm-page-ref--tag",
     tag: "SPAN",
@@ -151,14 +119,20 @@ export const initObservers = async ({
           if (normalizedTag === normalizedNodeTag) {
             renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
             if (node.canvasSettings?.color) {
-              const colors = generateTagColorScheme(
-                formatHexColor(node.canvasSettings.color),
-              );
+              const formattedColor = formatHexColor(node.canvasSettings.color);
+              if (!formattedColor) {
+                break;
+              }
+              const contrastingColor: {
+                secondary: string;
+                primary: string;
+                tertiary: string;
+              } = getContrastingColor(colord(formattedColor));
 
               Object.assign(s.style, {
-                backgroundColor: colors.background,
-                color: colors.text,
-                border: `1px solid ${colors.border}`,
+                backgroundColor: contrastingColor.secondary,
+                color: contrastingColor.primary,
+                border: `1px solid ${contrastingColor.tertiary}`,
                 fontWeight: "500",
                 padding: "2px 6px",
                 borderRadius: "12px",

@@ -33,7 +33,7 @@ import createDiscourseNode from "~/utils/createDiscourseNode";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { isPageUid } from "./Tldraw";
 import LabelDialog from "./LabelDialog";
-import ContrastColor from "contrast-color";
+import { colord } from "colord";
 import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
@@ -46,6 +46,7 @@ import {
 } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
+import getContrastingColor from "@repo/utils/getContrastingColor";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -356,7 +357,8 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     const backgroundColor = formattedBackgroundColor
       ? formattedBackgroundColor
       : COLOR_PALETTE[paletteColor];
-    const textColor = ContrastColor.contrastColor({ bgColor: backgroundColor });
+    const textColor = getContrastingColor(colord(backgroundColor))
+      .secondary as string;
     return { backgroundColor, textColor };
   }
 
