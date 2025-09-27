@@ -10,7 +10,4 @@ export default [
       },
     },
   },
-  {
-    ignores: ["src/dbTypes.ts", "supabase/functions/**"],
-  },
 ];

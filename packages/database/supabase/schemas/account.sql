@@ -141,9 +141,9 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.upsert_accounts_in_space (
-space_id_ BIGINT,
-accounts JSONB
+CREATE OR REPLACE FUNCTION public.upsert_accounts_in_space(
+    space_id_ BIGINT,
+    accounts JSONB
 ) RETURNS SETOF BIGINT
 SECURITY DEFINER
 SET search_path = ''

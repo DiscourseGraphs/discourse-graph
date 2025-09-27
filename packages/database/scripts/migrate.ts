@@ -79,7 +79,7 @@ if (reapply) {
     process.exit(result.status);
   }
 }
-let migrationArgs = ["migration", "up", "--local"];
+const migrationArgs = ["migration", "up", "--local"];
 if (includeAll) migrationArgs.push("--include-all");
 const migrationResult = spawnSync("supabase", migrationArgs, {
   cwd: projectRoot,
