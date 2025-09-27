@@ -58,6 +58,7 @@ export const config = [
           singleReturnOnly: false,
         },
       ],
+      "no-constant-condition": ["error", { checkLoops: "allExceptWhileTrue" }],
     },
   },
   {
