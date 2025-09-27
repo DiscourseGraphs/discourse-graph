@@ -151,7 +151,7 @@ const generateTagPlaceholder = (node: DiscourseNode): string => {
   }
 
   const nodeTextPrefix = node.text.toLowerCase().slice(0, 3);
-  return `${nodeTextPrefix}-candidate`; // Evidence = #evi-candidate
+  return `#${nodeTextPrefix}-candidate`; // Evidence = #evi-candidate
 };
 
 const NodeConfig = ({
