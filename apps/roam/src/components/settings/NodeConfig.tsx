@@ -141,6 +141,19 @@ const useDebouncedRoamUpdater = <
   return { value, handleChange, handleBlur };
 };
 
+const generateTagPlaceholder = (node: DiscourseNode): string => {
+  // Extract first reference from format like [[CLM]], [[QUE]], [[EVD]]
+  const referenceMatch = node.format.match(/\[\[([A-Z]+)\]\]/);
+
+  if (referenceMatch) {
+    const reference = referenceMatch[1].toLowerCase();
+    return `#${reference.slice(0, 3)}-candidate`; // [[EVD]] - {content} = #evd-candidate
+  }
+
+  const nodeTextPrefix = node.text.toLowerCase().slice(0, 3);
+  return `${nodeTextPrefix}-candidate`; // Evidence = #evi-candidate
+};
+
 const NodeConfig = ({
   node,
   onloadArgs,
@@ -288,7 +301,7 @@ const NodeConfig = ({
                 onChange={handleTagChange}
                 onBlur={handleTagBlur}
                 error={tagError}
-                placeholder={`#${node.text.toLowerCase()}`}
+                placeholder={generateTagPlaceholder(node)}
               />
             </div>
           }
