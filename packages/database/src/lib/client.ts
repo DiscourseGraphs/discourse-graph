@@ -6,11 +6,7 @@ import type { Database } from "@repo/database/dbTypes";
 
 // Inspired by https://supabase.com/ui/docs/react/password-based-auth
 
-export type DGSupabaseClient = SupabaseClient<
-  Database,
-  "public",
-  Database["public"]
->;
+export type DGSupabaseClient = SupabaseClient<Database, "public">;
 
 export const createClient = (): DGSupabaseClient | null => {
   const url = process.env.SUPABASE_URL;
@@ -21,5 +17,5 @@ export const createClient = (): DGSupabaseClient | null => {
     return null;
   }
 
-  return createSupabaseClient<Database, "public", Database["public"]>(url, key);
+  return createSupabaseClient<Database, "public">(url, key);
 };

@@ -25,7 +25,7 @@ const getAnonymousClient = () => {
       "Missing required environment variables: SUPABASE_URL and SUPABASE_ANON_KEY",
     );
   }
-  return createClient<Database, "public", Database["public"]>(
+  return createClient<Database, "public">(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_ANON_KEY!,
   );
@@ -37,7 +37,7 @@ const getServiceClient = () => {
       "Missing required environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
     );
   }
-  return createClient<Database, "public", Database["public"]>(
+  return createClient<Database, "public">(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
