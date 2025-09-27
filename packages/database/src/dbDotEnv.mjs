@@ -23,6 +23,10 @@ export const getVariant = () => {
     useDbArgPos > 0
       ? process.argv[useDbArgPos + 1]
       : process.env["SUPABASE_USE_DB"];
+  if (variant === undefined) {
+    dotenv.config();
+    variant = process.env["SUPABASE_USE_DB"];
+  }
 
   if (
     ["local", "branch", "production", "none", "implicit", undefined].indexOf(
