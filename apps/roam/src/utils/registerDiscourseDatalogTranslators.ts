@@ -137,7 +137,7 @@ const registerDiscourseDatalogTranslators = () => {
       ];
     }
 
-    const targetNodeTag = nodeByTypeOrText[target].tag;
+    const targetNodeTag = nodeByTypeOrText[target]?.tag;
     if (!targetNodeTag) return [];
     const variableRef = `${toVar(targetNodeTag)}-ref`;
 
