@@ -120,7 +120,7 @@ const registerDiscourseDatalogTranslators = () => {
                     value: `${source}-${toVar(node.tag)}-ref`,
                   },
                   { type: "constant" as const, value: ":node/title" },
-                  { type: "constant" as const, value: `"${node.tag}"` },
+                  { type: "constant" as const, value: `"${toVar(node.tag)}"` },
                 ],
               },
               {
@@ -154,7 +154,7 @@ const registerDiscourseDatalogTranslators = () => {
             value: `${source}-${toVar(targetNode.tag)}-ref`,
           },
           { type: "constant" as const, value: ":node/title" },
-          { type: "constant" as const, value: `"${targetNode.tag}"` },
+          { type: "constant" as const, value: `"${toVar(targetNode.tag)}"` },
         ],
       },
       {
