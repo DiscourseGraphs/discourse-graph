@@ -44,6 +44,7 @@ if (reapply) {
   const dir = opendirSync(join(projectRoot, "supabase", "migrations"));
   const files = [];
   const fre = /^\d{14}_.*/;
+  /* eslint-disable-next-line no-constant-condition */
   while (true) {
     const f = dir.readSync();
     if (f === null) {
@@ -79,7 +80,7 @@ if (reapply) {
     process.exit(result.status);
   }
 }
-let migrationArgs = ["migration", "up", "--local"];
+const migrationArgs = ["migration", "up", "--local"];
 if (includeAll) migrationArgs.push("--include-all");
 const migrationResult = spawnSync("supabase", migrationArgs, {
   cwd: projectRoot,
