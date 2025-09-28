@@ -44,6 +44,7 @@ if (reapply) {
   const dir = opendirSync(join(projectRoot, "supabase", "migrations"));
   const files = [];
   const fre = /^\d{14}_.*/;
+  /* eslint-disable-next-line no-constant-condition */
   while (true) {
     const f = dir.readSync();
     if (f === null) {
