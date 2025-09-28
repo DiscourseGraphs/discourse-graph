@@ -130,8 +130,8 @@ export const initObservers = async ({
               } = getContrastingColor(colord(formattedColor));
 
               Object.assign(s.style, {
-                backgroundColor: contrastingColor.secondary,
-                color: contrastingColor.primary,
+                backgroundColor: contrastingColor.primary,
+                color: contrastingColor.secondary,
                 border: `1px solid ${contrastingColor.tertiary}`,
                 fontWeight: "500",
                 padding: "2px 6px",

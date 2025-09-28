@@ -357,8 +357,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     const backgroundColor = formattedBackgroundColor
       ? formattedBackgroundColor
       : COLOR_PALETTE[paletteColor];
-    const textColor = getContrastingColor(colord(backgroundColor))
-      .secondary as string;
+    const textColor = getContrastingColor(colord(backgroundColor)).secondary;
     return { backgroundColor, textColor };
   }
 
