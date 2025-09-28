@@ -126,7 +126,7 @@ BEGIN
         ) VALUES (
             local_account.account_local_id, local_account.name, platform_
         ) ON CONFLICT (account_local_id, platform) DO UPDATE SET
-            name = coalesce(local_account.name, pa.name)
+            name = COALESCE(NULLIF(TRIM(EXCLUDED.name), ''), pa.name)
         RETURNING id INTO STRICT account_id_;
     INSERT INTO public."SpaceAccess" as sa (space_id, account_id, editor) values (space_id_, account_id_, COALESCE(local_account.space_editor, true))
         ON CONFLICT (space_id, account_id)
@@ -141,9 +141,9 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.upsert_accounts_in_space (
-space_id_ BIGINT,
-accounts JSONB
+CREATE OR REPLACE FUNCTION public.upsert_accounts_in_space(
+    space_id_ BIGINT,
+    accounts JSONB
 ) RETURNS SETOF BIGINT
 SECURITY DEFINER
 SET search_path = ''

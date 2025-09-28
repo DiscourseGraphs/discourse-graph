@@ -88,7 +88,7 @@ export const getOrCreateEntity = async <
   insertData,
   uniqueOn = undefined,
 }: {
-  supabase: SupabaseClient<Database, "public", Database["public"]>;
+  supabase: SupabaseClient<Database, "public">;
   tableName: keyof Database["public"]["Tables"];
   insertData: TablesInsert<TableName>;
   uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
@@ -176,7 +176,7 @@ export const InsertValidatedBatch = async <
   items,
   uniqueOn = undefined,
 }: {
-  supabase: SupabaseClient<Database, "public", Database["public"]>;
+  supabase: SupabaseClient<Database, "public">;
   tableName: keyof Database["public"]["Tables"];
   items: TablesInsert<TableName>[];
   uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
@@ -220,7 +220,7 @@ export const validateAndInsertBatch = async <
   inputValidator = undefined,
   outputValidator = undefined,
 }: {
-  supabase: SupabaseClient<Database, "public", Database["public"]>;
+  supabase: SupabaseClient<Database, "public">;
   tableName: keyof Database["public"]["Tables"];
   items: TablesInsert<TableName>[];
   uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise
@@ -359,7 +359,7 @@ export const processAndInsertBatch = async <
   inputProcessor,
   outputProcessor,
 }: {
-  supabase: SupabaseClient<Database, "public", Database["public"]>;
+  supabase: SupabaseClient<Database, "public">;
   tableName: keyof Database["public"]["Tables"];
   items: InputType[];
   uniqueOn?: (keyof TablesInsert<TableName>)[]; // Uses pKey otherwise

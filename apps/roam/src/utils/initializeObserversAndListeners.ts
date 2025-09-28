@@ -45,6 +45,10 @@ import {
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
+import { getSetting } from "./extensionSettings";
+import { mountLeftSidebar } from "~/components/LeftSidebarView";
+import { getUidAndBooleanSetting } from "./getExportSettings";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -103,7 +107,18 @@ export const initObservers = async ({
     className: "rm-page-ref--tag",
     tag: "SPAN",
     callback: (s: HTMLSpanElement) => {
-      renderNodeTagPopupButton(s, onloadArgs.extensionAPI);
+      const tag = s.getAttribute("data-tag");
+      if (tag) {
+        for (const node of getDiscourseNodes()) {
+          if (tag.toLowerCase() === node.tag?.toLowerCase()) {
+            renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
+            if (node.canvasSettings?.color) {
+              s.style.color = formatHexColor(node.canvasSettings.color);
+            }
+            break;
+          }
+        }
+      }
     },
   });
 
@@ -181,6 +196,24 @@ export const initObservers = async ({
     ) as IKeyCombo) || undefined;
   const personalTrigger = personalTriggerCombo?.key;
   const personalModifiers = getModifiersFromCombo(personalTriggerCombo);
+
+  const leftSidebarObserver = createHTMLObserver({
+    tag: "DIV",
+    useBody: true,
+    className: "starred-pages-wrapper",
+    callback: (el) => {
+      const isLeftSidebarEnabled = getUidAndBooleanSetting({
+        tree: configTree,
+        text: "(BETA) Left Sidebar",
+      }).value;
+      const container = el as HTMLDivElement;
+      if (isLeftSidebarEnabled) {
+        container.style.padding = "0";
+        mountLeftSidebar(container, onloadArgs);
+      }
+    },
+  });
+
   const handleNodeMenuRender = (target: HTMLElement, evt: KeyboardEvent) => {
     if (
       target.tagName === "TEXTAREA" &&
@@ -222,9 +255,7 @@ export const initObservers = async ({
     }
   };
 
-  const customTrigger = onloadArgs.extensionAPI.settings.get(
-    "node-search-trigger",
-  ) as string;
+  const customTrigger = getSetting("node-search-trigger", "@");
 
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
@@ -320,6 +351,7 @@ export const initObservers = async ({
       linkedReferencesObserver,
       graphOverviewExportObserver,
       nodeTagPopupButtonObserver,
+      leftSidebarObserver,
     ].filter((o): o is MutationObserver => !!o),
     listeners: {
       pageActionListener,

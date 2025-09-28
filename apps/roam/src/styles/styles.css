@@ -135,3 +135,9 @@
   width: 100px;
   justify-content: space-between;
 }
+
+.sidebar-title-button:hover,
+.sidebar-title-button-add:hover {
+  background-color: #10161a;
+  color: #f5f8fa;
+}

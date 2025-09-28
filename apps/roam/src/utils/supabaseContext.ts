@@ -63,7 +63,10 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
         name: spaceName,
         platform,
       });
-      if (!spaceResult.data) throw new Error("Failed to create space");
+      if (!spaceResult.data) {
+        console.error("Failed to create space");
+        return null;
+      }
       const spaceId = spaceResult.data.id;
       const userId = await fetchOrCreatePlatformAccount({
         platform: "Roam",
@@ -89,7 +92,7 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
 
 let _loggedInClient: DGSupabaseClient | null = null;
 
-export const getLoggedInClient = async (): Promise<DGSupabaseClient> => {
+export const getLoggedInClient = async (): Promise<DGSupabaseClient | null> => {
   if (_loggedInClient === null) {
     const context = await getSupabaseContext();
     if (context === null) throw new Error("Could not create context");
@@ -103,7 +106,6 @@ export const getLoggedInClient = async (): Promise<DGSupabaseClient> => {
     const { error } = await _loggedInClient.auth.getSession();
     if (error) {
       _loggedInClient = null;
-      throw new Error(`Authentication expired: ${error.message}`);
     }
   }
   return _loggedInClient;

@@ -11,6 +11,7 @@ import getDiscourseNodes, {
 } from "~/utils/getDiscourseNodes";
 import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
+import createBlock from "roamjs-components/writes/createBlock";
 
 export type CreateNodeDialogProps = {
   onClose: () => void;
@@ -71,15 +72,16 @@ const CreateNodeDialog = ({
       // the correct reference. The reference format should be determined by the
       // node's specification.
       const pageRef = `[[${formattedTitle}]]`;
-      await updateBlock({ uid: sourceBlockUid, text: pageRef });
-
-      const newCursorPosition = pageRef.length;
-      const windowId =
-        window.roamAlphaAPI.ui.getFocusedBlock?.()?.["window-id"] || "main";
-
-      await window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-        location: { "block-uid": sourceBlockUid, "window-id": windowId },
-        selection: { start: newCursorPosition },
+      await updateBlock({
+        uid: sourceBlockUid,
+        text: pageRef,
+      });
+      await createBlock({
+        parentUid: sourceBlockUid,
+        order: 0,
+        node: {
+          text: initialTitle,
+        },
       });
     }
 

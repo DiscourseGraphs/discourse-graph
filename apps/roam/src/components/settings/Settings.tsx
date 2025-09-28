@@ -16,17 +16,19 @@ import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import DiscourseGraphHome from "./GeneralSettings";
 import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
+import AdminPanel from "./AdminPanel";
 import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
 import getDiscourseNodes, {
   excludeDefaultNodes,
 } from "~/utils/getDiscourseNodes";
 import NodeConfig from "./NodeConfig";
-import sendErrorEmail from "~/utils/sendErrorEmail";
 import HomePersonalSettings from "./HomePersonalSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import { getVersionWithDate } from "~/utils/getVersion";
+import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
+import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -62,24 +64,27 @@ export const SettingsDialog = ({
   onloadArgs,
   isOpen,
   onClose,
+  selectedTabId,
 }: {
   onloadArgs: OnloadArgs;
   isOpen?: boolean;
   onClose?: () => void;
+  selectedTabId?: TabId;
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const settings = getFormattedConfigTree();
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
-  const [selectedTabId, setSelectedTabId] = useState<TabId>(
-    "discourse-graph-home-personal",
+  const [activeTabId, setActiveTabId] = useState<TabId>(
+    selectedTabId ?? "discourse-graph-home-personal",
   );
+
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === "D") {
+      if (e.ctrlKey && e.shiftKey && e.key === "A") {
         e.stopPropagation();
         e.preventDefault();
-        setSelectedTabId("secret-dev-panel");
+        setActiveTabId("secret-admin-panel");
       }
     };
 
@@ -127,8 +132,8 @@ export const SettingsDialog = ({
         `}</style>
         <Tabs
           className="dg-settings-tabs flex h-full"
-          onChange={(id) => setSelectedTabId(id)}
-          selectedTabId={selectedTabId}
+          onChange={(id) => setActiveTabId(id)}
+          selectedTabId={activeTabId}
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
@@ -147,6 +152,12 @@ export const SettingsDialog = ({
             className="overflow-y-auto"
             panel={<QuerySettings extensionAPI={extensionAPI} />}
           />
+          <Tab
+            id="left-sidebar-personal-settings"
+            title="Left Sidebar"
+            className="overflow-y-auto"
+            panel={<LeftSidebarPersonalSections />}
+          />
           <SectionHeader className="text-lg font-semibold text-neutral-dark">
             Global Settings
           </SectionHeader>
@@ -161,6 +172,12 @@ export const SettingsDialog = ({
             title="Export"
             className="overflow-y-auto"
             panel={<DiscourseGraphExport />}
+          />
+          <Tab
+            id="left-sidebar-global-settings"
+            title="Left Sidebar"
+            className="overflow-y-auto"
+            panel={<LeftSidebarGlobalSections />}
           />
           <Tab
             id="suggestive-mode-settings"
@@ -192,7 +209,7 @@ export const SettingsDialog = ({
                 uid={settings.nodesUid}
                 parentUid={settings.grammarUid}
                 defaultValue={[]}
-                setSelectedTabId={setSelectedTabId}
+                setSelectedTabId={setActiveTabId}
                 isPopup={true}
               />
             }
@@ -210,31 +227,10 @@ export const SettingsDialog = ({
           {/* Secret Dev Panel */}
           <Tab
             hidden={true}
-            id="secret-dev-panel"
-            title="Secret Dev Panel"
+            id="secret-admin-panel"
+            title="Secret Admin Panel"
             className="overflow-y-auto"
-            panel={
-              <div className="flex gap-4 p-4">
-                <Button
-                  onClick={() => {
-                    console.log("NODE_ENV:", process.env.NODE_ENV);
-                  }}
-                >
-                  Log Node Env
-                </Button>
-                <Button
-                  onClick={() => {
-                    console.log("sending error email");
-                    sendErrorEmail({
-                      error: new Error("test"),
-                      type: "Test",
-                    });
-                  }}
-                >
-                  sendErrorEmail()
-                </Button>
-              </div>
-            }
+            panel={<AdminPanel />}
           />
         </Tabs>
       </div>

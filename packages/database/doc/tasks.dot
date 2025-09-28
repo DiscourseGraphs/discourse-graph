@@ -1,0 +1,86 @@
+DiGraph G {
+
+/* package-level tasks */
+
+node [color=orange]
+
+dev
+setup
+serve
+stop
+check_types
+check_schema
+lint
+build
+test
+genenv
+dbdiff
+dbdiff_save
+deploy
+deploy_functions
+migrate
+gentypes
+
+/* supabase functions */
+node [color=purple]
+
+sup_db_diff_save
+sup_db_diff
+sup_functions
+sup_start
+sup_stop
+migrations_up
+generate_schema
+
+
+
+/* scripts */
+node [color=blue; shape=rectangle]
+
+s_createEnv
+s_genTypes
+s_migrate
+s_lint_schemas
+s_lint_functions
+s_deploy
+s_serve
+
+/* Other scripts */
+node [color=black]
+sqruff
+deno_lint
+tsc
+cucumber_js
+
+/* links */
+
+    migrate -> s_migrate -> gentypes -> s_genTypes
+    s_migrate -> migrations_up
+    dev -> setup
+    dev -> serve
+    setup -> genenv
+    setup -> migrate
+    serve -> s_serve
+    s_serve -> sup_start
+    s_serve -> sup_functions
+    s_createEnv -> sup_start
+    stop -> sup_stop
+    check_types -> tsc
+    check_schema -> s_lint_schemas
+    check_schema -> dbdiff
+    lint -> eslint
+    lint -> s_lint_functions -> deno_lint
+    lint -> s_lint_schemas -> sqruff
+    test -> build
+    test -> cucumber_js
+    genenv -> s_createEnv
+    dbdiff -> sup_stop
+    dbdiff -> sup_db_diff
+    dbdiff_save -> sup_db_diff_save
+    deploy -> s_deploy
+    deploy_functions -> s_deploy
+    build -> setup
+    build -> tsc
+    s_genTypes -> generate_schema
+    s_migrate -> sup_start
+}

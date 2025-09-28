@@ -178,6 +178,7 @@ const searchEmbeddings: SearchFunc = async ({
     return [];
   }
   const supabaseClient = await getLoggedInClient();
+  if (!supabaseClient) return [];
 
   const subsetRoamUids = indexData.map((node) => node.uid);
 

@@ -29,7 +29,7 @@ const regexRePatternValue = (str: string) => {
     ? `"(?i)${str.slice(1, -2).replace(/\\/g, "\\\\")}"`
     : `"${str.slice(1, -1).replace(/\\/g, "\\\\")}"`;
 };
-const getTitleDatalog = ({
+export const getTitleDatalog = ({
   source,
   target,
   uid,
@@ -990,10 +990,17 @@ export const getConditionLabels = () =>
 
 const conditionToDatalog: ConditionToDatalog = (con) => {
   if (con.type === "or" || con.type === "not or") {
-    const clauses: DatalogAndClause[] = con.conditions.map((branch) => ({
+    const allClauses: DatalogAndClause[] = con.conditions.map((branch) => ({
       type: "and-clause",
       clauses: branch.flatMap((c) => conditionToDatalog(c)),
     }));
+
+    // Filter out empty branches (e.g., from ignored "is a" conditions with non-existent targets)
+    const clauses = allClauses.filter((c) => c.clauses.length > 0);
+
+    // If all branches are empty, return empty array
+    if (clauses.length === 0) return [];
+
     const variableSet: Record<string, number> = {};
     clauses.forEach((c) => {
       const gathered = gatherDatalogVariablesFromClause(c);

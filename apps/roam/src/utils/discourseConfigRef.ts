@@ -4,6 +4,8 @@ import {
   StringSetting,
   ExportConfigWithUids,
   getUidAndStringSetting,
+  getUidAndBooleanSetting,
+  BooleanSetting,
 } from "./getExportSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -11,11 +13,26 @@ import {
   getSuggestiveModeConfigAndUids,
   SuggestiveModeConfigWithUids,
 } from "./getSuggestiveModeConfigSettings";
+import {
+  getLeftSidebarSettings,
+  LeftSidebarConfig,
+} from "./getLeftSidebarSettings";
 
 const configTreeRef: {
   tree: RoamBasicNode[];
   nodes: { [uid: string]: { text: string; children: RoamBasicNode[] } };
 } = { tree: [], nodes: {} };
+
+const listeners = new Set<() => void>();
+
+export const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+export const notify = () => {
+  listeners.forEach((listener) => listener());
+};
 
 type FormattedConfigTree = {
   settingsUid: string;
@@ -26,6 +43,8 @@ type FormattedConfigTree = {
   export: ExportConfigWithUids;
   canvasPageFormat: StringSetting;
   suggestiveMode: SuggestiveModeConfigWithUids;
+  leftSidebar: LeftSidebarConfig;
+  leftSidebarEnabled: BooleanSetting;
 };
 
 export const getFormattedConfigTree = (): FormattedConfigTree => {
@@ -53,6 +72,11 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
       text: "Canvas Page Format",
     }),
     suggestiveMode: getSuggestiveModeConfigAndUids(configTreeRef.tree),
+    leftSidebar: getLeftSidebarSettings(configTreeRef.tree),
+    leftSidebarEnabled: getUidAndBooleanSetting({
+      tree: configTreeRef.tree,
+      text: "(BETA) Left Sidebar",
+    }),
   };
 };
 export default configTreeRef;

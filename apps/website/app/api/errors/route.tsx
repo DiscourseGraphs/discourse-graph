@@ -5,8 +5,6 @@ import { EmailTemplate } from "./EmailTemplate";
 
 const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000"];
 
-// it is there?
-// eslint-disable-next-line turbo/no-undeclared-env-vars
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {

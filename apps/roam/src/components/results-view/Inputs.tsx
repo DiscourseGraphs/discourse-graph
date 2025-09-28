@@ -178,7 +178,8 @@ export const Inputs = ({
                 ),
         )
         .filter((t) => /^:in /.test(t))
-        .map((t) => t.substring(4));
+        .map((t) => t.substring(4))
+        .filter((value, index, array) => array.indexOf(value) === index); // Remove duplicates
     };
 
     const newInputs = getExpectedInputs().map((key) => {

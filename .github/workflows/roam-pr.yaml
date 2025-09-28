@@ -7,6 +7,8 @@ on:
     paths:
       - "apps/roam/**"
       - "packages/tailwind-config/**"
+      - "packages/utils/**"
+      - "packages/database/**"
       - "packages/ui/**"
 env:
   BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
