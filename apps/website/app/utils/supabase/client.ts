@@ -10,5 +10,5 @@ export const createClient = () => {
   if (!url || !key) {
     throw new Error("Missing required Supabase environment variables");
   }
-  return createSupabaseClient<Database, "public", Database["public"]>(url, key);
+  return createSupabaseClient<Database, "public">(url, key);
 };
