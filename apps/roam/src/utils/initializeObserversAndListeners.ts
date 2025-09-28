@@ -24,6 +24,7 @@ import {
   getPageRefObserversSize,
   previewPageRefHandler,
   overlayPageRefHandler,
+  getSuggestiveOverlayHandler,
 } from "~/utils/pageRefObserverHandlers";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
@@ -141,6 +142,10 @@ export const initObservers = async ({
         });
       });
   }) as EventListener;
+
+  if (onloadArgs.extensionAPI.settings.get("suggestive-mode-overlay")) {
+    addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
+  }
 
   const graphOverviewExportObserver = createHTMLObserver({
     tag: "DIV",
