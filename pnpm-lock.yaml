@@ -46,6 +46,9 @@ patchedDependencies:
   '@blueprintjs/core@^3.50.4':
     hash: 51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0
     path: patches/@blueprintjs__core@3.50.4.patch
+  '@blueprintjs/select':
+    hash: 8f693be051058366c9e2e9680f0bc30f2d0a294d6a936f6fde4c73f11e2eb15b
+    path: patches/@blueprintjs__select.patch
   '@tldraw/editor@^2.3.0':
     hash: 25605a291545fd9178c96ca8de0c8e72a65fe30baa18605d1a57f4a91b059857
     path: patches/@tldraw__editor@2.3.0.patch
@@ -148,7 +151,7 @@ importers:
         version: 3.30.2
       '@blueprintjs/select':
         specifier: 3.19.1
-        version: 3.19.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 3.19.1(patch_hash=8f693be051058366c9e2e9680f0bc30f2d0a294d6a936f6fde4c73f11e2eb15b)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@octokit/auth-app':
         specifier: ^7.1.4
         version: 7.2.2
@@ -247,7 +250,7 @@ importers:
         version: 3.5.2(react@18.2.0)
       roamjs-components:
         specifier: 0.85.4
-        version: 0.85.4(bfbb925bc2b1e787b920fa65fd9dca70)
+        version: 0.85.4(d6e3aaaf03f2efaef638f9c4209aaacd)
       tldraw:
         specifier: 2.3.0
         version: 2.3.0(patch_hash=53157a9866fb748b22a548ab8d9aca2a557f98c0487b201b01f0a4ca89c71708)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -9194,7 +9197,7 @@ snapshots:
       classnames: 2.5.1
       tslib: 2.3.1
 
-  '@blueprintjs/select@3.19.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+  '@blueprintjs/select@3.19.1(patch_hash=8f693be051058366c9e2e9680f0bc30f2d0a294d6a936f6fde4c73f11e2eb15b)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
       '@blueprintjs/core': 3.54.0(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       classnames: 2.5.1
@@ -16105,11 +16108,11 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
-  roamjs-components@0.85.4(bfbb925bc2b1e787b920fa65fd9dca70):
+  roamjs-components@0.85.4(d6e3aaaf03f2efaef638f9c4209aaacd):
     dependencies:
       '@blueprintjs/core': 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/datetime': 3.23.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
-      '@blueprintjs/select': 3.19.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@blueprintjs/select': 3.19.1(patch_hash=8f693be051058366c9e2e9680f0bc30f2d0a294d6a936f6fde4c73f11e2eb15b)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@samepage/scripts': 0.74.5(@aws-sdk/client-lambda@3.882.0)(@aws-sdk/client-s3@3.882.0)(@samepage/testing@0.74.5(@playwright/test@1.29.0)(@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(@types/jsdom@20.0.1)(c8@7.14.0)(debug@4.4.1)(dotenv@16.6.1)(jsdom@20.0.3)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.2)))(archiver@5.3.2)(axios@0.27.2(debug@4.4.1))(debug@4.4.1)(dotenv@16.6.1)(esbuild@0.17.14)(patch-package@6.5.1)(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.2)))(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.2))(zod@3.25.76)
       '@types/crypto-js': 4.1.1
       '@types/cytoscape': 3.21.9

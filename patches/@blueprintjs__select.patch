@@ -1,0 +1,12 @@
+diff --git a/lib/esm/components/select/select.d.ts b/lib/esm/components/select/select.d.ts
+index f8b9bc6c7d16e1b2bf2cecd157635de3d83069f4..ee0b6da30d8c9ff17dc5cc0a64440d5427454b4f 100644
+--- a/lib/esm/components/select/select.d.ts
++++ b/lib/esm/components/select/select.d.ts
+@@ -4,6 +4,7 @@ import { IListItemsProps } from "../../common";
+ export declare type SelectProps<T> = ISelectProps<T>;
+ /** @deprecated use SelectProps */
+ export interface ISelectProps<T> extends IListItemsProps<T> {
++    children?: React.ReactNode;
+     /**
+      * Whether the component should take up the full width of its container.
+      * This overrides `popoverProps.fill`. You also have to ensure that the child
