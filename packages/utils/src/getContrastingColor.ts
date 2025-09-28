@@ -1,4 +1,4 @@
-import { Colord, colord, extend } from "colord";
+import { Colord, extend } from "colord";
 import a11yPlugin from "colord/plugins/a11y";
 
 extend([a11yPlugin]);
