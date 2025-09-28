@@ -57,7 +57,6 @@ export const suggestiveOverlayPageRefHandler = (
   s: HTMLSpanElement,
   onloadArgs: OnloadArgs,
 ) => {
-  console.log("suggestiveOverlayPageRefHandler", s, onloadArgs);
   if (s.parentElement && !s.parentElement.closest(".rm-page-ref")) {
     const tag =
       s.getAttribute("data-tag") ||
