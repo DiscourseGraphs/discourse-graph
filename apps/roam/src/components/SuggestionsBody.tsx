@@ -1,0 +1,444 @@
+// THIS IS NEW CODEBASE
+import React, { useMemo, useState, useEffect } from "react";
+import {
+  Button,
+  ControlGroup,
+  Intent,
+  Menu,
+  MenuItem,
+  Position,
+  Popover,
+  Spinner,
+  Tag,
+  Tooltip,
+} from "@blueprintjs/core";
+import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
+import getAllPageNames from "roamjs-components/queries/getAllPageNames";
+import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
+import { Result } from "roamjs-components/types/query-builder";
+import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
+import { performHydeSearch } from "../utils/hyde";
+import { useDiscourseNodeFilters } from "~/utils/useDiscourseData";
+import { createBlock } from "roamjs-components/writes";
+
+const MAX_CACHE_SIZE = 50;
+
+type SuggestedNode = Result & { type: string };
+type SuggestionsCache = {
+  selectedPages: string[];
+  useAllPagesForSuggestions: boolean;
+  hydeFilteredNodes: SuggestedNode[];
+  activeNodeTypeFilters: string[];
+};
+const suggestionsCache = new Map<string, SuggestionsCache>();
+
+const SuggestionsBody = ({
+  tag,
+  blockUid,
+  shouldGrabFromReferencedPages,
+  shouldGrabParentChildContext,
+}: {
+  tag: string;
+  blockUid: string;
+  shouldGrabFromReferencedPages: boolean;
+  shouldGrabParentChildContext: boolean;
+}) => {
+  const {
+    results: existingResults,
+    discourseNode,
+    uniqueRelationTypeTriplets,
+    validTypes,
+    allNodes,
+  } = useDiscourseNodeFilters(tag);
+  const allPages = useMemo(() => getAllPageNames(), []);
+  const cachedState = suggestionsCache.get(blockUid);
+  const extensionAPI = useExtensionAPI();
+
+  const [currentPageInput, setCurrentPageInput] = useState("");
+  const [selectedPages, setSelectedPages] = useState<string[]>(
+    cachedState?.selectedPages || [],
+  );
+  const [useAllPagesForSuggestions, setUseAllPagesForSuggestions] = useState(
+    cachedState?.useAllPagesForSuggestions || false,
+  );
+  const [autocompleteKey, setAutocompleteKey] = useState(0);
+  const [pageGroups, setPageGroups] = useState<Record<string, string[]>>({});
+  const [hydeFilteredNodes, setHydeFilteredNodes] = useState<SuggestedNode[]>(
+    cachedState?.hydeFilteredNodes || [],
+  );
+  const [activeNodeTypeFilters, setActiveNodeTypeFilters] = useState<string[]>(
+    cachedState?.activeNodeTypeFilters || [],
+  );
+  const [isSearchingHyde, setIsSearchingHyde] = useState(false);
+
+  const actuallyDisplayedNodes = useMemo(() => {
+    if (activeNodeTypeFilters.length === 0) return hydeFilteredNodes;
+    return hydeFilteredNodes.filter((n) =>
+      activeNodeTypeFilters.includes(n.type),
+    );
+  }, [hydeFilteredNodes, activeNodeTypeFilters]);
+
+  const uniqueSuggestedTypeUIDs = useMemo(
+    () => Array.from(new Set(hydeFilteredNodes.map((n) => n.type))),
+    [hydeFilteredNodes],
+  );
+
+  const availableFilterTypes = useMemo(() => {
+    return uniqueSuggestedTypeUIDs
+      .map((uid) => {
+        const nodeDef = allNodes.find((n) => n.type === uid);
+        return { uid, text: nodeDef ? nodeDef.text : uid };
+      })
+      .sort((a, b) => a.text.localeCompare(b.text));
+  }, [uniqueSuggestedTypeUIDs, allNodes]);
+
+  const handleAddPage = () => {
+    if (currentPageInput && !selectedPages.includes(currentPageInput)) {
+      setSelectedPages((prev) => [...prev, currentPageInput]);
+      setTimeout(() => {
+        setCurrentPageInput("");
+        setAutocompleteKey((prev) => prev + 1);
+      }, 0);
+      setUseAllPagesForSuggestions(false);
+    }
+  };
+
+  const handleCreateBlock = async (node: SuggestedNode) => {
+    await createBlock({
+      parentUid: blockUid,
+      node: { text: `[[${node.text}]]` },
+    });
+    setHydeFilteredNodes((prev) => prev.filter((n) => n.uid !== node.uid));
+  };
+
+  const toggleOverlayHighlight = (nodeUid: string, on: boolean) => {
+    document
+      .querySelectorAll(`[data-dg-block-uid="${nodeUid}"]`)
+      .forEach((el) => el.classList.toggle("dg-highlight", on));
+  };
+
+  useEffect(() => {
+    const storedGroups = extensionAPI?.settings.get(
+      "suggestion-page-groups",
+    ) as Record<string, string[]> | undefined;
+    if (storedGroups && typeof storedGroups === "object") {
+      setPageGroups(storedGroups);
+    }
+  }, [extensionAPI]);
+
+  useEffect(() => {
+    const data = suggestionsCache.get(blockUid);
+    if (!data) return;
+    suggestionsCache.delete(blockUid);
+    suggestionsCache.set(blockUid, data);
+  }, [blockUid]);
+
+  useEffect(() => {
+    const firstKey = suggestionsCache.keys().next().value as string | undefined;
+    if (
+      !suggestionsCache.has(blockUid) &&
+      suggestionsCache.size >= MAX_CACHE_SIZE &&
+      firstKey
+    ) {
+      suggestionsCache.delete(firstKey);
+    }
+
+    suggestionsCache.set(blockUid, {
+      selectedPages,
+      useAllPagesForSuggestions,
+      hydeFilteredNodes,
+      activeNodeTypeFilters,
+    });
+  }, [
+    blockUid,
+    selectedPages,
+    useAllPagesForSuggestions,
+    hydeFilteredNodes,
+    activeNodeTypeFilters,
+  ]);
+
+  return (
+    <div onMouseDown={(e) => e.stopPropagation()}>
+      <div className="mt-2">
+        <label
+          htmlFor="suggest-page-input"
+          className="mb-1 block text-sm font-medium text-gray-700"
+        >
+          Suggest relationships from pages
+        </label>
+        <ControlGroup fill className="flex flex-wrap items-center gap-2">
+          <div
+            className="flex-0 min-w-[160px]"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && currentPageInput) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleAddPage();
+              }
+            }}
+          >
+            <AutocompleteInput
+              key={autocompleteKey}
+              value={currentPageInput}
+              placeholder={"Add page…"}
+              setValue={setCurrentPageInput}
+              options={allPages}
+              maxItemsDisplayed={50}
+            />
+          </div>
+          <Tooltip
+            content={
+              selectedPages.includes(currentPageInput)
+                ? "Page already added"
+                : "Add page"
+            }
+            disabled={!currentPageInput}
+          >
+            <Button
+              icon="plus"
+              small
+              onClick={handleAddPage}
+              disabled={
+                !currentPageInput || selectedPages.includes(currentPageInput)
+              }
+              className="whitespace-nowrap"
+            />
+          </Tooltip>
+          {Object.keys(pageGroups).length > 0 && (
+            <Popover
+              position={Position.BOTTOM_LEFT}
+              content={
+                <Menu>
+                  {Object.keys(pageGroups)
+                    .sort((a, b) => a.localeCompare(b))
+                    .map((groupName) => (
+                      <MenuItem
+                        key={groupName}
+                        text={groupName}
+                        shouldDismissPopover={false}
+                        onClick={() => {
+                          const groupPages = pageGroups[groupName] || [];
+                          setSelectedPages((prev) =>
+                            Array.from(new Set([...prev, ...groupPages])),
+                          );
+                          setUseAllPagesForSuggestions(false);
+                        }}
+                      />
+                    ))}
+                </Menu>
+              }
+            >
+              <Tooltip content="Add pages from a group">
+                <Button icon="folder-open" small text="Add Group" />
+              </Tooltip>
+            </Popover>
+          )}
+          <Button
+            text="Find"
+            icon="search-template"
+            intent={Intent.PRIMARY}
+            onClick={() => {
+              const performSearch = async () => {
+                setUseAllPagesForSuggestions(false);
+                setIsSearchingHyde(true);
+                const pages = [...selectedPages];
+                const results = await performHydeSearch({
+                  useAllPagesForSuggestions: false,
+                  selectedPages: pages,
+                  discourseNode,
+                  blockUid,
+                  validTypes,
+                  existingResults,
+                  uniqueRelationTypeTriplets,
+                  pageTitle: tag,
+                  shouldGrabFromReferencedPages,
+                  shouldGrabParentChildContext,
+                });
+                setHydeFilteredNodes(results);
+                setIsSearchingHyde(false);
+              };
+              performSearch().catch(console.error);
+            }}
+            disabled={selectedPages.length === 0}
+            small
+            className="whitespace-nowrap"
+          />
+          <div>
+            <Tooltip content={"Use all pages"}>
+              <Button
+                text="All Pages"
+                icon="globe-network"
+                small
+                onClick={() => {
+                  setUseAllPagesForSuggestions(true);
+                  setSelectedPages([]);
+                  setCurrentPageInput("");
+                  setAutocompleteKey((prev) => prev + 1);
+                  const performSearch = async () => {
+                    setUseAllPagesForSuggestions(true);
+                    setIsSearchingHyde(true);
+                    const results = await performHydeSearch({
+                      useAllPagesForSuggestions: true,
+                      selectedPages: [],
+                      discourseNode,
+                      blockUid,
+                      validTypes,
+                      existingResults,
+                      uniqueRelationTypeTriplets,
+                      pageTitle: tag,
+                      shouldGrabFromReferencedPages,
+                      shouldGrabParentChildContext,
+                    });
+                    setHydeFilteredNodes(results);
+                    setIsSearchingHyde(false);
+                  };
+                  performSearch().catch(console.error);
+                }}
+                className="whitespace-nowrap"
+              />
+            </Tooltip>
+          </div>
+        </ControlGroup>
+        {selectedPages.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {selectedPages.map((p) => (
+              <Tag
+                key={p}
+                onRemove={() => {
+                  setSelectedPages((prev) => prev.filter((x) => x !== p));
+                }}
+                round
+                minimal
+              >
+                {p}
+              </Tag>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {(hydeFilteredNodes.length > 0 || isSearchingHyde) && (
+        <div className="mt-6">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-base font-semibold">
+              {useAllPagesForSuggestions
+                ? "From All Pages"
+                : selectedPages.length > 0
+                  ? `From ${selectedPages.length === 1 ? `"${selectedPages[0]}"` : `${selectedPages.length} selected pages`}`
+                  : "Select pages to see suggestions"}
+            </h3>
+            <span className="ml-2 text-sm font-semibold text-gray-900">
+              Total nodes: {actuallyDisplayedNodes.length}
+            </span>
+            <Popover
+              position={Position.BOTTOM_RIGHT}
+              content={
+                <div className="space-y-1 p-2">
+                  {availableFilterTypes.map((t) => (
+                    <Button
+                      key={t.uid}
+                      small
+                      minimal
+                      fill
+                      alignText="left"
+                      text={t.text}
+                      intent={
+                        activeNodeTypeFilters.includes(t.uid)
+                          ? Intent.PRIMARY
+                          : Intent.NONE
+                      }
+                      onClick={() => {
+                        setActiveNodeTypeFilters((prev) =>
+                          prev.includes(t.uid)
+                            ? prev.filter((f) => f !== t.uid)
+                            : [...prev, t.uid],
+                        );
+                      }}
+                      className="w-full justify-start whitespace-nowrap"
+                    />
+                  ))}
+                  {activeNodeTypeFilters.length > 0 && (
+                    <Button
+                      small
+                      minimal
+                      icon="cross"
+                      text="Clear"
+                      onClick={() => setActiveNodeTypeFilters([])}
+                      className="whitespace-nowrap text-xs"
+                    />
+                  )}
+                </div>
+              }
+            >
+              <Button
+                icon="filter"
+                small
+                minimal
+                intent={
+                  activeNodeTypeFilters.length > 0
+                    ? Intent.PRIMARY
+                    : Intent.NONE
+                }
+              />
+            </Popover>
+          </div>
+          <div className="flex pr-2">
+            <div className="flex-grow overflow-y-auto">
+              {isSearchingHyde && (
+                <Spinner size={Spinner.SIZE_SMALL} className="mb-2" />
+              )}
+              <ul className="list-none space-y-1 p-0">
+                {!isSearchingHyde &&
+                  actuallyDisplayedNodes.length > 0 &&
+                  actuallyDisplayedNodes.map((node) => (
+                    <li
+                      key={node.uid}
+                      className="flex items-center justify-between rounded-md px-1.5 py-1.5 hover:bg-gray-100"
+                      onMouseEnter={() =>
+                        toggleOverlayHighlight(node.uid, true)
+                      }
+                      onMouseLeave={() =>
+                        toggleOverlayHighlight(node.uid, false)
+                      }
+                    >
+                      <span
+                        className="mr-2 cursor-pointer hover:underline"
+                        onClick={(e) => {
+                          if (e.shiftKey) {
+                            void openBlockInSidebar(node.uid);
+                          } else {
+                            void window.roamAlphaAPI.ui.mainWindow.openPage({
+                              page: { uid: node.uid },
+                            });
+                          }
+                        }}
+                      >
+                        {node.text}
+                      </span>
+                      <Button
+                        minimal
+                        small
+                        icon="add"
+                        onClick={() => void handleCreateBlock(node)}
+                        className="ml-2 whitespace-nowrap"
+                      />
+                    </li>
+                  ))}
+                {!isSearchingHyde && actuallyDisplayedNodes.length === 0 && (
+                  <li className="px-2 py-1.5 italic text-gray-500">
+                    {hydeFilteredNodes.length > 0 &&
+                    activeNodeTypeFilters.length > 0
+                      ? "No suggestions match the current filters."
+                      : "No relevant relations found."}
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SuggestionsBody;
