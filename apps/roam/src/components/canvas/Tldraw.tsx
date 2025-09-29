@@ -976,6 +976,10 @@ const renderTldrawCanvasHelper = ({
   const canvasWrapperEl = document.createElement("div");
   if (childFromRoot && childFromRoot.parentElement) {
     const parentEl = childFromRoot.parentElement;
+
+    if (parentEl.querySelector(".roamjs-tldraw-canvas-container"))
+      return () => {};
+
     parentEl.appendChild(canvasWrapperEl);
     canvasWrapperEl.style.minHeight = minHeight;
     canvasWrapperEl.style.height = height;
