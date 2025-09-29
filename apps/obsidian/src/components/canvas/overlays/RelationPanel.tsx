@@ -374,8 +374,8 @@ export const RelationsPanel = ({
           dash: "draw",
           size: "m",
           fill: "none",
-          color: "blue",
-          labelColor: "blue",
+          color: "black",
+          labelColor: "black",
           bend: 0,
           // Will be updated by bindings
           start: { x: 0, y: 0 },

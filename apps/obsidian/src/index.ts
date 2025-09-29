@@ -3,11 +3,8 @@ import {
   Editor,
   Menu,
   TFile,
-  Events,
   MarkdownView,
-  ViewState,
   WorkspaceLeaf,
-  App,
 } from "obsidian";
 import { SettingsTab } from "~/components/Settings";
 import { Settings, VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";

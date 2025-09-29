@@ -11,6 +11,7 @@ import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { useAtom } from "@tldraw/state";
+import { TOOL_ARROW_ICON_SVG, NODE_COLOR_ICON_SVG } from "~/icons";
 
 export type DiscourseGraphPanelProps = {
   nodes: DiscourseNode[];
@@ -44,10 +45,9 @@ type DragState =
       currentPosition: Vec;
     };
 
-const TOOL_ARROW_ICON_URL =
-  "https://discoursegraphs.com/apps/assets/tool-arrow-icon.svg";
-const NODE_COLOR_ICON_URL =
-  "https://discoursegraphs.com/apps/assets/node-color-icon.svg";
+const TOOL_ARROW_ICON_DATA_URL = `data:image/svg+xml;base64,${btoa(TOOL_ARROW_ICON_SVG)}`;
+const NODE_COLOR_ICON_DATA_URL = `data:image/svg+xml;base64,${btoa(NODE_COLOR_ICON_SVG)}`;
+
 const DiscourseGraphPanel = ({
   nodes,
   relations,
@@ -294,7 +294,7 @@ const DiscourseGraphPanel = ({
               <span
                 className="tlui-icon tlui-button__icon mr-2"
                 style={{
-                  mask: `url("${NODE_COLOR_ICON_URL}") center 100% / 100% no-repeat`,
+                  mask: `url("${NODE_COLOR_ICON_DATA_URL}") center 100% / 100% no-repeat`,
                   backgroundColor:
                     formatHexColor(currentNodeTool.canvasSettings.color) ||
                     "black",
@@ -330,7 +330,7 @@ const DiscourseGraphPanel = ({
                 className="tlui-icon tlui-button__icon mr-2"
                 style={{
                   color,
-                  mask: `url("${TOOL_ARROW_ICON_URL}") center 100% / 100% no-repeat`,
+                  mask: `url("${TOOL_ARROW_ICON_DATA_URL}") center 100% / 100% no-repeat`,
                 }}
               ></div>
               <span>{currentRelationTool}</span>
@@ -368,8 +368,8 @@ const DiscourseGraphPanel = ({
                   style={{
                     mask:
                       item.type === "node"
-                        ? `url("${NODE_COLOR_ICON_URL}") center 100% / 100% no-repeat`
-                        : `url("${TOOL_ARROW_ICON_URL}") center 100% / 100% no-repeat`,
+                        ? `url("${NODE_COLOR_ICON_DATA_URL}") center 100% / 100% no-repeat`
+                        : `url("${TOOL_ARROW_ICON_DATA_URL}") center 100% / 100% no-repeat`,
                     backgroundColor: item.color,
                   }}
                 />
