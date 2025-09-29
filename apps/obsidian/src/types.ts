@@ -14,6 +14,7 @@ export type DiscourseRelationType = {
   id: string;
   label: string;
   complement: string;
+  color: string;
 };
 
 export type DiscourseRelation = {
@@ -28,6 +29,8 @@ export type Settings = {
   relationTypes: DiscourseRelationType[];
   showIdsInFrontmatter: boolean;
   nodesFolderPath: string;
+  canvasFolderPath: string;
+  canvasAttachmentsFolderPath: string;
 };
 
 export type BulkImportCandidate = {
