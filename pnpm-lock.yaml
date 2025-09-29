@@ -6,12 +6,18 @@ settings:
 
 catalogs:
   default:
+    '@types/eslint':
+      specifier: 8.56.12
+      version: 8.56.12
     '@types/react':
       specifier: ^19.1.12
       version: 19.1.12
     '@types/react-dom':
       specifier: ^19.1.9
       version: 19.1.9
+    eslint:
+      specifier: 8.57.1
+      version: 8.57.1
     react:
       specifier: ^19.1.0
       version: 19.1.1
@@ -92,6 +98,9 @@ importers:
       '@octokit/core':
         specifier: ^6.1.2
         version: 6.1.6
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../../packages/eslint-config
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -116,6 +125,9 @@ importers:
       esbuild:
         specifier: 0.17.3
         version: 0.17.3
+      eslint:
+        specifier: 'catalog:'
+        version: 8.57.1
       obsidian:
         specifier: ^1.7.2
         version: 1.8.7(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)
@@ -209,6 +221,9 @@ importers:
       date-fns:
         specifier: ^2.30.0
         version: 2.30.0
+      eslint:
+        specifier: 'catalog:'
+        version: 8.57.1
       eventemitter3:
         specifier: ^4.0.7
         version: 4.0.7
@@ -261,6 +276,9 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../../packages/eslint-config
       '@repo/tailwind-config':
         specifier: workspace:*
         version: link:../../packages/tailwind-config
@@ -409,6 +427,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.21(postcss@8.5.6)
+      eslint:
+        specifier: 'catalog:'
+        version: 8.57.1
       postcss:
         specifier: ^8.4.49
         version: 8.5.6
@@ -437,6 +458,9 @@ importers:
       '@cucumber/cucumber':
         specifier: ^12.1.0
         version: 12.2.0
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
@@ -446,6 +470,9 @@ importers:
       dotenv:
         specifier: ^16.6.1
         version: 16.6.1
+      eslint:
+        specifier: 'catalog:'
+        version: 8.57.1
       prettier-plugin-gherkin:
         specifier: ^3.1.2
         version: 3.1.2
@@ -477,7 +504,7 @@ importers:
         specifier: ^6.0.0
         version: 6.0.0(@next/eslint-plugin-next@15.0.4)(eslint@8.57.1)(prettier@3.6.2)(typescript@5.5.4)
       eslint:
-        specifier: ^8.57.1
+        specifier: 'catalog:'
         version: 8.57.1
       eslint-config-prettier:
         specifier: ^10.1.5
@@ -497,6 +524,9 @@ importers:
       eslint-plugin-react-hooks:
         specifier: ^5.2.0
         version: 5.2.0(eslint@8.57.1)
+      eslint-plugin-turbo:
+        specifier: ^2.5.4
+        version: 2.5.6(eslint@8.57.1)(turbo@2.5.6)
       globals:
         specifier: 16.2.0
         version: 16.2.0
@@ -569,7 +599,7 @@ importers:
         specifier: ^2.5.4
         version: 2.5.6(@types/node@20.19.13)(typescript@5.5.4)
       '@types/eslint':
-        specifier: ^8.56.5
+        specifier: 'catalog:'
         version: 8.56.12
       '@types/node':
         specifier: ^20.11.24
@@ -581,7 +611,7 @@ importers:
         specifier: ^19
         version: 19.1.9(@types/react@19.1.12)
       eslint:
-        specifier: ^8.57.1
+        specifier: 'catalog:'
         version: 8.57.1
       typescript:
         specifier: 5.5.4
@@ -589,12 +619,18 @@ importers:
 
   packages/utils:
     devDependencies:
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
         specifier: ^20.11.24
         version: 20.19.13
+      eslint:
+        specifier: 'catalog:'
+        version: 8.57.1
 
 packages:
 
@@ -11376,7 +11412,7 @@ snapshots:
 
   '@types/minimatch@6.0.0':
     dependencies:
-      minimatch: 9.0.5
+      minimatch: 10.0.3
 
   '@types/ms@2.1.0': {}
 

@@ -8,7 +8,9 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^20.11.24"
+    "@repo/eslint-config": "workspace:*",
+    "@types/node": "^20.11.24",
+    "eslint": "catalog:"
   },
   "scripts": {
     "build": "tsc",

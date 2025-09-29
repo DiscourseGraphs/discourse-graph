@@ -13,6 +13,7 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
     "@repo/tailwind-config": "workspace:*",
     "@repo/types": "workspace:*",
     "@repo/typescript-config": "workspace:*",
@@ -57,6 +58,7 @@
     "cytoscape": "^3.21.0",
     "cytoscape-navigator": "^2.0.1",
     "date-fns": "^2.30.0",
+    "eslint": "catalog:",
     "eventemitter3": "^4.0.7",
     "file-saver": "2.0.2",
     "fuzzy": "^0.1.3",
