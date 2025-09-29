@@ -49,6 +49,7 @@ import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSetting
 import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
+import { getCleanTagText } from "~/components/settings/NodeConfig";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -109,14 +110,10 @@ export const initObservers = async ({
     callback: (s: HTMLSpanElement) => {
       const tag = s.getAttribute("data-tag");
       if (tag) {
-        const normalizeTag = (tag: string): string => {
-          return tag.replace(/^#+/, "").trim().toLowerCase();
-        };
-
-        const normalizedTag = normalizeTag(tag);
+        const normalizedTag = getCleanTagText(tag);
 
         for (const node of getDiscourseNodes()) {
-          const normalizedNodeTag = node.tag ? normalizeTag(node.tag) : "";
+          const normalizedNodeTag = node.tag ? getCleanTagText(node.tag) : "";
           if (normalizedTag === normalizedNodeTag) {
             renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
             if (node.canvasSettings?.color) {
