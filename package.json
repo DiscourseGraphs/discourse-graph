@@ -30,6 +30,7 @@
     "tailwindConfig": "./packages/tailwind-config/tailwind.config.ts"
   },
   "dependencies": {
+    "colord": "^2.9.3",
     "posthog-js": "^1.203.1"
   },
   "//": "Roam Research still uses React 18",

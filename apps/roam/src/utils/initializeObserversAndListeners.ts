@@ -49,6 +49,8 @@ import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSetting
 import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
+import getContrastingColor from "@repo/utils/getContrastingColor";
+import { colord } from "colord";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -113,7 +115,30 @@ export const initObservers = async ({
           if (tag.toLowerCase() === node.tag?.toLowerCase()) {
             renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
             if (node.canvasSettings?.color) {
-              s.style.color = formatHexColor(node.canvasSettings.color);
+              const formattedColor = formatHexColor(node.canvasSettings.color);
+              if (!formattedColor) {
+                break;
+              }
+              const contrastingColor: {
+                secondary: string;
+                primary: string;
+                tertiary: string;
+              } = getContrastingColor(colord(formattedColor));
+
+              Object.assign(s.style, {
+                backgroundColor: contrastingColor.primary,
+                color: contrastingColor.secondary,
+                border: `1px solid ${contrastingColor.tertiary}`,
+                fontWeight: "500",
+                padding: "2px 6px",
+                borderRadius: "12px",
+                margin: "0 2px",
+                fontSize: "0.9em",
+                whiteSpace: "nowrap",
+                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                display: "inline-block",
+                cursor: "pointer",
+              });
             }
             break;
           }
