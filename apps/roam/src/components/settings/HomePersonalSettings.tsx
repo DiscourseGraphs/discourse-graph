@@ -5,6 +5,7 @@ import Description from "roamjs-components/components/Description";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
   getOverlayHandler,
+  getSuggestiveOverlayHandler,
   onPageRefObserverChange,
   previewPageRefHandler,
 } from "~/utils/pageRefObserverHandlers";
@@ -71,6 +72,31 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             <Description
               description={
                 "Whether or not to overlay Discourse Context information over Discourse Node references."
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={
+          extensionAPI.settings.get("suggestive-mode-overlay") as boolean
+        }
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          void extensionAPI.settings.set(
+            "suggestive-mode-overlay",
+            target.checked,
+          );
+          onPageRefObserverChange(getSuggestiveOverlayHandler(onloadArgs))(
+            target.checked,
+          );
+        }}
+        labelElement={
+          <>
+            Suggestive Mode Overlay
+            <Description
+              description={
+                "Whether or not to overlay Suggestive Mode button over Discourse Node references."
               }
             />
           </>
