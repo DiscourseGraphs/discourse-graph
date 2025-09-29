@@ -6,6 +6,7 @@ const INITIAL_NODE_VALUES: Partial<DiscourseNode>[] = [
     format: "[[CLM]] - {content}",
     text: "Claim",
     shortcut: "C",
+    tag: "#clm-candidate",
     graphOverview: true,
     canvasSettings: {
       color: "7DA13E",
@@ -26,6 +27,7 @@ const INITIAL_NODE_VALUES: Partial<DiscourseNode>[] = [
     format: "[[EVD]] - {content} - {Source}",
     text: "Evidence",
     shortcut: "E",
+    tag: "#evd-candidate",
     graphOverview: true,
     canvasSettings: {
       color: "DB134A",
