@@ -85,7 +85,6 @@ import ConvertToDialog from "./ConvertToDialog";
 import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import sendErrorEmail from "~/utils/sendErrorEmail";
-import { TLDRAW_DATA_ATTRIBUTE } from "./tldrawStyles";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
@@ -975,14 +974,12 @@ const renderTldrawCanvasHelper = ({
   if (!childFromRoot) return () => {};
 
   const canvasWrapperEl = document.createElement("div");
-  if (
-    childFromRoot &&
-    childFromRoot.parentElement &&
-    !childFromRoot.hasAttribute(TLDRAW_DATA_ATTRIBUTE)
-  ) {
-    rootElement.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
-    childFromRoot.setAttribute(TLDRAW_DATA_ATTRIBUTE, "true");
+  if (childFromRoot && childFromRoot.parentElement) {
     const parentEl = childFromRoot.parentElement;
+
+    if (parentEl.querySelector(".roamjs-tldraw-canvas-container"))
+      return () => {};
+
     parentEl.appendChild(canvasWrapperEl);
     canvasWrapperEl.style.minHeight = minHeight;
     canvasWrapperEl.style.height = height;
@@ -998,8 +995,6 @@ const renderTldrawCanvasHelper = ({
   const originalUnmount = unmount;
   return () => {
     originalUnmount();
-    childFromRoot.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
-    rootElement.removeAttribute(TLDRAW_DATA_ATTRIBUTE);
     canvasWrapperEl.remove();
   };
 };
