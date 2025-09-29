@@ -3,6 +3,7 @@ import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import { createClient } from "@supabase/supabase-js";
 import { Constants, type Database, type Enums } from "@repo/database/dbTypes";
 import { getVariant, config } from "@repo/database/dbDotEnv";
+import { getNodes } from "@repo/database/lib/queries";
 
 import {
   spaceAnonUserEmail,
@@ -26,8 +27,8 @@ const getAnonymousClient = () => {
     );
   }
   return createClient<Database, "public">(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY,
   );
 };
 
@@ -38,8 +39,8 @@ const getServiceClient = () => {
     );
   }
   return createClient<Database, "public">(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
 };
 
@@ -49,6 +50,8 @@ Given("the database is blank", async () => {
   const client = getServiceClient();
   let r = await client.from("Content").delete().neq("id", -1);
   assert.equal(r.error, null);
+  r = await client.from("Document").delete().neq("id", -1);
+  assert.equal(r.error, null);
   r = await client.from("Concept").delete().neq("id", -1);
   assert.equal(r.error, null);
   r = await client.from("AgentIdentifier").delete().neq("account_id", -1);
@@ -57,39 +60,74 @@ Given("the database is blank", async () => {
   assert.equal(r.error, null);
   r = await client.from("Space").delete().neq("id", -1);
   assert.equal(r.error, null);
+  world.localRefs = {};
 });
 
 const substituteLocalReferences = (
-  row: Record<string, any>,
+  row: Record<string, string>,
   localRefs: Record<string, number>,
-): Record<string, any> =>
-  Object.fromEntries(
+): Record<string, any> => {
+  const substituteLocalReferencesRec = (v: any): any => {
+    if (typeof v === "string") {
+      return localRefs[v];
+    }
+    if (Array.isArray(v)) return v.map(substituteLocalReferencesRec);
+    if (typeof v === "object")
+      return Object.fromEntries(
+        Object.entries(v).map(([k, v]) => [k, substituteLocalReferencesRec(v)]),
+      );
+    console.error("could not substitute", typeof v, v);
+  };
+
+  const processKV = ([k, v]: [string, string]) => {
+    let v2: any = v;
+    const isJson = k.charAt(0) === "@";
+    if (isJson) {
+      k = k.substring(1);
+      v2 = JSON.parse(v2);
+    }
+    const isJsonObject = isJson && "{[".includes(v.charAt(0));
+    if (k.charAt(0) === "_") {
+      k = k.substring(1);
+      v2 = substituteLocalReferencesRec(v2);
+    }
+    if (isJsonObject) v2 = JSON.stringify(v2);
+    return [k, v2];
+  };
+
+  const result = Object.fromEntries(
     Object.entries(row)
-      .filter(([k, v]) => k.charAt(0) !== "@")
-      .map(([k, v]) =>
-        k.charAt(0) == "_" ? [k.substring(1), localRefs[v]] : [k, v],
-      ),
+      .filter(([k, v]: [string, string]) => k.charAt(0) !== "$")
+      .map(processKV),
   );
+  return result;
+};
 
 Given(
   "{word} are added to the database:",
   async (tableName: keyof Database["public"]["Tables"], table: DataTable) => {
     // generic function to add a bunch of objects.
-    // Columns prefixed by @ are primary keys, and are not sent to the database,
+    // Columns prefixed by $ are primary keys, and are not sent to the database,
     // but the local value is associated with the database id in world.localRefs.
     // Columns prefixed with _ are translated back from local references to db ids.
+    // Columns prefixed with @ are parsed as json values. (Use @ before _)
     const client = getServiceClient();
-    const localRefs: Record<string, any> = world.localRefs || {};
+    const localRefs = (world.localRefs as Record<string, number>) || {};
     const rows = table.hashes();
     const values: any[] = rows.map((r) =>
       substituteLocalReferences(r, localRefs),
     );
     const defIndex = table
       .raw()[0]!
-      .map((k) => (k.charAt(0) == "@" ? k : null))
+      .map((k) => (k.charAt(0) == "$" ? k : null))
       .filter((k) => typeof k == "string");
+    const localIndexName = defIndex[0]!;
+    // do not allow to redefine values
+    assert.strictEqual(
+      values.filter((v) => localRefs[v[localIndexName]] !== undefined).length,
+      0,
+    );
     if (defIndex.length) {
-      const localIndexName = defIndex[0]!;
       const dbIndexName = localIndexName.substring(1);
       const ids = await client
         .from(tableName)
@@ -120,7 +158,7 @@ When(
     // assumption: turbo dev is running. TODO: Make into hooks
     if (PLATFORMS.indexOf(platform) < 0)
       throw new Error(`Platform must be one of ${PLATFORMS}`);
-    const localRefs: Record<string, any> = world.localRefs || {};
+    const localRefs = (world.localRefs as Record<string, number>) || {};
     const spaceResponse = await fetchOrCreateSpaceDirect({
       password: SPACE_ANONYMOUS_PASSWORD,
       url: `https://roamresearch.com/#/app/${spaceName}`,
@@ -163,16 +201,22 @@ Then(
   },
 );
 
+const getLoggedinDatabase = async (spaceId: number) => {
+  assert.notStrictEqual(spaceId, undefined);
+  const client = getAnonymousClient();
+  const loginResponse = await client.auth.signInWithPassword({
+    email: spaceAnonUserEmail("Roam", spaceId),
+    password: SPACE_ANONYMOUS_PASSWORD,
+  });
+  assert.equal(loginResponse.error, null);
+  return client;
+};
+
 Then(
   "a user logged in space {word} should see a {word} in the database",
   async (spaceName, tableName) => {
-    const client = getAnonymousClient();
-    const spaceId = world.localRefs[spaceName];
-    const loginResponse = await client.auth.signInWithPassword({
-      email: spaceAnonUserEmail("Roam", spaceId),
-      password: SPACE_ANONYMOUS_PASSWORD,
-    });
-    assert.equal(loginResponse.error, null);
+    const spaceId: number = world.localRefs[spaceName];
+    const client = await getLoggedinDatabase(spaceId);
     const response = await client
       .from(tableName)
       .select("*", { count: "exact" });
@@ -183,13 +227,8 @@ Then(
 Then(
   "a user logged in space {word} should see {int} {word} in the database",
   async (spaceName, expectedCount, tableName) => {
-    const client = getAnonymousClient();
-    const spaceId = world.localRefs[spaceName];
-    const loginResponse = await client.auth.signInWithPassword({
-      email: spaceAnonUserEmail("Roam", spaceId),
-      password: SPACE_ANONYMOUS_PASSWORD,
-    });
-    assert.equal(loginResponse.error, null);
+    const spaceId: number = world.localRefs[spaceName];
+    const client = await getLoggedinDatabase(spaceId);
     const response = await client
       .from(tableName)
       .select("*", { count: "exact" });
@@ -198,16 +237,25 @@ Then(
 );
 
 Given(
+  "user {word} upserts these accounts to space {word}:",
+  async (userName: string, spaceName: string, accountsString: string) => {
+    const accounts = JSON.parse(accountsString);
+    const spaceId: number = world.localRefs[spaceName];
+    const client = await getLoggedinDatabase(spaceId);
+    const response = await client.rpc("upsert_accounts_in_space", {
+      space_id_: spaceId,
+      accounts,
+    });
+    assert.equal(response.error, null);
+  },
+);
+
+Given(
   "user {word} upserts these documents to space {word}:",
   async (userName: string, spaceName: string, docString: string) => {
     const data = JSON.parse(docString);
-    const client = getAnonymousClient();
-    const spaceId = world.localRefs[spaceName];
-    const loginResponse = await client.auth.signInWithPassword({
-      email: spaceAnonUserEmail("Roam", spaceId),
-      password: SPACE_ANONYMOUS_PASSWORD,
-    });
-    assert.equal(loginResponse.error, null);
+    const spaceId: number = world.localRefs[spaceName];
+    const client = await getLoggedinDatabase(spaceId);
     const response = await client.rpc("upsert_documents", {
       v_space_id: spaceId,
       data,
@@ -220,13 +268,8 @@ Given(
   "user {word} upserts this content to space {word}:",
   async (userName: string, spaceName: string, docString: string) => {
     const data = JSON.parse(docString);
-    const client = getAnonymousClient();
-    const spaceId = world.localRefs[spaceName];
-    const loginResponse = await client.auth.signInWithPassword({
-      email: spaceAnonUserEmail("Roam", spaceId),
-      password: SPACE_ANONYMOUS_PASSWORD,
-    });
-    assert.equal(loginResponse.error, null);
+    const spaceId: number = world.localRefs[spaceName];
+    const client = await getLoggedinDatabase(spaceId);
     const response = await client.rpc("upsert_content", {
       v_space_id: spaceId,
       data,
@@ -241,13 +284,8 @@ Given(
   "user {word} upserts these concepts to space {word}:",
   async (userName: string, spaceName: string, docString: string) => {
     const data = JSON.parse(docString);
-    const client = getAnonymousClient();
-    const spaceId = world.localRefs[spaceName];
-    const loginResponse = await client.auth.signInWithPassword({
-      email: spaceAnonUserEmail("Roam", spaceId),
-      password: SPACE_ANONYMOUS_PASSWORD,
-    });
-    assert.equal(loginResponse.error, null);
+    const spaceId: number = world.localRefs[spaceName];
+    const client = await getLoggedinDatabase(spaceId);
     const response = await client.rpc("upsert_concepts", {
       v_space_id: spaceId,
       data,
@@ -255,3 +293,40 @@ Given(
     assert.equal(response.error, null);
   },
 );
+
+Given(
+  "a user logged in space {word} and querying nodes with these parameters: {string}",
+  async (spaceName: string, paramsJ: string) => {
+    const params = JSON.parse(paramsJ);
+    const spaceId: number = world.localRefs[spaceName];
+    const supabase = await getLoggedinDatabase(spaceId);
+    const nodes = await getNodes({ ...params, supabase, spaceId });
+    nodes.sort((a, b) => a.id! - b.id!);
+    world.queryResults = nodes;
+  },
+);
+
+Then("query results should look like this", (table: DataTable) => {
+  const localRefs = (world.localRefs as Record<string, number>) || {};
+  const rows = table.hashes();
+  const values: any[] = rows.map((r) =>
+    substituteLocalReferences(r, localRefs),
+  );
+  // console.log(values);
+  // console.log(world.queryResults);
+  values.sort((a, b) => a.id! - b.id!);
+  assert.deepStrictEqual(
+    values.map((v) => v.id),
+    world.queryResults.map((v: any) => v.id),
+  );
+  if (values.length) {
+    const keys = Object.keys(values[0]);
+    const truncatedResults = world.queryResults.map((v: any) =>
+      Object.fromEntries(
+        Object.entries(v).filter(([k, _]) => keys.includes(k)),
+      ),
+    );
+    // console.log(truncatedResults);
+    assert.deepEqual(values, truncatedResults);
+  }
+});
