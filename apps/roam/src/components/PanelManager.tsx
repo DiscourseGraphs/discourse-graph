@@ -143,6 +143,10 @@ export const PanelContainer = (): React.ReactElement => {
     if (articleWrapper) {
       articleWrapper.style.flex = isMinimized ? "1 1 auto" : "1 1 60%";
     }
+    if (containerMount) {
+      containerMount.style.flex = isMinimized ? "0 0 auto" : "0 0 40%";
+      containerMount.style.width = isMinimized ? "auto" : "";
+    }
   }, [isMinimized]);
 
   const handleMinimize = useCallback(() => setIsMinimized(true), []);
@@ -170,8 +174,8 @@ export const PanelContainer = (): React.ReactElement => {
       style={{
         display: "flex",
         flexDirection: "column",
-        flex: isMinimized ? "0 0 auto" : "0 0 40%",
-        width: isMinimized ? "auto" : undefined,
+        width: "100%",
+        height: "100%",
       }}
     >
       {!isMinimized ? (
@@ -258,29 +262,6 @@ const cssEscape = (value: string): string =>
   window.CSS && window.CSS.escape
     ? window.CSS.escape(value)
     : value.replace(/[^a-zA-Z0-9_-]/g, (c: string) => `\\${c}`);
-
-const updateOverlayToggleButtons = (tag: string, isOpen: boolean): void => {
-  const selector = `button[data-dg-role="panel-toggle"][data-dg-tag="${cssEscape(tag)}"]`;
-  const buttons = Array.from(document.querySelectorAll(selector));
-  buttons.forEach((btn) => {
-    const buttonEl = btn as HTMLButtonElement;
-    buttonEl.dataset.dgPanelOpen = isOpen ? "true" : "false";
-    if (isOpen) buttonEl.classList.add("bp3-intent-primary");
-    else buttonEl.classList.remove("bp3-intent-primary");
-    buttonEl.title = isOpen
-      ? "Close suggestions panel"
-      : "Open suggestions panel";
-    const icon = buttonEl.querySelector(".bp3-icon");
-    if (icon) {
-      icon.classList.remove(
-        isOpen ? "bp3-icon-panel-stats" : "bp3-icon-panel-table",
-      );
-      icon.classList.add(
-        isOpen ? "bp3-icon-panel-table" : "bp3-icon-panel-stats",
-      );
-    }
-  });
-};
 
 const clearBlockHighlight = (blockUid: string): void => {
   try {
@@ -436,7 +417,6 @@ export const panelManager: PanelManager = {
       element: null,
     });
     this.notify();
-    updateOverlayToggleButtons(tag, true);
     notifySubscribers(tag, true);
   },
 
@@ -446,7 +426,6 @@ export const panelManager: PanelManager = {
 
     openPanels.delete(tag);
     this.notify();
-    updateOverlayToggleButtons(tag, false);
     clearBlockHighlight(state.blockUid);
     notifySubscribers(tag, false);
 
@@ -461,7 +440,6 @@ export const panelManager: PanelManager = {
     this.notify();
 
     entries.forEach(([tag, state]) => {
-      updateOverlayToggleButtons(tag, false);
       clearBlockHighlight(state.blockUid);
       notifySubscribers(tag, false);
     });
