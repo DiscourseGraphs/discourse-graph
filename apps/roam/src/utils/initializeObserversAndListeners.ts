@@ -109,8 +109,15 @@ export const initObservers = async ({
     callback: (s: HTMLSpanElement) => {
       const tag = s.getAttribute("data-tag");
       if (tag) {
+        const normalizeTag = (tag: string): string => {
+          return tag.replace(/^#+/, "").trim().toLowerCase();
+        };
+
+        const normalizedTag = normalizeTag(tag);
+
         for (const node of getDiscourseNodes()) {
-          if (tag.toLowerCase() === node.tag?.toLowerCase()) {
+          const normalizedNodeTag = node.tag ? normalizeTag(node.tag) : "";
+          if (normalizedTag === normalizedNodeTag) {
             renderNodeTagPopupButton(s, node, onloadArgs.extensionAPI);
             if (node.canvasSettings?.color) {
               s.style.color = formatHexColor(node.canvasSettings.color);
