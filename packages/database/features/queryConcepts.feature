@@ -1,0 +1,66 @@
+Feature: Concept upsert
+  User story:
+  * As a user of the Roam plugin
+  * Logged in through a given space's anonymous account
+  * With existing concepts
+  * I want to make various concept queries
+
+  Acceptance criteria:
+  * The queries should succeed
+
+  Background:
+    Given the database is blank
+    And the user user1 opens the Roam plugin in space s1
+    And the user user2 opens the Roam plugin in space s1
+    And the user user3 opens the Roam plugin in space s1
+    And Document are added to the database:
+      | $id | source_local_id | created    | last_modified | _author_id | _space_id |
+      | d1  | d1              | 2025/01/01 |    2025/01/01 | user1      | s1        |
+      | d5  | d5              | 2025/01/01 |    2025/01/01 | user2      | s1        |
+    And Content are added to the database:
+      | $id | source_local_id | _document_id | text    | created    | last_modified | scale    | _author_id | _space_id |
+      | ct1 | ct1             | d1           | Claim   | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
+      | ct5 | ct5             | d5           | Opposes | 2025/01/01 |    2025/01/01 | document | user2      | s1        |
+    And Concept are added to the database:
+      | $id | name    | _space_id | _author_id | _represented_by_id | created    | last_modified | @is_schema | _schema_id | literal_content                 | reference_content |
+      | c1  | Claim   | s1        | user1      | ct1                | 2025/01/01 |    2025/01/01 | true       |            | {}                              | {}                |
+      | c5  | Opposes | s1        | user1      | ct5                | 2025/01/01 |    2025/01/01 | true       |            | {"roles": ["target", "source"]} | {}                |
+    And Concept are added to the database:
+      | $id | name    | _space_id | _author_id | created    | last_modified | @is_schema | _schema_id | literal_content | reference_content |
+      | c2  | claim 1 | s1        | user1      | 2025/01/01 |    2025/01/01 | false      | c1         | {}              | {}                |
+      | c3  | claim 2 | s1        | user2      | 2025/01/01 |    2025/01/01 | false      | c1         | {}              | {}                |
+      | c4  | claim 3 | s1        | user3      | 2025/01/01 |    2025/01/01 | false      | c1         | {}              | {}                |
+    And Concept are added to the database:
+      | $id | name      | _space_id | _author_id | created    | last_modified | @is_schema | _schema_id | literal_content | @_reference_content              |
+      | c6  | opposes 1 | s1        | user2      | 2025/01/01 |    2025/01/01 | false      | c5         | {}              | {"target": "c3", "source": "c2"} |
+
+  Scenario Outline: Query all nodes
+    And a user logged in space s1 and querying nodes with these parameters: '{"schemaLocalIds":[]}'
+    Then query results should look like this
+      | _id | name      | _space_id | _author_id | @is_schema | _schema_id | @_reference_content              |
+      | c2  | claim 1   | s1        | user1      | false      | c1         | {}                               |
+      | c3  | claim 2   | s1        | user2      | false      | c1         | {}                               |
+      | c4  | claim 3   | s1        | user3      | false      | c1         | {}                               |
+      | c6  | opposes 1 | s1        | user2      | false      | c5         | {"target": "c3", "source": "c2"} |
+
+  Scenario Outline: Query node schemas
+    And a user logged in space s1 and querying nodes with these parameters: '{}'
+    Then query results should look like this
+      | _id | name    | _space_id | _author_id | @is_schema | _schema_id | literal_content                 | reference_content | _represented_by_id |
+      | c1  | Claim   | s1        | user1      | true       |            | {}                              | {}                | ct1                |
+      | c5  | Opposes | s1        | user1      | true       |            | {"roles": ["target", "source"]} | {}                | ct5                |
+
+  Scenario Outline: Query by node types
+    And a user logged in space s1 and querying nodes with these parameters: '{"schemaLocalIds":["ct1"]}'
+    Then query results should look like this
+      | _id | name    | _space_id | _author_id | @is_schema | _schema_id | literal_content | reference_content |
+      | c2  | claim 1 | s1        | user1      | false      | c1         | {}              | {}                |
+      | c3  | claim 2 | s1        | user2      | false      | c1         | {}              | {}                |
+      | c4  | claim 3 | s1        | user3      | false      | c1         | {}              | {}                |
+
+  Scenario Outline: Query by author
+    And a user logged in space s1 and querying nodes with these parameters: '{"nodeAuthor":["user2"],"schemaLocalIds":[]}'
+    Then query results should look like this
+      | _id | name      | _space_id | _author_id | @is_schema | _schema_id | literal_content | @_reference_content              |
+      | c3  | claim 2   | s1        | user2      | false      | c1         | {}              | {}                               |
+      | c6  | opposes 1 | s1        | user2      | false      | c5         | {}              | {"target": "c3", "source": "c2"} |
