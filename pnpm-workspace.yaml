@@ -2,51 +2,8 @@ packages:
   - packages/*
   - apps/*
 
-# The global versions, in practice apply to website
-catalog:
-  react: ^19.1.0
-  react-dom: ^19.1.0
-  eslint: 8.57.1
-  "@types/eslint": 8.56.12
-  "@types/react": ^19.1.12
-  "@types/react-dom": ^19.1.9
+allowUnusedPatches: false
 
-# app-specific versions. Use catalog:roam etc. as versions in package.json
-catalogs:
-  obsidian:
-    react: 19.0.0
-    react-dom: 19.0.0
-    "@types/react": ^19.0.12
-    "@types/react-dom": ^19.0.4
-  roam:
-    react: 18.2.0
-    react-dom: 18.2.0
-    "@types/react": 18.2.21
-    "@types/react-dom": 18.2.17
-
-# pnpm asks for those if absent.
-onlyBuiltDependencies:
-  - core-js
-  - core-js-pure
-  - esbuild
-  - react-vertical-timeline-component
-  - roamjs-components
-  - sharp
-  - supabase
-  - unrs-resolver
-
-# Use `pnpm why react` etc. to identify which packages request other versions.
-overrides:
-  "roam>react": 18.2.0
-  "roam>react-dom": 18.2.0
-  "roam>@types/react": 18.2.21
-  "roam>@types/react-dom": 18.2.17
-  "@types/react-vertical-timeline-component@3.3.6>@types/react": "18.2.21"
-  "@types/react-dom@18.2.17>@types/react": "18.2.21"
-  "react-charts@3.0.0-beta.57>@types/react": "18.2.21"
-  "react-charts@3.0.0-beta.57>@types/react-dom": "18.2.17"
-
-# pnpm complained about these, may need review or updates
 allowedDeprecatedVersions:
   "@humanwhocodes/config-array": ^0.13
   "@humanwhocodes/object-schema": ^2.0
@@ -62,34 +19,73 @@ allowedDeprecatedVersions:
   node-domexception: ^1.0
   path-match: ^1.2
   popper.js: ^1.16
-  rimraf: "<4"
+  rimraf: <4
 
-peerDependencyRules:
-  # This tells pnpm not to complain that our overrides don't match the requested values
-  allowedVersions:
-    "react-popper@1.3.11>react": 18.2.0
-    "react-day-picker@7.4.9>react": 18.2.0
-    "react-in-viewport>react": 18.2.0
-    "react-in-viewport>react-dom": 18.2.0
-    "roamjs-components>react": 18.2.0
-    "roamjs-components>react-dom": 18.2.0
-    "roamjs-components>@types/react": 18.2.21
-    "roamjs-components>@types/react-dom": 18.2.17
-    "roamjs-components>idb": ^7.1
-    "@blueprintjs/core>react": 18.2.0
-    "@blueprintjs/core>react-dom": 18.2.0
-    "@blueprintjs/select>react": 18.2.0
-    "@blueprintjs/select>react-dom": 18.2.0
-    "@blueprintjs/datetime>react": 18.2.0
-    "@blueprintjs/datetime>react-dom": 18.2.0
-    "roamjs-components>tslib": ^2
-    "roamjs-components>@blueprintjs/select": 3.19.1
-    "@samepage/scripts>tailwindcss": 3.4.17
-    "@next/eslint-plugin-next": ^15.0
+# The global versions, in practice apply to website
+catalog:
+  "@types/eslint": 8.56.12
+  "@types/react": ^19.1.12
+  "@types/react-dom": ^19.1.9
+  eslint: 8.57.1
+  react: ^19.1.0
+  react-dom: ^19.1.0
+
+catalogs:
+  obsidian:
+    "@types/react": ^19.0.12
+    "@types/react-dom": ^19.0.4
+    react: 19.0.0
+    react-dom: 19.0.0
+  roam:
+    "@types/react": 18.2.21
+    "@types/react-dom": 18.2.17
+    react: 18.2.0
+    react-dom: 18.2.0
+
+onlyBuiltDependencies:
+  - core-js
+  - core-js-pure
+  - esbuild
+  - react-vertical-timeline-component
+  - roamjs-components
+  - sharp
+  - supabase
+  - unrs-resolver
+
+overrides:
+  "@types/react-dom@18.2.17>@types/react": 18.2.21
+  "@types/react-vertical-timeline-component@3.3.6>@types/react": 18.2.21
+  react-charts@3.0.0-beta.57>@types/react: 18.2.21
+  react-charts@3.0.0-beta.57>@types/react-dom: 18.2.17
+  roam>@types/react: 18.2.21
+  roam>@types/react-dom: 18.2.17
+  roam>react: 18.2.0
+  roam>react-dom: 18.2.0
 
 patchedDependencies:
-  tldraw@^2.3.0: patches/tldraw@2.3.0.patch
-  "@tldraw/editor@^2.3.0": patches/@tldraw__editor@2.3.0.patch
   "@blueprintjs/core@^3.50.4": patches/@blueprintjs__core@3.50.4.patch
+  "@blueprintjs/select@3.19.1": patches/@blueprintjs__select@3.19.1.patch
+  "@tldraw/editor@^2.3.0": patches/@tldraw__editor@2.3.0.patch
+  tldraw@^2.3.0: patches/tldraw@2.3.0.patch
 
-allowUnusedPatches: false
+peerDependencyRules:
+  allowedVersions:
+    "@blueprintjs/core>react": 18.2.0
+    "@blueprintjs/core>react-dom": 18.2.0
+    "@blueprintjs/datetime>react": 18.2.0
+    "@blueprintjs/datetime>react-dom": 18.2.0
+    "@blueprintjs/select>react": 18.2.0
+    "@blueprintjs/select>react-dom": 18.2.0
+    "@next/eslint-plugin-next": ^15.0
+    "@samepage/scripts>tailwindcss": 3.4.17
+    react-day-picker@7.4.9>react: 18.2.0
+    react-in-viewport>react: 18.2.0
+    react-in-viewport>react-dom: 18.2.0
+    react-popper@1.3.11>react: 18.2.0
+    roamjs-components>@blueprintjs/select: 3.19.1
+    roamjs-components>@types/react: 18.2.21
+    roamjs-components>@types/react-dom: 18.2.17
+    roamjs-components>idb: ^7.1
+    roamjs-components>react: 18.2.0
+    roamjs-components>react-dom: 18.2.0
+    roamjs-components>tslib: ^2
