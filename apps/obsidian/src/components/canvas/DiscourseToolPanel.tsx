@@ -18,7 +18,9 @@ import {
   setDiscourseRelationToolContext,
   clearDiscourseRelationToolContext,
 } from "./DiscourseRelationTool";
-import { TOOL_ARROW_ICON_URL } from "~/constants";
+import { TOOL_ARROW_ICON_SVG } from "~/constants";
+
+const TOOL_ARROW_ICON_DATA_URL = `data:image/svg+xml;base64,${btoa(TOOL_ARROW_ICON_SVG)}`;
 
 export const DiscourseToolPanel = ({
   plugin,
@@ -290,7 +292,7 @@ export const DiscourseToolPanel = ({
             {displayRelationTypes.map((rel) => (
               <RelationTypeButton
                 key={rel.id}
-                relationType={{ id: rel.id, label: rel.label }}
+                relationType={rel}
                 onClick={() => handleCreateRelationClick(rel.id)}
               />
             ))}
@@ -356,7 +358,7 @@ const RelationTypeButton = ({
   relationType,
   onClick,
 }: {
-  relationType: { id: string; label: string };
+  relationType: { id: string; label: string; color: string };
   onClick: () => void;
 }) => {
   return (
@@ -368,7 +370,8 @@ const RelationTypeButton = ({
       <span
         className="tlui-icon tlui-button__icon mr-2"
         style={{
-          mask: `url("${TOOL_ARROW_ICON_URL}") center 100% / 100% no-repeat`,
+          mask: `url("${TOOL_ARROW_ICON_DATA_URL}") center 100% / 100% no-repeat`,
+          backgroundColor: relationType.color || "black",
         }}
       />
       <span className="text-sm">{relationType.label}</span>
