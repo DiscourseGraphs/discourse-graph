@@ -58,6 +58,8 @@ const composeQuery = ({
   conceptFields = ["id", "name", "space_id"],
   contentFields = ["source_local_id"],
   documentFields = [],
+  nodeAuthor = undefined,
+  fetchNodes = true,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
@@ -65,17 +67,36 @@ const composeQuery = ({
   conceptFields?: (keyof Concept)[];
   contentFields?: (keyof Content)[];
   documentFields?: (keyof Document)[];
+  nodeAuthor?: string | undefined;
+  fetchNodes?: boolean | null;
 }) => {
   let q = conceptFields.join(",\n");
-  if (contentFields.length > 0) {
-    q += ",\nContent (\n" + contentFields.join(",\n");
-    if (documentFields.length > 0) {
-      q += ",\nDocument (\n" + documentFields.join(",\n") + ")";
-    }
-    q += ")";
+  if (schemaDbIds === 0 && !contentFields.includes("source_local_id")) {
+    contentFields = contentFields.slice();
+    contentFields.push("source_local_id");
   }
-  let query = supabase.from("Concept").select(q).eq("arity", 0);
+  if (contentFields.length > 0) {
+    const args: string[] = contentFields.slice();
+    if (documentFields.length > 0) {
+      args.push("Document (\n" + documentFields.join(",\n") + ")");
+    }
+    q += `,\nContent${schemaDbIds === 0 ? "!inner" : ""} (\n${args.join(",\n")})`;
+  }
+  if (nodeAuthor !== undefined) {
+    q += ", author:author_id!inner(account_local_id)";
+  }
+  let query = supabase.from("Concept").select(q);
+  if (fetchNodes === true) {
+    query = query.eq("arity", 0);
+  } else if (fetchNodes === false) {
+    query = query.gt("arity", 0);
+  }
+  // else fetch both
+
   if (spaceId !== undefined) query = query.eq("space_id", spaceId);
+  if (nodeAuthor !== undefined) {
+    query = query.eq("author.account_local_id", nodeAuthor);
+  }
   if (schemaDbIds === 0) {
     query = query.eq("is_schema", true);
   } else {
@@ -207,6 +228,7 @@ export const CONCEPT_FIELDS: (keyof Concept)[] = [
   "reference_content",
   "refs",
   "is_schema",
+  "schema_id",
   "represented_by_id",
 ];
 
@@ -249,6 +271,8 @@ export const getNodes = async ({
   conceptFields = CONCEPT_FIELDS,
   contentFields = CONTENT_FIELDS,
   documentFields = DOCUMENT_FIELDS,
+  nodeAuthor = undefined,
+  fetchNodes = true,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
@@ -256,6 +280,8 @@ export const getNodes = async ({
   conceptFields?: (keyof Concept)[];
   contentFields?: (keyof Content)[];
   documentFields?: (keyof Document)[];
+  nodeAuthor?: string | undefined;
+  fetchNodes?: boolean | null;
 }): Promise<PConcept[]> => {
   let schemaDbIds: number | number[] = 0;
   const localIdsArray =
@@ -283,6 +309,8 @@ export const getNodes = async ({
     conceptFields,
     contentFields,
     documentFields,
+    nodeAuthor,
+    fetchNodes,
   });
   const { error, data } = (await q) as PostgrestResponse<PConcept>;
   if (error) {
