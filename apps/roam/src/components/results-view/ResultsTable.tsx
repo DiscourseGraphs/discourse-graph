@@ -448,7 +448,7 @@ const ResultsTable = ({
     return allWidths;
   });
 
-  const onDragStart = useCallback((e) => {
+  const onDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     const { leftColumnUid, rightColumnUid } = e.currentTarget.dataset;
     if (!leftColumnUid || !rightColumnUid || !tableRef.current) return;
 
