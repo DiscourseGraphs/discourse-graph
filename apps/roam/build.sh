@@ -1,5 +1,5 @@
 #!/bin/bash
 set -e
-npm install
+pnpm install
 npx turbo run build --filter=roam
 cp dist/* .

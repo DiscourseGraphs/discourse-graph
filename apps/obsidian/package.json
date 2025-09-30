@@ -9,7 +9,7 @@
     "build": "tsx scripts/build.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "publish": "tsx scripts/publish-obsidian.ts",
+    "publish": "tsx scripts/publish.ts --version 0.1.0",
     "check-types": "tsc --noEmit --skipLibCheck"
   },
   "keywords": [],
@@ -17,23 +17,30 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@octokit/core": "^6.1.2",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
     "@types/node": "^20",
+    "@types/react": "catalog:obsidian",
+    "@types/react-dom": "catalog:obsidian",
     "autoprefixer": "^10.4.21",
     "builtin-modules": "3.3.0",
     "dotenv": "^16.4.5",
     "esbuild": "0.17.3",
+    "eslint": "catalog:",
     "obsidian": "^1.7.2",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "tslib": "2.5.1",
     "tsx": "^4.19.2",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "zod": "^3.24.1"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "tailwindcss-animate": "^1.0.7",
-    "tldraw": "^3.14.2"
+    "tldraw": "^3.14.2",
+    "nanoid": "^4.0.2",
+    "react": "catalog:obsidian",
+    "react-dom": "catalog:obsidian",
+    "tailwindcss-animate": "^1.0.7"
   }
 }

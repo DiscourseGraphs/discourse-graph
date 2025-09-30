@@ -1,0 +1,384 @@
+diff --git a/lib/cjs/components/alert/alert.d.ts b/lib/cjs/components/alert/alert.d.ts
+index 09b06be01bbe6d22a7dda4aa1652a19b50ff77ec..f74f6a34012e1fa97761bfec2f78fa6ba6dfb0d1 100644
+--- a/lib/cjs/components/alert/alert.d.ts
++++ b/lib/cjs/components/alert/alert.d.ts
+@@ -5,6 +5,7 @@ import { IOverlayLifecycleProps } from "../overlay/overlay";
+ export declare type AlertProps = IAlertProps;
+ /** @deprecated use AlertProps */
+ export interface IAlertProps extends IOverlayLifecycleProps, Props {
++    children?: React.ReactNode;
+     /**
+      * Whether pressing <kbd>escape</kbd> when focused on the Alert should cancel the alert.
+      * If this prop is enabled, then either `onCancel` or `onClose` must also be defined.
+diff --git a/lib/cjs/components/collapse/collapse.d.ts b/lib/cjs/components/collapse/collapse.d.ts
+index 7f4ef301528cfa44000c9f330dc0e9bd4d26aa63..a93bb0951783f56799a16431110ac280a38ffba9 100644
+--- a/lib/cjs/components/collapse/collapse.d.ts
++++ b/lib/cjs/components/collapse/collapse.d.ts
+@@ -4,6 +4,7 @@ import { Props } from "../../common/props";
+ export declare type CollapseProps = ICollapseProps;
+ /** @deprecated use CollapseProps */
+ export interface ICollapseProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Component to render as the root element.
+      * Useful when rendering a `Collapse` inside a `<table>`, for instance.
+diff --git a/lib/cjs/components/dialog/dialog.d.ts b/lib/cjs/components/dialog/dialog.d.ts
+index e90ee312da59d1e7a404dd029a79af640a9c3ea4..3e4f4ef68fd429fb9e272df3c730e556c163dca4 100644
+--- a/lib/cjs/components/dialog/dialog.d.ts
++++ b/lib/cjs/components/dialog/dialog.d.ts
+@@ -6,6 +6,7 @@ import { IBackdropProps, OverlayableProps } from "../overlay/overlay";
+ export declare type DialogProps = IDialogProps;
+ /** @deprecated use DialogProps */
+ export interface IDialogProps extends OverlayableProps, IBackdropProps, Props {
++    children?: React.ReactNode;
+     /**
+      * Toggles the visibility of the overlay and its children.
+      * This prop is required because the component is controlled.
+diff --git a/lib/cjs/components/drawer/drawer.d.ts b/lib/cjs/components/drawer/drawer.d.ts
+index 301ed2e66dfb42850c5671220b8c5241df560e9a..24d4b161d42d201f9f45f9ab8f1f874746db4430 100644
+--- a/lib/cjs/components/drawer/drawer.d.ts
++++ b/lib/cjs/components/drawer/drawer.d.ts
+@@ -12,6 +12,7 @@ export declare enum DrawerSize {
+ export declare type DrawerProps = IDrawerProps;
+ /** @deprecated use DrawerProps */
+ export interface IDrawerProps extends OverlayableProps, IBackdropProps, Props {
++    children?: React.ReactNode;
+     /**
+      * Name of a Blueprint UI icon (or an icon element) to render in the
+      * drawer's header. Note that the header will only be rendered if `title` is
+diff --git a/lib/cjs/components/forms/formGroup.d.ts b/lib/cjs/components/forms/formGroup.d.ts
+index 1b69eeb6f353e44c1400a223c129cba88738e655..961ba5ef85105aed8db86c7d64254d468baa3b7f 100644
+--- a/lib/cjs/components/forms/formGroup.d.ts
++++ b/lib/cjs/components/forms/formGroup.d.ts
+@@ -4,6 +4,7 @@ import { IntentProps, Props } from "../../common/props";
+ export declare type FormGroupProps = IFormGroupProps;
+ /** @deprecated use FormGroupProps */
+ export interface IFormGroupProps extends IntentProps, Props {
++    children?: React.ReactNode;
+     /**
+      * A space-delimited list of class names to pass along to the
+      * `Classes.FORM_CONTENT` element that contains `children`.
+diff --git a/lib/cjs/components/forms/radioGroup.d.ts b/lib/cjs/components/forms/radioGroup.d.ts
+index 2f21804fca8599d6d98a6be80473d03a52419196..e96697514e15a44aa614e4086503848614956210 100644
+--- a/lib/cjs/components/forms/radioGroup.d.ts
++++ b/lib/cjs/components/forms/radioGroup.d.ts
+@@ -4,6 +4,7 @@ import { OptionProps, Props } from "../../common/props";
+ export declare type RadioGroupProps = IRadioGroupProps;
+ /** @deprecated use RadioGroupProps */
+ export interface IRadioGroupProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Whether the group and _all_ its radios are disabled.
+      * Individual radios can be disabled using their `disabled` prop.
+diff --git a/lib/cjs/components/popover/popover.d.ts b/lib/cjs/components/popover/popover.d.ts
+index e1490579f16bbc57b9bd37e0d782a4c7c55196fa..f3cdf4a9fe3bd32e19bd9220662115930a94e03f 100644
+--- a/lib/cjs/components/popover/popover.d.ts
++++ b/lib/cjs/components/popover/popover.d.ts
+@@ -9,6 +9,7 @@ export declare const PopoverInteractionKind: {
+ };
+ export declare type PopoverInteractionKind = typeof PopoverInteractionKind[keyof typeof PopoverInteractionKind];
+ export interface IPopoverProps extends IPopoverSharedProps {
++    children?: React.ReactNode;
+     /** HTML props for the backdrop element. Can be combined with `backdropClassName`. */
+     backdropProps?: React.HTMLProps<HTMLDivElement>;
+     /**
+diff --git a/lib/cjs/components/portal/portal.d.ts b/lib/cjs/components/portal/portal.d.ts
+index 9e3460b460c48dad99ef04c26261094bb5c4a5d3..5ffb40eeb79c6fc838d63b1261eafc964bd26b14 100644
+--- a/lib/cjs/components/portal/portal.d.ts
++++ b/lib/cjs/components/portal/portal.d.ts
+@@ -3,6 +3,7 @@ import { ValidationMap } from "../../common/context";
+ import { Props } from "../../common/props";
+ export declare type PortalProps = IPortalProps;
+ export interface IPortalProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Callback invoked when the children of this `Portal` have been added to the DOM.
+      */
+diff --git a/lib/cjs/components/tabs/tabs.d.ts b/lib/cjs/components/tabs/tabs.d.ts
+index 2ca5fe5b4bed0871154292aa3248af1f2ea8331d..870a32ee7d2bd6c934216e268016b4b2d2e2b514 100644
+--- a/lib/cjs/components/tabs/tabs.d.ts
++++ b/lib/cjs/components/tabs/tabs.d.ts
+@@ -6,6 +6,7 @@ export declare const Expander: React.FunctionComponent;
+ export declare type TabsProps = ITabsProps;
+ /** @deprecated use TabsProps */
+ export interface ITabsProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Whether the selected tab indicator should animate its movement.
+      *
+diff --git a/lib/cjs/components/toast/toaster.d.ts b/lib/cjs/components/toast/toaster.d.ts
+index a6c712467c7ac81aed9ea00207aeaaeb14bd9337..353621182cb1c4d8c5ea6430504ab0ed38fec195 100644
+--- a/lib/cjs/components/toast/toaster.d.ts
++++ b/lib/cjs/components/toast/toaster.d.ts
+@@ -26,6 +26,7 @@ export interface IToaster {
+  * These props can be passed as an argument to the static `Toaster.create(props?, container?)` method.
+  */
+ export interface IToasterProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Whether a toast should acquire application focus when it first opens.
+      * This is disabled by default so that toasts do not interrupt the user's flow.
+diff --git a/lib/cjs/components/tooltip/tooltip.d.ts b/lib/cjs/components/tooltip/tooltip.d.ts
+index 94f4af9427a35ad9333f2bfd30ab712499efcd57..4db48a9bc4cac14aacd90535f403f87b76445815 100644
+--- a/lib/cjs/components/tooltip/tooltip.d.ts
++++ b/lib/cjs/components/tooltip/tooltip.d.ts
+@@ -6,6 +6,7 @@ import { IPopoverSharedProps } from "../popover/popoverSharedProps";
+ export declare type TooltipProps = ITooltipProps;
+ /** @deprecated use TooltipProps */
+ export interface ITooltipProps extends IPopoverSharedProps, IntentProps {
++    children?: React.ReactNode;
+     /**
+      * The content that will be displayed inside of the tooltip.
+      */
+diff --git a/lib/esm/components/alert/alert.d.ts b/lib/esm/components/alert/alert.d.ts
+index 09b06be01bbe6d22a7dda4aa1652a19b50ff77ec..f74f6a34012e1fa97761bfec2f78fa6ba6dfb0d1 100644
+--- a/lib/esm/components/alert/alert.d.ts
++++ b/lib/esm/components/alert/alert.d.ts
+@@ -5,6 +5,7 @@ import { IOverlayLifecycleProps } from "../overlay/overlay";
+ export declare type AlertProps = IAlertProps;
+ /** @deprecated use AlertProps */
+ export interface IAlertProps extends IOverlayLifecycleProps, Props {
++    children?: React.ReactNode;
+     /**
+      * Whether pressing <kbd>escape</kbd> when focused on the Alert should cancel the alert.
+      * If this prop is enabled, then either `onCancel` or `onClose` must also be defined.
+diff --git a/lib/esm/components/collapse/collapse.d.ts b/lib/esm/components/collapse/collapse.d.ts
+index 7f4ef301528cfa44000c9f330dc0e9bd4d26aa63..a93bb0951783f56799a16431110ac280a38ffba9 100644
+--- a/lib/esm/components/collapse/collapse.d.ts
++++ b/lib/esm/components/collapse/collapse.d.ts
+@@ -4,6 +4,7 @@ import { Props } from "../../common/props";
+ export declare type CollapseProps = ICollapseProps;
+ /** @deprecated use CollapseProps */
+ export interface ICollapseProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Component to render as the root element.
+      * Useful when rendering a `Collapse` inside a `<table>`, for instance.
+diff --git a/lib/esm/components/dialog/dialog.d.ts b/lib/esm/components/dialog/dialog.d.ts
+index e90ee312da59d1e7a404dd029a79af640a9c3ea4..3e4f4ef68fd429fb9e272df3c730e556c163dca4 100644
+--- a/lib/esm/components/dialog/dialog.d.ts
++++ b/lib/esm/components/dialog/dialog.d.ts
+@@ -6,6 +6,7 @@ import { IBackdropProps, OverlayableProps } from "../overlay/overlay";
+ export declare type DialogProps = IDialogProps;
+ /** @deprecated use DialogProps */
+ export interface IDialogProps extends OverlayableProps, IBackdropProps, Props {
++    children?: React.ReactNode;
+     /**
+      * Toggles the visibility of the overlay and its children.
+      * This prop is required because the component is controlled.
+diff --git a/lib/esm/components/drawer/drawer.d.ts b/lib/esm/components/drawer/drawer.d.ts
+index 301ed2e66dfb42850c5671220b8c5241df560e9a..24d4b161d42d201f9f45f9ab8f1f874746db4430 100644
+--- a/lib/esm/components/drawer/drawer.d.ts
++++ b/lib/esm/components/drawer/drawer.d.ts
+@@ -12,6 +12,7 @@ export declare enum DrawerSize {
+ export declare type DrawerProps = IDrawerProps;
+ /** @deprecated use DrawerProps */
+ export interface IDrawerProps extends OverlayableProps, IBackdropProps, Props {
++    children?: React.ReactNode;
+     /**
+      * Name of a Blueprint UI icon (or an icon element) to render in the
+      * drawer's header. Note that the header will only be rendered if `title` is
+diff --git a/lib/esm/components/forms/formGroup.d.ts b/lib/esm/components/forms/formGroup.d.ts
+index 1b69eeb6f353e44c1400a223c129cba88738e655..961ba5ef85105aed8db86c7d64254d468baa3b7f 100644
+--- a/lib/esm/components/forms/formGroup.d.ts
++++ b/lib/esm/components/forms/formGroup.d.ts
+@@ -4,6 +4,7 @@ import { IntentProps, Props } from "../../common/props";
+ export declare type FormGroupProps = IFormGroupProps;
+ /** @deprecated use FormGroupProps */
+ export interface IFormGroupProps extends IntentProps, Props {
++    children?: React.ReactNode;
+     /**
+      * A space-delimited list of class names to pass along to the
+      * `Classes.FORM_CONTENT` element that contains `children`.
+diff --git a/lib/esm/components/forms/radioGroup.d.ts b/lib/esm/components/forms/radioGroup.d.ts
+index 2f21804fca8599d6d98a6be80473d03a52419196..e96697514e15a44aa614e4086503848614956210 100644
+--- a/lib/esm/components/forms/radioGroup.d.ts
++++ b/lib/esm/components/forms/radioGroup.d.ts
+@@ -4,6 +4,7 @@ import { OptionProps, Props } from "../../common/props";
+ export declare type RadioGroupProps = IRadioGroupProps;
+ /** @deprecated use RadioGroupProps */
+ export interface IRadioGroupProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Whether the group and _all_ its radios are disabled.
+      * Individual radios can be disabled using their `disabled` prop.
+diff --git a/lib/esm/components/popover/popover.d.ts b/lib/esm/components/popover/popover.d.ts
+index e1490579f16bbc57b9bd37e0d782a4c7c55196fa..f3cdf4a9fe3bd32e19bd9220662115930a94e03f 100644
+--- a/lib/esm/components/popover/popover.d.ts
++++ b/lib/esm/components/popover/popover.d.ts
+@@ -9,6 +9,7 @@ export declare const PopoverInteractionKind: {
+ };
+ export declare type PopoverInteractionKind = typeof PopoverInteractionKind[keyof typeof PopoverInteractionKind];
+ export interface IPopoverProps extends IPopoverSharedProps {
++    children?: React.ReactNode;
+     /** HTML props for the backdrop element. Can be combined with `backdropClassName`. */
+     backdropProps?: React.HTMLProps<HTMLDivElement>;
+     /**
+diff --git a/lib/esm/components/portal/portal.d.ts b/lib/esm/components/portal/portal.d.ts
+index 9e3460b460c48dad99ef04c26261094bb5c4a5d3..5ffb40eeb79c6fc838d63b1261eafc964bd26b14 100644
+--- a/lib/esm/components/portal/portal.d.ts
++++ b/lib/esm/components/portal/portal.d.ts
+@@ -3,6 +3,7 @@ import { ValidationMap } from "../../common/context";
+ import { Props } from "../../common/props";
+ export declare type PortalProps = IPortalProps;
+ export interface IPortalProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Callback invoked when the children of this `Portal` have been added to the DOM.
+      */
+diff --git a/lib/esm/components/tabs/tabs.d.ts b/lib/esm/components/tabs/tabs.d.ts
+index 2ca5fe5b4bed0871154292aa3248af1f2ea8331d..870a32ee7d2bd6c934216e268016b4b2d2e2b514 100644
+--- a/lib/esm/components/tabs/tabs.d.ts
++++ b/lib/esm/components/tabs/tabs.d.ts
+@@ -6,6 +6,7 @@ export declare const Expander: React.FunctionComponent;
+ export declare type TabsProps = ITabsProps;
+ /** @deprecated use TabsProps */
+ export interface ITabsProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Whether the selected tab indicator should animate its movement.
+      *
+diff --git a/lib/esm/components/toast/toaster.d.ts b/lib/esm/components/toast/toaster.d.ts
+index a6c712467c7ac81aed9ea00207aeaaeb14bd9337..353621182cb1c4d8c5ea6430504ab0ed38fec195 100644
+--- a/lib/esm/components/toast/toaster.d.ts
++++ b/lib/esm/components/toast/toaster.d.ts
+@@ -26,6 +26,7 @@ export interface IToaster {
+  * These props can be passed as an argument to the static `Toaster.create(props?, container?)` method.
+  */
+ export interface IToasterProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Whether a toast should acquire application focus when it first opens.
+      * This is disabled by default so that toasts do not interrupt the user's flow.
+diff --git a/lib/esm/components/tooltip/tooltip.d.ts b/lib/esm/components/tooltip/tooltip.d.ts
+index 94f4af9427a35ad9333f2bfd30ab712499efcd57..4db48a9bc4cac14aacd90535f403f87b76445815 100644
+--- a/lib/esm/components/tooltip/tooltip.d.ts
++++ b/lib/esm/components/tooltip/tooltip.d.ts
+@@ -6,6 +6,7 @@ import { IPopoverSharedProps } from "../popover/popoverSharedProps";
+ export declare type TooltipProps = ITooltipProps;
+ /** @deprecated use TooltipProps */
+ export interface ITooltipProps extends IPopoverSharedProps, IntentProps {
++    children?: React.ReactNode;
+     /**
+      * The content that will be displayed inside of the tooltip.
+      */
+diff --git a/lib/esnext/components/alert/alert.d.ts b/lib/esnext/components/alert/alert.d.ts
+index 09b06be01bbe6d22a7dda4aa1652a19b50ff77ec..f74f6a34012e1fa97761bfec2f78fa6ba6dfb0d1 100644
+--- a/lib/esnext/components/alert/alert.d.ts
++++ b/lib/esnext/components/alert/alert.d.ts
+@@ -5,6 +5,7 @@ import { IOverlayLifecycleProps } from "../overlay/overlay";
+ export declare type AlertProps = IAlertProps;
+ /** @deprecated use AlertProps */
+ export interface IAlertProps extends IOverlayLifecycleProps, Props {
++    children?: React.ReactNode;
+     /**
+      * Whether pressing <kbd>escape</kbd> when focused on the Alert should cancel the alert.
+      * If this prop is enabled, then either `onCancel` or `onClose` must also be defined.
+diff --git a/lib/esnext/components/collapse/collapse.d.ts b/lib/esnext/components/collapse/collapse.d.ts
+index 7f4ef301528cfa44000c9f330dc0e9bd4d26aa63..a93bb0951783f56799a16431110ac280a38ffba9 100644
+--- a/lib/esnext/components/collapse/collapse.d.ts
++++ b/lib/esnext/components/collapse/collapse.d.ts
+@@ -4,6 +4,7 @@ import { Props } from "../../common/props";
+ export declare type CollapseProps = ICollapseProps;
+ /** @deprecated use CollapseProps */
+ export interface ICollapseProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Component to render as the root element.
+      * Useful when rendering a `Collapse` inside a `<table>`, for instance.
+diff --git a/lib/esnext/components/dialog/dialog.d.ts b/lib/esnext/components/dialog/dialog.d.ts
+index e90ee312da59d1e7a404dd029a79af640a9c3ea4..3e4f4ef68fd429fb9e272df3c730e556c163dca4 100644
+--- a/lib/esnext/components/dialog/dialog.d.ts
++++ b/lib/esnext/components/dialog/dialog.d.ts
+@@ -6,6 +6,7 @@ import { IBackdropProps, OverlayableProps } from "../overlay/overlay";
+ export declare type DialogProps = IDialogProps;
+ /** @deprecated use DialogProps */
+ export interface IDialogProps extends OverlayableProps, IBackdropProps, Props {
++    children?: React.ReactNode;
+     /**
+      * Toggles the visibility of the overlay and its children.
+      * This prop is required because the component is controlled.
+diff --git a/lib/esnext/components/drawer/drawer.d.ts b/lib/esnext/components/drawer/drawer.d.ts
+index 301ed2e66dfb42850c5671220b8c5241df560e9a..24d4b161d42d201f9f45f9ab8f1f874746db4430 100644
+--- a/lib/esnext/components/drawer/drawer.d.ts
++++ b/lib/esnext/components/drawer/drawer.d.ts
+@@ -12,6 +12,7 @@ export declare enum DrawerSize {
+ export declare type DrawerProps = IDrawerProps;
+ /** @deprecated use DrawerProps */
+ export interface IDrawerProps extends OverlayableProps, IBackdropProps, Props {
++    children?: React.ReactNode;
+     /**
+      * Name of a Blueprint UI icon (or an icon element) to render in the
+      * drawer's header. Note that the header will only be rendered if `title` is
+diff --git a/lib/esnext/components/forms/formGroup.d.ts b/lib/esnext/components/forms/formGroup.d.ts
+index 1b69eeb6f353e44c1400a223c129cba88738e655..961ba5ef85105aed8db86c7d64254d468baa3b7f 100644
+--- a/lib/esnext/components/forms/formGroup.d.ts
++++ b/lib/esnext/components/forms/formGroup.d.ts
+@@ -4,6 +4,7 @@ import { IntentProps, Props } from "../../common/props";
+ export declare type FormGroupProps = IFormGroupProps;
+ /** @deprecated use FormGroupProps */
+ export interface IFormGroupProps extends IntentProps, Props {
++    children?: React.ReactNode;
+     /**
+      * A space-delimited list of class names to pass along to the
+      * `Classes.FORM_CONTENT` element that contains `children`.
+diff --git a/lib/esnext/components/forms/radioGroup.d.ts b/lib/esnext/components/forms/radioGroup.d.ts
+index 2f21804fca8599d6d98a6be80473d03a52419196..e96697514e15a44aa614e4086503848614956210 100644
+--- a/lib/esnext/components/forms/radioGroup.d.ts
++++ b/lib/esnext/components/forms/radioGroup.d.ts
+@@ -4,6 +4,7 @@ import { OptionProps, Props } from "../../common/props";
+ export declare type RadioGroupProps = IRadioGroupProps;
+ /** @deprecated use RadioGroupProps */
+ export interface IRadioGroupProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Whether the group and _all_ its radios are disabled.
+      * Individual radios can be disabled using their `disabled` prop.
+diff --git a/lib/esnext/components/popover/popover.d.ts b/lib/esnext/components/popover/popover.d.ts
+index e1490579f16bbc57b9bd37e0d782a4c7c55196fa..f3cdf4a9fe3bd32e19bd9220662115930a94e03f 100644
+--- a/lib/esnext/components/popover/popover.d.ts
++++ b/lib/esnext/components/popover/popover.d.ts
+@@ -9,6 +9,7 @@ export declare const PopoverInteractionKind: {
+ };
+ export declare type PopoverInteractionKind = typeof PopoverInteractionKind[keyof typeof PopoverInteractionKind];
+ export interface IPopoverProps extends IPopoverSharedProps {
++    children?: React.ReactNode;
+     /** HTML props for the backdrop element. Can be combined with `backdropClassName`. */
+     backdropProps?: React.HTMLProps<HTMLDivElement>;
+     /**
+diff --git a/lib/esnext/components/portal/portal.d.ts b/lib/esnext/components/portal/portal.d.ts
+index 9e3460b460c48dad99ef04c26261094bb5c4a5d3..5ffb40eeb79c6fc838d63b1261eafc964bd26b14 100644
+--- a/lib/esnext/components/portal/portal.d.ts
++++ b/lib/esnext/components/portal/portal.d.ts
+@@ -3,6 +3,7 @@ import { ValidationMap } from "../../common/context";
+ import { Props } from "../../common/props";
+ export declare type PortalProps = IPortalProps;
+ export interface IPortalProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Callback invoked when the children of this `Portal` have been added to the DOM.
+      */
+diff --git a/lib/esnext/components/tabs/tabs.d.ts b/lib/esnext/components/tabs/tabs.d.ts
+index 2ca5fe5b4bed0871154292aa3248af1f2ea8331d..870a32ee7d2bd6c934216e268016b4b2d2e2b514 100644
+--- a/lib/esnext/components/tabs/tabs.d.ts
++++ b/lib/esnext/components/tabs/tabs.d.ts
+@@ -6,6 +6,7 @@ export declare const Expander: React.FunctionComponent;
+ export declare type TabsProps = ITabsProps;
+ /** @deprecated use TabsProps */
+ export interface ITabsProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Whether the selected tab indicator should animate its movement.
+      *
+diff --git a/lib/esnext/components/toast/toaster.d.ts b/lib/esnext/components/toast/toaster.d.ts
+index a6c712467c7ac81aed9ea00207aeaaeb14bd9337..353621182cb1c4d8c5ea6430504ab0ed38fec195 100644
+--- a/lib/esnext/components/toast/toaster.d.ts
++++ b/lib/esnext/components/toast/toaster.d.ts
+@@ -26,6 +26,7 @@ export interface IToaster {
+  * These props can be passed as an argument to the static `Toaster.create(props?, container?)` method.
+  */
+ export interface IToasterProps extends Props {
++    children?: React.ReactNode;
+     /**
+      * Whether a toast should acquire application focus when it first opens.
+      * This is disabled by default so that toasts do not interrupt the user's flow.

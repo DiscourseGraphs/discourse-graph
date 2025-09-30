@@ -41,16 +41,18 @@
     "deploy:functions": "tsx scripts/deploy.ts -f"
   },
   "dependencies": {
-    "@repo/utils": "*",
+    "@repo/utils": "workspace:*",
     "@supabase/auth-js": "2.72.0",
     "@supabase/functions-js": "2.5.0",
-    "@supabase/supabase-js": "2.58.0",
-    "dotenv": "^16.6.1"
+    "@supabase/supabase-js": "2.58.0"
   },
   "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
     "@cucumber/cucumber": "^12.1.0",
-    "@repo/typescript-config": "*",
-    "@vercel/sdk": "1.10.6",
+    "@vercel/sdk": "^1.10.6",
+    "dotenv": "^16.6.1",
+    "eslint": "catalog:",
     "prettier-plugin-gherkin": "^3.1.2",
     "supabase": "^2.39.2",
     "ts-node-maintained": "^10.9.5",

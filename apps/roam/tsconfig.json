@@ -12,6 +12,11 @@
     "outDir": "dist",
     "allowJs": false,
     "jsx": "react",
-    "noUncheckedIndexedAccess": false
+    "noUncheckedIndexedAccess": false,
+    "paths": {
+      "~/*": ["./src/*"],
+      "react": ["./node_modules/@types/react"],
+      "react-dom": ["./node_modules/@types/react-dom"]
+    }
   }
 }
