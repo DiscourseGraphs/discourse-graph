@@ -4,6 +4,7 @@ import { Result } from "./types";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import findDiscourseNode from "./findDiscourseNode";
 import { nextApiRoot } from "@repo/utils/execContext";
+import { DiscourseNode } from "./getDiscourseNodes";
 
 type ApiEmbeddingResponse = {
   data: Array<{
@@ -38,8 +39,9 @@ export type NodeSearchResult = {
   score: number;
 };
 
-type ResultItemMin = { uid: string };
-type ExistingResultGroup = {
+type ResultItemMin = { uid?: string };
+
+export type ExistingResultGroup = {
   label: string;
   results: Record<string, ResultItemMin>;
 };
@@ -58,7 +60,7 @@ type SearchFunc = (params: {
 
 const API_CONFIG = {
   LLM: {
-    URL: "https://discoursegraphs.com/api/llm/openai/chat",
+    URL: `${nextApiRoot()}/llm/openai/chat`,
     MODEL: "gpt-4.1",
     TIMEOUT_MS: 30_000,
     MAX_TOKENS: 104,
@@ -351,11 +353,11 @@ export const getAllPageByUidAsync = async (): Promise<[string, string][]> => {
   return pages;
 };
 
-export const extractPagesFromChildBlock = (
+const extractPagesFromChildBlock = async (
   tag: string,
-): { uid: string; text: string }[] => {
+): Promise<{ uid: string; text: string }[]> => {
   // @ts-ignore - backend to be added to roamjs-components
-  const results = window.roamAlphaAPI.data.async.q(
+  const results = (await window.roamAlphaAPI.data.async.q(
     `[:find ?uid ?title
       :where [?b :node/title "${normalizePageTitle(tag)}"]
         [?a :block/refs ?b]
@@ -363,15 +365,15 @@ export const extractPagesFromChildBlock = (
         [?p :block/refs ?rf]
         [?rf :block/uid ?uid]
         [?rf :node/title ?title]]]`,
-  ) as Array<[string, string]>;
+  )) as Array<[string, string]>;
   return results.map(([uid, title]) => ({ uid, text: title }));
 };
 
-export const extractPagesFromParentBlock = (
+const extractPagesFromParentBlock = async (
   tag: string,
-): { uid: string; text: string }[] => {
+): Promise<{ uid: string; text: string }[]> => {
   // @ts-ignore - backend to be added to roamjs-components
-  const results = window.roamAlphaAPI.data.async.q(
+  const results = (await window.roamAlphaAPI.data.async.q(
     `[:find ?uid ?title
       :where [?b :node/title "${normalizePageTitle(tag)}"]
         [?a :block/refs ?b]
@@ -379,15 +381,15 @@ export const extractPagesFromParentBlock = (
         [?p :block/refs ?rf]
         [?rf :block/uid ?uid]
         [?rf :node/title ?title]]]`,
-  ) as Array<[string, string]>;
+  )) as Array<[string, string]>;
   return results.map(([uid, title]) => ({ uid, text: title }));
 };
 
-export const getAllReferencesOnPage = (
+const getAllReferencesOnPage = async (
   pageTitle: string,
-): { uid: string; text: string }[] => {
+): Promise<{ uid: string; text: string }[]> => {
   // @ts-ignore - backend to be added to roamjs-components
-  const referencedPages = window.roamAlphaAPI.data.async.q(
+  const referencedPages = (await window.roamAlphaAPI.data.async.q(
     `[:find ?uid ?text
       :where
         [?page :node/title "${normalizePageTitle(pageTitle)}"]
@@ -395,19 +397,19 @@ export const getAllReferencesOnPage = (
         [?b :block/refs ?refPage]
         [?refPage :block/uid ?uid]
         [?refPage :node/title ?text]]`,
-  ) as Array<[string, string]>;
+  )) as Array<[string, string]>;
   return referencedPages.map(([uid, text]) => ({ uid, text }));
 };
 
 export type PerformHydeSearchParams = {
   useAllPagesForSuggestions: boolean;
   selectedPages: string[];
-  discourseNodeExists: boolean;
-  tagUid: string;
+  discourseNode: false | DiscourseNode;
+  blockUid: string;
   validTypes: string[];
   existingResults: ExistingResultGroup[];
   uniqueRelationTypeTriplets: RelationDetails[];
-  tag: string;
+  pageTitle: string;
   shouldGrabFromReferencedPages: boolean;
   shouldGrabParentChildContext: boolean;
 };
@@ -415,12 +417,12 @@ export type PerformHydeSearchParams = {
 export const performHydeSearch = async ({
   useAllPagesForSuggestions,
   selectedPages,
-  discourseNodeExists,
-  tagUid,
+  discourseNode,
+  blockUid,
   validTypes,
   existingResults,
   uniqueRelationTypeTriplets,
-  tag,
+  pageTitle,
   shouldGrabFromReferencedPages,
   shouldGrabParentChildContext,
 }: PerformHydeSearchParams): Promise<SuggestedNode[]> => {
@@ -428,23 +430,23 @@ export const performHydeSearch = async ({
     return [];
   }
 
-  if (!discourseNodeExists) {
+  if (!discourseNode) {
     return [];
   }
 
   let candidateNodesForHyde: SuggestedNode[] = [];
 
   const existingUids = new Set<string>(
-    existingResults.flatMap((group) =>
-      Object.values(group.results).map((item) => item.uid),
-    ),
+    existingResults
+      .flatMap((group) => Object.values(group.results).map((item) => item.uid))
+      .filter((uid): uid is string => !!uid),
   );
 
   if (useAllPagesForSuggestions) {
     // TODO: Use Supabase to get all pages
     candidateNodesForHyde = (await getAllPageByUidAsync())
       .map(([pageName, pageUid]) => {
-        if (!pageUid || pageUid === tagUid) return null;
+        if (!pageUid || pageUid === blockUid) return null;
         const node = findDiscourseNode(pageUid);
         if (
           !node ||
@@ -464,14 +466,18 @@ export const performHydeSearch = async ({
   } else {
     const referenced: { uid: string; text: string }[] = [];
     if (shouldGrabFromReferencedPages) {
-      referenced.push(...getAllReferencesOnPage(tag));
-      selectedPages.forEach((p) => {
-        referenced.push(...getAllReferencesOnPage(p));
-      });
+      referenced.push(...(await getAllReferencesOnPage(pageTitle)));
+      for (const p of selectedPages) {
+        referenced.push(...(await getAllReferencesOnPage(p)));
+      }
     }
     if (shouldGrabParentChildContext) {
-      referenced.push(...extractPagesFromChildBlock(tag));
-      referenced.push(...extractPagesFromParentBlock(tag));
+      referenced.push(...(await extractPagesFromChildBlock(pageTitle)));
+      referenced.push(...(await extractPagesFromParentBlock(pageTitle)));
+      for (const p of selectedPages) {
+        referenced.push(...(await extractPagesFromChildBlock(p)));
+        referenced.push(...(await extractPagesFromParentBlock(p)));
+      }
     }
     const uniqueReferenced = Array.from(
       new Map(referenced.map((x) => [x.uid, x])).values(),
@@ -484,7 +490,7 @@ export const performHydeSearch = async ({
           node.backedBy === "default" ||
           !validTypes.includes(node.type) ||
           existingUids.has(n.uid) ||
-          n.uid === tagUid
+          n.uid === blockUid
         ) {
           return null;
         }
@@ -500,7 +506,7 @@ export const performHydeSearch = async ({
   if (candidateNodesForHyde.length && uniqueRelationTypeTriplets.length) {
     const found = await findSimilarNodesUsingHyde({
       candidateNodes: candidateNodesForHyde,
-      currentNodeText: tag,
+      currentNodeText: pageTitle,
       relationDetails: uniqueRelationTypeTriplets,
     });
     return found;
