@@ -1,4 +1,4 @@
-import { Plugin, Editor, Menu, TFile, Events } from "obsidian";
+import { Plugin, Editor, Menu, TFile } from "obsidian";
 import { SettingsTab } from "~/components/Settings";
 import { Settings } from "~/types";
 import { registerCommands } from "~/utils/registerCommands";

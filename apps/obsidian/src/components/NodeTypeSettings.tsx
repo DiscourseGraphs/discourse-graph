@@ -75,6 +75,15 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
     type: "color",
     required: false,
   },
+  tag: {
+    key: "tag",
+    label: "Node tag",
+    description:
+      "Tags that signal a line is a node candidate",
+    type: "text",
+    required: false,
+    placeholder: "Enter tag (e.g., #clm-candidate)",
+  },
 };
 
 const FIELD_CONFIG_ARRAY = Object.values(FIELD_CONFIGS);
@@ -256,6 +265,7 @@ const NodeTypeSettings = () => {
       name: "",
       format: "",
       template: "",
+      tag: "",
     };
     setEditingNodeType(newNodeType);
     setSelectedNodeIndex(nodeTypes.length);
