@@ -297,7 +297,9 @@ const clearBlockHighlight = (blockUid: string): void => {
     const nodes = document.querySelectorAll(
       `[data-dg-block-uid="${blockUid}"]`,
     );
-    nodes.forEach((el) => el.classList.remove("dg-highlight"));
+    nodes.forEach((el) =>
+      el.classList.remove("suggestive-mode-overlay-highlight-on-panel-hover"),
+    );
   } catch {
     // no-op
   }

@@ -37,7 +37,10 @@ const SuggestiveModeOverlay = ({
           elem.closest(".suggestive-mode-overlay")
         )
           return;
-        elem.classList.toggle("dg-highlight", on);
+        elem.classList.toggle(
+          "suggestive-mode-overlay-highlight-on-panel-hover",
+          on,
+        );
       });
     },
     [blockUid],
