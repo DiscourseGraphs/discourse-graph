@@ -12,6 +12,7 @@ export const DiscourseSuggestionsPanel = ({
   tag,
   blockUid,
   onClose,
+  // TODO: Will be used to pass setting to body renderer
   shouldGrabFromReferencedPages,
   shouldGrabParentChildContext,
 }: {
@@ -27,7 +28,12 @@ export const DiscourseSuggestionsPanel = ({
     (on: boolean) => {
       document
         .querySelectorAll(`[data-dg-block-uid="${blockUid}"]`)
-        .forEach((el) => el.classList.toggle("dg-highlight", on));
+        .forEach((el) =>
+          el.classList.toggle(
+            "suggestive-mode-overlay-highlight-on-panel-hover",
+            on,
+          ),
+        );
     },
     [blockUid],
   );
