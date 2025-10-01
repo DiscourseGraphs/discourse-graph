@@ -29,6 +29,9 @@ const getVercelToken = () => {
 };
 
 const makeLocalEnv = () => {
+  execSync("supabase start", {
+    cwd: projectRoot, stdio: "inherit"
+  });
   const stdout = execSync("supabase status -o env", {
     encoding: "utf8",
   });
