@@ -106,7 +106,7 @@ const migrationLines = stderr
 if (migrationLines.length > 0) {
   console.log(migrationLines.join("\n"));
   console.log("Migrations were applied, regenerating dbTypes");
-  const generateResult = spawnSync("npm", ["run", "gentypes"], {
+  const generateResult = spawnSync("pnpm", ["run", "gentypes"], {
     cwd: projectRoot,
     stdio: "inherit",
   });
