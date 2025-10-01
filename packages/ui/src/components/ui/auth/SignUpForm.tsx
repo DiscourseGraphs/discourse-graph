@@ -27,6 +27,9 @@ export function SignUpForm({
 
   const handleSignUp = async (e: React.FormEvent) => {
     const supabase = createClient();
+    if (!supabase) {
+      return <p>No database access</p>;
+    }
     e.preventDefault();
     setError(null);
 

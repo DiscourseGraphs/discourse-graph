@@ -25,6 +25,9 @@ export const Account = async () => {
   const [action, setAction] = useState(AuthAction.none);
 
   const supabase = createClient();
+  if (!supabase) {
+    return <p>No database access</p>;
+  }
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);

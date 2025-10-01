@@ -23,6 +23,9 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClient();
+  if (!supabase) {
+    return <p>No database access</p>;
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
