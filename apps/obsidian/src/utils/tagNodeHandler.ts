@@ -100,7 +100,7 @@ export class TagNodeHandler {
           mutation.target instanceof HTMLElement
         ) {
           const target = mutation.target;
-          if (this.hasTagClass(target)) {
+          if (hasTagClass(target)) {
             this.processElement(target);
           }
         }
@@ -115,16 +115,7 @@ export class TagNodeHandler {
     return (
       element.classList.contains("cm-line") ||
       element.querySelector('[class*="cm-tag-"]') !== null ||
-      this.hasTagClass(element)
-    );
-  }
-
-  /**
-   * Check if element has cm-tag-* class
-   */
-  private hasTagClass(element: HTMLElement): boolean {
-    return Array.from(element.classList).some((cls) =>
-      cls.startsWith("cm-tag-"),
+      hasTagClass(element)
     );
   }
 
@@ -233,7 +224,7 @@ export class TagNodeHandler {
   ): void {
     const extractedData = this.extractContentUpToTag(tagElement);
     if (!extractedData) {
-      new Notice("Could not extract content", 3000);
+      new Notice("Could not create discourse node", 3000);
       return;
     }
 
@@ -283,7 +274,7 @@ export class TagNodeHandler {
 
       const extractedData = this.extractContentUpToTag(tagElement);
       if (!extractedData) {
-        new Notice("Could not determine content range for replacement", 3000);
+        new Notice("Could not create discourse node", 3000);
         return;
       }
 
@@ -304,13 +295,13 @@ export class TagNodeHandler {
       }
 
       if (lineNumber === -1) {
-        new Notice("Could not find matching line in editor", 3000);
+        new Notice("Could not replace tag with discourse node", 3000);
         return;
       }
 
       const actualLineText = allLines[lineNumber];
       if (!actualLineText) {
-        new Notice("Could not find matching line in editor", 3000);
+        new Notice("Could not replace tag with discourse node", 3000);
         return;
       }
       const tagStartPos = actualLineText.indexOf(tagWithHash);
@@ -363,8 +354,6 @@ export class TagNodeHandler {
         top: ${rect.top - TOOLTIP_OFFSET}px;
         left: ${rect.left + rect.width / 2}px;
         transform: translateX(-50%);
-        background: var(--background-primary);
-        border: 1px solid var(--background-modifier-border);
         border-radius: 6px;
         padding: 6px;
         z-index: 9999;
@@ -556,3 +545,10 @@ export class TagNodeHandler {
     return activeView?.editor || null;
   }
 }
+
+/**
+ * Check if element has cm-tag-* class
+ */
+export const hasTagClass = (element: HTMLElement): boolean => {
+  return Array.from(element.classList).some((cls) => cls.startsWith("cm-tag-"));
+};
