@@ -37,19 +37,30 @@ catalogs:
     react-dom:
       specifier: 19.0.0
       version: 19.0.0
-  roam:
-    '@types/react':
-      specifier: 18.2.21
-      version: 18.2.21
-    '@types/react-dom':
-      specifier: 18.2.17
-      version: 18.2.17
-    react:
-      specifier: 18.2.0
-      version: 18.2.0
-    react-dom:
-      specifier: 18.2.0
-      version: 18.2.0
+
+overrides:
+  '@types/react-dom@18.2.17>@types/react': 18.2.21
+  '@types/react-vertical-timeline-component@3.3.6>@types/react': 18.2.21
+  react-charts@3.0.0-beta.57>@types/react: 18.2.21
+  react-charts@3.0.0-beta.57>@types/react-dom: 18.2.17
+  roam>@types/react: 18.2.21
+  roam>@types/react-dom: 18.2.17
+  roam>react: 18.2.0
+  roam>react-dom: 18.2.0
+
+patchedDependencies:
+  '@blueprintjs/core@^3.50.4':
+    hash: 51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0
+    path: patches/@blueprintjs__core@3.50.4.patch
+  '@blueprintjs/select@3.19.1':
+    hash: 5b2821b0bf7274e9b64d7824648c596b9e73c61f421d699a6d4c494f12f62355
+    path: patches/@blueprintjs__select@3.19.1.patch
+  '@tldraw/editor@^2.3.0':
+    hash: 25605a291545fd9178c96ca8de0c8e72a65fe30baa18605d1a57f4a91b059857
+    path: patches/@tldraw__editor@2.3.0.patch
+  tldraw@^2.3.0:
+    hash: 53157a9866fb748b22a548ab8d9aca2a557f98c0487b201b01f0a4ca89c71708
+    path: patches/tldraw@2.3.0.patch
 
 importers:
 
@@ -146,13 +157,13 @@ importers:
     dependencies:
       '@blueprintjs/core':
         specifier: 3.50.4
-        version: 3.50.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/icons':
         specifier: 3.30.2
         version: 3.30.2
       '@blueprintjs/select':
         specifier: 3.19.1
-        version: 3.19.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 3.19.1(patch_hash=5b2821b0bf7274e9b64d7824648c596b9e73c61f421d699a6d4c494f12f62355)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@octokit/auth-app':
         specifier: ^7.1.4
         version: 7.2.2
@@ -173,7 +184,7 @@ importers:
         version: 2.55.0
       '@tldraw/editor':
         specifier: 2.3.0
-        version: 2.3.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 2.3.0(patch_hash=25605a291545fd9178c96ca8de0c8e72a65fe30baa18605d1a57f4a91b059857)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@tldraw/state':
         specifier: 2.3.0
         version: 2.3.0(react@18.2.0)
@@ -235,13 +246,13 @@ importers:
         specifier: ^1.261.7
         version: 1.261.7
       react:
-        specifier: catalog:roam
+        specifier: 18.2.0
         version: 18.2.0
       react-charts:
         specifier: ^3.0.0-beta.48
         version: 3.0.0-beta.57(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-dom:
-        specifier: catalog:roam
+        specifier: 18.2.0
         version: 18.2.0(react@18.2.0)
       react-draggable:
         specifier: 4.4.5
@@ -254,10 +265,10 @@ importers:
         version: 3.5.2(react@18.2.0)
       roamjs-components:
         specifier: 0.85.4
-        version: 0.85.4(y23igetokpo2z6nxkzsm5djqkm)
+        version: 0.85.4(ccaaec09462b61c3914285b26545612c)
       tldraw:
         specifier: 2.3.0
-        version: 2.3.0(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 2.3.0(patch_hash=53157a9866fb748b22a548ab8d9aca2a557f98c0487b201b01f0a4ca89c71708)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       use-sync-external-store:
         specifier: 1.5.0
         version: 1.5.0(react@18.2.0)
@@ -290,10 +301,10 @@ importers:
         specifier: 2.0.0
         version: 2.0.0
       '@types/react':
-        specifier: catalog:roam
+        specifier: 18.2.21
         version: 18.2.21
       '@types/react-dom':
-        specifier: catalog:roam
+        specifier: 18.2.17
         version: 18.2.17
       '@types/react-vertical-timeline-component':
         specifier: ^3.3.3
@@ -473,7 +484,7 @@ importers:
         version: 2.47.2
       ts-node-maintained:
         specifier: ^10.9.5
-        version: 10.9.6(@types/node@16.18.11)(typescript@5.9.2)
+        version: 10.9.6(@types/node@20.19.13)(typescript@5.9.2)
       tsx:
         specifier: 4.20.6
         version: 4.20.6
@@ -3185,11 +3196,6 @@ packages:
   '@types/raf@3.4.3':
     resolution: {integrity: sha512-c4YAvMedbPZ5tEyxzQdMoOhhJ4RD3rngZIdwC2/qDN3d7JpEhB6fiBRKVY1lg5B7Wk+uPBjn5f39j1/2MY1oOw==}
 
-  '@types/react-dom@17.0.26':
-    resolution: {integrity: sha512-Z+2VcYXJwOqQ79HreLU/1fyQ88eXSSFh6I3JdrEHQIfYSI0kCQpTGvOrbE6jFGGYXKsHuwY9tBa/w5Uo6KzrEg==}
-    peerDependencies:
-      '@types/react': ^17.0.0
-
   '@types/react-dom@18.2.17':
     resolution: {integrity: sha512-rvrT/M7Df5eykWFxn6MYt5Pem/Dbyc1N8Y0S9Mrkw2WFCRiqUgw9P7ul2NpwsXCSM1DVdENzdG9J5SreqfAIWg==}
 
@@ -3200,9 +3206,6 @@ packages:
 
   '@types/react-vertical-timeline-component@3.3.6':
     resolution: {integrity: sha512-OUvyPXRjXvUD/SNLO0CW0GbIxVF32Ios5qHecMSfw6kxnK1cPULD9NV80EuqZ3WmS/s6BgbcwmN8k4ISb3akhQ==}
-
-  '@types/react@17.0.88':
-    resolution: {integrity: sha512-HEOvpzcFWkEcHq4EsTChnpimRc3Lz1/qzYRDFtobFp4obVa6QVjCDMjWmkgxgaTYttNvyjnldY8MUflGp5YiUw==}
 
   '@types/react@18.2.21':
     resolution: {integrity: sha512-neFKG/sBAwGxHgXiIxnbm3/AAVQ/cMRS93hvBpg8xYRbeQSPVABp9U2bRnPf0iI4+Ucdv3plSxKK+3CW2ENJxA==}
@@ -9285,7 +9288,7 @@ snapshots:
     dependencies:
       tslib: 2.5.1
 
-  '@blueprintjs/core@3.50.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+  '@blueprintjs/core@3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
       '@blueprintjs/colors': 4.2.1
       '@blueprintjs/icons': 3.30.2
@@ -9302,7 +9305,7 @@ snapshots:
       resize-observer-polyfill: 1.5.1
       tslib: 1.13.0
 
-  '@blueprintjs/core@3.54.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+  '@blueprintjs/core@3.54.0(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
       '@blueprintjs/colors': 4.2.1
       '@blueprintjs/icons': 3.33.0
@@ -9321,7 +9324,7 @@ snapshots:
 
   '@blueprintjs/datetime@3.23.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@blueprintjs/core': 3.50.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@blueprintjs/core': 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       classnames: 2.5.1
       react: 18.2.0
       react-day-picker: 7.4.9(react@18.2.0)
@@ -9339,9 +9342,9 @@ snapshots:
       classnames: 2.5.1
       tslib: 2.3.1
 
-  '@blueprintjs/select@3.19.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+  '@blueprintjs/select@3.19.1(patch_hash=5b2821b0bf7274e9b64d7824648c596b9e73c61f421d699a6d4c494f12f62355)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@blueprintjs/core': 3.54.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@blueprintjs/core': 3.54.0(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       classnames: 2.5.1
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
@@ -11376,7 +11379,7 @@ snapshots:
     dependencies:
       '@testing-library/dom': 10.4.1
 
-  '@tldraw/editor@2.3.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+  '@tldraw/editor@2.3.0(patch_hash=25605a291545fd9178c96ca8de0c8e72a65fe30baa18605d1a57f4a91b059857)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
       '@tldraw/state': 2.3.0(react@18.2.0)
       '@tldraw/store': 2.3.0(react@18.2.0)
@@ -11614,13 +11617,9 @@ snapshots:
 
   '@types/raf@3.4.3': {}
 
-  '@types/react-dom@17.0.26(@types/react@17.0.88)':
-    dependencies:
-      '@types/react': 17.0.88
-
   '@types/react-dom@18.2.17':
     dependencies:
-      '@types/react': 19.1.12
+      '@types/react': 18.2.21
 
   '@types/react-dom@19.1.9(@types/react@19.1.12)':
     dependencies:
@@ -11628,13 +11627,7 @@ snapshots:
 
   '@types/react-vertical-timeline-component@3.3.6':
     dependencies:
-      '@types/react': 19.1.12
-
-  '@types/react@17.0.88':
-    dependencies:
-      '@types/prop-types': 15.7.15
-      '@types/scheduler': 0.16.8
-      csstype: 3.1.3
+      '@types/react': 18.2.21
 
   '@types/react@18.2.21':
     dependencies:
@@ -15981,8 +15974,8 @@ snapshots:
       '@types/d3-scale': 4.0.9
       '@types/d3-shape': 3.1.7
       '@types/raf': 3.4.3
-      '@types/react': 17.0.88
-      '@types/react-dom': 17.0.26(@types/react@17.0.88)
+      '@types/react': 18.2.21
+      '@types/react-dom': 18.2.17
       d3-array: 2.12.1
       d3-delaunay: 5.3.0
       d3-scale: 3.3.0
@@ -16345,11 +16338,11 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
-  roamjs-components@0.85.4(y23igetokpo2z6nxkzsm5djqkm):
+  roamjs-components@0.85.4(ccaaec09462b61c3914285b26545612c):
     dependencies:
-      '@blueprintjs/core': 3.50.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@blueprintjs/core': 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/datetime': 3.23.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
-      '@blueprintjs/select': 3.19.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@blueprintjs/select': 3.19.1(patch_hash=5b2821b0bf7274e9b64d7824648c596b9e73c61f421d699a6d4c494f12f62355)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@samepage/scripts': 0.74.5(@aws-sdk/client-lambda@3.882.0)(@aws-sdk/client-s3@3.882.0)(@samepage/testing@0.74.5(@playwright/test@1.29.0)(@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(@types/jsdom@20.0.1)(c8@7.14.0)(debug@4.4.1)(dotenv@16.6.1)(jsdom@20.0.3)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.2)))(archiver@5.3.2)(axios@0.27.2(debug@4.4.1))(debug@4.4.1)(dotenv@16.6.1)(esbuild@0.17.14)(patch-package@6.5.1)(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.2)))(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.2))(zod@3.25.76)
       '@types/crypto-js': 4.1.1
       '@types/cytoscape': 3.21.9
@@ -17084,7 +17077,7 @@ snapshots:
       no-case: 2.3.2
       upper-case: 1.1.3
 
-  tldraw@2.3.0(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+  tldraw@2.3.0(patch_hash=53157a9866fb748b22a548ab8d9aca2a557f98c0487b201b01f0a4ca89c71708)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
       '@radix-ui/react-alert-dialog': 1.1.15(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-context-menu': 2.2.16(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -17094,7 +17087,7 @@ snapshots:
       '@radix-ui/react-select': 1.2.2(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-slider': 1.3.6(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-toast': 1.2.15(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
-      '@tldraw/editor': 2.3.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@tldraw/editor': 2.3.0(patch_hash=25605a291545fd9178c96ca8de0c8e72a65fe30baa18605d1a57f4a91b059857)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@tldraw/store': 2.3.0(react@18.2.0)
       canvas-size: 1.2.6
       classnames: 2.5.1
@@ -17170,14 +17163,14 @@ snapshots:
       '@ts-morph/common': 0.19.0
       code-block-writer: 12.0.0
 
-  ts-node-maintained@10.9.6(@types/node@16.18.11)(typescript@5.9.2):
+  ts-node-maintained@10.9.6(@types/node@20.19.13)(typescript@5.9.2):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.11
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
-      '@types/node': 16.18.11
+      '@types/node': 20.19.13
       acorn: 8.15.0
       acorn-walk: 8.3.4
       arg: 4.1.3
