@@ -78,11 +78,20 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
   tag: {
     key: "tag",
     label: "Node tag",
-    description:
-      "Tags that signal a line is a node candidate",
+    description: "Tags that signal a line is a node candidate",
     type: "text",
     required: false,
     placeholder: "Enter tag (e.g., #clm-candidate)",
+    validate: (value) => {
+      if (!value.trim()) return { isValid: true };
+      if (!value.startsWith("#")) {
+        return { isValid: false, error: "Tag must start with #" };
+      }
+      if (/\s/.test(value)) {
+        return { isValid: false, error: "Tag cannot contain spaces" };
+      }
+      return { isValid: true };
+    },
   },
 };
 
