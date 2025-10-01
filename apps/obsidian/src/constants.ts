@@ -13,12 +13,14 @@ export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
     name: "Claim",
     format: "CLM - {content}",
     color: "#7DA13E",
+    tag: "#clm-candidate",
   },
   Evidence: {
     id: generateUid("node"),
     name: "Evidence",
     format: "EVD - {content}",
     color: "#DB134A",
+    tag: "#evd-candidate",
   },
 };
 export const DEFAULT_RELATION_TYPES: Record<string, DiscourseRelationType> = {
