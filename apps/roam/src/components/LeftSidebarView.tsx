@@ -508,7 +508,7 @@ const FavouritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         opts,
       );
     };
-  }, [handleGlobalPointerDownCapture]);
+  }, [handleGlobalPointerDownCapture, isMenuOpen]);
 
   const renderSettingsDialog = (tabId: TabId) => {
     renderOverlay({
