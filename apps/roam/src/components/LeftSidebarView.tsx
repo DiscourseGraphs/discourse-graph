@@ -285,11 +285,11 @@ const PersonalSections = ({
   setConfig: Dispatch<SetStateAction<LeftSidebarConfig>>;
 }) => {
   const sections = config.personal.sections || [];
-
-  if (!sections.length) return null;
   const [activeDragSourceId, setActiveDragSourceId] = useState<string | null>(
     null,
   );
+
+  if (!sections.length) return null;
 
   const handleDragStart = (start: DragStart) => {
     if (start.type === "ITEMS") {
