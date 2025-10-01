@@ -400,7 +400,9 @@ const SuggestionsBody = ({
                   discourseNode,
                   blockUid,
                   validTypes,
-                  existingResults,
+                  existingResults: existingResults as Parameters<
+                    typeof performHydeSearch
+                  >[0]["existingResults"],
                   uniqueRelationTypeTriplets,
                   pageTitle: tag,
                   shouldGrabFromReferencedPages,
@@ -432,12 +434,14 @@ const SuggestionsBody = ({
                     const results = await performHydeSearch({
                       useAllPagesForSuggestions: true,
                       selectedPages: [],
-                      discourseNode,
-                      blockUid,
+                      discourseNodeExists: !!discourseNode,
+                      tagUid: getPageUidByPageTitle(tag) || "",
                       validTypes,
-                      existingResults,
+                      existingResults: existingResults as Parameters<
+                        typeof performHydeSearch
+                      >[0]["existingResults"],
                       uniqueRelationTypeTriplets,
-                      pageTitle: tag,
+                      tag,
                       shouldGrabFromReferencedPages,
                       shouldGrabParentChildContext,
                     });
