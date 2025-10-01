@@ -561,6 +561,12 @@ importers:
 
   packages/ui:
     dependencies:
+      '@repo/database':
+        specifier: workspace:*
+        version: link:../database
+      '@supabase/auth-js':
+        specifier: 2.72.0
+        version: 2.72.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1

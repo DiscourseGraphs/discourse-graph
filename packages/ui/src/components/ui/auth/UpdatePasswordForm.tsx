@@ -24,6 +24,9 @@ export function UpdatePasswordForm({
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     const supabase = createClient();
+    if (!supabase) {
+      return <p>No database access</p>;
+    }
     e.preventDefault();
     setIsLoading(true);
     setError(null);
