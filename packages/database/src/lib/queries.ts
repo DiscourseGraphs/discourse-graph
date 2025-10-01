@@ -30,6 +30,12 @@ let NODE_SCHEMA_CACHE: Record<string, CacheEntry> = {
   [NODE_SCHEMAS]: nodeSchemaSignature,
 };
 
+export const initNodeSchemaCache = () => {
+  NODE_SCHEMA_CACHE = {
+    [NODE_SCHEMAS]: nodeSchemaSignature,
+  };
+}
+
 export type PDocument = Partial<Tables<"Document">>;
 export type PContent = Partial<Tables<"Content">> & {
   Document: PDocument | null;
@@ -60,6 +66,11 @@ const composeQuery = ({
   documentFields = [],
   nodeAuthor = undefined,
   fetchNodes = true,
+  inRelsOfType = undefined,
+  relationFields = undefined,
+  relationToNodeFields = undefined,
+  inRelsToNodesOfType = undefined,
+  inRelsToNodesOfAuthor = undefined,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
@@ -69,6 +80,11 @@ const composeQuery = ({
   documentFields?: (keyof Document)[];
   nodeAuthor?: string | undefined;
   fetchNodes?: boolean | null;
+  inRelsOfType?: number[];
+  relationFields?: (keyof Concept)[];
+  relationToNodeFields?: (keyof Concept)[];
+  inRelsToNodesOfType?: number[];
+  inRelsToNodesOfAuthor?: number;
 }) => {
   let q = conceptFields.join(",\n");
   if (schemaDbIds === 0 && !contentFields.includes("source_local_id")) {
@@ -84,6 +100,27 @@ const composeQuery = ({
   }
   if (nodeAuthor !== undefined) {
     q += ", author:author_id!inner(account_local_id)";
+  }
+  if (
+    inRelsOfType !== undefined ||
+    inRelsToNodesOfType !== undefined ||
+    inRelsToNodesOfAuthor !== undefined
+  ) {
+    const args: string[] = (relationFields || []).slice();
+    if (inRelsOfType !== undefined && !args.includes("schema_id"))
+      args.push("schema_id");
+    if (
+      inRelsToNodesOfType !== undefined ||
+      inRelsToNodesOfAuthor !== undefined
+    ) {
+      const args2: string[] = (relationToNodeFields || []).slice();
+      if (inRelsToNodesOfType !== undefined && !args2.includes("schema_id"))
+        args2.push("schema_id");
+      if (inRelsToNodesOfAuthor !== undefined && !args2.includes("author_id"))
+        args2.push("author_id");
+      args.push(`subnodes:concepts_of_relation!inner(${args2.join(",\n")})`);
+    }
+    q += `, relations:concept_in_relations!inner(${args.join(",\n")})`;
   }
   let query = supabase.from("Concept").select(q);
   if (fetchNodes === true) {
@@ -108,6 +145,13 @@ const composeQuery = ({
       query = query.eq("schema_id", schemaDbIds);
     else throw new Error("schemaDbIds should be a number or number[]");
   }
+  if (inRelsOfType !== undefined && inRelsOfType.length > 0)
+    query = query.in("relations.schema_id", inRelsOfType);
+  if (inRelsToNodesOfType !== undefined && inRelsToNodesOfType.length > 0)
+    query = query.in("relations.subnodes.schema_id", inRelsToNodesOfType);
+  if (inRelsToNodesOfAuthor !== undefined)
+    query = query.eq("relations.subnodes.author_id", inRelsToNodesOfAuthor);
+  // console.debug(query);
   return query;
 };
 
@@ -121,7 +165,7 @@ export const getNodeSchemas = async (
     .filter((x) => typeof x === "object")
     .filter((x) => x.spaceId === spaceId || x.spaceId === 0);
   if (forceCacheReload || result.length === 1) {
-    const q = composeQuery({ supabase, spaceId });
+    const q = composeQuery({ supabase, spaceId, fetchNodes: null });
     const res = (await q) as PostgrestResponse<defaultQueryShape>;
     if (res.error) {
       console.error("getNodeSchemas failed", res.error);
@@ -273,6 +317,11 @@ export const getNodes = async ({
   documentFields = DOCUMENT_FIELDS,
   nodeAuthor = undefined,
   fetchNodes = true,
+  inRelsOfTypeLocal = undefined,
+  relationFields = undefined,
+  relationToNodeFields = undefined,
+  inRelsToNodesOfTypeLocal = undefined,
+  inRelsToNodesOfAuthor = undefined,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
@@ -282,26 +331,40 @@ export const getNodes = async ({
   documentFields?: (keyof Document)[];
   nodeAuthor?: string | undefined;
   fetchNodes?: boolean | null;
+  inRelsOfTypeLocal?: string[];
+  relationFields?: (keyof Concept)[];
+  relationToNodeFields?: (keyof Concept)[];
+  inRelsToNodesOfTypeLocal?: string[];
+  inRelsToNodesOfAuthor?: number;
 }): Promise<PConcept[]> => {
-  let schemaDbIds: number | number[] = 0;
-  const localIdsArray =
+  const schemaLocalIdsArray =
     typeof schemaLocalIds === "string" ? [schemaLocalIds] : schemaLocalIds;
-  if (schemaLocalIds !== NODE_SCHEMAS) {
-    const dbIdsMapping = await getLocalToDbIdMapping(
-      supabase,
-      localIdsArray,
-      spaceId,
-    );
-    schemaDbIds = Object.values(dbIdsMapping).filter((x) => x !== null);
-    if (schemaDbIds.length < localIdsArray.length) {
+  const localIds = new Set<string>(schemaLocalIds);
+  if (inRelsOfTypeLocal !== undefined)
+    inRelsOfTypeLocal.map((k) => localIds.add(k));
+  if (inRelsToNodesOfTypeLocal !== undefined)
+    inRelsToNodesOfTypeLocal.map((k) => localIds.add(k));
+  const dbIdsMapping = await getLocalToDbIdMapping(
+    supabase,
+    new Array(...localIds.keys()),
+    spaceId,
+  );
+  const localToDbArray = (a: string[] | undefined): number[] | undefined => {
+    if (a === undefined) return undefined;
+    const r = a
+      .map((k) => dbIdsMapping[k])
+      .filter((k) => k !== null && k !== undefined);
+    if (r.length < a.length) {
       console.error(
         "Some localIds are not yet in database: ",
-        localIdsArray
-          .filter((localId) => dbIdsMapping[localId] === null)
-          .join(", "),
+        a.filter((k) => !dbIdsMapping[k]).join(", "),
       );
     }
-  }
+    return r;
+  };
+  const schemaDbIds =
+    schemaLocalIds === NODE_SCHEMAS ? 0 : localToDbArray(schemaLocalIdsArray);
+
   const q = composeQuery({
     supabase,
     spaceId,
@@ -311,6 +374,11 @@ export const getNodes = async ({
     documentFields,
     nodeAuthor,
     fetchNodes,
+    inRelsOfType: localToDbArray(inRelsOfTypeLocal),
+    relationFields,
+    relationToNodeFields,
+    inRelsToNodesOfType: localToDbArray(inRelsToNodesOfTypeLocal),
+    inRelsToNodesOfAuthor,
   });
   const { error, data } = (await q) as PostgrestResponse<PConcept>;
   if (error) {

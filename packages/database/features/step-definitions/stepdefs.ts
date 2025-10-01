@@ -3,7 +3,7 @@ import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import { createClient } from "@supabase/supabase-js";
 import { Constants, type Database, type Enums } from "@repo/database/dbTypes";
 import { getVariant, config } from "@repo/database/dbDotEnv";
-import { getNodes } from "@repo/database/lib/queries";
+import { getNodes, initNodeSchemaCache } from "@repo/database/lib/queries";
 
 import {
   spaceAnonUserEmail,
@@ -61,6 +61,8 @@ Given("the database is blank", async () => {
   r = await client.from("Space").delete().neq("id", -1);
   assert.equal(r.error, null);
   world.localRefs = {};
+  // clear the cache
+  initNodeSchemaCache();
 });
 
 const substituteLocalReferences = (
@@ -79,19 +81,17 @@ const substituteLocalReferences = (
     console.error("could not substitute", typeof v, v);
   };
 
-  const processKV = ([k, v]: [string, string]) => {
+  const processKV = ([k, v]: [string, any]) => {
     let v2: any = v;
     const isJson = k.charAt(0) === "@";
     if (isJson) {
       k = k.substring(1);
       v2 = JSON.parse(v2);
     }
-    const isJsonObject = isJson && "{[".includes(v.charAt(0));
     if (k.charAt(0) === "_") {
       k = k.substring(1);
       v2 = substituteLocalReferencesRec(v2);
     }
-    if (isJsonObject) v2 = JSON.stringify(v2);
     return [k, v2];
   };
 
@@ -312,12 +312,12 @@ Then("query results should look like this", (table: DataTable) => {
   const values: any[] = rows.map((r) =>
     substituteLocalReferences(r, localRefs),
   );
-  // console.log(values);
-  // console.log(world.queryResults);
+  // console.debug(values);
+  // console.debug(JSON.stringify(world.queryResults, null, 2));
   values.sort((a, b) => a.id! - b.id!);
-  assert.deepStrictEqual(
-    values.map((v) => v.id),
+  assert.deepEqual(
     world.queryResults.map((v: any) => v.id),
+    values.map((v) => v.id),
   );
   if (values.length) {
     const keys = Object.keys(values[0]);
@@ -326,7 +326,7 @@ Then("query results should look like this", (table: DataTable) => {
         Object.entries(v).filter(([k, _]) => keys.includes(k)),
       ),
     );
-    // console.log(truncatedResults);
-    assert.deepEqual(values, truncatedResults);
+    // console.debug(truncatedResults);
+    assert.deepEqual(truncatedResults, values);
   }
 });
