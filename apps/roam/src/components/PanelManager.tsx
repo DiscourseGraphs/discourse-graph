@@ -5,7 +5,12 @@ import { OnloadArgs } from "roamjs-components/types/native";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { DiscourseSuggestionsPanel } from "./DiscourseSuggestionsPanel";
 
-const SPACING_PREFIX = "rm-spacing--";
+const BASE_SPACING_CLASSES = [
+  "rm-spacing--large",
+  "rm-spacing--medium",
+  "rm-spacing--small",
+  "rm-spacing--full",
+];
 const initialSpacingByWrapper = new WeakMap<HTMLElement, string | null>();
 
 type PanelState = {
@@ -51,7 +56,7 @@ export const subscribeToPanelState = (
 
 const getSpacingClass = (element: HTMLElement): string | null => {
   for (const className of Array.from(element.classList)) {
-    if (className.startsWith(SPACING_PREFIX)) return className;
+    if (BASE_SPACING_CLASSES.includes(className)) return className;
   }
   return null;
 };
@@ -60,12 +65,86 @@ const setSpacingClass = (
   element: HTMLElement,
   spacingClass: string | null,
 ): void => {
-  for (const className of Array.from(element.classList)) {
-    if (className.startsWith(SPACING_PREFIX))
-      element.classList.remove(className);
-  }
+  BASE_SPACING_CLASSES.forEach((className) => {
+    element.classList.remove(className);
+  });
   if (spacingClass) element.classList.add(spacingClass);
 };
+
+const getBooleanSetting = ({
+  extensionAPI,
+  key,
+  defaultValue,
+}: {
+  extensionAPI: unknown;
+  key: string;
+  defaultValue: boolean;
+}): boolean => {
+  try {
+    const value = (
+      extensionAPI as { settings: { get: (k: string) => unknown } }
+    ).settings.get(key);
+    return value == null ? defaultValue : Boolean(value);
+  } catch {
+    return defaultValue;
+  }
+};
+
+const setupSplitView = (
+  roamBodyMain: HTMLElement,
+  articleWrapper: HTMLElement,
+): void => {
+  roamBodyMain.style.display = "flex";
+  roamBodyMain.dataset.isSplit = "true";
+  articleWrapper.style.flex = "1 1 60%";
+
+  if (!initialSpacingByWrapper.has(articleWrapper)) {
+    initialSpacingByWrapper.set(
+      articleWrapper,
+      getSpacingClass(articleWrapper),
+    );
+  }
+  setSpacingClass(articleWrapper, "rm-spacing--full");
+  initializeArticleWrapperObserver(articleWrapper);
+};
+
+const teardownSplitView = (
+  roamBodyMain: HTMLElement,
+  articleWrapper: HTMLElement,
+): void => {
+  roamBodyMain.removeAttribute("data-is-split");
+  roamBodyMain.style.display = "";
+  articleWrapper.style.flex = "";
+  const initial = initialSpacingByWrapper.get(articleWrapper) ?? null;
+  setSpacingClass(articleWrapper, initial);
+};
+
+const updateMinimizedLayout = (
+  articleWrapper: HTMLElement | null,
+  mount: HTMLElement | null,
+  isMinimized: boolean,
+): void => {
+  if (articleWrapper) {
+    articleWrapper.style.flex = isMinimized ? "1 1 auto" : "1 1 60%";
+  }
+  if (mount) {
+    mount.style.flex = isMinimized ? "0 0 auto" : "0 0 40%";
+    mount.style.width = isMinimized ? "auto" : "";
+  }
+};
+
+const getRoamElements = (): {
+  roamBodyMain: HTMLElement | null;
+  articleWrapper: HTMLElement | null;
+} => {
+  const roamBodyMain = document.querySelector<HTMLElement>(".roam-body-main");
+  const articleWrapper =
+    roamBodyMain?.querySelector<HTMLElement>(".rm-article-wrapper") ?? null;
+  return { roamBodyMain: roamBodyMain ?? null, articleWrapper };
+};
+
+const generatePanelId = (tag: string): string =>
+  `discourse-panel-${tag.replace(/[^a-zA-Z0-9]/g, "-")}`;
 
 const selectOpenPanelsEntries = (): PanelEntry[] =>
   Array.from(openPanels.entries());
@@ -103,80 +182,35 @@ export const PanelContainer = (): React.ReactElement => {
   const [isMinimized, setIsMinimized] = useState(globalIsMinimized);
 
   useEffect(() => {
-    const roamBodyMain = document.querySelector<HTMLElement>(".roam-body-main");
-    const articleWrapper = roamBodyMain?.querySelector<HTMLElement>(
-      ".rm-article-wrapper",
-    );
+    const { roamBodyMain, articleWrapper } = getRoamElements();
 
     if (roamBodyMain && articleWrapper && containerRef.current) {
-      roamBodyMain.style.display = "flex";
-      roamBodyMain.dataset.isSplit = "true";
-      articleWrapper.style.flex = "1 1 60%";
-
-      if (!initialSpacingByWrapper.has(articleWrapper)) {
-        initialSpacingByWrapper.set(
-          articleWrapper,
-          getSpacingClass(articleWrapper),
-        );
-      }
-      setSpacingClass(articleWrapper, "rm-spacing--full");
+      setupSplitView(roamBodyMain, articleWrapper);
     }
 
     return () => {
       if (roamBodyMain && articleWrapper) {
-        roamBodyMain.removeAttribute("data-is-split");
-        roamBodyMain.style.display = "";
-        articleWrapper.style.flex = "";
-        const initial = initialSpacingByWrapper.get(articleWrapper) ?? null;
-        setSpacingClass(articleWrapper, initial);
+        teardownSplitView(roamBodyMain, articleWrapper);
       }
     };
   }, []);
 
   useEffect(() => {
     globalIsMinimized = isMinimized;
-    const roamBodyMain = document.querySelector<HTMLElement>(".roam-body-main");
-    const articleWrapper = roamBodyMain?.querySelector<HTMLElement>(
-      ".rm-article-wrapper",
-    );
+    const { articleWrapper } = getRoamElements();
 
-    if (articleWrapper) {
-      articleWrapper.style.flex = isMinimized ? "1 1 auto" : "1 1 60%";
-    }
-    if (containerMount) {
-      containerMount.style.flex = isMinimized ? "0 0 auto" : "0 0 40%";
-      containerMount.style.width = isMinimized ? "auto" : "";
-    }
+    updateMinimizedLayout(articleWrapper, containerMount, isMinimized);
   }, [isMinimized]);
 
   const handleMinimize = useCallback(() => setIsMinimized(true), []);
   const handleRestore = useCallback(() => setIsMinimized(false), []);
   const handleCloseAll = useCallback(() => panelManager.closeAll(), []);
-  const getBooleanSetting = (
-    extensionAPI: unknown,
-    key: string,
-    defaultValue: boolean,
-  ): boolean => {
-    try {
-      const value = (
-        extensionAPI as { settings: { get: (k: string) => unknown } }
-      ).settings.get(key);
-      return value == null ? defaultValue : Boolean(value);
-    } catch {
-      return defaultValue;
-    }
-  };
 
   return (
     <div
       ref={containerRef}
       id="discourse-graph-suggestions-root"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        height: "100%",
-      }}
+      className={`flex flex-col ${isMinimized ? "h-[5%] w-auto flex-none" : "h-full w-full flex-auto"}`}
     >
       {!isMinimized ? (
         <div
@@ -215,7 +249,7 @@ export const PanelContainer = (): React.ReactElement => {
           {panels.map(([tag, state]) => (
             <div
               key={tag}
-              id={`discourse-panel-${tag.replace(/[^a-zA-Z0-9]/g, "-")}`}
+              id={generatePanelId(tag)}
               className="m-2 flex-shrink-0 rounded bg-white shadow"
             >
               <ExtensionApiContextProvider {...state.onloadArgs}>
@@ -223,16 +257,16 @@ export const PanelContainer = (): React.ReactElement => {
                   tag={tag}
                   blockUid={state.blockUid}
                   onClose={() => panelManager.removePanel(tag)}
-                  shouldGrabFromReferencedPages={getBooleanSetting(
-                    state.onloadArgs.extensionAPI,
-                    "context-grab-from-referenced-pages",
-                    true,
-                  )}
-                  shouldGrabParentChildContext={getBooleanSetting(
-                    state.onloadArgs.extensionAPI,
-                    "context-grab-parent-child-context",
-                    true,
-                  )}
+                  shouldGrabFromReferencedPages={getBooleanSetting({
+                    extensionAPI: state.onloadArgs.extensionAPI,
+                    key: "context-grab-from-referenced-pages",
+                    defaultValue: true,
+                  })}
+                  shouldGrabParentChildContext={getBooleanSetting({
+                    extensionAPI: state.onloadArgs.extensionAPI,
+                    key: "context-grab-parent-child-context",
+                    defaultValue: true,
+                  })}
                 />
               </ExtensionApiContextProvider>
             </div>
@@ -258,11 +292,6 @@ export const PanelContainer = (): React.ReactElement => {
 
 let navigationObserver: MutationObserver | null = null;
 
-const cssEscape = (value: string): string =>
-  window.CSS && window.CSS.escape
-    ? window.CSS.escape(value)
-    : value.replace(/[^a-zA-Z0-9_-]/g, (c: string) => `\\${c}`);
-
 const clearBlockHighlight = (blockUid: string): void => {
   try {
     const nodes = document.querySelectorAll(
@@ -287,6 +316,28 @@ const cleanupArticleWrapperObserver = (): void => {
     articleWrapperObserver.disconnect();
     articleWrapperObserver = null;
   }
+};
+
+const initializeArticleWrapperObserver = (
+  articleWrapper: HTMLElement,
+): void => {
+  if (articleWrapperObserver) return;
+
+  articleWrapperObserver = new MutationObserver(() => {
+    const panelRoot = document.getElementById(
+      "discourse-graph-suggestions-root",
+    );
+    if (panelRoot && !globalIsMinimized) {
+      if (getSpacingClass(articleWrapper) !== "rm-spacing--full") {
+        setSpacingClass(articleWrapper, "rm-spacing--full");
+      }
+    }
+  });
+
+  articleWrapperObserver.observe(articleWrapper, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
 };
 
 const initializeNavigationObserver = (): void => {
@@ -344,10 +395,7 @@ export const mountPanelContainer = (): void => {
 
   if (containerMount) return;
 
-  const roamBodyMain = document.querySelector<HTMLElement>(".roam-body-main");
-  const articleWrapper = roamBodyMain?.querySelector<HTMLElement>(
-    ".rm-article-wrapper",
-  );
+  const { roamBodyMain, articleWrapper } = getRoamElements();
 
   if (!roamBodyMain || !articleWrapper) return;
 
@@ -389,16 +437,16 @@ type PanelManager = {
 export const panelManager: PanelManager = {
   listeners: new Set<() => void>(),
 
-  addListener(event: "change", handler: () => void): void {
-    this.listeners.add(handler);
+  addListener: (event: "change", handler: () => void): void => {
+    panelManager.listeners.add(handler);
   },
 
-  removeListener(event: "change", handler: () => void): void {
-    this.listeners.delete(handler);
+  removeListener: (event: "change", handler: () => void): void => {
+    panelManager.listeners.delete(handler);
   },
 
-  notify(): void {
-    this.listeners.forEach((handler) => handler());
+  notify: (): void => {
+    panelManager.listeners.forEach((handler) => handler());
   },
 
   toggle: ({ tag, blockUid, onloadArgs }): void => {
@@ -409,23 +457,23 @@ export const panelManager: PanelManager = {
     }
   },
 
-  addPanel({ tag, blockUid, onloadArgs }): void {
+  addPanel: ({ tag, blockUid, onloadArgs }): void => {
     mountPanelContainer();
     openPanels.set(tag, {
       blockUid,
       onloadArgs,
       element: null,
     });
-    this.notify();
+    panelManager.notify();
     notifySubscribers(tag, true);
   },
 
-  removePanel(tag: string): void {
+  removePanel: (tag: string): void => {
     const state = openPanels.get(tag);
     if (!state) return;
 
     openPanels.delete(tag);
-    this.notify();
+    panelManager.notify();
     clearBlockHighlight(state.blockUid);
     notifySubscribers(tag, false);
 
@@ -434,10 +482,10 @@ export const panelManager: PanelManager = {
     }
   },
 
-  closeAll(): void {
+  closeAll: (): void => {
     const entries = Array.from(openPanels.entries());
     openPanels.clear();
-    this.notify();
+    panelManager.notify();
 
     entries.forEach(([tag, state]) => {
       clearBlockHighlight(state.blockUid);
