@@ -25,6 +25,10 @@ import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 
+export const getCleanTagText = (tag: string): string => {
+  return tag.replace(/^#+/, "").trim().toUpperCase();
+};
+
 const ValidatedInputPanel = ({
   label,
   description,
@@ -214,10 +218,6 @@ const NodeConfig = ({
     node.description || "",
     true,
   );
-
-  const getCleanTagText = (tag: string): string => {
-    return tag.replace(/^#+/, "").trim().toUpperCase();
-  };
 
   const validate = useCallback((tag: string, format: string) => {
     const cleanTag = getCleanTagText(tag);
