@@ -17,59 +17,30 @@ const COLOR_PALETTE: Record<string, string> = {
   yellow: "#ffc078",
 };
 
-const COLOR_ARRAY = [
-  "yellow",
-  "white",
-  "violet",
-  "red",
-  "orange",
-  "lightViolet",
-  "lightRed",
-  "lightGreen",
-  "lightBlue",
-  "grey",
-  "green",
-  "blue",
-  "black",
-];
-
-/**
- * Format hex color to ensure it starts with #
- */
-export const formatHexColor = (color: string): string => {
-  if (!color) return "";
-  const COLOR_TEST = /^[0-9a-f]{6}$/i;
-  const COLOR_TEST_WITH_HASH = /^#[0-9a-f]{6}$/i;
-  if (color.startsWith("#")) {
-    return COLOR_TEST_WITH_HASH.test(color) ? color : "";
-  } else if (COLOR_TEST.test(color)) {
-    return "#" + color;
-  }
-  return "";
-};
-
+const COLOR_ARRAY = Object.keys(COLOR_PALETTE);
 /**
  * Calculate contrast color (black or white) based on background color
  * Simplified version of contrast-color logic
  */
+// TODO switch to colord - https://linear.app/discourse-graphs/issue/ENG-836/button-like-css-styling-for-node-tag
 export const getContrastColor = (bgColor: string): string => {
   // Remove # if present
   const hex = bgColor.replace("#", "");
-  
+
   // Ensure we have a valid hex string
   if (hex.length !== 6) return "#000000";
-  
+
   // Convert to RGB
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);
-  
+
   // Check for NaN values
   if (isNaN(r) || isNaN(g) || isNaN(b)) return "#000000";
-  
+
   // Calculate luminance
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  
+
   // Return black for light backgrounds, white for dark backgrounds
   return luminance > 0.5 ? "#000000" : "#ffffff";
 };
@@ -77,27 +48,38 @@ export const getContrastColor = (bgColor: string): string => {
 /**
  * Get colors for a discourse node type
  */
-export const getDiscourseNodeColors = (nodeType: DiscourseNode, nodeIndex: number): { backgroundColor: string; textColor: string } => {
+export const getNodeTagColors = (
+  nodeType: DiscourseNode,
+  nodeIndex: number,
+): { backgroundColor: string; textColor: string } => {
   // Use custom color from node type if available
-  const customColor = nodeType.color ? formatHexColor(nodeType.color) : "";
-  
+  const customColor = nodeType.color || "";
+
   // Fall back to palette color based on index
-  const safeIndex = nodeIndex >= 0 && nodeIndex < COLOR_ARRAY.length ? nodeIndex : 0;
+  const safeIndex =
+    nodeIndex >= 0 && nodeIndex < COLOR_ARRAY.length ? nodeIndex : 0;
   const paletteColorKey = COLOR_ARRAY[safeIndex];
-  const paletteColor = paletteColorKey ? COLOR_PALETTE[paletteColorKey] : COLOR_PALETTE.blue;
-  
+  const paletteColor = paletteColorKey
+    ? COLOR_PALETTE[paletteColorKey]
+    : COLOR_PALETTE.blue;
+
   const backgroundColor = customColor || paletteColor || "#4263eb";
   const textColor = getContrastColor(backgroundColor);
-  
+
   return { backgroundColor, textColor };
 };
 
 /**
  * Get all discourse node colors for CSS variable generation
  */
-export const getAllDiscourseNodeColors = (nodeTypes: DiscourseNode[]): Array<{ nodeType: DiscourseNode; colors: { backgroundColor: string; textColor: string } }> => {
+export const getAllDiscourseNodeColors = (
+  nodeTypes: DiscourseNode[],
+): Array<{
+  nodeType: DiscourseNode;
+  colors: { backgroundColor: string; textColor: string };
+}> => {
   return nodeTypes.map((nodeType, index) => ({
     nodeType,
-    colors: getDiscourseNodeColors(nodeType, index),
+    colors: getNodeTagColors(nodeType, index),
   }));
 };

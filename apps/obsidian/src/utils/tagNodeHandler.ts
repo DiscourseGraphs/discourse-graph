@@ -3,14 +3,13 @@ import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
 import { CreateNodeModal } from "~/components/CreateNodeModal";
 import { createDiscourseNodeFile, formatNodeName } from "./createNode";
-import { getDiscourseNodeColors } from "./colorUtils";
+import { getNodeTagColors } from "./colorUtils";
 
 // Constants
 const HOVER_DELAY = 200;
 const HIDE_DELAY = 100;
 const OBSERVER_RESTART_DELAY = 100;
 const TOOLTIP_OFFSET = 40;
-
 
 const sanitizeTitle = (title: string): string => {
   const invalidChars = /[\\/:]/g;
@@ -48,6 +47,7 @@ export class TagNodeHandler {
   private app: App;
   private registeredEventHandlers: (() => void)[] = [];
   private tagObserver: MutationObserver | null = null;
+  private currentTooltip: HTMLElement | null = null;
 
   constructor(plugin: DiscourseGraphPlugin) {
     this.plugin = plugin;
@@ -129,6 +129,13 @@ export class TagNodeHandler {
    * Check if element is relevant for tag processing
    */
   private isTagRelevantElement(element: HTMLElement): boolean {
+    if (
+      element.classList.contains("discourse-tag-popover") ||
+      element.closest(".discourse-tag-popover") === element
+    ) {
+      return false;
+    }
+
     return (
       element.classList.contains("cm-line") ||
       element.querySelector('[class*="cm-tag-"]') !== null ||
@@ -153,6 +160,13 @@ export class TagNodeHandler {
       const childTags = element.querySelectorAll(tagSelector);
       childTags.forEach((tagEl) => {
         if (tagEl instanceof HTMLElement) {
+          // Skip if this tag is already being processed or is inside a tooltip
+          if (
+            tagEl.dataset.discourseTagProcessed === "true" ||
+            tagEl.closest(".discourse-tag-popover") === tagEl
+          ) {
+            return;
+          }
           this.applyDiscourseTagStyling(tagEl, nodeType);
         }
       });
@@ -185,7 +199,7 @@ export class TagNodeHandler {
     const nodeIndex = this.plugin.settings.nodeTypes.findIndex(
       (nt) => nt.id === nodeType.id,
     );
-    const colors = getDiscourseNodeColors(nodeType, nodeIndex);
+    const colors = getNodeTagColors(nodeType, nodeIndex);
 
     tagElement.style.backgroundColor = colors.backgroundColor;
     tagElement.style.color = colors.textColor;
@@ -344,22 +358,27 @@ export class TagNodeHandler {
     if (tagElement.dataset.discourseTagProcessed === "true") return;
     tagElement.dataset.discourseTagProcessed = "true";
 
-    let hoverTooltip: HTMLElement | null = null;
+    // Also check if hover functionality is already attached
+    if ((tagElement as any).__discourseTagCleanup) {
+      return;
+    }
+
     let hoverTimeout: number | null = null;
 
     const showTooltip = () => {
-      if (hoverTooltip) return;
+      if (this.currentTooltip) return;
+
       const rect = tagElement.getBoundingClientRect();
 
-      hoverTooltip = document.createElement("div");
-      hoverTooltip.className = "discourse-tag-popover";
-      hoverTooltip.style.cssText = `
+      this.currentTooltip = document.createElement("div");
+      this.currentTooltip.className = "discourse-tag-popover";
+      this.currentTooltip.style.cssText = `
         position: fixed;
         top: ${rect.top - TOOLTIP_OFFSET}px;
         left: ${rect.left + rect.width / 2}px;
         transform: translateX(-50%);
         border-radius: 6px;
-        padding: 66px;
+        padding: 6px;
         z-index: 9999;
         white-space: nowrap;
         font-size: 12px;
@@ -379,27 +398,27 @@ export class TagNodeHandler {
         hideTooltip();
       });
 
-      hoverTooltip.appendChild(createButton);
+      this.currentTooltip.appendChild(createButton);
 
-      document.body.appendChild(hoverTooltip);
+      document.body.appendChild(this.currentTooltip);
 
-      hoverTooltip.addEventListener("mouseenter", () => {
+      this.currentTooltip.addEventListener("mouseenter", () => {
         if (hoverTimeout) {
           clearTimeout(hoverTimeout);
           hoverTimeout = null;
         }
       });
 
-      hoverTooltip.addEventListener("mouseleave", () => {
+      this.currentTooltip.addEventListener("mouseleave", () => {
         void setTimeout(hideTooltip, HIDE_DELAY);
       });
     };
 
     const hideTooltip = () => {
-      if (hoverTooltip) {
+      if (this.currentTooltip) {
         console.log("Removing tooltip");
-        hoverTooltip.remove();
-        hoverTooltip = null;
+        this.currentTooltip.remove();
+        this.currentTooltip = null;
       }
     };
 
@@ -417,7 +436,7 @@ export class TagNodeHandler {
       }
 
       const relatedTarget = e.relatedTarget as HTMLElement;
-      if (!relatedTarget || !hoverTooltip?.contains(relatedTarget)) {
+      if (!relatedTarget || !this.currentTooltip?.contains(relatedTarget)) {
         void setTimeout(hideTooltip, HIDE_DELAY);
       }
     });
@@ -509,6 +528,10 @@ export class TagNodeHandler {
    * Cleanup tooltips
    */
   private cleanupTooltips(): void {
+    if (this.currentTooltip) {
+      this.currentTooltip.remove();
+      this.currentTooltip = null;
+    }
     const tooltips = document.querySelectorAll(".discourse-tag-popover");
     tooltips.forEach((tooltip) => tooltip.remove());
   }
