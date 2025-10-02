@@ -11,8 +11,22 @@ const HIDE_DELAY = 100;
 const OBSERVER_RESTART_DELAY = 100;
 const TOOLTIP_OFFSET = 40;
 
+
+const sanitizeTitle = (title: string): string => {
+  const invalidChars = /[\\/:]/g;
+
+  // Remove list item indicators (numbered, bulleted, etc.)
+  const listIndicator = /^(\s*)(\d+\.\s+|\-\s+|\*\s+|\+\s+)/;
+
+  return title
+    .replace(listIndicator, "")
+    .replace(invalidChars, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
 type ExtractedTagData = {
-  contentUpToTag: string;
+  fullLineContent: string;
   tagName: string;
 };
 
@@ -48,6 +62,9 @@ export class TagNodeHandler {
    * Initialize the tag node handler
    */
   public initialize(): void {
+    // Clean up any existing tooltips from previous instances
+    this.cleanupTooltips();
+
     this.tagObserver = this.createTagObserver();
     this.startObserving();
     this.processTagsInView();
@@ -186,11 +203,9 @@ export class TagNodeHandler {
   // ============================================================================
 
   /**
-   * Extract content from the line up to the clicked tag using simple text approach
+   * Extract content from the entire line containing the clicked tag
    */
-  private extractContentUpToTag(
-    tagElement: HTMLElement,
-  ): ExtractedTagData | null {
+  private extractContent(tagElement: HTMLElement): ExtractedTagData | null {
     const lineDiv = tagElement.closest(".cm-line");
     if (!lineDiv) return null;
 
@@ -201,15 +216,9 @@ export class TagNodeHandler {
     if (!tagClass) return null;
 
     const tagName = tagClass.replace("cm-tag-", "");
-    const tagWithHash = `#${tagName}`;
-
-    const tagIndex = fullLineText.indexOf(tagWithHash);
-    if (tagIndex === -1) return null;
-
-    const contentUpToTag = fullLineText.substring(0, tagIndex).trim();
 
     return {
-      contentUpToTag,
+      fullLineContent: fullLineText.trim(),
       tagName,
     };
   }
@@ -222,13 +231,15 @@ export class TagNodeHandler {
     nodeType: DiscourseNode,
     editor: Editor,
   ): void {
-    const extractedData = this.extractContentUpToTag(tagElement);
+    const extractedData = this.extractContent(tagElement);
     if (!extractedData) {
       new Notice("Could not create discourse node", 3000);
       return;
     }
 
-    const cleanText = extractedData.contentUpToTag.replace(/#\w+/g, "").trim();
+    const cleanText = sanitizeTitle(
+      extractedData.fullLineContent.replace(/#\w+/g, ""),
+    );
 
     new CreateNodeModal(this.app, {
       nodeTypes: this.plugin.settings.nodeTypes,
@@ -272,23 +283,18 @@ export class TagNodeHandler {
         return;
       }
 
-      const extractedData = this.extractContentUpToTag(tagElement);
+      const extractedData = this.extractContent(tagElement);
       if (!extractedData) {
         new Notice("Could not create discourse node", 3000);
         return;
       }
 
-      const { contentUpToTag, tagName } = extractedData;
-      const tagWithHash = `#${tagName}`;
-
+      const { fullLineContent } = extractedData;
       // Find the actual line in editor that matches our DOM content
       const allLines = editor.getValue().split("\n");
       let lineNumber = -1;
       for (let i = 0; i < allLines.length; i++) {
-        if (
-          allLines[i]?.includes(tagWithHash) &&
-          allLines[i]?.includes(contentUpToTag.substring(0, 10))
-        ) {
+        if (allLines[i]?.includes(fullLineContent)) {
           lineNumber = i;
           break;
         }
@@ -304,14 +310,12 @@ export class TagNodeHandler {
         new Notice("Could not replace tag with discourse node", 3000);
         return;
       }
-      const tagStartPos = actualLineText.indexOf(tagWithHash);
-      const tagEndPos = tagStartPos + tagWithHash.length;
 
       const linkText = `[[${formattedNodeName}]]`;
-      const contentAfterTag = actualLineText.substring(tagEndPos);
 
+      // Replace the entire line with just the discourse node link
       editor.replaceRange(
-        linkText + contentAfterTag,
+        linkText,
         { line: lineNumber, ch: 0 },
         { line: lineNumber, ch: actualLineText.length },
       );
@@ -355,7 +359,7 @@ export class TagNodeHandler {
         left: ${rect.left + rect.width / 2}px;
         transform: translateX(-50%);
         border-radius: 6px;
-        padding: 6px;
+        padding: 66px;
         z-index: 9999;
         white-space: nowrap;
         font-size: 12px;
@@ -393,6 +397,7 @@ export class TagNodeHandler {
 
     const hideTooltip = () => {
       if (hoverTooltip) {
+        console.log("Removing tooltip");
         hoverTooltip.remove();
         hoverTooltip = null;
       }
