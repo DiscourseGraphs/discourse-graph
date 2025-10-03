@@ -308,7 +308,10 @@ export class TagNodeHandler {
       const allLines = editor.getValue().split("\n");
       let lineNumber = -1;
       for (let i = 0; i < allLines.length; i++) {
-        if (allLines[i]?.includes(fullLineContent)) {
+        if (
+          allLines[i]?.includes(fullLineContent) &&
+          allLines[i]?.includes(tagElement.textContent ?? "")
+        ) {
           lineNumber = i;
           break;
         }
