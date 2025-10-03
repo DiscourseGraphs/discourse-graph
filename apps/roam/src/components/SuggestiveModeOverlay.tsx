@@ -5,30 +5,7 @@ import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
 import { OnloadArgs } from "roamjs-components/types/native";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
-
-// TODO: REMOVE THE STUB FUNCTIONS BELOW'
-
-const panelManager = {
-  isOpen: (tag: string) => false,
-  toggle: ({
-    tag,
-    blockUid,
-    onloadArgs,
-  }: {
-    tag: string;
-    blockUid: string;
-    onloadArgs: OnloadArgs;
-  }) => {},
-};
-
-const subscribeToPanelState = (
-  tag: string,
-  setIsPanelOpen: (isPanelOpen: boolean) => void,
-) => {
-  return () => {};
-};
-
-// END OF STUB FUNCTIONS
+import { panelManager, subscribeToPanelState } from "./PanelManager";
 
 const SuggestiveModeOverlay = ({
   tag,
@@ -60,7 +37,10 @@ const SuggestiveModeOverlay = ({
           elem.closest(".suggestive-mode-overlay")
         )
           return;
-        elem.classList.toggle("dg-highlight", on);
+        elem.classList.toggle(
+          "suggestive-mode-overlay-highlight-on-panel-hover",
+          on,
+        );
       });
     },
     [blockUid],
