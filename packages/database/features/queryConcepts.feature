@@ -16,11 +16,13 @@ Feature: Concept upsert
     And Document are added to the database:
       | $id | source_local_id | created    | last_modified | _author_id | _space_id |
       | d1  | d1              | 2025/01/01 |    2025/01/01 | user1      | s1        |
+      | d2  | d2              | 2025/01/01 |    2025/01/01 | user1      | s1        |
       | d5  | d5              | 2025/01/01 |    2025/01/01 | user2      | s1        |
       | d7  | d7              | 2025/01/01 |    2025/01/01 | user1      | s1        |
     And Content are added to the database:
       | $id | source_local_id | _document_id | text       | created    | last_modified | scale    | _author_id | _space_id |
       | ct1 | ct1             | d1           | Claim      | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
+      | ct2 | ct2             | d2           | claim 1    | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
       | ct5 | ct5             | d5           | Opposes    | 2025/01/01 |    2025/01/01 | document | user2      | s1        |
       | ct7 | ct7             | d7           | Hypothesis | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
     And Concept are added to the database:
@@ -29,11 +31,11 @@ Feature: Concept upsert
       | c5  | Opposes    | s1        | user1      | ct5                | 2025/01/01 |    2025/01/01 | true       |            | {"roles": ["target", "source"]} | {}                 |
       | c7  | Hypothesis | s1        | user1      | ct7                | 2025/01/01 |    2025/01/01 | true       |            | {}                              | {}                 |
     And Concept are added to the database:
-      | $id | name         | _space_id | _author_id | created    | last_modified | @is_schema | _schema_id | @literal_content | @reference_content |
-      | c2  | claim 1      | s1        | user1      | 2025/01/01 |    2025/01/01 | false      | c1         | {}               | {}                 |
-      | c3  | claim 2      | s1        | user2      | 2025/01/01 |    2025/01/01 | false      | c1         | {}               | {}                 |
-      | c4  | claim 3      | s1        | user3      | 2025/01/01 |    2025/01/01 | false      | c1         | {}               | {}                 |
-      | c8  | hypothesis 1 | s1        | user3      | 2025/01/01 |    2025/01/01 | false      | c7         | {}               | {}                 |
+      | $id | name         | _space_id | _author_id | created    | last_modified | @is_schema | _schema_id | @literal_content | @reference_content | _represented_by_id |
+      | c2  | claim 1      | s1        | user1      | 2025/01/01 |    2025/01/01 | false      | c1         | {}               | {}                 | ct2                |
+      | c3  | claim 2      | s1        | user2      | 2025/01/01 |    2025/01/01 | false      | c1         | {}               | {}                 |                    |
+      | c4  | claim 3      | s1        | user3      | 2025/01/01 |    2025/01/01 | false      | c1         | {}               | {}                 |                    |
+      | c8  | hypothesis 1 | s1        | user3      | 2025/01/01 |    2025/01/01 | false      | c7         | {}               | {}                 |                    |
     And Concept are added to the database:
       | $id | name      | _space_id | _author_id | created    | last_modified | @is_schema | _schema_id | @literal_content | @_reference_content              |
       | c6  | opposes 1 | s1        | user2      | 2025/01/01 |    2025/01/01 | false      | c5         | {}               | {"target": "c3", "source": "c2"} |
@@ -95,4 +97,12 @@ Feature: Concept upsert
     Then query results should look like this
       | _id | name         | _space_id | _author_id | @is_schema | _schema_id | @literal_content | @_reference_content |
       | c2  | claim 1      | s1        | user1      | false      | c1         | {}               | {}                  |
+      | c8  | hypothesis 1 | s1        | user3      | false      | c7         | {}               | {}                  |
+
+  Scenario Outline: Query by related node
+    And a user logged in space s1 and querying nodes with these parameters: '{"schemaLocalIds":[],"inRelsToNodeLocalIds":["ct2"]}'
+    Then query results should look like this
+      | _id | name         | _space_id | _author_id | @is_schema | _schema_id | @literal_content | @_reference_content |
+      | c2  | claim 1      | s1        | user1      | false      | c1         | {}               | {}                  |
+      | c3  | claim 2      | s1        | user2      | false      | c1         | {}               | {}                  |
       | c8  | hypothesis 1 | s1        | user3      | false      | c7         | {}               | {}                  |

@@ -64,6 +64,7 @@ const composeQuery = ({
   conceptFields = ["id", "name", "space_id"],
   contentFields = ["source_local_id"],
   documentFields = [],
+  baseNodeLocalIds = [],
   nodeAuthor = undefined,
   fetchNodes = true,
   inRelsOfType = undefined,
@@ -71,6 +72,7 @@ const composeQuery = ({
   relationToNodeFields = undefined,
   inRelsToNodesOfType = undefined,
   inRelsToNodesOfAuthor = undefined,
+  inRelsToNodeLocalIds = undefined,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
@@ -78,6 +80,7 @@ const composeQuery = ({
   conceptFields?: (keyof Concept)[];
   contentFields?: (keyof Content)[];
   documentFields?: (keyof Document)[];
+  baseNodeLocalIds?: string[];
   nodeAuthor?: string;
   fetchNodes?: boolean | null;
   inRelsOfType?: number[];
@@ -85,9 +88,11 @@ const composeQuery = ({
   relationToNodeFields?: (keyof Concept)[];
   inRelsToNodesOfType?: number[];
   inRelsToNodesOfAuthor?: string;
+  inRelsToNodeLocalIds?: string[];
 }) => {
   let q = conceptFields.join(",\n");
-  if (schemaDbIds === 0 && !contentFields.includes("source_local_id")) {
+  const innerContent = schemaDbIds === 0 || baseNodeLocalIds.length > 0;
+  if (innerContent && !contentFields.includes("source_local_id")) {
     contentFields = contentFields.slice();
     contentFields.push("source_local_id");
   }
@@ -96,7 +101,7 @@ const composeQuery = ({
     if (documentFields.length > 0) {
       args.push("Document (\n" + documentFields.join(",\n") + ")");
     }
-    q += `,\nContent${schemaDbIds === 0 ? "!inner" : ""} (\n${args.join(",\n")})`;
+    q += `,\nContent${innerContent ? "!inner" : ""} (\n${args.join(",\n")})`;
   }
   if (nodeAuthor !== undefined) {
     q += ", author:author_id!inner(account_local_id)";
@@ -104,18 +109,22 @@ const composeQuery = ({
   if (
     inRelsOfType !== undefined ||
     inRelsToNodesOfType !== undefined ||
-    inRelsToNodesOfAuthor !== undefined
+    inRelsToNodesOfAuthor !== undefined ||
+    inRelsToNodeLocalIds !== undefined
   ) {
     const args: string[] = (relationFields || []).slice();
     if (inRelsOfType !== undefined && !args.includes("schema_id"))
       args.push("schema_id");
     if (
       inRelsToNodesOfType !== undefined ||
-      inRelsToNodesOfAuthor !== undefined
+      inRelsToNodesOfAuthor !== undefined ||
+      inRelsToNodeLocalIds !== undefined
     ) {
       const args2: string[] = (relationToNodeFields || []).slice();
       if (inRelsToNodesOfType !== undefined && !args2.includes("schema_id"))
         args2.push("schema_id");
+      if (inRelsToNodeLocalIds !== undefined)
+        args2.push("Content!inner(source_local_id)");
       if (inRelsToNodesOfAuthor !== undefined) {
         if (!args2.includes("author_id"))
           args2.push('author_id')
@@ -148,12 +157,17 @@ const composeQuery = ({
       query = query.eq("schema_id", schemaDbIds);
     else throw new Error("schemaDbIds should be a number or number[]");
   }
+  if (baseNodeLocalIds.length > 0)
+    query = query.in("content.source_local_id", baseNodeLocalIds);
   if (inRelsOfType !== undefined && inRelsOfType.length > 0)
     query = query.in("relations.schema_id", inRelsOfType);
   if (inRelsToNodesOfType !== undefined && inRelsToNodesOfType.length > 0)
     query = query.in("relations.subnodes.schema_id", inRelsToNodesOfType);
   if (inRelsToNodesOfAuthor !== undefined) {
     query = query.eq("relations.subnodes.author.account_local_id", inRelsToNodesOfAuthor);
+  }
+  if (inRelsToNodeLocalIds !== undefined) {
+    query = query.in("relations.subnodes.Content.source_local_id", inRelsToNodeLocalIds);
   }
   // console.debug(query);
   return query;
@@ -319,6 +333,7 @@ export const getNodes = async ({
   conceptFields = CONCEPT_FIELDS,
   contentFields = CONTENT_FIELDS,
   documentFields = DOCUMENT_FIELDS,
+  baseNodeLocalIds = [],
   nodeAuthor = undefined,
   fetchNodes = true,
   inRelsOfTypeLocal = undefined,
@@ -326,6 +341,7 @@ export const getNodes = async ({
   relationToNodeFields = undefined,
   inRelsToNodesOfTypeLocal = undefined,
   inRelsToNodesOfAuthor = undefined,
+  inRelsToNodeLocalIds = undefined,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
@@ -333,6 +349,7 @@ export const getNodes = async ({
   conceptFields?: (keyof Concept)[];
   contentFields?: (keyof Content)[];
   documentFields?: (keyof Document)[];
+  baseNodeLocalIds?: string[];
   nodeAuthor?: string;
   fetchNodes?: boolean | null;
   inRelsOfTypeLocal?: string[];
@@ -340,6 +357,7 @@ export const getNodes = async ({
   relationToNodeFields?: (keyof Concept)[];
   inRelsToNodesOfTypeLocal?: string[];
   inRelsToNodesOfAuthor?: string;
+  inRelsToNodeLocalIds?: string[];
 }): Promise<PConcept[]> => {
   const schemaLocalIdsArray =
     typeof schemaLocalIds === "string" ? [schemaLocalIds] : schemaLocalIds;
@@ -372,6 +390,7 @@ export const getNodes = async ({
   const q = composeQuery({
     supabase,
     spaceId,
+    baseNodeLocalIds,
     schemaDbIds,
     conceptFields,
     contentFields,
@@ -383,6 +402,7 @@ export const getNodes = async ({
     relationToNodeFields,
     inRelsToNodesOfType: localToDbArray(inRelsToNodesOfTypeLocal),
     inRelsToNodesOfAuthor,
+    inRelsToNodeLocalIds,
   });
   const { error, data } = (await q) as PostgrestResponse<PConcept>;
   if (error) {
