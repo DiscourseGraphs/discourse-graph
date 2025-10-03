@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { DAILY_NOTE_PAGE_TITLE_REGEX } from "roamjs-components/date/constants";
 import parseNlpDate from "roamjs-components/date/parseNlpDate";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
@@ -441,6 +442,41 @@ const translator: Record<string, Translator> = {
   },
   "with text": {
     callback: ({ source, target }) => {
+      const currentUserMatch = /^\s*{current user}\s*$/i.test(target);
+      if (currentUserMatch) {
+        return [
+          {
+            type: "or-clause",
+            clauses: [
+              {
+                type: "data-pattern",
+                arguments: [
+                  { type: "variable", value: source },
+                  { type: "constant", value: ":block/string" },
+                  { type: "variable", value: `${source}-String` },
+                ],
+              },
+              {
+                type: "data-pattern",
+                arguments: [
+                  { type: "variable", value: source },
+                  { type: "constant", value: ":node/title" },
+                  { type: "variable", value: `${source}-String` },
+                ],
+              },
+            ],
+          },
+          {
+            type: "pred-expr",
+            pred: "clojure.string/includes?",
+            arguments: [
+              { type: "variable", value: `${source}-String` },
+              { type: "constant", value: `"${getCurrentUserDisplayName()}"` },
+            ],
+          },
+        ];
+      }
+
       if (isRegex(target)) {
         const rePattern = regexRePatternValue(target);
         return [
@@ -488,39 +524,39 @@ const translator: Record<string, Translator> = {
             ],
           },
         ];
-      } else {
-        return [
-          {
-            type: "or-clause",
-            clauses: [
-              {
-                type: "data-pattern",
-                arguments: [
-                  { type: "variable", value: source },
-                  { type: "constant", value: ":block/string" },
-                  { type: "variable", value: `${source}-String` },
-                ],
-              },
-              {
-                type: "data-pattern",
-                arguments: [
-                  { type: "variable", value: source },
-                  { type: "constant", value: ":node/title" },
-                  { type: "variable", value: `${source}-String` },
-                ],
-              },
-            ],
-          },
-          {
-            type: "pred-expr",
-            pred: "clojure.string/includes?",
-            arguments: [
-              { type: "variable", value: `${source}-String` },
-              { type: "constant", value: `"${normalizePageTitle(target)}"` },
-            ],
-          },
-        ];
       }
+
+      return [
+        {
+          type: "or-clause",
+          clauses: [
+            {
+              type: "data-pattern",
+              arguments: [
+                { type: "variable", value: source },
+                { type: "constant", value: ":block/string" },
+                { type: "variable", value: `${source}-String` },
+              ],
+            },
+            {
+              type: "data-pattern",
+              arguments: [
+                { type: "variable", value: source },
+                { type: "constant", value: ":node/title" },
+                { type: "variable", value: `${source}-String` },
+              ],
+            },
+          ],
+        },
+        {
+          type: "pred-expr",
+          pred: "clojure.string/includes?",
+          arguments: [
+            { type: "variable", value: `${source}-String` },
+            { type: "constant", value: `"${normalizePageTitle(target)}"` },
+          ],
+        },
+      ];
     },
     placeholder: "Enter any text",
   },
