@@ -361,7 +361,7 @@ export const getNodes = async ({
 }): Promise<PConcept[]> => {
   const schemaLocalIdsArray =
     typeof schemaLocalIds === "string" ? [schemaLocalIds] : schemaLocalIds;
-  const localIds = new Set<string>(schemaLocalIds);
+  const localIds = new Set<string>(schemaLocalIdsArray);
   if (inRelsOfTypeLocal !== undefined)
     inRelsOfTypeLocal.map((k) => localIds.add(k));
   if (inRelsToNodesOfTypeLocal !== undefined)

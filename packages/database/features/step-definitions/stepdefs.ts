@@ -79,12 +79,14 @@ const substituteLocalReferences = (
       else
         return localRefs[v];
     }
+    if (typeof v === "number" || typeof v === "boolean") return v;
     if (Array.isArray(v)) return v.map(substituteLocalReferencesRec);
     if (typeof v === "object")
       return Object.fromEntries(
         Object.entries(v).map(([k, v]) => [k, substituteLocalReferencesRec(v)]),
       );
     console.error("could not substitute", typeof v, v);
+    return v;
   };
   return substituteLocalReferencesRec(row);
 }
