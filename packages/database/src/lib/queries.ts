@@ -78,13 +78,13 @@ const composeQuery = ({
   conceptFields?: (keyof Concept)[];
   contentFields?: (keyof Content)[];
   documentFields?: (keyof Document)[];
-  nodeAuthor?: string | undefined;
+  nodeAuthor?: string;
   fetchNodes?: boolean | null;
   inRelsOfType?: number[];
   relationFields?: (keyof Concept)[];
   relationToNodeFields?: (keyof Concept)[];
   inRelsToNodesOfType?: number[];
-  inRelsToNodesOfAuthor?: number;
+  inRelsToNodesOfAuthor?: string;
 }) => {
   let q = conceptFields.join(",\n");
   if (schemaDbIds === 0 && !contentFields.includes("source_local_id")) {
@@ -116,8 +116,11 @@ const composeQuery = ({
       const args2: string[] = (relationToNodeFields || []).slice();
       if (inRelsToNodesOfType !== undefined && !args2.includes("schema_id"))
         args2.push("schema_id");
-      if (inRelsToNodesOfAuthor !== undefined && !args2.includes("author_id"))
-        args2.push("author_id");
+      if (inRelsToNodesOfAuthor !== undefined) {
+        if (!args2.includes("author_id"))
+          args2.push('author_id')
+        args2.push("author:author_id!inner(account_local_id)");
+      }
       args.push(`subnodes:concepts_of_relation!inner(${args2.join(",\n")})`);
     }
     q += `, relations:concept_in_relations!inner(${args.join(",\n")})`;
@@ -149,8 +152,9 @@ const composeQuery = ({
     query = query.in("relations.schema_id", inRelsOfType);
   if (inRelsToNodesOfType !== undefined && inRelsToNodesOfType.length > 0)
     query = query.in("relations.subnodes.schema_id", inRelsToNodesOfType);
-  if (inRelsToNodesOfAuthor !== undefined)
-    query = query.eq("relations.subnodes.author_id", inRelsToNodesOfAuthor);
+  if (inRelsToNodesOfAuthor !== undefined) {
+    query = query.eq("relations.subnodes.author.account_local_id", inRelsToNodesOfAuthor);
+  }
   // console.debug(query);
   return query;
 };
@@ -329,13 +333,13 @@ export const getNodes = async ({
   conceptFields?: (keyof Concept)[];
   contentFields?: (keyof Content)[];
   documentFields?: (keyof Document)[];
-  nodeAuthor?: string | undefined;
+  nodeAuthor?: string;
   fetchNodes?: boolean | null;
   inRelsOfTypeLocal?: string[];
   relationFields?: (keyof Concept)[];
   relationToNodeFields?: (keyof Concept)[];
   inRelsToNodesOfTypeLocal?: string[];
-  inRelsToNodesOfAuthor?: number;
+  inRelsToNodesOfAuthor?: string;
 }): Promise<PConcept[]> => {
   const schemaLocalIdsArray =
     typeof schemaLocalIds === "string" ? [schemaLocalIds] : schemaLocalIds;

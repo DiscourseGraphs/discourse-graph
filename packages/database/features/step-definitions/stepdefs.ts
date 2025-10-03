@@ -68,10 +68,16 @@ Given("the database is blank", async () => {
 const substituteLocalReferences = (
   row: Record<string, string>,
   localRefs: Record<string, number>,
+  prefixValue: boolean = false
 ): Record<string, any> => {
   const substituteLocalReferencesRec = (v: any): any => {
+    if (v === undefined || v === null)
+      return v;
     if (typeof v === "string") {
-      return localRefs[v];
+      if (prefixValue)
+        return (v.charAt(0) === '@') ? localRefs[v.substr(1)] : v;
+      else
+        return localRefs[v];
     }
     if (Array.isArray(v)) return v.map(substituteLocalReferencesRec);
     if (typeof v === "object")
@@ -80,7 +86,13 @@ const substituteLocalReferences = (
       );
     console.error("could not substitute", typeof v, v);
   };
+  return substituteLocalReferencesRec(row);
+}
 
+const substituteLocalReferencesRow = (
+  row: Record<string, string>,
+  localRefs: Record<string, number>,
+): Record<string, any> => {
   const processKV = ([k, v]: [string, any]) => {
     let v2: any = v;
     const isJson = k.charAt(0) === "@";
@@ -90,7 +102,7 @@ const substituteLocalReferences = (
     }
     if (k.charAt(0) === "_") {
       k = k.substring(1);
-      v2 = substituteLocalReferencesRec(v2);
+      v2 = substituteLocalReferences(v2, localRefs);
     }
     return [k, v2];
   };
@@ -115,7 +127,7 @@ Given(
     const localRefs = (world.localRefs as Record<string, number>) || {};
     const rows = table.hashes();
     const values: any[] = rows.map((r) =>
-      substituteLocalReferences(r, localRefs),
+      substituteLocalReferencesRow(r, localRefs),
     );
     const defIndex = table
       .raw()[0]!
@@ -297,7 +309,7 @@ Given(
 Given(
   "a user logged in space {word} and querying nodes with these parameters: {string}",
   async (spaceName: string, paramsJ: string) => {
-    const params = JSON.parse(paramsJ);
+    const params = substituteLocalReferences(JSON.parse(paramsJ), world.localRefs, true);
     const spaceId: number = world.localRefs[spaceName];
     const supabase = await getLoggedinDatabase(spaceId);
     const nodes = await getNodes({ ...params, supabase, spaceId });
@@ -310,7 +322,7 @@ Then("query results should look like this", (table: DataTable) => {
   const localRefs = (world.localRefs as Record<string, number>) || {};
   const rows = table.hashes();
   const values: any[] = rows.map((r) =>
-    substituteLocalReferences(r, localRefs),
+    substituteLocalReferencesRow(r, localRefs),
   );
   // console.debug(values);
   // console.debug(JSON.stringify(world.queryResults, null, 2));
