@@ -166,7 +166,7 @@ RETURNS SETOF public."Concept" STRICT STABLE
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT * from public."Concept" WHERE concept.id = any(refs);
+    SELECT * from public."Concept" WHERE refs @> ARRAY[concept.id];
 $$;
 COMMENT ON FUNCTION public.concept_in_relations(public."Concept")
 IS 'Computed one-to-many: returns all Concept instances that are relations including the current concept.';

@@ -5,7 +5,7 @@ CREATE OR REPLACE FUNCTION public.concept_in_relations(concept "Concept")
  STABLE STRICT
  SET search_path TO ''
 AS $function$
-    SELECT * from public."Concept" WHERE concept.id = any(refs);
+    SELECT * from public."Concept" WHERE refs @> ARRAY[concept.id];
 $function$
 ;
 
