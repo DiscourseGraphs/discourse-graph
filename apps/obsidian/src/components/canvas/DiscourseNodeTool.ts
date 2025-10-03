@@ -1,4 +1,4 @@
-import { StateNode, TLPointerEventInfo } from "@tldraw/editor";
+import { StateNode, TLPointerEventInfo } from "tldraw";
 import type { TFile } from "obsidian";
 import DiscourseGraphPlugin from "~/index";
 import { getNodeTypeById } from "~/utils/utils";

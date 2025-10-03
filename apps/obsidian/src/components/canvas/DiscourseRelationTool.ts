@@ -1,4 +1,4 @@
-import { StateNode, TLEventHandlers, TLStateNodeConstructor } from "@tldraw/editor";
+import { StateNode, TLEventHandlers, TLStateNodeConstructor } from "tldraw";
 import { createShapeId } from "tldraw";
 import type { TFile } from "obsidian";
 import DiscourseGraphPlugin from "~/index";
