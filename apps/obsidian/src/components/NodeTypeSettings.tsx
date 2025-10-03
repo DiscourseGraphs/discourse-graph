@@ -7,6 +7,24 @@ import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
 
+const generateTagPlaceholder = (format: string, nodeName?: string): string => {
+  if (!format) return "Enter tag (e.g., #clm-candidate)";
+
+  // Extract the prefix before " - {content}" or " -{content}" or " -{content}" etc.
+  const match = format.match(/^([A-Z]+)\s*-\s*\{content\}/i);
+  if (match && match[1]) {
+    const prefix = match[1].toLowerCase();
+    return `Enter tag (e.g., #${prefix}-candidate)`;
+  }
+
+  if (nodeName && nodeName.length >= 3) {
+    const prefix = nodeName.substring(0, 3).toLowerCase();
+    return `Enter tag (e.g., #${prefix}-candidate)`;
+  }
+
+  return "Enter tag (e.g., #clm-candidate)";
+};
+
 type EditableFieldKey = keyof Omit<DiscourseNode, "id" | "shortcut">;
 
 type BaseFieldConfig = {
@@ -81,8 +99,7 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
     description: "Tags that signal a line is a node candidate",
     type: "text",
     required: false,
-    placeholder: "Enter tag (e.g., #clm-candidate)",
-    validate: (value) => {
+    validate: (value: string) => {
       if (!value.trim()) return { isValid: true };
       if (!value.startsWith("#")) {
         return { isValid: false, error: "Tag must start with #" };
@@ -102,20 +119,32 @@ const TextField = ({
   value,
   error,
   onChange,
+  nodeType,
 }: {
   fieldConfig: BaseFieldConfig;
   value: string;
   error?: string;
   onChange: (value: string) => void;
-}) => (
-  <input
-    type="text"
-    value={value || ""}
-    onChange={(e) => onChange(e.target.value)}
-    placeholder={fieldConfig.placeholder}
-    className={`w-full ${error ? "input-error" : ""}`}
-  />
-);
+  nodeType?: DiscourseNode;
+}) => {
+  // Generate dynamic placeholder for tag field based on node format and name
+  const getPlaceholder = (): string => {
+    if (fieldConfig.key === "tag" && nodeType?.format) {
+      return generateTagPlaceholder(nodeType.format, nodeType.name);
+    }
+    return fieldConfig.placeholder || "";
+  };
+
+  return (
+    <input
+      type="text"
+      value={value || ""}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={getPlaceholder()}
+      className={`w-full ${error ? "input-error" : ""}`}
+    />
+  );
+};
 
 const ColorField = ({
   value,
@@ -422,6 +451,7 @@ const NodeTypeSettings = () => {
             value={value}
             error={error}
             onChange={handleChange}
+            nodeType={editingNodeType}
           />
         )}
       </FieldWrapper>
