@@ -42,12 +42,18 @@ import {
 } from "~/components/canvas/shapes/DiscourseRelationBinding";
 import ToastListener from "./ToastListener";
 import { RelationsOverlay } from "./overlays/RelationOverlay";
+import { DiscourseNodeShape } from "~/components/canvas/shapes/DiscourseNodeShape";
+import {
+  extractBlockRefId,
+  resolveLinkedTFileByBlockRef,
+} from "~/components/canvas/stores/assetStore";
+import { showToast } from "~/components/canvas/utils/toastUtils";
 
-interface TldrawPreviewProps {
+type TldrawPreviewProps = {
   store: TLStore;
   file: TFile;
   assetStore: ObsidianTLAssetStore;
-}
+};
 
 // No longer needed - using tldraw's event system instead
 
@@ -60,9 +66,11 @@ export const TldrawPreviewComponent = ({
   const [currentStore, setCurrentStore] = useState<TLStore>(store);
   const [isReady, setIsReady] = useState(false);
   const isCreatingRelationRef = useRef(false);
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastShiftClickRef = useRef<number>(0);
+  const SHIFT_CLICK_DEBOUNCE_MS = 300; // Prevent double clicks within 300ms
+  const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
   const lastSavedDataRef = useRef<string>("");
-  const editorRef = useRef<Editor>();
+  const editorRef = useRef<Editor>(null);
   const plugin = usePlugin();
 
   const customShapeUtils = [
@@ -189,6 +197,84 @@ export const TldrawPreviewComponent = ({
         if (isCreatingRelationRef.current) {
           BaseRelationBindingUtil.checkAndReifyRelation(editor);
           isCreatingRelationRef.current = false;
+        }
+
+        if (e.shiftKey) {
+          const now = Date.now();
+
+          // Debounce to prevent double opening
+          if (now - lastShiftClickRef.current < SHIFT_CLICK_DEBOUNCE_MS) {
+            return;
+          }
+          lastShiftClickRef.current = now;
+
+          const shape = editor.getShapeAtPoint(
+            editor.inputs.currentPagePoint,
+          ) as DiscourseNodeShape;
+
+          if (!shape || shape.type !== "discourse-node") return;
+
+          const selectedShapes = editor.getSelectedShapes();
+          const selectedDiscourseNodes = selectedShapes.filter(
+            (s) => s.type === "discourse-node",
+          );
+
+          if (selectedDiscourseNodes.length > 1) {
+            return;
+          }
+
+          const blockRefId = extractBlockRefId(shape.props.src ?? undefined);
+          if (!blockRefId) {
+            showToast({
+              severity: "warning",
+              title: "Cannot open node",
+              description: "No valid block reference found",
+            });
+            return;
+          }
+
+          const canvasFileCache = plugin.app.metadataCache.getFileCache(file);
+          if (!canvasFileCache) {
+            showToast({
+              severity: "error",
+              title: "Error",
+              description: "Could not read canvas file",
+            });
+            return;
+          }
+
+          void resolveLinkedTFileByBlockRef({
+            app: plugin.app,
+            canvasFile: file,
+            blockRefId,
+            canvasFileCache,
+          })
+            .then((linkedFile) => {
+              if (!linkedFile) {
+                showToast({
+                  severity: "warning",
+                  title: "Cannot open node",
+                  description: "Linked file not found",
+                });
+                return;
+              }
+
+              void plugin.app.workspace.openLinkText(
+                linkedFile.path,
+                file.path,
+                true,
+              );
+
+              editor.selectNone();
+            })
+            .catch((error) => {
+              console.error("Error opening linked file:", error);
+              showToast({
+                severity: "error",
+                title: "Error",
+                description: "Failed to open linked file",
+              });
+            });
         }
       }
     });
