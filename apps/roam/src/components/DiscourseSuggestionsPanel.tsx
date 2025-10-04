@@ -6,23 +6,35 @@ import {
   Navbar,
   Collapse,
 } from "@blueprintjs/core";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
+import SuggestionsBody from "./SuggestionsBody";
 
 export const DiscourseSuggestionsPanel = ({
   tag,
   blockUid,
+  isOpen: isOpenProp,
   onClose,
-  // TODO: Will be used to pass setting to body renderer
-  shouldGrabFromReferencedPages,
-  shouldGrabParentChildContext,
+  onToggle,
 }: {
   tag: string;
   blockUid: string;
+  isOpen: boolean;
   onClose: () => void;
-  shouldGrabFromReferencedPages: boolean;
-  shouldGrabParentChildContext: boolean;
+  onToggle: (isOpen: boolean) => void;
 }) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(isOpenProp);
+
+  useEffect(() => {
+    setIsOpen(isOpenProp);
+  }, [isOpenProp]);
+
+  const handleToggle = useCallback(() => {
+    setIsOpen((prev) => {
+      const next = !prev;
+      onToggle(next);
+      return next;
+    });
+  }, [onToggle]);
 
   const toggleHighlight = useCallback(
     (on: boolean) => {
@@ -70,7 +82,7 @@ export const DiscourseSuggestionsPanel = ({
               fontWeight: 600,
               cursor: "pointer",
             }}
-            onClick={() => setIsOpen((prev) => !prev)}
+            onClick={handleToggle}
           >
             {tag}
           </Navbar.Heading>
@@ -88,7 +100,7 @@ export const DiscourseSuggestionsPanel = ({
             icon={isOpen ? "chevron-up" : "chevron-down"}
             minimal
             small
-            onClick={() => setIsOpen((prev) => !prev)}
+            onClick={handleToggle}
             title={isOpen ? "Collapse" : "Expand"}
           />
           <Button
@@ -109,8 +121,7 @@ export const DiscourseSuggestionsPanel = ({
           className={Classes.CARD}
           style={{ flexGrow: 1, overflowY: "auto", padding: "6px" }}
         >
-          {/* TODO: Replace with actual body*/}
-          <div>Body placeholder</div>
+          <SuggestionsBody tag={tag} blockUid={blockUid} />
         </div>
       </Collapse>
     </Card>

@@ -114,7 +114,6 @@ const PageGroupsPanel = ({
         }
       />
       <div className="flex flex-col gap-2">
-        {/* Add Group */}
         <div className="flex items-center gap-2">
           <AutocompleteInput
             value={newGroupName}
@@ -133,7 +132,6 @@ const PageGroupsPanel = ({
           />
         </div>
 
-        {/* Existing Groups */}
         {Object.keys(pageGroups).length === 0 && (
           <div className="text-sm italic text-gray-500">No groups added.</div>
         )}
