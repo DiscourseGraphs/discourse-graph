@@ -17,6 +17,7 @@ type PanelState = {
   blockUid: string;
   onloadArgs: OnloadArgs;
   element: HTMLElement | null;
+  isOpen: boolean;
 };
 type PanelEntry = [string, PanelState];
 
@@ -69,25 +70,6 @@ const setSpacingClass = (
     element.classList.remove(className);
   });
   if (spacingClass) element.classList.add(spacingClass);
-};
-
-const getBooleanSetting = ({
-  extensionAPI,
-  key,
-  defaultValue,
-}: {
-  extensionAPI: unknown;
-  key: string;
-  defaultValue: boolean;
-}): boolean => {
-  try {
-    const value = (
-      extensionAPI as { settings: { get: (k: string) => unknown } }
-    ).settings.get(key);
-    return value == null ? defaultValue : Boolean(value);
-  } catch {
-    return defaultValue;
-  }
 };
 
 const setupSplitView = (
@@ -147,7 +129,7 @@ const generatePanelId = (tag: string): string =>
   `discourse-panel-${tag.replace(/[^a-zA-Z0-9]/g, "-")}`;
 
 const selectOpenPanelsEntries = (): PanelEntry[] =>
-  Array.from(openPanels.entries());
+  Array.from(openPanels.entries()).reverse();
 
 const subscribeToOpenPanels = (callback: () => void): (() => void) => {
   const handler = (): void => callback();
@@ -213,11 +195,8 @@ export const PanelContainer = (): React.ReactElement => {
       className={`flex flex-col ${isMinimized ? "h-[5%] w-auto flex-none" : "h-full w-full flex-auto"}`}
     >
       {!isMinimized ? (
-        <div
-          id="discourse-graph-panels-container"
-          className="flex flex-1 flex-col gap-2 overflow-y-auto bg-transparent"
-        >
-          <div id="discourse-suggestions-header">
+        <>
+          <div id="discourse-suggestions-header" className="flex-shrink-0">
             <Navbar className="flex items-center rounded-t shadow-none">
               <Navbar.Group
                 align={Alignment.LEFT}
@@ -246,32 +225,31 @@ export const PanelContainer = (): React.ReactElement => {
             </Navbar>
           </div>
 
-          {panels.map(([tag, state]) => (
-            <div
-              key={tag}
-              id={generatePanelId(tag)}
-              className="m-2 flex-shrink-0 rounded bg-white shadow"
-            >
-              <ExtensionApiContextProvider {...state.onloadArgs}>
-                <DiscourseSuggestionsPanel
-                  tag={tag}
-                  blockUid={state.blockUid}
-                  onClose={() => panelManager.removePanel(tag)}
-                  shouldGrabFromReferencedPages={getBooleanSetting({
-                    extensionAPI: state.onloadArgs.extensionAPI,
-                    key: "context-grab-from-referenced-pages",
-                    defaultValue: true,
-                  })}
-                  shouldGrabParentChildContext={getBooleanSetting({
-                    extensionAPI: state.onloadArgs.extensionAPI,
-                    key: "context-grab-parent-child-context",
-                    defaultValue: true,
-                  })}
-                />
-              </ExtensionApiContextProvider>
-            </div>
-          ))}
-        </div>
+          <div
+            id="discourse-graph-panels-container"
+            className="flex flex-1 flex-col gap-2 overflow-y-auto bg-transparent"
+          >
+            {panels.map(([tag, state]) => (
+              <div
+                key={tag}
+                id={generatePanelId(tag)}
+                className="m-2 flex-shrink-0 rounded bg-white shadow"
+              >
+                <ExtensionApiContextProvider {...state.onloadArgs}>
+                  <DiscourseSuggestionsPanel
+                    tag={tag}
+                    blockUid={state.blockUid}
+                    isOpen={state.isOpen}
+                    onClose={() => panelManager.removePanel(tag)}
+                    onToggle={(isOpen) =>
+                      panelManager.updatePanelState(tag, { isOpen })
+                    }
+                  />
+                </ExtensionApiContextProvider>
+              </div>
+            ))}
+          </div>
+        </>
       ) : (
         <div
           id="discourse-suggestions-minimized"
@@ -431,6 +409,7 @@ type PanelManager = {
     blockUid: string;
     onloadArgs: OnloadArgs;
   }) => void;
+  updatePanelState: (tag: string, updates: Partial<PanelState>) => void;
   removePanel: (tag: string) => void;
   closeAll: () => void;
   isOpen: (tag: string) => boolean;
@@ -465,9 +444,18 @@ export const panelManager: PanelManager = {
       blockUid,
       onloadArgs,
       element: null,
+      isOpen: true,
     });
     panelManager.notify();
     notifySubscribers(tag, true);
+  },
+
+  updatePanelState: (tag: string, updates: Partial<PanelState>): void => {
+    const state = openPanels.get(tag);
+    if (!state) return;
+
+    openPanels.set(tag, { ...state, ...updates });
+    panelManager.notify();
   },
 
   removePanel: (tag: string): void => {
