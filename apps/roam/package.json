@@ -53,6 +53,7 @@
     "@use-gesture/react": "^10.2.27",
     "@vercel/blob": "^1.1.1",
     "classnames": "^2.3.2",
+    "@hello-pangea/dnd": "^18.0.1",
     "contrast-color": "^1.0.1",
     "core-js": "^3.45.0",
     "cytoscape": "^3.21.0",

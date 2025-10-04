@@ -76,6 +76,7 @@ const KanbanCard = (card: {
   const cardView = card.viewsByColumn[displayKey];
   const displayUid = card.result[`${displayKey}-uid`];
 
+  // TODO - https://linear.app/discourse-graphs/issue/ENG-909/migrate-kanban-react-draggable-to-hello-pangeadnd
   return (
     <Draggable
       handle={isDragHandle ? ".embed-handle" : ""}
