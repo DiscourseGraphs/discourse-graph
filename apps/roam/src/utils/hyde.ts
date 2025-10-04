@@ -5,6 +5,7 @@ import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import findDiscourseNode from "./findDiscourseNode";
 import { nextApiRoot } from "@repo/utils/execContext";
 import { DiscourseNode } from "./getDiscourseNodes";
+import getExtensionAPI from "roamjs-components/util/extensionApiContext";
 
 type ApiEmbeddingResponse = {
   data: Array<{
@@ -410,8 +411,6 @@ export type PerformHydeSearchParams = {
   existingResults: ExistingResultGroup[];
   uniqueRelationTypeTriplets: RelationDetails[];
   pageTitle: string;
-  shouldGrabFromReferencedPages: boolean;
-  shouldGrabParentChildContext: boolean;
 };
 
 export const performHydeSearch = async ({
@@ -423,8 +422,6 @@ export const performHydeSearch = async ({
   existingResults,
   uniqueRelationTypeTriplets,
   pageTitle,
-  shouldGrabFromReferencedPages,
-  shouldGrabParentChildContext,
 }: PerformHydeSearchParams): Promise<SuggestedNode[]> => {
   if (!useAllPagesForSuggestions && selectedPages.length === 0) {
     return [];
@@ -433,6 +430,17 @@ export const performHydeSearch = async ({
   if (!discourseNode) {
     return [];
   }
+
+  const extensionAPI = getExtensionAPI();
+  const shouldGrabFromReferencedPages =
+    (extensionAPI.settings.get(
+      "context-grab-from-referenced-pages",
+    ) as boolean) ?? true;
+  const shouldGrabParentChildContext =
+    (extensionAPI.settings.get(
+      "context-grab-parent-child-context",
+    ) as boolean) ?? true;
+
 
   let candidateNodesForHyde: SuggestedNode[] = [];
 
