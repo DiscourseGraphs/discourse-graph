@@ -11,12 +11,12 @@ import {
   Spinner,
   Tag,
   Tooltip,
+  Label,
 } from "@blueprintjs/core";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import { Result } from "roamjs-components/types/query-builder";
-import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 import { performHydeSearch } from "../utils/hyde";
 import { createBlock } from "roamjs-components/writes";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -26,6 +26,7 @@ import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import { type RelationDetails } from "~/utils/hyde";
+import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 
 export type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -204,17 +205,12 @@ const updateSuggestionsCache = (
 const SuggestionsBody = ({
   tag,
   blockUid,
-  shouldGrabFromReferencedPages,
-  shouldGrabParentChildContext,
 }: {
   tag: string;
   blockUid: string;
-  shouldGrabFromReferencedPages: boolean;
-  shouldGrabParentChildContext: boolean;
 }) => {
   const allPages = useMemo(() => getAllPageNames(), []);
   const cachedState = suggestionsCache.get(blockUid);
-  const extensionAPI = useExtensionAPI();
 
   const [existingResults, setExistingResults] = useState<
     DiscourseData["results"]
@@ -272,6 +268,9 @@ const SuggestionsBody = ({
     cachedState?.activeNodeTypeFilters || [],
   );
   const [isSearchingHyde, setIsSearchingHyde] = useState(false);
+  const [hasPerformedSearch, setHasPerformedSearch] = useState(
+    (cachedState?.hydeFilteredNodes?.length ?? 0) > 0,
+  );
 
   const actuallyDisplayedNodes = useMemo(() => {
     if (activeNodeTypeFilters.length === 0) return hydeFilteredNodes;
@@ -334,25 +333,31 @@ const SuggestionsBody = ({
         existingResults,
         uniqueRelationTypeTriplets,
         pageTitle: tag,
-        shouldGrabFromReferencedPages,
-        shouldGrabParentChildContext,
       });
       setHydeFilteredNodes(results);
+      setHasPerformedSearch(true);
     } catch (error) {
       console.error("Hyde search failed:", error);
+      setHasPerformedSearch(true);
     } finally {
       setIsSearchingHyde(false);
     }
   };
 
   useEffect(() => {
-    const storedGroups = extensionAPI?.settings.get(
-      "suggestion-page-groups",
-    ) as Record<string, string[]> | undefined;
-    if (storedGroups && typeof storedGroups === "object") {
-      setPageGroups(storedGroups);
-    }
-  }, [extensionAPI]);
+    const config = getFormattedConfigTree();
+    const groups = config.suggestiveMode.pageGroups.groups;
+
+    const groupsRecord = groups.reduce(
+      (acc, group) => {
+        acc[group.name] = group.pages.map((p) => p.name);
+        return acc;
+      },
+      {} as Record<string, string[]>,
+    );
+
+    setPageGroups(groupsRecord);
+  }, []);
 
   useEffect(() => {
     moveCacheEntryToEnd(blockUid);
@@ -376,40 +381,28 @@ const SuggestionsBody = ({
   return (
     <div onMouseDown={(e) => e.stopPropagation()}>
       <div className="mt-2">
-        <label
-          htmlFor="suggest-page-input"
-          className="mb-1 block text-sm font-medium text-gray-700"
-        >
-          Suggest relationships from pages
-        </label>
+        <Label>Suggest relationships from pages</Label>
         <ControlGroup fill className="flex flex-wrap items-center gap-2">
-          <div
-            className="flex-0 min-w-[160px]"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && currentPageInput) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleAddPage();
-              }
-            }}
-          >
-            <AutocompleteInput
-              key={autocompleteKey}
-              value={currentPageInput}
-              placeholder={"Add page…"}
-              setValue={setCurrentPageInput}
-              options={allPages}
-              maxItemsDisplayed={50}
-            />
-          </div>
-          <Tooltip
-            content={
-              selectedPages.includes(currentPageInput)
-                ? "Page already added"
-                : "Add page"
-            }
-            disabled={!currentPageInput}
-          >
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <div
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && currentPageInput) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAddPage();
+                }
+              }}
+            >
+              <AutocompleteInput
+                key={autocompleteKey}
+                value={currentPageInput}
+                placeholder={"Add page…"}
+                setValue={setCurrentPageInput}
+                options={allPages}
+                maxItemsDisplayed={50}
+              />
+            </div>
+
             <Button
               icon="plus"
               small
@@ -419,36 +412,40 @@ const SuggestionsBody = ({
               }
               className="whitespace-nowrap"
             />
-          </Tooltip>
-          {Object.keys(pageGroups).length > 0 && (
-            <Popover
-              position={Position.BOTTOM_LEFT}
-              content={
-                <Menu>
-                  {Object.keys(pageGroups)
-                    .sort((a, b) => a.localeCompare(b))
-                    .map((groupName) => (
-                      <MenuItem
-                        key={groupName}
-                        text={groupName}
-                        shouldDismissPopover={false}
-                        onClick={() => {
-                          const groupPages = pageGroups[groupName] || [];
-                          setSelectedPages((prev) =>
-                            Array.from(new Set([...prev, ...groupPages])),
-                          );
-                          setUseAllPagesForSuggestions(false);
-                        }}
-                      />
-                    ))}
-                </Menu>
-              }
-            >
-              <Tooltip content="Add pages from a group">
-                <Button icon="folder-open" small text="Add Group" />
-              </Tooltip>
-            </Popover>
-          )}
+
+            {Object.keys(pageGroups).length > 0 && (
+              <Popover
+                position={Position.BOTTOM_LEFT}
+                content={
+                  <Menu>
+                    {Object.keys(pageGroups)
+                      .sort((a, b) => a.localeCompare(b))
+                      .map((groupName) => (
+                        <MenuItem
+                          key={groupName}
+                          text={groupName}
+                          onClick={() => {
+                            const groupPages = pageGroups[groupName] || [];
+                            setSelectedPages((prev) =>
+                              Array.from(new Set([...prev, ...groupPages])),
+                            );
+                            setUseAllPagesForSuggestions(false);
+                          }}
+                        />
+                      ))}
+                  </Menu>
+                }
+              >
+                <Button
+                  icon="folder-open"
+                  small
+                  text="Add Group"
+                  className="whitespace-nowrap"
+                />
+              </Popover>
+            )}
+          </div>
+          <div className="flex-grow" />
           <Button
             text="Find"
             icon="search-template"
@@ -461,23 +458,19 @@ const SuggestionsBody = ({
             small
             className="whitespace-nowrap"
           />
-          <div>
-            <Tooltip content={"Use all pages"}>
-              <Button
-                text="All Pages"
-                icon="globe-network"
-                small
-                onClick={() => {
-                  setUseAllPagesForSuggestions(true);
-                  setSelectedPages([]);
-                  setCurrentPageInput("");
-                  setAutocompleteKey((prev) => prev + 1);
-                  void executeHydeSearch(true, []);
-                }}
-                className="whitespace-nowrap"
-              />
-            </Tooltip>
-          </div>
+          <Button
+            text="All Pages"
+            icon="globe-network"
+            small
+            onClick={() => {
+              setUseAllPagesForSuggestions(true);
+              setSelectedPages([]);
+              setCurrentPageInput("");
+              setAutocompleteKey((prev) => prev + 1);
+              void executeHydeSearch(true, []);
+            }}
+            className="whitespace-nowrap"
+          />
         </ControlGroup>
         {selectedPages.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
@@ -497,70 +490,76 @@ const SuggestionsBody = ({
         )}
       </div>
 
-      {(hydeFilteredNodes.length > 0 || isSearchingHyde) && (
+      {(hydeFilteredNodes.length > 0 ||
+        isSearchingHyde ||
+        hasPerformedSearch) && (
         <div className="mt-6">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-base font-semibold">
+          <div className="mb-2 flex items-center justify-between px-1.5 py-1.5 pr-4">
+            <h3 className="m-0 text-base font-semibold">
               {useAllPagesForSuggestions
                 ? "From All Pages"
                 : selectedPages.length > 0
                   ? `From ${selectedPages.length === 1 ? `"${selectedPages[0]}"` : `${selectedPages.length} selected pages`}`
                   : "Select pages to see suggestions"}
             </h3>
-            <span className="ml-2 text-sm font-semibold text-gray-900">
-              Total nodes: {actuallyDisplayedNodes.length}
-            </span>
-            <Popover
-              position={Position.BOTTOM_RIGHT}
-              content={
-                <div className="space-y-1 p-2">
-                  {availableFilterTypes.map((t) => (
-                    <Button
-                      key={t.uid}
-                      small
-                      minimal
-                      fill
-                      alignText="left"
-                      text={t.text}
-                      intent={
-                        activeNodeTypeFilters.includes(t.uid)
-                          ? Intent.PRIMARY
-                          : Intent.NONE
-                      }
-                      onClick={() => {
-                        setActiveNodeTypeFilters((prev) =>
-                          prev.includes(t.uid)
-                            ? prev.filter((f) => f !== t.uid)
-                            : [...prev, t.uid],
-                        );
-                      }}
-                      className="w-full justify-start whitespace-nowrap"
-                    />
-                  ))}
-                  {activeNodeTypeFilters.length > 0 && (
-                    <Button
-                      small
-                      minimal
-                      icon="cross"
-                      text="Clear"
-                      onClick={() => setActiveNodeTypeFilters([])}
-                      className="whitespace-nowrap text-xs"
-                    />
-                  )}
-                </div>
-              }
-            >
-              <Button
-                icon="filter"
-                small
-                minimal
-                intent={
-                  activeNodeTypeFilters.length > 0
-                    ? Intent.PRIMARY
-                    : Intent.NONE
+            {actuallyDisplayedNodes.length > 0 && (
+              <span className="ml-2 text-sm font-semibold text-gray-900">
+                Total nodes: {actuallyDisplayedNodes.length}
+              </span>
+            )}
+            {availableFilterTypes.length > 0 && (
+              <Popover
+                position={Position.BOTTOM_RIGHT}
+                content={
+                  <div className="space-y-1 p-2">
+                    {availableFilterTypes.map((t) => (
+                      <Button
+                        key={t.uid}
+                        small
+                        minimal
+                        fill
+                        alignText="left"
+                        text={t.text}
+                        intent={
+                          activeNodeTypeFilters.includes(t.uid)
+                            ? Intent.PRIMARY
+                            : Intent.NONE
+                        }
+                        onClick={() => {
+                          setActiveNodeTypeFilters((prev) =>
+                            prev.includes(t.uid)
+                              ? prev.filter((f) => f !== t.uid)
+                              : [...prev, t.uid],
+                          );
+                        }}
+                        className="w-full justify-start whitespace-nowrap"
+                      />
+                    ))}
+                    {activeNodeTypeFilters.length > 0 && (
+                      <Button
+                        small
+                        minimal
+                        icon="cross"
+                        text="Clear"
+                        onClick={() => setActiveNodeTypeFilters([])}
+                        className="whitespace-nowrap text-xs"
+                      />
+                    )}
+                  </div>
                 }
-              />
-            </Popover>
+              >
+                <Button
+                  icon="filter"
+                  small
+                  minimal
+                  intent={
+                    activeNodeTypeFilters.length > 0
+                      ? Intent.PRIMARY
+                      : Intent.NONE
+                  }
+                />
+              </Popover>
+            )}
           </div>
           <div className="flex pr-2">
             <div className="flex-grow overflow-y-auto">
