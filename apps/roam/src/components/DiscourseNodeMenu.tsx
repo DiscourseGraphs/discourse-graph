@@ -77,16 +77,18 @@ const NodeMenu = ({
           textarea.selectionStart,
           textarea.selectionEnd,
         );
-        setTimeout(async () => {
+
+        // Remove focus from the block to ensure updateBlock works properly
+        // https://github.com/RoamJS/query-builder/issues/286
+        document.body.click();
+
+        const createNodeAndUpdateBlock = async () => {
           const pageName = await getNewDiscourseNodeText({
             text: highlighted,
             nodeType: nodeUid,
             blockUid,
           });
-
-          if (!pageName) {
-            return;
-          }
+          if (!pageName) return;
 
           const currentBlockText = getTextByBlockUid(blockUid);
           const newText = `${currentBlockText.substring(
@@ -94,23 +96,24 @@ const NodeMenu = ({
             textarea.selectionStart,
           )}[[${pageName}]]${currentBlockText.substring(textarea.selectionEnd)}`;
 
-          updateBlock({ text: newText, uid: blockUid });
-          posthog.capture("Discourse Node: Created via Node Menu", {
-            nodeType: nodeUid,
-            text: pageName,
-          });
-
-          createDiscourseNode({
+          await createDiscourseNode({
             text: pageName,
             configPageUid: nodeUid,
             extensionAPI,
           });
-        });
+          void updateBlock({ text: newText, uid: blockUid });
+          posthog.capture("Discourse Node: Created via Node Menu", {
+            nodeType: nodeUid,
+            text: pageName,
+          });
+        };
+        // timeout required to ensure the block is updated
+        setTimeout(() => void createNodeAndUpdateBlock(), 100);
       } else {
         const tag = menuItem.getAttribute("data-tag") || "";
         if (!tag) return;
 
-        setTimeout(() => {
+        const addTagToBlock = () => {
           const currentText = textarea.value;
           const cursorPos = textarea.selectionStart;
           const textToInsert = `#${tag.replace(/^#/, "")} `;
@@ -120,11 +123,13 @@ const NodeMenu = ({
             cursorPos,
           )}${textToInsert}${currentText.substring(cursorPos)}`;
 
-          updateBlock({ text: newText, uid: blockUid });
+          void updateBlock({ text: newText, uid: blockUid });
           posthog.capture("Discourse Tag: Created via Node Menu", {
             tag,
           });
-        });
+        };
+        // timeout required to ensure the block is updated
+        setTimeout(() => void addTagToBlock(), 100);
       }
       onClose();
     },
@@ -135,45 +140,36 @@ const NodeMenu = ({
     (e: KeyboardEvent) => {
       if (!isOpen || e.metaKey || e.ctrlKey) return;
       if (e.key === "Shift") {
-        if (!isInitialTextSelected) {
-          setShowNodeTypes(true);
-        }
+        if (!isInitialTextSelected) setShowNodeTypes(true);
         return;
       }
 
+      const getActiveIndex = () => {
+        return Number(menuRef.current?.getAttribute("data-active-index"));
+      };
+
       if (e.key === "ArrowDown") {
-        const index = Number(
-          menuRef.current?.getAttribute("data-active-index"),
-        );
+        const index = getActiveIndex();
         const count = menuRef.current?.childElementCount || 0;
         setActiveIndex((index + 1) % count);
       } else if (e.key === "ArrowUp") {
-        const index = Number(
-          menuRef.current?.getAttribute("data-active-index"),
-        );
+        const index = getActiveIndex();
         const count = menuRef.current?.childElementCount || 0;
         setActiveIndex((index - 1 + count) % count);
       } else if (e.key === "Enter") {
-        const index = Number(
-          menuRef.current?.getAttribute("data-active-index"),
-        );
+        const index = getActiveIndex();
         onSelect(index);
-        // Remove focus from the block to ensure updateBlock works properly
-        document.body.click();
       } else if (e.key === "Escape") {
         onClose();
-        document.body.click();
       } else if (shortcuts.has(e.key.toUpperCase())) {
         onSelect(indexBySC[e.key.toUpperCase()]);
-        // Remove focus from the block to ensure updateBlock works properly
-        document.body.click();
       } else {
         return;
       }
       e.stopPropagation();
       e.preventDefault();
     },
-    [onSelect, onClose, indexBySC, isOpen, isInitialTextSelected],
+    [onSelect, onClose, indexBySC, isOpen, isInitialTextSelected, shortcuts],
   );
 
   const keyupListener = useCallback(
