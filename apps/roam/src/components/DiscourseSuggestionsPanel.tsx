@@ -39,7 +39,7 @@ export const DiscourseSuggestionsPanel = ({
   const toggleHighlight = useCallback(
     (on: boolean) => {
       document
-        .querySelectorAll(`[data-dg-block-uid="${blockUid}"]`)
+        .querySelectorAll(`[suggestive-mode-overlay-button-uid="${blockUid}"]`)
         .forEach((el) =>
           el.classList.toggle(
             "suggestive-mode-overlay-highlight-on-panel-hover",
@@ -52,7 +52,7 @@ export const DiscourseSuggestionsPanel = ({
 
   return (
     <Card
-      data-dg-block-uid={`${blockUid}`}
+      suggestive-mode-overlay-button-uid={blockUid}
       onMouseEnter={() => toggleHighlight(true)}
       onMouseLeave={() => toggleHighlight(false)}
       className="discourse-suggestions-panel flex flex-col bg-white p-2"

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { getLoggedInClient } from "./supabaseContext";
 import { Result } from "./types";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
@@ -13,6 +12,7 @@ type ApiEmbeddingResponse = {
   }>;
 };
 
+/* eslint-disable @typescript-eslint/naming-convention */
 type ApiSupabaseResultItem = {
   roam_uid: string;
   text_content: string;

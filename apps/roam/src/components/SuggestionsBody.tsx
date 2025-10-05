@@ -1,4 +1,3 @@
-// THIS IS NEW CODEBASE
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   Button,
@@ -10,7 +9,6 @@ import {
   Popover,
   Spinner,
   Tag,
-  Tooltip,
   Label,
 } from "@blueprintjs/core";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
@@ -314,8 +312,13 @@ const SuggestionsBody = ({
 
   const toggleOverlayHighlight = (nodeUid: string, on: boolean) => {
     document
-      .querySelectorAll(`[data-dg-block-uid="${nodeUid}"]`)
-      .forEach((el) => el.classList.toggle("dg-highlight", on));
+      .querySelectorAll(`[suggestive-mode-overlay-button-uid="${nodeUid}"]`)
+      .forEach((el) =>
+        el.classList.toggle(
+          "suggestive-mode-overlay-highlight-on-panel-hover",
+          on,
+        ),
+      );
   };
 
   const executeHydeSearch = async (
@@ -410,7 +413,6 @@ const SuggestionsBody = ({
               disabled={
                 !currentPageInput || selectedPages.includes(currentPageInput)
               }
-              className="whitespace-nowrap"
             />
 
             {Object.keys(pageGroups).length > 0 && (
@@ -436,12 +438,7 @@ const SuggestionsBody = ({
                   </Menu>
                 }
               >
-                <Button
-                  icon="folder-open"
-                  small
-                  text="Add Group"
-                  className="whitespace-nowrap"
-                />
+                <Button icon="folder-open" small text="Add Group" />
               </Popover>
             )}
           </div>
@@ -456,7 +453,6 @@ const SuggestionsBody = ({
             }}
             disabled={selectedPages.length === 0}
             small
-            className="whitespace-nowrap"
           />
           <Button
             text="All Pages"
@@ -469,7 +465,6 @@ const SuggestionsBody = ({
               setAutocompleteKey((prev) => prev + 1);
               void executeHydeSearch(true, []);
             }}
-            className="whitespace-nowrap"
           />
         </ControlGroup>
         {selectedPages.length > 0 && (
@@ -532,7 +527,6 @@ const SuggestionsBody = ({
                               : [...prev, t.uid],
                           );
                         }}
-                        className="w-full justify-start whitespace-nowrap"
                       />
                     ))}
                     {activeNodeTypeFilters.length > 0 && (
@@ -542,7 +536,6 @@ const SuggestionsBody = ({
                         icon="cross"
                         text="Clear"
                         onClick={() => setActiveNodeTypeFilters([])}
-                        className="whitespace-nowrap text-xs"
                       />
                     )}
                   </div>
@@ -599,7 +592,6 @@ const SuggestionsBody = ({
                         small
                         icon="add"
                         onClick={() => void handleCreateBlock(node)}
-                        className="ml-2 whitespace-nowrap"
                       />
                     </li>
                   ))}

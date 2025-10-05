@@ -201,7 +201,7 @@ export const PanelContainer = (): React.ReactElement => {
 const clearBlockHighlight = (blockUid: string): void => {
   try {
     const nodes = document.querySelectorAll(
-      `[data-dg-block-uid="${blockUid}"]`,
+      `[suggestive-mode-overlay-button-uid="${blockUid}"]`,
     );
     nodes.forEach((el) =>
       el.classList.remove("suggestive-mode-overlay-highlight-on-panel-hover"),
