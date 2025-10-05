@@ -16,7 +16,6 @@ const PageGroupsPanel = ({
   initialGroups: PageGroup[];
 }) => {
   const [pageGroups, setPageGroups] = useState<PageGroup[]>(initialGroups);
-
   const [newGroupName, setNewGroupName] = useState("");
   const [newPageInputs, setNewPageInputs] = useState<Record<string, string>>(
     {},
@@ -114,7 +113,7 @@ const PageGroupsPanel = ({
         }
       />
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-baseline gap-2">
           <AutocompleteInput
             value={newGroupName}
             setValue={setNewGroupName}
@@ -147,7 +146,7 @@ const PageGroupsPanel = ({
                 onClick={() => void removeGroup(group.uid)}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-baseline gap-2">
               <div
                 className="flex-0 min-w-[160px]"
                 onKeyDown={(e) => {
