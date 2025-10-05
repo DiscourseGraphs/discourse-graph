@@ -24,7 +24,6 @@ const projectIdOrName: string =
   "discourse-graph";
 
 const getVercelToken = () => {
-  dotenv.config();
   return process.env["VERCEL_TOKEN"];
 };
 
@@ -148,6 +147,7 @@ const main = async (variant: Variant) => {
 };
 
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  dotenv.config();
   const variantS: string =
     (process.argv.length === 3
       ? process.argv[2]
