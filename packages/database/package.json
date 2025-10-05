@@ -22,7 +22,7 @@
   },
   "scripts": {
     "init": "supabase login",
-    "setup": "pnpm run migrate && pnpm run genenv",
+    "setup": "pnpm run genenv && pnpm run migrate",
     "dev": "pnpm run setup && pnpm run serve",
     "build": "pnpm run setup && tsc",
     "serve": "tsx scripts/serve.ts",
