@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import React, { useState, useCallback } from "react";
 import { Label, Button, Intent, Tag } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
