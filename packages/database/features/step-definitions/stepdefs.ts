@@ -352,19 +352,21 @@ Given(
   },
 );
 
+type ObjectWithId = object & { id: number };
+
 Then("query results should look like this", (table: DataTable) => {
   const localRefs = (world.localRefs || {}) as Record<string, number>;
   const rows = table.hashes();
-  const values: object[] = rows.map((r) =>
+  const values = rows.map((r) =>
     substituteLocalReferencesRow(r, localRefs),
-  );
+  ) as ObjectWithId[];
   // console.debug(values);
   // console.debug(JSON.stringify(world.queryResults, null, 2));
-  const queryResults = (world.queryResults || []) as object[];
-  values.sort((a, b) => (a.id as number) - (b.id as number));
+  const queryResults = (world.queryResults || []) as ObjectWithId[];
+  values.sort((a, b) => a.id - b.id);
   assert.deepEqual(
-    queryResults.map((v) => v.id as number),
-    values.map((v) => v.id as number),
+    queryResults.map((v) => v.id),
+    values.map((v) => v.id),
   );
   if (values.length > 0) {
     const keys = Object.keys(values[0]!);
