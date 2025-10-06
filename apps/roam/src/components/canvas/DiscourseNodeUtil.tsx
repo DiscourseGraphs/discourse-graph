@@ -46,7 +46,7 @@ import {
 } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
-import getContrastingColor from "@repo/utils/getContrastingColor";
+import getPleasingColors from "@repo/utils/getPleasingColors";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -351,13 +351,15 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
           ? discourseNodeIndex
           : 0
       ];
-    const formattedBackgroundColor =
+    const formattedTextColor =
       setColor && !setColor.startsWith("#") ? `#${setColor}` : setColor;
 
-    const backgroundColor = formattedBackgroundColor
-      ? formattedBackgroundColor
+    const canvasSelectedColor = formattedTextColor
+      ? formattedTextColor
       : COLOR_PALETTE[paletteColor];
-    const textColor = getContrastingColor(colord(backgroundColor)).secondary;
+    const pleasingColors = getPleasingColors(colord(canvasSelectedColor));
+    const backgroundColor = pleasingColors.background;
+    const textColor = pleasingColors.text;
     return { backgroundColor, textColor };
   }
 
