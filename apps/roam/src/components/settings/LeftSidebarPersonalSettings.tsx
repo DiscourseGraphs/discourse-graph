@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import discourseConfigRef from "~/utils/discourseConfigRef";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
@@ -320,6 +319,7 @@ const SectionItem = memo(
                 <Droppable
                   droppableId={section.uid}
                   type="ITEMS"
+                  /* eslint-disable @typescript-eslint/naming-convention */
                   renderClone={(
                     provided: DraggableProvided,
                     _: DraggableStateSnapshot,

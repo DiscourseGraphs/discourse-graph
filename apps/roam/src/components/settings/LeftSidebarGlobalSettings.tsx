@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import React, {
   useCallback,
   useEffect,
@@ -163,6 +162,7 @@ const LeftSidebarGlobalSectionsContent = ({
             : destination.index;
 
         void window.roamAlphaAPI
+          /* eslint-disable @typescript-eslint/naming-convention */
           .moveBlock({
             location: { "parent-uid": childrenUid, order: order },
             block: { uid: removed.uid },

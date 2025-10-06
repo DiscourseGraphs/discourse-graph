@@ -574,9 +574,6 @@ const FavouritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const initialConfig = useConfig();
   const [config, setConfig] = useState(initialConfig);
-  useEffect(() => {
-    setConfig(initialConfig);
-  }, [initialConfig]);
   return (
     <>
       <FavouritesPopover onloadArgs={onloadArgs} />
