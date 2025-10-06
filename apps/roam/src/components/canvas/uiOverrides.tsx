@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/naming-convention */
 import React from "react";
 import {
   TLImageShape,
@@ -31,6 +34,7 @@ import {
   useEditor,
   useValue,
   useToasts,
+  renderPlaintextFromRichText,
 } from "tldraw";
 import { IKeyCombo } from "@blueprintjs/core";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
@@ -153,7 +157,10 @@ export const getOnSelectForShape = ({
     };
   } else if (shape.type === "text") {
     return () => {
-      const { text } = (shape as TLTextShape).props;
+      const text = renderPlaintextFromRichText(
+        editor,
+        (shape as TLTextShape).props.richText,
+      );
       void convertToDiscourseNode({
         text,
         type: nodeType,
@@ -366,10 +373,12 @@ export const createUiOverrides = ({
           editor.setCurrentTool(nodeId);
         },
         readonlyOk: true,
-        style: {
-          color:
-            formatHexColor(node.canvasSettings.color) ||
-            `${COLOR_ARRAY[index]}`,
+        meta: {
+          style: {
+            color:
+              formatHexColor(node.canvasSettings.color) ||
+              `${COLOR_ARRAY[index]}`,
+          },
         },
       };
     });
@@ -384,8 +393,10 @@ export const createUiOverrides = ({
         onSelect: () => {
           editor.setCurrentTool(name);
         },
-        style: {
-          color: getRelationColor(name, index),
+        meta: {
+          style: {
+            color: getRelationColor(name, index),
+          },
         },
       };
     });
@@ -407,8 +418,10 @@ export const createUiOverrides = ({
         onSelect: () => {
           editor.setCurrentTool(`${name}`);
         },
-        style: {
-          color: formatHexColor(color) ?? `var(--palette-${COLOR_ARRAY[0]})`,
+        meta: {
+          style: {
+            color: formatHexColor(color) ?? `var(--palette-${COLOR_ARRAY[0]})`,
+          },
         },
       };
     });

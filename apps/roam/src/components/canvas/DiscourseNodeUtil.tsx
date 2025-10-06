@@ -6,7 +6,6 @@ import {
   useEditor,
   DefaultColorStyle,
   Editor,
-  TLOnResizeHandler,
   resizeBox,
   createShapeId,
   TLDefaultHorizontalAlignStyle,
@@ -21,6 +20,7 @@ import {
   FONT_FAMILIES,
   TLDefaultFontStyle,
   DefaultFontStyle,
+  TLResizeInfo,
 } from "tldraw";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
@@ -439,9 +439,12 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     );
   }
 
-  override onResize: TLOnResizeHandler<DiscourseNodeShape> = (shape, info) => {
+  override onResize(
+    shape: DiscourseNodeShape,
+    info: TLResizeInfo<DiscourseNodeShape>,
+  ) {
     return resizeBox(shape, info);
-  };
+  }
 
   indicator(shape: DiscourseNodeShape) {
     return <rect width={shape.props.w} height={shape.props.h} />;
