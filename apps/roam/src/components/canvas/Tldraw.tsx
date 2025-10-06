@@ -1,4 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
@@ -935,13 +940,13 @@ const InsideEditorAndUiContext = ({
       };
     };
     const cleanupCustomSideEffects = registerCustomSideEffects();
-    const [cleanupSideEffects] = registerDefaultSideEffects(editor);
+    const cleanupSideEffects = registerDefaultSideEffects(editor);
 
     return () => {
       cleanupSideEffects();
       cleanupCustomSideEffects();
     };
-  }, [editor, msg, toasts]);
+  }, [editor, msg, toasts, isImage]);
 
   return <CustomContextMenu extensionAPI={extensionAPI} allNodes={allNodes} />;
 };

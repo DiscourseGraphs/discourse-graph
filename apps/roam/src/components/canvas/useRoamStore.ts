@@ -413,7 +413,7 @@ export const useRoamStore = ({
         deserializeRef.current = window.setTimeout(() => {
           if (!store) return;
           store.mergeRemoteChanges(() => {
-            const currentState = store.getSnapshot();
+            const currentState = store.getStoreSnapshot();
             const diff = calculateDiff(newState.store, currentState.store);
             store.applyDiff(diff);
           });
