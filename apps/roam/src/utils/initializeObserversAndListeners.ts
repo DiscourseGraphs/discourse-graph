@@ -50,7 +50,7 @@ import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
-import getContrastingColor from "@repo/utils/getContrastingColor";
+import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
 
 const debounce = (fn: () => void, delay = 250) => {
@@ -123,16 +123,14 @@ export const initObservers = async ({
               if (!formattedColor) {
                 break;
               }
-              const contrastingColor: {
-                secondary: string;
-                primary: string;
-                tertiary: string;
-              } = getContrastingColor(colord(formattedColor));
+              const contrastingColor = getPleasingColors(
+                colord(formattedColor),
+              );
 
               Object.assign(s.style, {
-                backgroundColor: contrastingColor.primary,
-                color: contrastingColor.secondary,
-                border: `1px solid ${contrastingColor.tertiary}`,
+                backgroundColor: contrastingColor.background,
+                color: contrastingColor.text,
+                border: `1px solid ${contrastingColor.border}`,
                 fontWeight: "500",
                 padding: "2px 6px",
                 borderRadius: "12px",
