@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/naming-convention */
+
 import {
   createMigrationSequence,
   createBindingId,
@@ -84,6 +85,7 @@ export const createMigrations = ({
                   normalizedAnchor: start.normalizedAnchor,
                   isExact: start.isExact || false,
                   isPrecise: start.isPrecise || false,
+                  snap: "none",
                 },
               };
               oldStore[id] = binding;
@@ -106,6 +108,7 @@ export const createMigrations = ({
                   normalizedAnchor: end.normalizedAnchor,
                   isExact: end.isExact || false,
                   isPrecise: end.isPrecise || false,
+                  snap: "none",
                 },
               };
 
