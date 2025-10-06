@@ -90,7 +90,7 @@ Feature: Concept upsert
       | _id | name         | _space_id | _author_id | @is_schema | _schema_id | @literal_content | @_reference_content |
       | c2  | claim 1      | s1        | user1      | false      | c1         | {}               | {}                  |
       | c8  | hypothesis 1 | s1        | user3      | false      | c7         | {}               | {}                  |
-    # Note that the node is related to itself, unfortunate but hard to solve.
+  # Note that the node is related to itself, unfortunate but hard to solve.
 
   Scenario Outline: Query by author of related node
     And a user logged in space s1 and querying nodes with these parameters: '{"schemaLocalIds":[],"inRelsToNodesOfAuthor":"user3","relationFields":["id"],"relationToNodeFields":["id"]}'
