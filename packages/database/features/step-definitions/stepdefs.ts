@@ -2,7 +2,12 @@
 import assert from "assert";
 import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import { createClient } from "@supabase/supabase-js";
-import { Constants, type Database, type Enums, type Json } from "@repo/database/dbTypes";
+import {
+  Constants,
+  type Database,
+  type Enums,
+  type Json,
+} from "@repo/database/dbTypes";
 import { getVariant, config } from "@repo/database/dbDotEnv";
 import { getNodes, initNodeSchemaCache } from "@repo/database/lib/queries";
 
@@ -13,7 +18,7 @@ import {
 } from "@repo/database/lib/contextFunctions";
 
 type Platform = Enums<"Platform">;
-type TableName = keyof Database["public"]["Tables"]
+type TableName = keyof Database["public"]["Tables"];
 const PLATFORMS: readonly Platform[] = Constants.public.Enums.Platform;
 
 if (getVariant() === "production") {
@@ -43,7 +48,7 @@ const getServiceClient = () => {
   }
   return createClient<Database, "public">(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,  // eslint-disable-line turboPlugin/no-undeclared-env-vars
+    process.env.SUPABASE_SERVICE_ROLE_KEY, // eslint-disable-line turboPlugin/no-undeclared-env-vars
   );
 };
 
@@ -71,28 +76,29 @@ Given("the database is blank", async () => {
 const substituteLocalReferences = (
   obj: any,
   localRefs: Record<string, number>,
-  prefixValue: boolean = false
+  prefixValue: boolean = false,
 ): any => {
   const substituteLocalReferencesRec = (v: any): any => {
-    if (v === undefined || v === null)
-      return v;
+    if (v === undefined || v === null) return v;
     if (typeof v === "string") {
       if (prefixValue)
-        return (v.charAt(0) === '@') ? localRefs[v.substring(1)] : v;
-      else
-        return localRefs[v];
+        return v.charAt(0) === "@" ? localRefs[v.substring(1)] : v;
+      else return localRefs[v];
     }
     if (typeof v === "number" || typeof v === "boolean") return v;
     if (Array.isArray(v)) return v.map(substituteLocalReferencesRec);
     if (typeof v === "object")
       return Object.fromEntries(
-        Object.entries(v as object).map(([k, v]) => [k, substituteLocalReferencesRec(v)]),
+        Object.entries(v as object).map(([k, v]) => [
+          k,
+          substituteLocalReferencesRec(v),
+        ]),
       );
     console.error("could not substitute", typeof v, v);
     return v;
   };
   return substituteLocalReferencesRec(obj);
-}
+};
 
 const substituteLocalReferencesRow = (
   row: Record<string, string>,
@@ -113,7 +119,7 @@ const substituteLocalReferencesRow = (
 
   const result = Object.fromEntries(
     Object.entries(row)
-      .filter(([k,]: [string, string]) => k.charAt(0) !== "$")
+      .filter(([k]: [string, string]) => k.charAt(0) !== "$")
       .map(processKV),
   );
   return result;
@@ -140,7 +146,11 @@ Given(
     const localIndexName: string = defIndex[0]!;
     // do not allow to redefine values
     assert.strictEqual(
-      values.filter((v) => (typeof v[localIndexName] === "string")?(localRefs[v[localIndexName]] !== undefined):false).length,
+      values.filter((v) =>
+        typeof v[localIndexName] === "string"
+          ? localRefs[v[localIndexName]] !== undefined
+          : false,
+      ).length,
       0,
     );
     if (defIndex.length) {
@@ -173,7 +183,7 @@ When(
   async (userAccountId: string, platform: Platform, spaceName: string) => {
     // assumption: turbo dev is running. TODO: Make into hooks
     if (PLATFORMS.indexOf(platform) < 0)
-      throw new Error(`Platform must be one of ${PLATFORMS.join(', ')}`);
+      throw new Error(`Platform must be one of ${PLATFORMS.join(", ")}`);
     const localRefs = (world.localRefs || {}) as Record<string, number>;
     const spaceResponse = await fetchOrCreateSpaceDirect({
       password: SPACE_ANONYMOUS_PASSWORD,
@@ -233,7 +243,7 @@ Then(
   async (spaceName: string, tableName: TableName) => {
     const localRefs = (world.localRefs || {}) as Record<string, number>;
     const spaceId = localRefs[spaceName];
-    if (spaceId === undefined) assert.fail('spaceId');
+    if (spaceId === undefined) assert.fail("spaceId");
     const client = await getLoggedinDatabase(spaceId);
     const response = await client
       .from(tableName)
@@ -247,7 +257,7 @@ Then(
   async (spaceName: string, expectedCount: number, tableName: TableName) => {
     const localRefs = (world.localRefs || {}) as Record<string, number>;
     const spaceId = localRefs[spaceName];
-    if (spaceId === undefined) assert.fail('spaceId');
+    if (spaceId === undefined) assert.fail("spaceId");
     const client = await getLoggedinDatabase(spaceId);
     const response = await client
       .from(tableName)
@@ -262,7 +272,7 @@ Given(
     const accounts = JSON.parse(accountsString) as Json;
     const localRefs = (world.localRefs || {}) as Record<string, number>;
     const spaceId = localRefs[spaceName];
-    if (spaceId === undefined) assert.fail('spaceId');
+    if (spaceId === undefined) assert.fail("spaceId");
     const client = await getLoggedinDatabase(spaceId);
     const response = await client.rpc("upsert_accounts_in_space", {
       space_id_: spaceId, // eslint-disable-line @typescript-eslint/naming-convention
@@ -278,7 +288,7 @@ Given(
     const data = JSON.parse(docString) as Json;
     const localRefs = (world.localRefs || {}) as Record<string, number>;
     const spaceId = localRefs[spaceName];
-    if (spaceId === undefined) assert.fail('spaceId');
+    if (spaceId === undefined) assert.fail("spaceId");
     const client = await getLoggedinDatabase(spaceId);
     const response = await client.rpc("upsert_documents", {
       v_space_id: spaceId, // eslint-disable-line @typescript-eslint/naming-convention
@@ -294,9 +304,9 @@ Given(
     const data = JSON.parse(docString) as Json;
     const localRefs = (world.localRefs || {}) as Record<string, number>;
     const spaceId = localRefs[spaceName];
-    if (spaceId === undefined) assert.fail('spaceId');
+    if (spaceId === undefined) assert.fail("spaceId");
     const userId = localRefs[userName];
-    if (userId === undefined) assert.fail('userId');
+    if (userId === undefined) assert.fail("userId");
     const client = await getLoggedinDatabase(spaceId);
     const response = await client.rpc("upsert_content", {
       v_space_id: spaceId, // eslint-disable-line @typescript-eslint/naming-convention
@@ -314,7 +324,7 @@ Given(
     const data = JSON.parse(docString) as Json;
     const localRefs = (world.localRefs || {}) as Record<string, number>;
     const spaceId = localRefs[spaceName];
-    if (spaceId === undefined) assert.fail('spaceId');
+    if (spaceId === undefined) assert.fail("spaceId");
     const client = await getLoggedinDatabase(spaceId);
     const response = await client.rpc("upsert_concepts", {
       v_space_id: spaceId, // eslint-disable-line @typescript-eslint/naming-convention
@@ -328,9 +338,13 @@ Given(
   "a user logged in space {word} and querying nodes with these parameters: {string}",
   async (spaceName: string, paramsJ: string) => {
     const localRefs = (world.localRefs || {}) as Record<string, number>;
-    const params = substituteLocalReferences(JSON.parse(paramsJ), localRefs, true) as object;
+    const params = substituteLocalReferences(
+      JSON.parse(paramsJ),
+      localRefs,
+      true,
+    ) as object;
     const spaceId = localRefs[spaceName];
-    if (spaceId === undefined) assert.fail('spaceId');
+    if (spaceId === undefined) assert.fail("spaceId");
     const supabase = await getLoggedinDatabase(spaceId);
     const nodes = await getNodes({ ...params, supabase, spaceId });
     nodes.sort((a, b) => a.id! - b.id!);
@@ -349,15 +363,13 @@ Then("query results should look like this", (table: DataTable) => {
   const queryResults = (world.queryResults || []) as object[];
   values.sort((a, b) => (a.id as number) - (b.id as number));
   assert.deepEqual(
-    queryResults.map((v) => (v.id as number)),
-    values.map((v) => (v.id as number)),
+    queryResults.map((v) => v.id as number),
+    values.map((v) => v.id as number),
   );
   if (values.length > 0) {
     const keys = Object.keys(values[0]!);
     const truncatedResults = queryResults.map((v: object) =>
-      Object.fromEntries(
-        Object.entries(v).filter(([k,]) => keys.includes(k)),
-      ),
+      Object.fromEntries(Object.entries(v).filter(([k]) => keys.includes(k))),
     );
     // console.debug(truncatedResults);
     assert.deepEqual(truncatedResults, values);

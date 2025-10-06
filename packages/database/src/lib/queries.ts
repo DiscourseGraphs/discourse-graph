@@ -31,15 +31,14 @@ const NODE_SCHEMA_CACHE: Record<string, CacheEntry> = {
 };
 
 export const initNodeSchemaCache = () => {
-  Object.keys(NODE_SCHEMA_CACHE).map(k => {
-    if (k !== NODE_SCHEMAS)
-      delete NODE_SCHEMA_CACHE[k];
-  })
-}
+  Object.keys(NODE_SCHEMA_CACHE).map((k) => {
+    if (k !== NODE_SCHEMAS) delete NODE_SCHEMA_CACHE[k];
+  });
+};
 
 export type PDocument = Partial<Tables<"Document">>;
 export type PContent = Partial<Tables<"Content">> & {
-  Document: PDocument | null;  // eslint-disable-line @typescript-eslint/naming-convention
+  Document: PDocument | null; // eslint-disable-line @typescript-eslint/naming-convention
 };
 export type PConcept = Partial<Tables<"Concept">> & {
   Content: PContent | null; // eslint-disable-line @typescript-eslint/naming-convention
@@ -127,8 +126,7 @@ const composeQuery = ({
       if (inRelsToNodeLocalIds !== undefined)
         args2.push("Content!inner(source_local_id)");
       if (inRelsToNodesOfAuthor !== undefined) {
-        if (!args2.includes("author_id"))
-          args2.push('author_id')
+        if (!args2.includes("author_id")) args2.push("author_id");
         args2.push("author:author_id!inner(account_local_id)");
       }
       args.push(`subnodes:concepts_of_relation!inner(${args2.join(",\n")})`);
@@ -165,10 +163,16 @@ const composeQuery = ({
   if (inRelsToNodesOfType !== undefined && inRelsToNodesOfType.length > 0)
     query = query.in("relations.subnodes.schema_id", inRelsToNodesOfType);
   if (inRelsToNodesOfAuthor !== undefined) {
-    query = query.eq("relations.subnodes.author.account_local_id", inRelsToNodesOfAuthor);
+    query = query.eq(
+      "relations.subnodes.author.account_local_id",
+      inRelsToNodesOfAuthor,
+    );
   }
   if (inRelsToNodeLocalIds !== undefined) {
-    query = query.in("relations.subnodes.Content.source_local_id", inRelsToNodeLocalIds);
+    query = query.in(
+      "relations.subnodes.Content.source_local_id",
+      inRelsToNodeLocalIds,
+    );
   }
   // console.debug(query);
   return query;
@@ -190,7 +194,9 @@ export const getNodeSchemas = async (
       console.error("getNodeSchemas failed", res.error);
       return [NODE_SCHEMA_CACHE[NODE_SCHEMAS] as NodeSignature];
     }
-    Object.assign(NODE_SCHEMA_CACHE, Object.fromEntries(
+    Object.assign(
+      NODE_SCHEMA_CACHE,
+      Object.fromEntries(
         res.data.map((x) => [
           x.Content.source_local_id,
           {
@@ -200,7 +206,8 @@ export const getNodeSchemas = async (
             name: x.name,
           },
         ]),
-      ));
+      ),
+    );
     result = Object.values(NODE_SCHEMA_CACHE)
       .filter((x) => typeof x === "object")
       .filter((x) => x.spaceId === spaceId || x.spaceId === 0);
@@ -227,7 +234,7 @@ const getLocalToDbIdMapping = async (
   const numMissing = Object.values(dbIds).filter((x) => x === null).length;
   if (numMissing === 0) return dbIds;
   const previousMisses = Object.fromEntries(
-    partialResult.filter(([,v]) => typeof v === "number"),
+    partialResult.filter(([, v]) => typeof v === "number"),
   ) as Record<string, number>;
   const numPreviousMisses = Object.values(previousMisses).length;
   const now = Date.now();
@@ -250,7 +257,9 @@ const getLocalToDbIdMapping = async (
       console.error("could not get db Ids", res.error);
       return dbIds;
     }
-    Object.assign(NODE_SCHEMA_CACHE, Object.fromEntries(
+    Object.assign(
+      NODE_SCHEMA_CACHE,
+      Object.fromEntries(
         res.data.map((x) => [
           x.Content.source_local_id,
           {
@@ -260,7 +269,8 @@ const getLocalToDbIdMapping = async (
             name: x.name,
           },
         ]),
-      ));
+      ),
+    );
     for (const localId of localLocalIds) {
       if (typeof NODE_SCHEMA_CACHE[localId] !== "object")
         NODE_SCHEMA_CACHE[localId] = now;
