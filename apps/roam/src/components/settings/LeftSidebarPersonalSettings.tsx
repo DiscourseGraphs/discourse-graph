@@ -1,14 +1,12 @@
 import discourseConfigRef from "~/utils/discourseConfigRef";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
-import { Button, Dialog, Collapse, Tooltip } from "@blueprintjs/core";
+import { Button, Dialog, Collapse, InputGroup, Icon } from "@blueprintjs/core";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
 import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
-import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import {
   LeftSidebarPersonalSectionConfig,
   getLeftSidebarPersonalSectionConfig,
@@ -21,6 +19,16 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { memo, Dispatch, SetStateAction } from "react";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+  DraggableProvided,
+  DroppableProvided,
+  DraggableRubric,
+  DraggableStateSnapshot,
+} from "@hello-pangea/dnd";
 
 const SectionItem = memo(
   ({
@@ -28,16 +36,17 @@ const SectionItem = memo(
     setSettingsDialogSectionUid,
     pageNames,
     setSections,
+    dragHandleProps,
   }: {
     section: LeftSidebarPersonalSectionConfig;
     setSections: Dispatch<SetStateAction<LeftSidebarPersonalSectionConfig[]>>;
     setSettingsDialogSectionUid: (uid: string | null) => void;
     pageNames: string[];
+    dragHandleProps: DraggableProvided["dragHandleProps"];
   }) => {
     const ref = extractRef(section.text);
     const blockText = getTextByBlockUid(ref);
     const originalName = blockText || section.text;
-    const alias = section.settings?.alias?.value;
     const [childInput, setChildInput] = useState("");
     const [childInputKey, setChildInputKey] = useState(0);
 
@@ -75,11 +84,6 @@ const SectionItem = memo(
             order: 1,
             node: { text: "Truncate-result?", children: [{ text: "75" }] },
           });
-          const aliasUid = await createBlock({
-            parentUid: settingsUid,
-            order: 2,
-            node: { text: "Alias" },
-          });
 
           const childrenUid = await createBlock({
             parentUid: section.uid,
@@ -96,7 +100,6 @@ const SectionItem = memo(
                     uid: settingsUid,
                     folded: { uid: foldedUid, value: false },
                     truncateResult: { uid: truncateSettingUid, value: 75 },
-                    alias: { uid: aliasUid, value: "" },
                   },
                   childrenUid,
                   children: [],
@@ -222,7 +225,8 @@ const SectionItem = memo(
     }, [childInput, section, addChildToSection]);
 
     const sectionWithoutSettingsAndChildren =
-      !section.settings && !section.children;
+      (!section.settings && section.children?.length === 0) ||
+      !section.children;
 
     return (
       <div
@@ -233,6 +237,10 @@ const SectionItem = memo(
         }}
       >
         <div className="flex items-center">
+          <div {...dragHandleProps}>
+            <Icon icon="drag-handle-vertical" className="cursor-grab" />
+          </div>
+          <div style={{ width: "8px" }}></div>
           {!sectionWithoutSettingsAndChildren && (
             <Button
               icon={isExpanded ? "chevron-down" : "chevron-right"}
@@ -251,13 +259,7 @@ const SectionItem = memo(
               toggleChildrenList(section.uid)
             }
           >
-            {alias ? (
-              <Tooltip content={originalName} placement="top">
-                <span className="font-medium">{alias}</span>
-              </Tooltip>
-            ) : (
-              <span className="font-medium">{originalName}</span>
-            )}
+            <span className="font-medium">{originalName}</span>
           </div>
           <Button
             icon={sectionWithoutSettingsAndChildren ? "plus" : "settings"}
@@ -314,24 +316,89 @@ const SectionItem = memo(
               </div>
 
               {(section.children || []).length > 0 && (
-                <div className="space-y-1">
-                  {(section.children || []).map((child) => (
+                <Droppable
+                  droppableId={section.uid}
+                  type="ITEMS"
+                  /* eslint-disable @typescript-eslint/naming-convention */
+                  renderClone={(
+                    provided: DraggableProvided,
+                    _: DraggableStateSnapshot,
+                    rubric: DraggableRubric,
+                  ) => {
+                    const child = (section.children || [])[rubric.source.index];
+                    return (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        style={provided.draggableProps.style}
+                        className="flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100"
+                      >
+                        <div {...provided.dragHandleProps} className="pr-2">
+                          <Icon
+                            icon="drag-handle-vertical"
+                            className="cursor-grab"
+                          />
+                        </div>
+
+                        <span className="flex-grow">{child.text}</span>
+                        <Button
+                          icon="trash"
+                          minimal
+                          small
+                          intent="danger"
+                          onClick={() => void removeChild(section, child)}
+                          title="Remove child"
+                        />
+                      </div>
+                    );
+                  }}
+                >
+                  {(provided: DroppableProvided) => (
                     <div
-                      key={child.uid}
-                      className="flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100"
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className="space-y-1"
                     >
-                      <span className="flex-grow">{child.text}</span>
-                      <Button
-                        icon="trash"
-                        minimal
-                        small
-                        intent="danger"
-                        onClick={() => void removeChild(section, child)}
-                        title="Remove child"
-                      />
+                      {(section.children || []).map((child, index) => (
+                        <Draggable
+                          key={child.uid}
+                          draggableId={child.uid}
+                          index={index}
+                        >
+                          {(dragProvided: DraggableProvided) => (
+                            <div
+                              ref={dragProvided.innerRef}
+                              {...dragProvided.draggableProps}
+                              style={dragProvided.draggableProps.style}
+                              className="flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100"
+                            >
+                              <div
+                                {...dragProvided.dragHandleProps}
+                                className="pr-2"
+                              >
+                                <Icon
+                                  icon="drag-handle-vertical"
+                                  className="cursor-grab"
+                                />
+                              </div>
+
+                              <span className="flex-grow">{child.text}</span>
+                              <Button
+                                icon="trash"
+                                minimal
+                                small
+                                intent="danger"
+                                onClick={() => void removeChild(section, child)}
+                                title="Remove child"
+                              />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </Droppable>
               )}
 
               {(!section.children || section.children.length === 0) && (
@@ -434,6 +501,77 @@ const LeftSidebarPersonalSectionsContent = ({
     [personalSectionUid, sections],
   );
 
+  const handleDragEnd = useCallback(
+    (result: DropResult) => {
+      const { source, destination, type } = result;
+      if (!destination) return;
+
+      if (type === "SECTIONS") {
+        if (destination.index === source.index) return;
+
+        const newSections = Array.from(sections);
+        const [removed] = newSections.splice(source.index, 1);
+        newSections.splice(destination.index, 0, removed);
+        setSections(newSections);
+
+        const finalIndex =
+          destination.index > source.index
+            ? destination.index + 1
+            : destination.index;
+        void window.roamAlphaAPI
+          .moveBlock({
+            location: { "parent-uid": personalSectionUid!, order: finalIndex },
+            block: { uid: removed.uid },
+          })
+          .then(() => {
+            refreshAndNotify();
+          });
+        return;
+      }
+
+      if (type === "ITEMS") {
+        if (source.droppableId !== destination.droppableId) {
+          return;
+        }
+        if (destination.index === source.index) return;
+
+        const sectionToReorder = sections.find(
+          (s) => s.uid === source.droppableId,
+        );
+        if (!sectionToReorder || !sectionToReorder.children) return;
+
+        const newChildren = Array.from(sectionToReorder.children);
+        const [removed] = newChildren.splice(source.index, 1);
+        newChildren.splice(destination.index, 0, removed);
+
+        const newSections = sections.map((s) => {
+          if (s.uid === source.droppableId) {
+            return { ...s, children: newChildren };
+          }
+          return s;
+        });
+        setSections(newSections);
+
+        const finalIndex =
+          destination.index > source.index
+            ? destination.index + 1
+            : destination.index;
+        void window.roamAlphaAPI
+          .moveBlock({
+            location: {
+              "parent-uid": sectionToReorder.childrenUid!,
+              order: finalIndex,
+            },
+            block: { uid: removed.uid },
+          })
+          .then(() => {
+            refreshAndNotify();
+          });
+      }
+    },
+    [sections, personalSectionUid, setSections],
+  );
+
   const handleNewSectionInputChange = useCallback((value: string) => {
     setNewSectionInput(value);
   }, []);
@@ -464,13 +602,11 @@ const LeftSidebarPersonalSectionsContent = ({
             }
           }}
         >
-          <AutocompleteInput
+          <InputGroup
             key={autocompleteKey}
             value={newSectionInput}
-            setValue={handleNewSectionInputChange}
-            placeholder="Add section or page…"
-            options={pageNames}
-            maxItemsDisplayed={50}
+            onChange={(e) => handleNewSectionInputChange(e.target.value)}
+            placeholder="Add section …"
           />
           <Button
             icon="plus"
@@ -485,17 +621,70 @@ const LeftSidebarPersonalSectionsContent = ({
         </div>
       </div>
 
-      <div className="mt-2 space-y-2">
-        {sections.map((section) => (
-          <SectionItem
-            key={section.uid}
-            section={section}
-            setSettingsDialogSectionUid={setSettingsDialogSectionUid}
-            pageNames={pageNames}
-            setSections={setSections}
-          />
-        ))}
-      </div>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable
+          droppableId="personal-sections"
+          type="SECTIONS"
+          renderClone={(
+            provided: DraggableProvided,
+            _: DraggableStateSnapshot,
+            rubric: DraggableRubric,
+          ) => {
+            const section = sections[rubric.source.index];
+            return (
+              <div
+                ref={provided.innerRef}
+                {...provided.draggableProps}
+                style={provided.draggableProps.style}
+              >
+                <SectionItem
+                  section={section}
+                  setSettingsDialogSectionUid={setSettingsDialogSectionUid}
+                  pageNames={pageNames}
+                  setSections={setSections}
+                  dragHandleProps={provided.dragHandleProps}
+                />
+              </div>
+            );
+          }}
+        >
+          {(provided: DroppableProvided) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className="mt-2 space-y-2"
+            >
+              {sections.map((section, index) => (
+                <Draggable
+                  key={section.uid}
+                  draggableId={section.uid}
+                  index={index}
+                  isDragDisabled={sections.length <= 1}
+                >
+                  {(dragProvided: DraggableProvided) => (
+                    <div
+                      ref={dragProvided.innerRef}
+                      {...dragProvided.draggableProps}
+                      style={dragProvided.draggableProps.style}
+                    >
+                      <SectionItem
+                        section={section}
+                        setSettingsDialogSectionUid={
+                          setSettingsDialogSectionUid
+                        }
+                        pageNames={pageNames}
+                        setSections={setSections}
+                        dragHandleProps={dragProvided.dragHandleProps}
+                      />
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
 
       {activeDialogSection && activeDialogSection.settings && (
         <Dialog
@@ -506,14 +695,6 @@ const LeftSidebarPersonalSectionsContent = ({
         >
           <div className="space-y-4 p-4">
             <div className="space-y-3">
-              <FlagPanel
-                title="Folded"
-                description="If children are present, start with personal section collapsed in left sidebar"
-                order={0}
-                uid={activeDialogSection.settings.folded?.uid || ""}
-                parentUid={activeDialogSection.settings.uid}
-                disabled={!activeDialogSection.children?.length}
-              />
               <NumberPanel
                 title="Truncate-result?"
                 description="Maximum characters to display"
@@ -521,30 +702,6 @@ const LeftSidebarPersonalSectionsContent = ({
                 uid={activeDialogSection.settings.truncateResult?.uid}
                 parentUid={activeDialogSection.settings.uid}
                 value={activeDialogSection.settings.truncateResult?.value}
-              />
-              <TextPanel
-                title="Alias"
-                description="Display name for the section"
-                order={2}
-                uid={activeDialogSection.settings.alias?.uid}
-                parentUid={activeDialogSection.settings.uid}
-                value={activeDialogSection.settings.alias?.value}
-                onChange={(value: string) => {
-                  setSections((prev) =>
-                    prev.map((s) => {
-                      if (s.uid === activeDialogSection.uid && s.settings) {
-                        return {
-                          ...s,
-                          settings: {
-                            ...s.settings,
-                            alias: { ...s.settings.alias, value },
-                          },
-                        };
-                      }
-                      return s;
-                    }),
-                  );
-                }}
               />
             </div>
           </div>

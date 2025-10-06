@@ -2,10 +2,8 @@ import { RoamBasicNode } from "roamjs-components/types";
 import {
   BooleanSetting,
   getUidAndBooleanSetting,
-  getUidAndStringSetting,
   IntSetting,
   getUidAndIntSetting,
-  StringSetting,
 } from "./getExportSettings";
 import { getSubTree } from "roamjs-components/util";
 
@@ -13,7 +11,6 @@ type LeftSidebarPersonalSectionSettings = {
   uid: string;
   truncateResult: IntSetting;
   folded: BooleanSetting;
-  alias: StringSetting | null;
 };
 
 export type LeftSidebarPersonalSectionConfig = {
@@ -113,21 +110,10 @@ const getPersonalSectionSettings = (
     text: "Folded",
   });
 
-  const aliasString = getUidAndStringSetting({
-    tree: settingsTree,
-    text: "Alias",
-  });
-  const alias =
-    aliasString.value === "Alias" ||
-    (aliasString.value === "" && aliasString.uid)
-      ? null
-      : aliasString;
-
   return {
     uid: settingsNode.uid,
     truncateResult: truncateResultSetting,
     folded: foldedSetting,
-    alias,
   };
 };
 
