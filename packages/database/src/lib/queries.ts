@@ -26,30 +26,31 @@ export const nodeSchemaSignature: NodeSignature = {
 
 type CacheMissTimestamp = number;
 type CacheEntry = NodeSignature | CacheMissTimestamp;
-let NODE_SCHEMA_CACHE: Record<string, CacheEntry> = {
+const NODE_SCHEMA_CACHE: Record<string, CacheEntry> = {
   [NODE_SCHEMAS]: nodeSchemaSignature,
 };
 
 export const initNodeSchemaCache = () => {
-  NODE_SCHEMA_CACHE = {
-    [NODE_SCHEMAS]: nodeSchemaSignature,
-  };
+  Object.keys(NODE_SCHEMA_CACHE).map(k => {
+    if (k !== NODE_SCHEMAS)
+      delete NODE_SCHEMA_CACHE[k];
+  })
 }
 
 export type PDocument = Partial<Tables<"Document">>;
 export type PContent = Partial<Tables<"Content">> & {
-  Document: PDocument | null;
+  Document: PDocument | null;  // eslint-disable-line @typescript-eslint/naming-convention
 };
 export type PConcept = Partial<Tables<"Concept">> & {
-  Content: PContent | null;
-  schema_of_concept: { name: string } | null;
+  Content: PContent | null; // eslint-disable-line @typescript-eslint/naming-convention
+  schema_of_concept: { name: string } | null; // eslint-disable-line @typescript-eslint/naming-convention
 };
 
-type defaultQueryShape = {
+type DefaultQueryShape = {
   id: number;
-  space_id: number;
+  space_id: number; // eslint-disable-line @typescript-eslint/naming-convention
   name: string;
-  Content: { source_local_id: string };
+  Content: { source_local_id: string }; // eslint-disable-line @typescript-eslint/naming-convention
 };
 
 // Utility function to compose a generic query to fetch concepts, content and document.
@@ -184,14 +185,12 @@ export const getNodeSchemas = async (
     .filter((x) => x.spaceId === spaceId || x.spaceId === 0);
   if (forceCacheReload || result.length === 1) {
     const q = composeQuery({ supabase, spaceId, fetchNodes: null });
-    const res = (await q) as PostgrestResponse<defaultQueryShape>;
+    const res = (await q) as PostgrestResponse<DefaultQueryShape>;
     if (res.error) {
       console.error("getNodeSchemas failed", res.error);
       return [NODE_SCHEMA_CACHE[NODE_SCHEMAS] as NodeSignature];
     }
-    NODE_SCHEMA_CACHE = {
-      ...NODE_SCHEMA_CACHE,
-      ...Object.fromEntries(
+    Object.assign(NODE_SCHEMA_CACHE, Object.fromEntries(
         res.data.map((x) => [
           x.Content.source_local_id,
           {
@@ -201,8 +200,7 @@ export const getNodeSchemas = async (
             name: x.name,
           },
         ]),
-      ),
-    };
+      ));
     result = Object.values(NODE_SCHEMA_CACHE)
       .filter((x) => typeof x === "object")
       .filter((x) => x.spaceId === spaceId || x.spaceId === 0);
@@ -229,7 +227,7 @@ const getLocalToDbIdMapping = async (
   const numMissing = Object.values(dbIds).filter((x) => x === null).length;
   if (numMissing === 0) return dbIds;
   const previousMisses = Object.fromEntries(
-    partialResult.filter(([k, v]) => typeof v === "number"),
+    partialResult.filter(([,v]) => typeof v === "number"),
   ) as Record<string, number>;
   const numPreviousMisses = Object.values(previousMisses).length;
   const now = Date.now();
@@ -247,14 +245,12 @@ const getLocalToDbIdMapping = async (
         .in("Content.source_local_id", localLocalIds)
         .not("Content.source_local_id", "is", null);
     } // otherwise populate the cache
-    const res = (await q) as PostgrestResponse<defaultQueryShape>;
+    const res = (await q) as PostgrestResponse<DefaultQueryShape>;
     if (res.error) {
       console.error("could not get db Ids", res.error);
       return dbIds;
     }
-    NODE_SCHEMA_CACHE = {
-      ...NODE_SCHEMA_CACHE,
-      ...Object.fromEntries(
+    Object.assign(NODE_SCHEMA_CACHE, Object.fromEntries(
         res.data.map((x) => [
           x.Content.source_local_id,
           {
@@ -264,8 +260,7 @@ const getLocalToDbIdMapping = async (
             name: x.name,
           },
         ]),
-      ),
-    };
+      ));
     for (const localId of localLocalIds) {
       if (typeof NODE_SCHEMA_CACHE[localId] !== "object")
         NODE_SCHEMA_CACHE[localId] = now;
