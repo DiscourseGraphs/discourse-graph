@@ -15,7 +15,7 @@ import {
   TLHandle,
   useDefaultColorTheme,
   SVGContainer,
-  TextLabel,
+  PlainTextLabel,
   TEXT_PROPS,
   TLOnEditEndHandler,
   Box,
@@ -27,7 +27,7 @@ import {
   getDefaultColorTheme,
   TLShapeUtilCanvasSvgDef,
   TLShapePartial,
-  TLOnHandleDragHandler,
+  TLHandleDragInfo,
   TLOnResizeHandler,
   TLOnTranslateHandler,
   TLOnTranslateStartHandler,
@@ -220,10 +220,10 @@ export const createAllReferencedNodeUtils = (
           scale: 1,
         };
       }
-      override onHandleDrag: TLOnHandleDragHandler<DiscourseRelationShape> = (
-        shape,
-        { handle, isPrecise },
-      ) => {
+      override onHandleDrag(
+        shape: DiscourseRelationShape,
+        { handle, isPrecise }: TLHandleDragInfo<DiscourseRelationShape>,
+      ): TLShapePartial<DiscourseRelationShape> | void {
         const handleId = handle.id as ARROW_HANDLES;
         const bindings = getArrowBindings(this.editor, shape);
 
@@ -419,7 +419,7 @@ export const createAllReferencedNodeUtils = (
         }
 
         return update;
-      };
+      }
       override onTranslate?: TLOnTranslateHandler<DiscourseRelationShape> = (
         initialShape,
         shape,
@@ -623,10 +623,10 @@ export const createAllRelationShapeUtils = (
           scale: 1,
         };
       }
-      override onHandleDrag: TLOnHandleDragHandler<DiscourseRelationShape> = (
-        shape,
-        { handle, isPrecise },
-      ) => {
+      override onHandleDrag(
+        shape: DiscourseRelationShape,
+        { handle, isPrecise }: TLHandleDragInfo<DiscourseRelationShape>,
+      ): TLShapePartial<DiscourseRelationShape> | void {
         const handleId = handle.id as ARROW_HANDLES;
         const bindings = getArrowBindings(this.editor, shape);
 
@@ -822,7 +822,7 @@ export const createAllRelationShapeUtils = (
         }
 
         return update;
-      };
+      }
       override onTranslate?: TLOnTranslateHandler<DiscourseRelationShape> = (
         initialShape,
         shape,
