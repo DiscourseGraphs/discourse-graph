@@ -10,7 +10,7 @@ import {
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
-import { useAtom } from "@tldraw/state";
+import { useAtom } from "@tldraw/state-react";
 
 export type DiscourseGraphPanelProps = {
   nodes: DiscourseNode[];

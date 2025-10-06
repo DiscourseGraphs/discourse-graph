@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   StateNode,
   TLEventHandlers,
@@ -150,7 +151,7 @@ export const createAllReferencedNodeTools = (
           const id = createShapeId();
 
           this.markId = `creating:${id}`;
-          this.editor.mark(this.markId);
+          this.editor.squashToMark(this.markId);
 
           if (!this.shapeType) {
             this.cancelAndWarn("Must start on a node");
@@ -185,6 +186,7 @@ export const createAllReferencedNodeTools = (
             handle: { ...startHandle, x: 0, y: 0 },
             isPrecise: true,
             initial: initial,
+            isCreatingShape: true,
           });
 
           if (change) {
@@ -220,6 +222,7 @@ export const createAllReferencedNodeTools = (
               handle: { ...startHandle, x: 0, y: 0 },
               isPrecise: this.didTimeout, // sure about that?
               initial: initial,
+              isCreatingShape: true,
             });
 
             if (change) {
@@ -242,6 +245,7 @@ export const createAllReferencedNodeTools = (
               handle: { ...endHandle, x: point.x, y: point.y },
               isPrecise: false, // sure about that?
               initial: initial,
+              isCreatingShape: true,
             });
 
             if (change) {
@@ -444,7 +448,7 @@ export const createAllRelationShapeTools = (
           const id = createShapeId();
 
           this.markId = `creating:${id}`;
-          this.editor.mark(this.markId);
+          this.editor.squashToMark(this.markId);
 
           const color = getRelationColor(name);
 
@@ -481,6 +485,7 @@ export const createAllRelationShapeTools = (
             handle: { ...startHandle, x: 0, y: 0 },
             isPrecise: true,
             initial: initial,
+            isCreatingShape: true,
           });
 
           if (change) {
@@ -516,6 +521,7 @@ export const createAllRelationShapeTools = (
               handle: { ...startHandle, x: 0, y: 0 },
               isPrecise: this.didTimeout, // sure about that?
               initial: initial,
+              isCreatingShape: true,
             });
 
             if (change) {
@@ -538,6 +544,7 @@ export const createAllRelationShapeTools = (
               handle: { ...endHandle, x: point.x, y: point.y },
               isPrecise: false, // sure about that?
               initial: initial,
+              isCreatingShape: true,
             });
 
             if (change) {
