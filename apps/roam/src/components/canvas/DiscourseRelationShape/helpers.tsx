@@ -11,6 +11,7 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable preferArrows/prefer-arrow-functions */
 /* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 
 import React, { useRef, useEffect, useState } from "react";
 import {
@@ -50,6 +51,7 @@ import {
   TLDefaultHorizontalAlignStyle,
   TLDefaultVerticalAlignStyle,
   useDefaultColorTheme,
+  tlenv,
   DefaultFontFamilies,
   BoxModel,
   FileHelpers,
@@ -64,6 +66,7 @@ import {
   TLDefaultSizeStyle,
   PI2,
   TLArcInfo,
+  renderPlaintextFromRichText,
 } from "tldraw";
 import {
   RelationBindings,
@@ -765,17 +768,20 @@ function getArrowLabelSize(editor: Editor, shape: DiscourseRelationShape) {
         largeArcFlag: info.bodyArc.largeArcFlag,
       });
 
-  if (shape.props.text.trim()) {
+  if (renderPlaintextFromRichText(editor, shape.props.richText).trim()) {
     const bodyBounds = bodyGeom.bounds;
 
     const fontSize = getArrowLabelFontSize(shape);
 
-    const { w, h } = editor.textMeasure.measureText(shape.props.text, {
-      ...TEXT_PROPS,
-      fontFamily: FONT_FAMILIES[shape.props.font],
-      fontSize,
-      maxWidth: null,
-    });
+    const { w, h } = editor.textMeasure.measureText(
+      renderPlaintextFromRichText(editor, shape.props.richText),
+      {
+        ...TEXT_PROPS,
+        fontFamily: FONT_FAMILIES[shape.props.font],
+        fontSize,
+        maxWidth: null,
+      },
+    );
 
     width = w;
     height = h;
@@ -784,12 +790,15 @@ function getArrowLabelSize(editor: Editor, shape: DiscourseRelationShape) {
       width = Math.max(Math.min(w, 64), Math.min(bodyBounds.width - 64, w));
 
       const { w: squishedWidth, h: squishedHeight } =
-        editor.textMeasure.measureText(shape.props.text, {
-          ...TEXT_PROPS,
-          fontFamily: FONT_FAMILIES[shape.props.font],
-          fontSize,
-          maxWidth: width,
-        });
+        editor.textMeasure.measureText(
+          renderPlaintextFromRichText(editor, shape.props.richText),
+          {
+            ...TEXT_PROPS,
+            fontFamily: FONT_FAMILIES[shape.props.font],
+            fontSize,
+            maxWidth: width,
+          },
+        );
 
       width = squishedWidth;
       height = squishedHeight;
@@ -799,12 +808,15 @@ function getArrowLabelSize(editor: Editor, shape: DiscourseRelationShape) {
       width = 16 * fontSize;
 
       const { w: squishedWidth, h: squishedHeight } =
-        editor.textMeasure.measureText(shape.props.text, {
-          ...TEXT_PROPS,
-          fontFamily: FONT_FAMILIES[shape.props.font],
-          fontSize,
-          maxWidth: width,
-        });
+        editor.textMeasure.measureText(
+          renderPlaintextFromRichText(editor, shape.props.richText),
+          {
+            ...TEXT_PROPS,
+            fontFamily: FONT_FAMILIES[shape.props.font],
+            fontSize,
+            maxWidth: width,
+          },
+        );
 
       width = squishedWidth;
       height = squishedHeight;
@@ -1445,7 +1457,7 @@ function PatternFillDefForCanvas() {
   const { defs, isReady } = usePattern();
 
   useEffect(() => {
-    if (isReady && editor.environment.isSafari) {
+    if (isReady && tlenv.isSafari) {
       const htmlLayer = findHtmlLayerParent(containerRef.current!);
       if (htmlLayer) {
         // Wait for `patternContext` to be picked up
@@ -1864,7 +1876,7 @@ export const ArrowSvg = track(function ArrowSvg({
   const bindings = getArrowBindings(editor, shape);
 
   const changeIndex = React.useMemo<number>(() => {
-    return editor.environment.isSafari ? (globalRenderIndex += 1) : 0;
+    return tlenv.isSafari ? (globalRenderIndex += 1) : 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shape]);
 
@@ -1963,7 +1975,7 @@ export const ArrowSvg = track(function ArrowSvg({
             height={toDomPrecision(bounds.height + 200)}
             fill="white"
           />
-          {shape.props.text.trim() && (
+          {renderPlaintextFromRichText(editor, shape.props.richText).trim() && (
             <rect
               x={labelPosition.box.x}
               y={labelPosition.box.y}
