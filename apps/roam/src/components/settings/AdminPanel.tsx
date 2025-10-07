@@ -7,8 +7,8 @@ import {
   SupabaseContext,
 } from "~/utils/supabaseContext";
 import {
-  getNodes,
-  getNodeSchemas,
+  getConcepts,
+  getSchemaConcepts,
   nodeSchemaSignature,
   type NodeSignature,
   type PConcept,
@@ -130,10 +130,10 @@ const AdminPanel = () => {
     void (async () => {
       if (!ignore && supabase !== null && context !== null) {
         try {
-          setSchemas(await getNodeSchemas(supabase, context.spaceId));
+          setSchemas(await getSchemaConcepts(supabase, context.spaceId));
         } catch (e) {
           setError((e as Error).message);
-          console.error("getNodeSchemas failed", e);
+          console.error("getSchemaConcepts failed", e);
         } finally {
           setLoading(false);
         }
@@ -157,7 +157,7 @@ const AdminPanel = () => {
         try {
           setLoadingNodes(true);
           setNodes(
-            await getNodes({
+            await getConcepts({
               supabase,
               spaceId,
               schemaLocalIds: showingSchema.sourceLocalId,
@@ -165,7 +165,7 @@ const AdminPanel = () => {
           );
         } catch (e) {
           setError((e as Error).message);
-          console.error("getNodes failed", e);
+          console.error("getConcepts failed", e);
         } finally {
           setLoadingNodes(false);
         }

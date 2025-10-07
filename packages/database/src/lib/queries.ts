@@ -2,7 +2,7 @@ import { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "../dbTypes";
 import { DGSupabaseClient } from "./client";
 
-// the functions you are most likely to use are getNodeSchemas and getNodes.
+// the functions you are most likely to use are getSchemaConcepts and getConcepts.
 
 type Concept = Tables<"Concept">;
 type Content = Tables<"Content">;
@@ -36,58 +36,69 @@ export const initNodeSchemaCache = () => {
   });
 };
 
+/* eslint-disable @typescript-eslint/naming-convention */
 export type PDocument = Partial<Tables<"Document">>;
 export type PContent = Partial<Tables<"Content">> & {
-  Document: PDocument | null; // eslint-disable-line @typescript-eslint/naming-convention
+  Document?: PDocument | null;
 };
-export type PConcept = Partial<Tables<"Concept">> & {
-  Content: PContent | null; // eslint-disable-line @typescript-eslint/naming-convention
-  schema_of_concept: { name: string } | null; // eslint-disable-line @typescript-eslint/naming-convention
+export type PAccount = Partial<Tables<"PlatformAccount">>;
+export type PConceptBase = Partial<Tables<"Concept">>;
+export type PConceptSubNode = PConceptBase & {
+  Concept?: { source_local_id: string } | null;
+  author?: { account_local_id: string } | null;
+};
+export type PRelConcept = PConceptBase & {
+  subnodes?: PConceptSubNode[];
+};
+
+export type PConceptFull = PConceptBase & {
+  Content?: PContent | null;
+  author?: PAccount;
+  relations?: PRelConcept[];
 };
 
 type DefaultQueryShape = {
   id: number;
-  space_id: number; // eslint-disable-line @typescript-eslint/naming-convention
+  space_id: number;
   name: string;
-  Content: { source_local_id: string }; // eslint-disable-line @typescript-eslint/naming-convention
+  Content: { source_local_id: string };
 };
+/* eslint-enable @typescript-eslint/naming-convention */
 
 // Utility function to compose a generic query to fetch concepts, content and document.
-//  - schemaDbIds = 0  → fetch schemas (is_schema = true)
-//  - schemaDbIds = n  → fetch nodes under schema with dbId n (is_schema = false, eq schema_id)
-//  - schemaDbIds = [] → fetch all nodes (is_schema = false, no filter on schema_id)
-//  - schemaDbIds = [a,b,...] → fetch nodes under any of those schemas
-const composeQuery = ({
+// Arguments are as in getConcepts, except we use numeric db ids of concepts for schemas instead
+// their respective content's source_local_id.
+const composeConceptQuery = ({
   supabase,
   spaceId,
-  schemaDbIds = 0,
-  conceptFields = ["id", "name", "space_id"],
-  contentFields = ["source_local_id"],
-  documentFields = [],
   baseNodeLocalIds = [],
-  nodeAuthor = undefined,
+  schemaDbIds = 0,
   fetchNodes = true,
+  nodeAuthor = undefined,
   inRelsOfType = undefined,
-  relationFields = undefined,
-  relationToNodeFields = undefined,
   inRelsToNodesOfType = undefined,
   inRelsToNodesOfAuthor = undefined,
   inRelsToNodeLocalIds = undefined,
+  conceptFields = ["id", "name", "space_id"],
+  contentFields = ["source_local_id"],
+  documentFields = [],
+  relationFields = undefined,
+  relationSubNodesFields = undefined,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
   schemaDbIds?: number | number[];
+  baseNodeLocalIds?: string[];
+  fetchNodes?: boolean | null;
+  nodeAuthor?: string;
+  inRelsOfType?: number[];
+  relationSubNodesFields?: (keyof Concept)[];
+  inRelsToNodesOfType?: number[];
+  inRelsToNodesOfAuthor?: string;
   conceptFields?: (keyof Concept)[];
   contentFields?: (keyof Content)[];
   documentFields?: (keyof Document)[];
-  baseNodeLocalIds?: string[];
-  nodeAuthor?: string;
-  fetchNodes?: boolean | null;
-  inRelsOfType?: number[];
   relationFields?: (keyof Concept)[];
-  relationToNodeFields?: (keyof Concept)[];
-  inRelsToNodesOfType?: number[];
-  inRelsToNodesOfAuthor?: string;
   inRelsToNodeLocalIds?: string[];
 }) => {
   let q = conceptFields.join(",\n");
@@ -120,7 +131,7 @@ const composeQuery = ({
       inRelsToNodesOfAuthor !== undefined ||
       inRelsToNodeLocalIds !== undefined
     ) {
-      const args2: string[] = (relationToNodeFields || []).slice();
+      const args2: string[] = (relationSubNodesFields || []).slice();
       if (inRelsToNodesOfType !== undefined && !args2.includes("schema_id"))
         args2.push("schema_id");
       if (inRelsToNodeLocalIds !== undefined)
@@ -179,7 +190,7 @@ const composeQuery = ({
 };
 
 // Obtain basic data for all node schemas in a space, populating the cache.
-export const getNodeSchemas = async (
+export const getSchemaConcepts = async (
   supabase: DGSupabaseClient,
   spaceId: number,
   forceCacheReload: boolean = false,
@@ -188,10 +199,10 @@ export const getNodeSchemas = async (
     .filter((x) => typeof x === "object")
     .filter((x) => x.spaceId === spaceId || x.spaceId === 0);
   if (forceCacheReload || result.length === 1) {
-    const q = composeQuery({ supabase, spaceId, fetchNodes: null });
+    const q = composeConceptQuery({ supabase, spaceId, fetchNodes: null });
     const res = (await q) as PostgrestResponse<DefaultQueryShape>;
     if (res.error) {
-      console.error("getNodeSchemas failed", res.error);
+      console.error("getSchemaConcepts failed", res.error);
       return [NODE_SCHEMA_CACHE[NODE_SCHEMAS] as NodeSignature];
     }
     Object.assign(
@@ -245,7 +256,7 @@ const getLocalToDbIdMapping = async (
       console.warn("Cannot populate cache without spaceId");
       return dbIds;
     }
-    let q = composeQuery({ supabase, spaceId });
+    let q = composeConceptQuery({ supabase, spaceId });
     if (Object.keys(NODE_SCHEMA_CACHE).length > 1) {
       // Non-empty cache, query selectively
       q = q
@@ -324,48 +335,58 @@ export const DOCUMENT_FIELDS: (keyof Document)[] = [
   "author_id",
 ];
 
-// get all nodes that belong to a certain number of schemas.
-// This query will return Concept objects, and associated Content and Document,
-// according to which fields are requested. Defaults to maximal information.
-// Main call options:
-// • ALL schemas:              schemaLocalIds = "__schemas" (default)
-// • ALL nodes (instances):    schemaLocalIds = []
-// • Nodes from X,Y schemas:   schemaLocalIds = ["localIdX","localIdY",...]
-export const getNodes = async ({
-  supabase,
-  spaceId,
-  schemaLocalIds = NODE_SCHEMAS,
-  conceptFields = CONCEPT_FIELDS,
-  contentFields = CONTENT_FIELDS,
-  documentFields = DOCUMENT_FIELDS,
-  baseNodeLocalIds = [],
-  nodeAuthor = undefined,
-  fetchNodes = true,
-  inRelsOfTypeLocal = undefined,
-  relationFields = undefined,
-  relationToNodeFields = undefined,
-  inRelsToNodesOfTypeLocal = undefined,
-  inRelsToNodesOfAuthor = undefined,
-  inRelsToNodeLocalIds = undefined,
+// instrumentation for benchmarking
+export let lastQueryDuration: number = 0;
+
+// Main entry point to query Concepts and related data:
+// related sub-objects can be provided as:
+// Content, Content.Document, author (PlatformAccount), relations (Concept),
+// relations.subnodes (Concept), relations.subnodes.author, relations.subnodes.Content
+// Which fields of these subobjects are fetched is controlled by the respective Fields parameters
+// (except the last two, which would have just enough data for query filters.)
+// If the fields are empty, the sub-object will not be fetched (unless needed for matching query parameters)
+// Any parameter called "local" expects platform Ids (source_local_id) of the corresponding Content.
+// In the case of node/relation definitions, schema refers to the page Id of the definition.
+export const getConcepts = async ({
+  supabase, // An instance of a logged-in client
+  spaceId, // the numeric id of the space being queried
+  baseNodeLocalIds = [], // If we are specifying the Concepts being queried directly.
+  schemaLocalIds = NODE_SCHEMAS, // the type of Concepts being queried
+  // • ALL schemas:              schemaLocalIds = NODE_SCHEMAS (default, "__schemas")
+  // • ALL instances (nodes and/or relations):    schemaLocalIds = []
+  // • Nodes from X,Y schemas:   schemaLocalIds = ["localIdX","localIdY",...]
+  fetchNodes = true, // are we fetching nodes or relations?
+  //  true for nodes, false for relations, null for both
+  nodeAuthor = undefined, // filter on Content author
+  inRelsOfTypeLocal = undefined, // filter on Concepts that participate in a relation of a given type
+  inRelsToNodesOfTypeLocal = undefined, // filter on Concepts that are in a relation with another node of a given type
+  inRelsToNodesOfAuthor = undefined, // filter on Concepts that are in a relation with another Concept by a given author
+  inRelsToNodeLocalIds = undefined, // filter on Concepts that are in relation with a Concept from a given list
+  conceptFields = CONCEPT_FIELDS, // which fields are returned for the given Concept
+  contentFields = CONTENT_FIELDS, // which fields are returned for the corresponding Content
+  documentFields = DOCUMENT_FIELDS, // which fields are returned for the Content's corresponding Document
+  relationFields = undefined, // which fields are returned for the relation the node is part of
+  relationSubNodesFields = undefined, // which fields are returned for the other nodes in the relation the target node is part of
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
-  schemaLocalIds?: string | string[];
-  conceptFields?: (keyof Concept)[];
-  contentFields?: (keyof Content)[];
-  documentFields?: (keyof Document)[];
   baseNodeLocalIds?: string[];
-  nodeAuthor?: string;
+  schemaLocalIds?: string | string[];
   fetchNodes?: boolean | null;
+  nodeAuthor?: string;
   inRelsOfTypeLocal?: string[];
-  relationFields?: (keyof Concept)[];
-  relationToNodeFields?: (keyof Concept)[];
   inRelsToNodesOfTypeLocal?: string[];
   inRelsToNodesOfAuthor?: string;
   inRelsToNodeLocalIds?: string[];
-}): Promise<PConcept[]> => {
+  conceptFields?: (keyof Concept)[];
+  contentFields?: (keyof Content)[];
+  documentFields?: (keyof Document)[];
+  relationFields?: (keyof Concept)[];
+  relationSubNodesFields?: (keyof Concept)[];
+}): Promise<PConceptFull[]> => {
   const schemaLocalIdsArray =
     typeof schemaLocalIds === "string" ? [schemaLocalIds] : schemaLocalIds;
+  // translate schema local content Ids to concept database Ids.
   const localIds = new Set<string>(schemaLocalIdsArray);
   if (inRelsOfTypeLocal !== undefined)
     inRelsOfTypeLocal.map((k) => localIds.add(k));
@@ -392,7 +413,7 @@ export const getNodes = async ({
   const schemaDbIds =
     schemaLocalIds === NODE_SCHEMAS ? 0 : localToDbArray(schemaLocalIdsArray);
 
-  const q = composeQuery({
+  const q = composeConceptQuery({
     supabase,
     spaceId,
     baseNodeLocalIds,
@@ -404,14 +425,19 @@ export const getNodes = async ({
     fetchNodes,
     inRelsOfType: localToDbArray(inRelsOfTypeLocal),
     relationFields,
-    relationToNodeFields,
+    relationSubNodesFields,
     inRelsToNodesOfType: localToDbArray(inRelsToNodesOfTypeLocal),
     inRelsToNodesOfAuthor,
     inRelsToNodeLocalIds,
   });
-  const { error, data } = (await q) as PostgrestResponse<PConcept>;
+  const before = Date.now();
+  const { error, data } = (await q) as PostgrestResponse<PConceptFull>;
+  lastQueryDuration = Date.now() - before;
+  // benchmarking
+  // console.debug(lastQueryDuration, q);
+
   if (error) {
-    console.error("getNodes failed", error);
+    console.error("getConcepts failed", error);
     return [];
   }
   return data || [];
