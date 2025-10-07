@@ -84,6 +84,8 @@ const composeConceptQuery = ({
   documentFields = [],
   relationFields = undefined,
   relationSubNodesFields = undefined,
+  limit = 100,
+  offset = 0,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
@@ -100,6 +102,8 @@ const composeConceptQuery = ({
   documentFields?: (keyof Document)[];
   relationFields?: (keyof Concept)[];
   inRelsToNodeLocalIds?: string[];
+  limit?: number;
+  offset?: number;
 }) => {
   let q = conceptFields.join(",\n");
   const innerContent = schemaDbIds === 0 || baseNodeLocalIds.length > 0;
@@ -184,6 +188,15 @@ const composeConceptQuery = ({
       "relations.subnodes.Content.source_local_id",
       inRelsToNodeLocalIds,
     );
+  }
+  if (limit > 0 || offset > 0) {
+    query = query.order('id');
+    if (offset > 0) {
+      limit = Math.min(limit, 1000);
+      query = query.range(offset, offset+limit);
+    } else if (limit > 0) {
+      query = query.limit(limit);
+    }
   }
   // console.debug(query);
   return query;
@@ -367,6 +380,8 @@ export const getConcepts = async ({
   documentFields = DOCUMENT_FIELDS, // which fields are returned for the Content's corresponding Document
   relationFields = undefined, // which fields are returned for the relation the node is part of
   relationSubNodesFields = undefined, // which fields are returned for the other nodes in the relation the target node is part of
+  limit = 100, // query limit
+  offset = 0, // query offset
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
@@ -383,6 +398,8 @@ export const getConcepts = async ({
   documentFields?: (keyof Document)[];
   relationFields?: (keyof Concept)[];
   relationSubNodesFields?: (keyof Concept)[];
+  limit?: number;
+  offset?: number;
 }): Promise<PConceptFull[]> => {
   const schemaLocalIdsArray =
     typeof schemaLocalIds === "string" ? [schemaLocalIds] : schemaLocalIds;
@@ -429,6 +446,8 @@ export const getConcepts = async ({
     inRelsToNodesOfType: localToDbArray(inRelsToNodesOfTypeLocal),
     inRelsToNodesOfAuthor,
     inRelsToNodeLocalIds,
+    limit,
+    offset,
   });
   const before = Date.now();
   const { error, data } = (await q) as PostgrestResponse<PConceptFull>;
