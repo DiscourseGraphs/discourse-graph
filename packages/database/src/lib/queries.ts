@@ -190,10 +190,10 @@ const composeConceptQuery = ({
     );
   }
   if (limit > 0 || offset > 0) {
-    query = query.order('id');
+    query = query.order("id");
     if (offset > 0) {
       limit = Math.min(limit, 1000);
-      query = query.range(offset, offset+limit);
+      query = query.range(offset, offset + limit);
     } else if (limit > 0) {
       query = query.limit(limit);
     }
@@ -269,7 +269,7 @@ const getLocalToDbIdMapping = async (
       console.warn("Cannot populate cache without spaceId");
       return dbIds;
     }
-    let q = composeConceptQuery({ supabase, spaceId });
+    let q = composeConceptQuery({ supabase, spaceId, fetchNodes: null });
     if (Object.keys(NODE_SCHEMA_CACHE).length > 1) {
       // Non-empty cache, query selectively
       q = q
@@ -349,7 +349,7 @@ export const DOCUMENT_FIELDS: (keyof Document)[] = [
 ];
 
 // instrumentation for benchmarking
-export let lastQueryDuration: number = 0;
+export const LAST_QUERY_DATA = { duration: 0 };
 
 // Main entry point to query Concepts and related data:
 // related sub-objects can be provided as:
@@ -451,9 +451,9 @@ export const getConcepts = async ({
   });
   const before = Date.now();
   const { error, data } = (await q) as PostgrestResponse<PConceptFull>;
-  lastQueryDuration = Date.now() - before;
+  LAST_QUERY_DATA.duration = Date.now() - before;
   // benchmarking
-  // console.debug(lastQueryDuration, q);
+  // console.debug(LAST_QUERY_DATA.duration, q);
 
   if (error) {
     console.error("getConcepts failed", error);
