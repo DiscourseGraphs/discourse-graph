@@ -9,7 +9,7 @@ import {
   type Json,
 } from "@repo/database/dbTypes";
 import { getVariant, config } from "@repo/database/dbDotEnv";
-import { getNodes, initNodeSchemaCache } from "@repo/database/lib/queries";
+import { getConcepts, initNodeSchemaCache } from "@repo/database/lib/queries";
 
 import {
   spaceAnonUserEmail,
@@ -335,7 +335,7 @@ Given(
 );
 
 Given(
-  "a user logged in space {word} and querying nodes with these parameters: {string}",
+  "a user logged in space {word} and calling getConcepts with these parameters: {string}",
   async (spaceName: string, paramsJ: string) => {
     const localRefs = (world.localRefs || {}) as Record<string, number>;
     const params = substituteLocalReferences(
@@ -346,7 +346,8 @@ Given(
     const spaceId = localRefs[spaceName];
     if (spaceId === undefined) assert.fail("spaceId");
     const supabase = await getLoggedinDatabase(spaceId);
-    const nodes = await getNodes({ ...params, supabase, spaceId });
+    // note that we supply spaceId and supabase, they do not need to be part of the incoming json
+    const nodes = await getConcepts({ ...params, supabase, spaceId });
     nodes.sort((a, b) => a.id! - b.id!);
     world.queryResults = nodes;
   },
