@@ -128,10 +128,10 @@ const substituteLocalReferencesRow = (
 Given(
   "{word} are added to the database:",
   async (tableName: TableName, table: DataTable) => {
-    // generic function to add a bunch of objects.
-    // Columns prefixed by $ are primary keys, and are not sent to the database,
-    // but the local value is associated with the database id in world.localRefs.
-    // Columns prefixed with _ are translated back from local references to db ids.
+    // generic function to add a bunch of objects to an arbitrary table.
+    // Columns prefixed by $ are aliases for the primary keys, and are not sent to the database,
+    // but the alias name is associated with the database id in world.localRefs.
+    // Columns prefixed with _ are translated back from aliases to db ids.
     // Columns prefixed with @ are parsed as json values. (Use @ before _)
     const client = getServiceClient();
     const localRefs = (world.localRefs || {}) as Record<string, number>;
@@ -337,6 +337,7 @@ Given(
 Given(
   "a user logged in space {word} and calling getConcepts with these parameters: {string}",
   async (spaceName: string, paramsJ: string) => {
+    // params are assumed to be Json. Values prefixed with '@' are interpreted as aliases.
     const localRefs = (world.localRefs || {}) as Record<string, number>;
     const params = substituteLocalReferences(
       JSON.parse(paramsJ),
@@ -346,7 +347,7 @@ Given(
     const spaceId = localRefs[spaceName];
     if (spaceId === undefined) assert.fail("spaceId");
     const supabase = await getLoggedinDatabase(spaceId);
-    // note that we supply spaceId and supabase, they do not need to be part of the incoming json
+    // note that we supply spaceId and supabase, they do not need to be part of the incoming Json
     const nodes = await getConcepts({ ...params, supabase, spaceId });
     nodes.sort((a, b) => a.id! - b.id!);
     world.queryResults = nodes;
