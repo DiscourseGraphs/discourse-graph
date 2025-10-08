@@ -126,7 +126,7 @@ export const getPleasingColors = (inputColor: Colord): PleasingColorScheme => {
   bgSeed = softenBg(bgSeed, 0.12);
 
   // Seed text by nudging darker than base but not forcing to 18–32 band
-  let textSeed = colord({ h, s, l: Math.max(8, Math.min(50, l - 35)) });
+  const textSeed = colord({ h, s, l: Math.max(8, Math.min(50, l - 35)) });
 
   // Find text color that meets contrast requirements
   const { text: initialText, level: initialLevel } = findTextWithTargetContrast(
