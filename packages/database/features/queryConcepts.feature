@@ -69,7 +69,7 @@ Feature: Concept queries
       | c4  | claim 3 | s1        | user3      | false      | c1         | {}               | {}                 |
 
   Scenario Outline: Query by author
-    And a user logged in space s1 and calling getConcepts with these parameters: '{"nodeAuthor":["user2"],"schemaLocalIds":[],"fetchNodes":null}'
+    And a user logged in space s1 and calling getConcepts with these parameters: '{"nodeAuthor":"user2","schemaLocalIds":[],"fetchNodes":null}'
     Then query results should look like this
       | _id | name      | _space_id | _author_id | @is_schema | _schema_id | @literal_content | @_reference_content              |
       | c3  | claim 2   | s1        | user2      | false      | c1         | {}               | {}                               |
