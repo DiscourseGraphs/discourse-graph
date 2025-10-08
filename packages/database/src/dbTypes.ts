@@ -37,6 +37,13 @@ export type Database = {
             foreignKeyName: "access_token_platform_account_id_fkey"
             columns: ["platform_account_id"]
             isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_token_platform_account_id_fkey"
+            columns: ["platform_account_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
@@ -62,6 +69,13 @@ export type Database = {
           value?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "AgentIdentifier_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "AgentIdentifier_account_id_fkey"
             columns: ["account_id"]
@@ -128,6 +142,13 @@ export type Database = {
             foreignKeyName: "Concept_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
@@ -157,6 +178,13 @@ export type Database = {
             columns: ["schema_id"]
             isOneToOne: false
             referencedRelation: "my_concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "my_spaces"
             referencedColumns: ["id"]
           },
           {
@@ -194,6 +222,13 @@ export type Database = {
             columns: ["concept_id"]
             isOneToOne: false
             referencedRelation: "my_concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concept_contributors_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
+            referencedRelation: "my_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -256,7 +291,21 @@ export type Database = {
             foreignKeyName: "Content_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "my_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -298,6 +347,13 @@ export type Database = {
             foreignKeyName: "Content_space_id_fkey"
             columns: ["space_id"]
             isOneToOne: false
+            referencedRelation: "my_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
             referencedRelation: "Space"
             referencedColumns: ["id"]
           },
@@ -329,6 +385,13 @@ export type Database = {
             columns: ["content_id"]
             isOneToOne: false
             referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_contributors_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
+            referencedRelation: "my_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -415,7 +478,21 @@ export type Database = {
             foreignKeyName: "Document_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Document_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Document_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "my_spaces"
             referencedColumns: ["id"]
           },
           {
@@ -505,7 +582,21 @@ export type Database = {
             foreignKeyName: "SpaceAccess_account_id_fkey"
             columns: ["account_id"]
             isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SpaceAccess_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SpaceAccess_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "my_spaces"
             referencedColumns: ["id"]
           },
           {
@@ -558,6 +649,20 @@ export type Database = {
       }
     }
     Views: {
+      my_accounts: {
+        Row: {
+          account_local_id: string | null
+          active: boolean | null
+          agent_type: Database["public"]["Enums"]["AgentType"] | null
+          dg_account: string | null
+          id: number | null
+          metadata: Json | null
+          name: string | null
+          platform: Database["public"]["Enums"]["Platform"] | null
+          write_permission: boolean | null
+        }
+        Relationships: []
+      }
       my_concepts: {
         Row: {
           arity: number | null
@@ -621,6 +726,13 @@ export type Database = {
             foreignKeyName: "Concept_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
             referencedColumns: ["id"]
           },
@@ -650,6 +762,13 @@ export type Database = {
             columns: ["schema_id"]
             isOneToOne: false
             referencedRelation: "my_concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "my_spaces"
             referencedColumns: ["id"]
           },
           {
@@ -712,7 +831,21 @@ export type Database = {
             foreignKeyName: "Content_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "my_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -748,6 +881,13 @@ export type Database = {
             columns: ["part_of_id"]
             isOneToOne: false
             referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "my_spaces"
             referencedColumns: ["id"]
           },
           {
@@ -798,7 +938,21 @@ export type Database = {
             foreignKeyName: "Document_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Document_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Document_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "my_spaces"
             referencedColumns: ["id"]
           },
           {
@@ -809,6 +963,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      my_spaces: {
+        Row: {
+          id: number | null
+          name: string | null
+          platform: Database["public"]["Enums"]["Platform"] | null
+          url: string | null
+        }
+        Insert: {
+          id?: number | null
+          name?: string | null
+          platform?: Database["public"]["Enums"]["Platform"] | null
+          url?: string | null
+        }
+        Update: {
+          id?: number | null
+          name?: string | null
+          platform?: Database["public"]["Enums"]["Platform"] | null
+          url?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -874,6 +1049,34 @@ export type Database = {
         Args: { p_account_id: number }
         Returns: boolean
       }
+      author_of_concept: {
+        Args: { concept: unknown }
+        Returns: {
+          account_local_id: string | null
+          active: boolean | null
+          agent_type: Database["public"]["Enums"]["AgentType"] | null
+          dg_account: string | null
+          id: number | null
+          metadata: Json | null
+          name: string | null
+          platform: Database["public"]["Enums"]["Platform"] | null
+          write_permission: boolean | null
+        }[]
+      }
+      author_of_content: {
+        Args: { content: unknown }
+        Returns: {
+          account_local_id: string | null
+          active: boolean | null
+          agent_type: Database["public"]["Enums"]["AgentType"] | null
+          dg_account: string | null
+          id: number | null
+          metadata: Json | null
+          name: string | null
+          platform: Database["public"]["Enums"]["Platform"] | null
+          write_permission: boolean | null
+        }[]
+      }
       compute_arity_local: {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
@@ -934,6 +1137,24 @@ export type Database = {
         Args: { content_id: number }
         Returns: boolean
       }
+      content_of_concept: {
+        Args: { concept: unknown }
+        Returns: {
+          author_id: number | null
+          created: string | null
+          creator_id: number | null
+          document_id: number | null
+          id: number | null
+          last_modified: string | null
+          metadata: Json | null
+          part_of_id: number | null
+          scale: Database["public"]["Enums"]["Scale"] | null
+          source_local_id: string | null
+          space_id: number | null
+          text: string | null
+          variant: Database["public"]["Enums"]["ContentVariant"] | null
+        }[]
+      }
       create_account_in_space: {
         Args: {
           account_local_id_: string
@@ -948,6 +1169,20 @@ export type Database = {
       document_in_space: {
         Args: { document_id: number }
         Returns: boolean
+      }
+      document_of_content: {
+        Args: { content: unknown }
+        Returns: {
+          author_id: number | null
+          contents: unknown | null
+          created: string | null
+          id: number | null
+          last_modified: string | null
+          metadata: Json | null
+          source_local_id: string | null
+          space_id: number | null
+          url: string | null
+        }[]
       }
       end_sync_task: {
         Args: {
@@ -1033,7 +1268,7 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
-      my_spaces: {
+      my_space_ids: {
         Args: Record<PropertyKey, never>
         Returns: number[]
       }
