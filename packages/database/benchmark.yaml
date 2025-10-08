@@ -1,0 +1,31 @@
+schemas:
+# A mechanism to try out different schemas, eventually.
+#   - ./benchmark_schemas/prefix.sql
+#   - ./supabase/schemas/base.sql
+#   - ./supabase/schemas/space.sql
+#   - ./supabase/schemas/account.sql
+#   - ./supabase/schemas/content.sql
+#   - ./supabase/schemas/embedding.sql
+#   - ./supabase/schemas/concept.sql
+#   - ./supabase/schemas/contributor.sql
+#   - ./supabase/schemas/sync.sql
+#   - ./supabase/schemas/access_token.sql
+database_url: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+accounts:
+  count: 100
+nodes:
+  - name: claim
+    count: 50000
+  - name: hypothesis
+    count: 50000
+relations:
+  - name: supports
+    roles:
+      source: claim
+      target: [claim, hypothesis]
+    count: 50000
+  - name: opposes
+    roles:
+      source: claim
+      target: [claim, hypothesis]
+    count: 50000
