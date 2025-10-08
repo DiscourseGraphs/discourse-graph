@@ -69,6 +69,19 @@ COMMENT ON COLUMN public."Document".author_id IS 'The author of content';
 
 COMMENT ON COLUMN public."Document".contents IS 'A large object OID for the downloaded raw content';
 
+-- explicit fields require more maintenance, but respects declared table order.
+CREATE OR REPLACE VIEW public.my_documents AS
+SELECT
+    id,
+    space_id,
+    source_local_id,
+    url,
+    "created",
+    metadata,
+    last_modified,
+    author_id,
+    contents
+FROM public."Document" WHERE space_id = any(public.my_space_ids());
 
 CREATE TABLE IF NOT EXISTS public."Content" (
     id bigint DEFAULT nextval(
@@ -160,6 +173,45 @@ GRANT ALL ON TABLE public."Document" TO service_role;
 REVOKE ALL ON TABLE public."Content" FROM anon;
 GRANT ALL ON TABLE public."Content" TO authenticated;
 GRANT ALL ON TABLE public."Content" TO service_role;
+
+CREATE OR REPLACE VIEW public.my_contents AS
+SELECT
+    id,
+    document_id,
+    source_local_id,
+    variant,
+    author_id,
+    creator_id,
+    created,
+    text,
+    metadata,
+    scale,
+    space_id,
+    last_modified,
+    part_of_id
+FROM public."Content" WHERE space_id = any(public.my_space_ids());
+
+CREATE OR REPLACE FUNCTION public.document_of_content(content public.my_contents)
+RETURNS SETOF public.my_documents STRICT STABLE
+ROWS 1
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public.my_documents WHERE id=content.document_id;
+$$;
+COMMENT ON FUNCTION public.document_of_content(public.my_contents)
+IS 'Computed one-to-one: returns the containing Document for a given Content.';
+
+CREATE OR REPLACE FUNCTION public.author_of_content(content public.my_contents)
+RETURNS SETOF public.my_accounts STRICT STABLE
+ROWS 1
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public.my_accounts WHERE id=content.author_id;
+$$;
+COMMENT ON FUNCTION public.author_of_content(public.my_contents)
+IS 'Computed one-to-one: returns the PlatformAccount which authored a given Content.';
 
 CREATE TYPE public.document_local_input AS (
     -- document columns
