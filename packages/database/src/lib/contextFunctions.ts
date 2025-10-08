@@ -102,10 +102,11 @@ export const fetchOrCreateSpaceDirect = async (
     });
 
   if (result2.data === null) {
-    return asPostgrestFailure(
-      JSON.stringify(result2.error),
-      "Failed to create space",
-    );
+    let error: string = (result2.error?.message as string | undefined) || "";
+    if (result2.error?.context?.body)
+      error += await new Response(result2.error.context.body).text();
+    console.log(result);
+    return asPostgrestFailure(error, "Failed to create space");
   }
   return {
     data: result2.data,

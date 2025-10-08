@@ -40,4 +40,4 @@ GRANT INSERT ON TABLE "public"."access_token" TO "anon";
 ALTER TABLE public.access_token ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS access_token_policy ON public.access_token;
-CREATE POLICY access_token_policy ON public.access_token FOR ALL USING (public.my_account(platform_account_id));
+CREATE POLICY access_token_policy ON public.access_token FOR ALL USING (public.is_my_account(platform_account_id));

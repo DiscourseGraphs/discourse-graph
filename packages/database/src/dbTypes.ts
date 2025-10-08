@@ -139,10 +139,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "Concept_represented_by_id_fkey"
+            columns: ["represented_by_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "Concept_schema_id_fkey"
             columns: ["schema_id"]
             isOneToOne: false
             referencedRelation: "Concept"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_schema_id_fkey"
+            columns: ["schema_id"]
+            isOneToOne: false
+            referencedRelation: "my_concepts"
             referencedColumns: ["id"]
           },
           {
@@ -173,6 +187,13 @@ export type Database = {
             columns: ["concept_id"]
             isOneToOne: false
             referencedRelation: "Concept"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concept_contributors_concept_id_fkey"
+            columns: ["concept_id"]
+            isOneToOne: false
+            referencedRelation: "my_concepts"
             referencedColumns: ["id"]
           },
           {
@@ -253,10 +274,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "Content_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "my_documents"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "Content_part_of_id_fkey"
             columns: ["part_of_id"]
             isOneToOne: false
             referencedRelation: "Content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_part_of_id_fkey"
+            columns: ["part_of_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents"
             referencedColumns: ["id"]
           },
           {
@@ -287,6 +322,13 @@ export type Database = {
             columns: ["content_id"]
             isOneToOne: false
             referencedRelation: "Content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_contributors_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents"
             referencedColumns: ["id"]
           },
           {
@@ -323,6 +365,13 @@ export type Database = {
             columns: ["target_id"]
             isOneToOne: true
             referencedRelation: "Content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ContentEmbedding_openai_text_embedding_3_small_1_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: true
+            referencedRelation: "my_contents"
             referencedColumns: ["id"]
           },
         ]
@@ -509,7 +558,258 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      my_concepts: {
+        Row: {
+          arity: number | null
+          author_id: number | null
+          created: string | null
+          description: string | null
+          epistemic_status:
+            | Database["public"]["Enums"]["EpistemicStatus"]
+            | null
+          id: number | null
+          is_schema: boolean | null
+          last_modified: string | null
+          literal_content: Json | null
+          name: string | null
+          reference_content: Json | null
+          refs: number[] | null
+          represented_by_id: number | null
+          schema_id: number | null
+          space_id: number | null
+        }
+        Insert: {
+          arity?: number | null
+          author_id?: number | null
+          created?: string | null
+          description?: string | null
+          epistemic_status?:
+            | Database["public"]["Enums"]["EpistemicStatus"]
+            | null
+          id?: number | null
+          is_schema?: boolean | null
+          last_modified?: string | null
+          literal_content?: Json | null
+          name?: string | null
+          reference_content?: Json | null
+          refs?: number[] | null
+          represented_by_id?: number | null
+          schema_id?: number | null
+          space_id?: number | null
+        }
+        Update: {
+          arity?: number | null
+          author_id?: number | null
+          created?: string | null
+          description?: string | null
+          epistemic_status?:
+            | Database["public"]["Enums"]["EpistemicStatus"]
+            | null
+          id?: number | null
+          is_schema?: boolean | null
+          last_modified?: string | null
+          literal_content?: Json | null
+          name?: string | null
+          reference_content?: Json | null
+          refs?: number[] | null
+          represented_by_id?: number | null
+          schema_id?: number | null
+          space_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Concept_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_represented_by_id_fkey"
+            columns: ["represented_by_id"]
+            isOneToOne: false
+            referencedRelation: "Content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_represented_by_id_fkey"
+            columns: ["represented_by_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_schema_id_fkey"
+            columns: ["schema_id"]
+            isOneToOne: false
+            referencedRelation: "Concept"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_schema_id_fkey"
+            columns: ["schema_id"]
+            isOneToOne: false
+            referencedRelation: "my_concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "Space"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      my_contents: {
+        Row: {
+          author_id: number | null
+          created: string | null
+          creator_id: number | null
+          document_id: number | null
+          id: number | null
+          last_modified: string | null
+          metadata: Json | null
+          part_of_id: number | null
+          scale: Database["public"]["Enums"]["Scale"] | null
+          source_local_id: string | null
+          space_id: number | null
+          text: string | null
+          variant: Database["public"]["Enums"]["ContentVariant"] | null
+        }
+        Insert: {
+          author_id?: number | null
+          created?: string | null
+          creator_id?: number | null
+          document_id?: number | null
+          id?: number | null
+          last_modified?: string | null
+          metadata?: Json | null
+          part_of_id?: number | null
+          scale?: Database["public"]["Enums"]["Scale"] | null
+          source_local_id?: string | null
+          space_id?: number | null
+          text?: string | null
+          variant?: Database["public"]["Enums"]["ContentVariant"] | null
+        }
+        Update: {
+          author_id?: number | null
+          created?: string | null
+          creator_id?: number | null
+          document_id?: number | null
+          id?: number | null
+          last_modified?: string | null
+          metadata?: Json | null
+          part_of_id?: number | null
+          scale?: Database["public"]["Enums"]["Scale"] | null
+          source_local_id?: string | null
+          space_id?: number | null
+          text?: string | null
+          variant?: Database["public"]["Enums"]["ContentVariant"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "Document"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "my_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_part_of_id_fkey"
+            columns: ["part_of_id"]
+            isOneToOne: false
+            referencedRelation: "Content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_part_of_id_fkey"
+            columns: ["part_of_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "Space"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      my_documents: {
+        Row: {
+          author_id: number | null
+          contents: unknown | null
+          created: string | null
+          id: number | null
+          last_modified: string | null
+          metadata: Json | null
+          source_local_id: string | null
+          space_id: number | null
+          url: string | null
+        }
+        Insert: {
+          author_id?: number | null
+          contents?: unknown | null
+          created?: string | null
+          id?: number | null
+          last_modified?: string | null
+          metadata?: Json | null
+          source_local_id?: string | null
+          space_id?: number | null
+          url?: string | null
+        }
+        Update: {
+          author_id?: number | null
+          contents?: unknown | null
+          created?: string | null
+          id?: number | null
+          last_modified?: string | null
+          metadata?: Json | null
+          source_local_id?: string | null
+          space_id?: number | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Document_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Document_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "Space"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _local_concept_to_db_concept: {
@@ -579,23 +879,27 @@ export type Database = {
         Returns: number
       }
       concept_in_relations: {
-        Args: { concept: Database["public"]["Tables"]["Concept"]["Row"] }
+        Args:
+          | { concept: Database["public"]["Tables"]["Concept"]["Row"] }
+          | { concept: unknown }
         Returns: {
           arity: number | null
           author_id: number | null
-          created: string
+          created: string | null
           description: string | null
-          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
-          id: number
-          is_schema: boolean
-          last_modified: string
-          literal_content: Json
-          name: string
-          reference_content: Json
-          refs: number[]
+          epistemic_status:
+            | Database["public"]["Enums"]["EpistemicStatus"]
+            | null
+          id: number | null
+          is_schema: boolean | null
+          last_modified: string | null
+          literal_content: Json | null
+          name: string | null
+          reference_content: Json | null
+          refs: number[] | null
           represented_by_id: number | null
           schema_id: number | null
-          space_id: number
+          space_id: number | null
         }[]
       }
       concept_in_space: {
@@ -603,23 +907,27 @@ export type Database = {
         Returns: boolean
       }
       concepts_of_relation: {
-        Args: { relation: Database["public"]["Tables"]["Concept"]["Row"] }
+        Args:
+          | { relation: Database["public"]["Tables"]["Concept"]["Row"] }
+          | { relation: unknown }
         Returns: {
           arity: number | null
           author_id: number | null
-          created: string
+          created: string | null
           description: string | null
-          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
-          id: number
-          is_schema: boolean
-          last_modified: string
-          literal_content: Json
-          name: string
-          reference_content: Json
-          refs: number[]
+          epistemic_status:
+            | Database["public"]["Enums"]["EpistemicStatus"]
+            | null
+          id: number | null
+          is_schema: boolean | null
+          last_modified: string | null
+          literal_content: Json | null
+          name: string | null
+          reference_content: Json | null
+          refs: number[] | null
           represented_by_id: number | null
           schema_id: number | null
-          space_id: number
+          space_id: number | null
         }[]
       }
       content_in_space: {
@@ -673,7 +981,9 @@ export type Database = {
         Returns: boolean
       }
       instances_of_schema: {
-        Args: { schema: Database["public"]["Tables"]["Concept"]["Row"] }
+        Args:
+          | { schema: Database["public"]["Tables"]["Concept"]["Row"] }
+          | { schema: unknown }
         Returns: {
           arity: number | null
           author_id: number | null
@@ -691,6 +1001,10 @@ export type Database = {
           schema_id: number | null
           space_id: number
         }[]
+      }
+      is_my_account: {
+        Args: { account_id: number }
+        Returns: boolean
       }
       match_content_embeddings: {
         Args: {
@@ -716,8 +1030,12 @@ export type Database = {
         }[]
       }
       my_account: {
-        Args: { account_id: number }
-        Returns: boolean
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      my_spaces: {
+        Args: Record<PropertyKey, never>
+        Returns: number[]
       }
       propose_sync_task: {
         Args: {
@@ -730,7 +1048,9 @@ export type Database = {
         Returns: string
       }
       schema_of_concept: {
-        Args: { concept: Database["public"]["Tables"]["Concept"]["Row"] }
+        Args:
+          | { concept: Database["public"]["Tables"]["Concept"]["Row"] }
+          | { concept: unknown }
         Returns: {
           arity: number | null
           author_id: number | null

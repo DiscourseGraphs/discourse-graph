@@ -115,6 +115,130 @@ REVOKE ALL ON TABLE public."Concept" FROM anon;
 GRANT ALL ON TABLE public."Concept" TO authenticated;
 GRANT ALL ON TABLE public."Concept" TO service_role;
 
+CREATE OR REPLACE VIEW public.my_concepts AS
+SELECT
+    id,
+    epistemic_status,
+    name,
+    description,
+    author_id,
+    created,
+    last_modified,
+    space_id,
+    arity,
+    schema_id,
+    literal_content,
+    reference_content,
+    refs,
+    is_schema,
+    represented_by_id
+FROM public."Concept" WHERE space_id = any(public.my_space_ids());
+
+-- following https://docs.postgrest.org/en/v13/references/api/resource_embedding.html#recursive-relationships
+CREATE OR REPLACE FUNCTION public.schema_of_concept(concept public."Concept")
+RETURNS SETOF public."Concept" STRICT STABLE
+ROWS 1
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public."Concept" WHERE id=concept.schema_id;
+$$;
+COMMENT ON FUNCTION public.schema_of_concept(public."Concept")
+IS 'Computed one-to-one: returns the schema Concept for a given Concept (by schema_id).';
+
+CREATE OR REPLACE FUNCTION public.schema_of_concept(concept public.my_concepts)
+RETURNS SETOF public.my_concepts STRICT STABLE
+ROWS 1
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public.my_concepts WHERE id=concept.schema_id;
+$$;
+COMMENT ON FUNCTION public.schema_of_concept(public.my_concepts)
+IS 'Computed one-to-one: returns the schema Concept for a given Concept (by schema_id).';
+
+CREATE OR REPLACE FUNCTION public.instances_of_schema(schema public."Concept")
+RETURNS SETOF public."Concept" STRICT STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public."Concept" WHERE schema_id=schema.id;
+$$;
+COMMENT ON FUNCTION public.instances_of_schema(public."Concept")
+IS 'Computed one-to-many: returns all Concept instances that are based on the given schema Concept.';
+
+CREATE OR REPLACE FUNCTION public.instances_of_schema(schema public.my_concepts)
+RETURNS SETOF public.my_concepts STRICT STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public.my_concepts WHERE schema_id=schema.id;
+$$;
+COMMENT ON FUNCTION public.instances_of_schema(public.my_concepts)
+IS 'Computed one-to-many: returns all Concept instances that are based on the given schema Concept.';
+
+CREATE OR REPLACE FUNCTION public.concept_in_relations(concept public."Concept")
+RETURNS SETOF public."Concept" STRICT STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public."Concept" WHERE refs @> ARRAY[concept.id];
+$$;
+COMMENT ON FUNCTION public.concept_in_relations(public."Concept")
+IS 'Computed one-to-many: returns all Concept instances that are relations including the current concept.';
+
+CREATE OR REPLACE FUNCTION public.concept_in_relations(concept public.my_concepts)
+RETURNS SETOF public.my_concepts STRICT STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public.my_concepts WHERE refs @> ARRAY[concept.id];
+$$;
+COMMENT ON FUNCTION public.concept_in_relations(public.my_concepts)
+IS 'Computed one-to-many: returns all Concept instances that are relations including the current concept.';
+
+CREATE OR REPLACE FUNCTION public.concepts_of_relation(relation public."Concept")
+RETURNS SETOF public."Concept" STRICT STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public."Concept" WHERE id = any(relation.refs);
+$$;
+COMMENT ON FUNCTION public.concepts_of_relation(public."Concept")
+IS 'Computed one-to-many: returns all Concept instances are referred to in the current concept.';
+
+CREATE OR REPLACE FUNCTION public.concepts_of_relation(relation public.my_concepts)
+RETURNS SETOF public.my_concepts STRICT STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public.my_concepts WHERE id = any(relation.refs);
+$$;
+COMMENT ON FUNCTION public.concepts_of_relation(public.my_concepts)
+IS 'Computed one-to-many: returns all Concept instances are referred to in the current concept.';
+
+CREATE OR REPLACE FUNCTION public.content_of_concept(concept public.my_concepts)
+RETURNS SETOF public.my_contents STRICT STABLE
+ROWS 1
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public.my_contents WHERE id=concept.represented_by_id;
+$$;
+COMMENT ON FUNCTION public.content_of_concept(public.my_concepts)
+IS 'Computed one-to-one: returns the representing Content for a given Concept.';
+
+CREATE OR REPLACE FUNCTION public.author_of_concept(concept public.my_concepts)
+RETURNS SETOF public.my_accounts STRICT STABLE
+ROWS 1
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public.my_accounts WHERE id=concept.author_id;
+$$;
+COMMENT ON FUNCTION public.author_of_concept(public.my_concepts)
+IS 'Computed one-to-one: returns the PlatformAccount which authored a given Concept.';
+
 
 CREATE TYPE public.concept_local_input AS (
     -- concept columns
@@ -137,50 +261,6 @@ CREATE TYPE public.concept_local_input AS (
     space_url VARCHAR,
     local_reference_content JSONB
 );
-
--- following https://docs.postgrest.org/en/v13/references/api/resource_embedding.html#recursive-relationships
-CREATE OR REPLACE FUNCTION public.schema_of_concept(concept public."Concept")
-RETURNS SETOF public."Concept" STRICT STABLE
-ROWS 1
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT * from public."Concept" WHERE id=concept.schema_id;
-$$;
-COMMENT ON FUNCTION public.schema_of_concept(public."Concept")
-IS 'Computed one-to-one: returns the schema Concept for a given Concept (by schema_id).';
-
-CREATE OR REPLACE FUNCTION public.instances_of_schema(schema public."Concept")
-RETURNS SETOF public."Concept" STRICT STABLE
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT * from public."Concept" WHERE schema_id=schema.id;
-$$;
-COMMENT ON FUNCTION public.instances_of_schema(public."Concept")
-IS 'Computed one-to-many: returns all Concept instances that are based on the given schema Concept.';
-
-
-CREATE OR REPLACE FUNCTION public.concept_in_relations(concept public."Concept")
-RETURNS SETOF public."Concept" STRICT STABLE
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT * from public."Concept" WHERE refs @> ARRAY[concept.id];
-$$;
-COMMENT ON FUNCTION public.concept_in_relations(public."Concept")
-IS 'Computed one-to-many: returns all Concept instances that are relations including the current concept.';
-
-CREATE OR REPLACE FUNCTION public.concepts_of_relation(relation public."Concept")
-RETURNS SETOF public."Concept" STRICT STABLE
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT * from public."Concept" WHERE id = any(relation.refs);
-$$;
-COMMENT ON FUNCTION public.concepts_of_relation(public."Concept")
-IS 'Computed one-to-many: returns all Concept instances are referred to in the current concept.';
-
 
 -- private function. Transform concept with local (platform) references to concept with db references
 CREATE OR REPLACE FUNCTION public._local_concept_to_db_concept(data public.concept_local_input)
