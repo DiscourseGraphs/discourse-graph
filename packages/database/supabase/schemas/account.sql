@@ -212,7 +212,7 @@ SET search_path = ''
 LANGUAGE sql
 AS $$
     WITH u AS (SELECT auth.uid() LIMIT 1)
-    SELECT array_agg(distinct sa.space_id) AS ids FROM public."SpaceAccess" AS sa
+    SELECT COALESCE(array_agg(distinct sa.space_id), '{}') AS ids FROM public."SpaceAccess" AS sa
         JOIN public."PlatformAccount" AS pa ON pa.id=sa.account_id
         JOIN u ON pa.dg_account = u.uid;
 $$;
