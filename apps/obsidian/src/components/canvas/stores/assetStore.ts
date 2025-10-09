@@ -1,6 +1,11 @@
 import { App, CachedMetadata, TFile } from "obsidian";
-import { TLAsset, TLAssetStore, TLAssetId, TLAssetContext } from "tldraw";
-import { JsonObject } from "@tldraw/utils";
+import {
+  TLAsset,
+  TLAssetStore,
+  TLAssetId,
+  TLAssetContext,
+  JsonObject,
+} from "tldraw";
 import DiscourseGraphPlugin from "~/index";
 
 const ASSET_PREFIX = "obsidian.blockref.";
