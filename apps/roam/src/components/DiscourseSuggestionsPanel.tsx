@@ -40,50 +40,22 @@ export const DiscourseSuggestionsPanel = ({
 
   return (
     <Card
-      data-dg-block-uid={blockUid}
-      style={{
-        backgroundColor: "#fff",
-        display: "flex",
-        flexDirection: "column",
-        padding: "8px",
-      }}
+      data-dg-block-uid={`${blockUid}`}
       onMouseEnter={() => toggleHighlight(true)}
       onMouseLeave={() => toggleHighlight(false)}
-      className="discourse-suggestions-panel"
+      className="discourse-suggestions-panel flex flex-col bg-white p-2"
     >
-      <Navbar
-        style={{
-          borderBottom: "1px solid #d8e1e8",
-          boxShadow: "none",
-          paddingRight: 0,
-          display: "flex",
-          flexWrap: "nowrap",
-          alignItems: "center",
-        }}
-      >
-        <Navbar.Group align={Alignment.LEFT} style={{ flex: 1, minWidth: 0 }}>
-          <Navbar.Heading
-            className="truncate"
-            style={{
-              fontSize: "13px",
-              margin: 0,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-            onClick={() => setIsOpen((prev) => !prev)}
-          >
+      <Navbar className="flex flex-nowrap items-center pl-2 pr-0 shadow-none">
+        <Navbar.Group
+          align={Alignment.LEFT}
+          className="min-w-0 flex-1 cursor-pointer"
+          onClick={() => setIsOpen((prev) => !prev)}
+        >
+          <Navbar.Heading className="cursor-pointer truncate text-base font-semibold">
             {tag}
           </Navbar.Heading>
         </Navbar.Group>
-        <Navbar.Group
-          align={Alignment.RIGHT}
-          style={{
-            marginRight: "5px",
-            flexShrink: 0,
-            display: "flex",
-            gap: "4px",
-          }}
-        >
+        <Navbar.Group align={Alignment.RIGHT} className="flex-0">
           <Button
             icon={isOpen ? "chevron-up" : "chevron-down"}
             minimal
@@ -105,10 +77,7 @@ export const DiscourseSuggestionsPanel = ({
         keepChildrenMounted={true}
         transitionDuration={150}
       >
-        <div
-          className={Classes.CARD}
-          style={{ flexGrow: 1, overflowY: "auto", padding: "6px" }}
-        >
+        <div className="flex-grow overflow-y-auto p-2">
           {/* TODO: Replace with actual body*/}
           <div>Body placeholder</div>
         </div>

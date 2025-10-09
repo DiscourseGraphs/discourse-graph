@@ -58,25 +58,18 @@ const SuggestiveModeOverlay = ({
 
   return (
     <div className="suggestive-mode-overlay flex max-w-3xl">
-      <Tooltip
-        content={
-          isPanelOpen ? "Close suggestions panel" : "Open suggestions panel"
-        }
-        hoverOpenDelay={200}
-      >
-        <Button
-          data-dg-role="panel-toggle"
-          data-dg-tag={tag}
-          data-dg-block-uid={blockUid}
-          icon={isPanelOpen ? "panel-table" : "panel-stats"}
-          minimal
-          small
-          intent={isPanelOpen ? "primary" : "none"}
-          onClick={handleTogglePanel}
-          onMouseEnter={() => toggleHighlight(true)}
-          onMouseLeave={() => toggleHighlight(false)}
-        />
-      </Tooltip>
+      <Button
+        data-dg-role="panel-toggle"
+        data-dg-tag={tag}
+        data-dg-block-uid={blockUid}
+        icon={isPanelOpen ? "panel-table" : "panel-stats"}
+        minimal
+        small
+        intent={isPanelOpen ? "primary" : "none"}
+        onClick={handleTogglePanel}
+        onMouseEnter={() => toggleHighlight(true)}
+        onMouseLeave={() => toggleHighlight(false)}
+      />
     </div>
   );
 };

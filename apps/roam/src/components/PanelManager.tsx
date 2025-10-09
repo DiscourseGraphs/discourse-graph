@@ -4,14 +4,15 @@ import { Navbar, Alignment, Button } from "@blueprintjs/core";
 import { OnloadArgs } from "roamjs-components/types/native";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { DiscourseSuggestionsPanel } from "./DiscourseSuggestionsPanel";
-
-const BASE_SPACING_CLASSES = [
-  "rm-spacing--large",
-  "rm-spacing--medium",
-  "rm-spacing--small",
-  "rm-spacing--full",
-];
-const initialSpacingByWrapper = new WeakMap<HTMLElement, string | null>();
+import {
+  setupSplitView,
+  teardownSplitView,
+  getRoamElements,
+  initializeArticleWrapperObserver,
+  cleanupArticleWrapperObserver,
+  getGlobalIsMinimized,
+  setGlobalIsMinimized,
+} from "~/utils/suggestiveModeSidebarSizing";
 
 type PanelState = {
   blockUid: string;
@@ -20,7 +21,7 @@ type PanelState = {
 };
 type PanelEntry = [string, PanelState];
 
-let globalIsMinimized = false;
+let navigationObserver: MutationObserver | null = null;
 const openPanels: Map<string, PanelState> = new Map();
 
 const panelSubscribers = new Map<string, Set<(isOpen: boolean) => void>>();
@@ -54,23 +55,6 @@ export const subscribeToPanelState = (
   };
 };
 
-const getSpacingClass = (element: HTMLElement): string | null => {
-  for (const className of Array.from(element.classList)) {
-    if (BASE_SPACING_CLASSES.includes(className)) return className;
-  }
-  return null;
-};
-
-const setSpacingClass = (
-  element: HTMLElement,
-  spacingClass: string | null,
-): void => {
-  BASE_SPACING_CLASSES.forEach((className) => {
-    element.classList.remove(className);
-  });
-  if (spacingClass) element.classList.add(spacingClass);
-};
-
 const getBooleanSetting = ({
   extensionAPI,
   key,
@@ -88,59 +72,6 @@ const getBooleanSetting = ({
   } catch {
     return defaultValue;
   }
-};
-
-const setupSplitView = (
-  roamBodyMain: HTMLElement,
-  articleWrapper: HTMLElement,
-): void => {
-  roamBodyMain.style.display = "flex";
-  roamBodyMain.dataset.isSplit = "true";
-  articleWrapper.style.flex = "1 1 60%";
-
-  if (!initialSpacingByWrapper.has(articleWrapper)) {
-    initialSpacingByWrapper.set(
-      articleWrapper,
-      getSpacingClass(articleWrapper),
-    );
-  }
-  setSpacingClass(articleWrapper, "rm-spacing--full");
-  initializeArticleWrapperObserver(articleWrapper);
-};
-
-const teardownSplitView = (
-  roamBodyMain: HTMLElement,
-  articleWrapper: HTMLElement,
-): void => {
-  roamBodyMain.removeAttribute("data-is-split");
-  roamBodyMain.style.display = "";
-  articleWrapper.style.flex = "";
-  const initial = initialSpacingByWrapper.get(articleWrapper) ?? null;
-  setSpacingClass(articleWrapper, initial);
-};
-
-const updateMinimizedLayout = (
-  articleWrapper: HTMLElement | null,
-  mount: HTMLElement | null,
-  isMinimized: boolean,
-): void => {
-  if (articleWrapper) {
-    articleWrapper.style.flex = isMinimized ? "1 1 auto" : "1 1 60%";
-  }
-  if (mount) {
-    mount.style.flex = isMinimized ? "0 0 auto" : "0 0 40%";
-    mount.style.width = isMinimized ? "auto" : "";
-  }
-};
-
-const getRoamElements = (): {
-  roamBodyMain: HTMLElement | null;
-  articleWrapper: HTMLElement | null;
-} => {
-  const roamBodyMain = document.querySelector<HTMLElement>(".roam-body-main");
-  const articleWrapper =
-    roamBodyMain?.querySelector<HTMLElement>(".rm-article-wrapper") ?? null;
-  return { roamBodyMain: roamBodyMain ?? null, articleWrapper };
 };
 
 const generatePanelId = (tag: string): string =>
@@ -179,7 +110,7 @@ export const PanelContainer = (): React.ReactElement => {
     subscribeToOpenPanels,
   );
 
-  const [isMinimized, setIsMinimized] = useState(globalIsMinimized);
+  const [isMinimized, setIsMinimized] = useState(getGlobalIsMinimized());
 
   useEffect(() => {
     const { roamBodyMain, articleWrapper } = getRoamElements();
@@ -195,22 +126,21 @@ export const PanelContainer = (): React.ReactElement => {
     };
   }, []);
 
-  useEffect(() => {
-    globalIsMinimized = isMinimized;
-    const { articleWrapper } = getRoamElements();
-
-    updateMinimizedLayout(articleWrapper, containerMount, isMinimized);
-  }, [isMinimized]);
-
-  const handleMinimize = useCallback(() => setIsMinimized(true), []);
-  const handleRestore = useCallback(() => setIsMinimized(false), []);
+  const handleMinimize = useCallback(() => {
+    setGlobalIsMinimized(true);
+    setIsMinimized(true);
+  }, []);
+  const handleRestore = useCallback(() => {
+    setGlobalIsMinimized(false);
+    setIsMinimized(false);
+  }, []);
   const handleCloseAll = useCallback(() => panelManager.closeAll(), []);
 
   return (
     <div
       ref={containerRef}
       id="discourse-graph-suggestions-root"
-      className={`flex flex-col ${isMinimized ? "h-[5%] w-auto flex-none" : "h-full w-full flex-auto"}`}
+      className={`flex flex-col ${isMinimized ? "" : "h-full w-full max-w-2xl flex-auto"}`}
     >
       {!isMinimized ? (
         <div
@@ -223,8 +153,8 @@ export const PanelContainer = (): React.ReactElement => {
                 align={Alignment.LEFT}
                 className="flex-grow overflow-hidden"
               >
-                <Navbar.Heading className="truncate bg-transparent text-[13px] font-semibold">
-                  Suggested Discourse nodes
+                <Navbar.Heading className="truncate bg-transparent font-semibold">
+                  Suggested discourse nodes
                 </Navbar.Heading>
               </Navbar.Group>
               <Navbar.Group align={Alignment.RIGHT}>
@@ -275,13 +205,13 @@ export const PanelContainer = (): React.ReactElement => {
       ) : (
         <div
           id="discourse-suggestions-minimized"
-          className="m-2 flex w-fit items-center gap-1 rounded bg-white px-2 py-[6px] shadow-sm"
+          className="m-2 flex w-fit items-center gap-1 rounded bg-white px-2"
         >
           <Button
             icon="panel-stats"
             minimal
             small
-            title="Restore sidebar"
+            title="Restore suggestive mode sidebar"
             onClick={handleRestore}
           />
         </div>
@@ -289,8 +219,6 @@ export const PanelContainer = (): React.ReactElement => {
     </div>
   );
 };
-
-let navigationObserver: MutationObserver | null = null;
 
 const clearBlockHighlight = (blockUid: string): void => {
   try {
@@ -304,89 +232,6 @@ const clearBlockHighlight = (blockUid: string): void => {
     // no-op
   }
 };
-
-let articleWrapperObserver: MutationObserver | null = null;
-const cleanupNavigationObserver = (): void => {
-  if (navigationObserver) {
-    navigationObserver.disconnect();
-    navigationObserver = null;
-  }
-};
-
-const cleanupArticleWrapperObserver = (): void => {
-  if (articleWrapperObserver) {
-    articleWrapperObserver.disconnect();
-    articleWrapperObserver = null;
-  }
-};
-
-const initializeArticleWrapperObserver = (
-  articleWrapper: HTMLElement,
-): void => {
-  if (articleWrapperObserver) return;
-
-  articleWrapperObserver = new MutationObserver(() => {
-    const panelRoot = document.getElementById(
-      "discourse-graph-suggestions-root",
-    );
-    if (panelRoot && !globalIsMinimized) {
-      if (getSpacingClass(articleWrapper) !== "rm-spacing--full") {
-        setSpacingClass(articleWrapper, "rm-spacing--full");
-      }
-    }
-  });
-
-  articleWrapperObserver.observe(articleWrapper, {
-    attributes: true,
-    attributeFilter: ["class"],
-  });
-};
-
-const initializeNavigationObserver = (): void => {
-  if (navigationObserver) {
-    return;
-  }
-
-  const roamApp = document.querySelector(".roam-app");
-  if (!roamApp) return;
-
-  navigationObserver = new MutationObserver((): void => {
-    if (openPanels.size > 0) {
-      const isMountConnected = !!(
-        containerMount && document.body.contains(containerMount)
-      );
-      const panelRoot = document.getElementById(
-        "discourse-graph-suggestions-root",
-      );
-      if (!isMountConnected || !panelRoot) {
-        if (containerMount && !isMountConnected) {
-          containerMount = null;
-        }
-        mountPanelContainer();
-      }
-    }
-  });
-
-  navigationObserver.observe(roamApp, {
-    childList: true,
-    subtree: true,
-  });
-};
-
-const cleanupObservers = (): void => {
-  cleanupArticleWrapperObserver();
-  cleanupNavigationObserver();
-};
-
-if (typeof window !== "undefined") {
-  const handleUnload = (): void => {
-    cleanupObservers();
-    openPanels.clear();
-  };
-
-  window.addEventListener("beforeunload", handleUnload);
-  window.addEventListener("pagehide", handleUnload);
-}
 
 let containerMount: HTMLElement | null = null;
 
@@ -403,14 +248,17 @@ export const mountPanelContainer = (): void => {
 
   containerMount = document.createElement("div");
   containerMount.setAttribute("data-dg-role", "panel-container-mount");
+  containerMount.style.minWidth = "24rem";
   roamBodyMain.insertBefore(containerMount, articleWrapper);
 
+  // eslint-disable-next-line react/no-deprecated
   ReactDOM.render(<PanelContainer />, containerMount);
 };
 
 const unmountPanelContainer = (): void => {
   if (!containerMount) return;
 
+  // eslint-disable-next-line react/no-deprecated
   ReactDOM.unmountComponentAtNode(containerMount);
   containerMount.remove();
   containerMount = null;
@@ -500,6 +348,58 @@ export const panelManager: PanelManager = {
   isOpen: (tag: string): boolean => openPanels.has(tag),
 };
 
+const initializeNavigationObserver = (): void => {
+  if (navigationObserver) {
+    return;
+  }
+
+  const roamApp = document.querySelector(".roam-main");
+  if (!roamApp) return;
+
+  navigationObserver = new MutationObserver((): void => {
+    if (openPanels.size > 0) {
+      const isMountConnected = !!(
+        containerMount && document.body.contains(containerMount)
+      );
+      const panelRoot = document.getElementById(
+        "discourse-graph-suggestions-root",
+      );
+      if (!isMountConnected || !panelRoot) {
+        if (containerMount && !isMountConnected) {
+          containerMount = null;
+        }
+        mountPanelContainer();
+      }
+    }
+  });
+
+  navigationObserver.observe(roamApp, {
+    childList: true,
+    subtree: true,
+  });
+};
+
+const cleanupNavigationObserver = (): void => {
+  if (navigationObserver) {
+    navigationObserver.disconnect();
+    navigationObserver = null;
+  }
+};
+
+const cleanupObservers = (): void => {
+  cleanupArticleWrapperObserver();
+  cleanupNavigationObserver();
+};
+
 if (typeof window !== "undefined") {
   initializeNavigationObserver();
+  initializeArticleWrapperObserver();
+
+  const handleUnload = (): void => {
+    cleanupObservers();
+    openPanels.clear();
+  };
+
+  window.addEventListener("beforeunload", handleUnload);
+  window.addEventListener("pagehide", handleUnload);
 }
