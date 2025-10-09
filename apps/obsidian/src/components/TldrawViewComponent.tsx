@@ -31,7 +31,7 @@ export const TldrawPreviewComponent = ({
   const [currentStore, setCurrentStore] = useState<TLStore>(store);
   const [isReady, setIsReady] = useState(false);
   const editorRef = useRef<Editor | null>(null);
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
   const lastSavedDataRef = useRef<string>("");
 
   useEffect(() => {

@@ -60,9 +60,9 @@ export const TldrawPreviewComponent = ({
   const [currentStore, setCurrentStore] = useState<TLStore>(store);
   const [isReady, setIsReady] = useState(false);
   const isCreatingRelationRef = useRef(false);
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
   const lastSavedDataRef = useRef<string>("");
-  const editorRef = useRef<Editor>();
+  const editorRef = useRef<Editor>(null);
   const plugin = usePlugin();
 
   const customShapeUtils = [
