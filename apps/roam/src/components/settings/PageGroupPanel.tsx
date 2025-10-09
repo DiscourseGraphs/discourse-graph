@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import React, { useState, useCallback } from "react";
 import { Label, Button, Intent, Tag } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
@@ -16,7 +15,6 @@ const PageGroupsPanel = ({
   initialGroups: PageGroup[];
 }) => {
   const [pageGroups, setPageGroups] = useState<PageGroup[]>(initialGroups);
-
   const [newGroupName, setNewGroupName] = useState("");
   const [newPageInputs, setNewPageInputs] = useState<Record<string, string>>(
     {},
@@ -114,8 +112,7 @@ const PageGroupsPanel = ({
         }
       />
       <div className="flex flex-col gap-2">
-        {/* Add Group */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-baseline gap-2">
           <AutocompleteInput
             value={newGroupName}
             setValue={setNewGroupName}
@@ -133,7 +130,6 @@ const PageGroupsPanel = ({
           />
         </div>
 
-        {/* Existing Groups */}
         {Object.keys(pageGroups).length === 0 && (
           <div className="text-sm italic text-gray-500">No groups added.</div>
         )}
@@ -149,7 +145,7 @@ const PageGroupsPanel = ({
                 onClick={() => void removeGroup(group.uid)}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-baseline gap-2">
               <div
                 className="flex-0 min-w-[160px]"
                 onKeyDown={(e) => {
