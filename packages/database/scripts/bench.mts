@@ -35,19 +35,20 @@ const spaceId = data.id;
 supabase = await createLoggedInClient(platform, spaceId, "password");
 if (!supabase) process.exit(1);
 const queries = [
-  { schemaLocalIds: [], fetchNodes: null },
-  { fetchNodes: null },
-  { schemaLocalIds: ["claim"] },
-  { nodeAuthor: "account_2", schemaLocalIds: [], fetchNodes: null },
-  { inRelsOfTypeLocal: ["opposes"], schemaLocalIds: [] },
-  { inRelsToNodesOfTypeLocal: ["hypothesis"], schemaLocalIds: [] },
+  { schemaLocalIds: [], fetchNodes: true }, // all nodes
+  { schemaLocalIds: [], fetchNodes: false }, // all relations
+  { fetchNodes: null, fetchNodes: null }, // all schemas
+  { schemaLocalIds: ["claim"] }, // all nodes of a given type
+  { nodeAuthor: "account_2", schemaLocalIds: [], fetchNodes: null }, // all nodes of an author
+  { inRelsOfTypeLocal: ["opposes"], schemaLocalIds: [] }, // all nodes in relation to a relation type
+  { inRelsToNodesOfTypeLocal: ["hypothesis"], schemaLocalIds: [] }, // all nodes in relation to a node type
   {
     schemaLocalIds: [],
     inRelsToNodesOfAuthor: "account_3",
     relationFields: ["id"] as any,
     relationSubNodesFields: ["id"] as any,
-  },
-  // { schemaLocalIds: [], inRelsToNodeLocalIds: ["claim_10"] }, this test would need all node to have backing content
+  }, // in relation to nodes with a certain author
+  // { schemaLocalIds: [], inRelsToNodeLocalIds: ["claim_10"] }, // relation to a specific node. this test would need all node to have backing content
 ];
 const benches = [];
 for (const query of queries) {
