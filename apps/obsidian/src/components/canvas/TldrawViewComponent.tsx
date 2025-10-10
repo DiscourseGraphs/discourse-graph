@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   defaultShapeUtils,
@@ -43,13 +44,11 @@ import {
 import ToastListener from "./ToastListener";
 import { RelationsOverlay } from "./overlays/RelationOverlay";
 
-interface TldrawPreviewProps {
+type TldrawPreviewProps = {
   store: TLStore;
   file: TFile;
   assetStore: ObsidianTLAssetStore;
-}
-
-// No longer needed - using tldraw's event system instead
+};
 
 export const TldrawPreviewComponent = ({
   store,

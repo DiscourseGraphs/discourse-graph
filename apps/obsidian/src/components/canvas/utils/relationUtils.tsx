@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* Note: All the functions are a copied and modified from arrow functions of tldraw 3.14.2
 https://github.com/tldraw/tldraw/tree/main/packages/tldraw/src/lib/shapes/arrow
  */
@@ -76,7 +77,6 @@ import {
   DiscourseRelationShape,
   DiscourseRelationUtil,
 } from "~/components/canvas/shapes/DiscourseRelationShape";
-import DiscourseGraphPlugin from "~/index";
 
 let defaultPixels: { white: string; black: string } | null = null;
 let globalRenderIndex = 0;
@@ -105,26 +105,26 @@ export enum ARROW_HANDLES {
   MIDDLE = "middle",
   END = "end",
 }
-interface ShapeFillProps {
+type ShapeFillProps = {
   d: string;
   fill: TLDefaultFillStyle;
   color: string;
   theme?: TLDefaultColorTheme;
   scale: number;
-}
-interface PatternDef {
+};
+type PatternDef = {
   zoom: number;
   url: string;
   theme: "light" | "dark";
-}
-interface BoundShapeInfo<T extends TLShape = TLShape> {
+};
+type BoundShapeInfo<T extends TLShape = TLShape> = {
   shape: T;
   didIntersect: boolean;
   isExact: boolean;
   isClosed: boolean;
   transform: Mat;
   outline: Vec[];
-}
+};
 const arrowInfoCache = createComputedCache(
   "relation info",
   (editor: Editor, shape: DiscourseRelationShape) => {
@@ -619,10 +619,10 @@ export function getArrowheadPathForType(
 
   return "";
 }
-interface RelationArrowPointsInfo {
+type RelationArrowPointsInfo = {
   point: VecLike;
   int: VecLike;
-}
+};
 function getArrowPoints(
   info: RelationInfo,
   side: "start" | "end",
