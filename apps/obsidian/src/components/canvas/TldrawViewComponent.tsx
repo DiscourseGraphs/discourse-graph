@@ -257,7 +257,7 @@ export const TldrawPreviewComponent = ({
 
                 return <DiscourseToolPanel plugin={plugin} canvasFile={file} />;
               },
-              OnTheCanvas: () => <ToastListener />,
+              OnTheCanvas: () => <ToastListener canvasId={file.path} />,
               Toolbar: (props) => {
                 const tools = useTools();
                 const isDiscourseNodeSelected = useIsToolSelected(

@@ -101,6 +101,7 @@ const RelationFileItem = ({
         severity: "error",
         title: "Failed to Handle Relation Action",
         description: "Could not handle relation action",
+        targetCanvasId: file.path,
       });
     } finally {
       setIsLoading(false);
@@ -189,6 +190,7 @@ export const RelationsPanel = ({
           severity: "error",
           title: "Failed to Load Relations",
           description: "Could not load relations",
+          targetCanvasId: canvasFile.path,
         });
         setError("Failed to load relations.");
       } finally {
@@ -329,6 +331,7 @@ export const RelationsPanel = ({
         severity: "error",
         title: "Failed to Delete Relation",
         description: "Could not delete relation",
+        targetCanvasId: canvasFile.path,
       });
       console.error("Failed to delete relation", e);
     }
@@ -417,6 +420,7 @@ export const RelationsPanel = ({
         severity: "error",
         title: "Failed to Create Relation",
         description: "Could not create relation to file",
+        targetCanvasId: canvasFile.path,
       });
     }
   };

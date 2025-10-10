@@ -90,6 +90,7 @@ export const DiscourseToolPanel = ({
         document.removeEventListener("keydown", handleKeyDown);
       }
       dragState.set({ name: "idle" });
+      didDragRef.current = false;
     };
 
     const onPointerUp = (e: React.PointerEvent) => {
@@ -238,7 +239,11 @@ export const DiscourseToolPanel = ({
     setFocusedNodeTypeId(shouldUnfocus ? undefined : id);
 
     if (!shouldUnfocus) {
-      setDiscourseNodeToolContext({ plugin, canvasFile, nodeTypeId: id });
+      setDiscourseNodeToolContext(editor, {
+        plugin,
+        canvasFile,
+        nodeTypeId: id,
+      });
       editor.setCurrentTool("discourse-node");
     }
   };

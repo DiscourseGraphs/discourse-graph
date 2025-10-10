@@ -82,6 +82,7 @@ class Pointing extends StateNode {
       severity: "warning",
       title: "Relation Tool",
       description: message,
+      targetCanvasId: relationToolContext?.canvasFile.path,
     });
     this.cancel();
   };

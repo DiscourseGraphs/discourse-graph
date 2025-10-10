@@ -16,11 +16,11 @@ import {
 } from "~/constants";
 import { TFile } from "obsidian";
 
-interface TldrawPreviewProps {
+type TldrawPreviewProps = {
   store: TLStore;
   plugin: DiscourseGraphPlugin;
   file: TFile;
-}
+};
 
 export const TldrawPreviewComponent = ({
   store,
@@ -33,6 +33,7 @@ export const TldrawPreviewComponent = ({
   const editorRef = useRef<Editor | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
   const lastSavedDataRef = useRef<string>("");
+  const stableUuidRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -41,11 +42,42 @@ export const TldrawPreviewComponent = ({
     return () => clearTimeout(timer);
   }, []);
 
+  // Extract stable UUID from file on load
+  useEffect(() => {
+    const extractUuidFromFile = async () => {
+      try {
+        const fileContent = await plugin.app.vault.read(file);
+        const match = fileContent.match(
+          new RegExp(
+            `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
+          ),
+        );
+        if (match?.[1]) {
+          const data = JSON.parse(match[1]) as TLData;
+          if (data.meta?.uuid) {
+            stableUuidRef.current = data.meta.uuid;
+          }
+        }
+      } catch (error) {
+        console.warn(
+          "Failed to extract UUID from file, will generate new one:",
+          error,
+        );
+      }
+    };
+
+    void extractUuidFromFile();
+  }, [file, plugin.app.vault]);
+
   const saveChanges = useCallback(async () => {
+    if (!stableUuidRef.current) {
+      stableUuidRef.current = window.crypto.randomUUID();
+    }
+
     const newData = getTLDataTemplate({
       pluginVersion: plugin.manifest.version,
       tldrawFile: createRawTldrawFile(currentStore),
-      uuid: window.crypto.randomUUID(),
+      uuid: stableUuidRef.current,
     });
     const stringifiedData = JSON.stringify(newData, null, "\t");
 

@@ -65,6 +65,7 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
           severity: "error",
           title: "Failed to Create Node",
           description: `Could not create discourse node: ${error instanceof Error ? error.message : "Unknown error"}`,
+          targetCanvasId: canvasFile.path,
         });
       }
     },

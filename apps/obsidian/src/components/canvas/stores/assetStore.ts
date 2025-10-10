@@ -226,6 +226,7 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
   }
 
   storeAsset = async (
+    // eslint-disable-next-line
     _asset: TLAsset,
     file: File,
   ): Promise<BlockRefAssetId> => {
@@ -235,7 +236,8 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
     const ext = file.type.split("/").at(1);
     const fileName = !ext ? objectName : `${objectName}.${ext}`;
     const attachmentFolderPath =
-      this.plugin.settings.canvasAttachmentsFolderPath ?? "attachments";
+      (this.plugin.settings.canvasAttachmentsFolderPath || "").trim() ||
+      "attachments";
     let attachmentFolder = this.app.vault.getFolderByPath(attachmentFolderPath);
     if (!attachmentFolder) {
       attachmentFolder =

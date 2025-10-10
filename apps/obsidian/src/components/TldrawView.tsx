@@ -40,7 +40,7 @@ export class TldrawView extends TextFileView {
   }
 
   protected get tldrawContainer() {
-    return this.containerEl.children[1];
+    return this.containerEl;
   }
 
   override onload(): void {

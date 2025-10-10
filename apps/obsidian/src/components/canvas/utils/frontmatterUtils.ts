@@ -28,23 +28,54 @@ export const addRelationToFrontmatter = async ({
   }
 
   try {
-    const appendLinkToFrontmatter = async (file: TFile, link: string) => {
-      await app.fileManager.processFrontMatter(file, (fm: FrontMatterCache) => {
-        const existingLinks = Array.isArray(fm[relationType.id])
-          ? (fm[relationType.id] as string[])
-          : [];
+    const appendLinkToFrontmatter = async (
+      fileToMutate: TFile,
+      targetFile: TFile,
+    ) => {
+      await app.fileManager.processFrontMatter(
+        fileToMutate,
+        (fm: FrontMatterCache) => {
+          const existingLinks = Array.isArray(fm[relationType.id])
+            ? (fm[relationType.id] as string[])
+            : [];
 
-        // Check if the link already exists to avoid duplicates
-        const linkToAdd = `[[${link}]]`;
-        if (!existingLinks.includes(linkToAdd)) {
-          fm[relationType.id] = [...existingLinks, linkToAdd];
-        }
-      });
+          const linkText = app.metadataCache.fileToLinktext(
+            targetFile,
+            fileToMutate.path,
+          );
+          const linkToAdd = `[[${linkText}]]`;
+
+          const normalizeLink = (link: string) => {
+            const cleanLink = link.replace(/^\[\[|\]\]$/g, "");
+            try {
+              const file = app.metadataCache.getFirstLinkpathDest(
+                cleanLink,
+                fileToMutate.path,
+              );
+              if (file) {
+                return app.metadataCache.fileToLinktext(
+                  file,
+                  fileToMutate.path,
+                );
+              }
+            } catch {
+              return cleanLink;
+            }
+            return cleanLink;
+          };
+
+          const normalizedExistingLinks = existingLinks.map(normalizeLink);
+          const normalizedLinkToAdd = normalizeLink(linkToAdd);
+
+          if (!normalizedExistingLinks.includes(normalizedLinkToAdd)) {
+            fm[relationType.id] = [...existingLinks, linkToAdd];
+          }
+        },
+      );
     };
 
-    // Add bidirectional links
-    await appendLinkToFrontmatter(sourceFile, targetFile.basename);
-    await appendLinkToFrontmatter(targetFile, sourceFile.basename);
+    await appendLinkToFrontmatter(sourceFile, targetFile);
+    await appendLinkToFrontmatter(targetFile, sourceFile);
   } catch (error) {
     console.error("Failed to add relation to frontmatter:", error);
     throw error;
