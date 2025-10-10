@@ -30,8 +30,15 @@ import {
   WHITE_LOGO_SVG,
 } from "~/constants";
 import { TFile } from "obsidian";
-import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
-import { createDiscourseNodeUtil } from "~/components/canvas/shapes/DiscourseNodeShape";
+import {
+  ObsidianTLAssetStore,
+  resolveLinkedTFileByBlockRef,
+  extractBlockRefId,
+} from "~/components/canvas/stores/assetStore";
+import {
+  createDiscourseNodeUtil,
+  DiscourseNodeShape,
+} from "~/components/canvas/shapes/DiscourseNodeShape";
 import { DiscourseNodeTool } from "./DiscourseNodeTool";
 import { DiscourseToolPanel } from "./DiscourseToolPanel";
 import { usePlugin } from "~/components/PluginContext";
@@ -43,6 +50,7 @@ import {
 } from "~/components/canvas/shapes/DiscourseRelationBinding";
 import ToastListener from "./ToastListener";
 import { RelationsOverlay } from "./overlays/RelationOverlay";
+import { showToast } from "./utils/toastUtils";
 
 type TldrawPreviewProps = {
   store: TLStore;
@@ -60,6 +68,8 @@ export const TldrawPreviewComponent = ({
   const [isReady, setIsReady] = useState(false);
   const isCreatingRelationRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
+  const lastShiftClickRef = useRef<number>(0);
+  const SHIFT_CLICK_DEBOUNCE_MS = 300; // Prevent double clicks within 300ms
   const lastSavedDataRef = useRef<string>("");
   const editorRef = useRef<Editor>(null);
   const plugin = usePlugin();
@@ -188,6 +198,93 @@ export const TldrawPreviewComponent = ({
         if (isCreatingRelationRef.current) {
           BaseRelationBindingUtil.checkAndReifyRelation(editor);
           isCreatingRelationRef.current = false;
+        }
+
+        if (e.shiftKey) {
+          const now = Date.now();
+
+          // Debounce to prevent double opening
+          if (now - lastShiftClickRef.current < SHIFT_CLICK_DEBOUNCE_MS) {
+            return;
+          }
+          lastShiftClickRef.current = now;
+
+          const shapeAtPoint = editor.getShapeAtPoint(
+            editor.inputs.currentPagePoint,
+          );
+
+          if (!shapeAtPoint || shapeAtPoint.type !== "discourse-node") return;
+          const shape = shapeAtPoint as DiscourseNodeShape;
+          const selectedShapes = editor.getSelectedShapes();
+          const selectedDiscourseNodes = selectedShapes.filter(
+            (s) => s.type === "discourse-node",
+          );
+
+          if (selectedDiscourseNodes.length > 1) {
+            return;
+          }
+
+          const blockRefId = extractBlockRefId(shape.props.src ?? undefined);
+          if (!blockRefId) {
+            showToast({
+              severity: "warning",
+              title: "Cannot open node",
+              description: "No valid block reference found",
+            });
+            return;
+          }
+
+          const canvasFileCache = plugin.app.metadataCache.getFileCache(file);
+          if (!canvasFileCache) {
+            showToast({
+              severity: "error",
+              title: "Error",
+              description: "Could not read canvas file",
+            });
+            return;
+          }
+
+          void resolveLinkedTFileByBlockRef({
+            app: plugin.app,
+            canvasFile: file,
+            blockRefId,
+            canvasFileCache,
+          })
+            .then(async (linkedFile) => {
+              if (!linkedFile) {
+                showToast({
+                  severity: "warning",
+                  title: "Cannot open node",
+                  description: "Linked file not found",
+                });
+                return;
+              }
+
+              const rightSplit = plugin.app.workspace.rightSplit;
+              const rightLeaf = plugin.app.workspace.getRightLeaf(false);
+
+              if (rightLeaf) {
+                if (rightSplit && rightSplit.collapsed) {
+                  rightSplit.expand();
+                }
+                await rightLeaf.openFile(linkedFile);
+                plugin.app.workspace.setActiveLeaf(rightLeaf);
+              } else {
+                const leaf = plugin.app.workspace.getLeaf("split", "vertical");
+                await leaf.openFile(linkedFile);
+                plugin.app.workspace.setActiveLeaf(leaf);
+              }
+
+              editor.selectNone();
+            })
+            .catch((error) => {
+              console.error("Error opening linked file:", error);
+              showToast({
+                severity: "error",
+                title: "Error",
+                description: "Failed to open linked file",
+              });
+            });
         }
       }
     });
