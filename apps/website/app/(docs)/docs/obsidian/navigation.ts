@@ -55,6 +55,10 @@ export const navigation: NavigationList = [
         title: "Creating Relationships",
         href: `${ROOT}/creating-discourse-relationships`,
       },
+      {
+        title: "Canvas",
+        href: `${ROOT}/canvas`,
+      },
     ],
   },
 
