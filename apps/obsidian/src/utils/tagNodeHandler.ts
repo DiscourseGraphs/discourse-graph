@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { App, Editor, Notice, MarkdownView } from "obsidian";
 import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
@@ -5,7 +6,6 @@ import { CreateNodeModal } from "~/components/CreateNodeModal";
 import { createDiscourseNodeFile, formatNodeName } from "./createNode";
 import { getNodeTagColors } from "./colorUtils";
 
-// Constants
 const HOVER_DELAY = 200;
 const HIDE_DELAY = 100;
 const OBSERVER_RESTART_DELAY = 100;
@@ -15,7 +15,7 @@ const sanitizeTitle = (title: string): string => {
   const invalidChars = /[\\/:]/g;
 
   // Remove list item indicators (numbered, bulleted, etc.)
-  const listIndicator = /^(\s*)(\d+\.\s+|\-\s+|\*\s+|\+\s+)/;
+  const listIndicator = /^(\s*)(\d+\.\s+|-\s+|\*\s+|\+\s+)/;
 
   return title
     .replace(listIndicator, "")
@@ -147,6 +147,10 @@ export class TagNodeHandler {
    * Process an element and its children for discourse node tags
    */
   private processElement(element: HTMLElement): void {
+    if (!document.contains(element)) {
+      return;
+    }
+
     this.plugin.settings.nodeTypes.forEach((nodeType) => {
       const nodeTypeName = nodeType.name.toLowerCase();
       const tagSelector = `.cm-tag-${nodeTypeName}`;
@@ -163,7 +167,8 @@ export class TagNodeHandler {
           // Skip if this tag is already being processed or is inside a tooltip
           if (
             tagEl.dataset.discourseTagProcessed === "true" ||
-            tagEl.closest(".discourse-tag-popover") === tagEl
+            tagEl.closest(".discourse-tag-popover") === tagEl ||
+            !document.contains(tagEl)
           ) {
             return;
           }
@@ -336,6 +341,9 @@ export class TagNodeHandler {
         { line: lineNumber, ch: 0 },
         { line: lineNumber, ch: actualLineText.length },
       );
+
+      this.cleanupProcessedTags();
+      this.cleanupTooltips();
     } catch (error) {
       console.error("Error creating discourse node from tag:", error);
       new Notice(
@@ -357,12 +365,13 @@ export class TagNodeHandler {
     nodeType: DiscourseNode,
     editor: Editor,
   ): void {
-    // Mark as processed to avoid duplicate handlers
     if (tagElement.dataset.discourseTagProcessed === "true") return;
     tagElement.dataset.discourseTagProcessed = "true";
 
-    // Also check if hover functionality is already attached
-    if ((tagElement as any).__discourseTagCleanup) {
+    if (
+      (tagElement as HTMLElement & { __discourseTagCleanup?: () => void })
+        .__discourseTagCleanup
+    ) {
       return;
     }
 
