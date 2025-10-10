@@ -12,15 +12,20 @@ const RelationshipTypeSettings = () => {
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  const handleRelationTypeChange = async (
+  const handleRelationTypeChange = (
     index: number,
     field: keyof DiscourseRelationType,
     value: string,
-  ): Promise<void> => {
+  ): void => {
     const updatedRelationTypes = [...relationTypes];
     if (!updatedRelationTypes[index]) {
       const newId = generateUid("rel");
-      updatedRelationTypes[index] = { id: newId, label: "", complement: "" };
+      updatedRelationTypes[index] = {
+        id: newId,
+        label: "",
+        complement: "",
+        color: "#000000",
+      };
     }
 
     updatedRelationTypes[index][field] = value;
@@ -37,6 +42,7 @@ const RelationshipTypeSettings = () => {
         id: newId,
         label: "",
         complement: "",
+        color: "#000000",
       },
     ];
     setRelationTypes(updatedRelationTypes);
@@ -47,6 +53,7 @@ const RelationshipTypeSettings = () => {
     const relationType = relationTypes[index] || {
       label: "Unnamed",
       complement: "",
+      color: "#000000",
     };
     const modal = new ConfirmationModal(plugin.app, {
       title: "Delete Relation Type",
@@ -77,7 +84,7 @@ const RelationshipTypeSettings = () => {
 
   const handleSave = async (): Promise<void> => {
     for (const relType of relationTypes) {
-      if (!relType.id || !relType.label || !relType.complement) {
+      if (!relType.id || !relType.label || !relType.complement || !relType.color) {
         new Notice("All fields are required for relation types.");
         return;
       }
@@ -124,6 +131,15 @@ const RelationshipTypeSettings = () => {
                   handleRelationTypeChange(index, "complement", e.target.value)
                 }
                 className="flex-1"
+              />
+              <input
+                type="color"
+                value={relationType.color}
+                onChange={(e) =>
+                  handleRelationTypeChange(index, "color", e.target.value)
+                }
+                className="w-12 h-8 rounded border"
+                title="Relation color"
               />
               <button
                 onClick={() => confirmDeleteRelationType(index)}
