@@ -26,6 +26,7 @@ import {
 import { AddPullWatch } from "roamjs-components/types";
 import { LEGACY_SCHEMA } from "~/data/legacyTldrawSchema";
 import sendErrorEmail from "~/utils/sendErrorEmail";
+import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 
 const THROTTLE = 350;
 
@@ -141,8 +142,18 @@ export const useRoamStore = ({
         shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
         bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
       });
-    } catch (error) {
+    } catch (e) {
+      const error = e as Error;
       console.error("Failed to create store:", error);
+      sendErrorEmail({
+        error,
+        type: "Failed to create TLStore",
+        context: {
+          pageUid,
+          user: getCurrentUserDisplayName(),
+          initialSnapshot,
+        },
+      }).catch(() => {});
       return null;
     }
 
