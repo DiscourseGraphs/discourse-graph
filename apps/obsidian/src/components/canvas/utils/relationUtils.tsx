@@ -552,11 +552,9 @@ function getBoundShapeRelationships(
   }
   return "safe";
 }
-function PatternFill({
-  d,
-  color,
-  theme = useDefaultColorTheme(),
-}: ShapeFillProps) {
+function PatternFill(props: ShapeFillProps) {
+  const { d, color } = props;
+  const theme = props.theme ?? useDefaultColorTheme();
   const editor = useEditor();
   const svgExport = useSvgExportContext();
   const zoomLevel = useValue("zoomLevel", () => editor.getZoomLevel(), [
@@ -1785,7 +1783,6 @@ export function updateArrowTerminal({
 
     if (intersections?.length !== 1) {
       throw new Error("expected 1 intersection");
-      return;
     }
     const bend =
       Vec.Dist(newMidPoint, intersections[0]!) * Math.sign(relation.props.bend);

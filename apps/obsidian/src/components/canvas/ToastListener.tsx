@@ -1,39 +1,41 @@
 import { useEffect } from "react";
 import { useToasts, TLUiToast } from "tldraw";
 
-export const dispatchToastEvent = (toast: TLUiToast) => {
+export type ScopedToastEvent = TLUiToast & {
+  targetCanvasId?: string;
+};
+
+export const dispatchToastEvent = (
+  toast: TLUiToast,
+  targetCanvasId?: string,
+) => {
+  const scopedToast: ScopedToastEvent = {
+    ...toast,
+    targetCanvasId,
+  };
   document.dispatchEvent(
-    new CustomEvent<TLUiToast>("show-toast", { detail: toast }),
+    new CustomEvent<ScopedToastEvent>("show-toast", { detail: scopedToast }),
   );
 };
 
-const ToastListener = () => {
+type ToastListenerProps = {
+  canvasId: string;
+};
+
+const ToastListener = ({ canvasId }: ToastListenerProps) => {
   // this warning comes from the useToasts hook
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const { addToast } = useToasts();
 
   useEffect(() => {
-    const handleToastEvent = ((event: CustomEvent<TLUiToast>) => {
-      const {
-        id,
-        icon,
-        title,
-        description,
-        actions,
-        keepOpen,
-        closeLabel,
-        severity,
-      } = event.detail;
-      addToast({
-        id,
-        icon,
-        title,
-        description,
-        actions,
-        keepOpen,
-        closeLabel,
-        severity,
-      });
+    const handleToastEvent = ((event: CustomEvent<ScopedToastEvent>) => {
+      const { targetCanvasId, ...toast } = event.detail;
+
+      if (targetCanvasId && targetCanvasId !== canvasId) {
+        return;
+      }
+
+      addToast(toast);
     }) as EventListener;
 
     document.addEventListener("show-toast", handleToastEvent);
@@ -41,7 +43,7 @@ const ToastListener = () => {
     return () => {
       document.removeEventListener("show-toast", handleToastEvent);
     };
-  }, [addToast]);
+  }, [addToast, canvasId]);
 
   return null;
 };

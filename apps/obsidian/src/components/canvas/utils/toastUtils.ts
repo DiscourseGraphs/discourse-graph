@@ -5,10 +5,12 @@ export const showToast = ({
   severity,
   title,
   description,
+  targetCanvasId,
 }: {
   severity: TLUiToast["severity"];
   title: string;
   description?: string;
+  targetCanvasId?: string;
 }) => {
   const toast: TLUiToast = {
     id: `${severity}-${Date.now()}`,
@@ -17,5 +19,5 @@ export const showToast = ({
     severity,
     keepOpen: false,
   };
-  dispatchToastEvent(toast);
+  dispatchToastEvent(toast, targetCanvasId);
 };

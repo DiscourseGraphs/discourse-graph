@@ -16,10 +16,3 @@ export const getNodeTypeIdFromFrontmatter = (
   if (!frontmatter) return null;
   return (frontmatter as { nodeTypeId?: string })?.nodeTypeId ?? null;
 };
-
-export const getRelationsFromFrontmatter = (
-  _frontmatter: FrontmatterRecord | null,
-): unknown[] => {
-  // TODO: derive relations from frontmatter when schema is defined
-  return [];
-};

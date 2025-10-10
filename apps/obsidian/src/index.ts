@@ -63,14 +63,18 @@ export default class DiscourseGraphPlugin extends Plugin {
           }
         },
       ),
-      // @ts-ignore - file-open event exists but is not in the type definitions
-      this.app.workspace.on("file-open", (file: TFile) => {
+    );
+
+    this.registerEvent(
+      this.app.workspace.on("file-open", (file: TFile | null) => {
+        if (!file) return;
+
         const cache = this.app.metadataCache.getFileCache(file);
         if (cache?.frontmatter?.[FRONTMATTER_KEY]) {
           const leaf =
             this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
           if (leaf) {
-            leaf.setViewState({
+            void leaf.setViewState({
               type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
               state: leaf.view.getState(),
             });

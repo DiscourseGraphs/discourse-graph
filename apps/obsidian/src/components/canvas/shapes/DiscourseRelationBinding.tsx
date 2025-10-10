@@ -185,11 +185,13 @@ function arrowDidUpdate(editor: Editor, arrow: DiscourseRelationShape) {
     const binding = bindings[handle];
     if (!binding) continue;
     const boundShape = editor.getShape(binding.toId);
+    if (!boundShape) {
+      updateArrowTerminal({ editor, arrow, terminal: handle, unbind: true });
+      continue;
+    }
     const isShapeInSamePageAsArrow =
       editor.getAncestorPageId(arrow) === editor.getAncestorPageId(boundShape);
-    if (!boundShape || !isShapeInSamePageAsArrow) {
-      // console.log("deleted arrow");
-      // editor.deleteShape(arrow.id); // we don't want to keep the arrow
+    if (!isShapeInSamePageAsArrow) {
       updateArrowTerminal({ editor, arrow, terminal: handle, unbind: true });
     }
   }
