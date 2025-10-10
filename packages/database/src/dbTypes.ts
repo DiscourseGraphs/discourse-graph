@@ -578,9 +578,49 @@ export type Database = {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
       }
+      concept_in_relations: {
+        Args: { concept: Database["public"]["Tables"]["Concept"]["Row"] }
+        Returns: {
+          arity: number | null
+          author_id: number | null
+          created: string
+          description: string | null
+          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
+          id: number
+          is_schema: boolean
+          last_modified: string
+          literal_content: Json
+          name: string
+          reference_content: Json
+          refs: number[]
+          represented_by_id: number | null
+          schema_id: number | null
+          space_id: number
+        }[]
+      }
       concept_in_space: {
         Args: { concept_id: number }
         Returns: boolean
+      }
+      concepts_of_relation: {
+        Args: { relation: Database["public"]["Tables"]["Concept"]["Row"] }
+        Returns: {
+          arity: number | null
+          author_id: number | null
+          created: string
+          description: string | null
+          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
+          id: number
+          is_schema: boolean
+          last_modified: string
+          literal_content: Json
+          name: string
+          reference_content: Json
+          refs: number[]
+          represented_by_id: number | null
+          schema_id: number | null
+          space_id: number
+        }[]
       }
       content_in_space: {
         Args: { content_id: number }

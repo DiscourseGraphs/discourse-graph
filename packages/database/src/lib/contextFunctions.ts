@@ -2,10 +2,7 @@ import type { Enums, Tables, TablesInsert } from "@repo/database/dbTypes";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import type { FunctionsResponse } from "@supabase/functions-js";
 import { nextApiRoot } from "@repo/utils/execContext";
-import {
-  createClient,
-  type DGSupabaseClient,
-} from "@repo/database/lib/client";
+import { createClient, type DGSupabaseClient } from "@repo/database/lib/client";
 
 export const spaceAnonUserEmail = (platform: string, space_id: number) =>
   `${platform.toLowerCase()}-${space_id}-anon@database.discoursegraphs.com`;
@@ -123,8 +120,8 @@ export const createLoggedInClient = async (
   platform: Platform,
   spaceId: number,
   password: string,
-): Promise<DGSupabaseClient|null> => {
-  const loggedInClient: DGSupabaseClient|null = createClient();
+): Promise<DGSupabaseClient | null> => {
+  const loggedInClient: DGSupabaseClient | null = createClient();
   if (!loggedInClient) return null;
   const { error } = await loggedInClient.auth.signInWithPassword({
     email: spaceAnonUserEmail(platform, spaceId),
