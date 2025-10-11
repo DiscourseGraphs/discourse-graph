@@ -1,11 +1,21 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
 } from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
-
+import {
+  DefaultSelectionBackground,
+  DefaultSelectionForeground,
+  TLFilesExternalContent,
+  TLSvgTextExternalContent,
+} from "@tldraw/editor";
 import {
   Editor as TldrawApp,
   TLEditorComponents,
@@ -13,8 +23,6 @@ import {
   TldrawEditor,
   TldrawHandles,
   TldrawScribble,
-  TldrawSelectionBackground,
-  TldrawSelectionForeground,
   TldrawUi,
   defaultBindingUtils,
   defaultShapeTools,
@@ -39,7 +47,6 @@ import {
   registerDefaultExternalContentHandlers,
   registerDefaultSideEffects,
   defaultEditorAssetUrls,
-  usePreloadAssets,
   StateNode,
   DefaultSpinner,
   Box,
@@ -366,8 +373,8 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   const defaultEditorComponents: TLEditorComponents = {
     Scribble: TldrawScribble,
     CollaboratorScribble: TldrawScribble,
-    SelectionForeground: TldrawSelectionForeground,
-    SelectionBackground: TldrawSelectionBackground,
+    SelectionForeground: DefaultSelectionForeground,
+    SelectionBackground: DefaultSelectionBackground,
     Handles: TldrawHandles,
   };
   const editorComponents: TLEditorComponents = {
@@ -446,8 +453,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     pageUid,
   });
 
-  // ASSETS
-  const assetLoading = usePreloadAssets(defaultEditorAssetUrls);
+  // ASSETS - Asset preloading removed in tldraw v4
 
   // Handle actions (roamjs:query-builder:action)
   useEffect(() => {
@@ -590,16 +596,14 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             </button>
           </div>
         </div>
-      ) : !store || !assetLoading.done || !extensionAPI || !isPluginReady ? (
+      ) : !store || !extensionAPI || !isPluginReady ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
-              {error || assetLoading.error
-                ? "Error Loading Canvas"
-                : "Loading Canvas"}
+              {error ? "Error Loading Canvas" : "Loading Canvas"}
             </h2>
             <p className="mb-4 text-gray-600">
-              {error || assetLoading.error ? (
+              {error ? (
                 "There was a problem loading the Tldraw canvas. Please try again later."
               ) : (
                 <DefaultSpinner />
@@ -752,20 +756,11 @@ const InsideEditorAndUiContext = ({
   };
 
   useEffect(() => {
-    registerDefaultExternalContentHandlers(
-      editor,
-      {
-        maxImageDimension: 5000,
-        maxAssetSize: 10 * 1024 * 1024, // 10mb
-        acceptedImageMimeTypes: DEFAULT_SUPPORTED_IMAGE_TYPES,
-        acceptedVideoMimeTypes: DEFAULT_SUPPORT_VIDEO_TYPES,
-      },
-      { toasts, msg },
-    );
+    registerDefaultExternalContentHandlers(editor, { toasts, msg });
     editor.registerExternalContentHandler(
       "files",
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      async (content: TLExternalContent) => {
+      async (content: TLFilesExternalContent) => {
         if (content.type !== "files") {
           console.error("Expected files, received:", content.type);
           return;
@@ -816,7 +811,7 @@ const InsideEditorAndUiContext = ({
     editor.registerExternalContentHandler(
       "svg-text",
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      async (content: TLExternalContent) => {
+      async (content: TLSvgTextExternalContent) => {
         if (content.type !== "svg-text") {
           console.error("Expected svg-text, received:", content.type);
           return;
@@ -939,13 +934,13 @@ const InsideEditorAndUiContext = ({
       };
     };
     const cleanupCustomSideEffects = registerCustomSideEffects();
-    const [cleanupSideEffects] = registerDefaultSideEffects(editor);
+    const cleanupSideEffects = registerDefaultSideEffects(editor);
 
     return () => {
       cleanupSideEffects();
       cleanupCustomSideEffects();
     };
-  }, [editor, msg, toasts]);
+  }, [editor, msg, toasts, isImage]);
 
   return <CustomContextMenu extensionAPI={extensionAPI} allNodes={allNodes} />;
 };
