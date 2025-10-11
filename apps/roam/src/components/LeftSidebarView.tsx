@@ -218,11 +218,9 @@ const PersonalSectionItem = ({
         <div className="flex w-full items-center justify-between">
           <div
             className="flex items-center"
-            onClick={(e: React.MouseEvent) => {
+            onClick={() => {
               if ((section.children?.length || 0) > 0) {
                 handleChevronClick();
-              } else {
-                void openTarget(e, section.text);
               }
             }}
           >
@@ -574,6 +572,11 @@ const FavouritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const initialConfig = useConfig();
   const [config, setConfig] = useState(initialConfig);
+
+  useEffect(() => {
+    setConfig(initialConfig);
+  }, [initialConfig]);
+
   return (
     <>
       <FavouritesPopover onloadArgs={onloadArgs} />
