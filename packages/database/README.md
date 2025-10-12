@@ -71,10 +71,12 @@ If schema changes are deployed to `main` by another developer while you work on 
 
 There are [cucumber](https://cucumber.io/) scenarios (in `packages/database/features`) to test the flow of database operations. We have not yet automated those tests, but you should run against the local environment when developing the database. You will need to:
 
+1. set `SUPABASE_DB=local` in `packages/database/.env`
 1. Run `turbo dev` in one terminal (in the root directory)
 2. In another other terminal, `cd` to this directory (`packages/database`) and run the tests with `pnpm run test`
 
 Think of adding new tests if appropriate!
+Some more details in `doc/tests.md`
 
 ## Using local code against your Supabase branch
 

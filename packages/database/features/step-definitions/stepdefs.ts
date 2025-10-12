@@ -178,6 +178,8 @@ Given(
 
 const userEmail = (userAccountId: string) => `${userAccountId}@example.com`;
 
+// Invoke the edge function to log an account into a database.
+// Use this instead of trying to create spaces directly.
 When(
   "the user {word} opens the {word} plugin in space {word}",
   async (userAccountId: string, platform: Platform, spaceName: string) => {
@@ -210,12 +212,14 @@ When(
   },
 );
 
+// A test of non-empty object count for the named table
 Then("the database should contain a {word}", async (tableName: TableName) => {
   const client = getServiceClient();
   const response = await client.from(tableName).select("*", { count: "exact" });
   assert.notEqual(response.count || 0, 0);
 });
 
+// A test of absolute object count for the named table
 Then(
   "the database should contain {int} {word}",
   async (expectedCount: number, tableName: TableName) => {
@@ -238,6 +242,7 @@ const getLoggedinDatabase = async (spaceId: number) => {
   return client;
 };
 
+// A test of non-empty object count for the named table, as seen by the user
 Then(
   "a user logged in space {word} should see a {word} in the database",
   async (spaceName: string, tableName: TableName) => {
@@ -252,6 +257,7 @@ Then(
   },
 );
 
+// A test of exact object count for the named table, as seen by the user
 Then(
   "a user logged in space {word} should see {int} {word} in the database",
   async (spaceName: string, expectedCount: number, tableName: TableName) => {
@@ -266,6 +272,7 @@ Then(
   },
 );
 
+// invoke the upsert_accounts_in_space function, expects json
 Given(
   "user {word} upserts these accounts to space {word}:",
   async (userName: string, spaceName: string, accountsString: string) => {
@@ -282,6 +289,7 @@ Given(
   },
 );
 
+// invoke the upsert_documents function, expects json
 Given(
   "user {word} upserts these documents to space {word}:",
   async (userName: string, spaceName: string, docString: string) => {
@@ -298,6 +306,7 @@ Given(
   },
 );
 
+// invoke the upsert_content function, expects json
 Given(
   "user {word} upserts this content to space {word}:",
   async (userName: string, spaceName: string, docString: string) => {
@@ -318,6 +327,7 @@ Given(
   },
 );
 
+// invoke the upsert_concepts function, expects json
 Given(
   "user {word} upserts these concepts to space {word}:",
   async (userName: string, spaceName: string, docString: string) => {
