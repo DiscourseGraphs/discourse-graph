@@ -338,11 +338,11 @@ const SuggestionsBody = ({
         pageTitle: tag,
       });
       setHydeFilteredNodes(results);
-      setHasPerformedSearch(true);
     } catch (error) {
       console.error("Hyde search failed:", error);
       setHasPerformedSearch(true);
     } finally {
+      setHasPerformedSearch(true);
       setIsSearchingHyde(false);
     }
   };

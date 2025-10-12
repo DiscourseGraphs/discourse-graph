@@ -32,7 +32,6 @@ const SuggestiveModeSettings = () => {
       });
       setSuggestiveModeUid(smUid);
       setPageGroupsUid(pgUid);
-      setSettings(getFormattedConfigTree());
     })();
   }, [pageGroupsUid]);
 

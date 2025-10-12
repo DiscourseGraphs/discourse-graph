@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Label, Button, Intent, Tag } from "@blueprintjs/core";
+import { Label, Button, Intent, Tag, InputGroup } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import createBlock from "roamjs-components/writes/createBlock";
@@ -22,6 +22,7 @@ const PageGroupsPanel = ({
   const [autocompleteKeys, setAutocompleteKeys] = useState<
     Record<string, number>
   >({});
+  const [groupKey, setGroupKeys] = useState(0);
 
   const addGroup = async (name: string) => {
     if (!name || pageGroups.some((g) => g.name === name)) return;
@@ -32,6 +33,7 @@ const PageGroupsPanel = ({
       });
       setPageGroups([...pageGroups, { uid: newGroupUid, name, pages: [] }]);
       setNewGroupName("");
+      setGroupKeys((prev) => prev + 1);
     } catch (e) {
       console.error("Error adding group", e);
     }
@@ -103,6 +105,10 @@ const PageGroupsPanel = ({
   const getAutocompleteKey = (groupUid: string) =>
     autocompleteKeys[groupUid] || 0;
 
+  const handleNewGroupNameChange = useCallback((value: string) => {
+    setNewGroupName(value);
+  }, []);
+
   return (
     <Label>
       Page Groups
@@ -112,12 +118,21 @@ const PageGroupsPanel = ({
         }
       />
       <div className="flex flex-col gap-2">
-        <div className="flex items-baseline gap-2">
-          <AutocompleteInput
+        <div
+          className="flex items-baseline gap-2"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && newGroupName) {
+              e.preventDefault();
+              e.stopPropagation();
+              void addGroup(newGroupName);
+            }
+          }}
+        >
+          <InputGroup
+            key={groupKey}
             value={newGroupName}
-            setValue={setNewGroupName}
-            placeholder="Page group name…"
-            options={[]}
+            onChange={(e) => handleNewGroupNameChange(e.target.value)}
+            placeholder="Page group name ..."
           />
           <Button
             icon="plus"

@@ -18,6 +18,7 @@ type ApiSupabaseResultItem = {
   text_content: string;
   similarity: number;
 };
+/* eslint-disable @typescript-eslint/naming-convention */
 
 export type EmbeddingVectorType = number[];
 
@@ -440,7 +441,6 @@ export const performHydeSearch = async ({
     (extensionAPI.settings.get(
       "context-grab-parent-child-context",
     ) as boolean) ?? true;
-
 
   let candidateNodesForHyde: SuggestedNode[] = [];
 

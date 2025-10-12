@@ -16,6 +16,7 @@ export type RoamDiscourseNodeData = {
   type: string;
   node_title?: string;
 };
+/* eslint-enable @typescript-eslint/naming-convention */
 
 export type DiscourseNodesSinceResult = {
   pageNodes: RoamDiscourseNodeData[];
