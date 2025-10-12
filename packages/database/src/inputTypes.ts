@@ -1,4 +1,4 @@
-import type { Database, TablesInsert } from "@repo/database/dbTypes";
+import type { Database } from "@repo/database/dbTypes";
 
 export type LocalAccountDataInput = Partial<
   Database["public"]["CompositeTypes"]["account_local_input"]

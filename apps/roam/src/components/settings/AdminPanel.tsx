@@ -7,15 +7,15 @@ import {
   SupabaseContext,
 } from "~/utils/supabaseContext";
 import {
-  getNodes,
-  getNodeSchemas,
+  getConcepts,
+  getSchemaConcepts,
   nodeSchemaSignature,
   type NodeSignature,
-  type PConcept,
+  type PConceptFull,
 } from "@repo/database/lib/queries";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 
-const NodeRow = ({ node }: { node: PConcept }) => {
+const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
     <tr>
       <td>{node.name}</td>
@@ -69,7 +69,7 @@ const NodeRow = ({ node }: { node: PConcept }) => {
   );
 };
 
-const NodeTable = ({ nodes }: { nodes: PConcept[] }) => {
+const NodeTable = ({ nodes }: { nodes: PConceptFull[] }) => {
   return (
     <HTMLTable>
       <thead>
@@ -83,7 +83,7 @@ const NodeTable = ({ nodes }: { nodes: PConcept[] }) => {
         </tr>
       </thead>
       <tbody>
-        {nodes.map((node: PConcept) => (
+        {nodes.map((node: PConceptFull) => (
           <NodeRow node={node} key={node.id} />
         ))}
       </tbody>
@@ -97,7 +97,7 @@ const AdminPanel = () => {
   const [schemas, setSchemas] = useState<NodeSignature[]>([]);
   const [showingSchema, setShowingSchema] =
     useState<NodeSignature>(nodeSchemaSignature);
-  const [nodes, setNodes] = useState<PConcept[]>([]);
+  const [nodes, setNodes] = useState<PConceptFull[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingNodes, setLoadingNodes] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -130,10 +130,10 @@ const AdminPanel = () => {
     void (async () => {
       if (!ignore && supabase !== null && context !== null) {
         try {
-          setSchemas(await getNodeSchemas(supabase, context.spaceId));
+          setSchemas(await getSchemaConcepts(supabase, context.spaceId));
         } catch (e) {
           setError((e as Error).message);
-          console.error("getNodeSchemas failed", e);
+          console.error("getSchemaConcepts failed", e);
         } finally {
           setLoading(false);
         }
@@ -157,7 +157,7 @@ const AdminPanel = () => {
         try {
           setLoadingNodes(true);
           setNodes(
-            await getNodes({
+            await getConcepts({
               supabase,
               spaceId,
               schemaLocalIds: showingSchema.sourceLocalId,
@@ -165,7 +165,7 @@ const AdminPanel = () => {
           );
         } catch (e) {
           setError((e as Error).message);
-          console.error("getNodes failed", e);
+          console.error("getConcepts failed", e);
         } finally {
           setLoadingNodes(false);
         }

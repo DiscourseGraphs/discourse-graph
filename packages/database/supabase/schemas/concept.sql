@@ -160,6 +160,28 @@ $$;
 COMMENT ON FUNCTION public.instances_of_schema(public."Concept")
 IS 'Computed one-to-many: returns all Concept instances that are based on the given schema Concept.';
 
+
+CREATE OR REPLACE FUNCTION public.concept_in_relations(concept public."Concept")
+RETURNS SETOF public."Concept" STRICT STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public."Concept" WHERE refs @> ARRAY[concept.id];
+$$;
+COMMENT ON FUNCTION public.concept_in_relations(public."Concept")
+IS 'Computed one-to-many: returns all Concept instances that are relations including the current concept.';
+
+CREATE OR REPLACE FUNCTION public.concepts_of_relation(relation public."Concept")
+RETURNS SETOF public."Concept" STRICT STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT * from public."Concept" WHERE id = any(relation.refs);
+$$;
+COMMENT ON FUNCTION public.concepts_of_relation(public."Concept")
+IS 'Computed one-to-many: returns all Concept instances are referred to in the current concept.';
+
+
 -- private function. Transform concept with local (platform) references to concept with db references
 CREATE OR REPLACE FUNCTION public._local_concept_to_db_concept(data public.concept_local_input)
 RETURNS public."Concept" STABLE
