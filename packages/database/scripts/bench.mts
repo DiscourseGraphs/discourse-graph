@@ -37,7 +37,7 @@ if (!supabase) process.exit(1);
 const queries = {
   "Query all nodes": { schemaLocalIds: [], fetchNodes: true },
   "Query all relations": { schemaLocalIds: [], fetchNodes: false },
-  "Query all node and relation schemas": { fetchNodes: null, fetchNodes: null },
+  "Query all node and relation schemas": { fetchNodes: null },
   "Query all nodes of a given type": { schemaLocalIds: ["claim"] },
   "Query all nodes and relations by a given author": {
     nodeAuthor: "account_2",
@@ -70,7 +70,10 @@ const queries = {
     relationFields: ["id"] as any,
     relationSubNodesFields: ["id"] as any,
   },
-  // "In relation to a specific node.": { schemaLocalIds: [], inRelsToNodeLocalIds: ["claim_10"] }, //  this test would need all node to have backing content
+  "In relation to a specific node.": {
+    schemaLocalIds: [],
+    inRelsToNodeLocalIds: ["content_10"],
+  }, //  this test would need all node to have backing content
 };
 const benches = [];
 for (const [description, query] of Object.entries(queries)) {

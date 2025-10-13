@@ -93,90 +93,132 @@ def generate_accounts(url, num_accounts, space_id):
     return accounts
 
 
-def generate_concept_nodes(url, space_id, accounts, node_specs):
+def generate_content(url, space_id, accounts, target_num: int):
     account_ids = list(accounts.keys())
     num_accounts = len(account_ids)
     now = datetime.now().isoformat()
-    random_account = lambda: account_ids[randint(0, num_accounts - 1)]
 
-    schema_content = [
-        dict(
-            text=schema["name"],
+    def make_content(i):
+        account_id = account_ids[randint(0, num_accounts - 1)]
+        page_local_id = (f"content_{i}",)
+        return dict(
+            text=f"content {i}",
+            source_local_id=page_local_id,
             created=now,
             last_modified=now,
             space_id=space_id,
-            author_id=random_account(),
-            source_local_id=schema["name"],
+            author_id=account_id,
             document_inline=dict(
-                source_local_id=schema["name"],
+                source_local_id=page_local_id,
                 created=now,
                 last_modified=now,
-                space_id=space_id,
-                author_id=random_account(),
+                author_id=account_id,
             ),
         )
-        for schema in node_specs
-    ]
-    result = psql_command(
-        url,
-        f"select upsert_content({space_id}, '{dumps(schema_content)}', null);",
-    )
-    nums = [int(i) for i in result.split()]
-    schema_content = {d["text"]: d | dict(id=i) for (i, d) in zip(nums, schema_content)}
 
-    schema_nodes = [
-        dict(
-            name=schema["name"],
+    all_content = []
+    for b in range(0, target_num, 500):
+        content = [make_content(i) for i in range(b, min(b + 500, target_num))]
+        result = psql_command(
+            url,
+            f"select upsert_content({space_id}, '{dumps(content)}', null);",
+        )
+        for i, n in enumerate(result.split()):
+            content[i]["id"] = int(n)
+        all_content.extend(content)
+    print("Content:", ", ".join(str(c["id"]) for c in all_content))
+    return all_content
+
+
+def generate_concept_schemata(url, space_id, content_list, node_specs, relation_specs):
+    now = datetime.now().isoformat()
+    content_iter = iter(content_list)
+
+    def make_concept_schema(name, content, is_relation):
+        return dict(
+            name=name,
             created=now,
             last_modified=now,
             space_id=space_id,
-            author_id=random_account(),
-            represented_by_id=schema_content[schema["name"]]["id"],
+            author_id=content["author_id"],
+            represented_by_id=content["id"],
             is_schema=True,
+            literal_content=dict(roles=["source", "destination"])
+            if is_relation
+            else dict(),
         )
+
+    node_schemas = [
+        make_concept_schema(schema["name"], next(content_iter), False)
         for schema in node_specs
     ]
+    relation_schemas = [
+        make_concept_schema(schema["name"], next(content_iter), True)
+        for schema in relation_specs
+    ]
+    schemata = node_schemas + relation_schemas
     result = psql_command(
         url,
-        f"select upsert_concepts({space_id}, '{dumps(schema_nodes)}');",
+        f"select upsert_concepts({space_id}, '{dumps(schemata)}');",
     )
-    nums = [int(i) for i in result.split()]
-    schema_nodes = {d["name"]: d | dict(id=i) for (i, d) in zip(nums, schema_nodes)}
-    print("Schema nodes", ", ".join(f"{k}: {v['id']}" for k, v in schema_nodes.items()))
-    all_nodes = {}
+    nums = result.split()
+    for i, schema in enumerate(schemata):
+        schema["id"] = int(nums[i])
+    node_schemas_by_name = {s["name"]: s for s in node_schemas}
+    relation_schemas_by_name = {s["name"]: s for s in relation_schemas}
+    print("Schema nodes", ", ".join(f"{s['name']}: {s['id']}" for s in schemata))
+    return node_schemas_by_name, relation_schemas_by_name
+
+
+def generate_concept_nodes(url, space_id, content_list, node_schemas, node_specs):
+    now = datetime.now().isoformat()
+    content_iter = iter(content_list)
+
+    def make_node(name, content, schema_id):
+        return dict(
+            name=name,
+            created=now,
+            last_modified=now,
+            space_id=space_id,
+            author_id=content["author_id"],
+            represented_by_id=content["id"],
+            schema_id=schema_id,
+        )
+
+    all_nodes = []
     for schema in node_specs:
         target_num = schema["count"]
-        schema_id = schema_nodes[schema["name"]]["id"]
+        schema_id = node_schemas[schema["name"]]["id"]
         for b in range(0, target_num, 500):
             nodes = [
-                dict(
-                    name=f"{schema['name']}_{i}",
-                    created=now,
-                    last_modified=now,
-                    space_id=space_id,
-                    author_id=random_account(),
-                    schema_id=schema_id,
-                )
+                make_node(f"{schema['name']}_{i}", next(content_iter), schema_id)
                 for i in range(b, min(b + 500, target_num))
             ]
             result = psql_command(
                 url, f"select upsert_concepts({space_id}, '{dumps(nodes)}');"
             )
-            nums = [int(i) for i in result.split()]
-            all_nodes |= {i: d | dict(id=i) for (i, d) in zip(nums, nodes)}
-    print("Nodes:", ", ".join(str(a) for a in all_nodes.keys()))
-    return schema_nodes, all_nodes
+            nums = result.split()
+            for i, node in enumerate(nodes):
+                node["id"] = int(nums[i])
+            all_nodes.extend(nodes)
+    print("Nodes:", ", ".join(str(n["id"]) for n in all_nodes))
+    return all_nodes
 
 
-def generate_relations(url, space_id, accounts, schema_nodes, nodes, relation_specs):
+def generate_relations(
+    url, space_id, accounts, node_schemas, reln_schemas, nodes, relation_specs
+):
     account_ids = list(accounts.keys())
     num_accounts = len(account_ids)
     now = datetime.now().isoformat()
-    random_account = lambda: account_ids[randint(0, num_accounts - 1)]
+
+    def random_account():
+        return account_ids[randint(0, num_accounts - 1)]
+
     node_ids_by_type = defaultdict(list)
-    schema_name_by_id = {s["id"]: s["name"] for s in schema_nodes.values()}
-    for id, node in nodes.items():
-        node_ids_by_type[schema_name_by_id[node["schema_id"]]].append(id)
+    schema_name_by_id = {s["id"]: s["name"] for s in node_schemas.values()}
+    for node in nodes:
+        node_ids_by_type[schema_name_by_id[node["schema_id"]]].append(node["id"])
 
     def random_node(schema_name):
         if isinstance(schema_name, list):
@@ -184,61 +226,13 @@ def generate_relations(url, space_id, accounts, schema_nodes, nodes, relation_sp
         node_ids = node_ids_by_type[schema_name]
         return node_ids[randint(0, len(node_ids) - 1)]
 
-    schema_content = [
-        dict(
-            text=schema["name"],
-            created=now,
-            last_modified=now,
-            space_id=space_id,
-            author_id=random_account(),
-            source_local_id=schema["name"],
-            document_inline=dict(
-                source_local_id=schema["name"],
-                created=now,
-                last_modified=now,
-                space_id=space_id,
-                author_id=random_account(),
-            ),
-        )
-        for schema in relation_specs
-    ]
-    result = psql_command(
-        url,
-        f"select upsert_content({space_id}, '{dumps(schema_content)}', null);",
-    )
-    nums = [int(i) for i in result.split()]
-    schema_content = {d["text"]: d | dict(id=i) for (i, d) in zip(nums, schema_content)}
-
-    schema_nodes = [
-        dict(
-            name=schema["name"],
-            created=now,
-            last_modified=now,
-            space_id=space_id,
-            author_id=random_account(),
-            literal_content=dict(roles=["source", "destination"]),
-            represented_by_id=schema_content[schema["name"]]["id"],
-            is_schema=True,
-        )
-        for schema in relation_specs
-    ]
-    result = psql_command(
-        url,
-        f"select upsert_concepts({space_id}, '{dumps(schema_nodes)}');",
-    )
-    nums = [int(i) for i in result.split()]
-    schema_nodes = {d["name"]: d | dict(id=i) for (i, d) in zip(nums, schema_nodes)}
-    print(
-        "Schema relations:",
-        ", ".join(f"{k}: {v['id']}" for k, v in schema_nodes.items()),
-    )
-    all_nodes = {}
+    all_relns = []
     for schema in relation_specs:
         target_num = schema["count"]
-        schema_id = schema_nodes[schema["name"]]["id"]
+        schema_id = reln_schemas[schema["name"]]["id"]
         roles = schema["roles"]
         for b in range(0, target_num, 500):
-            nodes = [
+            relns = [
                 dict(
                     name=f"{schema['name']}_{i}",
                     created=now,
@@ -252,12 +246,14 @@ def generate_relations(url, space_id, accounts, schema_nodes, nodes, relation_sp
             ]
             result = psql_command(
                 url,
-                f"select upsert_concepts({space_id}, '{dumps(nodes)}');",
+                f"select upsert_concepts({space_id}, '{dumps(relns)}');",
             )
-            nums = [int(i) for i in result.split()]
-            all_nodes |= {i: d | dict(id=i) for (i, d) in zip(nums, nodes)}
-    print("Relations:", ", ".join(str(a) for a in all_nodes.keys()))
-    return schema_nodes, all_nodes
+            nums = result.split()
+            for i, reln in enumerate(relns):
+                reln["id"] = int(nums[i])
+            all_relns.extend(relns)
+    print("Relations:", ", ".join(str(r["id"]) for r in all_relns))
+    return all_relns
 
 
 def main(fname):
@@ -267,11 +263,27 @@ def main(fname):
     init_database(url, params.get("schemas", []))
     space_id = generate_space(url)
     accounts = generate_accounts(url, params["accounts"]["count"], space_id)
-    node_schemas, nodes = generate_concept_nodes(
-        url, space_id, accounts, params["nodes"]
+    num_schemas = len(params["nodes"]) + len(params["relations"])
+    num_content = num_schemas + sum(p["count"] for p in params["nodes"])
+    content_list = generate_content(url, space_id, accounts, num_content)
+    node_schemas_by_name, relation_schemas_by_name = generate_concept_schemata(
+        url, space_id, content_list, params["nodes"], params["relations"]
     )
-    reln_schemas, relations = generate_relations(
-        url, space_id, accounts, node_schemas, nodes, params["relations"]
+    nodes = generate_concept_nodes(
+        url,
+        space_id,
+        content_list[num_schemas:],
+        node_schemas_by_name,
+        params["nodes"],
+    )
+    _relations = generate_relations(
+        url,
+        space_id,
+        accounts,
+        node_schemas_by_name,
+        relation_schemas_by_name,
+        nodes,
+        params["relations"],
     )
 
 
