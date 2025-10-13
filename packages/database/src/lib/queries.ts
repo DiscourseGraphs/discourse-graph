@@ -2,7 +2,46 @@ import { PostgrestResponse } from "@supabase/supabase-js";
 import type { Tables } from "../dbTypes";
 import { DGSupabaseClient } from "./client";
 
-// the functions you are most likely to use are getSchemaConcepts and getConcepts.
+// Query API Overview:
+//
+// NEW API (Recommended):
+// - getConcepts(): Main function with grouped parameters for better DX
+// - Primitive functions: getAllNodes, getNodesByType, getAllRelations, etc.
+// - Always includes metadata (created/edited user/times) by default
+//
+// LEGACY API (Backward compatibility):
+// - getConceptsLegacy(): Original function with 17 parameters
+//
+// Examples:
+//
+// // Query all nodes of a specific type
+// const nodes = await getNodesByType({
+//   supabase, spaceId, nodeTypes: ["my-node-type"]
+// });
+//
+// // Query all relations containing a specific node
+// const relations = await getRelationsContainingNode({
+//   supabase, spaceId, nodeIds: ["node-123"]
+// });
+//
+// // Query nodes in relations of specific types
+// const nodes = await getNodesInRelations({
+//   supabase, spaceId, relationTypes: ["cites", "references"]
+// });
+//
+// // Get discourse context (all nodes connected to a node)
+// const context = await getDiscourseContext({
+//   supabase, spaceId, nodeId: "node-123"
+// });
+//
+// // Use the main getConcepts function for complex queries
+// const results = await getConcepts({
+//   supabase, spaceId,
+//   scope: { type: 'nodes', nodeTypes: ['type1', 'type2'] },
+//   relations: { ofType: ['cites'], authoredBy: 'user123' },
+//   author: 'creator456',
+//   pagination: { limit: 50, offset: 0 }
+// });
 
 type Concept = Tables<"Concept">;
 type Content = Tables<"Content">;
@@ -310,6 +349,22 @@ const getLocalToDbIdMapping = async (
   return dbIds;
 };
 
+/**
+ * Default concept fields that include metadata (created/edited user and times).
+ * These fields are returned by default for all queries unless overridden.
+ *
+ * @example
+ * ```typescript
+ * // Use default fields
+ * const nodes = await getAllNodes({ supabase });
+ *
+ * // Override with custom fields
+ * const nodes = await getAllNodes({
+ *   supabase,
+ *   fields: { concepts: CONCEPT_FIELDS_MINIMAL }
+ * });
+ * ```
+ */
 export const CONCEPT_FIELDS: (keyof Concept)[] = [
   "id",
   "name",
@@ -325,6 +380,28 @@ export const CONCEPT_FIELDS: (keyof Concept)[] = [
   "is_schema",
   "schema_id",
   "represented_by_id",
+];
+
+/**
+ * Minimal concept fields for lightweight queries.
+ * Includes only essential fields: id, name, space_id, author_id, created, last_modified.
+ *
+ * @example
+ * ```typescript
+ * // Use minimal fields for performance
+ * const nodes = await getAllNodes({
+ *   supabase,
+ *   fields: { concepts: CONCEPT_FIELDS_MINIMAL }
+ * });
+ * ```
+ */
+export const CONCEPT_FIELDS_MINIMAL: (keyof Concept)[] = [
+  "id",
+  "name",
+  "space_id",
+  "author_id",
+  "created",
+  "last_modified",
 ];
 
 export const CONTENT_FIELDS: (keyof Content)[] = [
@@ -355,16 +432,685 @@ export const DOCUMENT_FIELDS: (keyof Document)[] = [
 // instrumentation for benchmarking
 export const LAST_QUERY_DATA = { duration: 0 };
 
-// Main entry point to query Concepts and related data:
-// related sub-objects can be provided as:
-// Content, Content.Document, author (PlatformAccount), relations (Concept),
-// relations.subnodes (Concept), relations.subnodes.author, relations.subnodes.Content
-// Which fields of these subobjects are fetched is controlled by the respective Fields parameters
-// (except the last two, which would have just enough data for query filters.)
-// If the fields are empty, the sub-object will not be fetched (unless needed for matching query parameters)
-// Any parameter called "local" expects platform Ids (source_local_id) of the corresponding Content.
-// In the case of node/relation definitions, schema refers to the page Id of the definition.
-export const getConcepts = async ({
+/**
+ * Defines what type of concepts to query and any specific constraints.
+ *
+ * @example
+ * ```typescript
+ * // Query all nodes of specific types
+ * { type: "nodes", nodeTypes: ["page", "note"] }
+ *
+ * // Query all relations
+ * { type: "relations" }
+ *
+ * // Query specific nodes by their local IDs
+ * { type: "specific", nodeIds: ["node-123", "node-456"] }
+ * ```
+ */
+export type QueryScope = {
+  /** The type of concepts to retrieve */
+  type: "all" | "nodes" | "relations" | "schemas" | "specific";
+  /**
+   * Schema local IDs to filter by (e.g., ["page", "note", "relation"]).
+   * Only used when type is "nodes" or "relations".
+   */
+  nodeTypes?: string[];
+  /**
+   * Specific node local IDs to retrieve.
+   * Only used when type is "specific".
+   */
+  nodeIds?: string[];
+};
+
+/**
+ * Filters for querying concepts based on their relationships.
+ * All filters are optional and can be combined.
+ *
+ * @example
+ * ```typescript
+ * // Find relations of type "cites" containing specific nodes
+ * {
+ *   ofType: ["cites", "references"],
+ *   containingNodes: ["node-123", "node-456"]
+ * }
+ *
+ * // Find concepts connected to nodes of specific types
+ * {
+ *   toNodeTypes: ["page", "note"]
+ * }
+ * ```
+ */
+export type RelationFilters = {
+  /** Find relations containing this specific node (single node) */
+  containingNode?: string;
+  /** Find relations containing any of these nodes (multiple nodes) */
+  containingNodes?: string[];
+  /** Find concepts participating in relations of these types */
+  ofType?: string[];
+  /** Find concepts connected to nodes of these types */
+  toNodeTypes?: string[];
+  /** Find concepts in relations authored by this user */
+  authoredBy?: string;
+};
+
+/**
+ * Controls which fields are returned in the response.
+ * Each field array specifies which columns to fetch from the respective table.
+ * If a field array is empty or undefined, that data won't be fetched.
+ *
+ * @example
+ * ```typescript
+ * // Get minimal concept data with full content
+ * {
+ *   concepts: ["id", "name", "created"],
+ *   content: ["source_local_id", "text", "metadata"]
+ * }
+ * ```
+ */
+export type FieldSelection = {
+  /** Fields to return from the Concept table */
+  concepts?: (keyof Concept)[];
+  /** Fields to return from the Content table */
+  content?: (keyof Content)[];
+  /** Fields to return from the Document table */
+  documents?: (keyof Document)[];
+  /** Fields to return for relation concepts */
+  relations?: (keyof Concept)[];
+  /** Fields to return for nodes in relations */
+  relationNodes?: (keyof Concept)[];
+};
+
+/**
+ * Pagination options for controlling result set size and offset.
+ *
+ * @example
+ * ```typescript
+ * // Get first 50 results
+ * { limit: 50 }
+ *
+ * // Get next 50 results (pagination)
+ * { limit: 50, offset: 50 }
+ * ```
+ */
+export type PaginationOptions = {
+  /** Maximum number of results to return (default: 100) */
+  limit?: number;
+  /** Number of results to skip (default: 0) */
+  offset?: number;
+};
+
+/**
+ * Main parameters for querying concepts with the new grouped API.
+ * Provides better developer experience with logical parameter grouping.
+ *
+ * @example
+ * ```typescript
+ * const results = await getConcepts({
+ *   supabase,
+ *   spaceId: 123,
+ *   scope: { type: "nodes", nodeTypes: ["page"] },
+ *   relations: { ofType: ["cites"] },
+ *   author: "user123",
+ *   pagination: { limit: 50 }
+ * });
+ * ```
+ */
+export type GetConceptsParams = {
+  /** Supabase client instance (must be authenticated) */
+  supabase: DGSupabaseClient;
+  /** Space ID to query within (optional, uses client's default space) */
+  spaceId?: number;
+
+  /** What type of concepts to query and any constraints */
+  scope: QueryScope;
+
+  /** Optional filters based on relationships */
+  relations?: RelationFilters;
+
+  /** Filter results by the author who created the concepts */
+  author?: string;
+
+  /** Control which fields are returned in the response */
+  fields?: FieldSelection;
+
+  /** Pagination options for result set control */
+  pagination?: PaginationOptions;
+};
+
+// Primitive query functions for common use cases
+// These provide a simpler API for the most common query patterns
+
+/**
+ * Retrieves all discourse nodes (non-relation concepts) in a space.
+ *
+ * @param params - Query parameters
+ * @param params.supabase - Authenticated Supabase client
+ * @param params.spaceId - Space ID to query (optional)
+ * @param params.author - Filter by author (optional)
+ * @param params.fields - Fields to return (defaults to full concept + content)
+ * @param params.pagination - Pagination options (defaults to limit 100)
+ * @returns Promise resolving to array of concept objects with full metadata
+ *
+ * @example
+ * ```typescript
+ * // Get all nodes in the space
+ * const allNodes = await getAllNodes({ supabase, spaceId: 123 });
+ *
+ * // Get nodes by a specific author
+ * const myNodes = await getAllNodes({
+ *   supabase,
+ *   spaceId: 123,
+ *   author: "user123"
+ * });
+ * ```
+ */
+export const getAllNodes = async ({
+  supabase,
+  spaceId,
+  author,
+  fields = { concepts: CONCEPT_FIELDS, content: CONTENT_FIELDS },
+  pagination = { limit: 100 },
+}: {
+  supabase: DGSupabaseClient;
+  spaceId?: number;
+  author?: string;
+  fields?: FieldSelection;
+  pagination?: PaginationOptions;
+}): Promise<PConceptFull[]> => {
+  return getConceptsNew({
+    supabase,
+    spaceId,
+    scope: { type: "nodes" },
+    author,
+    fields,
+    pagination,
+  });
+};
+
+/**
+ * Retrieves all discourse nodes of specific types.
+ *
+ * @param params - Query parameters
+ * @param params.supabase - Authenticated Supabase client
+ * @param params.spaceId - Space ID to query (optional)
+ * @param params.nodeTypes - Array of node type local IDs to filter by
+ * @param params.author - Filter by author (optional)
+ * @param params.fields - Fields to return (defaults to full concept + content)
+ * @param params.pagination - Pagination options (defaults to limit 100)
+ * @returns Promise resolving to array of concept objects with full metadata
+ *
+ * @example
+ * ```typescript
+ * // Get all pages and notes
+ * const nodes = await getNodesByType({
+ *   supabase,
+ *   spaceId: 123,
+ *   nodeTypes: ["page", "note"]
+ * });
+ *
+ * // Get pages by a specific author
+ * const myPages = await getNodesByType({
+ *   supabase,
+ *   spaceId: 123,
+ *   nodeTypes: ["page"],
+ *   author: "user123"
+ * });
+ * ```
+ */
+export const getNodesByType = async ({
+  supabase,
+  spaceId,
+  nodeTypes,
+  author,
+  fields = { concepts: CONCEPT_FIELDS, content: CONTENT_FIELDS },
+  pagination = { limit: 100 },
+}: {
+  supabase: DGSupabaseClient;
+  spaceId?: number;
+  nodeTypes: string[];
+  author?: string;
+  fields?: FieldSelection;
+  pagination?: PaginationOptions;
+}): Promise<PConceptFull[]> => {
+  return getConceptsNew({
+    supabase,
+    spaceId,
+    scope: { type: "nodes", nodeTypes },
+    author,
+    fields,
+    pagination,
+  });
+};
+
+/**
+ * Retrieves all discourse relations (concepts with arity > 0) in a space.
+ *
+ * @param params - Query parameters
+ * @param params.supabase - Authenticated Supabase client
+ * @param params.spaceId - Space ID to query (optional)
+ * @param params.author - Filter by author (optional)
+ * @param params.fields - Fields to return (defaults to full concept + content)
+ * @param params.pagination - Pagination options (defaults to limit 100)
+ * @returns Promise resolving to array of relation concept objects with full metadata
+ *
+ * @example
+ * ```typescript
+ * // Get all relations in the space
+ * const relations = await getAllRelations({ supabase, spaceId: 123 });
+ *
+ * // Get relations by a specific author
+ * const myRelations = await getAllRelations({
+ *   supabase,
+ *   spaceId: 123,
+ *   author: "user123"
+ * });
+ * ```
+ */
+export const getAllRelations = async ({
+  supabase,
+  spaceId,
+  author,
+  fields = { concepts: CONCEPT_FIELDS, content: CONTENT_FIELDS },
+  pagination = { limit: 100 },
+}: {
+  supabase: DGSupabaseClient;
+  spaceId?: number;
+  author?: string;
+  fields?: FieldSelection;
+  pagination?: PaginationOptions;
+}): Promise<PConceptFull[]> => {
+  return getConceptsNew({
+    supabase,
+    spaceId,
+    scope: { type: "relations" },
+    author,
+    fields,
+    pagination,
+  });
+};
+
+/**
+ * Retrieves all relations that contain nodes of specific types.
+ *
+ * @param params - Query parameters
+ * @param params.supabase - Authenticated Supabase client
+ * @param params.spaceId - Space ID to query (optional)
+ * @param params.nodeTypes - Array of node type local IDs that must be in the relations
+ * @param params.relationTypes - Optional array of relation types to filter by
+ * @param params.authoredBy - Optional filter by relation author
+ * @param params.fields - Fields to return (defaults to full concept + content)
+ * @param params.pagination - Pagination options (defaults to limit 100)
+ * @returns Promise resolving to array of relation concept objects
+ *
+ * @example
+ * ```typescript
+ * // Find all relations containing page nodes
+ * const relations = await getRelationsContainingNodeType({
+ *   supabase,
+ *   spaceId: 123,
+ *   nodeTypes: ["page"]
+ * });
+ *
+ * // Find citation relations containing note nodes
+ * const citations = await getRelationsContainingNodeType({
+ *   supabase,
+ *   spaceId: 123,
+ *   nodeTypes: ["note"],
+ *   relationTypes: ["cites"]
+ * });
+ * ```
+ */
+export const getRelationsContainingNodeType = async ({
+  supabase,
+  spaceId,
+  nodeTypes,
+  relationTypes,
+  authoredBy,
+  fields = { concepts: CONCEPT_FIELDS, content: CONTENT_FIELDS },
+  pagination = { limit: 100 },
+}: {
+  supabase: DGSupabaseClient;
+  spaceId?: number;
+  nodeTypes: string[];
+  relationTypes?: string[];
+  authoredBy?: string;
+  fields?: FieldSelection;
+  pagination?: PaginationOptions;
+}): Promise<PConceptFull[]> => {
+  return getConceptsNew({
+    supabase,
+    spaceId,
+    scope: { type: "relations" },
+    relations: {
+      toNodeTypes: nodeTypes,
+      ofType: relationTypes,
+      authoredBy,
+    },
+    fields,
+    pagination,
+  });
+};
+
+/**
+ * Retrieves all relations that contain specific nodes.
+ *
+ * @param params - Query parameters
+ * @param params.supabase - Authenticated Supabase client
+ * @param params.spaceId - Space ID to query (optional)
+ * @param params.nodeIds - Array of specific node local IDs that must be in the relations
+ * @param params.relationTypes - Optional array of relation types to filter by
+ * @param params.authoredBy - Optional filter by relation author
+ * @param params.fields - Fields to return (defaults to full concept + content)
+ * @param params.pagination - Pagination options (defaults to limit 100)
+ * @returns Promise resolving to array of relation concept objects
+ *
+ * @example
+ * ```typescript
+ * // Find all relations containing specific nodes
+ * const relations = await getRelationsContainingNode({
+ *   supabase,
+ *   spaceId: 123,
+ *   nodeIds: ["node-123", "node-456"]
+ * });
+ *
+ * // Find citation relations containing a specific node
+ * const citations = await getRelationsContainingNode({
+ *   supabase,
+ *   spaceId: 123,
+ *   nodeIds: ["node-123"],
+ *   relationTypes: ["cites"]
+ * });
+ * ```
+ */
+export const getRelationsContainingNode = async ({
+  supabase,
+  spaceId,
+  nodeIds,
+  relationTypes,
+  authoredBy,
+  fields = { concepts: CONCEPT_FIELDS, content: CONTENT_FIELDS },
+  pagination = { limit: 100 },
+}: {
+  supabase: DGSupabaseClient;
+  spaceId?: number;
+  nodeIds: string[];
+  relationTypes?: string[];
+  authoredBy?: string;
+  fields?: FieldSelection;
+  pagination?: PaginationOptions;
+}): Promise<PConceptFull[]> => {
+  return getConceptsNew({
+    supabase,
+    spaceId,
+    scope: { type: "relations" },
+    relations: {
+      containingNodes: nodeIds,
+      ofType: relationTypes,
+      authoredBy,
+    },
+    fields,
+    pagination,
+  });
+};
+
+/**
+ * Retrieves nodes that participate in relations of specific types.
+ *
+ * @param params - Query parameters
+ * @param params.supabase - Authenticated Supabase client
+ * @param params.spaceId - Space ID to query (optional)
+ * @param params.relationTypes - Array of relation types to filter by
+ * @param params.toNodes - Optional array of node local IDs that must be connected to
+ * @param params.authoredBy - Optional filter by relation author
+ * @param params.author - Optional filter by node author
+ * @param params.fields - Fields to return (defaults to full concept + content)
+ * @param params.pagination - Pagination options (defaults to limit 100)
+ * @returns Promise resolving to array of node concept objects
+ *
+ * @example
+ * ```typescript
+ * // Find all nodes that are cited
+ * const citedNodes = await getNodesInRelations({
+ *   supabase,
+ *   spaceId: 123,
+ *   relationTypes: ["cites"]
+ * });
+ *
+ * // Find nodes that cite specific other nodes
+ * const citingNodes = await getNodesInRelations({
+ *   supabase,
+ *   spaceId: 123,
+ *   relationTypes: ["cites"],
+ *   toNodes: ["node-123", "node-456"]
+ * });
+ * ```
+ */
+export const getNodesInRelations = async ({
+  supabase,
+  spaceId,
+  relationTypes,
+  toNodes,
+  authoredBy,
+  author,
+  fields = { concepts: CONCEPT_FIELDS, content: CONTENT_FIELDS },
+  pagination = { limit: 100 },
+}: {
+  supabase: DGSupabaseClient;
+  spaceId?: number;
+  relationTypes: string[];
+  toNodes?: string[];
+  authoredBy?: string;
+  author?: string;
+  fields?: FieldSelection;
+  pagination?: PaginationOptions;
+}): Promise<PConceptFull[]> => {
+  return getConceptsNew({
+    supabase,
+    spaceId,
+    scope: { type: "nodes" },
+    relations: {
+      ofType: relationTypes,
+      containingNodes: toNodes,
+      authoredBy,
+    },
+    author,
+    fields,
+    pagination,
+  });
+};
+
+/**
+ * Retrieves the discourse context of a node - all nodes and relations connected to it.
+ * This is useful for understanding the full context around a specific concept.
+ *
+ * @param params - Query parameters
+ * @param params.supabase - Authenticated Supabase client
+ * @param params.spaceId - Space ID to query (optional)
+ * @param params.nodeId - Local ID of the node to get context for
+ * @param params.fields - Fields to return (defaults to full concept + content + minimal relations)
+ * @param params.pagination - Pagination options (defaults to limit 100)
+ * @returns Promise resolving to array of concept objects including relations
+ *
+ * @example
+ * ```typescript
+ * // Get full context around a node
+ * const context = await getDiscourseContext({
+ *   supabase,
+ *   spaceId: 123,
+ *   nodeId: "node-123"
+ * });
+ *
+ * // The result will include:
+ * // - The target node itself
+ * // - All nodes connected to it via relations
+ * // - The relation information connecting them
+ * ```
+ */
+export const getDiscourseContext = async ({
+  supabase,
+  spaceId,
+  nodeId,
+  fields = {
+    concepts: CONCEPT_FIELDS,
+    content: CONTENT_FIELDS,
+    relations: CONCEPT_FIELDS_MINIMAL,
+  },
+  pagination = { limit: 100 },
+}: {
+  supabase: DGSupabaseClient;
+  spaceId?: number;
+  nodeId: string;
+  fields?: FieldSelection;
+  pagination?: PaginationOptions;
+}): Promise<PConceptFull[]> => {
+  return getConceptsNew({
+    supabase,
+    spaceId,
+    scope: { type: "all" },
+    relations: {
+      containingNode: nodeId,
+    },
+    fields,
+    pagination,
+  });
+};
+
+/**
+ * Internal implementation of getConcepts with grouped parameters.
+ * Converts the new API to legacy parameters and delegates to getConceptsLegacy.
+ *
+ * @internal
+ */
+export const getConceptsNew = async ({
+  supabase,
+  spaceId,
+  scope,
+  relations,
+  author,
+  fields = { concepts: CONCEPT_FIELDS, content: CONTENT_FIELDS },
+  pagination = { limit: 100, offset: 0 },
+}: GetConceptsParams): Promise<PConceptFull[]> => {
+  // Convert new API to old API parameters
+  const oldParams: Parameters<typeof getConceptsLegacy>[0] = {
+    supabase,
+    spaceId,
+    nodeAuthor: author,
+    conceptFields: fields.concepts,
+    contentFields: fields.content,
+    documentFields: fields.documents,
+    relationFields: fields.relations,
+    relationSubNodesFields: fields.relationNodes,
+    limit: pagination.limit,
+    offset: pagination.offset,
+  };
+
+  // Map scope to old parameters
+  switch (scope.type) {
+    case "all":
+      oldParams.schemaLocalIds = [];
+      oldParams.fetchNodes = null;
+      break;
+    case "nodes":
+      oldParams.schemaLocalIds = scope.nodeTypes || [];
+      oldParams.fetchNodes = true;
+      break;
+    case "relations":
+      oldParams.schemaLocalIds = [];
+      oldParams.fetchNodes = false;
+      break;
+    case "schemas":
+      oldParams.schemaLocalIds = NODE_SCHEMAS;
+      oldParams.fetchNodes = null;
+      break;
+    case "specific":
+      oldParams.baseNodeLocalIds = scope.nodeIds || [];
+      oldParams.schemaLocalIds = [];
+      oldParams.fetchNodes = null;
+      break;
+  }
+
+  // Map relation filters to old parameters
+  if (relations) {
+    if (relations.ofType) {
+      oldParams.inRelsOfTypeLocal = relations.ofType;
+    }
+    if (relations.toNodeTypes) {
+      oldParams.inRelsToNodesOfTypeLocal = relations.toNodeTypes;
+    }
+    if (relations.authoredBy) {
+      oldParams.inRelsToNodesOfAuthor = relations.authoredBy;
+    }
+    if (relations.containingNode) {
+      oldParams.inRelsToNodeLocalIds = [relations.containingNode];
+    }
+    if (relations.containingNodes) {
+      oldParams.inRelsToNodeLocalIds = relations.containingNodes;
+    }
+  }
+
+  return getConceptsLegacy(oldParams);
+};
+
+/**
+ * Main function for querying concepts with the new grouped parameter API.
+ * Provides better developer experience with logical parameter grouping and comprehensive IntelliSense.
+ *
+ * @param params - Query parameters with grouped structure
+ * @returns Promise resolving to array of concept objects with full metadata
+ *
+ * @example
+ * ```typescript
+ * // Query nodes of specific types with relation filters
+ * const results = await getConcepts({
+ *   supabase,
+ *   spaceId: 123,
+ *   scope: { type: "nodes", nodeTypes: ["page", "note"] },
+ *   relations: { ofType: ["cites", "references"] },
+ *   author: "user123",
+ *   pagination: { limit: 50, offset: 0 }
+ * });
+ *
+ * // Query relations containing specific nodes
+ * const relations = await getConcepts({
+ *   supabase,
+ *   spaceId: 123,
+ *   scope: { type: "relations" },
+ *   relations: { containingNodes: ["node-123", "node-456"] }
+ * });
+ * ```
+ */
+export const getConcepts = async (
+  params: GetConceptsParams,
+): Promise<PConceptFull[]> => {
+  return getConceptsNew(params);
+};
+
+/**
+ * Legacy getConcepts function with the original 17-parameter API.
+ * Kept for backward compatibility. Consider using the new getConcepts() or primitive functions instead.
+ *
+ * @deprecated Use the new getConcepts() function with grouped parameters for better DX
+ * @param params - Legacy parameters with individual fields
+ * @returns Promise resolving to array of concept objects with full metadata
+ *
+ * @example
+ * ```typescript
+ * // Legacy usage (not recommended)
+ * const results = await getConceptsLegacy({
+ *   supabase,
+ *   spaceId: 123,
+ *   schemaLocalIds: ["page", "note"],
+ *   fetchNodes: true,
+ *   nodeAuthor: "user123",
+ *   inRelsOfTypeLocal: ["cites"],
+ *   conceptFields: ["id", "name", "created"],
+ *   contentFields: ["source_local_id", "text"],
+ *   limit: 100,
+ *   offset: 0
+ * });
+ * ```
+ */
+export const getConceptsLegacy = async ({
   supabase, // An instance of a logged-in client
   spaceId, // the numeric id of the space being queried
   baseNodeLocalIds = [], // If we are specifying the Concepts being queried directly.

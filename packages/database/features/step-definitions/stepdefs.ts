@@ -9,7 +9,10 @@ import {
   type Json,
 } from "@repo/database/dbTypes";
 import { getVariant, config } from "@repo/database/dbDotEnv";
-import { getConcepts, initNodeSchemaCache } from "@repo/database/lib/queries";
+import {
+  getConceptsLegacy,
+  initNodeSchemaCache,
+} from "@repo/database/lib/queries";
 
 import {
   spaceAnonUserEmail,
@@ -358,7 +361,7 @@ Given(
     if (spaceId === undefined) assert.fail("spaceId");
     const supabase = await getLoggedinDatabase(spaceId);
     // note that we supply spaceId and supabase, they do not need to be part of the incoming Json
-    const nodes = await getConcepts({ ...params, supabase, spaceId });
+    const nodes = await getConceptsLegacy({ ...params, supabase, spaceId });
     nodes.sort((a, b) => a.id! - b.id!);
     world.queryResults = nodes;
   },
