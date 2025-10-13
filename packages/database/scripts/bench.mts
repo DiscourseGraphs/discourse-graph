@@ -34,26 +34,50 @@ if (error || !data || !data.id) {
 const spaceId = data.id;
 supabase = await createLoggedInClient(platform, spaceId, "password");
 if (!supabase) process.exit(1);
-const queries = [
-  { schemaLocalIds: [], fetchNodes: true }, // all nodes
-  { schemaLocalIds: [], fetchNodes: false }, // all relations
-  { fetchNodes: null, fetchNodes: null }, // all schemas
-  { schemaLocalIds: ["claim"] }, // all nodes of a given type
-  { nodeAuthor: "account_2", schemaLocalIds: [], fetchNodes: null }, // all nodes of an author
-  { inRelsOfTypeLocal: ["opposes"], schemaLocalIds: [] }, // all nodes in relation to a relation type
-  { inRelsToNodesOfTypeLocal: ["hypothesis"], schemaLocalIds: [] }, // all nodes in relation to a node type
-  {
+const queries = {
+  "Query all nodes": { schemaLocalIds: [], fetchNodes: true },
+  "Query all relations": { schemaLocalIds: [], fetchNodes: false },
+  "Query all node and relation schemas": { fetchNodes: null, fetchNodes: null },
+  "Query all nodes of a given type": { schemaLocalIds: ["claim"] },
+  "Query all nodes and relations by a given author": {
+    nodeAuthor: "account_2",
+    schemaLocalIds: [],
+    fetchNodes: null,
+  },
+  "Query all nodes in a relation of a given type": {
+    inRelsOfTypeLocal: ["opposes"],
+    schemaLocalIds: [],
+  },
+  "Query all nodes in some relation to another node of a given type": {
+    inRelsToNodesOfTypeLocal: ["hypothesis"],
+    schemaLocalIds: [],
+  },
+  // Previous will be slow, more efficient to filter on base node, and in some relation, as follows:
+  "Query all nodes of a given type in some relation": {
+    schemaLocalIds: ["hypothesis"],
+    relationFields: ["id"] as any,
+  },
+  "Query all nodes in some relation to a node of a certain author": {
     schemaLocalIds: [],
     inRelsToNodesOfAuthor: "account_3",
     relationFields: ["id"] as any,
     relationSubNodesFields: ["id"] as any,
-  }, // in relation to nodes with a certain author
-  // { schemaLocalIds: [], inRelsToNodeLocalIds: ["claim_10"] }, // relation to a specific node. this test would need all node to have backing content
-];
+  },
+  // Previous will be slow, more efficient to start on given type, and in some relation, as follows:
+  "Query all nodes of a certain author in some relation": {
+    schemaLocalIds: [],
+    nodeAuthor: "account_3",
+    relationFields: ["id"] as any,
+    relationSubNodesFields: ["id"] as any,
+  },
+  // "In relation to a specific node.": { schemaLocalIds: [], inRelsToNodeLocalIds: ["claim_10"] }, //  this test would need all node to have backing content
+};
 const benches = [];
-for (const query of queries) {
+for (const [description, query] of Object.entries(queries)) {
   const query2 = { ...query, supabase, spaceId };
   const concepts = await getConcepts(query2);
-  benches.push({ query, ...LAST_QUERY_DATA, concepts });
-  console.log(`Query ${LAST_QUERY_DATA.duration}ms: ${JSON.stringify(query)}`);
+  benches.push({ description, query, ...LAST_QUERY_DATA, concepts });
+  console.log(
+    `${LAST_QUERY_DATA.duration}ms: ${description}\n${concepts.length} results from ${JSON.stringify(query)}`,
+  );
 }
