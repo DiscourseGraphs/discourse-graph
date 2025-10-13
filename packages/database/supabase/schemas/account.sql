@@ -295,8 +295,8 @@ SELECT
     pa.dg_account
 FROM public."PlatformAccount" AS pa
 JOIN public."SpaceAccess" AS sa ON (sa.account_id = pa.id)
-WHERE sa.space_id = ANY(public.my_space_ids());
-
+WHERE sa.space_id = ANY(public.my_space_ids())
+GROUP BY pa.id;
 
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount";
 CREATE POLICY platform_account_policy ON public."PlatformAccount" FOR ALL USING (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));

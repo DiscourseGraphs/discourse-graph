@@ -119,7 +119,8 @@ SELECT
     pa.dg_account
 FROM public."PlatformAccount" AS pa
 JOIN public."SpaceAccess" AS sa ON (sa.account_id = pa.id)
-WHERE sa.space_id = ANY(public.my_space_ids());
+WHERE sa.space_id = ANY(public.my_space_ids())
+GROUP BY pa.id;
 
 
 CREATE OR REPLACE VIEW public.my_documents AS

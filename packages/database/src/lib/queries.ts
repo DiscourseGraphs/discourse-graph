@@ -121,7 +121,7 @@ const composeConceptQuery = ({
     q += `,\nContent:content_of_concept${innerContent ? "!inner" : ""} (\n${args.join(",\n")})`;
   }
   if (nodeAuthor !== undefined) {
-    q += ", author:author_id!inner(account_local_id)";
+    q += ", author:author_of_concept!inner(account_local_id)";
   }
   if (
     inRelsOfType !== undefined ||
@@ -144,7 +144,7 @@ const composeConceptQuery = ({
         args2.push("Content:content_of_concept!inner(source_local_id)");
       if (inRelsToNodesOfAuthor !== undefined) {
         if (!args2.includes("author_id")) args2.push("author_id");
-        args2.push("author:author_id!inner(account_local_id)");
+        args2.push("author:author_of_concept!inner(account_local_id)");
       }
       args.push(`subnodes:concepts_of_relation!inner(${args2.join(",\n")})`);
     }
