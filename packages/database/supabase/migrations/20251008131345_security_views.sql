@@ -81,22 +81,47 @@ $$;
 COMMENT ON FUNCTION public.unowned_account_in_shared_space IS 'security utility: does current user share a space with this unowned account?';
 
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount";
-CREATE POLICY platform_account_policy ON public."PlatformAccount" FOR ALL USING (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
 
 DROP POLICY IF EXISTS platform_account_select_policy ON public."PlatformAccount";
 CREATE POLICY platform_account_select_policy ON public."PlatformAccount" FOR SELECT USING (dg_account = (SELECT auth.uid() LIMIT 1) OR public.account_in_shared_space(id));
 
+DROP POLICY IF EXISTS platform_account_delete_policy ON public."PlatformAccount";
+CREATE POLICY platform_account_delete_policy ON public."PlatformAccount" FOR DELETE USING (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
+
+DROP POLICY IF EXISTS platform_account_insert_policy ON public."PlatformAccount";
+CREATE POLICY platform_account_insert_policy ON public."PlatformAccount" FOR INSERT WITH CHECK (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
+
+DROP POLICY IF EXISTS platform_account_update_policy ON public."PlatformAccount";
+CREATE POLICY platform_account_update_policy ON public."PlatformAccount" FOR UPDATE WITH CHECK (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
+
 DROP POLICY IF EXISTS space_access_policy ON public."SpaceAccess";
-CREATE POLICY space_access_policy ON public."SpaceAccess" FOR ALL USING (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
 
 DROP POLICY IF EXISTS space_access_select_policy ON public."SpaceAccess";
 CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR SELECT USING (public.in_space(space_id));
 
+DROP POLICY IF EXISTS space_access_delete_policy ON public."SpaceAccess";
+CREATE POLICY space_access_delete_policy ON public."SpaceAccess" FOR DELETE USING (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+
+DROP POLICY IF EXISTS space_access_insert_policy ON public."SpaceAccess";
+CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+
+DROP POLICY IF EXISTS space_access_update_policy ON public."SpaceAccess";
+CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+
+
 DROP POLICY IF EXISTS agent_identifier_policy ON public."AgentIdentifier";
-CREATE POLICY agent_identifier_policy ON public."AgentIdentifier" FOR ALL USING (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
 
 DROP POLICY IF EXISTS agent_identifier_select_policy ON public."AgentIdentifier";
 CREATE POLICY agent_identifier_select_policy ON public."AgentIdentifier" FOR SELECT USING (public.account_in_shared_space(account_id));
+
+DROP POLICY IF EXISTS agent_identifier_delete_policy ON public."AgentIdentifier";
+CREATE POLICY agent_identifier_delete_policy ON public."AgentIdentifier" FOR DELETE USING (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+
+DROP POLICY IF EXISTS agent_identifier_insert_policy ON public."AgentIdentifier";
+CREATE POLICY agent_identifier_insert_policy ON public."AgentIdentifier" FOR INSERT WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+
+DROP POLICY IF EXISTS agent_identifier_update_policy ON public."AgentIdentifier";
+CREATE POLICY agent_identifier_update_policy ON public."AgentIdentifier" FOR UPDATE WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
 
 CREATE OR REPLACE VIEW public.my_spaces AS
 SELECT
@@ -258,3 +283,81 @@ AS $$
 $$;
 COMMENT ON FUNCTION public.author_of_concept(public.my_concepts)
 IS 'Computed one-to-one: returns the PlatformAccount which authored a given Concept.';
+
+CREATE OR REPLACE VIEW public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS
+SELECT
+    ct.id,
+    ct.document_id,
+    ct.source_local_id,
+    ct.variant,
+    ct.author_id,
+    ct.creator_id,
+    ct.created,
+    ct.text,
+    ct.metadata,
+    ct.scale,
+    ct.space_id,
+    ct.last_modified,
+    ct.part_of_id,
+    emb.model,
+    emb.vector
+FROM public."Content" AS ct
+JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id=emb.target_id)
+WHERE ct.space_id = any(public.my_space_ids()) AND NOT emb.obsolete;
+
+
+CREATE OR REPLACE FUNCTION public.match_content_embeddings (
+query_embedding extensions.vector,
+match_threshold double precision,
+match_count integer,
+current_document_id integer DEFAULT NULL::integer)
+RETURNS TABLE (
+content_id bigint,
+roam_uid Text,
+text_content Text,
+similarity double precision)
+SET search_path = 'extensions'
+LANGUAGE sql STABLE
+AS $$
+SELECT
+  c.id AS content_id,
+  c.source_local_id AS roam_uid,
+  c.text AS text_content,
+  1 - (c.vector <=> query_embedding) AS similarity
+FROM public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS c
+WHERE 1 - (c.vector <=> query_embedding) > match_threshold
+  AND (current_document_id IS NULL OR c.document_id = current_document_id)
+ORDER BY
+  c.vector <=> query_embedding ASC
+LIMIT match_count;
+$$ ;
+
+CREATE OR REPLACE FUNCTION public.match_embeddings_for_subset_nodes (
+"p_query_embedding" extensions.vector,
+"p_subset_roam_uids" Text [])
+RETURNS TABLE (content_id bigint,
+roam_uid Text,
+text_content Text,
+similarity double precision)
+LANGUAGE sql STABLE
+SET search_path = 'extensions'
+AS $$
+WITH subset_content_with_embeddings AS (
+  -- Step 1: Identify content and fetch embeddings ONLY for the nodes in the provided Roam UID subset
+  SELECT
+    c.id AS content_id,
+    c.source_local_id AS roam_uid,
+    c.text AS text_content,
+    c.vector AS embedding_vector
+    FROM public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS c
+  WHERE
+    c.source_local_id = ANY(p_subset_roam_uids) -- Filter Content by the provided Roam UIDs
+)
+SELECT
+  ss_ce.content_id,
+  ss_ce.roam_uid,
+  ss_ce.text_content,
+  1 - (ss_ce.embedding_vector <=> p_query_embedding) AS similarity
+FROM subset_content_with_embeddings AS ss_ce
+ORDER BY similarity DESC; -- Order by calculated similarity, highest first
+$$ ;

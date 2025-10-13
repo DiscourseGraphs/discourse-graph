@@ -299,10 +299,18 @@ WHERE sa.space_id = ANY(public.my_space_ids())
 GROUP BY pa.id;
 
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount";
-CREATE POLICY platform_account_policy ON public."PlatformAccount" FOR ALL USING (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
 
 DROP POLICY IF EXISTS platform_account_select_policy ON public."PlatformAccount";
 CREATE POLICY platform_account_select_policy ON public."PlatformAccount" FOR SELECT USING (dg_account = (SELECT auth.uid() LIMIT 1) OR public.account_in_shared_space(id));
+
+DROP POLICY IF EXISTS platform_account_delete_policy ON public."PlatformAccount";
+CREATE POLICY platform_account_delete_policy ON public."PlatformAccount" FOR DELETE USING (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
+
+DROP POLICY IF EXISTS platform_account_insert_policy ON public."PlatformAccount";
+CREATE POLICY platform_account_insert_policy ON public."PlatformAccount" FOR INSERT WITH CHECK (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
+
+DROP POLICY IF EXISTS platform_account_update_policy ON public."PlatformAccount";
+CREATE POLICY platform_account_update_policy ON public."PlatformAccount" FOR UPDATE WITH CHECK (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
 
 -- SpaceAccess: Created through the create_account_in_space and the Space create route, both of which bypass RLS.
 -- Can be updated by a space peer for now, unless claimed by a user.
@@ -311,10 +319,18 @@ CREATE POLICY platform_account_select_policy ON public."PlatformAccount" FOR SEL
 ALTER TABLE public."SpaceAccess" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS space_access_policy ON public."SpaceAccess";
-CREATE POLICY space_access_policy ON public."SpaceAccess" FOR ALL USING (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
 
 DROP POLICY IF EXISTS space_access_select_policy ON public."SpaceAccess";
 CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR SELECT USING (public.in_space(space_id));
+
+DROP POLICY IF EXISTS space_access_delete_policy ON public."SpaceAccess";
+CREATE POLICY space_access_delete_policy ON public."SpaceAccess" FOR DELETE USING (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+
+DROP POLICY IF EXISTS space_access_insert_policy ON public."SpaceAccess";
+CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+
+DROP POLICY IF EXISTS space_access_update_policy ON public."SpaceAccess";
+CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
 
 -- AgentIdentifier: Allow space members to do anything, to allow editing authors.
 -- Eventually: Once the account is claimed by a user, only allow this user to modify it.
@@ -322,7 +338,15 @@ CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR SELECT USIN
 ALTER TABLE public."AgentIdentifier" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS agent_identifier_policy ON public."AgentIdentifier";
-CREATE POLICY agent_identifier_policy ON public."AgentIdentifier" FOR ALL USING (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
 
 DROP POLICY IF EXISTS agent_identifier_select_policy ON public."AgentIdentifier";
 CREATE POLICY agent_identifier_select_policy ON public."AgentIdentifier" FOR SELECT USING (public.account_in_shared_space(account_id));
+
+DROP POLICY IF EXISTS agent_identifier_delete_policy ON public."AgentIdentifier";
+CREATE POLICY agent_identifier_delete_policy ON public."AgentIdentifier" FOR DELETE USING (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+
+DROP POLICY IF EXISTS agent_identifier_insert_policy ON public."AgentIdentifier";
+CREATE POLICY agent_identifier_insert_policy ON public."AgentIdentifier" FOR INSERT WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+
+DROP POLICY IF EXISTS agent_identifier_update_policy ON public."AgentIdentifier";
+CREATE POLICY agent_identifier_update_policy ON public."AgentIdentifier" FOR UPDATE WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
