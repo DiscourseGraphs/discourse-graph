@@ -4,29 +4,29 @@ date: "2025-01-01"
 author: ""
 published: true
 ---
-The Canvas feature in Discourse Graph provides an interactive visual workspace for creating and connecting Discourse Nodes and Relations. Built on top of tldraw, it allows you to visually map out discourse structures with drag-and-drop functionality, adding other visual elements like texts, scribbles, embeddings, and images.
+The canvas feature in Discourse Graph provides an interactive visual workspace for creating and connecting discourse nodes and relations. Built on top of tldraw, it allows you to visually map out discourse structures with drag-and-drop functionality, adding other visual elements like texts, scribbles, embeddings, and images.
 
-## Creating a New Canvas
+## Creating a new canvas
 
-### Using the Command Palette
+### Using the command palette
 
-1. Open the Command Palette (`Cmd/Ctrl + P`)
+1. Open the command palette (`Cmd/Ctrl + P`)
 2. Search for "Create new Discourse Graph canvas"
 3. Press Enter to create a new canvas
 
 ![Create Canvas Command](/docs/obsidian/create-canvas-command.png)
-The canvas will be created in your configured canvas folder (default: `Discourse Canvas/`) with a timestamp-based filename like `Canvas-2024-01-15-1430.md`.
+The canvas will be created in your configured canvas folder (default: `Discourse Canvas/`) with a timestamp-based filename like `Canvas-2025-01-15-1430.md`.
 
-## Opening and Viewing Canvas
+## Opening and viewing canvas
 
-### Opening a Canvas
+### Opening a canvas
 1. Open the file of the canvas
 2. In case the file is still in markdown format, you can open the canvas mode by either
 
-Using the command pallete
+Using the command palette
 
 ![Open Canvas Command](/docs/obsidian/open-canvas-command.png)
-Or click on the Canvas icon at the top right corner
+Or click on the canvas icon at the top right corner
 ![Canvas Icon Button](/docs/obsidian/canvas-icon-button.png)
 
 
@@ -34,10 +34,10 @@ Or click on the Canvas icon at the top right corner
 
 ## Discourse Nodes
 
-### Creating New Discourse Nodes
+### Creating new discourse nodes
 
-**Using the Discourse Node Tool**
-   - Click the Discourse Node icon in the toolbar
+**Using the discourse node tool**
+   - Click the discourse node icon in the toolbar
    - Select a node type from the right side panel
    - Click anywhere on the canvas to place a new node
    - Or drag the selected node type to the canvas
@@ -46,24 +46,24 @@ Or click on the Canvas icon at the top right corner
 ![Create Discourse Node](/docs/obsidian/create-discourse-node.gif)
 
 
-### Adding Existing Nodes
+### Adding existing nodes
 
-**Using Node Search**
+**Using node search**
    - Use the search bar in the top-right of the canvas
    - Type to search for existing Discourse Nodes
    - Click on a node from the search results to add it to the canvas
 
 ![Node Search](/docs/obsidian/node-search.gif)
 
-**Search Filtering**
+**Search filtering**
    - When a specific node type is selected, search results are filtered to that type
 
 ![Search Filtering](/docs/obsidian/search-filtering.gif)
 
 
-## Discourse Relations
-### Create New Relations Between Nodes
-   - Click the Discourse Node icon in the toolbar
+## Discourse relations
+### Create new relations between nodes
+   - Click the discourse node icon in the toolbar
    - Click the type of relations you want to create between two nodes
    - Click and drag the arrow from the source node to target node
 
@@ -72,8 +72,8 @@ Or click on the Canvas icon at the top right corner
    *Note*: The relation type selected must be compatible between the source and target nodes. Otherwise, you will receive a relation tool error. To update the setting on what relation types are possible between two kinds of Discourse Nodes, you can change the setting [Relation Types setting](./relationship-types#configuring-valid-relationships)
 
    ![Relation Error](/docs/obsidian/relation-error.png)
-### Adding Existing Relations
-   - Click on the Discourse Node you're trying to add existing relations of
+### Adding existing relations
+   - Click on the discourse node you're trying to add existing relations of
    - Click on the "Relations" button that pops up. You'll see a panel showing all the relations that this node has
    - Click on the '+' or '-' to add these relations to the canvas
       + For relations whose target Discourse Node isn't on canvas yet, it will be added to the canvas along with the relation
