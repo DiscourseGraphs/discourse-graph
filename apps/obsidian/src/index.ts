@@ -1,4 +1,4 @@
-import { Plugin, Editor, Menu, TFile, Events } from "obsidian";
+import { Plugin, Editor, Menu, TFile } from "obsidian";
 import { SettingsTab } from "~/components/Settings";
 import { Settings } from "~/types";
 import { registerCommands } from "~/utils/registerCommands";
@@ -10,10 +10,12 @@ import {
 } from "~/utils/createNode";
 import { DEFAULT_SETTINGS } from "~/constants";
 import { CreateNodeModal } from "~/components/CreateNodeModal";
+import { TagNodeHandler } from "~/utils/tagNodeHandler";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
   private styleElement: HTMLStyleElement | null = null;
+  private tagNodeHandler: TagNodeHandler | null = null;
 
   async onload() {
     await this.loadSettings();
@@ -31,6 +33,15 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     // Initialize frontmatter CSS
     this.updateFrontmatterStyles();
+
+    // Initialize tag node handler
+    try {
+      this.tagNodeHandler = new TagNodeHandler(this);
+      this.tagNodeHandler.initialize();
+    } catch (error) {
+      console.error("Failed to initialize TagNodeHandler:", error);
+      this.tagNodeHandler = null;
+    }
 
     this.registerEvent(
       // @ts-ignore - file-menu event exists but is not in the type definitions
@@ -198,6 +209,11 @@ export default class DiscourseGraphPlugin extends Plugin {
   async onunload() {
     if (this.styleElement) {
       this.styleElement.remove();
+    }
+
+    if (this.tagNodeHandler) {
+      this.tagNodeHandler.cleanup();
+      this.tagNodeHandler = null;
     }
 
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT);
