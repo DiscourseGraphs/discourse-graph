@@ -46,7 +46,11 @@ STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT space_id = ANY(public.my_space_ids());
+    WITH u AS (SELECT auth.uid() LIMIT 1),
+    pa AS (SELECT sa.space_id AS id FROM public."SpaceAccess" AS sa
+                JOIN public."PlatformAccount" AS pa ON pa.id=sa.account_id
+                JOIN u ON pa.dg_account = u.uid)
+    SELECT EXISTS (SELECT id FROM pa WHERE id = space_id );
 $$;
 
 COMMENT ON FUNCTION public.in_space IS 'security utility: does current user have access to this space?';
