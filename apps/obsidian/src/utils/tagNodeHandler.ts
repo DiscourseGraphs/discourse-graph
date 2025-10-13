@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/naming-convention */
 import { App, Editor, Notice, MarkdownView } from "obsidian";
 import { DiscourseNode } from "~/types";
@@ -152,8 +153,13 @@ export class TagNodeHandler {
     }
 
     this.plugin.settings.nodeTypes.forEach((nodeType) => {
-      const nodeTypeName = nodeType.name.toLowerCase();
-      const tagSelector = `.cm-tag-${nodeTypeName}`;
+      if (!nodeType.tag) {
+        return;
+      }
+
+      const tag = nodeType.tag as string;
+      const tagName = tag.startsWith("#") ? tag.slice(1) : tag;
+      const tagSelector = `.cm-tag-${tagName}`;
 
       // Check if the element itself matches
       if (element.matches(tagSelector)) {
@@ -257,7 +263,7 @@ export class TagNodeHandler {
     }
 
     const cleanText = sanitizeTitle(
-      extractedData.fullLineContent.replace(/#\w+/g, ""),
+      extractedData.fullLineContent.replace(/#[^\s]+/g, ""),
     );
 
     new CreateNodeModal(this.app, {
@@ -428,7 +434,6 @@ export class TagNodeHandler {
 
     const hideTooltip = () => {
       if (this.currentTooltip) {
-        console.log("Removing tooltip");
         this.currentTooltip.remove();
         this.currentTooltip = null;
       }

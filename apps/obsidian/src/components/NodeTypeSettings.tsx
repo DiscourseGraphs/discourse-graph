@@ -8,21 +8,21 @@ import { ConfirmationModal } from "./ConfirmationModal";
 import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
 
 const generateTagPlaceholder = (format: string, nodeName?: string): string => {
-  if (!format) return "Enter tag (e.g., #clm-candidate)";
+  if (!format) return "Enter tag (e.g., clm-candidate or #clm-candidate)";
 
   // Extract the prefix before " - {content}" or " -{content}" or " -{content}" etc.
   const match = format.match(/^([A-Z]+)\s*-\s*\{content\}/i);
   if (match && match[1]) {
     const prefix = match[1].toLowerCase();
-    return `Enter tag (e.g., #${prefix}-candidate)`;
+    return `Enter tag (e.g., ${prefix}-candidate)`;
   }
 
   if (nodeName && nodeName.length >= 3) {
     const prefix = nodeName.substring(0, 3).toLowerCase();
-    return `Enter tag (e.g., #${prefix}-candidate)`;
+    return `Enter tag (e.g., ${prefix}-candidate)`;
   }
 
-  return "Enter tag (e.g., #clm-candidate)";
+  return "Enter tag (e.g., clm-candidate)";
 };
 
 type EditableFieldKey = keyof Omit<DiscourseNode, "id" | "shortcut">;
@@ -101,9 +101,6 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
     required: false,
     validate: (value: string) => {
       if (!value.trim()) return { isValid: true };
-      if (!value.startsWith("#")) {
-        return { isValid: false, error: "Tag must start with #" };
-      }
       if (/\s/.test(value)) {
         return { isValid: false, error: "Tag cannot contain spaces" };
       }
