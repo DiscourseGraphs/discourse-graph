@@ -210,8 +210,12 @@ const FieldWrapper = ({
       <div className="setting-item-description">{fieldConfig.description}</div>
     </div>
     <div className="setting-item-control">
-      {children}
-      {error && <div className="text-error mt-1 text-xs">{error}</div>}
+      <div className="flex flex-col">
+        {children}
+        <div className="mt-1 min-h-[1rem] text-xs">
+          {error && <div className="text-error">{error}</div>}
+        </div>
+      </div>
     </div>
   </div>
 );
