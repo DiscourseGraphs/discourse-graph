@@ -93,16 +93,19 @@ def generate_accounts(url, num_accounts, space_id):
     return accounts
 
 
-def generate_content(url, space_id, accounts, target_num: int):
+def generate_content(
+    url, space_id, accounts, target_num: int, names=None, prefix="content"
+):
     account_ids = list(accounts.keys())
     num_accounts = len(account_ids)
     now = datetime.now().isoformat()
+    inames = iter(names) if names else (f"{prefix}_{i}" for i in range(target_num))
 
-    def make_content(i):
+    def make_content():
         account_id = account_ids[randint(0, num_accounts - 1)]
-        page_local_id = f"content_{i}"
+        page_local_id = next(inames)
         return dict(
-            text=f"content {i}",
+            text=page_local_id,
             source_local_id=page_local_id,
             created=now,
             last_modified=now,
@@ -118,7 +121,7 @@ def generate_content(url, space_id, accounts, target_num: int):
 
     all_content = []
     for b in range(0, target_num, 500):
-        content = [make_content(i) for i in range(b, min(b + 500, target_num))]
+        content = [make_content() for i in range(b, min(b + 500, target_num))]
         result = psql_command(
             url,
             f"select upsert_content({space_id}, '{dumps(content)}', null);",
@@ -130,8 +133,12 @@ def generate_content(url, space_id, accounts, target_num: int):
     return all_content
 
 
-def generate_concept_schemata(url, space_id, content_list, node_specs, relation_specs):
+def generate_concept_schemata(url, space_id, accounts, node_specs, relation_specs):
     now = datetime.now().isoformat()
+    all_specs = node_specs + relation_specs
+    content_list = generate_content(
+        url, space_id, accounts, len(all_specs), names=[s["name"] for s in all_specs]
+    )
     content_iter = iter(content_list)
 
     def make_concept_schema(name, content, is_relation):
@@ -170,9 +177,8 @@ def generate_concept_schemata(url, space_id, content_list, node_specs, relation_
     return node_schemas_by_name, relation_schemas_by_name
 
 
-def generate_concept_nodes(url, space_id, content_list, node_schemas, node_specs):
+def generate_concept_nodes(url, space_id, accounts, node_schemas, node_specs):
     now = datetime.now().isoformat()
-    content_iter = iter(content_list)
 
     def make_node(name, content, schema_id):
         return dict(
@@ -189,10 +195,15 @@ def generate_concept_nodes(url, space_id, content_list, node_schemas, node_specs
     for schema in node_specs:
         target_num = schema["count"]
         schema_id = node_schemas[schema["name"]]["id"]
+        content_list = generate_content(
+            url, space_id, accounts, target_num, prefix=schema["name"]
+        )
+        content_iter = iter(content_list)
         for b in range(0, target_num, 500):
+            local_target_num = min(b + 500, target_num)
             nodes = [
                 make_node(f"{schema['name']}_{i}", next(content_iter), schema_id)
-                for i in range(b, min(b + 500, target_num))
+                for i in range(b, local_target_num)
             ]
             result = psql_command(
                 url, f"select upsert_concepts({space_id}, '{dumps(nodes)}');"
@@ -263,16 +274,13 @@ def main(fname):
     init_database(url, params.get("schemas", []))
     space_id = generate_space(url)
     accounts = generate_accounts(url, params["accounts"]["count"], space_id)
-    num_schemas = len(params["nodes"]) + len(params["relations"])
-    num_content = num_schemas + sum(p["count"] for p in params["nodes"])
-    content_list = generate_content(url, space_id, accounts, num_content)
     node_schemas_by_name, relation_schemas_by_name = generate_concept_schemata(
-        url, space_id, content_list, params["nodes"], params["relations"]
+        url, space_id, accounts, params["nodes"], params["relations"]
     )
     nodes = generate_concept_nodes(
         url,
         space_id,
-        content_list[num_schemas:],
+        accounts,
         node_schemas_by_name,
         params["nodes"],
     )

@@ -9,7 +9,11 @@
 // 7. stop supabase
 // 8. Ensure the environment is back to normal.
 
-import { getConcepts, LAST_QUERY_DATA } from "@repo/database/lib/queries";
+import {
+  getConcepts,
+  getSchemaConcepts,
+  LAST_QUERY_DATA,
+} from "@repo/database/lib/queries";
 import { createClient } from "@repo/database/lib/client";
 import { config } from "@repo/database/dbDotEnv";
 import {
@@ -35,9 +39,9 @@ const spaceId = data.id;
 supabase = await createLoggedInClient(platform, spaceId, "password");
 if (!supabase) process.exit(1);
 const queries = {
-  "Query all node and relation schemas": { fetchNodes: null },
   "Query all nodes": { schemaLocalIds: [], fetchNodes: true },
   "Query all relations": { schemaLocalIds: [], fetchNodes: false },
+  "Query all node and relation schemas": { fetchNodes: null },
   "Query all nodes of a given type": { schemaLocalIds: ["claim"] },
   "Query all nodes and relations by a given author": {
     nodeAuthor: "account_2",
@@ -81,6 +85,7 @@ const queries = {
     relationSubNodesFields: ["id"] as any,
   },
 };
+await getSchemaConcepts(supabase, spaceId, true);
 const benches = [];
 for (const [description, query] of Object.entries(queries)) {
   const query2 = { ...query, supabase, spaceId };
