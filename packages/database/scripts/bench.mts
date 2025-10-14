@@ -72,8 +72,14 @@ const queries = {
   },
   "In relation to a specific node.": {
     schemaLocalIds: [],
-    inRelsToNodeLocalIds: ["content_10"],
-  }, //  this test would need all node to have backing content
+    inRelsToNodeLocalIds: ['["content_10"]'],
+  }, //  this test is excruciatingly slow
+  "A specific node's relation.": {
+    schemaLocalIds: [],
+    baseNodeLocalIds: ['["content_10"]'],
+    relationFields: ["id"] as any,
+    relationSubNodesFields: ["id"] as any,
+  },
 };
 const benches = [];
 for (const [description, query] of Object.entries(queries)) {
@@ -81,6 +87,6 @@ for (const [description, query] of Object.entries(queries)) {
   const concepts = await getConcepts(query2);
   benches.push({ description, query, ...LAST_QUERY_DATA, concepts });
   console.log(
-    `${LAST_QUERY_DATA.duration}ms: ${description}\n${concepts.length} results from ${JSON.stringify(query)}`,
+    `${LAST_QUERY_DATA.duration}ms: ${description}\n  ${concepts.length} results from ${JSON.stringify(query)}`,
   );
 }

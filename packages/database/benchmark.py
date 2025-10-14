@@ -100,7 +100,7 @@ def generate_content(url, space_id, accounts, target_num: int):
 
     def make_content(i):
         account_id = account_ids[randint(0, num_accounts - 1)]
-        page_local_id = (f"content_{i}",)
+        page_local_id = f"content_{i}"
         return dict(
             text=f"content {i}",
             source_local_id=page_local_id,
