@@ -19,6 +19,7 @@ def as_bool(value):
 def psql_command(url: Url, command, cmdfile=None, debug=False, sudo=False, db=None):
     if debug:
         print(command)
+    assert ":" in url.auth, "Please provide the password in the postgres URL."
     user, password = url.auth.split(":", 1)
     host = url.hostname
     port = url.port
@@ -84,7 +85,7 @@ def generate_accounts(url, num_accounts, space_id):
     ]
     result = psql_command(
         url,
-        f"select upsert_accounts_in_space({space_id}, '{dumps(accounts)}')",
+        f"select upsert_accounts_in_space({space_id}, $json${dumps(accounts)}$json$)",
         debug=False,
     )
     nums = [int(i) for i in result.split()]
@@ -124,7 +125,7 @@ def generate_content(
         content = [make_content() for i in range(b, min(b + 500, target_num))]
         result = psql_command(
             url,
-            f"select upsert_content({space_id}, '{dumps(content)}', null);",
+            f"select upsert_content({space_id}, $json${dumps(content)}$json$, null);",
         )
         for i, n in enumerate(result.split()):
             content[i]["id"] = int(n)
@@ -150,9 +151,7 @@ def generate_concept_schemata(url, space_id, accounts, node_specs, relation_spec
             author_id=content["author_id"],
             represented_by_id=content["id"],
             is_schema=True,
-            literal_content=dict(roles=["source", "destination"])
-            if is_relation
-            else dict(),
+            literal_content=dict(roles=["source", "target"]) if is_relation else dict(),
         )
 
     node_schemas = [
@@ -166,7 +165,7 @@ def generate_concept_schemata(url, space_id, accounts, node_specs, relation_spec
     schemata = node_schemas + relation_schemas
     result = psql_command(
         url,
-        f"select upsert_concepts({space_id}, '{dumps(schemata)}');",
+        f"select upsert_concepts({space_id}, $json${dumps(schemata)}$json$);",
     )
     nums = result.split()
     for i, schema in enumerate(schemata):
@@ -206,7 +205,7 @@ def generate_concept_nodes(url, space_id, accounts, node_schemas, node_specs):
                 for i in range(b, local_target_num)
             ]
             result = psql_command(
-                url, f"select upsert_concepts({space_id}, '{dumps(nodes)}');"
+                url, f"select upsert_concepts({space_id}, $json${dumps(nodes)}$json$);"
             )
             nums = result.split()
             for i, node in enumerate(nodes):
@@ -257,7 +256,7 @@ def generate_relations(
             ]
             result = psql_command(
                 url,
-                f"select upsert_concepts({space_id}, '{dumps(relns)}');",
+                f"select upsert_concepts({space_id}, $json${dumps(relns)}$json$);",
             )
             nums = result.split()
             for i, reln in enumerate(relns):
