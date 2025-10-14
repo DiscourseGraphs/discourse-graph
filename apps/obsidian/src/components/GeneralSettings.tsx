@@ -151,7 +151,7 @@ const GeneralSettings = () => {
           <div className="setting-item-name">Canvas folder path</div>
           <div className="setting-item-description">
             Folder where new Discourse Graph canvases will be created. Default:
-            "Discourse Canvas".
+            &quot;Discourse Canvas&quot;.
           </div>
         </div>
         <div className="setting-item-control">
@@ -170,7 +170,7 @@ const GeneralSettings = () => {
           </div>
           <div className="setting-item-description">
             Folder where attachments for canvases are stored. Default:
-            "attachments".
+            &quot;attachments&quot;.
           </div>
         </div>
         <div className="setting-item-control">
@@ -184,7 +184,7 @@ const GeneralSettings = () => {
 
       <div className="setting-item">
         <button
-          onClick={handleSave}
+          onClick={() => void handleSave()}
           className={hasUnsavedChanges ? "mod-cta" : ""}
           disabled={!hasUnsavedChanges}
         >

@@ -34,7 +34,7 @@ export class TldrawView extends TextFileView {
     return this.data;
   }
 
-  setViewData(data: string, _clear: boolean): void {
+  setViewData(data: string): void {
     this.data = data;
   }
 

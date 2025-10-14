@@ -5,7 +5,7 @@ import type DiscourseGraphPlugin from "../index";
 import { BulkImportCandidate, BulkImportPattern } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
 import { TFile } from "obsidian";
-import { getNodeTypeById } from "~/utils/utils";
+import { getNodeTypeById } from "~/utils/typeUtils";
 
 type BulkImportModalProps = {
   plugin: DiscourseGraphPlugin;

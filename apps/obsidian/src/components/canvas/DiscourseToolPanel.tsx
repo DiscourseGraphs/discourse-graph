@@ -10,7 +10,7 @@ import * as React from "react";
 import { TFile } from "obsidian";
 import DiscourseGraphPlugin from "~/index";
 import { openCreateDiscourseNodeAt } from "./utils/nodeCreationFlow";
-import { getNodeTypeById } from "~/utils/utils";
+import { getNodeTypeById } from "~/utils/typeUtils";
 import { useEffect } from "react";
 import { setDiscourseNodeToolContext } from "./DiscourseNodeTool";
 import { ExistingNodeSearch } from "./ExistingNodeSearch";
@@ -18,7 +18,7 @@ import {
   setDiscourseRelationToolContext,
   clearDiscourseRelationToolContext,
 } from "./DiscourseRelationTool";
-import { TOOL_ARROW_ICON_SVG } from "~/constants";
+import { TOOL_ARROW_ICON_SVG } from "~/icons";
 
 const TOOL_ARROW_ICON_DATA_URL = `data:image/svg+xml;base64,${btoa(TOOL_ARROW_ICON_SVG)}`;
 

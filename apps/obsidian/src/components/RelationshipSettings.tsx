@@ -3,7 +3,7 @@ import { DiscourseRelation, DiscourseRelationType } from "~/types";
 import { Notice } from "obsidian";
 import { usePlugin } from "./PluginContext";
 import { ConfirmationModal } from "./ConfirmationModal";
-import { getNodeTypeById } from "~/utils/utils";
+import { getNodeTypeById } from "~/utils/typeUtils";
 
 const RelationshipSettings = () => {
   const plugin = usePlugin();

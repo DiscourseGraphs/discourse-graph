@@ -23,9 +23,7 @@ type ToastListenerProps = {
 };
 
 const ToastListener = ({ canvasId }: ToastListenerProps) => {
-  // this warning comes from the useToasts hook
-  // eslint-disable-next-line @typescript-eslint/unbound-method
-  const { addToast } = useToasts();
+  const toasts = useToasts();
 
   useEffect(() => {
     const handleToastEvent = ((event: CustomEvent<ScopedToastEvent>) => {
@@ -35,7 +33,7 @@ const ToastListener = ({ canvasId }: ToastListenerProps) => {
         return;
       }
 
-      addToast(toast);
+      toasts.addToast(toast);
     }) as EventListener;
 
     document.addEventListener("show-toast", handleToastEvent);
@@ -43,7 +41,7 @@ const ToastListener = ({ canvasId }: ToastListenerProps) => {
     return () => {
       document.removeEventListener("show-toast", handleToastEvent);
     };
-  }, [addToast, canvasId]);
+  }, [toasts, canvasId]);
 
   return null;
 };

@@ -2,9 +2,9 @@ import { StateNode, TLEventHandlers, TLStateNodeConstructor } from "tldraw";
 import { createShapeId } from "tldraw";
 import type { TFile } from "obsidian";
 import DiscourseGraphPlugin from "~/index";
-import { getRelationTypeById } from "~/utils/utils";
+import { getRelationTypeById } from "~/utils/typeUtils";
 import { DiscourseRelationShape } from "./shapes/DiscourseRelationShape";
-import { getNodeTypeById } from "~/utils/utils";
+import { getNodeTypeById } from "~/utils/typeUtils";
 import { showToast } from "./utils/toastUtils";
 
 type RelationToolContext = {

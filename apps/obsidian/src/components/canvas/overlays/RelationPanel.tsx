@@ -14,7 +14,7 @@ import {
   getArrowBindings,
 } from "~/components/canvas/utils/relationUtils";
 import { getFrontmatterForFile } from "~/components/canvas/shapes/discourseNodeShapeUtils";
-import { getRelationTypeById } from "~/utils/utils";
+import { getRelationTypeById } from "~/utils/typeUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
 
 type GroupedRelation = {

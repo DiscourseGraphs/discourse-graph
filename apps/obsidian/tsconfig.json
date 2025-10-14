@@ -1,5 +1,6 @@
 {
   "extends": "@repo/typescript-config/react-library.json",
+  "include": ["**/*.ts"],
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
@@ -13,8 +14,6 @@
     "strictNullChecks": true,
     "paths": {
       "~/*": ["./src/*"]
-    },
-    "lib": ["DOM", "ES5", "ES6", "ES7", "DOM.Iterable"]
-  },
-  "include": ["**/*.ts", "**/*.tsx"]
+    }
+  }
 }

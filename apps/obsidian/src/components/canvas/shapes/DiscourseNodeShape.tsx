@@ -13,7 +13,7 @@ import {
   FrontmatterRecord,
 } from "./discourseNodeShapeUtils";
 import { resolveLinkedFileFromSrc } from "~/components/canvas/stores/assetStore";
-import { getNodeTypeById } from "~/utils/utils";
+import { getNodeTypeById } from "~/utils/typeUtils";
 
 export type DiscourseNodeShape = TLBaseShape<
   "discourse-node",

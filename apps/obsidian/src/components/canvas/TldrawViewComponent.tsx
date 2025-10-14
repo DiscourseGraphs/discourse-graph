@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   defaultShapeUtils,
@@ -27,7 +26,6 @@ import {
   DEFAULT_SAVE_DELAY,
   TLDATA_DELIMITER_END,
   TLDATA_DELIMITER_START,
-  WHITE_LOGO_SVG,
 } from "~/constants";
 import { TFile } from "obsidian";
 import {
@@ -51,6 +49,7 @@ import {
 import ToastListener from "./ToastListener";
 import { RelationsOverlay } from "./overlays/RelationOverlay";
 import { showToast } from "./utils/toastUtils";
+import { WHITE_LOGO_SVG } from "~/icons";
 
 type TldrawPreviewProps = {
   store: TLStore;
@@ -338,6 +337,7 @@ export const TldrawPreviewComponent = ({
               },
             }}
             components={{
+              /* eslint-disable-next-line @typescript-eslint/naming-convention */
               StylePanel: () => {
                 const tools = useTools();
                 const isDiscourseNodeSelected = useIsToolSelected(
@@ -353,7 +353,9 @@ export const TldrawPreviewComponent = ({
 
                 return <DiscourseToolPanel plugin={plugin} canvasFile={file} />;
               },
+              /* eslint-disable-next-line @typescript-eslint/naming-convention */
               OnTheCanvas: () => <ToastListener canvasId={file.path} />,
+              /* eslint-disable-next-line @typescript-eslint/naming-convention */
               Toolbar: (props) => {
                 const tools = useTools();
                 const isDiscourseNodeSelected = useIsToolSelected(
@@ -376,6 +378,7 @@ export const TldrawPreviewComponent = ({
                   </DefaultToolbar>
                 );
               },
+              /* eslint-disable-next-line @typescript-eslint/naming-convention */
               InFrontOfTheCanvas: () => (
                 <RelationsOverlay plugin={plugin} file={file} />
               ),

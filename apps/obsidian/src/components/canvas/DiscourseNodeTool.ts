@@ -1,7 +1,7 @@
 import { StateNode, TLPointerEventInfo, Editor } from "tldraw";
 import type { TFile } from "obsidian";
 import DiscourseGraphPlugin from "~/index";
-import { getNodeTypeById } from "~/utils/utils";
+import { getNodeTypeById } from "~/utils/typeUtils";
 import { openCreateDiscourseNodeAt } from "./utils/nodeCreationFlow";
 
 type ToolContext = {

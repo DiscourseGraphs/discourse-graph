@@ -2,6 +2,7 @@ import {
   createTLStore,
   defaultBindingUtils,
   defaultShapeUtils,
+  SerializedStore,
   TldrawFile,
   TLRecord,
   TLStore,
@@ -25,15 +26,20 @@ import { DiscourseRelationUtil } from "~/components/canvas/shapes/DiscourseRelat
 import { DiscourseRelationBindingUtil } from "~/components/canvas/shapes/DiscourseRelationBinding";
 
 export type TldrawPluginMetaData = {
+  /* eslint-disable @typescript-eslint/naming-convention */
   "plugin-version": string;
   "tldraw-version": string;
   uuid: string;
+  /* eslint-disable @typescript-eslint/naming-convention */
 };
 
 export type TldrawRawData = {
   tldrawFileFormatVersion: number;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  // we follow the tldraw schema of tldraw-in-obsidian plugin
   schema: any;
   records: any;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 };
 
 export type TLData = {
@@ -53,7 +59,7 @@ export const processInitialData = (
   ];
 
   const recordsData = Array.isArray(data.raw.records)
-    ? data.raw.records.reduce(
+    ? (data.raw.records.reduce(
         (acc: Record<string, TLRecord>, record: { id: string } & TLRecord) => {
           acc[record.id] = {
             ...record,
@@ -61,8 +67,8 @@ export const processInitialData = (
           return acc;
         },
         {},
-      )
-    : data.raw.records;
+      ) as SerializedStore<TLRecord>)
+    : (data.raw.records as SerializedStore<TLRecord>);
 
   let store: TLStore;
   if (recordsData) {
