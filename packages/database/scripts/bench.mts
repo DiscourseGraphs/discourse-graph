@@ -72,11 +72,11 @@ const queries = {
   },
   "In relation to a specific node.": {
     schemaLocalIds: [],
-    inRelsToNodeLocalIds: ['["content_10"]'],
+    inRelsToNodeLocalIds: ["content_10"],
   }, //  this test is excruciatingly slow
   "A specific node's relation.": {
     schemaLocalIds: [],
-    baseNodeLocalIds: ['["content_10"]'],
+    baseNodeLocalIds: ["content_10"],
     relationFields: ["id"] as any,
     relationSubNodesFields: ["id"] as any,
   },
