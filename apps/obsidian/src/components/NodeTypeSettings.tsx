@@ -14,7 +14,7 @@ type BaseFieldConfig = {
   label: string;
   description: string;
   required?: boolean;
-  type: "text" | "select" | "color";
+  type: "text" | "select" | "color" | "boolean";
   placeholder?: string;
   validate?: (
     value: string,
@@ -75,9 +75,31 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
     type: "color",
     required: false,
   },
+  keyImage: {
+    key: "keyImage",
+    label: "Key image (first image from file)",
+    description:
+      "When enabled, canvas nodes of this type will show the first image from the linked file",
+    type: "boolean",
+    required: false,
+  },
 };
 
 const FIELD_CONFIG_ARRAY = Object.values(FIELD_CONFIGS);
+
+const BooleanField = ({
+  value,
+  onChange,
+}: {
+  value: boolean;
+  onChange: (value: boolean) => void;
+}) => (
+  <input
+    type="checkbox"
+    checked={!!value}
+    onChange={(e) => onChange((e.target as HTMLInputElement).checked)}
+  />
+);
 
 const TextField = ({
   fieldConfig,
@@ -240,12 +262,14 @@ const NodeTypeSettings = () => {
 
   const handleNodeTypeChange = (
     field: EditableFieldKey,
-    value: string,
+    value: string | boolean,
   ): void => {
     if (!editingNodeType) return;
 
     const updatedNodeType = { ...editingNodeType, [field]: value };
-    validateField(field, value, updatedNodeType);
+    if (typeof value === "string") {
+      validateField(field, value, updatedNodeType);
+    }
     setEditingNodeType(updatedNodeType);
     setHasUnsavedChanges(true);
   };
@@ -376,9 +400,9 @@ const NodeTypeSettings = () => {
   const renderField = (fieldConfig: BaseFieldConfig) => {
     if (!editingNodeType) return null;
 
-    const value = editingNodeType[fieldConfig.key] as string;
+    const value = editingNodeType[fieldConfig.key] as string | boolean;
     const error = errors[fieldConfig.key];
-    const handleChange = (newValue: string) =>
+    const handleChange = (newValue: string | boolean) =>
       handleNodeTypeChange(fieldConfig.key, newValue);
 
     return (
@@ -389,18 +413,24 @@ const NodeTypeSettings = () => {
       >
         {fieldConfig.key === "template" ? (
           <TemplateField
-            value={value}
+            value={value as string}
             error={error}
             onChange={handleChange}
             templateConfig={templateConfig}
             templateFiles={templateFiles}
           />
         ) : fieldConfig.type === "color" ? (
-          <ColorField value={value} error={error} onChange={handleChange} />
+          <ColorField
+            value={value as string}
+            error={error}
+            onChange={handleChange}
+          />
+        ) : fieldConfig.type === "boolean" ? (
+          <BooleanField value={value as boolean} onChange={handleChange} />
         ) : (
           <TextField
             fieldConfig={fieldConfig}
-            value={value}
+            value={value as string}
             error={error}
             onChange={handleChange}
           />
