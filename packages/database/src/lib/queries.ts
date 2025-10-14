@@ -115,13 +115,13 @@ const composeConceptQuery = ({
     const args: string[] = contentFields.slice();
     if (documentFields.length > 0) {
       args.push(
-        "Document:document_of_content (\n" + documentFields.join(",\n") + ")",
+        `Document:my_documents!document_id${innerContent ? "!inner" : ""} (\n${documentFields.join(",\n")})`,
       );
     }
-    q += `,\nContent:content_of_concept${innerContent ? "!inner" : ""} (\n${args.join(",\n")})`;
+    q += `,\nContent:my_contents!represented_by_id${innerContent ? "!inner" : ""} (\n${args.join(",\n")})`;
   }
   if (nodeAuthor !== undefined) {
-    q += ", author:author_of_concept!inner(account_local_id)";
+    q += ", author:my_accounts!author_id!inner(account_local_id)";
   }
   if (
     inRelsOfType !== undefined ||
@@ -141,10 +141,12 @@ const composeConceptQuery = ({
       if (inRelsToNodesOfType !== undefined && !args2.includes("schema_id"))
         args2.push("schema_id");
       if (inRelsToNodeLocalIds !== undefined)
-        args2.push("Content:content_of_concept!inner(source_local_id)");
+        args2.push(
+          "Content:my_contents!represented_by_id!inner(source_local_id)",
+        );
       if (inRelsToNodesOfAuthor !== undefined) {
         if (!args2.includes("author_id")) args2.push("author_id");
-        args2.push("author:author_of_concept!inner(account_local_id)");
+        args2.push("author:my_accounts!author_id!inner(account_local_id)");
       }
       args.push(`subnodes:concepts_of_relation!inner(${args2.join(",\n")})`);
     }
