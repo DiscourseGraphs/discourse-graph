@@ -158,15 +158,12 @@ export class TagNodeHandler {
       }
 
       const tag = nodeType.tag as string;
-      const tagName = tag.startsWith("#") ? tag.slice(1) : tag;
-      const tagSelector = `.cm-tag-${tagName}`;
+      const tagSelector = `.cm-tag-${tag}`;
 
-      // Check if the element itself matches
       if (element.matches(tagSelector)) {
         this.applyDiscourseTagStyling(element, nodeType);
       }
 
-      // Check all children
       const childTags = element.querySelectorAll(tagSelector);
       childTags.forEach((tagEl) => {
         if (tagEl instanceof HTMLElement) {

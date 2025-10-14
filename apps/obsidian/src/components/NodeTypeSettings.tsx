@@ -104,6 +104,15 @@ const FIELD_CONFIGS: Record<EditableFieldKey, BaseFieldConfig> = {
       if (/\s/.test(value)) {
         return { isValid: false, error: "Tag cannot contain spaces" };
       }
+      const invalidTagChars = /[^a-zA-Z0-9-]/;
+      const invalidCharMatch = value.match(invalidTagChars);
+      if (invalidCharMatch) {
+        return {
+          isValid: false,
+          error: `Tag contains invalid character: ${invalidCharMatch[0]}. Tags can only contain letters, numbers, and dashes.`,
+        };
+      }
+
       return { isValid: true };
     },
   },
