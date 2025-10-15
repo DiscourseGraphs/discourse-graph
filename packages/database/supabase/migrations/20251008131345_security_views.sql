@@ -1,7 +1,7 @@
 ALTER FUNCTION public.my_account RENAME TO is_my_account;
 
 DROP POLICY IF EXISTS access_token_policy ON public.access_token;
-CREATE POLICY access_token_policy ON public.access_token FOR ALL USING (public.is_my_account(platform_account_id));
+CREATE POLICY access_token_policy ON public.access_token FOR ALL USING (platform_account_id IS NULL OR public.is_my_account(platform_account_id));
 
 CREATE OR REPLACE FUNCTION public.is_my_account(account_id BIGINT) RETURNS boolean
 STABLE SECURITY DEFINER
@@ -60,9 +60,12 @@ CREATE OR REPLACE FUNCTION public.account_in_shared_space(p_account_id BIGINT) R
 STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql AS $$
-    SELECT count(sa.account_id) > 0 FROM public."SpaceAccess" AS sa
-    WHERE sa.account_id = p_account_id
-    AND sa.space_id = ANY(public.my_space_ids());
+    SELECT EXISTS (
+      SELECT 1
+      FROM public."SpaceAccess" AS sa
+      WHERE sa.account_id = p_account_id
+        AND sa.space_id = ANY(public.my_space_ids())
+    );
 $$;
 
 COMMENT ON FUNCTION public.account_in_shared_space IS 'security utility: does current user share a space with this account?';
@@ -71,11 +74,14 @@ CREATE OR REPLACE FUNCTION public.unowned_account_in_shared_space(p_account_id B
 STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql AS $$
-    SELECT count(sa.account_id) > 0 FROM public."SpaceAccess" AS sa
-    JOIN public."PlatformAccount" AS pa ON (pa.id = sa.account_id)
-    WHERE sa.account_id = p_account_id
-    AND sa.space_id = ANY(public.my_space_ids())
-    AND pa.dg_account IS NULL;
+    SELECT EXISTS (
+      SELECT 1
+      FROM public."SpaceAccess" AS sa
+      JOIN public."PlatformAccount" AS pa ON (pa.id = sa.account_id)
+      WHERE sa.account_id = p_account_id
+        AND sa.space_id = ANY(public.my_space_ids())
+        AND pa.dg_account IS NULL
+    );
 $$;
 
 COMMENT ON FUNCTION public.unowned_account_in_shared_space IS 'security utility: does current user share a space with this unowned account?';
@@ -143,9 +149,12 @@ SELECT
     pa.metadata,
     pa.dg_account
 FROM public."PlatformAccount" AS pa
-JOIN public."SpaceAccess" AS sa ON (sa.account_id = pa.id)
-WHERE sa.space_id = ANY(public.my_space_ids())
-GROUP BY pa.id;
+WHERE EXISTS (
+  SELECT 1
+  FROM public."SpaceAccess" AS sa
+  WHERE sa.account_id = pa.id
+    AND sa.space_id = ANY(public.my_space_ids())
+);
 
 
 CREATE OR REPLACE VIEW public.my_documents AS
