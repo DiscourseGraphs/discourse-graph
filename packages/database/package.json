@@ -26,7 +26,6 @@
     "dev": "pnpm run setup && pnpm run serve",
     "build": "pnpm run setup && tsc",
     "serve": "tsx scripts/serve.ts",
-    "bench": "tsx scripts/bench.mts",
     "stop": "supabase stop",
     "check-types": "tsc --noEmit --skipLibCheck",
     "check-schema": "tsx scripts/lintSchemas.ts && supabase stop && pnpm run dbdiff",
