@@ -137,11 +137,28 @@ export const useRoamStore = ({
     let _store: TLStore;
     try {
       _store = createTLStore({
-        initialData: initialSnapshot?.store,
         migrations: migrations,
         shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
         bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
       });
+
+      if (initialSnapshot) {
+        try {
+          loadSnapshot(_store, initialSnapshot);
+        } catch (migrationError) {
+          console.error("Migration failed:", migrationError);
+          sendErrorEmail({
+            error: migrationError as Error,
+            type: "Failed to migrate snapshot",
+            context: {
+              pageUid,
+              user: getCurrentUserDisplayName(),
+              initialSnapshot,
+            },
+          }).catch(() => {});
+          throw migrationError; // Re-throw to trigger outer catch
+        }
+      }
     } catch (e) {
       const error = e as Error;
       console.error("Failed to create store:", error);
