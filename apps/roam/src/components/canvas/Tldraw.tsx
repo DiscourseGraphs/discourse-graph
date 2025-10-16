@@ -801,11 +801,13 @@ const InsideEditorAndUiContext = ({
           },
         });
         editor.createAssets([asset]);
+
+        const position = editor.getViewportPageBounds().center;
+
         editor.createShape({
           type: "image",
-          // Center the image in the editor
-          x: (window.innerWidth - size.w) / 2,
-          y: (window.innerHeight - size.h) / 2,
+          x: position.x - size.w / 2,
+          y: position.y - size.h / 2,
           props: { assetId, w: size.w, h: size.h },
         });
 
