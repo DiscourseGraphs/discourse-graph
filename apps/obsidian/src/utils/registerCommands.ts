@@ -74,9 +74,11 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Open Discourse Graph Settings",
     callback: () => {
       // plugin.app.setting is an unofficial API
-      const setting = (plugin.app as any).setting;
+      /* eslint-disable @typescript-eslint/no-unsafe-call */
+      const setting = (plugin.app as unknown as { setting: any }).setting;
       setting.open();
       setting.openTabById(plugin.manifest.id);
+      /* eslint-enable @typescript-eslint/no-unsafe-call */
     },
   });
 
@@ -88,7 +90,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       if (!leaf) return false;
 
       if (!checking) {
-        leaf.setViewState({
+        void leaf.setViewState({
           type: VIEW_TYPE_MARKDOWN,
           state: leaf.view.getState(),
         });
@@ -105,7 +107,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       if (!leaf) return false;
 
       if (!checking) {
-        leaf.setViewState({
+        void leaf.setViewState({
           type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
           state: leaf.view.getState(),
         });
