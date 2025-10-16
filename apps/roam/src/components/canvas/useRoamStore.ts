@@ -131,30 +131,62 @@ export const useRoamStore = ({
       setLoading(false);
     }
   }, [tree, pageUid]);
+
   const store = useMemo(() => {
     if (needsUpgrade || error || loading) return null;
+
+    const handleStoreError = ({
+      error,
+      errorMessage,
+    }: {
+      error: Error;
+      errorMessage: string;
+    }): void => {
+      console.error(errorMessage, error);
+      setError(error);
+      setLoading(false);
+      const snapshotSize = initialSnapshot
+        ? JSON.stringify(initialSnapshot).length
+        : 0;
+      sendErrorEmail({
+        error,
+        type: errorMessage,
+        context: {
+          pageUid,
+          user: getCurrentUserDisplayName(),
+          snapshotSize,
+          ...(snapshotSize < 10000 ? { initialSnapshot } : {}),
+        },
+      }).catch(() => {});
+    };
+
     // eslint-disable-next-line @typescript-eslint/naming-convention
     let _store: TLStore;
+
     try {
       _store = createTLStore({
-        initialData: initialSnapshot?.store,
         migrations: migrations,
         shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
         bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
       });
     } catch (e) {
-      const error = e as Error;
-      console.error("Failed to create store:", error);
-      sendErrorEmail({
-        error,
-        type: "Failed to create TLStore",
-        context: {
-          pageUid,
-          user: getCurrentUserDisplayName(),
-          initialSnapshot,
-        },
-      }).catch(() => {});
+      handleStoreError({
+        error: e as Error,
+        errorMessage: "Failed to create TLStore",
+      });
       return null;
+    }
+
+    if (initialSnapshot) {
+      try {
+        loadSnapshot(_store, initialSnapshot);
+      } catch (e) {
+        handleStoreError({
+          error: e as Error,
+          errorMessage: "Failed to migrate snapshot",
+        });
+        return null;
+      }
     }
 
     _store.listen((rec) => {
