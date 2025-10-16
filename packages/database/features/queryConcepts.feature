@@ -48,7 +48,7 @@ Feature: Concept queries
       | c9  | opposes 2 | s1        | user2      | 2025/01/01 | 2025/01/01    | false      | c5         | {}               | {"target": "c8", "source": "c2"} |
 
   Scenario Outline: Query all nodes
-    And a user logged in space s1 and calling getConcepts with these parameters: '{"schemaLocalIds":[],"fetchNodes":null}'
+    And a user logged in space s1 and calling getConcepts with these parameters: '{"scope":{"type":"all"}}'
     Then query results should look like this
       | _id | name         | _space_id | _author_id | @is_schema | _schema_id | @_reference_content              |
       | c2  | claim 1      | s1        | user1      | false      | c1         | {}                               |
@@ -59,7 +59,7 @@ Feature: Concept queries
       | c9  | opposes 2    | s1        | user2      | false      | c5         | {"target": "c8", "source": "c2"} |
 
   Scenario Outline: Query node schemas
-    And a user logged in space s1 and calling getConcepts with these parameters: '{"fetchNodes":null}'
+    And a user logged in space s1 and calling getConcepts with these parameters: '{"scope":{"schemas":true}}'
     Then query results should look like this
       | _id | name       | _space_id | _author_id | @is_schema | _schema_id | @literal_content                | @reference_content | _represented_by_id |
       | c1  | Claim      | s1        | user1      | true       |            | {}                              | {}                 | ct1                |
@@ -67,7 +67,7 @@ Feature: Concept queries
       | c7  | Hypothesis | s1        | user1      | true       |            | {}                              | {}                 | ct7                |
 
   Scenario Outline: Query by node types
-    And a user logged in space s1 and calling getConcepts with these parameters: '{"schemaLocalIds":["lct1"]}'
+    And a user logged in space s1 and calling getConcepts with these parameters: '{"scope":{"ofType":["lct1"]}}'
     Then query results should look like this
       | _id | name    | _space_id | _author_id | @is_schema | _schema_id | @literal_content | @reference_content |
       | c2  | claim 1 | s1        | user1      | false      | c1         | {}               | {}                 |
@@ -75,7 +75,7 @@ Feature: Concept queries
       | c4  | claim 3 | s1        | user3      | false      | c1         | {}               | {}                 |
 
   Scenario Outline: Query by author
-    And a user logged in space s1 and calling getConcepts with these parameters: '{"nodeAuthor":"user2","schemaLocalIds":[],"fetchNodes":null}'
+    And a user logged in space s1 and calling getConcepts with these parameters: '{"scope":{"author":"user2","type":"all"}}'
     Then query results should look like this
       | _id | name      | _space_id | _author_id | @is_schema | _schema_id | @literal_content | @_reference_content              |
       | c3  | claim 2   | s1        | user2      | false      | c1         | {}               | {}                               |
@@ -83,7 +83,7 @@ Feature: Concept queries
       | c9  | opposes 2 | s1        | user2      | false      | c5         | {}               | {"target": "c8", "source": "c2"} |
 
   Scenario Outline: Query by relation type
-    And a user logged in space s1 and calling getConcepts with these parameters: '{"inRelsOfTypeLocal":["lct5"],"schemaLocalIds":[]}'
+    And a user logged in space s1 and calling getConcepts with these parameters: '{"relations":{"ofType":["lct5"]}}'
     Then query results should look like this
       | _id | name         | _space_id | _author_id | @is_schema | _schema_id | @literal_content | @_reference_content |
       | c2  | claim 1      | s1        | user1      | false      | c1         | {}               | {}                  |
@@ -91,7 +91,7 @@ Feature: Concept queries
       | c8  | hypothesis 1 | s1        | user3      | false      | c7         | {}               | {}                  |
 
   Scenario Outline: Query by related node type
-    And a user logged in space s1 and calling getConcepts with these parameters: '{"inRelsToNodesOfTypeLocal":["lct7"],"schemaLocalIds":[]}'
+    And a user logged in space s1 and calling getConcepts with these parameters: '{"relations":{"toNodeType":["lct7"]}}'
     Then query results should look like this
       | _id | name         | _space_id | _author_id | @is_schema | _schema_id | @literal_content | @_reference_content |
       | c2  | claim 1      | s1        | user1      | false      | c1         | {}               | {}                  |
@@ -99,14 +99,14 @@ Feature: Concept queries
 
   # Note that the node is related to itself, unfortunate but hard to solve.
   Scenario Outline: Query by author of related node
-    And a user logged in space s1 and calling getConcepts with these parameters: '{"schemaLocalIds":[],"inRelsToNodesOfAuthor":"user3","relationFields":["id"],"relationSubNodesFields":["id"]}'
+    And a user logged in space s1 and calling getConcepts with these parameters: '{"relations":{"author":"user3"},"fields":{"relations":["id"],"relationNodes":["id"]}}'
     Then query results should look like this
       | _id | name         | _space_id | _author_id | @is_schema | _schema_id | @literal_content | @_reference_content |
       | c2  | claim 1      | s1        | user1      | false      | c1         | {}               | {}                  |
       | c8  | hypothesis 1 | s1        | user3      | false      | c7         | {}               | {}                  |
 
   Scenario Outline: Query by related node
-    And a user logged in space s1 and calling getConcepts with these parameters: '{"schemaLocalIds":[],"inRelsToNodeLocalIds":["lct2"]}'
+    And a user logged in space s1 and calling getConcepts with these parameters: '{"relations":{"toNodeId":["lct2"]}}'
     Then query results should look like this
       | _id | name         | _space_id | _author_id | @is_schema | _schema_id | @literal_content | @_reference_content |
       | c2  | claim 1      | s1        | user1      | false      | c1         | {}               | {}                  |

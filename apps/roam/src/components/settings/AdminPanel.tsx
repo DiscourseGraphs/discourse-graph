@@ -7,7 +7,7 @@ import {
   SupabaseContext,
 } from "~/utils/supabaseContext";
 import {
-  getNodesByType,
+  getConcepts,
   getSchemaConcepts,
   nodeSchemaSignature,
   type NodeSignature,
@@ -157,10 +157,16 @@ const AdminPanel = () => {
         try {
           setLoadingNodes(true);
           setNodes(
-            await getNodesByType({
+            await getConcepts({
               supabase,
               spaceId,
-              nodeTypes: [showingSchema.sourceLocalId],
+              scope: {
+                schemas:
+                  showingSchema.sourceLocalId ===
+                  nodeSchemaSignature.sourceLocalId,
+                type: "nodes",
+                ofType: [showingSchema.sourceLocalId],
+              },
             }),
           );
         } catch (e) {
