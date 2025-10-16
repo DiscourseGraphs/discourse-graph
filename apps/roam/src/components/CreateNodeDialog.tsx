@@ -116,6 +116,11 @@ const CreateNodeDialog = ({
       ),
     });
     setLoading(false);
+    
+    // Remove focus from the block by simulating a click on the document
+    // This changes the UI from block editing to not block editing
+    document.body.click();
+    
     onClose();
   };
 
