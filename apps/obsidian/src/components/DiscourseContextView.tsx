@@ -5,6 +5,7 @@ import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormat
 import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { PluginProvider, usePlugin } from "~/components/PluginContext";
+import { getNodeTypeById } from "~/utils/typeUtils";
 
 type DiscourseContextProps = {
   activeFile: TFile | null;
@@ -39,9 +40,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
       return <div>Not a discourse node (no nodeTypeId)</div>;
     }
 
-    const nodeType = plugin.settings.nodeTypes.find(
-      (type) => type.id === frontmatter.nodeTypeId,
-    );
+    const nodeType = getNodeTypeById(plugin, frontmatter.nodeTypeId as string);
 
     if (!nodeType) {
       return <div>Unknown node type: {frontmatter.nodeTypeId}</div>;

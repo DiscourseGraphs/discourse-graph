@@ -1,9 +1,16 @@
-import { Plugin, Editor, Menu, TFile } from "obsidian";
+import {
+  Plugin,
+  Editor,
+  Menu,
+  TFile,
+  MarkdownView,
+  WorkspaceLeaf,
+} from "obsidian";
 import { SettingsTab } from "~/components/Settings";
-import { Settings } from "~/types";
+import { Settings, VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { registerCommands } from "~/utils/registerCommands";
 import { DiscourseContextView } from "~/components/DiscourseContextView";
-import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
+import { VIEW_TYPE_TLDRAW_DG_PREVIEW, FRONTMATTER_KEY } from "~/constants";
 import {
   convertPageToDiscourseNode,
   createDiscourseNode,
@@ -11,16 +18,70 @@ import {
 import { DEFAULT_SETTINGS } from "~/constants";
 import { CreateNodeModal } from "~/components/CreateNodeModal";
 import { TagNodeHandler } from "~/utils/tagNodeHandler";
+import { TldrawView } from "~/components/canvas/TldrawView";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
   private styleElement: HTMLStyleElement | null = null;
   private tagNodeHandler: TagNodeHandler | null = null;
+  private currentViewActions: { leaf: WorkspaceLeaf; action: any }[] = [];
 
   async onload() {
     await this.loadSettings();
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
+
+    this.registerEvent(
+      this.app.workspace.on(
+        "active-leaf-change",
+        (leaf: WorkspaceLeaf | null) => {
+          this.cleanupViewActions();
+
+          if (!leaf) return;
+
+          const view = leaf.view;
+          if (!(view instanceof MarkdownView)) return;
+
+          const file = view.file;
+          if (!file) return;
+
+          const cache = this.app.metadataCache.getFileCache(file);
+          if (cache?.frontmatter?.[FRONTMATTER_KEY]) {
+            // Add new action and track it
+            const action = view.addAction(
+              "layout",
+              "View as canvas",
+              async () => {
+                await leaf.setViewState({
+                  type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
+                  state: view.getState(),
+                });
+              },
+            );
+
+            this.currentViewActions.push({ leaf, action });
+          }
+        },
+      ),
+    );
+
+    this.registerEvent(
+      this.app.workspace.on("file-open", (file: TFile | null) => {
+        if (!file) return;
+
+        const cache = this.app.metadataCache.getFileCache(file);
+        if (cache?.frontmatter?.[FRONTMATTER_KEY]) {
+          const leaf =
+            this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
+          if (leaf) {
+            void leaf.setViewState({
+              type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
+              state: leaf.view.getState(),
+            });
+          }
+        }
+      }),
+    );
 
     this.registerView(
       VIEW_TYPE_DISCOURSE_CONTEXT,
@@ -42,6 +103,10 @@ export default class DiscourseGraphPlugin extends Plugin {
       console.error("Failed to initialize TagNodeHandler:", error);
       this.tagNodeHandler = null;
     }
+    this.registerView(
+      VIEW_TYPE_TLDRAW_DG_PREVIEW,
+      (leaf) => new TldrawView(leaf, this),
+    );
 
     this.registerEvent(
       // @ts-ignore - file-menu event exists but is not in the type definitions
@@ -206,7 +271,25 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.updateFrontmatterStyles();
   }
 
+  private cleanupViewActions() {
+    this.currentViewActions.forEach(({ leaf, action }) => {
+      try {
+        if (leaf?.view) {
+          if (action?.remove) {
+            action.remove();
+          } else if (action?.detach) {
+            action.detach();
+          }
+        }
+      } catch (e) {
+        console.error("Failed to cleanup view action:", e);
+      }
+    });
+    this.currentViewActions = [];
+  }
+
   async onunload() {
+    this.cleanupViewActions();
     if (this.styleElement) {
       this.styleElement.remove();
     }

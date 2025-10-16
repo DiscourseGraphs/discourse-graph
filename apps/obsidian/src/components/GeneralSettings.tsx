@@ -69,6 +69,11 @@ const GeneralSettings = () => {
   const [nodesFolderPath, setNodesFolderPath] = useState(
     plugin.settings.nodesFolderPath,
   );
+  const [canvasFolderPath, setCanvasFolderPath] = useState<string>(
+    plugin.settings.canvasFolderPath,
+  );
+  const [canvasAttachmentsFolderPath, setCanvasAttachmentsFolderPath] =
+    useState<string>(plugin.settings.canvasAttachmentsFolderPath);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const handleToggleChange = (newValue: boolean) => {
@@ -81,9 +86,24 @@ const GeneralSettings = () => {
     setHasUnsavedChanges(true);
   }, []);
 
+  const handleCanvasFolderPathChange = useCallback((newValue: string) => {
+    setCanvasFolderPath(newValue);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const handleCanvasAttachmentsFolderPathChange = useCallback(
+    (newValue: string) => {
+      setCanvasAttachmentsFolderPath(newValue);
+      setHasUnsavedChanges(true);
+    },
+    [],
+  );
+
   const handleSave = async () => {
     plugin.settings.showIdsInFrontmatter = showIdsInFrontmatter;
     plugin.settings.nodesFolderPath = nodesFolderPath;
+    plugin.settings.canvasFolderPath = canvasFolderPath;
+    plugin.settings.canvasAttachmentsFolderPath = canvasAttachmentsFolderPath;
     await plugin.saveSettings();
     new Notice("General settings saved");
     setHasUnsavedChanges(false);
@@ -127,8 +147,44 @@ const GeneralSettings = () => {
       </div>
 
       <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">Canvas folder path</div>
+          <div className="setting-item-description">
+            Folder where new Discourse Graph canvases will be created. Default:
+            &quot;Discourse Canvas&quot;.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <FolderSuggestInput
+            value={canvasFolderPath}
+            onChange={handleCanvasFolderPathChange}
+            placeholder="Example: Discourse Canvas"
+          />
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">
+            Canvas attachments folder path
+          </div>
+          <div className="setting-item-description">
+            Folder where attachments for canvases are stored. Default:
+            &quot;attachments&quot;.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <FolderSuggestInput
+            value={canvasAttachmentsFolderPath}
+            onChange={handleCanvasAttachmentsFolderPathChange}
+            placeholder="Example: attachments"
+          />
+        </div>
+      </div>
+
+      <div className="setting-item">
         <button
-          onClick={handleSave}
+          onClick={() => void handleSave()}
           className={hasUnsavedChanges ? "mod-cta" : ""}
           disabled={!hasUnsavedChanges}
         >

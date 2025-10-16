@@ -5,6 +5,7 @@ import SearchBar from "./SearchBar";
 import { DiscourseNode } from "~/types";
 import DropdownSelect from "./DropdownSelect";
 import { usePlugin } from "./PluginContext";
+import { getNodeTypeById } from "~/utils/typeUtils";
 
 type RelationTypeOption = {
   id: string;
@@ -60,12 +61,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
     );
 
     const compatibleNodeTypes = compatibleNodeTypeIds
-      .map((id) => {
-        const nodeType = plugin.settings.nodeTypes.find(
-          (type) => type.id === id,
-        );
-        return nodeType;
-      })
+      .map((id) => getNodeTypeById(plugin, id))
       .filter(Boolean) as DiscourseNode[];
 
     setCompatibleNodeTypes(compatibleNodeTypes);
@@ -152,12 +148,12 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
         const nodeTypeIdsToSearch = compatibleNodeTypes.map((type) => type.id);
 
         const results =
-          await queryEngineRef.current?.searchCompatibleNodeByTitle(
+          await queryEngineRef.current.searchCompatibleNodeByTitle({
             query,
-            nodeTypeIdsToSearch,
+            compatibleNodeTypeIds: nodeTypeIdsToSearch,
             activeFile,
             selectedRelationType,
-          );
+          });
 
         if (results.length === 0 && query.length >= 2) {
           setSearchError(

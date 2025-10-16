@@ -9,29 +9,89 @@ type AppWithPlugins = App & {
   plugins: {
     plugins: {
       [key: string]: {
-        api: any;
+        api: unknown;
       };
     };
   };
 };
 
+type DatacorePage = {
+  $name: string;
+  $path?: string;
+};
+
 export class QueryEngine {
   private app: App;
-  private dc: any;
+  private dc:
+    | {
+        query: (query: string) => DatacorePage[];
+      }
+    | undefined;
   private readonly MIN_QUERY_LENGTH = 2;
 
   constructor(app: App) {
     const appWithPlugins = app as AppWithPlugins;
-    this.dc = appWithPlugins.plugins?.plugins?.["datacore"]?.api;
+    this.dc = appWithPlugins.plugins?.plugins?.["datacore"]?.api as
+      | { query: (query: string) => DatacorePage[] }
+      | undefined;
     this.app = app;
   }
 
-  async searchCompatibleNodeByTitle(
+  /**
+   * Search across all Discourse Nodes (files that have frontmatter nodeTypeId)
+   */
+  searchDiscourseNodesByTitle = async (
     query: string,
-    compatibleNodeTypeIds: string[],
-    activeFile: TFile,
-    selectedRelationType: string,
-  ): Promise<TFile[]> {
+    nodeTypeId?: string,
+  ): Promise<TFile[]> => {
+    if (!query || query.length < this.MIN_QUERY_LENGTH) {
+      return [];
+    }
+    if (!this.dc) {
+      console.warn(
+        "Datacore API not available. Search functionality is not available.",
+      );
+      return [];
+    }
+
+    try {
+      const dcQuery = nodeTypeId
+        ? `@page and exists(nodeTypeId) and nodeTypeId = "${nodeTypeId}"`
+        : "@page and exists(nodeTypeId)";
+      const potentialNodes = await this.dc.query(dcQuery);
+
+      const searchResults = potentialNodes.filter((p: DatacorePage) =>
+        this.fuzzySearch(p.$name, query),
+      );
+
+      const files = searchResults
+        .map((dcFile: DatacorePage) => {
+          if (dcFile && dcFile.$path) {
+            const realFile = this.app.vault.getAbstractFileByPath(dcFile.$path);
+            if (realFile && realFile instanceof TFile) return realFile;
+          }
+          return null;
+        })
+        .filter((f): f is TFile => f instanceof TFile);
+
+      return files;
+    } catch (error) {
+      console.error("Error in searchDiscourseNodesByTitle:", error);
+      return [];
+    }
+  };
+
+  searchCompatibleNodeByTitle = async ({
+    query,
+    compatibleNodeTypeIds,
+    activeFile,
+    selectedRelationType,
+  }: {
+    query: string;
+    compatibleNodeTypeIds: string[];
+    activeFile: TFile;
+    selectedRelationType: string;
+  }): Promise<TFile[]> => {
     if (!query || query.length < this.MIN_QUERY_LENGTH) {
       return [];
     }
@@ -48,31 +108,32 @@ export class QueryEngine {
         .join(" or ")}`;
 
       const potentialNodes = this.dc.query(dcQuery);
-      const searchResults = potentialNodes.filter((p: any) => {
+      const searchResults = potentialNodes.filter((p: DatacorePage) => {
         return this.fuzzySearch(p.$name, query);
       });
 
       let existingRelatedFiles: string[] = [];
       if (selectedRelationType) {
         const fileCache = this.app.metadataCache.getFileCache(activeFile);
-        const existingRelations =
-          fileCache?.frontmatter?.[selectedRelationType] || [];
+        const existingRelations: string[] =
+          (fileCache?.frontmatter?.[selectedRelationType] as string[]) || [];
 
         existingRelatedFiles = existingRelations.map((relation: string) => {
           const match = relation.match(/\[\[(.*?)(?:\|.*?)?\]\]/);
-          return match ? match[1] : relation.replace(/^\[\[|\]\]$/g, "");
+          return match?.[1] ?? relation.replace(/^\[\[|\]\]$/g, "");
         });
       }
       const finalResults = searchResults
-        .map((dcFile: any) => {
+        .map((dcFile: DatacorePage) => {
           if (dcFile && dcFile.$path) {
             const realFile = this.app.vault.getAbstractFileByPath(dcFile.$path);
             if (realFile && realFile instanceof TFile) {
               return realFile;
             }
           }
-          return dcFile as TFile;
+          return null;
         })
+        .filter((f): f is TFile => f instanceof TFile)
         .filter((file: TFile) => {
           if (file.path === activeFile.path) return false;
 
@@ -96,7 +157,7 @@ export class QueryEngine {
       console.error("Error in searchNodeByTitle:", error);
       return [];
     }
-  }
+  };
 
   /**
    * Enhanced fuzzy search implementation
@@ -187,6 +248,7 @@ export class QueryEngine {
           );
 
           if (regex.test(fileName)) {
+            if (!page.$path) continue;
             const file = this.app.vault.getAbstractFileByPath(page.$path);
             if (file && file instanceof TFile) {
               const extractedContent = extractContentFromTitle(
