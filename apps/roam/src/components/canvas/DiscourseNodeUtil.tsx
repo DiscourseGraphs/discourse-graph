@@ -27,6 +27,8 @@ import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContex
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
+import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
+import { Button, Icon } from "@blueprintjs/core";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { isPageUid } from "./Tldraw";
@@ -517,6 +519,26 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
         onPointerEnter={() => setOverlayMounted(true)}
       >
         <div style={{ pointerEvents: "all" }}>
+          {/* Open in Sidebar Button */}
+          <Button
+            className="absolute left-1 top-1 z-10"
+            minimal
+            small
+            icon={
+              <Icon
+                icon="panel-stats"
+                color={textColor}
+                className="opacity-50"
+              />
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              void openBlockInSidebar(shape.props.uid);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            title="Open in sidebar (Shift+Click)"
+          />
+
           {shape.props.imageUrl && isKeyImage ? (
             <img
               src={shape.props.imageUrl}
@@ -537,12 +559,15 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
           >
             {overlayMounted && isOverlayEnabled && (
               <div
-                className="roamjs-discourse-context-overlay-container absolute right-0 top-0"
+                className="roamjs-discourse-context-overlay-container absolute right-1 top-1"
                 onPointerDown={(e) => e.stopPropagation()}
               >
                 <DiscourseContextOverlay
                   uid={shape.props.uid}
                   id={`${shape.id}-overlay`}
+                  opacity="50"
+                  textColor={textColor}
+                  iconColor={textColor}
                 />
               </div>
             )}

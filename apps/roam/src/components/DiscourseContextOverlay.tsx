@@ -58,14 +58,49 @@ const getOverlayInfo = async (tag: string): Promise<DiscourseData> => {
   }
 };
 
-type DiscourseContextOverlayProps =
-  | { id: string; tag: string; uid?: never }
-  | { id: string; uid: string; tag?: never }
-  | { id: string; tag: string; uid: string };
+const OPACITY_VALUES = [
+  "5",
+  "10",
+  "15",
+  "20",
+  "25",
+  "30",
+  "35",
+  "40",
+  "45",
+  "50",
+  "55",
+  "60",
+  "65",
+  "70",
+  "75",
+  "80",
+  "85",
+  "90",
+  "95",
+  "100",
+] as const;
+
+type OpacityValue = (typeof OPACITY_VALUES)[number];
+
+type DiscourseContextOverlayBaseProps = {
+  id: string;
+  iconColor?: string;
+  textColor?: string;
+  opacity?: OpacityValue;
+};
+
+// need tag or uid
+type DiscourseContextOverlayProps = DiscourseContextOverlayBaseProps &
+  ({ tag: string; uid?: never } | { tag?: never; uid: string });
+
 const DiscourseContextOverlay = ({
   tag,
   id,
   uid,
+  iconColor,
+  textColor,
+  opacity = "100",
 }: DiscourseContextOverlayProps) => {
   const tagUid = useMemo(() => uid ?? getPageUidByPageTitle(tag), [uid, tag]);
   const [loading, setLoading] = useState(true);
@@ -131,10 +166,28 @@ const DiscourseContextOverlay = ({
           disabled={loading}
         >
           <div className="flex items-center gap-1.5">
-            <Icon icon={"diagram-tree"} />
-            <span className="mr-1 leading-none">{loading ? "-" : score}</span>
-            <Icon icon={"link"} />
-            <span className="leading-none">{loading ? "-" : refs}</span>
+            <Icon
+              icon={"diagram-tree"}
+              color={iconColor}
+              style={{ opacity: `${Number(opacity) / 100}` }}
+            />
+            <span
+              className={`mr-1 leading-none opacity-${opacity}`}
+              style={{ color: textColor }}
+            >
+              {loading ? "-" : score}
+            </span>
+            <Icon
+              icon={"link"}
+              color={iconColor}
+              style={{ opacity: `${Number(opacity) / 100}` }}
+            />
+            <span
+              className={`leading-none opacity-${opacity}`}
+              style={{ color: textColor }}
+            >
+              {loading ? "-" : refs}
+            </span>
           </div>
         </Button>
       }
