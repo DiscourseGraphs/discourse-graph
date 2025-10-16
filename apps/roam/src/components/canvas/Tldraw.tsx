@@ -736,6 +736,7 @@ const InsideEditorAndUiContext = ({
     "image/png",
     "image/gif",
     "image/svg+xml",
+    "image/webp",
   ];
   const isImage = (ext: string) => ACCEPTED_IMG_TYPE.includes(ext);
   const isCustomArrowShape = (shape: TLShape) => {
