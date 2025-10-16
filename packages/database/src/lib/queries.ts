@@ -114,12 +114,14 @@ const composeConceptQuery = ({
   if (contentFields.length > 0) {
     const args: string[] = contentFields.slice();
     if (documentFields.length > 0) {
-      args.push("Document (\n" + documentFields.join(",\n") + ")");
+      args.push(
+        `Document:my_documents!document_id${innerContent ? "!inner" : ""} (\n${documentFields.join(",\n")})`,
+      );
     }
-    q += `,\nContent${innerContent ? "!inner" : ""} (\n${args.join(",\n")})`;
+    q += `,\nContent:my_contents!represented_by_id${innerContent ? "!inner" : ""} (\n${args.join(",\n")})`;
   }
   if (nodeAuthor !== undefined) {
-    q += ", author:author_id!inner(account_local_id)";
+    q += ", author:my_accounts!author_id!inner(account_local_id)";
   }
   if (
     inRelsOfType !== undefined ||
@@ -139,16 +141,18 @@ const composeConceptQuery = ({
       if (inRelsToNodesOfType !== undefined && !args2.includes("schema_id"))
         args2.push("schema_id");
       if (inRelsToNodeLocalIds !== undefined)
-        args2.push("Content!inner(source_local_id)");
+        args2.push(
+          "Content:my_contents!represented_by_id!inner(source_local_id)",
+        );
       if (inRelsToNodesOfAuthor !== undefined) {
         if (!args2.includes("author_id")) args2.push("author_id");
-        args2.push("author:author_id!inner(account_local_id)");
+        args2.push("author:my_accounts!author_id!inner(account_local_id)");
       }
       args.push(`subnodes:concepts_of_relation!inner(${args2.join(",\n")})`);
     }
     q += `, relations:concept_in_relations!inner(${args.join(",\n")})`;
   }
-  let query = supabase.from("Concept").select(q);
+  let query = supabase.from("my_concepts").select(q);
   if (fetchNodes === true) {
     query = query.eq("arity", 0);
   } else if (fetchNodes === false) {
@@ -172,7 +176,7 @@ const composeConceptQuery = ({
     else throw new Error("schemaDbIds should be a number or number[]");
   }
   if (baseNodeLocalIds.length > 0)
-    query = query.in("content.source_local_id", baseNodeLocalIds);
+    query = query.in("Content.source_local_id", baseNodeLocalIds);
   if (inRelsOfType !== undefined && inRelsOfType.length > 0)
     query = query.in("relations.schema_id", inRelsOfType);
   if (inRelsToNodesOfType !== undefined && inRelsToNodesOfType.length > 0)

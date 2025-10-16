@@ -28,6 +28,27 @@ REVOKE ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536"
 GRANT ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" TO "authenticated" ;
 GRANT ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" TO "service_role" ;
 
+CREATE OR REPLACE VIEW public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS
+SELECT
+    ct.id,
+    ct.document_id,
+    ct.source_local_id,
+    ct.variant,
+    ct.author_id,
+    ct.creator_id,
+    ct.created,
+    ct.text,
+    ct.metadata,
+    ct.scale,
+    ct.space_id,
+    ct.last_modified,
+    ct.part_of_id,
+    emb.model,
+    emb.vector
+FROM public."Content" AS ct
+JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id=emb.target_id)
+WHERE ct.space_id = any(public.my_space_ids()) AND NOT emb.obsolete;
+
 set search_path to public, extensions ;
 
 CREATE OR REPLACE FUNCTION public.match_content_embeddings (
@@ -47,14 +68,12 @@ SELECT
   c.id AS content_id,
   c.source_local_id AS roam_uid,
   c.text AS text_content,
-  1 - (ce.vector <=> query_embedding) AS similarity
-FROM public."ContentEmbedding_openai_text_embedding_3_small_1536" AS ce
-JOIN public."Content" AS c ON ce.target_id = c.id
-WHERE 1 - (ce.vector <=> query_embedding) > match_threshold
-  AND ce.obsolete = FALSE
+  1 - (c.vector <=> query_embedding) AS similarity
+FROM public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS c
+WHERE 1 - (c.vector <=> query_embedding) > match_threshold
   AND (current_document_id IS NULL OR c.document_id = current_document_id)
 ORDER BY
-  ce.vector <=> query_embedding ASC
+  c.vector <=> query_embedding ASC
 LIMIT match_count;
 $$ ;
 
@@ -80,12 +99,10 @@ WITH subset_content_with_embeddings AS (
     c.id AS content_id,
     c.source_local_id AS roam_uid,
     c.text AS text_content,
-    ce.vector AS embedding_vector
-  FROM public."Content" AS c
-  JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS ce ON c.id = ce.target_id
+    c.vector AS embedding_vector
+    FROM public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS c
   WHERE
     c.source_local_id = ANY(p_subset_roam_uids) -- Filter Content by the provided Roam UIDs
-    AND ce.obsolete = FALSE
 )
 SELECT
   ss_ce.content_id,

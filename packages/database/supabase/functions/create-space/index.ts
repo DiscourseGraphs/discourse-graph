@@ -114,6 +114,7 @@ const processAndGetOrCreateSpace = async (
       return asPostgrestFailure(error.message, "authentication_error");
     }
     anonymousUser = data.user;
+    await supabase.auth.signOut({ scope: "local" });
   }
   if (anonymousUser === null) {
     const resultCreateAnonymousUser = await supabase.auth.admin.createUser({
@@ -185,7 +186,7 @@ const processAndGetOrCreateSpace = async (
 const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000"];
 
 const isVercelPreviewUrl = (origin: string): boolean =>
-    /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin)
+  /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin);
 
 const isAllowedOrigin = (origin: string): boolean =>
   allowedOrigins.some((allowed) => origin.startsWith(allowed)) ||
@@ -193,20 +194,20 @@ const isAllowedOrigin = (origin: string): boolean =>
 
 // @ts-ignore Deno is not visible to the IDE
 Deno.serve(async (req) => {
-    const origin = req.headers.get("origin");
-    const originIsAllowed = origin && isAllowedOrigin(origin);
-    if (req.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          ...(originIsAllowed ? { "Access-Control-Allow-Origin": origin } : {}),
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers":
-            "Content-Type, Authorization, x-vercel-protection-bypass, x-client-info, apikey",
-          "Access-Control-Max-Age": "86400",
-        },
-      });
-    }
+  const origin = req.headers.get("origin");
+  const originIsAllowed = origin && isAllowedOrigin(origin);
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        ...(originIsAllowed ? { "Access-Control-Allow-Origin": origin } : {}),
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers":
+          "Content-Type, Authorization, x-vercel-protection-bypass, x-client-info, apikey",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }
 
   const input = await req.json();
   // @ts-ignore Deno is not visible to the IDE

@@ -102,10 +102,17 @@ export const fetchOrCreateSpaceDirect = async (
     });
 
   if (result2.data === null) {
-    return asPostgrestFailure(
-      JSON.stringify(result2.error),
-      "Failed to create space",
-    );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    let error: string = (result2.error?.message as string | undefined) || "";
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (result2.error?.context?.body)
+      try {
+        // eslint-disable-next-line
+        error += await new Response(result2.error.context.body).text();
+      } catch (err) {
+        // could not parse, not important
+      }
+    return asPostgrestFailure(error, "Failed to create space");
   }
   return {
     data: result2.data,
