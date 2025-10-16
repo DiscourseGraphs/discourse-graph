@@ -382,7 +382,7 @@ const ResultsView: ResultsViewComponent = ({
   const [isEditLayout, setIsEditLayout] = useState(false);
   const [isEditColumnSort, setIsEditColumnSort] = useState(false);
   const [isEditColumnFilter, setIsEditColumnFilter] = useState(false);
-  const [isEditSearchFilter, setIsEditSearchFilter] = useState(false);
+  const [isEditSearchFilter, setIsEditSearchFilter] = useState(settings.showSearchFilter);
 
   const [layout, setLayout] = useState(settings.layout);
   const layoutMode = useMemo(
@@ -1091,7 +1091,17 @@ const ResultsView: ResultsViewComponent = ({
                       className={searchFilter ? "roamjs-item-dirty" : ""}
                       onClick={() => {
                         setMoreMenuOpen(false);
-                        setIsEditSearchFilter((prevState) => !prevState);
+                        setIsEditSearchFilter((prevState) => {
+                          const newState = !prevState;
+                          if (!preventSavingSettings) {
+                            setInputSetting({
+                              blockUid: settings.resultNodeUid,
+                              key: "showSearchFilter",
+                              value: newState ? "show" : "hide",
+                            });
+                          }
+                          return newState;
+                        });
                       }}
                     />
                     <MenuItem

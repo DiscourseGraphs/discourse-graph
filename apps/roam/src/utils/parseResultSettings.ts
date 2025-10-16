@@ -171,6 +171,10 @@ const parseResultSettings = (
     tree: resultNode.children,
     key: "showInputs",
   });
+  const showSearchFilterNode = getSubTree({
+    tree: resultNode.children,
+    key: "showSearchFilter",
+  });
   const showAliasNode = getSubTree({
     tree: resultNode.children,
     key: "showAlias",
@@ -215,6 +219,7 @@ const parseResultSettings = (
     page: 1, // TODO save in roam data
     inputs,
     showInputs: showInputsNode.children[0]?.text === "show",
+    showSearchFilter: showSearchFilterNode.children[0]?.text === "show",
     showAlias: showAliasNode.children[0]?.text === "show",
     alias,
   };
