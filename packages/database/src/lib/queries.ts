@@ -292,7 +292,7 @@ const composeConceptQuery = ({
   if (ctArgs.length > 0) {
     const documentFields = fields.documents || [];
     if (documentFields.length > 0) {
-      ctArgs.push("Document:my_documents!document_id${innerContent ? "!inner" : ""} (\n" + documentFields.join(",\n") + ")");
+      ctArgs.push(`Document:my_documents!document_id${innerContent ? "!inner" : ""} (\n" + documentFields.join(",\n") + ")`);
     }
     q += `,\nContent:my_contents!represented_by_id${innerContent ? "!inner" : ""} (\n${ctArgs.join(",\n")})`;
   }
