@@ -130,6 +130,9 @@ const NodeMenu = ({
         };
         // timeout required to ensure the block is updated
         setTimeout(() => void addTagToBlock(), 100);
+
+        // Remove focus from the block so user can see tag css immediately
+        document.body.click();
       }
       onClose();
     },
