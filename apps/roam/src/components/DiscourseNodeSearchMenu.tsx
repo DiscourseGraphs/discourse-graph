@@ -232,49 +232,61 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: Result) => {
-      void waitForBlock({ uid: blockUid, text: textarea.value }).then(() => {
-        onClose();
+       if (!blockUid) {
+         onClose();
+         return;
+       }
+       void waitForBlock({ uid: blockUid, text: textarea.value })
+         .then(() => {
+           onClose();
 
-        setTimeout(() => {
-          const originalText = getTextByBlockUid(blockUid);
+           setTimeout(() => {
+             const originalText = getTextByBlockUid(blockUid);
 
-          const prefix = originalText.substring(0, triggerPosition);
-          const suffix = originalText.substring(textarea.selectionStart);
-          const pageRef = `[[${item.text}]]`;
+             const prefix = originalText.substring(0, triggerPosition);
+             const suffix = originalText.substring(textarea.selectionStart);
+             const pageRef = `[[${item.text}]]`;
 
-          const newText = `${prefix}${pageRef}${suffix}`;
-          void updateBlock({ uid: blockUid, text: newText }).then(() => {
-            const newCursorPosition = triggerPosition + pageRef.length;
+             const newText = `${prefix}${pageRef}${suffix}`;
+             void updateBlock({ uid: blockUid, text: newText }).then(() => {
+               const newCursorPosition = triggerPosition + pageRef.length;
 
-            if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
-              void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-                location: {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  "block-uid": blockUid,
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  "window-id": windowId,
-                },
-                selection: { start: newCursorPosition },
-              });
-            } else {
-              setTimeout(() => {
-                const textareaElements = document.querySelectorAll("textarea");
-                for (const el of textareaElements) {
-                  if (getUids(el).blockUid === blockUid) {
-                    el.focus();
-                    el.setSelectionRange(newCursorPosition, newCursorPosition);
-                    break;
-                  }
-                }
-              }, 50);
-            }
-          });
-          posthog.capture("Discourse Node: Selected from Search Menu", {
-            id: item.id,
-            text: item.text,
-          });
-        }, 10);
-      });
+               if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
+                 void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+                   location: {
+                     // eslint-disable-next-line @typescript-eslint/naming-convention
+                     "block-uid": blockUid,
+                     // eslint-disable-next-line @typescript-eslint/naming-convention
+                     "window-id": windowId,
+                   },
+                   selection: { start: newCursorPosition },
+                 });
+               } else {
+                 setTimeout(() => {
+                   const textareaElements =
+                     document.querySelectorAll("textarea");
+                   for (const el of textareaElements) {
+                     if (getUids(el).blockUid === blockUid) {
+                       el.focus();
+                       el.setSelectionRange(
+                         newCursorPosition,
+                         newCursorPosition,
+                       );
+                       break;
+                     }
+                   }
+                 }, 50);
+               }
+             });
+             posthog.capture("Discourse Node: Selected from Search Menu", {
+               id: item.id,
+               text: item.text,
+             });
+           }, 10);
+         })
+         .catch((error) => {
+           console.error("Error waiting for block:", error);
+         });
     },
     [blockUid, onClose, textarea, triggerPosition, windowId],
   );
