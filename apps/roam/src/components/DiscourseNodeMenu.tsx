@@ -113,10 +113,6 @@ const NodeMenu = ({
         const tag = menuItem.getAttribute("data-tag") || "";
         if (!tag) return;
 
-        // Remove focus from the block to ensure updateBlock works properly
-        // This changes the UI from block editing to not block editing
-        document.body.click();
-
         const addTagToBlock = () => {
           const currentText = textarea.value;
           const cursorPos = textarea.selectionStart;
@@ -134,6 +130,9 @@ const NodeMenu = ({
         };
         // timeout required to ensure the block is updated
         setTimeout(() => void addTagToBlock(), 100);
+
+        // Remove focus from the block so user can see tag css immediately
+        document.body.click();
       }
       onClose();
     },
