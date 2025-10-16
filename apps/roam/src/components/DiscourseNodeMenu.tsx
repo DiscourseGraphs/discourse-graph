@@ -113,6 +113,10 @@ const NodeMenu = ({
         const tag = menuItem.getAttribute("data-tag") || "";
         if (!tag) return;
 
+        // Remove focus from the block to ensure updateBlock works properly
+        // This changes the UI from block editing to not block editing
+        document.body.click();
+
         const addTagToBlock = () => {
           const currentText = textarea.value;
           const cursorPos = textarea.selectionStart;
