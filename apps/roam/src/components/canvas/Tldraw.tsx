@@ -801,11 +801,9 @@ const InsideEditorAndUiContext = ({
           },
         });
         editor.createAssets([asset]);
-        
-        const position = editor.inputs.shiftKey
-          ? editor.inputs.currentPagePoint
-          : editor.getViewportPageBounds().center;
-        
+
+        const position = editor.getViewportPageBounds().center;
+
         editor.createShape({
           type: "image",
           x: position.x - size.w / 2,
