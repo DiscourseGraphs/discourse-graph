@@ -324,6 +324,9 @@ const ResultsView: ResultsViewComponent = ({
   const [views, setViews] = useState(settings.views);
   const [columnFilters, setColumnFilters] = useState(settings.columnFilters);
   const [searchFilter, setSearchFilter] = useState(settings.searchFilter);
+  const [showSearchFilter, setShowSearchFilter] = useState(
+    settings.showSearchFilter,
+  );
   const [showInterface, setShowInterface] = useState(settings.showInterface);
   const [revealMenuIcons, setRevealMenuIcons] = useState(false);
   const [showInputs, setShowInputs] = useState(settings.showInputs);
@@ -348,6 +351,7 @@ const ResultsView: ResultsViewComponent = ({
       page,
       pageSize,
       searchFilter,
+      showSearchFilter,
       showInterface,
     });
   }, [
@@ -358,6 +362,8 @@ const ResultsView: ResultsViewComponent = ({
     pageSize,
     random.count,
     searchFilter,
+    showSearchFilter,
+    showInterface,
     columnFilters,
   ]);
 
@@ -382,7 +388,6 @@ const ResultsView: ResultsViewComponent = ({
   const [isEditLayout, setIsEditLayout] = useState(false);
   const [isEditColumnSort, setIsEditColumnSort] = useState(false);
   const [isEditColumnFilter, setIsEditColumnFilter] = useState(false);
-  const [isEditSearchFilter, setIsEditSearchFilter] = useState(false);
 
   const [layout, setLayout] = useState(settings.layout);
   const layoutMode = useMemo(
@@ -391,11 +396,18 @@ const ResultsView: ResultsViewComponent = ({
   );
   const isMenuIconDirty = useMemo(
     () =>
-      searchFilter ||
+      (searchFilter && !showSearchFilter) ||
       columnFilters.length ||
       random.count ||
       (activeSort.length && layout.mode !== "table"), // indicator is on ResultHeader
-    [searchFilter, columnFilters, random, activeSort, layout.mode],
+    [
+      searchFilter,
+      showSearchFilter,
+      columnFilters,
+      random,
+      activeSort,
+      layout.mode,
+    ],
   );
   const onViewChange = (view: (typeof views)[number], i: number) => {
     const newViews = views.map((v, j) => (i === j ? view : v));
@@ -490,7 +502,7 @@ const ResultsView: ResultsViewComponent = ({
         </div>
       )}
 
-      {isEditSearchFilter && (
+      {showSearchFilter && (
         <div
           className="w-full p-4"
           style={{
@@ -1086,12 +1098,23 @@ const ResultsView: ResultsViewComponent = ({
                       }}
                     />
                     <MenuItem
-                      icon={isEditSearchFilter ? "zoom-out" : "search"}
-                      text={isEditSearchFilter ? "Hide Search" : "Search"}
-                      className={searchFilter ? "roamjs-item-dirty" : ""}
+                      icon={showSearchFilter ? "zoom-out" : "search"}
+                      text={showSearchFilter ? "Hide Search" : "Search"}
+                      className={
+                        searchFilter && !showSearchFilter
+                          ? "roamjs-item-dirty"
+                          : ""
+                      }
                       onClick={() => {
                         setMoreMenuOpen(false);
-                        setIsEditSearchFilter((prevState) => !prevState);
+                        setShowSearchFilter((s) => !s);
+                        if (!preventSavingSettings) {
+                          setInputSetting({
+                            blockUid: settings.resultNodeUid,
+                            key: "showSearchFilter",
+                            value: showSearchFilter ? "hide" : "show",
+                          });
+                        }
                       }}
                     />
                     <MenuItem
