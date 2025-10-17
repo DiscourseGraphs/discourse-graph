@@ -21,7 +21,7 @@ allowedDeprecatedVersions:
   popper.js: ^1.16
   rimraf: <4
 
-# The global versions, in practice apply to website
+# The global versions. In the react case, applies to website in practice
 catalog:
   "@types/eslint": 8.56.12
   "@types/react": ^19.1.12
@@ -29,6 +29,9 @@ catalog:
   eslint: 8.57.1
   react: ^19.1.0
   react-dom: ^19.1.0
+  "@supabase/supabase-js": 2.75.1
+  "@supabase/functions-js": 2.75.1
+  "@supabase/auth-js": 2.75.1
 
 catalogs:
   obsidian:

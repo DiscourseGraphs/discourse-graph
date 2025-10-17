@@ -17,7 +17,7 @@
     "@repo/ui": "workspace:*",
     "@sindresorhus/slugify": "^2.2.1",
     "@supabase/ssr": "^0.7.0",
-    "@supabase/supabase-js": "2.55.0",
+    "@supabase/supabase-js": "catalog:",
     "clsx": "^2.1.1",
     "gray-matter": "^4.0.3",
     "lucide-react": "^0.540.0",

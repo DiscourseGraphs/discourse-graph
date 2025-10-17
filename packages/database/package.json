@@ -42,9 +42,9 @@
   },
   "dependencies": {
     "@repo/utils": "workspace:*",
-    "@supabase/auth-js": "2.72.0",
-    "@supabase/functions-js": "2.5.0",
-    "@supabase/supabase-js": "2.58.0"
+    "@supabase/auth-js": "catalog:",
+    "@supabase/functions-js": "catalog:",
+    "@supabase/supabase-js": "catalog:"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
