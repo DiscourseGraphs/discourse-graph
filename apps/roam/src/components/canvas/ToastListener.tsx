@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { useToasts, TLUiToast } from "tldraw";
+import { Button, Icon } from "@blueprintjs/core";
+import { openCanvasDrawer } from "./CanvasDrawer";
 
 export const dispatchToastEvent = (toast: TLUiToast) => {
   document.dispatchEvent(
@@ -41,7 +43,24 @@ const ToastListener = () => {
     };
   }, [addToast]);
 
-  return null;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: "12px",
+        left: "12px",
+        zIndex: 1000,
+        pointerEvents: "all",
+      }}
+    >
+      <Button
+        icon={<Icon icon="add-column-left" />}
+        onClick={openCanvasDrawer}
+        minimal
+        title="Open Canvas Drawer"
+      />
+    </div>
+  );
 };
 
 export default ToastListener;
