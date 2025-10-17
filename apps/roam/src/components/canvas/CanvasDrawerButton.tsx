@@ -7,7 +7,7 @@ const CanvasDrawerButton = () => {
     <div
       style={{
         position: "absolute",
-        top: "12px",
+        top: "64px",
         left: "12px",
         zIndex: 1000,
         pointerEvents: "all",
@@ -17,7 +17,7 @@ const CanvasDrawerButton = () => {
         icon={<Icon icon="add-column-left" />}
         onClick={openCanvasDrawer}
         minimal
-        title="Open Canvas Drawer"
+        title="Toggle Canvas Drawer"
       />
     </div>
   );

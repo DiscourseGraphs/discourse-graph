@@ -144,13 +144,29 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
 const CanvasDrawer = ({
   onClose,
   ...props
-}: { onClose: () => void } & Props) => (
-  <ResizableDrawer onClose={onClose} title={"Canvas Drawer"}>
-    <CanvasDrawerContent {...props} />
-  </ResizableDrawer>
-);
+}: { onClose: () => void } & Props) => {
+  const handleClose = () => {
+    canvasDrawerUnmount = null;
+    onClose();
+  };
+
+  return (
+    <ResizableDrawer onClose={handleClose} title={"Canvas Drawer"}>
+      <CanvasDrawerContent {...props} />
+    </ResizableDrawer>
+  );
+};
+
+let canvasDrawerUnmount: (() => void) | null = null;
 
 export const openCanvasDrawer = () => {
+  // Toggle behavior: if already open, close it
+  if (canvasDrawerUnmount) {
+    canvasDrawerUnmount();
+    canvasDrawerUnmount = null;
+    return;
+  }
+
   const pageUid = getCurrentPageUid();
   const props = getBlockProps(pageUid) as Record<string, unknown>;
   const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
@@ -174,7 +190,10 @@ export const openCanvasDrawer = () => {
   };
 
   const groupedShapes = groupShapesByUid(shapes);
-  renderOverlay({ Overlay: CanvasDrawer, props: { groupedShapes, pageUid } });
+  canvasDrawerUnmount = renderOverlay({
+    Overlay: CanvasDrawer,
+    props: { groupedShapes, pageUid },
+  });
 };
 
 export default CanvasDrawer;
