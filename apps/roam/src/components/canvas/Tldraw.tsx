@@ -84,6 +84,7 @@ import {
 import ConvertToDialog from "./ConvertToDialog";
 import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
+import CanvasDrawerButton from "./CanvasDrawerButton";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
@@ -370,9 +371,15 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     SelectionBackground: TldrawSelectionBackground,
     Handles: TldrawHandles,
   };
+  const OnTheCanvasComponent = () => (
+    <>
+      <ToastListener />
+      <CanvasDrawerButton />
+    </>
+  );
   const editorComponents: TLEditorComponents = {
     ...defaultEditorComponents,
-    OnTheCanvas: ToastListener,
+    OnTheCanvas: OnTheCanvasComponent,
   };
   const customUiComponents: TLUiComponents = createUiComponents({
     allNodes,
