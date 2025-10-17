@@ -10,7 +10,6 @@ import {
   HTMLTable,
   Icon,
   IconName,
-  InputGroup,
 } from "@blueprintjs/core";
 import { IconNames } from "@blueprintjs/icons";
 import { Column, Result } from "~/utils/types";
@@ -19,7 +18,6 @@ import Filter, { Filters } from "roamjs-components/components/Filter";
 import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getSubTree from "roamjs-components/util/getSubTree";
-import setInputSetting from "roamjs-components/util/setInputSetting";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
@@ -371,12 +369,6 @@ const ResultsTable = ({
   preventSavingSettings,
   onRefresh,
   views,
-  pageSize,
-  setPageSize,
-  pageSizeTimeoutRef,
-  page,
-  setPage,
-  allProcessedResults,
   allResults,
   showInterface,
 }: {
@@ -391,13 +383,7 @@ const ResultsTable = ({
   setFilters: (f: FilterData) => void;
   preventSavingSettings?: boolean;
   views: Views;
-  pageSize: number;
-  setPageSize: (p: number) => void;
-  pageSizeTimeoutRef: React.MutableRefObject<number>;
-  page: number;
-  setPage: (p: number) => void;
   onRefresh: () => void;
-  allProcessedResults: Result[];
   allResults: Result[];
   showInterface?: boolean;
 }) => {
@@ -701,90 +687,6 @@ const ResultsTable = ({
           </React.Fragment>
         ))}
       </tbody>
-      <tfoot style={!showInterface ? { display: "none" } : {}}>
-        <tr>
-          <td
-            colSpan={columns.length}
-            style={{ padding: 0, background: "#eeeeee80" }}
-          >
-            <div
-              className="flex items-center justify-between"
-              style={{ padding: 4 }}
-            >
-              <div
-                className="flex items-center gap-4"
-                style={{ paddingLeft: 4 }}
-              >
-                <span>Rows per page:</span>
-                <InputGroup
-                  defaultValue={pageSize.toString()}
-                  onChange={(e) => {
-                    clearTimeout(pageSizeTimeoutRef.current);
-                    pageSizeTimeoutRef.current = window.setTimeout(() => {
-                      setPageSize(Number(e.target.value));
-
-                      if (preventSavingSettings) return;
-                      setInputSetting({
-                        key: "size",
-                        value: e.target.value,
-                        blockUid: parentUid,
-                      });
-                    }, 1000);
-                  }}
-                  type="number"
-                  style={{
-                    width: 60,
-                    maxWidth: 60,
-                    marginRight: 32,
-                    marginLeft: 16,
-                  }}
-                />
-              </div>
-              <span>
-                <Button
-                  minimal
-                  icon={"double-chevron-left"}
-                  onClick={() => setPage(1)}
-                  disabled={page === 1}
-                  small
-                />
-                <Button
-                  minimal
-                  icon={"chevron-left"}
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                  small
-                />
-                <span style={{ margin: "4px 0" }} className={"text-sm"}>
-                  {page}
-                </span>
-                <Button
-                  minimal
-                  icon={"chevron-right"}
-                  onClick={() => setPage(page + 1)}
-                  disabled={
-                    page === Math.ceil(allProcessedResults.length / pageSize) ||
-                    allProcessedResults.length === 0
-                  }
-                  small
-                />
-                <Button
-                  minimal
-                  icon={"double-chevron-right"}
-                  disabled={
-                    page === Math.ceil(allProcessedResults.length / pageSize) ||
-                    allProcessedResults.length === 0
-                  }
-                  onClick={() =>
-                    setPage(Math.ceil(allProcessedResults.length / pageSize))
-                  }
-                  small
-                />
-              </span>
-            </div>
-          </td>
-        </tr>
-      </tfoot>
     </HTMLTable>
   );
 };

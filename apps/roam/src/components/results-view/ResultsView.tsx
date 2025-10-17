@@ -1154,6 +1154,28 @@ const ResultsView: ResultsViewComponent = ({
                       className={random.count ? "roamjs-item-dirty" : ""}
                       onClick={() => setIsEditRandom(true)}
                     />
+                    <MenuItem
+                      icon={"numerical"}
+                      text={"Rows per page"}
+                    >
+                      {[5, 10, 20, 50, 100].map((size) => (
+                        <MenuItem
+                          key={size}
+                          text={size.toString()}
+                          active={pageSize === size}
+                          onClick={() => {
+                            setPageSize(size);
+                            setMoreMenuOpen(false);
+                            if (preventSavingSettings) return;
+                            setInputSetting({
+                              key: "size",
+                              value: size.toString(),
+                              blockUid: settings.resultNodeUid,
+                            });
+                          }}
+                        />
+                      ))}
+                    </MenuItem>
                   </MenuItem>
                   <MenuItem
                     icon={"tag"}
@@ -1292,13 +1314,7 @@ const ResultsView: ResultsViewComponent = ({
                   filters={filters}
                   setFilters={setFilters}
                   views={views}
-                  page={page}
-                  setPage={setPage}
-                  pageSize={pageSize}
-                  setPageSize={setPageSize}
-                  pageSizeTimeoutRef={pageSizeTimeoutRef}
                   onRefresh={onRefresh}
-                  allProcessedResults={allProcessedResults}
                   allResults={results}
                   showInterface={showInterface}
                 />
@@ -1375,6 +1391,47 @@ const ResultsView: ResultsViewComponent = ({
                     Showing {paginatedResults.length} of {results.length}{" "}
                     results
                   </i>
+                </span>
+                <span>
+                  <Button
+                    minimal
+                    icon={"double-chevron-left"}
+                    onClick={() => setPage(1)}
+                    disabled={page === 1}
+                    small
+                  />
+                  <Button
+                    minimal
+                    icon={"chevron-left"}
+                    onClick={() => setPage(page - 1)}
+                    disabled={page === 1}
+                    small
+                  />
+                  <span style={{ margin: "4px 0" }} className={"text-sm"}>
+                    {page}
+                  </span>
+                  <Button
+                    minimal
+                    icon={"chevron-right"}
+                    onClick={() => setPage(page + 1)}
+                    disabled={
+                      page === Math.ceil(allProcessedResults.length / pageSize) ||
+                      allProcessedResults.length === 0
+                    }
+                    small
+                  />
+                  <Button
+                    minimal
+                    icon={"double-chevron-right"}
+                    disabled={
+                      page === Math.ceil(allProcessedResults.length / pageSize) ||
+                      allProcessedResults.length === 0
+                    }
+                    onClick={() =>
+                      setPage(Math.ceil(allProcessedResults.length / pageSize))
+                    }
+                    small
+                  />
                 </span>
               </div>
               {showContent && <QueryUsed parentUid={parentUid} />}
