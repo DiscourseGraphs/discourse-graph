@@ -167,6 +167,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "Concept_represented_by_id_fkey"
+            columns: ["represented_by_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "Concept_schema_id_fkey"
             columns: ["schema_id"]
             isOneToOne: false
@@ -344,6 +351,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "Content_part_of_id_fkey"
+            columns: ["part_of_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "Content_space_id_fkey"
             columns: ["space_id"]
             isOneToOne: false
@@ -385,6 +399,13 @@ export type Database = {
             columns: ["content_id"]
             isOneToOne: false
             referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_contributors_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
             referencedColumns: ["id"]
           },
           {
@@ -435,6 +456,13 @@ export type Database = {
             columns: ["target_id"]
             isOneToOne: true
             referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ContentEmbedding_openai_text_embedding_3_small_1_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: true
+            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
             referencedColumns: ["id"]
           },
         ]
@@ -661,6 +689,28 @@ export type Database = {
           platform: Database["public"]["Enums"]["Platform"] | null
           write_permission: boolean | null
         }
+        Insert: {
+          account_local_id?: string | null
+          active?: boolean | null
+          agent_type?: Database["public"]["Enums"]["AgentType"] | null
+          dg_account?: string | null
+          id?: number | null
+          metadata?: Json | null
+          name?: string | null
+          platform?: Database["public"]["Enums"]["Platform"] | null
+          write_permission?: boolean | null
+        }
+        Update: {
+          account_local_id?: string | null
+          active?: boolean | null
+          agent_type?: Database["public"]["Enums"]["AgentType"] | null
+          dg_account?: string | null
+          id?: number | null
+          metadata?: Json | null
+          name?: string | null
+          platform?: Database["public"]["Enums"]["Platform"] | null
+          write_permission?: boolean | null
+        }
         Relationships: []
       }
       my_concepts: {
@@ -748,6 +798,13 @@ export type Database = {
             columns: ["represented_by_id"]
             isOneToOne: false
             referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Concept_represented_by_id_fkey"
+            columns: ["represented_by_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
             referencedColumns: ["id"]
           },
           {
@@ -881,6 +938,111 @@ export type Database = {
             columns: ["part_of_id"]
             isOneToOne: false
             referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_part_of_id_fkey"
+            columns: ["part_of_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "my_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "Space"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      my_contents_with_embedding_openai_text_embedding_3_small_1536: {
+        Row: {
+          author_id: number | null
+          created: string | null
+          creator_id: number | null
+          document_id: number | null
+          id: number | null
+          last_modified: string | null
+          metadata: Json | null
+          model: Database["public"]["Enums"]["EmbeddingName"] | null
+          part_of_id: number | null
+          scale: Database["public"]["Enums"]["Scale"] | null
+          source_local_id: string | null
+          space_id: number | null
+          text: string | null
+          variant: Database["public"]["Enums"]["ContentVariant"] | null
+          vector: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "Document"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "my_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_part_of_id_fkey"
+            columns: ["part_of_id"]
+            isOneToOne: false
+            referencedRelation: "Content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_part_of_id_fkey"
+            columns: ["part_of_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Content_part_of_id_fkey"
+            columns: ["part_of_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
             referencedColumns: ["id"]
           },
           {
