@@ -1,8 +1,88 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { usePlugin } from "./PluginContext";
-import { Notice } from "obsidian";
+import { Notice, setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
+import { SLACK_LOGO, WHITE_LOGO_SVG } from "~/icons";
 
+const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
+const COMMUNITY_URL =
+  "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";
+
+const InfoSection = () => {
+  const plugin = usePlugin();
+  const logoRef = useRef<HTMLDivElement>(null);
+  const communityIconRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (logoRef.current) {
+      logoRef.current.innerHTML = WHITE_LOGO_SVG;
+    }
+    if (communityIconRef.current) {
+      communityIconRef.current.innerHTML = SLACK_LOGO;
+    }
+  }, []);
+
+  return (
+    <div className="flex justify-center">
+      <div
+        className="flex w-48 flex-col items-center rounded-lg p-3"
+        style={{ background: "var(--tag-background)" }}
+      >
+        <div
+          ref={logoRef}
+          className="h-12 w-12"
+          style={{ color: "var(--interactive-accent)" }}
+        />
+        <div
+          className="font-semibold"
+          style={{ color: "var(--interactive-accent)" }}
+        >
+          Discourse Graphs
+        </div>
+
+        <a
+          href={COMMUNITY_URL}
+          className="flex items-center gap-1 text-sm no-underline hover:opacity-80"
+          style={{ color: "var(--interactive-accent)" }}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Community"
+        >
+          <div ref={communityIconRef} className="icon" />
+          <span>Community</span>
+          <span
+            className="icon"
+            ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
+          />
+        </a>
+        <a
+          href={DOCS_URL}
+          className="flex items-center gap-1 text-sm no-underline hover:opacity-80"
+          style={{ color: "var(--interactive-accent)" }}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Docs"
+        >
+          <div
+            className="icon"
+            ref={(el) => (el && setIcon(el, "book")) || undefined}
+          />
+          <span>Docs</span>
+          <span
+            className="icon"
+            ref={(el) => (el && setIcon(el, "arrow-up-right")) || undefined}
+          />
+        </a>
+        <span
+          className="text-muted text-xs"
+          style={{ color: "var(--interactive-accent)" }}
+        >
+          {plugin.manifest.version}
+        </span>
+      </div>
+    </div>
+  );
+};
 export const FolderSuggestInput = ({
   value,
   onChange,
@@ -195,6 +275,7 @@ const GeneralSettings = () => {
       {hasUnsavedChanges && (
         <div className="text-muted mt-2">You have unsaved changes</div>
       )}
+      <InfoSection />
     </div>
   );
 };
