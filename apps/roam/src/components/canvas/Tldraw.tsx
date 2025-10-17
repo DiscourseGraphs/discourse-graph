@@ -371,15 +371,9 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     SelectionBackground: TldrawSelectionBackground,
     Handles: TldrawHandles,
   };
-  const OnTheCanvasComponent = () => (
-    <>
-      <ToastListener />
-      <CanvasDrawerButton />
-    </>
-  );
   const editorComponents: TLEditorComponents = {
     ...defaultEditorComponents,
-    OnTheCanvas: OnTheCanvasComponent,
+    OnTheCanvas: ToastListener,
   };
   const customUiComponents: TLUiComponents = createUiComponents({
     allNodes,
@@ -714,6 +708,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               />
             </TldrawUi>
           </TldrawEditor>
+          <CanvasDrawerButton />
         </>
       )}
     </div>
