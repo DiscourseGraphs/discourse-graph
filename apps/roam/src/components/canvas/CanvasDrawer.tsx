@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import ResizableDrawer from "~/components/ResizableDrawer";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import { Button, Collapse, Checkbox } from "@blueprintjs/core";
@@ -9,8 +9,36 @@ import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getBlockProps from "~/utils/getBlockProps";
 import { TLBaseShape } from "tldraw";
 import { DiscourseNodeShape } from "./DiscourseNodeUtil";
+import { render as renderToast } from "roamjs-components/components/Toast";
 
 export type GroupedShapes = Record<string, DiscourseNodeShape[]>;
+
+// Module-level ref holder set by the provider
+// This allows openCanvasDrawer to be called from non-React contexts
+// (command palette, context menus, etc.)
+let drawerUnmountRef: React.MutableRefObject<(() => void) | null> | null = null;
+
+export const CanvasDrawerProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const unmountRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    drawerUnmountRef = unmountRef;
+
+    return () => {
+      if (unmountRef.current) {
+        unmountRef.current();
+        unmountRef.current = null;
+      }
+      drawerUnmountRef = null;
+    };
+  }, []);
+
+  return <>{children}</>;
+};
 
 type Props = { groupedShapes: GroupedShapes; pageUid: string };
 
@@ -20,7 +48,7 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
   const [filterType, setFilterType] = useState("All");
   const [filteredShapes, setFilteredShapes] = useState<GroupedShapes>({});
 
-  const pageTitle = useMemo(() => getPageTitleByPageUid(pageUid), []);
+  const pageTitle = useMemo(() => getPageTitleByPageUid(pageUid), [pageUid]);
   const noResults = Object.keys(groupedShapes).length === 0;
   const typeToTitleMap = useMemo(() => {
     const nodes = getDiscourseNodes();
@@ -143,10 +171,14 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
 
 const CanvasDrawer = ({
   onClose,
+  unmountRef,
   ...props
-}: { onClose: () => void } & Props) => {
+}: {
+  onClose: () => void;
+  unmountRef: React.MutableRefObject<(() => void) | null>;
+} & Props) => {
   const handleClose = () => {
-    canvasDrawerUnmount = null;
+    unmountRef.current = null;
     onClose();
   };
 
@@ -157,13 +189,24 @@ const CanvasDrawer = ({
   );
 };
 
-let canvasDrawerUnmount: (() => void) | null = null;
+export const openCanvasDrawer = (): void => {
+  if (!drawerUnmountRef) {
+    renderToast({
+      id: "canvas-drawer-not-found",
+      content:
+        "Unable to open Canvas Drawer.  Please load canvas in main window first.",
+      intent: "warning",
+    });
+    console.error(
+      "CanvasDrawer: Cannot open drawer - CanvasDrawerProvider not found",
+    );
+    return;
+  }
 
-export const openCanvasDrawer = () => {
   // Toggle behavior: if already open, close it
-  if (canvasDrawerUnmount) {
-    canvasDrawerUnmount();
-    canvasDrawerUnmount = null;
+  if (drawerUnmountRef.current) {
+    drawerUnmountRef.current();
+    drawerUnmountRef.current = null;
     return;
   }
 
@@ -190,10 +233,11 @@ export const openCanvasDrawer = () => {
   };
 
   const groupedShapes = groupShapesByUid(shapes);
-  canvasDrawerUnmount = renderOverlay({
-    Overlay: CanvasDrawer,
-    props: { groupedShapes, pageUid },
-  });
+  drawerUnmountRef.current =
+    renderOverlay({
+      Overlay: CanvasDrawer,
+      props: { groupedShapes, pageUid, unmountRef: drawerUnmountRef },
+    }) || null;
 };
 
 export default CanvasDrawer;
