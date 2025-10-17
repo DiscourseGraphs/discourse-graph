@@ -440,7 +440,6 @@ const ResultsView: ResultsViewComponent = ({
     (view) => VIEWS[view.mode]?.value === true,
   );
 
-  console.log("showSearchFilter", showSearchFilter);
   return (
     <div
       className={`roamjs-query-results-view relative w-full mode-${layout.mode}`}
