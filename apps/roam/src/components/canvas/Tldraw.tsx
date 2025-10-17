@@ -84,6 +84,8 @@ import {
 import ConvertToDialog from "./ConvertToDialog";
 import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
+import CanvasDrawerButton from "./CanvasDrawerButton";
+import { CanvasDrawerProvider } from "./CanvasDrawer";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
@@ -707,6 +709,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               />
             </TldrawUi>
           </TldrawEditor>
+          <CanvasDrawerButton />
         </>
       )}
     </div>
@@ -990,7 +993,9 @@ const renderTldrawCanvasHelper = ({
 
   const unmount = renderWithUnmount(
     <ExtensionApiContextProvider {...onloadArgs}>
-      <TldrawCanvas title={title} />
+      <CanvasDrawerProvider>
+        <TldrawCanvas title={title} />
+      </CanvasDrawerProvider>
     </ExtensionApiContextProvider>,
     canvasWrapperEl,
   );
