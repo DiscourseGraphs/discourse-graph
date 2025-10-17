@@ -203,7 +203,6 @@ export const openCanvasDrawer = (): void => {
     return;
   }
 
-  // Toggle behavior: if already open, close it
   if (drawerUnmountRef.current) {
     drawerUnmountRef.current();
     drawerUnmountRef.current = null;
