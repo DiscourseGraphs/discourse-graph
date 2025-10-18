@@ -258,13 +258,112 @@ export const convertDgToSupabaseConcepts = async ({
   }
 };
 
+const chunk = <T>(array: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
+
+const uploadNodesInBatches = async ({
+  supabase,
+  context,
+  nodes,
+  content_as_document,
+}: {
+  supabase: DGSupabaseClient;
+  context: SupabaseContext;
+  nodes: LocalContentDataInput[];
+  content_as_document: boolean;
+}): Promise<number> => {
+  const v_space_id = context.spaceId;
+  const v_creator_id = context.userId;
+  const batches = chunk(nodes, BATCH_SIZE);
+  let successes = 0;
+
+  for (let idx = 0; idx < batches.length; idx++) {
+    const batch = batches[idx];
+
+    const { error } = await supabase.rpc("upsert_content", {
+      data: batch as Json,
+      v_space_id,
+      v_creator_id,
+      content_as_document,
+    });
+
+    if (error) {
+      console.error(`upsert_content failed for batch ${idx + 1}:`, error);
+      break;
+    }
+    successes += batch.length;
+  }
+  return successes;
+};
+
+export const addMissingEmbeddings = async (
+  supabase: DGSupabaseClient,
+  context: SupabaseContext,
+) => {
+  const response = await supabase
+    .from("my_contents")
+    .select(
+      "id, text, ContentEmbedding_openai_text_embedding_3_small_1536(target_id)",
+    )
+    .eq("space_id", context.spaceId)
+    .is("ContentEmbedding_openai_text_embedding_3_small_1536", null)
+    .not("text", "is", null);
+  if (response.error) {
+    console.error(response.error);
+    return 0;
+  }
+  // Tell TS about the non-null values
+  const data = response.data as (Omit<
+    (typeof response.data)[number],
+    "text" | "id"
+  > & {
+    text: string;
+    id: number;
+  })[];
+  let successes = 0;
+  const batches = chunk(data, BATCH_SIZE);
+  for (let idx = 0; idx < batches.length; idx++) {
+    const batch = batches[idx];
+    try {
+      const nodesWithEmbeddings = await fetchEmbeddingsForNodes(batch);
+      const embeddings = nodesWithEmbeddings.map(
+        ({ id, embedding_inline: { model, vector } }) => ({
+          target_id: id,
+          model,
+          vector: JSON.stringify(vector),
+        }),
+      );
+      const result = await supabase
+        .from("ContentEmbedding_openai_text_embedding_3_small_1536")
+        .insert(embeddings);
+      if (result.error) {
+        console.error(result.error);
+        break;
+      }
+      successes += batch.length;
+    } catch (e) {
+      console.error(e);
+      break;
+    }
+  }
+  if (successes < data.length)
+    console.warn(
+      `Tried sending content embeddings, ${successes}/${data.length} sent`,
+    );
+  else console.log(`Done sending content embeddings`);
+  return successes;
+};
+
 export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   roamNodes: RoamDiscourseNodeData[],
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
 ): Promise<void> => {
-  const { userId } = context;
-
   if (roamNodes.length === 0) {
     return;
   }
@@ -272,53 +371,21 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     nodes: roamNodes,
   });
 
-  let nodesWithEmbeddings: LocalContentDataInput[];
-  try {
-    nodesWithEmbeddings = await fetchEmbeddingsForNodes(
-      allNodeInstancesAsLocalContent,
+  const successes = await uploadNodesInBatches({
+    supabase: supabaseClient,
+    context,
+    nodes: allNodeInstancesAsLocalContent,
+    content_as_document: true,
+  });
+  if (successes < allNodeInstancesAsLocalContent.length)
+    console.warn(
+      `Tried sending content, ${successes}/${allNodeInstancesAsLocalContent.length} sent`,
     );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${message}`,
+  else
+    console.log(
+      `Done sending ${allNodeInstancesAsLocalContent.length} contents`,
     );
-    return;
-  }
-
-  if (nodesWithEmbeddings.length !== allNodeInstancesAsLocalContent.length) {
-    console.error(
-      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
-    );
-    return;
-  }
-
-  const chunk = <T>(array: T[], size: number): T[][] => {
-    const chunks: T[][] = [];
-    for (let i = 0; i < array.length; i += size) {
-      chunks.push(array.slice(i, i + size));
-    }
-    return chunks;
-  };
-
-  const uploadBatches = async (batches: LocalContentDataInput[][]) => {
-    for (let idx = 0; idx < batches.length; idx++) {
-      const batch = batches[idx];
-
-      const { error } = await supabaseClient.rpc("upsert_content", {
-        data: batch as Json,
-        v_space_id: context.spaceId,
-        v_creator_id: userId,
-        content_as_document: true,
-      });
-
-      if (error) {
-        console.error(`upsert_content failed for batch ${idx + 1}:`, error);
-        throw error;
-      }
-    }
-  };
-
-  await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
+  await addMissingEmbeddings(supabaseClient, context);
 };
 
 const getDgNodeTypes = () => {
