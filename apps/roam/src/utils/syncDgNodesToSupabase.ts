@@ -20,21 +20,21 @@ import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
 import { getRoamUrl } from "roamjs-components/dom";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { Json, CompositeTypes } from "@repo/database/dbTypes";
+import { createClient, type DGSupabaseClient } from "@repo/database/lib/client";
+import type { Json, CompositeTypes, Enums } from "@repo/database/dbTypes";
 
 type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 type AccountLocalInput = CompositeTypes<"account_local_input">;
-const { createClient } = require("@repo/database/lib/client");
 
 const SYNC_FUNCTION = "embedding";
 const SYNC_INTERVAL = "45s";
 const SYNC_TIMEOUT = "20s";
 const BATCH_SIZE = 200;
-const DEFAULT_TIME = "1970-01-01";
+const DEFAULT_TIME = new Date("1970-01-01");
 
 type SyncTaskInfo = {
-  lastUpdateTime: string | null;
+  lastUpdateTime?: Date;
+  nextUpdateTime?: Date;
   spaceId: number;
   worker: string;
   shouldProceed: boolean;
@@ -42,15 +42,16 @@ type SyncTaskInfo = {
 
 export const endSyncTask = async (
   worker: string,
-  status: "complete" | "failed",
-): Promise<void> => {
+  status: Enums<"task_status">,
+  showToast: boolean = false,
+): Promise<boolean> => {
   try {
     const supabaseClient = await getLoggedInClient();
     if (!supabaseClient) return;
     const context = await getSupabaseContext();
     if (!context) {
       console.error("endSyncTask: Unable to obtain Supabase context.");
-      return;
+      return false;
     }
     const { error } = await supabaseClient.rpc("end_sync_task", {
       s_target: context.spaceId,
@@ -60,13 +61,15 @@ export const endSyncTask = async (
     });
     if (error) {
       console.error("endSyncTask: Error calling end_sync_task:", error);
-      renderToast({
-        id: "discourse-embedding-error",
-        content: "Failed to complete discourse node embeddings sync",
-        intent: "danger",
-        timeout: 5000,
-      });
-    } else {
+      if (showToast)
+        renderToast({
+          id: "discourse-embedding-error",
+          content: "Failed to complete discourse node embeddings sync",
+          intent: "danger",
+          timeout: 5000,
+        });
+      return false;
+    } else if (showToast) {
       if (status === "complete") {
         renderToast({
           id: "discourse-embedding-complete",
@@ -85,13 +88,16 @@ export const endSyncTask = async (
     }
   } catch (error) {
     console.error("endSyncTask: Error calling end_sync_task:", error);
-    renderToast({
-      id: "discourse-embedding-error",
-      content: "Failed to complete discourse node embeddings sync",
-      intent: "danger",
-      timeout: 5000,
-    });
+    if (showToast)
+      renderToast({
+        id: "discourse-embedding-error",
+        content: "Failed to complete discourse node embeddings sync",
+        intent: "danger",
+        timeout: 5000,
+      });
+    return false;
   }
+  return true;
 };
 
 export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
@@ -101,7 +107,6 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
     if (!context || !supabaseClient) {
       console.error("proposeSyncTask: Unable to obtain Supabase context.");
       return {
-        lastUpdateTime: null,
         spaceId: 0,
         worker: "",
         shouldProceed: false,
@@ -111,7 +116,6 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
     if (!worker) {
       console.error("proposeSyncTask: Unable to obtain user UID.");
       return {
-        lastUpdateTime: null,
         spaceId: 0,
         worker: "",
         shouldProceed: false,
@@ -132,7 +136,7 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
       console.error(
         `proposeSyncTask: propose_sync_task failed – ${error.message}`,
       );
-      return { lastUpdateTime: null, spaceId, worker, shouldProceed: false };
+      return { spaceId, worker, shouldProceed: false };
     }
 
     if (typeof data === "string") {
@@ -140,20 +144,29 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
       const now = new Date();
 
       if (timestamp > now) {
-        return { lastUpdateTime: null, spaceId, worker, shouldProceed: false };
+        return {
+          nextUpdateTime: timestamp,
+          spaceId,
+          worker,
+          shouldProceed: false,
+        };
       } else {
-        return { lastUpdateTime: data, spaceId, worker, shouldProceed: true };
+        return {
+          lastUpdateTime: timestamp,
+          spaceId,
+          worker,
+          shouldProceed: true,
+        };
       }
     }
 
-    return { lastUpdateTime: null, spaceId, worker, shouldProceed: true };
+    return { spaceId, worker, shouldProceed: true };
   } catch (error) {
     console.error(
       `proposeSyncTask: Unexpected error while contacting sync-task API:`,
       error,
     );
     return {
-      lastUpdateTime: null,
       spaceId: 0,
       worker: "",
       shouldProceed: false,
@@ -306,7 +319,7 @@ const uploadNodesInBatches = async ({
 export const addMissingEmbeddings = async (
   supabase: DGSupabaseClient,
   context: SupabaseContext,
-) => {
+): Promise<boolean | number> => {
   const response = await supabase
     .from("my_contents")
     .select(
@@ -317,7 +330,11 @@ export const addMissingEmbeddings = async (
     .not("text", "is", null);
   if (response.error) {
     console.error(response.error);
-    return 0;
+    return false;
+  }
+  if (response.data.length === 0) {
+    console.debug("no embeddings");
+    return true;
   }
   // Tell TS about the non-null values
   const data = response.data as (Omit<
@@ -354,21 +371,24 @@ export const addMissingEmbeddings = async (
       break;
     }
   }
-  if (successes < data.length)
+  if (successes < data.length) {
     console.warn(
       `Tried sending content embeddings, ${successes}/${data.length} sent`,
     );
-  else console.log(`Done sending content embeddings`);
-  return successes;
+    // number indicates partial success
+    return successes > 0 ? successes : false;
+  }
+  console.debug(`Done sending content embeddings`);
+  return true;
 };
 
-export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
+export const upsertNodesToSupabaseAsContent = async (
   roamNodes: RoamDiscourseNodeData[],
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
-): Promise<void> => {
+): Promise<boolean | number> => {
   if (roamNodes.length === 0) {
-    return;
+    return true;
   }
   const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
     nodes: roamNodes,
@@ -380,15 +400,17 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     nodes: allNodeInstancesAsLocalContent,
     content_as_document: true,
   });
-  if (successes < allNodeInstancesAsLocalContent.length)
+  if (successes < allNodeInstancesAsLocalContent.length) {
     console.warn(
       `Tried sending content, ${successes}/${allNodeInstancesAsLocalContent.length} sent`,
     );
-  else
-    console.log(
+    return successes > 0 ? successes : false;
+  } else {
+    console.debug(
       `Done sending ${allNodeInstancesAsLocalContent.length} contents`,
     );
-  await addMissingEmbeddings(supabaseClient, context);
+  }
+  return true;
 };
 
 const getDgNodeTypes = () => {
@@ -426,7 +448,7 @@ const upsertUsers = async (
   users: AccountLocalInput[],
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
-) => {
+): Promise<boolean> => {
   const { error } = await supabaseClient.rpc("upsert_accounts_in_space", {
     accounts: users,
     space_id_: context.spaceId,
@@ -434,18 +456,58 @@ const upsertUsers = async (
   if (error) {
     console.error("upsert_accounts_in_space failed:", error);
   }
+  return error === null;
 };
 
-export const createOrUpdateDiscourseEmbedding = async () => {
-  const { shouldProceed, lastUpdateTime, worker } = await proposeSyncTask();
+const BASE_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+let doSync = true;
+let numFailures = 0;
+const MAX_FAILURES = 5;
+type TimeoutValue = ReturnType<typeof setTimeout>;
+let activeTimeout: TimeoutValue | null = null;
+// TODO: Maybe also pause sync while the window is not active?
 
-  if (!shouldProceed) {
-    return;
+class FatalError extends Error {}
+
+export const setSyncActivity = (active: boolean) => {
+  doSync = active;
+  if (!active && activeTimeout !== null) {
+    clearTimeout(activeTimeout);
+    activeTimeout = null;
   }
+};
+
+export const createOrUpdateDiscourseEmbedding = async (
+  showToast: boolean = false,
+): Promise<void> => {
+  if (activeTimeout != null) {
+    clearTimeout(activeTimeout);
+    activeTimeout = null;
+  }
+  if (!doSync) return;
+  console.debug("starting createOrUpdateDiscourseEmbedding");
+  let success = true;
+  let partial: number | boolean = true;
+  const { shouldProceed, lastUpdateTime, nextUpdateTime, worker } =
+    await proposeSyncTask();
 
   try {
+    if (!shouldProceed) {
+      if (nextUpdateTime === undefined) {
+        throw new Error("Can't obtain sync task");
+      }
+      console.debug("postponed to ", nextUpdateTime);
+      if (doSync) {
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        activeTimeout = setTimeout(
+          createOrUpdateDiscourseEmbedding,
+          nextUpdateTime.valueOf() - Date.now() + 100,
+        );
+      }
+      return;
+    }
     const allUsers = await getAllUsers();
-    const time = lastUpdateTime === null ? DEFAULT_TIME : lastUpdateTime;
+    const time = (lastUpdateTime || DEFAULT_TIME).toDateString();
     const { allDgNodeTypes, dgNodeTypesWithSettings } = getDgNodeTypes();
 
     const allNodeInstances = await getAllDiscourseNodesSince(
@@ -453,19 +515,22 @@ export const createOrUpdateDiscourseEmbedding = async () => {
       dgNodeTypesWithSettings,
     );
     const supabaseClient = await getLoggedInClient();
-    if (!supabaseClient) return null;
+    if (!supabaseClient) return;
     const context = await getSupabaseContext();
     if (!context) {
-      console.error("No Supabase context found.");
       await endSyncTask(worker, "failed");
-      return;
+      // not worth retrying
+      throw new FatalError("No Supabase context found.");
     }
-    await upsertUsers(allUsers, supabaseClient, context);
-    await upsertNodesToSupabaseAsContentWithEmbeddings(
+    success &&= await upsertUsers(allUsers, supabaseClient, context);
+    partial = await upsertNodesToSupabaseAsContent(
       allNodeInstances,
       supabaseClient,
       context,
     );
+    if (typeof partial !== "number") success &&= partial;
+    partial = await addMissingEmbeddings(supabaseClient, context);
+    if (typeof partial !== "number") success &&= partial;
     await convertDgToSupabaseConcepts({
       nodesSince: allNodeInstances,
       since: time,
@@ -473,12 +538,31 @@ export const createOrUpdateDiscourseEmbedding = async () => {
       supabaseClient,
       context,
     });
-    await cleanupOrphanedNodes(supabaseClient, context);
-    await endSyncTask(worker, "complete");
+    success &&= await cleanupOrphanedNodes(supabaseClient, context);
+    await endSyncTask(worker, "complete", showToast);
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
-    await endSyncTask(worker, "failed");
-    throw error;
+    await endSyncTask(worker, "failed", showToast);
+    if (error instanceof FatalError) {
+      doSync = false;
+      return;
+    }
+    success = false;
+  }
+  let timeout = BASE_SYNC_INTERVAL;
+  if (success) {
+    numFailures = 0;
+  } else {
+    numFailures += 1;
+    if (numFailures >= MAX_FAILURES) {
+      doSync = false;
+      return;
+    }
+    timeout *= 2 ** numFailures;
+  }
+  if (doSync) {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    activeTimeout = setTimeout(createOrUpdateDiscourseEmbedding, timeout);
   }
 };
 
@@ -491,8 +575,10 @@ export const initializeSupabaseSync = async () => {
     .eq("url", getRoamUrl())
     .maybeSingle();
   if (!result.data) {
-    return;
+    doSync = false;
   } else {
-    createOrUpdateDiscourseEmbedding();
+    doSync = true;
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    activeTimeout = setTimeout(createOrUpdateDiscourseEmbedding, 100, true);
   }
 };
