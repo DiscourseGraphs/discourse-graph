@@ -201,7 +201,6 @@ const upsertNodeSchemaToContent = async ({
 
   ]
   `;
-  //@ts-ignore - backend to be added to roamjs-components
   const result = (await window.roamAlphaAPI.data.async.q(
     query,
     nodeTypesUids,
@@ -430,7 +429,6 @@ const getAllUsers = async (): Promise<AccountLocalInput[]> => {
     [?user-eid :user/uid ?author_local_id]
     [(get-else $ ?user-eid :user/display-name "") ?author_name]
 ]`;
-  //@ts-ignore - backend to be added to roamjs-components
   const result = (await window.roamAlphaAPI.data.async.q(query)) as unknown as {
     author_local_id: string;
     name: string;
@@ -498,9 +496,8 @@ export const createOrUpdateDiscourseEmbedding = async (
       }
       console.debug("postponed to ", nextUpdateTime);
       if (doSync) {
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         activeTimeout = setTimeout(
-          createOrUpdateDiscourseEmbedding,
+          createOrUpdateDiscourseEmbedding, // eslint-disable-line @typescript-eslint/no-misused-promises
           nextUpdateTime.valueOf() - Date.now() + 100,
         );
       }
