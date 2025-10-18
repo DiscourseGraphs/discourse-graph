@@ -4,7 +4,7 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 const getAllNodesFromSupabase = async (
   supabaseClient: DGSupabaseClient,
   spaceId: number,
-): Promise<string[]> => {
+): Promise<string[] | null> => {
   try {
     const { data: schemas, error: schemasError } = await supabaseClient
       .from("Concept")
@@ -18,7 +18,7 @@ const getAllNodesFromSupabase = async (
         "Failed to get all discourse node schemas from Supabase:",
         schemasError,
       );
-      return [];
+      return null;
     }
 
     const schemaIds = schemas.map((s: { id: number }) => s.id);
@@ -80,14 +80,14 @@ const getAllNodesFromSupabase = async (
     return result;
   } catch (error) {
     console.error("Error in getAllNodesFromSupabase:", error);
-    return [];
+    return null;
   }
 };
 
 const getAllNodeSchemasFromSupabase = async (
   supabaseClient: DGSupabaseClient,
   spaceId: number,
-): Promise<string[]> => {
+): Promise<string[] | null> => {
   try {
     const { data, error } = await supabaseClient
       .from("Concept")
@@ -108,7 +108,7 @@ const getAllNodeSchemasFromSupabase = async (
         "Failed to get all discourse node schemas from Supabase:",
         error,
       );
-      return [];
+      return null;
     }
 
     return (
@@ -121,7 +121,7 @@ const getAllNodeSchemasFromSupabase = async (
     );
   } catch (error) {
     console.error("Error in getAllNodeSchemasFromSupabase:", error);
-    return [];
+    return null;
   }
 };
 
@@ -149,7 +149,7 @@ const deleteNodesFromSupabase = async (
   uids: string[],
   spaceId: number,
   supabaseClient: DGSupabaseClient,
-): Promise<void> => {
+): Promise<boolean> => {
   try {
     const { data: contentData, error: contentError } = await supabaseClient
       .from("Content")
@@ -159,6 +159,7 @@ const deleteNodesFromSupabase = async (
 
     if (contentError) {
       console.error("Failed to get content from Supabase:", contentError);
+      return false;
     }
 
     const contentIds = contentData?.map((c: { id: number }) => c.id) || [];
@@ -172,6 +173,7 @@ const deleteNodesFromSupabase = async (
 
       if (conceptError) {
         console.error("Failed to delete concepts from Supabase:", conceptError);
+        return false;
       }
 
       const { error: contentDeleteError } = await supabaseClient
@@ -184,11 +186,14 @@ const deleteNodesFromSupabase = async (
           "Failed to delete content from Supabase:",
           contentDeleteError,
         );
+        return false;
       }
     }
   } catch (error) {
     console.error("Error in deleteNodesFromSupabase:", error);
+    return false;
   }
+  return true;
 };
 
 const deleteNodeSchemasFromSupabase = async (
@@ -360,15 +365,19 @@ export const cleanupOrphanedNodes = async (
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
 ): Promise<boolean> => {
+  let success = true;
   try {
     const supabaseUids = await getAllNodesFromSupabase(
       supabaseClient,
       context.spaceId,
     );
+    if (supabaseUids === null) {
+      return false;
+    }
     if (supabaseUids.length > 0) {
       const orphanedUids = getNonExistentRoamUids(supabaseUids);
       if (orphanedUids.length > 0) {
-        await deleteNodesFromSupabase(
+        success &&= await deleteNodesFromSupabase(
           orphanedUids,
           context.spaceId,
           supabaseClient,
@@ -380,15 +389,15 @@ export const cleanupOrphanedNodes = async (
       supabaseClient,
       context.spaceId,
     );
-    if (supabaseSchemaUids.length > 0) {
-      const orphanedSchemaUids = getNonExistentRoamUids(supabaseSchemaUids);
-      if (orphanedSchemaUids.length > 0) {
-        await deleteNodeSchemasFromSupabase(
-          orphanedSchemaUids,
-          supabaseClient,
-          context.spaceId,
-        );
-      }
+    if (supabaseSchemaUids === null) return false;
+    if (supabaseSchemaUids.length === 0) return true;
+    const orphanedSchemaUids = getNonExistentRoamUids(supabaseSchemaUids);
+    if (orphanedSchemaUids.length > 0) {
+      await deleteNodeSchemasFromSupabase(
+        orphanedSchemaUids,
+        supabaseClient,
+        context.spaceId,
+      );
     }
   } catch (error) {
     console.error("Error in cleanupOrphanedNodes:", error);
