@@ -3,7 +3,7 @@ import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import { type SupabaseContext } from "./supabaseContext";
 import { nextApiRoot } from "@repo/utils/execContext";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { Json, CompositeTypes } from "@repo/database/dbTypes";
+import type { Json, CompositeTypes, Enums } from "@repo/database/dbTypes";
 
 type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 
@@ -38,9 +38,13 @@ export const convertRoamNodeToLocalContent = ({
   });
 };
 
-export const fetchEmbeddingsForNodes = async (
-  nodes: LocalContentDataInput[],
-): Promise<LocalContentDataInput[]> => {
+export const fetchEmbeddingsForNodes = async <T extends { text: string }>(
+  nodes: T[],
+): Promise<
+  (T & {
+    embedding_inline: { model: Enums<"EmbeddingName">; vector: number[] };
+  })[]
+> => {
   const allEmbeddings: number[][] = [];
   const allNodesTexts = nodes.map((node) => node.text || "");
 
@@ -97,78 +101,4 @@ export const fetchEmbeddingsForNodes = async (
       vector: allEmbeddings[i],
     },
   }));
-};
-
-const uploadBatches = async (
-  batches: LocalContentDataInput[][],
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
-) => {
-  const { spaceId, userId } = context;
-  for (let idx = 0; idx < batches.length; idx++) {
-    const batch = batches[idx];
-    const { error } = await supabaseClient.rpc("upsert_content", {
-      data: batch as unknown as Json,
-      v_space_id: spaceId,
-      v_creator_id: userId,
-      content_as_document: true,
-    });
-
-    if (error) {
-      console.error(`upsert_content failed for batch ${idx + 1}:`, error);
-      throw error;
-    }
-  }
-};
-
-export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
-  roamNodes: RoamDiscourseNodeData[],
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
-): Promise<void> => {
-  if (!context?.userId) {
-    console.error("No Supabase context found.");
-    return;
-  }
-
-  if (roamNodes.length === 0) {
-    return;
-  }
-  const localContentNodes = convertRoamNodeToLocalContent({
-    nodes: roamNodes,
-  });
-
-  let nodesWithEmbeddings: LocalContentDataInput[];
-  try {
-    nodesWithEmbeddings = await fetchEmbeddingsForNodes(localContentNodes);
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${errorMessage}`,
-    );
-    return;
-  }
-
-  if (nodesWithEmbeddings.length !== roamNodes.length) {
-    console.error(
-      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
-    );
-    return;
-  }
-
-  const batchSize = 200;
-
-  const chunk = <T>(array: T[], size: number): T[][] => {
-    const chunks: T[][] = [];
-    for (let i = 0; i < array.length; i += size) {
-      chunks.push(array.slice(i, i + size));
-    }
-    return chunks;
-  };
-
-  await uploadBatches(
-    chunk(nodesWithEmbeddings, batchSize),
-    supabaseClient,
-    context,
-  );
 };

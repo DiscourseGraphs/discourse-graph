@@ -30,24 +30,24 @@ GRANT ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" 
 
 CREATE OR REPLACE VIEW public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS
 SELECT
-    ct.id,
-    ct.document_id,
-    ct.source_local_id,
-    ct.variant,
-    ct.author_id,
-    ct.creator_id,
-    ct.created,
-    ct.text,
-    ct.metadata,
-    ct.scale,
-    ct.space_id,
-    ct.last_modified,
-    ct.part_of_id,
-    emb.model,
-    emb.vector
+ct.id,
+ct.document_id,
+ct.source_local_id,
+ct.variant,
+ct.author_id,
+ct.creator_id,
+ct.created,
+ct.text,
+ct.metadata,
+ct.scale,
+ct.space_id,
+ct.last_modified,
+ct.part_of_id,
+emb.model,
+emb.vector
 FROM public."Content" AS ct
-JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id=emb.target_id)
-WHERE ct.space_id = any(public.my_space_ids()) AND NOT emb.obsolete;
+JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id = emb.target_id)
+WHERE ct.space_id = any (public.my_space_ids ()) AND NOT emb.obsolete ;
 
 set search_path to public, extensions ;
 
@@ -124,3 +124,20 @@ ALTER TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" ENABLE 
 DROP POLICY IF EXISTS embedding_openai_te3s_1536_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536" ;
 CREATE POLICY embedding_openai_te3s_1536_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536"
 FOR ALL USING (public.content_in_space (target_id)) ;
+
+-- on update content text trigger
+CREATE OR REPLACE FUNCTION public.after_update_content_text_trigger ()
+RETURNS TRIGGER
+SET search_path = ''
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF OLD.text != NEW.text THEN
+        DELETE FROM public."ContentEmbedding_openai_text_embedding_3_small_1536" WHERE target_id = NEW.id;
+    END IF;
+    RETURN NEW;
+END;
+$$ ;
+
+CREATE TRIGGER on_update_text_trigger AFTER UPDATE ON public."Content"
+FOR EACH ROW EXECUTE FUNCTION public.after_update_content_text_trigger () ;
