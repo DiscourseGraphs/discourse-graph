@@ -359,7 +359,7 @@ const deleteNodeSchemasFromSupabase = async (
 export const cleanupOrphanedNodes = async (
   supabaseClient: DGSupabaseClient,
   context: SupabaseContext,
-): Promise<void> => {
+): Promise<boolean> => {
   try {
     const supabaseUids = await getAllNodesFromSupabase(
       supabaseClient,
@@ -392,5 +392,7 @@ export const cleanupOrphanedNodes = async (
     }
   } catch (error) {
     console.error("Error in cleanupOrphanedNodes:", error);
+    return false;
   }
+  return true;
 };
