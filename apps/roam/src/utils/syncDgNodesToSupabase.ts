@@ -472,16 +472,18 @@ export const setSyncActivity = (active: boolean) => {
   if (!active && activeTimeout !== null) {
     clearTimeout(activeTimeout);
     activeTimeout = null;
+  } else if (active && activeTimeout === null) {
+    activeTimeout = setTimeout(
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      createOrUpdateDiscourseEmbedding,
+      100,
+    );
   }
 };
 
 export const createOrUpdateDiscourseEmbedding = async (
   showToast: boolean = false,
 ): Promise<void> => {
-  if (activeTimeout != null) {
-    clearTimeout(activeTimeout);
-    activeTimeout = null;
-  }
   if (!doSync) return;
   console.debug("starting createOrUpdateDiscourseEmbedding");
   let success = true;
@@ -504,20 +506,25 @@ export const createOrUpdateDiscourseEmbedding = async (
       return;
     }
     const allUsers = await getAllUsers();
-    const time = (lastUpdateTime || DEFAULT_TIME).toDateString();
+    const time = (lastUpdateTime || DEFAULT_TIME).toISOString();
     const { allDgNodeTypes, dgNodeTypesWithSettings } = getDgNodeTypes();
 
     const allNodeInstances = await getAllDiscourseNodesSince(
       time,
       dgNodeTypesWithSettings,
     );
+    if (!createClient()) {
+      // not worth retrying
+      throw new FatalError("Could not access supabase.");
+    }
     const supabaseClient = await getLoggedInClient();
-    if (!supabaseClient) return;
+    if (!supabaseClient) {
+      throw new Error("Could not log in to client.");
+    }
     const context = await getSupabaseContext();
     if (!context) {
-      await endSyncTask(worker, "failed");
       // not worth retrying
-      throw new FatalError("No Supabase context found.");
+      throw new FatalError("Error connecting to client.");
     }
     success &&= await upsertUsers(allUsers, supabaseClient, context);
     partial = await upsertNodesToSupabaseAsContent(
@@ -540,11 +547,11 @@ export const createOrUpdateDiscourseEmbedding = async (
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
     await endSyncTask(worker, "failed", showToast);
+    success = false;
     if (error instanceof FatalError) {
       doSync = false;
       return;
     }
-    success = false;
   }
   let timeout = BASE_SYNC_INTERVAL;
   if (success) {
@@ -556,6 +563,10 @@ export const createOrUpdateDiscourseEmbedding = async (
       return;
     }
     timeout *= 2 ** numFailures;
+  }
+  if (activeTimeout != null) {
+    clearTimeout(activeTimeout);
+    activeTimeout = null;
   }
   if (doSync) {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
