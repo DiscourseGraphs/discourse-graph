@@ -837,15 +837,49 @@ export const getDiscourseContext = async ({
 // instrumentation for benchmarking
 export const LAST_QUERY_DATA = { duration: 0 };
 
-// Main entry point to query Concepts and related data:
-// related sub-objects can be provided as:
-// Content, Content.Document, author (PlatformAccount), relations (Concept),
-// relations.subnodes (Concept), relations.subnodes.author, relations.subnodes.Content
-// Which fields of these subobjects are fetched is controlled by the respective Fields parameters
-// (except the last two, which would have just enough data for query filters.)
-// If the fields are empty, the sub-object will not be fetched (unless needed for matching query parameters)
-// Any parameter called "local" expects platform Ids (source_local_id) of the corresponding Content.
-// In the case of node/relation definitions, schema refers to the page Id of the definition.
+/**
+ * Main entry point to query Concepts and related data:
+ * related sub-objects can be provided as:
+ * Content, Content.Document, author (PlatformAccount), relations (Concept),
+ * relations.subnodes (Concept), relations.subnodes.author, relations.subnodes.Content
+ * Which fields of these subobjects are fetched is controlled by the fields sub-parameters
+ * (except the last two, which would have just enough data for query filters.)
+ * If the fields are empty, the sub-object will not be fetched (unless needed for matching query parameters)
+ * Node identifiers are platform Ids (source_local_id) of the corresponding Content.
+ * In the case of node/relation definitions, schema refers to the page Id of the definition.
+ * Author identifiers are also source local ids.
+ *
+ * @param params - Query parameters with grouped structure
+ * @returns Promise resolving to array of concept objects with full metadata
+ *
+ * @example
+ * ```typescript
+ * // Query nodes of specific types with relation filters
+ * const results = await getConcepts({
+ *   supabase,
+ *   spaceId: 123,
+ *   scope: { type: "nodes", ofType: ["pageId", "noteId"], author: "user123Id" },
+ *   relations: { ofType: ["citesId", "referencesId"] },
+ *   pagination: { limit: 50, offset: 0 }
+ * });
+ *
+ * // Query relations from specific nodes
+ * const relations = await getConcepts({
+ *   supabase,
+ *   spaceId: 123,
+ *   scope: { type: "nodes", nodeId: ["node-123", "node-456"] },
+ *   fields: { relations: CONCEPT_FIELDS_MINIMAL, relationNodes: CONCEPT_FIELDS_MINIMAL }
+ * });
+ *
+ * // Query relations linking specific nodes
+ * const relations = await getConcepts({
+ *   supabase,
+ *   spaceId: 123,
+ *   scope: { type: "nodes", nodeId: ["node-123", "node-456"] },
+ *   relations: { toNodeId: ["node-789"] }
+ * });
+ * ```
+ */
 export const getConcepts = async (
   {
     supabase,
