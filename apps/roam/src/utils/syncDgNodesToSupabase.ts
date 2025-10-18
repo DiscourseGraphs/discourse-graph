@@ -259,6 +259,8 @@ export const convertDgToSupabaseConcepts = async ({
 };
 
 const chunk = <T>(array: T[], size: number): T[][] => {
+  if (array.length === 0) return [];
+  if (size <= 2) throw new Error(`chunk size must be > 1 (got ${size})`);
   const chunks: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
     chunks.push(array.slice(i, i + size));
@@ -308,10 +310,10 @@ export const addMissingEmbeddings = async (
   const response = await supabase
     .from("my_contents")
     .select(
-      "id, text, ContentEmbedding_openai_text_embedding_3_small_1536(target_id)",
+      "id, text, emb:ContentEmbedding_openai_text_embedding_3_small_1536(target_id)",
     )
     .eq("space_id", context.spaceId)
-    .is("ContentEmbedding_openai_text_embedding_3_small_1536", null)
+    .is("emb", null)
     .not("text", "is", null);
   if (response.error) {
     console.error(response.error);
@@ -340,7 +342,8 @@ export const addMissingEmbeddings = async (
       );
       const result = await supabase
         .from("ContentEmbedding_openai_text_embedding_3_small_1536")
-        .insert(embeddings);
+        .upsert(embeddings, { onConflict: "target_id" })
+        .select();
       if (result.error) {
         console.error(result.error);
         break;
