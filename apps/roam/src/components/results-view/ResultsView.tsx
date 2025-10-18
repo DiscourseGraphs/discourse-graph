@@ -388,6 +388,7 @@ const ResultsView: ResultsViewComponent = ({
   const [isEditLayout, setIsEditLayout] = useState(false);
   const [isEditColumnSort, setIsEditColumnSort] = useState(false);
   const [isEditColumnFilter, setIsEditColumnFilter] = useState(false);
+  const [isEditPageSize, setIsEditPageSize] = useState(false);
 
   const [layout, setLayout] = useState(settings.layout);
   const layoutMode = useMemo(
@@ -583,6 +584,7 @@ const ResultsView: ResultsViewComponent = ({
               setIsEditColumnFilter(false);
               setIsEditViews(false);
               setIsEditColumnSort(false);
+              setIsEditPageSize(false);
             }}
             autoFocus={false}
             enforceFocus={false}
@@ -637,6 +639,46 @@ const ResultsView: ResultsViewComponent = ({
                       setInputSetting({
                         key: "random",
                         value: "0",
+                        blockUid: settings.resultNodeUid,
+                      });
+                    }}
+                    minimal
+                  />
+                </div>
+              ) : isEditPageSize ? (
+                <div className="relative p-4">
+                  <MenuHeading
+                    onClear={() => setIsEditPageSize(false)}
+                    text="Rows per page"
+                  />
+                  <InputGroup
+                    type={"number"}
+                    min={1}
+                    max={1000}
+                    value={pageSize.toString()}
+                    className="inline-block w-24 pr-2"
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (value > 0) {
+                        setPageSize(value);
+                        if (preventSavingSettings) return;
+                        void setInputSetting({
+                          key: "size",
+                          value: e.target.value,
+                          blockUid: settings.resultNodeUid,
+                        });
+                      }
+                    }}
+                  />
+                  <Button
+                    hidden={pageSize === 10}
+                    icon={"reset"}
+                    onClick={() => {
+                      setPageSize(10);
+                      if (preventSavingSettings) return;
+                      void setInputSetting({
+                        key: "size",
+                        value: "10",
                         blockUid: settings.resultNodeUid,
                       });
                     }}
@@ -1154,6 +1196,11 @@ const ResultsView: ResultsViewComponent = ({
                       className={random.count ? "roamjs-item-dirty" : ""}
                       onClick={() => setIsEditRandom(true)}
                     />
+                    <MenuItem
+                      icon={"numbered-list"}
+                      text={"Rows per page"}
+                      onClick={() => setIsEditPageSize(true)}
+                    />
                   </MenuItem>
                   <MenuItem
                     icon={"tag"}
@@ -1292,13 +1339,7 @@ const ResultsView: ResultsViewComponent = ({
                   filters={filters}
                   setFilters={setFilters}
                   views={views}
-                  page={page}
-                  setPage={setPage}
-                  pageSize={pageSize}
-                  setPageSize={setPageSize}
-                  pageSizeTimeoutRef={pageSizeTimeoutRef}
                   onRefresh={onRefresh}
-                  allProcessedResults={allProcessedResults}
                   allResults={results}
                   showInterface={showInterface}
                 />
@@ -1375,6 +1416,49 @@ const ResultsView: ResultsViewComponent = ({
                     Showing {paginatedResults.length} of {results.length}{" "}
                     results
                   </i>
+                </span>
+                <span>
+                  <Button
+                    minimal
+                    icon={"double-chevron-left"}
+                    onClick={() => setPage(1)}
+                    disabled={page === 1}
+                    small
+                  />
+                  <Button
+                    minimal
+                    icon={"chevron-left"}
+                    onClick={() => setPage(page - 1)}
+                    disabled={page === 1}
+                    small
+                  />
+                  <span style={{ margin: "4px 0" }} className={"text-sm"}>
+                    {page}
+                  </span>
+                  <Button
+                    minimal
+                    icon={"chevron-right"}
+                    onClick={() => setPage(page + 1)}
+                    disabled={
+                      page ===
+                        Math.ceil(allProcessedResults.length / pageSize) ||
+                      allProcessedResults.length === 0
+                    }
+                    small
+                  />
+                  <Button
+                    minimal
+                    icon={"double-chevron-right"}
+                    disabled={
+                      page ===
+                        Math.ceil(allProcessedResults.length / pageSize) ||
+                      allProcessedResults.length === 0
+                    }
+                    onClick={() =>
+                      setPage(Math.ceil(allProcessedResults.length / pageSize))
+                    }
+                    small
+                  />
                 </span>
               </div>
               {showContent && <QueryUsed parentUid={parentUid} />}
