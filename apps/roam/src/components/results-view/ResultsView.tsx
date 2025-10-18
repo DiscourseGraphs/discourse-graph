@@ -388,6 +388,7 @@ const ResultsView: ResultsViewComponent = ({
   const [isEditLayout, setIsEditLayout] = useState(false);
   const [isEditColumnSort, setIsEditColumnSort] = useState(false);
   const [isEditColumnFilter, setIsEditColumnFilter] = useState(false);
+  const [isEditPageSize, setIsEditPageSize] = useState(false);
 
   const [layout, setLayout] = useState(settings.layout);
   const layoutMode = useMemo(
@@ -583,6 +584,7 @@ const ResultsView: ResultsViewComponent = ({
               setIsEditColumnFilter(false);
               setIsEditViews(false);
               setIsEditColumnSort(false);
+              setIsEditPageSize(false);
             }}
             autoFocus={false}
             enforceFocus={false}
@@ -637,6 +639,46 @@ const ResultsView: ResultsViewComponent = ({
                       setInputSetting({
                         key: "random",
                         value: "0",
+                        blockUid: settings.resultNodeUid,
+                      });
+                    }}
+                    minimal
+                  />
+                </div>
+              ) : isEditPageSize ? (
+                <div className="relative p-4">
+                  <MenuHeading
+                    onClear={() => setIsEditPageSize(false)}
+                    text="Rows per page"
+                  />
+                  <InputGroup
+                    type={"number"}
+                    min={1}
+                    max={1000}
+                    value={pageSize.toString()}
+                    className="inline-block w-24 pr-2"
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (value > 0) {
+                        setPageSize(value);
+                        if (preventSavingSettings) return;
+                        void setInputSetting({
+                          key: "size",
+                          value: e.target.value,
+                          blockUid: settings.resultNodeUid,
+                        });
+                      }
+                    }}
+                  />
+                  <Button
+                    hidden={pageSize === 10}
+                    icon={"reset"}
+                    onClick={() => {
+                      setPageSize(10);
+                      if (preventSavingSettings) return;
+                      void setInputSetting({
+                        key: "size",
+                        value: "10",
                         blockUid: settings.resultNodeUid,
                       });
                     }}
@@ -1155,27 +1197,10 @@ const ResultsView: ResultsViewComponent = ({
                       onClick={() => setIsEditRandom(true)}
                     />
                     <MenuItem
-                      icon={"numerical"}
+                      icon={"numbered-list"}
                       text={"Rows per page"}
-                    >
-                      {[5, 10, 20, 50, 100].map((size) => (
-                        <MenuItem
-                          key={size}
-                          text={size.toString()}
-                          active={pageSize === size}
-                          onClick={() => {
-                            setPageSize(size);
-                            setMoreMenuOpen(false);
-                            if (preventSavingSettings) return;
-                            setInputSetting({
-                              key: "size",
-                              value: size.toString(),
-                              blockUid: settings.resultNodeUid,
-                            });
-                          }}
-                        />
-                      ))}
-                    </MenuItem>
+                      onClick={() => setIsEditPageSize(true)}
+                    />
                   </MenuItem>
                   <MenuItem
                     icon={"tag"}
@@ -1415,7 +1440,8 @@ const ResultsView: ResultsViewComponent = ({
                     icon={"chevron-right"}
                     onClick={() => setPage(page + 1)}
                     disabled={
-                      page === Math.ceil(allProcessedResults.length / pageSize) ||
+                      page ===
+                        Math.ceil(allProcessedResults.length / pageSize) ||
                       allProcessedResults.length === 0
                     }
                     small
@@ -1424,7 +1450,8 @@ const ResultsView: ResultsViewComponent = ({
                     minimal
                     icon={"double-chevron-right"}
                     disabled={
-                      page === Math.ceil(allProcessedResults.length / pageSize) ||
+                      page ===
+                        Math.ceil(allProcessedResults.length / pageSize) ||
                       allProcessedResults.length === 0
                     }
                     onClick={() =>
