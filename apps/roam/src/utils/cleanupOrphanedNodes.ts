@@ -390,7 +390,7 @@ export const cleanupOrphanedNodes = async (
       context.spaceId,
     );
     if (supabaseSchemaUids === null) return false;
-    if (supabaseSchemaUids.length === 0) return true;
+    if (supabaseSchemaUids.length === 0) return success;
     const orphanedSchemaUids = getNonExistentRoamUids(supabaseSchemaUids);
     if (orphanedSchemaUids.length > 0) {
       await deleteNodeSchemasFromSupabase(
