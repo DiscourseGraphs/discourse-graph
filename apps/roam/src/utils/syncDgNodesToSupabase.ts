@@ -47,7 +47,7 @@ export const endSyncTask = async (
 ): Promise<boolean> => {
   try {
     const supabaseClient = await getLoggedInClient();
-    if (!supabaseClient) return;
+    if (!supabaseClient) return false;
     const context = await getSupabaseContext();
     if (!context) {
       console.error("endSyncTask: Unable to obtain Supabase context.");
