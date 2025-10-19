@@ -238,7 +238,7 @@ const PersonalSectionItem = ({
           )}
         </div>
       </div>
-      <Collapse isOpen={isOpen}>
+      <Collapse isOpen={isOpen} keepChildrenMounted>
         <Droppable
           droppableId={section.uid}
           type="ITEMS"
