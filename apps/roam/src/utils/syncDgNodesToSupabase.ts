@@ -184,7 +184,7 @@ const upsertNodeSchemaToContent = async ({
   spaceId: number;
   userId: number;
   supabaseClient: DGSupabaseClient;
-}) => {
+}): Promise<boolean> => {
   const query = `[
     :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title ?author-name
     :keys     source_local_id    created    last_modified    author_local_id    text author_name
@@ -206,9 +206,8 @@ const upsertNodeSchemaToContent = async ({
     nodeTypesUids,
   )) as unknown as RoamDiscourseNodeData[];
 
-  const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
-    nodes: result,
-  });
+  const contentData: LocalContentDataInput[] =
+    convertRoamNodeToLocalContent(result);
   const { error } = await supabaseClient.rpc("upsert_content", {
     data: contentData as Json,
     v_space_id: spaceId,
@@ -217,7 +216,9 @@ const upsertNodeSchemaToContent = async ({
   });
   if (error) {
     console.error("upsert_content failed:", error);
+    return false;
   }
+  return true;
 };
 
 export const convertDgToSupabaseConcepts = async ({
@@ -232,14 +233,20 @@ export const convertDgToSupabaseConcepts = async ({
   allNodeTypes: DiscourseNode[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
-}) => {
+}): Promise<boolean> => {
   const nodeTypes = await nodeTypeSince(since, allNodeTypes);
-  await upsertNodeSchemaToContent({
+  // TODO: partial upsert
+  const success = await upsertNodeSchemaToContent({
     nodeTypesUids: nodeTypes.map((node) => node.type),
     spaceId: context.spaceId,
     userId: context.userId,
     supabaseClient,
   });
+  if (!success) return false;
+  // Short circuit here
+  // TODO?: Look for which schemas already exist,
+  // and we could then upsert concepts using those only...
+  // But not sure it's worth it, because recovery would be hard.
 
   const nodesTypesToLocalConcepts = nodeTypes.map((node) => {
     return discourseNodeSchemaToLocalConcept(context, node);
@@ -264,10 +271,10 @@ export const convertDgToSupabaseConcepts = async ({
     v_space_id: context.spaceId,
   });
   if (error) {
-    throw new Error(
-      `upsert_concepts failed: ${JSON.stringify(error, null, 2)}`,
-    );
+    console.error(`upsert_concepts failed: ${JSON.stringify(error, null, 2)}`);
+    return false;
   }
+  return true;
 };
 
 const chunk = <T>(array: T[], size: number): T[][] => {
@@ -389,9 +396,8 @@ export const upsertNodesToSupabaseAsContent = async (
   if (roamNodes.length === 0) {
     return true;
   }
-  const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
-    nodes: roamNodes,
-  });
+  const allNodeInstancesAsLocalContent =
+    convertRoamNodeToLocalContent(roamNodes);
 
   const successes = await uploadNodesInBatches({
     supabase: supabaseClient,
@@ -487,7 +493,6 @@ export const createOrUpdateDiscourseEmbedding = async (
   if (!doSync) return;
   console.debug("starting createOrUpdateDiscourseEmbedding");
   let success = true;
-  let partial: number | boolean = true;
   const { shouldProceed, lastUpdateTime, nextUpdateTime, worker } =
     await proposeSyncTask();
 
@@ -515,34 +520,48 @@ export const createOrUpdateDiscourseEmbedding = async (
     );
     if (!createClient()) {
       // not worth retrying
+      // TODO: Differentiate setup vs connetion error
       throw new FatalError("Could not access supabase.");
     }
     const supabaseClient = await getLoggedInClient();
     if (!supabaseClient) {
+      // TODO: Distinguish connection vs credentials error
       throw new Error("Could not log in to client.");
     }
     const context = await getSupabaseContext();
     if (!context) {
-      // not worth retrying
+      // not worth retrying: setup error
       throw new FatalError("Error connecting to client.");
     }
     success &&= await upsertUsers(allUsers, supabaseClient, context);
-    partial = await upsertNodesToSupabaseAsContent(
+    const partial: number | boolean = await upsertNodesToSupabaseAsContent(
       allNodeInstances,
       supabaseClient,
       context,
     );
-    if (typeof partial !== "number") success &&= partial;
-    partial = await addMissingEmbeddings(supabaseClient, context);
-    if (typeof partial !== "number") success &&= partial;
-    await convertDgToSupabaseConcepts({
-      nodesSince: allNodeInstances,
-      since: time,
-      allNodeTypes: allDgNodeTypes,
-      supabaseClient,
-      context,
-    });
-    success &&= await cleanupOrphanedNodes(supabaseClient, context);
+    success &&= partial !== true;
+    // Count partial as failure, so we'll refetch from last success.
+    // TODO?: Order nodes by modification time,
+    // and set database last sync time according to partial failure
+    if (partial !== false) {
+      success &&= await convertDgToSupabaseConcepts({
+        nodesSince:
+          partial === true
+            ? allNodeInstances
+            : allNodeInstances.slice(0, partial),
+        since: time,
+        allNodeTypes: allDgNodeTypes,
+        supabaseClient,
+        context,
+      });
+    }
+    // even if next two step fails, count as success, since they are not time-dependent
+    await addMissingEmbeddings(supabaseClient, context);
+    await cleanupOrphanedNodes(supabaseClient, context);
+    // TODO: Add missing concepts, in case the concept upsert failed after the content upsert failed.
+    // Requires checking ALL node Ids against all concept Ids, so definitely costly.
+    // Another option: Find a way to identify whether content is a node,
+    // so then we could just look for missing concepts, just as we do for embeddings
     await endSyncTask(worker, "complete", showToast);
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
