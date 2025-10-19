@@ -5,12 +5,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import {
-  Button,
-  HTMLTable,
-  Icon,
-  IconName,
-} from "@blueprintjs/core";
+import { Button, HTMLTable, Icon, IconName } from "@blueprintjs/core";
 import { IconNames } from "@blueprintjs/icons";
 import { Column, Result } from "~/utils/types";
 import type { FilterData, Sorts, Views } from "~/utils/parseResultSettings";
@@ -24,6 +19,8 @@ import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import setInputSettings from "roamjs-components/util/setInputSettings";
 import toCellValue from "~/utils/toCellValue";
 import { ContextContent } from "~/components/DiscourseContext";
+import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
+import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
 
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;
 type ExtraRowType = (typeof EXTRA_ROW_TYPES)[number] | null;
@@ -211,7 +208,7 @@ const ResultRow = ({
   const cell = (key: string) => {
     const value = toCellValue({
       value: r[`${key}-display`] || r[key] || "",
-      uid: (r[`${key}-uid`] as string) || "",
+      uid: r[`${key}-uid`] || "",
     });
     const action = r[`${key}-action`];
     if (typeof action === "string") {
@@ -219,6 +216,20 @@ const ResultRow = ({
         value.toUpperCase().replace(/\s/g, "_") in IconNames
           ? { icon: value as IconName, minimal: true }
           : { text: value };
+      const actionUid = r[`${key}-uid`];
+
+      if (
+        action === "discourse" &&
+        value === CONTEXT_OVERLAY_SUGGESTION &&
+        actionUid
+      ) {
+        return (
+          <DiscourseContextOverlay
+            uid={actionUid}
+            id={`discourse-overlay-${parentUid}-${actionUid}`}
+          />
+        );
+      }
       return (
         <Button
           {...buttonProps}
@@ -227,7 +238,7 @@ const ResultRow = ({
               new CustomEvent("roamjs:query-builder:action", {
                 detail: {
                   action,
-                  uid: r[`${key}-uid`],
+                  uid: actionUid,
                   val: r["text"],
                   onRefresh,
                   queryUid: parentUid,
