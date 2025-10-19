@@ -88,21 +88,48 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
 
   // Helper function to get the same colors as canvas nodes
   const getNodeColors = useCallback((nodeType: string) => {
+    if (!discourseContext || !discourseContext.nodes) {
+      return {
+        backgroundColor: "#000000",
+        textColor: "#ffffff",
+      };
+    }
+
+    const nodeData = discourseContext.nodes[nodeType];
+    if (!nodeData) {
+      return {
+        backgroundColor: "#000000",
+        textColor: "#ffffff",
+      };
+    }
+
     const {
       canvasSettings: { color: setColor = "" } = {},
       index: discourseNodeIndex = -1,
-    } = discourseContext.nodes[nodeType] || {};
+    } = nodeData;
+
     const paletteColor = COLOR_ARRAY[
-      discourseNodeIndex >= 0 && discourseNodeIndex < COLOR_ARRAY.length - 1
+      discourseNodeIndex >= 0 && discourseNodeIndex < COLOR_ARRAY.length
         ? discourseNodeIndex
         : 0
     ] as string;
-    const formattedTextColor =
-      setColor && !setColor.startsWith("#") ? `#${setColor}` : setColor;
 
-    const canvasSelectedColor = formattedTextColor
-      ? formattedTextColor
-      : COLOR_PALETTE[paletteColor] || "#000000";
+    let canvasSelectedColor = COLOR_PALETTE[paletteColor] || "#000000";
+
+    if (setColor) {
+      const formattedTextColor = !setColor.startsWith("#")
+        ? `#${setColor}`
+        : setColor;
+
+      try {
+        const colorInstance = colord(formattedTextColor);
+        if (colorInstance.isValid()) {
+          canvasSelectedColor = formattedTextColor;
+        }
+      } catch {
+        // Keep using palette color if validation fails
+      }
+    }
 
     try {
       const pleasingColors = getPleasingColors(colord(canvasSelectedColor));
