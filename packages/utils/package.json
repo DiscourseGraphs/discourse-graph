@@ -16,5 +16,8 @@
     "build": "tsc",
     "check-types": "tsc --noEmit --skipLibCheck",
     "lint": "eslint ."
+  },
+  "dependencies": {
+    "colord": "^2.9.3"
   }
 }
