@@ -601,7 +601,7 @@ export const mountLeftSidebar = (
     root.onmousedown = (e) => e.stopPropagation();
     wrapper.appendChild(root);
   } else {
-    root.className = "starred-pages overflow-scroll";
+    root.className = "starred-pages";
   }
   ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
 };
