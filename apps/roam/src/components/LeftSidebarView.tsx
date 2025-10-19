@@ -218,11 +218,9 @@ const PersonalSectionItem = ({
         <div className="flex w-full items-center justify-between">
           <div
             className="flex items-center"
-            onClick={(e: React.MouseEvent) => {
+            onClick={() => {
               if ((section.children?.length || 0) > 0) {
                 handleChevronClick();
-              } else {
-                void openTarget(e, section.text);
               }
             }}
           >
@@ -452,7 +450,7 @@ export const useConfig = () => {
       unsubscribe();
     };
   }, []);
-  return config;
+  return { config, setConfig };
 };
 
 export const refreshAndNotify = () => {
@@ -572,8 +570,8 @@ const FavouritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 };
 
 const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const initialConfig = useConfig();
-  const [config, setConfig] = useState(initialConfig);
+  const { config, setConfig } = useConfig();
+
   return (
     <>
       <FavouritesPopover onloadArgs={onloadArgs} />
@@ -599,11 +597,11 @@ export const mountLeftSidebar = (
     }
     root = document.createElement("div");
     root.id = id;
-    root.className = "starred-pages overflow-scroll";
+    root.className = "starred-pages";
     root.onmousedown = (e) => e.stopPropagation();
     wrapper.appendChild(root);
   } else {
-    root.className = "starred-pages overflow-scroll";
+    root.className = "starred-pages";
   }
   ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
 };
