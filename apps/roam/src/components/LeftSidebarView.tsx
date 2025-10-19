@@ -359,7 +359,6 @@ const PersonalSections = ({
       });
     }
   };
-
   return (
     <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
       <Droppable droppableId="personal-sections" type="SECTIONS">
@@ -430,7 +429,7 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
         </div>
       </div>
       {isCollapsable ? (
-        <Collapse isOpen={isOpen}>
+        <Collapse isOpen={isOpen} keepChildrenMounted>
           <SectionChildren childrenNodes={config.children} />
         </Collapse>
       ) : (
