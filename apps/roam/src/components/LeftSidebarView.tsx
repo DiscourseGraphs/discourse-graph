@@ -599,11 +599,11 @@ export const mountLeftSidebar = (
     }
     root = document.createElement("div");
     root.id = id;
-    root.className = "starred-pages overflow-scroll";
+    root.className = "starred-pages";
     root.onmousedown = (e) => e.stopPropagation();
     wrapper.appendChild(root);
   } else {
-    root.className = "starred-pages overflow-scroll";
+    root.className = "starred-pages";
   }
   ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
 };

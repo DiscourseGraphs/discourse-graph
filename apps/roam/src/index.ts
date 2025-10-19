@@ -87,7 +87,7 @@ export default runExtension(async (onloadArgs) => {
   if (process.env.NODE_ENV === "development") {
     renderToast({
       id: "discourse-graph-loaded",
-      content: "Successfully loaded",
+      content: "Successfully loaded-no overflow-scroll on sidebar",
       intent: "success",
       timeout: 500,
     });
