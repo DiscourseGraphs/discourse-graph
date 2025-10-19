@@ -539,7 +539,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       supabaseClient,
       context,
     );
-    success &&= partial !== true;
+    success &&= partial === true;
     // Count partial as failure, so we'll refetch from last success.
     // TODO?: Order nodes by modification time,
     // and set database last sync time according to partial failure
