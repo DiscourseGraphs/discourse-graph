@@ -206,9 +206,8 @@ const upsertNodeSchemaToContent = async ({
     nodeTypesUids,
   )) as unknown as RoamDiscourseNodeData[];
 
-  const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
-    nodes: result,
-  });
+  const contentData: LocalContentDataInput[] =
+    convertRoamNodeToLocalContent(result);
   const { error } = await supabaseClient.rpc("upsert_content", {
     data: contentData as Json,
     v_space_id: spaceId,
@@ -389,9 +388,8 @@ export const upsertNodesToSupabaseAsContent = async (
   if (roamNodes.length === 0) {
     return true;
   }
-  const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
-    nodes: roamNodes,
-  });
+  const allNodeInstancesAsLocalContent =
+    convertRoamNodeToLocalContent(roamNodes);
 
   const successes = await uploadNodesInBatches({
     supabase: supabaseClient,
@@ -515,34 +513,48 @@ export const createOrUpdateDiscourseEmbedding = async (
     );
     if (!createClient()) {
       // not worth retrying
+      // TODO: Differentiate setup vs connetion error
       throw new FatalError("Could not access supabase.");
     }
     const supabaseClient = await getLoggedInClient();
     if (!supabaseClient) {
+      // TODO: Distinguish connection vs credentials error
       throw new Error("Could not log in to client.");
     }
     const context = await getSupabaseContext();
     if (!context) {
-      // not worth retrying
+      // not worth retrying: setup error
       throw new FatalError("Error connecting to client.");
     }
+    // TODO someday: If lastUpdateTime is not null, look only at users in allNodeInstances.
     success &&= await upsertUsers(allUsers, supabaseClient, context);
-    partial = await upsertNodesToSupabaseAsContent(
-      allNodeInstances,
-      supabaseClient,
-      context,
-    );
-    if (typeof partial !== "number") success &&= partial;
+    if (allNodeInstances.length > 0) {
+      partial = await upsertNodesToSupabaseAsContent(
+        allNodeInstances,
+        supabaseClient,
+        context,
+      );
+      if (typeof partial !== "number") success &&= partial;
+      if (partial !== false) {
+        // Only send concepts for which content has been uploaded.
+        // TODO: Add missing concepts.
+        // Requires checking ALL node Ids against all concept Ids.
+
+        await convertDgToSupabaseConcepts({
+          nodesSince:
+            partial === true
+              ? allNodeInstances
+              : allNodeInstances.slice(0, partial),
+          since: time,
+          allNodeTypes: allDgNodeTypes,
+          supabaseClient,
+          context,
+        });
+      }
+    }
+    success &&= await cleanupOrphanedNodes(supabaseClient, context);
     partial = await addMissingEmbeddings(supabaseClient, context);
     if (typeof partial !== "number") success &&= partial;
-    await convertDgToSupabaseConcepts({
-      nodesSince: allNodeInstances,
-      since: time,
-      allNodeTypes: allDgNodeTypes,
-      supabaseClient,
-      context,
-    });
-    success &&= await cleanupOrphanedNodes(supabaseClient, context);
     await endSyncTask(worker, "complete", showToast);
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
