@@ -16,11 +16,9 @@ type EmbeddingApiResponse = {
   }[];
 };
 
-export const convertRoamNodeToLocalContent = ({
-  nodes,
-}: {
-  nodes: RoamDiscourseNodeData[];
-}): LocalContentDataInput[] => {
+export const convertRoamNodeToLocalContent = (
+  nodes: RoamDiscourseNodeData[],
+): LocalContentDataInput[] => {
   return nodes.map((node) => {
     const variant = node.node_title ? "direct_and_description" : "direct";
     const text = node.node_title
