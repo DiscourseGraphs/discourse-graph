@@ -30,46 +30,14 @@ import { colord } from "colord";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { discourseContext } from "./Tldraw";
 import { TLBaseShape } from "tldraw";
-import { DiscourseNodeShape } from "./DiscourseNodeUtil";
+import {
+  DiscourseNodeShape,
+  COLOR_ARRAY,
+  COLOR_PALETTE,
+} from "./DiscourseNodeUtil";
 import { render as renderToast } from "roamjs-components/components/Toast";
 
 export type GroupedShapes = Record<string, DiscourseNodeShape[]>;
-
-// Color constants from DiscourseNodeUtil
-const COLOR_ARRAY = [
-  "black",
-  "blue",
-  "green",
-  "grey",
-  "light-blue",
-  "light-green",
-  "light-red",
-  "light-violet",
-  "orange",
-  "red",
-  "violet",
-  "white",
-  "yellow",
-];
-const COLOR_PALETTE: Record<string, string> = {
-  black: "#1d1d1d",
-  blue: "#4263eb",
-  green: "#099268",
-  grey: "#adb5bd",
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "light-blue": "#4dabf7",
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "light-green": "#40c057",
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "light-red": "#ff8787",
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "light-violet": "#e599f7",
-  orange: "#f76707",
-  red: "#e03131",
-  violet: "#ae3ec9",
-  white: "#ffffff",
-  yellow: "#ffc078",
-};
 
 type NodeGroup = {
   uid: string;
@@ -124,23 +92,31 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
       canvasSettings: { color: setColor = "" } = {},
       index: discourseNodeIndex = -1,
     } = discourseContext.nodes[nodeType] || {};
-    const paletteColor =
-      COLOR_ARRAY[
-        discourseNodeIndex >= 0 && discourseNodeIndex < COLOR_ARRAY.length - 1
-          ? discourseNodeIndex
-          : 0
-      ];
+    const paletteColor = COLOR_ARRAY[
+      discourseNodeIndex >= 0 && discourseNodeIndex < COLOR_ARRAY.length - 1
+        ? discourseNodeIndex
+        : 0
+    ] as string;
     const formattedTextColor =
       setColor && !setColor.startsWith("#") ? `#${setColor}` : setColor;
 
     const canvasSelectedColor = formattedTextColor
       ? formattedTextColor
-      : COLOR_PALETTE[paletteColor];
-    const pleasingColors = getPleasingColors(colord(canvasSelectedColor));
-    return {
-      backgroundColor: pleasingColors.background,
-      textColor: pleasingColors.text,
-    };
+      : COLOR_PALETTE[paletteColor] || "#000000";
+
+    try {
+      const pleasingColors = getPleasingColors(colord(canvasSelectedColor));
+      return {
+        backgroundColor: pleasingColors.background,
+        textColor: pleasingColors.text,
+      };
+    } catch {
+      // Fallback to default colors if color parsing fails
+      return {
+        backgroundColor: "#000000",
+        textColor: "#ffffff",
+      };
+    }
   }, []);
 
   const groups = useMemo(() => {
