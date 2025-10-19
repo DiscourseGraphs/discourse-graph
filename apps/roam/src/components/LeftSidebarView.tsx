@@ -450,7 +450,7 @@ export const useConfig = () => {
       unsubscribe();
     };
   }, []);
-  return config;
+  return { config, setConfig };
 };
 
 export const refreshAndNotify = () => {
@@ -570,12 +570,7 @@ const FavouritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 };
 
 const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const initialConfig = useConfig();
-  const [config, setConfig] = useState(initialConfig);
-
-  useEffect(() => {
-    setConfig(initialConfig);
-  }, [initialConfig]);
+  const { config, setConfig } = useConfig();
 
   return (
     <>
@@ -602,7 +597,7 @@ export const mountLeftSidebar = (
     }
     root = document.createElement("div");
     root.id = id;
-    root.className = "starred-pages overflow-scroll";
+    root.className = "starred-pages";
     root.onmousedown = (e) => e.stopPropagation();
     wrapper.appendChild(root);
   } else {
