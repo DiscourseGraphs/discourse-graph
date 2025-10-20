@@ -165,7 +165,7 @@ const AdminPanel = () => {
                   showingSchema.sourceLocalId ===
                   nodeSchemaSignature.sourceLocalId,
                 type: "nodes",
-                ofType: [showingSchema.sourceLocalId],
+                ofTypes: [showingSchema.sourceLocalId],
               },
             }),
           );
