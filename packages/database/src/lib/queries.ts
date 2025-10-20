@@ -13,17 +13,12 @@ import { DGSupabaseClient } from "./client";
 //
 // // Query all nodes of a specific type
 // const nodes = await getNodesByType({
-//   supabase, spaceId, ofType: ["my-node-type"]
-// });
-//
-// // Query a specific node and its relations
-// const relations = await getRelationsFromNode({
-//   supabase, spaceId, nodeIds: ["node-123"]
+//   supabase, spaceId, ofTypes: ["my-node-type"]
 // });
 //
 // // Query nodes of specific types and their (filtered) relations
-// const nodes = await getRelationsFromNodeType({
-//   supabase, spaceId, ofType: ["claim"], relationTypes: ["cites", "references"]
+// const nodes = await getNodesOfTypeWithRelations({
+//   supabase, spaceId, ofTypes: ["claim"], relationTypes: ["cites", "references"]
 // });
 //
 // // Get discourse context (all nodes connected to a node or set of nodes)
@@ -34,8 +29,8 @@ import { DGSupabaseClient } from "./client";
 // // Use the main getConcepts function for complex queries
 // const results = await getConcepts({
 //   supabase, spaceId,
-//   scope: { type: 'nodes', ofType: ['type1', 'type2'] },
-//   relations: { ofType: ['cites'], author: 'user123' },
+//   scope: { type: 'nodes', ofTypes: ['type1', 'type2'] },
+//   relations: { ofTypes: ['cites'], author: 'user123' },
 //   author: 'creator456',
 //   pagination: { limit: 50, offset: 0 }
 // });
@@ -62,12 +57,15 @@ export const nodeSchemaSignature: NodeSignature = {
 
 type CacheMissTimestamp = number;
 type CacheEntry = NodeSignature | CacheMissTimestamp;
+// Cache of nodes keyed by sourceLocalId
+// TODO: Consider including the source_id in the key to avoid collisions
+// I see a case for shared Ids, but this is not handled well here either.
 const NODE_SCHEMA_CACHE: Record<string, CacheEntry> = {
   [NODE_SCHEMAS]: nodeSchemaSignature,
 };
 
 export const initNodeSchemaCache = () => {
-  Object.keys(NODE_SCHEMA_CACHE).map((k) => {
+  Object.keys(NODE_SCHEMA_CACHE).forEach((k) => {
     if (k !== NODE_SCHEMAS) delete NODE_SCHEMA_CACHE[k];
   });
 };
@@ -107,7 +105,7 @@ type DefaultQueryShape = {
  * @example
  * ```typescript
  * // Query all nodes of specific types
- * { type: "nodes", ofSchemaLocal: ["page", "note"] }
+ * { type: "nodes", ofTypes: ["page", "note"] }
  *
  * // Query all relations
  * { type: "relations" }
@@ -129,7 +127,7 @@ export type NodeFilters = {
    * Given as a list of local Ids (eg Roam page Ids of the node or relation types)
    * Only used when schemas=false.
    */
-  ofType?: string[];
+  ofTypes?: string[];
   /**
    * Specific node local IDs to retrieve.
    */
@@ -139,7 +137,7 @@ export type NodeFilters = {
   author?: string;
 };
 
-type NodeFiltersDb = Omit<NodeFilters, "ofType"> & { ofType?: number[]};
+type NodeFiltersDb = Omit<NodeFilters, "ofTypes"> & { ofTypes?: number[]};
 
 
 /**
@@ -150,30 +148,30 @@ type NodeFiltersDb = Omit<NodeFilters, "ofType"> & { ofType?: number[]};
  * ```typescript
  * // Find relations of type "cites" containing specific nodes
  * {
- *   ofType: ["cites", "references"],
- *   toNodeId: ["node-123", "node-456"]
+ *   ofTypes: ["cites", "references"],
+ *   toNodeIds: ["node-123", "node-456"]
  * }
  *
  * // Find concepts connected to nodes of specific types
  * {
- *   toNodeType: ["page", "note"]
+ *   toNodeTypes: ["page", "note"]
  * }
  * ```
  */
 export type RelationFilters = {
   /** Find relations containing any of these nodes (multiple nodes) */
   /* SLOW. Avoid using unless you have strong constraints on base node of search */
-  toNodeId?: string[];
+  toNodeIds?: string[];
   /** Find concepts participating in relations of these types */
-  ofType?: string[];
+  ofTypes?: string[];
   /** Find concepts connected to nodes of these types. */
-  toNodeType?: string[];
+  toNodeTypes?: string[];
   /** Find concepts in relations authored by this user */
   /* SLOW. Avoid using unless you have strong constraints on base node of search */
   author?: string;
 };
 
-export type RelationFiltersDb = Omit<RelationFilters, "ofType"|"toNodeType">&{ofType?: number[], toNodeType?: number[]};
+export type RelationFiltersDb = Omit<RelationFilters, "ofTypes"|"toNodeTypes">&{ofTypes?: number[], toNodeTypes?: number[]};
 
 /**
  * Controls which fields are returned in the response.
@@ -231,7 +229,7 @@ export type PaginationOptions = {
  *   supabase,
  *   spaceId: 123,
  *   scope: { type: "nodes", ofTypes: ["page"] },
- *   relations: { ofType: ["cites"] },
+ *   relations: { ofTypes: ["cites"] },
  *   author: "user123",
  *   pagination: { limit: 50 }
  * });
@@ -278,9 +276,9 @@ const composeConceptQuery = ({
   },
 }: GetConceptsParamsDb) => {
   const baseNodeLocalIds = scope.nodeIds || [];
-  const inRelsOfType = relations.ofType;
-  const inRelsToNodesOfType = relations.toNodeType;
-  const inRelsToNodeLocalIds = relations.toNodeId;
+  const inRelsOfType = relations.ofTypes;
+  const inRelsToNodesOfType = relations.toNodeTypes;
+  const inRelsToNodeLocalIds = relations.toNodeIds;
   const inRelsToNodesOfAuthor = relations.author;
 
   let q = (fields.concepts || CONCEPT_FIELDS).join(",\n");
@@ -292,7 +290,7 @@ const composeConceptQuery = ({
   if (ctArgs.length > 0) {
     const documentFields = fields.documents || [];
     if (documentFields.length > 0) {
-      ctArgs.push(`Document:my_documents!document_id${innerContent ? "!inner" : ""} (\n" + documentFields.join(",\n") + ")`);
+      ctArgs.push(`Document:my_documents!document_id${innerContent ? "!inner" : ""} (\n ${documentFields.join(",\n")} )`);
     }
     q += `,\nContent:my_contents!represented_by_id${innerContent ? "!inner" : ""} (\n${ctArgs.join(",\n")})`;
   }
@@ -342,7 +340,7 @@ const composeConceptQuery = ({
     query = query.eq("is_schema", true);
   } else {
     query = query.eq("is_schema", false);
-    const schemaDbIds = scope.ofType || [];
+    const schemaDbIds = scope.ofTypes || [];
     if (schemaDbIds.length > 0) {
       if (schemaDbIds.length === 1)
         query = query.eq("schema_id", schemaDbIds[0]!);
@@ -392,7 +390,8 @@ const composeConceptQuery = ({
   if (limit > 0 || offset > 0) {
     query = query.order("id");
     if (offset > 0) {
-      query = query.range(offset, offset + limit);
+      const to = Math.max(offset, offset + limit - 1);
+      query = query.range(offset, to);
     } else if (limit > 0) {
       query = query.limit(limit);
     }
@@ -636,14 +635,14 @@ export const getAllNodes = async ({
  * const nodes = await getNodesByType({
  *   supabase,
  *   spaceId: 123,
- *   ofType: ["page", "note"]
+ *   ofTypes: ["page", "note"]
  * });
  *
  * // Get pages by a specific author
  * const myPages = await getNodesByType({
  *   supabase,
  *   spaceId: 123,
- *   ofType: ["page"],
+ *   ofTypes: ["page"],
  *   author: "user123"
  * });
  * ```
@@ -651,14 +650,14 @@ export const getAllNodes = async ({
 export const getNodesByType = async ({
   supabase,
   spaceId,
-  ofType,
+  ofTypes,
   author,
   fields = { concepts: CONCEPT_FIELDS, content: CONTENT_FIELDS },
   pagination,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
-  ofType: string[];
+  ofTypes: string[];
   author?: string;
   fields?: FieldSelection;
   pagination?: PaginationOptions;
@@ -666,7 +665,7 @@ export const getNodesByType = async ({
   return getConcepts({
     supabase,
     spaceId,
-    scope: { type: "nodes", ofType, author },
+    scope: { type: "nodes", ofTypes, author },
     fields,
     pagination,
   });
@@ -719,12 +718,12 @@ export const getAllRelations = async ({
 };
 
 /**
- * Retrieves all relations that start from nodes of specific types.
+ * Retrieves all relations that start from nodes of specific types. Centered on the node.
  *
  * @param params - Query parameters
  * @param params.supabase - Authenticated Supabase client
  * @param params.spaceId - Space ID to query (optional)
- * @param params.ofType - Array of node type local IDs in the relation
+ * @param params.ofTypes - Array of node type local IDs in the relation
  * @param params.relationTypes - Optional array of relation types to filter by
  * @param params.nodeAuthoredBy - Optional filter by target node author (SLOW)
  * @param params.fields - Fields to return (defaults to full concept + content)
@@ -734,25 +733,25 @@ export const getAllRelations = async ({
  * @example
  * ```typescript
  * // Find all relations containing page nodes
- * const relations = await getRelationsFromNodeType({
+ * const relations = await getNodesOfTypeWithRelations({
  *   supabase,
  *   spaceId: 123,
- *   ofType: ["page"]
+ *   ofTypes: ["page"]
  * });
  *
  * // Find citation relations containing note nodes
- * const citations = await getRelationsFromNodeType({
+ * const citations = await getNodesOfTypeWithRelations({
  *   supabase,
  *   spaceId: 123,
- *   ofType: ["note"],
+ *   ofTypes: ["note"],
  *   relationTypes: ["cites"]
  * });
  * ```
  */
-export const getRelationsFromNodeType = async ({
+export const getNodesOfTypeWithRelations = async ({
   supabase,
   spaceId,
-  ofType,
+  ofTypes,
   relationTypes,
   nodeAuthoredBy,
   fields = { concepts: CONCEPT_FIELDS, content: CONTENT_FIELDS },
@@ -760,7 +759,7 @@ export const getRelationsFromNodeType = async ({
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
-  ofType: string[];
+  ofTypes: string[];
   relationTypes?: string[];
   nodeAuthoredBy?: string;
   fields?: FieldSelection;
@@ -769,9 +768,9 @@ export const getRelationsFromNodeType = async ({
   return getConcepts({
     supabase,
     spaceId,
-    scope: { type:"nodes", ofType, },
+    scope: { type:"nodes", ofTypes, }, // we still start from the node
     relations: {
-      ofType: relationTypes,
+      ofTypes: relationTypes,
       author: nodeAuthoredBy,
     },
     fields,
@@ -858,8 +857,8 @@ export const LAST_QUERY_DATA = { duration: 0 };
  * const results = await getConcepts({
  *   supabase,
  *   spaceId: 123,
- *   scope: { type: "nodes", ofType: ["pageId", "noteId"], author: "user123Id" },
- *   relations: { ofType: ["citesId", "referencesId"] },
+ *   scope: { type: "nodes", ofTypes: ["pageId", "noteId"], author: "user123Id" },
+ *   relations: { ofTypes: ["citesId", "referencesId"] },
  *   pagination: { limit: 50, offset: 0 }
  * });
  *
@@ -867,7 +866,7 @@ export const LAST_QUERY_DATA = { duration: 0 };
  * const relations = await getConcepts({
  *   supabase,
  *   spaceId: 123,
- *   scope: { type: "nodes", nodeId: ["node-123", "node-456"] },
+ *   scope: { type: "nodes", nodeIds: ["node-123", "node-456"] },
  *   fields: { relations: CONCEPT_FIELDS_MINIMAL, relationNodes: CONCEPT_FIELDS_MINIMAL }
  * });
  *
@@ -875,8 +874,8 @@ export const LAST_QUERY_DATA = { duration: 0 };
  * const relations = await getConcepts({
  *   supabase,
  *   spaceId: 123,
- *   scope: { type: "nodes", nodeId: ["node-123", "node-456"] },
- *   relations: { toNodeId: ["node-789"] }
+ *   scope: { type: "nodes", nodeIds: ["node-123", "node-456"] },
+ *   relations: { toNodeIds: ["node-789"] }
  * });
  * ```
  */
@@ -901,9 +900,9 @@ export const getConcepts = async (
 ): Promise<PConceptFull[]> => {
   // translate schema local content Ids to concept database Ids.
   const localSchemaIds = new Set<string>();
-  (scope.ofType || []).map((k) => localSchemaIds.add(k));
-  (relations.ofType || []).map((k) => localSchemaIds.add(k));
-  (relations.toNodeType || []).map((k) => localSchemaIds.add(k));
+  (scope.ofTypes || []).map((k) => localSchemaIds.add(k));
+  (relations.ofTypes || []).map((k) => localSchemaIds.add(k));
+  (relations.toNodeTypes || []).map((k) => localSchemaIds.add(k));
   const dbIdsMapping = await getLocalToDbIdMapping(
     supabase,
     new Array(...localSchemaIds.keys()),
@@ -927,12 +926,12 @@ export const getConcepts = async (
     spaceId,
     scope: {
       ...scope,
-      ofType: localToDbArray(scope.ofType)
+      ofTypes: localToDbArray(scope.ofTypes)
     },
     relations: {
       ...relations,
-      ofType: localToDbArray(relations.ofType),
-      toNodeType: localToDbArray(relations.toNodeType)
+      ofTypes: localToDbArray(relations.ofTypes),
+      toNodeTypes: localToDbArray(relations.toNodeTypes)
     },
     fields,
     pagination
