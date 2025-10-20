@@ -23,9 +23,9 @@ import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import { OnloadArgs } from "roamjs-components/types";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
-import { escapeCljString } from "~/utils/formatUtils";
 import { Result } from "~/utils/types";
 import { getSetting } from "~/utils/extensionSettings";
+import fuzzy from "fuzzy";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -34,19 +34,32 @@ type Props = {
   triggerText: string;
 };
 
-const waitForBlock = (
-  uid: string,
-  text: string,
+const waitForBlock = ({
+  uid,
+  text,
   retries = 0,
   maxRetries = 30,
-): Promise<void> =>
+}: {
+  uid: string;
+  text: string;
+  retries?: number;
+  maxRetries?: number;
+}): Promise<void> =>
   getTextByBlockUid(uid) === text
     ? Promise.resolve()
     : retries >= maxRetries
       ? Promise.resolve()
       : new Promise((resolve) =>
           setTimeout(
-            () => resolve(waitForBlock(uid, text, retries + 1, maxRetries)),
+            () =>
+              resolve(
+                waitForBlock({
+                  uid,
+                  text,
+                  retries: retries + 1,
+                  maxRetries,
+                }),
+              ),
             10,
           ),
         );
@@ -63,6 +76,7 @@ const NodeSearchMenu = ({
   const [discourseTypes, setDiscourseTypes] = useState<DiscourseNode[]>([]);
   const [checkedTypes, setCheckedTypes] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [allNodes, setAllNodes] = useState<Record<string, Result[]>>({});
   const [searchResults, setSearchResults] = useState<Record<string, Result[]>>(
     {},
   );
@@ -89,10 +103,7 @@ const NodeSearchMenu = ({
     }, 300);
   }, []);
 
-  const searchNodesForType = (
-    node: DiscourseNode,
-    searchTerm: string,
-  ): Result[] => {
+  const searchNodesForType = (node: DiscourseNode): Result[] => {
     if (!node.format) return [];
 
     try {
@@ -102,11 +113,6 @@ const NodeSearchMenu = ({
         .replace(/\\/g, "\\\\")
         .replace(/"/g, '\\"');
 
-      const searchCondition = searchTerm
-        ? `[(re-pattern "(?i).*${escapeCljString(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))}.*") ?search-regex]
-           [(re-find ?search-regex ?node-title)]`
-        : "";
-
       const query = `[
       :find
         (pull ?node [:block/string :node/title :block/uid])
@@ -114,7 +120,6 @@ const NodeSearchMenu = ({
         [(re-pattern "${regexPattern}") ?title-regex]
         [?node :node/title ?node-title]
         [(re-find ?title-regex ?node-title)]
-        ${searchCondition}
     ]`;
       const results = window.roamAlphaAPI.q(query);
 
@@ -130,8 +135,22 @@ const NodeSearchMenu = ({
     }
   };
 
+  const filterNodesLocally = useCallback(
+    (nodes: Result[], searchTerm: string): Result[] => {
+      if (!searchTerm.trim()) return nodes;
+
+      return fuzzy
+        .filter(searchTerm, nodes, {
+          extract: (node) => node.text,
+        })
+        .map((result) => result.original)
+        .filter((node): node is Result => !!node);
+    },
+    [],
+  );
+
   useEffect(() => {
-    const fetchNodeTypes = async () => {
+    const fetchNodeTypes = () => {
       setIsLoading(true);
 
       const allNodeTypes = getDiscourseNodes().filter(
@@ -146,6 +165,12 @@ const NodeSearchMenu = ({
       });
       setCheckedTypes(initialCheckedTypes);
 
+      const allNodesCache: Record<string, Result[]> = {};
+      allNodeTypes.forEach((type) => {
+        allNodesCache[type.type] = searchNodesForType(type);
+      });
+      setAllNodes(allNodesCache);
+
       const initialSearchResults = Object.fromEntries(
         allNodeTypes.map((type) => [type.type, []]),
       );
@@ -158,22 +183,25 @@ const NodeSearchMenu = ({
   }, []);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || Object.keys(allNodes).length === 0) return;
 
     const newResults: Record<string, Result[]> = {};
 
     discourseTypes.forEach((type) => {
-      newResults[type.type] = searchNodesForType(type, searchTerm);
+      const cachedNodes = allNodes[type.type] || [];
+      newResults[type.type] = filterNodesLocally(cachedNodes, searchTerm);
     });
 
     setSearchResults(newResults);
-  }, [searchTerm, isLoading, discourseTypes]);
+  }, [searchTerm, isLoading, allNodes, discourseTypes, filterNodesLocally]);
 
   const menuRef = useRef<HTMLUListElement>(null);
   const { ["block-uid"]: blockUid, ["window-id"]: windowId } = useMemo(
     () =>
       window.roamAlphaAPI.ui.getFocusedBlock() || {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         "block-uid": "",
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         "window-id": "",
       },
     [],
@@ -204,52 +232,61 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: Result) => {
-      void waitForBlock(blockUid, textarea.value).then(() => {
-        onClose();
+       if (!blockUid) {
+         onClose();
+         return;
+       }
+       void waitForBlock({ uid: blockUid, text: textarea.value })
+         .then(() => {
+           onClose();
 
-        setTimeout(() => {
-          const originalText = getTextByBlockUid(blockUid);
+           setTimeout(() => {
+             const originalText = getTextByBlockUid(blockUid);
 
-          const prefix = originalText.substring(0, triggerPosition);
-          const suffix = originalText.substring(textarea.selectionStart);
-          const pageRef = `[[${item.text}]]`;
+             const prefix = originalText.substring(0, triggerPosition);
+             const suffix = originalText.substring(textarea.selectionStart);
+             const pageRef = `[[${item.text}]]`;
 
-          const newText = `${prefix}${pageRef}${suffix}`;
-          void updateBlock({ uid: blockUid, text: newText }).then(() => {
-            const newCursorPosition = triggerPosition + pageRef.length;
+             const newText = `${prefix}${pageRef}${suffix}`;
+             void updateBlock({ uid: blockUid, text: newText }).then(() => {
+               const newCursorPosition = triggerPosition + pageRef.length;
 
-            if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
-              void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-                location: {
-                  "block-uid": blockUid,
-                  "window-id": windowId,
-                },
-                selection: { start: newCursorPosition },
-              });
-            } else {
-              setTimeout(() => {
-                const textareaElements = document.querySelectorAll("textarea");
-                for (const el of textareaElements) {
-                  if (
-                    getUids(el as HTMLTextAreaElement).blockUid === blockUid
-                  ) {
-                    (el as HTMLTextAreaElement).focus();
-                    (el as HTMLTextAreaElement).setSelectionRange(
-                      newCursorPosition,
-                      newCursorPosition,
-                    );
-                    break;
-                  }
-                }
-              }, 50);
-            }
-          });
-          posthog.capture("Discourse Node: Selected from Search Menu", {
-            id: item.id,
-            text: item.text,
-          });
-        }, 10);
-      });
+               if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
+                 void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+                   location: {
+                     // eslint-disable-next-line @typescript-eslint/naming-convention
+                     "block-uid": blockUid,
+                     // eslint-disable-next-line @typescript-eslint/naming-convention
+                     "window-id": windowId,
+                   },
+                   selection: { start: newCursorPosition },
+                 });
+               } else {
+                 setTimeout(() => {
+                   const textareaElements =
+                     document.querySelectorAll("textarea");
+                   for (const el of textareaElements) {
+                     if (getUids(el).blockUid === blockUid) {
+                       el.focus();
+                       el.setSelectionRange(
+                         newCursorPosition,
+                         newCursorPosition,
+                       );
+                       break;
+                     }
+                   }
+                 }, 50);
+               }
+             });
+             posthog.capture("Discourse Node: Selected from Search Menu", {
+               id: item.id,
+               text: item.text,
+             });
+           }, 10);
+         })
+         .catch((error) => {
+           console.error("Error waiting for block:", error);
+         });
     },
     [blockUid, onClose, textarea, triggerPosition, windowId],
   );
@@ -553,11 +590,13 @@ export const renderDiscourseNodeSearchMenu = (props: Props) => {
   parent.style.top = `${coords.top}px`;
   props.textarea.parentElement?.insertBefore(parent, props.textarea);
 
+  // eslint-disable-next-line react/no-deprecated
   ReactDOM.render(
     <NodeSearchMenu
       {...props}
       onClose={() => {
         props.onClose();
+        // eslint-disable-next-line react/no-deprecated
         ReactDOM.unmountComponentAtNode(parent);
         parent.remove();
       }}
