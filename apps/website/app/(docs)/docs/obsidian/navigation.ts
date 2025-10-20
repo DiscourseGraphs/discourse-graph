@@ -59,6 +59,10 @@ export const navigation: NavigationList = [
         title: "Canvas",
         href: `${ROOT}/canvas`,
       },
+      {
+        title: "Node tags",
+        href: `${ROOT}/node-tags`,
+      },
     ],
   },
 
