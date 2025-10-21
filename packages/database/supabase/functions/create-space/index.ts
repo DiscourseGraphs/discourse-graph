@@ -220,6 +220,9 @@ Deno.serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     });
   }
+  // note: If we wanted this to be bound by permissions, we'd set the following options:
+  // { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+  // But the point here is to bypass RLS
   const supabase: DGSupabaseClient = createClient(url, key);
 
   const { data, error } = await processAndGetOrCreateSpace(supabase, input);

@@ -2,6 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { envContents } from "@repo/database/dbDotEnv";
 
+// This would allow to create Next pages gated by a login middleware,
+// as described here: https://nextjs.org/docs/app/api-reference/file-conventions/middleware
+// Not usable yet, waiting for ENG-373
 // Inspired by https://supabase.com/ui/docs/nextjs/password-based-auth
 
 export const updateSession = async (request: NextRequest) => {
@@ -17,10 +20,8 @@ export const updateSession = async (request: NextRequest) => {
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
+      getAll: () => request.cookies.getAll(),
+      setAll: (cookiesToSet) => {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value),
         );
