@@ -141,3 +141,8 @@
   background-color: #10161a;
   color: #f5f8fa;
 }
+
+.suggestive-mode-overlay-highlight-on-panel-hover {
+  box-shadow: 0 0 0 2px #137cbd !important;
+  border-radius: 4px;
+}
