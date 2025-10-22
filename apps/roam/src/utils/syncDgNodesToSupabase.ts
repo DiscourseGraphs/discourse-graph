@@ -98,6 +98,7 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
   try {
     const supabaseClient = await getLoggedInClient();
     const context = supabaseClient ? await getSupabaseContext() : null;
+    console.log("proposeSyncTask: Context", context);
     if (!context || !supabaseClient) {
       console.error("proposeSyncTask: Unable to obtain Supabase context.");
       return {
@@ -108,6 +109,7 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
       };
     }
     const worker = window.roamAlphaAPI.user.uid();
+    console.log("proposeSyncTask: Worker", worker);
     if (!worker) {
       console.error("proposeSyncTask: Unable to obtain user UID.");
       return {
@@ -125,7 +127,8 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
       task_interval: SYNC_INTERVAL,
       timeout: SYNC_TIMEOUT,
     });
-
+    console.log("proposeSyncTask: Data", data);
+    console.log("proposeSyncTask: Error", error);
     const { spaceId } = context;
 
     if (error) {
@@ -381,10 +384,26 @@ export const createOrUpdateDiscourseEmbedding = async () => {
     const time = lastUpdateTime === null ? DEFAULT_TIME : lastUpdateTime;
     const { allDgNodeTypes, dgNodeTypesWithSettings } = getDgNodeTypes();
 
+    console.log(
+      "createOrUpdateDiscourseEmbedding: Getting all discourse nodes since",
+      time,
+    );
+
     const allNodeInstances = await getAllDiscourseNodesSince(
       time,
       dgNodeTypesWithSettings,
     );
+
+    console.log(
+      "createOrUpdateDiscourseEmbedding: All discourse nodes since",
+      allNodeInstances,
+    );
+    console.log(
+      "createOrUpdateDiscourseEmbedding: All discourse nodes since",
+      time,
+      allNodeInstances.length,
+    );
+
     const supabaseClient = await getLoggedInClient();
     if (!supabaseClient) return null;
     const context = await getSupabaseContext();

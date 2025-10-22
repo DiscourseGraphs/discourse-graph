@@ -1384,19 +1384,21 @@ export type Database = {
         Returns: {
           arity: number | null
           author_id: number | null
-          created: string
+          created: string | null
           description: string | null
-          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
-          id: number
-          is_schema: boolean
-          last_modified: string
-          literal_content: Json
-          name: string
-          reference_content: Json
-          refs: number[]
+          epistemic_status:
+            | Database["public"]["Enums"]["EpistemicStatus"]
+            | null
+          id: number | null
+          is_schema: boolean | null
+          last_modified: string | null
+          literal_content: Json | null
+          name: string | null
+          reference_content: Json | null
+          refs: number[] | null
           represented_by_id: number | null
           schema_id: number | null
-          space_id: number
+          space_id: number | null
         }[]
       }
       is_my_account: {
@@ -1451,19 +1453,21 @@ export type Database = {
         Returns: {
           arity: number | null
           author_id: number | null
-          created: string
+          created: string | null
           description: string | null
-          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
-          id: number
-          is_schema: boolean
-          last_modified: string
-          literal_content: Json
-          name: string
-          reference_content: Json
-          refs: number[]
+          epistemic_status:
+            | Database["public"]["Enums"]["EpistemicStatus"]
+            | null
+          id: number | null
+          is_schema: boolean | null
+          last_modified: string | null
+          literal_content: Json | null
+          name: string | null
+          reference_content: Json | null
+          refs: number[] | null
           represented_by_id: number | null
           schema_id: number | null
-          space_id: number
+          space_id: number | null
         }[]
       }
       unowned_account_in_shared_space: {

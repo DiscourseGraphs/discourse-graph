@@ -57,7 +57,7 @@ const SuggestiveModeOverlay = ({
   );
 
   return (
-    <div className="suggestive-mode-overlay flex max-w-3xl">
+    <div className="suggestive-mode-overlay items-center max-w-3xl">
       <Button
         data-dg-role="panel-toggle"
         data-dg-tag={tag}
