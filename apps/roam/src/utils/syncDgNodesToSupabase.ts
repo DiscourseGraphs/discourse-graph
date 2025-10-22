@@ -125,6 +125,7 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
       task_interval: SYNC_INTERVAL,
       timeout: SYNC_TIMEOUT,
     });
+
     const { spaceId } = context;
 
     if (error) {
@@ -384,7 +385,6 @@ export const createOrUpdateDiscourseEmbedding = async () => {
       time,
       dgNodeTypesWithSettings,
     );
-
     const supabaseClient = await getLoggedInClient();
     if (!supabaseClient) return null;
     const context = await getSupabaseContext();
