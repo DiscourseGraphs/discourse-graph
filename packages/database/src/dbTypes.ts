@@ -1384,7 +1384,7 @@ export type Database = {
         Returns: {
           arity: number | null
           author_id: number | null
-          created: string  
+          created: string
           description: string | null
           epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
           id: number
