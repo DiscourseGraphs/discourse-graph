@@ -1384,16 +1384,15 @@ export type Database = {
         Returns: {
           arity: number | null
           author_id: number | null
-          created: string 
+          created: string  
           description: string | null
-          epistemic_status:
-            | Database["public"]["Enums"]["EpistemicStatus"]
+          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
           id: number
           is_schema: boolean
           last_modified: string
-          literal_content: Json | null
+          literal_content: Json
           name: string
-          reference_content: Json | null
+          reference_content: Json
           refs: number[]
           represented_by_id: number | null
           schema_id: number | null
@@ -1454,8 +1453,7 @@ export type Database = {
           author_id: number | null
           created: string
           description: string | null
-          epistemic_status:
-            | Database["public"]["Enums"]["EpistemicStatus"]
+          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
           id: number
           is_schema: boolean
           last_modified: string
