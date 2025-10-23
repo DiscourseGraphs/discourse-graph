@@ -205,6 +205,7 @@ const upsertNodeSchemaToContent = async ({
   });
   if (error) {
     console.error("upsert_content failed:", error);
+    throw new Error(error.message);
   }
 };
 
@@ -282,14 +283,16 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
     console.error(
       `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${message}`,
     );
-    return;
+    throw new Error(message);
   }
 
   if (nodesWithEmbeddings.length !== allNodeInstancesAsLocalContent.length) {
     console.error(
       "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
     );
-    return;
+    throw new Error(
+      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
+    );
   }
 
   const chunk = <T>(array: T[], size: number): T[][] => {
@@ -312,8 +315,7 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
       });
 
       if (error) {
-        console.error(`upsert_content failed for batch ${idx + 1}:`, error);
-        throw error;
+        throw new Error(`upsert_content failed for batch ${idx + 1}:`, error);
       }
     }
   };
@@ -363,6 +365,7 @@ const upsertUsers = async (
   });
   if (error) {
     console.error("upsert_accounts_in_space failed:", error);
+    throw error;
   }
 };
 
