@@ -348,57 +348,61 @@ export const findSimilarNodesUsingHyde = async ({
 };
 
 export const getAllPageByUidAsync = async (): Promise<[string, string][]> => {
-  // @ts-ignore - backend to be added to roamjs-components
-  const pages = (await window.roamAlphaAPI.data.async.q(
-    "[:find ?pageName ?pageUid :where [?e :node/title ?pageName] [?e :block/uid ?pageUid]]",
+  const pages = (await Promise.resolve(
+    window.roamAlphaAPI.data.backend.q(
+      "[:find ?pageName ?pageUid :where [?e :node/title ?pageName] [?e :block/uid ?pageUid]]",
+    ),
   )) as [string, string][];
   return pages;
 };
 
-const extractPagesFromChildBlock = async (
+export const extractPagesFromChildBlock = async (
   tag: string,
 ): Promise<{ uid: string; text: string }[]> => {
-  // @ts-ignore - backend to be added to roamjs-components
-  const results = (await window.roamAlphaAPI.data.async.q(
-    `[:find ?uid ?title
+  const results = (await Promise.resolve(
+    window.roamAlphaAPI.data.backend.q(
+      `[:find ?uid ?title
       :where [?b :node/title "${normalizePageTitle(tag)}"]
         [?a :block/refs ?b]
         [?p :block/children ?a]
         [?p :block/refs ?rf]
         [?rf :block/uid ?uid]
         [?rf :node/title ?title]]]`,
+    ),
   )) as Array<[string, string]>;
   return results.map(([uid, title]) => ({ uid, text: title }));
 };
 
-const extractPagesFromParentBlock = async (
+export const extractPagesFromParentBlock = async (
   tag: string,
 ): Promise<{ uid: string; text: string }[]> => {
-  // @ts-ignore - backend to be added to roamjs-components
-  const results = (await window.roamAlphaAPI.data.async.q(
-    `[:find ?uid ?title
+  const results = (await Promise.resolve(
+    window.roamAlphaAPI.data.backend.q(
+      `[:find ?uid ?title
       :where [?b :node/title "${normalizePageTitle(tag)}"]
         [?a :block/refs ?b]
         [?p :block/parents ?a]
         [?p :block/refs ?rf]
         [?rf :block/uid ?uid]
         [?rf :node/title ?title]]]`,
+    ),
   )) as Array<[string, string]>;
   return results.map(([uid, title]) => ({ uid, text: title }));
 };
 
-const getAllReferencesOnPage = async (
+export const getAllReferencesOnPage = async (
   pageTitle: string,
 ): Promise<{ uid: string; text: string }[]> => {
-  // @ts-ignore - backend to be added to roamjs-components
-  const referencedPages = (await window.roamAlphaAPI.data.async.q(
-    `[:find ?uid ?text
+  const referencedPages = (await Promise.resolve(
+    window.roamAlphaAPI.data.backend.q(
+      `[:find ?uid ?text
       :where
         [?page :node/title "${normalizePageTitle(pageTitle)}"]
         [?b :block/page ?page]
         [?b :block/refs ?refPage]
         [?refPage :block/uid ?uid]
         [?refPage :node/title ?text]]`,
+    ),
   )) as Array<[string, string]>;
   return referencedPages.map(([uid, text]) => ({ uid, text }));
 };
