@@ -27,7 +27,10 @@ import {
   installDiscourseFloatingMenu,
   removeDiscourseFloatingMenu,
 } from "./components/DiscourseFloatingMenu";
-import { initializeSupabaseSync } from "./utils/syncDgNodesToSupabase";
+import {
+  initializeSupabaseSync,
+  setSyncActivity,
+} from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
 
 const initPostHog = () => {
@@ -137,7 +140,7 @@ export default runExtension(async (onloadArgs) => {
     },
     listActiveQueries: () => listActiveQueries(extensionAPI),
     isDiscourseNode: isDiscourseNode,
-    // @ts-ignore - we are still using roamjs-components global definition
+    // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
   };
 
@@ -152,8 +155,9 @@ export default runExtension(async (onloadArgs) => {
     ],
     observers: observers,
     unload: () => {
+      setSyncActivity(false);
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
-      // @ts-ignore - tldraw throws a warning on multiple loads
+      // @ts-expect-error - tldraw throws a warning on multiple loads
       delete window[Symbol.for("__signia__")];
       document.removeEventListener(
         "roamjs:query-builder:action",
