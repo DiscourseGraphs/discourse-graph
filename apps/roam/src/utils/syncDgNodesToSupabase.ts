@@ -27,7 +27,10 @@ type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 type AccountLocalInput = CompositeTypes<"account_local_input">;
 
 const SYNC_FUNCTION = "embedding";
+// Minimal interval between syncs of all clients for this task.
 const SYNC_INTERVAL = "45s";
+// Interval between syncs for each client individually
+const BASE_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const SYNC_TIMEOUT = "20s";
 const BATCH_SIZE = 200;
 const DEFAULT_TIME = new Date("1970-01-01");
@@ -355,7 +358,6 @@ const upsertUsers = async (
   }
 };
 
-const BASE_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 let doSync = true;
 let numFailures = 0;
 const MAX_FAILURES = 5;
