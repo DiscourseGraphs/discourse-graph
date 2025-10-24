@@ -32,11 +32,11 @@ const SYNC_TIMEOUT = "20s";
 const BATCH_SIZE = 200;
 const DEFAULT_TIME = new Date("1970-01-01");
 
+class FatalError extends Error {}
+
 type SyncTaskInfo = {
   lastUpdateTime?: Date;
   nextUpdateTime?: Date;
-  spaceId: number;
-  worker: string;
   shouldProceed: boolean;
 };
 
@@ -98,28 +98,13 @@ export const endSyncTask = async (
   }
 };
 
-export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
+export const proposeSyncTask = async (
+  worker: string,
+  supabaseClient: DGSupabaseClient,
+  context: SupabaseContext,
+): Promise<SyncTaskInfo> => {
   try {
-    const supabaseClient = await getLoggedInClient();
-    const context = supabaseClient ? await getSupabaseContext() : null;
-    if (!context || !supabaseClient) {
-      console.error("proposeSyncTask: Unable to obtain Supabase context.");
-      return {
-        spaceId: 0,
-        worker: "",
-        shouldProceed: false,
-      };
-    }
-    const worker = window.roamAlphaAPI.user.uid();
-    if (!worker) {
-      console.error("proposeSyncTask: Unable to obtain user UID.");
-      return {
-        spaceId: 0,
-        worker: "",
-        shouldProceed: false,
-      };
-    }
-
+    const now = new Date();
     const { data, error } = await supabaseClient.rpc("propose_sync_task", {
       s_target: context.spaceId,
       s_function: SYNC_FUNCTION,
@@ -128,45 +113,36 @@ export const proposeSyncTask = async (): Promise<SyncTaskInfo> => {
       timeout: SYNC_TIMEOUT,
     });
 
-    const { spaceId } = context;
-
     if (error) {
       console.error(
         `proposeSyncTask: propose_sync_task failed – ${error.message}`,
       );
-      return { spaceId, worker, shouldProceed: false };
+      return { shouldProceed: false };
     }
 
     if (typeof data === "string") {
       const timestamp = new Date(data);
-      const now = new Date();
 
       if (timestamp > now) {
         return {
           nextUpdateTime: timestamp,
-          spaceId,
-          worker,
           shouldProceed: false,
         };
       } else {
         return {
           lastUpdateTime: timestamp,
-          spaceId,
-          worker,
           shouldProceed: true,
         };
       }
     }
 
-    return { spaceId, worker, shouldProceed: true };
+    return { shouldProceed: true };
   } catch (error) {
     console.error(
       `proposeSyncTask: Unexpected error while contacting sync-task API:`,
       error,
     );
     return {
-      spaceId: 0,
-      worker: "",
       shouldProceed: false,
     };
   }
@@ -387,8 +363,6 @@ type TimeoutValue = ReturnType<typeof setTimeout>;
 let activeTimeout: TimeoutValue | null = null;
 // TODO: Maybe also pause sync while the window is not active?
 
-class FatalError extends Error {}
-
 export const setSyncActivity = (active: boolean) => {
   doSync = active;
   if (!active && activeTimeout !== null) {
@@ -407,14 +381,35 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
   if (!doSync) return;
   console.debug("starting createOrUpdateDiscourseEmbedding");
   let success = true;
-  const { shouldProceed, lastUpdateTime, nextUpdateTime, worker } =
-    await proposeSyncTask();
+  let claimed = false;
+  const worker = window.roamAlphaAPI.user.uid();
 
   try {
+    if (!worker) {
+      throw new FatalError("Unable to obtain user UID.");
+    }
+    if (!createClient()) {
+      // not worth retrying
+      // TODO: Differentiate setup vs connetion error
+      throw new FatalError("Could not access supabase.");
+    }
+    const supabaseClient = await getLoggedInClient();
+    if (!supabaseClient) {
+      // TODO: Distinguish connection vs credentials error
+      throw new Error("Could not log in to client.");
+    }
+    const context = await getSupabaseContext();
+    if (!context) {
+      // not worth retrying: setup error
+      throw new FatalError("Error connecting to client.");
+    }
+    const { shouldProceed, lastUpdateTime, nextUpdateTime } =
+      await proposeSyncTask(worker, supabaseClient, context);
     if (!shouldProceed) {
       if (nextUpdateTime === undefined) {
         throw new Error("Can't obtain sync task");
       }
+      claimed = true;
       console.debug("postponed to ", nextUpdateTime);
       if (doSync) {
         activeTimeout = setTimeout(
@@ -432,21 +427,6 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       time,
       dgNodeTypesWithSettings,
     );
-    if (!createClient()) {
-      // not worth retrying
-      // TODO: Differentiate setup vs connetion error
-      throw new FatalError("Could not access supabase.");
-    }
-    const supabaseClient = await getLoggedInClient();
-    if (!supabaseClient) {
-      // TODO: Distinguish connection vs credentials error
-      throw new Error("Could not log in to client.");
-    }
-    const context = await getSupabaseContext();
-    if (!context) {
-      // not worth retrying: setup error
-      throw new FatalError("Error connecting to client.");
-    }
     await upsertUsers(allUsers, supabaseClient, context);
     await upsertNodesToSupabaseAsContentWithEmbeddings(
       allNodeInstances,
@@ -464,8 +444,8 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
     await endSyncTask(worker, "complete", showToast);
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
-    await endSyncTask(worker, "failed", showToast);
     success = false;
+    if (worker && claimed) await endSyncTask(worker, "failed", showToast);
     if (error instanceof FatalError) {
       doSync = false;
       return;
