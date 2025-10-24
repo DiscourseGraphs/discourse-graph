@@ -494,13 +494,7 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
 
 export const initializeSupabaseSync = async () => {
   const supabase = createClient();
-  if (supabase === null) return;
-  const result = await supabase
-    .from("Space")
-    .select()
-    .eq("url", getRoamUrl())
-    .maybeSingle();
-  if (!result.data) {
+  if (supabase === null) {
     doSync = false;
   } else {
     doSync = true;
