@@ -416,7 +416,7 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       if (doSync) {
         activeTimeout = setTimeout(
           createOrUpdateDiscourseEmbedding, // eslint-disable-line @typescript-eslint/no-misused-promises
-          nextUpdateTime.valueOf() - Date.now() + 100,
+          Math.max(0, nextUpdateTime.valueOf() - Date.now()) + 100,
         );
       }
       return;
@@ -462,7 +462,8 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       doSync = false;
       return;
     }
-    timeout *= 2 ** numFailures;
+    const jitter = 0.9 + Math.random() * 0.2; // 0.9x–1.1x
+    timeout *= 2 ** numFailures * jitter;
   }
   if (activeTimeout != null) {
     clearTimeout(activeTimeout);
