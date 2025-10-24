@@ -411,7 +411,6 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       if (nextUpdateTime === undefined) {
         throw new Error("Can't obtain sync task");
       }
-      claimed = true;
       console.debug("postponed to ", nextUpdateTime);
       if (doSync) {
         activeTimeout = setTimeout(
@@ -421,6 +420,7 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       }
       return;
     }
+    claimed = true;
     const allUsers = await getAllUsers();
     const time = (lastUpdateTime || DEFAULT_TIME).toISOString();
     const { allDgNodeTypes, dgNodeTypesWithSettings } = getDgNodeTypes();
