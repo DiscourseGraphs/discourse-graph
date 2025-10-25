@@ -59,6 +59,7 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
           `create discourse node ${selectedNodeType.id}`,
         );
         tldrawEditor.setSelectedShapes([shapeId]);
+        tldrawEditor.setCurrentTool("select");
       } catch (error) {
         console.error("Error creating discourse node:", error);
         showToast({

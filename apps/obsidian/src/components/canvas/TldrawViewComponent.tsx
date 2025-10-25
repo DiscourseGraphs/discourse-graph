@@ -366,7 +366,7 @@ export const TldrawPreviewComponent = ({
                     <TldrawUiMenuItem
                       id="discourse-node"
                       icon="discourseNodeIcon"
-                      label="Discourse Node"
+                      label="Discourse Graph"
                       onSelect={() => {
                         if (editorRef.current) {
                           editorRef.current.setCurrentTool("discourse-node");

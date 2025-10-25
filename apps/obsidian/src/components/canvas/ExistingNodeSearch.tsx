@@ -66,6 +66,7 @@ export const ExistingNodeSearch = ({
           });
           editor.markHistoryStoppingPoint("add existing discourse node");
           editor.setSelectedShapes([id]);
+          editor.setCurrentTool("select");
         } catch (error) {
           console.error("Error in handleSelect:", error);
         }

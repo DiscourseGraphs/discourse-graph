@@ -4,6 +4,8 @@ import type DiscourseGraphPlugin from "~/index";
 /**
  * Adds bidirectional relation links to the frontmatter of both files.
  * This follows the same pattern as RelationshipSection.tsx
+ * 
+ * @returns Object indicating whether the relation already existed
  */
 export const addRelationToFrontmatter = async ({
   app,
@@ -17,21 +19,26 @@ export const addRelationToFrontmatter = async ({
   sourceFile: TFile;
   targetFile: TFile;
   relationTypeId: string;
-}): Promise<void> => {
+}): Promise<{ alreadyExisted: boolean }> => {
   const relationType = plugin.settings.relationTypes.find(
     (r) => r.id === relationTypeId,
   );
 
   if (!relationType) {
     console.error(`Relation type ${relationTypeId} not found`);
-    return;
+    return { alreadyExisted: false };
   }
 
   try {
+    let sourceToTargetExisted = false;
+    let targetToSourceExisted = false;
+
     const appendLinkToFrontmatter = async (
       fileToMutate: TFile,
       targetFile: TFile,
-    ) => {
+    ): Promise<boolean> => {
+      let linkAlreadyExists = false;
+
       await app.fileManager.processFrontMatter(
         fileToMutate,
         (fm: FrontMatterCache) => {
@@ -69,13 +76,27 @@ export const addRelationToFrontmatter = async ({
 
           if (!normalizedExistingLinks.includes(normalizedLinkToAdd)) {
             fm[relationType.id] = [...existingLinks, linkToAdd];
+            linkAlreadyExists = false;
+          } else {
+            linkAlreadyExists = true;
           }
         },
       );
+
+      return linkAlreadyExists;
     };
 
-    await appendLinkToFrontmatter(sourceFile, targetFile);
-    await appendLinkToFrontmatter(targetFile, sourceFile);
+    sourceToTargetExisted = await appendLinkToFrontmatter(
+      sourceFile,
+      targetFile,
+    );
+    targetToSourceExisted = await appendLinkToFrontmatter(
+      targetFile,
+      sourceFile,
+    );
+
+    // Consider the relation as "already existed" if both directions existed
+    return { alreadyExisted: sourceToTargetExisted && targetToSourceExisted };
   } catch (error) {
     console.error("Failed to add relation to frontmatter:", error);
     throw error;
