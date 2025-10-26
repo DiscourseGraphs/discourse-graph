@@ -18,7 +18,6 @@ import {
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
-import { getRoamUrl } from "roamjs-components/dom";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { createClient, type DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json, CompositeTypes, Enums } from "@repo/database/dbTypes";
