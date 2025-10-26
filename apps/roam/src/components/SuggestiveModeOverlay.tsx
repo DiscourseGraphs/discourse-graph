@@ -28,7 +28,7 @@ const SuggestiveModeOverlay = ({
   const toggleHighlight = useCallback(
     (on: boolean) => {
       const nodes = document.querySelectorAll(
-        `[data-dg-block-uid="${blockUid}"]`,
+        `[suggestive-mode-overlay-button-uid="${blockUid}"]`,
       );
       nodes.forEach((el) => {
         const elem = el as HTMLElement;
@@ -57,11 +57,11 @@ const SuggestiveModeOverlay = ({
   );
 
   return (
-    <div className="suggestive-mode-overlay flex max-w-3xl">
+    <div className="suggestive-mode-overlay items-center max-w-3xl">
       <Button
         data-dg-role="panel-toggle"
         data-dg-tag={tag}
-        data-dg-block-uid={blockUid}
+        suggestive-mode-overlay-button-uid={blockUid}
         icon={isPanelOpen ? "panel-table" : "panel-stats"}
         minimal
         small

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import findDiscourseNode from "./findDiscourseNode";
 import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
@@ -6,6 +5,7 @@ import { extractRef } from "roamjs-components/util";
 
 type ISODateString = string;
 
+/* eslint-disable @typescript-eslint/naming-convention */
 export type RoamDiscourseNodeData = {
   author_local_id: string;
   author_name: string;
@@ -16,6 +16,7 @@ export type RoamDiscourseNodeData = {
   type: string;
   node_title?: string;
 };
+/* eslint-enable @typescript-eslint/naming-convention */
 
 export type DiscourseNodesSinceResult = {
   pageNodes: RoamDiscourseNodeData[];

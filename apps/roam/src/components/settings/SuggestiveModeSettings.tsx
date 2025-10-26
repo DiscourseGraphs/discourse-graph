@@ -16,16 +16,24 @@ const SuggestiveModeSettings = () => {
   const [suggestiveModeUid, setSuggestiveModeUid] = useState(
     settings.suggestiveMode.parentUid,
   );
+  const [pageGroupsUid, setPageGroupsUid] = useState(
+    settings.suggestiveMode.pageGroups.uid,
+  );
   useEffect(() => {
-    if (suggestiveModeUid) return;
+    if (pageGroupsUid) return;
     void (async () => {
       const smUid = await createBlock({
         parentUid: getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
         node: { text: "Suggestive Mode" },
       });
+      const pgUid = await createBlock({
+        parentUid: smUid,
+        node: { text: "Page Groups" },
+      });
       setSuggestiveModeUid(smUid);
+      setPageGroupsUid(pgUid);
     })();
-  }, [suggestiveModeUid]);
+  }, [pageGroupsUid]);
 
   const effectiveSuggestiveModeUid =
     suggestiveModeUid || settings.suggestiveMode.parentUid;
@@ -45,7 +53,17 @@ const SuggestiveModeSettings = () => {
                 intent: "primary",
                 timeout: 3000,
               });
-              await createOrUpdateDiscourseEmbedding();
+              try {
+                await createOrUpdateDiscourseEmbedding();
+              } catch (e) {
+                console.error("Failed to generate embeddings", e);
+                renderToast({
+                  id: "discourse-embedding-error",
+                  content: "Embedding generation failed. Check the console.",
+                  intent: "danger",
+                  timeout: 5000,
+                });
+              }
             })()
           }
           intent={Intent.PRIMARY}
@@ -75,7 +93,8 @@ const SuggestiveModeSettings = () => {
       </div>
       <div className="page-groups-settings">
         <PageGroupsPanel
-          uid={settings.suggestiveMode.pageGroups.uid}
+          key={pageGroupsUid}
+          uid={pageGroupsUid}
           initialGroups={settings.suggestiveMode.pageGroups.groups}
         />
       </div>
