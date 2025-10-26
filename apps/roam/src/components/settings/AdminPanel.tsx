@@ -160,7 +160,13 @@ const AdminPanel = () => {
             await getConcepts({
               supabase,
               spaceId,
-              schemaLocalIds: showingSchema.sourceLocalId,
+              scope: {
+                schemas:
+                  showingSchema.sourceLocalId ===
+                  nodeSchemaSignature.sourceLocalId,
+                type: "nodes",
+                ofTypes: [showingSchema.sourceLocalId],
+              },
             }),
           );
         } catch (e) {
