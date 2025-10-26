@@ -11,7 +11,7 @@ import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase"
 import { render as renderToast } from "roamjs-components/components/Toast";
 
 const SuggestiveModeSettings = () => {
-  const [settings, setSettings] = useState(() => getFormattedConfigTree());
+  const settings = getFormattedConfigTree();
 
   const [suggestiveModeUid, setSuggestiveModeUid] = useState(
     settings.suggestiveMode.parentUid,
