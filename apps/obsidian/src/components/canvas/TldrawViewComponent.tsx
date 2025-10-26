@@ -131,8 +131,26 @@ export const TldrawPreviewComponent = ({
         ),
       );
 
-      if (!verifyMatch || verifyMatch[1]?.trim() !== stringifiedData.trim()) {
-        throw new Error("Failed to verify saved TLDraw data");
+      if (!verifyMatch) {
+        throw new Error(
+          "Failed to verify saved TLDraw data: Could not find data block",
+        );
+      }
+
+      try {
+        const savedData: unknown = JSON.parse(verifyMatch[1]?.trim() ?? "{}");
+        const expectedData: unknown = JSON.parse(
+          stringifiedData?.trim() ?? "{}",
+        );
+
+        if (JSON.stringify(savedData) !== JSON.stringify(expectedData)) {
+          throw new Error(
+            "Failed to verify saved TLDraw data: Content mismatch",
+          );
+        }
+      } catch (error) {
+        console.error("Verification error:", error);
+        throw new Error(`Failed to verify saved TLDraw data: ${String(error)}`);
       }
 
       lastSavedDataRef.current = stringifiedData;

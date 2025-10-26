@@ -41,20 +41,10 @@ export const addWikilinkBlockrefForFile = async ({
     linkedFile,
     canvasFile.path,
   );
-  const content = `[[${linkText}]]\n^${blockRefId}`;
+  const content = `[[${linkText}]]\n^${blockRefId}\n`;
 
   await app.vault.process(canvasFile, (data: string) => {
-    const fileCache = app.metadataCache.getFileCache(canvasFile);
-    const { start, end } =
-      fileCache?.frontmatterPosition ??
-      ({
-        start: { offset: 0 },
-        end: { offset: 0 },
-      } as { start: { offset: number }; end: { offset: number } });
-
-    const frontmatter = data.slice(start.offset, end.offset);
-    const rest = data.slice(end.offset);
-    return `${frontmatter}\n${content}\n${rest}`;
+    return `${data}\n${content}`;
   });
 
   return `asset:${ASSET_PREFIX}${blockRefId}`;
@@ -157,18 +147,11 @@ export const ensureBlockRefForFile = async ({
     canvasFile.path,
   );
   const internalLink = `[[${linkText}]]`;
-  const linkBlock = `${internalLink}\n^${blockRefId}`;
+  const linkBlock = `${internalLink}\n^${blockRefId}\n`;
 
-  // Insert right after frontmatter
+  // Append to end of file to avoid corrupting tldraw data
   await app.vault.process(canvasFile, (data: string) => {
-    const cache = app.metadataCache.getFileCache(canvasFile);
-    const { start, end } = cache?.frontmatterPosition ?? {
-      start: { offset: 0 },
-      end: { offset: 0 },
-    };
-    const frontmatter = data.slice(start.offset, end.offset);
-    const rest = data.slice(end.offset);
-    return `${frontmatter}\n${linkBlock}\n${rest}`;
+    return `${data}\n${linkBlock}`;
   });
 
   return blockRefId;
@@ -253,9 +236,9 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
       this.file.path,
     );
     const internalLink = `[[${linkText}]]`;
-    const linkBlock = `${internalLink}\n^${blockRefId}`;
+    const linkBlock = `${internalLink}\n^${blockRefId}\n`;
 
-    await this.addToTopOfFile(linkBlock);
+    await this.appendToEndOfFile(linkBlock);
 
     const assetDataUri = URL.createObjectURL(file);
     const assetId = `${ASSET_PREFIX}${blockRefId}` as BlockRefAssetId;
@@ -292,17 +275,13 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
     this.resolvedAssetDataCache.clear();
   };
 
-  private addToTopOfFile = async (content: string) => {
+  /**
+   * Append asset references to the end of the file.
+   * This avoids corrupting the tldraw JSON data block and frontmatter.
+   */
+  private appendToEndOfFile = async (content: string) => {
     await this.app.vault.process(this.file, (data: string) => {
-      const fileCache = this.app.metadataCache.getFileCache(this.file);
-      const { start, end } = fileCache?.frontmatterPosition ?? {
-        start: { offset: 0 },
-        end: { offset: 0 },
-      };
-
-      const frontmatter = data.slice(start.offset, end.offset);
-      const rest = data.slice(end.offset);
-      return `${frontmatter}\n${content}\n${rest}`;
+      return `${data}\n${content}`;
     });
   };
 
@@ -311,8 +290,10 @@ class ObsidianMarkdownFileTLAssetStoreProxy {
   ): Promise<ArrayBuffer | null> => {
     try {
       const blockRef = extractBlockRefId(blockRefAssetId);
+      if (!blockRef) return null;
+
       const canvasFileCache = this.app.metadataCache.getFileCache(this.file);
-      if (!blockRef || !canvasFileCache) return null;
+      if (!canvasFileCache) return null;
 
       const linkedFile = await resolveLinkedTFileByBlockRef({
         app: this.app,
@@ -360,6 +341,7 @@ export class ObsidianTLAssetStore implements Required<TLAssetStore> {
 
   resolve = async (
     asset: TLAsset,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     _ctx: TLAssetContext,
   ): Promise<string | null> => {
     try {
