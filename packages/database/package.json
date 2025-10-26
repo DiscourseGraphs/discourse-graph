@@ -44,7 +44,9 @@
     "@repo/utils": "workspace:*",
     "@supabase/auth-js": "catalog:",
     "@supabase/functions-js": "catalog:",
-    "@supabase/supabase-js": "catalog:"
+    "@supabase/supabase-js": "catalog:",
+    "drizzle-orm": "^0.44.6",
+    "postgres": "^3.4.7"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.1.0",
@@ -53,6 +55,7 @@
     "@types/node": "^20",
     "@vercel/sdk": "^1.16.0",
     "dotenv": "^16.6.1",
+    "drizzle-kit": "^0.31.5",
     "eslint": "catalog:",
     "prettier-plugin-gherkin": "^3.1.2",
     "supabase": "^2.53.6",

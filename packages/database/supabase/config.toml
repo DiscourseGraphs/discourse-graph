@@ -49,16 +49,9 @@ max_client_conn = 100
 # Specifies an ordered list of schema files that describe your database.
 # Supports glob patterns relative to supabase directory: "./schemas/*.sql"
 schema_paths = [
-    './schemas/base.sql',
-    './schemas/extensions.sql',
-    './schemas/space.sql',
-    './schemas/account.sql',
-    './schemas/content.sql',
-    './schemas/embedding.sql',
-    './schemas/concept.sql',
-    './schemas/contributor.sql',
-    './schemas/sync.sql',
-    './schemas/access_token.sql',
+    './schemas/prelude.sql',
+    './schemas/drizzle.sql',
+    './schemas/functions.sql',
 ]
 
 [db.seed]

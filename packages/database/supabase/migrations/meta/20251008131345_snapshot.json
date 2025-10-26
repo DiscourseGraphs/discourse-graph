@@ -1,0 +1,2215 @@
+{
+  "id": "c075e6f6-1c30-4b76-af26-af9f1d9771ac",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.access_token": {
+      "name": "access_token",
+      "schema": "",
+      "columns": {
+        "request_id": {
+          "name": "request_id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "platform_account_id": {
+          "name": "platform_account_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_date": {
+          "name": "created_date",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "timezone('utc'::text, now())"
+        }
+      },
+      "indexes": {
+        "access_token_access_token_idx": {
+          "name": "access_token_access_token_idx",
+          "columns": [
+            {
+              "expression": "access_token",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "access_token_code_idx": {
+          "name": "access_token_code_idx",
+          "columns": [
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "access_token_platform_account_id_idx": {
+          "name": "access_token_platform_account_id_idx",
+          "columns": [
+            {
+              "expression": "platform_account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "access_token_platform_account_id_fkey": {
+          "name": "access_token_platform_account_id_fkey",
+          "tableFrom": "access_token",
+          "tableTo": "PlatformAccount",
+          "columnsFrom": [
+            "platform_account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "access_token_policy": {
+          "name": "access_token_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "((platform_account_id IS NULL) OR is_my_account(platform_account_id))"
+        }
+      },
+      "checkConstraints": {
+        "access_token_code_check": {
+          "name": "access_token_code_check",
+          "value": "code IS NOT NULL"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.AgentIdentifier": {
+      "name": "AgentIdentifier",
+      "schema": "",
+      "columns": {
+        "identifier_type": {
+          "name": "identifier_type",
+          "type": "AgentIdentifierType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trusted": {
+          "name": "trusted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "AgentIdentifier_account_id_fkey": {
+          "name": "AgentIdentifier_account_id_fkey",
+          "tableFrom": "AgentIdentifier",
+          "tableTo": "PlatformAccount",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "AgentIdentifier_pkey": {
+          "name": "AgentIdentifier_pkey",
+          "columns": [
+            "value",
+            "identifier_type",
+            "account_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "agent_identifier_delete_policy": {
+          "name": "agent_identifier_delete_policy",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "public"
+          ],
+          "using": "(unowned_account_in_shared_space(account_id) OR (account_id = my_account()))"
+        },
+        "agent_identifier_insert_policy": {
+          "name": "agent_identifier_insert_policy",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "public"
+          ],
+          "withCheck": "(unowned_account_in_shared_space(account_id) OR (account_id = my_account()))"
+        },
+        "agent_identifier_select_policy": {
+          "name": "agent_identifier_select_policy",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "account_in_shared_space(account_id)"
+        },
+        "agent_identifier_update_policy": {
+          "name": "agent_identifier_update_policy",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "public"
+          ],
+          "withCheck": "(unowned_account_in_shared_space(account_id) OR (account_id = my_account()))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "auth.users": {
+      "name": "users",
+      "schema": "auth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "instance_id": {
+          "name": "instance_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "encrypted_password": {
+          "name": "encrypted_password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email_confirmend_at": {
+          "name": "email_confirmend_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone_confirmend_at": {
+          "name": "phone_confirmend_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirmend_at": {
+          "name": "confirmend_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "LEAST(email_confirmed_at, phone_confirmed_at)",
+            "type": "stored"
+          }
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Concept": {
+      "name": "Concept",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "nextval('entity_id_seq'::regclass)"
+        },
+        "epistemic_status": {
+          "name": "epistemic_status",
+          "type": "EpistemicStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_modified": {
+          "name": "last_modified",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "space_id": {
+          "name": "space_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "schema_id": {
+          "name": "schema_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "literal_content": {
+          "name": "literal_content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "is_schema": {
+          "name": "is_schema",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "represented_by_id": {
+          "name": "represented_by_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reference_content": {
+          "name": "reference_content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "refs": {
+          "name": "refs",
+          "type": "bigint[]",
+          "primaryKey": false,
+          "notNull": true,
+          "generated": {
+            "as": "extract_references(reference_content)",
+            "type": "stored"
+          }
+        },
+        "arity": {
+          "name": "arity",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "compute_arity_local(schema_id, literal_content)",
+            "type": "stored"
+          }
+        }
+      },
+      "indexes": {
+        "Concept_represented_by": {
+          "name": "Concept_represented_by",
+          "columns": [
+            {
+              "expression": "represented_by_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Concept_schema": {
+          "name": "Concept_schema",
+          "columns": [
+            {
+              "expression": "schema_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Concept_space": {
+          "name": "Concept_space",
+          "columns": [
+            {
+              "expression": "space_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "concept_literal_content_idx": {
+          "name": "concept_literal_content_idx",
+          "columns": [
+            {
+              "expression": "literal_content",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last",
+              "opclass": "jsonb_ops"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "concept_refs_idx": {
+          "name": "concept_refs_idx",
+          "columns": [
+            {
+              "expression": "refs",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "concept_space_and_name_idx": {
+          "name": "concept_space_and_name_idx",
+          "columns": [
+            {
+              "expression": "space_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Concept_space_id_fkey": {
+          "name": "Concept_space_id_fkey",
+          "tableFrom": "Concept",
+          "tableTo": "Space",
+          "columnsFrom": [
+            "space_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "Concept_schema_id_fkey": {
+          "name": "Concept_schema_id_fkey",
+          "tableFrom": "Concept",
+          "tableTo": "Concept",
+          "columnsFrom": [
+            "schema_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Concept_represented_by_id_fkey": {
+          "name": "Concept_represented_by_id_fkey",
+          "tableFrom": "Concept",
+          "tableTo": "Content",
+          "columnsFrom": [
+            "represented_by_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Concept_author_id_fkey": {
+          "name": "Concept_author_id_fkey",
+          "tableFrom": "Concept",
+          "tableTo": "PlatformAccount",
+          "columnsFrom": [
+            "author_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "concept_policy": {
+          "name": "concept_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "in_space(space_id)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.concept_contributors": {
+      "name": "concept_contributors",
+      "schema": "",
+      "columns": {
+        "concept_id": {
+          "name": "concept_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contributor_id": {
+          "name": "contributor_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "concept_contributors_concept_id_fkey": {
+          "name": "concept_contributors_concept_id_fkey",
+          "tableFrom": "concept_contributors",
+          "tableTo": "Concept",
+          "columnsFrom": [
+            "concept_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "concept_contributors_contributor_id_fkey": {
+          "name": "concept_contributors_contributor_id_fkey",
+          "tableFrom": "concept_contributors",
+          "tableTo": "PlatformAccount",
+          "columnsFrom": [
+            "contributor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "concept_contributors_pkey": {
+          "name": "concept_contributors_pkey",
+          "columns": [
+            "concept_id",
+            "contributor_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "concept_contributors_policy": {
+          "name": "concept_contributors_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "concept_in_space(concept_id)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Content": {
+      "name": "Content",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "nextval('entity_id_seq'::regclass)"
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_local_id": {
+          "name": "source_local_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creator_id": {
+          "name": "creator_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "scale": {
+          "name": "scale",
+          "type": "Scale",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "space_id": {
+          "name": "space_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_modified": {
+          "name": "last_modified",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "part_of_id": {
+          "name": "part_of_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "variant": {
+          "name": "variant",
+          "type": "ContentVariant",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'direct'"
+        }
+      },
+      "indexes": {
+        "Content_document": {
+          "name": "Content_document",
+          "columns": [
+            {
+              "expression": "document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Content_part_of": {
+          "name": "Content_part_of",
+          "columns": [
+            {
+              "expression": "part_of_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Content_space": {
+          "name": "Content_space",
+          "columns": [
+            {
+              "expression": "space_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Content_text": {
+          "name": "Content_text",
+          "columns": [
+            {
+              "expression": "text",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last",
+              "opclass": "pgroonga_text_full_text_search_ops_v2"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "pgroonga",
+          "with": {}
+        },
+        "content_space_local_id_variant_idx": {
+          "name": "content_space_local_id_variant_idx",
+          "columns": [
+            {
+              "expression": "space_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_local_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "variant",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Content_document_id_fkey": {
+          "name": "Content_document_id_fkey",
+          "tableFrom": "Content",
+          "tableTo": "Document",
+          "columnsFrom": [
+            "document_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "Content_space_id_fkey": {
+          "name": "Content_space_id_fkey",
+          "tableFrom": "Content",
+          "tableTo": "Space",
+          "columnsFrom": [
+            "space_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "Content_part_of_id_fkey": {
+          "name": "Content_part_of_id_fkey",
+          "tableFrom": "Content",
+          "tableTo": "Content",
+          "columnsFrom": [
+            "part_of_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Content_author_id_fkey": {
+          "name": "Content_author_id_fkey",
+          "tableFrom": "Content",
+          "tableTo": "PlatformAccount",
+          "columnsFrom": [
+            "author_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Content_creator_id_fkey": {
+          "name": "Content_creator_id_fkey",
+          "tableFrom": "Content",
+          "tableTo": "PlatformAccount",
+          "columnsFrom": [
+            "creator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "content_policy": {
+          "name": "content_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "in_space(space_id)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.content_contributors": {
+      "name": "content_contributors",
+      "schema": "",
+      "columns": {
+        "content_id": {
+          "name": "content_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contributor_id": {
+          "name": "contributor_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "content_contributors_content_id_fkey": {
+          "name": "content_contributors_content_id_fkey",
+          "tableFrom": "content_contributors",
+          "tableTo": "Content",
+          "columnsFrom": [
+            "content_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "content_contributors_contributor_id_fkey": {
+          "name": "content_contributors_contributor_id_fkey",
+          "tableFrom": "content_contributors",
+          "tableTo": "PlatformAccount",
+          "columnsFrom": [
+            "contributor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "content_contributors_pkey": {
+          "name": "content_contributors_pkey",
+          "columns": [
+            "content_id",
+            "contributor_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "content_contributors_policy": {
+          "name": "content_contributors_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "content_in_space(content_id)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ContentEmbedding_openai_text_embedding_3_small_1536": {
+      "name": "ContentEmbedding_openai_text_embedding_3_small_1536",
+      "schema": "",
+      "columns": {
+        "target_id": {
+          "name": "target_id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "EmbeddingName",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'openai_text_embedding_3_small_1536'"
+        },
+        "vector": {
+          "name": "vector",
+          "type": "vector(1536)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ContentEmbedding_openai_text_embedding_3_small_1_target_id_fkey": {
+          "name": "ContentEmbedding_openai_text_embedding_3_small_1_target_id_fkey",
+          "tableFrom": "ContentEmbedding_openai_text_embedding_3_small_1536",
+          "tableTo": "Content",
+          "columnsFrom": [
+            "target_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "embedding_openai_te3s_1536_policy": {
+          "name": "embedding_openai_te3s_1536_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "content_in_space(target_id)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Document": {
+      "name": "Document",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "nextval('entity_id_seq'::regclass)"
+        },
+        "space_id": {
+          "name": "space_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_local_id": {
+          "name": "source_local_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "last_modified": {
+          "name": "last_modified",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contents": {
+          "name": "contents",
+          "type": "oid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "document_space_and_local_id_idx": {
+          "name": "document_space_and_local_id_idx",
+          "columns": [
+            {
+              "expression": "space_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_local_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "document_url_idx": {
+          "name": "document_url_idx",
+          "columns": [
+            {
+              "expression": "url",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Document_space_id_fkey": {
+          "name": "Document_space_id_fkey",
+          "tableFrom": "Document",
+          "tableTo": "Space",
+          "columnsFrom": [
+            "space_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "Document_author_id_fkey": {
+          "name": "Document_author_id_fkey",
+          "tableFrom": "Document",
+          "tableTo": "PlatformAccount",
+          "columnsFrom": [
+            "author_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "document_policy": {
+          "name": "document_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "in_space(space_id)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PlatformAccount": {
+      "name": "PlatformAccount",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "nextval('entity_id_seq'::regclass)"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platform": {
+          "name": "platform",
+          "type": "Platform",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "write_permission": {
+          "name": "write_permission",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "type": "AgentType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'person'"
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "dg_account": {
+          "name": "dg_account",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "account_local_id": {
+          "name": "account_local_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "account_platform_and_id_idx": {
+          "name": "account_platform_and_id_idx",
+          "columns": [
+            {
+              "expression": "account_local_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "platform",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "platform_account_dg_account_idx": {
+          "name": "platform_account_dg_account_idx",
+          "columns": [
+            {
+              "expression": "dg_account",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "PlatformAccount_dg_account_fkey": {
+          "name": "PlatformAccount_dg_account_fkey",
+          "tableFrom": "PlatformAccount",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "dg_account"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "platform_account_delete_policy": {
+          "name": "platform_account_delete_policy",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "public"
+          ],
+          "using": "((dg_account = ( SELECT auth.uid() AS uid LIMIT 1)) OR ((dg_account IS NULL) AND unowned_account_in_shared_space(id)))"
+        },
+        "platform_account_insert_policy": {
+          "name": "platform_account_insert_policy",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "public"
+          ],
+          "withCheck": "((dg_account = ( SELECT auth.uid() AS uid LIMIT 1)) OR ((dg_account IS NULL) AND unowned_account_in_shared_space(id)))"
+        },
+        "platform_account_select_policy": {
+          "name": "platform_account_select_policy",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "((dg_account = ( SELECT auth.uid() AS uid LIMIT 1)) OR account_in_shared_space(id))"
+        },
+        "platform_account_update_policy": {
+          "name": "platform_account_update_policy",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "public"
+          ],
+          "withCheck": "((dg_account = ( SELECT auth.uid() AS uid LIMIT 1)) OR ((dg_account IS NULL) AND unowned_account_in_shared_space(id)))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Space": {
+      "name": "Space",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "nextval('entity_id_seq'::regclass)"
+        },
+        "url": {
+          "name": "url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platform": {
+          "name": "platform",
+          "type": "Platform",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "space_url_idx": {
+          "name": "space_url_idx",
+          "columns": [
+            {
+              "expression": "url",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "space_insert_policy": {
+          "name": "space_insert_policy",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "public"
+          ],
+          "withCheck": "true"
+        },
+        "space_policy": {
+          "name": "space_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "in_space(id)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.SpaceAccess": {
+      "name": "SpaceAccess",
+      "schema": "",
+      "columns": {
+        "space_id": {
+          "name": "space_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "editor": {
+          "name": "editor",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "SpaceAccess_space_id_fkey": {
+          "name": "SpaceAccess_space_id_fkey",
+          "tableFrom": "SpaceAccess",
+          "tableTo": "Space",
+          "columnsFrom": [
+            "space_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "SpaceAccess_account_id_fkey": {
+          "name": "SpaceAccess_account_id_fkey",
+          "tableFrom": "SpaceAccess",
+          "tableTo": "PlatformAccount",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "SpaceAccess_pkey": {
+          "name": "SpaceAccess_pkey",
+          "columns": [
+            "space_id",
+            "account_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "space_access_delete_policy": {
+          "name": "space_access_delete_policy",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "public"
+          ],
+          "using": "(unowned_account_in_shared_space(account_id) OR (account_id = my_account()))"
+        },
+        "space_access_insert_policy": {
+          "name": "space_access_insert_policy",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "public"
+          ],
+          "withCheck": "(unowned_account_in_shared_space(account_id) OR (account_id = my_account()))"
+        },
+        "space_access_select_policy": {
+          "name": "space_access_select_policy",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "in_space(space_id)"
+        },
+        "space_access_update_policy": {
+          "name": "space_access_update_policy",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "public"
+          ],
+          "withCheck": "(unowned_account_in_shared_space(account_id) OR (account_id = my_account()))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sync_info": {
+      "name": "sync_info",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sync_target": {
+          "name": "sync_target",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sync_function": {
+          "name": "sync_function",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "task_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'active'"
+        },
+        "worker": {
+          "name": "worker",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "failure_count": {
+          "name": "failure_count",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "last_task_start": {
+          "name": "last_task_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_task_end": {
+          "name": "last_task_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "task_times_out_at": {
+          "name": "task_times_out_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "target_type": {
+          "name": "target_type",
+          "type": "EntityType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Space'"
+        }
+      },
+      "indexes": {
+        "sync_info_u_idx": {
+          "name": "sync_info_u_idx",
+          "columns": [
+            {
+              "expression": "sync_target",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sync_function",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "sync_info_policy": {
+          "name": "sync_info_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "generic_entity_access(sync_target, target_type)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.AgentIdentifierType": {
+      "name": "AgentIdentifierType",
+      "schema": "public",
+      "values": [
+        "email",
+        "orcid"
+      ]
+    },
+    "public.AgentType": {
+      "name": "AgentType",
+      "schema": "public",
+      "values": [
+        "person",
+        "organization",
+        "automated_agent",
+        "anonymous"
+      ]
+    },
+    "public.ContentVariant": {
+      "name": "ContentVariant",
+      "schema": "public",
+      "values": [
+        "direct",
+        "direct_and_children",
+        "direct_and_description"
+      ]
+    },
+    "public.EmbeddingName": {
+      "name": "EmbeddingName",
+      "schema": "public",
+      "values": [
+        "openai_text_embedding_ada2_1536",
+        "openai_text_embedding_3_small_512",
+        "openai_text_embedding_3_small_1536",
+        "openai_text_embedding_3_large_256",
+        "openai_text_embedding_3_large_1024",
+        "openai_text_embedding_3_large_3072"
+      ]
+    },
+    "public.EntityType": {
+      "name": "EntityType",
+      "schema": "public",
+      "values": [
+        "Platform",
+        "Space",
+        "PlatformAccount",
+        "Person",
+        "AutomatedAgent",
+        "Document",
+        "Content",
+        "Concept",
+        "ConceptSchema",
+        "ContentLink",
+        "Occurrence"
+      ]
+    },
+    "public.EpistemicStatus": {
+      "name": "EpistemicStatus",
+      "schema": "public",
+      "values": [
+        "certainly_not",
+        "strong_evidence_against",
+        "could_be_false",
+        "unknown",
+        "uncertain",
+        "contentious",
+        "could_be_true",
+        "strong_evidence_for",
+        "certain"
+      ]
+    },
+    "public.Platform": {
+      "name": "Platform",
+      "schema": "public",
+      "values": [
+        "Roam",
+        "Obsidian"
+      ]
+    },
+    "public.Scale": {
+      "name": "Scale",
+      "schema": "public",
+      "values": [
+        "document",
+        "post",
+        "chunk_unit",
+        "section",
+        "block",
+        "field",
+        "paragraph",
+        "quote",
+        "sentence",
+        "phrase"
+      ]
+    },
+    "public.task_status": {
+      "name": "task_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "timeout",
+        "complete",
+        "failed"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {
+    "public.entity_id_seq": {
+      "name": "entity_id_seq",
+      "schema": "public",
+      "increment": "1",
+      "startWith": "1",
+      "minValue": "1",
+      "maxValue": "9223372036854775807",
+      "cache": "1",
+      "cycle": false
+    }
+  },
+  "roles": {},
+  "policies": {},
+  "views": {
+    "public.my_accounts": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "platform": {
+          "name": "platform",
+          "type": "Platform",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "account_local_id": {
+          "name": "account_local_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "write_permission": {
+          "name": "write_permission",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "type": "AgentType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dg_account": {
+          "name": "dg_account",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "definition": "SELECT id, name, platform, account_local_id, write_permission, active, agent_type, metadata, dg_account FROM \"PlatformAccount\" pa WHERE (EXISTS ( SELECT 1 FROM \"SpaceAccess\" sa WHERE sa.account_id = pa.id AND (sa.space_id = ANY (my_space_ids()))))",
+      "name": "my_accounts",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    },
+    "public.my_concepts": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "epistemic_status": {
+          "name": "epistemic_status",
+          "type": "EpistemicStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_modified": {
+          "name": "last_modified",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "space_id": {
+          "name": "space_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "arity": {
+          "name": "arity",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "schema_id": {
+          "name": "schema_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "literal_content": {
+          "name": "literal_content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reference_content": {
+          "name": "reference_content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refs": {
+          "name": "refs",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_schema": {
+          "name": "is_schema",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "represented_by_id": {
+          "name": "represented_by_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "definition": "SELECT id, epistemic_status, name, description, author_id, created, last_modified, space_id, arity, schema_id, literal_content, reference_content, refs, is_schema, represented_by_id FROM \"Concept\" WHERE space_id = ANY (my_space_ids())",
+      "name": "my_concepts",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    },
+    "public.my_contents": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_local_id": {
+          "name": "source_local_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "variant": {
+          "name": "variant",
+          "type": "ContentVariant",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creator_id": {
+          "name": "creator_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scale": {
+          "name": "scale",
+          "type": "Scale",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "space_id": {
+          "name": "space_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_modified": {
+          "name": "last_modified",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "part_of_id": {
+          "name": "part_of_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "definition": "SELECT id, document_id, source_local_id, variant, author_id, creator_id, created, text, metadata, scale, space_id, last_modified, part_of_id FROM \"Content\" WHERE space_id = ANY (my_space_ids())",
+      "name": "my_contents",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    },
+    "public.my_contents_with_embedding_openai_text_embedding_3_small_1536": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_local_id": {
+          "name": "source_local_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "variant": {
+          "name": "variant",
+          "type": "ContentVariant",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creator_id": {
+          "name": "creator_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scale": {
+          "name": "scale",
+          "type": "Scale",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "space_id": {
+          "name": "space_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_modified": {
+          "name": "last_modified",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "part_of_id": {
+          "name": "part_of_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "EmbeddingName",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vector": {
+          "name": "vector",
+          "type": "vector(1536)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "definition": "SELECT ct.id, ct.document_id, ct.source_local_id, ct.variant, ct.author_id, ct.creator_id, ct.created, ct.text, ct.metadata, ct.scale, ct.space_id, ct.last_modified, ct.part_of_id, emb.model, emb.vector FROM \"Content\" ct JOIN \"ContentEmbedding_openai_text_embedding_3_small_1536\" emb ON ct.id = emb.target_id WHERE (ct.space_id = ANY (my_space_ids())) AND NOT emb.obsolete",
+      "name": "my_contents_with_embedding_openai_text_embedding_3_small_1536",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    },
+    "public.my_documents": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "space_id": {
+          "name": "space_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_local_id": {
+          "name": "source_local_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_modified": {
+          "name": "last_modified",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contents": {
+          "name": "contents",
+          "type": "oid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "definition": "SELECT id, space_id, source_local_id, url, created, metadata, last_modified, author_id, contents FROM \"Document\" WHERE space_id = ANY (my_space_ids())",
+      "name": "my_documents",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    },
+    "public.my_spaces": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "platform": {
+          "name": "platform",
+          "type": "Platform",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "definition": "SELECT id, url, name, platform FROM \"Space\" WHERE id = ANY (my_space_ids())",
+      "name": "my_spaces",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    }
+  },
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
