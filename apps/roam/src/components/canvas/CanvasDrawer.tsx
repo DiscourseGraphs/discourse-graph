@@ -26,16 +26,10 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getBlockProps from "~/utils/getBlockProps";
-import { colord } from "colord";
-import getPleasingColors from "@repo/utils/getPleasingColors";
-import { discourseContext } from "./Tldraw";
 import { TLBaseShape } from "tldraw";
-import {
-  DiscourseNodeShape,
-  COLOR_ARRAY,
-  COLOR_PALETTE,
-} from "./DiscourseNodeUtil";
+import { DiscourseNodeShape } from "./DiscourseNodeUtil";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import { formatHexColor } from "../settings/DiscourseNodeCanvasSettings";
 
 export type GroupedShapes = Record<string, DiscourseNodeShape[]>;
 
@@ -85,66 +79,6 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
 
   const pageTitle = useMemo(() => getPageTitleByPageUid(pageUid), [pageUid]);
   const discourseNodes = useMemo(() => getDiscourseNodes(), []);
-
-  // Helper function to get the same colors as canvas nodes
-  const getNodeColors = useCallback((nodeType: string) => {
-    if (!discourseContext || !discourseContext.nodes) {
-      return {
-        backgroundColor: "#000000",
-        textColor: "#ffffff",
-      };
-    }
-
-    const nodeData = discourseContext.nodes[nodeType];
-    if (!nodeData) {
-      return {
-        backgroundColor: "#000000",
-        textColor: "#ffffff",
-      };
-    }
-
-    const {
-      canvasSettings: { color: setColor = "" } = {},
-      index: discourseNodeIndex = -1,
-    } = nodeData;
-
-    const paletteColor = COLOR_ARRAY[
-      discourseNodeIndex >= 0 && discourseNodeIndex < COLOR_ARRAY.length
-        ? discourseNodeIndex
-        : 0
-    ] as string;
-
-    let canvasSelectedColor = COLOR_PALETTE[paletteColor] || "#000000";
-
-    if (setColor) {
-      const formattedTextColor = !setColor.startsWith("#")
-        ? `#${setColor}`
-        : setColor;
-
-      try {
-        const colorInstance = colord(formattedTextColor);
-        if (colorInstance.isValid()) {
-          canvasSelectedColor = formattedTextColor;
-        }
-      } catch {
-        // Keep using palette color if validation fails
-      }
-    }
-
-    try {
-      const pleasingColors = getPleasingColors(colord(canvasSelectedColor));
-      return {
-        backgroundColor: pleasingColors.background,
-        textColor: pleasingColors.text,
-      };
-    } catch {
-      // Fallback to default colors if color parsing fails
-      return {
-        backgroundColor: "#000000",
-        textColor: "#ffffff",
-      };
-    }
-  }, []);
 
   const groups = useMemo(() => {
     const entries: NodeGroup[] = Object.entries(groupedShapes).map(
@@ -263,47 +197,134 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
     (typeLabel: string) => {
       const isAll = typeLabel === "All";
       const node = discourseNodes.find((n) => n.text === typeLabel);
-      const colors = node
-        ? getNodeColors(node.type)
-        : { backgroundColor: "#000", textColor: "#fff" };
+      const nodeColor = formatHexColor(node?.canvasSettings?.color || "");
       return (
-        <div className="flex items-center">
+        <>
           {!isAll && (
-            <div
-              className="mr-2 h-3 w-3 select-none rounded-full"
-              style={{ backgroundColor: colors.backgroundColor }}
-            />
+            <div className="flex items-center">
+              <div
+                className="mr-2 h-3 w-3 select-none rounded-full"
+                style={{ backgroundColor: nodeColor }}
+              />
+              <span>{typeLabel}</span>
+            </div>
           )}
-          <span>{typeLabel}</span>
+          {isAll && <span>{typeLabel}</span>}
+        </>
+      );
+    },
+    [discourseNodes],
+  );
+
+  const renderListView = useCallback(
+    (group: NodeGroup) => {
+      // const colors = getNodeColors(group.type);
+      return (
+        <div
+          key={group.uid}
+          className="border-b border-gray-300 py-2 last:border-b-0"
+        >
+          <Tooltip
+            targetClassName="w-full"
+            hoverOpenDelay={750}
+            content={
+              group.isDuplicate
+                ? "Toggle to inspect duplicate instances"
+                : "Jump to this node on the canvas"
+            }
+          >
+            <div
+              className="-mx-2 -my-1 flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-gray-50"
+              onClick={() =>
+                group.isDuplicate
+                  ? toggleCollapse(group.uid)
+                  : handleShapeSelection(group.shapes[0])
+              }
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className={`flex items-center gap-1 ${group.isDuplicate ? "flex-initial" : ""}`}
+                >
+                  {group.isDuplicate ? (
+                    <Button
+                      minimal
+                      small
+                      icon={
+                        openSections[group.uid]
+                          ? "chevron-down"
+                          : "chevron-right"
+                      }
+                      className="pointer-events-none"
+                    />
+                  ) : (
+                    <Button
+                      minimal
+                      small
+                      icon="dot"
+                      className="pointer-events-none"
+                    />
+                  )}
+                  <span>{group.title}</span>
+                </div>
+                {group.isDuplicate && <Tag minimal>{group.shapes.length}</Tag>}
+              </div>
+              {!group.isDuplicate && (
+                <Button
+                  minimal
+                  small
+                  icon="locate"
+                  className="pointer-events-none"
+                />
+              )}
+            </div>
+          </Tooltip>
+          {group.isDuplicate && (
+            <Collapse isOpen={openSections[group.uid]}>
+              <div className="ml-5 mt-1 flex flex-col gap-1">
+                {group.shapes.map((shape, index) => (
+                  <Tooltip
+                    targetClassName="w-full"
+                    key={shape.id}
+                    content="Jump to this node on canvas"
+                    hoverOpenDelay={750}
+                  >
+                    <div
+                      className={`-mx-2 -my-1 flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-gray-50 ${
+                        activeShapeId === shape.id ? "bg-blue-50" : ""
+                      }`}
+                      onClick={() => handleShapeSelection(shape)}
+                    >
+                      <div className="flex items-center gap-1">
+                        <Button
+                          minimal
+                          small
+                          icon="dot"
+                          className="pointer-events-none"
+                        />
+                        <span>Instance {index + 1}</span>
+                      </div>
+                      <Button
+                        minimal
+                        small
+                        icon="locate"
+                        className="pointer-events-none"
+                      />
+                    </div>
+                  </Tooltip>
+                ))}
+              </div>
+            </Collapse>
+          )}
         </div>
       );
     },
-    [discourseNodes, getNodeColors],
-  );
-
-  const renderShapeButton = useCallback(
-    (shape: DiscourseNodeShape, group: NodeGroup, index: number) => (
-      <Tooltip
-        key={shape.id}
-        content="Jump to this node on canvas"
-        hoverOpenDelay={750}
-      >
-        <Button
-          alignText="left"
-          fill
-          minimal
-          outlined
-          icon={group.isDuplicate ? "duplicate" : "dot"}
-          rightIcon="locate"
-          active={activeShapeId === shape.id}
-          onClick={() => handleShapeSelection(shape)}
-          className="my-1"
-        >
-          {group.isDuplicate ? `Instance ${index + 1}` : shape.props.title}
-        </Button>
-      </Tooltip>
-    ),
-    [activeShapeId, handleShapeSelection],
+    [
+      // getNodeColors,
+      openSections,
+      toggleCollapse,
+      handleShapeSelection,
+      activeShapeId,
+    ],
   );
 
   return (
@@ -380,63 +401,9 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
           }
         />
       ) : (
-        <div className="space-y-3">
-          {visibleGroups.map((group) => {
-            const colors = getNodeColors(group.type);
-            return (
-              <Card
-                key={group.uid}
-                elevation={group.isDuplicate ? 2 : 1}
-                className="space-y-2"
-                style={{
-                  backgroundColor: colors.backgroundColor,
-                  color: colors.textColor,
-                }}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <Tooltip
-                    hoverOpenDelay={750}
-                    content={
-                      group.isDuplicate
-                        ? "Toggle to inspect duplicate instances"
-                        : "Jump to this node on the canvas"
-                    }
-                  >
-                    <Button
-                      alignText="left"
-                      fill
-                      minimal
-                      icon={
-                        group.isDuplicate
-                          ? openSections[group.uid]
-                            ? "chevron-down"
-                            : "chevron-right"
-                          : undefined
-                      }
-                      rightIcon={group.isDuplicate ? undefined : "locate"}
-                      onClick={() =>
-                        group.isDuplicate
-                          ? toggleCollapse(group.uid)
-                          : handleShapeSelection(group.shapes[0])
-                      }
-                    >
-                      {group.title}
-                    </Button>
-                  </Tooltip>
-                </div>
-                {group.isDuplicate && (
-                  <Collapse isOpen={openSections[group.uid]}>
-                    <div className="flex gap-1 rounded p-2">
-                      {group.shapes.map((shape, index) =>
-                        renderShapeButton(shape, group, index),
-                      )}
-                    </div>
-                  </Collapse>
-                )}
-              </Card>
-            );
-          })}
-        </div>
+        <Card elevation={1} className="divide-y divide-gray-300">
+          {visibleGroups.map((group) => renderListView(group))}
+        </Card>
       )}
     </div>
   );
