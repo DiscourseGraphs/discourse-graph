@@ -29,7 +29,7 @@ import getBlockProps from "~/utils/getBlockProps";
 import { TLBaseShape } from "tldraw";
 import { DiscourseNodeShape } from "./DiscourseNodeUtil";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { formatHexColor } from "../settings/DiscourseNodeCanvasSettings";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 
 export type GroupedShapes = Record<string, DiscourseNodeShape[]>;
 
