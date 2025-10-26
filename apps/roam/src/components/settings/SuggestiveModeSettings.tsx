@@ -23,20 +23,15 @@ const SuggestiveModeSettings = () => {
   );
 
   useEffect(() => {
-    if (pageGroupsUid) return;
+    if (suggestiveModeUid) return;
     void (async () => {
       const smUid = await createBlock({
         parentUid: getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
         node: { text: "Suggestive Mode" },
       });
-      const pgUid = await createBlock({
-        parentUid: smUid,
-        node: { text: "Page Groups" },
-      });
       setSuggestiveModeUid(smUid);
-      setPageGroupsUid(pgUid);
     })();
-  }, [pageGroupsUid]);
+  }, [suggestiveModeUid]);
 
   const effectiveSuggestiveModeUid =
     suggestiveModeUid || settings.suggestiveMode.parentUid;
