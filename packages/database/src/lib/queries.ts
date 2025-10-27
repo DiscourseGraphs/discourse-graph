@@ -325,7 +325,7 @@ const composeConceptQuery = ({
     q += `, relations:concept_in_relations!inner(${args.join(",\n")})`;
   }
   let query = supabase.from("my_concepts").select(q);
-  if (scope.type === 'nodes') {
+  if (scope.type === "nodes") {
     query = query.eq("arity", 0);
   } else if (scope.type === 'relations') {
     query = query.gt("arity", 0);
@@ -599,19 +599,21 @@ export const getAllNodes = async ({
   supabase,
   spaceId,
   author,
+  ofTypes,
   fields = { concepts: CONCEPT_FIELDS, content: CONTENT_FIELDS },
   pagination,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
   author?: string;
+  ofTypes?: string[];
   fields?: FieldSelection;
   pagination?: PaginationOptions;
 }): Promise<PConceptFull[]> => {
   return getConcepts({
     supabase,
     spaceId,
-    scope: { type: "nodes", author },
+    scope: { type: "nodes", author, ofTypes },
     fields,
     pagination,
   });

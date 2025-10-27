@@ -1,10 +1,11 @@
-import { getLoggedInClient } from "./supabaseContext";
+import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import { Result } from "./types";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import findDiscourseNode from "./findDiscourseNode";
 import { nextApiRoot } from "@repo/utils/execContext";
 import { DiscourseNode } from "./getDiscourseNodes";
 import getExtensionAPI from "roamjs-components/util/extensionApiContext";
+import { getAllNodes } from "@repo/database/lib/queries";
 
 type ApiEmbeddingResponse = {
   data: Array<{
@@ -455,26 +456,30 @@ export const performHydeSearch = async ({
   );
 
   if (useAllPagesForSuggestions) {
-    // TODO: Use Supabase to get all pages
-    candidateNodesForHyde = (await getAllPageByUidAsync())
-      .map(([pageName, pageUid]) => {
-        if (!pageUid || pageUid === blockUid) return null;
-        const node = findDiscourseNode(pageUid);
-        if (
-          !node ||
-          node.backedBy === "default" ||
-          !validTypes.includes(node.type) ||
-          existingUids.has(pageUid)
-        ) {
-          return null;
-        }
-        return {
-          uid: pageUid,
-          text: pageName,
-          type: node.type,
-        } as SuggestedNode;
+    const context = await getSupabaseContext();
+    if (!context) return [];
+    const supabase = await getLoggedInClient();
+    const spaceId = context.spaceId;
+    if (!supabase) return [];
+
+    candidateNodesForHyde = (
+      await getAllNodes({
+        supabase,
+        spaceId,
+        fields: { content: ["source_local_id", "text"] },
+        ofTypes: validTypes,
+        pagination: { limit: 10000 },
       })
-      .filter((n): n is SuggestedNode => n !== null);
+    )
+      .map((c) => {
+        const node = findDiscourseNode(c.Content?.source_local_id || "");
+        return {
+          uid: c.Content?.source_local_id || "",
+          text: c.Content?.text || "",
+          type: node ? node.type : "",
+        };
+      })
+      .filter((n) => n.uid && n.text && n.type);
   } else {
     const referenced: { uid: string; text: string }[] = [];
     if (shouldGrabFromReferencedPages) {
