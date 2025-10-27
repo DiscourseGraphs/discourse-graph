@@ -10,6 +10,7 @@ import {
   getFrontmatterForFile,
 } from "./shapes/discourseNodeShapeUtils";
 import { DiscourseNode } from "~/types";
+import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 
 export const ExistingNodeSearch = ({
   plugin,
@@ -72,15 +73,13 @@ export const ExistingNodeSearch = ({
             }
           }
 
-          // Compute initial dimensions based on whether we have an image
-          const paddingY = 2 * 8; // p-2 = 0.5rem = 8px
-          const titleHeight = 20; // approx
-          const subtitleHeight = 16; // approx
-          const maxImageHeight = 160;
-          const baseHeight = 100;
-          const initialHeight = preloadedImageSrc
-            ? paddingY + maxImageHeight + titleHeight + subtitleHeight + 4
-            : baseHeight;
+          // Calculate optimal dimensions using dynamic measurement
+          const { w, h } = await calcDiscourseNodeSize({
+            title: file.basename,
+            nodeTypeId: fmNodeTypeId ?? "",
+            imageSrc: preloadedImageSrc,
+            plugin,
+          });
 
           const id = createShapeId();
           editor.createShape({
@@ -89,12 +88,12 @@ export const ExistingNodeSearch = ({
             x: pagePoint.x - Math.random() * 100,
             y: pagePoint.y - Math.random() * 100,
             props: {
-              w: 200,
-              h: initialHeight,
+              w,
+              h,
               src,
               title: file.basename,
               nodeTypeId: fmNodeTypeId ?? "",
-              ...(preloadedImageSrc ? { imageSrc: preloadedImageSrc } : {}),
+              imageSrc: preloadedImageSrc,
             },
           });
           editor.markHistoryStoppingPoint("add existing discourse node");

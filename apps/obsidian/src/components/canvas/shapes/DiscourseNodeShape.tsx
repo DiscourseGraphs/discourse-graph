@@ -1,8 +1,10 @@
 import {
   BaseBoxShapeUtil,
   HTMLContainer,
+  resizeBox,
   T,
   TLBaseShape,
+  TLResizeInfo,
   useEditor,
 } from "tldraw";
 import type { App, TFile } from "obsidian";
@@ -15,6 +17,7 @@ import {
 } from "./discourseNodeShapeUtils";
 import { resolveLinkedFileFromSrc } from "~/components/canvas/stores/assetStore";
 import { getNodeTypeById } from "~/utils/typeUtils";
+import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 
 export type DiscourseNodeShape = TLBaseShape<
   "discourse-node",
@@ -58,6 +61,16 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       nodeTypeId: "",
       imageSrc: undefined,
     };
+  }
+
+  override isAspectRatioLocked = () => false;
+  override canResize = () => true;
+
+  override onResize(
+    shape: DiscourseNodeShape,
+    info: TLResizeInfo<DiscourseNodeShape>,
+  ) {
+    return resizeBox(shape, info);
   }
 
   component(shape: DiscourseNodeShape) {
@@ -162,11 +175,13 @@ const discourseNodeContent = memo(
               },
             });
           }
-          // Load key image if enabled on node type
+
+          let currentImageSrc = shape.props.imageSrc;
           if (nodeType?.keyImage) {
             const imageSrc = await getFirstImageSrcForFile(app, linkedFile);
 
             if (imageSrc && imageSrc !== shape.props.imageSrc) {
+              currentImageSrc = imageSrc;
               editor.updateShape<DiscourseNodeShape>({
                 id: shape.id,
                 type: "discourse-node",
@@ -177,7 +192,7 @@ const discourseNodeContent = memo(
               });
             }
           } else if (shape.props.imageSrc) {
-            // Clear image if node type no longer has key image enabled
+            currentImageSrc = undefined;
             editor.updateShape<DiscourseNodeShape>({
               id: shape.id,
               type: "discourse-node",
@@ -188,22 +203,24 @@ const discourseNodeContent = memo(
             });
           }
 
-          const paddingY = 2 * 8; // p-2 = 0.5rem = 8px
-          const titleHeight = 20; // approx
-          const subtitleHeight = 16; // approx
-          const maxImageHeight = 160;
-          const baseHeight = 100;
-          const hasImage = !!shape.props.imageSrc;
-          const targetHeight = hasImage
-            ? paddingY + maxImageHeight + titleHeight + subtitleHeight + 4
-            : baseHeight;
-          if (Math.abs((shape.props.h || 0) - targetHeight) > 1) {
+          const { w, h } = await calcDiscourseNodeSize({
+            title: linkedFile.basename,
+            nodeTypeId: shape.props.nodeTypeId,
+            imageSrc: currentImageSrc,
+            plugin,
+          });
+
+          if (
+            Math.abs((shape.props.w || 0) - w) > 1 ||
+            Math.abs((shape.props.h || 0) - h) > 1
+          ) {
             editor.updateShape<DiscourseNodeShape>({
               id: shape.id,
               type: "discourse-node",
               props: {
                 ...shape.props,
-                h: targetHeight,
+                w,
+                h,
               },
             });
           }
@@ -218,10 +235,14 @@ const discourseNodeContent = memo(
       return () => {
         return;
       };
+      // Only trigger when content changes, not when dimensions change (to avoid fighting manual resizing)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       src,
       shape.id,
-      shape.props,
+      shape.props.title,
+      shape.props.nodeTypeId,
+      shape.props.imageSrc,
       editor,
       app,
       canvasFile,
@@ -244,7 +265,7 @@ const discourseNodeContent = memo(
             loading="lazy"
             decoding="async"
             draggable="false"
-            className="max-h-[160px] w-full object-cover"
+            className="h-auto w-full object-cover"
           />
         ) : null}
       </div>
