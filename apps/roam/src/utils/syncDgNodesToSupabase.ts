@@ -18,7 +18,6 @@ import {
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
-import { getRoamUrl } from "roamjs-components/dom";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { createClient, type DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json, CompositeTypes, Enums } from "@repo/database/dbTypes";
@@ -178,9 +177,9 @@ const upsertNodeSchemaToContent = async ({
 
   ]
   `;
-  const result = (await window.roamAlphaAPI.data.async.q(
-    query,
-    nodeTypesUids,
+
+  const result = (await Promise.resolve(
+    window.roamAlphaAPI.data.backend.q(query, nodeTypesUids),
   )) as unknown as RoamDiscourseNodeData[];
 
   const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
@@ -329,8 +328,9 @@ const getAllUsers = async (): Promise<AccountLocalInput[]> => {
     [?user-eid :user/uid ?author_local_id]
     [(get-else $ ?user-eid :user/display-name "") ?author_name]
 ]`;
-  //@ts-ignore - backend to be added to roamjs-components
-  const result = (await window.roamAlphaAPI.data.async.q(query)) as unknown as {
+  const result = (await Promise.resolve(
+    window.roamAlphaAPI.data.backend.q(query),
+  )) as unknown as {
     author_local_id: string;
     name: string;
   }[];
