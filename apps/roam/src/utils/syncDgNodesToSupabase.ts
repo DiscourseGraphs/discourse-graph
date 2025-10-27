@@ -422,7 +422,8 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
     }
     claimed = true;
     const allUsers = await getAllUsers();
-    const time = (lastUpdateTime || DEFAULT_TIME).toISOString();
+    const sinceTime = (lastUpdateTime || DEFAULT_TIME).valueOf() - 1000; // add a one-second buffer
+    const time = new Date(sinceTime).toISOString();
     const { allDgNodeTypes, dgNodeTypesWithSettings } = getDgNodeTypes();
 
     const allNodeInstances = await getAllDiscourseNodesSince(
