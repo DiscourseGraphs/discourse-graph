@@ -1,0 +1,9 @@
+{
+  "camelCase": true,
+  "dialect": "postgres",
+  "runtimeEnums":"pascal-case",
+  "outFile": "src/kyselyTypes.ts",
+  "url": "env(SUPABASE_DB_URL)",
+  "envFile": ".env.local",
+  "includePattern": "public.*"
+}
