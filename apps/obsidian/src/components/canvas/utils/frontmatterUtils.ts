@@ -74,12 +74,11 @@ export const addRelationToFrontmatter = async ({
           const normalizedExistingLinks = existingLinks.map(normalizeLink);
           const normalizedLinkToAdd = normalizeLink(linkToAdd);
 
-          if (!normalizedExistingLinks.includes(normalizedLinkToAdd)) {
-            fm[relationType.id] = [...existingLinks, linkToAdd];
-            linkAlreadyExists = false;
-          } else {
-            linkAlreadyExists = true;
-          }
+         linkAlreadyExists =
+           normalizedExistingLinks.includes(normalizedLinkToAdd);
+         if (!linkAlreadyExists) {
+           fm[relationType.id] = [...existingLinks, linkToAdd];
+         }
         },
       );
 
