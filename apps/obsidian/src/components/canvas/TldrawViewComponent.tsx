@@ -113,82 +113,76 @@ export const TldrawPreviewComponent = ({
 
     isSavingRef.current = true;
 
-    try {
-      const newData = getTLDataTemplate({
-        pluginVersion: plugin.manifest.version,
-        tldrawFile: createRawTldrawFile(currentStore),
-        uuid: canvasUuid,
-      });
-      const stringifiedData = JSON.stringify(newData, null, "\t");
+    const newData = getTLDataTemplate({
+      pluginVersion: plugin.manifest.version,
+      tldrawFile: createRawTldrawFile(currentStore),
+      uuid: canvasUuid,
+    });
+    const stringifiedData = JSON.stringify(newData, null, "\t");
 
-      if (stringifiedData === lastSavedDataRef.current) {
-        return;
-      }
-
-      const currentContent = await plugin.app.vault.read(file);
-      if (!currentContent) {
-        console.error("Could not read file content");
-        return;
-      }
-
-      const updatedString = getUpdatedMdContent(
-        currentContent,
-        stringifiedData,
-      );
-      if (updatedString === currentContent) {
-        return;
-      }
-
-      try {
-        await plugin.app.vault.modify(file, updatedString);
-
-        const verifyContent = await plugin.app.vault.read(file);
-        const verifyMatch = verifyContent.match(
-          new RegExp(
-            `${TLDATA_DELIMITER_START}\\s*([\\s\\S]*?)\\s*${TLDATA_DELIMITER_END}`,
-          ),
-        );
-
-        if (!verifyMatch) {
-          throw new Error(
-            "Failed to verify saved TLDraw data: Could not find data block",
-          );
-        }
-
-        const savedData = JSON.parse(verifyMatch[1]?.trim() ?? "{}") as TLData;
-        const expectedData = JSON.parse(
-          stringifiedData?.trim() ?? "{}",
-        ) as TLData;
-
-        if (JSON.stringify(savedData) !== JSON.stringify(expectedData)) {
-          console.warn(
-            "Saved data differs from expected (this is normal during concurrent operations)",
-          );
-        }
-
-        lastSavedDataRef.current = stringifiedData;
-      } catch (error) {
-        console.error("Error saving/verifying TLDraw data:", error);
-        // Reload the editor state from file since save failed
-        const fileContent = await plugin.app.vault.read(file);
-        const match = fileContent.match(
-          new RegExp(
-            `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
-          ),
-        );
-        if (match?.[1]) {
-          const data = JSON.parse(match[1]) as TLData;
-          const { store: newStore } = processInitialData(data, assetStore, {
-            app: plugin.app,
-            canvasFile: file,
-            plugin,
-          });
-          setCurrentStore(newStore);
-        }
-      }
-    } finally {
-      isSavingRef.current = false;
+    if (stringifiedData === lastSavedDataRef.current) {
+      return;
     }
+
+    const currentContent = await plugin.app.vault.read(file);
+    if (!currentContent) {
+      console.error("Could not read file content");
+      return;
+    }
+
+    const updatedString = getUpdatedMdContent(currentContent, stringifiedData);
+    if (updatedString === currentContent) {
+      return;
+    }
+
+    try {
+      await plugin.app.vault.modify(file, updatedString);
+
+      const verifyContent = await plugin.app.vault.read(file);
+      const verifyMatch = verifyContent.match(
+        new RegExp(
+          `${TLDATA_DELIMITER_START}\\s*([\\s\\S]*?)\\s*${TLDATA_DELIMITER_END}`,
+        ),
+      );
+
+      if (!verifyMatch) {
+        throw new Error(
+          "Failed to verify saved TLDraw data: Could not find data block",
+        );
+      }
+
+      const savedData = JSON.parse(verifyMatch[1]?.trim() ?? "{}") as TLData;
+      const expectedData = JSON.parse(
+        stringifiedData?.trim() ?? "{}",
+      ) as TLData;
+
+      if (JSON.stringify(savedData) !== JSON.stringify(expectedData)) {
+        console.warn(
+          "Saved data differs from expected (this is normal during concurrent operations)",
+        );
+      }
+
+      lastSavedDataRef.current = stringifiedData;
+    } catch (error) {
+      console.error("Error saving/verifying TLDraw data:", error);
+      // Reload the editor state from file since save failed
+      const fileContent = await plugin.app.vault.read(file);
+      const match = fileContent.match(
+        new RegExp(
+          `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
+        ),
+      );
+      if (match?.[1]) {
+        const data = JSON.parse(match[1]) as TLData;
+        const { store: newStore } = processInitialData(data, assetStore, {
+          app: plugin.app,
+          canvasFile: file,
+          plugin,
+        });
+        setCurrentStore(newStore);
+      }
+    }
+    isSavingRef.current = false;
   }, [file, plugin, currentStore, assetStore, canvasUuid]);
 
   useEffect(() => {
