@@ -7,10 +7,8 @@ export const DEFAULT_NODE_WIDTH = 200;
 export const MIN_NODE_WIDTH = 160;
 export const MAX_NODE_WIDTH = 400;
 
-// Padding: p-2 = 0.5rem = 8px on each side = 16px total vertical
-export const BASE_PADDING = 20;
+export const BASE_PADDING = 16;
 
-// Font sizes matching Tailwind classes
 export const TITLE_FONT_SIZE = 16; // text-base
 export const SUBTITLE_FONT_SIZE = 14; // text-sm
 

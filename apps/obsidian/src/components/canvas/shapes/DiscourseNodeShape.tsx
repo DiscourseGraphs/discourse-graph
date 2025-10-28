@@ -213,7 +213,7 @@ const discourseNodeContent = memo(
               imageSrc: currentImageSrc,
               plugin,
             });
-
+            // Only update dimensions if they differ significantly (>1px)
             if (
               Math.abs((shape.props.w || 0) - w) > 1 ||
               Math.abs((shape.props.h || 0) - h) > 1
