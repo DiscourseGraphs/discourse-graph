@@ -176,11 +176,13 @@ const discourseNodeContent = memo(
             });
           }
 
+          let didImageChange = false;
           let currentImageSrc = shape.props.imageSrc;
           if (nodeType?.keyImage) {
             const imageSrc = await getFirstImageSrcForFile(app, linkedFile);
 
             if (imageSrc && imageSrc !== shape.props.imageSrc) {
+              didImageChange = true;
               currentImageSrc = imageSrc;
               editor.updateShape<DiscourseNodeShape>({
                 id: shape.id,
@@ -192,6 +194,7 @@ const discourseNodeContent = memo(
               });
             }
           } else if (shape.props.imageSrc) {
+            didImageChange = true;
             currentImageSrc = undefined;
             editor.updateShape<DiscourseNodeShape>({
               id: shape.id,
@@ -203,26 +206,28 @@ const discourseNodeContent = memo(
             });
           }
 
-          const { w, h } = await calcDiscourseNodeSize({
-            title: linkedFile.basename,
-            nodeTypeId: shape.props.nodeTypeId,
-            imageSrc: currentImageSrc,
-            plugin,
-          });
-
-          if (
-            Math.abs((shape.props.w || 0) - w) > 1 ||
-            Math.abs((shape.props.h || 0) - h) > 1
-          ) {
-            editor.updateShape<DiscourseNodeShape>({
-              id: shape.id,
-              type: "discourse-node",
-              props: {
-                ...shape.props,
-                w,
-                h,
-              },
+          if (didImageChange) {
+            const { w, h } = await calcDiscourseNodeSize({
+              title: linkedFile.basename,
+              nodeTypeId: shape.props.nodeTypeId,
+              imageSrc: currentImageSrc,
+              plugin,
             });
+
+            if (
+              Math.abs((shape.props.w || 0) - w) > 1 ||
+              Math.abs((shape.props.h || 0) - h) > 1
+            ) {
+              editor.updateShape<DiscourseNodeShape>({
+                id: shape.id,
+                type: "discourse-node",
+                props: {
+                  ...shape.props,
+                  w,
+                  h,
+                },
+              });
+            }
           }
         } catch (error) {
           console.error("Error loading node data", error);
@@ -260,13 +265,15 @@ const discourseNodeContent = memo(
         <h1 className="m-1 text-base">{title || "..."}</h1>
         <p className="m-0 text-sm opacity-80">{nodeType?.name || ""}</p>
         {shape.props.imageSrc ? (
-          <img
-            src={shape.props.imageSrc}
-            loading="lazy"
-            decoding="async"
-            draggable="false"
-            className="h-auto w-full object-cover"
-          />
+          <div className="mt-2 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+            <img
+              src={shape.props.imageSrc}
+              loading="lazy"
+              decoding="async"
+              draggable="false"
+              className="max-h-full max-w-full object-contain"
+            />
+          </div>
         ) : null}
       </div>
     );
