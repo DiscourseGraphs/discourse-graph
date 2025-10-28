@@ -50,6 +50,7 @@ import ToastListener from "./ToastListener";
 import { RelationsOverlay } from "./overlays/RelationOverlay";
 import { showToast } from "./utils/toastUtils";
 import { WHITE_LOGO_SVG } from "~/icons";
+import { CustomContextMenu } from "./CustomContextMenu";
 
 type TldrawPreviewProps = {
   store: TLStore;
@@ -337,6 +338,8 @@ export const TldrawPreviewComponent = ({
               },
             }}
             components={{
+              /* eslint-disable-next-line @typescript-eslint/naming-convention */
+              ContextMenu: (props) => <CustomContextMenu canvasFile={file} props={props} />,
               /* eslint-disable-next-line @typescript-eslint/naming-convention */
               StylePanel: () => {
                 const tools = useTools();
