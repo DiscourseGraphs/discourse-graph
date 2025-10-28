@@ -14,6 +14,7 @@ export class TldrawView extends TextFileView {
   private reactRoot?: Root;
   private store: TLStore | null = null;
   private assetStore: ObsidianTLAssetStore | null = null;
+  private canvasUuid: string | null = null;
   private onUnloadCallbacks: (() => void)[] = [];
 
   constructor(leaf: WorkspaceLeaf, plugin: DiscourseGraphPlugin) {
@@ -108,6 +109,11 @@ export class TldrawView extends TextFileView {
         console.warn("Invalid tldraw data format - missing raw field");
         return;
       }
+      if (data.meta?.uuid) {
+        this.canvasUuid = data.meta.uuid;
+      } else {
+        this.canvasUuid = window.crypto.randomUUID();
+      }
 
       if (!this.file) {
         console.warn("TldrawView not initialized: missing file");
@@ -142,6 +148,8 @@ export class TldrawView extends TextFileView {
       throw new Error("TldrawView not initialized: missing assetStore");
     if (!this.store)
       throw new Error("TldrawView not initialized: missing store");
+    if (!this.canvasUuid)
+      throw new Error("TldrawView not initialized: missing canvas UUID");
 
     if (!this.assetStore) {
       console.warn("Asset store is not set");
@@ -155,6 +163,7 @@ export class TldrawView extends TextFileView {
             store={store}
             file={this.file}
             assetStore={this.assetStore}
+            canvasUuid={this.canvasUuid}
           />
         </PluginProvider>
       </React.StrictMode>,

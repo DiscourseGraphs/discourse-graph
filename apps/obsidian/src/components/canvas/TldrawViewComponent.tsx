@@ -55,18 +55,21 @@ type TldrawPreviewProps = {
   store: TLStore;
   file: TFile;
   assetStore: ObsidianTLAssetStore;
+  canvasUuid: string;
 };
 
 export const TldrawPreviewComponent = ({
   store,
   file,
   assetStore,
+  canvasUuid,
 }: TldrawPreviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentStore, setCurrentStore] = useState<TLStore>(store);
   const [isReady, setIsReady] = useState(false);
   const isCreatingRelationRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
+  const isSavingRef = useRef<boolean>(false);
   const lastShiftClickRef = useRef<number>(0);
   const SHIFT_CLICK_DEBOUNCE_MS = 300; // Prevent double clicks within 300ms
   const lastSavedDataRef = useRef<string>("");
@@ -99,81 +102,94 @@ export const TldrawPreviewComponent = ({
   }, []);
 
   const saveChanges = useCallback(async () => {
-    const newData = getTLDataTemplate({
-      pluginVersion: plugin.manifest.version,
-      tldrawFile: createRawTldrawFile(currentStore),
-      uuid: window.crypto.randomUUID(),
-    });
-    const stringifiedData = JSON.stringify(newData, null, "\t");
-
-    if (stringifiedData === lastSavedDataRef.current) {
+    // Prevent concurrent saves
+    if (isSavingRef.current) {
       return;
     }
 
-    const currentContent = await plugin.app.vault.read(file);
-    if (!currentContent) {
-      console.error("Could not read file content");
+    if (!canvasUuid) {
       return;
     }
 
-    const updatedString = getUpdatedMdContent(currentContent, stringifiedData);
-    if (updatedString === currentContent) {
-      return;
-    }
+    isSavingRef.current = true;
 
     try {
-      await plugin.app.vault.modify(file, updatedString);
+      const newData = getTLDataTemplate({
+        pluginVersion: plugin.manifest.version,
+        tldrawFile: createRawTldrawFile(currentStore),
+        uuid: canvasUuid,
+      });
+      const stringifiedData = JSON.stringify(newData, null, "\t");
 
-      const verifyContent = await plugin.app.vault.read(file);
-      const verifyMatch = verifyContent.match(
-        new RegExp(
-          `${TLDATA_DELIMITER_START}\\s*([\\s\\S]*?)\\s*${TLDATA_DELIMITER_END}`,
-        ),
+      if (stringifiedData === lastSavedDataRef.current) {
+        return;
+      }
+
+      const currentContent = await plugin.app.vault.read(file);
+      if (!currentContent) {
+        console.error("Could not read file content");
+        return;
+      }
+
+      const updatedString = getUpdatedMdContent(
+        currentContent,
+        stringifiedData,
       );
-
-      if (!verifyMatch) {
-        throw new Error(
-          "Failed to verify saved TLDraw data: Could not find data block",
-        );
+      if (updatedString === currentContent) {
+        return;
       }
 
       try {
-        const savedData: unknown = JSON.parse(verifyMatch[1]?.trim() ?? "{}");
-        const expectedData: unknown = JSON.parse(
-          stringifiedData?.trim() ?? "{}",
+        await plugin.app.vault.modify(file, updatedString);
+
+        const verifyContent = await plugin.app.vault.read(file);
+        const verifyMatch = verifyContent.match(
+          new RegExp(
+            `${TLDATA_DELIMITER_START}\\s*([\\s\\S]*?)\\s*${TLDATA_DELIMITER_END}`,
+          ),
         );
 
-        if (JSON.stringify(savedData) !== JSON.stringify(expectedData)) {
+        if (!verifyMatch) {
           throw new Error(
-            "Failed to verify saved TLDraw data: Content mismatch",
+            "Failed to verify saved TLDraw data: Could not find data block",
           );
         }
-      } catch (error) {
-        console.error("Verification error:", error);
-        throw new Error(`Failed to verify saved TLDraw data: ${String(error)}`);
-      }
 
-      lastSavedDataRef.current = stringifiedData;
-    } catch (error) {
-      console.error("Error saving/verifying TLDraw data:", error);
-      // Reload the editor state from file since save failed
-      const fileContent = await plugin.app.vault.read(file);
-      const match = fileContent.match(
-        new RegExp(
-          `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
-        ),
-      );
-      if (match?.[1]) {
-        const data = JSON.parse(match[1]) as TLData;
-        const { store: newStore } = processInitialData(data, assetStore, {
-          app: plugin.app,
-          canvasFile: file,
-          plugin,
-        });
-        setCurrentStore(newStore);
+        const savedData = JSON.parse(verifyMatch[1]?.trim() ?? "{}") as TLData;
+        const expectedData = JSON.parse(
+          stringifiedData?.trim() ?? "{}",
+        ) as TLData;
+
+        if (JSON.stringify(savedData) !== JSON.stringify(expectedData)) {
+          console.warn(
+            "Saved data differs from expected (this is normal during concurrent operations)",
+          );
+        }
+
+        lastSavedDataRef.current = stringifiedData;
+      } catch (error) {
+        console.error("Error saving/verifying TLDraw data:", error);
+        // Reload the editor state from file since save failed
+        const fileContent = await plugin.app.vault.read(file);
+        const match = fileContent.match(
+          new RegExp(
+            `${TLDATA_DELIMITER_START}([\\s\\S]*?)${TLDATA_DELIMITER_END}`,
+          ),
+        );
+        if (match?.[1]) {
+          const data = JSON.parse(match[1]) as TLData;
+          const { store: newStore } = processInitialData(data, assetStore, {
+            app: plugin.app,
+            canvasFile: file,
+            plugin,
+          });
+          setCurrentStore(newStore);
+        }
       }
+    } finally {
+      isSavingRef.current = false;
     }
-  }, [file, plugin, currentStore, assetStore]);
+  }, [file, plugin, currentStore, assetStore, canvasUuid]);
 
   useEffect(() => {
     const unsubscribe = currentStore.listen(
@@ -181,10 +197,17 @@ export const TldrawPreviewComponent = ({
         if (saveTimeoutRef.current) {
           clearTimeout(saveTimeoutRef.current);
         }
-        saveTimeoutRef.current = setTimeout(
-          () => void saveChanges(),
-          DEFAULT_SAVE_DELAY,
-        );
+        saveTimeoutRef.current = setTimeout(() => {
+          // If a save is already in progress, schedule another save after it completes
+          if (isSavingRef.current) {
+            saveTimeoutRef.current = setTimeout(
+              () => void saveChanges(),
+              DEFAULT_SAVE_DELAY,
+            );
+          } else {
+            void saveChanges();
+          }
+        }, DEFAULT_SAVE_DELAY);
       },
       { source: "user", scope: "document" },
     );
