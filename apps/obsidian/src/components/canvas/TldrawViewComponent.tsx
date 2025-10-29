@@ -338,9 +338,11 @@ export const TldrawPreviewComponent = ({
               },
             }}
             components={{
-              /* eslint-disable-next-line @typescript-eslint/naming-convention */
-              ContextMenu: (props) => <CustomContextMenu canvasFile={file} props={props} />,
-              /* eslint-disable-next-line @typescript-eslint/naming-convention */
+              /* eslint-disable @typescript-eslint/naming-convention */
+              ContextMenu: (props) => (
+                <CustomContextMenu canvasFile={file} props={props} />
+              ),
+
               StylePanel: () => {
                 const tools = useTools();
                 const isDiscourseNodeSelected = useIsToolSelected(
@@ -356,9 +358,7 @@ export const TldrawPreviewComponent = ({
 
                 return <DiscourseToolPanel plugin={plugin} canvasFile={file} />;
               },
-              /* eslint-disable-next-line @typescript-eslint/naming-convention */
               OnTheCanvas: () => <ToastListener canvasId={file.path} />,
-              /* eslint-disable-next-line @typescript-eslint/naming-convention */
               Toolbar: (props) => {
                 const tools = useTools();
                 const isDiscourseNodeSelected = useIsToolSelected(
@@ -381,7 +381,6 @@ export const TldrawPreviewComponent = ({
                   </DefaultToolbar>
                 );
               },
-              /* eslint-disable-next-line @typescript-eslint/naming-convention */
               InFrontOfTheCanvas: () => (
                 <RelationsOverlay plugin={plugin} file={file} />
               ),

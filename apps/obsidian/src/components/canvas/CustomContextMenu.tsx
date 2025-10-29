@@ -6,6 +6,7 @@ import {
   useEditor,
   TLUiContextMenuProps,
   DefaultContextMenuContent,
+  useValue,
 } from "tldraw";
 import type { TFile } from "obsidian";
 import { usePlugin } from "~/components/PluginContext";
@@ -16,23 +17,27 @@ type CustomContextMenuProps = {
   props: TLUiContextMenuProps;
 };
 
-export const CustomContextMenu = ({ canvasFile, props }: CustomContextMenuProps) => {
+export const CustomContextMenu = ({
+  canvasFile,
+  props,
+}: CustomContextMenuProps) => {
   const editor = useEditor();
   const plugin = usePlugin();
 
-  // Get selected shapes
-  const selectedShapes = editor.getSelectedShapes();
+  const selectedShape = useValue(
+    "selectedShape",
+    () => editor.getOnlySelectedShape(),
+    [editor],
+  );
 
-  // Check if we have exactly one text or image shape selected
   const shouldShowConvertTo =
-    selectedShapes.length === 1 &&
-    selectedShapes[0] &&
-    (selectedShapes[0].type === "text" || selectedShapes[0].type === "image");
+    selectedShape &&
+    (selectedShape?.type === "text" || selectedShape?.type === "image");
 
   return (
     <DefaultContextMenu {...props}>
       <DefaultContextMenuContent />
-      {shouldShowConvertTo && selectedShapes[0] && (
+      {shouldShowConvertTo && (
         <TldrawUiMenuGroup id="convert-to">
           <TldrawUiMenuSubmenu id="convert-to-submenu" label="Convert To">
             {plugin.settings.nodeTypes.map((nodeType) => (
@@ -44,7 +49,7 @@ export const CustomContextMenu = ({ canvasFile, props }: CustomContextMenuProps)
                 onSelect={() => {
                   void convertToDiscourseNode({
                     editor,
-                    shape: selectedShapes[0]!,
+                    shape: selectedShape,
                     nodeType,
                     plugin,
                     canvasFile,
@@ -57,5 +62,5 @@ export const CustomContextMenu = ({ canvasFile, props }: CustomContextMenuProps)
       )}
     </DefaultContextMenu>
   );
-}
+};
 

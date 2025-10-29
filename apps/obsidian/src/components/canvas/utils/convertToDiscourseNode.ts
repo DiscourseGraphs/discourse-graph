@@ -1,8 +1,16 @@
-import { Editor, TLShape, createShapeId, TLAssetId, TLTextShape } from "tldraw";
+import {
+  Editor,
+  TLShape,
+  createShapeId,
+  TLAssetId,
+  TLTextShape,
+  TLShapeId,
+  renderPlaintextFromRichText,
+} from "tldraw";
 import type { TFile } from "obsidian";
 import { DiscourseNode } from "~/types";
 import DiscourseGraphPlugin from "~/index";
-import { createDiscourseNode } from "~/utils/createNode";
+import { createDiscourseNode as createDiscourseNodeFile } from "~/utils/createNode";
 import {
   addWikilinkBlockrefForFile,
   extractBlockRefId,
@@ -19,75 +27,48 @@ type ConvertToDiscourseNodeArgs = {
   canvasFile: TFile;
 };
 
-/**
- * Extracts text content from a text shape
- */
-const getTextShapeContent = (shape: TLTextShape): string => {
-  console.log("shape", shape);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return shape.props.richText.content[0].content[0].text;
-};
-
-/**
- * Gets the image file from an image shape
- */
-const getImageFileFromShape = async ({
-  shape,
-  editor,
-  plugin,
-  canvasFile,
-}: {
-  shape: TLShape;
-  editor: Editor;
-  plugin: DiscourseGraphPlugin;
-  canvasFile: TFile;
-}): Promise<TFile | null> => {
-  if (shape.type !== "image") return null;
-
+export const convertToDiscourseNode = async (
+  args: ConvertToDiscourseNodeArgs,
+): Promise<string | undefined> => {
   try {
-    // Get the asset ID from the image shape
-    const assetId = "assetId" in shape.props ? (shape.props.assetId as TLAssetId) : null;
-    if (!assetId) return null;
+    const { shape } = args;
 
-    // Get the asset from the editor
-    const asset = editor.getAsset(assetId);
-    if (!asset) return null;
-
-    // Extract the blockref from the asset src
-    const src = asset.props.src;
-    if (!src) return null;
-
-    const blockRefId = extractBlockRefId(src);
-    if (!blockRefId) return null;
-
-    // Resolve the linked file
-    const canvasFileCache = plugin.app.metadataCache.getFileCache(canvasFile);
-    if (!canvasFileCache) return null;
-
-    return await resolveLinkedTFileByBlockRef({
-      app: plugin.app,
-      canvasFile,
-      blockRefId,
-      canvasFileCache,
-    });
+    if (shape.type === "text") {
+      return await convertTextShapeToNode(args);
+    } else if (shape.type === "image") {
+      return await convertImageShapeToNode(args);
+    } else {
+      showToast({
+        severity: "warning",
+        title: "Cannot Convert",
+        description: "Only text and image shapes can be converted",
+        targetCanvasId: args.canvasFile.path,
+      });
+    }
   } catch (error) {
-    console.error("Error getting image file from shape:", error);
-    return null;
+    console.error("Error converting shape to discourse node:", error);
+    showToast({
+      severity: "error",
+      title: "Conversion Failed",
+      description: `Could not convert shape: ${error instanceof Error ? error.message : "Unknown error"}`,
+      targetCanvasId: args.canvasFile.path,
+    });
   }
 };
 
-/**
- * Converts a text shape to a discourse node
- */
 const convertTextShapeToNode = async ({
   editor,
   shape,
   nodeType,
   plugin,
   canvasFile,
-}: ConvertToDiscourseNodeArgs): Promise<void> => {
-  const text = getTextShapeContent(shape as TLTextShape);
-  
+}: ConvertToDiscourseNodeArgs): Promise<TLShapeId | undefined> => {
+  const text = renderPlaintextFromRichText(
+    editor,
+    (shape as TLTextShape).props.richText,
+  );
+
+  console.log("text", text);
   if (!text.trim()) {
     showToast({
       severity: "warning",
@@ -95,11 +76,10 @@ const convertTextShapeToNode = async ({
       description: "Text shape has no content to convert",
       targetCanvasId: canvasFile.path,
     });
-    return;
+    return undefined;
   }
 
-  // Create the discourse node file
-  const createdFile = await createDiscourseNode({
+  const createdFile = await createDiscourseNodeFile({
     plugin,
     nodeType,
     text: text.trim(),
@@ -109,8 +89,7 @@ const convertTextShapeToNode = async ({
     throw new Error("Failed to create discourse node file");
   }
 
-  // Create the discourse node shape
-  await createDiscourseNodeShape({
+  const shapeId = await createDiscourseNodeShape({
     editor,
     shape,
     createdFile,
@@ -125,31 +104,34 @@ const convertTextShapeToNode = async ({
     description: `Converted text to ${nodeType.name}`,
     targetCanvasId: canvasFile.path,
   });
+
+  return shapeId;
 };
 
-/**
- * Converts an image shape to a discourse node
- */
 const convertImageShapeToNode = async ({
   editor,
   shape,
   nodeType,
   plugin,
   canvasFile,
-}: ConvertToDiscourseNodeArgs): Promise<void> => {
-  // Get the image file from the shape
-  const imageFile = await getImageFileFromShape({ shape, editor, plugin, canvasFile });
+}: ConvertToDiscourseNodeArgs): Promise<TLShapeId | undefined> => {
+  const imageFile = await getImageFileFromShape({
+    shape,
+    editor,
+    plugin,
+    canvasFile,
+  });
 
-  // Open modal for user to input the node name
+  let shapeId: TLShapeId | undefined;
+
   const modal = new CreateNodeModal(plugin.app, {
     nodeTypes: plugin.settings.nodeTypes,
     plugin,
     initialNodeType: nodeType,
-    initialTitle: imageFile?.basename || "Image",
+    initialTitle: "",
     onNodeCreate: async (selectedNodeType: DiscourseNode, title: string) => {
       try {
-        // Create the discourse node file
-        const createdFile = await createDiscourseNode({
+        const createdFile = await createDiscourseNodeFile({
           plugin,
           nodeType: selectedNodeType,
           text: title,
@@ -159,13 +141,11 @@ const convertImageShapeToNode = async ({
           throw new Error("Failed to create discourse node file");
         }
 
-        // If we have an image file, embed it in the new node
         if (imageFile) {
           await embedImageInNode(createdFile, imageFile, plugin);
         }
 
-        // Create the discourse node shape
-        await createDiscourseNodeShape({
+        shapeId = await createDiscourseNodeShape({
           editor,
           shape,
           createdFile,
@@ -188,40 +168,10 @@ const convertImageShapeToNode = async ({
   });
 
   modal.open();
+
+  return shapeId;
 };
 
-/**
- * Embeds an image in a discourse node file
- */
-const embedImageInNode = async (
-  nodeFile: TFile,
-  imageFile: TFile,
-  plugin: DiscourseGraphPlugin,
-): Promise<void> => {
-  const imageLink = plugin.app.metadataCache.fileToLinktext(
-    imageFile,
-    nodeFile.path,
-  );
-  const imageEmbed = `![[${imageLink}]]`;
-
-  // Add image after the frontmatter
-  await plugin.app.vault.process(nodeFile, (data: string) => {
-    const fileCache = plugin.app.metadataCache.getFileCache(nodeFile);
-    const { start, end } = fileCache?.frontmatterPosition ?? {
-      start: { offset: 0 },
-      end: { offset: 0 },
-    };
-
-    const frontmatter = data.slice(start.offset, end.offset);
-    const rest = data.slice(end.offset);
-
-    return `${frontmatter}\n\n${imageEmbed}\n${rest}`;
-  });
-};
-
-/**
- * Creates a discourse node shape in the canvas
- */
 const createDiscourseNodeShape = async ({
   editor,
   shape,
@@ -236,8 +186,7 @@ const createDiscourseNodeShape = async ({
   nodeType: DiscourseNode;
   plugin: DiscourseGraphPlugin;
   canvasFile: TFile;
-}): Promise<void> => {
-  // Create the blockref link
+}): Promise<TLShapeId> => {
   const src = await addWikilinkBlockrefForFile({
     app: plugin.app,
     canvasFile,
@@ -249,7 +198,6 @@ const createDiscourseNodeShape = async ({
   const width = "w" in shape.props ? Number(shape.props.w) : 200;
   const height = "h" in shape.props ? Number(shape.props.h) : 100;
 
-  // Create the new discourse node shape
   const shapeId = createShapeId();
   editor.createShape({
     id: shapeId,
@@ -265,47 +213,67 @@ const createDiscourseNodeShape = async ({
     },
   });
 
-  // Delete the original shape
   editor.deleteShape(shape.id);
-
-  // Select the new shape
   editor.setSelectedShapes([shapeId]);
 
-  // Mark history point
-  editor.markHistoryStoppingPoint(
-    `convert ${shape.type} to discourse node`,
-  );
+  editor.markHistoryStoppingPoint(`convert ${shape.type} to discourse node`);
+
+  return shapeId;
 };
 
-/**
- * Converts a text or image shape to a discourse node
- */
-export const convertToDiscourseNode = async (
-  args: ConvertToDiscourseNodeArgs,
-): Promise<void> => {
-  try {
-    const { shape } = args;
+const getImageFileFromShape = async ({
+  shape,
+  editor,
+  plugin,
+  canvasFile,
+}: {
+  shape: TLShape;
+  editor: Editor;
+  plugin: DiscourseGraphPlugin;
+  canvasFile: TFile;
+}): Promise<TFile | null> => {
+  if (shape.type !== "image") return null;
 
-    if (shape.type === "text") {
-      await convertTextShapeToNode(args);
-    } else if (shape.type === "image") {
-      await convertImageShapeToNode(args);
-    } else {
-      showToast({
-        severity: "warning",
-        title: "Cannot Convert",
-        description: "Only text and image shapes can be converted",
-        targetCanvasId: args.canvasFile.path,
-      });
-    }
-  } catch (error) {
-    console.error("Error converting shape to discourse node:", error);
-    showToast({
-      severity: "error",
-      title: "Conversion Failed",
-      description: `Could not convert shape: ${error instanceof Error ? error.message : "Unknown error"}`,
-      targetCanvasId: args.canvasFile.path,
+  try {
+    const assetId =
+      "assetId" in shape.props ? (shape.props.assetId as TLAssetId) : null;
+    if (!assetId) return null;
+
+    const asset = editor.getAsset(assetId);
+    if (!asset) return null;
+
+    const src = asset.props.src;
+    if (!src) return null;
+
+    const blockRefId = extractBlockRefId(src);
+    if (!blockRefId) return null;
+
+    const canvasFileCache = plugin.app.metadataCache.getFileCache(canvasFile);
+    if (!canvasFileCache) return null;
+
+    return await resolveLinkedTFileByBlockRef({
+      app: plugin.app,
+      canvasFile,
+      blockRefId,
+      canvasFileCache,
     });
+  } catch (error) {
+    console.error("Error getting image file from shape:", error);
+    return null;
   }
 };
+const embedImageInNode = async (
+  nodeFile: TFile,
+  imageFile: TFile,
+  plugin: DiscourseGraphPlugin,
+): Promise<void> => {
+  const imageLink = plugin.app.metadataCache.fileToLinktext(
+    imageFile,
+    nodeFile.path,
+  );
+  const imageEmbed = `![[${imageLink}]]`;
 
+  await plugin.app.vault.process(nodeFile, (data: string) => {
+    return `${data}\n${imageEmbed} \n`;
+  });
+};
