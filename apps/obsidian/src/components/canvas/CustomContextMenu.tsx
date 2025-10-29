@@ -32,7 +32,7 @@ export const CustomContextMenu = ({
 
   const shouldShowConvertTo =
     selectedShape &&
-    (selectedShape?.type === "text" || selectedShape?.type === "image");
+    (selectedShape.type === "text" || selectedShape.type === "image");
 
   return (
     <DefaultContextMenu {...props}>

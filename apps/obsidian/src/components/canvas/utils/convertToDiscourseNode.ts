@@ -68,7 +68,6 @@ const convertTextShapeToNode = async ({
     (shape as TLTextShape).props.richText,
   );
 
-  console.log("text", text);
   if (!text.trim()) {
     showToast({
       severity: "warning",
@@ -199,6 +198,7 @@ const createDiscourseNodeShape = async ({
   const height = "h" in shape.props ? Number(shape.props.h) : 100;
 
   const shapeId = createShapeId();
+  // TODO: Update the imageSrc, width and height of the shape after the key figure is merged
   editor.createShape({
     id: shapeId,
     type: "discourse-node",
@@ -274,6 +274,6 @@ const embedImageInNode = async (
   const imageEmbed = `![[${imageLink}]]`;
 
   await plugin.app.vault.process(nodeFile, (data: string) => {
-    return `${data}\n${imageEmbed} \n`;
+    return `${data}\n${imageEmbed}\n`;
   });
 };
