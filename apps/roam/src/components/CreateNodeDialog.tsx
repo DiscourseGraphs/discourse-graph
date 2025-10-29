@@ -1,3 +1,13 @@
+/**
+ * @deprecated This component is deprecated and will be removed in a future version.
+ * Please use ModifyNodeDialog instead for a unified create/edit experience.
+ *
+ * Migration guide:
+ * - Replace `renderCreateNodeDialog` with `renderModifyNodeDialog`
+ * - Map props: mode: "create", nodeType: defaultNodeTypeUid, content: initialTitle
+ * - See ModifyNodeDialog.tsx for full API
+ */
+
 import React, { useEffect, useRef, useState } from "react";
 import { Dialog, Classes, InputGroup, Label, Button } from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
