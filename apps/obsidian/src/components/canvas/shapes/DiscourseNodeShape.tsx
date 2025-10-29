@@ -266,7 +266,7 @@ const discourseNodeContent = memo(
       nodeType?.keyImage,
     ]);
 
-    const handleOpenInSidebar = async () => {
+    const handleOpenInSidebar = async (): Promise<void> => {
       if (!src) {
         showToast({
           severity: "warning",
@@ -275,17 +275,6 @@ const discourseNodeContent = memo(
         });
         return;
       }
-
-      const canvasFileCache = app.metadataCache.getFileCache(canvasFile);
-      if (!canvasFileCache) {
-        showToast({
-          severity: "error",
-          title: "Error",
-          description: "Could not read canvas file",
-        });
-        return;
-      }
-
       try {
         const linkedFile = await resolveLinkedFileFromSrc({
           app,
@@ -337,13 +326,9 @@ const discourseNodeContent = memo(
             onPointerUp={(e) => {
               e.stopPropagation();
             }}
-            className="absolute left-1 top-1 z-10 flex items-center justify-center rounded bg-white/90 p-1 shadow-sm transition-all duration-200 hover:bg-white"
+            className="absolute left-1 top-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded border border-black/10 bg-white/90 p-1 shadow-sm transition-all duration-200 hover:bg-white"
             style={{
-              width: "24px",
-              height: "24px",
-              border: "1px solid rgba(0, 0, 0, 0.1)",
               pointerEvents: "auto",
-              cursor: "pointer",
             }}
             title="Open in sidebar"
           >
