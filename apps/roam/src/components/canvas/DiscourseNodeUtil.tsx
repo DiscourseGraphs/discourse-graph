@@ -544,7 +544,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
             title="Open in sidebar (Shift+Click)"
           />
 
-          {shape.props.imageUrl && isKeyImage ? (
+          {shape.props.imageUrl && isKeyImage === "true" ? (
             <img
               src={shape.props.imageUrl}
               className="h-auto w-full object-cover"
