@@ -599,21 +599,19 @@ export const getAllNodes = async ({
   supabase,
   spaceId,
   author,
-  ofTypes,
   fields = { concepts: CONCEPT_FIELDS, content: CONTENT_FIELDS },
   pagination,
 }: {
   supabase: DGSupabaseClient;
   spaceId?: number;
   author?: string;
-  ofTypes?: string[];
   fields?: FieldSelection;
   pagination?: PaginationOptions;
 }): Promise<PConceptFull[]> => {
   return getConcepts({
     supabase,
     spaceId,
-    scope: { type: "nodes", author, ofTypes },
+    scope: { type: "nodes", author },
     fields,
     pagination,
   });
