@@ -1,7 +1,12 @@
 // To be removed when format is migrated to specification
 // https://github.com/RoamJS/query-builder/issues/189
 
-import { OnloadArgs, PullBlock } from "roamjs-components/types";
+import {
+  Action,
+  AddCommandOptions,
+  OnloadArgs,
+  PullBlock,
+} from "roamjs-components/types";
 import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
 import compileDatalog from "./compileDatalog";
 import discourseNodeFormatToDatalog from "./discourseNodeFormatToDatalog";
@@ -12,12 +17,14 @@ import { QBClause, Result } from "./types";
 import findDiscourseNode from "./findDiscourseNode";
 import extractTag from "roamjs-components/util/extractTag";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
+import ModifyNodeDialog, {
+  ModifyNodeDialogProps,
+} from "~/components/ModifyNodeDialog";
 
 type FormDialogProps = Parameters<typeof FormDialog>[0];
-const renderFormDialog = createOverlayRender<FormDialogProps>(
+const renderFormDialog = createOverlayRender<ModifyNodeDialogProps>(
   "form-dialog",
-  FormDialog,
+  ModifyNodeDialog,
 );
 
 export const getNewDiscourseNodeText = async ({
@@ -61,17 +68,16 @@ export const getNewDiscourseNodeText = async ({
       //   },
       //   isOpen: true,
       // });
-      renderModifyNodeDialog({
+      renderFormDialog({
         mode: "create",
         nodeType: nodeType,
         content: text,
         onSuccess: async () => {
-          // Success is handled by the dialog itself
+          resolve(text);
         },
         onClose: () => {},
         extensionAPI:
           window.roamAlphaAPI as unknown as OnloadArgs["extensionAPI"],
-        sourceBlockUid: blockUid,
       });
 
       const setupButtonControl = () => {

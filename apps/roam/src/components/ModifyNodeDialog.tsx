@@ -40,7 +40,7 @@ type ReferencedNode = {
   value?: string;
 };
 
-type ModifyNodeDialogProps = {
+export type ModifyNodeDialogProps = {
   mode: "create" | "edit";
   nodeType: string;
   content: string;
@@ -71,35 +71,37 @@ const ModifyNodeDialog = ({
   discourseContext,
 }: RoamOverlayProps<ModifyNodeDialogProps>) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const requestIdRef = useRef(0);
-  
+  const contentRequestIdRef = useRef(0);
+  const referencedNodeRequestIdRef = useRef(0);
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [isReferencedNodeLoading, setIsReferencedNodeLoading] = useState(false);
+
   const discourseNodes = useMemo(
     () => getDiscourseNodes().filter(excludeDefaultNodes),
     [],
   );
-  
+
   const [selectedNodeType, setSelectedNodeType] = useState(() => {
     const node = discourseNodes.find((n) => n.type === initialNodeType);
     return node || discourseNodes[0];
   });
-  
+
   const [options, setOptions] = useState<Result[]>([]);
   const [content, setContent] = useState(initialContent);
   const [contentUid, setContentUid] = useState(initialUid || "");
-  
+
   const [referencedNodeOptions, setReferencedNodeOptions] = useState<Result[]>(
     [],
   );
   const [referencedNodeValue, setReferencedNodeValue] = useState("");
   const [isAddReferencedNode, setAddReferencedNode] = useState(false);
-  
+
   const isCreateMode = mode === "create";
   const isEditMode = mode === "edit";
-  
+
   // Get node format and referenced node info
   const nodeFormat = useMemo(() => {
     if (discourseContext) {
@@ -107,24 +109,24 @@ const ModifyNodeDialog = ({
     }
     return selectedNodeType.format || "";
   }, [selectedNodeType, discourseContext]);
-  
+
   const referencedNode = useMemo(() => {
     const regex = /{([\w\d-]*)}/g;
     const matches = [...nodeFormat.matchAll(regex)];
-    
+
     for (const match of matches) {
       const val = match[1];
       if (val.toLowerCase() === "content") continue;
       if (val.toLowerCase() === "context") continue;
-      
+
       const allNodes = discourseContext
         ? Object.values(discourseContext.nodes)
         : discourseNodes;
-      
+
       const refNode = allNodes.find(({ text }) =>
         new RegExp(text, "i").test(val),
       );
-      
+
       if (refNode) {
         return {
           name: refNode.text,
@@ -132,16 +134,16 @@ const ModifyNodeDialog = ({
         };
       }
     }
-    
+
     return null;
   }, [nodeFormat, discourseNodes, discourseContext]);
-  
+
   // Fetch options for main content autocomplete
   useEffect(() => {
     let alive = true;
-    const req = ++requestIdRef.current;
+    const req = ++contentRequestIdRef.current;
     setIsLoading(true);
-    
+
     const fetchOptions = async () => {
       try {
         if (selectedNodeType) {
@@ -159,32 +161,33 @@ const ModifyNodeDialog = ({
               },
             ],
           });
-          if (requestIdRef.current === req && alive) setOptions(results);
+          if (contentRequestIdRef.current === req && alive) setOptions(results);
         }
       } catch (error) {
-        if (requestIdRef.current === req && alive) {
+        if (contentRequestIdRef.current === req && alive) {
           console.error("Error fetching content options:", error);
         }
       } finally {
-        if (requestIdRef.current === req && alive) setIsLoading(false);
+        if (contentRequestIdRef.current === req && alive) setIsLoading(false);
       }
     };
-    
+
     void fetchOptions();
     return () => {
       alive = false;
     };
   }, [selectedNodeType]);
-  
+
   // Fetch options for referenced node autocomplete
   useEffect(() => {
     if (!referencedNode) return;
-    
+
     let alive = true;
-    const req = ++requestIdRef.current;
-    
+    const req = ++referencedNodeRequestIdRef.current;
+
     const fetchReferencedOptions = async () => {
       try {
+        setIsReferencedNodeLoading(true);
         const conditionUid = window.roamAlphaAPI.util.generateUID();
         const results = await fireQuery({
           returnNode: "node",
@@ -199,38 +202,44 @@ const ModifyNodeDialog = ({
             },
           ],
         });
-        if (requestIdRef.current === req && alive) {
+        if (referencedNodeRequestIdRef.current === req && alive) {
           setReferencedNodeOptions(results);
         }
       } catch (error) {
-        if (requestIdRef.current === req && alive) {
+        if (referencedNodeRequestIdRef.current === req && alive) {
           console.error("Error fetching referenced node options:", error);
         }
+      } finally {
+        if (referencedNodeRequestIdRef.current === req && alive)
+          setIsReferencedNodeLoading(false);
       }
     };
-    
+
     void fetchReferencedOptions();
     return () => {
       alive = false;
     };
   }, [referencedNode]);
-  
+
   const setValue = useCallback(
     (r: Result) => {
       const generatedUid = initialUid || window.roamAlphaAPI.util.generateUID();
-      
+
       if (isCreateMode && r.uid === generatedUid) {
         // Creating new node with format
-        const pageName = nodeFormat.replace(/{([\w\d-]*)}/g, (_, val: string) => {
-          if (/content/i.test(val)) return r.text;
-          if (
-            referencedNode &&
-            new RegExp(referencedNode.name, "i").test(val) &&
-            isAddReferencedNode
-          )
-            return referencedNodeValue;
-          return "";
-        });
+        const pageName = nodeFormat.replace(
+          /{([\w\d-]*)}/g,
+          (_, val: string) => {
+            if (/content/i.test(val)) return r.text;
+            if (
+              referencedNode &&
+              new RegExp(referencedNode.name, "i").test(val) &&
+              isAddReferencedNode
+            )
+              return referencedNodeValue;
+            return "";
+          },
+        );
         setContent(pageName);
       } else {
         setContent(r.text);
@@ -246,11 +255,11 @@ const ModifyNodeDialog = ({
       referencedNodeValue,
     ],
   );
-  
+
   const setValueFromReferencedNode = useCallback(
     (r: Result) => {
       if (!referencedNode) return;
-      
+
       if (isEditMode) {
         // Hack for default shipped EVD format
         if (content.endsWith(" - ")) {
@@ -261,19 +270,22 @@ const ModifyNodeDialog = ({
           setContent(`${content} - [[${r.text}]]`);
         }
       } else {
-        const pageName = nodeFormat.replace(/{([\w\d-]*)}/g, (_, val: string) => {
-          if (/content/i.test(val)) return content;
-          if (new RegExp(referencedNode.name, "i").test(val))
-            return `[[${r.text}]]`;
-          return "";
-        });
+        const pageName = nodeFormat.replace(
+          /{([\w\d-]*)}/g,
+          (_, val: string) => {
+            if (/content/i.test(val)) return content;
+            if (new RegExp(referencedNode.name, "i").test(val))
+              return `[[${r.text}]]`;
+            return "";
+          },
+        );
         setContent(pageName);
       }
       setReferencedNodeValue(r.text);
     },
     [content, referencedNode, nodeFormat, isEditMode],
   );
-  
+
   const onNewItem = useCallback(
     (text: string) => ({
       text,
@@ -281,9 +293,9 @@ const ModifyNodeDialog = ({
     }),
     [initialUid],
   );
-  
+
   const itemToQuery = useCallback((result?: Result) => result?.text || "", []);
-  
+
   const filterOptions = useCallback(
     (o: Result[], q: string) =>
       fuzzy
@@ -292,35 +304,35 @@ const ModifyNodeDialog = ({
         .filter((f): f is Result => !!f),
     [itemToQuery],
   );
-  
+
   const onSubmit = async () => {
     if (!content.trim()) return;
-    
+
     setLoading(true);
     setError("");
-    
+
     try {
       const action = isCreateMode ? "creating" : "editing";
-      
+
       if (action === "creating") {
         const formattedTitle = await getNewDiscourseNodeText({
           text: content.trim(),
           nodeType: selectedNodeType.type,
           blockUid: sourceBlockUid,
         });
-        
+
         if (!formattedTitle) {
           setLoading(false);
           return;
         }
-        
+
         // Create new discourse node
         const newPageUid = await createDiscourseNode({
           text: formattedTitle,
           configPageUid: selectedNodeType.type,
           extensionAPI,
         });
-        
+
         // Handle source block update if needed
         if (sourceBlockUid) {
           const pageRef = `[[${formattedTitle}]]`;
@@ -338,7 +350,7 @@ const ModifyNodeDialog = ({
             });
           }
         }
-        
+
         renderToast({
           id: `discourse-node-created-${Date.now()}`,
           intent: "success",
@@ -371,7 +383,7 @@ const ModifyNodeDialog = ({
             </span>
           ),
         });
-        
+
         await onSuccess({
           text: formattedTitle,
           uid: contentUid,
@@ -386,7 +398,7 @@ const ModifyNodeDialog = ({
           action,
         });
       }
-      
+
       onClose();
     } catch (e) {
       setError((e as Error).message);
@@ -394,11 +406,11 @@ const ModifyNodeDialog = ({
       setLoading(false);
     }
   };
-  
+
   const onCancelClick = useCallback(() => {
     onClose();
   }, [onClose]);
-  
+
   // Auto-focus handling for referenced node input
   const inputDivRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -408,7 +420,7 @@ const ModifyNodeDialog = ({
       if (inputElement) inputElement.focus();
     }
   }, [isAddReferencedNode]);
-  
+
   return (
     <Dialog
       isOpen={isOpen}
@@ -418,7 +430,10 @@ const ModifyNodeDialog = ({
       title={`${isCreateMode ? "Create" : "Edit"} Discourse Node`}
       className="roamjs-discourse-node-dialog"
     >
-      <div className={`${Classes.DIALOG_BODY} flex flex-col gap-4`} ref={containerRef}>
+      <div
+        className={`${Classes.DIALOG_BODY} flex flex-col gap-4`}
+        ref={containerRef}
+      >
         {/* Node Type Selector */}
         <div className="flex w-full">
           <Label>
@@ -440,9 +455,9 @@ const ModifyNodeDialog = ({
             />
           </Label>
         </div>
-        
+
         {/* Content Input */}
-        <div className="mb-4 w-full">
+        <div className="w-full">
           <Label>Content</Label>
           <div className="w-full">
             <AutocompleteInput
@@ -465,10 +480,13 @@ const ModifyNodeDialog = ({
             />
           </div>
         </div>
-        
+
         {/* Referenced Node Section */}
         {referencedNode && (
-          <div className="mt-2 w-full referenced-node-autocomplete" ref={inputDivRef}>
+          <div
+            className="referenced-node-autocomplete w-full"
+            ref={inputDivRef}
+          >
             <Label>{referencedNode.name}</Label>
             <div className="w-full">
               <AutocompleteInput
@@ -483,16 +501,22 @@ const ModifyNodeDialog = ({
                 onNewItem={onNewItem}
                 itemToQuery={itemToQuery}
                 filterOptions={filterOptions}
+                onConfirm={() => {
+                  // Prevent default behavior, don't submit the form
+                  // Just keep the dialog open
+                }}
                 placeholder={
-                  isLoading ? "..." : `Enter a ${referencedNode.name} ...`
+                  isReferencedNodeLoading
+                    ? "..."
+                    : `Enter a ${referencedNode.name} ...`
                 }
                 maxItemsDisplayed={100}
               />
             </div>
           </div>
-           )}
+        )}
       </div>
-      
+
       <div className={Classes.DIALOG_FOOTER}>
         <div
           className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
