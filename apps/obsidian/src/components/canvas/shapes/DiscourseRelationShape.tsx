@@ -1134,7 +1134,7 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
       }
 
       // Add the bidirectional relation to frontmatter
-      await addRelationToFrontmatter({
+      const { alreadyExisted } = await addRelationToFrontmatter({
         app: this.options.app,
         plugin: this.options.plugin,
         sourceFile,
@@ -1147,7 +1147,7 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
         (rt) => rt.id === shape.props.relationTypeId,
       );
 
-      if (relationType) {
+      if (relationType && !alreadyExisted) {
         showToast({
           severity: "success",
           title: "Relation Created",

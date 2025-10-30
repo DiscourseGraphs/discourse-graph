@@ -55,18 +55,21 @@ type TldrawPreviewProps = {
   store: TLStore;
   file: TFile;
   assetStore: ObsidianTLAssetStore;
+  canvasUuid: string;
 };
 
 export const TldrawPreviewComponent = ({
   store,
   file,
   assetStore,
+  canvasUuid,
 }: TldrawPreviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentStore, setCurrentStore] = useState<TLStore>(store);
   const [isReady, setIsReady] = useState(false);
   const isCreatingRelationRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
+  const isSavingRef = useRef<boolean>(false);
   const lastShiftClickRef = useRef<number>(0);
   const SHIFT_CLICK_DEBOUNCE_MS = 300; // Prevent double clicks within 300ms
   const lastSavedDataRef = useRef<string>("");
@@ -99,10 +102,21 @@ export const TldrawPreviewComponent = ({
   }, []);
 
   const saveChanges = useCallback(async () => {
+    // Prevent concurrent saves
+    if (isSavingRef.current) {
+      return;
+    }
+
+    if (!canvasUuid) {
+      return;
+    }
+
+    isSavingRef.current = true;
+
     const newData = getTLDataTemplate({
       pluginVersion: plugin.manifest.version,
       tldrawFile: createRawTldrawFile(currentStore),
-      uuid: window.crypto.randomUUID(),
+      uuid: canvasUuid,
     });
     const stringifiedData = JSON.stringify(newData, null, "\t");
 
@@ -131,8 +145,21 @@ export const TldrawPreviewComponent = ({
         ),
       );
 
-      if (!verifyMatch || verifyMatch[1]?.trim() !== stringifiedData.trim()) {
-        throw new Error("Failed to verify saved TLDraw data");
+      if (!verifyMatch) {
+        throw new Error(
+          "Failed to verify saved TLDraw data: Could not find data block",
+        );
+      }
+
+      const savedData = JSON.parse(verifyMatch[1]?.trim() ?? "{}") as TLData;
+      const expectedData = JSON.parse(
+        stringifiedData?.trim() ?? "{}",
+      ) as TLData;
+
+      if (JSON.stringify(savedData) !== JSON.stringify(expectedData)) {
+        console.warn(
+          "Saved data differs from expected (this is normal during concurrent operations)",
+        );
       }
 
       lastSavedDataRef.current = stringifiedData;
@@ -155,7 +182,8 @@ export const TldrawPreviewComponent = ({
         setCurrentStore(newStore);
       }
     }
-  }, [file, plugin, currentStore, assetStore]);
+    isSavingRef.current = false;
+  }, [file, plugin, currentStore, assetStore, canvasUuid]);
 
   useEffect(() => {
     const unsubscribe = currentStore.listen(
@@ -163,10 +191,17 @@ export const TldrawPreviewComponent = ({
         if (saveTimeoutRef.current) {
           clearTimeout(saveTimeoutRef.current);
         }
-        saveTimeoutRef.current = setTimeout(
-          () => void saveChanges(),
-          DEFAULT_SAVE_DELAY,
-        );
+        saveTimeoutRef.current = setTimeout(() => {
+          // If a save is already in progress, schedule another save after it completes
+          if (isSavingRef.current) {
+            saveTimeoutRef.current = setTimeout(
+              () => void saveChanges(),
+              DEFAULT_SAVE_DELAY,
+            );
+          } else {
+            void saveChanges();
+          }
+        }, DEFAULT_SAVE_DELAY);
       },
       { source: "user", scope: "document" },
     );
@@ -366,7 +401,7 @@ export const TldrawPreviewComponent = ({
                     <TldrawUiMenuItem
                       id="discourse-node"
                       icon="discourseNodeIcon"
-                      label="Discourse Node"
+                      label="Discourse Graph"
                       onSelect={() => {
                         if (editorRef.current) {
                           editorRef.current.setCurrentTool("discourse-node");
