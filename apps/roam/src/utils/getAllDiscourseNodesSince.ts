@@ -75,21 +75,21 @@ export const getAllDiscourseNodesSince = async (
   const result: RoamDiscourseNodeData[] = [];
 
   const query = `[
-  :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name
-  :keys text source_local_id created last_modified author_local_id author_name
-  :in $ ?since 
-  :where
-    [?node :node/title ?node-title]
-    [?node :block/uid ?uid]
-    [?node :create/time ?nodeCreateTime]
-    [?node :edit/time ?nodeEditTime]
-    [?node :create/user ?user-eid]
-    [?user-eid :user/uid ?author_local_id]
-    [?node :edit/user ?eu]
-    [(get-else $ ?eu :user/display-name "Unknown-person") ?author_name]
-    [(> ?nodeEditTime ?since)]
-]`;
 
+    :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name
+    :keys text source_local_id created last_modified author_local_id author_name
+    :in $ ?since 
+    :where
+      [?node :node/title ?node-title]
+      [?node :block/uid ?uid]
+      [?node :create/time ?nodeCreateTime]
+      [?node :create/user ?user-eid]
+      [?user-eid :user/uid ?author_local_id]
+      [(get-else $ ?user-eid :user/display-name "Unknown-Creator") ?author_name]
+      [(get-else $ ?node :edit/time 0) ?nodeEditTime]
+      [(get-else $ ?node :edit/time ?nodeCreateTime) ?filterTime]
+      [(> ?filterTime ?since)]
+  ]`;
   const allNodes = (await Promise.resolve(
     window.roamAlphaAPI.data.backend.q(query, sinceMs),
   )) as unknown as RoamDiscourseNodeData[];

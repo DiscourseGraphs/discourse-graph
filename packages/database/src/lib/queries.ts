@@ -325,7 +325,7 @@ const composeConceptQuery = ({
     q += `, relations:concept_in_relations!inner(${args.join(",\n")})`;
   }
   let query = supabase.from("my_concepts").select(q);
-  if (scope.type === 'nodes') {
+  if (scope.type === "nodes") {
     query = query.eq("arity", 0);
   } else if (scope.type === 'relations') {
     query = query.gt("arity", 0);
