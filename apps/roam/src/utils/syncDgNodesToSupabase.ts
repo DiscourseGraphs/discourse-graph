@@ -311,16 +311,6 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
   await uploadBatches(chunk(nodesWithEmbeddings, BATCH_SIZE));
 };
 
-const getDgNodeTypes = () => {
-  const allDgNodeTypes = getDiscourseNodes().filter(
-    (n) => n.backedBy === "user",
-  );
-  const dgNodeTypesWithSettings = allDgNodeTypes.filter((n) => {
-    return n.isFirstChild?.value || n.embeddingRef !== undefined;
-  });
-  return { allDgNodeTypes, dgNodeTypesWithSettings };
-};
-
 const getAllUsers = async (): Promise<AccountLocalInput[]> => {
   const query = `[:find ?author_local_id ?author_name
   :keys author_local_id name
@@ -424,11 +414,13 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
     const allUsers = await getAllUsers();
     const sinceTime = (lastUpdateTime || DEFAULT_TIME).valueOf() - 1000; // add a one-second buffer
     const time = new Date(sinceTime).toISOString();
-    const { allDgNodeTypes, dgNodeTypesWithSettings } = getDgNodeTypes();
+    const allDgNodeTypes = getDiscourseNodes().filter(
+      (n) => n.backedBy === "user",
+    );
 
     const allNodeInstances = await getAllDiscourseNodesSince(
       time,
-      dgNodeTypesWithSettings,
+      allDgNodeTypes,
     );
     await upsertUsers(allUsers, supabaseClient, context);
     await upsertNodesToSupabaseAsContentWithEmbeddings(

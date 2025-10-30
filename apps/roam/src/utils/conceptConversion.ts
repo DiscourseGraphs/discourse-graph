@@ -26,7 +26,7 @@ const getNodeExtraData = (
       [?block :create/user ?author_id]
       [?author_id :user/uid ?author_uid]
       [?block :create/time ?created]
-      [?block :edit/time ?last_modified]
+      [(get-else $ ?block :edit/time ?created) ?last_modified]
       [(get-else $ ?block :block/page ?block) ?page_id]
       [?page_id :block/uid ?page_uid]
   ]`,
