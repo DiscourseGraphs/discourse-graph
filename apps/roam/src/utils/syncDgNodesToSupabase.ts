@@ -70,12 +70,13 @@ export const endSyncTask = async (
           intent: "danger",
           timeout: 5000,
         });
-        sendErrorEmail({
-          error: new Error("Discourse node embeddings sync failed"),
-          type: "Sync Failed",
-          context: { status },
-        }).catch(() => {});
       }
+      sendErrorEmail({
+        error: new Error("Failed to complete discourse node embeddings sync"),
+        type: "Sync Failed",
+        context: { status },
+      }).catch(() => {});
+
       return;
     } else if (showToast) {
       if (status === "failed") {
@@ -85,11 +86,6 @@ export const endSyncTask = async (
           intent: "danger",
           timeout: 5000,
         });
-        sendErrorEmail({
-          error: new Error("Discourse node embeddings sync failed"),
-          type: "Sync Failed",
-          context: { status },
-        }).catch(() => {});
       }
     }
   } catch (error) {
@@ -101,12 +97,12 @@ export const endSyncTask = async (
         intent: "danger",
         timeout: 5000,
       });
-      sendErrorEmail({
-        error: new Error("Failed to complete discourse node embeddings sync"),
-        type: "Sync Failed",
-        context: { status },
-      }).catch(() => {});
     }
+    sendErrorEmail({
+      error: new Error("Failed to complete discourse node embeddings sync"),
+      type: "Sync Failed",
+      context: { status },
+    }).catch(() => {});
   }
 };
 
