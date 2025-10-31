@@ -156,7 +156,7 @@ export default runExtension(async (onloadArgs) => {
       intent: "warning",
       timeout: 10000,
       content:
-        "Discourse Graph detected the Roam left sidebar script. Running both sidebars may cause issues, Please remove the Roam left sidebar script from your Roam instance, and reload the graph.",
+        "Discourse Graph detected the Roam left sidebar script. Running both sidebars may cause issues. Please remove the Roam left sidebar script from your Roam instance, and reload the graph.",
     });
   }
 
