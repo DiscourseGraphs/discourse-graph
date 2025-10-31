@@ -5,7 +5,7 @@ import findDiscourseNode from "./findDiscourseNode";
 import { nextApiRoot } from "@repo/utils/execContext";
 import { DiscourseNode } from "./getDiscourseNodes";
 import getExtensionAPI from "roamjs-components/util/extensionApiContext";
-import { getAllNodes } from "@repo/database/lib/queries";
+import { getNodesByType } from "@repo/database/lib/queries";
 
 type ApiEmbeddingResponse = {
   data: Array<{
@@ -463,7 +463,7 @@ export const performHydeSearch = async ({
     if (!supabase) return [];
 
     candidateNodesForHyde = (
-      await getAllNodes({
+      await getNodesByType({
         supabase,
         spaceId,
         fields: { content: ["source_local_id", "text"] },
