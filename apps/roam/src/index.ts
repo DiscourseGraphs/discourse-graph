@@ -1,4 +1,4 @@
-import { addStyle } from "roamjs-components/dom";
+import { addStyle, getRoamUrl } from "roamjs-components/dom";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 import { runExtension } from "roamjs-components/util";
@@ -32,6 +32,7 @@ import {
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
+import { createClient } from "@repo/database/lib/client";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -126,7 +127,18 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  await initializeSupabaseSync();
+  const supabase = createClient();
+  if (supabase) {
+    const { data } = await supabase
+      .from("Space")
+      .select("url")
+      .eq("url", getRoamUrl())
+      .maybeSingle();
+
+    if (data) {
+      initializeSupabaseSync();
+    }
+  }
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {

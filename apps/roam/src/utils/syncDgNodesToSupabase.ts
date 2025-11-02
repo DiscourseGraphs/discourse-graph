@@ -18,10 +18,10 @@ import {
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
-import { render as renderToast } from "roamjs-components/components/Toast";
 import { createClient, type DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json, CompositeTypes, Enums } from "@repo/database/dbTypes";
-
+import { render as renderToast } from "roamjs-components/components/Toast";
+import sendErrorEmail from "~/utils/sendErrorEmail";
 type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 type AccountLocalInput = CompositeTypes<"account_local_input">;
 
@@ -40,6 +40,31 @@ type SyncTaskInfo = {
   lastUpdateTime?: Date;
   nextUpdateTime?: Date;
   shouldProceed: boolean;
+};
+
+const notifyEndSyncFailure = ({
+  status,
+  showToast,
+  reason,
+}: {
+  status: Enums<"task_status">;
+  showToast: boolean;
+  reason: string;
+}): void => {
+  if (showToast) {
+    renderToast({
+      id: "discourse-embedding-error",
+      content: "Failed to complete discourse node embeddings sync",
+      intent: "danger",
+      timeout: 5000,
+    });
+  }
+
+  sendErrorEmail({
+    error: new Error(reason),
+    type: "Sync Failed",
+    context: { status },
+  }).catch(() => {});
 };
 
 export const endSyncTask = async (
@@ -63,23 +88,15 @@ export const endSyncTask = async (
     });
     if (error) {
       console.error("endSyncTask: Error calling end_sync_task:", error);
-      if (showToast)
-        renderToast({
-          id: "discourse-embedding-error",
-          content: "Failed to complete discourse node embeddings sync",
-          intent: "danger",
-          timeout: 5000,
-        });
+      notifyEndSyncFailure({
+        status,
+        showToast,
+        reason: `Supabase end_sync_task RPC failed: ${error.message ?? "Unknown error"}`,
+      });
+
       return;
     } else if (showToast) {
-      if (status === "complete") {
-        renderToast({
-          id: "discourse-embedding-complete",
-          content: "Successfully completed discourse node embeddings sync",
-          intent: "success",
-          timeout: 4000,
-        });
-      } else if (status === "failed") {
+      if (status === "failed") {
         renderToast({
           id: "discourse-embedding-failed",
           content: "Discourse node embeddings sync failed",
@@ -90,13 +107,14 @@ export const endSyncTask = async (
     }
   } catch (error) {
     console.error("endSyncTask: Error calling end_sync_task:", error);
-    if (showToast)
-      renderToast({
-        id: "discourse-embedding-error",
-        content: "Failed to complete discourse node embeddings sync",
-        intent: "danger",
-        timeout: 5000,
-      });
+    notifyEndSyncFailure({
+      status,
+      showToast,
+      reason:
+        error instanceof Error
+          ? `Unexpected error ending sync task: ${error.message}`
+          : "Unexpected non-error thrown while ending sync task",
+    });
   }
 };
 
@@ -468,13 +486,13 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
   }
 };
 
-export const initializeSupabaseSync = async () => {
-  const supabase = createClient();
-  if (supabase === null) {
-    doSync = false;
-  } else {
-    doSync = true;
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    activeTimeout = setTimeout(createOrUpdateDiscourseEmbedding, 100, true);
+export const initializeSupabaseSync = (): void => {
+  if (activeTimeout !== null) {
+    clearTimeout(activeTimeout);
+    activeTimeout = null;
   }
+
+  doSync = true;
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+  activeTimeout = setTimeout(createOrUpdateDiscourseEmbedding, 100, true);
 };
