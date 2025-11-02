@@ -42,6 +42,31 @@ type SyncTaskInfo = {
   shouldProceed: boolean;
 };
 
+const notifyEndSyncFailure = ({
+  status,
+  showToast,
+  reason,
+}: {
+  status: Enums<"task_status">;
+  showToast: boolean;
+  reason: string;
+}): void => {
+  if (showToast) {
+    renderToast({
+      id: "discourse-embedding-error",
+      content: "Failed to complete discourse node embeddings sync",
+      intent: "danger",
+      timeout: 5000,
+    });
+  }
+
+  sendErrorEmail({
+    error: new Error(reason),
+    type: "Sync Failed",
+    context: { status },
+  }).catch(() => {});
+};
+
 export const endSyncTask = async (
   worker: string,
   status: Enums<"task_status">,
@@ -63,19 +88,11 @@ export const endSyncTask = async (
     });
     if (error) {
       console.error("endSyncTask: Error calling end_sync_task:", error);
-      if (showToast) {
-        renderToast({
-          id: "discourse-embedding-error",
-          content: "Failed to complete discourse node embeddings sync",
-          intent: "danger",
-          timeout: 5000,
-        });
-      }
-      sendErrorEmail({
-        error: new Error("Failed to complete discourse node embeddings sync"),
-        type: "Sync Failed",
-        context: { status },
-      }).catch(() => {});
+      notifyEndSyncFailure({
+        status,
+        showToast,
+        reason: `Supabase end_sync_task RPC failed: ${error.message ?? "Unknown error"}`,
+      });
 
       return;
     } else if (showToast) {
@@ -90,19 +107,14 @@ export const endSyncTask = async (
     }
   } catch (error) {
     console.error("endSyncTask: Error calling end_sync_task:", error);
-    if (showToast) {
-      renderToast({
-        id: "discourse-embedding-error",
-        content: "Failed to complete discourse node embeddings sync",
-        intent: "danger",
-        timeout: 5000,
-      });
-    }
-    sendErrorEmail({
-      error: new Error("Failed to complete discourse node embeddings sync"),
-      type: "Sync Failed",
-      context: { status },
-    }).catch(() => {});
+    notifyEndSyncFailure({
+      status,
+      showToast,
+      reason:
+        error instanceof Error
+          ? `Unexpected error ending sync task: ${error.message}`
+          : "Unexpected non-error thrown while ending sync task",
+    });
   }
 };
 
