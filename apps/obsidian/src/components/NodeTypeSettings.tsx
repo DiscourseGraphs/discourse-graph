@@ -360,7 +360,7 @@ const NodeTypeSettings = () => {
     const modal = new ConfirmationModal(plugin.app, {
       title: "Delete Node Type",
       message: `Are you sure you want to delete the node type "${nodeType.name}"?`,
-      onConfirm: () => handleDeleteNodeType(index),
+      onConfirm: () => void handleDeleteNodeType(index),
     });
     modal.open();
   };
@@ -581,7 +581,7 @@ const NodeTypeSettings = () => {
               Cancel
             </button>
             <button
-              onClick={handleSave}
+              onClick={() => void handleSave()}
               className="mod-cta"
               disabled={
                 Object.keys(errors).length > 0 ||
