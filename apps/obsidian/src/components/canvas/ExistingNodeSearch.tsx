@@ -5,7 +5,12 @@ import DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
 import SearchBar from "~/components/SearchBar";
 import { addWikilinkBlockrefForFile } from "./stores/assetStore";
-import { getFrontmatterForFile } from "./shapes/discourseNodeShapeUtils";
+import {
+  getFirstImageSrcForFile,
+  getFrontmatterForFile,
+} from "./shapes/discourseNodeShapeUtils";
+import { DiscourseNode } from "~/types";
+import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 
 export const ExistingNodeSearch = ({
   plugin,
@@ -50,6 +55,32 @@ export const ExistingNodeSearch = ({
             canvasFile,
             linkedFile: file,
           });
+          const fmNodeTypeId = getFrontmatterForFile(plugin.app, file)
+            ?.nodeTypeId as string | undefined;
+          const nodeType: DiscourseNode | undefined = fmNodeTypeId
+            ? plugin.settings.nodeTypes.find((n) => n.id === fmNodeTypeId)
+            : undefined;
+          let preloadedImageSrc: string | undefined = undefined;
+          if (nodeType?.keyImage) {
+            try {
+              const found = await getFirstImageSrcForFile(plugin.app, file);
+              if (found) preloadedImageSrc = found;
+            } catch (e) {
+              console.warn(
+                "ExistingNodeSearch: failed to preload key image",
+                e,
+              );
+            }
+          }
+
+          // Calculate optimal dimensions using dynamic measurement
+          const { w, h } = await calcDiscourseNodeSize({
+            title: file.basename,
+            nodeTypeId: fmNodeTypeId ?? "",
+            imageSrc: preloadedImageSrc,
+            plugin,
+          });
+
           const id = createShapeId();
           editor.createShape({
             id,
@@ -57,11 +88,12 @@ export const ExistingNodeSearch = ({
             x: pagePoint.x - Math.random() * 100,
             y: pagePoint.y - Math.random() * 100,
             props: {
-              w: 200,
-              h: 100,
+              w,
+              h,
               src,
               title: file.basename,
-              nodeTypeId: getFrontmatterForFile(plugin.app, file)?.nodeTypeId,
+              nodeTypeId: fmNodeTypeId ?? "",
+              imageSrc: preloadedImageSrc,
             },
           });
           editor.markHistoryStoppingPoint("add existing discourse node");
@@ -72,7 +104,7 @@ export const ExistingNodeSearch = ({
         }
       })();
     },
-    [canvasFile, getEditor, plugin.app],
+    [canvasFile, getEditor, plugin],
   );
 
   return (

@@ -9,6 +9,7 @@ export type DiscourseNode = {
   shortcut?: string;
   color?: string;
   tag?: string;
+  keyImage?: boolean;
 };
 
 export type DiscourseRelationType = {

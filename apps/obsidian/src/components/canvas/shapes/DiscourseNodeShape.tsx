@@ -1,8 +1,10 @@
 import {
   BaseBoxShapeUtil,
   HTMLContainer,
+  resizeBox,
   T,
   TLBaseShape,
+  TLResizeInfo,
   useEditor,
 } from "tldraw";
 import type { App, TFile } from "obsidian";
@@ -11,9 +13,11 @@ import DiscourseGraphPlugin from "~/index";
 import {
   getFrontmatterForFile,
   FrontmatterRecord,
+  getFirstImageSrcForFile,
 } from "./discourseNodeShapeUtils";
 import { resolveLinkedFileFromSrc } from "~/components/canvas/stores/assetStore";
 import { getNodeTypeById } from "~/utils/typeUtils";
+import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 
 export type DiscourseNodeShape = TLBaseShape<
   "discourse-node",
@@ -25,6 +29,7 @@ export type DiscourseNodeShape = TLBaseShape<
     // Cached display data
     title: string;
     nodeTypeId: string;
+    imageSrc?: string;
   }
 >;
 
@@ -44,6 +49,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     src: T.string.nullable(),
     title: T.string.optional(),
     nodeTypeId: T.string.nullable().optional(),
+    imageSrc: T.string.optional(),
   };
 
   getDefaultProps(): DiscourseNodeShape["props"] {
@@ -53,7 +59,18 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       src: null,
       title: "",
       nodeTypeId: "",
+      imageSrc: undefined,
     };
+  }
+
+  override isAspectRatioLocked = () => false;
+  override canResize = () => true;
+
+  override onResize(
+    shape: DiscourseNodeShape,
+    info: TLResizeInfo<DiscourseNodeShape>,
+  ) {
+    return resizeBox(shape, info);
   }
 
   component(shape: DiscourseNodeShape) {
@@ -158,6 +175,60 @@ const discourseNodeContent = memo(
               },
             });
           }
+
+          let didImageChange = false;
+          let currentImageSrc = shape.props.imageSrc;
+          if (nodeType?.keyImage) {
+            const imageSrc = await getFirstImageSrcForFile(app, linkedFile);
+
+            if (imageSrc && imageSrc !== shape.props.imageSrc) {
+              didImageChange = true;
+              currentImageSrc = imageSrc;
+              editor.updateShape<DiscourseNodeShape>({
+                id: shape.id,
+                type: "discourse-node",
+                props: {
+                  ...shape.props,
+                  imageSrc,
+                },
+              });
+            }
+          } else if (shape.props.imageSrc) {
+            didImageChange = true;
+            currentImageSrc = undefined;
+            editor.updateShape<DiscourseNodeShape>({
+              id: shape.id,
+              type: "discourse-node",
+              props: {
+                ...shape.props,
+                imageSrc: undefined,
+              },
+            });
+          }
+
+          if (didImageChange) {
+            const { w, h } = await calcDiscourseNodeSize({
+              title: linkedFile.basename,
+              nodeTypeId: shape.props.nodeTypeId,
+              imageSrc: currentImageSrc,
+              plugin,
+            });
+            // Only update dimensions if they differ significantly (>1px)
+            if (
+              Math.abs((shape.props.w || 0) - w) > 1 ||
+              Math.abs((shape.props.h || 0) - h) > 1
+            ) {
+              editor.updateShape<DiscourseNodeShape>({
+                id: shape.id,
+                type: "discourse-node",
+                props: {
+                  ...shape.props,
+                  w,
+                  h,
+                },
+              });
+            }
+          }
         } catch (error) {
           console.error("Error loading node data", error);
           return;
@@ -169,17 +240,44 @@ const discourseNodeContent = memo(
       return () => {
         return;
       };
-    }, [src, shape.id, shape.props, editor, app, canvasFile, plugin]);
+      // Only trigger when content changes, not when dimensions change (to avoid fighting manual resizing)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+      src,
+      shape.id,
+      shape.props.title,
+      shape.props.nodeTypeId,
+      shape.props.imageSrc,
+      editor,
+      app,
+      canvasFile,
+      plugin,
+      nodeType?.keyImage,
+    ]);
 
     return (
       <div
         style={{
           backgroundColor: nodeType?.color ?? "",
         }}
-        className="box-border flex h-full w-full flex-col items-start justify-center rounded-md border-2 p-2"
+        // NOTE: These Tailwind classes (p-2, border-2, rounded-md, m-1, text-base, m-0, text-sm)
+        // correspond to constants in nodeConstants.ts. If you change these classes, update the
+        // constants and the measureNodeText function to keep measurements accurate.
+        className="box-border flex h-full w-full flex-col items-start justify-start rounded-md border-2 p-2"
       >
-        <h1 className="m-0 text-base">{title || "..."}</h1>
+        <h1 className="m-1 text-base">{title || "..."}</h1>
         <p className="m-0 text-sm opacity-80">{nodeType?.name || ""}</p>
+        {shape.props.imageSrc ? (
+          <div className="mt-2 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+            <img
+              src={shape.props.imageSrc}
+              loading="lazy"
+              decoding="async"
+              draggable="false"
+              className="max-h-full max-w-full object-contain"
+            />
+          </div>
+        ) : null}
       </div>
     );
   },
