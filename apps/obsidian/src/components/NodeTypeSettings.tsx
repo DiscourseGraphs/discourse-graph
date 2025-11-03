@@ -8,7 +8,7 @@ import { ConfirmationModal } from "./ConfirmationModal";
 import { getTemplateFiles, getTemplatePluginInfo } from "~/utils/templates";
 
 const generateTagPlaceholder = (format: string, nodeName?: string): string => {
-  if (!format) return "Enter tag (e.g., clm-candidate or #clm-candidate)";
+  if (!format) return "Enter tag (e.g., clm-candidate)";
 
   // Extract the prefix before " - {content}" or " -{content}" or " -{content}" etc.
   const match = format.match(/^([A-Z]+)\s*-\s*\{content\}/i);
