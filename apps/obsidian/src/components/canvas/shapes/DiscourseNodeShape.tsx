@@ -260,6 +260,9 @@ const discourseNodeContent = memo(
         style={{
           backgroundColor: nodeType?.color ?? "",
         }}
+        // NOTE: These Tailwind classes (p-2, border-2, rounded-md, m-1, text-base, m-0, text-sm)
+        // correspond to constants in nodeConstants.ts. If you change these classes, update the
+        // constants and the measureNodeText function to keep measurements accurate.
         className="box-border flex h-full w-full flex-col items-start justify-start rounded-md border-2 p-2"
       >
         <h1 className="m-1 text-base">{title || "..."}</h1>
