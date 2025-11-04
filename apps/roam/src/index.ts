@@ -146,6 +146,20 @@ export default runExtension(async (onloadArgs) => {
 
   installDiscourseFloatingMenu(onloadArgs);
 
+  const leftSidebarScript = document.querySelector<HTMLScriptElement>(
+    'script#roam-left-sidebar[src="https://sid597.github.io/roam-left-sidebar/js/main.js"]',
+  );
+
+  if (leftSidebarScript) {
+    renderToast({
+      id: "discourse-graph-left-sidebar-conflict",
+      intent: "warning",
+      timeout: 10000,
+      content:
+        "Discourse Graph detected the Roam left sidebar script. Running both sidebars may cause issues. Please remove the Roam left sidebar script from your Roam instance, and reload the graph.",
+    });
+  }
+
   return {
     elements: [
       style,
