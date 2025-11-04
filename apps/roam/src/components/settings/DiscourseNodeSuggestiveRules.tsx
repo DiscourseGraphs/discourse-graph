@@ -91,28 +91,6 @@ const DiscourseNodeSuggestiveRules = ({
           supabaseClient,
           context,
         );
-        const nodeBlockToLocalConcepts = blockNodesSince.map((node) => {
-          const localConcept = discourseNodeBlockToLocalConcept(context, {
-            nodeUid: node.source_local_id,
-            schemaUid: node.type,
-            text: node.node_title
-              ? `${node.node_title} ${node.text}`
-              : node.text,
-          });
-          return localConcept;
-        });
-
-        const { error } = await supabaseClient.rpc("upsert_concepts", {
-          data: nodeBlockToLocalConcepts,
-          /* eslint-disable-next-line @typescript-eslint/naming-convention */
-          v_space_id: context.spaceId,
-          /* eslint-disable-next-line @typescript-eslint/naming-convention */
-        });
-        if (error) {
-          throw new Error(
-            `upsert_concepts failed: ${JSON.stringify(error, null, 2)}`,
-          );
-        }
       }
     } finally {
       setIsUpdating(false);

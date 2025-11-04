@@ -33,6 +33,10 @@ import {
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
 import { createClient } from "@repo/database/lib/client";
+import { getUidAndBooleanSetting } from "./utils/getExportSettings";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "./utils/renderNodeConfigPage";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -134,8 +138,15 @@ export default runExtension(async (onloadArgs) => {
       .select("url")
       .eq("url", getRoamUrl())
       .maybeSingle();
+    const isSuggestiveModeEnabled = getUidAndBooleanSetting({
+      tree: getBasicTreeByParentUid(
+        getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
+      ),
+      text: "(BETA) Suggestive Mode Enabled",
+    }).value;
 
-    if (data) {
+    if (data || isSuggestiveModeEnabled) {
+      console.log("Initializing supabase sync");
       initializeSupabaseSync();
     }
   }
