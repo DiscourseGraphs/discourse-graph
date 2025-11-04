@@ -146,7 +146,6 @@ export default runExtension(async (onloadArgs) => {
     }).value;
 
     if (data || isSuggestiveModeEnabled) {
-      console.log("Initializing supabase sync");
       initializeSupabaseSync();
     }
   }
