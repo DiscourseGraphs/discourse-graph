@@ -292,6 +292,79 @@ const rankNodes = ({
   return combinedResults.map((item) => item.node);
 };
 
+const filterAndRerankByLlm = async ({
+  originalText,
+  candidates,
+}: {
+  originalText: string;
+  candidates: SuggestedNode[];
+}): Promise<SuggestedNode[]> => {
+  if (candidates.length === 0) {
+    return [];
+  }
+
+  const candidateList = candidates
+    .map((c, i) => `${i + 1}. "${c.text}"`)
+    .join("\n");
+
+  const userPromptContent = `Given the original text for a new node: "${originalText}".
+
+Here is a list of existing nodes that might be duplicates:
+${candidateList}
+
+Your task is to identify which of these existing nodes are strong potential duplicates for the new node. A strong potential duplicate is one that covers the same core concepts or ideas as the new node, not just a partial or superficial match.
+
+Please return a JSON array of strings, containing the exact text of only the nodes you've identified as strong potential duplicates. The list should be ordered from the most likely duplicate to the least likely. If you think none of the candidates are strong duplicates, return an empty JSON array.
+
+For example, if you decide only candidates 3 and 1 are strong duplicates, and 3 is more likely, your response should be:
+["text of candidate 3", "text of candidate 1"]
+
+Only return the JSON array.`;
+
+  const requestBody = {
+    documents: [{ role: "user", content: userPromptContent }],
+    passphrase: "",
+    settings: {
+      model: API_CONFIG.LLM.MODEL,
+      maxTokens: 500,
+      temperature: 0.2,
+    },
+  };
+
+  let response: Response | null = null;
+  try {
+    const signal = AbortSignal.timeout(API_CONFIG.LLM.TIMEOUT_MS);
+    response = await fetch(API_CONFIG.LLM.URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+      signal,
+    });
+
+    if (!response.ok) {
+      await handleApiError(response, "LLM reranking");
+      return candidates;
+    }
+
+    const responseText = await response.text();
+    const rerankedTextList = JSON.parse(responseText) as string[];
+
+    const originalCandidatesMap = new Map(candidates.map((c) => [c.text, c]));
+    const rerankedNodes = rerankedTextList
+      .map((text) => originalCandidatesMap.get(text))
+      .filter((node): node is SuggestedNode => !!node);
+
+    console.log("rerankedNodes", rerankedNodes);
+
+    return rerankedNodes;
+  } catch (error: unknown) {
+    console.error("LLM reranking failed:", error);
+    return candidates;
+  }
+};
+
 export const findSimilarNodesUsingHyde = async ({
   candidateNodes,
   currentNodeText,
@@ -529,4 +602,82 @@ export const performHydeSearch = async ({
     return found;
   }
   return [];
+};
+
+export const findSimilarNodes = async ({
+  text,
+  nodeType,
+}: {
+  text: string;
+  nodeType: string;
+}): Promise<SuggestedNode[]> => {
+  if (!text.trim() || !nodeType) {
+    return [];
+  }
+
+  try {
+    const context = await getSupabaseContext();
+    if (!context) return [];
+    const supabase = await getLoggedInClient();
+    const { spaceId } = context;
+    if (!supabase) return [];
+
+    const candidateNodesForHyde = (
+      await getNodesByType({
+        supabase,
+        spaceId,
+        fields: { content: ["source_local_id", "text"] },
+        ofTypes: [nodeType],
+        pagination: { limit: 10000 },
+      })
+    )
+      .map((c) => {
+        const node = findDiscourseNode(c.Content?.source_local_id || "");
+        return {
+          uid: c.Content?.source_local_id || "",
+          text: c.Content?.text || "",
+          type: node ? node.type : "",
+        };
+      })
+      .filter((n) => n.uid && n.text && n.type);
+
+    if (candidateNodesForHyde.length === 0) {
+      return [];
+    }
+
+    const queryEmbedding = await createEmbedding(text);
+    const searchResults = await searchEmbeddings({
+      queryEmbedding,
+      indexData: candidateNodesForHyde,
+    });
+    console.log("searchResults", searchResults);
+
+    const nodeMap = new Map<string, CandidateNodeWithEmbedding>(
+      candidateNodesForHyde.map((node) => [node.uid, node]),
+    );
+
+    const combinedResults: { node: SuggestedNode; score: number }[] = [];
+    searchResults.forEach((result) => {
+      const fullNode = nodeMap.get(result.object.uid);
+      if (fullNode) {
+        combinedResults.push({ node: fullNode, score: result.score });
+      }
+    });
+
+    combinedResults.sort((a, b) => b.score - a.score);
+    const top5Candidates = combinedResults.slice(0, 7).map((item) => item.node);
+
+    if (top5Candidates.length === 0) {
+      return [];
+    }
+    console.log("top5Candidates", top5Candidates);
+
+    return await filterAndRerankByLlm({
+      originalText: text,
+      candidates: top5Candidates,
+    });
+  } catch (error) {
+    console.error("Error finding similar nodes:", error);
+    return [];
+  }
 };
