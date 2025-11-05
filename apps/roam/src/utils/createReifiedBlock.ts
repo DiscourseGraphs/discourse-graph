@@ -4,11 +4,15 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import setBlockProps from "./setBlockProps";
 import { getSetting } from "~/utils/extensionSettings";
 
-export const createReifiedBlock = async (
-  destinationBlockUid: string,
-  schemaUid: string,
-  parameterUids: Record<string, string>,
-): Promise<string> => {
+export const createReifiedBlock = async ({
+  destinationBlockUid,
+  schemaUid,
+  parameterUids,
+}: {
+  destinationBlockUid: string;
+  schemaUid: string;
+  parameterUids: Record<string, string>;
+}): Promise<string> => {
   // TODO/Question: Should we try to ensure uniqueness?
   const newUid = window.roamAlphaAPI.util.generateUID();
   await createBlock({
@@ -43,20 +47,24 @@ const getRelationPageUid = async (): Promise<string> => {
   return relationPageUid;
 };
 
-export const createReifiedRelation = async (
-  sourceUid: string,
-  relationBlockUid: string,
-  destinationUid: string,
-): Promise<string | undefined> => {
+export const createReifiedRelation = async ({
+  sourceUid,
+  relationBlockUid,
+  destinationUid,
+}: {
+  sourceUid: string;
+  relationBlockUid: string;
+  destinationUid: string;
+}): Promise<string | undefined> => {
   const authorized = getSetting("use-reified-relations");
   if (authorized) {
-    return await createReifiedBlock(
-      await getRelationPageUid(),
-      relationBlockUid,
-      {
+    return await createReifiedBlock({
+      destinationBlockUid: await getRelationPageUid(),
+      schemaUid: relationBlockUid,
+      parameterUids: {
         sourceUid,
         destinationUid,
       },
-    );
+    });
   }
 };
