@@ -78,7 +78,6 @@ export const SettingsDialog = ({
     selectedTabId ?? "discourse-graph-home-personal",
   );
 
-
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === "A") {
@@ -230,7 +229,7 @@ export const SettingsDialog = ({
             id="secret-admin-panel"
             title="Secret Admin Panel"
             className="overflow-y-auto"
-            panel={<AdminPanel />}
+            panel={<AdminPanel onloadArgs={onloadArgs} />}
           />
         </Tabs>
       </div>
