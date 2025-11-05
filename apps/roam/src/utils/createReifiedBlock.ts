@@ -36,7 +36,6 @@ let relationPageUid: string | undefined = undefined;
 const getRelationPageUid = async (): Promise<string> => {
   if (relationPageUid === undefined) {
     relationPageUid = getPageUidByPageTitle(RELATION_PAGE_TITLE);
-    console.log(relationPageUid);
     if (relationPageUid === "") {
       relationPageUid = await createPage({ title: RELATION_PAGE_TITLE });
     }
