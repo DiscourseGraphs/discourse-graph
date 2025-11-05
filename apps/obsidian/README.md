@@ -1,3 +1,9 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/1a448567-c799-489e-bdc4-e708c280b18e">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/3abbf462-d6dc-4e8f-b40a-d668d250d424">
+  <img alt="Shows project promo image in light and dark mode">
+</picture>
+
 # Discourse Graphs for Obsidian
 
 The Discourse Graph extension enables Obsidian users to seamlessly add additional semantic structure to their notes, including specified page types and link types that model scientific discourse, to enable more complex and structured knowledge synthesis work, such as a complex interdisciplinary literature review, and enhanced collaboration with others on this work.
