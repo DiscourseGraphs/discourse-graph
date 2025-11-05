@@ -32,7 +32,7 @@ import {
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
-import { createClient } from "@repo/database/lib/client";
+import { getLoggedInClient } from "./utils/supabaseContext";
 import { getUidAndBooleanSetting } from "./utils/getExportSettings";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -131,7 +131,7 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  const supabase = createClient();
+  const supabase = await getLoggedInClient();
   if (supabase) {
     const { data } = await supabase
       .from("Space")
