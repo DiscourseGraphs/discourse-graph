@@ -20,7 +20,7 @@ import { OnloadArgs } from "roamjs-components/types";
 import renderOverlay, {
   RoamOverlayProps,
 } from "roamjs-components/util/renderOverlay";
-import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
+import LockableAutocompleteInput from "./LockableAutocompleteInput";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import updateBlock from "roamjs-components/writes/updateBlock";
@@ -92,11 +92,14 @@ const ModifyNodeDialog = ({
   const [options, setOptions] = useState<Result[]>([]);
   const [content, setContent] = useState(initialContent);
   const [contentUid, setContentUid] = useState(initialUid || "");
+  const [isContentLocked, setIsContentLocked] = useState(false);
 
   const [referencedNodeOptions, setReferencedNodeOptions] = useState<Result[]>(
     [],
   );
   const [referencedNodeValue, setReferencedNodeValue] = useState("");
+  const [referencedNodeUid, setReferencedNodeUid] = useState("");
+  const [isReferencedNodeLocked, setIsReferencedNodeLocked] = useState(false);
   const [isAddReferencedNode, setAddReferencedNode] = useState(false);
 
   const isCreateMode = mode === "create";
@@ -260,30 +263,34 @@ const ModifyNodeDialog = ({
     (r: Result) => {
       if (!referencedNode) return;
 
-      if (isEditMode) {
-        // Hack for default shipped EVD format
-        if (content.endsWith(" - ")) {
-          setContent(`${content}[[${r.text}]]`);
-        } else if (content.endsWith(" -")) {
-          setContent(`${content} [[${r.text}]]`);
+      // Only update content if not locked and we have text
+      if (!isReferencedNodeLocked && r.text) {
+        if (isEditMode) {
+          // Hack for default shipped EVD format
+          if (content.endsWith(" - ")) {
+            setContent(`${content}[[${r.text}]]`);
+          } else if (content.endsWith(" -")) {
+            setContent(`${content} [[${r.text}]]`);
+          } else {
+            setContent(`${content} - [[${r.text}]]`);
+          }
         } else {
-          setContent(`${content} - [[${r.text}]]`);
+          const pageName = nodeFormat.replace(
+            /{([\w\d-]*)}/g,
+            (_, val: string) => {
+              if (/content/i.test(val)) return content;
+              if (new RegExp(referencedNode.name, "i").test(val))
+                return `[[${r.text}]]`;
+              return "";
+            },
+          );
+          setContent(pageName);
         }
-      } else {
-        const pageName = nodeFormat.replace(
-          /{([\w\d-]*)}/g,
-          (_, val: string) => {
-            if (/content/i.test(val)) return content;
-            if (new RegExp(referencedNode.name, "i").test(val))
-              return `[[${r.text}]]`;
-            return "";
-          },
-        );
-        setContent(pageName);
       }
       setReferencedNodeValue(r.text);
+      setReferencedNodeUid(r.uid);
     },
-    [content, referencedNode, nodeFormat, isEditMode],
+    [content, referencedNode, nodeFormat, isEditMode, isReferencedNodeLocked],
   );
 
   const onNewItem = useCallback(
@@ -292,6 +299,14 @@ const ModifyNodeDialog = ({
       uid: initialUid || window.roamAlphaAPI.util.generateUID(),
     }),
     [initialUid],
+  );
+
+  const onNewReferencedNodeItem = useCallback(
+    (text: string) => ({
+      text,
+      uid: window.roamAlphaAPI.util.generateUID(),
+    }),
+    [],
   );
 
   const itemToQuery = useCallback((result?: Result) => result?.text || "", []);
@@ -315,6 +330,27 @@ const ModifyNodeDialog = ({
       const action = isCreateMode ? "creating" : "editing";
 
       if (action === "creating") {
+        // If content is locked (user selected existing node), just insert it
+        if (isContentLocked && contentUid) {
+          if (sourceBlockUid) {
+            const pageRef = `[[${content}]]`;
+            await updateBlock({
+              uid: sourceBlockUid,
+              text: pageRef,
+            });
+          }
+
+          await onSuccess({
+            text: content,
+            uid: contentUid,
+            action,
+          });
+
+          onClose();
+          return;
+        }
+
+        // Otherwise, format and create new node
         const formattedTitle = await getNewDiscourseNodeText({
           text: content.trim(),
           nodeType: selectedNodeType.type,
@@ -460,7 +496,7 @@ const ModifyNodeDialog = ({
         <div className="w-full">
           <Label>Content</Label>
           <div className="w-full">
-            <AutocompleteInput
+            <LockableAutocompleteInput
               value={{ text: content, uid: contentUid }}
               setValue={setValue}
               onConfirm={() => void onSubmit()}
@@ -477,6 +513,7 @@ const ModifyNodeDialog = ({
                   : `Enter ${selectedNodeType.text.toLowerCase()} content ...`
               }
               maxItemsDisplayed={100}
+              onLockedChange={setIsContentLocked}
             />
           </div>
         </div>
@@ -489,28 +526,26 @@ const ModifyNodeDialog = ({
           >
             <Label>{referencedNode.name}</Label>
             <div className="w-full">
-              <AutocompleteInput
+              <LockableAutocompleteInput
                 value={
                   referencedNodeValue
-                    ? { text: referencedNodeValue, uid: "" }
+                    ? { text: referencedNodeValue, uid: referencedNodeUid }
                     : { text: "", uid: "" }
                 }
                 setValue={setValueFromReferencedNode}
                 options={referencedNodeOptions}
                 multiline
-                onNewItem={onNewItem}
+                onNewItem={onNewReferencedNodeItem}
                 itemToQuery={itemToQuery}
                 filterOptions={filterOptions}
-                onConfirm={() => {
-                  // Prevent default behavior, don't submit the form
-                  // Just keep the dialog open
-                }}
                 placeholder={
                   isReferencedNodeLoading
                     ? "..."
                     : `Enter a ${referencedNode.name} ...`
                 }
+                disabled={isReferencedNodeLoading}
                 maxItemsDisplayed={100}
+                onLockedChange={setIsReferencedNodeLocked}
               />
             </div>
           </div>
