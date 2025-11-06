@@ -39,7 +39,10 @@ const CreateNodeDialog = ({
   const [selectedType, setSelectedType] =
     useState<DiscourseNode>(defaultNodeType);
   const [loading, setLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<SuggestedNode[]>([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<
+    SuggestedNode[]
+  >([]);
+  const [rawSuggestions, setRawSuggestions] = useState<SuggestedNode[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [formattedTitle, setFormattedTitle] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -80,14 +83,16 @@ const CreateNodeDialog = ({
           formattedTitle,
           selectedType.type,
         );
-        const similarNodes = await findSimilarNodes({
+        const { raw, filtered } = await findSimilarNodes({
           text: formattedTitle,
           nodeType: selectedType.type,
         });
-        setSuggestions(similarNodes);
+        setRawSuggestions(raw);
+        setFilteredSuggestions(filtered);
         setSuggestionsLoading(false);
       } else {
-        setSuggestions([]);
+        setRawSuggestions([]);
+        setFilteredSuggestions([]);
       }
     };
     void fetchSuggestions();
@@ -161,6 +166,24 @@ const CreateNodeDialog = ({
     onClose();
   };
 
+  const handleSuggestionClick = async (node: SuggestedNode) => {
+    if (sourceBlockUid) {
+      const pageRef = `[[${node.text}]]`;
+      await updateBlock({
+        uid: sourceBlockUid,
+        text: pageRef,
+      });
+      await createBlock({
+        parentUid: sourceBlockUid,
+        order: 0,
+        node: {
+          text: initialTitle,
+        },
+      });
+    }
+    onClose();
+  };
+
   return (
     <Dialog
       isOpen={true}
@@ -186,29 +209,34 @@ const CreateNodeDialog = ({
               <span>Fetching possible duplicates...</span>
             </div>
           )}
-          {suggestions.length > 0 && (
+          {rawSuggestions.length > 0 && (
             <div className="flex flex-col gap-1">
-              <h4 className="font-bold">Possible duplicates</h4>
+              <h4 className="font-bold">Possible duplicates (Semantic)</h4>
               <ul className="flex flex-col gap-1">
-                {suggestions.slice(0, 5).map((node) => (
+                {rawSuggestions.map((node) => (
                   <li key={node.uid}>
                     <a
-                      onClick={async () => {
-                        if (sourceBlockUid) {
-                          const pageRef = `[[${node.text}]]`;
-                          await updateBlock({
-                            uid: sourceBlockUid,
-                            text: pageRef,
-                          });
-                          await createBlock({
-                            parentUid: sourceBlockUid,
-                            order: 0,
-                            node: {
-                              text: initialTitle,
-                            },
-                          });
-                        }
-                        onClose();
+                      onClick={() => {
+                        void handleSuggestionClick(node);
+                      }}
+                      className="cursor-pointer text-blue-500 hover:underline"
+                    >
+                      {node.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {filteredSuggestions.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <h4 className="font-bold">Possible duplicates (LLM Filtered)</h4>
+              <ul className="flex flex-col gap-1">
+                {filteredSuggestions.map((node) => (
+                  <li key={node.uid}>
+                    <a
+                      onClick={() => {
+                        void handleSuggestionClick(node);
                       }}
                       className="cursor-pointer text-blue-500 hover:underline"
                     >

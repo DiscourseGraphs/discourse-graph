@@ -610,17 +610,18 @@ export const findSimilarNodes = async ({
 }: {
   text: string;
   nodeType: string;
-}): Promise<SuggestedNode[]> => {
+}): Promise<{ raw: SuggestedNode[]; filtered: SuggestedNode[] }> => {
+  const emptyResult = { raw: [], filtered: [] };
   if (!text.trim() || !nodeType) {
-    return [];
+    return emptyResult;
   }
 
   try {
     const context = await getSupabaseContext();
-    if (!context) return [];
+    if (!context) return emptyResult;
     const supabase = await getLoggedInClient();
     const { spaceId } = context;
-    if (!supabase) return [];
+    if (!supabase) return emptyResult;
 
     const candidateNodesForHyde = (
       await getNodesByType({
@@ -642,7 +643,7 @@ export const findSimilarNodes = async ({
       .filter((n) => n.uid && n.text && n.type);
 
     if (candidateNodesForHyde.length === 0) {
-      return [];
+      return emptyResult;
     }
 
     const queryEmbedding = await createEmbedding(text);
@@ -665,19 +666,21 @@ export const findSimilarNodes = async ({
     });
 
     combinedResults.sort((a, b) => b.score - a.score);
-    const top5Candidates = combinedResults.slice(0, 7).map((item) => item.node);
+    const topCandidates = combinedResults.slice(0, 7).map((item) => item.node);
 
-    if (top5Candidates.length === 0) {
-      return [];
+    if (topCandidates.length === 0) {
+      return emptyResult;
     }
-    console.log("top5Candidates", top5Candidates);
+    console.log("topCandidates", topCandidates);
 
-    return await filterAndRerankByLlm({
+    const filteredResults = await filterAndRerankByLlm({
       originalText: text,
-      candidates: top5Candidates,
+      candidates: topCandidates,
     });
+
+    return { raw: topCandidates, filtered: filteredResults };
   } catch (error) {
     console.error("Error finding similar nodes:", error);
-    return [];
+    return { raw: [], filtered: [] };
   }
 };
