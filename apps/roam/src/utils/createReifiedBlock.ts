@@ -4,56 +4,68 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import setBlockProps from "./setBlockProps";
 import { getSetting } from "~/utils/extensionSettings";
 
-export const queryForReifiedBlocks = async (
+const queryForReifiedBlocksUtil = async (
   parameterUids: Record<string, string>,
-  strict: boolean = true,
-): Promise<string | string[] | null> => {
-  // TODO: Check that the parameterUids keys correspond to the schema
+): Promise<[string, Record<string, string>][]> => {
   const paramsAsSeq = Object.entries(parameterUids);
   const query = `[:find ?u ?d
   :in $ ${paramsAsSeq.map(([k]) => "?" + k).join(" ")}
   :where [?s :block/uid ?u] [?s :block/props ?p] [(get ?p :discourse-graph) ?d]
   ${paramsAsSeq.map(([k]) => `[(get ?d :${k}) ?${k}]`).join(" ")} ]`;
-  const result = (await window.roamAlphaAPI.data.async.q(
+  return (await window.roamAlphaAPI.data.async.q(
     query,
     ...paramsAsSeq.map(([, v]) => v),
   )) as [string, Record<string, string>][];
-  if (strict) {
-    const resultF = result
-      .filter(([, params]) => Object.keys(params).length === paramsAsSeq.length)
-      .map(([uid]) => uid);
-    if (resultF.length > 0) return resultF[0];
-  } else {
-    return result.map(([uid]) => uid);
-  }
-  return null;
 };
 
-export const checkForReifiedBlock = async (
+export const queryForReifiedBlocks = async (
+  parameterUids: Record<string, string>,
+): Promise<string[]> => {
+  const results = await queryForReifiedBlocksUtil(parameterUids);
+  return results.map(([uid]) => uid);
+};
+
+export const strictQueryForReifiedBlocks = async (
   parameterUids: Record<string, string>,
 ): Promise<string | null> => {
-  const result = await queryForReifiedBlocks(parameterUids, true);
-  if (Array.isArray(result)) return result[0]; // this should never happen with strict
-  return result;
+  const result = await queryForReifiedBlocksUtil(parameterUids);
+  const numParams = Object.keys(parameterUids).length;
+  // post-filtering because cannot filter by number of keys in datascript
+  const resultF = result
+    .filter(([, params]) => Object.keys(params).length === numParams)
+    .map(([uid]) => uid);
+  if (resultF.length > 1) {
+    const paramsAsText = Object.entries(parameterUids)
+      .map(([k, v]) => `${k}: '${v}'`)
+      .join(", ");
+    console.warn(
+      `${resultF.length} results in strict query for {${paramsAsText}}`,
+    );
+  }
+  return resultF.length > 0 ? resultF[0] : null;
 };
 
 export const createReifiedBlock = async ({
   destinationBlockUid,
   schemaUid,
   parameterUids,
+  allowDuplicates = true,
 }: {
   destinationBlockUid: string;
   schemaUid: string;
   parameterUids: Record<string, string>;
+  allowDuplicates?: boolean;
 }): Promise<string> => {
-  const newUid = window.roamAlphaAPI.util.generateUID();
   // TODO: Check that the parameterUids keys correspond to the schema
   const data = {
     ...parameterUids,
     hasSchema: schemaUid,
   };
-  const exists = await checkForReifiedBlock(data);
-  if (exists !== null) return exists;
+  if (allowDuplicates === false) {
+    const existing = await strictQueryForReifiedBlocks(data);
+    if (existing !== null) return existing;
+  }
+  const newUid = window.roamAlphaAPI.util.generateUID();
   await createBlock({
     node: {
       text: newUid,
@@ -100,6 +112,7 @@ export const createReifiedRelation = async ({
         sourceUid,
         destinationUid,
       },
+      allowDuplicates: false, // no duplicate relationships
     });
   }
 };
