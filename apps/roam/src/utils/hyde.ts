@@ -64,8 +64,8 @@ type SearchFunc = (params: {
 const API_CONFIG = {
   LLM: {
     URL: `${nextApiRoot()}/llm/openai/chat`,
-    MODEL: "gpt-4.1",
-    TIMEOUT_MS: 30_000,
+    MODEL: "gpt-5-2025-08-07",
+    TIMEOUT_MS: 60_000,
     MAX_TOKENS: 104,
     TEMPERATURE: 0.9,
   },
@@ -307,27 +307,46 @@ const filterAndRerankByLlm = async ({
     .map((c, i) => `${i + 1}. "${c.text}"`)
     .join("\n");
 
-  const userPromptContent = `Given the original text for a new node: "${originalText}".
+  const userPromptContent = `You are helping a researcher avoid creating duplicate knowledge nodes. Analyze this carefully.
 
-Here is a list of existing nodes that might be duplicates:
+**New node being created:** "${originalText}"
+
+**Existing nodes to evaluate:**
 ${candidateList}
 
-Your task is to identify which of these existing nodes are strong potential duplicates for the new node. A strong potential duplicate is one that covers the same core concepts or ideas as the new node, not just a partial or superficial match.
+**Your task:** Categorize each node into ONE of these categories:
 
-Please return a JSON array of strings, containing the exact text of only the nodes you've identified as strong potential duplicates. The list should be ordered from the most likely duplicate to the least likely. If you think none of the candidates are strong duplicates, return an empty JSON array.
+1. **Duplicate** - ONLY if the node represents THE SAME specific concept/action/idea as the new node
+   - Must have the same intent and scope
+   - Would cause genuine redundancy if both existed
+   - Example: "Track daily tasks" vs "Track daily tasks and goals" = NOT duplicates (different scope)
 
-For example, if you decide only candidates 3 and 1 are strong duplicates, and 3 is more likely, your response should be:
-["text of candidate 3", "text of candidate 1"]
+2. **Related** - ONLY if the node is meaningfully related and the user would benefit from seeing it
+   - Shares similar domain/context but serves a different purpose
+   - Would be useful for cross-referencing or seeing connections
+   - Example: "Synthesize observations into story" vs "Formulate research directions from literature" = Related (both involve synthesis but different outputs/contexts)
 
-Only return the JSON array.`;
+3. **Irrelevant** - Default category, do NOT include in response
+   - Only vaguely similar or shares surface-level keywords
+   - No real value in showing to the user
+   - When in doubt, exclude it
+
+**Be highly selective.** Most candidates should be excluded. Only include nodes where you're confident the user would find them valuable.
+
+Return ONLY this JSON (no other text):
+{
+  "duplicates": ["exact text of duplicate nodes"],
+  "related": ["exact text of related nodes"]
+}
+
+Use empty arrays when appropriate.`;
 
   const requestBody = {
     documents: [{ role: "user", content: userPromptContent }],
     passphrase: "",
     settings: {
       model: API_CONFIG.LLM.MODEL,
-      maxTokens: 500,
-      temperature: 0.2,
+      maxTokens: 3000,
     },
   };
 
@@ -349,14 +368,52 @@ Only return the JSON array.`;
     }
 
     const responseText = await response.text();
-    const rerankedTextList = JSON.parse(responseText) as string[];
+
+    // Parse the response - try new format first, fall back to old format
+    let duplicatesList: string[] = [];
+    let relatedList: string[] = [];
+
+    try {
+      const parsed: unknown = JSON.parse(responseText);
+      if (parsed && typeof parsed === "object" && "duplicates" in parsed) {
+        // New format: { duplicates: [...], related: [...] }
+        const obj = parsed as Record<string, unknown>;
+        if (Array.isArray(obj.duplicates)) {
+          duplicatesList = obj.duplicates.filter(
+            (item): item is string => typeof item === "string",
+          );
+        }
+        if (Array.isArray(obj.related)) {
+          relatedList = obj.related.filter(
+            (item): item is string => typeof item === "string",
+          );
+        }
+      } else if (Array.isArray(parsed)) {
+        // Old format: just an array (treat as duplicates)
+        duplicatesList = parsed.filter(
+          (item): item is string => typeof item === "string",
+        );
+      }
+    } catch (e) {
+      console.error("Failed to parse LLM response:", e);
+      return candidates;
+    }
 
     const originalCandidatesMap = new Map(candidates.map((c) => [c.text, c]));
-    const rerankedNodes = rerankedTextList
+
+    // Combine duplicates and related, with duplicates first
+    const allRelevantText = [...duplicatesList, ...relatedList];
+    const rerankedNodes = allRelevantText
       .map((text) => originalCandidatesMap.get(text))
       .filter((node): node is SuggestedNode => !!node);
 
-    console.log("rerankedNodes", rerankedNodes);
+    console.log("LLM Filtering Results:", {
+      input: `${candidates.length} vector search candidates`,
+      output: `${rerankedNodes.length} nodes (${duplicatesList.length} duplicates, ${relatedList.length} related)`,
+      filtered_out: candidates.length - rerankedNodes.length,
+      duplicates: duplicatesList,
+      related: relatedList,
+    });
 
     return rerankedNodes;
   } catch (error: unknown) {
@@ -666,7 +723,7 @@ export const findSimilarNodes = async ({
     });
 
     combinedResults.sort((a, b) => b.score - a.score);
-    const topCandidates = combinedResults.slice(0, 7).map((item) => item.node);
+    const topCandidates = combinedResults.slice(0, 15).map((item) => item.node);
 
     if (topCandidates.length === 0) {
       return emptyResult;

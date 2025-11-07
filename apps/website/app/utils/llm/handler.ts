@@ -70,6 +70,31 @@ export async function handleLLMRequest(
       );
     }
 
+    // Check for truncated response (finish_reason: 'length')
+    const choices = (responseData as any)?.choices;
+    if (Array.isArray(choices) && choices.length > 0) {
+      const finishReason = choices[0]?.finish_reason;
+      if (finishReason === "length") {
+        console.error(
+          "LLM response truncated due to token limit:",
+          responseData,
+        );
+        return cors(
+          request,
+          new Response(
+            JSON.stringify({
+              error:
+                "Response truncated: The model hit the maximum token limit. Please increase max_tokens or simplify the request.",
+            }),
+            {
+              status: 500,
+              headers: { "Content-Type": CONTENT_TYPE_JSON },
+            },
+          ),
+        );
+      }
+    }
+
     const replyText = config.extractResponseText(responseData);
 
     if (!replyText) {
