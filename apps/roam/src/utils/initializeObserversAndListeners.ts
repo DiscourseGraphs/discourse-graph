@@ -52,6 +52,9 @@ import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
+import { renderPossibleDuplicates } from "./renderPossibleDuplicates";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import isDiscourseNode from "./isDiscourseNode";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -82,6 +85,12 @@ export const initObservers = async ({
       const h1 = e as HTMLHeadingElement;
       const title = getPageTitleValueByHtmlElement(h1);
       const props = { title, h1, onloadArgs };
+      const uid = getPageUidByPageTitle(title);
+      console.log("pageTitleObserver", props, isNodeConfigPage(uid));
+
+      if (isDiscourseNode(uid)) {
+        renderPossibleDuplicates(h1, title);
+      }
 
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
       else if (isQueryPage(props)) renderQueryPage(props);
