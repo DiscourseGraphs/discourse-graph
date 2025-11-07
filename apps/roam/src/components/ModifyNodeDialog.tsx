@@ -55,6 +55,7 @@ export type ModifyNodeDialogProps = {
   onClose: () => void;
   extensionAPI: OnloadArgs["extensionAPI"];
   sourceBlockUid?: string;
+  refBlockUid?: string;
   discourseContext?: DiscourseContextType;
 };
 
@@ -68,6 +69,7 @@ const ModifyNodeDialog = ({
   onSuccess,
   extensionAPI,
   sourceBlockUid,
+  // refBlockUid, // TODO: Re-enable when implementing referenced node auto-population
   discourseContext,
 }: RoamOverlayProps<ModifyNodeDialogProps>) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -427,7 +429,21 @@ const ModifyNodeDialog = ({
           newPageUid,
         });
       } else {
-        // Setting to existing or editing
+        // Edit mode: update the existing block
+        if (sourceBlockUid) {
+          await updateBlock({
+            uid: sourceBlockUid,
+            text: content,
+          });
+
+          renderToast({
+            id: `discourse-node-edited-${Date.now()}`,
+            intent: "success",
+            timeout: 5000,
+            content: "Node updated successfully",
+          });
+        }
+
         await onSuccess({
           text: content,
           uid: contentUid,
@@ -447,15 +463,21 @@ const ModifyNodeDialog = ({
     onClose();
   }, [onClose]);
 
-  // Auto-focus handling for referenced node input
-  const inputDivRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (isAddReferencedNode && inputDivRef.current) {
-      const inputElement =
-        inputDivRef.current.getElementsByTagName("textarea")[0];
-      if (inputElement) inputElement.focus();
-    }
-  }, [isAddReferencedNode]);
+  // Auto-populate referenced node from refBlockUid if provided
+  // useEffect(() => {
+  //   if (refBlockUid && referencedNode) {
+  //     const refBlock = window.roamAlphaAPI.data.pull(
+  //       "[:block/string :block/uid]",
+  //       [":block/uid", refBlockUid],
+  //     );
+  //     if (refBlock && refBlock[":block/string"]) {
+  //       const refText = String(refBlock[":block/string"]);
+  //       setReferencedNodeValue(refText);
+  //       setReferencedNodeUid(refBlockUid);
+  //       setIsReferencedNodeLocked(true);
+  //     }
+  //   }
+  // }, [refBlockUid, referencedNode]);
 
   return (
     <Dialog
@@ -514,16 +536,14 @@ const ModifyNodeDialog = ({
               }
               maxItemsDisplayed={100}
               onLockedChange={setIsContentLocked}
+              mode={mode}
             />
           </div>
         </div>
 
-        {/* Referenced Node Section */}
-        {referencedNode && (
-          <div
-            className="referenced-node-autocomplete w-full"
-            ref={inputDivRef}
-          >
+        {/* Referenced Node Section - hidden when content is locked */}
+        {referencedNode && !isContentLocked && (
+          <div className="referenced-node-autocomplete w-full">
             <Label>{referencedNode.name}</Label>
             <div className="w-full">
               <LockableAutocompleteInput
@@ -546,6 +566,7 @@ const ModifyNodeDialog = ({
                 disabled={isReferencedNodeLoading}
                 maxItemsDisplayed={100}
                 onLockedChange={setIsReferencedNodeLocked}
+                mode="create"
               />
             </div>
           </div>
