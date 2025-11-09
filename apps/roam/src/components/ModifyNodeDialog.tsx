@@ -101,11 +101,18 @@ const ModifyNodeDialog = ({
   );
   const [referencedNodeValue, setReferencedNodeValue] = useState("");
   const [referencedNodeUid, setReferencedNodeUid] = useState("");
-  const [isReferencedNodeLocked, setIsReferencedNodeLocked] = useState(false);
-  const [isAddReferencedNode, setAddReferencedNode] = useState(false);
 
   const isCreateMode = mode === "create";
-  const isEditMode = mode === "edit";
+
+  // Generate stable UIDs for tracking new vs existing nodes
+  const contentInitialUid = useMemo(
+    () => initialUid || window.roamAlphaAPI.util.generateUID(),
+    [initialUid],
+  );
+  const referencedNodeInitialUid = useMemo(
+    () => window.roamAlphaAPI.util.generateUID(),
+    [],
+  );
 
   // Get node format and referenced node info
   const nodeFormat = useMemo(() => {
@@ -226,89 +233,34 @@ const ModifyNodeDialog = ({
     };
   }, [referencedNode]);
 
-  const setValue = useCallback(
-    (r: Result) => {
-      const generatedUid = initialUid || window.roamAlphaAPI.util.generateUID();
-
-      if (isCreateMode && r.uid === generatedUid) {
-        // Creating new node with format
-        const pageName = nodeFormat.replace(
-          /{([\w\d-]*)}/g,
-          (_, val: string) => {
-            if (/content/i.test(val)) return r.text;
-            if (
-              referencedNode &&
-              new RegExp(referencedNode.name, "i").test(val) &&
-              isAddReferencedNode
-            )
-              return referencedNodeValue;
-            return "";
-          },
-        );
-        setContent(pageName);
-      } else {
-        setContent(r.text);
-      }
-      setContentUid(r.uid);
-    },
-    [
-      initialUid,
-      isCreateMode,
-      nodeFormat,
-      referencedNode,
-      isAddReferencedNode,
-      referencedNodeValue,
-    ],
-  );
+  const setValue = useCallback((r: Result) => {
+    setContent(r.text);
+    setContentUid(r.uid);
+  }, []);
 
   const setValueFromReferencedNode = useCallback(
     (r: Result) => {
       if (!referencedNode) return;
-
-      // Only update content if not locked and we have text
-      if (!isReferencedNodeLocked && r.text) {
-        if (isEditMode) {
-          // Hack for default shipped EVD format
-          if (content.endsWith(" - ")) {
-            setContent(`${content}[[${r.text}]]`);
-          } else if (content.endsWith(" -")) {
-            setContent(`${content} [[${r.text}]]`);
-          } else {
-            setContent(`${content} - [[${r.text}]]`);
-          }
-        } else {
-          const pageName = nodeFormat.replace(
-            /{([\w\d-]*)}/g,
-            (_, val: string) => {
-              if (/content/i.test(val)) return content;
-              if (new RegExp(referencedNode.name, "i").test(val))
-                return `[[${r.text}]]`;
-              return "";
-            },
-          );
-          setContent(pageName);
-        }
-      }
       setReferencedNodeValue(r.text);
       setReferencedNodeUid(r.uid);
     },
-    [content, referencedNode, nodeFormat, isEditMode, isReferencedNodeLocked],
+    [referencedNode],
   );
 
   const onNewItem = useCallback(
     (text: string) => ({
       text,
-      uid: initialUid || window.roamAlphaAPI.util.generateUID(),
+      uid: contentInitialUid,
     }),
-    [initialUid],
+    [contentInitialUid],
   );
 
   const onNewReferencedNodeItem = useCallback(
     (text: string) => ({
       text,
-      uid: window.roamAlphaAPI.util.generateUID(),
+      uid: referencedNodeInitialUid,
     }),
-    [],
+    [referencedNodeInitialUid],
   );
 
   const itemToQuery = useCallback((result?: Result) => result?.text || "", []);
@@ -352,12 +304,26 @@ const ModifyNodeDialog = ({
           return;
         }
 
-        // Otherwise, format and create new node
-        const formattedTitle = await getNewDiscourseNodeText({
-          text: content.trim(),
-          nodeType: selectedNodeType.type,
-          blockUid: sourceBlockUid,
-        });
+        // Format content with referenced node if present
+        let formattedTitle = "";
+        if (referencedNode && referencedNodeValue) {
+          formattedTitle = nodeFormat.replace(
+            /{([\w\d-]*)}/g,
+            (_, val: string) => {
+              if (/content/i.test(val)) return content.trim();
+              if (new RegExp(referencedNode.name, "i").test(val))
+                return `[[${referencedNodeValue}]]`;
+              return "";
+            },
+          );
+          console.log("formattedTitle", formattedTitle);
+        } else {
+          formattedTitle = await getNewDiscourseNodeText({
+            text: content.trim(),
+            nodeType: selectedNodeType.type,
+            blockUid: sourceBlockUid,
+          });
+        }
 
         if (!formattedTitle) {
           setLoading(false);
@@ -430,10 +396,24 @@ const ModifyNodeDialog = ({
         });
       } else {
         // Edit mode: update the existing block
+        let updatedContent = content;
+
+        // Format with referenced node if present
+        if (referencedNode && referencedNodeValue) {
+          updatedContent = nodeFormat
+            .replace(/{([\w\d-]*)}/g, (_, val: string) => {
+              if (/content/i.test(val)) return content.trim();
+              if (new RegExp(referencedNode.name, "i").test(val))
+                return `[[${referencedNodeValue}]]`;
+              return "";
+            })
+            .trim();
+        }
+
         if (sourceBlockUid) {
           await updateBlock({
             uid: sourceBlockUid,
-            text: content,
+            text: updatedContent,
           });
 
           renderToast({
@@ -445,7 +425,7 @@ const ModifyNodeDialog = ({
         }
 
         await onSuccess({
-          text: content,
+          text: updatedContent,
           uid: contentUid,
           action,
         });
@@ -506,7 +486,6 @@ const ModifyNodeDialog = ({
                 const nt = discourseNodes.find((n) => n.type === t);
                 if (nt) {
                   setSelectedNodeType(nt);
-                  setAddReferencedNode(false);
                   setReferencedNodeValue("");
                 }
               }}
@@ -521,7 +500,6 @@ const ModifyNodeDialog = ({
             <LockableAutocompleteInput
               value={{ text: content, uid: contentUid }}
               setValue={setValue}
-              onConfirm={() => void onSubmit()}
               options={options}
               multiline
               autoFocus
@@ -537,6 +515,7 @@ const ModifyNodeDialog = ({
               maxItemsDisplayed={100}
               onLockedChange={setIsContentLocked}
               mode={mode}
+              initialUid={contentInitialUid}
             />
           </div>
         </div>
@@ -565,8 +544,8 @@ const ModifyNodeDialog = ({
                 }
                 disabled={isReferencedNodeLoading}
                 maxItemsDisplayed={100}
-                onLockedChange={setIsReferencedNodeLocked}
                 mode="create"
+                initialUid={referencedNodeInitialUid}
               />
             </div>
           </div>
