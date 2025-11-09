@@ -14,6 +14,7 @@ type LockableAutocompleteInputProps<T extends Result = Result> = Omit<
   onConfirm?: () => void;
   onLockedChange?: (isLocked: boolean) => void;
   mode: "create" | "edit";
+  initialUid: string;
 };
 
 const LockableAutocompleteInput = <T extends Result = Result>({
@@ -22,6 +23,7 @@ const LockableAutocompleteInput = <T extends Result = Result>({
   onConfirm,
   onLockedChange,
   mode,
+  initialUid,
   options = [],
   ...autocompleteProps
 }: LockableAutocompleteInputProps<T>) => {
@@ -30,12 +32,12 @@ const LockableAutocompleteInput = <T extends Result = Result>({
 
   const handleSetValue = useCallback(
     (q: T) => {
-      // In create mode, when user selects an option from suggestions, lock it
-      if (
-        mode === "create" &&
-        q.text &&
-        options.some((opt) => opt.text === q.text)
-      ) {
+      // In create mode, when user selects an existing option (uid differs from initialUid), lock it
+      if (mode === "create" && q.uid && q.uid !== initialUid) {
+        console.log("locking value", q);
+        console.log("initialUid", initialUid);
+        console.log("q.uid", q.uid);
+        console.log("mode", mode);
         setLockedValue(q);
         setIsLocked(true);
         onLockedChange?.(true);
@@ -43,10 +45,10 @@ const LockableAutocompleteInput = <T extends Result = Result>({
         return;
       }
 
-      // Otherwise, just update the value (user is typing)
+      // Otherwise, just update the value (user is typing/creating new)
       setValue(q);
     },
-    [setValue, onLockedChange, mode, options],
+    [setValue, onLockedChange, mode, initialUid],
   );
 
   const handleClear = useCallback(() => {
