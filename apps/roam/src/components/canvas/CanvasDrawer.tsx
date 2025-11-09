@@ -198,19 +198,19 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
       const isAll = typeLabel === "All";
       const node = discourseNodes.find((n) => n.text === typeLabel);
       const nodeColor = formatHexColor(node?.canvasSettings?.color || "");
+
+      if (isAll) {
+        return <span>{typeLabel}</span>;
+      }
+
       return (
-        <>
-          {!isAll && (
-            <div className="flex items-center">
-              <div
-                className="mr-2 h-3 w-3 select-none rounded-full"
-                style={{ backgroundColor: nodeColor }}
-              />
-              <span>{typeLabel}</span>
-            </div>
-          )}
-          {isAll && <span>{typeLabel}</span>}
-        </>
+        <div className="flex items-center">
+          <div
+            className="mr-2 h-3 w-3 select-none rounded-full"
+            style={{ backgroundColor: nodeColor }}
+          />
+          <span>{typeLabel}</span>
+        </div>
       );
     },
     [discourseNodes],

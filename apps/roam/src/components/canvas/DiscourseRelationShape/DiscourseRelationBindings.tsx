@@ -3,7 +3,6 @@ import {
   TLArrowBindingProps,
   BindingUtil,
   arrowBindingProps,
-  arrowBindingMigrations,
   BindingOnCreateOptions,
   BindingOnChangeOptions,
   BindingOnShapeChangeOptions,
@@ -22,6 +21,10 @@ import {
   Vec,
   approximately,
   BindingOnShapeDeleteOptions,
+  createBindingPropsMigrationIds,
+  createBindingPropsMigrationSequence,
+  arrowShapeVersions,
+  type TLPropsMigrations,
 } from "tldraw";
 import { DiscourseRelationShape } from "./DiscourseRelationUtil";
 import {
@@ -32,12 +35,40 @@ import {
 } from "./helpers";
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 
+const bindingMigrationsCache = new Map<string, TLPropsMigrations>();
+const getArrowBindingMigrations = (bindingType: string): TLPropsMigrations => {
+  const cached = bindingMigrationsCache.get(bindingType);
+  if (cached) return cached;
+
+  const versions = createBindingPropsMigrationIds(bindingType, {
+    AddSnap: 1,
+  });
+  const migrations = createBindingPropsMigrationSequence({
+    sequence: [
+      { dependsOn: [arrowShapeVersions.ExtractBindings] },
+      {
+        id: versions.AddSnap,
+        up: (props) => {
+          props.snap = "none";
+        },
+        down: (props) => {
+          delete props.snap;
+        },
+      },
+    ],
+  });
+
+  bindingMigrationsCache.set(bindingType, migrations);
+  return migrations;
+};
+
 export const createAllReferencedNodeBindings = (
   allAddReferencedNodeByAction: AddReferencedNodeType,
 ) => {
   return Object.keys(allAddReferencedNodeByAction).map((action) => {
     return class ReferencedNodeBindingUtil extends BaseRelationBindingUtil {
       static override type = action;
+      static override migrations = getArrowBindingMigrations(action);
     };
   });
 };
@@ -45,6 +76,7 @@ export const createAllRelationBindings = (relationIds: string[]) => {
   return relationIds.map((id) => {
     return class RelationBindingUtil extends BaseRelationBindingUtil {
       static override type = id;
+      static override migrations = getArrowBindingMigrations(id);
     };
   });
 };
@@ -78,13 +110,14 @@ export type RelationInfo =
 export type RelationBinding = TLBaseBinding<string, TLArrowBindingProps>;
 export class BaseRelationBindingUtil extends BindingUtil<RelationBinding> {
   static override props = arrowBindingProps;
-  static override migrations = arrowBindingMigrations;
+  static override migrations = getArrowBindingMigrations("arrow");
 
   override getDefaultProps(): Partial<TLArrowBindingProps> {
     return {
       isPrecise: false,
       isExact: false,
       normalizedAnchor: { x: 0.5, y: 0.5 },
+      snap: "none",
     };
   }
 
