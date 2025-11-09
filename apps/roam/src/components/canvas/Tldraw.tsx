@@ -13,10 +13,6 @@ import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import {
   DefaultSelectionBackground,
   DefaultSelectionForeground,
-  TLFilesExternalContent,
-  TLSvgTextExternalContent,
-} from "@tldraw/editor";
-import {
   Editor as TldrawApp,
   TLEditorComponents,
   TLUiComponents,
@@ -32,7 +28,6 @@ import {
   VecModel,
   createShapeId,
   TLPointerEventInfo,
-  TLExternalContent,
   MediaHelpers,
   AssetRecordType,
   TLAsset,
@@ -42,14 +37,16 @@ import {
   TLShape,
   useToasts,
   useTranslation,
-  DEFAULT_SUPPORTED_IMAGE_TYPES,
-  DEFAULT_SUPPORT_VIDEO_TYPES,
+  TLFilesExternalContent,
+  TLSvgTextExternalContent,
   registerDefaultExternalContentHandlers,
   registerDefaultSideEffects,
   defaultEditorAssetUrls,
   StateNode,
   DefaultSpinner,
   Box,
+  HistoryEntry,
+  TLRecord,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
@@ -97,13 +94,12 @@ import sendErrorEmail from "~/utils/sendErrorEmail";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
-import { HistoryEntry } from "@tldraw/store";
-import { TLRecord } from "@tldraw/tlschema";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 
 declare global {
   interface Window {
     tldrawApps: Record<string, TldrawApp>;
+    DG_TLDRAW_LICENSE_KEY?: string;
   }
 }
 export type DiscourseContextType = {
@@ -125,6 +121,21 @@ export const discourseContext: DiscourseContextType = {
 const DEFAULT_WIDTH = 160;
 const DEFAULT_HEIGHT = 64;
 export const MAX_WIDTH = "400px";
+
+const resolveTldrawLicenseKey = (): string | undefined => {
+  if (typeof window !== "undefined" && window.DG_TLDRAW_LICENSE_KEY) {
+    return window.DG_TLDRAW_LICENSE_KEY;
+  }
+  if (
+    typeof process !== "undefined" &&
+    typeof process.env?.TLDRAW_LICENSE_KEY === "string"
+  ) {
+    return process.env.TLDRAW_LICENSE_KEY;
+  }
+  return undefined;
+};
+
+const textOptions = {};
 
 export const isPageUid = (uid: string) =>
   !!window.roamAlphaAPI.pull("[:node/title]", [":block/uid", uid])?.[
@@ -623,6 +634,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             editor={appRef.current}
           />
           <TldrawEditor
+            licenseKey={resolveTldrawLicenseKey()}
             // baseUrl="https://samepage.network/assets/tldraw/"
             // instanceId={initialState.instanceId}
             initialState="select"
@@ -631,6 +643,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             bindingUtils={[...defaultBindingUtils, ...customBindingUtils]}
             components={editorComponents}
             store={store}
+            textOptions={textOptions}
             onMount={(app) => {
               if (process.env.NODE_ENV !== "production") {
                 if (!window.tldrawApps) window.tldrawApps = {};

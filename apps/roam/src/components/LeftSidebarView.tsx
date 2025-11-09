@@ -581,6 +581,9 @@ const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   );
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let leftSidebarRoot: any = null;
+
 export const mountLeftSidebar = (
   wrapper: HTMLElement,
   onloadArgs: OnloadArgs,
@@ -603,7 +606,26 @@ export const mountLeftSidebar = (
   } else {
     root.className = "starred-pages";
   }
-  ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
+
+  // Clean up existing root if it exists
+  if (leftSidebarRoot) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    leftSidebarRoot.unmount();
+  }
+
+  // Create new root for React 18 concurrent rendering support
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+  leftSidebarRoot = (ReactDOM as any).createRoot(root);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+  leftSidebarRoot.render(<LeftSidebarView onloadArgs={onloadArgs} />);
+};
+
+export const unmountLeftSidebar = (): void => {
+  if (leftSidebarRoot) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    leftSidebarRoot.unmount();
+    leftSidebarRoot = null;
+  }
 };
 
 export default LeftSidebarView;

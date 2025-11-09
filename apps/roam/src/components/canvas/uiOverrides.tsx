@@ -33,7 +33,6 @@ import {
   ZoomToSelectionMenuItem,
   useEditor,
   useValue,
-  useToasts,
   renderPlaintextFromRichText,
 } from "tldraw";
 import { IKeyCombo } from "@blueprintjs/core";
@@ -50,7 +49,6 @@ import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelatio
 import { dispatchToastEvent } from "./ToastListener";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
-import { convertComboToTldrawFormat } from "~/utils/keyboardShortcutUtils";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 
@@ -429,8 +427,6 @@ export const createUiOverrides = ({
     return tools;
   },
   actions: (editor, actions) => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { addToast } = useToasts();
     actions["convert-to"] = {
       id: "convert-to",
       label: "action.convert-to" as TLUiTranslationKey,
@@ -455,7 +451,10 @@ export const createUiOverrides = ({
       kbd: "$!X",
       onSelect: (source) => {
         void originalCopyAsSvgAction.onSelect(source);
-        addToast({ title: "Copied as SVG" });
+        dispatchToastEvent({
+          id: "copy-as-svg-toast",
+          title: "Copied as SVG",
+        });
       },
     };
     actions["copy-as-png"] = {
@@ -463,7 +462,10 @@ export const createUiOverrides = ({
       kbd: "$!C",
       onSelect: (source) => {
         void originalCopyAsPngAction.onSelect(source);
-        addToast({ title: "Copied as PNG" });
+        dispatchToastEvent({
+          id: "copy-as-png-toast",
+          title: "Copied as PNG",
+        });
       },
     };
     // Disable print keyboard binding to prevent conflict with command palette

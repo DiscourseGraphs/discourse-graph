@@ -26,6 +26,7 @@ import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import { DiscourseContextType } from "./Tldraw";
 import { getPlainTitleFromSpecification } from "~/utils/getPlainTitleFromSpecification";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
+import { findSimilarNodes, SuggestedNode } from "~/utils/hyde";
 
 const LabelDialogAutocomplete = ({
   setLabel,
@@ -135,16 +136,19 @@ const LabelDialogAutocomplete = ({
     (r: Result) => {
       if (action === "creating" && r.uid === initialUid) {
         // replace when migrating from format to specification
-        const pageName = format.replace(/{([\w\d-]*)}/g, (_, val) => {
-          if (/content/i.test(val)) return r.text;
-          if (
-            referencedNode &&
-            new RegExp(referencedNode.name, "i").test(val) &&
-            isAddReferencedNode
-          )
-            return referencedNodeValue;
-          return "";
-        });
+        const pageName = format.replace(
+          /{([\w\d-]*)}/g,
+          (_match, val: string) => {
+            if (/content/i.test(val)) return r.text;
+            if (
+              referencedNode &&
+              new RegExp(referencedNode.name, "i").test(val) &&
+              isAddReferencedNode
+            )
+              return referencedNodeValue;
+            return "";
+          },
+        );
         setLabel(pageName);
       } else {
         setLabel(r.text);
@@ -177,12 +181,15 @@ const LabelDialogAutocomplete = ({
           setLabel(`${content} - [[${r.text}]]`);
         }
       } else {
-        const pageName = format.replace(/{([\w\d-]*)}/g, (_, val) => {
-          if (/content/i.test(val)) return content;
-          if (new RegExp(referencedNode.name, "i").test(val))
-            return `[[${r.text}]]`;
-          return "";
-        });
+        const pageName = format.replace(
+          /{([\w\d-]*)}/g,
+          (_match, val: string) => {
+            if (/content/i.test(val)) return content;
+            if (new RegExp(referencedNode.name, "i").test(val))
+              return `[[${r.text}]]`;
+            return "";
+          },
+        );
         setLabel(pageName);
       }
       setReferencedNodeValue(r.text);
@@ -332,6 +339,14 @@ const LabelDialog = ({
   const [label, setLabel] = useState(initialValue.text);
   const [uid, setUid] = useState(initialValue.uid);
   const [loading, setLoading] = useState(false);
+  const [duplicatesLoading, setDuplicatesLoading] = useState(false);
+  const [duplicateSuggestions, setDuplicateSuggestions] = useState<
+    SuggestedNode[]
+  >([]);
+  const [filteredDuplicateSuggestions, setFilteredDuplicateSuggestions] =
+    useState<SuggestedNode[]>([]);
+  const [duplicatesError, setDuplicatesError] = useState("");
+  const [hasRequestedDuplicates, setHasRequestedDuplicates] = useState(false);
   const isCreateCanvasNode = !isLiveBlock(initialUid);
   const { format } = discourseContext.nodes[nodeType];
   const referencedNode = useMemo(() => {
@@ -353,6 +368,50 @@ const LabelDialog = ({
 
     return null;
   }, [format, discourseContext.nodes]);
+
+  const handleDuplicateSelect = useCallback(
+    (node: SuggestedNode) => {
+      if (!node.uid) return;
+      setLabel(node.text);
+      setUid(node.uid);
+    },
+    [setLabel, setUid],
+  );
+
+  const handleOpenDuplicate = useCallback(async (node: SuggestedNode) => {
+    if (!node.uid) return;
+    await window.roamAlphaAPI.ui.mainWindow.openPage({
+      page: { uid: node.uid },
+    });
+  }, []);
+
+  const handleCheckDuplicates = useCallback(async () => {
+    const trimmedLabel = label.trim();
+    if (!trimmedLabel) return;
+    setHasRequestedDuplicates(true);
+    setDuplicatesLoading(true);
+    setDuplicatesError("");
+    try {
+      const { raw, filtered } = await findSimilarNodes({
+        text: trimmedLabel,
+        nodeType,
+      });
+      const filterOutCurrent = (nodes: SuggestedNode[]) =>
+        nodes.filter((node) => node.uid && node.uid !== initialUid);
+      setDuplicateSuggestions(filterOutCurrent(raw));
+      setFilteredDuplicateSuggestions(filterOutCurrent(filtered));
+    } catch (error) {
+      setDuplicateSuggestions([]);
+      setFilteredDuplicateSuggestions([]);
+      setDuplicatesError(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch possible duplicates.",
+      );
+    } finally {
+      setDuplicatesLoading(false);
+    }
+  }, [label, nodeType, initialUid]);
 
   const renderCalloutText = () => {
     let title = "Please provide a label";
@@ -392,7 +451,11 @@ const LabelDialog = ({
     setLoading(true);
     onSuccess({ text: label, uid, action: calloutText.action })
       .then(onClose)
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) =>
+        setError(
+          e instanceof Error ? e.message : "Failed to complete the request.",
+        ),
+      )
       .finally(() => setLoading(false));
   };
   const onCancelClick = useCallback(() => {
@@ -464,6 +527,93 @@ const LabelDialog = ({
               format={format}
               label={label}
             />
+            <div className="mt-4 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  icon={"duplicate"}
+                  text={
+                    hasRequestedDuplicates
+                      ? "Refresh possible duplicates"
+                      : "Check possible duplicates"
+                  }
+                  onClick={() => void handleCheckDuplicates()}
+                  disabled={duplicatesLoading || !label.trim()}
+                  small
+                />
+                {duplicatesLoading && <Spinner size={SpinnerSize.SMALL} />}
+                {duplicatesError && (
+                  <span className="text-xs text-red-800">
+                    {duplicatesError}
+                  </span>
+                )}
+              </div>
+              {hasRequestedDuplicates && !duplicatesLoading && (
+                <div className="space-y-3">
+                  {filteredDuplicateSuggestions.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase text-gray-500">
+                        Possible duplicates (LLM filtered)
+                      </p>
+                      <ul className="flex flex-col gap-1">
+                        {filteredDuplicateSuggestions.map((node) => (
+                          <li key={node.uid}>
+                            <div className="flex items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                className="flex-1 cursor-pointer text-left text-blue-600 hover:underline"
+                                onClick={() => handleDuplicateSelect(node)}
+                              >
+                                {node.text}
+                              </button>
+                              <Button
+                                minimal
+                                small
+                                icon={"share"}
+                                onClick={() => void handleOpenDuplicate(node)}
+                              />
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {duplicateSuggestions.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase text-gray-500">
+                        Possible duplicates (Semantic)
+                      </p>
+                      <ul className="flex flex-col gap-1">
+                        {duplicateSuggestions.map((node) => (
+                          <li key={node.uid}>
+                            <div className="flex items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                className="flex-1 cursor-pointer text-left text-blue-600 hover:underline"
+                                onClick={() => handleDuplicateSelect(node)}
+                              >
+                                {node.text}
+                              </button>
+                              <Button
+                                minimal
+                                small
+                                icon={"share"}
+                                onClick={() => void handleOpenDuplicate(node)}
+                              />
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {filteredDuplicateSuggestions.length === 0 &&
+                    duplicateSuggestions.length === 0 && (
+                      <p className="text-xs text-gray-600">
+                        No possible duplicates found.
+                      </p>
+                    )}
+                </div>
+              )}
+            </div>
           </div>
           <div className={Classes.DIALOG_FOOTER}>
             <div

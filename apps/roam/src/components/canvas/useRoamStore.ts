@@ -1,4 +1,3 @@
-import { TLRecord } from "@tldraw/tlschema";
 import nanoid from "nanoid";
 import { useRef, useMemo, useEffect, useState } from "react";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
@@ -10,9 +9,8 @@ import {
   createTLStore,
   TLAnyBindingUtilConstructor,
   TLAnyShapeUtilConstructor,
-} from "@tldraw/editor";
-import { SerializedStore, StoreSnapshot } from "@tldraw/store";
-import {
+  SerializedStore,
+  StoreSnapshot,
   defaultBindingUtils,
   defaultShapeUtils,
   getIndices,
@@ -22,6 +20,7 @@ import {
   TLShape,
   TLStoreSnapshot,
   TLStore,
+  TLRecord,
 } from "tldraw";
 import { AddPullWatch } from "roamjs-components/types";
 import { LEGACY_SCHEMA } from "~/data/legacyTldrawSchema";
