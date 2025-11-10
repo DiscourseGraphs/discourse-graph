@@ -236,7 +236,7 @@ const AdminPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                   Reified Relation Triples
                   <Description
                     description={
-                      "When ON, relations are read/written as sourceUid:relationBlockUid:destinationUid in [[roam/js/discourse-graph/relations]]."
+                      "When ON, relations are read/written as reifiedRelationUid in [[roam/js/discourse-graph/relations]]."
                     }
                   />
                 </>
