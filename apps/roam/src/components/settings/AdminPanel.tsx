@@ -103,7 +103,11 @@ const NodeTable = ({ nodes }: { nodes: PConceptFull[] }) => {
   );
 };
 
-const AdminPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
+const AdminPanel = ({
+  onloadArgs,
+}: {
+  onloadArgs: OnloadArgs;
+}): React.ReactElement => {
   const extensionAPI = onloadArgs.extensionAPI;
   const [context, setContext] = useState<SupabaseContext | null>(null);
   const [supabase, setSupabase] = useState<DGSupabaseClient | null>(null);
