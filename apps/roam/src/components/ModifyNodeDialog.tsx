@@ -33,6 +33,7 @@ import getDiscourseNodes, {
 import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import { Result } from "~/utils/types";
 import { DiscourseContextType } from "./canvas/Tldraw";
+import FuzzySelectInput from "./FuzzySelectInput";
 
 type ReferencedNode = {
   name: string;
@@ -494,7 +495,7 @@ const ModifyNodeDialog = ({
         </div>
 
         {/* Content Input */}
-        <div className="w-full">
+        {/* <div className="w-full">
           <Label>Content</Label>
           <div className="w-full">
             <LockableAutocompleteInput
@@ -518,10 +519,10 @@ const ModifyNodeDialog = ({
               initialUid={contentInitialUid}
             />
           </div>
-        </div>
+        </div> */}
 
         {/* Referenced Node Section - hidden when content is locked */}
-        {referencedNode && !isContentLocked && (
+        {/* {referencedNode && !isContentLocked && (
           <div className="referenced-node-autocomplete w-full">
             <Label>{referencedNode.name}</Label>
             <div className="w-full">
@@ -549,7 +550,22 @@ const ModifyNodeDialog = ({
               />
             </div>
           </div>
-        )}
+        )} */}
+
+        <FuzzySelectInput
+          value={{ text: content, uid: contentUid }}
+          setValue={setValue}
+          options={options}
+          placeholder={
+            isReferencedNodeLoading
+              ? "..."
+              : `Enter a ${selectedNodeType.text.toLowerCase()} ...`
+          }
+          disabled={isLoading}
+          onLockedChange={setIsContentLocked}
+          mode={mode}
+          initialUid={contentInitialUid}
+        />
       </div>
 
       <div className={Classes.DIALOG_FOOTER}>
