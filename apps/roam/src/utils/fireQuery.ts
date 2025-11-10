@@ -1,8 +1,8 @@
 import conditionToDatalog from "./conditionToDatalog";
 import type {
   PullBlock,
-  DatalogAndClause,
   DatalogClause,
+  DatalogAndClause,
 } from "roamjs-components/types";
 import compileDatalog from "./compileDatalog";
 import { getNodeEnv } from "roamjs-components/util/env";
@@ -107,7 +107,8 @@ const optimizeQuery = (
         if (Array.from(allVars).every((v) => capturedVariables.has(v))) {
           score = 10;
         } else {
-          score = 100002;
+          // downgrade disjunction and negation
+          score = c.type === "and-clause" ? 100002 : 100006;
         }
       } else if (c.type === "not-join-clause" || c.type === "or-join-clause") {
         if (c.variables.every((v) => capturedVariables.has(v.value))) {
@@ -156,6 +157,9 @@ const optimizeQuery = (
         .filter((v) => v.type === "variable")
         .forEach((v) => capturedVariables.add(v.value));
     }
+    // Question: Should we not consider all variables in a complex clause captured?
+    // const newVars = gatherDatalogVariablesFromClause(bestClause);
+    // newVars.forEach((v) => capturedVariables.add(v));
   }
   return orderedClauses;
 };
@@ -197,7 +201,7 @@ export const getDatalogQuery = ({
   const whereClauses = optimizeQuery(
     getWhereClauses({ conditions, returnNode }),
     new Set([]),
-  ) as DatalogClause[];
+  );
 
   const defaultSelections: {
     mapper: PredefinedSelection["mapper"];
