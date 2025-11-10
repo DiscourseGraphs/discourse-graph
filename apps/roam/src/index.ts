@@ -20,6 +20,7 @@ import styles from "./styles/styles.css";
 import discourseFloatingMenuStyles from "./styles/discourseFloatingMenuStyles.css";
 import settingsStyles from "./styles/settingsStyles.css";
 import discourseGraphStyles from "./styles/discourseGraphStyles.css";
+import streamlineStyling from "./styles/streamlineStyling";
 import posthog from "posthog-js";
 import getDiscourseNodes from "./utils/getDiscourseNodes";
 import { initFeedbackWidget } from "./components/BirdEatsBugs";
@@ -32,6 +33,8 @@ import {
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
+import { getSetting } from "./utils/extensionSettings";
+import { STREAMLINE_STYLING_KEY } from "./data/userSettings";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -112,6 +115,15 @@ export default runExtension(async (onloadArgs) => {
   const settingsStyle = addStyle(settingsStyles);
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
 
+  // Add streamline styling only if enabled
+  const isStreamlineStylingEnabled = getSetting(STREAMLINE_STYLING_KEY, false);
+  console.log("isStreamlineStylingEnabled", isStreamlineStylingEnabled);
+  let streamlineStyleElement: HTMLStyleElement | null = null;
+  if (isStreamlineStylingEnabled) {
+    streamlineStyleElement = addStyle(streamlineStyling);
+    streamlineStyleElement.id = "streamline-styling";
+  }
+
   const { observers, listeners } = await initObservers({ onloadArgs });
   const {
     pageActionListener,
@@ -166,6 +178,7 @@ export default runExtension(async (onloadArgs) => {
       settingsStyle,
       discourseGraphStyle,
       discourseFloatingMenuStyle,
+      ...(streamlineStyleElement ? [streamlineStyleElement] : []),
     ],
     observers: observers,
     unload: () => {

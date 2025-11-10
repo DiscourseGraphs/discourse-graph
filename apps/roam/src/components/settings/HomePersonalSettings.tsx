@@ -2,6 +2,7 @@ import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
+import { addStyle } from "roamjs-components/dom";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
 import {
   getOverlayHandler,
@@ -18,13 +19,16 @@ import {
   AUTO_CANVAS_RELATIONS_KEY,
   DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
   DISCOURSE_TOOL_SHORTCUT_KEY,
+  STREAMLINE_STYLING_KEY,
 } from "~/data/userSettings";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
+import streamlineStyling from "~/styles/streamlineStyling";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
+  console.log("streamlineStyling", getSetting(STREAMLINE_STYLING_KEY, false));
 
   return (
     <div className="flex flex-col gap-4 p-1">
@@ -220,6 +224,36 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             <Description
               description={
                 "Whether or not to overlay Discourse Context information over Canvas Nodes."
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={getSetting(STREAMLINE_STYLING_KEY, false)}
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          setSetting(STREAMLINE_STYLING_KEY, target.checked);
+
+          // Load or unload the streamline styling
+          const existingStyleElement =
+            document.getElementById("streamline-styling");
+
+          if (target.checked && !existingStyleElement) {
+            // Load the styles
+            const styleElement = addStyle(streamlineStyling);
+            styleElement.id = "streamline-styling";
+          } else if (!target.checked && existingStyleElement) {
+            // Unload the styles
+            existingStyleElement.remove();
+          }
+        }}
+        labelElement={
+          <>
+            Streamline Styling
+            <Description
+              description={
+                "Apply streamlined styling to your personal graph for a cleaner appearance."
               }
             />
           </>
