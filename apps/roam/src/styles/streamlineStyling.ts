@@ -1,18 +1,33 @@
 export default /* css */ `
-/* custom controls */
-
+/* 1) Page links: gray text with an underline simulated via bottom border */
 .rm-page-ref {
-  color: grey;
+  color: #666;
+  border-bottom: 3px solid #ddd;
+  text-decoration: none;
 }
-.rm-checkbox {
-  color: grey;
-  text-color: grey;
+.rm-page-ref:hover {
+  color: #666;
+  border-bottom-color: #ddd;
+  text-decoration: none;
 }
 
-.check-container input:checked~.checkmark {
-  background-color: grey;
+/* 2) Todo boxes: gray */
+.check-container .checkmark {
+  background: transparent;
+  border: 2px solid #bbb;
+  border-radius: 3px;
+}
+.check-container input:checked ~ .checkmark {
+  background: #eee;
+  border-color: #aaa;
+}
+/* Checkmark tick color (optional) */
+.check-container .checkmark:after {
+  border-right: 2px solid #333;
+  border-bottom: 2px solid #333;
 }
 
+/* 3) Right sidebar: white background */
 #right-sidebar {
   background-color: white;
 }
@@ -21,10 +36,25 @@ export default /* css */ `
   border: 1px solid rgba(171, 171, 171, 0.5) ;
 }
 
-table.bp3-html-table.bp3-html-table-striped tbody tr:not(:last-child) td {
-  background-color: transparent;
-  line-height: 1.5rem;
-  border-bottom: 1px solid rgba(171, 171, 171, 0.5) ;
+/* 4) Tables: no row/body background; use borders only */
+.roam-table > table {
+  background: transparent;
+  border-collapse: separate; /* keep borders between cells like RoamStudio */
+}
+.roam-table > table thead th {
+  background: transparent;
+  color: #444;
+  border-top: 2px solid #e1e1e1;
+  border-right: 2px solid #e1e1e1;
+}
+.roam-table > table tbody td {
+  background: transparent;
+}
+.roam-table > table tbody tr td:first-child {
+  border-left: 2px solid #e1e1e1;
+}
+.roam-table > table tbody tr:last-child td {
+  border-bottom: 2px solid #e1e1e1;
 }
 
 
