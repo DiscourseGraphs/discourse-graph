@@ -375,7 +375,7 @@ const getExportTypes = ({
     );
   };
   const getRelationData = () =>
-    getRelationDataUtil(allRelations, nodeLabelByType);
+    getRelationDataUtil({ allRelations, nodeLabelByType, local: true });
 
   const getJsonData = async () => {
     const grammar = allRelations.map(({ label, destination, source }) => ({

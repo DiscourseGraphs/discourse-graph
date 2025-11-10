@@ -30,6 +30,7 @@ type RelationInQuery = {
 export type FireQueryArgs = QueryArgs & {
   isCustomEnabled?: boolean;
   customNode?: string;
+  local?: boolean;
   context?: {
     relationsInQuery?: RelationInQuery[];
     customNodes?: DiscourseNode[];
@@ -315,7 +316,7 @@ export const fireQuerySync = (args: FireQueryArgs): QueryResult[] => {
 };
 
 const fireQuery: FireQuery = async (_args) => {
-  const { isCustomEnabled, customNode, ...args } = _args;
+  const { isCustomEnabled, customNode, local, ...args } = _args;
 
   const { query, formatResult, inputs } = isCustomEnabled
     ? {
@@ -347,10 +348,15 @@ const fireQuery: FireQuery = async (_args) => {
       console.groupEnd();
     }
 
-    const queryResults = await window.roamAlphaAPI.data.backend.q(
-      query,
-      ...inputs,
-    );
+    let queryResults: unknown[][] = [];
+    if (local) {
+      queryResults = await window.roamAlphaAPI.data.async.fast.q(
+        query,
+        ...inputs,
+      );
+    } else {
+      queryResults = await window.roamAlphaAPI.data.backend.q(query, ...inputs);
+    }
 
     if (nodeEnv === "development") {
       console.timeEnd(`Query - ${queryId}`);
