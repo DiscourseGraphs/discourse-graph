@@ -114,7 +114,7 @@ const AdminPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const [loading, setLoading] = useState(true);
   const [loadingNodes, setLoadingNodes] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTabId, setSelectedTabId] = useState<TabId>("node-list");
+  const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
 
   useEffect(() => {
     let ignore = false;
@@ -216,6 +216,36 @@ const AdminPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       renderActiveTabPanelOnly={true}
     >
       <Tab
+        id="admin"
+        title="Admin"
+        panel={
+          <div className="flex flex-col gap-4 p-1">
+            <Checkbox
+              defaultChecked={
+                extensionAPI.settings.get("use-reified-relations") as boolean
+              }
+              onChange={(e) => {
+                const target = e.target as HTMLInputElement;
+                void extensionAPI.settings.set(
+                  "use-reified-relations",
+                  target.checked,
+                );
+              }}
+              labelElement={
+                <>
+                  Reified Relation Triples
+                  <Description
+                    description={
+                      "When ON, relations are read/written as sourceUid:relationBlockUid:destinationUid in [[roam/js/discourse-graph/relations]]."
+                    }
+                  />
+                </>
+              }
+            />
+          </div>
+        }
+      />
+      <Tab
         id="node-list"
         title="Node list"
         panel={
@@ -258,36 +288,6 @@ const AdminPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
               <p>No node schemas found</p>
             )}
           </>
-        }
-      />
-      <Tab
-        id="experiments"
-        title="Experiments"
-        panel={
-          <div className="flex flex-col gap-4 p-1">
-            <Checkbox
-              defaultChecked={
-                extensionAPI.settings.get("use-reified-relations") as boolean
-              }
-              onChange={(e) => {
-                const target = e.target as HTMLInputElement;
-                extensionAPI.settings.set(
-                  "use-reified-relations",
-                  target.checked,
-                );
-              }}
-              labelElement={
-                <>
-                  Reified Relation Triples
-                  <Description
-                    description={
-                      "When ON, relations are read/written as sourceUid:relationBlockUid:destinationUid in [[roam/js/discourse-graph/relations]]."
-                    }
-                  />
-                </>
-              }
-            />
-          </div>
         }
       />
     </Tabs>
