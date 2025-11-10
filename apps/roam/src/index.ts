@@ -131,23 +131,15 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  const supabase = await getLoggedInClient();
-  if (supabase) {
-    const { data } = await supabase
-      .from("Space")
-      .select("url")
-      .eq("url", getRoamUrl())
-      .maybeSingle();
-    const isSuggestiveModeEnabled = getUidAndBooleanSetting({
-      tree: getBasicTreeByParentUid(
-        getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-      ),
-      text: "(BETA) Suggestive Mode Enabled",
-    }).value;
+  const isSuggestiveModeEnabled = getUidAndBooleanSetting({
+    tree: getBasicTreeByParentUid(
+      getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
+    ),
+    text: "(BETA) Suggestive Mode Enabled",
+  }).value;
 
-    if (data || isSuggestiveModeEnabled) {
-      initializeSupabaseSync();
-    }
+  if (isSuggestiveModeEnabled) {
+    initializeSupabaseSync();
   }
 
   const { extensionAPI } = onloadArgs;
