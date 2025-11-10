@@ -72,7 +72,7 @@ const createReifiedBlock = async ({
 const RELATION_PAGE_TITLE = "roam/js/discourse-graph/relations";
 let relationPageUid: string | undefined = undefined;
 
-const getRelationPageUid = async (): Promise<string> => {
+export const getOrCreateRelationPageUid = async (): Promise<string> => {
   if (relationPageUid === undefined) {
     relationPageUid = getPageUidByPageTitle(RELATION_PAGE_TITLE);
     if (relationPageUid === "") {
@@ -82,8 +82,16 @@ const getRelationPageUid = async (): Promise<string> => {
   return relationPageUid;
 };
 
+export const getExistingRelationPageUid = (): string | undefined => {
+  if (relationPageUid === undefined) {
+    const uid = getPageUidByPageTitle(RELATION_PAGE_TITLE);
+    if (uid !== "") relationPageUid = uid;
+  }
+  return relationPageUid;
+};
+
 export const countReifiedRelations = async (): Promise<number> => {
-  const pageUid = await getRelationPageUid();
+  const pageUid = getExistingRelationPageUid();
   if (pageUid === undefined) return 0;
   const r = await window.roamAlphaAPI.data.async.q(
     `[:find (count ?c) :where [?p :block/children ?c] [?p :block/uid "${pageUid}"]]`,
@@ -103,7 +111,7 @@ export const createReifiedRelation = async ({
   const authorized = getSetting("use-reified-relations");
   if (authorized) {
     return await createReifiedBlock({
-      destinationBlockUid: await getRelationPageUid(),
+      destinationBlockUid: await getOrCreateRelationPageUid(),
       schemaUid: relationBlockUid,
       parameterUids: {
         sourceUid,
