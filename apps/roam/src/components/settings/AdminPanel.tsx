@@ -13,6 +13,7 @@ import {
 import { OnloadArgs } from "roamjs-components/types";
 import Description from "roamjs-components/components/Description";
 import { Select } from "@blueprintjs/select";
+import { getSetting, setSetting } from "~/utils/extensionSettings";
 import {
   getSupabaseContext,
   getLoggedInClient,
@@ -119,6 +120,9 @@ const AdminPanel = ({
   const [loadingNodes, setLoadingNodes] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
+  const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
+    getSetting("use-reified-relations"),
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -225,15 +229,11 @@ const AdminPanel = ({
         panel={
           <div className="flex flex-col gap-4 p-1">
             <Checkbox
-              defaultChecked={
-                extensionAPI.settings.get("use-reified-relations") as boolean
-              }
+              defaultChecked={useReifiedRelations}
               onChange={(e) => {
                 const target = e.target as HTMLInputElement;
-                void extensionAPI.settings.set(
-                  "use-reified-relations",
-                  target.checked,
-                );
+                setUseReifiedRelations(target.checked);
+                setSetting("use-reified-relations", target.checked);
               }}
               labelElement={
                 <>
