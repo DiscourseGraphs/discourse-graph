@@ -254,15 +254,23 @@ const MigrationTab = (): React.ReactElement => {
   const [useOngoing, setOngoing] = useState<boolean>(false);
   const doMigrateRelations = async () => {
     setOngoing(true);
-    const before = await countReifiedRelations();
-    const numProcessed = await migrateRelations();
-    const after = await countReifiedRelations();
-    if (after - before < numProcessed)
+    try {
+      const before = await countReifiedRelations();
+      const numProcessed = await migrateRelations();
+      const after = await countReifiedRelations();
+      if (after - before < numProcessed)
+        setMigrationResults(
+          `${after - before} new relations created out of ${numProcessed} distinct relations processed`,
+        );
+      else setMigrationResults(`${numProcessed} new relations created`);
+    } catch (e) {
+      console.error("Relation migration failed", e);
       setMigrationResults(
-        `${after - before} new relations created out of ${numProcessed} distinct relations processed`,
+        `Migration failed: ${(e as Error).message ?? "see console for details"}`,
       );
-    else setMigrationResults(`${numProcessed} new relations created`);
-    setOngoing(false);
+    } finally {
+      setOngoing(false);
+    }
   };
   useEffect(() => {
     void (async () => {
@@ -289,7 +297,7 @@ const MigrationTab = (): React.ReactElement => {
           onClick={() => {
             void doMigrateRelations();
           }}
-          disabled={!enabled && !useOngoing}
+          disabled={!enabled || useOngoing}
           text="Migrate all relations"
         ></Button>
       </p>
