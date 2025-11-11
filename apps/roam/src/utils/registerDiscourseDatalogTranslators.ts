@@ -101,6 +101,9 @@ const registerDiscourseDatalogTranslators = () => {
   const isACandidateCallback: Parameters<
     typeof registerDatalogTranslator
   >[0]["callback"] = ({ source, target }) => {
+    const stripLeadingHash = (value: string): string =>
+      value.startsWith("#") ? value.slice(1) : value;
+
     const nodeByTypeOrText = Object.fromEntries([
       ...discourseNodes.map((n) => [n.type, n] as const),
       ...discourseNodes.map((n) => [n.text, n] as const),
@@ -129,7 +132,10 @@ const registerDiscourseDatalogTranslators = () => {
                     },
                   ],
                 },
-                ...getTitleDatalog({ source: variableRef, target: node.tag }),
+                ...getTitleDatalog({
+                  source: variableRef,
+                  target: stripLeadingHash(node.tag),
+                }),
               ],
             };
           }),
@@ -153,7 +159,10 @@ const registerDiscourseDatalogTranslators = () => {
           },
         ],
       },
-      ...getTitleDatalog({ source: variableRef, target: targetNodeTag }),
+      ...getTitleDatalog({
+        source: variableRef,
+        target: stripLeadingHash(targetNodeTag),
+      }),
     ];
   };
   const unregisters = new Set<() => void>();
