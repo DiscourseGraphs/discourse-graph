@@ -32,7 +32,7 @@ import { Button, Icon } from "@blueprintjs/core";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { isPageUid } from "./Tldraw";
-import { renderModifyNodeDialog } from "../ModifyNodeDialog";
+import { renderModifyNodeDialog } from "../NewModifyNodeDialog";
 import { colord } from "colord";
 import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
@@ -47,7 +47,6 @@ import {
 import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import getPleasingColors from "@repo/utils/getPleasingColors";
-import { OnloadArgs } from "roamjs-components/types";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -499,15 +498,12 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
+      const isCreating = !isLiveBlock(shape.props.uid);
       if (isEditing && !dialogRendered) {
-        const isCreating = !isLiveBlock(shape.props.uid);
-
-        const setSizeAndImgProps = async ({
-          context,
+        const setSizeAndImgPropsLocal = async ({
           text,
           uid,
         }: {
-          context: BaseDiscourseNodeUtil;
           text: string;
           uid: string;
         }) => {
@@ -518,18 +514,29 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
             nodeType: this.type,
             extensionAPI,
           });
-          context.updateProps(shape.id, shape.type, { h, w, imageUrl });
+          this.updateProps(shape.id, shape.type, { h, w, imageUrl });
         };
 
         renderModifyNodeDialog({
           mode: isCreating ? "create" : "edit",
           nodeType: shape.type,
-          content: shape.props.title,
-          uid: shape.props.uid,
-          extensionAPI: extensionAPI as unknown as OnloadArgs["extensionAPI"],
-          discourseContext,
+          initialValue: { text: shape.props.title, uid: shape.props.uid },
+          // Only pass it when editing an existing node that has a valid Roam block UID
+          sourceBlockUid:
+            !isCreating && isLiveBlock(shape.props.uid)
+              ? shape.props.uid
+              : undefined,
+          extensionAPI,
           onSuccess: async ({ text, uid, action, newPageUid }) => {
-            if (action === "editing") {
+            console.log("action", action);
+            console.log("shape", shape);
+            console.log("onSuccess params:", { text, uid, action, newPageUid });
+
+            // For canvas creation, the dialog already created the node
+            // Use the correct UID: newPageUid for new nodes, uid for existing
+            const finalUid = newPageUid || uid;
+
+            if (action === "edit") {
               if (isPageUid(shape.props.uid))
                 await window.roamAlphaAPI.updatePage({
                   page: { uid: shape.props.uid, title: text },
@@ -537,31 +544,45 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               else await updateBlock({ uid: shape.props.uid, text });
             }
 
-            if (action === "creating" && !getPageUidByPageTitle(text)) {
+            if (
+              action === "create" &&
+              !getPageUidByPageTitle(text) &&
+              !newPageUid
+            ) {
+              console.log("creating discourse node (fallback)", text);
               void createDiscourseNode({
                 configPageUid: shape.type,
                 text,
-                newPageUid: newPageUid || uid,
+                newPageUid: finalUid,
+                extensionAPI,
               });
             }
 
-            // Update Shape Props
-            void setSizeAndImgProps({ context: this, text, uid });
-            this.updateProps(shape.id, shape.type, { title: text, uid });
+            void setSizeAndImgPropsLocal({ text, uid: finalUid });
+            this.updateProps(shape.id, shape.type, {
+              title: text,
+              uid: finalUid,
+            });
 
-            // Update Shape Relations
             const autoCanvasRelations = getSetting<boolean>(
               AUTO_CANVAS_RELATIONS_KEY,
               false,
             );
             if (autoCanvasRelations) {
-              const relationIds = getRelationIds();
-              this.deleteRelationsInCanvas({ shape, relationIds });
-              await this.createExistingRelations({
-                shape,
-                relationIds,
-                finalUid: uid,
-              });
+              try {
+                const relationIds = getRelationIds();
+                this.deleteRelationsInCanvas({ shape, relationIds });
+                await this.createExistingRelations({
+                  shape,
+                  relationIds,
+                  finalUid,
+                });
+              } catch (error) {
+                console.error(
+                  "[DiscourseNodeUtil] Error creating relations:",
+                  error,
+                );
+              }
             }
 
             editor.setEditingShape(null);
@@ -569,9 +590,6 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
           },
           onClose: () => {
             editor.setEditingShape(null);
-            if (!isLiveBlock(shape.props.uid)) {
-              editor.deleteShapes([shape.id]);
-            }
             setDialogRendered(false);
           },
         });
