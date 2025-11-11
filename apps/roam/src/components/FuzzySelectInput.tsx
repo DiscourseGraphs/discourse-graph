@@ -40,7 +40,7 @@ const FuzzySelectInput = <T extends Result = Result>({
   const [query, setQuery] = useState<string>(() => value?.text || "");
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  
+
   const menuRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -131,7 +131,9 @@ const FuzzySelectInput = <T extends Result = Result>({
   // Scroll active item into view
   useEffect(() => {
     if (menuRef.current && isOpen) {
-      const activeElement = menuRef.current.children[activeIndex] as HTMLElement;
+      const activeElement = menuRef.current.children[
+        activeIndex
+      ] as HTMLElement;
       if (activeElement) {
         activeElement.scrollIntoView({
           block: "nearest",

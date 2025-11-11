@@ -391,7 +391,7 @@ const ModifyNodeDialog = ({
 
         await onSuccess({
           text: formattedTitle,
-          uid: contentUid,
+          uid: sourceBlockUid || newPageUid,
           action,
           newPageUid,
         });
