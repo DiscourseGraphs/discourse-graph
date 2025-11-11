@@ -3,13 +3,15 @@ import createPage from "roamjs-components/writes/createPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { getSetting } from "~/utils/extensionSettings";
 
+export const DISCOURSE_GRAPH_PROP_NAME = "discourse-graph";
+
 const strictQueryForReifiedBlocks = async (
   parameterUids: Record<string, string>,
 ): Promise<string | null> => {
   const paramsAsSeq = Object.entries(parameterUids);
   const query = `[:find ?u ?d
   :in $ ${paramsAsSeq.map(([k]) => "?" + k).join(" ")}
-  :where [?s :block/uid ?u] [?s :block/props ?p] [(get ?p :discourse-graph) ?d]
+  :where [?s :block/uid ?u] [?s :block/props ?p] [(get ?p :${DISCOURSE_GRAPH_PROP_NAME}) ?d]
   ${paramsAsSeq.map(([k]) => `[(get ?d :${k}) ?_${k}] [(= ?${k} ?_${k})]`).join(" ")} ]`;
   // Note: the extra _k binding variable is only needed for the backend query somehow
   // In a local query, we can directly map to `[(get ?d :${k}) ?${k}]`
@@ -58,7 +60,7 @@ const createReifiedBlock = async ({
       uid: newUid,
       props: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        "discourse-graph": data,
+        [DISCOURSE_GRAPH_PROP_NAME]: data,
       },
     },
     parentUid: destinationBlockUid,
@@ -78,6 +80,15 @@ const getRelationPageUid = async (): Promise<string> => {
     }
   }
   return relationPageUid;
+};
+
+export const countReifiedRelations = async (): Promise<number> => {
+  const pageUid = await getRelationPageUid();
+  if (pageUid === undefined) return 0;
+  const r = await window.roamAlphaAPI.data.async.q(
+    `[:find (count ?c) :where [?p :block/children ?c] [?p :block/uid "${pageUid}"]]`,
+  );
+  return (r[0] || [0])[0] as number;
 };
 
 export const createReifiedRelation = async ({
