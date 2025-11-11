@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Button, Popover, Position } from "@blueprintjs/core";
-import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
+import { renderModifyNodeDialog } from "~/components/NewModifyNodeDialog";
 import { OnloadArgs } from "roamjs-components/types";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -52,13 +52,13 @@ export const renderNodeTagPopupButton = (
             renderModifyNodeDialog({
               mode: "create",
               nodeType: matchedNode.type,
-              content: cleanedBlockText,
+              initialValue: { text: cleanedBlockText, uid: "" },
               onSuccess: async () => {
                 // Success is handled by the dialog itself
               },
               onClose: () => {},
-              extensionAPI,
               sourceBlockUid: blockUid,
+              extensionAPI,
             });
           }}
           text={`Create ${matchedNode.text}`}
