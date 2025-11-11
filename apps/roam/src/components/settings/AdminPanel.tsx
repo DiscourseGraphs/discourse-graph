@@ -25,6 +25,8 @@ import {
   type NodeSignature,
   type PConceptFull,
 } from "@repo/database/lib/queries";
+import migrateRelations from "~/utils/migrateRelations";
+import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
@@ -103,7 +105,7 @@ const NodeTable = ({ nodes }: { nodes: PConceptFull[] }) => {
   );
 };
 
-const AdminPanel = (): React.ReactElement => {
+const NodeListTab = (): React.ReactElement => {
   const [context, setContext] = useState<SupabaseContext | null>(null);
   const [supabase, setSupabase] = useState<DGSupabaseClient | null>(null);
   const [schemas, setSchemas] = useState<NodeSignature[]>([]);
@@ -113,11 +115,6 @@ const AdminPanel = (): React.ReactElement => {
   const [loading, setLoading] = useState(true);
   const [loadingNodes, setLoadingNodes] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
-  const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
-    getSetting("use-reified-relations"),
-  );
-
   useEffect(() => {
     let ignore = false;
     void (async () => {
@@ -212,6 +209,129 @@ const AdminPanel = (): React.ReactElement => {
   }
 
   return (
+    <>
+      <p>
+        Context:{" "}
+        <code>{JSON.stringify({ ...context, spacePassword: "****" })}</code>
+      </p>
+      {schemas.length > 0 ? (
+        <>
+          <Label>
+            Display:
+            <div className="mx-2 inline-block">
+              <Select
+                items={schemas}
+                onItemSelect={(choice) => {
+                  setShowingSchema(choice);
+                }}
+                itemRenderer={(node, { handleClick, modifiers }) => (
+                  <MenuItem
+                    active={modifiers.active}
+                    key={node.sourceLocalId}
+                    label={node.name}
+                    onClick={handleClick}
+                    text={node.name}
+                  />
+                )}
+              >
+                <Button text={showingSchema.name} />
+              </Select>
+            </div>
+          </Label>
+          <div>{loadingNodes ? <Spinner /> : <NodeTable nodes={nodes} />}</div>
+        </>
+      ) : (
+        <p>No node schemas found</p>
+      )}
+    </>
+  );
+};
+
+const MigrationTab = (): React.ReactElement => {
+  let initial = true;
+  const enabled = getSetting("use-reified-relations");
+  const [useMigrationResults, setMigrationResults] = useState<string>("");
+  const [useOngoing, setOngoing] = useState<boolean>(false);
+  const doMigrateRelations = async () => {
+    setOngoing(true);
+    const before = await countReifiedRelations();
+    const numProcessed = await migrateRelations();
+    const after = await countReifiedRelations();
+    if (after - before < numProcessed)
+      setMigrationResults(
+        `${after - before} new relations created out of ${numProcessed} distinct relations processed`,
+      );
+    else setMigrationResults(`${numProcessed} new relations created`);
+    setOngoing(false);
+  };
+  useEffect(() => {
+    void (async () => {
+      if (initial) {
+        const numRelations = await countReifiedRelations();
+        setMigrationResults(
+          numRelations > 0
+            ? `${numRelations} already migrated`
+            : "No migrated relations",
+        );
+        initial = false;
+      }
+    })();
+    return () => {
+      initial;
+    };
+  }, []);
+
+  return (
+    <>
+      <p>
+        <Button
+          className="p-4"
+          onClick={() => {
+            void doMigrateRelations();
+          }}
+          disabled={!enabled && !useOngoing}
+          text="Migrate all relations"
+        ></Button>
+      </p>
+      {useOngoing ? (
+        <Spinner />
+      ) : (
+        <p id="migrationResultsLabel">{useMigrationResults}</p>
+      )}
+    </>
+  );
+};
+
+const FeatureFlagsTab = (): React.ReactElement => {
+  const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
+    getSetting("use-reified-relations"),
+  );
+  return (
+    <Checkbox
+      defaultChecked={useReifiedRelations}
+      onChange={(e) => {
+        const target = e.target as HTMLInputElement;
+        setUseReifiedRelations(target.checked);
+        setSetting("use-reified-relations", target.checked);
+      }}
+      labelElement={
+        <>
+          Reified Relation Triples
+          <Description
+            description={
+              "When ON, relations are read/written as reifiedRelationUid in [[roam/js/discourse-graph/relations]]."
+            }
+          />
+        </>
+      }
+    />
+  );
+};
+
+const AdminPanel = (): React.ReactElement => {
+  const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
+
+  return (
     <Tabs
       onChange={(id) => setSelectedTabId(id)}
       selectedTabId={selectedTabId}
@@ -222,24 +342,16 @@ const AdminPanel = (): React.ReactElement => {
         title="Admin"
         panel={
           <div className="flex flex-col gap-4 p-1">
-            <Checkbox
-              defaultChecked={useReifiedRelations}
-              onChange={(e) => {
-                const target = e.target as HTMLInputElement;
-                setUseReifiedRelations(target.checked);
-                setSetting("use-reified-relations", target.checked);
-              }}
-              labelElement={
-                <>
-                  Reified Relation Triples
-                  <Description
-                    description={
-                      "When ON, relations are read/written as reifiedRelationUid in [[roam/js/discourse-graph/relations]]."
-                    }
-                  />
-                </>
-              }
-            />
+            <FeatureFlagsTab />
+          </div>
+        }
+      />
+      <Tab
+        id="migration"
+        title="Migration"
+        panel={
+          <div className="flex flex-col gap-4 p-1">
+            <MigrationTab />
           </div>
         }
       />
@@ -247,45 +359,9 @@ const AdminPanel = (): React.ReactElement => {
         id="node-list"
         title="Node list"
         panel={
-          <>
-            <p>
-              Context:{" "}
-              <code>
-                {JSON.stringify({ ...context, spacePassword: "****" })}
-              </code>
-            </p>
-            {schemas.length > 0 ? (
-              <>
-                <Label>
-                  Display:
-                  <div className="mx-2 inline-block">
-                    <Select
-                      items={schemas}
-                      onItemSelect={(choice) => {
-                        setShowingSchema(choice);
-                      }}
-                      itemRenderer={(node, { handleClick, modifiers }) => (
-                        <MenuItem
-                          active={modifiers.active}
-                          key={node.sourceLocalId}
-                          label={node.name}
-                          onClick={handleClick}
-                          text={node.name}
-                        />
-                      )}
-                    >
-                      <Button text={showingSchema.name} />
-                    </Select>
-                  </div>
-                </Label>
-                <div>
-                  {loadingNodes ? <Spinner /> : <NodeTable nodes={nodes} />}
-                </div>
-              </>
-            ) : (
-              <p>No node schemas found</p>
-            )}
-          </>
+          <div className="flex flex-col gap-4 p-1">
+            <NodeListTab />
+          </div>
         }
       />
     </Tabs>
