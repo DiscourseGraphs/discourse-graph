@@ -5,10 +5,19 @@ import { getSetting } from "~/utils/extensionSettings";
 
 export const DISCOURSE_GRAPH_PROP_NAME = "discourse-graph";
 
+const SANE_ROLE_NAME_RE = new RegExp(/^[a-zA-Z][a-zA-Z0-9_-]*$/);
+
 const strictQueryForReifiedBlocks = async (
   parameterUids: Record<string, string>,
 ): Promise<string | null> => {
   const paramsAsSeq = Object.entries(parameterUids);
+  // sanitize parameter names
+  if (
+    Object.keys(parameterUids).filter((k) => !k.match(SANE_ROLE_NAME_RE)).length
+  )
+    throw new Error(
+      `invalid parameter names in ${Object.keys(parameterUids).join(", "),}`
+    );
   const query = `[:find ?u ?d
   :in $ ${paramsAsSeq.map(([k]) => "?" + k).join(" ")}
   :where [?s :block/uid ?u] [?s :block/props ?p] [(get ?p :${DISCOURSE_GRAPH_PROP_NAME}) ?d]
