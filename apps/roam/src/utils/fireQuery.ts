@@ -65,9 +65,9 @@ const firstVariable = (
 };
 
 const optimizeQuery = (
-  clauses: (DatalogClause | DatalogAndClause)[],
+  clauses: DatalogClause[],
   capturedVariables: Set<string>,
-): (DatalogClause | DatalogAndClause)[] => {
+): DatalogClause[] => {
   const marked = clauses.map(() => false);
   const orderedClauses: (DatalogClause | DatalogAndClause)[] = [];
   const variablesByIndex: Record<number, Set<string>> = {};
@@ -126,7 +126,8 @@ const optimizeQuery = (
             (a) => a.type !== "variable" || capturedVariables.has(a.value),
           )
         ) {
-          score = 1000;
+          // equality is almost as good as a binding
+          c.type == "pred-expr" && c.pred == "=" ? (score = 5) : (score = 1000);
         } else {
           score = 100004;
         }
@@ -156,10 +157,17 @@ const optimizeQuery = (
       bestClause.arguments
         .filter((v) => v.type === "variable")
         .forEach((v) => capturedVariables.add(v.value));
+    } else if (bestClause.type === "fn-expr") {
+      // A function expression acts as biding a variable to a unique function value
+      if (
+        bestClause.arguments.filter(
+          (a) => a.type === "variable" && !capturedVariables.has(a.value),
+        ).length === 0 &&
+        bestClause.binding.type === "bind-scalar" &&
+        bestClause.binding.variable.type === "variable"
+      )
+        capturedVariables.add(bestClause.binding.variable.value);
     }
-    // Question: Should we not consider all variables in a complex clause captured?
-    // const newVars = gatherDatalogVariablesFromClause(bestClause);
-    // newVars.forEach((v) => capturedVariables.add(v));
   }
   return orderedClauses;
 };
