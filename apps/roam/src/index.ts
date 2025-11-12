@@ -121,7 +121,6 @@ export default runExtension(async (onloadArgs) => {
 
   // Add streamline styling only if enabled
   const isStreamlineStylingEnabled = getSetting(STREAMLINE_STYLING_KEY, false);
-  console.log("isStreamlineStylingEnabled", isStreamlineStylingEnabled);
   let streamlineStyleElement: HTMLStyleElement | null = null;
   if (isStreamlineStylingEnabled) {
     streamlineStyleElement = addStyle(streamlineStyling);
