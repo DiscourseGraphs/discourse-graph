@@ -30,8 +30,6 @@ import createDiscourseNode from "~/utils/createDiscourseNode";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import LockableAutocompleteInput from "./LockableAutocompleteInput";
-import fuzzy from "fuzzy";
 
 export type ModidfyNodeDialogMode = "create" | "edit";
 export type ModifyNodeDialogProps = {
@@ -238,21 +236,6 @@ const ModifyNodeDialog = ({
     onClose();
   }, [onClose]);
 
-  const onNewItem = useCallback(
-    (text: string) => ({ text, uid: sourceBlockUid || "" }),
-    [sourceBlockUid],
-  );
-  const itemToQuery = useCallback((result?: Result) => result?.text || "", []);
-
-  const filterOptions = useCallback(
-    (o: Result[], q: string) =>
-      fuzzy
-        .filter(q, o, { extract: itemToQuery })
-        .map((f) => f.original)
-        .filter((f): f is Result => !!f),
-    [itemToQuery],
-  );
-
   const onSubmit = async () => {
     if (!contentText.trim()) return;
     try {
@@ -449,7 +432,7 @@ const ModifyNodeDialog = ({
           {/* Content Input */}
           <div className="w-full">
             <Label>Content</Label>
-            <LockableAutocompleteInput
+            <FuzzySelectInput
               value={{ text: contentText, uid: contentUid }}
               setValue={setValue}
               options={contentOptions}
@@ -460,13 +443,8 @@ const ModifyNodeDialog = ({
               }
               disabled={contentLoading}
               onLockedChange={setIsContentLocked}
-              multiline
               mode={mode}
               initialUid={contentUid}
-              autoSelectFirstOption={false}
-              onNewItem={onNewItem}
-              filterOptions={filterOptions}
-              itemToQuery={itemToQuery}
             />
           </div>
 
@@ -474,7 +452,7 @@ const ModifyNodeDialog = ({
           {referencedNode && !isContentLocked && (
             <div className="w-full">
               <Label>{referencedNode.name}</Label>
-              <LockableAutocompleteInput
+              <FuzzySelectInput
                 value={{
                   text: referencedNodeText || "",
                   uid: referencedNodeUid || "",
@@ -487,10 +465,6 @@ const ModifyNodeDialog = ({
                 disabled={referencedNodeLoading}
                 mode={"create"}
                 initialUid={referencedNodeUid}
-                autoSelectFirstOption={false}
-                onNewItem={onNewItem}
-                filterOptions={filterOptions}
-                itemToQuery={itemToQuery}
               />
             </div>
           )}
@@ -504,7 +478,7 @@ const ModifyNodeDialog = ({
               text="Confirm"
               intent={Intent.PRIMARY}
               onClick={() => void onSubmit()}
-              disabled={contentLoading}
+              disabled={contentLoading || !contentText.trim()}
               className="flex-shrink-0"
             />
             <Button
