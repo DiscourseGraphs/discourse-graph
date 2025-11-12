@@ -1,9 +1,8 @@
 import React, { useState, useCallback } from "react";
 import { Button, Icon, TextArea } from "@blueprintjs/core";
-import AutocompleteInput, {
-  AutocompleteInputProps,
-} from "roamjs-components/components/AutocompleteInput";
+import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import { Result } from "~/utils/types";
+import { AutocompleteInputProps } from "roamjs-components/components/AutocompleteInput";
 
 type LockableAutocompleteInputProps<T extends Result = Result> = Omit<
   AutocompleteInputProps<T>,
@@ -11,7 +10,6 @@ type LockableAutocompleteInputProps<T extends Result = Result> = Omit<
 > & {
   value?: T;
   setValue: (q: T) => void;
-  onConfirm?: () => void;
   onLockedChange?: (isLocked: boolean) => void;
   mode: "create" | "edit";
   initialUid: string;
@@ -20,7 +18,6 @@ type LockableAutocompleteInputProps<T extends Result = Result> = Omit<
 const LockableAutocompleteInput = <T extends Result = Result>({
   value,
   setValue,
-  onConfirm,
   onLockedChange,
   mode,
   initialUid,
@@ -65,18 +62,11 @@ const LockableAutocompleteInput = <T extends Result = Result>({
         onChange={(e) => {
           setValue({ text: e.target.value, uid: value?.uid || "" } as T);
         }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-            onConfirm?.();
-          }
-        }}
         fill
         growVertically
-        {...(autocompleteProps.placeholder && {
-          placeholder: autocompleteProps.placeholder,
-        })}
-        {...(autocompleteProps.autoFocus && { autoFocus: true })}
-        {...(autocompleteProps.disabled && { disabled: true })}
+        placeholder={autocompleteProps.placeholder}
+        autoFocus={autocompleteProps.autoFocus}
+        disabled={autocompleteProps.disabled}
       />
     );
   }
@@ -113,8 +103,8 @@ const LockableAutocompleteInput = <T extends Result = Result>({
       {...autocompleteProps}
       value={value}
       setValue={handleSetValue}
-      onConfirm={() => void onConfirm?.()}
       options={options}
+      autoSelectFirstOption={false}
     />
   );
 };

@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Button, Popover, Position } from "@blueprintjs/core";
-import { renderModifyNodeDialog } from "~/components/NewModifyNodeDialog";
+import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { OnloadArgs } from "roamjs-components/types";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
