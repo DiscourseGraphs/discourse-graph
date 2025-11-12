@@ -1,12 +1,7 @@
 // To be removed when format is migrated to specification
 // https://github.com/RoamJS/query-builder/issues/189
 
-import {
-  Action,
-  AddCommandOptions,
-  OnloadArgs,
-  PullBlock,
-} from "roamjs-components/types";
+import { PullBlock } from "roamjs-components/types";
 import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
 import compileDatalog from "./compileDatalog";
 import discourseNodeFormatToDatalog from "./discourseNodeFormatToDatalog";
@@ -19,9 +14,9 @@ import extractTag from "roamjs-components/util/extractTag";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import ModifyNodeDialog, {
   ModifyNodeDialogProps,
-} from "~/components/ModifyNodeDialog";
+} from "~/components/NewModifyNodeDialog";
+import getExtensionAPI from "roamjs-components/util/extensionApiContext";
 
-type FormDialogProps = Parameters<typeof FormDialog>[0];
 const renderFormDialog = createOverlayRender<ModifyNodeDialogProps>(
   "form-dialog",
   ModifyNodeDialog,
@@ -40,44 +35,30 @@ export const getNewDiscourseNodeText = async ({
   let newText = text;
   if (!text) {
     newText = await new Promise<string>((resolve) => {
-      const nodeName =
-        discourseNodes.find((n) => n.type === nodeType)?.text || "Discourse";
-      // renderFormDialog({
-      //   title: `Create ${nodeName} Node`,
-      //   fields: {
-      //     textField: {
-      //       type: "text",
-      //       label: `Create ${nodeName} Node`,
-      //     },
-      //   },
-      //   onSubmit: (data: Record<string, unknown>) => {
-      //     const textValue = data.textField as string;
-      //     if (textValue?.trim()) {
-      //       resolve(textValue);
-      //     } else {
-      //       renderToast({
-      //         content: "Text field cannot be empty.",
-      //         id: "roamjs-create-discourse-node-dialog-error",
-      //         intent: "warning",
-      //       });
-      //       return false;
-      //     }
-      //   },
-      //   onClose: () => {
-      //     resolve("");
-      //   },
-      //   isOpen: true,
-      // });
       renderFormDialog({
         mode: "create",
         nodeType: nodeType,
-        content: text,
-        onSuccess: async () => {
-          resolve(text);
+        initialValue: { text: text, uid: "" },
+        onSuccess: async (result: {
+          text: string;
+          uid: string;
+          action: string;
+          newPageUid?: string;
+        }) => {
+          if (result.text?.trim()) {
+            resolve(result.text.trim());
+          } else {
+            renderToast({
+              content: "Text field cannot be empty.",
+              id: "roamjs-create-discourse-node-dialog-error",
+              intent: "warning",
+            });
+            return;
+          }
         },
+        sourceBlockUid: blockUid,
+        extensionAPI: getExtensionAPI(),
         onClose: () => {},
-        extensionAPI:
-          window.roamAlphaAPI as unknown as OnloadArgs["extensionAPI"],
       });
 
       const setupButtonControl = () => {
