@@ -4,13 +4,15 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import setBlockProps from "./setBlockProps";
 import { getSetting } from "~/utils/extensionSettings";
 
+export const DISCOURSE_GRAPH_PROP_NAME = "discourse-graph";
+
 const queryForReifiedBlocksUtil = async (
   parameterUids: Record<string, string>,
 ): Promise<[string, Record<string, string>][]> => {
   const paramsAsSeq = Object.entries(parameterUids);
   const query = `[:find ?u ?d
   :in $ ${paramsAsSeq.map(([k]) => "?" + k).join(" ")}
-  :where [?s :block/uid ?u] [?s :block/props ?p] [(get ?p :discourse-graph) ?d]
+  :where [?s :block/uid ?u] [?s :block/props ?p] [(get ?p :${DISCOURSE_GRAPH_PROP_NAME}) ?d]
   ${paramsAsSeq.map(([k]) => `[(get ?d :${k}) ?${k}]`).join(" ")} ]`;
   return (await window.roamAlphaAPI.data.async.q(
     query,
@@ -76,7 +78,7 @@ export const createReifiedBlock = async ({
   });
   setBlockProps(newUid, {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    "discourse-graph": data,
+    [DISCOURSE_GRAPH_PROP_NAME]: data,
   });
   return newUid;
 };
@@ -92,6 +94,15 @@ const getRelationPageUid = async (): Promise<string> => {
     }
   }
   return relationPageUid;
+};
+
+export const countReifiedRelations = async (): Promise<number> => {
+  const pageUid = await getRelationPageUid();
+  if (pageUid === undefined) return 0;
+  const r = await window.roamAlphaAPI.data.async.q(
+    `[:find (count ?c) :where [?p :block/children ?c] [?p :block/uid "${pageUid}"]]`,
+  );
+  return (r[0] || [0])[0] as number;
 };
 
 export const createReifiedRelation = async ({
