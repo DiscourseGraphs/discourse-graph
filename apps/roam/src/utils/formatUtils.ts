@@ -58,36 +58,10 @@ export const getNewDiscourseNodeText = async ({
         },
         sourceBlockUid: blockUid,
         extensionAPI: getExtensionAPI(),
-        onClose: () => {},
+        onClose: () => {
+          resolve("");
+        },
       });
-
-      const setupButtonControl = () => {
-        const dialogs = document.querySelectorAll(".bp3-dialog");
-        const dialog = dialogs[dialogs.length - 1] as HTMLElement;
-
-        const input = dialog.querySelector(
-          'input[type="text"].bp3-input',
-        ) as HTMLInputElement;
-        const submitBtn = dialog.querySelector(
-          ".bp3-dialog-footer .bp3-button.bp3-intent-primary",
-        ) as HTMLButtonElement;
-
-        const updateButtonState = () => {
-          const currentValue = input.value;
-          const hasValue = currentValue.trim().length > 0;
-          const shouldBeDisabled = !hasValue;
-          submitBtn.disabled = shouldBeDisabled;
-        };
-
-        updateButtonState();
-
-        const listenerKey = "_discourseNodeListenerAttached";
-        if (!(input as any)[listenerKey]) {
-          input.addEventListener("input", updateButtonState);
-          (input as any)[listenerKey] = true;
-        }
-      };
-      requestAnimationFrame(setupButtonControl);
     });
   }
 
