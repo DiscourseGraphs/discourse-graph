@@ -37,8 +37,7 @@ import {
   TLShape,
   useToasts,
   useTranslation,
-  TLFilesExternalContent,
-  TLSvgTextExternalContent,
+  TLExternalContent,
   registerDefaultExternalContentHandlers,
   registerDefaultSideEffects,
   defaultEditorAssetUrls,
@@ -95,6 +94,9 @@ import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
+import { AgentPanel } from "./agent/AgentPanel";
+import { useTldrawAgent } from "./agent/useTldrawAgent";
+import { TldrawAgent } from "./agent/TldrawAgent";
 
 declare global {
   interface Window {
@@ -151,6 +153,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   );
 
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
+  const [agent, setAgent] = useState<TldrawAgent | null>(null);
 
   const updateViewportScreenBounds = (el: HTMLDivElement) => {
     // Use tldraw's built-in viewport bounds update with centering
@@ -634,7 +637,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             editor={appRef.current}
           />
           <TldrawEditor
-            licenseKey={resolveTldrawLicenseKey()}
             // baseUrl="https://samepage.network/assets/tldraw/"
             // instanceId={initialState.instanceId}
             initialState="select"
@@ -643,7 +645,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             bindingUtils={[...defaultBindingUtils, ...customBindingUtils]}
             components={editorComponents}
             store={store}
-            textOptions={textOptions}
             onMount={(app) => {
               if (process.env.NODE_ENV !== "production") {
                 if (!window.tldrawApps) window.tldrawApps = {};
@@ -652,6 +653,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               }
 
               appRef.current = app;
+              setAgent(new TldrawAgent(app));
 
               app.on("change", (entry) => {
                 lastActionsRef.current.push(entry);
@@ -726,6 +728,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               />
             </TldrawUi>
           </TldrawEditor>
+          <AgentPanel agent={agent} />
           <CanvasDrawerButton />
         </>
       )}
@@ -751,14 +754,6 @@ const InsideEditorAndUiContext = ({
   const msg = useTranslation();
 
   // https://tldraw.dev/examples/data/assets/hosted-images
-  const ACCEPTED_IMG_TYPE = [
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/svg+xml",
-    "image/webp",
-  ];
-  const isImage = (ext: string) => ACCEPTED_IMG_TYPE.includes(ext);
   const isCustomArrowShape = (shape: TLShape) => {
     // TODO: find a better way to identify custom arrow shapes
     // possibly migrate to shape.type or shape.name
@@ -773,11 +768,32 @@ const InsideEditorAndUiContext = ({
   };
 
   useEffect(() => {
-    registerDefaultExternalContentHandlers(editor, { toasts, msg });
+    const ACCEPTED_IMG_TYPE = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/svg+xml",
+      "image/webp",
+    ];
+    const isImage = (ext: string) => ACCEPTED_IMG_TYPE.includes(ext);
+
+    registerDefaultExternalContentHandlers(
+      editor,
+      {
+        maxImageDimension: 5000,
+        maxAssetSize: 10 * 1024 * 1024,
+        acceptedImageMimeTypes: [],
+        acceptedVideoMimeTypes: [],
+      },
+      {
+        toasts,
+        msg,
+      },
+    );
     editor.registerExternalContentHandler(
       "files",
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      async (content: TLFilesExternalContent) => {
+      async (content: TLExternalContent) => {
         if (content.type !== "files") {
           console.error("Expected files, received:", content.type);
           return;
@@ -830,7 +846,7 @@ const InsideEditorAndUiContext = ({
     editor.registerExternalContentHandler(
       "svg-text",
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      async (content: TLSvgTextExternalContent) => {
+      async (content: TLExternalContent) => {
         if (content.type !== "svg-text") {
           console.error("Expected svg-text, received:", content.type);
           return;
@@ -956,10 +972,16 @@ const InsideEditorAndUiContext = ({
     const cleanupSideEffects = registerDefaultSideEffects(editor);
 
     return () => {
-      cleanupSideEffects();
+      // Handle both single function and array of functions (due to patch type mismatch)
+      if (Array.isArray(cleanupSideEffects)) {
+        cleanupSideEffects.forEach((cleanup) => cleanup());
+      } else {
+        (cleanupSideEffects as () => void)();
+      }
       cleanupCustomSideEffects();
     };
-  }, [editor, msg, toasts, isImage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor]);
 
   return <CustomContextMenu extensionAPI={extensionAPI} allNodes={allNodes} />;
 };
