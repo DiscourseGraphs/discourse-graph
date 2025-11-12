@@ -252,11 +252,12 @@ const MigrationTab = (): React.ReactElement => {
   const enabled = getSetting("use-reified-relations");
   const [useMigrationResults, setMigrationResults] = useState<string>("");
   const [useOngoing, setOngoing] = useState<boolean>(false);
+  const [useDryRun, setDryRun] = useState<boolean>(false);
   const doMigrateRelations = async () => {
     setOngoing(true);
     try {
       const before = await countReifiedRelations();
-      const numProcessed = await migrateRelations();
+      const numProcessed = await migrateRelations(useDryRun);
       const after = await countReifiedRelations();
       if (after - before < numProcessed)
         setMigrationResults(
@@ -300,6 +301,15 @@ const MigrationTab = (): React.ReactElement => {
           disabled={!enabled || useOngoing}
           text="Migrate all relations"
         ></Button>
+        <Checkbox
+          className="left-6 inline-block"
+          defaultChecked={useDryRun}
+          onChange={(e) => {
+            const target = e.target as HTMLInputElement;
+            setDryRun(target.checked);
+          }}
+          labelElement={<>Dry run</>}
+        />
       </p>
       {useOngoing ? (
         <Spinner />
