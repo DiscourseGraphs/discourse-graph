@@ -438,18 +438,6 @@ const registerDiscourseDatalogTranslators = () => {
                 fn: "get",
                 arguments: [
                   { type: "variable", value: "reldata" },
-                  { type: "constant", value: ":hasSchema" },
-                ],
-                binding: {
-                  type: "bind-scalar",
-                  variable: { type: "variable", value: "relSchema" },
-                },
-              },
-              {
-                type: "fn-expr",
-                fn: "get",
-                arguments: [
-                  { type: "variable", value: "reldata" },
                   { type: "constant", value: ":sourceUid" },
                 ],
                 binding: {
@@ -467,6 +455,18 @@ const registerDiscourseDatalogTranslators = () => {
                 binding: {
                   type: "bind-scalar",
                   variable: { type: "variable", value: "relTarget" },
+                },
+              },
+              {
+                type: "fn-expr",
+                fn: "get",
+                arguments: [
+                  { type: "variable", value: "reldata" },
+                  { type: "constant", value: ":hasSchema" },
+                ],
+                binding: {
+                  type: "bind-scalar",
+                  variable: { type: "variable", value: "relSchema" },
                 },
               },
             ];
@@ -571,32 +571,36 @@ const registerDiscourseDatalogTranslators = () => {
                 clauses: [forwardClause, reverseClause],
               });
             } else {
-              const forwardRelationClauses = filteredRelations
+              let forwardRelationIds = filteredRelations
                 .filter((r) => r.forward)
-                .map(
-                  (r) =>
-                    ({
-                      type: "pred-expr",
-                      pred: "=",
-                      arguments: [
-                        { type: "variable", value: "relSchema" },
-                        { type: "constant", value: `"${r.id}"` },
-                      ],
-                    }) as DatalogClause,
-                );
-              const reverseRelationClauses = filteredRelations
+                .map((r) => r.id);
+              forwardRelationIds = [...new Set(forwardRelationIds)];
+              const forwardRelationClauses = forwardRelationIds.map(
+                (id) =>
+                  ({
+                    type: "pred-expr",
+                    pred: "=",
+                    arguments: [
+                      { type: "variable", value: "relSchema" },
+                      { type: "constant", value: `"${id}"` },
+                    ],
+                  }) as DatalogClause,
+              );
+              let reverseRelationIds = filteredRelations
                 .filter((r) => !r.forward)
-                .map(
-                  (r) =>
-                    ({
-                      type: "pred-expr",
-                      pred: "=",
-                      arguments: [
-                        { type: "variable", value: "relSchema" },
-                        { type: "constant", value: `"${r.id}"` },
-                      ],
-                    }) as DatalogClause,
-                );
+                .map((r) => r.id);
+              reverseRelationIds = [...new Set(reverseRelationIds)];
+              const reverseRelationClauses = reverseRelationIds.map(
+                (id) =>
+                  ({
+                    type: "pred-expr",
+                    pred: "=",
+                    arguments: [
+                      { type: "variable", value: "relSchema" },
+                      { type: "constant", value: `"${id}"` },
+                    ],
+                  }) as DatalogClause,
+              );
               if (
                 forwardRelationClauses.length &&
                 reverseRelationClauses.length
