@@ -82,9 +82,6 @@ importers:
         specifier: ^1.261.8
         version: 1.261.8
     devDependencies:
-      patch-package:
-        specifier: ^8.0.1
-        version: 8.0.1
       prettier:
         specifier: ^3.6.0
         version: 3.6.2
