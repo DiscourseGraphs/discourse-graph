@@ -527,6 +527,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               ? shape.props.uid
               : undefined,
           extensionAPI,
+          isFromCanvas: true,
           onSuccess: async ({ text, uid, action, newPageUid }) => {
             console.log("action", action);
             console.log("shape", shape);
