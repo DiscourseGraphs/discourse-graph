@@ -39,6 +39,7 @@ export type ModifyNodeDialogProps = {
   initialReferencedNode?: { text: string; uid: string };
   sourceBlockUid?: string; //the block that we started modifying from
   extensionAPI?: OnloadArgs["extensionAPI"];
+  isFromCanvas?: boolean;
   onSuccess: (result: {
     text: string;
     uid: string;
@@ -56,6 +57,7 @@ const ModifyNodeDialog = ({
   initialReferencedNode,
   sourceBlockUid,
   extensionAPI,
+  isFromCanvas = false,
   onSuccess,
   onClose,
 }: RoamOverlayProps<ModifyNodeDialogProps>) => {
@@ -78,10 +80,11 @@ const ModifyNodeDialog = ({
   const referencedNodeRequestIdRef = useRef(0);
   const [error, setError] = useState("");
 
-  const discourseNodes = useMemo(
-    () => getDiscourseNodes().filter(excludeDefaultNodes),
-    [],
-  );
+  const discourseNodes = useMemo(() => {
+    const allNodes = getDiscourseNodes();
+    // Allow default nodes when opened from canvas, exclude them otherwise
+    return isFromCanvas ? allNodes : allNodes.filter(excludeDefaultNodes);
+  }, [isFromCanvas]);
 
   const [selectedNodeType, setSelectedNodeType] = useState(() => {
     const node = discourseNodes.find((n) => n.type === nodeType);
@@ -101,7 +104,9 @@ const ModifyNodeDialog = ({
       if (val.toLowerCase() === "content") continue;
       if (val.toLowerCase() === "context") continue;
 
-      const allNodes = getDiscourseNodes().filter(excludeDefaultNodes);
+      const allNodes = isFromCanvas
+        ? getDiscourseNodes()
+        : getDiscourseNodes().filter(excludeDefaultNodes);
 
       const refNode = allNodes.find(({ text }) =>
         new RegExp(text, "i").test(val),
@@ -116,7 +121,7 @@ const ModifyNodeDialog = ({
     }
 
     return null;
-  }, [nodeFormat]);
+  }, [nodeFormat, isFromCanvas]);
 
   useEffect(() => {
     setContentLoading(true);
