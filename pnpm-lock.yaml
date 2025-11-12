@@ -283,7 +283,7 @@ importers:
         version: 3.5.2(react@18.2.0)
       roamjs-components:
         specifier: 0.85.6
-        version: 0.85.6(5b78e88b35a4681c3fec2bd59ab560ac)
+        version: 0.85.6(8b55b1f14ffbf718c26dbfa3a20c2d6b)
       tldraw:
         specifier: 2.3.0
         version: 2.3.0(patch_hash=53157a9866fb748b22a548ab8d9aca2a557f98c0487b201b01f0a4ca89c71708)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -18121,7 +18121,7 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
-  roamjs-components@0.85.6(5b78e88b35a4681c3fec2bd59ab560ac):
+  roamjs-components@0.85.6(8b55b1f14ffbf718c26dbfa3a20c2d6b):
     dependencies:
       '@blueprintjs/core': 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/datetime': 3.23.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
