@@ -6,6 +6,12 @@ import {
   TLBaseShape,
   TLResizeInfo,
   useEditor,
+  DefaultSizeStyle,
+  DefaultFontStyle,
+  TLDefaultSizeStyle,
+  TLDefaultFontStyle,
+  FONT_SIZES,
+  FONT_FAMILIES,
 } from "tldraw";
 import type { App, TFile } from "obsidian";
 import { memo, createElement, useEffect } from "react";
@@ -30,6 +36,9 @@ export type DiscourseNodeShape = TLBaseShape<
     title: string;
     nodeTypeId: string;
     imageSrc?: string;
+    // Font style props for text editing panel
+    size: TLDefaultSizeStyle;
+    fontFamily: TLDefaultFontStyle;
   }
 >;
 
@@ -50,6 +59,8 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     title: T.string.optional(),
     nodeTypeId: T.string.nullable().optional(),
     imageSrc: T.string.optional(),
+    size: DefaultSizeStyle,
+    fontFamily: DefaultFontStyle,
   };
 
   getDefaultProps(): DiscourseNodeShape["props"] {
@@ -60,6 +71,8 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       title: "",
       nodeTypeId: "",
       imageSrc: undefined,
+      size: "s",
+      fontFamily: "draw",
     };
   }
 
@@ -255,6 +268,9 @@ const discourseNodeContent = memo(
       nodeType?.keyImage,
     ]);
 
+    const fontSize = FONT_SIZES[shape.props.size];
+    const fontFamily = FONT_FAMILIES[shape.props.fontFamily];
+
     return (
       <div
         style={{
@@ -265,8 +281,24 @@ const discourseNodeContent = memo(
         // constants and the measureNodeText function to keep measurements accurate.
         className="box-border flex h-full w-full flex-col items-start justify-start rounded-md border-2 p-2"
       >
-        <h1 className="m-1 text-base">{title || "..."}</h1>
-        <p className="m-0 text-sm opacity-80">{nodeType?.name || ""}</p>
+        <h1
+          className="m-1"
+          style={{
+            fontSize: `${fontSize}px`,
+            fontFamily,
+          }}
+        >
+          {title || "..."}
+        </h1>
+        <p
+          className="m-0 opacity-80"
+          style={{
+            fontSize: `${fontSize * 0.75}px`,
+            fontFamily,
+          }}
+        >
+          {nodeType?.name || ""}
+        </p>
         {shape.props.imageSrc ? (
           <div className="mt-2 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
             <img
