@@ -238,14 +238,6 @@ const ModifyNodeDialog = ({
 
   const onSubmit = async () => {
     if (!contentText.trim()) return;
-    console.log(
-      "onSubmit",
-      contentText,
-      "contentUid",
-      contentUid,
-      "sourceBlockUid",
-      sourceBlockUid,
-    );
     try {
       if (mode === "create") {
         // If content is locked (user selected existing node), just insert it
@@ -291,16 +283,12 @@ const ModifyNodeDialog = ({
           return;
         }
 
-        console.log("formattedTitle", formattedTitle);
-
         // Create new discourse node
         const newPageUid = await createDiscourseNode({
           text: formattedTitle,
           configPageUid: selectedNodeType.type,
           extensionAPI,
         });
-
-        console.log("newPageUid", newPageUid);
 
         if (sourceBlockUid) {
           const pageRef = `[[${formattedTitle}]]`;
@@ -480,28 +468,27 @@ const ModifyNodeDialog = ({
               />
             </div>
           )}
-
-          {/* Submit Button */}
-          <div className={Classes.DIALOG_FOOTER}>
-            <div
-              className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
-            >
-              <Button
-                text="Confirm"
-                intent={Intent.PRIMARY}
-                onClick={() => void onSubmit()}
-                disabled={contentLoading || !contentText.trim()}
-                className="flex-shrink-0"
-              />
-              <Button
-                text="Cancel"
-                onClick={onCancelClick}
-                disabled={contentLoading}
-                className="flex-shrink-0"
-              />
-              <span className="flex-grow text-red-800">{error}</span>
-              {contentLoading && <Spinner size={SpinnerSize.SMALL} />}
-            </div>
+        </div>
+        {/* Submit Button */}
+        <div className={Classes.DIALOG_FOOTER}>
+          <div
+            className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
+          >
+            <Button
+              text="Confirm"
+              intent={Intent.PRIMARY}
+              onClick={() => void onSubmit()}
+              disabled={contentLoading || !contentText.trim()}
+              className="flex-shrink-0"
+            />
+            <Button
+              text="Cancel"
+              onClick={onCancelClick}
+              disabled={contentLoading}
+              className="flex-shrink-0"
+            />
+            <span className="flex-grow text-red-800">{error}</span>
+            {contentLoading && <Spinner size={SpinnerSize.SMALL} />}
           </div>
         </div>
       </div>
