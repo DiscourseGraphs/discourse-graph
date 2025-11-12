@@ -14,7 +14,7 @@ import extractTag from "roamjs-components/util/extractTag";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import ModifyNodeDialog, {
   ModifyNodeDialogProps,
-} from "~/components/NewModifyNodeDialog";
+} from "~/components/ModifyNodeDialog";
 import getExtensionAPI from "roamjs-components/util/extensionApiContext";
 
 const renderFormDialog = createOverlayRender<ModifyNodeDialogProps>(
