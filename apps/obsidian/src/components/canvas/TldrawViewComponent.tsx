@@ -13,6 +13,8 @@ import {
   useTools,
   defaultBindingUtils,
   TLPointerEventInfo,
+  useEditor,
+  useValue,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import {
@@ -410,19 +412,42 @@ export const TldrawPreviewComponent = ({
               ),
 
               StylePanel: () => {
+                const editor = useEditor();
                 const tools = useTools();
-                const isDiscourseNodeSelected = useIsToolSelected(
+                const isDiscourseNodeToolSelected = useIsToolSelected(
                   tools["discourse-node"],
                 );
-                const isDiscourseRelationSelected = useIsToolSelected(
+                const isDiscourseRelationToolSelected = useIsToolSelected(
                   tools["discourse-relation"],
                 );
 
-                if (!isDiscourseNodeSelected && !isDiscourseRelationSelected) {
+                // Check if a discourse-node or discourse-relation shape is selected
+                const selectedShapes = useValue(
+                  "selectedShapes",
+                  () => editor.getSelectedShapes(),
+                  [editor],
+                );
+                const hasDiscourseNodeShape = selectedShapes.some(
+                  (s) => s.type === "discourse-node",
+                );
+
+                // If a discourse shape is selected, show DefaultStylePanel for font/size controls
+                if (hasDiscourseNodeShape) {
                   return <DefaultStylePanel />;
                 }
 
-                return <DiscourseToolPanel plugin={plugin} canvasFile={file} />;
+                // If the tool is selected but no shape, show the tool panel
+                if (
+                  isDiscourseNodeToolSelected ||
+                  isDiscourseRelationToolSelected
+                ) {
+                  return (
+                    <DiscourseToolPanel plugin={plugin} canvasFile={file} />
+                  );
+                }
+
+                // Default: show standard style panel
+                return <DefaultStylePanel />;
               },
               OnTheCanvas: () => <ToastListener canvasId={file.path} />,
               Toolbar: (props) => {
