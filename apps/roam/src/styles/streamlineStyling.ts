@@ -36,27 +36,13 @@ export default /* css */ `
   border: 1px solid rgba(171, 171, 171, 0.5) ;
 }
 
-/* 4) Tables: no row/body background; use borders only */
-.roam-table > table {
-  background: transparent;
-  border-collapse: separate; /* keep borders between cells like RoamStudio */
-}
-.roam-table > table thead th {
-  background: transparent;
-  color: #444;
-  border-top: 2px solid #e1e1e1;
-  border-right: 2px solid #e1e1e1;
-}
-.roam-table > table tbody td {
+/* 4) Tables: no row/body background */
+table.bp3-html-table.bp3-html-table-striped tbody tr:nth-child(odd) td {
   background: transparent;
 }
-.roam-table > table tbody tr td:first-child {
-  border-left: 2px solid #e1e1e1;
+table.bp3-html-table.bp3-html-table-striped tbody tr:nth-child(even) td {
+  background: transparent;
 }
-.roam-table > table tbody tr:last-child td {
-  border-bottom: 2px solid #e1e1e1;
-}
-
 
 /* Subtle Controls */
 

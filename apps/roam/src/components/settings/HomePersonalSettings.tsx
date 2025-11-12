@@ -28,7 +28,6 @@ import streamlineStyling from "~/styles/streamlineStyling";
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
-  console.log("streamlineStyling", getSetting(STREAMLINE_STYLING_KEY, false));
 
   return (
     <div className="flex flex-col gap-4 p-1">
