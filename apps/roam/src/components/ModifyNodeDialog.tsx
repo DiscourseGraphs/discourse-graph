@@ -31,9 +31,9 @@ import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
-export type ModidfyNodeDialogMode = "create" | "edit";
+export type ModifyNodeDialogMode = "create" | "edit";
 export type ModifyNodeDialogProps = {
-  mode: ModidfyNodeDialogMode;
+  mode: ModifyNodeDialogMode;
   nodeType: string;
   initialValue: { text: string; uid: string };
   initialReferencedNode?: { text: string; uid: string };
