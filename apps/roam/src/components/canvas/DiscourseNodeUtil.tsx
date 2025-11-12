@@ -529,10 +529,6 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
           extensionAPI,
           isFromCanvas: true,
           onSuccess: async ({ text, uid, action, newPageUid }) => {
-            console.log("action", action);
-            console.log("shape", shape);
-            console.log("onSuccess params:", { text, uid, action, newPageUid });
-
             // For canvas creation, the dialog already created the node
             // Use the correct UID: newPageUid for new nodes, uid for existing
             const finalUid = newPageUid || uid;
@@ -550,7 +546,6 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               !getPageUidByPageTitle(text) &&
               !newPageUid
             ) {
-              console.log("creating discourse node (fallback)", text);
               void createDiscourseNode({
                 configPageUid: shape.type,
                 text,
