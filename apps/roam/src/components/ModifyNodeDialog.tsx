@@ -1,52 +1,47 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-import React, {
-  useRef,
-  useState,
-  useMemo,
-  useEffect,
-  useCallback,
-} from "react";
 import {
   Button,
   Classes,
   Dialog,
   Intent,
+  Label,
   Spinner,
   SpinnerSize,
-  Label,
 } from "@blueprintjs/core";
-import fuzzy from "fuzzy";
-import { OnloadArgs } from "roamjs-components/types";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
+import { Result } from "~/utils/types";
 import renderOverlay, {
   RoamOverlayProps,
 } from "roamjs-components/util/renderOverlay";
-import LockableAutocompleteInput from "./LockableAutocompleteInput";
-import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
-import { render as renderToast } from "roamjs-components/components/Toast";
-import updateBlock from "roamjs-components/writes/updateBlock";
-import createBlock from "roamjs-components/writes/createBlock";
 import fireQuery from "~/utils/fireQuery";
-import createDiscourseNode from "~/utils/createDiscourseNode";
 import getDiscourseNodes, {
   excludeDefaultNodes,
 } from "~/utils/getDiscourseNodes";
-import { getNewDiscourseNodeText } from "~/utils/formatUtils";
-import { Result } from "~/utils/types";
-import { DiscourseContextType } from "./canvas/Tldraw";
 import FuzzySelectInput from "./FuzzySelectInput";
+import { createBlock, updateBlock } from "roamjs-components/writes";
+import { getNewDiscourseNodeText } from "~/utils/formatUtils";
+import createDiscourseNode from "~/utils/createDiscourseNode";
+import { OnloadArgs } from "roamjs-components/types";
+import { render as renderToast } from "roamjs-components/components/Toast";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import LockableAutocompleteInput from "./LockableAutocompleteInput";
+import fuzzy from "fuzzy";
 
-type ReferencedNode = {
-  name: string;
-  nodeType: string;
-  value?: string;
-};
-
+export type ModidfyNodeDialogMode = "create" | "edit";
 export type ModifyNodeDialogProps = {
-  mode: "create" | "edit";
+  mode: ModidfyNodeDialogMode;
   nodeType: string;
-  content: string;
-  uid?: string;
-  referencedNode?: ReferencedNode | null;
+  initialValue: { text: string; uid: string };
+  initialReferencedNode?: { text: string; uid: string };
+  sourceBlockUid?: string; //the block that we started modifying from
+  extensionAPI?: OnloadArgs["extensionAPI"];
+  isFromCanvas?: boolean;
   onSuccess: (result: {
     text: string;
     uid: string;
@@ -54,74 +49,53 @@ export type ModifyNodeDialogProps = {
     newPageUid?: string;
   }) => Promise<void>;
   onClose: () => void;
-  extensionAPI: OnloadArgs["extensionAPI"];
-  sourceBlockUid?: string;
-  refBlockUid?: string;
-  discourseContext?: DiscourseContextType;
 };
 
 const ModifyNodeDialog = ({
   isOpen,
-  onClose,
   mode,
-  nodeType: initialNodeType,
-  content: initialContent,
-  uid: initialUid,
-  onSuccess,
-  extensionAPI,
+  nodeType,
+  initialValue,
+  initialReferencedNode,
   sourceBlockUid,
-  // refBlockUid, // TODO: Re-enable when implementing referenced node auto-population
-  discourseContext,
+  extensionAPI,
+  isFromCanvas = false,
+  onSuccess,
+  onClose,
 }: RoamOverlayProps<ModifyNodeDialogProps>) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const contentRequestIdRef = useRef(0);
-  const referencedNodeRequestIdRef = useRef(0);
-
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isReferencedNodeLoading, setIsReferencedNodeLoading] = useState(false);
-
-  const discourseNodes = useMemo(
-    () => getDiscourseNodes().filter(excludeDefaultNodes),
-    [],
+  const [contentText, setContentText] = useState(initialValue.text);
+  const [contentUid, setContentUid] = useState(initialValue.uid);
+  const [referencedNodeText, setReferencedNodeText] = useState(
+    initialReferencedNode?.text || "",
   );
-
-  const [selectedNodeType, setSelectedNodeType] = useState(() => {
-    const node = discourseNodes.find((n) => n.type === initialNodeType);
-    return node || discourseNodes[0];
-  });
-
-  const [options, setOptions] = useState<Result[]>([]);
-  const [content, setContent] = useState(initialContent);
-  const [contentUid, setContentUid] = useState(initialUid || "");
+  const [referencedNodeUid, setReferencedNodeUid] = useState(
+    initialReferencedNode?.uid || "",
+  );
   const [isContentLocked, setIsContentLocked] = useState(false);
-
+  const [contentOptions, setContentOptions] = useState<Result[]>([]);
   const [referencedNodeOptions, setReferencedNodeOptions] = useState<Result[]>(
     [],
   );
-  const [referencedNodeValue, setReferencedNodeValue] = useState("");
-  const [referencedNodeUid, setReferencedNodeUid] = useState("");
+  const [contentLoading, setContentLoading] = useState(false);
+  const [referencedNodeLoading, setReferencedNodeLoading] = useState(false);
+  const contentRequestIdRef = useRef(0);
+  const referencedNodeRequestIdRef = useRef(0);
+  const [error, setError] = useState("");
 
-  const isCreateMode = mode === "create";
+  const discourseNodes = useMemo(() => {
+    const allNodes = getDiscourseNodes();
+    // Allow default nodes when opened from canvas, exclude them otherwise
+    return isFromCanvas ? allNodes : allNodes.filter(excludeDefaultNodes);
+  }, [isFromCanvas]);
 
-  // Generate stable UIDs for tracking new vs existing nodes
-  const contentInitialUid = useMemo(
-    () => initialUid || window.roamAlphaAPI.util.generateUID(),
-    [initialUid],
-  );
-  const referencedNodeInitialUid = useMemo(
-    () => window.roamAlphaAPI.util.generateUID(),
-    [],
-  );
+  const [selectedNodeType, setSelectedNodeType] = useState(() => {
+    const node = discourseNodes.find((n) => n.type === nodeType);
+    return node || discourseNodes[0];
+  });
 
-  // Get node format and referenced node info
   const nodeFormat = useMemo(() => {
-    if (discourseContext) {
-      return discourseContext.nodes[selectedNodeType.type]?.format || "";
-    }
     return selectedNodeType.format || "";
-  }, [selectedNodeType, discourseContext]);
+  }, [selectedNodeType]);
 
   const referencedNode = useMemo(() => {
     const regex = /{([\w\d-]*)}/g;
@@ -132,9 +106,9 @@ const ModifyNodeDialog = ({
       if (val.toLowerCase() === "content") continue;
       if (val.toLowerCase() === "context") continue;
 
-      const allNodes = discourseContext
-        ? Object.values(discourseContext.nodes)
-        : discourseNodes;
+      const allNodes = isFromCanvas
+        ? getDiscourseNodes()
+        : getDiscourseNodes().filter(excludeDefaultNodes);
 
       const refNode = allNodes.find(({ text }) =>
         new RegExp(text, "i").test(val),
@@ -149,13 +123,16 @@ const ModifyNodeDialog = ({
     }
 
     return null;
-  }, [nodeFormat, discourseNodes, discourseContext]);
+  }, [nodeFormat, isFromCanvas]);
 
-  // Fetch options for main content autocomplete
   useEffect(() => {
+    setContentLoading(true);
+
     let alive = true;
     const req = ++contentRequestIdRef.current;
-    setIsLoading(true);
+
+    let refAlive = true;
+    const refReq = ++referencedNodeRequestIdRef.current;
 
     const fetchOptions = async () => {
       try {
@@ -174,33 +151,22 @@ const ModifyNodeDialog = ({
               },
             ],
           });
-          if (contentRequestIdRef.current === req && alive) setOptions(results);
+          if (contentRequestIdRef.current === req && alive)
+            setContentOptions(results);
         }
       } catch (error) {
         if (contentRequestIdRef.current === req && alive) {
           console.error("Error fetching content options:", error);
         }
       } finally {
-        if (contentRequestIdRef.current === req && alive) setIsLoading(false);
+        if (contentRequestIdRef.current === req && alive)
+          setContentLoading(false);
       }
     };
 
-    void fetchOptions();
-    return () => {
-      alive = false;
-    };
-  }, [selectedNodeType]);
-
-  // Fetch options for referenced node autocomplete
-  useEffect(() => {
-    if (!referencedNode) return;
-
-    let alive = true;
-    const req = ++referencedNodeRequestIdRef.current;
-
     const fetchReferencedOptions = async () => {
+      if (!referencedNode) return;
       try {
-        setIsReferencedNodeLoading(true);
         const conditionUid = window.roamAlphaAPI.util.generateUID();
         const results = await fireQuery({
           returnNode: "node",
@@ -215,55 +181,67 @@ const ModifyNodeDialog = ({
             },
           ],
         });
-        if (referencedNodeRequestIdRef.current === req && alive) {
+        if (referencedNodeRequestIdRef.current === refReq && refAlive) {
           setReferencedNodeOptions(results);
         }
       } catch (error) {
-        if (referencedNodeRequestIdRef.current === req && alive) {
+        if (referencedNodeRequestIdRef.current === refReq && refAlive) {
           console.error("Error fetching referenced node options:", error);
         }
       } finally {
-        if (referencedNodeRequestIdRef.current === req && alive)
-          setIsReferencedNodeLoading(false);
+        if (referencedNodeRequestIdRef.current === refReq && refAlive) {
+          setReferencedNodeLoading(false);
+        }
       }
     };
 
+    void fetchOptions();
     void fetchReferencedOptions();
     return () => {
       alive = false;
+      refAlive = false;
     };
-  }, [referencedNode]);
+  }, [selectedNodeType, referencedNode]);
+
+  useEffect(() => {
+    if (mode === "edit" && referencedNode) {
+      setReferencedNodeLoading(true);
+      // TODO: replace this with a regex. this is extremely hacky primitive
+      const parseResult = contentText.trim().split("-");
+      if (parseResult) {
+        // parseResult[1] is content, parseResult[2] is refnode
+        if (parseResult[1]) {
+          setContentText(parseResult[1].trim());
+        }
+        if (parseResult[2]) {
+          const refText = parseResult[2].trim().replace(/[[\]]/g, "");
+          setReferencedNodeText(refText);
+          const result = getPageUidByPageTitle(refText);
+          setReferencedNodeUid(result);
+        }
+      }
+    }
+    setReferencedNodeLoading(false);
+  }, [mode, referencedNode, nodeFormat, contentText]);
 
   const setValue = useCallback((r: Result) => {
-    setContent(r.text);
+    setContentText(r.text);
     setContentUid(r.uid);
   }, []);
 
-  const setValueFromReferencedNode = useCallback(
-    (r: Result) => {
-      if (!referencedNode) return;
-      setReferencedNodeValue(r.text);
-      setReferencedNodeUid(r.uid);
-    },
-    [referencedNode],
-  );
+  const setReferencedNodeValue = useCallback((r: Result) => {
+    setReferencedNodeText(r.text);
+    setReferencedNodeUid(r.uid);
+  }, []);
+
+  const onCancelClick = useCallback(() => {
+    onClose();
+  }, [onClose]);
 
   const onNewItem = useCallback(
-    (text: string) => ({
-      text,
-      uid: contentInitialUid,
-    }),
-    [contentInitialUid],
+    (text: string) => ({ text, uid: sourceBlockUid || "" }),
+    [sourceBlockUid],
   );
-
-  const onNewReferencedNodeItem = useCallback(
-    (text: string) => ({
-      text,
-      uid: referencedNodeInitialUid,
-    }),
-    [referencedNodeInitialUid],
-  );
-
   const itemToQuery = useCallback((result?: Result) => result?.text || "", []);
 
   const filterOptions = useCallback(
@@ -276,19 +254,13 @@ const ModifyNodeDialog = ({
   );
 
   const onSubmit = async () => {
-    if (!content.trim()) return;
-
-    setLoading(true);
-    setError("");
-
+    if (!contentText.trim()) return;
     try {
-      const action = isCreateMode ? "creating" : "editing";
-
-      if (action === "creating") {
+      if (mode === "create") {
         // If content is locked (user selected existing node), just insert it
         if (isContentLocked && contentUid) {
           if (sourceBlockUid) {
-            const pageRef = `[[${content}]]`;
+            const pageRef = `[[${contentText}]]`;
             await updateBlock({
               uid: sourceBlockUid,
               text: pageRef,
@@ -296,9 +268,9 @@ const ModifyNodeDialog = ({
           }
 
           await onSuccess({
-            text: content,
+            text: contentText,
             uid: contentUid,
-            action,
+            action: "create",
           });
 
           onClose();
@@ -307,27 +279,24 @@ const ModifyNodeDialog = ({
 
         // Format content with referenced node if present
         let formattedTitle = "";
-        if (referencedNode && referencedNodeValue) {
+        if (referencedNode && referencedNodeText) {
           formattedTitle = nodeFormat.replace(
             /{([\w\d-]*)}/g,
             (_, val: string) => {
-              if (/content/i.test(val)) return content.trim();
+              if (/content/i.test(val)) return contentText.trim();
               if (new RegExp(referencedNode.name, "i").test(val))
-                return `[[${referencedNodeValue}]]`;
+                return `[[${referencedNodeText}]]`;
               return "";
             },
           );
-          console.log("formattedTitle", formattedTitle);
         } else {
           formattedTitle = await getNewDiscourseNodeText({
-            text: content.trim(),
+            text: contentText.trim(),
             nodeType: selectedNodeType.type,
             blockUid: sourceBlockUid,
           });
         }
-
         if (!formattedTitle) {
-          setLoading(false);
           return;
         }
 
@@ -338,19 +307,18 @@ const ModifyNodeDialog = ({
           extensionAPI,
         });
 
-        // Handle source block update if needed
         if (sourceBlockUid) {
           const pageRef = `[[${formattedTitle}]]`;
           await updateBlock({
             uid: sourceBlockUid,
             text: pageRef,
           });
-          if (initialContent && initialContent.trim()) {
+          if (initialValue.text && initialValue.text.trim()) {
             await createBlock({
               parentUid: sourceBlockUid,
               order: 0,
               node: {
-                text: initialContent,
+                text: initialValue.text,
               },
             });
           }
@@ -391,26 +359,25 @@ const ModifyNodeDialog = ({
 
         await onSuccess({
           text: formattedTitle,
-          uid: sourceBlockUid || newPageUid,
-          action,
+          uid: contentUid,
+          action: "create",
           newPageUid,
         });
       } else {
         // Edit mode: update the existing block
-        let updatedContent = content;
+        let updatedContent = contentText;
 
         // Format with referenced node if present
-        if (referencedNode && referencedNodeValue) {
+        if (referencedNode && referencedNodeText) {
           updatedContent = nodeFormat
             .replace(/{([\w\d-]*)}/g, (_, val: string) => {
-              if (/content/i.test(val)) return content.trim();
+              if (/content/i.test(val)) return contentText.trim();
               if (new RegExp(referencedNode.name, "i").test(val))
-                return `[[${referencedNodeValue}]]`;
+                return `[[${referencedNodeText}]]`;
               return "";
             })
             .trim();
         }
-
         if (sourceBlockUid) {
           await updateBlock({
             uid: sourceBlockUid,
@@ -427,166 +394,128 @@ const ModifyNodeDialog = ({
 
         await onSuccess({
           text: updatedContent,
-          uid: contentUid,
-          action,
+          uid: sourceBlockUid || contentUid,
+          action: "edit",
         });
       }
-
       onClose();
-    } catch (e) {
-      setError((e as Error).message);
+    } catch (error) {
+      setError((error as Error).message);
     } finally {
-      setLoading(false);
+      setContentLoading(false);
+      setReferencedNodeLoading(false);
     }
   };
-
-  const onCancelClick = useCallback(() => {
-    onClose();
-  }, [onClose]);
-
-  // Auto-populate referenced node from refBlockUid if provided
-  // useEffect(() => {
-  //   if (refBlockUid && referencedNode) {
-  //     const refBlock = window.roamAlphaAPI.data.pull(
-  //       "[:block/string :block/uid]",
-  //       [":block/uid", refBlockUid],
-  //     );
-  //     if (refBlock && refBlock[":block/string"]) {
-  //       const refText = String(refBlock[":block/string"]);
-  //       setReferencedNodeValue(refText);
-  //       setReferencedNodeUid(refBlockUid);
-  //       setIsReferencedNodeLocked(true);
-  //     }
-  //   }
-  // }, [refBlockUid, referencedNode]);
 
   return (
     <Dialog
       isOpen={isOpen}
-      onClose={onCancelClick}
+      onClose={onClose}
       canEscapeKeyClose
       autoFocus={false}
-      title={`${isCreateMode ? "Create" : "Edit"} Discourse Node`}
-      className="roamjs-discourse-node-dialog"
+      className={"roamjs-canvas-dialog"}
     >
       <div
-        className={`${Classes.DIALOG_BODY} flex flex-col gap-4`}
-        ref={containerRef}
+        // Prevents TLDraw from hijacking onClick and onMouseup
+        // https://discord.com/channels/859816885297741824/1209834682384912397
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        style={{ pointerEvents: "all" }}
       >
-        {/* Node Type Selector */}
-        <div className="flex w-full">
-          <Label>
-            Node Type
-            <MenuItemSelect
-              items={discourseNodes.map((n) => n.type)}
-              transformItem={(t) =>
-                discourseNodes.find((n) => n.type === t)?.text || t
-              }
-              activeItem={selectedNodeType.type}
-              onItemSelect={(t) => {
-                const nt = discourseNodes.find((n) => n.type === t);
-                if (nt) {
-                  setSelectedNodeType(nt);
-                  setReferencedNodeValue("");
+        <div className={Classes.DIALOG_BODY}>
+          {/* Node Type Selector */}
+          <div className="flex w-full">
+            <Label>
+              Node Type
+              <MenuItemSelect
+                items={discourseNodes.map((n) => n.type)}
+                transformItem={(t) =>
+                  discourseNodes.find((n) => n.type === t)?.text || t
                 }
-              }}
-            />
-          </Label>
-        </div>
+                activeItem={selectedNodeType.type}
+                onItemSelect={(t) => {
+                  const nt = discourseNodes.find((n) => n.type === t);
+                  if (nt) {
+                    setSelectedNodeType(nt);
+                    setReferencedNodeValue({ text: "", uid: "" });
+                  }
+                }}
+                disabled={mode === "edit"}
+              />
+            </Label>
+          </div>
 
-        {/* Content Input */}
-        {/* <div className="w-full">
-          <Label>Content</Label>
+          {/* Content Input */}
           <div className="w-full">
+            <Label>Content</Label>
             <LockableAutocompleteInput
-              value={{ text: content, uid: contentUid }}
+              value={{ text: contentText, uid: contentUid }}
               setValue={setValue}
-              options={options}
-              multiline
-              autoFocus
-              onNewItem={onNewItem}
-              itemToQuery={itemToQuery}
-              filterOptions={filterOptions}
-              disabled={isLoading}
+              options={contentOptions}
               placeholder={
-                isLoading
-                  ? "Loading ..."
-                  : `Enter ${selectedNodeType.text.toLowerCase()} content ...`
+                contentLoading
+                  ? "..."
+                  : `Enter a ${selectedNodeType.text.toLowerCase()} ...`
               }
-              maxItemsDisplayed={100}
+              disabled={contentLoading}
               onLockedChange={setIsContentLocked}
+              multiline
               mode={mode}
-              initialUid={contentInitialUid}
+              initialUid={contentUid}
+              autoSelectFirstOption={false}
+              onNewItem={onNewItem}
+              filterOptions={filterOptions}
+              itemToQuery={itemToQuery}
             />
           </div>
-        </div> */}
 
-        {/* Referenced Node Section - hidden when content is locked */}
-        {/* {referencedNode && !isContentLocked && (
-          <div className="referenced-node-autocomplete w-full">
-            <Label>{referencedNode.name}</Label>
+          {/* Referenced Node Input */}
+          {referencedNode && !isContentLocked && (
             <div className="w-full">
+              <Label>{referencedNode.name}</Label>
               <LockableAutocompleteInput
-                value={
-                  referencedNodeValue
-                    ? { text: referencedNodeValue, uid: referencedNodeUid }
-                    : { text: "", uid: "" }
-                }
-                setValue={setValueFromReferencedNode}
+                value={{
+                  text: referencedNodeText || "",
+                  uid: referencedNodeUid || "",
+                }}
+                setValue={setReferencedNodeValue}
                 options={referencedNodeOptions}
-                multiline
-                onNewItem={onNewReferencedNodeItem}
-                itemToQuery={itemToQuery}
-                filterOptions={filterOptions}
                 placeholder={
-                  isReferencedNodeLoading
-                    ? "..."
-                    : `Enter a ${referencedNode.name} ...`
+                  referencedNodeLoading ? "..." : "Select a referenced node"
                 }
-                disabled={isReferencedNodeLoading}
-                maxItemsDisplayed={100}
-                mode="create"
-                initialUid={referencedNodeInitialUid}
+                disabled={referencedNodeLoading}
+                mode={"create"}
+                initialUid={referencedNodeUid}
+                autoSelectFirstOption={false}
+                onNewItem={onNewItem}
+                filterOptions={filterOptions}
+                itemToQuery={itemToQuery}
               />
             </div>
+          )}
+        </div>
+        {/* Submit Button */}
+        <div className={Classes.DIALOG_FOOTER}>
+          <div
+            className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
+          >
+            <Button
+              text="Confirm"
+              intent={Intent.PRIMARY}
+              onClick={() => void onSubmit()}
+              disabled={contentLoading}
+              className="flex-shrink-0"
+            />
+            <Button
+              text="Cancel"
+              onClick={onCancelClick}
+              disabled={contentLoading}
+              className="flex-shrink-0"
+            />
+            <span className="flex-grow text-red-800">{error}</span>
+            {contentLoading && <Spinner size={SpinnerSize.SMALL} />}
           </div>
-        )} */}
-
-        <FuzzySelectInput
-          value={{ text: content, uid: contentUid }}
-          setValue={setValue}
-          options={options}
-          placeholder={
-            isReferencedNodeLoading
-              ? "..."
-              : `Enter a ${selectedNodeType.text.toLowerCase()} ...`
-          }
-          disabled={isLoading}
-          onLockedChange={setIsContentLocked}
-          mode={mode}
-          initialUid={contentInitialUid}
-        />
-      </div>
-
-      <div className={Classes.DIALOG_FOOTER}>
-        <div
-          className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
-        >
-          <Button
-            text="Confirm"
-            intent={Intent.PRIMARY}
-            onClick={() => void onSubmit()}
-            disabled={loading || !content.trim()}
-            className="flex-shrink-0"
-          />
-          <Button
-            text="Cancel"
-            onClick={onCancelClick}
-            disabled={loading}
-            className="flex-shrink-0"
-          />
-          <span className="flex-grow text-red-800">{error}</span>
-          {loading && <Spinner size={SpinnerSize.SMALL} />}
         </div>
       </div>
     </Dialog>
@@ -600,4 +529,3 @@ export const renderModifyNodeDialog = (props: ModifyNodeDialogProps) =>
   });
 
 export default ModifyNodeDialog;
-
