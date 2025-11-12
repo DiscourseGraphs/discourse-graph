@@ -32,7 +32,7 @@ import { Button, Icon } from "@blueprintjs/core";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { isPageUid } from "./Tldraw";
-import { renderModifyNodeDialog } from "../NewModifyNodeDialog";
+import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { colord } from "colord";
 import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
