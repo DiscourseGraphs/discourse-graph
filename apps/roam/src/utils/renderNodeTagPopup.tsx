@@ -42,6 +42,11 @@ export const renderNodeTagPopupButton = (
   const rawBlockText = blockUid ? getTextByBlockUid(blockUid) : "";
   const cleanedBlockText = rawBlockText.replace(textContent, "").trim();
 
+  const getInitialReferencedNode = () => {
+    // TODO: Implement this in a follow-up PR
+    return { text: "", uid: "" };
+  };
+
   ReactDOM.render(
     <Popover
       content={
@@ -49,10 +54,12 @@ export const renderNodeTagPopupButton = (
           minimal
           outlined
           onClick={() => {
+            const initialReferencedNode = getInitialReferencedNode();
             renderModifyNodeDialog({
               mode: "create",
               nodeType: matchedNode.type,
               initialValue: { text: cleanedBlockText, uid: "" },
+              initialReferencedNode,
               onSuccess: async () => {
                 // Success is handled by the dialog itself
               },

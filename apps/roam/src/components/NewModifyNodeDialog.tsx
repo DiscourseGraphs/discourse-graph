@@ -68,7 +68,6 @@ const ModifyNodeDialog = ({
     initialReferencedNode?.uid || "",
   );
   const [isContentLocked, setIsContentLocked] = useState(false);
-  const [isReferencedNodeLocked, setIsReferencedNodeLocked] = useState(false);
   const [contentOptions, setContentOptions] = useState<Result[]>([]);
   const [referencedNodeOptions, setReferencedNodeOptions] = useState<Result[]>(
     [],
@@ -234,7 +233,14 @@ const ModifyNodeDialog = ({
 
   const onSubmit = async () => {
     if (!contentText.trim()) return;
-    console.log("onSubmit", contentText, "contentUid", contentUid, "sourceBlockUid", sourceBlockUid);
+    console.log(
+      "onSubmit",
+      contentText,
+      "contentUid",
+      contentUid,
+      "sourceBlockUid",
+      sourceBlockUid,
+    );
     try {
       if (mode === "create") {
         // If content is locked (user selected existing node), just insert it
@@ -399,7 +405,8 @@ const ModifyNodeDialog = ({
       autoFocus={false}
       className={"roamjs-canvas-dialog"}
     >
-      <div // Prevents TLDraw from hijacking onClick and onMouseup
+      <div
+        // Prevents TLDraw from hijacking onClick and onMouseup
         // https://discord.com/channels/859816885297741824/1209834682384912397
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
@@ -458,7 +465,6 @@ const ModifyNodeDialog = ({
                   uid: referencedNodeUid || "",
                 }}
                 setValue={setReferencedNodeValue}
-                onLockedChange={setIsReferencedNodeLocked}
                 options={referencedNodeOptions}
                 placeholder={
                   referencedNodeLoading ? "..." : "Select a referenced node"
