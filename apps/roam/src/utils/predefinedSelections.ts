@@ -30,6 +30,8 @@ const NODE_TEST = /^node:(\s*[^:]+\s*)(:.*)?$/i;
 const ACTION_TEST = /^action:\s*([^:]+)\s*(?::(.*))?$/i;
 const DATE_FORMAT_TEST = /^date-format\(([^,)]+),([^,)]+)\)$/i;
 const MILLISECONDS_IN_DAY = 1000 * 60 * 60 * 24;
+const HAS_SCHEMA_TEST = /^hasSchema$/;
+const EFFECTIVE_SOURCE_TEST = /^effectiveSource$/;
 
 const getArgValue = (key: string, result: QueryResult) => {
   if (/^today$/i.test(key)) return new Date();
@@ -286,6 +288,26 @@ const predefinedSelections: PredefinedSelection[] = [
     suggestions: EDIT_BY_SUGGESTIONS,
   },
   {
+    test: HAS_SCHEMA_TEST,
+    pull: ({ match, returnNode, where }) => {
+      return "?relSchema";
+    },
+    mapper: (r, key) => {
+      // not sure here?
+      return "?relSchema";
+    },
+  },
+  {
+    test: EFFECTIVE_SOURCE_TEST,
+    pull: ({ match, returnNode, where }) => {
+      return "?relSource";
+    },
+    mapper: (r, key) => {
+      // not sure here?
+      return "?relSource";
+    },
+  },
+  {
     test: NODE_TEST,
     pull: ({ match, returnNode, where }) => {
       const node = (match?.[1] || returnNode)?.trim();
@@ -367,9 +389,7 @@ const predefinedSelections: PredefinedSelection[] = [
           (c): c is QBClause => c.type === "clause" && c.target === selectedVar,
         );
         if (introducedCondition?.relation === "references") {
-          const sourceUid = result[
-            `${introducedCondition.source}-uid`
-          ] as string;
+          const sourceUid = result[`${introducedCondition.source}-uid`];
           if (sourceUid) {
             const blockText = getTextByBlockUid(sourceUid);
             await updateBlock({
