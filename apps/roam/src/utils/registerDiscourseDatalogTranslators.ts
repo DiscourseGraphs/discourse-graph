@@ -1,9 +1,5 @@
 import getPageTitlesStartingWithPrefix from "roamjs-components/queries/getPageTitlesStartingWithPrefix";
-import {
-  DatalogAndClause,
-  DatalogOrClause,
-  DatalogClause,
-} from "roamjs-components/types";
+import { DatalogClause } from "roamjs-components/types";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getSubTree from "roamjs-components/util/getSubTree";
@@ -29,21 +25,37 @@ import { getExistingRelationPageUid } from "./createReifiedBlock";
 const hasTag = (node: DiscourseNode): node is DiscourseNode & { tag: string } =>
   !!node.tag;
 
-const singleClause = (
+const singleOrClause = (
   clauses: DatalogClause[],
-  orClause?: boolean,
+  variables?: string[],
 ): DatalogClause | null => {
   if (clauses.length === 0) return null;
   if (clauses.length === 1) return clauses[0];
+  return variables && variables.length
+    ? {
+        type: "or-join-clause",
+        variables: variables.map((v: string) => ({
+          type: "variable",
+          value: v,
+        })),
+        clauses: clauses,
+      }
+    : {
+        type: "or-clause",
+        clauses: clauses,
+      };
+};
+
+const singleAndClause = (clauses: DatalogClause[]): DatalogClause | null => {
+  if (clauses.length === 0) return null;
+  if (clauses.length === 1) return clauses[0];
   return {
-    type: orClause ? "or-clause" : "and-clause",
+    type: "and-clause",
     clauses: clauses,
   };
 };
 
-const collectVariables = (
-  clauses: (DatalogClause | DatalogAndClause)[],
-): Set<string> =>
+const collectVariables = (clauses: DatalogClause[]): Set<string> =>
   new Set(
     clauses.flatMap((c) => {
       switch (c.type) {
@@ -402,7 +414,8 @@ const registerDiscourseDatalogTranslators = () => {
             source,
             target,
           });
-          if (!filteredRelations.length) return [];
+          if (!filteredRelations.length && !ANY_RELATION_REGEX.test(label))
+            return [];
 
           if (useReifiedRelations && relationPageUid !== undefined) {
             const relClauseBasis: DatalogClause[] = [
@@ -572,8 +585,8 @@ const registerDiscourseDatalogTranslators = () => {
               }
             }
 
-            const forwardClause = singleClause(forwardClauses)!;
-            const reverseClause = singleClause(reverseClauses)!;
+            const forwardClause = singleAndClause(forwardClauses)!;
+            const reverseClause = singleAndClause(reverseClauses)!;
             if (ANY_RELATION_REGEX.test(label)) {
               clauses.push({
                 type: "or-clause",
@@ -615,39 +628,38 @@ const registerDiscourseDatalogTranslators = () => {
                 reverseRelationClauses.length
               ) {
                 const relClauses = [
-                  singleClause([
+                  singleAndClause([
                     ...forwardClauses,
-                    singleClause(forwardRelationClauses, true)!,
+                    singleOrClause(forwardRelationClauses)!,
                   ])!,
-                  singleClause([
+                  singleAndClause([
                     ...reverseClauses,
-                    singleClause(reverseRelationClauses, true)!,
+                    singleOrClause(reverseRelationClauses)!,
                   ])!,
                 ];
-                clauses.push(singleClause(relClauses, true)!);
+                clauses.push(singleOrClause(relClauses)!);
               } else if (forwardRelationClauses.length) {
                 clauses.push(
                   ...forwardClauses,
-                  singleClause(forwardRelationClauses, true)!,
+                  singleOrClause(forwardRelationClauses)!,
                 );
               } else if (reverseRelationClauses.length) {
                 clauses.push(
                   ...reverseClauses,
-                  singleClause(reverseRelationClauses, true)!,
+                  singleOrClause(reverseRelationClauses)!,
                 );
               }
             }
-
-            return filteredRelations.length > 1
-              ? replaceDatalogVariables(
-                  [
-                    { from: source, to: source },
-                    { from: target, to: target },
-                    { from: true, to: (v) => `${uid}-${v}` },
-                  ],
-                  clauses,
-                )
-              : clauses;
+            return replaceDatalogVariables(
+              [
+                { from: source, to: source },
+                { from: target, to: target },
+                { from: "relSchema", to: "relSchema" },
+                { from: "relSource", to: "relSource" },
+                { from: true, to: (v) => `${uid}-${v}` },
+              ],
+              clauses,
+            );
           } else {
             const andParts = filteredRelations.map(
               ({
