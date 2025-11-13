@@ -406,7 +406,7 @@ const ModifyNodeDialog = ({
         onClick={(e) => e.stopPropagation()}
         style={{ pointerEvents: "all" }}
       >
-        <div className={Classes.DIALOG_BODY}>
+        <div className={`${Classes.DIALOG_BODY} flex flex-col gap-4`}>
           {/* Node Type Selector */}
           <div className="flex w-full">
             <Label>
