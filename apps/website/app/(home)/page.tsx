@@ -11,7 +11,7 @@ import { getLatestBlogs } from "~/(home)/blog/readBlogs";
 import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
 
-const Home = async (): Promise<JSX.Element> => {
+const Home = async () => {
   const blogs = await getLatestBlogs();
   return (
     <div>
