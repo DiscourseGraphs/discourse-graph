@@ -11,6 +11,7 @@ import { getLatestBlogs } from "~/(home)/blog/readBlogs";
 import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const Home = async () => {
   const blogs = await getLatestBlogs();
   return (
