@@ -39,22 +39,8 @@ export const getNewDiscourseNodeText = async ({
         mode: "create",
         nodeType: nodeType,
         initialValue: { text: text, uid: "" },
-        onSuccess: async (result: {
-          text: string;
-          uid: string;
-          action: string;
-          newPageUid?: string;
-        }) => {
-          if (result.text?.trim()) {
-            resolve(result.text.trim());
-          } else {
-            renderToast({
-              content: "Text field cannot be empty.",
-              id: "roamjs-create-discourse-node-dialog-error",
-              intent: "warning",
-            });
-            return;
-          }
+        onSuccess: async () => {
+          return;
         },
         sourceBlockUid: blockUid,
         extensionAPI: getExtensionAPI(),
