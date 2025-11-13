@@ -437,6 +437,22 @@ const Home = async () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
+                    Metagov x Future of Science Seminar: Interoperable LLM - and
+                    Human-Centered Research with Discourse Graphs with Matt
+                    Akamatsu
+                  </h3>
+                  <p className="mb-2 text-neutral-dark">
+                    November 19, 2025 | Zoom
+                  </p>
+                  <Link
+                    href="https://luma.com/jijn0d5k"
+                    className="text-primary transition-colors hover:text-primary/80"
+                  >
+                    Register for the talk →
+                  </Link>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-xl font-semibold text-neutral-dark">
                     IOSP &apos;25 Winter Workshop: Discourse Graphs
                   </h3>
                   <p className="mb-2 text-neutral-dark">
