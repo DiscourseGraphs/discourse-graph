@@ -157,3 +157,7 @@
   box-shadow: 0 0 0 2px #137cbd !important;
   border-radius: 4px;
 }
+
+.fuzzy-select-input-popover .bp3-popover-target {
+  width: 100%;
+}
