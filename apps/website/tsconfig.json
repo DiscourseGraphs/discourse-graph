@@ -3,9 +3,6 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "declaration": false,
-    "declarationMap": false,
-    "types": ["react", "react-dom"],
     "paths": {
       "~/*": ["./app/*"]
     }
