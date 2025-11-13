@@ -198,6 +198,7 @@ const FuzzySelectInput = <T extends Result = Result>({
         flip: { enabled: false },
         preventOverflow: { enabled: false },
       }}
+      className="fuzzy-select-input-popover w-full"
       content={
         <Menu className="max-h-64 max-w-md overflow-auto" ulRef={menuRef}>
           {filteredItems.map((item, index) => (
@@ -213,6 +214,8 @@ const FuzzySelectInput = <T extends Result = Result>({
       }
       target={
         <InputGroup
+          fill
+          className="w-full"
           disabled={disabled}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
