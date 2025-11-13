@@ -6,10 +6,19 @@ import { getSetting } from "~/utils/extensionSettings";
 
 export const DISCOURSE_GRAPH_PROP_NAME = "discourse-graph";
 
+const SANE_ROLE_NAME_RE = new RegExp(/^[a-zA-Z][a-zA-Z0-9_-]*$/);
+
 const queryForReifiedBlocksUtil = async (
   parameterUids: Record<string, string>,
 ): Promise<[string, Record<string, string>][]> => {
   const paramsAsSeq = Object.entries(parameterUids);
+  // sanitize parameter names
+  if (
+    Object.keys(parameterUids).filter((k) => !k.match(SANE_ROLE_NAME_RE)).length
+  )
+    throw new Error(
+      `invalid parameter names in ${Object.keys(parameterUids).join(", ")}`,
+    );
   const query = `[:find ?u ?d
   :in $ ${paramsAsSeq.map(([k]) => "?" + k).join(" ")}
   :where [?s :block/uid ?u] [?s :block/props ?p] [(get ?p :${DISCOURSE_GRAPH_PROP_NAME}) ?d]
@@ -86,7 +95,7 @@ export const createReifiedBlock = async ({
 const RELATION_PAGE_TITLE = "roam/js/discourse-graph/relations";
 let relationPageUid: string | undefined = undefined;
 
-const getRelationPageUid = async (): Promise<string> => {
+export const getOrCreateRelationPageUid = async (): Promise<string> => {
   if (relationPageUid === undefined) {
     relationPageUid = getPageUidByPageTitle(RELATION_PAGE_TITLE);
     if (relationPageUid === "") {
@@ -96,8 +105,16 @@ const getRelationPageUid = async (): Promise<string> => {
   return relationPageUid;
 };
 
+export const getExistingRelationPageUid = (): string | undefined => {
+  if (relationPageUid === undefined) {
+    const uid = getPageUidByPageTitle(RELATION_PAGE_TITLE);
+    if (uid !== "") relationPageUid = uid;
+  }
+  return relationPageUid;
+};
+
 export const countReifiedRelations = async (): Promise<number> => {
-  const pageUid = await getRelationPageUid();
+  const pageUid = getExistingRelationPageUid();
   if (pageUid === undefined) return 0;
   const r = await window.roamAlphaAPI.data.async.q(
     `[:find (count ?c) :where [?p :block/children ?c] [?p :block/uid "${pageUid}"]]`,
@@ -117,7 +134,7 @@ export const createReifiedRelation = async ({
   const authorized = getSetting("use-reified-relations");
   if (authorized) {
     return await createReifiedBlock({
-      destinationBlockUid: await getRelationPageUid(),
+      destinationBlockUid: await getOrCreateRelationPageUid(),
       schemaUid: relationBlockUid,
       parameterUids: {
         sourceUid,
