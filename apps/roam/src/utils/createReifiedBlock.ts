@@ -17,7 +17,7 @@ const queryForReifiedBlocksUtil = async (
     Object.keys(parameterUids).filter((k) => !k.match(SANE_ROLE_NAME_RE)).length
   )
     throw new Error(
-      `invalid parameter names in ${Object.keys(parameterUids).join(", "),}`
+      `invalid parameter names in ${Object.keys(parameterUids).join(", ")}`,
     );
   const query = `[:find ?u ?d
   :in $ ${paramsAsSeq.map(([k]) => "?" + k).join(" ")}
