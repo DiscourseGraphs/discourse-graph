@@ -5,6 +5,5 @@
     "rootDir": ".",
     "outDir": "dist"
   },
-  "include": ["./src/**/*"],
-  "exclude": ["supabase"]
+  "include": ["./src/dbDotEnv.mts"]
 }
