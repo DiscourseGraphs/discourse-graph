@@ -1,5 +1,4 @@
 import React from "react";
-import ReactDOM from "react-dom";
 import { OnloadArgs } from "roamjs-components/types";
 import {
   Popover,
@@ -12,6 +11,7 @@ import {
 } from "@blueprintjs/core";
 import { FeedbackWidget } from "./BirdEatsBugs";
 import { render as renderSettings } from "~/components/settings/Settings";
+import { renderReactElement, unmountReactRoot } from "~/utils/reactRender";
 
 type DiscourseFloatingMenuProps = {
   // CSS placement class
@@ -121,7 +121,7 @@ export const installDiscourseFloatingMenu = (
   if (onLoadArgs.extensionAPI.settings.get("hide-feedback-button") as boolean) {
     floatingMenuAnchor.classList.add("hidden");
   }
-  ReactDOM.render(
+  renderReactElement(
     <DiscourseFloatingMenu
       position={props.position}
       theme={props.theme}
@@ -136,7 +136,7 @@ export const removeDiscourseFloatingMenu = () => {
   const anchor = document.getElementById(ANCHOR_ID);
   if (anchor) {
     try {
-      ReactDOM.unmountComponentAtNode(anchor);
+      unmountReactRoot(anchor);
     } catch (e) {
       // no-op: unmount best-effort
     }

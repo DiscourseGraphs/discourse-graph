@@ -1,6 +1,6 @@
 import React from "react";
-import ReactDOM from "react-dom";
 import PossibleDuplicates from "~/components/PossibleDuplicates";
+import { renderReactElement, unmountReactRoot } from "./reactRender";
 
 const CONTAINER_ID = "discourse-graph-possible-duplicates";
 
@@ -15,7 +15,7 @@ export const renderPossibleDuplicates = (
   }
 
   if (container) {
-    ReactDOM.unmountComponentAtNode(container);
+    unmountReactRoot(container);
     container.remove();
   }
 
@@ -31,7 +31,7 @@ export const renderPossibleDuplicates = (
     titleContainer.nextSibling,
   );
 
-  ReactDOM.render(
+  renderReactElement(
     React.createElement(PossibleDuplicates, { pageTitle: title }),
     container,
   );

@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import ReactDOM from "react-dom";
+import { renderReactElement } from "~/utils/reactRender";
 import getChildrenLengthByPageUid from "roamjs-components/queries/getChildrenLengthByPageUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
@@ -150,6 +150,6 @@ export const render = ({
   ...props
 }: {
   parent: HTMLSpanElement;
-} & Props) => ReactDOM.render(<LivePreview {...props} />, parent);
+} & Props) => renderReactElement(<LivePreview {...props} />, parent);
 
 export default LivePreview;

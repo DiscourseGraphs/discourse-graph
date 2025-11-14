@@ -16,7 +16,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import ReactDOM from "react-dom";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getUids from "roamjs-components/dom/getUids";
 import updateBlock from "roamjs-components/writes/updateBlock";
@@ -27,6 +26,7 @@ import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
+import { renderReactElement, unmountReactRoot } from "~/utils/reactRender";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -288,11 +288,11 @@ export const render = (props: Props) => {
   parent.style.left = `${coords.left}px`;
   parent.style.top = `${coords.top}px`;
   props.textarea.parentElement?.insertBefore(parent, props.textarea);
-  ReactDOM.render(
+  renderReactElement(
     <NodeMenu
       {...props}
       onClose={() => {
-        ReactDOM.unmountComponentAtNode(parent);
+        unmountReactRoot(parent);
         parent.remove();
       }}
     />,

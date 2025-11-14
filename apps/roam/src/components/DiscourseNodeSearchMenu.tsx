@@ -14,7 +14,6 @@ import {
   InputGroup,
   Intent,
 } from "@blueprintjs/core";
-import ReactDOM from "react-dom";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
@@ -26,6 +25,7 @@ import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpr
 import { Result } from "~/utils/types";
 import { getSetting } from "~/utils/extensionSettings";
 import fuzzy from "fuzzy";
+import { renderReactElement, unmountReactRoot } from "~/utils/reactRender";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -232,61 +232,61 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: Result) => {
-       if (!blockUid) {
-         onClose();
-         return;
-       }
-       void waitForBlock({ uid: blockUid, text: textarea.value })
-         .then(() => {
-           onClose();
+      if (!blockUid) {
+        onClose();
+        return;
+      }
+      void waitForBlock({ uid: blockUid, text: textarea.value })
+        .then(() => {
+          onClose();
 
-           setTimeout(() => {
-             const originalText = getTextByBlockUid(blockUid);
+          setTimeout(() => {
+            const originalText = getTextByBlockUid(blockUid);
 
-             const prefix = originalText.substring(0, triggerPosition);
-             const suffix = originalText.substring(textarea.selectionStart);
-             const pageRef = `[[${item.text}]]`;
+            const prefix = originalText.substring(0, triggerPosition);
+            const suffix = originalText.substring(textarea.selectionStart);
+            const pageRef = `[[${item.text}]]`;
 
-             const newText = `${prefix}${pageRef}${suffix}`;
-             void updateBlock({ uid: blockUid, text: newText }).then(() => {
-               const newCursorPosition = triggerPosition + pageRef.length;
+            const newText = `${prefix}${pageRef}${suffix}`;
+            void updateBlock({ uid: blockUid, text: newText }).then(() => {
+              const newCursorPosition = triggerPosition + pageRef.length;
 
-               if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
-                 void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-                   location: {
-                     // eslint-disable-next-line @typescript-eslint/naming-convention
-                     "block-uid": blockUid,
-                     // eslint-disable-next-line @typescript-eslint/naming-convention
-                     "window-id": windowId,
-                   },
-                   selection: { start: newCursorPosition },
-                 });
-               } else {
-                 setTimeout(() => {
-                   const textareaElements =
-                     document.querySelectorAll("textarea");
-                   for (const el of textareaElements) {
-                     if (getUids(el).blockUid === blockUid) {
-                       el.focus();
-                       el.setSelectionRange(
-                         newCursorPosition,
-                         newCursorPosition,
-                       );
-                       break;
-                     }
-                   }
-                 }, 50);
-               }
-             });
-             posthog.capture("Discourse Node: Selected from Search Menu", {
-               id: item.id,
-               text: item.text,
-             });
-           }, 10);
-         })
-         .catch((error) => {
-           console.error("Error waiting for block:", error);
-         });
+              if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
+                void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+                  location: {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    "block-uid": blockUid,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    "window-id": windowId,
+                  },
+                  selection: { start: newCursorPosition },
+                });
+              } else {
+                setTimeout(() => {
+                  const textareaElements =
+                    document.querySelectorAll("textarea");
+                  for (const el of textareaElements) {
+                    if (getUids(el).blockUid === blockUid) {
+                      el.focus();
+                      el.setSelectionRange(
+                        newCursorPosition,
+                        newCursorPosition,
+                      );
+                      break;
+                    }
+                  }
+                }, 50);
+              }
+            });
+            posthog.capture("Discourse Node: Selected from Search Menu", {
+              id: item.id,
+              text: item.text,
+            });
+          }, 10);
+        })
+        .catch((error) => {
+          console.error("Error waiting for block:", error);
+        });
     },
     [blockUid, onClose, textarea, triggerPosition, windowId],
   );
@@ -591,13 +591,13 @@ export const renderDiscourseNodeSearchMenu = (props: Props) => {
   props.textarea.parentElement?.insertBefore(parent, props.textarea);
 
   // eslint-disable-next-line react/no-deprecated
-  ReactDOM.render(
+  renderReactElement(
     <NodeSearchMenu
       {...props}
       onClose={() => {
         props.onClose();
         // eslint-disable-next-line react/no-deprecated
-        ReactDOM.unmountComponentAtNode(parent);
+        unmountReactRoot(parent);
         parent.remove();
       }}
     />,

@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 import {
   DragDropContext,
   Droppable,
@@ -615,7 +615,7 @@ export const mountLeftSidebar = (
 
   // Create new root for React 18 concurrent rendering support
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-  leftSidebarRoot = (ReactDOM as any).createRoot(root);
+  leftSidebarRoot = createRoot(root);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
   leftSidebarRoot.render(<LeftSidebarView onloadArgs={onloadArgs} />);
 };
