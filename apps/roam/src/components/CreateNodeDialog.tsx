@@ -12,6 +12,8 @@ import getDiscourseNodes, {
 import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import createBlock from "roamjs-components/writes/createBlock";
+import { findSimilarNodes, SuggestedNode } from "~/utils/hyde";
+import { Spinner } from "@blueprintjs/core";
 
 export type CreateNodeDialogProps = {
   onClose: () => void;
@@ -37,6 +39,12 @@ const CreateNodeDialog = ({
   const [selectedType, setSelectedType] =
     useState<DiscourseNode>(defaultNodeType);
   const [loading, setLoading] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<
+    SuggestedNode[]
+  >([]);
+  const [rawSuggestions, setRawSuggestions] = useState<SuggestedNode[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [formattedTitle, setFormattedTitle] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -45,15 +53,54 @@ const CreateNodeDialog = ({
     }
   }, []);
 
+  useEffect(() => {
+    let isCancelled = false;
+    const compute = async () => {
+      const base = title.trim();
+      if (!base) {
+        setFormattedTitle("");
+        return;
+      }
+      const ft = await getNewDiscourseNodeText({
+        text: base,
+        nodeType: selectedType.type,
+        blockUid: sourceBlockUid,
+      });
+      if (!isCancelled) setFormattedTitle(ft || "");
+    };
+    void compute();
+    return () => {
+      isCancelled = true;
+    };
+  }, [title, selectedType.type, sourceBlockUid]);
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (formattedTitle.trim()) {
+        setSuggestionsLoading(true);
+        console.log(
+          "fetching suggestions for",
+          formattedTitle,
+          selectedType.type,
+        );
+        const { raw, filtered } = await findSimilarNodes({
+          text: formattedTitle,
+          nodeType: selectedType.type,
+        });
+        setRawSuggestions(raw);
+        setFilteredSuggestions(filtered);
+        setSuggestionsLoading(false);
+      } else {
+        setRawSuggestions([]);
+        setFilteredSuggestions([]);
+      }
+    };
+    void fetchSuggestions();
+  }, [formattedTitle, selectedType.type]);
+
   const onCreate = async () => {
     if (!title.trim()) return;
     setLoading(true);
-
-    const formattedTitle = await getNewDiscourseNodeText({
-      text: title.trim(),
-      nodeType: selectedType.type,
-      blockUid: sourceBlockUid,
-    });
 
     if (!formattedTitle) {
       setLoading(false);
@@ -119,6 +166,24 @@ const CreateNodeDialog = ({
     onClose();
   };
 
+  const handleSuggestionClick = async (node: SuggestedNode) => {
+    if (sourceBlockUid) {
+      const pageRef = `[[${node.text}]]`;
+      await updateBlock({
+        uid: sourceBlockUid,
+        text: pageRef,
+      });
+      await createBlock({
+        parentUid: sourceBlockUid,
+        order: 0,
+        node: {
+          text: initialTitle,
+        },
+      });
+    }
+    onClose();
+  };
+
   return (
     <Dialog
       isOpen={true}
@@ -137,6 +202,51 @@ const CreateNodeDialog = ({
               inputRef={inputRef}
             />
           </div>
+
+          {suggestionsLoading && (
+            <div className="flex items-center gap-2">
+              <Spinner size={16} />
+              <span>Fetching possible duplicates...</span>
+            </div>
+          )}
+          {rawSuggestions.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <h4 className="font-bold">Possible duplicates (Semantic)</h4>
+              <ul className="flex flex-col gap-1">
+                {rawSuggestions.map((node) => (
+                  <li key={node.uid}>
+                    <a
+                      onClick={() => {
+                        void handleSuggestionClick(node);
+                      }}
+                      className="cursor-pointer text-blue-500 hover:underline"
+                    >
+                      {node.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {filteredSuggestions.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <h4 className="font-bold">Possible duplicates (LLM Filtered)</h4>
+              <ul className="flex flex-col gap-1">
+                {filteredSuggestions.map((node) => (
+                  <li key={node.uid}>
+                    <a
+                      onClick={() => {
+                        void handleSuggestionClick(node);
+                      }}
+                      className="cursor-pointer text-blue-500 hover:underline"
+                    >
+                      {node.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <Label>
             Type
