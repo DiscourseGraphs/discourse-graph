@@ -7,3 +7,4 @@ export const AUTO_CANVAS_RELATIONS_KEY = "auto-canvas-relations";
 export const DISCOURSE_TOOL_SHORTCUT_KEY = "discourse-tool-shortcut";
 export const DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY =
   "discourse-context-overlay-in-canvas";
+export const STREAMLINE_STYLING_KEY = "streamline-styling";
