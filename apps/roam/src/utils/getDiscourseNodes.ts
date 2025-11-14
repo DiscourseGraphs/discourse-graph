@@ -112,7 +112,7 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
       const embeddingBlockRef = getSubTree({
         tree: suggestiveRules.children,
         key: "Embedding Block Ref",
-      }).children?.[0];
+      });
 
       return {
         format: getSettingValueFromTree({ tree: children, key: "format" }),
@@ -134,7 +134,7 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           key: "description",
         }),
         template: getSubTree({ tree: children, key: "template" }).children,
-        embeddingRef: embeddingBlockRef?.text,
+        embeddingRef: embeddingBlockRef?.children?.[0]?.text,
         embeddingRefUid: embeddingBlockRef?.uid,
         isFirstChild: getUidAndBooleanSetting({
           tree: suggestiveRules.children,
