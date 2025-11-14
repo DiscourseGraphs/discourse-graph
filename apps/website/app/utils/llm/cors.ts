@@ -14,15 +14,22 @@ export default function cors(req: NextRequest, res: Response) {
   const originIsAllowed = origin && isAllowedOrigin(origin);
 
   if (req.method === "OPTIONS") {
+    const headers: Record<string, string> = {
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Authorization, x-vercel-protection-bypass",
+      "Access-Control-Max-Age": "86400",
+    };
+
+    // Always set Access-Control-Allow-Origin for OPTIONS requests if origin is present
+    // Browsers require this header to be present for CORS preflight
+    if (origin && originIsAllowed) {
+      headers["Access-Control-Allow-Origin"] = origin;
+    }
+
     return new Response(null, {
       status: 204,
-      headers: {
-        ...(originIsAllowed ? { "Access-Control-Allow-Origin": origin } : {}),
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers":
-          "Content-Type, Authorization, x-vercel-protection-bypass",
-        "Access-Control-Max-Age": "86400",
-      },
+      headers,
     });
   }
 
