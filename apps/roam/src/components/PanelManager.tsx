@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import ReactDOM from "react-dom";
 import { Navbar, Alignment, Button } from "@blueprintjs/core";
 import { OnloadArgs } from "roamjs-components/types/native";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
@@ -13,6 +12,7 @@ import {
   getGlobalIsMinimized,
   setGlobalIsMinimized,
 } from "~/utils/suggestiveModeSidebarSizing";
+import { renderReactElement, unmountReactRoot } from "~/utils/reactRender";
 
 type PanelState = {
   blockUid: string;
@@ -230,14 +230,14 @@ export const mountPanelContainer = (): void => {
   roamBodyMain.insertBefore(containerMount, articleWrapper);
 
   // eslint-disable-next-line react/no-deprecated
-  ReactDOM.render(<PanelContainer />, containerMount);
+  renderReactElement(<PanelContainer />, containerMount);
 };
 
 const unmountPanelContainer = (): void => {
   if (!containerMount) return;
 
   // eslint-disable-next-line react/no-deprecated
-  ReactDOM.unmountComponentAtNode(containerMount);
+  unmountReactRoot(containerMount);
   containerMount.remove();
   containerMount = null;
 };

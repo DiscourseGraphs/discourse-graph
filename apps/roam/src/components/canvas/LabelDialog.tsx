@@ -482,8 +482,12 @@ const LabelDialog = ({
         onCancelClick();
       }
     };
-    document.body.addEventListener("touchstart", touchStartListener);
-    document.body.addEventListener("touchend", touchEndListener);
+    document.body.addEventListener("touchstart", touchStartListener, {
+      passive: true,
+    });
+    document.body.addEventListener("touchend", touchEndListener, {
+      passive: true,
+    });
     return () => {
       document.body.removeEventListener("touchstart", touchStartListener);
       document.body.removeEventListener("touchend", touchEndListener);

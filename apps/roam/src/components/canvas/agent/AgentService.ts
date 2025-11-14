@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getSetting } from "~/utils/extensionSettings";
+import { nextApiRoot } from "@repo/utils/execContext";
 
-const OPENAI_API_KEY_SETTING = "openai-api-key";
+const API_CONFIG = {
+  LLM_STREAM_URL: `${nextApiRoot()}/llm/openai/stream`,
+  MODEL: "gpt-4-turbo",
+  TIMEOUT_MS: 60_000,
+  MAX_TOKENS: 2000,
+  TEMPERATURE: 0.7,
+} as const;
 
 // A basic streaming fetch implementation
 async function* streamFetch(
@@ -45,53 +51,57 @@ async function* streamFetch(
 }
 
 export class AgentService {
-  private getApiKey(): string | null {
-    // In a real app, you'd want to securely store and retrieve this key.
-    // For this example, we'll try to get it from extension settings.
-    const key = getSetting(OPENAI_API_KEY_SETTING);
-    if (key) {
-      return key;
-    }
-
-    // You can also fallback to an environment variable for local development
-    if (process.env.NODE_ENV === "development") {
-      // Remember to add OPENAI_API_KEY to your .env file for this to work
-      return process.env.OPENAI_API_KEY ?? null;
-    }
-
-    return null;
-  }
-
   async *streamCompletion(messages: any[]): AsyncGenerator<any> {
-    const apiKey = this.getApiKey();
-
-    if (!apiKey) {
-      yield {
-        choices: [
-          {
-            delta: {
-              content:
-                "OpenAI API key is not set. Please set it in the extension settings.",
-            },
-          },
-        ],
-      };
-      return;
-    }
-
-    const options = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+    const requestBody = {
+      documents: messages,
+      passphrase: "",
+      settings: {
+        model: API_CONFIG.MODEL,
+        maxTokens: API_CONFIG.MAX_TOKENS,
+        temperature: API_CONFIG.TEMPERATURE,
       },
-      body: JSON.stringify({
-        model: "gpt-4-turbo", // Or any other suitable model
-        messages,
-        stream: true,
-      }),
     };
 
-    yield* streamFetch("https://api.openai.com/v1/chat/completions", options);
+    try {
+      const signal = AbortSignal.timeout(API_CONFIG.TIMEOUT_MS);
+      const options = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+        signal,
+      };
+
+      yield* streamFetch(API_CONFIG.LLM_STREAM_URL, options);
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        (error.name === "AbortError" || error.name === "TimeoutError")
+      ) {
+        console.error("Agent streaming request timed out", error);
+        yield {
+          choices: [
+            {
+              delta: {
+                content:
+                  "Error: Request timed out. Please try again or check your connection.",
+              },
+            },
+          ],
+        };
+      } else {
+        console.error("Agent streaming request failed:", error);
+        yield {
+          choices: [
+            {
+              delta: {
+                content: `Error: ${error instanceof Error ? error.message : String(error)}`,
+              },
+            },
+          ],
+        };
+      }
+    }
   }
 }

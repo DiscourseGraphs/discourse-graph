@@ -1,8 +1,8 @@
 import React from "react";
-import ReactDOM from "react-dom";
 import { TextSelectionNodeMenu } from "~/components/DiscourseNodeMenu";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import { OnloadArgs } from "roamjs-components/types";
+import { renderReactElement, unmountReactRoot } from "~/utils/reactRender";
 
 let currentPopupContainer: HTMLDivElement | null = null;
 
@@ -59,7 +59,7 @@ export const renderTextSelectionPopup = ({
 
   blockElement.parentElement?.insertBefore(currentPopupContainer, blockElement);
 
-  ReactDOM.render(
+  renderReactElement(
     <TextSelectionNodeMenu
       textarea={textarea}
       extensionAPI={extensionAPI}
@@ -72,7 +72,7 @@ export const renderTextSelectionPopup = ({
 export const removeTextSelectionPopup = () => {
   const container = getCurrentPopupContainer();
   if (container) {
-    ReactDOM.unmountComponentAtNode(container);
+    unmountReactRoot(container);
     container.remove();
     setCurrentPopupContainer(null);
   }

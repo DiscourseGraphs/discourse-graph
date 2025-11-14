@@ -4,7 +4,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useMemo,
+  useEffect,
+  useCallback,
+} from "react";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
 } from "roamjs-components/components/ExtensionApiContext";
@@ -155,7 +161,90 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
   const [agent, setAgent] = useState<TldrawAgent | null>(null);
 
-  const updateViewportScreenBounds = (el: HTMLDivElement) => {
+  // Debug: Track render count and what's changing
+  const renderCountRef = useRef(0);
+  const prevDepsRef = useRef<{
+    allRelations?: unknown;
+    allNodes?: unknown;
+    allRelationIds?: unknown;
+    allRelationNames?: unknown;
+    allAddReferencedNodeByAction?: unknown;
+    customShapeUtils?: unknown;
+    customBindingUtils?: unknown;
+    migrations?: unknown;
+    store?: unknown;
+  }>({});
+
+  useEffect(() => {
+    renderCountRef.current++;
+    const renderNum = renderCountRef.current;
+
+    if (renderNum > 10 && renderNum < 15) {
+      console.error(
+        `⚠️ TldrawCanvas has rendered ${renderNum} times - infinite loop detected!`,
+      );
+
+      // Log what changed
+      const changes: string[] = [];
+      if (prevDepsRef.current.allRelations !== allRelations)
+        changes.push("allRelations");
+      if (prevDepsRef.current.allNodes !== allNodes) changes.push("allNodes");
+      if (prevDepsRef.current.allRelationIds !== allRelationIds)
+        changes.push("allRelationIds");
+      if (prevDepsRef.current.allRelationNames !== allRelationNames)
+        changes.push("allRelationNames");
+      if (
+        prevDepsRef.current.allAddReferencedNodeByAction !==
+        allAddReferencedNodeByAction
+      )
+        changes.push("allAddReferencedNodeByAction");
+      if (prevDepsRef.current.customShapeUtils !== customShapeUtils)
+        changes.push("customShapeUtils");
+      if (prevDepsRef.current.customBindingUtils !== customBindingUtils)
+        changes.push("customBindingUtils");
+      if (prevDepsRef.current.store !== store) changes.push("store");
+
+      if (changes.length > 0) {
+        console.error(`🔄 Changed dependencies: ${changes.join(", ")}`);
+      }
+    } else if (renderNum === 1) {
+      console.log(`✅ TldrawCanvas mounted successfully`);
+    }
+
+    // Store current values for next comparison
+    prevDepsRef.current = {
+      allRelations,
+      allNodes,
+      allRelationIds,
+      allRelationNames,
+      allAddReferencedNodeByAction,
+      customShapeUtils,
+      customBindingUtils,
+      store,
+    };
+  });
+
+  // Suppress passive event listener warnings from tldraw
+  useEffect(() => {
+    const originalWarn = console.warn;
+    console.warn = (...args: unknown[]) => {
+      const message = String(args[0]);
+      // Filter out the specific tldraw touchstart warning
+      if (
+        message.includes("Added non-passive event listener") &&
+        message.includes("touchstart")
+      ) {
+        return; // Suppress this warning
+      }
+      originalWarn.apply(console, args);
+    };
+
+    return () => {
+      console.warn = originalWarn;
+    };
+  }, []);
+
+  const updateViewportScreenBounds = useCallback((el: HTMLDivElement) => {
     // Use tldraw's built-in viewport bounds update with centering
     requestAnimationFrame(() => {
       const rect = el.getBoundingClientRect();
@@ -164,8 +253,9 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         true,
       );
     });
-  };
-  const handleMaximizedChange = () => {
+  }, []);
+
+  const handleMaximizedChange = useCallback(() => {
     // Direct DOM manipulation to avoid React re-renders
     if (!containerRef.current) return;
     const tldrawEl = containerRef.current;
@@ -184,7 +274,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       tldrawEl.classList.remove("absolute", "inset-0");
       updateViewportScreenBounds(tldrawEl);
     }
-  };
+  }, [updateViewportScreenBounds]);
 
   // Workaround to avoid a race condition when loading a canvas page directly
   // Start false to avoid noisy warnings on first render if timer isn't initialized yet
@@ -246,7 +336,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   }, [allRelationsById]);
   const allRelationNames = useMemo(() => {
     return Object.keys(discourseContext.relations);
-  }, []);
+  }, [allRelations]);
   const allNodes = useMemo(() => {
     const allNodes = getDiscourseNodes(allRelations);
     discourseContext.nodes = Object.fromEntries(
@@ -288,18 +378,22 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     return Object.keys(allAddReferencedNodeByAction);
   }, [allAddReferencedNodeByAction]);
 
-  const isRelationTool = (toolId: string) => {
-    return (
-      allRelationNames.includes(toolId) ||
-      allAddReferencedNodeActions.includes(toolId)
-    );
-  };
+  const isRelationTool = useCallback(
+    (toolId: string) => {
+      return (
+        allRelationNames.includes(toolId) ||
+        allAddReferencedNodeActions.includes(toolId)
+      );
+    },
+    [allRelationNames, allAddReferencedNodeActions],
+  );
 
-  const isDiscourseNodeShape = (
-    shape: TLShape,
-  ): shape is DiscourseNodeShape => {
-    return allNodes.some((node) => node.type === shape.type);
-  };
+  const isDiscourseNodeShape = useCallback(
+    (shape: TLShape): shape is DiscourseNodeShape => {
+      return allNodes.some((node) => node.type === shape.type);
+    },
+    [allNodes],
+  );
 
   // Add state for tracking relation creation
   const relationCreationRef = useRef<{
@@ -311,143 +405,214 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     isCreating: false,
   });
 
-  const handleRelationCreation = (app: TldrawApp, e: TLPointerEventInfo) => {
-    // Handle relation creation on pointer_down
-    if (e.type === "pointer" && e.name === "pointer_down") {
-      const currentTool = app.getCurrentTool();
-      const currentToolId = currentTool.id;
-      const pagePoint = app.screenToPage(e.point);
-      const shapeAtPoint = app.getShapeAtPoint(pagePoint);
+  const handleRelationCreation = useCallback(
+    (app: TldrawApp, e: TLPointerEventInfo) => {
+      // Handle relation creation on pointer_down
+      if (e.type === "pointer" && e.name === "pointer_down") {
+        const currentTool = app.getCurrentTool();
+        const currentToolId = currentTool.id;
+        const pagePoint = app.screenToPage(e.point);
+        const shapeAtPoint = app.getShapeAtPoint(pagePoint);
 
-      // Check if current tool is a relation tool
-      if (isRelationTool(currentToolId)) {
-        relationCreationRef.current.isCreating = true;
-        relationCreationRef.current.toolType = currentToolId;
+        // Check if current tool is a relation tool
+        if (isRelationTool(currentToolId)) {
+          relationCreationRef.current.isCreating = true;
+          relationCreationRef.current.toolType = currentToolId;
 
-        // If we clicked on a discourse node, record it as the source
-        if (shapeAtPoint && isDiscourseNodeShape(shapeAtPoint)) {
-          relationCreationRef.current.sourceShapeId = shapeAtPoint.id;
+          // If we clicked on a discourse node, record it as the source
+          if (shapeAtPoint && isDiscourseNodeShape(shapeAtPoint)) {
+            relationCreationRef.current.sourceShapeId = shapeAtPoint.id;
+          }
         }
       }
-    }
 
-    // Handle relation creation on pointer_up
-    if (e.type === "pointer" && e.name === "pointer_up") {
-      const pagePoint = app.screenToPage(e.point);
-      const shapeAtPoint = app.getShapeAtPoint(pagePoint);
+      // Handle relation creation on pointer_up
+      if (e.type === "pointer" && e.name === "pointer_up") {
+        const pagePoint = app.screenToPage(e.point);
+        const shapeAtPoint = app.getShapeAtPoint(pagePoint);
 
-      // Handle relation creation completion
-      if (relationCreationRef.current.isCreating) {
-        // Find the relation shape that was just created
-        const selectedShapes = app.getSelectedShapes();
-        const relationShape = selectedShapes.find(
-          (shape) =>
-            allRelationIds.includes(shape.type) ||
-            allAddReferencedNodeActions.includes(shape.type),
-        );
+        // Handle relation creation completion
+        if (relationCreationRef.current.isCreating) {
+          // Find the relation shape that was just created
+          const selectedShapes = app.getSelectedShapes();
+          const relationShape = selectedShapes.find(
+            (shape) =>
+              allRelationIds.includes(shape.type) ||
+              allAddReferencedNodeActions.includes(shape.type),
+          );
 
-        if (relationShape) {
-          relationCreationRef.current.relationShapeId = relationShape.id;
+          if (relationShape) {
+            relationCreationRef.current.relationShapeId = relationShape.id;
 
-          // Check if we have a target shape
-          if (shapeAtPoint && isDiscourseNodeShape(shapeAtPoint)) {
-            // We have a valid target, call the relation creation method
-            const util = app.getShapeUtil(relationShape);
-            if (
-              util &&
-              typeof (util as any).handleCreateRelationsInRoam === "function"
-            ) {
-              (util as any).handleCreateRelationsInRoam({
-                arrow: relationShape,
-                targetId: shapeAtPoint.id,
+            // Check if we have a target shape
+            if (shapeAtPoint && isDiscourseNodeShape(shapeAtPoint)) {
+              // We have a valid target, call the relation creation method
+              const util = app.getShapeUtil(relationShape);
+              if (
+                util &&
+                typeof (util as any).handleCreateRelationsInRoam === "function"
+              ) {
+                (util as any).handleCreateRelationsInRoam({
+                  arrow: relationShape,
+                  targetId: shapeAtPoint.id,
+                });
+              }
+            } else {
+              // No target shape, delete the relation and show toast
+              app.deleteShapes([relationShape.id]);
+              dispatchToastEvent({
+                id: "tldraw-relation-no-target",
+                title: "Relation must connect to a node. Relation deleted.",
+                severity: "warning",
               });
             }
           } else {
-            // No target shape, delete the relation and show toast
-            app.deleteShapes([relationShape.id]);
-            dispatchToastEvent({
-              id: "tldraw-relation-no-target",
-              title: "Relation must connect to a node. Relation deleted.",
-              severity: "warning",
-            });
+            console.log("No relation shape found in selection");
           }
-        } else {
-          console.log("No relation shape found in selection");
-        }
 
-        // Reset relation creation state
-        relationCreationRef.current = {
-          isCreating: false,
-        };
+          // Reset relation creation state
+          relationCreationRef.current = {
+            isCreating: false,
+          };
+        }
       }
-    }
-  };
+    },
+    [
+      isRelationTool,
+      isDiscourseNodeShape,
+      allRelationIds,
+      allAddReferencedNodeActions,
+    ],
+  );
 
   const extensionAPI = useExtensionAPI();
 
   // COMPONENTS
-  const defaultEditorComponents: TLEditorComponents = {
-    Scribble: TldrawScribble,
-    CollaboratorScribble: TldrawScribble,
-    SelectionForeground: DefaultSelectionForeground,
-    SelectionBackground: DefaultSelectionBackground,
-    Handles: TldrawHandles,
-  };
-  const editorComponents: TLEditorComponents = {
-    ...defaultEditorComponents,
-    OnTheCanvas: ToastListener,
-  };
-  const customUiComponents: TLUiComponents = createUiComponents({
-    allNodes,
-    allRelationNames,
-    allAddReferencedNodeActions,
-  });
+  const editorComponents: TLEditorComponents = useMemo(
+    () => ({
+      Scribble: TldrawScribble,
+      CollaboratorScribble: TldrawScribble,
+      SelectionForeground: DefaultSelectionForeground,
+      SelectionBackground: DefaultSelectionBackground,
+      Handles: TldrawHandles,
+      OnTheCanvas: ToastListener,
+    }),
+    [],
+  );
+  const customUiComponents: TLUiComponents = useMemo(
+    () =>
+      createUiComponents({
+        allNodes,
+        allRelationNames,
+        allAddReferencedNodeActions,
+      }),
+    [allNodes, allRelationNames, allAddReferencedNodeActions],
+  );
 
   // UTILS
-  const discourseNodeUtils = createNodeShapeUtils(allNodes);
-  const discourseRelationUtils = createAllRelationShapeUtils(allRelationIds);
-  const referencedNodeUtils = createAllReferencedNodeUtils(
-    allAddReferencedNodeByAction,
+  const discourseNodeUtils = useMemo(
+    () => createNodeShapeUtils(allNodes),
+    [allNodes],
   );
-  const customShapeUtils = [
-    ...discourseNodeUtils,
-    ...discourseRelationUtils,
-    ...referencedNodeUtils,
-  ];
+  const discourseRelationUtils = useMemo(
+    () => createAllRelationShapeUtils(allRelationIds),
+    [allRelationIds],
+  );
+  const referencedNodeUtils = useMemo(
+    () => createAllReferencedNodeUtils(allAddReferencedNodeByAction),
+    [allAddReferencedNodeByAction],
+  );
+  const customShapeUtils = useMemo(
+    () => [
+      ...discourseNodeUtils,
+      ...discourseRelationUtils,
+      ...referencedNodeUtils,
+    ],
+    [discourseNodeUtils, discourseRelationUtils, referencedNodeUtils],
+  );
 
   // TOOLS
-  const discourseGraphTool = class DiscourseGraphTool extends StateNode {
-    static override id = "discourse-tool";
-    static override initial = "idle";
-  };
-  const discourseNodeTools = createNodeShapeTools(allNodes);
-  const discourseRelationTools = createAllRelationShapeTools(allRelationNames);
-  const referencedNodeTools = createAllReferencedNodeTools(
-    allAddReferencedNodeByAction,
+  const discourseGraphTool = useMemo(
+    () =>
+      class DiscourseGraphTool extends StateNode {
+        static override id = "discourse-tool";
+        static override initial = "idle";
+      },
+    [],
   );
-  const customTools = [
-    discourseGraphTool,
-    ...discourseNodeTools,
-    ...discourseRelationTools,
-    ...referencedNodeTools,
-  ];
+  const discourseNodeTools = useMemo(
+    () => createNodeShapeTools(allNodes),
+    [allNodes],
+  );
+  const discourseRelationTools = useMemo(
+    () => createAllRelationShapeTools(allRelationNames),
+    [allRelationNames],
+  );
+  const referencedNodeTools = useMemo(
+    () => createAllReferencedNodeTools(allAddReferencedNodeByAction),
+    [allAddReferencedNodeByAction],
+  );
+  const customTools = useMemo(
+    () => [
+      discourseGraphTool,
+      ...discourseNodeTools,
+      ...discourseRelationTools,
+      ...referencedNodeTools,
+    ],
+    [
+      discourseGraphTool,
+      discourseNodeTools,
+      discourseRelationTools,
+      referencedNodeTools,
+    ],
+  );
 
   // BINDINGS
-  const relationBindings = createAllRelationBindings(allRelationIds);
-  const referencedNodeBindings = createAllReferencedNodeBindings(
-    allAddReferencedNodeByAction,
+  const relationBindings = useMemo(
+    () => createAllRelationBindings(allRelationIds),
+    [allRelationIds],
   );
-  const customBindingUtils = [...relationBindings, ...referencedNodeBindings];
+  const referencedNodeBindings = useMemo(
+    () => createAllReferencedNodeBindings(allAddReferencedNodeByAction),
+    [allAddReferencedNodeByAction],
+  );
+  const customBindingUtils = useMemo(
+    () => [...relationBindings, ...referencedNodeBindings],
+    [relationBindings, referencedNodeBindings],
+  );
 
   // UI OVERRIDES
-  const uiOverrides = createUiOverrides({
-    allNodes,
-    allRelationNames,
-    allAddReferencedNodeByAction,
-    toggleMaximized: handleMaximizedChange,
-    setConvertToDialogOpen,
-    discourseContext,
-  });
+  const uiOverrides = useMemo(
+    () =>
+      createUiOverrides({
+        allNodes,
+        allRelationNames,
+        allAddReferencedNodeByAction,
+        toggleMaximized: handleMaximizedChange,
+        setConvertToDialogOpen,
+        discourseContext,
+      }),
+    [
+      allNodes,
+      allRelationNames,
+      allAddReferencedNodeByAction,
+      handleMaximizedChange,
+    ],
+  );
+
+  // Memoize combined arrays to prevent infinite re-renders
+  const allShapeUtils = useMemo(
+    () => [...defaultShapeUtils, ...customShapeUtils],
+    [customShapeUtils],
+  );
+  const allTools = useMemo(
+    () => [...defaultTools, ...defaultShapeTools, ...customTools],
+    [customTools],
+  );
+  const allBindingUtils = useMemo(
+    () => [...defaultBindingUtils, ...customBindingUtils],
+    [customBindingUtils],
+  );
 
   // STORE
   const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
@@ -461,7 +626,10 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     [allRelationIds, allAddReferencedNodeActions, allNodes],
   );
 
-  const migrations = [arrowShapeMigrations];
+  const migrations = useMemo(
+    () => [arrowShapeMigrations],
+    [arrowShapeMigrations],
+  );
   const { store, needsUpgrade, performUpgrade, error } = useRoamStore({
     migrations,
     customShapeUtils,
@@ -640,9 +808,9 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             // baseUrl="https://samepage.network/assets/tldraw/"
             // instanceId={initialState.instanceId}
             initialState="select"
-            shapeUtils={[...defaultShapeUtils, ...customShapeUtils]}
-            tools={[...defaultTools, ...defaultShapeTools, ...customTools]}
-            bindingUtils={[...defaultBindingUtils, ...customBindingUtils]}
+            shapeUtils={allShapeUtils}
+            tools={allTools}
+            bindingUtils={allBindingUtils}
             components={editorComponents}
             store={store}
             onMount={(app) => {

@@ -1,4 +1,9 @@
-import { LLMProviderConfig, Message, Settings } from "~/types/llm";
+import {
+  LLMProviderConfig,
+  LLMStreamingProviderConfig,
+  Message,
+  Settings,
+} from "~/types/llm";
 
 type RecordLike = Record<string, unknown>;
 
@@ -88,5 +93,22 @@ export const anthropicConfig: LLMProviderConfig = {
     temperature: settings.temperature,
   }),
   extractResponseText: (responseData: any) => responseData.content?.[0]?.text,
+  errorMessagePath: "error?.message",
+};
+
+export const openaiStreamingConfig: LLMStreamingProviderConfig = {
+  apiKeyEnvVar: "OPENAI_API_KEY",
+  apiUrl: "https://api.openai.com/v1/chat/completions",
+  apiHeaders: (apiKey: string) => ({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+  }),
+  formatRequestBody: (messages: Message[], settings: Settings) => ({
+    model: settings.model,
+    messages,
+    temperature: settings.temperature,
+    max_completion_tokens: settings.maxTokens,
+    stream: true,
+  }),
   errorMessagePath: "error?.message",
 };

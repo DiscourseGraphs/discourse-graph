@@ -10,7 +10,6 @@ import fireQuery from "~/utils/fireQuery";
 import parseQuery from "~/utils/parseQuery";
 import type { Result } from "roamjs-components/types/query-builder";
 import ResultsView from "./results-view/ResultsView";
-import ReactDOM from "react-dom";
 import QueryEditor from "./QueryEditor";
 import getSubTree from "roamjs-components/util/getSubTree";
 import { createComponentRender } from "roamjs-components/components/ComponentContainer";
@@ -25,6 +24,7 @@ import { Column } from "~/utils/types";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import posthog from "posthog-js";
 import parseResultSettings from "~/utils/parseResultSettings";
+import { renderReactElement, unmountReactRoot } from "~/utils/reactRender";
 
 type QueryPageComponent = (props: {
   pageUid: string;
@@ -231,7 +231,7 @@ export const renderQueryPage = ({
       h1.parentElement?.nextElementSibling || null,
     );
 
-    ReactDOM.render(
+    renderReactElement(
       <ExtensionApiContextProvider {...onloadArgs}>
         <QueryBuilder pageUid={uid} />
       </ExtensionApiContextProvider>,

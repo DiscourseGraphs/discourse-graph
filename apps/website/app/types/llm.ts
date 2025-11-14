@@ -31,3 +31,11 @@ export type LLMProviderConfig = {
   extractResponseText: (responseData: any) => string | null;
   errorMessagePath: string;
 };
+
+export type LLMStreamingProviderConfig = {
+  apiKeyEnvVar: string;
+  apiUrl: string | ((settings: Settings) => string);
+  apiHeaders: (apiKey: string) => Record<string, string>;
+  formatRequestBody: (messages: Message[], settings: Settings) => any;
+  errorMessagePath: string;
+};

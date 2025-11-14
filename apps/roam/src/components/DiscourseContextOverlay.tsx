@@ -1,6 +1,5 @@
-import { Button, Icon, Popover, Position, Tooltip } from "@blueprintjs/core";
+import { Button, Icon, Popover, Position } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import ReactDOM from "react-dom";
 import { ContextContent } from "./DiscourseContext";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
@@ -16,6 +15,7 @@ import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { OnloadArgs } from "roamjs-components/types/native";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import { renderReactElement } from "~/utils/reactRender";
 
 type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -132,10 +132,10 @@ const DiscourseContextOverlay = ({
   );
   const refresh = useCallback(() => {
     setLoading(true);
-    getInfo();
+    void getInfo();
   }, [getInfo, setLoading]);
   useEffect(() => {
-    getInfo();
+    void getInfo();
   }, [refresh, getInfo]);
   return (
     <Popover
@@ -202,7 +202,7 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
     {},
     { disconnectOnLeave: false },
     {},
-  );
+  ) as { inViewport: boolean };
   return inViewport ? (
     <DiscourseContextOverlay tag={tag} id={id} />
   ) : (
@@ -234,7 +234,7 @@ export const render = ({
 }) => {
   parent.style.margin = "0 8px";
   parent.onmousedown = (e) => e.stopPropagation();
-  ReactDOM.render(
+  renderReactElement(
     <ExtensionApiContextProvider {...onloadArgs}>
       <Wrapper tag={tag} parent={parent} />
     </ExtensionApiContextProvider>,
