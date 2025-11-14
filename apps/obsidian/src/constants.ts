@@ -85,7 +85,7 @@ export const DEFAULT_SAVE_DELAY = 500; // in ms
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
-const TEXT_PROPS = {
+export const TEXT_PROPS = {
   lineHeight: 1.35,
   fontWeight: "normal",
   fontVariant: "normal",
@@ -93,7 +93,7 @@ const TEXT_PROPS = {
   padding: "0px",
   maxWidth: "auto",
 };
-const FONT_SIZES: Record<TLDefaultSizeStyle, number> = {
+export const FONT_SIZES: Record<TLDefaultSizeStyle, number> = {
   m: 25,
   l: 38,
   xl: 48,
