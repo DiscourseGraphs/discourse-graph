@@ -236,6 +236,8 @@ const discourseNodeContent = memo(
               nodeTypeId: shape.props.nodeTypeId,
               imageSrc: currentImageSrc,
               plugin,
+              size: shape.props.size,
+              fontFamily: shape.props.fontFamily,
             });
             // Only update dimensions if they differ significantly (>1px)
             if (

@@ -7,12 +7,15 @@ import {
   IMAGE_GAP,
 } from "~/components/canvas/shapes/nodeConstants";
 import { getNodeTypeById } from "./typeUtils";
+import { TLDefaultSizeStyle, TLDefaultFontStyle } from "tldraw";
 
 type CalcNodeSizeParams = {
   title: string;
   nodeTypeId: string;
   imageSrc?: string;
   plugin: DiscourseGraphPlugin;
+  size?: TLDefaultSizeStyle;
+  fontFamily?: TLDefaultFontStyle;
 };
 
 /**
@@ -24,6 +27,8 @@ export const calcDiscourseNodeSize = async ({
   nodeTypeId,
   imageSrc,
   plugin,
+  size = "s",
+  fontFamily = "draw",
 }: CalcNodeSizeParams): Promise<{ w: number; h: number }> => {
   const nodeType = getNodeTypeById(plugin, nodeTypeId);
   const nodeTypeName = nodeType?.name || "";
@@ -31,6 +36,8 @@ export const calcDiscourseNodeSize = async ({
   const { w, h: textHeight } = measureNodeText({
     title,
     subtitle: nodeTypeName,
+    size,
+    fontFamily,
   });
 
   if (!imageSrc || !nodeType?.keyImage) {
