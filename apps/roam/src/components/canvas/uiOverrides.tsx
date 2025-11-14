@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/naming-convention */
 import React from "react";
 import {
   TLImageShape,
@@ -30,7 +33,7 @@ import {
   ZoomToSelectionMenuItem,
   useEditor,
   useValue,
-  useToasts,
+  renderPlaintextFromRichText,
 } from "tldraw";
 import { IKeyCombo } from "@blueprintjs/core";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
@@ -46,7 +49,6 @@ import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelatio
 import { dispatchToastEvent } from "./ToastListener";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
-import { convertComboToTldrawFormat } from "~/utils/keyboardShortcutUtils";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 
@@ -153,7 +155,10 @@ export const getOnSelectForShape = ({
     };
   } else if (shape.type === "text") {
     return () => {
-      const { text } = (shape as TLTextShape).props;
+      const text = renderPlaintextFromRichText(
+        editor,
+        (shape as TLTextShape).props.richText,
+      );
       void convertToDiscourseNode({
         text,
         type: nodeType,
@@ -366,10 +371,12 @@ export const createUiOverrides = ({
           editor.setCurrentTool(nodeId);
         },
         readonlyOk: true,
-        style: {
-          color:
-            formatHexColor(node.canvasSettings.color) ||
-            `${COLOR_ARRAY[index]}`,
+        meta: {
+          style: {
+            color:
+              formatHexColor(node.canvasSettings.color) ||
+              `${COLOR_ARRAY[index]}`,
+          },
         },
       };
     });
@@ -384,8 +391,10 @@ export const createUiOverrides = ({
         onSelect: () => {
           editor.setCurrentTool(name);
         },
-        style: {
-          color: getRelationColor(name, index),
+        meta: {
+          style: {
+            color: getRelationColor(name, index),
+          },
         },
       };
     });
@@ -407,8 +416,10 @@ export const createUiOverrides = ({
         onSelect: () => {
           editor.setCurrentTool(`${name}`);
         },
-        style: {
-          color: formatHexColor(color) ?? `var(--palette-${COLOR_ARRAY[0]})`,
+        meta: {
+          style: {
+            color: formatHexColor(color) ?? `var(--palette-${COLOR_ARRAY[0]})`,
+          },
         },
       };
     });
@@ -416,8 +427,6 @@ export const createUiOverrides = ({
     return tools;
   },
   actions: (editor, actions) => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { addToast } = useToasts();
     actions["convert-to"] = {
       id: "convert-to",
       label: "action.convert-to" as TLUiTranslationKey,
@@ -442,7 +451,10 @@ export const createUiOverrides = ({
       kbd: "$!X",
       onSelect: (source) => {
         void originalCopyAsSvgAction.onSelect(source);
-        addToast({ title: "Copied as SVG" });
+        dispatchToastEvent({
+          id: "copy-as-svg-toast",
+          title: "Copied as SVG",
+        });
       },
     };
     actions["copy-as-png"] = {
@@ -450,7 +462,10 @@ export const createUiOverrides = ({
       kbd: "$!C",
       onSelect: (source) => {
         void originalCopyAsPngAction.onSelect(source);
-        addToast({ title: "Copied as PNG" });
+        dispatchToastEvent({
+          id: "copy-as-png-toast",
+          title: "Copied as PNG",
+        });
       },
     };
     // Disable print keyboard binding to prevent conflict with command palette

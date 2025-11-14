@@ -1,6 +1,10 @@
+export type MessageContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
 export type Message = {
   role: string;
-  content: string;
+  content: string | MessageContentPart[];
 };
 
 export type Settings = {
@@ -8,6 +12,7 @@ export type Settings = {
   maxTokens: number;
   temperature: number;
   reasoningEffort?: "low" | "medium" | "high";
+  responseFormat?: { type: "json_object" | "text" };
   safetySettings?: Array<{
     category: string;
     threshold: string;
@@ -29,5 +34,13 @@ export type LLMProviderConfig = {
   apiHeaders: (apiKey: string) => Record<string, string>;
   formatRequestBody: (messages: Message[], settings: Settings) => any;
   extractResponseText: (responseData: any) => string | null;
+  errorMessagePath: string;
+};
+
+export type LLMStreamingProviderConfig = {
+  apiKeyEnvVar: string;
+  apiUrl: string | ((settings: Settings) => string);
+  apiHeaders: (apiKey: string) => Record<string, string>;
+  formatRequestBody: (messages: Message[], settings: Settings) => any;
   errorMessagePath: string;
 };

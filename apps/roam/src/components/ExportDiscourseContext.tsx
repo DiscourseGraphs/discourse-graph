@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import ReactDOM from "react-dom";
 import {
   Button,
   Classes,
@@ -26,6 +25,7 @@ import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import { render as exportRender } from "./Export";
 import { Result } from "~/utils/types";
 import posthog from "posthog-js";
+import { renderReactElement } from "~/utils/reactRender";
 
 type UpdateProgressWithDelay = (params: {
   progress: number;
@@ -577,6 +577,6 @@ const GraphExportButton = () => {
 export const render = (block: HTMLDivElement) => {
   const div = document.createElement("div");
   div.className = "roamjs-discourse-graph-export-button";
-  ReactDOM.render(<GraphExportButton />, div);
+  renderReactElement(<GraphExportButton />, div);
   block.appendChild(div);
 };

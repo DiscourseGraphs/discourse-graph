@@ -6,11 +6,11 @@ import {
   Vec,
   Box,
   createShapeId,
+  useAtom,
 } from "tldraw";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
-import { useAtom } from "@tldraw/state";
 import { TOOL_ARROW_ICON_SVG, NODE_COLOR_ICON_SVG } from "~/icons";
 
 export type DiscourseGraphPanelProps = {

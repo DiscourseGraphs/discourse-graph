@@ -1,11 +1,11 @@
 import React from "react";
-import ReactDOM from "react-dom";
 import { Button, Popover, Position } from "@blueprintjs/core";
 import { renderCreateNodeDialog } from "~/components/CreateNodeDialog";
 import { OnloadArgs } from "roamjs-components/types";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import { type DiscourseNode } from "./getDiscourseNodes";
+import { renderReactElement } from "~/utils/reactRender";
 
 export const renderNodeTagPopupButton = (
   parent: HTMLSpanElement,
@@ -42,7 +42,7 @@ export const renderNodeTagPopupButton = (
   const rawBlockText = blockUid ? getTextByBlockUid(blockUid) : "";
   const cleanedBlockText = rawBlockText.replace(textContent, "").trim();
 
-  ReactDOM.render(
+  renderReactElement(
     <Popover
       content={
         <Button

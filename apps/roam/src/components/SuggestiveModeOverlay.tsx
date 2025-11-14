@@ -1,11 +1,11 @@
 import { Button, Tooltip } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import ReactDOM from "react-dom";
 import useInViewport from "react-in-viewport/dist/es/lib/useInViewport";
 import { OnloadArgs } from "roamjs-components/types/native";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { panelManager, subscribeToPanelState } from "./PanelManager";
+import { renderReactElement } from "~/utils/reactRender";
 
 const SuggestiveModeOverlay = ({
   tag,
@@ -57,7 +57,7 @@ const SuggestiveModeOverlay = ({
   );
 
   return (
-    <div className="suggestive-mode-overlay items-center max-w-3xl">
+    <div className="suggestive-mode-overlay max-w-3xl items-center">
       <Button
         data-dg-role="panel-toggle"
         data-dg-tag={tag}
@@ -110,7 +110,7 @@ export const renderSuggestive = ({
   parent.style.margin = "0 8px";
   parent.style.display = "inline-block";
   parent.onmousedown = (e) => e.stopPropagation();
-  ReactDOM.render(
+  renderReactElement(
     <ExtensionApiContextProvider {...onloadArgs}>
       <Wrapper tag={tag} parent={parent} onloadArgs={onloadArgs} />
     </ExtensionApiContextProvider>,

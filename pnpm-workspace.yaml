@@ -68,8 +68,6 @@ overrides:
 patchedDependencies:
   "@blueprintjs/core@^3.50.4": patches/@blueprintjs__core@3.50.4.patch
   "@blueprintjs/select@3.19.1": patches/@blueprintjs__select@3.19.1.patch
-  "@tldraw/editor@^2.3.0": patches/@tldraw__editor@2.3.0.patch
-  tldraw@^2.3.0: patches/tldraw@2.3.0.patch
 
 peerDependencyRules:
   allowedVersions:
