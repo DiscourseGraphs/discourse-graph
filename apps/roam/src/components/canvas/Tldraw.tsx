@@ -101,8 +101,9 @@ import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 import { AgentPanel } from "./agent/AgentPanel";
-import { useTldrawAgent } from "./agent/useTldrawAgent";
 import { TldrawAgent } from "./agent/TldrawAgent";
+import { TargetAreaTool } from "./agent/client/tools/TargetAreaTool";
+import { TargetShapeTool } from "./agent/client/tools/TargetShapeTool";
 
 declare global {
   interface Window {
@@ -129,6 +130,7 @@ export const discourseContext: DiscourseContextType = {
 const DEFAULT_WIDTH = 160;
 const DEFAULT_HEIGHT = 64;
 export const MAX_WIDTH = "400px";
+const DG_AGENT_ID = "dg-roam-agent";
 
 const resolveTldrawLicenseKey = (): string | undefined => {
   if (typeof window !== "undefined" && window.DG_TLDRAW_LICENSE_KEY) {
@@ -160,6 +162,12 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
   const [agent, setAgent] = useState<TldrawAgent | null>(null);
+
+  useEffect(() => {
+    return () => {
+      agent?.dispose();
+    };
+  }, [agent]);
 
   // Debug: Track render count and what's changing
   const renderCountRef = useRef(0);
@@ -558,6 +566,8 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       ...discourseNodeTools,
       ...discourseRelationTools,
       ...referencedNodeTools,
+      TargetAreaTool,
+      TargetShapeTool,
     ],
     [
       discourseGraphTool,
@@ -821,7 +831,15 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               }
 
               appRef.current = app;
-              setAgent(new TldrawAgent(app));
+              const nextAgent = new TldrawAgent({
+                editor: app,
+                id: DG_AGENT_ID,
+                onError: (error: unknown) => {
+                  console.error("Tldraw agent error", error);
+                },
+              });
+              setAgent(nextAgent);
+              (window as any).agent = nextAgent;
 
               app.on("change", (entry) => {
                 lastActionsRef.current.push(entry);

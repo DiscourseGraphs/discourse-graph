@@ -2,6 +2,7 @@ import {
   LLMProviderConfig,
   LLMStreamingProviderConfig,
   Message,
+  MessageContentPart,
   Settings,
 } from "~/types/llm";
 
@@ -36,6 +37,25 @@ const extractOpenAIMessageText = (message: unknown): string | null => {
   return null;
 };
 
+const messageContentToString = (content: Message["content"]): string => {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  return content
+    .map((part) => extractTextFromContentPart(part))
+    .filter(Boolean)
+    .join("\n\n")
+    .trim();
+};
+
+const extractTextFromContentPart = (part: MessageContentPart): string => {
+  if ("text" in part && typeof part.text === "string") {
+    return part.text;
+  }
+  return "";
+};
+
 export const openaiConfig: LLMProviderConfig = {
   apiKeyEnvVar: "OPENAI_API_KEY",
   apiUrl: "https://api.openai.com/v1/chat/completions",
@@ -65,7 +85,7 @@ export const geminiConfig: LLMProviderConfig = {
   formatRequestBody: (messages: Message[], settings: Settings) => ({
     contents: messages.map((msg) => ({
       role: msg.role === "user" ? "user" : "model",
-      parts: [{ text: msg.content }],
+      parts: [{ text: messageContentToString(msg.content) }],
     })),
     generationConfig: {
       maxOutputTokens: settings.maxTokens,
@@ -103,12 +123,21 @@ export const openaiStreamingConfig: LLMStreamingProviderConfig = {
     "Content-Type": "application/json",
     Authorization: `Bearer ${apiKey}`,
   }),
-  formatRequestBody: (messages: Message[], settings: Settings) => ({
-    model: settings.model,
-    messages,
-    temperature: settings.temperature,
-    max_completion_tokens: settings.maxTokens,
-    stream: true,
-  }),
+  formatRequestBody: (messages: Message[], settings: Settings) => {
+    const body: Record<string, unknown> = {
+      model: settings.model,
+      messages,
+      temperature: settings.temperature,
+      max_completion_tokens: settings.maxTokens,
+      stream: true,
+    };
+
+    // Add response_format if specified (OpenAI JSON mode)
+    if (settings.responseFormat) {
+      body.response_format = settings.responseFormat;
+    }
+
+    return body;
+  },
   errorMessagePath: "error?.message",
 };

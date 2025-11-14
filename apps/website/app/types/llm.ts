@@ -1,6 +1,10 @@
+export type MessageContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
 export type Message = {
   role: string;
-  content: string;
+  content: string | MessageContentPart[];
 };
 
 export type Settings = {
@@ -8,6 +12,7 @@ export type Settings = {
   maxTokens: number;
   temperature: number;
   reasoningEffort?: "low" | "medium" | "high";
+  responseFormat?: { type: "json_object" | "text" };
   safetySettings?: Array<{
     category: string;
     threshold: string;
