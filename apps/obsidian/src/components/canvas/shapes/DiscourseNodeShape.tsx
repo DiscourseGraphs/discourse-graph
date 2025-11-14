@@ -200,13 +200,11 @@ const discourseNodeContent = memo(
             });
           }
 
-          let didImageChange = false;
           let currentImageSrc = shape.props.imageSrc;
           if (nodeType?.keyImage) {
             const imageSrc = await getFirstImageSrcForFile(app, linkedFile);
 
             if (imageSrc && imageSrc !== shape.props.imageSrc) {
-              didImageChange = true;
               currentImageSrc = imageSrc;
               editor.updateShape<DiscourseNodeShape>({
                 id: shape.id,
@@ -218,7 +216,6 @@ const discourseNodeContent = memo(
               });
             }
           } else if (shape.props.imageSrc) {
-            didImageChange = true;
             currentImageSrc = undefined;
             editor.updateShape<DiscourseNodeShape>({
               id: shape.id,
@@ -230,30 +227,29 @@ const discourseNodeContent = memo(
             });
           }
 
-          if (didImageChange) {
-            const { w, h } = await calcDiscourseNodeSize({
-              title: linkedFile.basename,
-              nodeTypeId: shape.props.nodeTypeId,
-              imageSrc: currentImageSrc,
-              plugin,
-              size: shape.props.size,
-              fontFamily: shape.props.fontFamily,
+          // Recalculate size when title, image, font size, or font family changes
+          const { w, h } = await calcDiscourseNodeSize({
+            title: linkedFile.basename,
+            nodeTypeId: shape.props.nodeTypeId,
+            imageSrc: currentImageSrc,
+            plugin,
+            size: shape.props.size,
+            fontFamily: shape.props.fontFamily,
+          });
+          // Only update dimensions if they differ significantly (>1px)
+          if (
+            Math.abs((shape.props.w || 0) - w) > 1 ||
+            Math.abs((shape.props.h || 0) - h) > 1
+          ) {
+            editor.updateShape<DiscourseNodeShape>({
+              id: shape.id,
+              type: "discourse-node",
+              props: {
+                ...shape.props,
+                w,
+                h,
+              },
             });
-            // Only update dimensions if they differ significantly (>1px)
-            if (
-              Math.abs((shape.props.w || 0) - w) > 1 ||
-              Math.abs((shape.props.h || 0) - h) > 1
-            ) {
-              editor.updateShape<DiscourseNodeShape>({
-                id: shape.id,
-                type: "discourse-node",
-                props: {
-                  ...shape.props,
-                  w,
-                  h,
-                },
-              });
-            }
           }
         } catch (error) {
           console.error("Error loading node data", error);
@@ -266,7 +262,7 @@ const discourseNodeContent = memo(
       return () => {
         return;
       };
-      // Only trigger when content changes, not when dimensions change (to avoid fighting manual resizing)
+      // Trigger when content, font size, or font family changes
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       src,
@@ -274,6 +270,8 @@ const discourseNodeContent = memo(
       shape.props.title,
       shape.props.nodeTypeId,
       shape.props.imageSrc,
+      shape.props.size,
+      shape.props.fontFamily,
       editor,
       app,
       canvasFile,
