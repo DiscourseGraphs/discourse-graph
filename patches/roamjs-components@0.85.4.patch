@@ -1,0 +1,15 @@
+diff --git a/util/runExtension.js b/util/runExtension.js
+index 5e34c225b3381f13156d4509109cc509664d430e..478e05d257e9b54889ab1f7d5ac94d84fd929311 100644
+--- a/util/runExtension.js
++++ b/util/runExtension.js
+@@ -11,7 +11,9 @@ const Toast_1 = tslib_1.__importDefault(require("../components/Toast"));
+ const runExtension = (run) => {
+     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+     // @ts-ignore React17 shim
+-    window.React.useSyncExternalStore = shim_1.useSyncExternalStore;
++    if (!window.React.useSyncExternalStore) {
++      window.React.useSyncExternalStore = shim_1.useSyncExternalStore;
++    }
+     let unload;
+     const extensionId = (0, env_1.getRoamJSExtensionIdEnv)();
+     const registry = {

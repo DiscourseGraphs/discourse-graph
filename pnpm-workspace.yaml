@@ -70,6 +70,7 @@ patchedDependencies:
   "@blueprintjs/select@3.19.1": patches/@blueprintjs__select@3.19.1.patch
   "@tldraw/editor@^2.3.0": patches/@tldraw__editor@2.3.0.patch
   tldraw@^2.3.0: patches/tldraw@2.3.0.patch
+  roamjs-components@0.85.4: patches/roamjs-components@0.85.4.patch
 
 peerDependencyRules:
   allowedVersions:
