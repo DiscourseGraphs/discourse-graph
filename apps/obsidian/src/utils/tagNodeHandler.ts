@@ -379,11 +379,75 @@ export class TagNodeHandler {
     }
 
     let hoverTimeout: number | null = null;
+    let currentMouseY = 0;
+    let currentMouseX = 0;
+
+    // Track mouse position to determine which part of multi-line tag is hovered
+    const handleMouseMove = (e: MouseEvent) => {
+      currentMouseY = e.clientY;
+      currentMouseX = e.clientX;
+
+      // Update tooltip position if it's already visible
+      if (this.currentTooltip) {
+        updateTooltipPosition();
+      }
+    };
+
+    const getClosestRect = (): DOMRect => {
+      const range = document.createRange();
+      range.selectNodeContents(tagElement);
+      const clientRects = range.getClientRects();
+
+      if (clientRects.length > 0) {
+        // If tag spans multiple lines, find the rect closest to mouse position
+        if (clientRects.length > 1) {
+          let closestRect: DOMRect | null = null;
+          let minDistance = Infinity;
+
+          for (let i = 0; i < clientRects.length; i++) {
+            const r = clientRects.item(i);
+            if (!r) continue;
+
+            // Calculate distance from mouse position to center of this rect
+            const rectCenterY = r.top + r.height / 2;
+            const rectCenterX = r.left + r.width / 2;
+            const distanceY = Math.abs(currentMouseY - rectCenterY);
+            const distanceX = Math.abs(currentMouseX - rectCenterX);
+            // Weight Y distance more heavily since we care more about vertical proximity
+            const distance = distanceY * 2 + distanceX;
+
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestRect = r;
+            }
+          }
+
+          return (
+            closestRect ||
+            clientRects.item(clientRects.length - 1) ||
+            tagElement.getBoundingClientRect()
+          );
+        } else {
+          // Single line tag - use the only rect
+          return clientRects.item(0) || tagElement.getBoundingClientRect();
+        }
+      }
+
+      return tagElement.getBoundingClientRect();
+    };
+
+    const updateTooltipPosition = () => {
+      if (!this.currentTooltip) return;
+
+      const rect = getClosestRect();
+      this.currentTooltip.style.top = `${rect.top - TOOLTIP_OFFSET}px`;
+      this.currentTooltip.style.left = `${rect.left + rect.width / 2}px`;
+    };
 
     const showTooltip = () => {
       if (this.currentTooltip) return;
 
-      const rect = tagElement.getBoundingClientRect();
+      const rect = getClosestRect();
 
       this.currentTooltip = document.createElement("div");
       this.currentTooltip.className = "discourse-tag-popover";
@@ -443,6 +507,8 @@ export class TagNodeHandler {
       hoverTimeout = window.setTimeout(showTooltip, HOVER_DELAY);
     });
 
+    tagElement.addEventListener("mousemove", handleMouseMove);
+
     tagElement.addEventListener("mouseleave", (e) => {
       if (hoverTimeout) {
         clearTimeout(hoverTimeout);
@@ -456,6 +522,7 @@ export class TagNodeHandler {
     });
 
     const cleanup = () => {
+      tagElement.removeEventListener("mousemove", handleMouseMove);
       if (hoverTimeout) {
         clearTimeout(hoverTimeout);
       }
