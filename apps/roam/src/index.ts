@@ -1,4 +1,4 @@
-import { addStyle, getRoamUrl } from "roamjs-components/dom";
+import { addStyle } from "roamjs-components/dom";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 import { runExtension } from "roamjs-components/util";
@@ -32,7 +32,6 @@ import {
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
-import { getLoggedInClient } from "./utils/supabaseContext";
 import { getUidAndBooleanSetting } from "./utils/getExportSettings";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
