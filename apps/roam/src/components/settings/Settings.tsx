@@ -229,7 +229,7 @@ export const SettingsDialog = ({
             id="secret-admin-panel"
             title="Secret Admin Panel"
             className="overflow-y-auto"
-            panel={<AdminPanel onloadArgs={onloadArgs} />}
+            panel={<AdminPanel />}
           />
         </Tabs>
       </div>

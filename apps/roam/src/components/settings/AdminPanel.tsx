@@ -10,7 +10,6 @@ import {
   TabId,
   Tabs,
 } from "@blueprintjs/core";
-import { OnloadArgs } from "roamjs-components/types";
 import Description from "roamjs-components/components/Description";
 import { Select } from "@blueprintjs/select";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
@@ -104,12 +103,7 @@ const NodeTable = ({ nodes }: { nodes: PConceptFull[] }) => {
   );
 };
 
-const AdminPanel = ({
-  onloadArgs,
-}: {
-  onloadArgs: OnloadArgs;
-}): React.ReactElement => {
-  const extensionAPI = onloadArgs.extensionAPI;
+const AdminPanel = (): React.ReactElement => {
   const [context, setContext] = useState<SupabaseContext | null>(null);
   const [supabase, setSupabase] = useState<DGSupabaseClient | null>(null);
   const [schemas, setSchemas] = useState<NodeSignature[]>([]);
