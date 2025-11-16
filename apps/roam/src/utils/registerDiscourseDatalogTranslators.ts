@@ -25,6 +25,13 @@ import { getExistingRelationPageUid } from "./createReifiedBlock";
 const hasTag = (node: DiscourseNode): node is DiscourseNode & { tag: string } =>
   !!node.tag;
 
+const enum ValueType {
+  "variable",
+  "nodeType",
+  "uid",
+  "title",
+}
+
 const singleOrClause = (
   clauses: DatalogClause[],
   variables?: string[],
@@ -416,6 +423,77 @@ const registerDiscourseDatalogTranslators = () => {
           });
           if (!filteredRelations.length && !ANY_RELATION_REGEX.test(label))
             return [];
+          console.log("source", source, "target", target);
+          const typeOfValue = (value: string): ValueType => {
+            const possibleNodeType = nodeTypeByLabel[value?.toLowerCase()];
+            if (possibleNodeType) {
+              return ValueType.nodeType;
+            } else if (
+              window.roamAlphaAPI.pull("[:db/id]", [":block/uid", value])
+            ) {
+              return ValueType.uid;
+            } else if (
+              value?.toLowerCase() !== "node" &&
+              !!window.roamAlphaAPI.pull("[:db/id]", [":node/title", value])
+            ) {
+              return ValueType.title;
+            } else {
+              return ValueType.variable;
+            }
+          };
+          const computeEdgeTriple = ({
+            variable,
+            value,
+            nodeType,
+            valueType,
+          }: {
+            variable: string;
+            value: string;
+            nodeType: string;
+            valueType?: ValueType;
+          }): DatalogClause[] => {
+            valueType = valueType || typeOfValue(value);
+            switch (valueType) {
+              case ValueType.nodeType:
+                return conditionToDatalog({
+                  uid,
+                  not: false,
+                  source: variable,
+                  relation: "is a",
+                  target: nodeTypeByLabel[value?.toLowerCase()],
+                  type: "clause",
+                });
+              case ValueType.uid:
+                return [
+                  {
+                    type: "data-pattern",
+                    arguments: [
+                      { type: "variable", value: variable },
+                      { type: "constant", value: ":block/uid" },
+                      { type: "constant", value: `"${value}"` },
+                    ],
+                  },
+                ];
+              case ValueType.title:
+                return conditionToDatalog({
+                  uid,
+                  not: false,
+                  source: variable,
+                  relation: "has title",
+                  target: value,
+                  type: "clause",
+                });
+              case ValueType.variable:
+                return conditionToDatalog({
+                  uid,
+                  not: false,
+                  source: variable,
+                  relation: "is a",
+                  target: nodeType,
+                  type: "clause",
+                });
+            }
+          };
 
           if (useReifiedRelations && relationPageUid !== undefined) {
             const relClauseBasis: DatalogClause[] = [
@@ -492,29 +570,62 @@ const registerDiscourseDatalogTranslators = () => {
                 },
               },
             ];
+            const typeOfSource = typeOfValue(source);
+            const typeOfTarget = typeOfValue(target);
             const clauses: DatalogClause[] = [...relClauseBasis];
-            const sourceAsUid = window.roamAlphaAPI.pull("[:db/id]", [
-              ":block/uid",
-              source,
-            ])
-              ? source
-              : null;
-            const targetAsUid = window.roamAlphaAPI.pull("[:db/id]", [
-              ":block/uid",
-              target,
-            ])
-              ? target
-              : null;
 
+            // todo: It could be a title or a node type.
+            console.log(
+              "typeOfSource",
+              typeOfSource,
+              "typeOfTarget",
+              typeOfTarget,
+            );
+            if (
+              !(
+                typeOfSource <= ValueType.nodeType ||
+                typeOfTarget <= ValueType.nodeType
+              )
+            ) {
+              console.error(
+                `One of source: ${source} or target: ${target} should be a variable (or node type)`,
+              );
+            }
             const forwardClauses: DatalogClause[] = [];
             const reverseClauses: DatalogClause[] = [];
-            if (sourceAsUid) {
+            const sourceTriples = filteredRelations
+              .map((r) => r.triples.find((t) => t[2] === "source"))
+              .filter((x) => x !== undefined);
+            const targetTriples = filteredRelations
+              .map((r) =>
+                r.triples.find(
+                  (t) => t[2] === "destination" || t[2] === "target",
+                ),
+              )
+              .filter((x) => x !== undefined);
+            console.log(
+              "sourceTriples",
+              sourceTriples,
+              "targetTriples",
+              targetTriples,
+            );
+            if (typeOfSource === ValueType.uid) {
+              if (sourceTriples.length)
+                clauses.push(
+                  ...computeEdgeTriple({
+                    variable: sourceTriples[0][0],
+                    value: source,
+                    valueType: ValueType.uid,
+                    nodeType: "Any",
+                  }),
+                );
+              else console.error("Cannot find the source triple");
               forwardClauses.push({
                 type: "pred-expr",
                 pred: "=",
                 arguments: [
                   { type: "variable", value: "relSource" },
-                  { type: "constant", value: `"${sourceAsUid}"` },
+                  { type: "constant", value: `"${source}"` },
                 ],
               });
               reverseClauses.push({
@@ -522,37 +633,75 @@ const registerDiscourseDatalogTranslators = () => {
                 pred: "=",
                 arguments: [
                   { type: "variable", value: "relTarget" },
-                  { type: "constant", value: `"${sourceAsUid}"` },
+                  { type: "constant", value: `"${source}"` },
                 ],
               });
-              if (targetAsUid) {
-                console.warn("Should both ends be Uids?");
-              } else {
-                forwardClauses.push({
-                  type: "data-pattern",
-                  arguments: [
-                    { type: "variable", value: target },
-                    { type: "constant", value: ":block/uid" },
-                    { type: "variable", value: "relTarget" },
-                  ],
-                });
-                reverseClauses.push({
-                  type: "data-pattern",
-                  arguments: [
-                    { type: "variable", value: target },
-                    { type: "constant", value: ":block/uid" },
-                    { type: "variable", value: "relSource" },
-                  ],
-                });
+            } else {
+              const sourceVarName =
+                typeOfSource === ValueType.title ? "sourcePage" : source;
+              switch (typeOfSource) {
+                case ValueType.title:
+                  clauses.push(
+                    ...computeEdgeTriple({
+                      variable: sourceVarName,
+                      value: source,
+                      valueType: ValueType.title,
+                      nodeType: "Any",
+                    }),
+                  );
+                  break;
+                case ValueType.nodeType:
+                  // not sure about using the source as both variable and value but works
+                  clauses.push(
+                    ...computeEdgeTriple({
+                      variable: sourceVarName, // equal to source in this case...
+                      value: source,
+                      valueType: ValueType.nodeType,
+                      nodeType: source,
+                    }),
+                  );
+                  break;
+                case ValueType.variable:
+                  // we used to put the nodeType in the or-clause, but I think with reified triples it's unneeded.
+                  break;
+                default:
+                  console.error("Wrong typeOfSource value");
               }
+
+              forwardClauses.push({
+                type: "data-pattern",
+                arguments: [
+                  { type: "variable", value: sourceVarName },
+                  { type: "constant", value: ":block/uid" },
+                  { type: "variable", value: "relSource" },
+                ],
+              });
+              reverseClauses.push({
+                type: "data-pattern",
+                arguments: [
+                  { type: "variable", value: sourceVarName },
+                  { type: "constant", value: ":block/uid" },
+                  { type: "variable", value: "relTarget" },
+                ],
+              });
             }
-            if (targetAsUid) {
+            if (typeOfTarget === ValueType.uid) {
+              if (targetTriples.length)
+                clauses.push(
+                  ...computeEdgeTriple({
+                    variable: targetTriples[0][0],
+                    valueType: ValueType.uid,
+                    value: target,
+                    nodeType: "Any",
+                  }),
+                );
+              else console.error("Cannot find the target triple");
               forwardClauses.push({
                 type: "pred-expr",
                 pred: "=",
                 arguments: [
                   { type: "variable", value: "relTarget" },
-                  { type: "constant", value: `"${targetAsUid}"` },
+                  { type: "constant", value: `"${target}"` },
                 ],
               });
               reverseClauses.push({
@@ -560,37 +709,66 @@ const registerDiscourseDatalogTranslators = () => {
                 pred: "=",
                 arguments: [
                   { type: "variable", value: "relSource" },
-                  { type: "constant", value: `"${targetAsUid}"` },
+                  { type: "constant", value: `"${target}"` },
                 ],
               });
-              if (sourceAsUid) {
-                console.warn("Should both ends be Uids?");
-              } else {
-                forwardClauses.push({
-                  type: "data-pattern",
-                  arguments: [
-                    { type: "variable", value: source },
-                    { type: "constant", value: ":block/uid" },
-                    { type: "variable", value: "relSource" },
-                  ],
-                });
-                reverseClauses.push({
-                  type: "data-pattern",
-                  arguments: [
-                    { type: "variable", value: source },
-                    { type: "constant", value: ":block/uid" },
-                    { type: "variable", value: "relTarget" },
-                  ],
-                });
+            } else {
+              const targetVarName =
+                typeOfTarget === ValueType.title ? "targetPage" : target;
+              switch (typeOfTarget) {
+                case ValueType.title:
+                  clauses.push(
+                    ...computeEdgeTriple({
+                      variable: targetVarName,
+                      value: target,
+                      valueType: ValueType.title,
+                      nodeType: "Any",
+                    }),
+                  );
+                  break;
+                case ValueType.nodeType:
+                  // not sure about using the source as both variable and value but works
+                  clauses.push(
+                    ...computeEdgeTriple({
+                      variable: targetVarName, // equal to target in this case...
+                      value: target,
+                      valueType: ValueType.nodeType,
+                      nodeType: target,
+                    }),
+                  );
+                  break;
+                case ValueType.variable:
+                  // we used to put the nodeType in the or-clause, but I think with reified triples it's unneeded.
+                  break;
+                default:
+                  console.error("Wrong typeOfTarget value");
               }
+
+              forwardClauses.push({
+                type: "data-pattern",
+                arguments: [
+                  { type: "variable", value: targetVarName },
+                  { type: "constant", value: ":block/uid" },
+                  { type: "variable", value: "relTarget" },
+                ],
+              });
+              reverseClauses.push({
+                type: "data-pattern",
+                arguments: [
+                  { type: "variable", value: targetVarName },
+                  { type: "constant", value: ":block/uid" },
+                  { type: "variable", value: "relSource" },
+                ],
+              });
             }
 
-            const forwardClause = singleAndClause(forwardClauses)!;
-            const reverseClause = singleAndClause(reverseClauses)!;
             if (ANY_RELATION_REGEX.test(label)) {
               clauses.push({
                 type: "or-clause",
-                clauses: [forwardClause, reverseClause],
+                clauses: [
+                  singleAndClause(forwardClauses)!,
+                  singleAndClause(reverseClauses)!,
+                ],
               });
             } else {
               let forwardRelationIds = filteredRelations
@@ -654,13 +832,12 @@ const registerDiscourseDatalogTranslators = () => {
               [
                 { from: source, to: source },
                 { from: target, to: target },
-                { from: "relSchema", to: "relSchema" },
-                { from: "relSource", to: "relSource" },
                 { from: true, to: (v) => `${uid}-${v}` },
               ],
               clauses,
             );
           } else {
+            // Pattern-based search
             const andParts = filteredRelations.map(
               ({
                 triples,
@@ -673,76 +850,17 @@ const registerDiscourseDatalogTranslators = () => {
                   (t) => t[2] === "destination" || t[2] === "target",
                 );
                 if (!sourceTriple || !targetTriple) return [];
-                const computeEdgeTriple = ({
-                  nodeType,
-                  value,
-                  triple,
-                }: {
-                  nodeType: string;
-                  value: string;
-                  triple: readonly [string, string, string];
-                }): DatalogClause[] => {
-                  const possibleNodeType =
-                    nodeTypeByLabel[value?.toLowerCase()];
-                  if (possibleNodeType) {
-                    return conditionToDatalog({
-                      uid,
-                      not: false,
-                      target: possibleNodeType,
-                      relation: "is a",
-                      source: triple[0],
-                      type: "clause",
-                    });
-                  } else if (
-                    window.roamAlphaAPI.pull("[:db/id]", [":block/uid", value])
-                  ) {
-                    return [
-                      {
-                        type: "data-pattern",
-                        arguments: [
-                          { type: "variable", value: triple[0] },
-                          { type: "constant", value: ":block/uid" },
-                          { type: "constant", value: `"${value}"` },
-                        ],
-                      },
-                    ];
-                  } else if (
-                    value?.toLowerCase() !== "node" &&
-                    !!window.roamAlphaAPI.pull("[:db/id]", [
-                      ":node/title",
-                      value,
-                    ])
-                  ) {
-                    return conditionToDatalog({
-                      uid,
-                      not: false,
-                      target: value,
-                      relation: "has title",
-                      source: triple[0],
-                      type: "clause",
-                    });
-                  } else {
-                    return conditionToDatalog({
-                      uid,
-                      not: false,
-                      target: nodeType,
-                      relation: "is a",
-                      source: triple[0],
-                      type: "clause",
-                    });
-                  }
-                };
 
                 const edgeTriples = forward
                   ? computeEdgeTriple({
                       value: source,
-                      triple: sourceTriple,
+                      variable: sourceTriple[0],
                       nodeType: relationSource,
                     })
                       .concat(
                         computeEdgeTriple({
                           value: target,
-                          triple: targetTriple,
+                          variable: targetTriple[0],
                           nodeType: relationTarget,
                         }),
                       )
@@ -781,14 +899,14 @@ const registerDiscourseDatalogTranslators = () => {
                         },
                       ])
                   : computeEdgeTriple({
+                      variable: sourceTriple[0],
                       value: target,
-                      triple: sourceTriple,
                       nodeType: relationSource,
                     })
                       .concat(
                         computeEdgeTriple({
+                          variable: targetTriple[0],
                           value: source,
-                          triple: targetTriple,
                           nodeType: relationTarget,
                         }),
                       )
