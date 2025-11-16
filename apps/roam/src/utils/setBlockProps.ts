@@ -1,4 +1,4 @@
-import { type json, getRawBlockProps } from "./getBlockProps";
+import { type json, getRawBlockProps, normalizeProps } from "./getBlockProps";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 export const deNormalizeProps = (props: json): json =>
@@ -24,7 +24,8 @@ const setBlockProps = (
   newProps: Record<string, json>,
   denormalize: boolean = false,
 ) => {
-  const baseProps = getRawBlockProps(uid);
+  const rawBaseProps = getRawBlockProps(uid);
+  const baseProps = denormalize ? rawBaseProps : normalizeProps(rawBaseProps);
   if (typeof baseProps === "object" && !Array.isArray(baseProps)) {
     const props = {
       ...(baseProps || {}),
