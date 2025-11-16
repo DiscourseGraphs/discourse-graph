@@ -1,26 +1,26 @@
-import { buildResponseSchema } from '../../worker/prompt/buildResponseSchema'
-import { getSimpleShapeSchemaNames } from '../format/SimpleShape'
-import { BasePromptPart } from '../types/BasePromptPart'
-import { PromptPartUtil } from './PromptPartUtil'
+import { buildResponseSchema } from "../../worker/prompt/buildResponseSchema";
+import { getSimpleShapeSchemaNames } from "../format/SimpleShape";
+import { BasePromptPart } from "../types/BasePromptPart";
+import { PromptPartUtil } from "./PromptPartUtil";
 
-export type SystemPromptPart = BasePromptPart<'system'>
+export type SystemPromptPart = BasePromptPart<"system">;
 
 export class SystemPromptPartUtil extends PromptPartUtil<SystemPromptPart> {
-	static override type = 'system' as const
+  static override type = "system" as const;
 
-	override getPart(): SystemPromptPart {
-		return { type: 'system' }
-	}
+  override getPart(): SystemPromptPart {
+    return { type: "system" };
+  }
 
-	override buildSystemPrompt(_part: SystemPromptPart) {
-		return getSystemPrompt()
-	}
+  override buildSystemPrompt(_part: SystemPromptPart) {
+    return getSystemPrompt();
+  }
 }
 
-const shapeTypeNames = getSimpleShapeSchemaNames()
+const shapeTypeNames = getSimpleShapeSchemaNames();
 
 function getSystemPrompt() {
-	return `# System Prompt
+  return `# System Prompt
 
 You are an AI agent that helps the user use a drawing / diagramming / whiteboarding program. You and the user are both located within an infinite canvas, a 2D space that can be demarkate using x,y coordinates. You will be provided with a prompt that includes a description of the user's intent and the current state of the canvas, including an image, which is your view of the part of the canvas contained within your viewport. You'll also be provided with the chat history of your conversation with the user, including the user's previous requests and your actions. Your goal is to generate a response that includes a list of structured events that represent the actions you would take to satisfy the user's request.
 
@@ -38,11 +38,11 @@ For the full list of events, refer to the JSON schema.
 
 Shapes can be:
 
-${shapeTypeNames.map((type) => `- **${type.charAt(0).toUpperCase() + type.slice(1)} (\`${type}\`)**`).join('\n')}
+${shapeTypeNames.map((type) => `- **${type.charAt(0).toUpperCase() + type.slice(1)} (\`${type}\`)**`).join("\n")}
 
 Each shape has:
 
-- \`_type\` (one of ${shapeTypeNames.map((type) => `\`${type}\``).join(', ')})
+- \`_type\` (one of ${shapeTypeNames.map((type) => `\`${type}\``).join(", ")})
 - \`x\`, \`y\` (numbers, coordinates, the TOP LEFT corner of the shape) (except for arrows and lines, which have \`x1\`, \`y1\`, \`x2\`, \`y2\`)
 - \`note\` (a description of the shape's purpose or intent) (invisible to the user)
 
@@ -98,6 +98,10 @@ Refer to the JSON schema for the full list of available events, their properties
 - When updating shapes:
 	- Only output a single shape for each shape being updated. We know what it should update from its shapeId.
 - When creating shapes:
+- **Crucial:** The \`create\` action's \`shape\` property MUST be a complete JSON object that follows the schema for one of the shape types (e.g., \`SimpleGeoShape\`, \`SimpleTextShape\`).
+    - **INCORRECT:** \`{"_type": "create", "shape": "node", "properties": ...}\`
+    - **CORRECT:** \`{"_type": "create", "intent": "...", "shape": {"_type": "rectangle", "x": 100, "y": 100, "w": 150, "h": 50, "text": "GG", "shapeId": "unique_id", "note": "..."}}\`
+    - You must provide all required properties for the shape, including \`x\`, \`y\`, \`w\`, \`h\` (if applicable), and a unique \`shapeId\`.
 	- If the shape you need is not available in the schema, use the pen to draw a custom shape. The pen can be helpful when you need more control over a shape's exact shape. This can be especially helpful when you need to create shapes that need to fit together precisely.
 	- Use the \`note\` field to provide context for each shape. This will help you in the future to understand the purpose of each shape.
 	- Never create "unknown" type shapes, though you can move unknown shapes if you need to.
@@ -188,5 +192,5 @@ Refer to the JSON schema for the full list of available events, their properties
 
 This is the JSON schema for the events you can return. You must conform to this schema.
 
-${JSON.stringify(buildResponseSchema(), null, 2)}`
+${JSON.stringify(buildResponseSchema(), null, 2)}`;
 }

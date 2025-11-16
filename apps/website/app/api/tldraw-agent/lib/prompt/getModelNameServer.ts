@@ -1,7 +1,7 @@
 import {
   AgentModelName,
   DEFAULT_MODEL_NAME,
-} from "../../../../../../roam/src/components/canvas/agent/worker/models";
+} from "../../../../../../roam/src/components/canvas/agent/models";
 
 /**
  * Server-safe version of getModelName that doesn't instantiate prompt part utilities.

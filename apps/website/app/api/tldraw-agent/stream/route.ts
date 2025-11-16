@@ -1,56 +1,63 @@
 import { NextRequest } from "next/server";
+import { AgentPrompt } from "../../../../../roam/src/components/canvas/agent/shared/types/AgentPrompt";
+import { AgentService } from "../lib/AgentStreamingService";
+import { Environment } from "../lib/environment";
 import cors from "~/utils/llm/cors";
 
 export const runtime = "nodejs";
 export const preferredRegion = "auto";
 export const maxDuration = 300;
 
-const encoder = new TextEncoder();
+const createAgentService = (): AgentService => {
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
 
-export async function POST(request: NextRequest): Promise<Response> {
+  if (!openaiApiKey) {
+    throw new Error("Missing required API key. OPENAI_API_KEY must be set.");
+  }
+
+  // Anthropic is optional since we default to OpenAI
+  return new AgentService({
+    OPENAI_API_KEY: openaiApiKey,
+    ANTHROPIC_API_KEY: anthropicApiKey || "",
+  } as Environment);
+};
+
+export const POST = async (request: NextRequest): Promise<Response> => {
   try {
-    // Dynamic import to avoid pulling in React/tldraw at module load time
-    const { AgentStreamingService } = await import(
-      "../lib/AgentStreamingService"
-    );
+    const prompt: AgentPrompt = await request.json();
+    const agentService = createAgentService();
 
-    let prompt: any;
-
-    try {
-      prompt = await request.json();
-    } catch (error) {
-      return cors(
-        request,
-        new Response(
-          JSON.stringify({
-            error: `Invalid request body: ${
-              error instanceof Error ? error.message : "unknown error"
-            }`,
-          }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          },
-        ),
-      );
-    }
-
-    const readable = new ReadableStream({
+    const stream = new ReadableStream({
       async start(controller) {
         try {
-          const service = new AgentStreamingService();
-          for await (const change of service.stream(prompt)) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify(change)}\n\n`),
-            );
+          for await (const event of agentService.stream(prompt)) {
+            const data = `data: ${JSON.stringify(event)}\n\n`;
+            controller.enqueue(new TextEncoder().encode(data));
           }
           controller.close();
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Unknown error";
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: message })}\n\n`),
-          );
+          console.error("Stream error:", error);
+          let errorMessage = "Unknown error";
+          if (error instanceof Error) {
+            errorMessage = error.message;
+            // Extract more details from AI SDK errors
+            if (
+              "responseBody" in error &&
+              typeof error.responseBody === "string"
+            ) {
+              try {
+                const errorBody = JSON.parse(error.responseBody);
+                if (errorBody.error?.message) {
+                  errorMessage = errorBody.error.message;
+                }
+              } catch {
+                // Ignore JSON parse errors
+              }
+            }
+          }
+          const errorData = `data: ${JSON.stringify({ error: errorMessage })}\n\n`;
+          controller.enqueue(new TextEncoder().encode(errorData));
           controller.close();
         }
       },
@@ -58,23 +65,22 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     return cors(
       request,
-      new Response(readable, {
+      new Response(stream, {
         headers: {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache, no-transform",
           Connection: "keep-alive",
+          "X-Accel-Buffering": "no",
         },
       }),
     );
   } catch (error) {
-    console.error("Failed to handle tldraw-agent request:", error);
+    console.error("Error processing streaming request:", error);
     return cors(
       request,
       new Response(
         JSON.stringify({
-          error: `Server error: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
+          error: `Internal Server Error: ${error instanceof Error ? error.message : "Unknown error"}`,
         }),
         {
           status: 500,
@@ -83,8 +89,8 @@ export async function POST(request: NextRequest): Promise<Response> {
       ),
     );
   }
-}
+};
 
-export function OPTIONS(request: NextRequest): Response {
+export const OPTIONS = async (request: NextRequest): Promise<Response> => {
   return cors(request, new Response(null, { status: 204 }));
-}
+};

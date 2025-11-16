@@ -3,7 +3,7 @@ import { AgentPrompt } from "../../../../../../roam/src/components/canvas/agent/
 import {
   AgentModelName,
   DEFAULT_MODEL_NAME,
-} from "../../../../../../roam/src/components/canvas/agent/worker/models";
+} from "../../../../../../roam/src/components/canvas/agent/models";
 
 /**
  * Get the selected model name from a prompt.

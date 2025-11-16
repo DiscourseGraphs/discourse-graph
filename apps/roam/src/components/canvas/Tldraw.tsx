@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+//* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import React, {
   useState,
   useRef,
@@ -104,6 +103,7 @@ import { AgentPanel } from "./agent/AgentPanel";
 import { TldrawAgent } from "./agent/TldrawAgent";
 import { TargetAreaTool } from "./agent/client/tools/TargetAreaTool";
 import { TargetShapeTool } from "./agent/client/tools/TargetShapeTool";
+import { defaultAddFontsFromNode, tipTapDefaultExtensions } from "tldraw";
 
 declare global {
   interface Window {
@@ -126,7 +126,10 @@ export const discourseContext: DiscourseContextType = {
   lastAppEvent: "",
   lastActions: [],
 };
-
+const defaultTextOptions = {
+  tipTapConfig: { extensions: tipTapDefaultExtensions },
+  addFontsFromNode: defaultAddFontsFromNode,
+};
 const DEFAULT_WIDTH = 160;
 const DEFAULT_HEIGHT = 64;
 export const MAX_WIDTH = "400px";
@@ -144,8 +147,6 @@ const resolveTldrawLicenseKey = (): string | undefined => {
   }
   return undefined;
 };
-
-const textOptions = {};
 
 export const isPageUid = (uid: string) =>
   !!window.roamAlphaAPI.pull("[:node/title]", [":block/uid", uid])?.[
@@ -821,6 +822,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             shapeUtils={allShapeUtils}
             tools={allTools}
             bindingUtils={allBindingUtils}
+            textOptions={defaultTextOptions}
             components={editorComponents}
             store={store}
             onMount={(app) => {

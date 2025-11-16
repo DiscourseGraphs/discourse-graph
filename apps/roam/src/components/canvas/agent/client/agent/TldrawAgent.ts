@@ -35,7 +35,7 @@ import {
 import { PromptPart } from "../../shared/types/PromptPart";
 import { Streaming } from "../../shared/types/Streaming";
 import { TodoItem } from "../../shared/types/TodoItem";
-import { AgentModelName, DEFAULT_MODEL_NAME } from "../../worker/models";
+import { AgentModelName, DEFAULT_MODEL_NAME } from "../../models";
 import { $agentsAtom } from "./agentsAtom";
 
 export interface TldrawAgentOptions {
@@ -322,11 +322,14 @@ export class TldrawAgent {
     // Submit the request to the agent.
     await this.request(request);
 
+    console.log("request", request);
     // After the request is handled, check if there are any outstanding todo items or requests
     let scheduledRequest = this.$scheduledRequest.get();
+    console.log("scheduledRequest", scheduledRequest);
     const todoItemsRemaining = this.$todoList
       .get()
       .filter((item) => item.status !== "done");
+    console.log("todoItemsRemaining", todoItemsRemaining);
 
     if (!scheduledRequest) {
       // If there no outstanding todo items or requests, finish
@@ -334,6 +337,7 @@ export class TldrawAgent {
         return;
       }
 
+      console.log("todoItemsRemaining", todoItemsRemaining);
       // If there are outstanding todo items, schedule a request
       scheduledRequest = {
         messages: request.messages,
@@ -345,9 +349,11 @@ export class TldrawAgent {
         type: "todo",
       };
     }
+    console.log("scheduledRequest", scheduledRequest);
 
     // Add the scheduled request to chat history
     const resolvedData = await Promise.all(scheduledRequest.data);
+    console.log("resolvedData", resolvedData);
     this.$chatHistory.update((prev) => [
       ...prev,
       {
@@ -355,7 +361,7 @@ export class TldrawAgent {
         data: resolvedData,
       },
     ]);
-
+    console.log("chatHistory", this.$chatHistory.get());
     // Handle the scheduled request
     this.$scheduledRequest.set(null);
     await this.prompt(scheduledRequest);
@@ -377,13 +383,14 @@ export class TldrawAgent {
    */
   async request(input: AgentInput) {
     const request = this.getFullRequestFromInput(input);
+    console.log("request", request);
 
     // Interrupt any currently active request
     if (this.$activeRequest.get() !== null) {
       this.cancel();
     }
     this.$activeRequest.set(request);
-
+    console.log("this.$activeRequest", this.$activeRequest.get());
     // Call an external helper function to request the agent
     const { promise, cancel } = requestAgent({ agent: this, request });
 
@@ -393,6 +400,7 @@ export class TldrawAgent {
     });
 
     const results = await promise;
+    console.log("results", results);
     this.$activeRequest.set(null);
     return results;
   }
@@ -754,7 +762,7 @@ function requestAgent({
   request: AgentRequest;
 }) {
   const { editor } = agent;
-
+  console.log("requestAgent", request);
   // If the request is from the user, add it to chat history
   if (request.type === "user") {
     const promptHistoryItem: ChatHistoryItem = {
@@ -765,12 +773,12 @@ function requestAgent({
     };
     agent.$chatHistory.update((prev) => [...prev, promptHistoryItem]);
   }
-
+  console.log("agent.$chatHistory", agent.$chatHistory.get());
   let cancelled = false;
   const controller = new AbortController();
   const signal = controller.signal;
   const helpers = new AgentHelpers(agent);
-
+  console.log("helpers", helpers);
   const requestPromise = (async () => {
     const prompt = await agent.preparePrompt(request, helpers);
     let incompleteDiff: RecordsDiff<TLRecord> | null = null;
@@ -851,6 +859,7 @@ async function* streamAgent({
   prompt: BaseAgentPrompt;
   signal: AbortSignal;
 }): AsyncGenerator<Streaming<AgentAction>> {
+  console.log("streamAgent", prompt);
   const res = await fetch(`${nextApiRoot()}/tldraw-agent/stream`, {
     method: "POST",
     body: JSON.stringify(prompt),
@@ -859,7 +868,7 @@ async function* streamAgent({
     },
     signal,
   });
-
+  console.log("res", res);
   if (!res.body) {
     throw Error("No body in response");
   }
@@ -872,8 +881,9 @@ async function* streamAgent({
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-
+      console.log("value", value);
       buffer += decoder.decode(value, { stream: true });
+      console.log("buffer", buffer);
       const actions = buffer.split("\n\n");
       buffer = actions.pop() || "";
 
@@ -887,8 +897,10 @@ async function* streamAgent({
             if ("error" in data) {
               throw new Error(data.error);
             }
+            console.log("data", data);
 
             const agentAction: Streaming<AgentAction> = data;
+            console.log("agentAction", agentAction);
             yield agentAction;
           } catch (err: any) {
             throw new Error(err.message);

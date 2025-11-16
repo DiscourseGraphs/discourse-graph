@@ -1,6 +1,6 @@
 import { FormEventHandler, RefObject, useState } from "react";
 import { Editor, useValue } from "tldraw";
-import { AGENT_MODEL_DEFINITIONS, AgentModelName } from "../../worker/models";
+import { AGENT_MODEL_DEFINITIONS, AgentModelName } from "../../models";
 import { TldrawAgent } from "../agent/TldrawAgent";
 import { ContextItemTag } from "./ContextItemTag";
 import { AtIcon } from "./icons/AtIcon";
