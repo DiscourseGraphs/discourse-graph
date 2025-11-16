@@ -1,8 +1,8 @@
 import conditionToDatalog from "./conditionToDatalog";
 import type {
   PullBlock,
-  DatalogAndClause,
   DatalogClause,
+  DatalogAndClause,
 } from "roamjs-components/types";
 import compileDatalog from "./compileDatalog";
 import { getNodeEnv } from "roamjs-components/util/env";
@@ -65,9 +65,9 @@ const firstVariable = (
 };
 
 const optimizeQuery = (
-  clauses: (DatalogClause | DatalogAndClause)[],
+  clauses: DatalogClause[],
   capturedVariables: Set<string>,
-): (DatalogClause | DatalogAndClause)[] => {
+): DatalogClause[] => {
   const marked = clauses.map(() => false);
   const orderedClauses: (DatalogClause | DatalogAndClause)[] = [];
   const variablesByIndex: Record<number, Set<string>> = {};
@@ -107,7 +107,8 @@ const optimizeQuery = (
         if (Array.from(allVars).every((v) => capturedVariables.has(v))) {
           score = 10;
         } else {
-          score = 100002;
+          // downgrade disjunction and negation
+          score = c.type === "and-clause" ? 100002 : 100006;
         }
       } else if (c.type === "not-join-clause" || c.type === "or-join-clause") {
         if (c.variables.every((v) => capturedVariables.has(v.value))) {
@@ -125,7 +126,8 @@ const optimizeQuery = (
             (a) => a.type !== "variable" || capturedVariables.has(a.value),
           )
         ) {
-          score = 1000;
+          // equality is almost as good as a binding
+          c.type == "pred-expr" && c.pred == "=" ? (score = 5) : (score = 1000);
         } else {
           score = 100004;
         }
@@ -155,6 +157,16 @@ const optimizeQuery = (
       bestClause.arguments
         .filter((v) => v.type === "variable")
         .forEach((v) => capturedVariables.add(v.value));
+    } else if (bestClause.type === "fn-expr") {
+      // A function expression acts as biding a variable to a unique function value
+      if (
+        bestClause.arguments.filter(
+          (a) => a.type === "variable" && !capturedVariables.has(a.value),
+        ).length === 0 &&
+        bestClause.binding.type === "bind-scalar" &&
+        bestClause.binding.variable.type === "variable"
+      )
+        capturedVariables.add(bestClause.binding.variable.value);
     }
   }
   return orderedClauses;
@@ -197,7 +209,7 @@ export const getDatalogQuery = ({
   const whereClauses = optimizeQuery(
     getWhereClauses({ conditions, returnNode }),
     new Set([]),
-  ) as DatalogClause[];
+  );
 
   const defaultSelections: {
     mapper: PredefinedSelection["mapper"];
