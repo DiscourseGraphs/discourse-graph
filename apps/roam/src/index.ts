@@ -32,6 +32,10 @@ import {
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
+import { getUidAndBooleanSetting } from "./utils/getExportSettings";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "./utils/renderNodeConfigPage";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -126,7 +130,16 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  await initializeSupabaseSync();
+  const isSuggestiveModeEnabled = getUidAndBooleanSetting({
+    tree: getBasicTreeByParentUid(
+      getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
+    ),
+    text: "(BETA) Suggestive Mode Enabled",
+  }).value;
+
+  if (isSuggestiveModeEnabled) {
+    initializeSupabaseSync();
+  }
 
   const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {

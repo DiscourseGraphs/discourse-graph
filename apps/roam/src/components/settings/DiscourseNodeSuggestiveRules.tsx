@@ -12,6 +12,10 @@ import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import getSubTree from "roamjs-components/util/getSubTree";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import extractRef from "roamjs-components/util/extractRef";
+import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
+import { upsertNodesToSupabaseAsContentWithEmbeddings } from "~/utils/syncDgNodesToSupabase";
+import { discourseNodeBlockToLocalConcept } from "~/utils/conceptConversion";
+import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -64,10 +68,34 @@ const DiscourseNodeSuggestiveRules = ({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
       setEmbeddingRef(newValue);
+      node.embeddingRef = newValue;
     },
-    [],
+    [node],
   );
+  const [isUpdating, setIsUpdating] = useState(false);
 
+  const handleUpdateEmbeddings = async (): Promise<void> => {
+    setIsUpdating(true);
+    try {
+      const blockNodesSince = await getAllDiscourseNodesSince(
+        new Date(0).toISOString(),
+        [node],
+      );
+      const supabaseClient = await getLoggedInClient();
+      if (!supabaseClient) return;
+
+      const context = await getSupabaseContext();
+      if (context && blockNodesSince) {
+        await upsertNodesToSupabaseAsContentWithEmbeddings(
+          blockNodesSince,
+          supabaseClient,
+          context,
+        );
+      }
+    } finally {
+      setIsUpdating(false);
+    }
+  };
   return (
     <div className="flex flex-col gap-4 p-4">
       <BlocksPanel
@@ -82,11 +110,10 @@ const DiscourseNodeSuggestiveRules = ({
       <TextPanel
         title="Embedding Block Ref"
         description="Copy block ref from template which you want to be embedded and ranked."
-        order={0}
+        order={1}
         uid={node.embeddingRefUid || ""}
         parentUid={parentUid}
-        value={node.embeddingRef || ""}
-        defaultValue={node.embeddingRef || ""}
+        defaultValue={embeddingRef || ""}
         options={{
           placeholder: "((block-uid))",
           onChange: handleEmbeddingRefChange,
@@ -103,19 +130,18 @@ const DiscourseNodeSuggestiveRules = ({
       <FlagPanel
         title="First Child"
         description="If the block is the first child of the embedding block ref, it will be embedded and ranked."
-        order={1}
+        order={2}
         uid={node.isFirstChild?.uid || ""}
         parentUid={parentUid}
         value={node.isFirstChild?.value || false}
       />
 
-      {/* TODO: Add a button to update embeddings in seperate PR */}
       <Button
         text="Update Embeddings"
         intent={Intent.NONE}
-        onClick={() => console.log("Not implemented")}
+        onClick={() => void handleUpdateEmbeddings()}
+        loading={isUpdating}
         className="w-52"
-        disabled
       />
     </div>
   );
