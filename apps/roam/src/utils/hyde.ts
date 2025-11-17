@@ -31,6 +31,11 @@ export type SuggestedNode = Result & {
   type: string;
 };
 
+export type VectorMatch = {
+  node: SuggestedNode;
+  score: number;
+};
+
 export type RelationDetails = {
   relationLabel: string;
   relatedNodeText: string;
@@ -422,6 +427,16 @@ Use empty arrays when appropriate.`;
   }
 };
 
+export const filterCandidatesByLlm = async ({
+  originalText,
+  candidates,
+}: {
+  originalText: string;
+  candidates: SuggestedNode[];
+}): Promise<SuggestedNode[]> => {
+  return filterAndRerankByLlm({ originalText, candidates });
+};
+
 export const findSimilarNodesUsingHyde = async ({
   candidateNodes,
   currentNodeText,
@@ -739,5 +754,74 @@ export const findSimilarNodes = async ({
   } catch (error) {
     console.error("Error finding similar nodes:", error);
     return { raw: [], filtered: [] };
+  }
+};
+
+// Vector-only search: does NOT call the LLM. Returns top vector matches.
+export const findSimilarNodesVectorOnly = async ({
+  text,
+  nodeType,
+}: {
+  text: string;
+  nodeType: string;
+}): Promise<VectorMatch[]> => {
+  if (!text.trim() || !nodeType) {
+    return [];
+  }
+
+  try {
+    const context = await getSupabaseContext();
+    if (!context) return [];
+    const supabase = await getLoggedInClient();
+    const { spaceId } = context;
+    if (!supabase) return [];
+
+    const candidateNodesForHyde = (
+      await getNodesByType({
+        supabase,
+        spaceId,
+        fields: { content: ["source_local_id", "text"] },
+        ofTypes: [nodeType],
+        pagination: { limit: 10000 },
+      })
+    )
+      .map((c) => {
+        const node = findDiscourseNode(c.Content?.source_local_id || "");
+        return {
+          uid: c.Content?.source_local_id || "",
+          text: c.Content?.text || "",
+          type: node ? node.type : "",
+        };
+      })
+      .filter((n) => n.uid && n.text && n.type);
+
+    if (candidateNodesForHyde.length === 0) {
+      return [];
+    }
+
+    const queryEmbedding = await createEmbedding(text);
+    const searchResults = await searchEmbeddings({
+      queryEmbedding,
+      indexData: candidateNodesForHyde,
+    });
+
+    const nodeMap = new Map<string, CandidateNodeWithEmbedding>(
+      candidateNodesForHyde.map((node) => [node.uid, node]),
+    );
+
+    const combinedResults: VectorMatch[] = [];
+    searchResults.forEach((result) => {
+      const fullNode = nodeMap.get(result.object.uid);
+      if (fullNode) {
+        combinedResults.push({ node: fullNode, score: result.score });
+      }
+    });
+
+    combinedResults.sort((a, b) => b.score - a.score);
+    const topMatches = combinedResults.slice(0, 15);
+    return topMatches;
+  } catch (error) {
+    console.error("Error in vector-only similar nodes search:", error);
+    return [];
   }
 };
