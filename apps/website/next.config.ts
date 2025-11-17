@@ -8,5 +8,8 @@ const nextConfig: NextConfig = {
   serverRuntimeConfig: {
     maxDuration: 300,
   },
+  outputFileTracingExcludes: {
+    "*": ["**/public/"],
+  },
 };
 export default nextConfig;

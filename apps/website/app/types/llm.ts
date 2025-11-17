@@ -7,6 +7,7 @@ export type Settings = {
   model: string;
   maxTokens: number;
   temperature: number;
+  reasoningEffort?: "low" | "medium" | "high";
   safetySettings?: Array<{
     category: string;
     threshold: string;
