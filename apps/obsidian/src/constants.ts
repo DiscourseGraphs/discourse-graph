@@ -68,6 +68,7 @@ export const DEFAULT_SETTINGS: Settings = {
   nodesFolderPath: "",
   canvasFolderPath: "Discourse Canvas",
   canvasAttachmentsFolderPath: "attachments",
+  nodeTagHotkey: "\\",
 };
 export const FRONTMATTER_KEY = "tldr-dg";
 export const TLDATA_DELIMITER_START =
