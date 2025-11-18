@@ -83,6 +83,19 @@ Or click on the canvas icon at the top right corner
 
 ## Canvas Features
 
+### Key figures
+You can choose to show the first image of discourse nodes of certain type. To change the setting on whether this first image show up, you can edit it in the Node Type Setting
+
+![Key figure](/docs/obsidian/key-figure.png)
+
+Then you will see the image show up if any is present in the file.
+
+![Key figure example](/docs/obsidian/key-figure-example.png)
+
+### Open discourse node files
+- To open a discourse node to the side panel, you can press Shift + Click, or click on the sidebar icon when hover on discourse node.
+- To open file to a new tab, you can press Cmd + click on the file
+
 ### Auto-save
 
 - Changes are automatically saved to the markdown file
