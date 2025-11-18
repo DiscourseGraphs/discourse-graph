@@ -51,6 +51,7 @@ import { RelationsOverlay } from "./overlays/RelationOverlay";
 import { showToast } from "./utils/toastUtils";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { CustomContextMenu } from "./CustomContextMenu";
+import { openFileInSidebar, openFileInNewTab } from "./utils/openFileUtils";
 
 type TldrawPreviewProps = {
   store: TLStore;
@@ -235,8 +236,10 @@ export const TldrawPreviewComponent = ({
           isCreatingRelationRef.current = false;
         }
 
-        if (e.shiftKey) {
+        // Handle Shift+Click (open in sidebar) or Cmd+Click (open in new tab)
+        if (e.shiftKey || e.metaKey) {
           const now = Date.now();
+          const openInNewTab = e.metaKey; // Cmd on Mac, Ctrl on other platforms
 
           // Debounce to prevent double opening
           if (now - lastShiftClickRef.current < SHIFT_CLICK_DEBOUNCE_MS) {
@@ -295,21 +298,12 @@ export const TldrawPreviewComponent = ({
                 return;
               }
 
-              const rightSplit = plugin.app.workspace.rightSplit;
-              const rightLeaf = plugin.app.workspace.getRightLeaf(false);
-
-              if (rightLeaf) {
-                if (rightSplit && rightSplit.collapsed) {
-                  rightSplit.expand();
-                }
-                await rightLeaf.openFile(linkedFile);
-                plugin.app.workspace.setActiveLeaf(rightLeaf);
+              // Open in sidebar (Shift+Click) or new tab (Cmd+Click)
+              if (openInNewTab) {
+                await openFileInNewTab(plugin.app, linkedFile);
               } else {
-                const leaf = plugin.app.workspace.getLeaf("split", "vertical");
-                await leaf.openFile(linkedFile);
-                plugin.app.workspace.setActiveLeaf(leaf);
+                await openFileInSidebar(plugin.app, linkedFile);
               }
-
               editor.selectNone();
             })
             .catch((error) => {
