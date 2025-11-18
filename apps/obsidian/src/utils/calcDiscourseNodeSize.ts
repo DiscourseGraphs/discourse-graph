@@ -3,8 +3,9 @@ import { measureNodeText } from "./measureNodeText";
 import { loadImage } from "./loadImage";
 import {
   BASE_PADDING,
-  MAX_IMAGE_HEIGHT,
+  EXTRA_BOTTOM_SPACING,
   IMAGE_GAP,
+  MAX_IMAGE_HEIGHT,
 } from "~/components/canvas/shapes/nodeConstants";
 import { getNodeTypeById } from "./typeUtils";
 import { TLDefaultSizeStyle, TLDefaultFontStyle } from "tldraw";
@@ -41,7 +42,7 @@ export const calcDiscourseNodeSize = async ({
   });
 
   if (!imageSrc || !nodeType?.keyImage) {
-    return { w, h: textHeight };
+    return { w, h: textHeight + EXTRA_BOTTOM_SPACING };
   }
 
   try {
@@ -64,9 +65,10 @@ export const calcDiscourseNodeSize = async ({
       }
     }
 
-    const totalHeight = BASE_PADDING + imageHeight + IMAGE_GAP + textHeight;
-
-    return { w: finalWidth, h: totalHeight };
+    return {
+      w: finalWidth,
+      h: textHeight + imageHeight + IMAGE_GAP + EXTRA_BOTTOM_SPACING,
+    };
   } catch (error) {
     console.warn("calcDiscourseNodeSize: failed to load image", error);
     return { w, h: textHeight };

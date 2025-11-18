@@ -39,7 +39,6 @@ export type DiscourseNodeShape = TLBaseShape<
     title: string;
     nodeTypeId: string;
     imageSrc?: string;
-    // Font style props for text editing panel
     size: TLDefaultSizeStyle;
     fontFamily: TLDefaultFontStyle;
   }
