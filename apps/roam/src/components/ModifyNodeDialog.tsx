@@ -29,7 +29,6 @@ import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 export type ModifyNodeDialogMode = "create" | "edit";
 export type ModifyNodeDialogProps = {
@@ -200,27 +199,6 @@ const ModifyNodeDialog = ({
       refAlive = false;
     };
   }, [selectedNodeType, referencedNode]);
-
-  useEffect(() => {
-    if (mode === "edit" && referencedNode) {
-      setReferencedNodeLoading(true);
-      // TODO: replace this with a regex. this is extremely hacky primitive
-      const parseResult = contentText.trim().split("-");
-      if (parseResult) {
-        // parseResult[1] is content, parseResult[2] is refnode
-        if (parseResult[1]) {
-          setContentText(parseResult[1].trim());
-        }
-        if (parseResult[2]) {
-          const refText = parseResult[2].trim().replace(/[[\]]/g, "");
-          setReferencedNodeText(refText);
-          const result = getPageUidByPageTitle(refText);
-          setReferencedNodeUid(result);
-        }
-      }
-    }
-    setReferencedNodeLoading(false);
-  }, [mode, referencedNode, nodeFormat, contentText]);
 
   const setValue = useCallback((r: Result) => {
     setContentText(r.text);
@@ -449,7 +427,7 @@ const ModifyNodeDialog = ({
           </div>
 
           {/* Referenced Node Input */}
-          {referencedNode && !isContentLocked && (
+          {referencedNode && !isContentLocked && mode === "create" && (
             <div className="w-full">
               <Label>{referencedNode.name}</Label>
               <FuzzySelectInput
