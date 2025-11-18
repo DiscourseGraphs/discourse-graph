@@ -40,6 +40,7 @@ const FuzzySelectInput = <T extends Result = Result>({
   const [query, setQuery] = useState<string>(() => value?.text || "");
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
 
   const menuRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -115,13 +116,14 @@ const FuzzySelectInput = <T extends Result = Result>({
   }, [query, mode, isLocked, setValue]);
 
   // Open/close dropdown based on filtered items
+  // Only show dropdown if input is focused
   useEffect(() => {
-    if (filteredItems.length > 0 && query) {
+    if (isFocused && filteredItems.length > 0 && query) {
       setIsOpen(true);
     } else {
       setIsOpen(false);
     }
-  }, [filteredItems.length, query]);
+  }, [filteredItems.length, query, isFocused]);
 
   // Reset active index when filtered items change
   useEffect(() => {
@@ -223,13 +225,12 @@ const FuzzySelectInput = <T extends Result = Result>({
           autoFocus={autoFocus}
           placeholder={placeholder}
           inputRef={inputRef}
-          onBlur={() => {
-            setTimeout(() => setIsOpen(false), 200);
-          }}
           onFocus={() => {
-            if (filteredItems.length > 0 && query) {
-              setIsOpen(true);
-            }
+            setIsFocused(true);
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+            setTimeout(() => setIsOpen(false), 200);
           }}
         />
       }
