@@ -78,7 +78,6 @@ export const SettingsDialog = ({
     selectedTabId ?? "discourse-graph-home-personal",
   );
 
-
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === "A") {

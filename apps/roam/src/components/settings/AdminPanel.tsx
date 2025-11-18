@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { HTMLTable, Button, MenuItem, Spinner, Label } from "@blueprintjs/core";
+import {
+  Button,
+  Checkbox,
+  HTMLTable,
+  Label,
+  MenuItem,
+  Spinner,
+  Tab,
+  TabId,
+  Tabs,
+} from "@blueprintjs/core";
+import Description from "roamjs-components/components/Description";
 import { Select } from "@blueprintjs/select";
+import { getSetting, setSetting } from "~/utils/extensionSettings";
 import {
   getSupabaseContext,
   getLoggedInClient,
@@ -91,7 +103,7 @@ const NodeTable = ({ nodes }: { nodes: PConceptFull[] }) => {
   );
 };
 
-const AdminPanel = () => {
+const AdminPanel = (): React.ReactElement => {
   const [context, setContext] = useState<SupabaseContext | null>(null);
   const [supabase, setSupabase] = useState<DGSupabaseClient | null>(null);
   const [schemas, setSchemas] = useState<NodeSignature[]>([]);
@@ -101,6 +113,10 @@ const AdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [loadingNodes, setLoadingNodes] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
+  const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
+    getSetting("use-reified-relations"),
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -196,41 +212,83 @@ const AdminPanel = () => {
   }
 
   return (
-    <>
-      <p>
-        Context:{" "}
-        <code>{JSON.stringify({ ...context, spacePassword: "****" })}</code>
-      </p>
-      {schemas.length > 0 ? (
-        <>
-          <Label>
-            Display:
-            <div className="mx-2 inline-block">
-              <Select
-                items={schemas}
-                onItemSelect={(choice) => {
-                  setShowingSchema(choice);
-                }}
-                itemRenderer={(node, { handleClick, modifiers }) => (
-                  <MenuItem
-                    active={modifiers.active}
-                    key={node.sourceLocalId}
-                    label={node.name}
-                    onClick={handleClick}
-                    text={node.name}
+    <Tabs
+      onChange={(id) => setSelectedTabId(id)}
+      selectedTabId={selectedTabId}
+      renderActiveTabPanelOnly={true}
+    >
+      <Tab
+        id="admin"
+        title="Admin"
+        panel={
+          <div className="flex flex-col gap-4 p-1">
+            <Checkbox
+              defaultChecked={useReifiedRelations}
+              onChange={(e) => {
+                const target = e.target as HTMLInputElement;
+                setUseReifiedRelations(target.checked);
+                setSetting("use-reified-relations", target.checked);
+              }}
+              labelElement={
+                <>
+                  Reified Relation Triples
+                  <Description
+                    description={
+                      "When ON, relations are read/written as reifiedRelationUid in [[roam/js/discourse-graph/relations]]."
+                    }
                   />
-                )}
-              >
-                <Button text={showingSchema.name} />
-              </Select>
-            </div>
-          </Label>
-          <div>{loadingNodes ? <Spinner /> : <NodeTable nodes={nodes} />}</div>
-        </>
-      ) : (
-        <p>No node schemas found</p>
-      )}
-    </>
+                </>
+              }
+            />
+          </div>
+        }
+      />
+      <Tab
+        id="node-list"
+        title="Node list"
+        panel={
+          <>
+            <p>
+              Context:{" "}
+              <code>
+                {JSON.stringify({ ...context, spacePassword: "****" })}
+              </code>
+            </p>
+            {schemas.length > 0 ? (
+              <>
+                <Label>
+                  Display:
+                  <div className="mx-2 inline-block">
+                    <Select
+                      items={schemas}
+                      onItemSelect={(choice) => {
+                        setShowingSchema(choice);
+                      }}
+                      itemRenderer={(node, { handleClick, modifiers }) => (
+                        <MenuItem
+                          active={modifiers.active}
+                          key={node.sourceLocalId}
+                          label={node.name}
+                          onClick={handleClick}
+                          text={node.name}
+                        />
+                      )}
+                    >
+                      <Button text={showingSchema.name} />
+                    </Select>
+                  </div>
+                </Label>
+                <div>
+                  {loadingNodes ? <Spinner /> : <NodeTable nodes={nodes} />}
+                </div>
+              </>
+            ) : (
+              <p>No node schemas found</p>
+            )}
+          </>
+        }
+      />
+    </Tabs>
   );
 };
 
