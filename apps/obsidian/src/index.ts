@@ -212,7 +212,6 @@ export default class DiscourseGraphPlugin extends Plugin {
           const popover = new NodeTagSuggestPopover(
             activeView.editor,
             this.settings.nodeTypes,
-            this.app,
           );
           popover.open();
         }

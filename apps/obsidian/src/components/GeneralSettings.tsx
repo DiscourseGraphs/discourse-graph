@@ -195,7 +195,7 @@ const GeneralSettings = () => {
     plugin.settings.nodesFolderPath = nodesFolderPath;
     plugin.settings.canvasFolderPath = canvasFolderPath;
     plugin.settings.canvasAttachmentsFolderPath = canvasAttachmentsFolderPath;
-    plugin.settings.nodeTagHotkey = nodeTagHotkey || "\\";
+    plugin.settings.nodeTagHotkey = nodeTagHotkey || "";
     await plugin.saveSettings();
     new Notice("General settings saved");
     setHasUnsavedChanges(false);

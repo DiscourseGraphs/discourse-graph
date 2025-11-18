@@ -1,4 +1,4 @@
-import { App, Editor } from "obsidian";
+import { Editor } from "obsidian";
 import { DiscourseNode } from "~/types";
 
 type NodeTagItem = {
@@ -16,7 +16,6 @@ export class NodeTagSuggestPopover {
   constructor(
     private editor: Editor,
     private nodeTypes: DiscourseNode[],
-    private app: App,
   ) {
     this.initializeItems();
   }
@@ -171,7 +170,7 @@ export class NodeTagSuggestPopover {
       itemEl.appendChild(textContainer);
 
       itemEl.addEventListener("mousedown", (e) => {
-        e.preventDefault(); 
+        e.preventDefault();
         e.stopPropagation();
         this.selectItem(item);
       });
