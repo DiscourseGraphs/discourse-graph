@@ -154,6 +154,9 @@ const GeneralSettings = () => {
   );
   const [canvasAttachmentsFolderPath, setCanvasAttachmentsFolderPath] =
     useState<string>(plugin.settings.canvasAttachmentsFolderPath);
+  const [nodeTagHotkey, setNodeTagHotkey] = useState<string>(
+    plugin.settings.nodeTagHotkey,
+  );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const handleToggleChange = (newValue: boolean) => {
@@ -179,11 +182,20 @@ const GeneralSettings = () => {
     [],
   );
 
+  const handleNodeTagHotkeyChange = useCallback((newValue: string) => {
+    // Only allow single character
+    if (newValue.length <= 1) {
+      setNodeTagHotkey(newValue);
+      setHasUnsavedChanges(true);
+    }
+  }, []);
+
   const handleSave = async () => {
     plugin.settings.showIdsInFrontmatter = showIdsInFrontmatter;
     plugin.settings.nodesFolderPath = nodesFolderPath;
     plugin.settings.canvasFolderPath = canvasFolderPath;
     plugin.settings.canvasAttachmentsFolderPath = canvasAttachmentsFolderPath;
+    plugin.settings.nodeTagHotkey = nodeTagHotkey || "\\";
     await plugin.saveSettings();
     new Notice("General settings saved");
     setHasUnsavedChanges(false);
@@ -258,6 +270,36 @@ const GeneralSettings = () => {
             value={canvasAttachmentsFolderPath}
             onChange={handleCanvasAttachmentsFolderPathChange}
             placeholder="Example: attachments"
+          />
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">Node tag hotkey</div>
+          <div className="setting-item-description">
+            Key to press after a space to open the node tags menu. Default:
+            &quot;\&quot;.
+          </div>
+        </div>
+        <div className="setting-item-control">
+          <input
+            type="text"
+            value={nodeTagHotkey}
+            onChange={(e) => handleNodeTagHotkeyChange(e.target.value)}
+            onKeyDown={(e) => {
+              // Capture the key pressed
+              if (e.key.length === 1) {
+                e.preventDefault();
+                handleNodeTagHotkeyChange(e.key);
+              } else if (e.key === "Backspace") {
+                handleNodeTagHotkeyChange("");
+              }
+            }}
+            placeholder="\\"
+            maxLength={1}
+            className="setting-item-control"
+            style={{ width: "60px" }}
           />
         </div>
       </div>

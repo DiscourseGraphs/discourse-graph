@@ -33,6 +33,7 @@ export type Settings = {
   nodesFolderPath: string;
   canvasFolderPath: string;
   canvasAttachmentsFolderPath: string;
+  nodeTagHotkey: string;
 };
 
 export type BulkImportCandidate = {
