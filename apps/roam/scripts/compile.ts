@@ -18,18 +18,7 @@ const getVersion = (): string => {
 const getBuildDate = (): string => {
   return new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
 };
-let envContents = null;
-
-try {
-  const dbDotEnv = require("@repo/database/dbDotEnv");
-  envContents = dbDotEnv.envContents;
-} catch (error) {
-  if ((error as Error).message.includes("Cannot find module")) {
-    console.error("Build the database module before compiling roam");
-    process.exit(1);
-  }
-  throw error;
-}
+const { envContents } = require("@repo/database/dbDotEnv");
 
 // https://github.com/evanw/esbuild/issues/337#issuecomment-954633403
 const importAsGlobals = (
