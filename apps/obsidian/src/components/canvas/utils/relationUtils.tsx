@@ -67,6 +67,7 @@ import {
   TLDefaultSizeStyle,
   PI2,
   TLArcInfo,
+  TLDefaultColorThemeColor,
 } from "tldraw";
 import type {
   RelationBindings,
@@ -77,6 +78,7 @@ import {
   DiscourseRelationShape,
   DiscourseRelationUtil,
 } from "~/components/canvas/shapes/DiscourseRelationShape";
+import { DEFAULT_TLDRAW_COLOR } from "~/utils/tldrawColors";
 
 let defaultPixels: { white: string; black: string } | null = null;
 let globalRenderIndex = 0;
@@ -1872,10 +1874,17 @@ export const ArrowSvg = track(function ArrowSvg({
   // color: string;
 }) {
   const editor = useEditor();
-  // const theme = useDefaultColorTheme();
+  const theme = useDefaultColorTheme();
   const info = getArrowInfo(editor, shape);
   const bounds = Box.ZeroFix(editor.getShapeGeometry(shape).bounds);
   const bindings = getArrowBindings(editor, shape);
+
+  // Ensure color is a valid tldraw color name, fallback to black if not
+  const colorName =
+    shape.props.color && theme[shape.props.color as keyof typeof theme]
+      ? (shape.props.color as keyof typeof theme)
+      : DEFAULT_TLDRAW_COLOR;
+  const colorHex = (theme[colorName] as TLDefaultColorThemeColor).solid;
 
   const changeIndex = React.useMemo<number>(() => {
     return editor.environment.isSafari ? (globalRenderIndex += 1) : 0;
@@ -2006,7 +2015,7 @@ export const ArrowSvg = track(function ArrowSvg({
       </defs>
       <g
         fill="none"
-        stroke={shape.props.color}
+        stroke={colorHex}
         strokeWidth={strokeWidth}
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -2030,18 +2039,18 @@ export const ArrowSvg = track(function ArrowSvg({
         </g>
         {as && maskStartArrowhead && shape.props.fill !== "none" && (
           <ShapeFill
-            // theme={theme}
+            theme={theme}
             d={as}
-            color={shape.props.color}
+            color={colorHex}
             fill={shape.props.fill}
             scale={shape.props.scale}
           />
         )}
         {ae && maskEndArrowhead && shape.props.fill !== "none" && (
           <ShapeFill
-            // theme={theme}
+            theme={theme}
             d={ae}
-            color={shape.props.color}
+            color={colorHex}
             fill={shape.props.fill}
             scale={shape.props.scale}
           />
