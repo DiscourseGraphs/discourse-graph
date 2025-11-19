@@ -1,0 +1,196 @@
+@startuml
+
+skinparam package<<Layout>> {
+  borderColor Transparent
+  backgroundColor Transparent
+  fontColor Transparent
+  stereotypeFontColor Transparent
+}
+
+package "Roam" {
+
+    map "Claim definition" as nt1pgid << page >> {
+        id=>nt1pgid
+        title=>discourse-graphs/nodes/Claim
+    }
+
+
+    map "Some claim instance" as clm1pgid << page >> {
+        id=>clm1pgid
+        title=>[CLM] Some claim
+    }
+
+    map "Some page" as somepgid << page >> {
+        id=>somepgid
+        title=>Some page
+    }
+
+    nt1pgid <-[hidden] clm1pgid
+    clm1pgid <-[hidden] somepgid
+
+    map "claim ref" as clm1refbkid  << block >> {
+|       id => clm1refbkid
+        title=> a block referring to [[HYP] Some hypothesis]
+    }
+    somepgid o-[#darkorange] clm1refbkid
+
+}
+package "Supabase" {
+    together {
+
+        class Document {
+            {field} id : integer
+            {field} source_local_id : string
+            {field} created : datetime
+            {field} metadata : JSON
+            {field} last_modified : datetime
+            {field} url : string
+            {field} contents : blob
+        }
+        class Content {
+            {field} id : integer
+            {field} source_local_id : string
+            {field} created : datetime
+            {field} text : string
+            {field} metadata : JSON
+            {field} scale : Scale
+            {field} last_modified : datetime
+        }
+        class Concept {
+            {field} id : integer
+            {field} epistemic_status : EpistemicStatus
+            {field} name : string
+            {field} description : string
+            {field} created : datetime
+            {field} last_modified : datetime
+            {field} arity : integer
+            {field} reference_content : JSON
+            {field} literal_content : JSON
+            {field} is_schema : boolean
+        }
+        Document "1" o-- Content  : document
+        Content "0..1" <-[#green]-  Concept : represented_by
+
+        Content ..[#orange]> Content : references
+        Content --[#blue]> Concept : occurences
+        Concept -[#purple]> Concept : schema
+        ' Content -> Concept : interpretation'
+    }
+    together {
+
+        map "Claim Definition page" as d1 {
+            id=>1
+            source_local_id=>nt1pgid
+        }
+
+        Document <|.[hidden] d1
+
+        map "Some claim instance page" as d23 {
+            id=>23
+            source_local_id=>clm1pgid
+        }
+
+        /' Document <|. d23 '/
+
+        map "Some page" as d4 {
+            id=>4
+            source_local_id=>somepgid
+        }
+
+        /' Document <|. d4 '/
+
+    }
+
+    together {
+
+        map "Claim definition block" as c5 {
+            id=> 5
+            source_local_id=> nt1pgid
+            page_id=> 1
+            scale=> document
+            represents_id=> 16
+            text=> discourse-graphs/nodes/Claim
+        }
+        Content <|.[hidden] c5
+        d1 *-- c5
+
+        map "Some claim instance block" as c25 {
+            id=> 25
+            source_local_id=> clm1pgid
+            page_id=> 4
+            scale=> document
+            represents_id=> 19
+            text=> [CLM] Some claim
+        }
+        /' Content <|. c25 '/
+        d23 *-- c25
+
+        map "Some page block" as c8 {
+            id=> 8
+            source_local_id=> somepgid
+            page_id=> 4
+            scale=> document
+            text=> Some page
+        }
+        /' Content <|. c8 '/
+        d4 *-- c8
+
+    }
+
+    together {
+        map "Claim reference block" as c11 {
+            id=> 11
+            source_local_id=> clm1refbkid
+            page_id=> 4
+            scale=> block
+            title=> "a block referring to [[CLM] Some claim]"
+        }
+
+        /' Content <|. c11 '/
+
+        map "Claim reference anchor" as c26 #lightblue {
+            id=> 26
+            page_id=> 4
+            part_of=>11
+            scale=> quote
+            title=> "[[CLM] Some claim]"
+        }
+        /' Content <|. c26 '/
+        c11 o-[#darkorange]-- c26
+    }
+    c8 o-[#darkorange]- c11
+
+    together {
+        map "Claim definition concept" as c16 {
+            id=>16
+            is_schema=> true
+            name=> Claim
+            content=> {}
+        }
+        Concept <|.[hidden] c16
+        c5 --> c16: "represents"
+
+        map "Claim instance concept" as c19 {
+            id=>19
+            is_schema=> false
+            name=> [CLM] some claim
+            content=> {}
+        }
+        /' Concept <|. c19 '/
+        c25 --> c19: "represents"
+
+    }
+
+    c11 .[hidden].> c25
+    c11 .[hidden].> c19
+
+    c26 .[#orange].> c25
+    c26 -[#blue]-> c19
+}
+
+nt1pgid <.. d1
+clm1pgid <.. d23
+somepgid <.. d4
+clm1refbkid <.. c11
+
+@enduml
