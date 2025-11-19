@@ -1,0 +1,80 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix vs: <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
+@prefix sioc: <http://rdfs.org/sioc/ns#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dg: <https://discoursegraphs.com/schema/v0#> .
+
+<https://discoursegraphs.com/schema/v0#>
+    dc:date "2025-11-01" ;
+    dc:description "Discourse Graphs preliminary vocabulary"@en ;
+    dc:title "Discourse Graphs preliminary vocabulary"@en ;
+    owl:versionInfo "0 (tentative)" ;
+    a owl:Ontology.
+
+dg:Node a owl:Class ;
+    dc:description "Discourse Graphs nodes"@en .
+
+dg:NodeSchema
+    rdfs:subClassOf owl:Class , dg:Node ;
+    dc:description "class of Discourse Graphs node schemata"@en .
+
+dg:Role
+    rdfs:subClassOf owl:ObjectProperty,
+        [a owl:Restriction; owl:onProperty rdfs:range ; owl:allValuesFrom dg:RoleSchema ],
+        [a owl:Restriction; owl:onProperty rdfs:domain ; owl:allValuesFrom dg:NodeSchema ];
+    dc:description "A role within a NodeSchema"@en .
+
+dg:BinaryRelationSchema
+    rdfs:subClassOf dg:NodeSchema, owl:ObjectProperty ;
+    dc:description "Discourse Graphs binary relation schema"@en .
+
+dg:BinaryRelation
+    a rdf:Statement, dg:Node .
+
+dg:source
+    a dg:Role ;
+    rdfs:subPropertyOf rdf:subject ;
+    rdfs:domain dg:BinaryRelationSchema ;
+    rdfs:range dg:Node ;
+    dc:description "The source of a binary relation"@en .
+
+dg:destination
+    a dg:Role ;
+    rdfs:subPropertyOf rdf:object ;
+    rdfs:domain dg:BinaryRelationSchema ;
+    rdfs:range dg:Node ;
+    dc:description "The destination of a binary relation"@en .
+
+dg:reltype
+    rdfs:subPropertyOf rdf:predicate ;
+    rdfs:domain dg:BinaryRelation ;
+    rdf:range dg:BinaryRelationSchema .
+
+
+# examples
+
+# :x a dg:NodeSchema .
+# :y a dg:NodeSchema .
+# :x0 a :x.
+# :y0 a :y.
+# :r a dg:NodeSchema.
+# :x_r a dg:Role ;
+#     rdfs:domain :r ;
+#     rdfs:range :x .
+
+# :r0 a :r;
+#  :x_r :x0.
+
+# :br a dg:BinaryRelationSchema.
+
+# :br0
+#  a dg:BinaryRelation;
+#  dg:reltype :br .
+#  dg:source :x0 ;
+#  dg:destination :y0 ;
+
+# # This is "about" :x0 :br :y0;
