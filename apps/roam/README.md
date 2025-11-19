@@ -14,6 +14,23 @@ For more information about Discourse Graphs, check out our website at [https://d
 
 - [Discourse Graphs](https://discoursegraphs.com/docs/roam) documentation
 - [Query Builder](https://github.com/DiscourseGraphs/discourse-graph/blob/main/apps/roam/docs/query-builder.md) documentation
+- [Query Builder Testing](https://github.com/DiscourseGraphs/discourse-graph/blob/main/apps/roam/docs/TESTING.md) - Test harness for query builder development
+
+## Testing the Query Builder
+
+The Query Builder includes an in-Roam testing harness that lets you test queries against real data without mocking. This is particularly useful for testing changes to the query builder, benchmarking performance, and ensuring backward compatibility.
+
+### Quick Start
+
+1. Create test pages with titles starting with `discourse-graph/tests/queries/`
+2. Add test structure following the examples in [sample-test-pages.md](docs/sample-test-pages.md)
+3. Run tests via Command Palette (Cmd/Ctrl + P):
+   - `Query Builder: Run All Tests` - Run all query tests
+   - `Query Builder: Run Test on Current Page` - Run test on current page
+   - `Query Builder: Benchmark Tests` - Performance benchmarks
+   - `Query Builder: List All Tests` - List all test pages
+
+For detailed documentation, see [docs/TESTING.md](docs/TESTING.md).
 
 ## Nomenclature
 

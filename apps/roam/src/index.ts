@@ -36,6 +36,10 @@ import { getUidAndBooleanSetting } from "./utils/getExportSettings";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "./utils/renderNodeConfigPage";
+import { OnloadArgs } from "roamjs-components/types";
+
+// eslint-disable-line @typescript-eslint/no-explicit-any
+let testQueryBuilder: any = undefined;
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -107,6 +111,18 @@ export default runExtension(async (onloadArgs) => {
 
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
+  if (process.env.NODE_ENV !== "production")
+    try {
+      // only load testing harness in development
+      const registerQueryBuilderTestCommands = (await import(
+        "./utils/registerQueryBuilderTestCommands.js"
+      )) as unknown as { default: (ola: OnloadArgs) => Promise<void> };
+      testQueryBuilder = (await import("./utils/testQueryBuilder.js")).default;
+
+      await registerQueryBuilderTestCommands.default(onloadArgs);
+    } catch (error) {
+      console.error(error);
+    }
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
   setQueryPages(onloadArgs);
@@ -155,6 +171,8 @@ export default runExtension(async (onloadArgs) => {
     isDiscourseNode: isDiscourseNode,
     // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
+    // Test harness API
+    test: testQueryBuilder,
   };
 
   installDiscourseFloatingMenu(onloadArgs);
