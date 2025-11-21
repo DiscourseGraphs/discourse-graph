@@ -22,6 +22,7 @@ import nanoId from "nanoid";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import ResultsView from "./results-view/ResultsView";
 import posthog from "posthog-js";
+import { CreateRelationButton } from "./CreateRelationDialog";
 
 export type DiscourseContextResults = Awaited<
   ReturnType<typeof getDiscourseContextResults>
@@ -209,7 +210,7 @@ const ExtraColumnRow = (r: Result) => {
               ?.firstElementChild as HTMLDataElement
           }
         >
-          <ContextContent uid={r["anchor-uid"] as string} results={[]} />
+          <ContextContent uid={r["anchor-uid"]} results={[]} />
         </Portal>
       )}
     </span>
@@ -230,6 +231,7 @@ const ContextTab = ({
   onRefresh: () => void;
 }) => {
   const [subTabId, setSubTabId] = useState(0);
+
   const subTabs = useMemo(
     () =>
       groupByTarget
@@ -276,6 +278,7 @@ const ContextTab = ({
         <h4 className="m-0 mb-2 flex items-center justify-between">
           <span>{r.label}</span>
           <span style={{ display: "flex", alignItems: "center" }}>
+            <CreateRelationButton uid={parentUid} onClose={() => {}} />
             <Switch
               label="Group By Target"
               checked={groupByTarget}
@@ -409,7 +412,10 @@ export const ContextContent = ({ uid, results }: Props) => {
       />
     </Tabs>
   ) : (
-    <div className="text-center">No discourse relations found.</div>
+    <div className="text-center">
+      No discourse relations found.
+      <CreateRelationButton uid={uid} onClose={() => {}} />
+    </div>
   );
 };
 
