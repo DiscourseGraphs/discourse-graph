@@ -2,7 +2,13 @@ import discourseConfigRef from "~/utils/discourseConfigRef";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
-import { Button, Dialog, Collapse, InputGroup, Icon } from "@blueprintjs/core";
+import {
+  Button,
+  ButtonGroup,
+  Collapse,
+  Dialog,
+  InputGroup,
+} from "@blueprintjs/core";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
@@ -26,11 +32,19 @@ const SectionItem = memo(
     setSettingsDialogSectionUid,
     pageNames,
     setSections,
+    index,
+    isFirst,
+    isLast,
+    onMoveSection,
   }: {
     section: LeftSidebarPersonalSectionConfig;
     setSections: Dispatch<SetStateAction<LeftSidebarPersonalSectionConfig[]>>;
     setSettingsDialogSectionUid: (uid: string | null) => void;
     pageNames: string[];
+    index: number;
+    isFirst: boolean;
+    isLast: boolean;
+    onMoveSection: (index: number, direction: "up" | "down") => void;
   }) => {
     const ref = extractRef(section.text);
     const blockText = getTextByBlockUid(ref);
@@ -203,6 +217,51 @@ const SectionItem = memo(
       [setSections],
     );
 
+    const moveChild = useCallback(
+      (
+        section: LeftSidebarPersonalSectionConfig,
+        index: number,
+        direction: "up" | "down",
+      ) => {
+        if (!section.children) return;
+        if (direction === "up" && index === 0) return;
+        if (direction === "down" && index === section.children.length - 1)
+          return;
+
+        const newChildren = [...section.children];
+        const [removed] = newChildren.splice(index, 1);
+        const newIndex = direction === "up" ? index - 1 : index + 1;
+        newChildren.splice(newIndex, 0, removed);
+
+        setSections((prev) =>
+          prev.map((s) => {
+            if (s.uid === section.uid) {
+              return {
+                ...s,
+                children: newChildren,
+              };
+            }
+            return s;
+          }),
+        );
+
+        if (section.childrenUid) {
+          const order = direction === "down" ? newIndex + 1 : newIndex;
+
+          void window.roamAlphaAPI
+            /* eslint-disable @typescript-eslint/naming-convention */
+            .moveBlock({
+              location: { "parent-uid": section.childrenUid, order },
+              block: { uid: removed.uid },
+            })
+            .then(() => {
+              refreshAndNotify();
+            });
+        }
+      },
+      [setSections],
+    );
+
     const handleAddChild = useCallback(async () => {
       if (childInput && section.childrenUid) {
         await addChildToSection(section, section.childrenUid, childInput);
@@ -245,27 +304,41 @@ const SectionItem = memo(
           >
             <span className="font-medium">{originalName}</span>
           </div>
-          <Button
-            icon={sectionWithoutSettingsAndChildren ? "plus" : "settings"}
-            minimal
-            title={
-              sectionWithoutSettingsAndChildren
-                ? "Add children"
-                : "Edit section settings"
-            }
-            onClick={() =>
-              sectionWithoutSettingsAndChildren
-                ? void convertToComplexSection(section)
-                : void setSettingsDialogSectionUid(section.uid)
-            }
-          />
-          <Button
-            icon="trash"
-            minimal
-            intent="danger"
-            onClick={() => void removeSection(section)}
-            title="Remove section"
-          />
+          <ButtonGroup minimal>
+            <Button
+              icon="arrow-up"
+              small
+              disabled={isFirst}
+              onClick={() => onMoveSection(index, "up")}
+              title="Move section up"
+            />
+            <Button
+              icon="arrow-down"
+              small
+              disabled={isLast}
+              onClick={() => onMoveSection(index, "down")}
+              title="Move section down"
+            />
+            <Button
+              icon={sectionWithoutSettingsAndChildren ? "plus" : "settings"}
+              title={
+                sectionWithoutSettingsAndChildren
+                  ? "Add children"
+                  : "Edit section settings"
+              }
+              onClick={() =>
+                sectionWithoutSettingsAndChildren
+                  ? void convertToComplexSection(section)
+                  : void setSettingsDialogSectionUid(section.uid)
+              }
+            />
+            <Button
+              icon="trash"
+              intent="danger"
+              onClick={() => void removeSection(section)}
+              title="Remove section"
+            />
+          </ButtonGroup>
         </div>
 
         {!sectionWithoutSettingsAndChildren && (
@@ -301,20 +374,39 @@ const SectionItem = memo(
 
               {(section.children || []).length > 0 && (
                 <div className="space-y-1">
-                  {(section.children || []).map((child) => (
+                  {(section.children || []).map((child, index) => (
                     <div
                       key={child.uid}
                       className="flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100"
                     >
-                      <span className="flex-grow">{child.text}</span>
-                      <Button
-                        icon="trash"
-                        minimal
-                        small
-                        intent="danger"
-                        onClick={() => void removeChild(section, child)}
-                        title="Remove child"
-                      />
+                      <div className="mr-2 min-w-0 flex-1 truncate">
+                        {child.text}
+                      </div>
+                      <ButtonGroup minimal className="flex-shrink-0">
+                        <Button
+                          icon="arrow-up"
+                          small
+                          disabled={index === 0}
+                          onClick={() => moveChild(section, index, "up")}
+                          title="Move child up"
+                        />
+                        <Button
+                          icon="arrow-down"
+                          small
+                          disabled={
+                            index === (section.children || []).length - 1
+                          }
+                          onClick={() => moveChild(section, index, "down")}
+                          title="Move child down"
+                        />
+                        <Button
+                          icon="trash"
+                          small
+                          intent="danger"
+                          onClick={() => void removeChild(section, child)}
+                          title="Remove child"
+                        />
+                      </ButtonGroup>
                     </div>
                   ))}
                 </div>
@@ -424,6 +516,35 @@ const LeftSidebarPersonalSectionsContent = ({
     setNewSectionInput(value);
   }, []);
 
+  const moveSection = useCallback(
+    (index: number, direction: "up" | "down") => {
+      if (direction === "up" && index === 0) return;
+      if (direction === "down" && index === sections.length - 1) return;
+
+      const newSections = [...sections];
+      const [removed] = newSections.splice(index, 1);
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      newSections.splice(newIndex, 0, removed);
+
+      setSections(newSections);
+
+      if (personalSectionUid) {
+        const order = direction === "down" ? newIndex + 1 : newIndex;
+
+        void window.roamAlphaAPI
+          /* eslint-disable @typescript-eslint/naming-convention */
+          .moveBlock({
+            location: { "parent-uid": personalSectionUid, order },
+            block: { uid: removed.uid },
+          })
+          .then(() => {
+            refreshAndNotify();
+          });
+      }
+    },
+    [sections, personalSectionUid],
+  );
+
   const activeDialogSection = useMemo(() => {
     return sections.find((s) => s.uid === settingsDialogSectionUid) || null;
   }, [sections, settingsDialogSectionUid]);
@@ -470,13 +591,17 @@ const LeftSidebarPersonalSectionsContent = ({
       </div>
 
       <div className="mt-2 space-y-2">
-        {sections.map((section) => (
+        {sections.map((section, index) => (
           <div key={section.uid}>
             <SectionItem
               section={section}
               setSettingsDialogSectionUid={setSettingsDialogSectionUid}
               pageNames={pageNames}
               setSections={setSections}
+              index={index}
+              isFirst={index === 0}
+              isLast={index === sections.length - 1}
+              onMoveSection={moveSection}
             />
           </div>
         ))}

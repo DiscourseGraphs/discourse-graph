@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
-import { Button, Collapse } from "@blueprintjs/core";
+import { Button, ButtonGroup, Collapse } from "@blueprintjs/core";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
@@ -19,22 +19,45 @@ import { refreshAndNotify } from "~/components/LeftSidebarView";
 const PageItem = memo(
   ({
     page,
+    index,
+    isFirst,
+    isLast,
+    onMove,
     onRemove,
   }: {
     page: RoamBasicNode;
+    index: number;
+    isFirst: boolean;
+    isLast: boolean;
+    onMove: (index: number, direction: "up" | "down") => void;
     onRemove: (page: RoamBasicNode) => void;
   }) => {
     return (
       <div className="flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100">
-        <span className="flex-grow truncate">{page.text}</span>
-        <Button
-          icon="trash"
-          minimal
-          small
-          intent="danger"
-          onClick={() => onRemove(page)}
-          title="Remove page"
-        />
+        <div className="mr-2 flex-grow truncate">{page.text}</div>
+        <ButtonGroup minimal>
+          <Button
+            icon="arrow-up"
+            small
+            disabled={isFirst}
+            onClick={() => onMove(index, "up")}
+            title="Move up"
+          />
+          <Button
+            icon="arrow-down"
+            small
+            disabled={isLast}
+            onClick={() => onMove(index, "down")}
+            title="Move down"
+          />
+          <Button
+            icon="trash"
+            small
+            intent="danger"
+            onClick={() => onRemove(page)}
+            title="Remove page"
+          />
+        </ButtonGroup>
       </div>
     );
   },
@@ -115,6 +138,35 @@ const LeftSidebarGlobalSectionsContent = ({
 
     void initialize();
   }, [leftSidebar]);
+
+  const movePage = useCallback(
+    (index: number, direction: "up" | "down") => {
+      if (direction === "up" && index === 0) return;
+      if (direction === "down" && index === pages.length - 1) return;
+
+      const newPages = [...pages];
+      const [removed] = newPages.splice(index, 1);
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      newPages.splice(newIndex, 0, removed);
+
+      setPages(newPages);
+
+      if (childrenUid) {
+        const order = direction === "down" ? newIndex + 1 : newIndex;
+
+        void window.roamAlphaAPI
+          /* eslint-disable @typescript-eslint/naming-convention */
+          .moveBlock({
+            location: { "parent-uid": childrenUid, order },
+            block: { uid: removed.uid },
+          })
+          .then(() => {
+            refreshAndNotify();
+          });
+      }
+    },
+    [pages, childrenUid],
+  );
 
   const addPage = useCallback(
     async (pageName: string) => {
@@ -274,10 +326,14 @@ const LeftSidebarGlobalSectionsContent = ({
             </div>
             {pages.length > 0 ? (
               <div className="space-y-1">
-                {pages.map((page) => (
+                {pages.map((page, index) => (
                   <PageItem
                     key={page.uid}
                     page={page}
+                    index={index}
+                    isFirst={index === 0}
+                    isLast={index === pages.length - 1}
+                    onMove={movePage}
                     onRemove={() => void removePage(page)}
                   />
                 ))}
