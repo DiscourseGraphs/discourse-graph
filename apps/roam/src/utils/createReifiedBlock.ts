@@ -5,13 +5,13 @@ import { getSetting } from "~/utils/extensionSettings";
 
 export const DISCOURSE_GRAPH_PROP_NAME = "discourse-graph";
 
-const SANE_ROLE_NAME_RE = new RegExp(/^[a-zA-Z][a-zA-Z0-9_-]*$/);
+const SANE_ROLE_NAME_RE = new RegExp(/^[\w\-]*$/);
 
 const strictQueryForReifiedBlocks = async (
   parameterUids: Record<string, string>,
 ): Promise<string | null> => {
   const paramsAsSeq = Object.entries(parameterUids);
-  // sanitize parameter names
+  // validate parameter names
   if (
     Object.keys(parameterUids).filter((k) => !k.match(SANE_ROLE_NAME_RE)).length
   )
@@ -81,7 +81,7 @@ const createReifiedBlock = async ({
 const RELATION_PAGE_TITLE = "roam/js/discourse-graph/relations";
 let relationPageUid: string | undefined = undefined;
 
-export const getOrCreateRelationPageUid = async (): Promise<string> => {
+const getOrCreateRelationPageUid = async (): Promise<string> => {
   if (relationPageUid === undefined) {
     relationPageUid = getPageUidByPageTitle(RELATION_PAGE_TITLE);
     if (relationPageUid === "") {

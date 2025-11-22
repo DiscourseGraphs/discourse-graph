@@ -423,7 +423,6 @@ const registerDiscourseDatalogTranslators = () => {
           });
           if (!filteredRelations.length && !ANY_RELATION_REGEX.test(label))
             return [];
-          console.log("source", source, "target", target);
           const typeOfValue = (value: string): ValueType => {
             const possibleNodeType = nodeTypeByLabel[value?.toLowerCase()];
             if (possibleNodeType) {
@@ -575,12 +574,6 @@ const registerDiscourseDatalogTranslators = () => {
             const clauses: DatalogClause[] = [...relClauseBasis];
 
             // todo: It could be a title or a node type.
-            console.log(
-              "typeOfSource",
-              typeOfSource,
-              "typeOfTarget",
-              typeOfTarget,
-            );
             if (
               !(
                 typeOfSource <= ValueType.nodeType ||
@@ -603,12 +596,6 @@ const registerDiscourseDatalogTranslators = () => {
                 ),
               )
               .filter((x) => x !== undefined);
-            console.log(
-              "sourceTriples",
-              sourceTriples,
-              "targetTriples",
-              targetTriples,
-            );
             if (typeOfSource === ValueType.uid) {
               if (sourceTriples.length)
                 clauses.push(
