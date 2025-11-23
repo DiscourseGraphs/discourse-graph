@@ -54,7 +54,8 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
       const spacePassword = getOrCreateSpacePassword();
       const personEmail = getCurrentUserEmail();
       const personName = getCurrentUserDisplayName();
-      const url = getRoamUrl();
+      let url = getRoamUrl();
+      url = url.replace("/?server-port=3333#/", "/#/");
       const spaceName = window.roamAlphaAPI.graph.name;
       const platform: Platform = "Roam";
       const spaceResult = await fetchOrCreateSpaceDirect({
