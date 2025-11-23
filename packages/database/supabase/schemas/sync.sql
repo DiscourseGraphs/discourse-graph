@@ -128,8 +128,10 @@ BEGIN
         RETURN result;
     END IF;
     -- now we know it pre-existed. Maybe already active.
-    SELECT id INTO STRICT s_id FROM public.sync_info WHERE sync_target = s_target AND sync_function = s_function;
-    PERFORM pg_advisory_lock(s_id);
+    SELECT id INTO STRICT s_id
+        FROM public.sync_info
+        WHERE sync_target = s_target AND sync_function = s_function
+        FOR UPDATE;
     SELECT status, failure_count, last_task_start, last_task_end, task_times_out_at
         INTO t_status, t_failure_count, t_last_task_start, t_last_task_end, t_times_out_at
         FROM public.sync_info
@@ -148,7 +150,12 @@ BEGIN
             AND sync_function = s_function
             AND status = 'complete';
         UPDATE public.sync_info
-        SET worker=s_worker, status='active', task_times_out_at = now() + timeout, last_task_start = start_time, failure_count=t_failure_count
+        SET worker=s_worker,
+            status='active',
+            task_times_out_at = now() + timeout,
+            last_task_start = start_time,
+            failure_count=t_failure_count,
+            last_task_end = NULL
         WHERE id=s_id;
     ELSE
         -- the task has been tried recently enough
@@ -160,7 +167,6 @@ BEGIN
         result := coalesce(t_last_task_end, t_last_task_start) + task_interval;
     END IF;
 
-    PERFORM pg_advisory_unlock(s_id);
     RETURN result;
 END;
 $$;
