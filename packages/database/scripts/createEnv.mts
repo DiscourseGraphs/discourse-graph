@@ -84,8 +84,7 @@ const makeBranchEnv = async (vercel: Vercel, vercelToken: string) => {
     console.error(err);
     throw err;
   }
-
-  appendFileSync(".env.branch", `NEXT_API_ROOT="${url}/api"\n`);
+  appendFileSync(".env.branch", `NEXT_API_ROOT="https://${url}/api"\n`);
 };
 
 const makeProductionEnv = async (vercel: Vercel, vercelToken: string) => {
@@ -103,7 +102,7 @@ const makeProductionEnv = async (vercel: Vercel, vercelToken: string) => {
   execSync(
     `vercel -t ${vercelToken} env pull --environment production .env.production`,
   );
-  appendFileSync(".env.production", `NEXT_API_ROOT="${url}/api"\n`);
+  appendFileSync(".env.production", `NEXT_API_ROOT="https://${url}/api"\n`);
 };
 
 const main = async (variant: Variant) => {
