@@ -1,47 +1,67 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Collapse, Spinner, Icon } from "@blueprintjs/core";
-import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
-import type { VectorMatch } from "~/utils/hyde";
 import type { Result } from "~/utils/types";
-import { findSimilarNodesVectorOnly } from "~/utils/hyde";
-import { useNodeContext } from "~/utils/useNodeContext";
+import { findSimilarNodesVectorOnly } from "../utils/hyde";
+import { useNodeContext, type NodeContext } from "../utils/useNodeContext";
 import ReactDOM from "react-dom";
 
-const VectorDuplicateMatches = ({ pageTitle }: { pageTitle: string }) => {
+type VectorMatchItem = {
+  node: Result;
+  score: number;
+};
+
+type VectorSearchParams = {
+  text: string;
+  threshold?: number;
+  limit?: number;
+};
+
+const vectorSearch = findSimilarNodesVectorOnly as (
+  params: VectorSearchParams,
+) => Promise<VectorMatchItem[]>;
+
+export const VectorDuplicateMatches = ({
+  pageTitle,
+  text,
+  limit = 15,
+}: {
+  pageTitle: string;
+  text?: string;
+  limit?: number;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [suggestions, setSuggestions] = useState<VectorMatch[]>([]);
+  const [suggestions, setSuggestions] = useState<VectorMatchItem[]>([]);
 
-  const nodeContext = useNodeContext(pageTitle);
+  const nodeContext: NodeContext | null = useNodeContext(pageTitle);
+  const activeContext = useMemo(
+    () => (text ? { searchText: text, pageUid: null } : nodeContext),
+    [text, nodeContext],
+  );
+
+  useEffect(() => {
+    setHasSearched(false);
+  }, [activeContext?.searchText]);
 
   useEffect(() => {
     let isCancelled = false;
     const fetchSuggestions = async () => {
       if (!isOpen || hasSearched) return;
-      if (!nodeContext || !nodeContext.searchText.trim()) return;
+      if (!activeContext || !activeContext.searchText.trim()) return;
 
-      const { searchText, pageUid } = nodeContext;
+      const { searchText, pageUid } = activeContext;
 
       setSuggestionsLoading(true);
       try {
-        const raw: VectorMatch[] = await findSimilarNodesVectorOnly({
+        const raw = await vectorSearch({
           text: searchText,
           threshold: 0.3,
-          limit: 20,
+          limit,
         });
-        const normalize = (value: string) =>
-          normalizePageTitle(value || "")
-            .trim()
-            .toLowerCase();
-        const normalizedPageTitle = normalize(pageTitle);
-        const normalizedSearchText = normalize(searchText);
-        const results: VectorMatch[] = raw.filter((candidate: VectorMatch) => {
+        const results: VectorMatchItem[] = raw.filter((candidate) => {
           const sameUid = !!pageUid && candidate.node.uid === pageUid;
-          const normalizedCandidateText = normalize(candidate.node.text);
-          const sameTitle = normalizedCandidateText === normalizedPageTitle;
-          const sameContent = normalizedCandidateText === normalizedSearchText;
-          return !sameUid && !sameTitle && !sameContent;
+          return !sameUid;
         });
         if (!isCancelled) {
           setSuggestions(results);
@@ -59,15 +79,20 @@ const VectorDuplicateMatches = ({ pageTitle }: { pageTitle: string }) => {
     return () => {
       isCancelled = true;
     };
-  }, [isOpen, hasSearched, nodeContext, pageTitle]);
+  }, [isOpen, hasSearched, activeContext, pageTitle, limit]);
 
   const handleSuggestionClick = async (node: Result) => {
-    await window.roamAlphaAPI.ui.mainWindow.openPage({
-      page: { uid: node.uid },
+    await window.roamAlphaAPI.ui.rightSidebar.addWindow({
+      window: {
+        type: "outline",
+        // @ts-expect-error - type definition mismatch
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "block-uid": node.uid,
+      },
     });
   };
 
-  if (!nodeContext) {
+  if (!activeContext) {
     return null;
   }
 
@@ -141,21 +166,21 @@ export const renderPossibleDuplicates = (
     return;
   }
   const headerContainer = titleContainer.parentElement;
-  const VECTOR_CONTAINER_ID = "discourse-graph-duplicates-vector";
+  const VECTOR_CONTAINER_CLASS = "discourse-graph-duplicates-vector";
 
-  let vectorContainer = document.getElementById(VECTOR_CONTAINER_ID);
+  let vectorContainer = headerContainer.querySelector<HTMLElement>(
+    `.${VECTOR_CONTAINER_CLASS}`,
+  );
   if (vectorContainer && vectorContainer.dataset.pageTitle !== title) {
     /*eslint-disable-next-line react/no-deprecated*/
     ReactDOM.unmountComponentAtNode(vectorContainer);
-    /*eslint-disable-next-line react/no-deprecated*/
     vectorContainer.remove();
     vectorContainer = null;
   }
   if (!vectorContainer) {
     vectorContainer = document.createElement("div");
-    vectorContainer.id = VECTOR_CONTAINER_ID;
+    vectorContainer.className = `${VECTOR_CONTAINER_CLASS} w-full mt-2`;
     vectorContainer.dataset.pageTitle = title;
-    vectorContainer.className = "w-full mt-2";
 
     headerContainer.insertBefore(vectorContainer, titleContainer.nextSibling);
   } else if (
