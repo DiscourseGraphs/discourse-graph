@@ -1,14 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Collapse, Spinner, Icon } from "@blueprintjs/core";
-import type { Result } from "~/utils/types";
-import { findSimilarNodesVectorOnly } from "../utils/hyde";
+import { findSimilarNodesVectorOnly, type VectorMatch } from "../utils/hyde";
 import { useNodeContext, type NodeContext } from "../utils/useNodeContext";
 import ReactDOM from "react-dom";
-
-type VectorMatchItem = {
-  node: Result;
-  score: number;
-};
 
 type VectorSearchParams = {
   text: string;
@@ -16,9 +10,8 @@ type VectorSearchParams = {
   limit?: number;
 };
 
-const vectorSearch = findSimilarNodesVectorOnly as (
-  params: VectorSearchParams,
-) => Promise<VectorMatchItem[]>;
+const vectorSearch = (params: VectorSearchParams) =>
+  findSimilarNodesVectorOnly(params);
 
 export const VectorDuplicateMatches = ({
   pageTitle,
@@ -32,7 +25,7 @@ export const VectorDuplicateMatches = ({
   const [isOpen, setIsOpen] = useState(false);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [suggestions, setSuggestions] = useState<VectorMatchItem[]>([]);
+  const [suggestions, setSuggestions] = useState<VectorMatch[]>([]);
 
   const nodeContext: NodeContext | null = useNodeContext(pageTitle);
   const activeContext = useMemo(
@@ -59,7 +52,7 @@ export const VectorDuplicateMatches = ({
           threshold: 0.3,
           limit,
         });
-        const results: VectorMatchItem[] = raw.filter((candidate) => {
+        const results: VectorMatch[] = raw.filter((candidate) => {
           const sameUid = !!pageUid && candidate.node.uid === pageUid;
           return !sameUid;
         });
@@ -81,7 +74,7 @@ export const VectorDuplicateMatches = ({
     };
   }, [isOpen, hasSearched, activeContext, pageTitle, limit]);
 
-  const handleSuggestionClick = async (node: Result) => {
+  const handleSuggestionClick = async (node: VectorMatch["node"]) => {
     await window.roamAlphaAPI.ui.rightSidebar.addWindow({
       window: {
         type: "outline",
