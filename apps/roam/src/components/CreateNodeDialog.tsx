@@ -12,6 +12,7 @@ import getDiscourseNodes, {
 import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import createBlock from "roamjs-components/writes/createBlock";
+import { VectorDuplicateMatches } from "./VectorDuplicateMatches";
 
 export type CreateNodeDialogProps = {
   onClose: () => void;
@@ -34,10 +35,20 @@ const CreateNodeDialog = ({
     discourseNodes[0];
 
   const [title, setTitle] = useState(initialTitle);
+  const [debouncedTitle, setDebouncedTitle] = useState(initialTitle);
   const [selectedType, setSelectedType] =
     useState<DiscourseNode>(defaultNodeType);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedTitle(title);
+    }, 500);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [title]);
 
   useEffect(() => {
     if (inputRef.current) {
@@ -135,6 +146,11 @@ const CreateNodeDialog = ({
               value={title}
               onChange={(e) => setTitle(e.currentTarget.value)}
               inputRef={inputRef}
+            />
+            <VectorDuplicateMatches
+              pageTitle={debouncedTitle}
+              text={debouncedTitle}
+              limit={5}
             />
           </div>
 
