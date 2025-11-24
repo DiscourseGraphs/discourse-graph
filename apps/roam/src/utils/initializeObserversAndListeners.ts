@@ -46,6 +46,7 @@ import {
   findBlockElementFromSelection,
 } from "~/utils/renderTextSelectionPopup";
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
+import { renderImageToolsMenu } from "./renderImageToolsMenu";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
@@ -181,6 +182,16 @@ export const initObservers = async ({
     callback: (el) => {
       const div = el as HTMLDivElement;
       renderGraphOverviewExport(div);
+    },
+  });
+
+  const imageMenuObserver = createHTMLObserver({
+    tag: "IMG",
+    className: "rm-inline-img",
+    callback: (img: HTMLElement) => {
+      if (img instanceof HTMLImageElement) {
+        renderImageToolsMenu(img);
+      }
     },
   });
 
@@ -382,6 +393,7 @@ export const initObservers = async ({
       graphOverviewExportObserver,
       nodeTagPopupButtonObserver,
       leftSidebarObserver,
+      imageMenuObserver,
     ].filter((o): o is MutationObserver => !!o),
     listeners: {
       pageActionListener,
