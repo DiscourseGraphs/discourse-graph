@@ -33,7 +33,7 @@ const PageItem = memo(
     onRemove: (page: RoamBasicNode) => void;
   }) => {
     return (
-      <div className="flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100">
+      <div className="group flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100">
         <div className="mr-2 flex-grow truncate">{page.text}</div>
         <ButtonGroup minimal>
           <Button
@@ -42,6 +42,7 @@ const PageItem = memo(
             disabled={isFirst}
             onClick={() => onMove(index, "up")}
             title="Move up"
+            className="opacity-0 transition-opacity group-hover:opacity-100"
           />
           <Button
             icon="arrow-down"
@@ -49,6 +50,7 @@ const PageItem = memo(
             disabled={isLast}
             onClick={() => onMove(index, "down")}
             title="Move down"
+            className="opacity-0 transition-opacity group-hover:opacity-100"
           />
           <Button
             icon="trash"

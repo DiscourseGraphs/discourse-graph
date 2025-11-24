@@ -283,7 +283,7 @@ const SectionItem = memo(
           border: "1px solid rgba(51, 51, 51, 0.2)",
         }}
       >
-        <div className="flex items-center">
+        <div className="group flex items-center">
           {!sectionWithoutSettingsAndChildren && (
             <Button
               icon={isExpanded ? "chevron-down" : "chevron-right"}
@@ -311,6 +311,7 @@ const SectionItem = memo(
               disabled={isFirst}
               onClick={() => onMoveSection(index, "up")}
               title="Move section up"
+              className="opacity-0 transition-opacity group-hover:opacity-100"
             />
             <Button
               icon="arrow-down"
@@ -318,6 +319,7 @@ const SectionItem = memo(
               disabled={isLast}
               onClick={() => onMoveSection(index, "down")}
               title="Move section down"
+              className="opacity-0 transition-opacity group-hover:opacity-100"
             />
             <Button
               icon={sectionWithoutSettingsAndChildren ? "plus" : "settings"}
@@ -377,7 +379,7 @@ const SectionItem = memo(
                   {(section.children || []).map((child, index) => (
                     <div
                       key={child.uid}
-                      className="flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100"
+                      className="group flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100"
                     >
                       <div className="mr-2 min-w-0 flex-1 truncate">
                         {child.text}
@@ -389,6 +391,7 @@ const SectionItem = memo(
                           disabled={index === 0}
                           onClick={() => moveChild(section, index, "up")}
                           title="Move child up"
+                          className="opacity-0 transition-opacity group-hover:opacity-100"
                         />
                         <Button
                           icon="arrow-down"
@@ -398,6 +401,7 @@ const SectionItem = memo(
                           }
                           onClick={() => moveChild(section, index, "down")}
                           title="Move child down"
+                          className="opacity-0 transition-opacity group-hover:opacity-100"
                         />
                         <Button
                           icon="trash"
