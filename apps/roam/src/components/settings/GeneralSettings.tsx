@@ -40,7 +40,7 @@ const DiscourseGraphHome = () => {
       />
       <FlagPanel
         title="(BETA) Suggestive Mode Enabled"
-        description="Whether or not to enable the suggestive mode, if this is first time enabling it, you will need to generate and upload all node embeddings to supabase. Goto Suggestive Mode -> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"
+        description="Whether or not to enable the suggestive mode, if this is first time enabling it, you will need to generate and upload all node embeddings to supabase. Go to Suggestive Mode -> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"
         order={3}
         uid={settings.suggestiveModeEnabled.uid}
         parentUid={settings.settingsUid}
