@@ -573,7 +573,6 @@ const registerDiscourseDatalogTranslators = () => {
             const typeOfTarget = typeOfValue(target);
             const clauses: DatalogClause[] = [...relClauseBasis];
 
-            // todo: It could be a title or a node type.
             if (
               !(
                 typeOfSource <= ValueType.nodeType ||
