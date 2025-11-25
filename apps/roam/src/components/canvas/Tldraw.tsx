@@ -682,7 +682,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                 allRelationIds={allRelationIds}
                 allAddReferencedNodeActions={allAddReferencedNodeActions}
               />
-              <CanvasDrawerPanelWrapper />
+              <CanvasDrawerPanel />
             </TldrawUi>
           </TldrawEditor>
         </>
@@ -929,10 +929,6 @@ const InsideEditorAndUiContext = ({
   }, [editor, msg, toasts]);
 
   return <CustomContextMenu extensionAPI={extensionAPI} allNodes={allNodes} />;
-};
-
-const CanvasDrawerPanelWrapper = ({}: {}) => {
-  return <CanvasDrawerPanel />;
 };
 
 const renderTldrawCanvasHelper = ({
