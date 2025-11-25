@@ -84,8 +84,7 @@ import {
 import ConvertToDialog from "./ConvertToDialog";
 import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
-import CanvasDrawerButton from "./CanvasDrawerButton";
-import { CanvasDrawerProvider } from "./CanvasDrawer";
+import { CanvasDrawerPanel } from "./CanvasDrawer";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
@@ -453,26 +452,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   // Handle actions (roamjs:query-builder:action)
   useEffect(() => {
-    const handleMoveCameraToShapeAction = ({
-      shapeId,
-    }: {
-      shapeId: TLShapeId;
-    }) => {
-      const app = appRef.current;
-      if (!app) return;
-      const shape = app.getShape(shapeId);
-      if (!shape) {
-        return dispatchToastEvent({
-          id: "tldraw-warning",
-          title: `Shape not found.`,
-          severity: "warning",
-        });
-      }
-      const x = shape?.x || 0;
-      const y = shape?.y || 0;
-      app.centerOnPoint({ x, y }, { animation: { duration: 200 } });
-      app.select(shapeId);
-    };
     const actionListener = ((
       e: CustomEvent<{
         action: string;
@@ -482,10 +461,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         onRefresh: () => void;
       }>,
     ) => {
-      if (e.detail.action === "move-camera-to-shape") {
-        if (!e.detail.shapeId) return;
-        handleMoveCameraToShapeAction({ shapeId: e.detail.shapeId });
-      }
       if (!/canvas/i.test(e.detail.action)) return;
       const app = appRef.current;
       if (!app) return;
@@ -707,9 +682,9 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                 allRelationIds={allRelationIds}
                 allAddReferencedNodeActions={allAddReferencedNodeActions}
               />
+              <CanvasDrawerPanel />
             </TldrawUi>
           </TldrawEditor>
-          <CanvasDrawerButton />
         </>
       )}
     </div>
@@ -993,9 +968,7 @@ const renderTldrawCanvasHelper = ({
 
   const unmount = renderWithUnmount(
     <ExtensionApiContextProvider {...onloadArgs}>
-      <CanvasDrawerProvider>
-        <TldrawCanvas title={title} />
-      </CanvasDrawerProvider>
+      <TldrawCanvas title={title} />
     </ExtensionApiContextProvider>,
     canvasWrapperEl,
   );

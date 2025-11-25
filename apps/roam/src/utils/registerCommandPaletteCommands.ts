@@ -1,4 +1,3 @@
-import { openCanvasDrawer } from "~/components/canvas/CanvasDrawer";
 import { openQueryDrawer } from "~/components/QueryDrawer";
 import { render as exportRender } from "~/components/Export";
 import { render as renderToast } from "roamjs-components/components/Toast";
@@ -145,7 +144,6 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   // Roam organizes commands by alphabetically
   addCommand("DG: Export - Current Page", exportCurrentPage);
   addCommand("DG: Export - Discourse Graph", exportDiscourseGraph);
-  addCommand("DG: Open - Canvas Drawer", openCanvasDrawer);
   addCommand("DG: Open - Discourse Settings", renderSettingsPopup);
   addCommand("DG: Open - Query Drawer", openQueryDrawerWithArgs);
   addCommand("DG: Query Block - Create", createQueryBlock);

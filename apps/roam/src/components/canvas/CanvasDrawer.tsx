@@ -1,16 +1,8 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import ResizableDrawer from "~/components/ResizableDrawer";
-import renderOverlay from "roamjs-components/util/renderOverlay";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
-  Card,
   Collapse,
+  Icon,
   Menu,
   MenuItem,
   NonIdealState,
@@ -22,13 +14,11 @@ import {
   Tag,
   Tooltip,
 } from "@blueprintjs/core";
+import { Editor, useEditor, TLShapeId } from "tldraw";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
-import getBlockProps from "~/utils/getBlockProps";
-import { TLBaseShape } from "tldraw";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { DiscourseNodeShape } from "./DiscourseNodeUtil";
-import { render as renderToast } from "roamjs-components/components/Toast";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 
 export type GroupedShapes = Record<string, DiscourseNodeShape[]>;
@@ -42,36 +32,17 @@ type NodeGroup = {
   isDuplicate: boolean;
 };
 
-// Module-level ref holder set by the provider
-// This allows openCanvasDrawer to be called from non-React contexts
-// (command palette, context menus, etc.)
-let drawerUnmountRef: React.MutableRefObject<(() => void) | null> | null = null;
-
-export const CanvasDrawerProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
-  const unmountRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    drawerUnmountRef = unmountRef;
-
-    return () => {
-      if (unmountRef.current) {
-        unmountRef.current();
-        unmountRef.current = null;
-      }
-      drawerUnmountRef = null;
-    };
-  }, []);
-
-  return <>{children}</>;
+type Props = {
+  groupedShapes: GroupedShapes;
+  pageUid: string;
+  editor: Editor;
 };
 
-type Props = { groupedShapes: GroupedShapes; pageUid: string };
-
-const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
+export const CanvasDrawerContent = ({
+  groupedShapes,
+  pageUid,
+  editor,
+}: Props) => {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [activeShapeId, setActiveShapeId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState("All");
@@ -172,13 +143,19 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
     }));
   }, []);
 
-  const moveCameraToShape = useCallback((shapeId: string) => {
-    document.dispatchEvent(
-      new CustomEvent("roamjs:query-builder:action", {
-        detail: { action: "move-camera-to-shape", shapeId },
-      }),
-    );
-  }, []);
+  const moveCameraToShape = useCallback(
+    (shapeId: string) => {
+      const shape = editor.getShape(shapeId as TLShapeId);
+      if (!shape) {
+        return;
+      }
+      const x = shape.x || 0;
+      const y = shape.y || 0;
+      editor.centerOnPoint({ x, y }, { animation: { duration: 200 } });
+      editor.select(shapeId as TLShapeId);
+    },
+    [editor],
+  );
 
   const handleShapeSelection = useCallback(
     (shape: DiscourseNodeShape) => {
@@ -328,8 +305,8 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
   );
 
   return (
-    <div className="space-y-4">
-      <Card elevation={1} className="space-y-3">
+    <div className="flex h-full flex-col gap-3">
+      <div className="flex-shrink-0 space-y-3">
         <Tabs
           id="canvas-drawer-tabs"
           selectedTabId={activeTabId}
@@ -377,7 +354,7 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
             </Tag>
           )}
         </div>
-      </Card>
+      </div>
 
       {!visibleGroups.length ? (
         <NonIdealState
@@ -401,83 +378,117 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
           }
         />
       ) : (
-        <Card elevation={1} className="divide-y divide-gray-300">
+        <div className="min-h-0 flex-1 divide-y divide-gray-300 overflow-y-auto overflow-x-hidden">
           {visibleGroups.map((group) => renderListView(group))}
-        </Card>
+        </div>
       )}
     </div>
   );
 };
 
-const CanvasDrawer = ({
-  onClose,
-  unmountRef,
-  ...props
-}: {
-  onClose: () => void;
-  unmountRef: React.MutableRefObject<(() => void) | null>;
-} & Props) => {
-  const handleClose = () => {
-    unmountRef.current = null;
-    onClose();
-  };
+export const CanvasDrawerPanel = () => {
+  const editor = useEditor();
+  const toggleDrawer = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
+  const [isOpen, setIsOpen] = useState(false);
+  const pageUid = getCurrentPageUid();
+  const [groupedShapes, setGroupedShapes] = useState<GroupedShapes>({});
+
+  useEffect(() => {
+    const updateGroupedShapes = () => {
+      const allRecords = editor.store.allRecords();
+      const shapes = allRecords.filter((record) => {
+        if (record.typeName !== "shape") return false;
+        const shape = record as DiscourseNodeShape;
+        return !!shape.props?.uid;
+      }) as DiscourseNodeShape[];
+
+      const grouped = shapes.reduce((acc: GroupedShapes, shape) => {
+        const uid = shape.props.uid;
+        if (!acc[uid]) acc[uid] = [];
+        acc[uid].push(shape);
+        return acc;
+      }, {});
+
+      setGroupedShapes(grouped);
+    };
+
+    updateGroupedShapes();
+
+    const unsubscribe = editor.store.listen(() => {
+      updateGroupedShapes();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [editor.store]);
 
   return (
-    <ResizableDrawer onClose={handleClose} title={"Canvas Drawer"}>
-      <CanvasDrawerContent {...props} />
-    </ResizableDrawer>
+    <>
+      <div
+        className={`pointer-events-auto absolute top-11 m-2 rounded-lg ${isOpen ? "hidden" : ""}`}
+        style={{
+          zIndex: 250,
+          // copying tldraw var(--shadow-2)
+          boxShadow:
+            "0px 0px 2px hsl(0, 0%, 0%, 16%), 0px 2px 3px hsl(0, 0%, 0%, 24%), 0px 2px 6px hsl(0, 0%, 0%, 0.1), inset 0px 0px 0px 1px hsl(0, 0%, 100%)",
+          backgroundColor: "white",
+        }}
+      >
+        <Button
+          icon={<Icon icon="add-column-left" />}
+          onClick={toggleDrawer}
+          minimal
+          title="Toggle Canvas Drawer"
+        />
+      </div>
+      {isOpen && (
+        <div
+          className="pointer-events-auto absolute bottom-10 left-2 flex w-80 flex-col rounded-lg bg-white"
+          style={{
+            top: "3.25rem",
+            height: "calc(100% - 50px)",
+
+            zIndex: 250,
+            boxShadow:
+              "0px 0px 2px hsl(0, 0%, 0%, 16%), 0px 2px 3px hsl(0, 0%, 0%, 24%), 0px 2px 6px hsl(0, 0%, 0%, 0.1), inset 0px 0px 0px 1px hsl(0, 0%, 100%)",
+          }}
+        >
+          <div className="flex max-h-10 flex-shrink-0 items-center rounded-lg bg-white px-1">
+            <div className="flex-shrink-0">
+              <Button
+                icon={<Icon icon="add-column-left" />}
+                onClick={() => setIsOpen(false)}
+                minimal
+              />
+            </div>
+            <h2 className="m-0 flex-1 border-b border-gray-300 pb-1 text-center text-sm font-semibold leading-tight">
+              Canvas Drawer
+            </h2>
+            <div className="flex-shrink-0">
+              <Button
+                icon={<Icon icon="cross" />}
+                onClick={() => setIsOpen(false)}
+                minimal
+                small
+                className="h-6 min-h-0 p-1"
+              />
+            </div>
+          </div>
+          <div
+            className="flex min-h-0 flex-1 flex-col overflow-hidden p-4"
+            style={{ borderTop: "1px solid hsl(0, 0%, 91%)" }}
+          >
+            <CanvasDrawerContent
+              groupedShapes={groupedShapes}
+              pageUid={pageUid}
+              editor={editor}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
-
-export const openCanvasDrawer = (): void => {
-  if (!drawerUnmountRef) {
-    renderToast({
-      id: "canvas-drawer-not-found",
-      content:
-        "Unable to open Canvas Drawer.  Please load canvas in main window first.",
-      intent: "warning",
-    });
-    console.error(
-      "CanvasDrawer: Cannot open drawer - CanvasDrawerProvider not found",
-    );
-    return;
-  }
-
-  if (drawerUnmountRef.current) {
-    drawerUnmountRef.current();
-    drawerUnmountRef.current = null;
-    return;
-  }
-
-  const pageUid = getCurrentPageUid();
-  const props = getBlockProps(pageUid) as Record<string, unknown>;
-  const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
-  const tldraw = (rjsqb?.tldraw as Record<string, unknown>) || {};
-  const store = (tldraw?.["store"] as Record<string, unknown>) || {};
-  const shapes = Object.values(store).filter((s) => {
-    const shape = s as TLBaseShape<string, { uid: string }>;
-    const uid = shape.props?.uid;
-    return !!uid;
-  }) as DiscourseNodeShape[];
-
-  const groupShapesByUid = (shapes: DiscourseNodeShape[]) => {
-    const groupedShapes = shapes.reduce((acc: GroupedShapes, shape) => {
-      const uid = shape.props.uid;
-      if (!acc[uid]) acc[uid] = [];
-      acc[uid].push(shape);
-      return acc;
-    }, {});
-
-    return groupedShapes;
-  };
-
-  const groupedShapes = groupShapesByUid(shapes);
-  drawerUnmountRef.current =
-    renderOverlay({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      Overlay: CanvasDrawer,
-      props: { groupedShapes, pageUid, unmountRef: drawerUnmountRef },
-    }) || null;
-};
-
-export default CanvasDrawer;
