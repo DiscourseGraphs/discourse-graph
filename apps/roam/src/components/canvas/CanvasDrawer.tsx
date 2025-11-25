@@ -15,7 +15,7 @@ import {
   Tag,
   Tooltip,
 } from "@blueprintjs/core";
-import { Editor, useEditor } from "tldraw";
+import { Editor, useEditor, TLShapeId } from "tldraw";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
@@ -33,9 +33,17 @@ type NodeGroup = {
   isDuplicate: boolean;
 };
 
-type Props = { groupedShapes: GroupedShapes; pageUid: string };
+type Props = {
+  groupedShapes: GroupedShapes;
+  pageUid: string;
+  editor: Editor;
+};
 
-export const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
+export const CanvasDrawerContent = ({
+  groupedShapes,
+  pageUid,
+  editor,
+}: Props) => {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [activeShapeId, setActiveShapeId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState("All");
@@ -136,13 +144,19 @@ export const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
     }));
   }, []);
 
-  const moveCameraToShape = useCallback((shapeId: string) => {
-    document.dispatchEvent(
-      new CustomEvent("roamjs:query-builder:action", {
-        detail: { action: "move-camera-to-shape", shapeId },
-      }),
-    );
-  }, []);
+  const moveCameraToShape = useCallback(
+    (shapeId: string) => {
+      const shape = editor.getShape(shapeId as TLShapeId);
+      if (!shape) {
+        return;
+      }
+      const x = shape.x || 0;
+      const y = shape.y || 0;
+      editor.centerOnPoint({ x, y }, { animation: { duration: 200 } });
+      editor.select(shapeId as TLShapeId);
+    },
+    [editor],
+  );
 
   const handleShapeSelection = useCallback(
     (shape: DiscourseNodeShape) => {
@@ -455,7 +469,7 @@ export const CanvasDrawerPanel = () => {
                 onClick={() => setIsOpen(false)}
                 minimal
                 small
-                style={{ minHeight: 0, height: "24px", padding: "4px" }}
+                className="h-6 min-h-0 p-1"
               />
             </div>
           </div>
@@ -463,6 +477,7 @@ export const CanvasDrawerPanel = () => {
             <CanvasDrawerContent
               groupedShapes={groupedShapes}
               pageUid={pageUid}
+              editor={editor}
             />
           </div>
         </div>

@@ -452,26 +452,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   // Handle actions (roamjs:query-builder:action)
   useEffect(() => {
-    const handleMoveCameraToShapeAction = ({
-      shapeId,
-    }: {
-      shapeId: TLShapeId;
-    }) => {
-      const app = appRef.current;
-      if (!app) return;
-      const shape = app.getShape(shapeId);
-      if (!shape) {
-        return dispatchToastEvent({
-          id: "tldraw-warning",
-          title: `Shape not found.`,
-          severity: "warning",
-        });
-      }
-      const x = shape?.x || 0;
-      const y = shape?.y || 0;
-      app.centerOnPoint({ x, y }, { animation: { duration: 200 } });
-      app.select(shapeId);
-    };
     const actionListener = ((
       e: CustomEvent<{
         action: string;
@@ -481,10 +461,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         onRefresh: () => void;
       }>,
     ) => {
-      if (e.detail.action === "move-camera-to-shape") {
-        if (!e.detail.shapeId) return;
-        handleMoveCameraToShapeAction({ shapeId: e.detail.shapeId });
-      }
       if (!/canvas/i.test(e.detail.action)) return;
       const app = appRef.current;
       if (!app) return;
