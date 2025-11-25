@@ -132,7 +132,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   );
 
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const updateViewportScreenBounds = (el: HTMLDivElement) => {
     // Use tldraw's built-in viewport bounds update with centering
@@ -707,10 +706,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                 allRelationIds={allRelationIds}
                 allAddReferencedNodeActions={allAddReferencedNodeActions}
               />
-              <CanvasDrawerPanelWrapper
-                isOpen={isDrawerOpen}
-                onToggle={() => setIsDrawerOpen(!isDrawerOpen)}
-              />
+              <CanvasDrawerPanelWrapper />
             </TldrawUi>
           </TldrawEditor>
         </>
@@ -959,17 +955,8 @@ const InsideEditorAndUiContext = ({
   return <CustomContextMenu extensionAPI={extensionAPI} allNodes={allNodes} />;
 };
 
-const CanvasDrawerPanelWrapper = ({
-  isOpen,
-  onToggle,
-}: {
-  isOpen: boolean;
-  onToggle: () => void;
-}) => {
-  const editor = useEditor();
-  return (
-    <CanvasDrawerPanel editor={editor} isOpen={isOpen} onToggle={onToggle} />
-  );
+const CanvasDrawerPanelWrapper = ({}: {}) => {
+  return <CanvasDrawerPanel />;
 };
 
 const renderTldrawCanvasHelper = ({

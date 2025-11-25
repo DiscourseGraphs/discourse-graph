@@ -15,7 +15,7 @@ import {
   Tag,
   Tooltip,
 } from "@blueprintjs/core";
-import { Editor } from "tldraw";
+import { Editor, useEditor } from "tldraw";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
@@ -376,17 +376,12 @@ export const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
   );
 };
 
-type CanvasDrawerPanelProps = {
-  editor: Editor;
-  isOpen: boolean;
-  onToggle: () => void;
-};
-
-export const CanvasDrawerPanel = ({
-  editor,
-  isOpen,
-  onToggle,
-}: CanvasDrawerPanelProps) => {
+export const CanvasDrawerPanel = () => {
+  const editor = useEditor();
+  const toggleDrawer = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
+  const [isOpen, setIsOpen] = useState(false);
   const pageUid = getCurrentPageUid();
   const [groupedShapes, setGroupedShapes] = useState<GroupedShapes>({});
 
@@ -434,7 +429,7 @@ export const CanvasDrawerPanel = ({
       >
         <Button
           icon={<Icon icon="add-column-left" />}
-          onClick={onToggle}
+          onClick={toggleDrawer}
           minimal
           title="Toggle Canvas Drawer"
         />
@@ -457,7 +452,7 @@ export const CanvasDrawerPanel = ({
             <div className="flex-shrink-0">
               <Button
                 icon={<Icon icon="cross" />}
-                onClick={onToggle}
+                onClick={() => setIsOpen(false)}
                 minimal
                 small
                 style={{ minHeight: 0, height: "24px", padding: "4px" }}
