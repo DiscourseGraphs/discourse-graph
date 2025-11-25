@@ -41,7 +41,6 @@ import { DiscourseContextType } from "./Tldraw";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { COLOR_ARRAY } from "./DiscourseNodeUtil";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
-import { openCanvasDrawer } from "./CanvasDrawer";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import { dispatchToastEvent } from "./ToastListener";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
@@ -185,16 +184,6 @@ export const CustomContextMenu = ({
   return (
     <DefaultContextMenu>
       <DefaultContextMenuContent />
-      {!selectedShape && (
-        <TldrawUiMenuGroup id="open-canvas-drawer-group">
-          <TldrawUiMenuItem
-            id="open-canvas-drawer"
-            label="Open Canvas Drawer"
-            readonlyOk
-            onSelect={openCanvasDrawer}
-          />
-        </TldrawUiMenuGroup>
-      )}
       {(isTextSelected || isImageSelected) && (
         <TldrawUiMenuGroup id="convert-to-group">
           <TldrawUiMenuSubmenu id="convert-to-submenu" label="Convert To">

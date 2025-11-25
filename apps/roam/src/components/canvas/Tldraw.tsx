@@ -84,9 +84,10 @@ import {
 import ConvertToDialog from "./ConvertToDialog";
 import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
-import CanvasDrawerButton from "./CanvasDrawerButton";
-import { CanvasDrawerProvider } from "./CanvasDrawer";
+import { CanvasDrawerContent, GroupedShapes } from "./CanvasDrawer";
 import sendErrorEmail from "~/utils/sendErrorEmail";
+import { Button, Icon } from "@blueprintjs/core";
+import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
@@ -133,6 +134,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   );
 
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const updateViewportScreenBounds = (el: HTMLDivElement) => {
     // Use tldraw's built-in viewport bounds update with centering
@@ -707,9 +709,12 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                 allRelationIds={allRelationIds}
                 allAddReferencedNodeActions={allAddReferencedNodeActions}
               />
+              <CanvasDrawerPanel
+                isOpen={isDrawerOpen}
+                onToggle={() => setIsDrawerOpen(!isDrawerOpen)}
+              />
             </TldrawUi>
           </TldrawEditor>
-          <CanvasDrawerButton />
         </>
       )}
     </div>
@@ -956,6 +961,103 @@ const InsideEditorAndUiContext = ({
   return <CustomContextMenu extensionAPI={extensionAPI} allNodes={allNodes} />;
 };
 
+const CanvasDrawerPanel = ({
+  isOpen,
+  onToggle,
+}: {
+  isOpen: boolean;
+  onToggle: () => void;
+}) => {
+  const editor = useEditor();
+  const pageUid = getCurrentPageUid();
+  const [groupedShapes, setGroupedShapes] = useState<GroupedShapes>({});
+
+  useEffect(() => {
+    const updateGroupedShapes = () => {
+      const allRecords = editor.store.allRecords();
+      const shapes = allRecords.filter((record) => {
+        if (record.typeName !== "shape") return false;
+        const shape = record as DiscourseNodeShape;
+        return !!shape.props?.uid;
+      }) as DiscourseNodeShape[];
+
+      const grouped = shapes.reduce((acc: GroupedShapes, shape) => {
+        const uid = shape.props.uid;
+        if (!acc[uid]) acc[uid] = [];
+        acc[uid].push(shape);
+        return acc;
+      }, {});
+
+      setGroupedShapes(grouped);
+    };
+
+    updateGroupedShapes();
+
+    const unsubscribe = editor.store.listen(() => {
+      updateGroupedShapes();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [editor.store]);
+
+  return (
+    <>
+      <div
+        className="pointer-events-auto absolute top-11 m-2 rounded-lg"
+        style={{
+          zIndex: 250,
+          // copying tldraw var(--shadow-2)
+          boxShadow:
+            "0px 0px 2px hsl(0, 0%, 0%, 16%), 0px 2px 3px hsl(0, 0%, 0%, 24%), 0px 2px 6px hsl(0, 0%, 0%, 0.1), inset 0px 0px 0px 1px hsl(0, 0%, 100%)",
+          backgroundColor: "white",
+        }}
+      >
+        <Button
+          icon={<Icon icon="add-column-left" />}
+          onClick={onToggle}
+          minimal
+          title="Toggle Canvas Drawer"
+        />
+      </div>
+      {isOpen && (
+        <div
+          className="pointer-events-auto absolute left-0 flex w-80 flex-col bg-white shadow-lg"
+          style={{
+            top: "40px",
+            height: "calc(100% - 40px)",
+            zIndex: 250,
+            boxShadow:
+              "0px 0px 2px hsl(0, 0%, 0%, 16%), 0px 2px 3px hsl(0, 0%, 0%, 24%), 0px 2px 6px hsl(0, 0%, 0%, 0.1), inset 0px 0px 0px 1px hsl(0, 0%, 100%)",
+          }}
+        >
+          <div className="flex max-h-10 flex-shrink-0 items-center justify-between overflow-hidden border-b border-gray-300 bg-white px-3">
+            <h2 className="m-0 text-sm font-semibold leading-tight">
+              Canvas Drawer
+            </h2>
+            <div className="flex-shrink-0">
+              <Button
+                icon={<Icon icon="cross" />}
+                onClick={onToggle}
+                minimal
+                small
+                style={{ minHeight: 0, height: "24px", padding: "4px" }}
+              />
+            </div>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+            <CanvasDrawerContent
+              groupedShapes={groupedShapes}
+              pageUid={pageUid}
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 const renderTldrawCanvasHelper = ({
   title,
   onloadArgs,
@@ -993,9 +1095,7 @@ const renderTldrawCanvasHelper = ({
 
   const unmount = renderWithUnmount(
     <ExtensionApiContextProvider {...onloadArgs}>
-      <CanvasDrawerProvider>
-        <TldrawCanvas title={title} />
-      </CanvasDrawerProvider>
+      <TldrawCanvas title={title} />
     </ExtensionApiContextProvider>,
     canvasWrapperEl,
   );

@@ -1,12 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import ResizableDrawer from "~/components/ResizableDrawer";
-import renderOverlay from "roamjs-components/util/renderOverlay";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -24,11 +16,7 @@ import {
 } from "@blueprintjs/core";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
-import getBlockProps from "~/utils/getBlockProps";
-import { TLBaseShape } from "tldraw";
 import { DiscourseNodeShape } from "./DiscourseNodeUtil";
-import { render as renderToast } from "roamjs-components/components/Toast";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 
 export type GroupedShapes = Record<string, DiscourseNodeShape[]>;
@@ -42,36 +30,9 @@ type NodeGroup = {
   isDuplicate: boolean;
 };
 
-// Module-level ref holder set by the provider
-// This allows openCanvasDrawer to be called from non-React contexts
-// (command palette, context menus, etc.)
-let drawerUnmountRef: React.MutableRefObject<(() => void) | null> | null = null;
-
-export const CanvasDrawerProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
-  const unmountRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    drawerUnmountRef = unmountRef;
-
-    return () => {
-      if (unmountRef.current) {
-        unmountRef.current();
-        unmountRef.current = null;
-      }
-      drawerUnmountRef = null;
-    };
-  }, []);
-
-  return <>{children}</>;
-};
-
 type Props = { groupedShapes: GroupedShapes; pageUid: string };
 
-const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
+export const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [activeShapeId, setActiveShapeId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState("All");
@@ -328,8 +289,8 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
   );
 
   return (
-    <div className="space-y-4">
-      <Card elevation={1} className="space-y-3">
+    <div className="flex h-full flex-col gap-4">
+      <Card elevation={1} className="flex-shrink-0 space-y-3">
         <Tabs
           id="canvas-drawer-tabs"
           selectedTabId={activeTabId}
@@ -401,83 +362,13 @@ const CanvasDrawerContent = ({ groupedShapes, pageUid }: Props) => {
           }
         />
       ) : (
-        <Card elevation={1} className="divide-y divide-gray-300">
+        <Card
+          elevation={1}
+          className="min-h-0 flex-1 divide-y divide-gray-300 overflow-y-auto"
+        >
           {visibleGroups.map((group) => renderListView(group))}
         </Card>
       )}
     </div>
   );
 };
-
-const CanvasDrawer = ({
-  onClose,
-  unmountRef,
-  ...props
-}: {
-  onClose: () => void;
-  unmountRef: React.MutableRefObject<(() => void) | null>;
-} & Props) => {
-  const handleClose = () => {
-    unmountRef.current = null;
-    onClose();
-  };
-
-  return (
-    <ResizableDrawer onClose={handleClose} title={"Canvas Drawer"}>
-      <CanvasDrawerContent {...props} />
-    </ResizableDrawer>
-  );
-};
-
-export const openCanvasDrawer = (): void => {
-  if (!drawerUnmountRef) {
-    renderToast({
-      id: "canvas-drawer-not-found",
-      content:
-        "Unable to open Canvas Drawer.  Please load canvas in main window first.",
-      intent: "warning",
-    });
-    console.error(
-      "CanvasDrawer: Cannot open drawer - CanvasDrawerProvider not found",
-    );
-    return;
-  }
-
-  if (drawerUnmountRef.current) {
-    drawerUnmountRef.current();
-    drawerUnmountRef.current = null;
-    return;
-  }
-
-  const pageUid = getCurrentPageUid();
-  const props = getBlockProps(pageUid) as Record<string, unknown>;
-  const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
-  const tldraw = (rjsqb?.tldraw as Record<string, unknown>) || {};
-  const store = (tldraw?.["store"] as Record<string, unknown>) || {};
-  const shapes = Object.values(store).filter((s) => {
-    const shape = s as TLBaseShape<string, { uid: string }>;
-    const uid = shape.props?.uid;
-    return !!uid;
-  }) as DiscourseNodeShape[];
-
-  const groupShapesByUid = (shapes: DiscourseNodeShape[]) => {
-    const groupedShapes = shapes.reduce((acc: GroupedShapes, shape) => {
-      const uid = shape.props.uid;
-      if (!acc[uid]) acc[uid] = [];
-      acc[uid].push(shape);
-      return acc;
-    }, {});
-
-    return groupedShapes;
-  };
-
-  const groupedShapes = groupShapesByUid(shapes);
-  drawerUnmountRef.current =
-    renderOverlay({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      Overlay: CanvasDrawer,
-      props: { groupedShapes, pageUid, unmountRef: drawerUnmountRef },
-    }) || null;
-};
-
-export default CanvasDrawer;
