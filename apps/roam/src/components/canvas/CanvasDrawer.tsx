@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
-  Card,
   Collapse,
   Icon,
   Menu,
@@ -306,8 +305,8 @@ export const CanvasDrawerContent = ({
   );
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <Card elevation={1} className="flex-shrink-0 space-y-3">
+    <div className="flex h-full flex-col gap-3">
+      <div className="flex-shrink-0 space-y-3">
         <Tabs
           id="canvas-drawer-tabs"
           selectedTabId={activeTabId}
@@ -355,7 +354,7 @@ export const CanvasDrawerContent = ({
             </Tag>
           )}
         </div>
-      </Card>
+      </div>
 
       {!visibleGroups.length ? (
         <NonIdealState
@@ -379,12 +378,9 @@ export const CanvasDrawerContent = ({
           }
         />
       ) : (
-        <Card
-          elevation={1}
-          className="min-h-0 flex-1 divide-y divide-gray-300 overflow-y-auto"
-        >
+        <div className="min-h-0 flex-1 divide-y divide-gray-300 overflow-y-auto overflow-x-hidden">
           {visibleGroups.map((group) => renderListView(group))}
-        </Card>
+        </div>
       )}
     </div>
   );
@@ -432,7 +428,7 @@ export const CanvasDrawerPanel = () => {
   return (
     <>
       <div
-        className="pointer-events-auto absolute top-11 m-2 rounded-lg"
+        className={`pointer-events-auto absolute top-11 m-2 rounded-lg ${isOpen ? "hidden" : ""}`}
         style={{
           zIndex: 250,
           // copying tldraw var(--shadow-2)
@@ -450,17 +446,25 @@ export const CanvasDrawerPanel = () => {
       </div>
       {isOpen && (
         <div
-          className="pointer-events-auto absolute left-0 flex w-80 flex-col bg-white shadow-lg"
+          className="pointer-events-auto absolute bottom-10 left-2 flex w-80 flex-col rounded-lg bg-white"
           style={{
-            top: "40px",
-            height: "calc(100% - 40px)",
+            top: "3.25rem",
+            height: "calc(100% - 50px)",
+
             zIndex: 250,
             boxShadow:
               "0px 0px 2px hsl(0, 0%, 0%, 16%), 0px 2px 3px hsl(0, 0%, 0%, 24%), 0px 2px 6px hsl(0, 0%, 0%, 0.1), inset 0px 0px 0px 1px hsl(0, 0%, 100%)",
           }}
         >
-          <div className="flex max-h-10 flex-shrink-0 items-center justify-between overflow-hidden border-b border-gray-300 bg-white px-3">
-            <h2 className="m-0 text-sm font-semibold leading-tight">
+          <div className="flex max-h-10 flex-shrink-0 items-center rounded-lg bg-white px-1">
+            <div className="flex-shrink-0">
+              <Button
+                icon={<Icon icon="add-column-left" />}
+                onClick={() => setIsOpen(false)}
+                minimal
+              />
+            </div>
+            <h2 className="m-0 flex-1 border-b border-gray-300 pb-1 text-center text-sm font-semibold leading-tight">
               Canvas Drawer
             </h2>
             <div className="flex-shrink-0">
@@ -473,7 +477,10 @@ export const CanvasDrawerPanel = () => {
               />
             </div>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+          <div
+            className="flex min-h-0 flex-1 flex-col overflow-hidden p-4"
+            style={{ borderTop: "1px solid hsl(0, 0%, 91%)" }}
+          >
             <CanvasDrawerContent
               groupedShapes={groupedShapes}
               pageUid={pageUid}
