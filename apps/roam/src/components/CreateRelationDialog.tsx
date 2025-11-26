@@ -305,10 +305,13 @@ export const CreateRelationButton = (
   const showAddRelation = getSetting("use-reified-relations");
   if (!showAddRelation) return null;
   const extProps = extendProps(props);
-  return (
-    <Button
-      style={{ margin: 12 }}
-      disabled={extProps === null}
+  return extProps === null ? (
+    <span className="ml-2 mr-2 cursor-not-allowed text-sm font-medium text-gray-300">
+      Create new relation
+    </span>
+  ) : (
+    <a
+      className="ml-2 mr-2 cursor-pointer text-sm font-medium text-blue-500 hover:underline"
       onClick={
         extProps === null
           ? undefined
@@ -317,7 +320,7 @@ export const CreateRelationButton = (
             }
       }
     >
-      <Icon icon="plus" />
-    </Button>
+      Create new relation
+    </a>
   );
 };
