@@ -278,7 +278,10 @@ const ContextTab = ({
         <h4 className="m-0 mb-2 flex items-center justify-between">
           <span>{r.label}</span>
           <span style={{ display: "flex", alignItems: "center" }}>
-            <CreateRelationButton uid={parentUid} onClose={() => {}} />
+            <CreateRelationButton
+              sourceNodeUid={parentUid}
+              onClose={() => {}}
+            />
             <Switch
               label="Group By Target"
               checked={groupByTarget}
@@ -414,7 +417,7 @@ export const ContextContent = ({ uid, results }: Props) => {
   ) : (
     <div className="text-center">
       No discourse relations found.
-      <CreateRelationButton uid={uid} onClose={() => {}} />
+      <CreateRelationButton sourceNodeUid={uid} onClose={() => {}} />
     </div>
   );
 };
