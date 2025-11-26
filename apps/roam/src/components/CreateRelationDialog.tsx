@@ -9,6 +9,7 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 
 import { getSetting } from "~/utils/extensionSettings";
+import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
@@ -18,6 +19,7 @@ import {
   formatToRegexpText,
 } from "~/utils/getDiscourseNodeType";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import { extensionDeprecatedWarning } from "roamjs-components/util";
 
 export type CreateRelationDialogProps = {
   onClose: () => void;
@@ -31,6 +33,7 @@ type RelWithDirection = DiscourseRelation & {
 type ExtendedCreateRelationDialogProps = CreateRelationDialogProps & {
   relData: Record<string, RelWithDirection[]>;
   sourceNodeTitle: string;
+  selectedSourceType: DiscourseNode;
 };
 
 const CreateRelationDialog = ({
@@ -38,13 +41,10 @@ const CreateRelationDialog = ({
   sourceNodeUid,
   relData,
   sourceNodeTitle,
+  selectedSourceType,
 }: ExtendedCreateRelationDialogProps) => {
   const discourseNodes = useMemo(() => getDiscourseNodes(), []);
   const nodesById = Object.fromEntries(discourseNodes.map((n) => [n.type, n]));
-  const selectedSourceType = getDiscourseNodeTypeByTitle(
-    sourceNodeTitle,
-    discourseNodes,
-  );
   const relKeys = Object.keys(relData);
   const [selectedRelationName, setSelectedRelationName] = useState(relKeys[0]);
   const [loading, setLoading] = useState(false);
@@ -65,10 +65,6 @@ const CreateRelationDialog = ({
   const [pageOptions, setPageOptions] = useState<string[]>(
     getFilteredPageNames(relKeys[0]),
   );
-  if (selectedSourceType === null) {
-    console.error("Cannot find type of source");
-    return null;
-  }
 
   const identifyRelationMatch = () => {
     const selectedTargetType = getDiscourseNodeTypeByTitle(
@@ -212,8 +208,9 @@ const CreateRelationDialog = ({
 
 const prepareRelData = (
   targetNodeUid: string,
-  nodeTitle: string,
+  nodeTitle?: string,
 ): Record<string, RelWithDirection[]> | null => {
+  nodeTitle = nodeTitle || getPageTitleByPageUid(targetNodeUid).trim();
   const discourseNodeSchemas = getDiscourseNodes();
   const relations = getDiscourseRelations();
   const nodeSchema = getDiscourseNodeTypeByTitle(
@@ -256,39 +253,56 @@ const prepareRelData = (
   return byTag;
 };
 
+const extendProps = ({
+  sourceNodeUid,
+  onClose,
+}: CreateRelationDialogProps): ExtendedCreateRelationDialogProps | null => {
+  const nodeTitle = getPageTitleByPageUid(sourceNodeUid).trim();
+  const relData = prepareRelData(sourceNodeUid, nodeTitle);
+  if (relData === null) return null;
+  const selectedSourceType = getDiscourseNodeTypeByTitle(nodeTitle);
+  if (selectedSourceType === null) return null;
+  return {
+    sourceNodeUid,
+    onClose,
+    relData,
+    sourceNodeTitle: nodeTitle,
+    selectedSourceType,
+  };
+};
+
 export const renderCreateRelationDialog = (
-  props: CreateRelationDialogProps,
+  props: CreateRelationDialogProps | ExtendedCreateRelationDialogProps | null,
 ) => {
-  const sourceNodeTitle = getPageTitleByPageUid(props.sourceNodeUid).trim();
-  const relData = prepareRelData(props.sourceNodeUid, sourceNodeTitle);
-  if (relData === null) {
+  if (props === null) return;
+  if ((props as ExtendedCreateRelationDialogProps).relData === undefined) {
+    props = extendProps(props);
+  }
+  if (props === null) {
     console.error("Could not render");
   } else {
     renderOverlay({
       Overlay: CreateRelationDialog,
-      props: { ...props, relData, sourceNodeTitle },
+      props: props as ExtendedCreateRelationDialogProps,
     });
   }
 };
 
-export const CreateRelationButton = ({
-  uid,
-  onClose,
-}: {
-  uid: string;
-  onClose: () => void;
-}) => {
+export const CreateRelationButton = (props: CreateRelationDialogProps) => {
   const showAddRelation = getSetting("use-reified-relations");
   if (!showAddRelation) return null;
+  const extProps = extendProps(props);
   return (
     <Button
       style={{ margin: 12 }}
-      onClick={() => {
-        renderCreateRelationDialog({
-          onClose,
-          sourceNodeUid: uid,
-        });
-      }}
+      disabled={extProps === null}
+      onClick={
+        extProps === null
+          ? undefined
+          : () => {
+              renderCreateRelationDialog(extProps);
+            }
+      }
     >
       <Icon icon="plus" />
     </Button>
