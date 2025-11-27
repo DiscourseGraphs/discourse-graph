@@ -125,6 +125,7 @@ const CreateNodeDialog = ({
       onClose={onClose}
       title="Create Discourse Node"
       autoFocus={false}
+      className="roamjs-create-relation-dialog-body"
     >
       <div className={Classes.DIALOG_BODY}>
         <div className="flex flex-col gap-4">
