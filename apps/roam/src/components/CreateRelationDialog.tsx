@@ -179,17 +179,15 @@ const CreateRelationDialog = ({
     <Dialog
       isOpen={true}
       onClose={onClose}
-      title="Create Discourse Relation"
       autoFocus={false}
+      className="roamjs-create-relation-dialog-body"
     >
+      <div className="bp3-dialog-header dg-detached-header">
+        <Icon icon="plus" />
+        <span className="block font-bold">Create relation</span>
+      </div>
       <div className={Classes.DIALOG_BODY}>
         <div className="flex flex-col gap-4">
-          <div>
-            <label className="mb-1 block font-bold">
-              <Icon icon="plus" />
-              Create relation
-            </label>
-          </div>
           <div>{sourceNodeTitle}</div>
 
           <div>
@@ -202,7 +200,7 @@ const CreateRelationDialog = ({
               />
             </Label>
           </div>
-          <div>
+          <div className="full-popover-width">
             <AutocompleteInput
               value={selectedTargetTitle}
               setValue={getNodeFromTitle}
