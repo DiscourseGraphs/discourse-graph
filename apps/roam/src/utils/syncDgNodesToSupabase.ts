@@ -423,7 +423,9 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
       if (doSync) {
         activeTimeout = setTimeout(
           createOrUpdateDiscourseEmbedding, // eslint-disable-line @typescript-eslint/no-misused-promises
-          Math.max(0, nextUpdateTime.valueOf() - Date.now()) + 100,
+          Math.max(0, nextUpdateTime.valueOf() - Date.now()) +
+            100 +
+            Math.floor(Math.random() * 200), // avoid stampede
         );
       }
       return;
