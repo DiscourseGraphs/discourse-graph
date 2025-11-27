@@ -57,7 +57,7 @@ const CreateRelationDialog = ({
     string | undefined
   >(undefined);
   const allPages = useMemo(() => getAllPageNames().sort(), []);
-  const getFilteredPageNames = (selectedRelationName: string) => {
+  const getFilteredPageNames = (selectedRelationName: string): string[] => {
     const formats = relDataByTag[selectedRelationName].map((rel) =>
       formatToRegexpText(
         nodesById[rel.forward ? rel.destination : rel.source].format,
@@ -70,7 +70,9 @@ const CreateRelationDialog = ({
     getFilteredPageNames(relKeys[0]),
   );
 
-  const identifyRelationMatch = (targetTitle: string) => {
+  const identifyRelationMatch = (
+    targetTitle: string,
+  ): RelWithDirection | null => {
     if (targetTitle.length === 0) return null;
     const selectedTargetType = getDiscourseNodeTypeByTitle(
       targetTitle,
@@ -104,30 +106,49 @@ const CreateRelationDialog = ({
     return candidateRelations[0];
   };
 
-  const onCreate = async () => {
-    if (selectedTargetUid === undefined) return;
+  const onCreate = async (): Promise<boolean> => {
+    if (selectedTargetUid === undefined) return false;
     const relation = identifyRelationMatch(selectedTargetTitle);
-    if (relation === null) return;
-    try {
-      await createReifiedRelation({
-        relationBlockUid: relation.id,
-        sourceUid: relation.forward ? sourceNodeUid : selectedTargetUid,
-        destinationUid: relation.forward ? selectedTargetUid : sourceNodeUid,
-      });
-      renderToast({
-        id: `discourse-relation-created-${Date.now()}`,
-        intent: "success",
-        timeout: 10000,
-        content: <span>Created relation</span>,
-      });
-    } catch (error) {
-      console.error(error);
-    }
-
-    onClose();
+    if (relation === null) return false;
+    const result = await createReifiedRelation({
+      relationBlockUid: relation.id,
+      sourceUid: relation.forward ? sourceNodeUid : selectedTargetUid,
+      destinationUid: relation.forward ? selectedTargetUid : sourceNodeUid,
+    });
+    return result !== undefined;
   };
 
-  const changeRelationType = (relName: string) => {
+  const onCreateSync = (): void => {
+    onCreate()
+      .then((result: boolean) => {
+        if (result) {
+          renderToast({
+            id: `discourse-relation-created-${Date.now()}`,
+            intent: "success",
+            timeout: 10000,
+            content: <span>Created relation</span>,
+          });
+        } else {
+          renderToast({
+            id: `discourse-relation-error-${Date.now()}`,
+            intent: "warning",
+            content: <span>Failed to create relation</span>,
+          });
+        }
+        onClose();
+      })
+      .catch((error) => {
+        console.error(error);
+        renderToast({
+          id: `discourse-relation-error-${Date.now()}`,
+          intent: "danger",
+          content: <span>Failed to create relation</span>,
+        });
+        return;
+      });
+  };
+
+  const changeRelationType = (relName: string): void => {
     setSelectedRelationName(relName);
     setPageOptions(getFilteredPageNames(relName));
     if (
@@ -138,7 +159,8 @@ const CreateRelationDialog = ({
     }
   };
 
-  const getNodeFromTitle = (title: string) => {
+  const getNodeFromTitle = (title: string): void => {
+    if (title === selectedTargetTitle) return;
     setSelectedTargetTitle(title);
     const uid = getPageUidByPageTitle(title);
     if (uid.length === 0) {
@@ -198,9 +220,7 @@ const CreateRelationDialog = ({
           </Button>
           <Button
             intent="primary"
-            onClick={() => {
-              onCreate().then(() => {});
-            }}
+            onClick={onCreateSync}
             disabled={!selectedTargetUid}
           >
             Create
@@ -271,7 +291,7 @@ const extendProps = ({
 
 export const renderCreateRelationDialog = (
   props: CreateRelationDialogProps | ExtendedCreateRelationDialogProps | null,
-) => {
+): void => {
   if (props === null) return;
   if ((props as ExtendedCreateRelationDialogProps).relData === undefined) {
     props = extendProps(props);
@@ -286,7 +306,9 @@ export const renderCreateRelationDialog = (
   }
 };
 
-export const CreateRelationButton = (props: CreateRelationDialogProps) => {
+export const CreateRelationButton = (
+  props: CreateRelationDialogProps,
+): React.JSX.Element | null => {
   const showAddRelation = getSetting("use-reified-relations");
   if (!showAddRelation) return null;
   const extProps = extendProps(props);
