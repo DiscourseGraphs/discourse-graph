@@ -282,6 +282,7 @@ const MigrationTab = (): React.ReactElement => {
             ? `${numRelations} already migrated`
             : "No migrated relations",
         );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         initial = false;
       }
     })();
