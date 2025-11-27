@@ -280,7 +280,9 @@ const ContextTab = ({
           <span style={{ display: "flex", alignItems: "center" }}>
             <CreateRelationButton
               sourceNodeUid={parentUid}
-              onClose={() => {}}
+              onClose={() => {
+                window.setTimeout(onRefresh, 250);
+              }}
             />
             <Switch
               label="Group By Target"
@@ -352,6 +354,10 @@ export const ContextContent = ({ uid, results }: Props) => {
     }).finally(() => setLoading(false));
   }, [uid, setRawQueryResults, setLoading, addLabels]);
 
+  const delayedRefresh = () => {
+    window.setTimeout(onRefresh, 250);
+  };
+
   useEffect(() => {
     if (!results) {
       onRefresh();
@@ -418,7 +424,7 @@ export const ContextContent = ({ uid, results }: Props) => {
   ) : (
     <div className="text-center">
       No discourse relations found.
-      <CreateRelationButton sourceNodeUid={uid} onClose={() => {}} />
+      <CreateRelationButton sourceNodeUid={uid} onClose={delayedRefresh} />
     </div>
   );
 };

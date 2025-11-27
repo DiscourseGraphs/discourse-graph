@@ -19,7 +19,6 @@ import {
   formatToRegexpText,
 } from "~/utils/getDiscourseNodeType";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import { extensionDeprecatedWarning } from "roamjs-components/util";
 
 export type CreateRelationDialogProps = {
   onClose: () => void;
@@ -31,7 +30,7 @@ type RelWithDirection = DiscourseRelation & {
 };
 
 type ExtendedCreateRelationDialogProps = CreateRelationDialogProps & {
-  relData: Record<string, RelWithDirection[]>;
+  relData: RelWithDirection[];
   sourceNodeTitle: string;
   selectedSourceType: DiscourseNode;
 };
@@ -45,16 +44,21 @@ const CreateRelationDialog = ({
 }: ExtendedCreateRelationDialogProps) => {
   const discourseNodes = useMemo(() => getDiscourseNodes(), []);
   const nodesById = Object.fromEntries(discourseNodes.map((n) => [n.type, n]));
-  const relKeys = Object.keys(relData);
+  const relDataByTag: Record<string, RelWithDirection[]> = {};
+  for (const rel of relData) {
+    const useLabel = rel.forward ? rel.label : rel.complement;
+    if (relDataByTag[useLabel] === undefined) relDataByTag[useLabel] = [rel];
+    else relDataByTag[useLabel].push(rel);
+  }
+  const relKeys = Object.keys(relDataByTag);
   const [selectedRelationName, setSelectedRelationName] = useState(relKeys[0]);
-  const [loading, setLoading] = useState(false);
   const [selectedTargetTitle, setSelectedTargetTitle] = useState<string>("");
   const [selectedTargetUid, setSelectedTargetUid] = useState<
     string | undefined
   >(undefined);
   const allPages = useMemo(() => getAllPageNames().sort(), []);
   const getFilteredPageNames = (selectedRelationName: string) => {
-    const formats = relData[selectedRelationName].map((rel) =>
+    const formats = relDataByTag[selectedRelationName].map((rel) =>
       formatToRegexpText(
         nodesById[rel.forward ? rel.destination : rel.source].format,
       ),
@@ -66,28 +70,31 @@ const CreateRelationDialog = ({
     getFilteredPageNames(relKeys[0]),
   );
 
-  const identifyRelationMatch = () => {
+  const identifyRelationMatch = (targetTitle: string) => {
+    if (targetTitle.length === 0) return null;
     const selectedTargetType = getDiscourseNodeTypeByTitle(
-      selectedTargetTitle,
+      targetTitle,
       discourseNodes,
     );
     if (selectedTargetType === null) {
       console.error("could not identify the target type");
       return null;
     }
-    const candidateRelations = relData[selectedRelationName].filter((rel) => {
-      if (rel.forward) {
-        return (
-          rel.source === selectedSourceType.type &&
-          rel.destination === selectedTargetType.type
-        );
-      } else {
-        return (
-          rel.source === selectedTargetType.type &&
-          rel.destination === selectedSourceType.type
-        );
-      }
-    });
+    const candidateRelations = relDataByTag[selectedRelationName].filter(
+      (rel) => {
+        if (rel.forward) {
+          return (
+            rel.source === selectedSourceType.type &&
+            rel.destination === selectedTargetType.type
+          );
+        } else {
+          return (
+            rel.source === selectedTargetType.type &&
+            rel.destination === selectedSourceType.type
+          );
+        }
+      },
+    );
     if (candidateRelations.length === 0) {
       console.error("Could not find the relation");
       return null;
@@ -99,37 +106,34 @@ const CreateRelationDialog = ({
 
   const onCreate = async () => {
     if (selectedTargetUid === undefined) return;
-    const relation = identifyRelationMatch();
+    const relation = identifyRelationMatch(selectedTargetTitle);
     if (relation === null) return;
-    await createReifiedRelation({
-      relationBlockUid: relation.id,
-      sourceUid: relation.forward ? sourceNodeUid : selectedTargetUid,
-      destinationUid: relation.forward ? selectedTargetUid : sourceNodeUid,
-    });
-
-    renderToast({
-      id: `discourse-relation-created-${Date.now()}`,
-      intent: "success",
-      timeout: 10000,
-      content: <span>Created relation</span>,
-    });
-    setLoading(false);
-    onClose();
-  };
-  const doOnCreate = () => {
-    onCreate()
-      .then(() => {
-        console.debug("created relation");
-      })
-      .catch((error) => {
-        console.error(error);
+    try {
+      await createReifiedRelation({
+        relationBlockUid: relation.id,
+        sourceUid: relation.forward ? sourceNodeUid : selectedTargetUid,
+        destinationUid: relation.forward ? selectedTargetUid : sourceNodeUid,
       });
+      renderToast({
+        id: `discourse-relation-created-${Date.now()}`,
+        intent: "success",
+        timeout: 10000,
+        content: <span>Created relation</span>,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+
+    onClose();
   };
 
   const changeRelationType = (relName: string) => {
     setSelectedRelationName(relName);
     setPageOptions(getFilteredPageNames(relName));
-    if (selectedTargetUid !== undefined && identifyRelationMatch() === null) {
+    if (
+      selectedTargetUid !== undefined &&
+      identifyRelationMatch(selectedTargetTitle) === null
+    ) {
       setSelectedTargetUid(undefined);
     }
   };
@@ -137,11 +141,11 @@ const CreateRelationDialog = ({
   const getNodeFromTitle = (title: string) => {
     setSelectedTargetTitle(title);
     const uid = getPageUidByPageTitle(title);
-    if (uid === null) {
+    if (uid.length === 0) {
       setSelectedTargetUid(undefined);
       return;
     }
-    const relation = identifyRelationMatch();
+    const relation = identifyRelationMatch(title);
     if (relation === null) {
       setSelectedTargetUid(undefined);
       return;
@@ -153,7 +157,7 @@ const CreateRelationDialog = ({
     <Dialog
       isOpen={true}
       onClose={onClose}
-      title="Create Discourse Node"
+      title="Create Discourse Relation"
       autoFocus={false}
     >
       <div className={Classes.DIALOG_BODY}>
@@ -189,14 +193,15 @@ const CreateRelationDialog = ({
       </div>
       <div className={Classes.DIALOG_FOOTER}>
         <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-          <Button minimal onClick={onClose} disabled={loading}>
+          <Button minimal onClick={onClose}>
             Cancel
           </Button>
           <Button
             intent="primary"
-            onClick={doOnCreate}
-            disabled={!selectedTargetUid || loading}
-            loading={loading}
+            onClick={() => {
+              onCreate().then(() => {});
+            }}
+            disabled={!selectedTargetUid}
           >
             Create
           </Button>
@@ -209,7 +214,7 @@ const CreateRelationDialog = ({
 const prepareRelData = (
   targetNodeUid: string,
   nodeTitle?: string,
-): Record<string, RelWithDirection[]> | null => {
+): RelWithDirection[] => {
   nodeTitle = nodeTitle || getPageTitleByPageUid(targetNodeUid).trim();
   const discourseNodeSchemas = getDiscourseNodes();
   const relations = getDiscourseRelations();
@@ -221,7 +226,7 @@ const prepareRelData = (
     console.error(
       `Could not determine the type of ${nodeTitle} (${targetNodeUid})`,
     );
-    return null;
+    return [];
   }
   // note the same relation could be used in both directions
   const availableForwardRelations = relations.filter(
@@ -240,17 +245,7 @@ const prepareRelData = (
       forward: false,
     })),
   ];
-  if (availableRelations.length === 0) {
-    console.warn(`No relation type for node type ${nodeSchema.tag}`);
-    return null;
-  }
-  const byTag: Record<string, RelWithDirection[]> = {};
-  for (const rel of availableRelations) {
-    const useLabel = rel.forward ? rel.label : rel.complement;
-    if (byTag[useLabel] === undefined) byTag[useLabel] = [rel];
-    else byTag[useLabel].push(rel);
-  }
-  return byTag;
+  return availableRelations;
 };
 
 const extendProps = ({
@@ -259,7 +254,10 @@ const extendProps = ({
 }: CreateRelationDialogProps): ExtendedCreateRelationDialogProps | null => {
   const nodeTitle = getPageTitleByPageUid(sourceNodeUid).trim();
   const relData = prepareRelData(sourceNodeUid, nodeTitle);
-  if (relData === null) return null;
+  if (relData.length === 0) {
+    console.warn(`No relation type for node ${nodeTitle}`);
+    return null;
+  }
   const selectedSourceType = getDiscourseNodeTypeByTitle(nodeTitle);
   if (selectedSourceType === null) return null;
   return {
