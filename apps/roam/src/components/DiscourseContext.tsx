@@ -348,6 +348,7 @@ export const ContextContent = ({ uid, results }: Props) => {
     getDiscourseContextResults({
       uid,
       onResult: addLabels,
+      ignoreCache: true,
     }).finally(() => setLoading(false));
   }, [uid, setRawQueryResults, setLoading, addLabels]);
 
