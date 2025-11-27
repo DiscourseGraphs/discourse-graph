@@ -27,6 +27,8 @@ export type SupabaseContext = {
 
 let _contextCache: SupabaseContext | null = null;
 
+const ROAM_URL_PREFIX = "https://roamresearch.com/#/app/";
+
 const getOrCreateSpacePassword = () => {
   const settingsConfigPageUid = getPageUidByPageTitle(
     DISCOURSE_CONFIG_PAGE_TITLE,
@@ -54,8 +56,8 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
       const spacePassword = getOrCreateSpacePassword();
       const personEmail = getCurrentUserEmail();
       const personName = getCurrentUserDisplayName();
-      const url = getRoamUrl();
       const spaceName = window.roamAlphaAPI.graph.name;
+      const url = ROAM_URL_PREFIX + spaceName;
       const platform: Platform = "Roam";
       const spaceResult = await fetchOrCreateSpaceDirect({
         password: spacePassword,
