@@ -348,6 +348,7 @@ const fireQuery: FireQuery = async (_args) => {
       console.groupEnd();
     }
 
+    //@ts-ignore - todo add async q to roamjs-components
     const queryResults = await window.roamAlphaAPI.data.backend.q(
       query,
       ...inputs,
