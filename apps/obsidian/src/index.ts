@@ -28,6 +28,7 @@ export default class DiscourseGraphPlugin extends Plugin {
   private styleElement: HTMLStyleElement | null = null;
   private tagNodeHandler: TagNodeHandler | null = null;
   private currentViewActions: { leaf: WorkspaceLeaf; action: any }[] = [];
+  private pendingCanvasSwitches = new Set<string>();
 
   async onload() {
     await this.loadSettings();
@@ -43,26 +44,38 @@ export default class DiscourseGraphPlugin extends Plugin {
           if (!leaf) return;
 
           const view = leaf.view;
-          if (!(view instanceof MarkdownView)) return;
+          const file = view instanceof MarkdownView ? view.file : null;
 
-          const file = view.file;
-          if (!file) return;
+          if (file) {
+            const cache = this.app.metadataCache.getFileCache(file);
+            const isCanvasFile = !!cache?.frontmatter?.[FRONTMATTER_KEY];
 
-          const cache = this.app.metadataCache.getFileCache(file);
-          if (cache?.frontmatter?.[FRONTMATTER_KEY]) {
-            // Add new action and track it
-            const action = view.addAction(
-              "layout",
-              "View as canvas",
-              async () => {
-                await leaf.setViewState({
+            // If this file is pending a switch, switch it now
+            if (this.pendingCanvasSwitches.has(file.path) && isCanvasFile) {
+              if (view.getViewType() !== VIEW_TYPE_TLDRAW_DG_PREVIEW) {
+                void leaf.setViewState({
                   type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
                   state: view.getState(),
                 });
-              },
-            );
+              }
+              this.pendingCanvasSwitches.delete(file.path);
+              return;
+            }
 
-            this.currentViewActions.push({ leaf, action });
+            if (view instanceof MarkdownView && isCanvasFile) {
+              const action = view.addAction(
+                "layout",
+                "View as canvas",
+                async () => {
+                  await leaf.setViewState({
+                    type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
+                    state: view.getState(),
+                  });
+                },
+              );
+
+              this.currentViewActions.push({ leaf, action });
+            }
           }
         },
       ),
@@ -74,14 +87,9 @@ export default class DiscourseGraphPlugin extends Plugin {
 
         const cache = this.app.metadataCache.getFileCache(file);
         if (cache?.frontmatter?.[FRONTMATTER_KEY]) {
-          const leaf =
-            this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
-          if (leaf) {
-            void leaf.setViewState({
-              type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
-              state: leaf.view.getState(),
-            });
-          }
+          // Mark this file as needing a switch
+          // The actual switch will happen in active-leaf-change when the view is ready
+          this.pendingCanvasSwitches.add(file.path);
         }
       }),
     );
