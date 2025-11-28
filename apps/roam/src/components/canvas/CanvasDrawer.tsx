@@ -450,13 +450,15 @@ export const CanvasDrawerPanel = () => {
           style={{
             top: "3.25rem",
             height: "calc(100% - 50px)",
-
             zIndex: 250,
             boxShadow:
               "0px 0px 2px hsl(0, 0%, 0%, 16%), 0px 2px 3px hsl(0, 0%, 0%, 24%), 0px 2px 6px hsl(0, 0%, 0%, 0.1), inset 0px 0px 0px 1px hsl(0, 0%, 100%)",
           }}
         >
-          <div className="flex max-h-10 flex-shrink-0 items-center rounded-lg bg-white px-1">
+          <div
+            className="flex max-h-10 flex-shrink-0 items-center rounded-lg bg-white px-1"
+            style={{ minHeight: "35px" }}
+          >
             <div className="flex-shrink-0">
               <Button
                 icon={<Icon icon="add-column-left" />}
@@ -464,7 +466,7 @@ export const CanvasDrawerPanel = () => {
                 minimal
               />
             </div>
-            <h2 className="m-0 flex-1 border-b border-gray-300 pb-1 text-center text-sm font-semibold leading-tight">
+            <h2 className="m-0 flex-1 pb-1 text-center text-sm font-semibold leading-tight">
               Canvas Drawer
             </h2>
             <div className="flex-shrink-0">
