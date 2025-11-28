@@ -266,10 +266,35 @@ export const TldrawPreviewComponent = ({
     editorRef.current = editor;
     setIsEditorMounted(true);
 
+    // Handle right-click to ensure context menu opens
+    // Obsidian may intercept contextmenu events, so we manually dispatch one
     editor.on("event", (event) => {
       // Handle pointer events
       if (event.type !== "pointer") return;
       const e = event as TLPointerEventInfo;
+
+      // Handle right-click events - manually dispatch contextmenu for Radix UI
+      if (e.type === "pointer" && e.name === "right_click") {
+        // Use requestAnimationFrame to ensure this happens after tldraw's handling
+        requestAnimationFrame(() => {
+          const container = editor.getContainer();
+          const canvas = container?.querySelector(".tl-canvas") as HTMLElement;
+          if (canvas) {
+            // Get the screen point from the event
+            const screenPoint = editor.inputs.currentScreenPoint;
+            // Dispatch a contextmenu event that Radix UI can handle
+            const contextMenuEvent = new MouseEvent("contextmenu", {
+              bubbles: true,
+              cancelable: true,
+              clientX: screenPoint.x,
+              clientY: screenPoint.y,
+              button: 2,
+            });
+            canvas.dispatchEvent(contextMenuEvent);
+          }
+        });
+      }
+
       if (e.type === "pointer" && e.name === "pointer_down") {
         const currentTool = editor.getCurrentTool();
         const currentToolId = currentTool.id;
