@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Plugin,
   Editor,
@@ -6,6 +7,7 @@ import {
   MarkdownView,
   WorkspaceLeaf,
 } from "obsidian";
+import { EditorView } from "@codemirror/view";
 import { SettingsTab } from "~/components/Settings";
 import { Settings, VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { registerCommands } from "~/utils/registerCommands";
@@ -19,6 +21,7 @@ import { DEFAULT_SETTINGS } from "~/constants";
 import { CreateNodeModal } from "~/components/CreateNodeModal";
 import { TagNodeHandler } from "~/utils/tagNodeHandler";
 import { TldrawView } from "~/components/canvas/TldrawView";
+import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -185,6 +188,39 @@ export default class DiscourseGraphPlugin extends Plugin {
         });
       }),
     );
+
+    // Register editor keydown listener for node tag hotkey
+    this.setupNodeTagHotkey();
+  }
+
+  private setupNodeTagHotkey() {
+    const nodeTagHotkeyExtension = EditorView.domEventHandlers({
+      keydown: (event: KeyboardEvent) => {
+        // Access settings dynamically to handle changes
+        const hotkey = this.settings.nodeTagHotkey;
+
+        if (!hotkey || event.key !== hotkey) {
+          return false;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (activeView?.editor) {
+          // Open the node tag suggest popover
+          const popover = new NodeTagSuggestPopover(
+            activeView.editor,
+            this.settings.nodeTypes,
+          );
+          popover.open();
+        }
+
+        return true;
+      },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    this.registerEditorExtension(nodeTagHotkeyExtension);
   }
 
   private createStyleElement() {
