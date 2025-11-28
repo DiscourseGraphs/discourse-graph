@@ -308,7 +308,7 @@ const discourseNodeContent = memo(
         style={{
           backgroundColor: nodeType?.color ?? "",
         }}
-         // NOTE: These Tailwind classes (p-2, border-2, rounded-md, m-1, text-base, m-0, text-sm)
+        // NOTE: These Tailwind classes (p-2, border-2, rounded-md, m-1, text-base, m-0, text-sm)
         // correspond to constants in nodeConstants.ts. If you change these classes, update the
         // constants and the measureNodeText function to keep measurements accurate.
         className="relative box-border flex h-full w-full flex-col items-start justify-center rounded-md border-2 p-2"
@@ -348,8 +348,6 @@ const discourseNodeContent = memo(
             </svg>
           </button>
         )}
-        <h1 className="m-0 text-base">{title || "..."}</h1>
-        <p className="m-0 text-sm opacity-80">{nodeType?.name || ""}</p>
         {shape.props.imageSrc ? (
           <div className="mt-2 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
             <img
@@ -361,6 +359,8 @@ const discourseNodeContent = memo(
             />
           </div>
         ) : null}
+        <h1 className="m-0 pt-4 text-base">{title || "..."}</h1>
+        <p className="m-0 text-sm opacity-80">{nodeType?.name || ""}</p>
       </div>
     );
   },
