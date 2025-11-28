@@ -23,7 +23,7 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import type { RoamBasicNode } from "roamjs-components/types";
 import type { Result } from "roamjs-components/types/query-builder";
 import parseQuery from "./parseQuery";
-import fireQuery from "./fireQuery";
+import fireQuerySync from "./fireQuery";
 import { getDatalogQuery } from "./fireQuery";
 
 type ResultDetails = {
@@ -151,7 +151,7 @@ export const runSingleTest = async (
     // Parse and execute query
     const queryArgs = parseQuery(queryNode.uid);
     const { query } = getDatalogQuery(queryArgs);
-    const results = await fireQuery(queryArgs);
+    const results = await fireQuerySync(queryArgs);
 
     const endTime = performance.now();
     const duration = endTime - startTime;
