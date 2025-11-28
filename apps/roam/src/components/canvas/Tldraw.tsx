@@ -85,6 +85,7 @@ import ConvertToDialog from "./ConvertToDialog";
 import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
+import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
@@ -670,19 +671,22 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               });
             }}
           >
-            <TldrawUi
-              overrides={uiOverrides}
-              components={customUiComponents}
-              assetUrls={defaultEditorAssetUrls}
-            >
-              <InsideEditorAndUiContext
-                extensionAPI={extensionAPI}
-                allNodes={allNodes}
-                allRelationIds={allRelationIds}
-                allAddReferencedNodeActions={allAddReferencedNodeActions}
-              />
-              <CanvasDrawerPanel />
-            </TldrawUi>
+            <ClipboardProvider>
+              <TldrawUi
+                overrides={uiOverrides}
+                components={customUiComponents}
+                assetUrls={defaultEditorAssetUrls}
+              >
+                <InsideEditorAndUiContext
+                  extensionAPI={extensionAPI}
+                  allNodes={allNodes}
+                  allRelationIds={allRelationIds}
+                  allAddReferencedNodeActions={allAddReferencedNodeActions}
+                />
+                <CanvasDrawerPanel />
+                <ClipboardPanel />
+              </TldrawUi>
+            </ClipboardProvider>
           </TldrawEditor>
         </>
       )}
