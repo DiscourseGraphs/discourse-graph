@@ -74,19 +74,8 @@ export class NodeTagSuggestPopover {
 
   private createPopover(): HTMLElement {
     const popover = document.createElement("div");
-    popover.className = "node-tag-suggest-popover";
-    popover.style.cssText = `
-      position: fixed;
-      z-index: 10000;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 6px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      max-height: 300px;
-      overflow-y: auto;
-      min-width: 200px;
-      max-width: 400px;
-    `;
+    popover.className =
+      "node-tag-suggest-popover fixed z-[10000] bg-primary border border-modifier-border rounded-md shadow-[0_4px_12px_rgba(0,0,0,0.15)] max-h-[300px] overflow-y-auto min-w-[200px] max-w-[400px]";
 
     const itemsContainer = document.createElement("div");
     itemsContainer.className = "node-tag-items-container";
@@ -102,12 +91,7 @@ export class NodeTagSuggestPopover {
 
     if (this.items.length === 0) {
       const noResults = document.createElement("div");
-      noResults.style.cssText = `
-        padding: 12px;
-        text-align: center;
-        color: var(--text-muted);
-        font-size: 14px;
-      `;
+      noResults.className = "p-3 text-center text-muted text-sm";
       noResults.textContent = "No node tags available";
       container.appendChild(noResults);
       return;
@@ -115,55 +99,28 @@ export class NodeTagSuggestPopover {
 
     this.items.forEach((item, index) => {
       const itemEl = document.createElement("div");
-      itemEl.className = "node-tag-item";
+      itemEl.className = `node-tag-item px-3 py-2 cursor-pointer flex items-center gap-2 border-b border-[var(--background-modifier-border-hover)]${
+        index === this.selectedIndex ? " bg-modifier-hover" : ""
+      }`;
       itemEl.dataset.index = index.toString();
-      itemEl.style.cssText = `
-        padding: 8px 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        border-bottom: 1px solid var(--background-modifier-border-hover);
-      `;
-
-      if (index === this.selectedIndex) {
-        itemEl.style.backgroundColor = "var(--background-modifier-hover)";
-      }
 
       if (item.nodeType.color) {
         const colorDot = document.createElement("div");
-        colorDot.style.cssText = `
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          background-color: ${item.nodeType.color};
-          flex-shrink: 0;
-        `;
+        colorDot.className = `w-3 h-3 rounded-full shrink-0`;
+        colorDot.style.backgroundColor = item.nodeType.color;
         itemEl.appendChild(colorDot);
       }
 
       const textContainer = document.createElement("div");
-      textContainer.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        flex: 1;
-      `;
+      textContainer.className = "flex flex-col gap-0.5 flex-1";
 
       const tagText = document.createElement("div");
       tagText.textContent = `#${item.tag}`;
-      tagText.style.cssText = `
-        font-weight: 500;
-        color: var(--text-normal);
-        font-size: 14px;
-      `;
+      tagText.className = "font-medium text-normal text-sm";
 
       const nodeTypeText = document.createElement("div");
       nodeTypeText.textContent = item.nodeType.name;
-      nodeTypeText.style.cssText = `
-        font-size: 12px;
-        color: var(--text-muted);
-      `;
+      nodeTypeText.className = "text-xs text-muted";
 
       textContainer.appendChild(tagText);
       textContainer.appendChild(nodeTypeText);
@@ -190,7 +147,7 @@ export class NodeTagSuggestPopover {
       `.node-tag-item[data-index="${this.selectedIndex}"]`,
     ) as HTMLElement;
     if (prevSelected) {
-      prevSelected.style.backgroundColor = "";
+      prevSelected.classList.remove("bg-modifier-hover");
     }
 
     this.selectedIndex = newIndex;
@@ -199,7 +156,7 @@ export class NodeTagSuggestPopover {
       `.node-tag-item[data-index="${this.selectedIndex}"]`,
     ) as HTMLElement;
     if (newSelected) {
-      newSelected.style.backgroundColor = "var(--background-modifier-hover)";
+      newSelected.classList.add("bg-modifier-hover");
     }
   }
 

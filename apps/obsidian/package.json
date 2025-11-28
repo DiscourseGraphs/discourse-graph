@@ -16,8 +16,6 @@
   "author": "",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@codemirror/state": "^6.5.2",
-    "@codemirror/view": "^6.38.2",
     "@octokit/core": "^6.1.2",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",

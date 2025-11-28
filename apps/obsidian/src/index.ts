@@ -194,7 +194,6 @@ export default class DiscourseGraphPlugin extends Plugin {
   }
 
   private setupNodeTagHotkey() {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const nodeTagHotkeyExtension = EditorView.domEventHandlers({
       keydown: (event: KeyboardEvent) => {
         // Access settings dynamically to handle changes

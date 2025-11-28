@@ -299,7 +299,6 @@ const GeneralSettings = () => {
             placeholder="\\"
             maxLength={1}
             className="setting-item-control"
-            style={{ width: "60px" }}
           />
         </div>
       </div>
