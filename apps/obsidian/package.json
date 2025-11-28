@@ -36,6 +36,7 @@
     "zod": "^3.24.1"
   },
   "dependencies": {
+    "@codemirror/view": "^6.38.8",
     "date-fns": "^4.1.0",
     "nanoid": "^4.0.2",
     "react": "catalog:obsidian",
