@@ -181,9 +181,10 @@ const GeneralSettings = () => {
 
   const handleSave = async () => {
     plugin.settings.showIdsInFrontmatter = showIdsInFrontmatter;
-    plugin.settings.nodesFolderPath = nodesFolderPath;
-    plugin.settings.canvasFolderPath = canvasFolderPath;
-    plugin.settings.canvasAttachmentsFolderPath = canvasAttachmentsFolderPath;
+    plugin.settings.nodesFolderPath = nodesFolderPath.trim();
+    plugin.settings.canvasFolderPath = canvasFolderPath.trim();
+    plugin.settings.canvasAttachmentsFolderPath =
+      canvasAttachmentsFolderPath.trim();
     await plugin.saveSettings();
     new Notice("General settings saved");
     setHasUnsavedChanges(false);
