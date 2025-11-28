@@ -1,11 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Button, Popover, Position } from "@blueprintjs/core";
-import { renderCreateNodeDialog } from "~/components/CreateNodeDialog";
 import { OnloadArgs } from "roamjs-components/types";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import { type DiscourseNode } from "./getDiscourseNodes";
+import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 
 export const renderNodeTagPopupButton = (
   parent: HTMLSpanElement,
@@ -42,6 +42,11 @@ export const renderNodeTagPopupButton = (
   const rawBlockText = blockUid ? getTextByBlockUid(blockUid) : "";
   const cleanedBlockText = rawBlockText.replace(textContent, "").trim();
 
+  const getInitialReferencedNode = () => {
+    // TODO: Implement this in a follow-up PR
+    return { text: "", uid: "" };
+  };
+
   ReactDOM.render(
     <Popover
       content={
@@ -49,12 +54,18 @@ export const renderNodeTagPopupButton = (
           minimal
           outlined
           onClick={() => {
-            renderCreateNodeDialog({
+            const initialReferencedNode = getInitialReferencedNode();
+            renderModifyNodeDialog({
+              mode: "create",
+              nodeType: matchedNode.type,
+              initialValue: { text: cleanedBlockText, uid: "" },
+              initialReferencedNode,
+              onSuccess: async () => {
+                // Success is handled by the dialog itself
+              },
               onClose: () => {},
-              defaultNodeTypeUid: matchedNode.type,
-              extensionAPI,
               sourceBlockUid: blockUid,
-              initialTitle: cleanedBlockText,
+              extensionAPI,
             });
           }}
           text={`Create ${matchedNode.text}`}
