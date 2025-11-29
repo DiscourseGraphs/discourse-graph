@@ -17,6 +17,7 @@ import {
   NonIdealState,
   Spinner,
   SpinnerSize,
+  Tag,
 } from "@blueprintjs/core";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 import { TldrawUiMenuItem, useActions, useEditor, TLShapeId } from "tldraw";
@@ -243,6 +244,13 @@ const AddPageModal = ({ isOpen, onClose, onConfirm }: AddPageModalProps) => {
   );
 };
 
+type NodeGroup = {
+  uid: string;
+  text: string;
+  shapes: DiscourseNodeShape[];
+  isDuplicate: boolean;
+};
+
 const ClipboardPageSection = ({
   page,
   onRemove,
@@ -255,6 +263,7 @@ const ClipboardPageSection = ({
     Array<{ uid: string; text: string }>
   >([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const editor = useEditor();
 
   useEffect(() => {
@@ -279,18 +288,52 @@ const ClipboardPageSection = ({
     }
   }, [page.text, isOpen]);
 
-  const findShapeByUid = useCallback(
-    (uid: string): DiscourseNodeShape | undefined => {
+  const findShapesByUid = useCallback(
+    (uid: string): DiscourseNodeShape[] => {
       const allRecords = editor.store.allRecords();
       const shapes = allRecords.filter((record) => {
         if (record.typeName !== "shape") return false;
         const shape = record as DiscourseNodeShape;
         return shape.props?.uid === uid;
       }) as DiscourseNodeShape[];
-      return shapes[0];
+      return shapes;
     },
     [editor.store],
   );
+
+  const groupedNodes = useMemo(() => {
+    const groups: NodeGroup[] = discourseNodes.map((node) => {
+      const shapes = findShapesByUid(node.uid);
+      return {
+        uid: node.uid,
+        text: node.text,
+        shapes,
+        isDuplicate: shapes.length > 1,
+      };
+    });
+
+    return groups.sort((a, b) => {
+      if (a.isDuplicate !== b.isDuplicate) {
+        return a.isDuplicate ? -1 : 1;
+      }
+      return a.text.localeCompare(b.text);
+    });
+  }, [discourseNodes, findShapesByUid]);
+
+  useEffect(() => {
+    setOpenSections((prev) => {
+      const next: Record<string, boolean> = {};
+      groupedNodes.forEach((group) => {
+        next[group.uid] = prev[group.uid] ?? group.isDuplicate;
+      });
+
+      const isSame =
+        Object.keys(prev).length === Object.keys(next).length &&
+        Object.entries(next).every(([key, value]) => prev[key] === value);
+
+      return isSame ? prev : next;
+    });
+  }, [groupedNodes]);
 
   const moveCameraToShape = useCallback(
     (shapeId: string) => {
@@ -306,27 +349,43 @@ const ClipboardPageSection = ({
     [editor],
   );
 
+  const handleShapeSelection = useCallback(
+    (shapeId: string) => {
+      moveCameraToShape(shapeId);
+    },
+    [moveCameraToShape],
+  );
+
   const handleNodeClick = useCallback(
     async (
       e: React.MouseEvent<HTMLDivElement>,
-      node: { uid: string; text: string },
+      group: NodeGroup,
+      shapeId?: string,
     ) => {
       e.stopPropagation();
-      const shape = findShapeByUid(node.uid);
-      if (shape) {
-        moveCameraToShape(shape.id);
+      if (shapeId) {
+        handleShapeSelection(shapeId);
+      } else if (group.shapes.length > 0) {
+        handleShapeSelection(group.shapes[0].id);
       } else {
         if (e.shiftKey) {
-          await openBlockInSidebar(node.uid);
+          await openBlockInSidebar(group.uid);
         } else if (e.ctrlKey) {
           void window.roamAlphaAPI.ui.mainWindow.openPage({
-            page: { uid: node.uid },
+            page: { uid: group.uid },
           });
         }
       }
     },
-    [findShapeByUid, moveCameraToShape, openBlockInSidebar],
+    [handleShapeSelection, openBlockInSidebar],
   );
+
+  const toggleCollapse = useCallback((uid: string) => {
+    setOpenSections((prevState) => ({
+      ...prevState,
+      [uid]: !prevState[uid],
+    }));
+  }, []);
 
   return (
     <>
@@ -364,26 +423,98 @@ const ClipboardPageSection = ({
               <Spinner size={SpinnerSize.SMALL} />
               <span>Loading nodes...</span>
             </div>
-          ) : discourseNodes.length === 0 ? (
+          ) : groupedNodes.length === 0 ? (
             <div className="rounded border border-dashed border-gray-200 p-2">
               No discourse nodes found on this page.
             </div>
           ) : (
             <div className="space-y-1">
-              {discourseNodes.map((node) => {
-                const shape = findShapeByUid(node.uid);
-                const nodeExistsInCanvas = !!shape;
+              {groupedNodes.map((group) => {
+                const nodeExistsInCanvas = group.shapes.length > 0;
+                const isGroupOpen = openSections[group.uid] ?? false;
+
+                if (group.isDuplicate) {
+                  return (
+                    <div key={group.uid} className="space-y-1">
+                      <div
+                        className="group flex cursor-pointer items-center gap-2 rounded bg-white p-2 hover:bg-gray-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleCollapse(group.uid);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              minimal
+                              small
+                              icon={
+                                isGroupOpen ? "chevron-down" : "chevron-right"
+                              }
+                              className="pointer-events-none"
+                            />
+                            <span>{group.text}</span>
+                          </div>
+                          {group.isDuplicate && (
+                            <Tag minimal>{group.shapes.length}</Tag>
+                          )}
+                        </div>
+                      </div>
+                      {group.isDuplicate && (
+                        <Collapse isOpen={isGroupOpen}>
+                          <div className="ml-5 mt-1 flex flex-col gap-1">
+                            {group.shapes.map((shape, index) => (
+                              <div
+                                key={shape.id}
+                                className="group flex cursor-pointer items-center gap-2 rounded bg-white p-2 hover:bg-gray-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleNodeClick(e, group, shape.id);
+                                }}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    minimal
+                                    small
+                                    icon="dot"
+                                    className="pointer-events-none"
+                                  />
+                                  <span>Instance {index + 1}</span>
+                                </div>
+                                <Button
+                                  minimal
+                                  small
+                                  icon="locate"
+                                  title="Locate on canvas"
+                                  className="flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </Collapse>
+                      )}
+                    </div>
+                  );
+                }
 
                 return (
                   <div
-                    key={node.uid}
+                    key={group.uid}
                     className="group flex cursor-pointer items-center gap-2 rounded bg-white p-2 hover:bg-gray-50"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleNodeClick(e, node);
+                      handleNodeClick(e, group);
                     }}
                   >
-                    <span className="flex-1">{node.text}</span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        minimal
+                        small
+                        icon="dot"
+                        className="pointer-events-none"
+                      />
+                      <span className="flex-1">{group.text}</span>
+                    </div>
                     {nodeExistsInCanvas && (
                       <Button
                         minimal
