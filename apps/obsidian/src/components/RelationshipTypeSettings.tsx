@@ -84,7 +84,7 @@ const RelationshipTypeSettings = () => {
 
   const handleSave = async (): Promise<void> => {
     for (const relType of relationTypes) {
-      if (!relType.id || !relType.label || !relType.complement || !relType.color) {
+      if (!relType.id || !relType.label || !relType.complement) {
         new Notice("All fields are required for relation types.");
         return;
       }
