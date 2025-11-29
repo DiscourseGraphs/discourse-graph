@@ -1,5 +1,6 @@
 import { getNodeEnv } from "roamjs-components/util/env";
 import { ErrorEmailProps } from "@repo/types";
+import { getVersionWithDate } from "~/utils/getVersion";
 
 const sendErrorEmail = async ({
   error,
@@ -14,12 +15,15 @@ const sendErrorEmail = async ({
     getNodeEnv() === "development"
       ? "http://localhost:3000/api/errors"
       : "https://discoursegraphs.com/api/errors";
+  const { version, buildDate } = getVersionWithDate();
   const payload: ErrorEmailProps = {
     errorMessage: error.message,
     errorStack: error.stack || "",
     type,
     app: "Roam",
     graphName: window.roamAlphaAPI?.graph?.name || "unknown",
+    version,
+    buildDate,
     context,
   };
 
