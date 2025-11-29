@@ -111,10 +111,6 @@ const SuggestiveModeSettings = () => {
                       });
                       try {
                         await createOrUpdateDiscourseEmbedding();
-                        await createBlock({
-                          parentUid: settings.settingsUid,
-                          node: { text: "(BETA) Suggestive Mode Enabled" },
-                        });
                       } catch (e) {
                         console.error("Failed to generate embeddings", e);
                         renderToast({
