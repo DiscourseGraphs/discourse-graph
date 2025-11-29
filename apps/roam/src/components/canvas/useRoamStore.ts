@@ -153,7 +153,6 @@ export const useRoamStore = ({
         type: errorMessage,
         context: {
           pageUid,
-          user: getCurrentUserDisplayName(),
           snapshotSize,
           ...(snapshotSize < 10000 ? { initialSnapshot } : {}),
         },

@@ -7,23 +7,46 @@ const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000"];
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function POST(request: Request) {
-  try {
-    const origin = request.headers.get("origin");
-    const isAllowedOrigin = origin && allowedOrigins.includes(origin);
+const createCorsResponse = (
+  data: unknown,
+  status: number,
+  origin: string | null,
+): Response => {
+  const response = NextResponse.json(data, { status });
+  const isAllowedOrigin = origin && allowedOrigins.includes(origin);
 
-    const body = await request.json();
+  if (isAllowedOrigin) {
+    response.headers.set("Access-Control-Allow-Origin", origin);
+    response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  }
+
+  return response;
+};
+
+export const POST = async (request: Request) => {
+  const origin = request.headers.get("origin");
+
+  try {
+    const body = (await request.json()) as ErrorEmailProps;
     const {
       errorMessage,
       errorStack,
       type,
       app,
       graphName,
+      username,
+      version,
+      buildDate,
       context = {},
-    } = body as ErrorEmailProps;
+    } = body;
 
     if (!errorMessage) {
-      return Response.json({ error: "Missing error message" }, { status: 400 });
+      return createCorsResponse(
+        { error: "Missing error message" },
+        400,
+        origin,
+      );
     }
 
     const { data, error: resendError } = await resend.emails.send({
@@ -37,32 +60,30 @@ export async function POST(request: Request) {
         type,
         app,
         graphName,
+        // ?: Why is username assignment unsafe and graphName,version,buildDate are not?
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        username,
+        version,
+        buildDate,
         context,
       }),
     });
 
     if (resendError) {
-      return Response.json({ error: resendError }, { status: 500 });
+      return createCorsResponse({ error: resendError }, 500, origin);
     }
 
-    const response = NextResponse.json({ success: true, data });
-
-    if (isAllowedOrigin) {
-      response.headers.set("Access-Control-Allow-Origin", origin);
-      response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-      response.headers.set("Access-Control-Allow-Headers", "Content-Type");
-    }
-
-    return response;
+    return createCorsResponse({ success: true, data }, 200, origin);
   } catch (error) {
-    return Response.json(
+    return createCorsResponse(
       { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 },
+      500,
+      origin,
     );
   }
-}
+};
 
-export async function OPTIONS(request: Request) {
+export const OPTIONS = (request: Request) => {
   const origin = request.headers.get("origin");
 
   const isAllowedOrigin = origin && allowedOrigins.includes(origin);
@@ -78,4 +99,4 @@ export async function OPTIONS(request: Request) {
   }
 
   return response;
-}
+};

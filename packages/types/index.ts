@@ -4,7 +4,8 @@ export type ErrorEmailProps = {
   type: string; // To identify the type of error, eg "Export Dialog Failed"
   app: "Roam" | "Obsidian";
   graphName: string;
-  version?: string;
-  buildDate?: string;
+  version: string;
+  buildDate: string;
+  username: string;
   context?: Record<string, unknown>;
 };
