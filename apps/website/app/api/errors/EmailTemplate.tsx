@@ -8,15 +8,19 @@ export const EmailTemplate = ({
   type,
   app,
   graphName,
+  version,
+  buildDate,
   context,
 }: ErrorEmailProps) => {
   return (
     <div>
       <h1>Error Report</h1>
 
-      <h2>Type: {type}</h2>
-      <h2>App: {app}</h2>
-      <h2>Graph Name: {graphName}</h2>
+      <span>Type: {type}</span>
+      <span>App: {app}</span>
+      <span>Graph Name: {graphName}</span>
+      {version && <span>Version: {version}</span>}
+      {buildDate && <span>Build Date: {buildDate}</span>}
 
       <div>
         <h2>Error Details</h2>
