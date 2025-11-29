@@ -48,6 +48,7 @@ import DiscourseGraphPanel from "./DiscourseToolPanel";
 import { convertComboToTldrawFormat } from "~/utils/keyboardShortcutUtils";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
+import { ClipboardToolbarButton } from "./Clipboard";
 
 const convertToDiscourseNode = async ({
   text,
@@ -231,6 +232,7 @@ export const createUiComponents = ({
             {...tools["discourse-tool"]}
             isSelected={useIsToolSelected(tools["discourse-tool"])}
           />
+          <ClipboardToolbarButton />
           <DefaultToolbarContent />
           {/* {allNodes.map((n) => (
             <TldrawUiMenuItem
