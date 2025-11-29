@@ -44,6 +44,7 @@ type ClipboardContextValue = {
   removePage: (uid: string) => void;
 };
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const ClipboardContext = createContext<ClipboardContextValue | null>(null);
 
 const getStorageKey = () => {
@@ -152,6 +153,8 @@ const AddPageModal = ({ isOpen, onClose, onConfirm }: AddPageModalProps) => {
     const fetchAllPages = async () => {
       setIsLoading(true);
       try {
+        // TODO update roamjs-components
+        // eslint-disable-next-line @typescript-eslint/await-thenable
         const raw = await window.roamAlphaAPI.data.backend.q(
           `
             [:find ?s ?u 
@@ -377,7 +380,7 @@ const ClipboardPageSection = ({
         }
       }
     },
-    [handleShapeSelection, openBlockInSidebar],
+    [handleShapeSelection],
   );
 
   const toggleCollapse = useCallback((uid: string) => {
@@ -469,7 +472,7 @@ const ClipboardPageSection = ({
                                 className="group flex cursor-pointer items-center gap-2 rounded bg-white p-2 hover:bg-gray-50"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleNodeClick(e, group, shape.id);
+                                  void handleNodeClick(e, group, shape.id);
                                 }}
                               >
                                 <div className="flex items-center gap-1">
@@ -503,7 +506,7 @@ const ClipboardPageSection = ({
                     className="group flex cursor-pointer items-center gap-2 rounded bg-white p-2 hover:bg-gray-50"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleNodeClick(e, group);
+                      void handleNodeClick(e, group);
                     }}
                   >
                     <div className="flex items-center gap-1">
