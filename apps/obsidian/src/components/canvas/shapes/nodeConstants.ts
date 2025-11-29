@@ -37,6 +37,8 @@ export const FONT_FAMILY =
 // Maximum height for key images
 export const MAX_IMAGE_HEIGHT = 250;
 
+export const EXTRA_BOTTOM_SPACING = 12;
+
 // Gap between image and text
 export const IMAGE_GAP = 4;
 

@@ -6,6 +6,8 @@ import {
   TldrawFile,
   TLRecord,
   TLStore,
+  loadSnapshot,
+  TLStoreSnapshot,
 } from "tldraw";
 import {
   FRONTMATTER_KEY,
@@ -24,6 +26,7 @@ import {
 } from "~/components/canvas/shapes/DiscourseNodeShape";
 import { DiscourseRelationUtil } from "~/components/canvas/shapes/DiscourseRelationShape";
 import { DiscourseRelationBindingUtil } from "~/components/canvas/shapes/DiscourseRelationBinding";
+import { discourseNodeMigrations } from "~/components/canvas/shapes/discourseNodeMigrations";
 
 export type TldrawPluginMetaData = {
   /* eslint-disable @typescript-eslint/naming-convention */
@@ -70,20 +73,26 @@ export const processInitialData = (
       ) as SerializedStore<TLRecord>)
     : (data.raw.records as SerializedStore<TLRecord>);
 
-  let store: TLStore;
+  // Create store first (this creates the schema with migrations)
+  const store = createTLStore({
+    shapeUtils: customShapeUtils,
+    bindingUtils: [...defaultBindingUtils, DiscourseRelationBindingUtil],
+    assets: assetStore,
+    migrations: [discourseNodeMigrations],
+  });
+
   if (recordsData) {
-    store = createTLStore({
-      shapeUtils: customShapeUtils,
-      bindingUtils: [...defaultBindingUtils, DiscourseRelationBindingUtil],
-      initialData: recordsData,
-      assets: assetStore,
-    });
-  } else {
-    store = createTLStore({
-      shapeUtils: customShapeUtils,
-      bindingUtils: [...defaultBindingUtils, DiscourseRelationBindingUtil],
-      assets: assetStore,
-    });
+    // Create a snapshot with the old schema (if available) or use current schema
+    // The schema from data.raw is typed as any because it's legacy data format
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+    const oldSchema = data.raw.schema ?? store.schema.serialize();
+    const snapshot: TLStoreSnapshot = {
+      store: recordsData,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      schema: oldSchema,
+    };
+
+    loadSnapshot(store, snapshot, { forceOverwriteSessionState: true });
   }
 
   return {
