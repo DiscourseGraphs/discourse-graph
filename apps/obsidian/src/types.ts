@@ -1,4 +1,5 @@
 import { TFile } from "obsidian";
+import { TldrawColorName } from "./utils/tldrawColors";
 
 export type DiscourseNode = {
   id: string;
@@ -16,7 +17,7 @@ export type DiscourseRelationType = {
   id: string;
   label: string;
   complement: string;
-  color: string;
+  color: TldrawColorName;
 };
 
 export type DiscourseRelation = {
