@@ -28,6 +28,7 @@ import {
 import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import { DGSupabaseClient } from "@repo/database/lib/client";
+import sendErrorEmail from "~/utils/sendErrorEmail";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -326,24 +327,40 @@ const FeatureFlagsTab = (): React.ReactElement => {
     getSetting("use-reified-relations"),
   );
   return (
-    <Checkbox
-      defaultChecked={useReifiedRelations}
-      onChange={(e) => {
-        const target = e.target as HTMLInputElement;
-        setUseReifiedRelations(target.checked);
-        setSetting("use-reified-relations", target.checked);
-      }}
-      labelElement={
-        <>
-          Reified Relation Triples
-          <Description
-            description={
-              "When ON, relations are read/written as reifiedRelationUid in [[roam/js/discourse-graph/relations]]."
-            }
-          />
-        </>
-      }
-    />
+    <div className="flex flex-col gap-4 p-4">
+      <Checkbox
+        defaultChecked={useReifiedRelations}
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          setUseReifiedRelations(target.checked);
+          setSetting("use-reified-relations", target.checked);
+        }}
+        labelElement={
+          <>
+            Reified Relation Triples
+            <Description
+              description={
+                "When ON, relations are read/written as reifiedRelationUid in [[roam/js/discourse-graph/relations]]."
+              }
+            />
+          </>
+        }
+      />
+
+      <Button
+        className="w-96"
+        icon="send-message"
+        onClick={() => {
+          console.log("sending error email");
+          sendErrorEmail({
+            error: new Error("test"),
+            type: "Test",
+          }).catch(() => {});
+        }}
+      >
+        Send Error Email
+      </Button>
+    </div>
   );
 };
 

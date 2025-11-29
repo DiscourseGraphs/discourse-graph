@@ -513,7 +513,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         type: "Tldraw Error",
         context: {
           title: title,
-          user: getCurrentUserDisplayName(),
           lastActions: lastActionsRef.current,
         },
       }).catch(() => {});
