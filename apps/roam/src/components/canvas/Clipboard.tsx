@@ -319,6 +319,7 @@ const ClipboardPageSection = ({
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [storeVersion, setStoreVersion] = useState(0);
   const editor = useEditor();
   const extensionAPI = useExtensionAPI();
   const rClipboardContainer = useRef<HTMLDivElement>(null);
@@ -352,6 +353,44 @@ const ClipboardPageSection = ({
     }
   }, [page.text, isOpen]);
 
+  // Listen to store changes to update clipboard when shapes are added/removed
+  useEffect(() => {
+    const unsubscribe = editor.store.listen((record) => {
+      // Only update if shapes were added, removed, or updated
+      const addedIds = Object.keys(record.changes.added);
+      const removedIds = Object.keys(record.changes.removed);
+      const updatedIds = Object.keys(record.changes.updated);
+
+      const hasShapeChanges =
+        addedIds.some(
+          (id) =>
+            record.changes.added[id as keyof typeof record.changes.added]
+              ?.typeName === "shape",
+        ) ||
+        removedIds.some(
+          (id) =>
+            record.changes.removed[id as keyof typeof record.changes.removed]
+              ?.typeName === "shape",
+        ) ||
+        updatedIds.some((id) => {
+          const update =
+            record.changes.updated[id as keyof typeof record.changes.updated];
+          if (!update || !Array.isArray(update)) return false;
+          const before = update[0];
+          const after = update[1];
+          return before?.typeName === "shape" || after?.typeName === "shape";
+        });
+
+      if (hasShapeChanges) {
+        setStoreVersion((prev) => prev + 1);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [editor.store]);
+
   const findShapesByUid = useCallback(
     (uid: string): DiscourseNodeShape[] => {
       const allRecords = editor.store.allRecords();
@@ -382,7 +421,8 @@ const ClipboardPageSection = ({
       }
       return a.text.localeCompare(b.text);
     });
-  }, [discourseNodes, findShapesByUid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [discourseNodes, findShapesByUid, storeVersion]);
 
   useEffect(() => {
     setOpenSections((prev) => {
