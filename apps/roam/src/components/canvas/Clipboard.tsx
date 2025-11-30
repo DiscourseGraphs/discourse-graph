@@ -823,7 +823,8 @@ const ClipboardPageSection = ({
                             {group.shapes.map((shape, index) => (
                               <div
                                 key={shape.id}
-                                className="group flex cursor-pointer items-center gap-2 rounded bg-white p-2 hover:bg-gray-50"
+                                className="group flex items-center gap-2 rounded bg-white p-2 hover:bg-gray-50 active:cursor-grabbing"
+                                style={{ cursor: "grab" }}
                                 data-clipboard-node-uid={group.uid}
                                 data-clipboard-node-text={group.text}
                                 onClick={(e) => {
@@ -861,7 +862,8 @@ const ClipboardPageSection = ({
                 return (
                   <div
                     key={group.uid}
-                    className="group flex cursor-pointer items-center gap-2 rounded bg-white p-2 hover:bg-gray-50"
+                    className="group flex items-center gap-2 rounded bg-white p-2 hover:bg-gray-50 active:cursor-grabbing"
+                    style={{ cursor: "grab" }}
                     data-clipboard-node-uid={group.uid}
                     data-clipboard-node-text={group.text}
                     onClick={(e) => {
