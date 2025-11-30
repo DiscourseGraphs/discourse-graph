@@ -323,6 +323,7 @@ const ClipboardPageSection = ({
   const extensionAPI = useExtensionAPI();
   const rClipboardContainer = useRef<HTMLDivElement>(null);
   const rDraggingImage = useRef<HTMLDivElement>(null);
+  const rHasDragged = useRef<boolean>(false);
 
   // Drag state management
   const dragState = useAtom<DragState>("clipboardDragState", () => ({
@@ -426,6 +427,10 @@ const ClipboardPageSection = ({
       shapeId?: string,
     ) => {
       e.stopPropagation();
+      // Don't navigate if we just completed a drag operation
+      if (rHasDragged.current) {
+        return;
+      }
       if (shapeId) {
         handleShapeSelection(shapeId);
       } else if (group.shapes.length > 0) {
@@ -553,6 +558,7 @@ const ClipboardPageSection = ({
         }
         case "pointing_item": {
           // If it's just a click (not a drag), do nothing (let handleNodeClick handle it)
+          rHasDragged.current = false;
           dragState.set({
             name: "idle",
           });
@@ -560,12 +566,17 @@ const ClipboardPageSection = ({
         }
         case "dragging": {
           // When dragging ends, create the shape at the drop position
+          rHasDragged.current = true;
           const pagePoint = editor.screenToPage(current.currentPosition);
           void handleDropNode(current.node, pagePoint);
 
           dragState.set({
             name: "idle",
           });
+          // Reset the flag after a short delay to allow onClick to check it
+          setTimeout(() => {
+            rHasDragged.current = false;
+          }, 0);
           break;
         }
       }
