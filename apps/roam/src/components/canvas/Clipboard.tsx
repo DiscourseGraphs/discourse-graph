@@ -33,6 +33,7 @@ import {
   createShapeId,
   TLDefaultSizeStyle,
   TLDefaultFontStyle,
+  FONT_FAMILIES,
 } from "tldraw";
 import { useAtom } from "@tldraw/state";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
@@ -40,12 +41,20 @@ import { Result } from "roamjs-components/types/query-builder";
 import fuzzy from "fuzzy";
 import { getAllReferencesOnPage } from "~/utils/hyde";
 import isDiscourseNode from "~/utils/isDiscourseNode";
-import { DiscourseNodeShape } from "./DiscourseNodeUtil";
+import {
+  DiscourseNodeShape,
+  DEFAULT_STYLE_PROPS,
+  FONT_SIZES,
+} from "./DiscourseNodeUtil";
 import { openBlockInSidebar } from "roamjs-components/writes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
+import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
+import { colord } from "colord";
+import getPleasingColors from "@repo/utils/getPleasingColors";
+import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./Tldraw";
 
 export type ClipboardPage = {
   uid: string;
@@ -281,6 +290,8 @@ type DragState =
       node: {
         uid: string;
         text: string;
+        backgroundColor: string;
+        textColor: string;
       };
       startPosition: Vec;
     }
@@ -289,6 +300,8 @@ type DragState =
       node: {
         uid: string;
         text: string;
+        backgroundColor: string;
+        textColor: string;
       };
       currentPosition: Vec;
     };
@@ -570,11 +583,19 @@ const ClipboardPageSection = ({
       const nodeText = target.dataset.clipboardNodeText;
       if (!nodeUid || !nodeText) return;
 
+      const nodeType = findDiscourseNode(nodeUid);
+      const backgroundColor =
+        nodeType && nodeType.canvasSettings?.color
+          ? formatHexColor(nodeType.canvasSettings.color) || "black"
+          : "black";
+      const pleasingColors = getPleasingColors(colord(backgroundColor));
+      const textColor = pleasingColors.text;
+
       const startPosition = new Vec(e.clientX, e.clientY);
 
       dragState.set({
         name: "pointing_item",
-        node: { uid: nodeUid, text: nodeText },
+        node: { uid: nodeUid, text: nodeText, backgroundColor, textColor },
         startPosition,
       });
 
@@ -622,22 +643,19 @@ const ClipboardPageSection = ({
             imageRef.style.display = "flex";
             imageRef.style.position = "fixed";
             imageRef.style.pointerEvents = "none";
-            imageRef.style.left = `${current.currentPosition.x - 25}px`;
-            imageRef.style.top = `${current.currentPosition.y - 25}px`;
-            imageRef.style.width = "50px";
-            imageRef.style.height = "50px";
-            imageRef.style.fontSize = "12px";
+            imageRef.style.left = `${current.currentPosition.x - DEFAULT_WIDTH / 2}px`;
+            imageRef.style.top = `${current.currentPosition.y - DEFAULT_HEIGHT / 2}px`;
+            imageRef.style.width = `${DEFAULT_WIDTH}px`;
+            imageRef.style.height = `${DEFAULT_HEIGHT}px`;
             imageRef.style.alignItems = "center";
             imageRef.style.justifyContent = "center";
-            imageRef.style.borderRadius = "8px";
-            imageRef.style.backgroundColor = "#4263eb";
-            imageRef.style.color = "white";
-            imageRef.style.fontWeight = "bold";
-            imageRef.style.padding = "4px";
-            imageRef.style.textAlign = "center";
+            imageRef.style.borderRadius = "16px";
+            imageRef.style.backgroundColor = current.node.backgroundColor;
+            imageRef.style.color = current.node.textColor;
             imageRef.style.overflow = "hidden";
-            imageRef.style.textOverflow = "ellipsis";
             imageRef.style.zIndex = "9999";
+            imageRef.className =
+              "roamjs-tldraw-node pointer-events-none flex items-center justify-center overflow-hidden rounded-2xl";
           }
         }
       }
@@ -650,27 +668,31 @@ const ClipboardPageSection = ({
       <div ref={rDraggingImage}>
         {dragStateValue.name === "dragging" && (
           <div
+            className="roamjs-tldraw-node pointer-events-none flex items-center justify-center overflow-hidden rounded-2xl"
             style={{
-              backgroundColor: "#4263eb",
-              color: "white",
-              fontWeight: "bold",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              background: dragStateValue.node.backgroundColor,
+              color: dragStateValue.node.textColor,
               width: "100%",
               height: "100%",
-              padding: "4px",
-              textAlign: "center",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              fontSize: "12px",
             }}
           >
-            {dragStateValue.node.text}
+            <div
+              style={{
+                ...DEFAULT_STYLE_PROPS,
+                maxWidth: "",
+                fontFamily: FONT_FAMILIES.sans,
+                fontSize: FONT_SIZES.s,
+                padding: "4px",
+                textAlign: "center",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {dragStateValue.node.text}
+            </div>
           </div>
         )}
-      </div>{" "}
+      </div>
       <div
         onClick={() => setIsOpen((prev) => !prev)}
         className="cursor-pointer"
