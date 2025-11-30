@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -20,7 +21,20 @@ import {
   Tag,
 } from "@blueprintjs/core";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
-import { TldrawUiMenuItem, useActions, useEditor, TLShapeId } from "tldraw";
+import {
+  TldrawUiMenuItem,
+  useActions,
+  useEditor,
+  TLShapeId,
+  useValue,
+  useQuickReactor,
+  Vec,
+  Box,
+  createShapeId,
+  TLDefaultSizeStyle,
+  TLDefaultFontStyle,
+} from "tldraw";
+import { useAtom } from "@tldraw/state";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import { Result } from "roamjs-components/types/query-builder";
 import fuzzy from "fuzzy";
@@ -28,6 +42,10 @@ import { getAllReferencesOnPage } from "~/utils/hyde";
 import isDiscourseNode from "~/utils/isDiscourseNode";
 import { DiscourseNodeShape } from "./DiscourseNodeUtil";
 import { openBlockInSidebar } from "roamjs-components/writes";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import findDiscourseNode from "~/utils/findDiscourseNode";
+import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
+import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
 
 export type ClipboardPage = {
   uid: string;
@@ -254,6 +272,27 @@ type NodeGroup = {
   isDuplicate: boolean;
 };
 
+type DragState =
+  | {
+      name: "idle";
+    }
+  | {
+      name: "pointing_item";
+      node: {
+        uid: string;
+        text: string;
+      };
+      startPosition: Vec;
+    }
+  | {
+      name: "dragging";
+      node: {
+        uid: string;
+        text: string;
+      };
+      currentPosition: Vec;
+    };
+
 const ClipboardPageSection = ({
   page,
   onRemove,
@@ -268,6 +307,14 @@ const ClipboardPageSection = ({
   const [isLoading, setIsLoading] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const editor = useEditor();
+  const extensionAPI = useExtensionAPI();
+  const rClipboardContainer = useRef<HTMLDivElement>(null);
+  const rDraggingImage = useRef<HTMLDivElement>(null);
+
+  // Drag state management
+  const dragState = useAtom<DragState>("clipboardDragState", () => ({
+    name: "idle",
+  }));
 
   useEffect(() => {
     const fetchDiscourseNodes = async () => {
@@ -390,9 +437,240 @@ const ClipboardPageSection = ({
     }));
   }, []);
 
+  const handleDropNode = useCallback(
+    async (node: { uid: string; text: string }, pagePoint: Vec) => {
+      if (!extensionAPI) return;
+
+      const nodeType = findDiscourseNode(node.uid);
+      if (!nodeType) {
+        console.error(`Node type not found for uid: ${node.uid}`);
+        return;
+      }
+
+      const title = node.text || getPageTitleByPageUid(node.uid);
+      const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
+        nodeText: title,
+        uid: node.uid,
+        nodeType: nodeType.type,
+        extensionAPI,
+      });
+
+      const shapeId = createShapeId();
+      const shape = {
+        id: shapeId,
+        type: nodeType.type,
+        x: pagePoint.x,
+        y: pagePoint.y,
+        props: {
+          uid: node.uid,
+          title,
+          w,
+          h,
+          imageUrl,
+          size: "s" as TLDefaultSizeStyle,
+          fontFamily: "sans" as TLDefaultFontStyle,
+        },
+      };
+      editor.createShape<DiscourseNodeShape>(shape);
+      editor.setCurrentTool("select");
+    },
+    [editor, extensionAPI],
+  );
+
+  // Drag and drop handlers
+  const { handlePointerDown, handlePointerUp } = useMemo(() => {
+    let target: HTMLDivElement | null = null;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const current = dragState.get();
+      const screenPoint = new Vec(e.clientX, e.clientY);
+
+      switch (current.name) {
+        case "idle": {
+          break;
+        }
+        case "pointing_item": {
+          const dist = Vec.Dist(screenPoint, current.startPosition);
+          if (dist > 10) {
+            dragState.set({
+              name: "dragging",
+              node: current.node,
+              currentPosition: screenPoint,
+            });
+          }
+          break;
+        }
+        case "dragging": {
+          dragState.set({
+            ...current,
+            currentPosition: screenPoint,
+          });
+          break;
+        }
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const current = dragState.get();
+      if (e.key === "Escape" && current.name === "dragging") {
+        removeEventListeners();
+      }
+    };
+
+    const removeEventListeners = () => {
+      if (target) {
+        target.removeEventListener("pointermove", handlePointerMove);
+        document.removeEventListener("keydown", handleKeyDown);
+      }
+
+      dragState.set({
+        name: "idle",
+      });
+    };
+
+    const handlePointerUp = (e: React.PointerEvent) => {
+      const current = dragState.get();
+
+      target = e.currentTarget as HTMLDivElement;
+      target.releasePointerCapture(e.pointerId);
+
+      switch (current.name) {
+        case "idle": {
+          break;
+        }
+        case "pointing_item": {
+          // If it's just a click (not a drag), do nothing (let handleNodeClick handle it)
+          dragState.set({
+            name: "idle",
+          });
+          break;
+        }
+        case "dragging": {
+          // When dragging ends, create the shape at the drop position
+          const pagePoint = editor.screenToPage(current.currentPosition);
+          void handleDropNode(current.node, pagePoint);
+
+          dragState.set({
+            name: "idle",
+          });
+          break;
+        }
+      }
+
+      removeEventListeners();
+    };
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      target = e.currentTarget as HTMLDivElement;
+      target.setPointerCapture(e.pointerId);
+
+      const nodeUid = target.dataset.clipboardNodeUid;
+      const nodeText = target.dataset.clipboardNodeText;
+      if (!nodeUid || !nodeText) return;
+
+      const startPosition = new Vec(e.clientX, e.clientY);
+
+      dragState.set({
+        name: "pointing_item",
+        node: { uid: nodeUid, text: nodeText },
+        startPosition,
+      });
+
+      target.addEventListener("pointermove", handlePointerMove);
+      document.addEventListener("keydown", handleKeyDown);
+    };
+
+    return {
+      handlePointerDown,
+      handlePointerUp,
+    };
+  }, [dragState, editor, handleDropNode]);
+
+  const dragStateValue = useValue("clipboardDragState", () => dragState.get(), [
+    dragState,
+  ]);
+
+  // Drag preview management
+  useQuickReactor(
+    "clipboard-drag-image-style",
+    () => {
+      const current = dragState.get();
+      const imageRef = rDraggingImage.current;
+      const containerRef = rClipboardContainer.current;
+      if (!imageRef || !containerRef) return;
+
+      switch (current.name) {
+        case "idle":
+        case "pointing_item": {
+          imageRef.style.display = "none";
+          break;
+        }
+        case "dragging": {
+          const containerRect = containerRef.getBoundingClientRect();
+          const box = new Box(
+            containerRect.x,
+            containerRect.y,
+            containerRect.width,
+            containerRect.height,
+          );
+          const isInside = Box.ContainsPoint(box, current.currentPosition);
+          if (isInside) {
+            imageRef.style.display = "none";
+          } else {
+            imageRef.style.display = "flex";
+            imageRef.style.position = "fixed";
+            imageRef.style.pointerEvents = "none";
+            imageRef.style.left = `${current.currentPosition.x - 25}px`;
+            imageRef.style.top = `${current.currentPosition.y - 25}px`;
+            imageRef.style.width = "50px";
+            imageRef.style.height = "50px";
+            imageRef.style.fontSize = "12px";
+            imageRef.style.alignItems = "center";
+            imageRef.style.justifyContent = "center";
+            imageRef.style.borderRadius = "8px";
+            imageRef.style.backgroundColor = "#4263eb";
+            imageRef.style.color = "white";
+            imageRef.style.fontWeight = "bold";
+            imageRef.style.padding = "4px";
+            imageRef.style.textAlign = "center";
+            imageRef.style.overflow = "hidden";
+            imageRef.style.textOverflow = "ellipsis";
+            imageRef.style.zIndex = "9999";
+          }
+        }
+      }
+    },
+    [dragState, editor],
+  );
+
   return (
     <>
-      {" "}
+      <div ref={rDraggingImage}>
+        {dragStateValue.name === "dragging" && (
+          <div
+            style={{
+              backgroundColor: "#4263eb",
+              color: "white",
+              fontWeight: "bold",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              height: "100%",
+              padding: "4px",
+              textAlign: "center",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              fontSize: "12px",
+            }}
+          >
+            {dragStateValue.node.text}
+          </div>
+        )}
+      </div>{" "}
       <div
         onClick={() => setIsOpen((prev) => !prev)}
         className="cursor-pointer"
@@ -420,7 +698,10 @@ const ClipboardPageSection = ({
         </div>
       </div>
       <Collapse isOpen={isOpen} keepChildrenMounted={true}>
-        <div className="pl-6 pr-2 text-sm text-gray-600">
+        <div
+          ref={rClipboardContainer}
+          className="pl-6 pr-2 text-sm text-gray-600"
+        >
           {isLoading ? (
             <div className="flex items-center gap-2 p-2">
               <Spinner size={SpinnerSize.SMALL} />
@@ -470,10 +751,14 @@ const ClipboardPageSection = ({
                               <div
                                 key={shape.id}
                                 className="group flex cursor-pointer items-center gap-2 rounded bg-white p-2 hover:bg-gray-50"
+                                data-clipboard-node-uid={group.uid}
+                                data-clipboard-node-text={group.text}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   void handleNodeClick(e, group, shape.id);
                                 }}
+                                onPointerDown={handlePointerDown}
+                                onPointerUp={handlePointerUp}
                               >
                                 <div className="flex items-center gap-1">
                                   <Button
@@ -504,10 +789,14 @@ const ClipboardPageSection = ({
                   <div
                     key={group.uid}
                     className="group flex cursor-pointer items-center gap-2 rounded bg-white p-2 hover:bg-gray-50"
+                    data-clipboard-node-uid={group.uid}
+                    data-clipboard-node-text={group.text}
                     onClick={(e) => {
                       e.stopPropagation();
                       void handleNodeClick(e, group);
                     }}
+                    onPointerDown={handlePointerDown}
+                    onPointerUp={handlePointerUp}
                   >
                     <div className="flex items-center gap-1">
                       <Button
