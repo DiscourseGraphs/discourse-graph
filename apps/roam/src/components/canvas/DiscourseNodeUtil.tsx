@@ -33,7 +33,6 @@ import createDiscourseNode from "~/utils/createDiscourseNode";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { isPageUid } from "./Tldraw";
 import LabelDialog from "./LabelDialog";
-import { colord } from "colord";
 import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
@@ -46,7 +45,7 @@ import {
 } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
-import getPleasingColors from "@repo/utils/getPleasingColors";
+import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -58,7 +57,7 @@ const TEXT_PROPS = {
   padding: "0px",
   maxWidth: "auto",
 };
-const FONT_SIZES: Record<TLDefaultSizeStyle, number> = {
+export const FONT_SIZES: Record<TLDefaultSizeStyle, number> = {
   m: 25,
   l: 38,
   xl: 48,
@@ -343,26 +342,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
   }
 
   getColors() {
-    const {
-      canvasSettings: { color: setColor = "" } = {},
-      index: discourseNodeIndex = -1,
-    } = discourseContext.nodes[this.type] || {};
-    const paletteColor =
-      COLOR_ARRAY[
-        discourseNodeIndex >= 0 && discourseNodeIndex < COLOR_ARRAY.length - 1
-          ? discourseNodeIndex
-          : 0
-      ];
-    const formattedTextColor =
-      setColor && !setColor.startsWith("#") ? `#${setColor}` : setColor;
-
-    const canvasSelectedColor = formattedTextColor
-      ? formattedTextColor
-      : COLOR_PALETTE[paletteColor];
-    const pleasingColors = getPleasingColors(colord(canvasSelectedColor));
-    const backgroundColor = pleasingColors.background;
-    const textColor = pleasingColors.text;
-    return { backgroundColor, textColor };
+    return getDiscourseNodeColors({ nodeType: this.type });
   }
 
   async toSvg(shape: DiscourseNodeShape): Promise<JSX.Element> {
