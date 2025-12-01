@@ -198,10 +198,8 @@ const createDiscourseNodeShape = async ({
     linkedFile: createdFile,
   });
 
-  // Get the position of the original shape
   const { x, y } = shape;
 
-  // Calculate the proper size based on title, nodeType, and image
   const { w, h } = await calcDiscourseNodeSize({
     title: createdFile.basename,
     nodeTypeId: nodeType.id,
