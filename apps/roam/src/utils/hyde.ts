@@ -1,6 +1,7 @@
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import { Result } from "./types";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
+import { render as renderToast } from "roamjs-components/components/Toast";
 import findDiscourseNode from "./findDiscourseNode";
 import { nextApiRoot } from "@repo/utils/execContext";
 import { DiscourseNode } from "./getDiscourseNodes";
@@ -58,7 +59,7 @@ type EmbeddingFunc = (text: string) => Promise<EmbeddingVectorType>;
 
 type SearchFunc = (params: {
   queryEmbedding: EmbeddingVectorType;
-  indexData: { uid: string; text: string }[];
+  indexData: Result[];
 }) => Promise<NodeSearchResult[]>;
 
 const API_CONFIG = {
@@ -173,7 +174,7 @@ const createEmbedding: EmbeddingFunc = async (
   }
 };
 
-export const searchEmbeddings: SearchFunc = async ({
+const searchEmbeddings: SearchFunc = async ({
   queryEmbedding,
   indexData,
 }): Promise<NodeSearchResult[]> => {
@@ -568,23 +569,24 @@ export const findSimilarNodesVectorOnly = async ({
 
     if (!data || !Array.isArray(data)) return [];
 
-    const results: VectorMatch[] = data.map(
-      (item: {
-        roam_uid: string;
-        text_content: string;
-        similarity: number;
-      }) => ({
-        node: {
-          uid: item.roam_uid,
-          text: item.text_content,
-        },
-        score: item.similarity,
-      }),
-    );
+    const results: VectorMatch[] = data.map((item) => ({
+      node: {
+        uid: item.roam_uid,
+        text: item.text_content,
+      },
+      score: item.similarity,
+    }));
 
     return results;
   } catch (error) {
     console.error("Error in vector-only similar nodes search:", error);
+    renderToast({
+      content: `Error in vector-only similar nodes search: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      intent: "danger",
+      id: "vector-search-error",
+    });
     return [];
   }
 };
