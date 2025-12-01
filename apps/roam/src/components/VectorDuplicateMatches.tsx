@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Collapse, Spinner, Icon } from "@blueprintjs/core";
-import { findSimilarNodesVectorOnly, type VectorMatch } from "../utils/hyde";
-import { useNodeContext, type NodeContext } from "../utils/useNodeContext";
+import { findSimilarNodesVectorOnly, type VectorMatch } from "~/utils/hyde";
+import { useNodeContext, type NodeContext } from "~/utils/useNodeContext";
 import ReactDOM from "react-dom";
 
 type VectorSearchParams = {
@@ -18,19 +18,32 @@ export const VectorDuplicateMatches = ({
   text,
   limit = 15,
 }: {
-  pageTitle: string;
+  pageTitle?: string;
   text?: string;
   limit?: number;
 }) => {
+  const [debouncedText, setDebouncedText] = useState(text);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedText(text);
+    }, 500);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [text]);
+
   const [isOpen, setIsOpen] = useState(false);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [suggestions, setSuggestions] = useState<VectorMatch[]>([]);
 
-  const nodeContext: NodeContext | null = useNodeContext(pageTitle);
+  const nodeContext: NodeContext | null = useNodeContext(pageTitle || "");
   const activeContext = useMemo(
-    () => (text ? { searchText: text, pageUid: null } : nodeContext),
-    [text, nodeContext],
+    () =>
+      text !== undefined
+        ? { searchText: debouncedText || "", pageUid: null }
+        : nodeContext,
+    [text, debouncedText, nodeContext],
   );
 
   useEffect(() => {
@@ -101,7 +114,7 @@ export const VectorDuplicateMatches = ({
       >
         <div className="flex items-center gap-2">
           <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
-          <h5 className="m-0 font-semibold">Plain Vector Search Matches</h5>
+          <h5 className="m-0 font-semibold">Possible Duplicates</h5>
         </div>
         {hasSearched && !suggestionsLoading && hasSuggestions && (
           <span className="rounded-full bg-orange-500 px-2 py-0.5 text-xs text-white">
@@ -137,9 +150,6 @@ export const VectorDuplicateMatches = ({
                   >
                     {match.node.text}
                   </a>
-                  <span className="ml-2 shrink-0 text-xs tabular-nums text-gray-500">
-                    {match.score.toFixed(3)}
-                  </span>
                 </li>
               ))}
             </ul>
