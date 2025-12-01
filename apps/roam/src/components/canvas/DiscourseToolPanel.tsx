@@ -216,11 +216,6 @@ const DiscourseGraphPanel = ({
 
       if (!item) return;
 
-      // Relations should not be draggable, only clickable
-      if (item.type === "relation") {
-        return;
-      }
-
       const startPosition = new Vec(e.clientX, e.clientY);
 
       dragState.set({
@@ -229,8 +224,12 @@ const DiscourseGraphPanel = ({
         startPosition,
       });
 
-      target.addEventListener("pointermove", handlePointerMove);
-      document.addEventListener("keydown", handleKeyDown);
+      // Relations should not be draggable, only clickable
+      // So we don't add the pointermove listener for relations
+      if (item.type !== "relation") {
+        target.addEventListener("pointermove", handlePointerMove);
+        document.addEventListener("keydown", handleKeyDown);
+      }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
