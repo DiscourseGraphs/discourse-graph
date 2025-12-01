@@ -1088,7 +1088,7 @@ export const ClipboardToolbarButton = () => {
     <TldrawUiMenuItem
       id="clipboard-toggle"
       label="Clipboard"
-      icon="clipboard"
+      icon="clipboard-copy"
       readonlyOk
       onSelect={() => {
         actions["select"]; // touch actions to satisfy hook rules

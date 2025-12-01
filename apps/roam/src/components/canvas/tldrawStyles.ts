@@ -82,4 +82,10 @@ export default /* css */ `
 .roam-body .roam-app .roam-main .rm-sidebar-outline.dg-tldraw-maximized {
   position: static;
 }
+
+/* Clipboard toggle button in toolbar */
+.tlui-toolbar__lock-button[data-clipboard-open="true"]::after {
+  background-color: var(--color-muted-2);
+  opacity: 1;
+}
 `;

@@ -49,6 +49,7 @@ import { convertComboToTldrawFormat } from "~/utils/keyboardShortcutUtils";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { ClipboardToolbarButton } from "./Clipboard";
+import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 
 const convertToDiscourseNode = async ({
   text,
@@ -226,6 +227,7 @@ export const createUiComponents = ({
     Toolbar: (props) => {
       const tools = useTools();
       return (
+        // <CustomDefaultToolbar {...props}>
         <DefaultToolbar {...props}>
           <TldrawUiMenuItem
             key="discourse-tool"
@@ -258,6 +260,7 @@ export const createUiComponents = ({
               isSelected={useIsToolSelected(tools[action])}
             />
           ))} */}
+          {/* </CustomDefaultToolbar> */}
         </DefaultToolbar>
       );
     },
