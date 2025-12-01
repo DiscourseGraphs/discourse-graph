@@ -595,8 +595,8 @@ const ClipboardPageSection = ({
       const shape = {
         id: shapeId,
         type: nodeType.type,
-        x: pagePoint.x,
-        y: pagePoint.y,
+        x: pagePoint.x - w / 2,
+        y: pagePoint.y - h / 2,
         props: {
           uid: node.uid,
           title,
@@ -740,6 +740,12 @@ const ClipboardPageSection = ({
     dragState,
   ]);
 
+  const zoomLevel = useValue(
+    "clipboardZoomLevel",
+    () => editor.getZoomLevel(),
+    [editor],
+  );
+
   // Drag preview management
   useQuickReactor(
     "clipboard-drag-image-style",
@@ -761,6 +767,9 @@ const ClipboardPageSection = ({
             maxWidth: MAX_WIDTH,
             text: current.node.text,
           });
+          const zoomLevel = editor.getZoomLevel();
+          const screenW = w * zoomLevel;
+          const screenH = h * zoomLevel;
           const containerRect = containerRef.getBoundingClientRect();
           const box = new Box(
             containerRect.x,
@@ -774,15 +783,16 @@ const ClipboardPageSection = ({
           } else {
             imageRef.style.display = "flex";
             imageRef.style.position = "fixed";
-            imageRef.style.left = `${current.currentPosition.x - w / 2}px`;
-            imageRef.style.top = `${current.currentPosition.y - h / 2}px`;
-            imageRef.style.width = `${w}px`;
-            imageRef.style.height = `${h}px`;
+            imageRef.style.left = `${current.currentPosition.x - screenW / 2}px`;
+            imageRef.style.top = `${current.currentPosition.y - screenH / 2}px`;
+            imageRef.style.width = `${screenW}px`;
+            imageRef.style.height = `${screenH}px`;
             imageRef.style.backgroundColor = current.node.backgroundColor;
             imageRef.style.color = current.node.textColor;
             imageRef.style.zIndex = "9999";
+            imageRef.style.borderRadius = `${16 * zoomLevel}px`;
             imageRef.className =
-              "roamjs-tldraw-node pointer-events-none flex fixed items-center justify-center overflow-hidden rounded-2xl";
+              "roamjs-tldraw-node pointer-events-none flex fixed items-center justify-center overflow-hidden";
           }
         }
       }
@@ -795,7 +805,7 @@ const ClipboardPageSection = ({
       <div ref={rDraggingImage}>
         {dragStateValue.name === "dragging" && (
           <div
-            className="roamjs-tldraw-node pointer-events-none flex items-center justify-center overflow-hidden rounded-2xl"
+            className="roamjs-tldraw-node pointer-events-none flex items-center justify-center overflow-hidden"
             style={{
               background: dragStateValue.node.backgroundColor,
               color: dragStateValue.node.textColor,
@@ -808,11 +818,8 @@ const ClipboardPageSection = ({
                 ...DEFAULT_STYLE_PROPS,
                 maxWidth: "",
                 fontFamily: FONT_FAMILIES.sans,
-                fontSize: FONT_SIZES.s,
-                padding: "4px",
-                textAlign: "center",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                fontSize: `${FONT_SIZES.s * zoomLevel}px`,
+                padding: `${40 * zoomLevel}px`,
               }}
             >
               {dragStateValue.node.text}
