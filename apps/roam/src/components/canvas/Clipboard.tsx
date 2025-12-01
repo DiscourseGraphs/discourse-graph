@@ -108,8 +108,6 @@ const getOrCreateClipboardBlock = async (
     .filter((block) => block[":block/string"] === clipboardBlockText)
     .map((block) => [block[":block/uid"], block[":block/string"]]);
 
-  console.log("existingBlocks", existingBlocks);
-
   if (existingBlocks && existingBlocks.length > 0 && existingBlocks[0]) {
     return existingBlocks[0][0];
   }
@@ -159,7 +157,6 @@ export const ClipboardProvider = ({
           Array.isArray(storedPages) &&
           storedPages.length > 0
         ) {
-          console.log("storedPages", storedPages);
           setPages(storedPages as ClipboardPage[]);
         }
       } catch (e) {
