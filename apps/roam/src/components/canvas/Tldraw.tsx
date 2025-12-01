@@ -671,7 +671,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               });
             }}
           >
-            <ClipboardProvider>
+            <ClipboardProvider canvasPageTitle={title}>
               <TldrawUi
                 overrides={uiOverrides}
                 components={customUiComponents}

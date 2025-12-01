@@ -20,7 +20,7 @@ import {
   SpinnerSize,
   Tag,
 } from "@blueprintjs/core";
-import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
+import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 import {
   TldrawUiMenuItem,
   useActions,
@@ -46,8 +46,9 @@ import {
   DEFAULT_STYLE_PROPS,
   FONT_SIZES,
 } from "./DiscourseNodeUtil";
-import { openBlockInSidebar } from "roamjs-components/writes";
+import { openBlockInSidebar, createBlock } from "roamjs-components/writes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
@@ -55,6 +56,8 @@ import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSetting
 import { colord } from "colord";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./Tldraw";
+import getBlockProps from "~/utils/getBlockProps";
+import setBlockProps from "~/utils/setBlockProps";
 
 export type ClipboardPage = {
   uid: string;
@@ -74,39 +77,115 @@ type ClipboardContextValue = {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const ClipboardContext = createContext<ClipboardContextValue | null>(null);
 
-const getStorageKey = () => {
-  const user = getCurrentUserDisplayName();
-  return `dg-clipboard-${user || "anonymous"}`;
+const CLIPBOARD_PROP_KEY = "pages";
+
+const getOrCreateClipboardBlock = async (
+  canvasPageTitle: string,
+  userUid: string,
+): Promise<string> => {
+  const canvasPageUid = getPageUidByPageTitle(canvasPageTitle);
+  if (!canvasPageUid) {
+    throw new Error(`Canvas page not found: ${canvasPageTitle}`);
+  }
+
+  const clipboardBlockText = `${userUid}-clipboard`;
+
+  const childBlocksData = window.roamAlphaAPI.pull(
+    "[:block/children {:block/children [:block/uid :block/string]}]",
+    [":node/title", canvasPageTitle],
+  );
+  const childBlocks =
+    childBlocksData?.[":block/children"] &&
+    Array.isArray(childBlocksData[":block/children"])
+      ? (childBlocksData[":block/children"] as Array<{
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          ":block/uid": string;
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          ":block/string": string;
+        }>)
+      : [];
+
+  const existingBlocks = childBlocks
+    .filter((block) => block[":block/string"] === clipboardBlockText)
+    .map((block) => [block[":block/uid"], block[":block/string"]]);
+
+  console.log("existingBlocks", existingBlocks);
+
+  if (existingBlocks && existingBlocks.length > 0 && existingBlocks[0]) {
+    return existingBlocks[0][0];
+  }
+
+  // Create the block if it doesn't exist
+  const newBlockUid = await createBlock({
+    parentUid: canvasPageUid,
+    node: { text: clipboardBlockText },
+  });
+  return newBlockUid;
 };
 
 export const ClipboardProvider = ({
   children,
+  canvasPageTitle,
 }: {
   children: React.ReactNode;
+  canvasPageTitle: string;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [pages, setPages] = useState<ClipboardPage[]>([]);
-  const storageKey = useMemo(() => getStorageKey(), []);
+  const [clipboardBlockUid, setClipboardBlockUid] = useState<string | null>(
+    null,
+  );
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored) as ClipboardPage[];
-        setPages(parsed);
+    const initializeClipboard = async () => {
+      try {
+        const userUid = getCurrentUserUid();
+        if (!userUid) {
+          console.error("Failed to get current user UID");
+          setIsInitialized(true);
+          return;
+        }
+
+        const blockUid = await getOrCreateClipboardBlock(
+          canvasPageTitle,
+          userUid,
+        );
+        setClipboardBlockUid(blockUid);
+
+        const props = getBlockProps(blockUid);
+        const storedPages = props[CLIPBOARD_PROP_KEY];
+        if (
+          storedPages &&
+          Array.isArray(storedPages) &&
+          storedPages.length > 0
+        ) {
+          console.log("storedPages", storedPages);
+          setPages(storedPages as ClipboardPage[]);
+        }
+      } catch (e) {
+        console.error("Failed to initialize clipboard", e);
+      } finally {
+        setIsInitialized(true);
       }
-    } catch (e) {
-      console.error("Failed to load clipboard state", e);
-    }
-  }, [storageKey]);
+    };
 
+    void initializeClipboard();
+  }, [canvasPageTitle]);
+
+  // Save clipboard data whenever it changes
   useEffect(() => {
+    if (!isInitialized || !clipboardBlockUid) return;
+
     try {
-      localStorage.setItem(storageKey, JSON.stringify(pages));
+      // setBlockProps already merges with existing props
+      setBlockProps(clipboardBlockUid, {
+        [CLIPBOARD_PROP_KEY]: pages,
+      });
     } catch (e) {
       console.error("Failed to persist clipboard state", e);
     }
-  }, [pages, storageKey]);
+  }, [pages, clipboardBlockUid, isInitialized]);
 
   const openClipboard = useCallback(() => setIsOpen(true), []);
   const closeClipboard = useCallback(() => setIsOpen(false), []);
