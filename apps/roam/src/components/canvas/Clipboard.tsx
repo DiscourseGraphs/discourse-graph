@@ -770,7 +770,23 @@ const ClipboardPageSection = ({
           const zoomLevel = editor.getZoomLevel();
           const screenW = w * zoomLevel;
           const screenH = h * zoomLevel;
-          const containerRect = containerRef.getBoundingClientRect();
+
+          let scrollableContainer: HTMLElement | null = containerRef;
+          while (scrollableContainer) {
+            const style = window.getComputedStyle(scrollableContainer);
+            if (
+              style.overflowY === "auto" ||
+              style.overflowY === "scroll" ||
+              style.overflow === "auto" ||
+              style.overflow === "scroll"
+            ) {
+              break;
+            }
+            scrollableContainer = scrollableContainer.parentElement;
+          }
+
+          const checkContainer = scrollableContainer || containerRef;
+          const containerRect = checkContainer.getBoundingClientRect();
           const box = new Box(
             containerRect.x,
             containerRect.y,
