@@ -177,9 +177,8 @@ const DiscourseGraphPanel = ({
         case "dragging": {
           // When dragging ends, create the shape at the drop position
           const pagePoint = editor.screenToPage(current.currentPosition);
-          const zoomLevel = editor.getZoomLevel();
-          const offsetX = DEFAULT_WIDTH / 2 / zoomLevel;
-          const offsetY = DEFAULT_HEIGHT / 2 / zoomLevel;
+          const offsetX = DEFAULT_WIDTH / 2;
+          const offsetY = DEFAULT_HEIGHT / 2;
 
           if (current.item.type === "node") {
             const shapeId = createShapeId();
@@ -264,6 +263,7 @@ const DiscourseGraphPanel = ({
     0.5,
     useValue("clipboardZoomLevel", () => editor.getZoomLevel(), [editor]),
   );
+
   // Drag preview management
   useQuickReactor(
     "drag-image-style",
@@ -293,7 +293,7 @@ const DiscourseGraphPanel = ({
             panelContainerRect.height,
           );
 
-          const zoomLevel = editor.getZoomLevel();
+          const zoomLevel = Math.max(0.5, editor.getZoomLevel());
           const height = DEFAULT_HEIGHT * zoomLevel;
           const width = DEFAULT_WIDTH * zoomLevel;
           const isInside = Box.ContainsPoint(box, current.currentPosition);
@@ -431,7 +431,7 @@ const DiscourseGraphPanel = ({
               maxWidth: "",
               fontFamily: FONT_FAMILIES.sans,
               fontSize: `${FONT_SIZES.s * zoomLevel}px`,
-              padding: `${40 * zoomLevel}px`,
+              padding: `0px`,
             }}
           >
             {state.item.text}
