@@ -190,7 +190,7 @@ export const initObservers = async ({
     className: "rm-inline-img",
     callback: (img: HTMLElement) => {
       if (img instanceof HTMLImageElement) {
-        renderImageToolsMenu(img);
+        renderImageToolsMenu(img, onloadArgs.extensionAPI);
       }
     },
   });
