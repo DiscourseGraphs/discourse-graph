@@ -6,12 +6,16 @@ import {
   Vec,
   Box,
   createShapeId,
+  FONT_FAMILIES,
 } from "tldraw";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { useAtom } from "@tldraw/state";
 import { TOOL_ARROW_ICON_SVG, NODE_COLOR_ICON_SVG } from "~/icons";
+import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
+import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./Tldraw";
+import { DEFAULT_STYLE_PROPS, FONT_SIZES } from "./DiscourseNodeUtil";
 
 export type DiscourseGraphPanelProps = {
   nodes: DiscourseNode[];
@@ -30,6 +34,8 @@ type DragState =
         type: "node" | "relation";
         id: string;
         text: string;
+        backgroundColor: string;
+        textColor: string;
         color: string;
       };
       startPosition: Vec;
@@ -40,6 +46,8 @@ type DragState =
         type: "node" | "relation";
         id: string;
         text: string;
+        backgroundColor: string;
+        textColor: string;
         color: string;
       };
       currentPosition: Vec;
@@ -72,20 +80,32 @@ const DiscourseGraphPanel = ({
   );
 
   const panelItems = useMemo(() => {
-    const nodeItems = nodes.map((node) => ({
-      type: "node" as const,
-      id: node.type,
-      text: node.text,
-      color: formatHexColor(node.canvasSettings.color) || "black",
-      shortcut: node.shortcut,
-    }));
+    const nodeItems = nodes.map((node) => {
+      const { backgroundColor, textColor } = getDiscourseNodeColors({
+        nodeType: node.type,
+      });
+      return {
+        type: "node" as const,
+        id: node.type,
+        text: node.text,
+        backgroundColor: backgroundColor,
+        textColor: textColor,
+        color: formatHexColor(node.canvasSettings.color) || "black",
+        shortcut: node.shortcut,
+      };
+    });
 
-    const relationItems = uniqueRelations.map((relation, index) => ({
-      type: "relation" as const,
-      id: relation,
-      text: relation,
-      color: getRelationColor(relation, index),
-    }));
+    const relationItems = uniqueRelations.map((relation, index) => {
+      const color = getRelationColor(relation, index);
+      return {
+        type: "relation" as const,
+        id: relation,
+        text: relation,
+        backgroundColor: color,
+        textColor: "black",
+        color: color,
+      };
+    });
 
     return [...nodeItems, ...relationItems];
   }, [nodes, uniqueRelations]);
@@ -108,6 +128,10 @@ const DiscourseGraphPanel = ({
           break;
         }
         case "pointing_item": {
+          // Relations should not be draggable
+          if (current.item.type === "relation") {
+            break;
+          }
           const dist = Vec.Dist(screenPoint, current.startPosition);
           if (dist > 10) {
             dragState.set({
@@ -153,14 +177,17 @@ const DiscourseGraphPanel = ({
         case "dragging": {
           // When dragging ends, create the shape at the drop position
           const pagePoint = editor.screenToPage(current.currentPosition);
+          const zoomLevel = editor.getZoomLevel();
+          const offsetX = DEFAULT_WIDTH / 2 / zoomLevel;
+          const offsetY = DEFAULT_HEIGHT / 2 / zoomLevel;
 
           if (current.item.type === "node") {
             const shapeId = createShapeId();
             editor.createShape({
               id: shapeId,
               type: current.item.id,
-              x: pagePoint.x,
-              y: pagePoint.y,
+              x: pagePoint.x - offsetX,
+              y: pagePoint.y - offsetY,
               props: { fontFamily: "sans", size: "s" },
             });
             editor.setEditingShape(shapeId);
@@ -189,6 +216,11 @@ const DiscourseGraphPanel = ({
       const item = panelItems[+itemIndex];
 
       if (!item) return;
+
+      // Relations should not be draggable, only clickable
+      if (item.type === "relation") {
+        return;
+      }
 
       const startPosition = new Vec(e.clientX, e.clientY);
 
@@ -228,6 +260,10 @@ const DiscourseGraphPanel = ({
 
   const state = useValue("dragState", () => dragState.get(), [dragState]);
 
+  const zoomLevel = Math.max(
+    0.5,
+    useValue("clipboardZoomLevel", () => editor.getZoomLevel(), [editor]),
+  );
   // Drag preview management
   useQuickReactor(
     "drag-image-style",
@@ -244,6 +280,11 @@ const DiscourseGraphPanel = ({
           break;
         }
         case "dragging": {
+          // Relations should not be draggable
+          if (current.item.type === "relation") {
+            imageRef.style.display = "none";
+            break;
+          }
           const panelContainerRect = panelContainerRef.getBoundingClientRect();
           const box = new Box(
             panelContainerRect.x,
@@ -251,32 +292,34 @@ const DiscourseGraphPanel = ({
             panelContainerRect.width,
             panelContainerRect.height,
           );
-          const viewportScreenBounds = editor.getViewportScreenBounds();
+
+          const zoomLevel = editor.getZoomLevel();
+          const height = DEFAULT_HEIGHT * zoomLevel;
+          const width = DEFAULT_WIDTH * zoomLevel;
           const isInside = Box.ContainsPoint(box, current.currentPosition);
           if (isInside) {
             imageRef.style.display = "none";
           } else {
-            imageRef.style.display = "block";
-            imageRef.style.position = "absolute";
+            const viewportScreenBounds = editor.getViewportScreenBounds();
+            imageRef.style.display = "flex";
+            imageRef.style.position = "fixed";
             imageRef.style.pointerEvents = "none";
             imageRef.style.left = "0px";
             imageRef.style.top = "0px";
-            imageRef.style.transform = `translate(${current.currentPosition.x - viewportScreenBounds.x - 25}px, ${current.currentPosition.y - viewportScreenBounds.y - 25}px)`;
-            imageRef.style.width = "50px";
-            imageRef.style.height = "50px";
-            imageRef.style.fontSize = "40px";
-            imageRef.style.display = "flex";
-            imageRef.style.alignItems = "center";
-            imageRef.style.justifyContent = "center";
-            imageRef.style.borderRadius = "8px";
-            imageRef.style.backgroundColor = current.item.color;
-            imageRef.style.color = "white";
-            imageRef.style.fontWeight = "bold";
+            imageRef.style.transform = `translate(${current.currentPosition.x - viewportScreenBounds.x - width / 2}px, ${current.currentPosition.y - viewportScreenBounds.y - height / 2}px)`;
+            imageRef.style.width = `${width}px`;
+            imageRef.style.height = `${height}px`;
+            imageRef.style.zIndex = "9999";
+            imageRef.style.borderRadius = `${16 * zoomLevel}px`;
+            imageRef.style.backgroundColor = current.item.backgroundColor;
+            imageRef.style.color = current.item.textColor;
+            imageRef.className =
+              "roamjs-tldraw-node pointer-events-none flex fixed items-center justify-center overflow-hidden";
           }
         }
       }
     },
-    [dragState],
+    [dragState, editor],
   );
 
   // If it's a node tool, show only that node
@@ -384,15 +427,11 @@ const DiscourseGraphPanel = ({
         {state.name === "dragging" && (
           <div
             style={{
-              backgroundColor: state.item.color,
-              color: "white",
-              fontWeight: "bold",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "100%",
-              height: "100%",
+              ...DEFAULT_STYLE_PROPS,
+              maxWidth: "",
+              fontFamily: FONT_FAMILIES.sans,
+              fontSize: `${FONT_SIZES.s * zoomLevel}px`,
+              padding: `${40 * zoomLevel}px`,
             }}
           >
             {state.item.text}

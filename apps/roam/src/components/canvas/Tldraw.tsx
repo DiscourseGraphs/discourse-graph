@@ -114,8 +114,8 @@ export const discourseContext: DiscourseContextType = {
   lastActions: [],
 };
 
-const DEFAULT_WIDTH = 160;
-const DEFAULT_HEIGHT = 64;
+export const DEFAULT_WIDTH = 160;
+export const DEFAULT_HEIGHT = 64;
 export const MAX_WIDTH = "400px";
 
 export const isPageUid = (uid: string) =>
