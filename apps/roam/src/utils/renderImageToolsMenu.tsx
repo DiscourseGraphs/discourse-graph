@@ -54,11 +54,8 @@ const ImageToolsMenu = ({
   );
 };
 
-const isMenuAlreadyRendered = (imageElement: HTMLImageElement): boolean => {
-  return (
-    imageElement.parentElement?.getAttribute("data-image-menu-rendered") ===
-    "true"
-  );
+const isMenuAlreadyRendered = (wrapper: HTMLElement): boolean => {
+  return wrapper.getAttribute("data-image-menu-rendered") === "true";
 };
 
 const getBlockUidFromImage = (
@@ -91,31 +88,45 @@ const createMenuContainer = (): HTMLDivElement => {
   return menuContainer;
 };
 
+type WrapperWithCleanup = HTMLElement & {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  __imageMenuCleanup?: () => void;
+};
+
 const attachHoverListeners = (
   wrapper: HTMLElement,
   menuContainer: HTMLDivElement,
 ): void => {
-  wrapper.addEventListener("mouseenter", () => {
+  const handleMouseEnter = () => {
     menuContainer.classList.remove("hidden");
     menuContainer.classList.add("block");
-  });
-  wrapper.addEventListener("mouseleave", () => {
+  };
+  const handleMouseLeave = () => {
     menuContainer.classList.remove("block");
     menuContainer.classList.add("hidden");
-  });
+  };
+
+  wrapper.addEventListener("mouseenter", handleMouseEnter);
+  wrapper.addEventListener("mouseleave", handleMouseLeave);
+
+  // Store cleanup function
+  (wrapper as WrapperWithCleanup).__imageMenuCleanup = () => {
+    wrapper.removeEventListener("mouseenter", handleMouseEnter);
+    wrapper.removeEventListener("mouseleave", handleMouseLeave);
+  };
 };
 
 export const renderImageToolsMenu = (
   imageElement: HTMLImageElement,
   extensionAPI: OnloadArgs["extensionAPI"],
 ): void => {
-  if (isMenuAlreadyRendered(imageElement)) return;
+  const wrapper = getImageWrapper(imageElement);
+  if (!wrapper) return;
+
+  if (isMenuAlreadyRendered(wrapper)) return;
 
   const blockUid = getBlockUidFromImage(imageElement);
   if (!blockUid) return;
-
-  const wrapper = getImageWrapper(imageElement);
-  if (!wrapper) return;
 
   setupWrapperForMenu(wrapper);
 
