@@ -52,12 +52,11 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import findDiscourseNode from "~/utils/findDiscourseNode";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
-import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
-import { colord } from "colord";
-import getPleasingColors from "@repo/utils/getPleasingColors";
-import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./Tldraw";
+import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
+import { MAX_WIDTH } from "./Tldraw";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
+import { measureCanvasNodeText } from "~/utils/measureCanvasNodeText";
 
 export type ClipboardPage = {
   uid: string;
@@ -714,12 +713,10 @@ const ClipboardPageSection = ({
       if (!nodeUid || !nodeText) return;
 
       const nodeType = findDiscourseNode(nodeUid);
-      const backgroundColor =
-        nodeType && nodeType.canvasSettings?.color
-          ? formatHexColor(nodeType.canvasSettings.color) || "black"
-          : "black";
-      const pleasingColors = getPleasingColors(colord(backgroundColor));
-      const textColor = pleasingColors.text;
+      if (!nodeType) return;
+      const { backgroundColor, textColor } = getDiscourseNodeColors({
+        nodeType: nodeType.type,
+      });
 
       const startPosition = new Vec(e.clientX, e.clientY);
 
@@ -759,6 +756,11 @@ const ClipboardPageSection = ({
           break;
         }
         case "dragging": {
+          const { w, h } = measureCanvasNodeText({
+            ...DEFAULT_STYLE_PROPS,
+            maxWidth: MAX_WIDTH,
+            text: current.node.text,
+          });
           const containerRect = containerRef.getBoundingClientRect();
           const box = new Box(
             containerRect.x,
@@ -772,20 +774,15 @@ const ClipboardPageSection = ({
           } else {
             imageRef.style.display = "flex";
             imageRef.style.position = "fixed";
-            imageRef.style.pointerEvents = "none";
-            imageRef.style.left = `${current.currentPosition.x - DEFAULT_WIDTH / 2}px`;
-            imageRef.style.top = `${current.currentPosition.y - DEFAULT_HEIGHT / 2}px`;
-            imageRef.style.width = `${DEFAULT_WIDTH}px`;
-            imageRef.style.height = `${DEFAULT_HEIGHT}px`;
-            imageRef.style.alignItems = "center";
-            imageRef.style.justifyContent = "center";
-            imageRef.style.borderRadius = "16px";
+            imageRef.style.left = `${current.currentPosition.x - w / 2}px`;
+            imageRef.style.top = `${current.currentPosition.y - h / 2}px`;
+            imageRef.style.width = `${w}px`;
+            imageRef.style.height = `${h}px`;
             imageRef.style.backgroundColor = current.node.backgroundColor;
             imageRef.style.color = current.node.textColor;
-            imageRef.style.overflow = "hidden";
             imageRef.style.zIndex = "9999";
             imageRef.className =
-              "roamjs-tldraw-node pointer-events-none flex items-center justify-center overflow-hidden rounded-2xl";
+              "roamjs-tldraw-node pointer-events-none flex fixed items-center justify-center overflow-hidden rounded-2xl";
           }
         }
       }
