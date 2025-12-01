@@ -35,20 +35,10 @@ const CreateNodeDialog = ({
     discourseNodes[0];
 
   const [title, setTitle] = useState(initialTitle);
-  const [debouncedTitle, setDebouncedTitle] = useState(initialTitle);
   const [selectedType, setSelectedType] =
     useState<DiscourseNode>(defaultNodeType);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedTitle(title);
-    }, 500);
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [title]);
 
   useEffect(() => {
     if (inputRef.current) {
@@ -147,11 +137,7 @@ const CreateNodeDialog = ({
               onChange={(e) => setTitle(e.currentTarget.value)}
               inputRef={inputRef}
             />
-            <VectorDuplicateMatches
-              pageTitle={debouncedTitle}
-              text={debouncedTitle}
-              limit={5}
-            />
+            <VectorDuplicateMatches text={title} limit={5} />
           </div>
 
           <Label>
