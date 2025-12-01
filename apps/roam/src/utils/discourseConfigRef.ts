@@ -80,7 +80,7 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
     }),
     suggestiveModeEnabled: getUidAndBooleanSetting({
       tree: configTreeRef.tree,
-      text: "(BETA) Suggestive Mode",
+      text: "(BETA) Suggestive Mode Enabled",
     }),
   };
 };
