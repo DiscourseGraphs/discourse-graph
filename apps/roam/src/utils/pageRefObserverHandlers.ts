@@ -32,9 +32,24 @@ export const overlayPageRefHandler = (
     const tag =
       s.getAttribute("data-tag") ||
       s.parentElement.getAttribute("data-link-title");
+    const hasOverlayAttribute = s.getAttribute("data-roamjs-discourse-overlay");
+    const hasOverlayElement =
+      (s.hasAttribute("data-tag") &&
+        Array.from(s.children).some(
+          (child) =>
+            child instanceof HTMLSpanElement &&
+            child.querySelector(".roamjs-discourse-context-overlay"),
+        )) ||
+      (s.parentElement &&
+        Array.from(s.parentElement.children).some(
+          (child) =>
+            child instanceof HTMLSpanElement &&
+            child.querySelector(".roamjs-discourse-context-overlay"),
+        ));
     if (
       tag &&
-      !s.getAttribute("data-roamjs-discourse-overlay") &&
+      !hasOverlayAttribute &&
+      !hasOverlayElement &&
       isDiscourseNode(getPageUidByPageTitle(tag))
     ) {
       s.setAttribute("data-roamjs-discourse-overlay", "true");
@@ -116,13 +131,64 @@ const disablePageRefObserver = () => {
   pageRefObserverRef.current = undefined;
 };
 
+const applyHandlersToExistingPageRefs = (
+  handler: (s: HTMLSpanElement) => void,
+) => {
+  const existingPageRefs =
+    document.querySelectorAll<HTMLSpanElement>("span.rm-page-ref");
+  existingPageRefs.forEach((pageRef) => {
+    handler(pageRef);
+  });
+};
+
+const removeOverlaysFromExistingPageRefs = () => {
+  // Find all page refs that have the overlay attribute OR have overlay elements
+  // This ensures we catch all cases, even if attribute is missing
+  const allPageRefs =
+    document.querySelectorAll<HTMLSpanElement>("span.rm-page-ref");
+  allPageRefs.forEach((pageRef) => {
+    // Check if overlay is a direct child of pageRef
+    const directChildContainer = Array.from(pageRef.children).find(
+      (child) =>
+        child instanceof HTMLSpanElement &&
+        child.querySelector(".roamjs-discourse-context-overlay"),
+    ) as HTMLSpanElement | undefined;
+    if (directChildContainer) {
+      directChildContainer.remove();
+      pageRef.removeAttribute("data-roamjs-discourse-overlay");
+      return;
+    }
+
+    // Check if overlay is a direct child of pageRef's parent element
+    if (pageRef.parentElement) {
+      const parentDirectChildContainer = Array.from(
+        pageRef.parentElement.children,
+      ).find(
+        (child) =>
+          child instanceof HTMLSpanElement &&
+          child.querySelector(".roamjs-discourse-context-overlay"),
+      ) as HTMLSpanElement | undefined;
+      if (parentDirectChildContainer) {
+        parentDirectChildContainer.remove();
+        pageRef.removeAttribute("data-roamjs-discourse-overlay");
+      }
+    }
+  });
+};
+
 export const onPageRefObserverChange =
   (handler: (s: HTMLSpanElement) => void) => (b: boolean) => {
     if (b) {
       if (!pageRefObservers.size) enablePageRefObserver();
       pageRefObservers.add(handler);
+      // Apply handler to existing page refs when enabling
+      applyHandlersToExistingPageRefs(handler);
     } else {
       pageRefObservers.delete(handler);
+      // Remove overlays from existing page refs when disabling
+      if (handler === cachedHandler) {
+        removeOverlaysFromExistingPageRefs();
+      }
       if (!pageRefObservers.size) disablePageRefObserver();
     }
   };

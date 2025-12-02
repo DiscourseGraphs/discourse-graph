@@ -12,6 +12,10 @@ import getDiscourseNodes from "./getDiscourseNodes";
 import fireQuery from "./fireQuery";
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
+import {
+  getOverlayHandler,
+  onPageRefObserverChange,
+} from "./pageRefObserverHandlers";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
@@ -134,6 +138,20 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
 
   const renderSettingsPopup = () => renderSettings({ onloadArgs });
 
+  const toggleDiscourseContextOverlay = () => {
+    const currentValue =
+      (extensionAPI.settings.get("discourse-context-overlay") as boolean) ??
+      false;
+    const newValue = !currentValue;
+    void extensionAPI.settings.set("discourse-context-overlay", newValue);
+    const overlayHandler = getOverlayHandler(onloadArgs);
+    onPageRefObserverChange(overlayHandler)(newValue);
+    renderToast({
+      id: "discourse-context-overlay-toggle",
+      content: `Discourse Context Overlay ${newValue ? "enabled" : "disabled"}`,
+    });
+  };
+
   const addCommand = (label: string, callback: () => void) => {
     return extensionAPI.ui.commandPalette.addCommand({
       label,
@@ -141,11 +159,15 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     });
   };
 
-  // Roam organizes commands by alphabetically
-  addCommand("DG: Export - Current Page", exportCurrentPage);
-  addCommand("DG: Export - Discourse Graph", exportDiscourseGraph);
-  addCommand("DG: Open - Discourse Settings", renderSettingsPopup);
-  addCommand("DG: Open - Query Drawer", openQueryDrawerWithArgs);
-  addCommand("DG: Query Block - Create", createQueryBlock);
-  addCommand("DG: Query Block - Refresh", refreshCurrentQueryBuilder);
+  // Roam organizes commands alphabetically
+  void addCommand("DG: Export - Current Page", exportCurrentPage);
+  void addCommand("DG: Export - Discourse Graph", exportDiscourseGraph);
+  void addCommand("DG: Open - Discourse Settings", renderSettingsPopup);
+  void addCommand("DG: Open - Query Drawer", openQueryDrawerWithArgs);
+  void addCommand(
+    "DG: Toggle - Discourse Context Overlay",
+    toggleDiscourseContextOverlay,
+  );
+  void addCommand("DG: Query Block - Create", createQueryBlock);
+  void addCommand("DG: Query Block - Refresh", refreshCurrentQueryBuilder);
 };
