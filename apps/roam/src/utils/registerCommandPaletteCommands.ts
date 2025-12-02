@@ -157,7 +157,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     onPageRefObserverChange(overlayHandler)(newValue);
     renderToast({
       id: "discourse-context-overlay-toggle",
-      content: `Discourse Context Overlay ${newValue ? "enabled" : "disabled"}`,
+      content: `Discourse context overlay ${newValue ? "enabled" : "disabled"}`,
     });
   };
 
