@@ -138,17 +138,26 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
 
   const renderSettingsPopup = () => renderSettings({ onloadArgs });
 
-  const toggleDiscourseContextOverlay = () => {
+  const toggleDiscourseContextOverlay = async () => {
     const currentValue =
       (extensionAPI.settings.get("discourse-context-overlay") as boolean) ??
       false;
     const newValue = !currentValue;
-    void extensionAPI.settings.set("discourse-context-overlay", newValue);
+    try {
+      await extensionAPI.settings.set("discourse-context-overlay", newValue);
+    } catch (error) {
+      const e = error as Error;
+      renderToast({
+        id: "discourse-context-overlay-toggle-error",
+        content: `Failed to toggle discourse context overlay: ${e.message}`,
+      });
+      return;
+    }
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(newValue);
     renderToast({
       id: "discourse-context-overlay-toggle",
-      content: `Discourse context overlay ${newValue ? "enabled" : "disabled"}`,
+      content: `Discourse Context Overlay ${newValue ? "enabled" : "disabled"}`,
     });
   };
 
