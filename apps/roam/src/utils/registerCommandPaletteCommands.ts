@@ -148,7 +148,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     onPageRefObserverChange(overlayHandler)(newValue);
     renderToast({
       id: "discourse-context-overlay-toggle",
-      content: `Discourse Context Overlay ${newValue ? "enabled" : "disabled"}`,
+      content: `Discourse context overlay ${newValue ? "enabled" : "disabled"}`,
     });
   };
 
@@ -160,14 +160,14 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   // Roam organizes commands alphabetically
-  void addCommand("DG: Export - Current Page", exportCurrentPage);
-  void addCommand("DG: Export - Discourse Graph", exportDiscourseGraph);
-  void addCommand("DG: Open - Discourse Settings", renderSettingsPopup);
-  void addCommand("DG: Open - Query Drawer", openQueryDrawerWithArgs);
+  void addCommand("DG: Export - Current page", exportCurrentPage);
+  void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
+  void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
+  void addCommand("DG: Open - Query drawer", openQueryDrawerWithArgs);
   void addCommand(
-    "DG: Toggle - Discourse Context Overlay",
+    "DG: Toggle - Discourse context overlay",
     toggleDiscourseContextOverlay,
   );
-  void addCommand("DG: Query Block - Create", createQueryBlock);
-  void addCommand("DG: Query Block - Refresh", refreshCurrentQueryBuilder);
+  void addCommand("DG: Query block - Create", createQueryBlock);
+  void addCommand("DG: Query block - Refresh", refreshCurrentQueryBuilder);
 };
