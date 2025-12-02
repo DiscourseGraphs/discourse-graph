@@ -93,6 +93,8 @@ type DiscourseContextOverlayBaseProps = {
 type DiscourseContextOverlayProps = DiscourseContextOverlayBaseProps &
   ({ tag: string; uid?: never } | { tag?: never; uid: string });
 
+const ICON_SIZE = 16;
+
 const DiscourseContextOverlay = ({
   tag,
   id,
@@ -169,6 +171,7 @@ const DiscourseContextOverlay = ({
               icon={"diagram-tree"}
               color={iconColor}
               style={{ opacity: `${Number(opacity) / 100}` }}
+              size={ICON_SIZE}
             />
             <span
               className={`mr-1 leading-none opacity-${opacity}`}
@@ -180,6 +183,7 @@ const DiscourseContextOverlay = ({
               icon={"link"}
               color={iconColor}
               style={{ opacity: `${Number(opacity) / 100}` }}
+              size={ICON_SIZE}
             />
             <span
               className={`leading-none opacity-${opacity}`}
@@ -209,15 +213,20 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
     <Button
       small
       id={id}
+      className={`roamjs-discourse-context-overlay`}
+      style={{
+        minHeight: "initial",
+        paddingTop: ".25rem",
+        paddingBottom: ".25rem",
+      }}
       minimal
-      className={"roamjs-discourse-context-overlay"}
       disabled={true}
     >
       <div className="flex items-center gap-1.5">
-        <Icon icon={"diagram-tree"} />
-        <span className="mr-1">-</span>
-        <Icon icon={"link"} />
-        <span>-</span>
+        <Icon icon={"diagram-tree"} size={ICON_SIZE} />
+        <span className={`mr-1 leading-none`}>-</span>
+        <Icon icon={"link"} size={ICON_SIZE} />
+        <span className={`leading-none`}>-</span>
       </div>
     </Button>
   );

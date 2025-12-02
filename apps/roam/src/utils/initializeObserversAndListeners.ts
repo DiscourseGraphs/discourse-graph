@@ -23,7 +23,8 @@ import {
   addPageRefObserver,
   getPageRefObserversSize,
   previewPageRefHandler,
-  overlayPageRefHandler,
+  getOverlayHandler,
+  onPageRefObserverChange,
   getSuggestiveOverlayHandler,
 } from "~/utils/pageRefObserverHandlers";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
@@ -186,7 +187,8 @@ export const initObservers = async ({
   if (onloadArgs.extensionAPI.settings.get("page-preview"))
     addPageRefObserver(previewPageRefHandler);
   if (onloadArgs.extensionAPI.settings.get("discourse-context-overlay")) {
-    addPageRefObserver((s) => overlayPageRefHandler(s, onloadArgs));
+    const overlayHandler = getOverlayHandler(onloadArgs);
+    onPageRefObserverChange(overlayHandler)(true);
   }
   if (!!getPageRefObserversSize()) enablePageRefObserver();
 
