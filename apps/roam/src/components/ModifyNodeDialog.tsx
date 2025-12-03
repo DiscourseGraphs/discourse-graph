@@ -29,6 +29,7 @@ import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 export type ModifyNodeDialogMode = "create" | "edit";
 export type ModifyNodeDialogProps = {
@@ -39,6 +40,7 @@ export type ModifyNodeDialogProps = {
   sourceBlockUid?: string; //the block that we started modifying from
   extensionAPI?: OnloadArgs["extensionAPI"];
   isFromCanvas?: boolean;
+  imageUrl?: string; // For image conversion from canvas
   onSuccess: (result: {
     text: string;
     uid: string;
@@ -57,6 +59,7 @@ const ModifyNodeDialog = ({
   sourceBlockUid,
   extensionAPI,
   isFromCanvas = false,
+  imageUrl,
   onSuccess,
   onClose,
 }: RoamOverlayProps<ModifyNodeDialogProps>) => {
@@ -69,6 +72,7 @@ const ModifyNodeDialog = ({
     initialReferencedNode?.uid || "",
   );
   const [isContentLocked, setIsContentLocked] = useState(false);
+  const [isReferencedNodeLocked, setIsReferencedNodeLocked] = useState(false);
   const [contentOptions, setContentOptions] = useState<Result[]>([]);
   const [referencedNodeOptions, setReferencedNodeOptions] = useState<Result[]>(
     [],
@@ -214,6 +218,18 @@ const ModifyNodeDialog = ({
     onClose();
   }, [onClose]);
 
+  const addImageToPage = useCallback(
+    async (pageUid: string, imageUrl: string) => {
+      const imageMarkdown = `![](${imageUrl})`;
+      await createBlock({
+        node: { text: imageMarkdown },
+        order: 0,
+        parentUid: pageUid,
+      });
+    },
+    [],
+  );
+
   const onSubmit = async () => {
     if (!contentText.trim()) return;
     try {
@@ -226,6 +242,13 @@ const ModifyNodeDialog = ({
               uid: sourceBlockUid,
               text: pageRef,
             });
+          }
+
+          if (imageUrl) {
+            const pageUid = contentUid || getPageUidByPageTitle(contentText);
+            if (pageUid) {
+              await addImageToPage(pageUid, imageUrl);
+            }
           }
 
           await onSuccess({
@@ -241,12 +264,26 @@ const ModifyNodeDialog = ({
         // Format content with referenced node if present
         let formattedTitle = "";
         if (referencedNode && referencedNodeText) {
+          // Format the referenced node if it's new
+          let formattedReferencedNodeText = referencedNodeText;
+          if (!isReferencedNodeLocked) {
+            const formattedRefNode = await getNewDiscourseNodeText({
+              text: referencedNodeText.trim(),
+              nodeType: referencedNode.nodeType,
+              blockUid: sourceBlockUid,
+            });
+            if (!formattedRefNode) {
+              return;
+            }
+            formattedReferencedNodeText = formattedRefNode;
+          }
+
           formattedTitle = nodeFormat.replace(
             /{([\w\d-]*)}/g,
             (_, val: string) => {
               if (/content/i.test(val)) return contentText.trim();
               if (new RegExp(referencedNode.name, "i").test(val))
-                return `[[${referencedNodeText}]]`;
+                return `[[${formattedReferencedNodeText}]]`;
               return "";
             },
           );
@@ -266,6 +303,7 @@ const ModifyNodeDialog = ({
           text: formattedTitle,
           configPageUid: selectedNodeType.type,
           extensionAPI,
+          imageUrl,
         });
 
         if (sourceBlockUid) {
@@ -441,6 +479,7 @@ const ModifyNodeDialog = ({
                   referencedNodeLoading ? "..." : "Select a referenced node"
                 }
                 disabled={referencedNodeLoading}
+                onLockedChange={setIsReferencedNodeLocked}
                 mode={"create"}
                 initialUid={referencedNodeUid}
               />
