@@ -284,7 +284,7 @@ export const refreshAndNotify = () => {
   notify();
 };
 
-const FavouritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
+const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuTriggerRef = useRef<HTMLSpanElement | null>(null);
 
@@ -352,7 +352,7 @@ const FavouritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         <span className="flex items-baseline">
           <Icon icon="star" iconSize={14} />
           <div style={{ width: 8 }}></div>
-          FAVOURITES
+          FAVORITES
         </span>
         <Popover
           interactionKind={PopoverInteractionKind.CLICK}
@@ -400,7 +400,7 @@ const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 
   return (
     <>
-      <FavouritesPopover onloadArgs={onloadArgs} />
+      <FavoritesPopover onloadArgs={onloadArgs} />
       <GlobalSection config={config.global} />
       <PersonalSections config={config} />
     </>
