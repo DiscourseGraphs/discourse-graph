@@ -6,6 +6,7 @@ import { OnloadArgs } from "roamjs-components/types/native";
 import { getBlockUidFromTarget } from "roamjs-components/dom";
 import ExtensionApiContextProvider from "roamjs-components/components/ExtensionApiContext";
 import { panelManager, subscribeToPanelState } from "./PanelManager";
+import { ICON_SIZE } from "./DiscourseContextOverlay";
 
 const SuggestiveModeOverlay = ({
   tag,
@@ -57,12 +58,13 @@ const SuggestiveModeOverlay = ({
   );
 
   return (
-    <div className="suggestive-mode-overlay items-center max-w-3xl">
+    <div className="suggestive-mode-overlay max-w-3xl items-center">
       <Button
         data-dg-role="panel-toggle"
         data-dg-tag={tag}
         suggestive-mode-overlay-button-uid={blockUid}
         icon={isPanelOpen ? "panel-table" : "panel-stats"}
+        style={{ fontSize: ICON_SIZE }}
         minimal
         small
         intent={isPanelOpen ? "primary" : "none"}
