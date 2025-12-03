@@ -387,7 +387,7 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           }
         >
           <span ref={menuTriggerRef} className="sidebar-title-button-add p-1">
-            <Icon icon="plus" iconSize={14} />
+            <Icon icon="settings" size={14} />
           </span>
         </Popover>
       </div>
