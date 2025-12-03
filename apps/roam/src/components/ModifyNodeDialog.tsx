@@ -72,7 +72,9 @@ const ModifyNodeDialog = ({
     initialReferencedNode?.uid || "",
   );
   const [isContentLocked, setIsContentLocked] = useState(false);
-  const [isReferencedNodeLocked, setIsReferencedNodeLocked] = useState(false);
+  const [isReferencedNodeLocked, setIsReferencedNodeLocked] = useState(
+    Boolean(initialReferencedNode?.uid),
+  );
   const [contentOptions, setContentOptions] = useState<Result[]>([]);
   const [referencedNodeOptions, setReferencedNodeOptions] = useState<Result[]>(
     [],
@@ -482,6 +484,7 @@ const ModifyNodeDialog = ({
                 onLockedChange={setIsReferencedNodeLocked}
                 mode={"create"}
                 initialUid={referencedNodeUid}
+                initialIsLocked={isReferencedNodeLocked}
               />
             </div>
           )}
