@@ -47,6 +47,7 @@ import DiscourseGraphPanel from "./DiscourseToolPanel";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
+import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 
 const convertToDiscourseNode = async ({
   text,
@@ -139,14 +140,47 @@ export const getOnSelectForShape = ({
       // this is a promise
       // eslint-disable-next-line @typescript-eslint/await-thenable
       const src = await window.roamAlphaAPI.util.uploadFile({ file });
-      const text = nodeType === "blck-node" ? `![](${src})` : "";
-      void convertToDiscourseNode({
-        text,
-        type: nodeType,
-        imageShapeUrl: src,
-        editor,
-        selectedShape: shape,
+      const initialText = nodeType === "blck-node" ? `![](${src})` : "";
+      const { x, y } = shape;
+
+      renderModifyNodeDialog({
+        mode: "create",
+        nodeType,
+        initialValue: { text: initialText, uid: "" },
         extensionAPI,
+        isFromCanvas: true,
+        imageUrl: src,
+        onSuccess: async ({ text, uid, newPageUid }) => {
+          const finalUid = newPageUid || uid;
+          // Delete the original image shape
+          editor.deleteShapes([shape.id]);
+
+          // Create the discourse node shape
+          const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
+            nodeText: text,
+            extensionAPI,
+            nodeType,
+            uid: finalUid,
+          });
+          editor.createShapes([
+            {
+              type: nodeType,
+              id: createShapeId(),
+              props: {
+                uid: finalUid,
+                title: text,
+                h,
+                w,
+                imageUrl,
+                fontFamily: "sans",
+                size: "s",
+              },
+              x,
+              y,
+            },
+          ]);
+        },
+        onClose: () => {},
       });
     };
   } else if (shape.type === "text") {

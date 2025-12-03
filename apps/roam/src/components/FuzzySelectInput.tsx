@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   Button,
-  Icon,
   TextArea,
   InputGroup,
   Menu,
@@ -167,11 +166,6 @@ const FuzzySelectInput = <T extends Result = Result>({
     return (
       <div className="flex w-full items-center gap-2">
         <div className="flex flex-1 items-center gap-2 rounded border border-gray-300 bg-gray-100 px-3 py-2 dark:border-gray-600 dark:bg-gray-800">
-          <Icon
-            icon="lock"
-            iconSize={14}
-            className="text-gray-600 dark:text-gray-400"
-          />
           <span className="flex-1 text-gray-900 dark:text-gray-100">
             {lockedValue.text}
           </span>
@@ -208,7 +202,10 @@ const FuzzySelectInput = <T extends Result = Result>({
               key={item.uid || index}
               text={item.text}
               active={activeIndex === index}
-              onClick={() => handleSelect(item)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSelect(item);
+              }}
               multiline
             />
           ))}
