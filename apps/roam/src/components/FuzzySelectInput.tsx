@@ -21,6 +21,7 @@ type FuzzySelectInputProps<T extends Result = Result> = {
   placeholder?: string;
   autoFocus?: boolean;
   disabled?: boolean;
+  initialIsLocked?: boolean;
 };
 
 const FuzzySelectInput = <T extends Result = Result>({
@@ -33,9 +34,9 @@ const FuzzySelectInput = <T extends Result = Result>({
   placeholder = "Enter value",
   autoFocus,
   disabled,
+  initialIsLocked,
 }: FuzzySelectInputProps<T>) => {
-  const [isLocked, setIsLocked] = useState(false);
-  const [lockedValue, setLockedValue] = useState<T | undefined>(undefined);
+  const [isLocked, setIsLocked] = useState(initialIsLocked || false);
   const [query, setQuery] = useState<string>(() => value?.text || "");
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -57,7 +58,6 @@ const FuzzySelectInput = <T extends Result = Result>({
     (item: T) => {
       if (mode === "create" && item.uid && item.uid !== initialUid) {
         // Lock the value
-        setLockedValue(item);
         setIsLocked(true);
         setQuery(item.text);
         setValue(item);
@@ -76,7 +76,6 @@ const FuzzySelectInput = <T extends Result = Result>({
   // Handle clear locked value
   const handleClear = useCallback(() => {
     setIsLocked(false);
-    setLockedValue(undefined);
     setQuery("");
     setValue({ text: "", uid: "" } as T);
     onLockedChange?.(false);
@@ -162,12 +161,12 @@ const FuzzySelectInput = <T extends Result = Result>({
   }
 
   // Create mode: locked value display
-  if (isLocked && lockedValue) {
+  if (isLocked || initialIsLocked) {
     return (
       <div className="flex w-full items-center gap-2">
         <div className="flex flex-1 items-center gap-2 rounded border border-gray-300 bg-gray-100 px-3 py-2 dark:border-gray-600 dark:bg-gray-800">
           <span className="flex-1 text-gray-900 dark:text-gray-100">
-            {lockedValue.text}
+            {value?.text}
           </span>
           <Button
             icon="cross"
