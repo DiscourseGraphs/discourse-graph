@@ -93,7 +93,7 @@ type DiscourseContextOverlayBaseProps = {
 type DiscourseContextOverlayProps = DiscourseContextOverlayBaseProps &
   ({ tag: string; uid?: never } | { tag?: never; uid: string });
 
-const ICON_SIZE = 16;
+export const ICON_SIZE = 10;
 
 const DiscourseContextOverlay = ({
   tag,
@@ -174,7 +174,7 @@ const DiscourseContextOverlay = ({
               size={ICON_SIZE}
             />
             <span
-              className={`mr-1 leading-none opacity-${opacity}`}
+              className={`mr-1 text-xs leading-none opacity-${opacity}`}
               style={{ color: textColor }}
             >
               {loading ? "-" : score}
@@ -186,7 +186,7 @@ const DiscourseContextOverlay = ({
               size={ICON_SIZE}
             />
             <span
-              className={`leading-none opacity-${opacity}`}
+              className={`text-xs leading-none opacity-${opacity}`}
               style={{ color: textColor }}
             >
               {loading ? "-" : refs}
@@ -224,9 +224,9 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
     >
       <div className="flex items-center gap-1.5">
         <Icon icon={"diagram-tree"} size={ICON_SIZE} />
-        <span className={`mr-1 leading-none`}>-</span>
+        <span className={`mr-1 text-xs leading-none`}>-</span>
         <Icon icon={"link"} size={ICON_SIZE} />
-        <span className={`leading-none`}>-</span>
+        <span className={`text-xs leading-none`}>-</span>
       </div>
     </Button>
   );
