@@ -2,7 +2,7 @@ import { TFile } from "obsidian";
 import { Editor, createShapeId } from "tldraw";
 import DiscourseGraphPlugin from "~/index";
 import { DiscourseNode } from "~/types";
-import { CreateNodeModal } from "~/components/CreateNodeModal";
+import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { createDiscourseNode } from "~/utils/createNode";
 import { addWikilinkBlockrefForFile } from "~/components/canvas/stores/assetStore";
 import { showToast } from "./toastUtils";
@@ -20,7 +20,7 @@ export type CreateNodeAtArgs = {
 export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
   const { plugin, canvasFile, tldrawEditor, position, initialNodeType } = args;
 
-  const modal = new CreateNodeModal(plugin.app, {
+  const modal = new ModifyNodeModal(plugin.app, {
     nodeTypes: plugin.settings.nodeTypes,
     plugin,
     initialNodeType,

@@ -3,7 +3,7 @@
 import { App, Editor, Notice, MarkdownView } from "obsidian";
 import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
-import { CreateNodeModal } from "~/components/CreateNodeModal";
+import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { createDiscourseNodeFile, formatNodeName } from "./createNode";
 import { getNodeTagColors } from "./colorUtils";
 
@@ -263,7 +263,7 @@ export class TagNodeHandler {
       extractedData.fullLineContent.replace(/#[^\s]+/g, ""),
     );
 
-    new CreateNodeModal(this.app, {
+    new ModifyNodeModal(this.app, {
       nodeTypes: this.plugin.settings.nodeTypes,
       plugin: this.plugin,
       initialTitle: cleanText,

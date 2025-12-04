@@ -21,7 +21,7 @@ import { getNodeTypeById } from "~/utils/typeUtils";
 import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 import { openFileInSidebar } from "~/components/canvas/utils/openFileUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
-import { ModifyNodeModal } from "~/components/CreateNodeModal";
+import ModifyNodeModal from "~/components/ModifyNodeModal";
 
 export type DiscourseNodeShape = TLBaseShape<
   "discourse-node",
