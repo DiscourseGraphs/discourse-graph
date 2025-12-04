@@ -18,7 +18,7 @@ import {
   createDiscourseNode,
 } from "~/utils/createNode";
 import { DEFAULT_SETTINGS } from "~/constants";
-import { CreateNodeModal } from "~/components/CreateNodeModal";
+import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { TagNodeHandler } from "~/utils/tagNodeHandler";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
@@ -136,12 +136,12 @@ export default class DiscourseGraphPlugin extends Plugin {
                   .setTitle(nodeType.name)
                   .setIcon("file-type")
                   .onClick(() => {
-                    new CreateNodeModal(this.app, {
+                    new ModifyNodeModal(this.app, {
                       nodeTypes: this.settings.nodeTypes,
                       plugin: this,
                       initialTitle: file.basename,
                       initialNodeType: nodeType,
-                      onNodeCreate: async (nodeType, title) => {
+                      onSubmit: async ({ nodeType, title }) => {
                         await convertPageToDiscourseNode({
                           plugin: this,
                           file,
