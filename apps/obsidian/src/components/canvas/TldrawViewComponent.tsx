@@ -265,17 +265,18 @@ export const TldrawPreviewComponent = ({
   const handleMount = (editor: Editor) => {
     editorRef.current = editor;
     setIsEditorMounted(true);
-    
+
     editor.on("event", (event) => {
       // Handle pointer events
       if (event.type !== "pointer") return;
       const e = event as TLPointerEventInfo;
 
       if (e.type === "pointer" && e.name === "right_click") {
-        requestAnimationFrame(() => {
-          const container = editor.getContainer();
-          const canvas = container?.querySelector(".tl-canvas") as HTMLElement;
-          if (canvas) {
+        const container = editor.getContainer();
+        const canvas = container?.querySelector(".tl-canvas") as HTMLElement;
+
+        if (canvas) {
+          setTimeout(() => {
             const contextMenuEvent = new MouseEvent("contextmenu", {
               bubbles: true,
               cancelable: true,
@@ -288,8 +289,8 @@ export const TldrawPreviewComponent = ({
               metaKey: e.metaKey,
             });
             canvas.dispatchEvent(contextMenuEvent);
-          }
-        });
+          }, 0);
+        }
       }
 
       if (e.type === "pointer" && e.name === "pointer_down") {
