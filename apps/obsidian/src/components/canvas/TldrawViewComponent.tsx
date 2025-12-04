@@ -13,7 +13,6 @@ import {
   useTools,
   defaultBindingUtils,
   TLPointerEventInfo,
-  TLKeyboardEventInfo,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import {
@@ -111,7 +110,6 @@ export const TldrawPreviewComponent = ({
     if (!isEditorMounted || !editorRef.current) return;
 
     const editor = editorRef.current;
-    const container = editor.getContainer();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Meta+Alt+Enter (Command+Alt+Enter on Mac)
@@ -134,7 +132,6 @@ export const TldrawPreviewComponent = ({
             shape,
             file,
             plugin.app,
-            plugin,
           );
 
           if (!linkedFile) return;
@@ -319,7 +316,6 @@ export const TldrawPreviewComponent = ({
               shape,
               file,
               plugin.app,
-              plugin,
             );
 
             if (!linkedFile) return;

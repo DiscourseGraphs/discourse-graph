@@ -1,5 +1,4 @@
 import { App, TFile } from "obsidian";
-import type DiscourseGraphPlugin from "~/index";
 import { DiscourseNodeShape } from "~/components/canvas/shapes/DiscourseNodeShape";
 import {
   extractBlockRefId,
@@ -16,7 +15,6 @@ export const resolveDiscourseNodeFile = async (
   shape: DiscourseNodeShape,
   canvasFile: TFile,
   app: App,
-  plugin: DiscourseGraphPlugin,
 ): Promise<TFile | null> => {
   const blockRefId = extractBlockRefId(shape.props.src ?? undefined);
   if (!blockRefId) {
@@ -104,4 +102,3 @@ export const openFileInNewLeaf = async (
   await leaf.openFile(file);
   app.workspace.setActiveLeaf(leaf);
 };
- 
