@@ -28,11 +28,7 @@ import {
   TLDATA_DELIMITER_START,
 } from "~/constants";
 import { TFile } from "obsidian";
-import {
-  ObsidianTLAssetStore,
-  resolveLinkedTFileByBlockRef,
-  extractBlockRefId,
-} from "~/components/canvas/stores/assetStore";
+import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import {
   createDiscourseNodeUtil,
   DiscourseNodeShape,
@@ -51,7 +47,12 @@ import { RelationsOverlay } from "./overlays/RelationOverlay";
 import { showToast } from "./utils/toastUtils";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { CustomContextMenu } from "./CustomContextMenu";
-import { openFileInSidebar, openFileInNewTab } from "./utils/openFileUtils";
+import {
+  openFileInSidebar,
+  openFileInNewTab,
+  openFileInNewLeaf,
+  resolveDiscourseNodeFile,
+} from "./utils/openFileUtils";
 
 type TldrawPreviewProps = {
   store: TLStore;
@@ -69,6 +70,7 @@ export const TldrawPreviewComponent = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentStore, setCurrentStore] = useState<TLStore>(store);
   const [isReady, setIsReady] = useState(false);
+  const [isEditorMounted, setIsEditorMounted] = useState(false);
   const isCreatingRelationRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
   const isSavingRef = useRef<boolean>(false);
@@ -102,6 +104,50 @@ export const TldrawPreviewComponent = ({
     }, 250);
     return () => clearTimeout(timer);
   }, []);
+
+  // Add keyboard event listener for Meta+Alt+Enter when editor is mounted
+  useEffect(() => {
+    if (!isEditorMounted || !editorRef.current) return;
+
+    const editor = editorRef.current;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Meta+Alt+Enter (Command+Alt+Enter on Mac)
+      if (
+        e.key === "Enter" &&
+        e.metaKey &&
+        e.altKey &&
+        !e.shiftKey &&
+        !e.ctrlKey
+      ) {
+        const hoveredShapeId = editor.getHoveredShapeId();
+        if (!hoveredShapeId) return;
+
+        const hoveredShape = editor.getShape(hoveredShapeId);
+        if (!hoveredShape || hoveredShape.type !== "discourse-node") return;
+
+        const shape = hoveredShape as DiscourseNodeShape;
+        void (async () => {
+          const linkedFile = await resolveDiscourseNodeFile(
+            shape,
+            file,
+            plugin.app,
+          );
+
+          if (!linkedFile) return;
+
+          await openFileInNewLeaf(plugin.app, linkedFile);
+          editor.selectNone();
+        })();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [isEditorMounted, file, plugin]);
 
   const saveChanges = useCallback(async () => {
     // Prevent concurrent saves
@@ -218,8 +264,11 @@ export const TldrawPreviewComponent = ({
 
   const handleMount = (editor: Editor) => {
     editorRef.current = editor;
+    setIsEditorMounted(true);
 
     editor.on("event", (event) => {
+      // Handle pointer events
+      if (event.type !== "pointer") return;
       const e = event as TLPointerEventInfo;
       if (e.type === "pointer" && e.name === "pointer_down") {
         const currentTool = editor.getCurrentTool();
@@ -262,58 +311,23 @@ export const TldrawPreviewComponent = ({
             return;
           }
 
-          const blockRefId = extractBlockRefId(shape.props.src ?? undefined);
-          if (!blockRefId) {
-            showToast({
-              severity: "warning",
-              title: "Cannot open node",
-              description: "No valid block reference found",
-            });
-            return;
-          }
+          void (async () => {
+            const linkedFile = await resolveDiscourseNodeFile(
+              shape,
+              file,
+              plugin.app,
+            );
 
-          const canvasFileCache = plugin.app.metadataCache.getFileCache(file);
-          if (!canvasFileCache) {
-            showToast({
-              severity: "error",
-              title: "Error",
-              description: "Could not read canvas file",
-            });
-            return;
-          }
+            if (!linkedFile) return;
 
-          void resolveLinkedTFileByBlockRef({
-            app: plugin.app,
-            canvasFile: file,
-            blockRefId,
-            canvasFileCache,
-          })
-            .then(async (linkedFile) => {
-              if (!linkedFile) {
-                showToast({
-                  severity: "warning",
-                  title: "Cannot open node",
-                  description: "Linked file not found",
-                });
-                return;
-              }
-
-              // Open in sidebar (Shift+Click) or new tab (Cmd+Click)
-              if (openInNewTab) {
-                await openFileInNewTab(plugin.app, linkedFile);
-              } else {
-                await openFileInSidebar(plugin.app, linkedFile);
-              }
-              editor.selectNone();
-            })
-            .catch((error) => {
-              console.error("Error opening linked file:", error);
-              showToast({
-                severity: "error",
-                title: "Error",
-                description: "Failed to open linked file",
-              });
-            });
+            // Open in sidebar (Shift+Click) or new tab (Cmd+Click)
+            if (openInNewTab) {
+              await openFileInNewTab(plugin.app, linkedFile);
+            } else {
+              await openFileInSidebar(plugin.app, linkedFile);
+            }
+            editor.selectNone();
+          })();
         }
       }
     });
