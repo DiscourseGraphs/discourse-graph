@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/naming-convention */
-import { App, Editor, Notice, MarkdownView } from "obsidian";
+import { App, Editor, Notice, MarkdownView, TFile } from "obsidian";
 import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
@@ -35,6 +35,7 @@ type NodeCreationParams = {
   title: string;
   editor: Editor;
   tagElement: HTMLElement;
+  selectedExistingNode?: TFile;
 };
 
 /**
@@ -268,12 +269,17 @@ export class TagNodeHandler {
       plugin: this.plugin,
       initialTitle: cleanText,
       initialNodeType: nodeType,
-      onSubmit: async ({ nodeType: selectedNodeType, title }) => {
+      onSubmit: async ({
+        nodeType: selectedNodeType,
+        title,
+        selectedExistingNode,
+      }) => {
         await this.createNodeAndReplace({
           nodeType: selectedNodeType,
           title,
           editor,
           tagElement,
+          selectedExistingNode,
         });
       },
     }).open();
@@ -285,24 +291,32 @@ export class TagNodeHandler {
   private async createNodeAndReplace(
     params: NodeCreationParams,
   ): Promise<void> {
-    const { nodeType, title, editor, tagElement } = params;
+    const { nodeType, title, editor, tagElement, selectedExistingNode } =
+      params;
     try {
-      // Create the discourse node file
-      const formattedNodeName = formatNodeName(title, nodeType);
-      if (!formattedNodeName) {
-        new Notice("Failed to format node name", 3000);
-        return;
-      }
+      let linkText: string;
 
-      const newFile = await createDiscourseNodeFile({
-        plugin: this.plugin,
-        formattedNodeName,
-        nodeType,
-      });
+      if (selectedExistingNode) {
+        linkText = `[[${selectedExistingNode.basename}]]`;
+      } else {
+        const formattedNodeName = formatNodeName(title, nodeType);
+        if (!formattedNodeName) {
+          new Notice("Failed to format node name", 3000);
+          return;
+        }
 
-      if (!newFile) {
-        new Notice("Failed to create discourse node file", 3000);
-        return;
+        const newFile = await createDiscourseNodeFile({
+          plugin: this.plugin,
+          formattedNodeName,
+          nodeType,
+        });
+
+        if (!newFile) {
+          new Notice("Failed to create discourse node file", 3000);
+          return;
+        }
+
+        linkText = `[[${formattedNodeName}]]`;
       }
 
       const extractedData = this.extractContent(tagElement);
@@ -335,8 +349,6 @@ export class TagNodeHandler {
         new Notice("Could not replace tag with discourse node", 3000);
         return;
       }
-
-      const linkText = `[[${formattedNodeName}]]`;
 
       // Replace the entire line with just the discourse node link
       editor.replaceRange(
