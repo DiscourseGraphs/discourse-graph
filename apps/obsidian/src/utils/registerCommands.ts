@@ -21,13 +21,17 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         new ModifyNodeModal(plugin.app, {
           nodeTypes: plugin.settings.nodeTypes,
           plugin,
-          onSubmit: async ({ nodeType, title }) => {
-            await createDiscourseNode({
-              plugin,
-              nodeType,
-              text: title,
-              editor,
-            });
+          onSubmit: async ({ nodeType, title, selectedExistingNode }) => {
+            if (selectedExistingNode) {
+              editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
+            } else {
+              await createDiscourseNode({
+                plugin,
+                nodeType,
+                text: title,
+                editor,
+              });
+            }
           },
         }).open();
       }
@@ -41,13 +45,17 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       new ModifyNodeModal(plugin.app, {
         nodeTypes: plugin.settings.nodeTypes,
         plugin,
-        onSubmit: async ({ nodeType, title }) => {
-          await createDiscourseNode({
-            plugin,
+        onSubmit: async ({ nodeType, title, selectedExistingNode }) => {
+          if (selectedExistingNode) {
+            editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
+          } else {
+            await createDiscourseNode({
+              plugin,
             nodeType,
             text: title,
             editor,
           });
+          }
         },
       }).open();
     },
