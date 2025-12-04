@@ -12,11 +12,8 @@ import {
   useTldrawUiComponents,
   PORTRAIT_BREAKPOINT,
   DefaultToolbarContent,
-  /* @ts-ignore */
   ToggleToolLockedButton,
-  /* @ts-ignore */
   OverflowingToolbar,
-  /* @ts-ignore */
   MobileStylePanel,
   TldrawUiButton,
   TldrawUiButtonIcon,
