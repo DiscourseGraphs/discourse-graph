@@ -1,4 +1,4 @@
-import { TFile, Notice } from "obsidian";
+import { TFile, Notice, FrontMatterCache } from "obsidian";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { QueryEngine } from "~/services/QueryEngine";
 import SearchBar from "./SearchBar";
@@ -356,7 +356,7 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
     };
   }, [activeFile, plugin]);
 
-  const loadCurrentRelationships = async () => {
+  const loadCurrentRelationships = useCallback(async () => {
     const fileCache = plugin.app.metadataCache.getFileCache(activeFile);
     if (!fileCache?.frontmatter) return;
 
@@ -423,7 +423,75 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
     }
 
     setGroupedRelationships(Array.from(tempRelationships.values()));
-  };
+  }, [activeFile, plugin]);
+
+  const deleteRelationship = useCallback(
+    async (linkedFile: TFile, relationTypeId: string) => {
+      const relationType = plugin.settings.relationTypes.find(
+        (r) => r.id === relationTypeId,
+      );
+      if (!relationType) return;
+
+      try {
+        const removeLinkFromFrontmatter = async (
+          file: TFile,
+          targetFileName: string,
+          relationTypeId: string,
+        ) => {
+          await plugin.app.fileManager.processFrontMatter(
+            file,
+            (fm: FrontMatterCache) => {
+              const existingLinks = Array.isArray(fm[relationTypeId])
+                ? fm[relationTypeId]
+                : [fm[relationTypeId]].filter(Boolean);
+
+              const linkToRemove = `[[${targetFileName}]]`;
+              const filteredLinks = existingLinks.filter(
+                (link) => link !== linkToRemove,
+              );
+
+              if (filteredLinks.length === 0) {
+                delete fm[relationTypeId];
+              } else {
+                fm[relationTypeId] = filteredLinks;
+              }
+            },
+          );
+        };
+
+        // Remove link from active file
+        await removeLinkFromFrontmatter(
+          activeFile,
+          linkedFile.name,
+          relationTypeId,
+        );
+
+        // Remove reverse link from linked file
+        await removeLinkFromFrontmatter(
+          linkedFile,
+          activeFile.name,
+          relationTypeId,
+        );
+
+        new Notice(
+          `Successfully removed ${relationType.label} with ${linkedFile.basename}`,
+        );
+
+        loadCurrentRelationships();
+      } catch (error) {
+        console.error("Failed to delete relationship:", error);
+        new Notice(
+          `Failed to delete relationship: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      }
+    },
+    [
+      activeFile,
+      plugin.app.fileManager,
+      plugin.settings.relationTypes,
+      loadCurrentRelationships,
+    ],
+  );
 
   if (groupedRelationships.length === 0) return null;
 
@@ -445,13 +513,13 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
 
             <ul className="m-0 ml-6 list-none p-0">
               {group.linkedFiles.map((file) => (
-                <li key={file.path} className="mt-1">
+                <li key={file.path} className="mt-1 flex items-center gap-2">
                   <a
                     href="#"
-                    className="text-accent-text"
+                    className="text-accent-text flex-1"
                     onClick={(e) => {
                       e.preventDefault();
-                      plugin.app.workspace.openLinkText(
+                      void plugin.app.workspace.openLinkText(
                         file.path,
                         activeFile.path,
                       );
@@ -459,6 +527,19 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
                   >
                     {file.basename}
                   </a>
+                  <button
+                    className="!text-muted hover:!text-error flex h-6 w-6 cursor-pointer items-center justify-center border-0 !bg-transparent text-sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      void deleteRelationship(
+                        file,
+                        group.relationTypeOptions.id,
+                      );
+                    }}
+                    title="Delete relationship"
+                  >
+                    ×
+                  </button>
                 </li>
               ))}
             </ul>
