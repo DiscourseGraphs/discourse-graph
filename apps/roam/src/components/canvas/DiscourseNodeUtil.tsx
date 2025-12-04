@@ -32,7 +32,7 @@ import { Button, Icon } from "@blueprintjs/core";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { isPageUid } from "./Tldraw";
-import LabelDialog from "./LabelDialog";
+import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { discourseContext } from "./Tldraw";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
@@ -46,6 +46,7 @@ import {
 import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
+import { OnloadArgs } from "roamjs-components/types";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -456,6 +457,8 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [overlayMounted, setOverlayMounted] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [dialogRendered, setDialogRendered] = useState(false);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       if (
         shape.props.uid !== loaded &&
@@ -474,24 +477,105 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
 
     const { backgroundColor, textColor } = this.getColors();
 
-    const setSizeAndImgProps = async ({
-      context,
-      text,
-      uid,
-    }: {
-      context: BaseDiscourseNodeUtil;
-      text: string;
-      uid: string;
-    }) => {
-      if (!extensionAPI) return;
-      const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
-        nodeText: text,
-        uid,
-        nodeType: this.type,
-        extensionAPI,
-      });
-      context.updateProps(shape.id, shape.type, { h, w, imageUrl });
-    };
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(() => {
+      const isCreating = !isLiveBlock(shape.props.uid);
+      if (isEditing && !dialogRendered) {
+        const setSizeAndImgPropsLocal = async ({
+          text,
+          uid,
+        }: {
+          text: string;
+          uid: string;
+        }) => {
+          if (!extensionAPI) return;
+          const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
+            nodeText: text,
+            uid,
+            nodeType: this.type,
+            extensionAPI,
+          });
+          this.updateProps(shape.id, shape.type, { h, w, imageUrl });
+        };
+
+        renderModifyNodeDialog({
+          mode: isCreating ? "create" : "edit",
+          nodeType: shape.type,
+          initialValue: { text: shape.props.title, uid: shape.props.uid },
+          // Only pass it when editing an existing node that has a valid Roam block UID
+          sourceBlockUid:
+            !isCreating && isLiveBlock(shape.props.uid)
+              ? shape.props.uid
+              : undefined,
+          extensionAPI,
+          isFromCanvas: true,
+          onSuccess: async ({ text, uid, action, newPageUid }) => {
+            // For canvas creation, the dialog already created the node
+            // Use the correct UID: newPageUid for new nodes, uid for existing
+            const finalUid = newPageUid || uid;
+
+            if (action === "edit") {
+              if (isPageUid(shape.props.uid))
+                await window.roamAlphaAPI.updatePage({
+                  page: { uid: shape.props.uid, title: text },
+                });
+              else await updateBlock({ uid: shape.props.uid, text });
+            }
+
+            if (
+              action === "create" &&
+              !getPageUidByPageTitle(text) &&
+              !newPageUid
+            ) {
+              void createDiscourseNode({
+                configPageUid: shape.type,
+                text,
+                newPageUid: finalUid,
+                extensionAPI,
+              });
+            }
+
+            void setSizeAndImgPropsLocal({ text, uid: finalUid });
+            this.updateProps(shape.id, shape.type, {
+              title: text,
+              uid: finalUid,
+            });
+
+            const autoCanvasRelations = getSetting<boolean>(
+              AUTO_CANVAS_RELATIONS_KEY,
+              false,
+            );
+            if (autoCanvasRelations) {
+              try {
+                const relationIds = getRelationIds();
+                this.deleteRelationsInCanvas({ shape, relationIds });
+                await this.createExistingRelations({
+                  shape,
+                  relationIds,
+                  finalUid,
+                });
+              } catch (error) {
+                console.error(
+                  "[DiscourseNodeUtil] Error creating relations:",
+                  error,
+                );
+              }
+            }
+
+            editor.setEditingShape(null);
+            setDialogRendered(false);
+          },
+          onClose: () => {
+            editor.setEditingShape(null);
+            setDialogRendered(false);
+          },
+        });
+
+        setDialogRendered(true);
+      } else if (!isEditing && dialogRendered) {
+        setDialogRendered(false);
+      }
+    }, [isEditing, dialogRendered, shape, editor, extensionAPI]);
 
     return (
       <HTMLContainer
@@ -561,58 +645,6 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
                 shape.props.title
               : shape.props.title}
           </div>
-          <LabelDialog
-            initialUid={shape.props.uid}
-            isOpen={isEditing}
-            onClose={() => editor.setEditingShape(null)}
-            label={shape.props.title}
-            nodeType={shape.type}
-            discourseContext={discourseContext}
-            onSuccess={async ({ text, uid, action }) => {
-              if (action === "editing") {
-                if (isPageUid(shape.props.uid))
-                  await window.roamAlphaAPI.updatePage({
-                    page: { uid: shape.props.uid, title: text },
-                  });
-                else await updateBlock({ uid: shape.props.uid, text });
-              }
-
-              if (action === "creating" && !getPageUidByPageTitle(text)) {
-                void createDiscourseNode({
-                  configPageUid: shape.type,
-                  text,
-                  newPageUid: uid,
-                });
-              }
-
-              // Update Shape Props
-              void setSizeAndImgProps({ context: this, text, uid });
-              this.updateProps(shape.id, shape.type, { title: text, uid });
-
-              // Update Shape Relations
-              const autoCanvasRelations = getSetting<boolean>(
-                AUTO_CANVAS_RELATIONS_KEY,
-                false,
-              );
-              if (autoCanvasRelations) {
-                const relationIds = getRelationIds();
-                this.deleteRelationsInCanvas({ shape, relationIds });
-                await this.createExistingRelations({
-                  shape,
-                  relationIds,
-                  finalUid: uid,
-                });
-              }
-
-              editor.setEditingShape(null);
-            }}
-            onCancel={() => {
-              editor.setEditingShape(null);
-              if (!isLiveBlock(shape.props.uid)) {
-                editor.deleteShapes([shape.id]);
-              }
-            }}
-          />
         </div>
       </HTMLContainer>
     );
