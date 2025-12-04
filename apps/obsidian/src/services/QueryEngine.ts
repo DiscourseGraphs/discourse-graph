@@ -74,7 +74,7 @@ export class QueryEngine {
         })
         .filter((f): f is TFile => f instanceof TFile);
 
-      return files;
+      return files.reverse();
     } catch (error) {
       console.error("Error in searchDiscourseNodesByTitle:", error);
       return [];
