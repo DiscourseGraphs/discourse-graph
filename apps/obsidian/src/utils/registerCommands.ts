@@ -1,7 +1,7 @@
 import { Editor } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
-import { CreateNodeModal } from "~/components/CreateNodeModal";
+import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
 import { createDiscourseNode } from "./createNode";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
@@ -18,7 +18,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       if (hasSelection) {
         new NodeTypeModal(editor, plugin.settings.nodeTypes, plugin).open();
       } else {
-        new CreateNodeModal(plugin.app, {
+        new ModifyNodeModal(plugin.app, {
           nodeTypes: plugin.settings.nodeTypes,
           plugin,
           onSubmit: async ({ nodeType, title }) => {
@@ -38,7 +38,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "create-discourse-node",
     name: "Create Discourse Node",
     editorCallback: (editor: Editor) => {
-      new CreateNodeModal(plugin.app, {
+      new ModifyNodeModal(plugin.app, {
         nodeTypes: plugin.settings.nodeTypes,
         plugin,
         onSubmit: async ({ nodeType, title }) => {

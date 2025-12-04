@@ -17,7 +17,7 @@ import {
   resolveLinkedTFileByBlockRef,
 } from "~/components/canvas/stores/assetStore";
 import { showToast } from "./toastUtils";
-import { CreateNodeModal } from "~/components/CreateNodeModal";
+import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 
 type ConvertToDiscourseNodeArgs = {
@@ -124,7 +124,7 @@ const convertImageShapeToNode = async ({
 
   let shapeId: TLShapeId | undefined;
 
-  const modal = new CreateNodeModal(plugin.app, {
+  const modal = new ModifyNodeModal(plugin.app, {
     nodeTypes: plugin.settings.nodeTypes,
     plugin,
     initialNodeType: nodeType,

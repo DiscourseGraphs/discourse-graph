@@ -316,7 +316,6 @@ export const ModifyNodeForm = ({
                   }
                 }}
                 onBlur={() => {
-                  // Delay closing to allow click on menu item
                   setTimeout(() => setIsFocused(false), 200);
                 }}
                 disabled={isSubmitting}
@@ -455,7 +454,7 @@ type ModifyNodeModalProps = {
   initialFile?: TFile;
 };
 
-export class ModifyNodeModal extends Modal {
+class ModifyNodeModal extends Modal {
   private nodeTypes: DiscourseNode[];
   private onSubmit: (params: {
     nodeType: DiscourseNode;
@@ -507,6 +506,4 @@ export class ModifyNodeModal extends Modal {
     contentEl.empty();
   }
 }
-
-// Backward compatibility alias
-export const CreateNodeModal = ModifyNodeModal;
+export default ModifyNodeModal;
