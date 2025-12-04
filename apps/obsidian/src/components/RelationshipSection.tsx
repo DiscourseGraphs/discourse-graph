@@ -1,4 +1,4 @@
-import { TFile, Notice } from "obsidian";
+import { TFile, Notice, FrontMatterCache } from "obsidian";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { QueryEngine } from "~/services/QueryEngine";
 import SearchBar from "./SearchBar";
@@ -438,22 +438,25 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
           targetFileName: string,
           relationTypeId: string,
         ) => {
-          await plugin.app.fileManager.processFrontMatter(file, (fm) => {
-            const existingLinks = Array.isArray(fm[relationTypeId])
-              ? fm[relationTypeId]
-              : [fm[relationTypeId]].filter(Boolean);
+          await plugin.app.fileManager.processFrontMatter(
+            file,
+            (fm: FrontMatterCache) => {
+              const existingLinks = Array.isArray(fm[relationTypeId])
+                ? fm[relationTypeId]
+                : [fm[relationTypeId]].filter(Boolean);
 
-            const linkToRemove = `[[${targetFileName}]]`;
-            const filteredLinks = existingLinks.filter(
-              (link) => link !== linkToRemove,
-            );
+              const linkToRemove = `[[${targetFileName}]]`;
+              const filteredLinks = existingLinks.filter(
+                (link) => link !== linkToRemove,
+              );
 
-            if (filteredLinks.length === 0) {
-              delete fm[relationTypeId];
-            } else {
-              fm[relationTypeId] = filteredLinks;
-            }
-          });
+              if (filteredLinks.length === 0) {
+                delete fm[relationTypeId];
+              } else {
+                fm[relationTypeId] = filteredLinks;
+              }
+            },
+          );
         };
 
         // Remove link from active file
@@ -516,7 +519,7 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
                     className="text-accent-text flex-1"
                     onClick={(e) => {
                       e.preventDefault();
-                      plugin.app.workspace.openLinkText(
+                      void plugin.app.workspace.openLinkText(
                         file.path,
                         activeFile.path,
                       );
@@ -525,10 +528,13 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
                     {file.basename}
                   </a>
                   <button
-                    className="!text-muted hover:!text-error cursor-pointer border-0 !bg-transparent p-1 text-sm"
+                    className="!text-muted hover:!text-error flex h-6 w-6 cursor-pointer items-center justify-center border-0 !bg-transparent text-sm"
                     onClick={(e) => {
                       e.preventDefault();
-                      deleteRelationship(file, group.relationTypeOptions.id);
+                      void deleteRelationship(
+                        file,
+                        group.relationTypeOptions.id,
+                      );
                     }}
                     title="Delete relationship"
                   >

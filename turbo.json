@@ -61,10 +61,10 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
     "roam#dev": {
-      "dependsOn": ["@repo/database#dev"]
+      "with": ["@repo/database#dev"]
     },
     "website#dev": {
-      "dependsOn": ["@repo/database#dev"]
+      "with": ["@repo/database#dev"]
     },
     "genenv": {
       "env": ["SUPABASE_USE_DB"],
