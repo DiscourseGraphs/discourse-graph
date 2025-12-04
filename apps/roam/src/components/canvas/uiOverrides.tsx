@@ -227,41 +227,14 @@ export const createUiComponents = ({
     Toolbar: (props) => {
       const tools = useTools();
       return (
-        // <CustomDefaultToolbar {...props}>
-        <DefaultToolbar {...props}>
+        <CustomDefaultToolbar {...props}>
           <TldrawUiMenuItem
             key="discourse-tool"
             {...tools["discourse-tool"]}
             isSelected={useIsToolSelected(tools["discourse-tool"])}
           />
-          <ClipboardToolbarButton />
           <DefaultToolbarContent />
-          {/* {allNodes.map((n) => (
-            <TldrawUiMenuItem
-              key={n.type}
-              {...tools[n.type]}
-              // eslint-disable-next-line react-hooks/rules-of-hooks
-              isSelected={useIsToolSelected(tools[n.type])}
-            />
-          ))}
-          {allRelationNames.map((name) => (
-            <TldrawUiMenuItem
-              key={name}
-              {...tools[name]}
-              // eslint-disable-next-line react-hooks/rules-of-hooks
-              isSelected={useIsToolSelected(tools[name])}
-            />
-          ))}
-          {allAddReferencedNodeActions.map((action) => (
-            <TldrawUiMenuItem
-              key={action}
-              {...tools[action]}
-              // eslint-disable-next-line react-hooks/rules-of-hooks
-              isSelected={useIsToolSelected(tools[action])}
-            />
-          ))} */}
-          {/* </CustomDefaultToolbar> */}
-        </DefaultToolbar>
+        </CustomDefaultToolbar>
       );
     },
     KeyboardShortcutsDialog: (props) => {
