@@ -8,7 +8,7 @@ import {
   useEditor,
   useValue,
 } from "tldraw";
-import type { App, TFile } from "obsidian";
+import { App, TFile } from "obsidian";
 import { memo, createElement, useEffect } from "react";
 import DiscourseGraphPlugin from "~/index";
 import {
@@ -21,6 +21,7 @@ import { getNodeTypeById } from "~/utils/typeUtils";
 import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 import { openFileInSidebar } from "~/components/canvas/utils/openFileUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
+import { ModifyNodeModal } from "~/components/CreateNodeModal";
 
 export type DiscourseNodeShape = TLBaseShape<
   "discourse-node",
@@ -75,6 +76,75 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   ) {
     return resizeBox(shape, info);
   }
+
+  override onDoubleClick = (shape: DiscourseNodeShape) => {
+    void (async () => {
+      const file = await this.getFile(shape, {
+        app: this.options.app,
+        canvasFile: this.options.canvasFile,
+      });
+
+      if (!file) {
+        return;
+      }
+
+      const fileCache = this.options.app.metadataCache.getFileCache(file);
+      const nodeTypeId = fileCache?.frontmatter?.nodeTypeId as
+        | string
+        | undefined;
+
+      const nodeType = nodeTypeId
+        ? this.options.plugin.settings.nodeTypes.find(
+            (nt) => nt.id === nodeTypeId,
+          )
+        : undefined;
+
+      const modal = new ModifyNodeModal(this.options.app, {
+        nodeTypes: this.options.plugin.settings.nodeTypes,
+        plugin: this.options.plugin,
+        onSubmit: async ({ nodeType, title: newTitle, initialFile: file }) => {
+          const editor = this.editor;
+          if (!editor || !file) return;
+
+          const formattedName = newTitle.trim();
+          if (formattedName) {
+            // Rename the file
+            const folderPath =
+              this.options.plugin.settings.nodesFolderPath.trim();
+            let newPath = "";
+            if (folderPath) {
+              const folderExists =
+                this.options.app.vault.getAbstractFileByPath(folderPath);
+              if (!folderExists) {
+                await this.options.app.vault.createFolder(folderPath);
+              }
+              newPath = `${folderPath}/${formattedName}.md`;
+            } else {
+              const dirPath = file.parent?.path ?? "";
+              newPath = dirPath
+                ? `${dirPath}/${formattedName}.md`
+                : `${formattedName}.md`;
+            }
+
+            await this.options.app.fileManager.renameFile(file, newPath);
+
+            editor.updateShape<DiscourseNodeShape>({
+              id: shape.id,
+              type: "discourse-node",
+              props: {
+                ...shape.props,
+                title: formattedName,
+              },
+            });
+          }
+        },
+        initialFile: file,
+        initialNodeType: nodeType,
+      });
+
+      modal.open();
+    })();
+  };
 
   component(shape: DiscourseNodeShape) {
     return (

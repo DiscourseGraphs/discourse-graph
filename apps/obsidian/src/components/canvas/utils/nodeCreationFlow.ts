@@ -6,6 +6,8 @@ import { CreateNodeModal } from "~/components/CreateNodeModal";
 import { createDiscourseNode } from "~/utils/createNode";
 import { addWikilinkBlockrefForFile } from "~/components/canvas/stores/assetStore";
 import { showToast } from "./toastUtils";
+import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
+import { getFirstImageSrcForFile } from "~/components/canvas/shapes/discourseNodeShapeUtils";
 
 export type CreateNodeAtArgs = {
   plugin: DiscourseGraphPlugin;
@@ -22,22 +24,47 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
     nodeTypes: plugin.settings.nodeTypes,
     plugin,
     initialNodeType,
-    onNodeCreate: async (selectedNodeType: DiscourseNode, title: string) => {
+    onSubmit: async ({
+      nodeType: selectedNodeType,
+      title,
+      selectedExistingNode,
+    }) => {
       try {
-        const createdFile = await createDiscourseNode({
-          plugin,
-          nodeType: selectedNodeType,
-          text: title,
-        });
+        // If user selected an existing node, use it instead of creating a new one
+        const fileToUse = selectedExistingNode
+          ? selectedExistingNode
+          : await createDiscourseNode({
+              plugin,
+              nodeType: selectedNodeType,
+              text: title,
+            });
 
-        if (!createdFile) {
-          throw new Error("Failed to create discourse node file");
+        if (!fileToUse) {
+          throw new Error("Failed to get discourse node file");
         }
 
         const src = await addWikilinkBlockrefForFile({
           app: plugin.app,
           canvasFile,
-          linkedFile: createdFile,
+          linkedFile: fileToUse,
+        });
+
+        let preloadedImageSrc: string | undefined = undefined;
+        if (selectedNodeType.keyImage) {
+          try {
+            const found = await getFirstImageSrcForFile(plugin.app, fileToUse);
+            if (found) preloadedImageSrc = found;
+          } catch (e) {
+            console.warn("nodeCreationFlow: failed to preload key image", e);
+          }
+        }
+
+        // Calculate optimal dimensions using dynamic measurement
+        const { w, h } = await calcDiscourseNodeSize({
+          title: fileToUse.basename,
+          nodeTypeId: selectedNodeType.id,
+          imageSrc: preloadedImageSrc,
+          plugin,
         });
 
         const shapeId = createShapeId();
@@ -47,11 +74,12 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
           x: position.x,
           y: position.y,
           props: {
-            w: 200,
-            h: 100,
+            w,
+            h,
             src: src ?? "",
-            title: createdFile.basename,
+            title: fileToUse.basename,
             nodeTypeId: selectedNodeType.id,
+            imageSrc: preloadedImageSrc,
           },
         });
 

@@ -21,7 +21,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         new CreateNodeModal(plugin.app, {
           nodeTypes: plugin.settings.nodeTypes,
           plugin,
-          onNodeCreate: async (nodeType, title) => {
+          onSubmit: async ({ nodeType, title }) => {
             await createDiscourseNode({
               plugin,
               nodeType,
@@ -41,7 +41,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       new CreateNodeModal(plugin.app, {
         nodeTypes: plugin.settings.nodeTypes,
         plugin,
-        onNodeCreate: async (nodeType, title) => {
+        onSubmit: async ({ nodeType, title }) => {
           await createDiscourseNode({
             plugin,
             nodeType,
