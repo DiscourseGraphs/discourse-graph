@@ -18,6 +18,7 @@ import {
 } from "~/components/canvas/stores/assetStore";
 import { showToast } from "./toastUtils";
 import { CreateNodeModal } from "~/components/CreateNodeModal";
+import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 
 type ConvertToDiscourseNodeArgs = {
   editor: Editor;
@@ -140,8 +141,10 @@ const convertImageShapeToNode = async ({
           throw new Error("Failed to create discourse node file");
         }
 
+        let imageSrc: string | undefined;
         if (imageFile) {
           await embedImageInNode(createdFile, imageFile, plugin);
+          imageSrc = plugin.app.vault.getResourcePath(imageFile);
         }
 
         shapeId = await createDiscourseNodeShape({
@@ -151,6 +154,7 @@ const convertImageShapeToNode = async ({
           nodeType: selectedNodeType,
           plugin,
           canvasFile,
+          imageSrc,
         });
 
         showToast({
@@ -178,6 +182,7 @@ const createDiscourseNodeShape = async ({
   nodeType,
   plugin,
   canvasFile,
+  imageSrc,
 }: {
   editor: Editor;
   shape: TLShape;
@@ -185,6 +190,7 @@ const createDiscourseNodeShape = async ({
   nodeType: DiscourseNode;
   plugin: DiscourseGraphPlugin;
   canvasFile: TFile;
+  imageSrc?: string;
 }): Promise<TLShapeId> => {
   const src = await addWikilinkBlockrefForFile({
     app: plugin.app,
@@ -192,24 +198,28 @@ const createDiscourseNodeShape = async ({
     linkedFile: createdFile,
   });
 
-  // Get the position and size of the original shape
   const { x, y } = shape;
-  const width = "w" in shape.props ? Number(shape.props.w) : 200;
-  const height = "h" in shape.props ? Number(shape.props.h) : 100;
+
+  const { w, h } = await calcDiscourseNodeSize({
+    title: createdFile.basename,
+    nodeTypeId: nodeType.id,
+    imageSrc,
+    plugin,
+  });
 
   const shapeId = createShapeId();
-  // TODO: Update the imageSrc, width and height of the shape after the key figure is merged
   editor.createShape({
     id: shapeId,
     type: "discourse-node",
     x,
     y,
     props: {
-      w: Math.max(width, 200),
-      h: Math.max(height, 100),
+      w,
+      h,
       src: src ?? "",
       title: createdFile.basename,
       nodeTypeId: nodeType.id,
+      imageSrc,
     },
   });
 
