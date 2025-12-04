@@ -102,7 +102,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       const modal = new ModifyNodeModal(this.options.app, {
         nodeTypes: this.options.plugin.settings.nodeTypes,
         plugin: this.options.plugin,
-        onSubmit: async ({ nodeType, title: newTitle, initialFile: file }) => {
+        onSubmit: async ({ title: newTitle, initialFile: file }) => {
           const editor = this.editor;
           if (!editor || !file) return;
 

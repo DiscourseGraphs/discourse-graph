@@ -10,13 +10,13 @@ type ModifyNodeFormProps = {
   onSubmit: (params: {
     nodeType: DiscourseNode;
     title: string;
-    initialFile?: TFile;
+    initialFile?: TFile; // for edit mode
     selectedExistingNode?: TFile;
   }) => Promise<void>;
   onCancel: () => void;
   initialTitle?: string;
   initialNodeType?: DiscourseNode;
-  initialFile?: TFile;
+  initialFile?: TFile; // for edit mode
   plugin: DiscourseGraphPlugin;
 };
 
@@ -85,6 +85,11 @@ export const ModifyNodeForm = ({
         }
       })();
     }, 250);
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
   }, [query, selectedNodeType, isEditMode]);
 
   useEffect(() => {
@@ -460,6 +465,7 @@ class ModifyNodeModal extends Modal {
     nodeType: DiscourseNode;
     title: string;
     initialFile?: TFile;
+    selectedExistingNode?: TFile;
   }) => Promise<void>;
   private root: Root | null = null;
   private initialTitle?: string;
