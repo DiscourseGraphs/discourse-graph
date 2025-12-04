@@ -13,7 +13,6 @@ import { openCreateDiscourseNodeAt } from "./utils/nodeCreationFlow";
 import { getNodeTypeById } from "~/utils/typeUtils";
 import { useEffect } from "react";
 import { setDiscourseNodeToolContext } from "./DiscourseNodeTool";
-import { ExistingNodeSearch } from "./ExistingNodeSearch";
 import {
   setDiscourseRelationToolContext,
   clearDiscourseRelationToolContext,
@@ -273,12 +272,6 @@ export const DiscourseToolPanel = ({
 
   return (
     <div className="flex flex-row">
-      <ExistingNodeSearch
-        plugin={plugin}
-        canvasFile={canvasFile}
-        getEditor={() => editor}
-        nodeTypeId={focusedNodeTypeId}
-      />
       <div className="tlui-layout__top__right">
         <div
           className="tlui-style-panel tlui-style-panel__wrapper"

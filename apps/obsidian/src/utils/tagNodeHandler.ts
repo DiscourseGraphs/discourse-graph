@@ -268,7 +268,7 @@ export class TagNodeHandler {
       plugin: this.plugin,
       initialTitle: cleanText,
       initialNodeType: nodeType,
-      onNodeCreate: async (selectedNodeType, title) => {
+      onSubmit: async ({ nodeType: selectedNodeType, title }) => {
         await this.createNodeAndReplace({
           nodeType: selectedNodeType,
           title,

@@ -141,7 +141,7 @@ export default class DiscourseGraphPlugin extends Plugin {
                       plugin: this,
                       initialTitle: file.basename,
                       initialNodeType: nodeType,
-                      onNodeCreate: async (nodeType, title) => {
+                      onSubmit: async ({ nodeType, title }) => {
                         await convertPageToDiscourseNode({
                           plugin: this,
                           file,

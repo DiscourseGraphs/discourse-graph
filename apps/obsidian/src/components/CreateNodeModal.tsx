@@ -5,30 +5,38 @@ import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
 
-type CreateNodeFormProps = {
+type ModifyNodeFormProps = {
   nodeTypes: DiscourseNode[];
-  onNodeCreate: (nodeType: DiscourseNode, title: string) => Promise<void>;
+  onSubmit: (params: {
+    nodeType: DiscourseNode;
+    title: string;
+    initialFile?: TFile;
+    selectedExistingNode?: TFile;
+  }) => Promise<void>;
   onCancel: () => void;
   initialTitle?: string;
   initialNodeType?: DiscourseNode;
+  initialFile?: TFile;
   plugin: DiscourseGraphPlugin;
 };
 
-export const CreateNodeForm = ({
+export const ModifyNodeForm = ({
   nodeTypes,
-  onNodeCreate,
+  onSubmit,
   onCancel,
   initialTitle = "",
   initialNodeType,
+  initialFile,
   plugin,
-}: CreateNodeFormProps) => {
-  const [title, setTitle] = useState(initialTitle);
+}: ModifyNodeFormProps) => {
+  const isEditMode = !!initialFile;
+  const [title, setTitle] = useState(initialFile?.basename || initialTitle);
   const [selectedNodeType, setSelectedNodeType] =
     useState<DiscourseNode | null>(initialNodeType || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedExistingNode, setSelectedExistingNode] =
     useState<TFile | null>(null);
-  const [query, setQuery] = useState(initialTitle);
+  const [query, setQuery] = useState(initialFile?.basename || initialTitle);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
@@ -40,8 +48,12 @@ export const CreateNodeForm = ({
   const menuRef = useRef<HTMLUListElement>(null);
   const debounceTimeoutRef = useRef<number | null>(null);
 
-  // Search for nodes when query changes
+  // Search for nodes when query changes (only in create mode)
   useEffect(() => {
+    if (isEditMode) {
+      setSearchResults([]);
+      return;
+    }
     const searchQuery = query.trim();
     if (searchQuery.length < 2) {
       setSearchResults([]);
@@ -73,7 +85,7 @@ export const CreateNodeForm = ({
         }
       })();
     }, 250);
-  }, [query, selectedNodeType]);
+  }, [query, selectedNodeType, isEditMode]);
 
   useEffect(() => {
     if (!selectedExistingNode) {
@@ -206,12 +218,20 @@ export const CreateNodeForm = ({
 
     try {
       setIsSubmitting(true);
-      await onNodeCreate(selectedNodeType, trimmedTitle);
+      await onSubmit({
+        nodeType: selectedNodeType,
+        title: trimmedTitle,
+        initialFile,
+        selectedExistingNode: selectedExistingNode || undefined,
+      });
       onCancel();
     } catch (error) {
-      console.error("Error creating node:", error);
+      console.error(
+        `Error ${isEditMode ? "modifying" : "creating"} node:`,
+        error,
+      );
       new Notice(
-        `Error creating node: ${error instanceof Error ? error.message : String(error)}`,
+        `Error ${isEditMode ? "modifying" : "creating"} node: ${error instanceof Error ? error.message : String(error)}`,
         5000,
       );
     } finally {
@@ -220,22 +240,25 @@ export const CreateNodeForm = ({
   }, [
     isFormValid,
     isSubmitting,
-    onNodeCreate,
+    onSubmit,
     onCancel,
     title,
     selectedNodeType,
+    isEditMode,
+    initialFile,
+    selectedExistingNode,
   ]);
 
   return (
     <div>
-      <h2>Create Discourse Node</h2>
+      <h2>{isEditMode ? "Modify Discourse Node" : "Create Discourse Node"}</h2>
       <div className="setting-item">
         <div className="setting-item-name">Type</div>
         <div className="setting-item-control">
           <select
             value={selectedNodeType?.id || ""}
             onChange={handleNodeTypeChange}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isEditMode}
             className="w-full"
           >
             <option value="">Select node type</option>
@@ -272,20 +295,26 @@ export const CreateNodeForm = ({
               </button>
             </div>
           ) : (
-            // Search input with popover
+            // Search input with popover (only in create mode)
             <div className="relative w-full">
               <input
                 ref={titleInputRef}
                 type="text"
                 placeholder={
-                  selectedNodeType
-                    ? `Search for existing ${selectedNodeType.name.toLowerCase()} or enter new content`
-                    : "Search for existing nodes or enter new content"
+                  isEditMode
+                    ? "Enter new content"
+                    : selectedNodeType
+                      ? `Search for existing ${selectedNodeType.name.toLowerCase()} or enter new content`
+                      : "Search for existing nodes or enter new content"
                 }
                 value={query}
                 onChange={handleQueryChange}
                 onKeyDown={handleKeyDown}
-                onFocus={() => setIsFocused(true)}
+                onFocus={() => {
+                  if (!isEditMode) {
+                    setIsFocused(true);
+                  }
+                }}
                 onBlur={() => {
                   // Delay closing to allow click on menu item
                   setTimeout(() => setIsFocused(false), 200);
@@ -294,7 +323,7 @@ export const CreateNodeForm = ({
                 className="resize-vertical font-inherit border-background-modifier-border bg-background-primary text-text-normal max-h-[6em] min-h-[2.5em] w-full overflow-y-auto rounded-md border p-2"
                 autoComplete="off"
               />
-              {isOpen && (
+              {isOpen && !isEditMode && (
                 <div
                   ref={popoverRef}
                   className="suggestion-container"
@@ -401,38 +430,51 @@ export const CreateNodeForm = ({
           }}
           disabled={!isFormValid || isSubmitting}
         >
-          {isSubmitting ? "Creating..." : "Confirm"}
+          {isSubmitting
+            ? isEditMode
+              ? "Modifying..."
+              : "Creating..."
+            : "Confirm"}
         </button>
       </div>
     </div>
   );
 };
 
-type CreateNodeModalProps = {
+type ModifyNodeModalProps = {
   nodeTypes: DiscourseNode[];
   plugin: DiscourseGraphPlugin;
-  onNodeCreate: (nodeType: DiscourseNode, title: string) => Promise<void>;
+  onSubmit: (params: {
+    nodeType: DiscourseNode;
+    title: string;
+    initialFile?: TFile;
+    selectedExistingNode?: TFile;
+  }) => Promise<void>;
   initialTitle?: string;
   initialNodeType?: DiscourseNode;
+  initialFile?: TFile;
 };
 
-export class CreateNodeModal extends Modal {
+export class ModifyNodeModal extends Modal {
   private nodeTypes: DiscourseNode[];
-  private onNodeCreate: (
-    nodeType: DiscourseNode,
-    title: string,
-  ) => Promise<void>;
+  private onSubmit: (params: {
+    nodeType: DiscourseNode;
+    title: string;
+    initialFile?: TFile;
+  }) => Promise<void>;
   private root: Root | null = null;
   private initialTitle?: string;
   private initialNodeType?: DiscourseNode;
+  private initialFile?: TFile;
   private plugin: DiscourseGraphPlugin;
 
-  constructor(app: App, props: CreateNodeModalProps) {
+  constructor(app: App, props: ModifyNodeModalProps) {
     super(app);
     this.nodeTypes = props.nodeTypes;
-    this.onNodeCreate = props.onNodeCreate;
+    this.onSubmit = props.onSubmit;
     this.initialTitle = props.initialTitle;
     this.initialNodeType = props.initialNodeType;
+    this.initialFile = props.initialFile;
     this.plugin = props.plugin;
   }
 
@@ -443,12 +485,13 @@ export class CreateNodeModal extends Modal {
     this.root = createRoot(contentEl);
     this.root.render(
       <StrictMode>
-        <CreateNodeForm
+        <ModifyNodeForm
           nodeTypes={this.nodeTypes}
-          onNodeCreate={this.onNodeCreate}
+          onSubmit={this.onSubmit}
           onCancel={() => this.close()}
           initialTitle={this.initialTitle}
           initialNodeType={this.initialNodeType}
+          initialFile={this.initialFile}
           plugin={this.plugin}
         />
       </StrictMode>,
@@ -464,3 +507,6 @@ export class CreateNodeModal extends Modal {
     contentEl.empty();
   }
 }
+
+// Backward compatibility alias
+export const CreateNodeModal = ModifyNodeModal;
