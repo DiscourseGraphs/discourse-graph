@@ -271,7 +271,6 @@ export const TldrawPreviewComponent = ({
       if (event.type !== "pointer") return;
       const e = event as TLPointerEventInfo;
 
-      // Handle right-click events - manually dispatch contextmenu for Radix UI
       if (e.type === "pointer" && e.name === "right_click") {
         requestAnimationFrame(() => {
           const container = editor.getContainer();
