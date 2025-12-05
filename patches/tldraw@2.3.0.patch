@@ -1,8 +1,30 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+deleted file mode 100644
+index 16e0590cc110366666eee3a0fa011d4ee9655fd1..0000000000000000000000000000000000000000
 diff --git a/dist-cjs/index.d.ts b/dist-cjs/index.d.ts
-index b1dfaf8b8445a6353327a07768e3a41377f834bf..3bb83ab24be8157160ee585a8f6d7fb50e6c9333 100644
+index b1dfaf8b8445a6353327a07768e3a41377f834bf..ac3688d2bc193b6c52d2ba222104002a1e8e32bb 100644
 --- a/dist-cjs/index.d.ts
 +++ b/dist-cjs/index.d.ts
-@@ -1165,6 +1165,24 @@ export declare function RectangleToolbarItem(): JSX_2.Element;
+@@ -414,6 +414,18 @@ export declare function DefaultStylePanelContent({ styles }: TLUiStylePanelConte
+  */
+ export declare const DefaultToolbar: NamedExoticComponent<DefaultToolbarProps>;
+ 
++/** patched export for custom toolbar */
++export declare const ToggleToolLockedButton: NamedExoticComponent<ToggleToolLockedButtonProps>;
++export declare const OverflowingToolbar: NamedExoticComponent<OverflowingToolbarProps>;
++export declare interface ToggleToolLockedButtonProps {
++    activeToolId: string;
++}
++export declare interface OverflowingToolbarProps {
++    children?: ReactNode;
++}
++export declare function MobileStylePanel(): JSX_2.Element;
++/** patched export for custom toolbar */
++
+ /** @public @react */
+ export declare function DefaultToolbarContent(): JSX_2.Element;
+ 
+@@ -1165,6 +1177,24 @@ export declare function RectangleToolbarItem(): JSX_2.Element;
   */
  export declare function removeFrame(editor: Editor, ids: TLShapeId[]): void;
  
@@ -27,7 +49,7 @@ index b1dfaf8b8445a6353327a07768e3a41377f834bf..3bb83ab24be8157160ee585a8f6d7fb5
  /** @public @react */
  export declare function RemoveFrameMenuItem(): JSX_2.Element | null;
  
-@@ -2280,6 +2298,7 @@ export declare interface TLUiToolItem<TranslationKey extends string = string, Ic
+@@ -2280,6 +2310,7 @@ export declare interface TLUiToolItem<TranslationKey extends string = string, Ic
      meta?: {
          [key: string]: any;
      };
@@ -36,7 +58,7 @@ index b1dfaf8b8445a6353327a07768e3a41377f834bf..3bb83ab24be8157160ee585a8f6d7fb5
  
  /** @public */
 diff --git a/dist-esm/index.mjs b/dist-esm/index.mjs
-index e4d9298c6b2d649497490db730294d9ab4df1fef..1569f6103cc967d78e68f5a76e0f72505721f57b 100644
+index e4d9298c6b2d649497490db730294d9ab4df1fef..a3821b15cad2d3fc217efcd35c8ab8c1d116b0d6 100644
 --- a/dist-esm/index.mjs
 +++ b/dist-esm/index.mjs
 @@ -8,6 +8,8 @@ import { TldrawScribble } from "./lib/canvas/TldrawScribble.mjs";
@@ -48,7 +70,45 @@ index e4d9298c6b2d649497490db730294d9ab4df1fef..1569f6103cc967d78e68f5a76e0f7250
  import { defaultShapeTools } from "./lib/defaultShapeTools.mjs";
  import { defaultShapeUtils } from "./lib/defaultShapeUtils.mjs";
  import { defaultTools } from "./lib/defaultTools.mjs";
-@@ -605,6 +607,8 @@ export {
+@@ -138,6 +140,13 @@ import {
+ import {
+   DefaultToolbar
+ } from "./lib/ui/components/Toolbar/DefaultToolbar.mjs";
++import {
++  ToggleToolLockedButton
++} from "./lib/ui/components/Toolbar/ToggleToolLockedButton.mjs";
++import {
++  OverflowingToolbar
++} from "./lib/ui/components/Toolbar/OverflowingToolbar.mjs";
++import { MobileStylePanel } from "./lib/ui/components/MobileStylePanel.mjs";
+ import {
+   ArrowDownToolbarItem,
+   ArrowLeftToolbarItem,
+@@ -441,6 +450,7 @@ export {
+   LineShapeUtil,
+   LineToolbarItem,
+   MiscMenuGroup,
++  MobileStylePanel,
+   MoveToPageMenu,
+   NoteShapeTool,
+   NoteShapeUtil,
+@@ -448,6 +458,7 @@ export {
+   OfflineIndicator,
+   OpacitySlider,
+   OvalToolbarItem,
++  OverflowingToolbar,
+   PORTRAIT_BREAKPOINT,
+   PageItemInput,
+   PageItemSubmenu,
+@@ -531,6 +542,7 @@ export {
+   ToggleReduceMotionItem,
+   ToggleSnapModeItem,
+   ToggleToolLockItem,
++  ToggleToolLockedButton,
+   ToggleTransparentBgMenuItem,
+   ToggleWrapModeItem,
+   ToolbarItem,
+@@ -605,6 +617,8 @@ export {
    useToasts,
    useTools,
    useTranslation,
@@ -58,7 +118,7 @@ index e4d9298c6b2d649497490db730294d9ab4df1fef..1569f6103cc967d78e68f5a76e0f7250
  };
  //# sourceMappingURL=index.mjs.map
 diff --git a/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs b/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs
-index 7a41748b09bf12d0c97d645df38897c9ef89f799..9263e99b80e690aed50586e8fc9aea7e710f37bb 100644
+index 7a41748b09bf12d0c97d645df38897c9ef89f799..738836597d537a0ce067c0b8523cd923f9bde763 100644
 --- a/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs
 +++ b/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs
 @@ -15,10 +15,15 @@ import {
@@ -79,7 +139,7 @@ index 7a41748b09bf12d0c97d645df38897c9ef89f799..9263e99b80e690aed50586e8fc9aea7e
    const msg = useTranslation();
    const overflowIndex = Math.min(8, 5 + breakpoint);
 diff --git a/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs b/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs
-index fcb8268d733b28ab2d31a91e60818d46dbcfc3a2..812c7e77c5209abbd389f209ffae3dcb66c302c8 100644
+index fcb8268d733b28ab2d31a91e60818d46dbcfc3a2..5e2b869280fb094e6e5b1a1615d900ea7b87dd51 100644
 --- a/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs
 +++ b/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs
 @@ -1,7 +1,7 @@
@@ -93,7 +153,7 @@ index fcb8268d733b28ab2d31a91e60818d46dbcfc3a2..812c7e77c5209abbd389f209ffae3dcb
  export {
    TldrawUiButtonIcon
 diff --git a/dist-esm/lib/ui/components/primitives/TldrawUiIcon.mjs b/dist-esm/lib/ui/components/primitives/TldrawUiIcon.mjs
-index c588a438b131135eaa954247aa5aaf3048e28afd..fa7b127a874bfa41fb5290b41f9ddb2bb19fcb93 100644
+index c588a438b131135eaa954247aa5aaf3048e28afd..64ddcf6991ccd9f6f63322f90b5661c5ad070457 100644
 --- a/dist-esm/lib/ui/components/primitives/TldrawUiIcon.mjs
 +++ b/dist-esm/lib/ui/components/primitives/TldrawUiIcon.mjs
 @@ -8,6 +8,7 @@ const TldrawUiIcon = memo(function TldrawUiIcon2({
@@ -115,7 +175,7 @@ index c588a438b131135eaa954247aa5aaf3048e28afd..fa7b127a874bfa41fb5290b41f9ddb2b
      }
    );
 diff --git a/dist-esm/lib/ui/components/primitives/menus/TldrawUiMenuItem.mjs b/dist-esm/lib/ui/components/primitives/menus/TldrawUiMenuItem.mjs
-index d4533e5df517ae2905ae1543f9d90fdbecc9e922..a13759f39a5329a14c4580c3c276a18427bb0e2b 100644
+index d4533e5df517ae2905ae1543f9d90fdbecc9e922..49997e49ecbfde662ee7d95591e356f53aadec41 100644
 --- a/dist-esm/lib/ui/components/primitives/menus/TldrawUiMenuItem.mjs
 +++ b/dist-esm/lib/ui/components/primitives/menus/TldrawUiMenuItem.mjs
 @@ -23,7 +23,8 @@ function TldrawUiMenuItem({
