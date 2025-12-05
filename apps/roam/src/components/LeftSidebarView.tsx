@@ -118,7 +118,7 @@ const SectionChildren = ({
   childrenNodes,
   truncateAt,
 }: {
-  childrenNodes: { uid: string; text: string }[];
+  childrenNodes: { uid: string; text: string; alias?: { value: string } }[];
   truncateAt?: number;
 }) => {
   if (!childrenNodes?.length) return null;
@@ -126,7 +126,8 @@ const SectionChildren = ({
     <>
       {childrenNodes.map((child) => {
         const ref = parseReference(child.text);
-        const label = truncate(ref.display, truncateAt);
+        const alias = child.alias?.value;
+        const label = alias || truncate(ref.display, truncateAt);
         const onClick = (e: React.MouseEvent) => {
           return void openTarget(e, child.text);
         };
@@ -180,9 +181,11 @@ const PersonalSectionItem = ({
         <div className="flex w-full items-center justify-between">
           <div
             className="flex items-center"
-            onClick={() => {
+            onClick={(e) => {
               if ((section.children?.length || 0) > 0) {
                 handleChevronClick();
+              } else {
+                void openTarget(e, section.text);
               }
             }}
           >

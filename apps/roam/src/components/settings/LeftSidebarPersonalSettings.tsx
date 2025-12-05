@@ -13,9 +13,12 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
 import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
+import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
+import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import {
   LeftSidebarPersonalSectionConfig,
   getLeftSidebarPersonalSectionConfig,
+  PersonalSectionChild,
 } from "~/utils/getLeftSidebarSettings";
 import { extractRef, getSubTree } from "roamjs-components/util";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -56,6 +59,9 @@ const SectionItem = memo(
       new Set(),
     );
     const isExpanded = expandedChildLists.has(section.uid);
+    const [childSettingsUid, setChildSettingsUid] = useState<string | null>(
+      null,
+    );
     const toggleChildrenList = useCallback((sectionUid: string) => {
       setExpandedChildLists((prev) => {
         const next = new Set(prev);
@@ -168,6 +174,7 @@ const SectionItem = memo(
                       text: childName,
                       uid: newChild,
                       children: [],
+                      alias: { value: "" },
                     },
                   ],
                 };
@@ -189,7 +196,7 @@ const SectionItem = memo(
     const removeChild = useCallback(
       async (
         section: LeftSidebarPersonalSectionConfig,
-        child: RoamBasicNode,
+        child: PersonalSectionChild,
       ) => {
         try {
           await deleteBlock(child.uid);
@@ -369,43 +376,108 @@ const SectionItem = memo(
 
               {(section.children || []).length > 0 && (
                 <div className="space-y-1">
-                  {(section.children || []).map((child, index) => (
-                    <div
-                      key={child.uid}
-                      className="group flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100"
-                    >
-                      <div className="mr-2 min-w-0 flex-1 truncate">
-                        {child.text}
+                  {(section.children || []).map((child, index) => {
+                    const childAlias = child.alias?.value;
+                    const isSettingsOpen = childSettingsUid === child.uid;
+                    return (
+                      <div key={child.uid}>
+                        <div className="group flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100">
+                          <div
+                            className="mr-2 min-w-0 flex-1 truncate"
+                            title={child.text}
+                          >
+                            {childAlias ? (
+                              <span>
+                                <span className="font-medium">
+                                  {childAlias}
+                                </span>
+                                <span className="ml-2 text-xs text-gray-400">
+                                  ({child.text})
+                                </span>
+                              </span>
+                            ) : (
+                              child.text
+                            )}
+                          </div>
+                          <ButtonGroup minimal className="flex-shrink-0">
+                            <Button
+                              icon="settings"
+                              small
+                              onClick={() => setChildSettingsUid(child.uid)}
+                              title="Child Settings"
+                              className="opacity-0 transition-opacity group-hover:opacity-100"
+                            />
+                            <Button
+                              icon="arrow-up"
+                              small
+                              disabled={index === 0}
+                              onClick={() => moveChild(section, index, "up")}
+                              title="Move child up"
+                              className="opacity-0 transition-opacity group-hover:opacity-100"
+                            />
+                            <Button
+                              icon="arrow-down"
+                              small
+                              disabled={
+                                index === (section.children || []).length - 1
+                              }
+                              onClick={() => moveChild(section, index, "down")}
+                              title="Move child down"
+                              className="opacity-0 transition-opacity group-hover:opacity-100"
+                            />
+                            <Button
+                              icon="trash"
+                              small
+                              intent="danger"
+                              onClick={() => void removeChild(section, child)}
+                              title="Remove child"
+                            />
+                          </ButtonGroup>
+                        </div>
+                        <Dialog
+                          isOpen={isSettingsOpen}
+                          onClose={() => setChildSettingsUid(null)}
+                          title={`Settings for "${child.text}"`}
+                          style={{ width: "400px" }}
+                        >
+                          <div className="p-4">
+                            <TextPanel
+                              title="Alias"
+                              description="Display name for this item"
+                              order={0}
+                              uid={child.alias?.uid}
+                              parentUid={child.uid}
+                              value={child.alias?.value || ""}
+                              onChange={(value: string) => {
+                                setSections((prev) =>
+                                  prev.map((s) => {
+                                    if (s.uid === section.uid) {
+                                      return {
+                                        ...s,
+                                        children: s.children?.map((c) => {
+                                          if (c.uid === child.uid) {
+                                            return {
+                                              ...c,
+                                              alias: {
+                                                ...c.alias,
+                                                value,
+                                              },
+                                            };
+                                          }
+                                          return c;
+                                        }),
+                                      };
+                                    }
+                                    return s;
+                                  }),
+                                );
+                              }}
+                            />
+                          </div>
+                        </Dialog>
                       </div>
-                      <ButtonGroup minimal className="flex-shrink-0">
-                        <Button
-                          icon="arrow-up"
-                          small
-                          disabled={index === 0}
-                          onClick={() => moveChild(section, index, "up")}
-                          title="Move child up"
-                          className="opacity-0 transition-opacity group-hover:opacity-100"
-                        />
-                        <Button
-                          icon="arrow-down"
-                          small
-                          disabled={
-                            index === (section.children || []).length - 1
-                          }
-                          onClick={() => moveChild(section, index, "down")}
-                          title="Move child down"
-                          className="opacity-0 transition-opacity group-hover:opacity-100"
-                        />
-                        <Button
-                          icon="trash"
-                          small
-                          intent="danger"
-                          onClick={() => void removeChild(section, child)}
-                          title="Remove child"
-                        />
-                      </ButtonGroup>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -608,6 +680,14 @@ const LeftSidebarPersonalSectionsContent = ({
         >
           <div className="space-y-4 p-4">
             <div className="space-y-3">
+              <FlagPanel
+                title="Folded"
+                description="If children are present, start with personal section collapsed in left sidebar"
+                order={0}
+                uid={activeDialogSection.settings.folded?.uid || ""}
+                parentUid={activeDialogSection.settings.uid}
+                disabled={!activeDialogSection.children?.length}
+              />
               <NumberPanel
                 title="Truncate-result?"
                 description="Maximum characters to display"
