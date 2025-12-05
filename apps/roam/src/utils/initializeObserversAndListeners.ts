@@ -250,7 +250,7 @@ export const initObservers = async ({
       const container = el as HTMLDivElement;
       if (isLeftSidebarEnabled) {
         container.style.padding = "0";
-        mountLeftSidebar(container, onloadArgs);
+        void mountLeftSidebar(container, onloadArgs);
       }
     },
   });
