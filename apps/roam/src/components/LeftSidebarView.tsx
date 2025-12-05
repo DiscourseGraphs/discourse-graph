@@ -39,6 +39,8 @@ import { Dispatch, SetStateAction } from "react";
 import { SettingsDialog } from "./settings/Settings";
 import { OnloadArgs } from "roamjs-components/types";
 import renderOverlay from "roamjs-components/util/renderOverlay";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -407,20 +409,109 @@ const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   );
 };
 
-export const mountLeftSidebar = (
+const migrateFavorites = async (starredPagesContainer: Element) => {
+  const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
+  if (!configPageUid) return;
+
+  const config = getFormattedConfigTree().leftSidebar;
+
+  if (config.favoritesMigrated.value) return;
+
+  let leftSidebarUid = config.uid;
+  if (leftSidebarUid) {
+    const leftSidebarTree = getBasicTreeByParentUid(leftSidebarUid);
+    const hasAnyPersonalSection = leftSidebarTree.some((node) =>
+      node.text.endsWith("/Personal-Section"),
+    );
+    if (hasAnyPersonalSection) {
+      await createBlock({
+        parentUid: leftSidebarUid,
+        node: { text: "Favorites Migrated" },
+      });
+      refreshConfigTree();
+      return;
+    }
+  }
+
+  const titles = Array.from(starredPagesContainer.querySelectorAll(".page"))
+    .map((el) => el.textContent || "")
+    .filter((t) => t);
+
+  if (!leftSidebarUid) {
+    const tree = getBasicTreeByParentUid(configPageUid);
+    const found = tree.find((n) => n.text === "Left Sidebar");
+    if (found) {
+      leftSidebarUid = found.uid;
+    } else {
+      leftSidebarUid = await createBlock({
+        parentUid: configPageUid,
+        node: { text: "Left Sidebar" },
+      });
+    }
+  }
+
+  let globalSectionUid = config.global.uid;
+  if (!globalSectionUid) {
+    const tree = getBasicTreeByParentUid(leftSidebarUid);
+    const found = tree.find((n) => n.text === "Global-Section");
+    if (found) {
+      globalSectionUid = found.uid;
+    } else {
+      globalSectionUid = await createBlock({
+        parentUid: leftSidebarUid,
+        node: { text: "Global-Section" },
+      });
+    }
+  }
+
+  let childrenUid = config.global.childrenUid;
+  if (!childrenUid) {
+    const tree = getBasicTreeByParentUid(globalSectionUid);
+    const found = tree.find((n) => n.text === "Children");
+    if (found) {
+      childrenUid = found.uid;
+    } else {
+      childrenUid = await createBlock({
+        parentUid: globalSectionUid,
+        node: { text: "Children" },
+      });
+    }
+  }
+
+  const childrenTree = getBasicTreeByParentUid(childrenUid);
+  const existingTitles = new Set(childrenTree.map((c) => c.text));
+  const newTitles = titles.filter((t) => !existingTitles.has(t));
+
+  if (newTitles.length > 0) {
+    await Promise.all(
+      newTitles.map((text) =>
+        createBlock({ parentUid: childrenUid, node: { text } }),
+      ),
+    );
+    refreshAndNotify();
+  }
+
+  await createBlock({
+    parentUid: leftSidebarUid,
+    node: { text: "Favorites Migrated" },
+  });
+  refreshConfigTree();
+};
+
+export const mountLeftSidebar = async (
   wrapper: HTMLElement,
   onloadArgs: OnloadArgs,
-): void => {
+): Promise<void> => {
   if (!wrapper) return;
-  wrapper.innerHTML = "";
 
   const id = "dg-left-sidebar-root";
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
   if (!root) {
     const existingStarred = wrapper.querySelector(".starred-pages");
     if (existingStarred) {
-      existingStarred.remove();
+      await migrateFavorites(existingStarred);
     }
+    wrapper.innerHTML = "";
     root = document.createElement("div");
     root.id = id;
     root.className = "starred-pages";
