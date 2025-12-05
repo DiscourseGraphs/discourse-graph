@@ -225,17 +225,6 @@ const LeftSidebarGlobalSectionsContent = ({
     setNewPageInput(value);
   }, []);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && newPageInput) {
-        e.preventDefault();
-        e.stopPropagation();
-        void addPage(newPageInput);
-      }
-    },
-    [newPageInput, addPage],
-  );
-
   const toggleChildren = useCallback(() => {
     setIsExpanded((prev) => !prev);
   }, []);
@@ -305,10 +294,7 @@ const LeftSidebarGlobalSectionsContent = ({
             <div className="mb-2 text-sm text-gray-600">
               Add pages that will appear for all users
             </div>
-            <div
-              className="mb-3 flex items-center gap-2"
-              onKeyDown={handleKeyDown}
-            >
+            <div className="mb-3 flex items-center gap-2">
               <AutocompleteInput
                 key={autocompleteKey}
                 value={newPageInput}
@@ -316,6 +302,8 @@ const LeftSidebarGlobalSectionsContent = ({
                 placeholder="Add page…"
                 options={pageNames}
                 maxItemsDisplayed={50}
+                autoFocus
+                onConfirm={() => void addPage(newPageInput)}
               />
               <Button
                 icon="plus"
