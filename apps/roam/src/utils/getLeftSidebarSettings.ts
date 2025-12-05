@@ -4,6 +4,8 @@ import {
   getUidAndBooleanSetting,
   IntSetting,
   getUidAndIntSetting,
+  StringSetting,
+  getUidAndStringSetting,
 } from "./getExportSettings";
 import { getSubTree } from "roamjs-components/util";
 
@@ -13,11 +15,15 @@ type LeftSidebarPersonalSectionSettings = {
   folded: BooleanSetting;
 };
 
+export type PersonalSectionChild = RoamBasicNode & {
+  alias: StringSetting;
+};
+
 export type LeftSidebarPersonalSectionConfig = {
   uid: string;
   text: string;
   settings?: LeftSidebarPersonalSectionSettings;
-  children?: RoamBasicNode[];
+  children?: PersonalSectionChild[];
   childrenUid?: string;
 };
 
@@ -149,7 +155,13 @@ export const getLeftSidebarPersonalSectionConfig = (
         settings: settingsNode
           ? getPersonalSectionSettings(settingsNode)
           : undefined,
-        children: childrenNode?.children || [],
+        children: (childrenNode?.children || []).map((child) => ({
+          ...child,
+          alias: getUidAndStringSetting({
+            tree: child.children || [],
+            text: "Alias",
+          }),
+        })),
         childrenUid: childrenNode?.uid || "",
       };
     },
