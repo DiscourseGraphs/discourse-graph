@@ -346,16 +346,7 @@ const SectionItem = memo(
         {!sectionWithoutSettingsAndChildren && (
           <Collapse isOpen={isExpanded}>
             <div className="ml-6 mt-3">
-              <div
-                className="mb-2 flex items-center gap-2"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && childInput) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    void handleAddChild();
-                  }
-                }}
-              >
+              <div className="mb-2 flex items-center gap-2">
                 <AutocompleteInput
                   key={childInputKey}
                   value={childInput}
@@ -363,6 +354,8 @@ const SectionItem = memo(
                   placeholder="Add child page…"
                   options={pageNames}
                   maxItemsDisplayed={50}
+                  autoFocus
+                  onConfirm={() => void handleAddChild()}
                 />
                 <Button
                   icon="plus"
@@ -443,7 +436,6 @@ const LeftSidebarPersonalSectionsContent = ({
     null,
   );
   const [newSectionInput, setNewSectionInput] = useState("");
-  const [autocompleteKey, setAutocompleteKey] = useState(0);
   const [settingsDialogSectionUid, setSettingsDialogSectionUid] = useState<
     string | null
   >(null);
@@ -503,7 +495,6 @@ const LeftSidebarPersonalSectionsContent = ({
         ]);
 
         setNewSectionInput("");
-        setAutocompleteKey((prev) => prev + 1);
         refreshAndNotify();
       } catch (error) {
         renderToast({
@@ -565,21 +556,18 @@ const LeftSidebarPersonalSectionsContent = ({
         <div className="mb-2 text-sm text-gray-600">
           Add pages or create custom sections with settings and children
         </div>
-        <div
-          className="flex items-center gap-2"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && newSectionInput) {
-              e.preventDefault();
-              e.stopPropagation();
-              void addSection(newSectionInput);
-            }
-          }}
-        >
+        <div className="flex items-center gap-2">
           <InputGroup
-            key={autocompleteKey}
             value={newSectionInput}
             onChange={(e) => handleNewSectionInputChange(e.target.value)}
             placeholder="Add section …"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && newSectionInput) {
+                e.preventDefault();
+                e.stopPropagation();
+                void addSection(newSectionInput);
+              }
+            }}
           />
           <Button
             icon="plus"
