@@ -29,7 +29,8 @@ import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 
 type Props = {
-  textarea: HTMLTextAreaElement;
+  textarea?: HTMLTextAreaElement;
+  blockUid?: string;
   extensionAPI: OnloadArgs["extensionAPI"];
   trigger?: JSX.Element;
   isShift?: boolean;
@@ -38,12 +39,13 @@ type Props = {
 const NodeMenu = ({
   onClose,
   textarea,
+  blockUid,
   extensionAPI,
   trigger,
   isShift,
 }: { onClose: () => void } & Props) => {
   const isInitialTextSelected =
-    textarea.selectionStart !== textarea.selectionEnd;
+    !!textarea && textarea.selectionStart !== textarea.selectionEnd;
 
   const [showNodeTypes, setShowNodeTypes] = useState(
     isInitialTextSelected || (isShift ?? false),
@@ -60,7 +62,10 @@ const NodeMenu = ({
     [discourseNodes],
   );
   const shortcuts = useMemo(() => new Set(Object.keys(indexBySC)), [indexBySC]);
-  const blockUid = useMemo(() => getUids(textarea).blockUid, [textarea]);
+  const targetBlockUid = useMemo(
+    () => (textarea ? getUids(textarea).blockUid : blockUid || ""),
+    [textarea, blockUid],
+  );
   const menuRef = useRef<HTMLUListElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isOpen, setIsOpen] = useState(!trigger);
@@ -71,37 +76,48 @@ const NodeMenu = ({
         menuRef.current?.children[index].querySelector(".bp3-menu-item");
       if (!menuItem) return;
 
+      const currentText = textarea
+        ? textarea.value
+        : getTextByBlockUid(targetBlockUid);
+
+      const selectionStart = textarea
+        ? textarea.selectionStart
+        : currentText.length;
+      const selectionEnd = textarea
+        ? textarea.selectionEnd
+        : currentText.length;
+
       if (showNodeTypes) {
         const nodeUid = menuItem.getAttribute("data-node") || "";
-        const highlighted = textarea.value.substring(
-          textarea.selectionStart,
-          textarea.selectionEnd,
-        );
+        const highlighted = textarea
+          ? currentText.substring(selectionStart, selectionEnd)
+          : "";
 
         // Remove focus from the block to ensure updateBlock works properly
         // https://github.com/RoamJS/query-builder/issues/286
-        document.body.click();
+        if (document.activeElement === textarea) document.body.click();
 
         const createNodeAndUpdateBlock = async () => {
           const pageName = await getNewDiscourseNodeText({
             text: highlighted,
             nodeType: nodeUid,
-            blockUid,
+            blockUid: targetBlockUid,
           });
           if (!pageName) return;
 
-          const currentBlockText = getTextByBlockUid(blockUid);
-          const newText = `${currentBlockText.substring(
+          const latestBlockText = getTextByBlockUid(targetBlockUid);
+
+          const newText = `${latestBlockText.substring(
             0,
-            textarea.selectionStart,
-          )}[[${pageName}]]${currentBlockText.substring(textarea.selectionEnd)}`;
+            selectionStart,
+          )}[[${pageName}]]${latestBlockText.substring(selectionEnd)}`;
 
           await createDiscourseNode({
             text: pageName,
             configPageUid: nodeUid,
             extensionAPI,
           });
-          void updateBlock({ text: newText, uid: blockUid });
+          void updateBlock({ text: newText, uid: targetBlockUid });
           posthog.capture("Discourse Node: Created via Node Menu", {
             nodeType: nodeUid,
             text: pageName,
@@ -114,16 +130,16 @@ const NodeMenu = ({
         if (!tag) return;
 
         const addTagToBlock = () => {
-          const currentText = textarea.value;
-          const cursorPos = textarea.selectionStart;
-          const textToInsert = `#${tag.replace(/^#/, "")} `;
+          const textToInsert = `${
+            selectionStart === 0 ? "" : " "
+          }#${tag.replace(/^#/, "")}`;
 
           const newText = `${currentText.substring(
             0,
-            cursorPos,
-          )}${textToInsert}${currentText.substring(cursorPos)}`;
+            selectionStart,
+          )}${textToInsert}${currentText.substring(selectionStart)}`;
 
-          void updateBlock({ text: newText, uid: blockUid });
+          void updateBlock({ text: newText, uid: targetBlockUid });
           posthog.capture("Discourse Tag: Created via Node Menu", {
             tag,
           });
@@ -132,11 +148,11 @@ const NodeMenu = ({
         setTimeout(() => void addTagToBlock(), 100);
 
         // Remove focus from the block so user can see tag css immediately
-        document.body.click();
+        if (document.activeElement === textarea) document.body.click();
       }
       onClose();
     },
-    [menuRef, blockUid, onClose, textarea, extensionAPI, showNodeTypes],
+    [menuRef, targetBlockUid, onClose, textarea, extensionAPI, showNodeTypes],
   );
 
   const keydownListener = useCallback(
@@ -186,6 +202,7 @@ const NodeMenu = ({
 
   useEffect(() => {
     const eventTarget = trigger ? document : textarea;
+    if (!eventTarget) return;
     const keydownHandler = (e: Event) => {
       keydownListener(e as KeyboardEvent);
     };
@@ -193,14 +210,14 @@ const NodeMenu = ({
     eventTarget.addEventListener("keydown", keydownHandler);
     eventTarget.addEventListener("keyup", keyupListener as EventListener);
 
-    if (!trigger) {
+    if (!trigger && textarea) {
       textarea.addEventListener("input", onClose);
     }
 
     return () => {
       eventTarget.removeEventListener("keydown", keydownHandler);
       eventTarget.removeEventListener("keyup", keyupListener as EventListener);
-      if (!trigger) {
+      if (!trigger && textarea) {
         textarea.removeEventListener("input", onClose);
       }
     };
@@ -282,6 +299,7 @@ const NodeMenu = ({
 };
 
 export const render = (props: Props) => {
+  if (!props.textarea) return;
   const parent = document.createElement("span");
   const coords = getCoordsFromTextarea(props.textarea);
   parent.style.position = "absolute";
