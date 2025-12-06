@@ -182,12 +182,10 @@ const PersonalSectionItem = ({
         <div className="flex w-full items-center justify-between">
           <div
             className="flex items-center"
-            onClick={(e) => {
+            onClick={() => {
               if ((section.children?.length || 0) > 0) {
                 handleChevronClick();
-              } else {
-                void openTarget(e, section.text);
-              }
+              } 
             }}
           >
             {(blockText || titleRef.display).toUpperCase()}
