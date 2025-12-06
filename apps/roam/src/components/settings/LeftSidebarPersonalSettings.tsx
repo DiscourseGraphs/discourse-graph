@@ -436,7 +436,10 @@ const SectionItem = memo(
                         </div>
                         <Dialog
                           isOpen={isSettingsOpen}
-                          onClose={() => setChildSettingsUid(null)}
+                          onClose={() => {
+                            setChildSettingsUid(null);
+                            refreshAndNotify();
+                          }}
                           title={`Settings for "${child.text}"`}
                           style={{ width: "400px" }}
                         >
@@ -447,30 +450,33 @@ const SectionItem = memo(
                               order={0}
                               uid={child.alias?.uid}
                               parentUid={child.uid}
-                              value={child.alias?.value || ""}
-                              onChange={(value: string) => {
-                                setSections((prev) =>
-                                  prev.map((s) => {
-                                    if (s.uid === section.uid) {
-                                      return {
-                                        ...s,
-                                        children: s.children?.map((c) => {
-                                          if (c.uid === child.uid) {
-                                            return {
-                                              ...c,
-                                              alias: {
-                                                ...c.alias,
-                                                value,
-                                              },
-                                            };
+                              defaultValue=""
+                              options={{
+                                onChange: (
+                                  event: React.ChangeEvent<HTMLInputElement>,
+                                ) => {
+                                  const nextValue = event.target.value;
+                                  setSections((prev) =>
+                                    prev.map((s) =>
+                                      s.uid === section.uid
+                                        ? {
+                                            ...s,
+                                            children: s.children?.map((c) =>
+                                              c.uid === child.uid
+                                                ? {
+                                                    ...c,
+                                                    alias: {
+                                                      ...c.alias,
+                                                      value: nextValue,
+                                                    },
+                                                  }
+                                                : c,
+                                            ),
                                           }
-                                          return c;
-                                        }),
-                                      };
-                                    }
-                                    return s;
-                                  }),
-                                );
+                                        : s,
+                                    ),
+                                  );
+                                },
                               }}
                             />
                           </div>
@@ -680,14 +686,6 @@ const LeftSidebarPersonalSectionsContent = ({
         >
           <div className="space-y-4 p-4">
             <div className="space-y-3">
-              <FlagPanel
-                title="Folded"
-                description="If children are present, start with personal section collapsed in left sidebar"
-                order={0}
-                uid={activeDialogSection.settings.folded?.uid || ""}
-                parentUid={activeDialogSection.settings.uid}
-                disabled={!activeDialogSection.children?.length}
-              />
               <NumberPanel
                 title="Truncate-result?"
                 description="Maximum characters to display"
