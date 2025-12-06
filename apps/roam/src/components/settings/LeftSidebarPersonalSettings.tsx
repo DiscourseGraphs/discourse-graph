@@ -14,7 +14,6 @@ import deleteBlock from "roamjs-components/writes/deleteBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
 import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import {
   LeftSidebarPersonalSectionConfig,
   getLeftSidebarPersonalSectionConfig,
