@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import {
   Button,
   Checkbox,
@@ -29,6 +30,9 @@ import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import sendErrorEmail from "~/utils/sendErrorEmail";
+import SuggestiveModeSettings from "./SuggestiveModeSettings";
+import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import refreshConfigTree from "~/utils/refreshConfigTree";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -326,8 +330,21 @@ const FeatureFlagsTab = (): React.ReactElement => {
   const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
     getSetting("use-reified-relations"),
   );
+  const settings = useMemo(() => {
+    refreshConfigTree();
+    return getFormattedConfigTree();
+  }, []);
+
   return (
     <div className="flex flex-col gap-4 p-4">
+      <FlagPanel
+        title="(BETA) Suggestive Mode Enabled"
+        description="Whether or not to enable the suggestive mode, if this is first time enabling it, you will need to generate and upload all node embeddings to supabase. Go to Suggestive Mode -> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"
+        order={3}
+        uid={settings.suggestiveModeEnabled.uid}
+        parentUid={settings.settingsUid}
+        value={settings.suggestiveModeEnabled.value || false}
+      />
       <Checkbox
         defaultChecked={useReifiedRelations}
         onChange={(e) => {
@@ -399,6 +416,12 @@ const AdminPanel = (): React.ReactElement => {
             <NodeListTab />
           </div>
         }
+      />
+      <Tab
+        id="suggestive-mode-settings"
+        title="Suggestive Mode"
+        className="overflow-y-auto"
+        panel={<SuggestiveModeSettings />}
       />
     </Tabs>
   );
