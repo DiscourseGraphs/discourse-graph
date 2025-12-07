@@ -212,7 +212,7 @@ const CreateRelationDialog = ({
               />
             </Label>
           </div>
-          <div className="full-popover-width">
+          <div className="make-popover-full-width">
             <AutocompleteInput
               value={selectedTargetTitle}
               setValue={getNodeFromTitle}

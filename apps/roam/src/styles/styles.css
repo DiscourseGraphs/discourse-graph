@@ -120,7 +120,8 @@
   padding: 1px;
 }
 
-.full-popover-width .bp3-popover-target {
+/* Utility class that targets the width of the future popover element */
+.make-popover-full-width .bp3-popover-target {
   width: 100%;
 }
 
