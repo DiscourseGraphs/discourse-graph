@@ -43,12 +43,10 @@ type ExtendedCreateRelationDialogProps = CreateRelationDialogProps & {
 const internalError = (msg: string) => {
   process.env.NODE_ENV === "development"
     ? console.error(msg)
-    : sendErrorEmail({
+    : void sendErrorEmail({
         error: new Error(msg),
         type: "Create Relation Dialog Failed",
-      })
-        .then(() => {})
-        .catch(() => {});
+      }).catch(() => {});
 };
 
 const CreateRelationDialog = ({
@@ -78,6 +76,7 @@ const CreateRelationDialog = ({
   >(undefined);
   const allPages = useMemo(() => getAllPageNames().sort(), []);
   const getFilteredPageNames = (selectedRelationName: string): string[] => {
+    if (!relDataByTag[selectedRelationName]?.length) return [];
     const formats = relDataByTag[selectedRelationName].map((rel) =>
       getDiscourseNodeFormatInnerExpression(
         nodesById[rel.forward ? rel.destination : rel.source].format,
@@ -175,7 +174,7 @@ const CreateRelationDialog = ({
           intent: "danger",
           content: <span>Failed to create relation</span>,
         });
-        return;
+        onClose();
       });
   };
 
