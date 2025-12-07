@@ -114,6 +114,17 @@
   border-bottom: 1px solid rgba(16, 22, 26, 0.15);
 }
 
+.bp3-callout.invert-icon .bp3-icon {
+  color: #e1e8ed !important; /* @light-gray3 */
+  background-color: #106ba3; /* @blue2 */
+  padding: 1px;
+}
+
+/* Utility class that targets the width of the future popover element */
+.make-popover-full-width .bp3-popover-target {
+  width: 100%;
+}
+
 .roamjs-kanban-card .card-selections tr:first-child td {
   box-shadow: none;
 }
