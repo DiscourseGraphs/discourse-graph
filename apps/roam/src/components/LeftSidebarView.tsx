@@ -414,7 +414,7 @@ const migrateFavorites = async () => {
 
   const config = getFormattedConfigTree().leftSidebar;
 
-  if (config.favoritesMigrated.value) return;
+  if ((config.favoritesMigrated as BooleanSetting).value) return;
 
   let leftSidebarUid = config.uid;
   if (leftSidebarUid) {
