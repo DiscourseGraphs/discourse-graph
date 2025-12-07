@@ -14,10 +14,8 @@ import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
-import {
-  getDiscourseNodeTypeByTitle,
-  formatToRegexpText,
-} from "~/utils/getDiscourseNodeType";
+import { getDiscourseNodeTypeByTitle } from "~/utils/getDiscourseNodeType";
+import { getDiscourseNodeFormatInnerExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 
 export type CreateRelationDialogProps = {
@@ -59,11 +57,11 @@ const CreateRelationDialog = ({
   const allPages = useMemo(() => getAllPageNames().sort(), []);
   const getFilteredPageNames = (selectedRelationName: string): string[] => {
     const formats = relDataByTag[selectedRelationName].map((rel) =>
-      formatToRegexpText(
+      getDiscourseNodeFormatInnerExpression(
         nodesById[rel.forward ? rel.destination : rel.source].format,
       ),
     );
-    const re = RegExp(`^(${formats.join(")|(")})$`);
+    const re = RegExp(`^(${formats.join(")|(")})$`, "s");
     return allPages.filter((title) => title.match(re));
   };
   const [pageOptions, setPageOptions] = useState<string[]>(

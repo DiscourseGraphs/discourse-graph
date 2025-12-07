@@ -1,15 +1,6 @@
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
-import "core-js/proposals/regexp-escaping";
-import format from "date-fns/esm/fp/format/index.js";
-
-// eslint-disable-next-line
-const reEscape = (RegExp as any).escape as (str: string) => string;
-
-const SUB_RE = new RegExp(/\\\{\w+\\\}/g);
-
-export const formatToRegexpText = (format: string): string =>
-  reEscape(format.trim()).replaceAll(SUB_RE, ".*");
+import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
 
 export const getDiscourseNodeTypeByTitle = (
   title: string,
@@ -19,11 +10,11 @@ export const getDiscourseNodeTypeByTitle = (
   const formatMatches = nodeSchemas.filter((schema) => {
     const format = schema.format || "";
     if (format.trim().length == 0) return false;
-    const formatReTxt = formatToRegexpText(format);
-    if (formatReTxt.length === 2)
+
+    const formatRe = getDiscourseNodeFormatExpression(format);
+    if (formatRe.toString().length === 10)
       // exclude universal matches
       return false;
-    const formatRe = new RegExp(`^${formatReTxt}$`);
     return title.match(formatRe);
   });
   if (formatMatches.length > 0) {
