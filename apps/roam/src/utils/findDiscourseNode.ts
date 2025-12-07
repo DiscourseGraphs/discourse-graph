@@ -3,7 +3,10 @@ import matchDiscourseNode from "./matchDiscourseNode";
 
 const discourseNodeTypeCache: Record<string, DiscourseNode | false> = {};
 
-const findDiscourseNode = (uid = "", nodes = getDiscourseNodes()) => {
+const findDiscourseNode = (
+  uid = "",
+  nodes = getDiscourseNodes(),
+): DiscourseNode | false => {
   if (typeof discourseNodeTypeCache[uid] !== "undefined") {
     return discourseNodeTypeCache[uid];
   }
@@ -25,7 +28,7 @@ export const findDiscourseNodeByTitleAndUid = ({
   uid: string;
   title: string;
   nodes?: DiscourseNode[];
-}) => {
+}): DiscourseNode | false => {
   nodes = nodes || getDiscourseNodes();
   if (typeof discourseNodeTypeCache[uid] !== "undefined") {
     return discourseNodeTypeCache[uid];

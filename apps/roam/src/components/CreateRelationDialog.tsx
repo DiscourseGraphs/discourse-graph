@@ -307,19 +307,10 @@ const extendProps = ({
     title: nodeTitle,
   });
   if (selectedSourceType === false) {
-    renderToast({
-      id: `discourse-relation-error-${Date.now()}`,
-      intent: "danger",
-      content: <span>Could not identify type of node</span>,
-    });
-    return null;
+    // should not happen
+    throw new Error("Could not identify type of node");
   }
   if (relData.length === 0) {
-    renderToast({
-      id: `discourse-relation-error-${Date.now()}`,
-      intent: "warning",
-      content: <span>No relation exists for {selectedSourceType.type}</span>,
-    });
     return null;
   }
   return {
@@ -335,10 +326,26 @@ export const renderCreateRelationDialog = (
   props: CreateRelationDialogProps | ExtendedCreateRelationDialogProps | null,
 ): void => {
   if (props === null) return;
+  const { sourceNodeUid } = props;
   if ((props as ExtendedCreateRelationDialogProps).relData === undefined) {
-    props = extendProps(props);
+    try {
+      props = extendProps(props);
+    } catch (e) {
+      renderToast({
+        id: `discourse-relation-error-${Date.now()}`,
+        intent: "danger",
+        content: <span>{(e as Error).message}</span>,
+      });
+      return;
+    }
   }
-  if (props !== null) {
+  if (props === null) {
+    renderToast({
+      id: `discourse-relation-error-${Date.now()}`,
+      intent: "warning",
+      content: <span>No relation exists for ${sourceNodeUid}</span>,
+    });
+  } else {
     renderOverlay({
       Overlay: CreateRelationDialog,
       props: props as ExtendedCreateRelationDialogProps,
@@ -351,8 +358,10 @@ export const CreateRelationButton = (
 ): React.JSX.Element | null => {
   const showAddRelation = getSetting("use-reified-relations");
   if (!showAddRelation) return null;
-  const extProps = extendProps(props);
-  if (extProps === null) return <></>;
+  let extProps: ExtendedCreateRelationDialogProps | null = null;
+  try {
+    extProps = extendProps(props);
+  } catch (e) {}
   return (
     <Button
       className="m-2"
