@@ -14,7 +14,7 @@ import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
-
+import sendErrorEmail from "~/utils/sendErrorEmail";
 import { getSetting } from "~/utils/extensionSettings";
 import getDiscourseRelations, {
   type DiscourseRelation,
@@ -24,6 +24,7 @@ import { findDiscourseNodeByTitleAndUid } from "~/utils/findDiscourseNode";
 import { getDiscourseNodeFormatInnerExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import { renderSelectDialog } from "./SelectDialog";
 
 export type CreateRelationDialogProps = {
   onClose: () => void;
@@ -38,6 +39,17 @@ type ExtendedCreateRelationDialogProps = CreateRelationDialogProps & {
   relData: RelWithDirection[];
   sourceNodeTitle: string;
   selectedSourceType: DiscourseNode;
+};
+
+const internalError = (msg: string) => {
+  process.env.NODE_ENV === "development"
+    ? console.error(msg)
+    : sendErrorEmail({
+        error: new Error(msg),
+        type: "Create Relation Dialog Failed",
+      })
+        .then(() => {})
+        .catch(() => {});
 };
 
 const CreateRelationDialog = ({
@@ -86,7 +98,8 @@ const CreateRelationDialog = ({
       nodes: discourseNodes,
     });
     if (selectedTargetType === false) {
-      console.error("could not identify the target type");
+      // should not happen at this point, since the pattern was vetted at input.
+      internalError("Could not find identify node downstream");
       return null;
     }
     const candidateRelations = relDataByTag[selectedRelationName].filter(
@@ -105,11 +118,17 @@ const CreateRelationDialog = ({
       },
     );
     if (candidateRelations.length === 0) {
-      console.error("Could not find the relation");
+      // also should not happen
+      internalError("Could not find the relation");
       return null;
     }
-    if (candidateRelations.length !== 1)
-      console.warn("Found multiple relations");
+    if (candidateRelations.length !== 1) {
+      // This seems to happen... I need more data.
+      internalError(
+        `Too many relations between ${selectedTargetType.type} and ${selectedSourceType.type}: ${candidateRelations.map((r) => r.id).join(",")}`,
+      );
+      return null;
+    }
     return candidateRelations[0];
   };
 
@@ -148,7 +167,6 @@ const CreateRelationDialog = ({
         onClose();
       })
       .catch((error) => {
-        console.error(error);
         renderToast({
           id: `discourse-relation-error-${Date.now()}`,
           intent: "danger",
@@ -254,9 +272,8 @@ const prepareRelData = (
     nodes: discourseNodeSchemas,
   });
   if (!nodeSchema) {
-    console.error(
-      `Could not determine the type of ${nodeTitle} (${targetNodeUid})`,
-    );
+    // should not happen at this point, since the pattern was vetted at input.
+    internalError("Could not find identify node downstream");
     return [];
   }
   // note the same relation could be used in both directions
@@ -285,15 +302,26 @@ const extendProps = ({
 }: CreateRelationDialogProps): ExtendedCreateRelationDialogProps | null => {
   const nodeTitle = getPageTitleByPageUid(sourceNodeUid).trim();
   const relData = prepareRelData(sourceNodeUid, nodeTitle);
-  if (relData.length === 0) {
-    console.warn(`No relation type for node ${nodeTitle}`);
-    return null;
-  }
   const selectedSourceType = findDiscourseNodeByTitleAndUid({
     uid: sourceNodeUid,
     title: nodeTitle,
   });
-  if (selectedSourceType === false) return null;
+  if (selectedSourceType === false) {
+    renderToast({
+      id: `discourse-relation-error-${Date.now()}`,
+      intent: "danger",
+      content: <span>Could not identify type of node</span>,
+    });
+    return null;
+  }
+  if (relData.length === 0) {
+    renderToast({
+      id: `discourse-relation-error-${Date.now()}`,
+      intent: "warning",
+      content: <span>No relation exists for {selectedSourceType.type}</span>,
+    });
+    return null;
+  }
   return {
     sourceNodeUid,
     onClose,
@@ -310,9 +338,7 @@ export const renderCreateRelationDialog = (
   if ((props as ExtendedCreateRelationDialogProps).relData === undefined) {
     props = extendProps(props);
   }
-  if (props === null) {
-    console.error("Could not render");
-  } else {
+  if (props !== null) {
     renderOverlay({
       Overlay: CreateRelationDialog,
       props: props as ExtendedCreateRelationDialogProps,
@@ -326,6 +352,7 @@ export const CreateRelationButton = (
   const showAddRelation = getSetting("use-reified-relations");
   if (!showAddRelation) return null;
   const extProps = extendProps(props);
+  if (extProps === null) return <></>;
   return (
     <Button
       className="m-2"
