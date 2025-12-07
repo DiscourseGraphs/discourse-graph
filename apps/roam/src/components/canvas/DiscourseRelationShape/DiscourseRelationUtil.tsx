@@ -546,7 +546,7 @@ export const createAllRelationShapeUtils = (
           await createReifiedRelation({
             sourceUid: (source.props as DiscourseNodeShape["props"]).uid,
             destinationUid: (target.props as DiscourseNodeShape["props"]).uid,
-            relationBlockUid: arrow.type,
+            relationBlockUid: relation.id,
           });
         } else {
           const { triples, label: relationLabel } = relation;
