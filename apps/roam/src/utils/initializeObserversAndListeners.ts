@@ -4,7 +4,7 @@ import {
   getPageTitleValueByHtmlElement,
 } from "roamjs-components/dom";
 import { createBlock } from "roamjs-components/writes";
-import { renderLinkedReferenceAdditions } from "~/utils/renderLinkedReferenceAdditions";
+import { renderDiscourseContextAndCanvasReferences } from "~/utils/renderLinkedReferenceAdditions";
 import { createConfigObserver } from "roamjs-components/components/ConfigPage";
 import {
   renderTldrawCanvas,
@@ -91,23 +91,22 @@ export const initObservers = async ({
       const uid = getPageUidByPageTitle(title);
       if (isDiscourseNode(uid)) {
         renderPossibleDuplicates(h1, title);
+        const linkedReferencesDiv = document.querySelector(
+          ".rm-reference-main",
+        ) as HTMLDivElement;
+        if (linkedReferencesDiv) {
+          renderDiscourseContextAndCanvasReferences(
+            linkedReferencesDiv,
+            uid,
+            onloadArgs,
+          );
+        }
       }
 
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
       else if (isQueryPage(props)) renderQueryPage(props);
       else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);
       else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
-    },
-  });
-
-  // TODO: contains roam query: https://github.com/DiscourseGraphs/discourse-graph/issues/39
-  const linkedReferencesObserver = createHTMLObserver({
-    tag: "DIV",
-    useBody: true,
-    className: "rm-reference-main",
-    callback: async (el) => {
-      const div = el as HTMLDivElement;
-      await renderLinkedReferenceAdditions(div, onloadArgs);
     },
   });
 
@@ -399,7 +398,6 @@ export const initObservers = async ({
       pageTitleObserver,
       queryBlockObserver,
       configPageObserver,
-      linkedReferencesObserver,
       graphOverviewExportObserver,
       nodeTagPopupButtonObserver,
       leftSidebarObserver,
