@@ -30,6 +30,7 @@ import type {
   LeftSidebarConfig,
   LeftSidebarPersonalSectionConfig,
 } from "~/utils/getLeftSidebarSettings";
+import type { BooleanSetting } from "~/utils/getExportSettings";
 import { createBlock } from "roamjs-components/writes";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -407,13 +408,13 @@ const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   );
 };
 
-const migrateFavorites = async (starredPagesContainer: Element) => {
+const migrateFavorites = async () => {
   const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
   if (!configPageUid) return;
 
   const config = getFormattedConfigTree().leftSidebar;
 
-  if (config.favoritesMigrated.value) return;
+  if ((config.favoritesMigrated as BooleanSetting).value) return;
 
   let leftSidebarUid = config.uid;
   if (leftSidebarUid) {
@@ -431,9 +432,12 @@ const migrateFavorites = async (starredPagesContainer: Element) => {
     }
   }
 
-  const titles = Array.from(starredPagesContainer.querySelectorAll(".page"))
-    .map((el) => el.textContent || "")
-    .filter((t) => t);
+  const results = window.roamAlphaAPI.q(`
+    [:find ?title 
+     :where [?e :page/sidebar]
+            [?e :node/title ?title]]
+  `);
+  const titles = (results as string[][]).map(([title]) => title);
 
   if (!leftSidebarUid) {
     const tree = getBasicTreeByParentUid(configPageUid);
@@ -505,10 +509,7 @@ export const mountLeftSidebar = async (
   const id = "dg-left-sidebar-root";
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
   if (!root) {
-    const existingStarred = wrapper.querySelector(".starred-pages");
-    if (existingStarred) {
-      await migrateFavorites(existingStarred);
-    }
+    await migrateFavorites();
     wrapper.innerHTML = "";
     root = document.createElement("div");
     root.id = id;
