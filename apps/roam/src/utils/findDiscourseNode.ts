@@ -17,13 +17,6 @@ const findDiscourseNode = (uid = "", nodes = getDiscourseNodes()) => {
 };
 export default findDiscourseNode;
 
-export const findDiscourseNodeByTitle = (
-  title = "",
-  nodes = getDiscourseNodes(),
-) => {
-  return nodes.find((node) => matchDiscourseNode({ ...node, title }));
-};
-
 export const findDiscourseNodeByTitleAndUid = ({
   uid,
   title,

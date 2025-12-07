@@ -20,10 +20,7 @@ import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
-import {
-  findDiscourseNodeByTitle,
-  findDiscourseNodeByTitleAndUid,
-} from "~/utils/findDiscourseNode";
+import { findDiscourseNodeByTitleAndUid } from "~/utils/findDiscourseNode";
 import { getDiscourseNodeFormatInnerExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
@@ -80,13 +77,15 @@ const CreateRelationDialog = ({
 
   const identifyRelationMatch = (
     targetTitle: string,
+    targetUid: string,
   ): RelWithDirection | null => {
     if (targetTitle.length === 0) return null;
-    const selectedTargetType = findDiscourseNodeByTitle(
-      targetTitle,
-      discourseNodes,
-    );
-    if (selectedTargetType === undefined) {
+    const selectedTargetType = findDiscourseNodeByTitleAndUid({
+      uid: targetUid,
+      title: targetTitle,
+      nodes: discourseNodes,
+    });
+    if (selectedTargetType === false) {
       console.error("could not identify the target type");
       return null;
     }
@@ -116,7 +115,10 @@ const CreateRelationDialog = ({
 
   const onCreate = async (): Promise<boolean> => {
     if (selectedTargetUid === undefined) return false;
-    const relation = identifyRelationMatch(selectedTargetTitle);
+    const relation = identifyRelationMatch(
+      selectedTargetTitle,
+      selectedTargetUid,
+    );
     if (relation === null) return false;
     const result = await createReifiedRelation({
       relationBlockUid: relation.id,
@@ -161,7 +163,7 @@ const CreateRelationDialog = ({
     setPageOptions(getFilteredPageNames(relName));
     if (
       selectedTargetUid !== undefined &&
-      identifyRelationMatch(selectedTargetTitle) === null
+      identifyRelationMatch(selectedTargetTitle, selectedTargetUid) === null
     ) {
       setSelectedTargetUid(undefined);
     }
@@ -175,7 +177,7 @@ const CreateRelationDialog = ({
       setSelectedTargetUid(undefined);
       return;
     }
-    const relation = identifyRelationMatch(title);
+    const relation = identifyRelationMatch(title, uid);
     if (relation === null) {
       setSelectedTargetUid(undefined);
       return;
