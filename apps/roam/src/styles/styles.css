@@ -114,24 +114,10 @@
   border-bottom: 1px solid rgba(16, 22, 26, 0.15);
 }
 
-.roamjs-create-relation-dialog-body {
-  background-color: #e8eff3;
-}
-
-.dg-detached-header {
-  background-color: #c0d8e6;
-  color: #2c5f95;
-  margin: 1em;
-  font-size: 16px;
-  min-height: 20px;
-  padding: 5px;
-}
-
-.dg-detached-header .bp3-icon {
-  color: #c0d8e6;
-  background-color: #2c5f95;
+.bp3-callout.invert-icon .bp3-icon {
+  color: #e1e8ed !important; /* @light-gray3 */
+  background-color: #106ba3; /* @blue2 */
   padding: 1px;
-  margin-left: 0.7ex;
 }
 
 .full-popover-width .bp3-popover-target {

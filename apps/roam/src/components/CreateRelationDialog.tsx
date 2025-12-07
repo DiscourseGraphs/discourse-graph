@@ -1,5 +1,12 @@
 import React, { useState, useMemo } from "react";
-import { Dialog, Classes, Label, Button, Icon } from "@blueprintjs/core";
+import {
+  Dialog,
+  Classes,
+  Label,
+  Button,
+  Icon,
+  Callout,
+} from "@blueprintjs/core";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
@@ -181,13 +188,15 @@ const CreateRelationDialog = ({
       isOpen={true}
       onClose={onClose}
       autoFocus={false}
-      className="roamjs-create-relation-dialog-body"
+      className="roamjs-canvas-dialog"
     >
-      <div className="bp3-dialog-header dg-detached-header">
-        <Icon icon="plus" />
-        <span className="block font-bold">Create relation</span>
-      </div>
       <div className={Classes.DIALOG_BODY}>
+        <Callout
+          intent="primary"
+          className="invert-icon mb-4"
+          title="Create relation"
+          icon="plus"
+        />
         <div className="flex flex-col gap-4">
           <div>{sourceNodeTitle}</div>
 
@@ -317,7 +326,8 @@ export const CreateRelationButton = (
   const extProps = extendProps(props);
   return (
     <Button
-      style={{ margin: 12 }}
+      className="m-2"
+      minimal
       disabled={extProps === null}
       onClick={
         extProps === null
