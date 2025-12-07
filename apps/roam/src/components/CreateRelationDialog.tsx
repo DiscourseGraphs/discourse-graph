@@ -23,6 +23,7 @@ import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { findDiscourseNodeByTitleAndUid } from "~/utils/findDiscourseNode";
 import { getDiscourseNodeFormatInnerExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import type { Result } from "~/utils/types";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 
 export type CreateRelationDialogProps = {
@@ -168,7 +169,7 @@ const CreateRelationDialog = ({
         }
         onClose();
       })
-      .catch((error) => {
+      .catch(() => {
         renderToast({
           id: `discourse-relation-error-${Date.now()}`,
           intent: "danger",
@@ -349,6 +350,7 @@ export const renderCreateRelationDialog = (
     });
   } else {
     renderOverlay({
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       Overlay: CreateRelationDialog,
       props: props as ExtendedCreateRelationDialogProps,
     });
