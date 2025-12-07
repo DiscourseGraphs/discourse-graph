@@ -24,7 +24,6 @@ import { findDiscourseNodeByTitleAndUid } from "~/utils/findDiscourseNode";
 import { getDiscourseNodeFormatInnerExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import { renderSelectDialog } from "./SelectDialog";
 
 export type CreateRelationDialogProps = {
   onClose: () => void;
@@ -61,12 +60,16 @@ const CreateRelationDialog = ({
 }: ExtendedCreateRelationDialogProps) => {
   const discourseNodes = useMemo(() => getDiscourseNodes(), []);
   const nodesById = Object.fromEntries(discourseNodes.map((n) => [n.type, n]));
-  const relDataByTag: Record<string, RelWithDirection[]> = {};
-  for (const rel of relData) {
-    const useLabel = rel.forward ? rel.label : rel.complement;
-    if (relDataByTag[useLabel] === undefined) relDataByTag[useLabel] = [rel];
-    else relDataByTag[useLabel].push(rel);
-  }
+  const relDataByTag = useMemo(() => {
+    const byTag: Record<string, RelWithDirection[]> = {};
+    for (const rel of relData) {
+      const useLabel = rel.forward ? rel.label : rel.complement;
+      if (byTag[useLabel] === undefined) byTag[useLabel] = [rel];
+      else byTag[useLabel].push(rel);
+    }
+    return byTag;
+  }, [relData]);
+
   const relKeys = Object.keys(relDataByTag);
   const [selectedRelationName, setSelectedRelationName] = useState(relKeys[0]);
   const [selectedTargetTitle, setSelectedTargetTitle] = useState<string>("");
@@ -343,7 +346,7 @@ export const renderCreateRelationDialog = (
     renderToast({
       id: `discourse-relation-error-${Date.now()}`,
       intent: "warning",
-      content: <span>No relation exists for ${sourceNodeUid}</span>,
+      content: <span>No relation exists for {sourceNodeUid}</span>,
     });
   } else {
     renderOverlay({
@@ -361,19 +364,17 @@ export const CreateRelationButton = (
   let extProps: ExtendedCreateRelationDialogProps | null = null;
   try {
     extProps = extendProps(props);
-  } catch (e) {}
+  } catch (e) {
+    // the node's type was not identified. Swallow silently.
+  }
   return (
     <Button
       className="m-2"
       minimal
       disabled={extProps === null}
-      onClick={
-        extProps === null
-          ? undefined
-          : () => {
-              renderCreateRelationDialog(extProps);
-            }
-      }
+      onClick={() => {
+        renderCreateRelationDialog(extProps);
+      }}
     >
       <Icon icon="plus" />
     </Button>
