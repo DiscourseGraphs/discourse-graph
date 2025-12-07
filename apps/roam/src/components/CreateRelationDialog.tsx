@@ -9,13 +9,16 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 
 import { getSetting } from "~/utils/extensionSettings";
-import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
-import { getDiscourseNodeTypeByTitle } from "~/utils/getDiscourseNodeType";
+import {
+  findDiscourseNodeByTitle,
+  findDiscourseNodeByTitleAndUid,
+} from "~/utils/findDiscourseNode";
 import { getDiscourseNodeFormatInnerExpression } from "~/utils/getDiscourseNodeFormatExpression";
+import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 
 export type CreateRelationDialogProps = {
@@ -72,11 +75,11 @@ const CreateRelationDialog = ({
     targetTitle: string,
   ): RelWithDirection | null => {
     if (targetTitle.length === 0) return null;
-    const selectedTargetType = getDiscourseNodeTypeByTitle(
+    const selectedTargetType = findDiscourseNodeByTitle(
       targetTitle,
       discourseNodes,
     );
-    if (selectedTargetType === null) {
+    if (selectedTargetType === undefined) {
       console.error("could not identify the target type");
       return null;
     }
@@ -234,10 +237,11 @@ const prepareRelData = (
   nodeTitle = nodeTitle || getPageTitleByPageUid(targetNodeUid).trim();
   const discourseNodeSchemas = getDiscourseNodes();
   const relations = getDiscourseRelations();
-  const nodeSchema = getDiscourseNodeTypeByTitle(
-    nodeTitle,
-    discourseNodeSchemas,
-  );
+  const nodeSchema = findDiscourseNodeByTitleAndUid({
+    uid: targetNodeUid,
+    title: nodeTitle,
+    nodes: discourseNodeSchemas,
+  });
   if (!nodeSchema) {
     console.error(
       `Could not determine the type of ${nodeTitle} (${targetNodeUid})`,
@@ -274,8 +278,11 @@ const extendProps = ({
     console.warn(`No relation type for node ${nodeTitle}`);
     return null;
   }
-  const selectedSourceType = getDiscourseNodeTypeByTitle(nodeTitle);
-  if (selectedSourceType === null) return null;
+  const selectedSourceType = findDiscourseNodeByTitleAndUid({
+    uid: sourceNodeUid,
+    title: nodeTitle,
+  });
+  if (selectedSourceType === false) return null;
   return {
     sourceNodeUid,
     onClose,
