@@ -11,7 +11,6 @@ import {
   useIsToolSelected,
   DefaultKeyboardShortcutsDialog,
   DefaultKeyboardShortcutsDialogContent,
-  DefaultToolbar,
   DefaultToolbarContent,
   TldrawUiMenuItem,
   DefaultMainMenu,
@@ -45,10 +44,8 @@ import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelatio
 import { dispatchToastEvent } from "./ToastListener";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
-import { convertComboToTldrawFormat } from "~/utils/keyboardShortcutUtils";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
-import { ClipboardToolbarButton } from "./Clipboard";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 
 const convertToDiscourseNode = async ({

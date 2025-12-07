@@ -24,7 +24,7 @@ export const getDiscourseNodeColors = ({
 
   const paletteColor =
     COLOR_ARRAY[
-      discourseNodeIndex >= 0 && discourseNodeIndex < COLOR_ARRAY.length - 1
+      discourseNodeIndex >= 0 && discourseNodeIndex < COLOR_ARRAY.length
         ? discourseNodeIndex
         : 0
     ];
