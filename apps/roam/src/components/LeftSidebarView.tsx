@@ -13,7 +13,6 @@ import {
   Popover,
   Menu,
   MenuItem,
-  MenuDivider,
   Divider,
   Position,
   PopoverInteractionKind,
@@ -368,7 +367,6 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           minimal
           content={
             <Menu>
-              <MenuDivider title="Add Or Edit" />
               <MenuItem
                 text="Global Section"
                 onClick={() => {
