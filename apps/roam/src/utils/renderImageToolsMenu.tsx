@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import ReactDOM from "react-dom";
 import { Button, IconName } from "@blueprintjs/core";
 import getUids from "roamjs-components/dom/getUids";
@@ -14,6 +14,8 @@ const ImageToolsMenu = ({
   blockUid,
   extensionAPI,
 }: ImageToolsMenuProps): JSX.Element => {
+  const [menuKey, setMenuKey] = useState(0);
+
   const handleEditBlock = useCallback((): void => {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
@@ -21,6 +23,10 @@ const ImageToolsMenu = ({
       location: { "block-uid": blockUid, "window-id": "main-window" },
     });
   }, [blockUid]);
+
+  const handleMenuClose = useCallback(() => {
+    setMenuKey((prev) => prev + 1);
+  }, []);
 
   const trigger = (
     <Button icon={"label" as IconName} minimal small title="Add Node Tag" />
@@ -33,7 +39,8 @@ const ImageToolsMenu = ({
       onMouseDown={(e) => e.stopPropagation()}
     >
       <NodeMenu
-        onClose={() => {}}
+        key={menuKey}
+        onClose={handleMenuClose}
         blockUid={blockUid}
         extensionAPI={extensionAPI}
         trigger={trigger}
