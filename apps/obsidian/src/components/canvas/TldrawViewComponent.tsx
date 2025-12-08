@@ -270,6 +270,29 @@ export const TldrawPreviewComponent = ({
       // Handle pointer events
       if (event.type !== "pointer") return;
       const e = event as TLPointerEventInfo;
+
+      if (e.type === "pointer" && e.name === "right_click") {
+        const container = editor.getContainer();
+        const canvas = container?.querySelector(".tl-canvas") as HTMLElement;
+
+        if (canvas) {
+          setTimeout(() => {
+            const contextMenuEvent = new MouseEvent("contextmenu", {
+              bubbles: true,
+              cancelable: true,
+              clientX: e.point.x,
+              clientY: e.point.y,
+              button: 2,
+              shiftKey: e.shiftKey,
+              ctrlKey: e.ctrlKey,
+              altKey: e.altKey,
+              metaKey: e.metaKey,
+            });
+            canvas.dispatchEvent(contextMenuEvent);
+          }, 0);
+        }
+      }
+
       if (e.type === "pointer" && e.name === "pointer_down") {
         const currentTool = editor.getCurrentTool();
         const currentToolId = currentTool.id;
