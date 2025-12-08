@@ -7,6 +7,7 @@ import getDiscourseRelations, {
   DiscourseRelation,
 } from "./getDiscourseRelations";
 import { Selection } from "./types";
+import { getSetting } from "~/utils/extensionSettings";
 
 const resultCache: Record<string, Awaited<ReturnType<typeof fireQuery>>> = {};
 const CACHE_TIMEOUT = 1000 * 60 * 5;
@@ -57,6 +58,12 @@ const buildSelections = ({
       text: `node:${conditionUid}-Anchor`,
     });
   }
+  if (getSetting("use-reified-relations"))
+    selections.push({
+      uid: window.roamAlphaAPI.util.generateUID(),
+      label: "relation",
+      text: `node:rel`,
+    });
 
   return selections;
 };

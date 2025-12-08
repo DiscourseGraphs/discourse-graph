@@ -174,10 +174,7 @@ export const CellEmbed = ({
   }, [contentRef]);
   return (
     <div className="roamjs-query-embed">
-      <div
-        ref={contentRef}
-        className={!!title ? "page-embed" : "block-embed"}
-      />
+      <div ref={contentRef} className={title ? "page-embed" : "block-embed"} />
     </div>
   );
 };
@@ -267,6 +264,15 @@ const ResultRow = ({
     [views],
   );
   const trRef = useRef<HTMLTableRowElement>(null);
+  const onDelete = () => {
+    void deleteBlock(r["relation-uid"])
+      .catch((e) => {
+        console.error(e);
+      })
+      .then(() => {
+        onRefresh();
+      });
+  };
   return (
     <>
       <tr ref={trRef} data-uid={r.uid}>
@@ -323,6 +329,15 @@ const ResultRow = ({
                 <CellEmbed uid={uid} viewValue={viewValue} />
               ) : (
                 cell(key)
+              )}
+              {r["relation-uid"] && (
+                <Button
+                  minimal
+                  icon="delete"
+                  className="float-right"
+                  title="Delete relation"
+                  onClick={onDelete}
+                ></Button>
               )}
               {i < columns.length - 1 && (
                 <div
