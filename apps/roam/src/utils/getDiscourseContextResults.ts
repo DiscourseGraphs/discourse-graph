@@ -58,7 +58,7 @@ const buildSelections = ({
       text: `node:${conditionUid}-Anchor`,
     });
   }
-  if (getSetting("use-reified-relations"))
+  if (getSetting<boolean>("use-reified-relations", false))
     selections.push({
       uid: window.roamAlphaAPI.util.generateUID(),
       label: "relation",

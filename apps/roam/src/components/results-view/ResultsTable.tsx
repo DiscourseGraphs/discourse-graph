@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { Button, HTMLTable, Icon, IconName } from "@blueprintjs/core";
 import { IconNames } from "@blueprintjs/icons";
+import { render as renderToast } from "roamjs-components/components/Toast";
 import { Column, Result } from "~/utils/types";
 import type { FilterData, Sorts, Views } from "~/utils/parseResultSettings";
 import Filter, { Filters } from "roamjs-components/components/Filter";
@@ -265,12 +266,22 @@ const ResultRow = ({
   );
   const trRef = useRef<HTMLTableRowElement>(null);
   const onDelete = () => {
-    void deleteBlock(r["relation-uid"])
+    deleteBlock(r["relation-uid"])
+      .then(() => {
+        renderToast({
+          id: "delete-relation-success",
+          content: "Relation deleted",
+          intent: "success",
+        });
+        onRefresh();
+      })
       .catch((e) => {
         console.error(e);
-      })
-      .then(() => {
-        onRefresh();
+        renderToast({
+          id: "delete-relation-error",
+          content: "Could not delete relation",
+          intent: "danger",
+        });
       });
   };
   return (
