@@ -529,12 +529,7 @@ const ClipboardPageSection = ({
       };
     });
 
-    return groups.sort((a, b) => {
-      if (a.isDuplicate !== b.isDuplicate) {
-        return a.isDuplicate ? -1 : 1;
-      }
-      return a.text.localeCompare(b.text);
-    });
+    return groups.sort((a, b) => a.text.localeCompare(b.text));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [discourseNodes, findShapesByUid, storeVersion]);
 
