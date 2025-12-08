@@ -169,12 +169,10 @@ export const ClipboardProvider = ({
     void initializeClipboard();
   }, [canvasPageTitle]);
 
-  // Save clipboard data whenever it changes
   useEffect(() => {
     if (!isInitialized || !clipboardBlockUid) return;
 
     try {
-      // setBlockProps already merges with existing props
       setBlockProps(clipboardBlockUid, {
         [CLIPBOARD_PROP_KEY]: pages,
       });
@@ -259,12 +257,12 @@ const AddPageModal = ({ isOpen, onClose, onConfirm }: AddPageModalProps) => {
         // eslint-disable-next-line @typescript-eslint/await-thenable
         const raw = await window.roamAlphaAPI.data.backend.q(
           `
-            [:find ?s ?u 
+            [:find ?text ?uid 
             :where 
-            [?e :node/title ?s]
-            [?e :block/uid ?u]]`,
+            [?e :node/title ?text]
+            [?e :block/uid ?uid]]`,
         );
-        const results = raw.map(([s, u]) => ({ text: s, uid: u })) as Result[];
+        const results = raw.map(([text, uid]) => ({ text, uid })) as Result[];
         setAllResults(results);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Unknown error");
@@ -330,7 +328,7 @@ const AddPageModal = ({ isOpen, onClose, onConfirm }: AddPageModalProps) => {
               intent={Intent.PRIMARY}
               onClick={handleSubmit}
               onTouchEnd={handleSubmit}
-              disabled={isLoading || !pageInput}
+              disabled={isLoading || !pageInput.uid}
               className="flex-shrink-0"
             />
             <Button
@@ -402,9 +400,12 @@ const ClipboardPageSection = ({
   const rHasDragged = useRef<boolean>(false);
 
   // Drag state management
-  const dragState = useAtom<DragState>("clipboardDragState", () => ({
-    name: "idle",
-  }));
+  const dragState = useAtom<DragState>(
+    `clipboardDragState-${page.uid}`,
+    () => ({
+      name: "idle",
+    }),
+  );
 
   useEffect(() => {
     const fetchDiscourseNodes = async () => {
@@ -1020,7 +1021,6 @@ export const ClipboardPanel = () => {
         <div className="flex-shrink-0">
           <Button
             minimal
-            // onClick={closeClipboard}
             className="pointer-events-none"
             icon={<Icon icon="clipboard" color="#5c7080" />}
           />
@@ -1104,7 +1104,7 @@ export const ClipboardToolbarButton = () => {
       icon="clipboard-copy"
       readonlyOk
       onSelect={() => {
-        actions["select"]; // touch actions to satisfy hook rules
+        actions["select"];
         toggleClipboard();
       }}
       isSelected={isOpen}
