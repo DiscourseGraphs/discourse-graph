@@ -39,6 +39,7 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "./utils/renderNodeConfigPage";
 import { getSetting } from "./utils/extensionSettings";
 import { STREAMLINE_STYLING_KEY } from "./data/userSettings";
+import { initSchema } from "./utils/initBlockPropsSettingsConfig";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -81,6 +82,8 @@ export default runExtension(async (onloadArgs) => {
       userUid,
     });
   }
+
+  await initSchema();
 
   initFeedbackWidget();
 
