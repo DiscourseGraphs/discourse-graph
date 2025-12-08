@@ -933,11 +933,20 @@ const ClipboardPageSection = ({
                   return (
                     <div key={group.uid} className="space-y-1">
                       <div
-                        className="group flex cursor-pointer items-center gap-2 rounded bg-white p-2 hover:bg-gray-50"
+                        className="group flex cursor-pointer items-center gap-2 rounded bg-white p-2 hover:bg-gray-50 active:cursor-grabbing"
+                        style={{ cursor: "grab" }}
+                        data-clipboard-node-uid={group.uid}
+                        data-clipboard-node-text={group.text}
                         onClick={(e) => {
                           e.stopPropagation();
+                          // Don't toggle if we just completed a drag operation
+                          if (rHasDragged.current) {
+                            return;
+                          }
                           toggleCollapse(group.uid);
                         }}
+                        onPointerDown={handlePointerDown}
+                        onPointerUp={handlePointerUp}
                       >
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-1">
