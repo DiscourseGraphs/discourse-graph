@@ -309,10 +309,6 @@ const SuggestionsBody = ({
 
   const handleCreateBlock = async (node: SuggestedNode) => {
     if (getSetting("use-reified-relations")) {
-      const selectedNodeType = findDiscourseNodeByTitleAndUid({
-        uid: node.uid,
-        title: node.title as string,
-      });
       if (discourseNode === false) {
         renderToast({
           id: "suggestions-create-block-error",
@@ -322,6 +318,10 @@ const SuggestionsBody = ({
         });
         return;
       }
+      const selectedNodeType = findDiscourseNodeByTitleAndUid({
+        uid: node.uid,
+        title: node.text,
+      });
       if (selectedNodeType === false) {
         renderToast({
           id: "suggestions-create-block-error",
@@ -345,18 +345,29 @@ const SuggestionsBody = ({
           console.warn("Picking an arbitrary relation");
         }
         const rel = relevantRelns[0];
-        if (rel.destination === selectedNodeType.type)
-          await createReifiedRelation({
-            sourceUid: tagUid,
-            destinationUid: node.uid,
-            relationBlockUid: rel.id,
+        try {
+          if (rel.destination === selectedNodeType.type)
+            await createReifiedRelation({
+              sourceUid: tagUid,
+              destinationUid: node.uid,
+              relationBlockUid: rel.id,
+            });
+          else
+            await createReifiedRelation({
+              sourceUid: node.uid,
+              destinationUid: tagUid,
+              relationBlockUid: rel.id,
+            });
+        } catch (error) {
+          console.error("Failed to create reified relation:", error);
+          renderToast({
+            id: "suggestions-create-block-error",
+            content: "Failed to create relation",
+            intent: "danger",
+            timeout: 5000,
           });
-        else
-          await createReifiedRelation({
-            sourceUid: node.uid,
-            destinationUid: tagUid,
-            relationBlockUid: rel.id,
-          });
+          return;
+        }
       } else {
         renderToast({
           id: "suggestions-create-block-error",
