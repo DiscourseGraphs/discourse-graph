@@ -107,8 +107,7 @@ const optimizeQuery = (
         if (Array.from(allVars).every((v) => capturedVariables.has(v))) {
           score = 10;
         } else {
-          // downgrade disjunction and negation
-          score = c.type === "and-clause" ? 100002 : 100006;
+          score = 100002;
         }
       } else if (c.type === "not-join-clause" || c.type === "or-join-clause") {
         if (c.variables.every((v) => capturedVariables.has(v.value))) {

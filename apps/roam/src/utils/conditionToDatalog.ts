@@ -446,7 +446,7 @@ const translator: Record<string, Translator> = {
       if (currentUserMatch) {
         return [
           {
-            type: "or-join-clause",
+            type: "or-clause",
             clauses: [
               {
                 type: "data-pattern",
@@ -465,7 +465,6 @@ const translator: Record<string, Translator> = {
                 ],
               },
             ],
-            variables: [{ type: "variable", value: `${source}-String` }],
           },
           {
             type: "pred-expr",
@@ -482,7 +481,7 @@ const translator: Record<string, Translator> = {
         const rePattern = regexRePatternValue(target);
         return [
           {
-            type: "or-join-clause",
+            type: "or-clause",
             clauses: [
               {
                 type: "data-pattern",
@@ -501,7 +500,6 @@ const translator: Record<string, Translator> = {
                 ],
               },
             ],
-            variables: [{ type: "variable", value: `${source}-String` }],
           },
           {
             type: "fn-expr",
@@ -530,7 +528,7 @@ const translator: Record<string, Translator> = {
 
       return [
         {
-          type: "or-join-clause",
+          type: "or-clause",
           clauses: [
             {
               type: "data-pattern",
@@ -549,7 +547,6 @@ const translator: Record<string, Translator> = {
               ],
             },
           ],
-          variables: [{ type: "variable", value: `${source}-String` }],
         },
         {
           type: "pred-expr",
