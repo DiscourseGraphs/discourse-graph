@@ -352,7 +352,6 @@ const fireQuery: FireQuery = async (_args) => {
     }
 
     let queryResults: unknown[][] = [];
-    console.log("local", local);
     if (local) {
       // look for propNames in query. Could consider looking only in pull when that exists.
       const propNames = new Set(
