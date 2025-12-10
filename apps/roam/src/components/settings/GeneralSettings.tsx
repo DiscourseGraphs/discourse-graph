@@ -4,6 +4,7 @@ import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
+import { BlockPropFlagPanel } from "./BlockPropFlagPanel";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {
@@ -30,13 +31,10 @@ const DiscourseGraphHome = () => {
         value={settings.canvasPageFormat.value}
         defaultValue={DEFAULT_CANVAS_PAGE_FORMAT}
       />
-      <FlagPanel
+      <BlockPropFlagPanel
         title="(BETA) Left Sidebar"
         description="Whether or not to enable the left sidebar."
-        order={2}
-        uid={settings.leftSidebarEnabled.uid}
-        parentUid={settings.settingsUid}
-        value={settings.leftSidebarEnabled.value || false}
+        featureKey="Enable Left sidebar"
       />
       <FlagPanel
         title="(BETA) Suggestive Mode Enabled"
