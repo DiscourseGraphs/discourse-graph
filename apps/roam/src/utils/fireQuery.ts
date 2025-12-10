@@ -316,7 +316,27 @@ export const fireQuerySync = (args: FireQueryArgs): QueryResult[] => {
   }));
 };
 
-const PROP_NAME_RE = new RegExp(/\:\w+\/\w+\b/, "g");
+const PROP_NAME_RE = /:\w+\/\w+\b/g;
+
+const renamePropsInResult = (
+  result: json | null,
+  mapping: Record<string, string>,
+): json | null => {
+  const rename = (x: json | null): json | null => {
+    if (Array.isArray(x)) return x.map(rename);
+    if (x === null || x === undefined) return x;
+    if (typeof x === "object") {
+      return Object.fromEntries(
+        Object.entries(x as object).map(([k, v]) => [
+          mapping[k] || k,
+          rename(v),
+        ]),
+      );
+    }
+    return x;
+  };
+  return rename(result);
+};
 
 const fireQuery: FireQuery = async (_args) => {
   const { isCustomEnabled, customNode, local, ...args } = _args;
@@ -364,20 +384,10 @@ const fireQuery: FireQuery = async (_args) => {
         // no name conflict, safe to use async query
         // BUT it returns non-namespaced names, so substitute prop names back
         queryResults = await window.roamAlphaAPI.data.async.q(query, ...inputs);
-        const renameProps = (x: json | null): json | null => {
-          if (Array.isArray(x)) return x.map(renameProps);
-          if (x === null || x === undefined) return x;
-          if (typeof x === "object") {
-            return Object.fromEntries(
-              Object.entries(x as object).map(([k, v]) => [
-                propNamesSub[k] || k,
-                renameProps(v), // eslint-disable-line @typescript-eslint/no-unsafe-argument
-              ]),
-            );
-          }
-          return x;
-        };
-        queryResults = renameProps(queryResults as json) as unknown[][];
+        queryResults = renamePropsInResult(
+          queryResults as json,
+          propNamesSub,
+        ) as unknown[][];
       } else {
         // more janky but safer
         queryResults = window.roamAlphaAPI.data.fast.q(query, ...inputs);
