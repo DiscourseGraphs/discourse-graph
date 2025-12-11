@@ -77,9 +77,9 @@ const FuzzySelectInput = <T extends Result = Result>({
   const handleClear = useCallback(() => {
     setIsLocked(false);
     setQuery("");
-    setValue({ text: "", uid: "" } as T);
+    setValue({ ...value, text: "", uid: "" } as T);
     onLockedChange?.(false);
-  }, [setValue, onLockedChange]);
+  }, [value, setValue, onLockedChange]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
@@ -161,7 +161,7 @@ const FuzzySelectInput = <T extends Result = Result>({
   }
 
   // Create mode: locked value display
-  if (isLocked || initialIsLocked) {
+  if (isLocked) {
     return (
       <div className="flex w-full items-center gap-2">
         <div className="flex flex-1 items-center gap-2 rounded border border-gray-300 bg-gray-100 px-3 py-2 dark:border-gray-600 dark:bg-gray-800">

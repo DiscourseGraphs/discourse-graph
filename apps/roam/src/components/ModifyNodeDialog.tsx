@@ -39,7 +39,7 @@ export type ModifyNodeDialogProps = {
   initialReferencedNode?: { text: string; uid: string };
   sourceBlockUid?: string; //the block that we started modifying from
   extensionAPI?: OnloadArgs["extensionAPI"];
-  isFromCanvas?: boolean;
+  includeDefaultNodes?: boolean; // Include default nodes (Page, Block) in node type selector
   imageUrl?: string; // For image conversion from canvas
   onSuccess: (result: {
     text: string;
@@ -58,38 +58,56 @@ const ModifyNodeDialog = ({
   initialReferencedNode,
   sourceBlockUid,
   extensionAPI,
-  isFromCanvas = false,
+  includeDefaultNodes = false,
   imageUrl,
   onSuccess,
   onClose,
 }: RoamOverlayProps<ModifyNodeDialogProps>) => {
-  const [contentText, setContentText] = useState(initialValue.text);
-  const [contentUid, setContentUid] = useState(initialValue.uid);
-  const [referencedNodeText, setReferencedNodeText] = useState(
-    initialReferencedNode?.text || "",
+  const [content, setContent] = useState<Result>({
+    text: initialValue.text,
+    uid: initialValue.uid,
+  });
+  const [referencedNodeValue, setReferencedNodeValue] = useState<Result>({
+    text: initialReferencedNode?.text || "",
+    uid: initialReferencedNode?.uid || "",
+  });
+
+  const isContentLocked = useMemo(
+    () =>
+      Boolean(
+        content.uid && content.uid !== initialValue.uid && mode === "create",
+      ),
+    [content.uid, initialValue.uid, mode],
   );
-  const [referencedNodeUid, setReferencedNodeUid] = useState(
-    initialReferencedNode?.uid || "",
+  const isReferencedNodeLocked = useMemo(
+    () =>
+      Boolean(
+        referencedNodeValue.uid &&
+          referencedNodeValue.uid !== initialReferencedNode?.uid,
+      ),
+    [referencedNodeValue.uid, initialReferencedNode?.uid],
   );
-  const [isContentLocked, setIsContentLocked] = useState(false);
-  const [isReferencedNodeLocked, setIsReferencedNodeLocked] = useState(
-    Boolean(initialReferencedNode?.uid),
-  );
-  const [contentOptions, setContentOptions] = useState<Result[]>([]);
-  const [referencedNodeOptions, setReferencedNodeOptions] = useState<Result[]>(
-    [],
-  );
-  const [contentLoading, setContentLoading] = useState(false);
-  const [referencedNodeLoading, setReferencedNodeLoading] = useState(false);
+
+  const [options, setOptions] = useState<{
+    content: Result[];
+    referencedNode: Result[];
+  }>({ content: [], referencedNode: [] });
+
+  const [loading, setLoading] = useState<{
+    content: boolean;
+    referencedNode: boolean;
+  }>({ content: false, referencedNode: false });
+
   const contentRequestIdRef = useRef(0);
   const referencedNodeRequestIdRef = useRef(0);
   const [error, setError] = useState("");
 
   const discourseNodes = useMemo(() => {
     const allNodes = getDiscourseNodes();
-    // Allow default nodes when opened from canvas, exclude them otherwise
-    return isFromCanvas ? allNodes : allNodes.filter(excludeDefaultNodes);
-  }, [isFromCanvas]);
+    return includeDefaultNodes
+      ? allNodes
+      : allNodes.filter(excludeDefaultNodes);
+  }, [includeDefaultNodes]);
 
   const [selectedNodeType, setSelectedNodeType] = useState(() => {
     const node = discourseNodes.find((n) => n.type === nodeType);
@@ -109,7 +127,7 @@ const ModifyNodeDialog = ({
       if (val.toLowerCase() === "content") continue;
       if (val.toLowerCase() === "context") continue;
 
-      const allNodes = isFromCanvas
+      const allNodes = includeDefaultNodes
         ? getDiscourseNodes()
         : getDiscourseNodes().filter(excludeDefaultNodes);
 
@@ -126,10 +144,10 @@ const ModifyNodeDialog = ({
     }
 
     return null;
-  }, [nodeFormat, isFromCanvas]);
+  }, [nodeFormat, includeDefaultNodes]);
 
   useEffect(() => {
-    setContentLoading(true);
+    setLoading({ content: true, referencedNode: Boolean(referencedNode) });
 
     let alive = true;
     const req = ++contentRequestIdRef.current;
@@ -154,16 +172,18 @@ const ModifyNodeDialog = ({
               },
             ],
           });
-          if (contentRequestIdRef.current === req && alive)
-            setContentOptions(results);
+          if (contentRequestIdRef.current === req && alive) {
+            setOptions((prev) => ({ ...prev, content: results }));
+          }
         }
       } catch (error) {
         if (contentRequestIdRef.current === req && alive) {
           console.error("Error fetching content options:", error);
         }
       } finally {
-        if (contentRequestIdRef.current === req && alive)
-          setContentLoading(false);
+        if (contentRequestIdRef.current === req && alive) {
+          setLoading((prev) => ({ ...prev, content: false }));
+        }
       }
     };
 
@@ -185,7 +205,7 @@ const ModifyNodeDialog = ({
           ],
         });
         if (referencedNodeRequestIdRef.current === refReq && refAlive) {
-          setReferencedNodeOptions(results);
+          setOptions((prev) => ({ ...prev, referencedNode: results }));
         }
       } catch (error) {
         if (referencedNodeRequestIdRef.current === refReq && refAlive) {
@@ -193,7 +213,7 @@ const ModifyNodeDialog = ({
         }
       } finally {
         if (referencedNodeRequestIdRef.current === refReq && refAlive) {
-          setReferencedNodeLoading(false);
+          setLoading((prev) => ({ ...prev, referencedNode: false }));
         }
       }
     };
@@ -207,13 +227,11 @@ const ModifyNodeDialog = ({
   }, [selectedNodeType, referencedNode]);
 
   const setValue = useCallback((r: Result) => {
-    setContentText(r.text);
-    setContentUid(r.uid);
+    setContent(r);
   }, []);
 
-  const setReferencedNodeValue = useCallback((r: Result) => {
-    setReferencedNodeText(r.text);
-    setReferencedNodeUid(r.uid);
+  const setReferencedNodeValueCallback = useCallback((r: Result) => {
+    setReferencedNodeValue(r);
   }, []);
 
   const onCancelClick = useCallback(() => {
@@ -233,13 +251,13 @@ const ModifyNodeDialog = ({
   );
 
   const onSubmit = async () => {
-    if (!contentText.trim()) return;
+    if (!content.text.trim()) return;
     try {
       if (mode === "create") {
         // If content is locked (user selected existing node), just insert it
-        if (isContentLocked && contentUid) {
+        if (isContentLocked && content.uid) {
           if (sourceBlockUid) {
-            const pageRef = `[[${contentText}]]`;
+            const pageRef = `[[${content.text}]]`;
             await updateBlock({
               uid: sourceBlockUid,
               text: pageRef,
@@ -247,15 +265,15 @@ const ModifyNodeDialog = ({
           }
 
           if (imageUrl) {
-            const pageUid = contentUid || getPageUidByPageTitle(contentText);
+            const pageUid = content.uid || getPageUidByPageTitle(content.text);
             if (pageUid) {
               await addImageToPage(pageUid, imageUrl);
             }
           }
 
           await onSuccess({
-            text: contentText,
-            uid: contentUid,
+            text: content.text,
+            uid: content.uid,
             action: "create",
           });
 
@@ -265,12 +283,12 @@ const ModifyNodeDialog = ({
 
         // Format content with referenced node if present
         let formattedTitle = "";
-        if (referencedNode && referencedNodeText) {
+        if (referencedNode && referencedNodeValue.text) {
           // Format the referenced node if it's new
-          let formattedReferencedNodeText = referencedNodeText;
+          let formattedReferencedNodeText = referencedNodeValue.text;
           if (!isReferencedNodeLocked) {
             const formattedRefNode = await getNewDiscourseNodeText({
-              text: referencedNodeText.trim(),
+              text: referencedNodeValue.text.trim(),
               nodeType: referencedNode.nodeType,
               blockUid: sourceBlockUid,
             });
@@ -283,7 +301,7 @@ const ModifyNodeDialog = ({
           formattedTitle = nodeFormat.replace(
             /{([\w\d-]*)}/g,
             (_, val: string) => {
-              if (/content/i.test(val)) return contentText.trim();
+              if (/content/i.test(val)) return content.text.trim();
               if (new RegExp(referencedNode.name, "i").test(val))
                 return `[[${formattedReferencedNodeText}]]`;
               return "";
@@ -291,10 +309,11 @@ const ModifyNodeDialog = ({
           );
         } else {
           formattedTitle = await getNewDiscourseNodeText({
-            text: contentText.trim(),
+            text: content.text.trim(),
             nodeType: selectedNodeType.type,
             blockUid: sourceBlockUid,
           });
+          console.log("formattedTitle", formattedTitle);
         }
         if (!formattedTitle) {
           return;
@@ -360,21 +379,21 @@ const ModifyNodeDialog = ({
 
         await onSuccess({
           text: formattedTitle,
-          uid: contentUid,
+          uid: newPageUid,
           action: "create",
           newPageUid,
         });
       } else {
         // Edit mode: update the existing block
-        let updatedContent = contentText;
+        let updatedContent = content.text;
 
         // Format with referenced node if present
-        if (referencedNode && referencedNodeText) {
+        if (referencedNode && referencedNodeValue.text) {
           updatedContent = nodeFormat
             .replace(/{([\w\d-]*)}/g, (_, val: string) => {
-              if (/content/i.test(val)) return contentText.trim();
+              if (/content/i.test(val)) return content.text.trim();
               if (new RegExp(referencedNode.name, "i").test(val))
-                return `[[${referencedNodeText}]]`;
+                return `[[${referencedNodeValue.text}]]`;
               return "";
             })
             .trim();
@@ -395,16 +414,13 @@ const ModifyNodeDialog = ({
 
         await onSuccess({
           text: updatedContent,
-          uid: sourceBlockUid || contentUid,
+          uid: sourceBlockUid || content.uid,
           action: "edit",
         });
       }
       onClose();
     } catch (error) {
       setError((error as Error).message);
-    } finally {
-      setContentLoading(false);
-      setReferencedNodeLoading(false);
     }
   };
 
@@ -451,18 +467,17 @@ const ModifyNodeDialog = ({
           <div className="w-full">
             <Label>Content</Label>
             <FuzzySelectInput
-              value={{ text: contentText, uid: contentUid }}
+              value={content}
               setValue={setValue}
-              options={contentOptions}
+              options={options.content}
               placeholder={
-                contentLoading
+                loading.content
                   ? "..."
                   : `Enter a ${selectedNodeType.text.toLowerCase()} ...`
               }
-              disabled={contentLoading}
-              onLockedChange={setIsContentLocked}
+              disabled={loading.content}
               mode={mode}
-              initialUid={contentUid}
+              initialUid={content.uid}
             />
           </div>
 
@@ -471,19 +486,15 @@ const ModifyNodeDialog = ({
             <div className="w-full">
               <Label>{referencedNode.name}</Label>
               <FuzzySelectInput
-                value={{
-                  text: referencedNodeText || "",
-                  uid: referencedNodeUid || "",
-                }}
-                setValue={setReferencedNodeValue}
-                options={referencedNodeOptions}
+                value={referencedNodeValue}
+                setValue={setReferencedNodeValueCallback}
+                options={options.referencedNode}
                 placeholder={
-                  referencedNodeLoading ? "..." : "Select a referenced node"
+                  loading.referencedNode ? "..." : "Select a referenced node"
                 }
-                disabled={referencedNodeLoading}
-                onLockedChange={setIsReferencedNodeLocked}
+                disabled={loading.referencedNode}
                 mode={"create"}
-                initialUid={referencedNodeUid}
+                initialUid={referencedNodeValue.uid}
                 initialIsLocked={isReferencedNodeLocked}
               />
             </div>
@@ -498,17 +509,17 @@ const ModifyNodeDialog = ({
               text="Confirm"
               intent={Intent.PRIMARY}
               onClick={() => void onSubmit()}
-              disabled={contentLoading || !contentText.trim()}
+              disabled={loading.content || !content.text.trim()}
               className="flex-shrink-0"
             />
             <Button
               text="Cancel"
               onClick={onCancelClick}
-              disabled={contentLoading}
+              disabled={loading.content}
               className="flex-shrink-0"
             />
             <span className="flex-grow text-red-800">{error}</span>
-            {contentLoading && <Spinner size={SpinnerSize.SMALL} />}
+            {loading.content && <Spinner size={SpinnerSize.SMALL} />}
           </div>
         </div>
       </div>

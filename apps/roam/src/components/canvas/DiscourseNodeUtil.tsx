@@ -457,7 +457,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [overlayMounted, setOverlayMounted] = useState(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [dialogRendered, setDialogRendered] = useState(false);
+    const dialogRenderedRef = useRef(false);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       if (
@@ -480,7 +480,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       const isCreating = !isLiveBlock(shape.props.uid);
-      if (isEditing && !dialogRendered) {
+      if (isEditing && !dialogRenderedRef.current) {
         const setSizeAndImgPropsLocal = async ({
           text,
           uid,
@@ -508,7 +508,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               ? shape.props.uid
               : undefined,
           extensionAPI,
-          isFromCanvas: true,
+          includeDefaultNodes: true,
           onSuccess: async ({ text, uid, action, newPageUid }) => {
             // For canvas creation, the dialog already created the node
             // Use the correct UID: newPageUid for new nodes, uid for existing
@@ -563,19 +563,19 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
             }
 
             editor.setEditingShape(null);
-            setDialogRendered(false);
+            dialogRenderedRef.current = false;
           },
           onClose: () => {
             editor.setEditingShape(null);
-            setDialogRendered(false);
+            dialogRenderedRef.current = false;
           },
         });
 
-        setDialogRendered(true);
-      } else if (!isEditing && dialogRendered) {
-        setDialogRendered(false);
+        dialogRenderedRef.current = true;
+      } else if (!isEditing && dialogRenderedRef.current) {
+        dialogRenderedRef.current = false;
       }
-    }, [isEditing, dialogRendered, shape, editor, extensionAPI]);
+    }, [isEditing, shape, editor, extensionAPI]);
 
     return (
       <HTMLContainer

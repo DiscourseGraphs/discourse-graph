@@ -40,7 +40,7 @@ export const getNewDiscourseNodeText = async ({
         nodeType: nodeType,
         initialValue: { text: text, uid: "" },
         onSuccess: async () => {
-          return;
+          return Promise.resolve();
         },
         sourceBlockUid: blockUid,
         extensionAPI: getExtensionAPI(),

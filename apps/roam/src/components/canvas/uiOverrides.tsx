@@ -148,7 +148,7 @@ export const getOnSelectForShape = ({
         nodeType,
         initialValue: { text: initialText, uid: "" },
         extensionAPI,
-        isFromCanvas: true,
+        includeDefaultNodes: true,
         imageUrl: src,
         onSuccess: async ({ text, uid, newPageUid }) => {
           const finalUid = newPageUid || uid;
