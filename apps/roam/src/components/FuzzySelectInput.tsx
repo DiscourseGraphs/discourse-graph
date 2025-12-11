@@ -45,7 +45,6 @@ const FuzzySelectInput = <T extends Result = Result>({
   const menuRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fuzzy filter options
   const filteredItems = useMemo(() => {
     if (!query) return options;
     return fuzzy
@@ -53,18 +52,15 @@ const FuzzySelectInput = <T extends Result = Result>({
       .map((result) => result.original);
   }, [query, options]);
 
-  // Handle option selection
   const handleSelect = useCallback(
     (item: T) => {
       if (mode === "create" && item.uid && item.uid !== initialUid) {
-        // Lock the value
         setIsLocked(true);
         setQuery(item.text);
         setValue(item);
         setIsOpen(false);
         onLockedChange?.(true);
       } else {
-        // Just update the value
         setQuery(item.text);
         setValue(item);
         setIsOpen(false);
@@ -73,7 +69,6 @@ const FuzzySelectInput = <T extends Result = Result>({
     [mode, initialUid, setValue, onLockedChange],
   );
 
-  // Handle clear locked value
   const handleClear = useCallback(() => {
     setIsLocked(false);
     setQuery("");
@@ -81,7 +76,6 @@ const FuzzySelectInput = <T extends Result = Result>({
     onLockedChange?.(false);
   }, [value, setValue, onLockedChange]);
 
-  // Handle keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "ArrowDown") {
@@ -106,15 +100,12 @@ const FuzzySelectInput = <T extends Result = Result>({
     [filteredItems, activeIndex, isOpen, handleSelect],
   );
 
-  // Update value as user types
   useEffect(() => {
     if (mode === "create" && !isLocked) {
       setValue({ text: query, uid: "" } as T);
     }
   }, [query, mode, isLocked, setValue]);
 
-  // Open/close dropdown based on filtered items
-  // Only show dropdown if input is focused
   useEffect(() => {
     if (isFocused && filteredItems.length > 0 && query) {
       setIsOpen(true);
@@ -123,12 +114,10 @@ const FuzzySelectInput = <T extends Result = Result>({
     }
   }, [filteredItems.length, query, isFocused]);
 
-  // Reset active index when filtered items change
   useEffect(() => {
     setActiveIndex(0);
   }, [filteredItems]);
 
-  // Scroll active item into view
   useEffect(() => {
     if (menuRef.current && isOpen) {
       const activeElement = menuRef.current.children[
@@ -143,7 +132,6 @@ const FuzzySelectInput = <T extends Result = Result>({
     }
   }, [activeIndex, isOpen]);
 
-  // Edit mode: simple TextArea
   if (mode === "edit") {
     return (
       <TextArea
@@ -160,7 +148,6 @@ const FuzzySelectInput = <T extends Result = Result>({
     );
   }
 
-  // Create mode: locked value display
   if (isLocked) {
     return (
       <div className="flex w-full items-center gap-2">
@@ -181,7 +168,6 @@ const FuzzySelectInput = <T extends Result = Result>({
     );
   }
 
-  // Create mode: fuzzy search input
   return (
     <Popover
       isOpen={isOpen}
@@ -235,4 +221,3 @@ const FuzzySelectInput = <T extends Result = Result>({
 };
 
 export default FuzzySelectInput;
-
