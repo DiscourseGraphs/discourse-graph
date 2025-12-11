@@ -50,8 +50,7 @@ export default class DiscourseGraphPlugin extends Plugin {
             const cache = this.app.metadataCache.getFileCache(file);
             const isCanvasFile = !!cache?.frontmatter?.[FRONTMATTER_KEY];
 
-            // If this file is pending a switch, switch it now
-            if (this.pendingCanvasSwitches.has(file.path) && isCanvasFile) {
+            if (this.pendingCanvasSwitches.has(file.path)) {
               if (view.getViewType() !== VIEW_TYPE_TLDRAW_DG_PREVIEW) {
                 void leaf.setViewState({
                   type: VIEW_TYPE_TLDRAW_DG_PREVIEW,
@@ -87,8 +86,6 @@ export default class DiscourseGraphPlugin extends Plugin {
 
         const cache = this.app.metadataCache.getFileCache(file);
         if (cache?.frontmatter?.[FRONTMATTER_KEY]) {
-          // Mark this file as needing a switch
-          // The actual switch will happen in active-leaf-change when the view is ready
           this.pendingCanvasSwitches.add(file.path);
         }
       }),
