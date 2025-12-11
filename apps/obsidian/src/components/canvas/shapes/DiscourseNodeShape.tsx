@@ -74,7 +74,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       nodeTypeId: "",
       imageSrc: undefined,
       size: "s",
-      fontFamily: "draw",
+      fontFamily: "sans",
     };
   }
 
