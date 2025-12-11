@@ -170,7 +170,7 @@ const getDiscourseContextResults = async ({
   uid: targetUid,
   relations = getDiscourseRelations(),
   nodes = getDiscourseNodes(relations),
-  ignoreCache,
+  ignoreCache = false,
   onResult,
 }: {
   uid: string;

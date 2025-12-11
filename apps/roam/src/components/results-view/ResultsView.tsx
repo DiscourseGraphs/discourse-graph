@@ -579,7 +579,7 @@ const ResultsView: ResultsViewComponent = ({
               <Button
                 icon={"refresh"}
                 minimal
-                onClick={() => (forceRefresh ? forceRefresh() : onRefresh())}
+                onClick={() => (forceRefresh ?? onRefresh)()}
               />
             </Tooltip>
           )}
@@ -1367,7 +1367,7 @@ const ResultsView: ResultsViewComponent = ({
                 <Kanban
                   data={allProcessedResults}
                   layout={layout}
-                  onQuery={() => onRefresh()}
+                  onQuery={onRefresh}
                   resultKeys={columns}
                   parentUid={parentUid}
                   views={views}

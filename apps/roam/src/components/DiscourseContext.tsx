@@ -355,10 +355,10 @@ export const ContextContent = ({ uid, results }: Props) => {
   const onRefresh = useCallback(
     (ignoreCache?: boolean) => {
       setRawQueryResults({});
-      getDiscourseContextResults({
+      void getDiscourseContextResults({
         uid,
         onResult: addLabels,
-        ignoreCache: false,
+        ignoreCache,
       }).finally(() => setLoading(false));
     },
     [uid, setRawQueryResults, setLoading, addLabels, updateCount],
