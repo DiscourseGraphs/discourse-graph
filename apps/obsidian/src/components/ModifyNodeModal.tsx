@@ -1,6 +1,13 @@
 import { App, Modal, Notice, TFile } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
-import { StrictMode, useState, useEffect, useRef, useCallback } from "react";
+import {
+  StrictMode,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { DiscourseNode } from "~/types";
 import type DiscourseGraphPlugin from "~/index";
 import { QueryEngine } from "~/services/QueryEngine";
@@ -37,7 +44,6 @@ export const ModifyNodeForm = ({
   const [selectedExistingNode, setSelectedExistingNode] =
     useState<TFile | null>(null);
   const [query, setQuery] = useState(initialFile?.basename || initialTitle);
-  const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
   const [searchResults, setSearchResults] = useState<TFile[]>([]);
@@ -92,19 +98,14 @@ export const ModifyNodeForm = ({
     };
   }, [query, selectedNodeType, isEditMode]);
 
-  useEffect(() => {
-    if (!selectedExistingNode) {
-      setTitle(query);
-    }
-  }, [query, selectedExistingNode]);
-
-  useEffect(() => {
-    if (isFocused && searchResults.length > 0 && query.trim().length >= 2) {
-      setIsOpen(true);
-    } else {
-      setIsOpen(false);
-    }
-  }, [isFocused, searchResults.length, query]);
+  const isOpen = useMemo(() => {
+    return (
+      !selectedExistingNode &&
+      isFocused &&
+      searchResults.length > 0 &&
+      query.trim().length >= 2
+    );
+  }, [selectedExistingNode, isFocused, searchResults.length, query]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -141,7 +142,6 @@ export const ModifyNodeForm = ({
     setSelectedExistingNode(file);
     setQuery(file.basename);
     setTitle(file.basename);
-    setIsOpen(false);
   }, []);
 
   const handleClearSelection = useCallback(() => {
@@ -180,7 +180,6 @@ export const ModifyNodeForm = ({
       }
     } else if (e.key === "Escape") {
       e.preventDefault();
-      setIsOpen(false);
       onCancel();
     }
   };
@@ -200,6 +199,7 @@ export const ModifyNodeForm = ({
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newQuery = e.target.value;
     setQuery(newQuery);
+    setTitle(newQuery);
     if (selectedExistingNode) {
       setSelectedExistingNode(null);
     }
@@ -330,73 +330,35 @@ export const ModifyNodeForm = ({
               {isOpen && !isEditMode && (
                 <div
                   ref={popoverRef}
-                  className="suggestion-container"
-                  style={{
-                    position: "fixed",
-                    zIndex: 1000,
-                    maxHeight: "256px",
-                    overflowY: "auto",
-                    backgroundColor: "var(--background-primary)",
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "var(--radius-s)",
-                    boxShadow: "var(--shadow-s)",
-                    marginTop: "4px",
-                  }}
+                  className="suggestion-container fixed z-[1000] mt-1 max-h-[256px] overflow-y-auto rounded-[var(--radius-s)] border border-[var(--background-modifier-border)] bg-[var(--background-primary)] shadow-[var(--shadow-s)]"
                 >
                   <ul
                     ref={menuRef}
-                    className="suggestion-list"
-                    style={{
-                      listStyle: "none",
-                      margin: 0,
-                      padding: "4px 0",
-                    }}
+                    className="suggestion-list m-0 list-none py-1"
                   >
                     {isSearching ? (
-                      <li
-                        className="suggestion-item"
-                        style={{
-                          padding: "8px 12px",
-                          color: "var(--text-muted)",
-                        }}
-                      >
+                      <li className="suggestion-item px-3 py-2 text-[var(--text-muted)]">
                         Searching...
                       </li>
                     ) : searchResults.length === 0 ? (
-                      <li
-                        className="suggestion-item"
-                        style={{
-                          padding: "8px 12px",
-                          color: "var(--text-muted)",
-                        }}
-                      >
+                      <li className="suggestion-item px-3 py-2 text-[var(--text-muted)]">
                         No results found
                       </li>
                     ) : (
                       searchResults.map((file, index) => (
                         <li
                           key={file.path}
-                          className={`suggestion-item ${
-                            index === activeIndex ? "is-selected" : ""
+                          className={`suggestion-item flex cursor-pointer items-center gap-2 px-3 py-2 ${
+                            index === activeIndex
+                              ? "is-selected bg-[var(--background-modifier-hover)]"
+                              : "bg-transparent"
                           }`}
                           onMouseDown={(e) => {
                             e.preventDefault();
                             handleSelect(file);
                           }}
                           onMouseEnter={() => setActiveIndex(index)}
-                          style={{
-                            padding: "8px 12px",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            backgroundColor:
-                              index === activeIndex
-                                ? "var(--background-modifier-hover)"
-                                : "transparent",
-                          }}
                         >
-                          {/* <span>📄</span> */}
                           <span>{file.basename}</span>
                         </li>
                       ))
@@ -409,15 +371,7 @@ export const ModifyNodeForm = ({
         </div>
       </div>
 
-      <div
-        className="modal-button-container"
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: "8px",
-          marginTop: "20px",
-        }}
-      >
+      <div className="modal-button-container mt-5 flex justify-end gap-2">
         <button
           type="button"
           className="mod-normal"
