@@ -243,15 +243,17 @@ export const initObservers = async ({
     useBody: true,
     className: "starred-pages-wrapper",
     callback: (el) => {
-      const isLeftSidebarEnabled = getUidAndBooleanSetting({
-        tree: configTree,
-        text: "(BETA) Left Sidebar",
-      }).value;
-      const container = el as HTMLDivElement;
-      if (isLeftSidebarEnabled) {
-        container.style.padding = "0";
-        void mountLeftSidebar(container, onloadArgs);
-      }
+      void (async () => {
+        const isLeftSidebarEnabled = getUidAndBooleanSetting({
+          tree: configTree,
+          text: "(BETA) Left Sidebar",
+        }).value;
+        const container = el as HTMLDivElement;
+        if (isLeftSidebarEnabled) {
+          container.style.padding = "0";
+          await mountLeftSidebar(container, onloadArgs);
+        }
+      })();
     },
   });
 
