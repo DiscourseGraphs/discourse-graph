@@ -238,7 +238,8 @@ type ResultsViewComponent = (props: {
   preventSavingSettings?: boolean;
   onEdit?: () => void;
   onDeleteQuery?: () => void;
-  onRefresh: (loadInBackground?: boolean) => void;
+  onRefresh: () => void;
+  forceRefresh?: () => void;
   globalFiltersData?: Record<string, Filters>;
   globalPageSize?: number;
   isEditBlock?: boolean;
@@ -281,6 +282,7 @@ const ResultsView: ResultsViewComponent = ({
   onEdit,
   onDeleteQuery,
   onRefresh,
+  forceRefresh,
   onResultsInViewChange,
   isEditBlock,
   exportIsOpen = false,
@@ -574,7 +576,11 @@ const ResultsView: ResultsViewComponent = ({
         >
           {onRefresh && (
             <Tooltip content={"Refresh Results"}>
-              <Button icon={"refresh"} minimal onClick={() => onRefresh()} />
+              <Button
+                icon={"refresh"}
+                minimal
+                onClick={() => (forceRefresh ? forceRefresh() : onRefresh())}
+              />
             </Tooltip>
           )}
           <Popover
@@ -1361,7 +1367,7 @@ const ResultsView: ResultsViewComponent = ({
                 <Kanban
                   data={allProcessedResults}
                   layout={layout}
-                  onQuery={() => onRefresh(true)}
+                  onQuery={() => onRefresh()}
                   resultKeys={columns}
                   parentUid={parentUid}
                   views={views}
