@@ -244,7 +244,7 @@ export default class DiscourseGraphPlugin extends Plugin {
 
       if (keysToHide.length > 0) {
         const selectors = keysToHide
-          .map((key) => `.metadata-property[data-property-key="${key}"]`)
+          .map((key) => `.metadata-property[data-property-key="${key}" i]`)
           .join(", ");
 
         this.styleElement!.textContent = `${selectors} { display: none !important; }`;
