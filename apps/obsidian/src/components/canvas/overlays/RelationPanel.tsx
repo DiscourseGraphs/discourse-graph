@@ -249,6 +249,8 @@ export const RelationsPanel = ({
         src,
         title: file.basename,
         nodeTypeId: nodeTypeId,
+        size: "m",
+        fontFamily: "sans",
       },
     };
 

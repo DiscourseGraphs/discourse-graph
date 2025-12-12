@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   defaultShapeUtils,
-  DefaultStylePanel,
   DefaultToolbar,
   DefaultToolbarContent,
   ErrorBoundary,
@@ -13,6 +12,7 @@ import {
   useTools,
   defaultBindingUtils,
   TLPointerEventInfo,
+  DefaultSharePanel,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import {
@@ -408,22 +408,25 @@ export const TldrawPreviewComponent = ({
               ContextMenu: (props) => (
                 <CustomContextMenu canvasFile={file} props={props} />
               ),
-
-              StylePanel: () => {
+              SharePanel: () => {
                 const tools = useTools();
-                const isDiscourseNodeSelected = useIsToolSelected(
+                const isDiscourseNodeToolSelected = useIsToolSelected(
                   tools["discourse-node"],
                 );
-                const isDiscourseRelationSelected = useIsToolSelected(
+                const isDiscourseRelationToolSelected = useIsToolSelected(
                   tools["discourse-relation"],
                 );
-
-                if (!isDiscourseNodeSelected && !isDiscourseRelationSelected) {
-                  return <DefaultStylePanel />;
+                if (
+                  isDiscourseNodeToolSelected ||
+                  isDiscourseRelationToolSelected
+                ) {
+                  return (
+                    <DiscourseToolPanel plugin={plugin} canvasFile={file} />
+                  );
                 }
-
-                return <DiscourseToolPanel plugin={plugin} canvasFile={file} />;
+                return <DefaultSharePanel />;
               },
+
               OnTheCanvas: () => <ToastListener canvasId={file.path} />,
               Toolbar: (props) => {
                 const tools = useTools();
