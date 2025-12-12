@@ -5,10 +5,15 @@ import type { DiscourseRelation } from "./getDiscourseRelations";
 
 // lifted from getExportTypes
 
-export const getRelationDataUtil = async (
-  allRelations: DiscourseRelation[],
-  nodeLabelByType: Record<string, string>,
-) =>
+export const getRelationDataUtil = async ({
+  allRelations,
+  nodeLabelByType,
+  local,
+}: {
+  allRelations: DiscourseRelation[];
+  nodeLabelByType: Record<string, string>;
+  local?: boolean;
+}) =>
   Promise.all(
     allRelations
       .filter(
@@ -23,6 +28,7 @@ export const getRelationDataUtil = async (
           ? []
           : fireQuery({
               returnNode: sourceLabel,
+              local,
               conditions: [
                 {
                   relation: s.label,
@@ -50,13 +56,13 @@ export const getRelationDataUtil = async (
       }),
   ).then((r) => r.flat());
 
-const getRelationData = async () => {
+const getRelationData = async (local?: boolean) => {
   const allRelations = getDiscourseRelations();
   const allNodes = getDiscourseNodes(allRelations);
   const nodeLabelByType = Object.fromEntries(
     allNodes.map((a) => [a.type, a.text]),
   );
-  return await getRelationDataUtil(allRelations, nodeLabelByType);
+  return await getRelationDataUtil({ allRelations, nodeLabelByType, local });
 };
 
 export default getRelationData;

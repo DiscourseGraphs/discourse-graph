@@ -14,6 +14,7 @@ import predefinedSelections, {
 import { DEFAULT_RETURN_NODE } from "./parseQuery";
 import { DiscourseNode } from "./getDiscourseNodes";
 import { DiscourseRelation } from "./getDiscourseRelations";
+import type { json } from "./getBlockProps";
 import nanoid from "nanoid";
 
 export type QueryArgs = {
@@ -30,6 +31,7 @@ type RelationInQuery = {
 export type FireQueryArgs = QueryArgs & {
   isCustomEnabled?: boolean;
   customNode?: string;
+  local?: boolean;
   context?: {
     relationsInQuery?: RelationInQuery[];
     customNodes?: DiscourseNode[];
@@ -314,8 +316,30 @@ export const fireQuerySync = (args: FireQueryArgs): QueryResult[] => {
   }));
 };
 
+const PROP_NAME_RE = /:\w+\/\w+\b/g;
+
+const renamePropsInResult = (
+  result: json | null,
+  mapping: Record<string, string>,
+): json | null => {
+  const rename = (x: json | null): json | null => {
+    if (Array.isArray(x)) return x.map(rename);
+    if (x === null || x === undefined) return x;
+    if (typeof x === "object") {
+      return Object.fromEntries(
+        Object.entries(x as object).map(([k, v]) => [
+          mapping[k] || k,
+          rename(v),
+        ]),
+      );
+    }
+    return x;
+  };
+  return rename(result);
+};
+
 const fireQuery: FireQuery = async (_args) => {
-  const { isCustomEnabled, customNode, ...args } = _args;
+  const { isCustomEnabled, customNode, local, ...args } = _args;
 
   const { query, formatResult, inputs } = isCustomEnabled
     ? {
@@ -347,11 +371,31 @@ const fireQuery: FireQuery = async (_args) => {
       console.groupEnd();
     }
 
-    //@ts-ignore - todo add async q to roamjs-components
-    const queryResults = await window.roamAlphaAPI.data.backend.q(
-      query,
-      ...inputs,
-    );
+    let queryResults: unknown[][] = [];
+    if (local) {
+      // look for propNames in query. Could consider looking only in pull when that exists.
+      const propNames = new Set(
+        [...query.matchAll(PROP_NAME_RE)].map((m) => m[0]),
+      );
+      const propNamesSub: Record<string, string> = Object.fromEntries(
+        [...propNames].map((n) => [n.split("/")[1], n]),
+      );
+      if (Object.keys(propNamesSub).length === propNames.size) {
+        // no name conflict, safe to use async query
+        // BUT it returns non-namespaced names, so substitute prop names back
+        queryResults = await window.roamAlphaAPI.data.async.q(query, ...inputs);
+        queryResults = renamePropsInResult(
+          queryResults as json,
+          propNamesSub,
+        ) as unknown[][];
+      } else {
+        // more janky but safer
+        queryResults = window.roamAlphaAPI.data.fast.q(query, ...inputs);
+      }
+    } else {
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      queryResults = await window.roamAlphaAPI.data.backend.q(query, ...inputs); // ts-ignore
+    }
 
     if (nodeEnv === "development") {
       console.timeEnd(`Query - ${queryId}`);

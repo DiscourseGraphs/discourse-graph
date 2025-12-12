@@ -14,7 +14,7 @@ const migrateRelations = async (dryRun = false): Promise<number> => {
   const authorized = getSetting("use-reified-relations");
   if (!authorized) return 0;
   const processed = new Set<string>();
-  const relationData = await getRelationData();
+  const relationData = await getRelationData(true);
   let numProcessed = 0;
   for (const rel of relationData) {
     const key = `${rel.source}:${rel.relUid}:${rel.target}`;
