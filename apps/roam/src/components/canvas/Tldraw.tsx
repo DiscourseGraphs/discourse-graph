@@ -86,7 +86,7 @@ import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigr
 import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
-import sendErrorEmail from "~/utils/sendErrorEmail";
+import internalError from "~/utils/internalError";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
@@ -516,16 +516,14 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         error.stack = e.detail.stack;
       }
 
-      sendErrorEmail({
+      internalError({
         error,
-        type: "Tldraw Error",
+        type: "tldraw-error",
         context: {
           title: title,
           lastActions: lastActionsRef.current,
         },
-      }).catch(() => {});
-
-      console.error("Tldraw Error:", e.detail);
+      });
     };
 
     document.addEventListener(

@@ -54,7 +54,7 @@ import {
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
 import { MAX_WIDTH } from "~/components/canvas/Tldraw";
-import sendErrorEmail from "~/utils/sendErrorEmail";
+import internalError from "~/utils/internalError";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 
 const ExportProgress = ({ id }: { id: string }) => {
@@ -468,13 +468,12 @@ const ExportDialog: ExportDialogComponent = ({
         id: "query-builder-export-success",
       });
     } catch (e) {
-      const error = e as Error;
-      renderToast({
-        content: "Looks like there was an error. The team has been notified.",
-        intent: "danger",
-        id: "discourse-graphs-error",
+      internalError({
+        error: e as Error,
+        type: "export-error",
+        userMessage:
+          "Looks like there was an error. The team has been notified.",
       });
-      sendErrorEmail({ error, type: "Export Dialog Failed" }).catch(() => {});
     } finally {
       setLoading(false);
       onClose();
@@ -688,18 +687,13 @@ const ExportDialog: ExportDialogComponent = ({
                     setError(`Unsupported export type: ${exportType}`);
                   }
                 } catch (e) {
-                  const error = e as Error;
-                  renderToast({
-                    id: "export-error",
-                    content:
+                  internalError({
+                    error: e as Error,
+                    type: "export-error",
+                    userMessage:
                       "Looks like there was an error. The team has been notified.",
-                    intent: "danger",
-                  });
-                  sendErrorEmail({
-                    error,
-                    type: "Export Dialog Failed",
                     context: { activeExportType, filename, results },
-                  }).catch(() => {});
+                  });
                   setDialogOpen(true);
                   setError((e as Error).message);
                 } finally {
