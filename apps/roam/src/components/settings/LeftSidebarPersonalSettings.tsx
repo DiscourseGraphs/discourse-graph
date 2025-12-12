@@ -25,6 +25,7 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { memo, Dispatch, SetStateAction } from "react";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 
 const SectionItem = memo(
   ({
@@ -150,11 +151,13 @@ const SectionItem = memo(
       ) => {
         if (!childName || !childrenUid) return;
 
+        const targetUid = getPageUidByPageTitle(childName) || childName.trim();
+
         try {
           const newChild = await createBlock({
             parentUid: childrenUid,
             order: "last",
-            node: { text: childName },
+            node: { text: targetUid },
           });
 
           setSections((prev) =>
@@ -165,7 +168,7 @@ const SectionItem = memo(
                   children: [
                     ...(s.children || []),
                     {
-                      text: childName,
+                      text: targetUid,
                       uid: newChild,
                       children: [],
                     },
@@ -375,7 +378,9 @@ const SectionItem = memo(
                       className="group flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100"
                     >
                       <div className="mr-2 min-w-0 flex-1 truncate">
-                        {child.text}
+                        {getPageTitleByPageUid(child.text) ||
+                          getTextByBlockUid(extractRef(child.text)) ||
+                          child.text}
                       </div>
                       <ButtonGroup minimal className="flex-shrink-0">
                         <Button
