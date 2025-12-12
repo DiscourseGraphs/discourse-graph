@@ -199,7 +199,7 @@ const ExportDialog: ExportDialogComponent = ({
       if (response.status === 401) {
         setGitHubAccessToken(null);
         setError("Authentication failed. Please log in again.");
-        setSetting("oauth-github", "");
+        await setSetting("oauth-github", "");
         return { status: 401 };
       }
       return { status: response.status };
@@ -222,7 +222,7 @@ const ExportDialog: ExportDialogComponent = ({
   const addToSelectedCanvas = async (pageUid: string) => {
     if (typeof results !== "object") return;
 
-    let props: Record<string, unknown> = getBlockProps(pageUid);
+    const props: Record<string, unknown> = getBlockProps(pageUid);
 
     const PADDING_BETWEEN_SHAPES = 20;
     const COMMON_BOUNDS_XOFFSET = 250;
@@ -309,10 +309,10 @@ const ExportDialog: ExportDialogComponent = ({
       let minY = Number.MAX_SAFE_INTEGER;
 
       shapes.forEach((shape) => {
-        let rightX = shape.x + shape.w;
-        let leftX = shape.x;
-        let topY = shape.y;
-        let bottomY = shape.y - shape.h;
+        const rightX = shape.x + shape.w;
+        const leftX = shape.x;
+        const topY = shape.y;
+        const bottomY = shape.y - shape.h;
 
         if (rightX > maxX) maxX = rightX;
         if (leftX < minX) minX = leftX;

@@ -11,7 +11,6 @@ import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import apiGet from "roamjs-components/util/apiGet";
 import apiPost from "roamjs-components/util/apiPost";
 import { getNodeEnv } from "roamjs-components/util/env";
-import getExtensionApi from "roamjs-components/util/extensionApiContext";
 import { setSetting } from "~/utils/extensionSettings";
 
 type UserReposResponse = {
