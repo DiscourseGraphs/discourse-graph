@@ -11,7 +11,6 @@ import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import apiGet from "roamjs-components/util/apiGet";
 import apiPost from "roamjs-components/util/apiPost";
 import { getNodeEnv } from "roamjs-components/util/env";
-import getExtensionApi from "roamjs-components/util/extensionApiContext";
 import { setSetting } from "~/utils/extensionSettings";
 
 type UserReposResponse = {
@@ -60,11 +59,11 @@ export const ExportGithub = ({
   const isDev = useMemo(() => getNodeEnv() === "development", []);
   const setRepo = (repo: string) => {
     setSelectedRepo(repo);
-    setSetting("selected-repo", repo);
+    void setSetting("selected-repo", repo).catch(() => undefined);
   };
 
-  const handleReceivedAccessToken = (token: string) => {
-    setSetting("oauth-github", token);
+  const handleReceivedAccessToken = (token: string): void => {
+    void setSetting("oauth-github", token).catch(() => undefined);
     setGitHubAccessToken(token);
     setClickedInstall(false);
     authWindow.current?.close();
@@ -93,7 +92,7 @@ export const ExportGithub = ({
 
       if (e.message === "Bad credentials") {
         setGitHubAccessToken(null);
-        setSetting("oauth-github", "");
+        void setSetting("oauth-github", "").catch(() => undefined);
       }
       return false;
     }
