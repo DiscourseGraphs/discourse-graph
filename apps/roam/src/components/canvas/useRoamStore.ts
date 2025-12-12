@@ -136,10 +136,10 @@ export const useRoamStore = ({
 
     const handleStoreError = ({
       error,
-      errorMessage,
+      type,
     }: {
       error: Error;
-      errorMessage: string;
+      type: string;
     }): void => {
       setError(error);
       setLoading(false);
@@ -148,7 +148,7 @@ export const useRoamStore = ({
         : 0;
       internalError({
         error,
-        type: "roam-store-error",
+        type,
         context: {
           pageUid,
           snapshotSize,
@@ -169,7 +169,7 @@ export const useRoamStore = ({
     } catch (e) {
       handleStoreError({
         error: e as Error,
-        errorMessage: "Failed to create TLStore",
+        type: "tlstore-creation-failure",
       });
       return null;
     }
@@ -180,7 +180,7 @@ export const useRoamStore = ({
       } catch (e) {
         handleStoreError({
           error: e as Error,
-          errorMessage: "Failed to migrate snapshot",
+          type: "snapshot-migration-failure",
         });
         return null;
       }
