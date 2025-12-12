@@ -910,10 +910,10 @@ export const RelationEditPanel = ({
               disabled={loading}
               onClick={() => {
                 saveCyToElementRef(tab);
-                setSetting(
+                void setSetting(
                   "discourse-relation-copy",
                   JSON.stringify(elementsRef.current[tab]),
-                );
+                ).catch();
                 renderToast({
                   id: "relation-copy",
                   content: "Copied Relation",

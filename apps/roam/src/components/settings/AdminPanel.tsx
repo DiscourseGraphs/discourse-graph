@@ -254,7 +254,7 @@ const MigrationTab = (): React.ReactElement => {
   const [useOngoing, setOngoing] = useState<boolean>(false);
   const [useDryRun, setDryRun] = useState<boolean>(false);
   const [enabled, setEnabled] = useState<boolean>(
-    getSetting("use-reified-relations"),
+    getSetting("use-reified-relations", false),
   );
   const doMigrateRelations = async () => {
     setOngoing(true);
@@ -336,7 +336,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
           setUseReifiedRelations(target.checked);
-          setSetting("use-reified-relations", target.checked);
+          void setSetting("use-reified-relations", target.checked).catch();
         }}
         labelElement={
           <>
