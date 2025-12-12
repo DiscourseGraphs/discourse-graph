@@ -218,7 +218,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           void setSetting(
             DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
             target.checked,
-          ).catch();
+          ).catch(() => undefined);
         }}
         labelElement={
           <>
@@ -235,7 +235,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         defaultChecked={getSetting(STREAMLINE_STYLING_KEY, false)}
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          void setSetting(STREAMLINE_STYLING_KEY, target.checked).catch();
+          void setSetting(STREAMLINE_STYLING_KEY, target.checked).catch(
+            () => undefined,
+          );
 
           // Load or unload the streamline styling
           const existingStyleElement =

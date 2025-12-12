@@ -59,11 +59,11 @@ export const ExportGithub = ({
   const isDev = useMemo(() => getNodeEnv() === "development", []);
   const setRepo = (repo: string) => {
     setSelectedRepo(repo);
-    void setSetting("selected-repo", repo).catch();
+    void setSetting("selected-repo", repo).catch(() => undefined);
   };
 
-  const handleReceivedAccessToken = (token: string) => {
-    void setSetting("oauth-github", token).catch();
+  const handleReceivedAccessToken = (token: string): void => {
+    void setSetting("oauth-github", token).catch(() => undefined);
     setGitHubAccessToken(token);
     setClickedInstall(false);
     authWindow.current?.close();
@@ -92,7 +92,7 @@ export const ExportGithub = ({
 
       if (e.message === "Bad credentials") {
         setGitHubAccessToken(null);
-        void setSetting("oauth-github", "").catch();
+        void setSetting("oauth-github", "").catch(() => undefined);
       }
       return false;
     }

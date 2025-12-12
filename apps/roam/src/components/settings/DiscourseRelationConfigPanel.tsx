@@ -913,7 +913,7 @@ export const RelationEditPanel = ({
                 void setSetting(
                   "discourse-relation-copy",
                   JSON.stringify(elementsRef.current[tab]),
-                ).catch();
+                ).catch(() => undefined);
                 renderToast({
                   id: "relation-copy",
                   content: "Copied Relation",

@@ -336,7 +336,9 @@ const FeatureFlagsTab = (): React.ReactElement => {
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
           setUseReifiedRelations(target.checked);
-          void setSetting("use-reified-relations", target.checked).catch();
+          void setSetting("use-reified-relations", target.checked).catch(
+            () => undefined,
+          );
         }}
         labelElement={
           <>
