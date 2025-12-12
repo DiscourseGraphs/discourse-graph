@@ -223,12 +223,14 @@ const ContextTab = ({
   groupByTarget,
   setGroupByTarget,
   onRefresh,
+  forceRefresh,
 }: {
   parentUid: string;
   r: DiscourseContextResults[number];
   groupByTarget: boolean;
   setGroupByTarget: (b: boolean) => void;
   onRefresh: () => void;
+  forceRefresh: () => void;
 }) => {
   const [subTabId, setSubTabId] = useState(0);
 
@@ -274,6 +276,7 @@ const ContextTab = ({
       )}
       columns={columns}
       onRefresh={onRefresh}
+      forceRefresh={forceRefresh}
       header={
         <h4 className="m-0 mb-2 flex items-center justify-between">
           <span>{r.label}</span>
@@ -281,7 +284,7 @@ const ContextTab = ({
             <CreateRelationButton
               sourceNodeUid={parentUid}
               onClose={() => {
-                window.setTimeout(onRefresh, 250);
+                window.setTimeout(() => forceRefresh, 250);
               }}
             />
             <Switch
@@ -331,6 +334,7 @@ export const ContextContent = ({ uid, results }: Props) => {
   );
   const [loading, setLoading] = useState(true);
   const debouncedLoading = useDebounce(loading, 150);
+  const [updateCount, setUpdateCount] = useState(0);
 
   const addLabels = useCallback((result: DiscourseContextResults[number]) => {
     setRawQueryResults((prev) => ({
@@ -345,17 +349,28 @@ export const ContextContent = ({ uid, results }: Props) => {
     }));
   }, []);
 
-  const onRefresh = useCallback(() => {
-    setRawQueryResults({});
-    getDiscourseContextResults({
-      uid,
-      onResult: addLabels,
-      ignoreCache: true,
-    }).finally(() => setLoading(false));
-  }, [uid, setRawQueryResults, setLoading, addLabels]);
+  // never set ignoreCache to true directly,
+  // as it may be negated by the useCallback cache.
+  // go through forceRefresh when needed
+  const onRefresh = useCallback(
+    (ignoreCache?: boolean) => {
+      setRawQueryResults({});
+      void getDiscourseContextResults({
+        uid,
+        onResult: addLabels,
+        ignoreCache,
+      }).finally(() => setLoading(false));
+    },
+    [uid, setRawQueryResults, setLoading, addLabels, updateCount],
+  );
+
+  const forceRefresh = () => {
+    setUpdateCount((prevCount) => prevCount + 1);
+    onRefresh(true);
+  };
 
   const delayedRefresh = () => {
-    window.setTimeout(onRefresh, 250);
+    window.setTimeout(forceRefresh, 250);
   };
 
   useEffect(() => {
@@ -397,6 +412,7 @@ export const ContextContent = ({ uid, results }: Props) => {
                 groupByTarget={groupByTarget}
                 setGroupByTarget={setGroupByTarget}
                 onRefresh={onRefresh}
+                forceRefresh={forceRefresh}
               />
             }
           />

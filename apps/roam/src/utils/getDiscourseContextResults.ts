@@ -13,7 +13,7 @@ const CACHE_TIMEOUT = 1000 * 60 * 5;
 
 type BuildQueryConfig = {
   args: {
-    ignoreCache?: true;
+    ignoreCache?: boolean;
   };
   targetUid: string;
   fireQueryContext: {
@@ -170,13 +170,13 @@ const getDiscourseContextResults = async ({
   uid: targetUid,
   relations = getDiscourseRelations(),
   nodes = getDiscourseNodes(relations),
-  ignoreCache,
+  ignoreCache = false,
   onResult,
 }: {
   uid: string;
   nodes?: ReturnType<typeof getDiscourseNodes>;
   relations?: ReturnType<typeof getDiscourseRelations>;
-  ignoreCache?: true;
+  ignoreCache?: boolean;
   onResult?: onResult;
 }) => {
   const args = { ignoreCache };
