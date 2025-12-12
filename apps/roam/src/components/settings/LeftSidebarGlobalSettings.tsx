@@ -15,6 +15,7 @@ import { LeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 
 const PageItem = memo(
   ({
@@ -34,7 +35,9 @@ const PageItem = memo(
   }) => {
     return (
       <div className="group flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100">
-        <div className="mr-2 flex-grow truncate">{page.text}</div>
+        <div className="mr-2 flex-grow truncate">
+          {getPageTitleByPageUid(page.uid)}
+        </div>
         <ButtonGroup minimal>
           <Button
             icon="arrow-up"
@@ -174,7 +177,8 @@ const LeftSidebarGlobalSectionsContent = ({
     async (pageName: string) => {
       if (!pageName || !childrenUid) return;
 
-      if (pages.some((p) => p.text === pageName)) {
+      const targetUid = getPageUidByPageTitle(pageName);
+      if (pages.some((p) => p.text === targetUid)) {
         console.warn(`Page "${pageName}" already exists in global section`);
         return;
       }
@@ -183,11 +187,11 @@ const LeftSidebarGlobalSectionsContent = ({
         const newPageUid = await createBlock({
           parentUid: childrenUid,
           order: "last",
-          node: { text: pageName },
+          node: { text: targetUid },
         });
 
         const newPage: RoamBasicNode = {
-          text: pageName,
+          text: targetUid,
           uid: newPageUid,
           children: [],
         };
@@ -229,10 +233,11 @@ const LeftSidebarGlobalSectionsContent = ({
     setIsExpanded((prev) => !prev);
   }, []);
 
-  const isAddButtonDisabled = useMemo(
-    () => !newPageInput || pages.some((p) => p.text === newPageInput),
-    [newPageInput, pages],
-  );
+  const isAddButtonDisabled = useMemo(() => {
+    if (!newPageInput) return true;
+    const targetUid = getPageUidByPageTitle(newPageInput);
+    return !targetUid || pages.some((p) => p.text === targetUid);
+  }, [newPageInput, pages]);
 
   if (isInitializing || !globalSection) {
     return (
