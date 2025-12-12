@@ -1,7 +1,6 @@
 import createBlock from "roamjs-components/writes/createBlock";
 import createPage from "roamjs-components/writes/createPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { getSetting } from "~/utils/extensionSettings";
 
 export const DISCOURSE_GRAPH_PROP_NAME = "discourse-graph";
 
@@ -117,15 +116,12 @@ export const createReifiedRelation = async ({
   relationBlockUid: string;
   destinationUid: string;
 }): Promise<string | undefined> => {
-  const authorized = getSetting("use-reified-relations");
-  if (authorized) {
-    return await createReifiedBlock({
-      destinationBlockUid: await getOrCreateRelationPageUid(),
-      schemaUid: relationBlockUid,
-      parameterUids: {
-        sourceUid,
-        destinationUid,
-      },
-    });
-  }
+  return await createReifiedBlock({
+    destinationBlockUid: await getOrCreateRelationPageUid(),
+    schemaUid: relationBlockUid,
+    parameterUids: {
+      sourceUid,
+      destinationUid,
+    },
+  });
 };
