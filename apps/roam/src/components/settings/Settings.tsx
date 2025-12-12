@@ -25,7 +25,6 @@ import NodeConfig from "./NodeConfig";
 import HomePersonalSettings from "./HomePersonalSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
-import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import { getVersionWithDate } from "~/utils/getVersion";
 import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
 import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
@@ -177,12 +176,6 @@ export const SettingsDialog = ({
             title="Left Sidebar"
             className="overflow-y-auto"
             panel={<LeftSidebarGlobalSections />}
-          />
-          <Tab
-            id="suggestive-mode-settings"
-            title="Suggestive Mode"
-            className="overflow-y-auto"
-            panel={<SuggestiveModeSettings />}
           />
           <SectionHeader>Grammar</SectionHeader>
           <Tab
