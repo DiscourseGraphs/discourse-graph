@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { Button, HTMLTable, Icon, IconName } from "@blueprintjs/core";
 import { IconNames } from "@blueprintjs/icons";
+import { render as renderToast } from "roamjs-components/components/Toast";
 import { Column, Result } from "~/utils/types";
 import type { FilterData, Sorts, Views } from "~/utils/parseResultSettings";
 import Filter, { Filters } from "roamjs-components/components/Filter";
@@ -174,10 +175,7 @@ export const CellEmbed = ({
   }, [contentRef]);
   return (
     <div className="roamjs-query-embed">
-      <div
-        ref={contentRef}
-        className={!!title ? "page-embed" : "block-embed"}
-      />
+      <div ref={contentRef} className={title ? "page-embed" : "block-embed"} />
     </div>
   );
 };
@@ -267,6 +265,25 @@ const ResultRow = ({
     [views],
   );
   const trRef = useRef<HTMLTableRowElement>(null);
+  const onDelete = () => {
+    deleteBlock(r["relation-uid"])
+      .then(() => {
+        renderToast({
+          id: "delete-relation-success",
+          content: "Relation deleted",
+          intent: "success",
+        });
+        onRefresh();
+      })
+      .catch((e) => {
+        console.error(e);
+        renderToast({
+          id: "delete-relation-error",
+          content: "Could not delete relation",
+          intent: "danger",
+        });
+      });
+  };
   return (
     <>
       <tr ref={trRef} data-uid={r.uid}>
@@ -323,6 +340,15 @@ const ResultRow = ({
                 <CellEmbed uid={uid} viewValue={viewValue} />
               ) : (
                 cell(key)
+              )}
+              {r["relation-uid"] && (
+                <Button
+                  minimal
+                  icon="delete"
+                  className="float-right"
+                  title="Delete relation"
+                  onClick={onDelete}
+                ></Button>
               )}
               {i < columns.length - 1 && (
                 <div
