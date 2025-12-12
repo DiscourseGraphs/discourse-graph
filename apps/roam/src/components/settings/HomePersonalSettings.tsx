@@ -80,8 +80,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
-      {/*
-      TODO: Add back in when we have better flow for suggestive mode, until then this is enabled for all
       <Checkbox
         defaultChecked={
           extensionAPI.settings.get("suggestive-mode-overlay") as boolean
@@ -107,7 +105,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
-      */}
       <Checkbox
         defaultChecked={
           extensionAPI.settings.get("text-selection-popup") !== false
