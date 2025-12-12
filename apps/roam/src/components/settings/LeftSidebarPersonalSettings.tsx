@@ -1,4 +1,4 @@
-import discourseConfigRef from "~/utils/discourseConfigRef";
+sssssssimport discourseConfigRef from "~/utils/discourseConfigRef";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
@@ -27,6 +27,7 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { memo, Dispatch, SetStateAction } from "react";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 
 const SectionItem = memo(
   ({
@@ -155,11 +156,13 @@ const SectionItem = memo(
       ) => {
         if (!childName || !childrenUid) return;
 
+        const targetUid = getPageUidByPageTitle(childName) || childName.trim();
+
         try {
           const newChild = await createBlock({
             parentUid: childrenUid,
             order: "last",
-            node: { text: childName },
+            node: { text: targetUid },
           });
 
           setSections((prev) =>
@@ -170,7 +173,7 @@ const SectionItem = memo(
                   children: [
                     ...(s.children || []),
                     {
-                      text: childName,
+                      text: targetUid,
                       uid: newChild,
                       children: [],
                       alias: { value: "" },
@@ -391,7 +394,9 @@ const SectionItem = memo(
                                   {childAlias}
                                 </span>
                                 <span className="ml-2 text-xs text-gray-400">
-                                  ({child.text})
+                                {getPageTitleByPageUid(child.text) ||
+                                  getTextByBlockUid(extractRef(child.text)) ||
+                                  child.text})
                                 </span>
                               </span>
                             ) : (

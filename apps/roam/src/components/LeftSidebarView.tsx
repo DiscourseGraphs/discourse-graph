@@ -30,7 +30,6 @@ import type {
   LeftSidebarConfig,
   LeftSidebarPersonalSectionConfig,
 } from "~/utils/getLeftSidebarSettings";
-import type { BooleanSetting } from "~/utils/getExportSettings";
 import { createBlock } from "roamjs-components/writes";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -41,6 +40,7 @@ import { OnloadArgs } from "roamjs-components/types";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -56,10 +56,10 @@ const truncate = (s: string, max: number | undefined): string => {
   return s.length > max ? `${s.slice(0, max)}...` : s;
 };
 
-const openTarget = async (e: React.MouseEvent, sectionTitle: string) => {
+const openTarget = async (e: React.MouseEvent, targetUid: string) => {
   e.preventDefault();
   e.stopPropagation();
-  const target = parseReference(sectionTitle);
+  const target = parseReference(targetUid);
   if (target.type === "block") {
     if (e.shiftKey) {
       await openBlockInSidebar(target.uid);
@@ -71,16 +71,16 @@ const openTarget = async (e: React.MouseEvent, sectionTitle: string) => {
     return;
   }
 
-  const uid = getPageUidByPageTitle(sectionTitle);
-  if (!uid) return;
   if (e.shiftKey) {
     await window.roamAlphaAPI.ui.rightSidebar.addWindow({
       // @ts-expect-error - todo test
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      window: { type: "outline", "block-uid": uid },
+      window: { type: "outline", "block-uid": targetUid },
     });
   } else {
-    await window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
+    await window.roamAlphaAPI.ui.mainWindow.openPage({
+      page: { uid: targetUid },
+    });
   }
 };
 
@@ -127,7 +127,11 @@ const SectionChildren = ({
       {childrenNodes.map((child) => {
         const ref = parseReference(child.text);
         const alias = child.alias?.value;
-        const label = alias || truncate(ref.display, truncateAt);
+        const display =
+          ref.type === "page"
+            ? getPageTitleByPageUid(ref.display)
+            : getTextByBlockUid(ref.uid);
+        const label = alias || truncate(display, truncateAt);
         const onClick = (e: React.MouseEvent) => {
           return void openTarget(e, child.text);
         };
@@ -184,7 +188,7 @@ const PersonalSectionItem = ({
             onClick={() => {
               if ((section.children?.length || 0) > 0) {
                 handleChevronClick();
-              } 
+              }
             }}
           >
             {(blockText || titleRef.display).toUpperCase()}
@@ -434,11 +438,13 @@ const migrateFavorites = async () => {
   }
 
   const results = window.roamAlphaAPI.q(`
-    [:find ?title 
+    [:find ?uid 
      :where [?e :page/sidebar]
-            [?e :node/title ?title]]
+            [?e :block/uid ?uid]]
   `);
-  const titles = (results as string[][]).map(([title]) => title);
+  const favorites = (results as string[][]).map(([uid]) => ({
+    uid,
+  }));
 
   if (!leftSidebarUid) {
     const tree = getBasicTreeByParentUid(configPageUid);
@@ -482,13 +488,13 @@ const migrateFavorites = async () => {
   }
 
   const childrenTree = getBasicTreeByParentUid(childrenUid);
-  const existingTitles = new Set(childrenTree.map((c) => c.text));
-  const newTitles = titles.filter((t) => !existingTitles.has(t));
+  const existingTexts = new Set(childrenTree.map((c) => c.text));
+  const newFavorites = favorites.filter(({ uid }) => !existingTexts.has(uid));
 
-  if (newTitles.length > 0) {
+  if (newFavorites.length > 0) {
     await Promise.all(
-      newTitles.map((text) =>
-        createBlock({ parentUid: childrenUid, node: { text } }),
+      newFavorites.map(({ uid }) =>
+        createBlock({ parentUid: childrenUid, node: { text: uid } }),
       ),
     );
     refreshAndNotify();
