@@ -104,8 +104,7 @@ const CreateRelationDialog = ({
       // should not happen at this point, since the pattern was vetted at input.
       internalError({
         type: "create-relation-error",
-        error:
-          "Create Relation dialog: Could not find identify node downstream",
+        error: "Create Relation dialog: Could not identify node downstream",
       });
       return null;
     }
@@ -287,7 +286,7 @@ const prepareRelData = (
   if (!nodeSchema) {
     // should not happen at this point, since the pattern was vetted at input.
     internalError({
-      error: "Create Relation dialog: Could not find identify node downstream",
+      error: "Create Relation dialog: Could not identify node downstream",
       type: "create-relation-error",
     });
     return [];

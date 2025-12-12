@@ -14,7 +14,7 @@ const internalError = ({
   type?: string;
   userMessage?: string;
   context?: Properties;
-}) => {
+}): void => {
   if (process.env.NODE_ENV === "development") {
     console.error(error, context);
   } else {
