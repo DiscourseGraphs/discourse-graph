@@ -25,8 +25,7 @@ import {
 } from "tldraw";
 import { AddPullWatch } from "roamjs-components/types";
 import { LEGACY_SCHEMA } from "~/data/legacyTldrawSchema";
-import sendErrorEmail from "~/utils/sendErrorEmail";
-import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
+import internalError from "~/utils/internalError";
 
 const THROTTLE = 350;
 
@@ -142,21 +141,20 @@ export const useRoamStore = ({
       error: Error;
       errorMessage: string;
     }): void => {
-      console.error(errorMessage, error);
       setError(error);
       setLoading(false);
       const snapshotSize = initialSnapshot
         ? JSON.stringify(initialSnapshot).length
         : 0;
-      sendErrorEmail({
+      internalError({
         error,
-        type: errorMessage,
+        type: "roam-store-error",
         context: {
           pageUid,
           snapshotSize,
           ...(snapshotSize < 10000 ? { initialSnapshot } : {}),
         },
-      }).catch(() => {});
+      });
     };
 
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -305,14 +303,13 @@ export const useRoamStore = ({
       setNeedsUpgrade(false);
       setInitialSnapshot(null);
       setError(error);
-      sendErrorEmail({
+      internalError({
         error,
-        type: "Failed to perform Canvas upgrade",
+        type: "canvas-upgrade-error",
         context: {
           data: { oldData },
         },
-      }).catch(() => {});
-      console.error("Failed to perform Canvas upgrade", error);
+      });
     }
   };
 

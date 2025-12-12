@@ -54,7 +54,7 @@ import {
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
 import { MAX_WIDTH } from "~/components/canvas/Tldraw";
-import sendErrorEmail from "~/utils/sendErrorEmail";
+import internalError from "~/utils/internalError";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 
 const ExportProgress = ({ id }: { id: string }) => {
@@ -222,7 +222,7 @@ const ExportDialog: ExportDialogComponent = ({
   const addToSelectedCanvas = async (pageUid: string) => {
     if (typeof results !== "object") return;
 
-    let props: Record<string, unknown> = getBlockProps(pageUid);
+    const props: Record<string, unknown> = getBlockProps(pageUid);
 
     const PADDING_BETWEEN_SHAPES = 20;
     const COMMON_BOUNDS_XOFFSET = 250;
@@ -309,10 +309,10 @@ const ExportDialog: ExportDialogComponent = ({
       let minY = Number.MAX_SAFE_INTEGER;
 
       shapes.forEach((shape) => {
-        let rightX = shape.x + shape.w;
-        let leftX = shape.x;
-        let topY = shape.y;
-        let bottomY = shape.y - shape.h;
+        const rightX = shape.x + shape.w;
+        const leftX = shape.x;
+        const topY = shape.y;
+        const bottomY = shape.y - shape.h;
 
         if (rightX > maxX) maxX = rightX;
         if (leftX < minX) minX = leftX;
@@ -468,13 +468,12 @@ const ExportDialog: ExportDialogComponent = ({
         id: "query-builder-export-success",
       });
     } catch (e) {
-      const error = e as Error;
-      renderToast({
-        content: "Looks like there was an error. The team has been notified.",
-        intent: "danger",
-        id: "discourse-graphs-error",
+      internalError({
+        error: e as Error,
+        type: "export-error",
+        userMessage:
+          "Looks like there was an error. The team has been notified.",
       });
-      sendErrorEmail({ error, type: "Export Dialog Failed" }).catch(() => {});
     } finally {
       setLoading(false);
       onClose();
@@ -688,18 +687,13 @@ const ExportDialog: ExportDialogComponent = ({
                     setError(`Unsupported export type: ${exportType}`);
                   }
                 } catch (e) {
-                  const error = e as Error;
-                  renderToast({
-                    id: "export-error",
-                    content:
+                  internalError({
+                    error: e as Error,
+                    type: "export-error",
+                    userMessage:
                       "Looks like there was an error. The team has been notified.",
-                    intent: "danger",
-                  });
-                  sendErrorEmail({
-                    error,
-                    type: "Export Dialog Failed",
                     context: { activeExportType, filename, results },
-                  }).catch(() => {});
+                  });
                   setDialogOpen(true);
                   setError((e as Error).message);
                 } finally {
