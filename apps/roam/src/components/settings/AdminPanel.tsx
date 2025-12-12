@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import {
   Button,
   Checkbox,
   HTMLTable,
+  Alert,
+  Intent,
   Label,
   MenuItem,
   Spinner,
@@ -33,6 +34,8 @@ import sendErrorEmail from "~/utils/sendErrorEmail";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
+import createBlock from "roamjs-components/writes/createBlock";
+import deleteBlock from "roamjs-components/writes/deleteBlock";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -335,16 +338,88 @@ const FeatureFlagsTab = (): React.ReactElement => {
     return getFormattedConfigTree();
   }, []);
 
+  const [suggestiveModeEnabled, setSuggestiveModeEnabled] = useState(
+    settings.suggestiveModeEnabled.value || false,
+  );
+  const [suggestiveModeUid, setSuggestiveModeUid] = useState(
+    settings.suggestiveModeEnabled.uid,
+  );
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isInstructionOpen, setIsInstructionOpen] = useState(false);
+
   return (
     <div className="flex flex-col gap-4 p-4">
-      <FlagPanel
-        title="(BETA) Suggestive Mode Enabled"
-        description="Whether or not to enable the suggestive mode, if this is first time enabling it, you will need to generate and upload all node embeddings to supabase. Go to Suggestive Mode -> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"
-        order={3}
-        uid={settings.suggestiveModeEnabled.uid}
-        parentUid={settings.settingsUid}
-        value={settings.suggestiveModeEnabled.value || false}
+      <Checkbox
+        checked={suggestiveModeEnabled}
+        onChange={(e) => {
+          const checked = (e.target as HTMLInputElement).checked;
+          if (checked) {
+            setIsAlertOpen(true);
+          } else {
+            if (suggestiveModeUid) {
+              void deleteBlock(suggestiveModeUid);
+              setSuggestiveModeUid(undefined);
+            }
+            setSuggestiveModeEnabled(false);
+          }
+        }}
+        labelElement={
+          <>
+            (BETA) Suggestive Mode Enabled
+            <Description
+              description={
+                "Whether or not to enable the suggestive mode, if this is first time enabling it, you will need to generate and upload all node embeddings to supabase. Go to Suggestive Mode -> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"
+              }
+            />
+          </>
+        }
       />
+      <Alert
+        isOpen={isAlertOpen}
+        onConfirm={() => {
+          void createBlock({
+            parentUid: settings.settingsUid,
+            node: { text: "(BETA) Suggestive Mode Enabled" },
+          }).then((uid) => {
+            setSuggestiveModeUid(uid);
+            setSuggestiveModeEnabled(true);
+            setIsAlertOpen(false);
+            setIsInstructionOpen(true);
+          });
+        }}
+        onCancel={() => setIsAlertOpen(false)}
+        canEscapeKeyCancel={true}
+        canOutsideClickCancel={true}
+        intent={Intent.PRIMARY}
+        confirmButtonText="Enable"
+        cancelButtonText="Cancel"
+      >
+        <p>
+          Enabling Suggestive Mode will send your data (nodes) to our servers
+          and OpenAI servers to generate embeddings and suggestions.
+        </p>
+        <p>Are you sure you want to proceed?</p>
+      </Alert>
+
+      <Alert
+        isOpen={isInstructionOpen}
+        onConfirm={() => window.location.reload()}
+        onCancel={() => setIsInstructionOpen(false)}
+        confirmButtonText="Reload Graph"
+        cancelButtonText="Later"
+        intent={Intent.PRIMARY}
+      >
+        <p>
+          If this is the first time enabling it, you will need to generate and
+          upload all node embeddings to supabase.
+        </p>
+        <p>Please reload the graph to see the new 'Suggestive Mode' tab.</p>
+        <p>
+          Then go to Suggestive Mode{" "}
+          {"-> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"}
+        </p>
+      </Alert>
+
       <Checkbox
         defaultChecked={useReifiedRelations}
         onChange={(e) => {
@@ -383,6 +458,10 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
 const AdminPanel = (): React.ReactElement => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
+  const settings = useMemo(() => {
+    refreshConfigTree();
+    return getFormattedConfigTree();
+  }, []);
 
   return (
     <Tabs
@@ -417,12 +496,14 @@ const AdminPanel = (): React.ReactElement => {
           </div>
         }
       />
-      <Tab
-        id="suggestive-mode-settings"
-        title="Suggestive Mode"
-        className="overflow-y-auto"
-        panel={<SuggestiveModeSettings />}
-      />
+      {settings.suggestiveModeEnabled.value && (
+        <Tab
+          id="suggestive-mode-settings"
+          title="Suggestive Mode"
+          className="overflow-y-auto"
+          panel={<SuggestiveModeSettings />}
+        />
+      )}
     </Tabs>
   );
 };
