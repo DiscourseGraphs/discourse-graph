@@ -692,7 +692,16 @@ const ExportDialog: ExportDialogComponent = ({
                     type: "export-error",
                     userMessage:
                       "Looks like there was an error. The team has been notified.",
-                    context: { activeExportType, filename, results },
+                    context: {
+                      activeExportType,
+                      filename,
+                      resultsCount: Array.isArray(results)
+                        ? results.length
+                        : undefined,
+                      sampleUids: Array.isArray(results)
+                        ? results.slice(0, 10).map((r) => r.uid)
+                        : undefined,
+                    },
                   });
                   setDialogOpen(true);
                   setError((e as Error).message);
