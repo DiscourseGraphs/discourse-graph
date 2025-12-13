@@ -12,8 +12,6 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 import { getSetting } from "~/utils/extensionSettings";
 import getDiscourseRelations, {
@@ -71,12 +69,19 @@ const CreateRelationDialog = ({
 
   const relKeys = Object.keys(relDataByTag);
   const [selectedRelationName, setSelectedRelationName] = useState(relKeys[0]);
-  const [selectedTargetTitle, setSelectedTargetTitle] = useState<string>("");
-  const [selectedTargetUid, setSelectedTargetUid] = useState<
-    string | undefined
-  >(undefined);
-  const allPages = useMemo(() => getAllPageNames().sort(), []);
-  const getFilteredPageNames = (selectedRelationName: string): string[] => {
+  const [selectedTarget, setSelectedTarget] = useState<Result>({
+    text: "",
+    uid: "",
+  });
+  const pageUidByTitle = Object.fromEntries(
+    window.roamAlphaAPI.data.fast.q(
+      "[:find ?t ?u :where [?p :node/title ?t] [?p :block/uid ?u]]",
+    ) as [string, string][],
+  );
+  const allPages = Object.entries(pageUidByTitle).map(
+    ([text, uid]): Result => ({ uid, text }),
+  );
+  const getFilteredPageNames = (selectedRelationName: string): Result[] => {
     if (!relDataByTag[selectedRelationName]?.length) return [];
     const formats = relDataByTag[selectedRelationName].map((rel) =>
       getDiscourseNodeFormatInnerExpression(
@@ -84,20 +89,17 @@ const CreateRelationDialog = ({
       ),
     );
     const re = RegExp(`^(${formats.join(")|(")})$`, "s");
-    return allPages.filter((title) => title.match(re));
+    return allPages.filter(({ text }) => text.match(re));
   };
-  const [pageOptions, setPageOptions] = useState<string[]>(
+  const [pageOptions, setPageOptions] = useState<Result[]>(
     getFilteredPageNames(relKeys[0]),
   );
 
-  const identifyRelationMatch = (
-    targetTitle: string,
-    targetUid: string,
-  ): RelWithDirection | null => {
-    if (targetTitle.length === 0) return null;
+  const identifyRelationMatch = (target: Result): RelWithDirection | null => {
+    if (target.text.length === 0) return null;
     const selectedTargetType = findDiscourseNodeByTitleAndUid({
-      uid: targetUid,
-      title: targetTitle,
+      uid: target.uid,
+      title: target.text,
       nodes: discourseNodes,
     });
     if (selectedTargetType === false) {
@@ -136,16 +138,13 @@ const CreateRelationDialog = ({
   };
 
   const onCreate = async (): Promise<boolean> => {
-    if (selectedTargetUid === undefined) return false;
-    const relation = identifyRelationMatch(
-      selectedTargetTitle,
-      selectedTargetUid,
-    );
+    if (selectedTarget.uid === "") return false;
+    const relation = identifyRelationMatch(selectedTarget);
     if (relation === null) return false;
     const result = await createReifiedRelation({
       relationBlockUid: relation.id,
-      sourceUid: relation.forward ? sourceNodeUid : selectedTargetUid,
-      destinationUid: relation.forward ? selectedTargetUid : sourceNodeUid,
+      sourceUid: relation.forward ? sourceNodeUid : selectedTarget.uid,
+      destinationUid: relation.forward ? selectedTarget.uid : sourceNodeUid,
     });
     return result !== undefined;
   };
@@ -183,28 +182,32 @@ const CreateRelationDialog = ({
     setSelectedRelationName(relName);
     setPageOptions(getFilteredPageNames(relName));
     if (
-      selectedTargetUid !== undefined &&
-      identifyRelationMatch(selectedTargetTitle, selectedTargetUid) === null
+      selectedTarget.uid !== "" &&
+      identifyRelationMatch(selectedTarget) === null
     ) {
-      setSelectedTargetUid(undefined);
+      setSelectedTarget({ text: "", uid: "" });
     }
   };
 
-  const getNodeFromTitle = (title: string): void => {
-    if (title === selectedTargetTitle) return;
-    setSelectedTargetTitle(title);
-    const uid = getPageUidByPageTitle(title);
-    if (uid.length === 0) {
-      setSelectedTargetUid(undefined);
-      return;
-    }
-    const relation = identifyRelationMatch(title, uid);
+  const setResult = (value: Result): void => {
+    const relation = value.uid.length ? identifyRelationMatch(value) : null;
     if (relation === null) {
-      setSelectedTargetUid(undefined);
+      setSelectedTarget({ text: value.text, uid: "" });
+    } else {
+      setSelectedTarget(value);
+    }
+  };
+
+  const setResultFromTitle = (text: string): void => {
+    const uid = pageUidByTitle[text];
+    if (uid === undefined) {
+      setSelectedTarget({ text, uid: "" });
       return;
     }
-    setSelectedTargetUid(uid);
+    setResult({ text, uid });
   };
+
+  const itemToQuery = (r?: Result) => (r ? r.text : "");
 
   return (
     <Dialog
@@ -235,9 +238,10 @@ const CreateRelationDialog = ({
           </div>
           <div className="make-popover-full-width">
             <AutocompleteInput
-              value={selectedTargetTitle}
-              setValue={getNodeFromTitle}
-              onBlur={getNodeFromTitle}
+              value={selectedTarget}
+              itemToQuery={itemToQuery}
+              setValue={setResult}
+              onBlur={setResultFromTitle}
               placeholder={"Search for a page..."}
               options={pageOptions}
             />
@@ -252,7 +256,7 @@ const CreateRelationDialog = ({
           <Button
             intent="primary"
             onClick={onCreateSync}
-            disabled={!selectedTargetUid}
+            disabled={selectedTarget.uid === ""}
           >
             Create
           </Button>
