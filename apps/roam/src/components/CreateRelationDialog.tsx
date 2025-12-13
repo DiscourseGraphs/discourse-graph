@@ -73,13 +73,21 @@ const CreateRelationDialog = ({
     text: "",
     uid: "",
   });
-  const pageUidByTitle = Object.fromEntries(
-    window.roamAlphaAPI.data.fast.q(
-      "[:find ?t ?u :where [?p :node/title ?t] [?p :block/uid ?u]]",
-    ) as [string, string][],
+  const pageUidByTitle = useMemo(
+    () =>
+      Object.fromEntries(
+        window.roamAlphaAPI.data.fast.q(
+          "[:find ?t ?u :where [?p :node/title ?t] [?p :block/uid ?u]]",
+        ) as [string, string][],
+      ),
+    [],
   );
-  const allPages = Object.entries(pageUidByTitle).map(
-    ([text, uid]): Result => ({ uid, text }),
+  const allPages = useMemo(
+    () =>
+      Object.entries(pageUidByTitle).map(
+        ([text, uid]): Result => ({ uid, text }),
+      ),
+    [pageUidByTitle],
   );
   const getFilteredPageNames = (selectedRelationName: string): Result[] => {
     if (!relDataByTag[selectedRelationName]?.length) return [];
