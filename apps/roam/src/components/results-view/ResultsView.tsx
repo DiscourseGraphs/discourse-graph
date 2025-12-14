@@ -38,7 +38,7 @@ import Charts from "./Charts";
 import Timeline from "./Timeline";
 import Kanban from "./Kanban";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
-import { RoamBasicNode } from "roamjs-components/types";
+import type { RoamBasicNode } from "roamjs-components/types/native";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { Column, Result } from "~/utils/types";
 import updateBlock from "roamjs-components/writes/updateBlock";
@@ -238,7 +238,7 @@ type ResultsViewComponent = (props: {
   preventSavingSettings?: boolean;
   onEdit?: () => void;
   onDeleteQuery?: () => void;
-  onRefresh: (loadInBackground?: boolean) => void;
+  onRefresh: (ignoreCache?: boolean) => void;
   globalFiltersData?: Record<string, Filters>;
   globalPageSize?: number;
   isEditBlock?: boolean;
@@ -1369,7 +1369,7 @@ const ResultsView: ResultsViewComponent = ({
                 <Kanban
                   data={allProcessedResults}
                   layout={layout}
-                  onQuery={() => onRefresh(true)}
+                  onQuery={() => onRefresh()}
                   resultKeys={columns}
                   parentUid={parentUid}
                   views={views}

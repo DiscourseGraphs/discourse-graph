@@ -176,7 +176,7 @@ const getDiscourseContextResults = async ({
   uid: string;
   nodes?: ReturnType<typeof getDiscourseNodes>;
   relations?: ReturnType<typeof getDiscourseRelations>;
-  ignoreCache?: true;
+  ignoreCache?: boolean;
   onResult?: onResult;
 }) => {
   const args = { ignoreCache };

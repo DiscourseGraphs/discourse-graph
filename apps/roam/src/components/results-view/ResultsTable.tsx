@@ -188,7 +188,7 @@ type ResultRowProps = {
   parentUid: string;
   ctrlClick?: (e: Result) => void;
   views: { column: string; mode: string; value: string }[];
-  onRefresh: () => void;
+  onRefresh: (ignoreCache?: boolean) => void;
 };
 
 const ResultRow = ({
@@ -391,7 +391,7 @@ const ResultsTable = ({
   setFilters: (f: FilterData) => void;
   preventSavingSettings?: boolean;
   views: Views;
-  onRefresh: () => void;
+  onRefresh: (ignoreCache?: boolean) => void;
   allResults: Result[];
   showInterface?: boolean;
 }) => {
