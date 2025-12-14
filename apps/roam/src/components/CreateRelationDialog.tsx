@@ -20,6 +20,7 @@ import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { findDiscourseNodeByTitleAndUid } from "~/utils/findDiscourseNode";
 import { getDiscourseNodeFormatInnerExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import type { Result } from "~/utils/types";
 import internalError from "~/utils/internalError";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 
