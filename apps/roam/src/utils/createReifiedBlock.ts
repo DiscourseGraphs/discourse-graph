@@ -6,7 +6,7 @@ export const DISCOURSE_GRAPH_PROP_NAME = "discourse-graph";
 
 const SANE_ROLE_NAME_RE = new RegExp(/^[\w\-]*$/);
 
-const strictQueryForReifiedBlocks = async (
+export const strictQueryForReifiedBlocks = async (
   parameterUids: Record<string, string>,
 ): Promise<string | null> => {
   const paramsAsSeq = Object.entries(parameterUids);
