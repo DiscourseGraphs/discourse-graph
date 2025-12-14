@@ -1,6 +1,6 @@
 import getExtensionAPI from "roamjs-components/util/extensionApiContext";
 
-export function getSetting<T>(key: string, defaultValue?: T): T {
+export const getSetting = <T>(key: string, defaultValue?: T): T => {
   const extensionAPI = getExtensionAPI();
   const value = extensionAPI.settings.get(key);
 
@@ -8,9 +8,9 @@ export function getSetting<T>(key: string, defaultValue?: T): T {
     return value as T;
   }
   return defaultValue as T;
-}
+};
 
-export function setSetting<T>(key: string, value: T): void {
+export const setSetting = async <T>(key: string, value: T): Promise<void> => {
   const extensionAPI = getExtensionAPI();
-  extensionAPI.settings.set(key, value);
-}
+  await extensionAPI.settings.set(key, value);
+};
