@@ -260,9 +260,7 @@ const MigrationTab = (): React.ReactElement => {
   const [useMigrationResults, setMigrationResults] = useState<string>("");
   const [useOngoing, setOngoing] = useState<boolean>(false);
   const [useDryRun, setDryRun] = useState<boolean>(false);
-  const [enabled, setEnabled] = useState<boolean>(
-    getSetting("use-reified-relations", false),
-  );
+  const enabled = getSetting("use-reified-relations", false);
   const doMigrateRelations = async () => {
     setOngoing(true);
     try {
@@ -280,7 +278,6 @@ const MigrationTab = (): React.ReactElement => {
         `Migration failed: ${(e as Error).message ?? "see console for details"}`,
       );
     } finally {
-      setEnabled(true);
       setOngoing(false);
     }
   };
