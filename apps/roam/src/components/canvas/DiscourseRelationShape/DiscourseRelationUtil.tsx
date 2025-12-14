@@ -10,10 +10,10 @@ import {
   TLShapeUtilFlag,
   Geometry2d,
   Edge2d,
+  Editor,
   Vec,
   Group2d,
   TLHandle,
-  useDefaultColorTheme,
   SVGContainer,
   TextLabel,
   TEXT_PROPS,
@@ -80,6 +80,7 @@ import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
+import sendErrorEmail from "~/utils/sendErrorEmail";
 
 const COLOR_ARRAY = Array.from(textShapeProps.color.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
@@ -494,6 +495,16 @@ export const createAllReferencedNodeUtils = (
   });
 };
 
+const asDiscourseNodeShape = (
+  shape: TLShape,
+  editor: Editor,
+): DiscourseNodeShape | null => {
+  const shapeUtil = editor.getShapeUtil(shape.type);
+  return shapeUtil instanceof BaseDiscourseNodeUtil
+    ? (shape as DiscourseNodeShape)
+    : null;
+};
+
 export const createAllRelationShapeUtils = (
   allRelationIds: string[],
 ): TLShapeUtilConstructor<DiscourseRelationShape>[] => {
@@ -543,11 +554,23 @@ export const createAllRelationShapeUtils = (
           editor.updateShapes([{ id: arrow.id, type: target.type }]);
         }
         if (getSetting("use-reified-relations")) {
-          await createReifiedRelation({
-            sourceUid: (source.props as DiscourseNodeShape["props"]).uid,
-            destinationUid: (target.props as DiscourseNodeShape["props"]).uid,
-            relationBlockUid: relation.id,
-          });
+          const sourceAsDNS = asDiscourseNodeShape(source, editor);
+          const targetAsDNS = asDiscourseNodeShape(target, editor);
+
+          if (sourceAsDNS && targetAsDNS)
+            await createReifiedRelation({
+              sourceUid: sourceAsDNS.props.uid,
+              destinationUid: targetAsDNS.props.uid,
+              relationBlockUid: relation.id,
+            });
+          else {
+            void sendErrorEmail({
+              error: new Error(
+                "attempt to create a relation between non discourse nodes",
+              ),
+              type: "canvas-create-relation-non-dgn",
+            }).catch(() => undefined);
+          }
         } else {
           const { triples, label: relationLabel } = relation;
           const isOriginal = arrow.props.text === relationLabel;
