@@ -14,7 +14,10 @@ const migrateRelations = async (dryRun = false): Promise<number> => {
   const authorized = getSetting("use-reified-relations");
   if (!authorized) return 0;
   let numProcessed = 0;
+  // eslint-disable-next-line @typescript-eslint/await-thenable
   await setSetting("use-reified-relations", false); // so queries use patterns
+  // wait for the settings to propagate
+  await new Promise((resolve) => setTimeout(resolve, 150));
   try {
     const processed = new Set<string>();
     const relationData = await getRelationData();
@@ -62,6 +65,7 @@ const migrateRelations = async (dryRun = false): Promise<number> => {
       numProcessed++;
     }
   } finally {
+    // eslint-disable-next-line @typescript-eslint/await-thenable
     await setSetting("use-reified-relations", true);
   }
   return numProcessed;
