@@ -10,10 +10,10 @@ import {
   TLShapeUtilFlag,
   Geometry2d,
   Edge2d,
+  Editor,
   Vec,
   Group2d,
   TLHandle,
-  useDefaultColorTheme,
   SVGContainer,
   TextLabel,
   TEXT_PROPS,
@@ -63,6 +63,8 @@ import {
   shapeAtTranslationStart,
   updateArrowTerminal,
 } from "./helpers";
+import { getSetting } from "~/utils/extensionSettings";
+import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { discourseContext, isPageUid } from "~/components/canvas/Tldraw";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { InputTextNode } from "roamjs-components/types";
@@ -78,6 +80,7 @@ import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
+import sendErrorEmail from "~/utils/sendErrorEmail";
 
 const COLOR_ARRAY = Array.from(textShapeProps.color.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
@@ -492,6 +495,16 @@ export const createAllReferencedNodeUtils = (
   });
 };
 
+const asDiscourseNodeShape = (
+  shape: TLShape,
+  editor: Editor,
+): DiscourseNodeShape | null => {
+  const shapeUtil = editor.getShapeUtil(shape.type);
+  return shapeUtil instanceof BaseDiscourseNodeUtil
+    ? (shape as DiscourseNodeShape)
+    : null;
+};
+
 export const createAllRelationShapeUtils = (
   allRelationIds: string[],
 ): TLShapeUtilConstructor<DiscourseRelationShape>[] => {
@@ -540,58 +553,82 @@ export const createAllRelationShapeUtils = (
         if (arrow.type !== target.type) {
           editor.updateShapes([{ id: arrow.id, type: target.type }]);
         }
-        const { triples, label: relationLabel } = relation;
-        const isOriginal = arrow.props.text === relationLabel;
-        const newTriples = triples
-          .map((t) => {
-            if (/is a/i.test(t[1])) {
-              const targetNode =
-                (t[2] === "source" && isOriginal) ||
-                (t[2] === "destination" && !isOriginal)
-                  ? source
-                  : target;
-              const { title, uid } =
-                targetNode.props as DiscourseNodeShape["props"];
-              return [
-                t[0],
-                isPageUid(uid) ? "has title" : "with uid",
-                isPageUid(uid) ? title : uid,
-              ];
-            }
-            return t.slice(0);
-          })
-          .map(([source, relation, target]) => ({ source, relation, target }));
-        const parentUid = getCurrentPageUid();
-        const title = getPageTitleByPageUid(parentUid);
-        await triplesToBlocks({
-          defaultPageTitle: `Auto generated from [[${title}]]`,
-          toPage: async (title: string, blocks: InputTextNode[]) => {
-            const parentUid =
-              getPageUidByPageTitle(title) ||
-              (await createPage({ title: title }));
+        if (getSetting("use-reified-relations")) {
+          const sourceAsDNS = asDiscourseNodeShape(source, editor);
+          const targetAsDNS = asDiscourseNodeShape(target, editor);
 
-            await Promise.all(
-              blocks.map((node, order) =>
-                createBlock({ node, order, parentUid }).catch(() =>
-                  console.error(
-                    `Failed to create block: ${JSON.stringify(
-                      { node, order, parentUid },
-                      null,
-                      4,
-                    )}`,
+          if (sourceAsDNS && targetAsDNS)
+            await createReifiedRelation({
+              sourceUid: sourceAsDNS.props.uid,
+              destinationUid: targetAsDNS.props.uid,
+              relationBlockUid: relation.id,
+            });
+          else {
+            void sendErrorEmail({
+              error: new Error(
+                "attempt to create a relation between non discourse nodes",
+              ),
+              type: "canvas-create-relation-non-dgn",
+            }).catch(() => undefined);
+          }
+        } else {
+          const { triples, label: relationLabel } = relation;
+          const isOriginal = arrow.props.text === relationLabel;
+          const newTriples = triples
+            .map((t) => {
+              if (/is a/i.test(t[1])) {
+                const targetNode =
+                  (t[2] === "source" && isOriginal) ||
+                  (t[2] === "destination" && !isOriginal)
+                    ? source
+                    : target;
+                const { title, uid } =
+                  targetNode.props as DiscourseNodeShape["props"];
+                return [
+                  t[0],
+                  isPageUid(uid) ? "has title" : "with uid",
+                  isPageUid(uid) ? title : uid,
+                ];
+              }
+              return t.slice(0);
+            })
+            .map(([source, relation, target]) => ({
+              source,
+              relation,
+              target,
+            }));
+          const parentUid = getCurrentPageUid();
+          const title = getPageTitleByPageUid(parentUid);
+          await triplesToBlocks({
+            defaultPageTitle: `Auto generated from [[${title}]]`,
+            toPage: async (title: string, blocks: InputTextNode[]) => {
+              const parentUid =
+                getPageUidByPageTitle(title) ||
+                (await createPage({ title: title }));
+
+              await Promise.all(
+                blocks.map((node, order) =>
+                  createBlock({ node, order, parentUid }).catch(() =>
+                    console.error(
+                      `Failed to create block: ${JSON.stringify(
+                        { node, order, parentUid },
+                        null,
+                        4,
+                      )}`,
+                    ),
                   ),
                 ),
-              ),
-            );
-            await openBlockInSidebar(parentUid);
-          },
-          nodeSpecificationsByLabel: Object.fromEntries(
-            Object.values(discourseContext.nodes).map((n) => [
-              n.text,
-              n.specification,
-            ]),
-          ),
-        })(newTriples)();
+              );
+              await openBlockInSidebar(parentUid);
+            },
+            nodeSpecificationsByLabel: Object.fromEntries(
+              Object.values(discourseContext.nodes).map((n) => [
+                n.text,
+                n.specification,
+              ]),
+            ),
+          })(newTriples)();
+        }
       };
 
       override getDefaultProps(): DiscourseRelationShape["props"] {
