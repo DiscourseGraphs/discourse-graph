@@ -12,7 +12,7 @@ const internalError = ({
   userMessage,
   type,
   context,
-  sendEmail, // true by default
+  sendEmail = true,
 }: {
   error: unknown;
   type?: string;
