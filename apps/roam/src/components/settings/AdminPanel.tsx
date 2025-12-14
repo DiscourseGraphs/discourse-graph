@@ -413,7 +413,10 @@ const FeatureFlagsTab = (): React.ReactElement => {
           If this is the first time enabling it, you will need to generate and
           upload all node embeddings to supabase.
         </p>
-        <p>Please reload the graph to see the new 'Suggestive Mode' tab.</p>
+        <p>
+          Please reload the graph to see the new &apos;Suggestive Mode&apos;
+          tab.
+        </p>
         <p>
           Then go to Suggestive Mode{" "}
           {"-> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"}

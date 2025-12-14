@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
@@ -23,6 +29,8 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
+import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import refreshConfigTree from "~/utils/refreshConfigTree";
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -164,6 +172,10 @@ const NodeConfig = ({
   node: DiscourseNode;
   onloadArgs: OnloadArgs;
 }) => {
+  const settings = useMemo(() => {
+    refreshConfigTree();
+    return getFormattedConfigTree();
+  }, []);
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,
@@ -398,18 +410,20 @@ const NodeConfig = ({
             </div>
           }
         />
-        <Tab
-          id="suggestive-mode"
-          title="Suggestive Mode"
-          panel={
-            <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeSuggestiveRules
-                node={node}
-                parentUid={suggestiveRulesUid}
-              />
-            </div>
-          }
-        />
+        {settings.suggestiveModeEnabled.value && (
+          <Tab
+            id="suggestive-mode"
+            title="Suggestive Mode"
+            panel={
+              <div className="flex flex-col gap-4 p-1">
+                <DiscourseNodeSuggestiveRules
+                  node={node}
+                  parentUid={suggestiveRulesUid}
+                />
+              </div>
+            }
+          />
+        )}
       </Tabs>
     </>
   );
