@@ -518,7 +518,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
       internalError({
         error,
-        type: "tldraw-error",
+        type: "Tldraw Error",
         context: {
           title: title,
           lastActions: lastActionsRef.current,

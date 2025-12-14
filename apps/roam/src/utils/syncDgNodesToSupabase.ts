@@ -62,7 +62,7 @@ const notifyEndSyncFailure = ({
 
   internalError({
     error: new Error(reason),
-    type: "sync-error",
+    type: "Sync Failed",
     context: { status },
   });
 };

@@ -470,7 +470,7 @@ const ExportDialog: ExportDialogComponent = ({
     } catch (e) {
       internalError({
         error: e as Error,
-        type: "export-error",
+        type: "Export Dialog Failed",
         userMessage:
           "Looks like there was an error. The team has been notified.",
       });
@@ -689,7 +689,7 @@ const ExportDialog: ExportDialogComponent = ({
                 } catch (e) {
                   internalError({
                     error: e as Error,
-                    type: "export-error",
+                    type: "Export Dialog Failed",
                     userMessage:
                       "Looks like there was an error. The team has been notified.",
                     context: {

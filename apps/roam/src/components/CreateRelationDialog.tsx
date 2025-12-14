@@ -103,8 +103,8 @@ const CreateRelationDialog = ({
     if (selectedTargetType === false) {
       // should not happen at this point, since the pattern was vetted at input.
       internalError({
-        type: "create-relation-error",
-        error: "Create Relation dialog: Could not identify node downstream",
+        type: "Create Relation dialog",
+        error: "Could not identify node downstream",
       });
       return null;
     }
@@ -126,16 +126,16 @@ const CreateRelationDialog = ({
     if (candidateRelations.length === 0) {
       // also should not happen
       internalError({
-        type: "create-relation-error",
-        error: "Create Relation dialog: Could not find the relation",
+        type: "Create Relation dialog",
+        error: "Could not find the relation",
       });
       return null;
     }
     if (candidateRelations.length !== 1) {
       // This seems to happen... I need more data.
       internalError({
-        type: "create-relation-error",
-        error: `Create Relation dialog: Too many relations between ${selectedTargetType.type} and ${selectedSourceType.type}: ${candidateRelations.map((r) => r.id).join(",")}`,
+        type: "Create Relation dialog",
+        error: `Too many relations between ${selectedTargetType.type} and ${selectedSourceType.type}: ${candidateRelations.map((r) => r.id).join(",")}`,
       });
       return null;
     }
@@ -286,8 +286,8 @@ const prepareRelData = (
   if (!nodeSchema) {
     // should not happen at this point, since the pattern was vetted at input.
     internalError({
-      error: "Create Relation dialog: Could not identify node downstream",
-      type: "create-relation-error",
+      error: "Could not identify node downstream",
+      type: "Create Relation dialog",
     });
     return [];
   }

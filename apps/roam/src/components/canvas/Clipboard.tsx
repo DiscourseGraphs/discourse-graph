@@ -141,8 +141,8 @@ export const ClipboardProvider = ({
         const userUid = getCurrentUserUid();
         if (!userUid) {
           internalError({
-            error: new Error("Canvas Clipboard: Missing current user UID"),
-            type: "canvas-clipboard-missing-uid",
+            error: new Error("Missing current user UID"),
+            type: "Canvas Clipboard: Missing current user UID",
             context: {
               canvasPageTitle,
             },
@@ -169,7 +169,7 @@ export const ClipboardProvider = ({
       } catch (error) {
         internalError({
           error,
-          type: "canvas-clipboard-initialization-error",
+          type: "Canvas Clipboard: Failed to initialize",
           context: { canvasPageTitle },
         });
       } finally {
@@ -190,7 +190,7 @@ export const ClipboardProvider = ({
     } catch (error) {
       internalError({
         error,
-        type: "canvas-clipboard-state-save-error",
+        type: "Canvas Clipboard: Failed to persist state",
         context: { clipboardBlockUid, pageCount: pages.length },
       });
     }
@@ -434,7 +434,7 @@ const ClipboardPageSection = ({
       } catch (error) {
         internalError({
           error,
-          type: "canvas-clipboard-discourse-node-error",
+          type: "Canvas Clipboard: Failed to fetch discourse nodes",
           context: { pageTitle: page.text },
         });
         setDiscourseNodes([]);
@@ -593,7 +593,7 @@ const ClipboardPageSection = ({
       if (!nodeType) {
         internalError({
           error: new Error("Canvas Clipboard: Node type not found"),
-          type: "canvas-clipboard-type-not-found",
+          type: "Canvas Clipboard: Node type not found",
           context: { uid: node.uid },
         });
         return;

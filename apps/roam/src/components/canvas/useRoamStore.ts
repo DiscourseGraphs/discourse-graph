@@ -169,7 +169,7 @@ export const useRoamStore = ({
     } catch (e) {
       handleStoreError({
         error: e as Error,
-        type: "tlstore-creation-failure",
+        type: "Failed to create TLStore",
       });
       return null;
     }
@@ -180,7 +180,7 @@ export const useRoamStore = ({
       } catch (e) {
         handleStoreError({
           error: e as Error,
-          type: "snapshot-migration-failure",
+          type: "Failed to migrate snapshot",
         });
         return null;
       }
@@ -305,7 +305,7 @@ export const useRoamStore = ({
       setError(error);
       internalError({
         error,
-        type: "canvas-upgrade-error",
+        type: "Failed to perform Canvas upgrade",
         context: {
           data: { oldData },
         },

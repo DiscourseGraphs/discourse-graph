@@ -5,6 +5,8 @@ import { getVersionWithDate } from "~/utils/getVersion";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 
+const NON_WORD = /\W+/g;
+
 const internalError = ({
   error,
   userMessage,
@@ -24,7 +26,8 @@ const internalError = ({
     const { version, buildDate } = getVersionWithDate();
     const username = getCurrentUserDisplayName();
     if (username) posthog.identify(username);
-    type = type || "internal-error";
+    type = type || "Internal Error";
+    const slugType = type.replaceAll(NON_WORD, "-").toLowerCase();
     context = {
       app: "Roam",
       type,
@@ -44,15 +47,21 @@ const internalError = ({
         error = new Error(typeof error);
       }
     }
-    posthog.captureException(error, context);
+    posthog.captureException(error, { ...context, type: slugType });
     if (sendEmail !== false) {
       sendErrorEmail({
         // by now error is an Error but TS did not figure it out
         error: error as Error,
         type,
         context,
-      }).catch(() => {
-        console.error("Could not send error email", error, type, context);
+      }).catch((sendError) => {
+        console.error(
+          "Could not send error email",
+          sendError,
+          error,
+          type,
+          context,
+        );
       });
     }
   }
