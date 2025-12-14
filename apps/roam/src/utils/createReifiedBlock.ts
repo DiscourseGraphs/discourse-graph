@@ -20,15 +20,11 @@ const strictQueryForReifiedBlocks = async (
   const query = `[:find ?u ?d
   :in $ ${paramsAsSeq.map(([k]) => "?" + k).join(" ")}
   :where [?s :block/uid ?u] [?s :block/props ?p] [(get ?p :${DISCOURSE_GRAPH_PROP_NAME}) ?d]
-  ${paramsAsSeq.map(([k]) => `[(get ?d :${k}) ?_${k}] [(= ?${k} ?_${k})]`).join(" ")} ]`;
-  // Note: the extra _k binding variable is only needed for the backend query somehow
-  // In a local query, we can directly map to `[(get ?d :${k}) ?${k}]`
-  const result = await Promise.resolve(
-    window.roamAlphaAPI.data.backend.q(
-      query,
-      ...paramsAsSeq.map(([, v]) => v),
-    ) as [string, Record<string, string>][],
-  );
+  ${paramsAsSeq.map(([k]) => `[(get ?d :${k}) ?${k}]`).join(" ")} ]`;
+  const result = (await window.roamAlphaAPI.data.async.q(
+    query,
+    ...paramsAsSeq.map(([, v]) => v),
+  )) as [string, Record<string, string>][];
   // post-filtering because cannot filter by number of keys in datascript
   const numParams = Object.keys(parameterUids).length;
   const resultF = result
