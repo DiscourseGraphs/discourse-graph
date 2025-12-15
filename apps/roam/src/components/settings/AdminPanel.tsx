@@ -30,7 +30,7 @@ import {
 import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import { DGSupabaseClient } from "@repo/database/lib/client";
-import sendErrorEmail from "~/utils/sendErrorEmail";
+import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
@@ -452,7 +452,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
           internalError({
             error: new Error("test"),
             type: "Test",
-            sendErrorEmail: true,
+            sendEmail: true,
             forceSendInDev: true,
           });
         }}
