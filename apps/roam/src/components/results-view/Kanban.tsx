@@ -38,12 +38,14 @@ const BlockEmbed = ({ uid, viewValue }: { uid: string; viewValue: string }) => {
       window.roamAlphaAPI.ui.components.renderBlock({
         uid,
         el,
-        // "open?": open, // waiting for roamAlphaAPI to add a open/close to renderBlock
+        // @ts-expect-error - add to roamjs-components
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "open?": open,
       });
     }
   }, [uid, open, contentRef]);
   return (
-    <div ref={contentRef} className={!!title ? "page-embed" : "block-embed"} />
+    <div ref={contentRef} className={title ? "page-embed" : "block-embed"} />
   );
 };
 

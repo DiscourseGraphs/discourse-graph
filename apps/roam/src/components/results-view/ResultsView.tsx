@@ -52,11 +52,11 @@ import { Inputs } from "./Inputs";
 const VIEWS: Record<string, { value: boolean }> = {
   link: { value: false },
   plain: { value: false },
-  embed: { value: false },
+  embed: { value: true },
   alias: { value: true },
 };
 
-const EMBED_FOLD_VALUES = ["default", "open", "closed"]; // waiting for roamAlphaAPI to add a open/close to renderBlock
+const EMBED_FOLD_VALUES = ["default", "open", "closed"];
 
 type EnglishQueryPart = { text: string; clickId?: string };
 
@@ -1078,27 +1078,35 @@ const ResultsView: ResultsViewComponent = ({
                                   }
                                 />
                               )}
-                              {/* {mode === "embed" && (
+                              {mode === "embed" && (
                                 <div className="flex items-center">
                                   <MenuItemSelect
                                     className="roamjs-view-select"
                                     items={EMBED_FOLD_VALUES}
-                                    activeItem={
-                                      !!value ? value : EMBED_FOLD_VALUES[0]
-                                    }
-                                    onItemSelect={(value) => {
-                                      onViewChange({ mode, column, value }, i);
+                                    activeItem={value || EMBED_FOLD_VALUES[0]}
+                                    onItemSelect={(nextValue) => {
+                                      onViewChange(
+                                        {
+                                          mode,
+                                          column,
+                                          value:
+                                            nextValue === "default"
+                                              ? ""
+                                              : nextValue,
+                                        },
+                                        i,
+                                      );
                                     }}
                                   />
                                   <Tooltip content="Initial folded state">
                                     <Icon
                                       icon="info-sign"
                                       iconSize={12}
-                                      className="opacity-80 ml-2 align-middle"
+                                      className="ml-2 align-middle opacity-80"
                                     />
                                   </Tooltip>
                                 </div>
-                              )} */}
+                              )}
                             </td>
                           )}
                         </tr>
