@@ -4,10 +4,7 @@ import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
-import { Alert, Checkbox, Intent } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
-import createBlock from "roamjs-components/writes/createBlock";
-import deleteBlock from "roamjs-components/writes/deleteBlock";
+import { Alert, Intent } from "@blueprintjs/core";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {
@@ -15,12 +12,6 @@ const DiscourseGraphHome = () => {
     return getFormattedConfigTree();
   }, []);
 
-  const [leftSidebarEnabled, setLeftSidebarEnabled] = useState(
-    settings.leftSidebarEnabled.value || false,
-  );
-  const [leftSidebarUid, setLeftSidebarUid] = useState(
-    settings.leftSidebarEnabled.uid,
-  );
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   return (
@@ -42,35 +33,20 @@ const DiscourseGraphHome = () => {
         value={settings.canvasPageFormat.value}
         defaultValue={DEFAULT_CANVAS_PAGE_FORMAT}
       />
-      <Checkbox
-        checked={leftSidebarEnabled}
-        onChange={(e) => {
-          const checked = (e.target as HTMLInputElement).checked;
-          if (checked) {
-            void createBlock({
-              parentUid: settings.settingsUid,
-              node: { text: "(BETA) Left Sidebar" },
-            }).then((uid) => {
-              setLeftSidebarUid(uid);
-              setLeftSidebarEnabled(true);
+      <FlagPanel
+        title="(BETA) Left Sidebar"
+        description="Whether or not to enable the left sidebar."
+        order={2}
+        uid={settings.leftSidebarEnabled.uid}
+        parentUid={settings.settingsUid}
+        value={settings.leftSidebarEnabled.value || false}
+        options={{
+          onChange: (checked: boolean) => {
+            if (checked) {
               setIsAlertOpen(true);
-            });
-          } else {
-            if (leftSidebarUid) {
-              void deleteBlock(leftSidebarUid);
-              setLeftSidebarUid(undefined);
             }
-            setLeftSidebarEnabled(false);
-          }
+          },
         }}
-        labelElement={
-          <>
-            (BETA) Left Sidebar
-            <Description
-              description={"Whether or not to enable the left sidebar."}
-            />
-          </>
-        }
       />
       <Alert
         isOpen={isAlertOpen}
