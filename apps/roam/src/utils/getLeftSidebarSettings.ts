@@ -43,6 +43,7 @@ export type LeftSidebarGlobalSectionConfig = {
 export type LeftSidebarConfig = {
   uid: string;
   favoritesMigrated: BooleanSetting;
+  sidebarMigrated: BooleanSetting;
   global: LeftSidebarGlobalSectionConfig;
   personal: {
     uid: string;
@@ -187,9 +188,14 @@ export const getLeftSidebarSettings = (
     tree: leftSidebarChildren,
     text: "Favorites Migrated",
   });
+  const sidebarMigrated = getUidAndBooleanSetting({
+    tree: leftSidebarChildren,
+    text: "Sidebar Migrated",
+  });
   return {
     uid: leftSidebarUid,
     favoritesMigrated,
+    sidebarMigrated,
     global,
     personal,
   };

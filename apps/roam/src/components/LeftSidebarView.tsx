@@ -41,6 +41,7 @@ import renderOverlay from "roamjs-components/util/renderOverlay";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -414,12 +415,12 @@ const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 };
 
 const migrateFavorites = async () => {
-  const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
-  if (!configPageUid) return;
-
   const config = getFormattedConfigTree().leftSidebar;
 
   if (config.favoritesMigrated.value) return;
+
+  const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
+  if (!configPageUid) return;
 
   let leftSidebarUid = config.uid;
   if (leftSidebarUid) {
@@ -517,6 +518,7 @@ export const mountLeftSidebar = async (
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
   if (!root) {
     await migrateFavorites();
+    await migrateLeftSidebarSettings();
     wrapper.innerHTML = "";
     root = document.createElement("div");
     root.id = id;
