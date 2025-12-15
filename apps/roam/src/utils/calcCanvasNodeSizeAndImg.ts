@@ -16,23 +16,63 @@ const extractFirstImageUrl = (text: string): string | null => {
   return result ? result[1] : null;
 };
 
+// Matches embed, embed-path, and embed-children syntax:
+// {{[[embed]]: ((block-uid)) }}, {{[[embed-path]]: ((block-uid)) }}, {{[[embed-children]]: ((block-uid)) }}
+// Also handles multiple parentheses: {{[[embed]]: ((((block-uid)))) }}
+const EMBED_REGEX =
+  /{{\[\[(?:embed|embed-path|embed-children)\]\]:\s*\(\(+([^)]+?)\)+\)\s*}}/i;
+
+const getBlockReferences = (
+  uid: string,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+): { ":block/uid"?: string; ":block/string"?: string }[] => {
+  const result =
+    (window.roamAlphaAPI?.pull?.(
+      "[:block/uid {:block/refs [:block/uid :block/string]}]",
+      [":block/uid", uid],
+    ) as {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      [":block/refs"]?: { ":block/uid"?: string; ":block/string"?: string }[];
+    } | null) || {};
+  return result[":block/refs"] || [];
+};
+
+const findFirstImage = (
+  node: TreeNode,
+  visited = new Set<string>(),
+): string | null => {
+  if (visited.has(node.uid)) return null;
+  visited.add(node.uid);
+
+  const imageUrl = extractFirstImageUrl(node.text);
+  if (imageUrl) return imageUrl;
+
+  const embedUid = node.text.match(EMBED_REGEX)?.[1];
+  if (embedUid && !visited.has(embedUid)) {
+    const embedTree = getFullTreeByParentUid(embedUid);
+    const embedImageUrl = findFirstImage(embedTree, visited);
+    if (embedImageUrl) return embedImageUrl;
+  }
+
+  const references = getBlockReferences(node.uid);
+  for (const reference of references) {
+    const referenceText = reference[":block/string"] || "";
+    const referenceImage = extractFirstImageUrl(referenceText);
+    if (referenceImage) return referenceImage;
+  }
+
+  if (node.children) {
+    for (const child of node.children) {
+      const childImageUrl = findFirstImage(child, visited);
+      if (childImageUrl) return childImageUrl;
+    }
+  }
+
+  return null;
+};
+
 const getFirstImageByUid = (uid: string): string | null => {
   const tree = getFullTreeByParentUid(uid);
-
-  const findFirstImage = (node: TreeNode): string | null => {
-    const imageUrl = extractFirstImageUrl(node.text);
-    if (imageUrl) return imageUrl;
-
-    if (node.children) {
-      for (const child of node.children) {
-        const childImageUrl = findFirstImage(child);
-        if (childImageUrl) return childImageUrl;
-      }
-    }
-
-    return null;
-  };
-
   return findFirstImage(tree);
 };
 
@@ -74,6 +114,7 @@ const calcCanvasNodeSizeAndImg = async ({
     const results = await runQuery({
       extensionAPI,
       parentUid,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       inputs: { NODETEXT: nodeText, NODEUID: uid },
     });
     const result = results.allProcessedResults[0]?.text || "";
