@@ -1,4 +1,4 @@
-sssssssimport discourseConfigRef from "~/utils/discourseConfigRef";
+import discourseConfigRef from "~/utils/discourseConfigRef";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
