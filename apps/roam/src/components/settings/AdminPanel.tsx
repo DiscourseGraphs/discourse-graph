@@ -449,10 +449,11 @@ const FeatureFlagsTab = (): React.ReactElement => {
         icon="send-message"
         onClick={() => {
           console.log("sending error email");
-          sendErrorEmail({
+          internalError({
             error: new Error("test"),
             type: "Test",
-          }).catch(() => {});
+            forceSendInDev: true,
+          });
         }}
       >
         Send Error Email

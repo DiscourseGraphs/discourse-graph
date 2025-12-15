@@ -39,6 +39,7 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "./utils/renderNodeConfigPage";
 import { getSetting } from "./utils/extensionSettings";
 import { STREAMLINE_STYLING_KEY } from "./data/userSettings";
+import { getVersionWithDate } from "~/utils/getVersion";
 
 const initPostHog = () => {
   posthog.init("phc_SNMmBqwNfcEpNduQ41dBUjtGNEUEKAy6jTn63Fzsrax", {
@@ -46,6 +47,20 @@ const initPostHog = () => {
     person_profiles: "identified_only",
     capture_pageview: false,
     autocapture: false,
+    loaded: (posthog) => {
+      const { version, buildDate } = getVersionWithDate();
+      const userUid = getCurrentUserUid();
+      const graphName = window.roamAlphaAPI.graph.name;
+      posthog.identify(userUid, {
+        graphName,
+      });
+      posthog.register({
+        version: version || "-",
+        buildDate: buildDate || "-",
+        graphName,
+      });
+      posthog.capture("Extension Loaded");
+    },
     property_denylist: [
       "$ip", // Still seeing ip in the event
       "$device_id",
@@ -71,15 +86,6 @@ export default runExtension(async (onloadArgs) => {
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
   if (!isEncrypted && !isOffline) {
     initPostHog();
-    const userUid = getCurrentUserUid();
-    const graphName = window.roamAlphaAPI.graph.name;
-    posthog.identify(userUid, {
-      graphName,
-    });
-    posthog.capture("Extension Loaded", {
-      graphName,
-      userUid,
-    });
   }
 
   initFeedbackWidget();

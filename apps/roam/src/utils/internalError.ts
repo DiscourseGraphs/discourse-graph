@@ -1,8 +1,6 @@
 import posthog from "posthog-js";
 import type { Properties } from "posthog-js";
 import renderToast from "roamjs-components/components/Toast";
-import { getVersionWithDate } from "~/utils/getVersion";
-import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 import sendErrorEmail from "~/utils/sendErrorEmail";
 
 const NON_WORD = /\W+/g;
@@ -13,27 +11,22 @@ const internalError = ({
   type,
   context,
   sendEmail = true,
+  forceSendInDev = false,
 }: {
   error: unknown;
   type?: string;
   userMessage?: string;
   context?: Properties;
   sendEmail?: boolean;
+  forceSendInDev?: boolean;
 }): void => {
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development" && forceSendInDev !== true) {
     console.error(error, context);
   } else {
-    const { version, buildDate } = getVersionWithDate();
-    const username = getCurrentUserDisplayName();
-    if (username) posthog.identify(username);
     type = type || "Internal Error";
     const slugType = type.replaceAll(NON_WORD, "-").toLowerCase();
     context = {
-      app: "Roam",
       type,
-      graphName: window.roamAlphaAPI?.graph?.name || "unknown",
-      version: version || "-",
-      buildDate: buildDate || "-",
       ...(context || {}),
     };
 
