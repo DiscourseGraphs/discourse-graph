@@ -13,7 +13,7 @@ const CACHE_TIMEOUT = 1000 * 60 * 5;
 
 type BuildQueryConfig = {
   args: {
-    ignoreCache?: true;
+    ignoreCache?: boolean;
   };
   targetUid: string;
   fireQueryContext: {
