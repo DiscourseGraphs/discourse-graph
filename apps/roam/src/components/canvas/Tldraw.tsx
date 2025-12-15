@@ -7,7 +7,7 @@ import { OnloadArgs } from "roamjs-components/types";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 
 import {
-  Editor as TldrawApp,
+  Editor,
   TLEditorComponents,
   TLUiComponents,
   TldrawEditor,
@@ -92,11 +92,12 @@ import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import { HistoryEntry } from "@tldraw/store";
 import { TLRecord } from "@tldraw/tlschema";
-import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
+import { WHITE_LOGO_SVG } from "~/icons";
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
   interface Window {
-    tldrawApps: Record<string, TldrawApp>;
+    tldrawApps: Record<string, Editor>;
   }
 }
 export type DiscourseContextType = {
@@ -119,13 +120,15 @@ export const DEFAULT_WIDTH = 160;
 export const DEFAULT_HEIGHT = 64;
 export const MAX_WIDTH = "400px";
 
+const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
+
 export const isPageUid = (uid: string) =>
   !!window.roamAlphaAPI.pull("[:node/title]", [":block/uid", uid])?.[
     ":node/title"
   ];
 
 const TldrawCanvas = ({ title }: { title: string }) => {
-  const appRef = useRef<TldrawApp | null>(null);
+  const appRef = useRef<Editor | null>(null);
   const lastInsertRef = useRef<VecModel>();
   const containerRef = useRef<HTMLDivElement>(null);
   const lastActionsRef = useRef<HistoryEntry<TLRecord>[]>(
@@ -290,7 +293,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     isCreating: false,
   });
 
-  const handleRelationCreation = (app: TldrawApp, e: TLPointerEventInfo) => {
+  const handleRelationCreation = (app: Editor, e: TLPointerEventInfo) => {
     // Handle relation creation on pointer_down
     if (e.type === "pointer" && e.name === "pointer_down") {
       const currentTool = app.getCurrentTool();
@@ -334,8 +337,12 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             const util = app.getShapeUtil(relationShape);
             if (
               util &&
+              // TODO: fix this
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
               typeof (util as any).handleCreateRelationsInRoam === "function"
             ) {
+              // TODO: fix this
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
               (util as any).handleCreateRelationsInRoam({
                 arrow: relationShape,
                 targetId: shapeAtPoint.id,
@@ -532,7 +539,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         handleTldrawError as EventListener,
       );
     };
-  }, []);
+  }, [title]);
 
   return (
     <div
@@ -552,8 +559,8 @@ const TldrawCanvas = ({ title }: { title: string }) => {
             <button
               className="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
               onClick={() => {
-                const handleUpgrade = async () => {
-                  await performUpgrade();
+                const handleUpgrade = () => {
+                  performUpgrade();
                   renderToast({
                     id: "tldraw-upgrade",
                     intent: "success",
@@ -675,13 +682,13 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               <TldrawUi
                 overrides={uiOverrides}
                 components={customUiComponents}
-                assetUrls={defaultEditorAssetUrls}
+                assetUrls={{ icons: { discourseNodeIcon: ICON_URL } }}
               >
                 <InsideEditorAndUiContext
                   extensionAPI={extensionAPI}
                   allNodes={allNodes}
-                  allRelationIds={allRelationIds}
-                  allAddReferencedNodeActions={allAddReferencedNodeActions}
+                  // allRelationIds={allRelationIds}
+                  // allAddReferencedNodeActions={allAddReferencedNodeActions}
                 />
                 <CanvasDrawerPanel />
                 <ClipboardPanel />
@@ -699,41 +706,42 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 const InsideEditorAndUiContext = ({
   extensionAPI,
   allNodes,
-  allRelationIds,
-  allAddReferencedNodeActions,
+  // allRelationIds,
+  // allAddReferencedNodeActions,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
   allNodes: DiscourseNode[];
-  allRelationIds: string[];
-  allAddReferencedNodeActions: string[];
+  // allRelationIds: string[];
+  // allAddReferencedNodeActions: string[];
 }) => {
   const editor = useEditor();
   const toasts = useToasts();
   const msg = useTranslation();
 
-  // https://tldraw.dev/examples/data/assets/hosted-images
-  const ACCEPTED_IMG_TYPE = [
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/svg+xml",
-    "image/webp",
-  ];
-  const isImage = (ext: string) => ACCEPTED_IMG_TYPE.includes(ext);
-  const isCustomArrowShape = (shape: TLShape) => {
-    // TODO: find a better way to identify custom arrow shapes
-    // possibly migrate to shape.type or shape.name
-    // or add as meta
-    const allRelationIdSet = new Set(allRelationIds);
-    const allAddReferencedNodeActionsSet = new Set(allAddReferencedNodeActions);
+  // const isCustomArrowShape = (shape: TLShape) => {
+  //   // TODO: find a better way to identify custom arrow shapes
+  //   // possibly migrate to shape.type or shape.name
+  //   // or add as meta
+  //   const allRelationIdSet = new Set(allRelationIds);
+  //   const allAddReferencedNodeActionsSet = new Set(allAddReferencedNodeActions);
 
-    return (
-      allRelationIdSet.has(shape.type) ||
-      allAddReferencedNodeActionsSet.has(shape.type)
-    );
-  };
+  //   return (
+  //     allRelationIdSet.has(shape.type) ||
+  //     allAddReferencedNodeActionsSet.has(shape.type)
+  //   );
+  // };
 
   useEffect(() => {
+    // https://tldraw.dev/examples/data/assets/hosted-images
+    const ACCEPTED_IMG_TYPE = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/svg+xml",
+      "image/webp",
+    ];
+    const isImage = (ext: string) => ACCEPTED_IMG_TYPE.includes(ext);
+
     registerDefaultExternalContentHandlers(
       editor,
       {

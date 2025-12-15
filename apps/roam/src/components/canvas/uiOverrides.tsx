@@ -311,7 +311,7 @@ export const createUiOverrides = ({
 
     tools["discourse-tool"] = {
       id: "discourse-tool",
-      icon: "none",
+      icon: "discourseNodeIcon",
       label: "tool.discourse-tool" as TLUiTranslationKey,
       kbd: discourseToolShortcut,
       readonlyOk: true,
