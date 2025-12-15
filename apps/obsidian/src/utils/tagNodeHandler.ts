@@ -12,7 +12,7 @@ const HIDE_DELAY = 100;
 const OBSERVER_RESTART_DELAY = 100;
 const TOOLTIP_OFFSET = 40;
 
-const LIST_INDICATOR_REGEX = /^(\s*)(\d+\.\s+|-\s+|\*\s+|\+\s+)/;
+const LIST_INDICATOR_REGEX = /^(\s*)(\d+[.)]\s+|[-*+]\s+(?:\[[ xX]\]\s+)?)/;
 
 const sanitizeTitle = (title: string): string => {
   const invalidChars = /[\\/:]/g;
