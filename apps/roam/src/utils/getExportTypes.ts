@@ -364,6 +364,7 @@ const getExportTypes = ({
           }))
       )
         .filter(({ text }) => {
+          if (!text) return false;
           if (matchedTexts.has(text)) return false;
           const isMatch = matchDiscourseNode({ title: text, ...n });
           if (isMatch) matchedTexts.add(text);
