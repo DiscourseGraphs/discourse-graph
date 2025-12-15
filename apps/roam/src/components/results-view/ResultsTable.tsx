@@ -168,17 +168,14 @@ export const CellEmbed = ({
       window.roamAlphaAPI.ui.components.renderBlock({
         uid,
         el,
-        // "open?": open, // waiting for roamAlphaAPI to add a open/close to renderBlock
+        // @ts-expect-error - add to roamjs-components
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "open?": open,
       });
     }
-  }, [contentRef]);
+  }, [contentRef, uid, viewValue]);
   return (
-    <div className="roamjs-query-embed">
-      <div
-        ref={contentRef}
-        className={!!title ? "page-embed" : "block-embed"}
-      />
-    </div>
+    <div ref={contentRef} className={title ? "page-embed" : "block-embed"} />
   );
 };
 
