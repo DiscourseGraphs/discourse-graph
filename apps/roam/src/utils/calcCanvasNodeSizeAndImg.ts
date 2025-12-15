@@ -117,8 +117,8 @@ const calcCanvasNodeSizeAndImg = async ({
       // eslint-disable-next-line @typescript-eslint/naming-convention
       inputs: { NODETEXT: nodeText, NODEUID: uid },
     });
-    const result = results.allProcessedResults[0]?.text || "";
-    imageUrl = extractFirstImageUrl(result);
+    const resultUid = results.allProcessedResults[0]?.uid || "";
+    imageUrl = getFirstImageByUid(resultUid);
   } else {
     imageUrl = getFirstImageByUid(uid);
   }
