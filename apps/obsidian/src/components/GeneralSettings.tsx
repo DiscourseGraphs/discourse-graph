@@ -191,11 +191,19 @@ const GeneralSettings = () => {
   }, []);
 
   const handleSave = async () => {
+    const trimmedNodesFolderPath = nodesFolderPath.trim();
+    const trimmedCanvasFolderPath = canvasFolderPath.trim();
+    const trimmedCanvasAttachmentsFolderPath =
+      canvasAttachmentsFolderPath.trim();
     plugin.settings.showIdsInFrontmatter = showIdsInFrontmatter;
-    plugin.settings.nodesFolderPath = nodesFolderPath;
-    plugin.settings.canvasFolderPath = canvasFolderPath;
-    plugin.settings.canvasAttachmentsFolderPath = canvasAttachmentsFolderPath;
+    plugin.settings.nodesFolderPath = trimmedNodesFolderPath;
+    plugin.settings.canvasFolderPath = trimmedCanvasFolderPath;
+    plugin.settings.canvasAttachmentsFolderPath =
+      trimmedCanvasAttachmentsFolderPath;
     plugin.settings.nodeTagHotkey = nodeTagHotkey || "";
+    setNodesFolderPath(trimmedNodesFolderPath);
+    setCanvasFolderPath(trimmedCanvasFolderPath);
+    setCanvasAttachmentsFolderPath(trimmedCanvasAttachmentsFolderPath);
     await plugin.saveSettings();
     new Notice("General settings saved");
     setHasUnsavedChanges(false);
