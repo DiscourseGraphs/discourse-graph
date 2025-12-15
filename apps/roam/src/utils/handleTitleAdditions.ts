@@ -15,31 +15,31 @@ export const handleTitleAdditions = (
       : null);
   if (!titleDisplayContainer) return;
 
-  let container = titleDisplayContainer.parentElement?.querySelector(
-    `.${ADDITIONS_CONTAINER_CLASS}`,
-  ) as HTMLElement;
+  let container =
+    titleDisplayContainer.parentElement?.querySelector<HTMLElement>(
+      `.${ADDITIONS_CONTAINER_CLASS}`,
+    ) ?? null;
 
   if (!container) {
+    const parent = titleDisplayContainer.parentElement;
+    if (!parent) return;
+
     container = document.createElement("div");
     container.className = `${ADDITIONS_CONTAINER_CLASS} flex flex-col`;
 
     const oldMarginBottom = getComputedStyle(h1).marginBottom;
-    const oldMarginBottomNum = Number(oldMarginBottom.replace("px", ""));
+    const oldMarginBottomNum = Number.isFinite(parseFloat(oldMarginBottom))
+      ? parseFloat(oldMarginBottom)
+      : 0;
     const newMarginTop = `${4 - oldMarginBottomNum / 2}px`;
 
     container.style.marginTop = newMarginTop;
     container.style.marginBottom = oldMarginBottom;
 
-    const parent = titleDisplayContainer.parentElement;
-    if (parent) {
-      if (parent.lastElementChild === titleDisplayContainer) {
-        parent.appendChild(container);
-      } else {
-        parent.insertBefore(
-          container,
-          titleDisplayContainer.nextElementSibling,
-        );
-      }
+    if (parent.lastElementChild === titleDisplayContainer) {
+      parent.appendChild(container);
+    } else {
+      parent.insertBefore(container, titleDisplayContainer.nextElementSibling);
     }
   }
 
