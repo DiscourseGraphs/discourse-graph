@@ -452,6 +452,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
           internalError({
             error: new Error("test"),
             type: "Test",
+            sendErrorEmail: true,
             forceSendInDev: true,
           });
         }}
