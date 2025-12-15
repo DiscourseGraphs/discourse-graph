@@ -381,12 +381,16 @@ const SectionItem = memo(
                   {(section.children || []).map((child, index) => {
                     const childAlias = child.alias?.value;
                     const isSettingsOpen = childSettingsUid === child.uid;
+                    const childDisplayTitle =
+                      getPageTitleByPageUid(child.text) ||
+                      getTextByBlockUid(extractRef(child.text)) ||
+                      child.text;
                     return (
                       <div key={child.uid}>
                         <div className="group flex items-center justify-between rounded bg-gray-50 p-2 hover:bg-gray-100">
                           <div
                             className="mr-2 min-w-0 flex-1 truncate"
-                            title={child.text}
+                            title={childDisplayTitle}
                           >
                             {childAlias ? (
                               <span>
@@ -394,13 +398,11 @@ const SectionItem = memo(
                                   {childAlias}
                                 </span>
                                 <span className="ml-2 text-xs text-gray-400">
-                                {getPageTitleByPageUid(child.text) ||
-                                  getTextByBlockUid(extractRef(child.text)) ||
-                                  child.text})
+                                  ({childDisplayTitle})
                                 </span>
                               </span>
                             ) : (
-                              child.text
+                              childDisplayTitle
                             )}
                           </div>
                           <ButtonGroup minimal className="flex-shrink-0">
@@ -444,7 +446,7 @@ const SectionItem = memo(
                             setChildSettingsUid(null);
                             refreshAndNotify();
                           }}
-                          title={`Settings for "${child.text}"`}
+                          title={`Settings for "${childDisplayTitle}"`}
                           style={{ width: "400px" }}
                         >
                           <div className="p-4">
