@@ -2320,7 +2320,8 @@ it from receiving any pointer events or affecting the cursor. */
 
 /* ----------------------- Kbd ---------------------- */
 
-.tlui-kbd {
+/* Override Obsidian's kbd styles - kbd.tlui-kbd is more specific than kbd */
+kbd.tlui-kbd {
 	font-family: inherit;
 	font-size: 11px;
 	line-height: 11px;
@@ -2332,6 +2333,7 @@ it from receiving any pointer events or affecting the cursor. */
 	align-self: bottom;
 	color: currentColor;
 	margin-left: var(--space-4);
+	background-color: var(--color-low) !important;
 }
 
 .tlui-kbd > span {
