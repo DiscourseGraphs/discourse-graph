@@ -15,9 +15,10 @@ CREATE TABLE IF NOT EXISTS public.sync_info (
     status public.task_status DEFAULT 'active'::public.task_status,
     worker character varying(100) NOT NULL,
     failure_count smallint DEFAULT 0,
-    last_task_start timestamp with time zone,
+    last_task_start timestamp with time zone NOT NULL,
     last_task_end timestamp with time zone,
-    task_times_out_at timestamp with time zone
+    task_times_out_at timestamp with time zone,
+    last_success_start timestamp with time zone
 );
 
 ALTER TABLE public.sync_info OWNER TO "postgres";
@@ -58,16 +59,19 @@ DECLARE t_id INTEGER;
 DECLARE t_worker varchar;
 DECLARE t_status public.task_status;
 DECLARE t_failure_count SMALLINT;
+DECLARE t_last_task_start TIMESTAMP WITH TIME ZONE;
+DECLARE t_last_success_start TIMESTAMP WITH TIME ZONE;
 DECLARE t_last_task_end TIMESTAMP WITH TIME ZONE;
 BEGIN
-    SELECT id, worker, status, failure_count, last_task_end
-        INTO STRICT t_id, t_worker, t_status, t_failure_count, t_last_task_end
+    SELECT id, worker, status, failure_count, last_task_start, last_task_end, last_success_start
+        INTO STRICT t_id, t_worker, t_status, t_failure_count, t_last_task_start, t_last_task_end, t_last_success_start
         FROM public.sync_info WHERE sync_target = s_target AND sync_function = s_function;
     ASSERT s_status > 'active';
     ASSERT t_worker = s_worker, 'Wrong worker';
     ASSERT s_status >= t_status, 'do not go back in status';
     IF s_status = 'complete' THEN
         t_last_task_end := now();
+        t_last_success_start := t_last_task_start;
         t_failure_count := 0;
     ELSE
         IF t_status != s_status THEN
@@ -79,6 +83,7 @@ BEGIN
         SET status = s_status,
             task_times_out_at=null,
             last_task_end=t_last_task_end,
+            last_success_start=t_last_success_start,
             failure_count=t_failure_count
         WHERE id=t_id;
 END;
@@ -109,6 +114,7 @@ DECLARE t_failure_count SMALLINT;
 DECLARE t_last_task_start TIMESTAMP WITH TIME ZONE;
 DECLARE t_last_task_end TIMESTAMP WITH TIME ZONE;
 DECLARE t_times_out_at TIMESTAMP WITH TIME ZONE;
+DECLARE t_last_success_start TIMESTAMP WITH TIME ZONE;
 DECLARE result TIMESTAMP WITH TIME ZONE;
 BEGIN
     ASSERT timeout * 2 < task_interval;
@@ -132,8 +138,8 @@ BEGIN
         FROM public.sync_info
         WHERE sync_target = s_target AND sync_function = s_function
         FOR UPDATE;
-    SELECT status, failure_count, last_task_start, last_task_end, task_times_out_at
-        INTO t_status, t_failure_count, t_last_task_start, t_last_task_end, t_times_out_at
+    SELECT status, failure_count, last_task_start, last_task_end, task_times_out_at, last_success_start
+        INTO t_status, t_failure_count, t_last_task_start, t_last_task_end, t_times_out_at, t_last_success_start
         FROM public.sync_info
         WHERE id = s_id;
 
@@ -145,10 +151,7 @@ BEGIN
     task_interval := task_interval * (1+t_failure_count);
     IF coalesce(t_last_task_end, t_last_task_start) + task_interval < now() THEN
         -- we are ready to take on the task
-        SELECT max(last_task_start) INTO result FROM public.sync_info
-            WHERE sync_target = s_target
-            AND sync_function = s_function
-            AND status = 'complete';
+        result := t_last_success_start;
         UPDATE public.sync_info
         SET worker=s_worker,
             status='active',
