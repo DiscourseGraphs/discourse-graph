@@ -261,7 +261,7 @@ const discourseNodeContent = memo(
       return () => {
         return;
       };
-      // Trigger when content, font size, or font family changes
+      // Trigger when content changes
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       src,
@@ -269,8 +269,6 @@ const discourseNodeContent = memo(
       shape.props.title,
       shape.props.nodeTypeId,
       shape.props.imageSrc,
-      shape.props.size,
-      shape.props.fontFamily,
       editor,
       app,
       canvasFile,
