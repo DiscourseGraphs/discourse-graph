@@ -125,13 +125,8 @@ BEGIN
         ON CONFLICT (sync_target, sync_function) DO NOTHING
         RETURNING id INTO s_id;
     IF s_id IS NOT NULL THEN
-        -- totally new_row, I'm on the task
-        -- return last time it was run successfully
-        SELECT max(last_task_start) INTO result FROM public.sync_info
-            WHERE sync_target = s_target
-            AND sync_function = s_function
-            AND status = 'complete';
-        RETURN result;
+        -- totally new_row, no previous success.
+        RETURN NULL;
     END IF;
     -- now we know it pre-existed. Maybe already active.
     SELECT id INTO STRICT s_id
