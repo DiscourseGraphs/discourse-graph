@@ -430,6 +430,64 @@ export const createAllReferencedNodeUtils = (
         const atTranslationStart = shapeAtTranslationStart.get(initialShape);
         if (!atTranslationStart) return;
 
+        const bindings = getArrowBindings(this.editor, shape);
+
+        // If both ends are bound, convert translation to bend changes instead of moving the arrow
+        if (bindings.start && bindings.end) {
+          const shapePageTransform = this.editor.getShapePageTransform(
+            shape.id,
+          )!;
+          const pageDelta = Vec.Sub(
+            shapePageTransform.applyToPoint(shape),
+            atTranslationStart.pagePosition,
+          );
+
+          const initialBindings = getArrowBindings(this.editor, initialShape);
+          const { start: initialStart, end: initialEnd } =
+            getArrowTerminalsInArrowSpace(
+              this.editor,
+              initialShape,
+              initialBindings,
+            );
+
+          const delta = Vec.Sub(initialEnd, initialStart);
+          const v = Vec.Per(delta);
+          const med = Vec.Med(initialEnd, initialStart);
+
+          const initialPageTransform = this.editor.getShapePageTransform(
+            initialShape.id,
+          )!;
+          const arrowSpaceDelta = Vec.Rot(
+            pageDelta,
+            -initialPageTransform.rotation(),
+          );
+
+          const translatedMidpoint = Vec.Add(med, arrowSpaceDelta);
+          const A = Vec.Sub(med, v);
+          const B = Vec.Add(med, v);
+          const point = Vec.NearestPointOnLineSegment(
+            A,
+            B,
+            translatedMidpoint,
+            false,
+          );
+
+          // Calculate new bend based on distance from midpoint
+          let newBend = Vec.Dist(point, med);
+          if (Vec.Clockwise(point, initialEnd, med)) {
+            newBend *= -1;
+          }
+
+          return {
+            id: shape.id,
+            type: shape.type,
+            x: initialShape.x,
+            y: initialShape.y,
+            props: { bend: newBend },
+          };
+        }
+
+        // If not both ends are bound, use normal translation behavior
         const shapePageTransform = this.editor.getShapePageTransform(shape.id)!;
         const pageDelta = Vec.Sub(
           shapePageTransform.applyToPoint(shape),
@@ -867,6 +925,64 @@ export const createAllRelationShapeUtils = (
         const atTranslationStart = shapeAtTranslationStart.get(initialShape);
         if (!atTranslationStart) return;
 
+        const bindings = getArrowBindings(this.editor, shape);
+
+        // If both ends are bound, convert translation to bend changes instead of moving the arrow
+        if (bindings.start && bindings.end) {
+          const shapePageTransform = this.editor.getShapePageTransform(
+            shape.id,
+          )!;
+          const pageDelta = Vec.Sub(
+            shapePageTransform.applyToPoint(shape),
+            atTranslationStart.pagePosition,
+          );
+
+          const initialBindings = getArrowBindings(this.editor, initialShape);
+          const { start: initialStart, end: initialEnd } =
+            getArrowTerminalsInArrowSpace(
+              this.editor,
+              initialShape,
+              initialBindings,
+            );
+
+          const delta = Vec.Sub(initialEnd, initialStart);
+          const v = Vec.Per(delta);
+          const med = Vec.Med(initialEnd, initialStart);
+
+          const initialPageTransform = this.editor.getShapePageTransform(
+            initialShape.id,
+          )!;
+          const arrowSpaceDelta = Vec.Rot(
+            pageDelta,
+            -initialPageTransform.rotation(),
+          );
+
+          const translatedMidpoint = Vec.Add(med, arrowSpaceDelta);
+          const A = Vec.Sub(med, v);
+          const B = Vec.Add(med, v);
+          const point = Vec.NearestPointOnLineSegment(
+            A,
+            B,
+            translatedMidpoint,
+            false,
+          );
+
+          // Calculate new bend based on distance from midpoint
+          let newBend = Vec.Dist(point, med);
+          if (Vec.Clockwise(point, initialEnd, med)) {
+            newBend *= -1;
+          }
+
+          return {
+            id: shape.id,
+            type: shape.type,
+            x: initialShape.x,
+            y: initialShape.y,
+            props: { bend: newBend },
+          };
+        }
+
+        // If not both ends are bound, use normal translation behavior
         const shapePageTransform = this.editor.getShapePageTransform(shape.id)!;
         const pageDelta = Vec.Sub(
           shapePageTransform.applyToPoint(shape),
