@@ -1,3 +1,4 @@
+import { TLDefaultSizeStyle } from "tldraw";
 import { DiscourseNode, DiscourseRelationType, Settings } from "~/types";
 import generateUid from "~/utils/generateUid";
 
@@ -81,3 +82,32 @@ export const VIEW_TYPE_TLDRAW_DG_PREVIEW = "tldraw-dg-preview";
 
 export const TLDRAW_VERSION = "3.14.2";
 export const DEFAULT_SAVE_DELAY = 500; // in ms
+
+// TODO REPLACE WITH TLDRAW DEFAULTS
+// https://github.com/tldraw/tldraw/pull/1580/files
+export const TEXT_PROPS = {
+  lineHeight: 1.35,
+  fontWeight: "normal",
+  fontVariant: "normal",
+  fontStyle: "normal",
+  padding: "0px",
+  maxWidth: "auto",
+};
+export const FONT_SIZES: Record<TLDefaultSizeStyle, number> = {
+  m: 25,
+  l: 38,
+  xl: 48,
+  s: 16,
+};
+// // FONT_FAMILIES.sans or tldraw_sans not working in toSvg()
+// // maybe check getSvg()
+// // in node_modules\@tldraw\tldraw\node_modules\@tldraw\editor\dist\cjs\lib\app\App.js
+// const SVG_FONT_FAMILY = `"Inter", "sans-serif"`;
+
+export const DEFAULT_STYLE_PROPS = {
+  ...TEXT_PROPS,
+  fontSize: 16,
+  fontFamily: "'Inter', sans-serif",
+  width: "fit-content",
+  padding: "40px",
+};

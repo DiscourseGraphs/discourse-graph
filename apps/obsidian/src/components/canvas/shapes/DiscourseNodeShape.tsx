@@ -7,6 +7,12 @@ import {
   TLResizeInfo,
   useEditor,
   useValue,
+  DefaultSizeStyle,
+  DefaultFontStyle,
+  TLDefaultSizeStyle,
+  TLDefaultFontStyle,
+  FONT_SIZES,
+  FONT_FAMILIES,
 } from "tldraw";
 import { App, TFile } from "obsidian";
 import { memo, createElement, useEffect } from "react";
@@ -34,6 +40,8 @@ export type DiscourseNodeShape = TLBaseShape<
     title: string;
     nodeTypeId: string;
     imageSrc?: string;
+    size: TLDefaultSizeStyle;
+    fontFamily: TLDefaultFontStyle;
   }
 >;
 
@@ -54,6 +62,8 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     title: T.string.optional(),
     nodeTypeId: T.string.nullable().optional(),
     imageSrc: T.string.optional(),
+    size: DefaultSizeStyle,
+    fontFamily: DefaultFontStyle,
   };
 
   getDefaultProps(): DiscourseNodeShape["props"] {
@@ -64,6 +74,8 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
       title: "",
       nodeTypeId: "",
       imageSrc: undefined,
+      size: "s",
+      fontFamily: "sans",
     };
   }
 
@@ -257,13 +269,11 @@ const discourseNodeContent = memo(
             });
           }
 
-          let didImageChange = false;
           let currentImageSrc = shape.props.imageSrc;
           if (nodeType?.keyImage) {
             const imageSrc = await getFirstImageSrcForFile(app, linkedFile);
 
             if (imageSrc && imageSrc !== shape.props.imageSrc) {
-              didImageChange = true;
               currentImageSrc = imageSrc;
               editor.updateShape<DiscourseNodeShape>({
                 id: shape.id,
@@ -275,7 +285,6 @@ const discourseNodeContent = memo(
               });
             }
           } else if (shape.props.imageSrc) {
-            didImageChange = true;
             currentImageSrc = undefined;
             editor.updateShape<DiscourseNodeShape>({
               id: shape.id,
@@ -287,28 +296,29 @@ const discourseNodeContent = memo(
             });
           }
 
-          if (didImageChange) {
-            const { w, h } = await calcDiscourseNodeSize({
-              title: linkedFile.basename,
-              nodeTypeId: shape.props.nodeTypeId,
-              imageSrc: currentImageSrc,
-              plugin,
+          // Recalculate size when title, image, font size, or font family changes
+          const { w, h } = await calcDiscourseNodeSize({
+            title: linkedFile.basename,
+            nodeTypeId: shape.props.nodeTypeId,
+            imageSrc: currentImageSrc,
+            plugin,
+            size: shape.props.size ?? "s",
+            fontFamily: shape.props.fontFamily ?? "draw",
+          });
+          // Only update dimensions if they differ significantly (>1px)
+          if (
+            Math.abs((shape.props.w || 0) - w) > 1 ||
+            Math.abs((shape.props.h || 0) - h) > 1
+          ) {
+            editor.updateShape<DiscourseNodeShape>({
+              id: shape.id,
+              type: "discourse-node",
+              props: {
+                ...shape.props,
+                w,
+                h,
+              },
             });
-            // Only update dimensions if they differ significantly (>1px)
-            if (
-              Math.abs((shape.props.w || 0) - w) > 1 ||
-              Math.abs((shape.props.h || 0) - h) > 1
-            ) {
-              editor.updateShape<DiscourseNodeShape>({
-                id: shape.id,
-                type: "discourse-node",
-                props: {
-                  ...shape.props,
-                  w,
-                  h,
-                },
-              });
-            }
           }
         } catch (error) {
           console.error("Error loading node data", error);
@@ -321,7 +331,7 @@ const discourseNodeContent = memo(
       return () => {
         return;
       };
-      // Only trigger when content changes, not when dimensions change (to avoid fighting manual resizing)
+      // Trigger when content changes
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       src,
@@ -372,6 +382,8 @@ const discourseNodeContent = memo(
         });
       }
     };
+    const fontSize = FONT_SIZES[shape.props.size];
+    const fontFamily = FONT_FAMILIES[shape.props.fontFamily];
 
     return (
       <div
@@ -418,6 +430,7 @@ const discourseNodeContent = memo(
             </svg>
           </button>
         )}
+
         {shape.props.imageSrc ? (
           <div className="mt-2 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
             <img
@@ -429,8 +442,24 @@ const discourseNodeContent = memo(
             />
           </div>
         ) : null}
-        <h1 className="m-0 pt-4 text-base">{title || "..."}</h1>
-        <p className="m-0 text-sm opacity-80">{nodeType?.name || ""}</p>
+        <h1
+          className="m-1"
+          style={{
+            fontSize: `${fontSize}px`,
+            fontFamily,
+          }}
+        >
+          {title || "..."}
+        </h1>
+        <p
+          className="m-0 opacity-80"
+          style={{
+            fontSize: `${fontSize * 0.75}px`,
+            fontFamily,
+          }}
+        >
+          {nodeType?.name || ""}
+        </p>
       </div>
     );
   },
