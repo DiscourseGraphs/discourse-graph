@@ -470,7 +470,7 @@ export type Database = {
       Document: {
         Row: {
           author_id: number
-          contents: unknown | null
+          contents: unknown
           created: string
           id: number
           last_modified: string
@@ -481,7 +481,7 @@ export type Database = {
         }
         Insert: {
           author_id: number
-          contents?: unknown | null
+          contents?: unknown
           created: string
           id?: number
           last_modified: string
@@ -492,7 +492,7 @@ export type Database = {
         }
         Update: {
           author_id?: number
-          contents?: unknown | null
+          contents?: unknown
           created?: string
           id?: number
           last_modified?: string
@@ -565,6 +565,18 @@ export type Database = {
           name?: string
           platform?: Database["public"]["Enums"]["Platform"]
           write_permission?: boolean
+        }
+        Relationships: []
+      }
+      result: {
+        Row: {
+          max: string | null
+        }
+        Insert: {
+          max?: string | null
+        }
+        Update: {
+          max?: string | null
         }
         Relationships: []
       }
@@ -1064,7 +1076,7 @@ export type Database = {
       my_documents: {
         Row: {
           author_id: number | null
-          contents: unknown | null
+          contents: unknown
           created: string | null
           id: number | null
           last_modified: string | null
@@ -1075,7 +1087,7 @@ export type Database = {
         }
         Insert: {
           author_id?: number | null
-          contents?: unknown | null
+          contents?: unknown
           created?: string | null
           id?: number | null
           last_modified?: string | null
@@ -1086,7 +1098,7 @@ export type Database = {
         }
         Update: {
           author_id?: number | null
-          contents?: unknown | null
+          contents?: unknown
           created?: string | null
           id?: number | null
           last_modified?: string | null
@@ -1170,6 +1182,12 @@ export type Database = {
           schema_id: number | null
           space_id: number
         }
+        SetofOptions: {
+          from: "concept_local_input"
+          to: "Concept"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       _local_content_to_db_content: {
         Args: {
@@ -1190,6 +1208,12 @@ export type Database = {
           text: string
           variant: Database["public"]["Enums"]["ContentVariant"]
         }
+        SetofOptions: {
+          from: "content_local_input"
+          to: "Content"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       _local_document_to_db_document: {
         Args: {
@@ -1197,7 +1221,7 @@ export type Database = {
         }
         Returns: {
           author_id: number
-          contents: unknown | null
+          contents: unknown
           created: string
           id: number
           last_modified: string
@@ -1206,13 +1230,19 @@ export type Database = {
           space_id: number | null
           url: string | null
         }
+        SetofOptions: {
+          from: "document_local_input"
+          to: "Document"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       account_in_shared_space: {
         Args: { p_account_id: number }
         Returns: boolean
       }
       author_of_concept: {
-        Args: { concept: unknown }
+        Args: { concept: Database["public"]["Views"]["my_concepts"]["Row"] }
         Returns: {
           account_local_id: string | null
           active: boolean | null
@@ -1223,10 +1253,16 @@ export type Database = {
           name: string | null
           platform: Database["public"]["Enums"]["Platform"] | null
           write_permission: boolean | null
-        }[]
+        }
+        SetofOptions: {
+          from: "my_concepts"
+          to: "my_accounts"
+          isOneToOne: true
+          isSetofReturn: true
+        }
       }
       author_of_content: {
-        Args: { content: unknown }
+        Args: { content: Database["public"]["Views"]["my_contents"]["Row"] }
         Returns: {
           account_local_id: string | null
           active: boolean | null
@@ -1237,70 +1273,74 @@ export type Database = {
           name: string | null
           platform: Database["public"]["Enums"]["Platform"] | null
           write_permission: boolean | null
-        }[]
+        }
+        SetofOptions: {
+          from: "my_contents"
+          to: "my_accounts"
+          isOneToOne: true
+          isSetofReturn: true
+        }
       }
       compute_arity_local: {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
       }
-      concept_in_relations: {
-        Args:
-          | { concept: Database["public"]["Tables"]["Concept"]["Row"] }
-          | { concept: unknown }
-        Returns: {
-          arity: number | null
-          author_id: number | null
-          created: string | null
-          description: string | null
-          epistemic_status:
-            | Database["public"]["Enums"]["EpistemicStatus"]
-            | null
-          id: number | null
-          is_schema: boolean | null
-          last_modified: string | null
-          literal_content: Json | null
-          name: string | null
-          reference_content: Json | null
-          refs: number[] | null
-          represented_by_id: number | null
-          schema_id: number | null
-          space_id: number | null
-        }[]
-      }
-      concept_in_space: {
-        Args: { concept_id: number }
-        Returns: boolean
-      }
-      concepts_of_relation: {
-        Args:
-          | { relation: Database["public"]["Tables"]["Concept"]["Row"] }
-          | { relation: unknown }
-        Returns: {
-          arity: number | null
-          author_id: number | null
-          created: string | null
-          description: string | null
-          epistemic_status:
-            | Database["public"]["Enums"]["EpistemicStatus"]
-            | null
-          id: number | null
-          is_schema: boolean | null
-          last_modified: string | null
-          literal_content: Json | null
-          name: string | null
-          reference_content: Json | null
-          refs: number[] | null
-          represented_by_id: number | null
-          schema_id: number | null
-          space_id: number | null
-        }[]
-      }
-      content_in_space: {
-        Args: { content_id: number }
-        Returns: boolean
-      }
+      concept_in_relations:
+        | {
+            Args: { concept: Database["public"]["Tables"]["Concept"]["Row"] }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.concept_in_relations(concept => Concept), public.concept_in_relations(concept => my_concepts). Try renaming the parameters or the function itself in the database so function overloading can be resolved"[]
+            SetofOptions: {
+              from: '"Concept"'
+              to: "Concept"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+        | {
+            Args: { concept: Database["public"]["Views"]["my_concepts"]["Row"] }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.concept_in_relations(concept => Concept), public.concept_in_relations(concept => my_concepts). Try renaming the parameters or the function itself in the database so function overloading can be resolved"[]
+            SetofOptions: {
+              from: "my_concepts"
+              to: "my_concepts"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+      concept_in_space: { Args: { concept_id: number }; Returns: boolean }
+      concepts_of_relation:
+        | {
+            Args: { relation: Database["public"]["Tables"]["Concept"]["Row"] }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.concepts_of_relation(relation => Concept), public.concepts_of_relation(relation => my_concepts). Try renaming the parameters or the function itself in the database so function overloading can be resolved"[]
+            SetofOptions: {
+              from: '"Concept"'
+              to: "Concept"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+        | {
+            Args: {
+              relation: Database["public"]["Views"]["my_concepts"]["Row"]
+            }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.concepts_of_relation(relation => Concept), public.concepts_of_relation(relation => my_concepts). Try renaming the parameters or the function itself in the database so function overloading can be resolved"[]
+            SetofOptions: {
+              from: "my_concepts"
+              to: "my_concepts"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+      content_in_space: { Args: { content_id: number }; Returns: boolean }
       content_of_concept: {
-        Args: { concept: unknown }
+        Args: { concept: Database["public"]["Views"]["my_concepts"]["Row"] }
         Returns: {
           author_id: number | null
           created: string | null
@@ -1315,7 +1355,13 @@ export type Database = {
           space_id: number | null
           text: string | null
           variant: Database["public"]["Enums"]["ContentVariant"] | null
-        }[]
+        }
+        SetofOptions: {
+          from: "my_concepts"
+          to: "my_contents"
+          isOneToOne: true
+          isSetofReturn: true
+        }
       }
       create_account_in_space: {
         Args: {
@@ -1328,15 +1374,12 @@ export type Database = {
         }
         Returns: number
       }
-      document_in_space: {
-        Args: { document_id: number }
-        Returns: boolean
-      }
+      document_in_space: { Args: { document_id: number }; Returns: boolean }
       document_of_content: {
-        Args: { content: unknown }
+        Args: { content: Database["public"]["Views"]["my_contents"]["Row"] }
         Returns: {
           author_id: number | null
-          contents: unknown | null
+          contents: unknown
           created: string | null
           id: number | null
           last_modified: string | null
@@ -1344,7 +1387,13 @@ export type Database = {
           source_local_id: string | null
           space_id: number | null
           url: string | null
-        }[]
+        }
+        SetofOptions: {
+          from: "my_contents"
+          to: "my_documents"
+          isOneToOne: true
+          isSetofReturn: true
+        }
       }
       end_sync_task: {
         Args: {
@@ -1355,10 +1404,7 @@ export type Database = {
         }
         Returns: undefined
       }
-      extract_references: {
-        Args: { refs: Json }
-        Returns: number[]
-      }
+      extract_references: { Args: { refs: Json }; Returns: number[] }
       generic_entity_access: {
         Args: {
           target_id: number
@@ -1373,36 +1419,33 @@ export type Database = {
         }
         Returns: string
       }
-      in_space: {
-        Args: { space_id: number }
-        Returns: boolean
-      }
-      instances_of_schema: {
-        Args:
-          | { schema: Database["public"]["Tables"]["Concept"]["Row"] }
-          | { schema: unknown }
-        Returns: {
-          arity: number | null
-          author_id: number | null
-          created: string
-          description: string | null
-          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
-          id: number
-          is_schema: boolean
-          last_modified: string
-          literal_content: Json
-          name: string
-          reference_content: Json
-          refs: number[]
-          represented_by_id: number | null
-          schema_id: number | null
-          space_id: number
-        }[]
-      }
-      is_my_account: {
-        Args: { account_id: number }
-        Returns: boolean
-      }
+      in_space: { Args: { space_id: number }; Returns: boolean }
+      instances_of_schema:
+        | {
+            Args: { schema: Database["public"]["Tables"]["Concept"]["Row"] }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.instances_of_schema(schema => Concept), public.instances_of_schema(schema => my_concepts). Try renaming the parameters or the function itself in the database so function overloading can be resolved"[]
+            SetofOptions: {
+              from: '"Concept"'
+              to: "Concept"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+        | {
+            Args: { schema: Database["public"]["Views"]["my_concepts"]["Row"] }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.instances_of_schema(schema => Concept), public.instances_of_schema(schema => my_concepts). Try renaming the parameters or the function itself in the database so function overloading can be resolved"[]
+            SetofOptions: {
+              from: "my_concepts"
+              to: "my_concepts"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+      is_my_account: { Args: { account_id: number }; Returns: boolean }
       match_content_embeddings: {
         Args: {
           current_document_id?: number
@@ -1426,14 +1469,8 @@ export type Database = {
           text_content: string
         }[]
       }
-      my_account: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      my_space_ids: {
-        Args: Record<PropertyKey, never>
-        Returns: number[]
-      }
+      my_account: { Args: never; Returns: number }
+      my_space_ids: { Args: never; Returns: number[] }
       propose_sync_task: {
         Args: {
           s_function: string
@@ -1444,28 +1481,31 @@ export type Database = {
         }
         Returns: string
       }
-      schema_of_concept: {
-        Args:
-          | { concept: Database["public"]["Tables"]["Concept"]["Row"] }
-          | { concept: unknown }
-        Returns: {
-          arity: number | null
-          author_id: number | null
-          created: string
-          description: string | null
-          epistemic_status: Database["public"]["Enums"]["EpistemicStatus"]
-          id: number
-          is_schema: boolean
-          last_modified: string
-          literal_content: Json
-          name: string
-          reference_content: Json
-          refs: number[]
-          represented_by_id: number | null
-          schema_id: number | null
-          space_id: number
-        }[]
-      }
+      schema_of_concept:
+        | {
+            Args: { concept: Database["public"]["Tables"]["Concept"]["Row"] }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.schema_of_concept(concept => Concept), public.schema_of_concept(concept => my_concepts). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+            SetofOptions: {
+              from: '"Concept"'
+              to: "Concept"
+              isOneToOne: true
+              isSetofReturn: true
+            }
+          }
+        | {
+            Args: { concept: Database["public"]["Views"]["my_concepts"]["Row"] }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.schema_of_concept(concept => Concept), public.schema_of_concept(concept => my_concepts). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+            SetofOptions: {
+              from: "my_concepts"
+              to: "my_concepts"
+              isOneToOne: true
+              isSetofReturn: true
+            }
+          }
       unowned_account_in_shared_space: {
         Args: { p_account_id: number }
         Returns: boolean
@@ -1619,7 +1659,7 @@ export type Database = {
         metadata: Json | null
         last_modified: string | null
         author_id: number | null
-        contents: unknown | null
+        contents: unknown
         author_local_id: string | null
         space_url: string | null
         author_inline:
