@@ -274,6 +274,7 @@ const ResultRow = ({
       destinationUid: r["complement"] === 1 ? r["ctxTargetUid"] : r["uid"],
       hasSchema: r["id"],
     } as Record<string, string>;
+    // types got checked as a condition for displaying the button
     strictQueryForReifiedBlocks(data)
       .then((blockUid) => {
         if (blockUid === null) {
