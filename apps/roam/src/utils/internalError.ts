@@ -2,6 +2,8 @@ import posthog from "posthog-js";
 import type { Properties } from "posthog-js";
 import renderToast from "roamjs-components/components/Toast";
 import sendErrorEmail from "~/utils/sendErrorEmail";
+import { getSetting } from "~/utils/extensionSettings";
+import { DISALLOW_DIAGNOSTICS } from "~/data/userSettings";
 
 const NON_WORD = /\W+/g;
 
@@ -20,7 +22,10 @@ const internalError = ({
   sendEmail?: boolean;
   forceSendInDev?: boolean;
 }): void => {
-  if (process.env.NODE_ENV === "development" && forceSendInDev !== true) {
+  if (
+    getSetting(DISALLOW_DIAGNOSTICS, false) ||
+    (process.env.NODE_ENV === "development" && forceSendInDev !== true)
+  ) {
     console.error(error, context);
   } else {
     type = type || "Internal Error";

@@ -20,7 +20,10 @@ import {
   DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
   DISCOURSE_TOOL_SHORTCUT_KEY,
   STREAMLINE_STYLING_KEY,
+  DISALLOW_DIAGNOSTICS,
 } from "~/data/userSettings";
+import { enablePostHog, disablePostHog } from "~/utils/posthog";
+import internalError from "~/utils/internalError";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import streamlineStyling from "~/styles/streamlineStyling";
@@ -258,6 +261,38 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             <Description
               description={
                 "Apply streamlined styling to your personal graph for a cleaner appearance."
+              }
+            />
+          </>
+        }
+      />
+      <Checkbox
+        defaultChecked={getSetting(DISALLOW_DIAGNOSTICS, false)}
+        onChange={(e) => {
+          const target = e.target as HTMLInputElement;
+          const disallow = target.checked;
+          void setSetting(DISALLOW_DIAGNOSTICS, disallow)
+            .then(() => {
+              if (disallow) {
+                disablePostHog();
+              } else {
+                enablePostHog();
+              }
+            })
+            .catch((error) => {
+              target.checked = !disallow;
+              internalError({
+                error,
+                userMessage: "Could not change settings",
+              });
+            });
+        }}
+        labelElement={
+          <>
+            Disable product diagnostics
+            <Description
+              description={
+                "Disable sending usage signals and error reports that help us improve the product."
               }
             />
           </>
