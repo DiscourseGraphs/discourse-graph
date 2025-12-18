@@ -55,6 +55,7 @@ export const getRelationDataUtil = async (
             type: "Get relation data",
             userMessage: `Could not find relations of type ${s.label}`,
           });
+          return [];
         }
       }),
   ).then((r) => r.flat());
