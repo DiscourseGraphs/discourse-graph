@@ -56,7 +56,7 @@ import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
 import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import isDiscourseNode from "./isDiscourseNode";
+import findDiscourseNode from "./findDiscourseNode";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -89,8 +89,11 @@ export const initObservers = async ({
       const props = { title, h1, onloadArgs };
 
       const uid = getPageUidByPageTitle(title);
-      if (isDiscourseNode(uid)) {
-        renderPossibleDuplicates(h1, title);
+      const nodes = getDiscourseNodes();
+      const node = findDiscourseNode(uid, nodes);
+      const isDiscourseNode = node && node.backedBy !== "default";
+      if (isDiscourseNode) {
+        renderPossibleDuplicates(h1, title, node);
         const linkedReferencesDiv = document.querySelector(
           ".rm-reference-main",
         ) as HTMLDivElement;
