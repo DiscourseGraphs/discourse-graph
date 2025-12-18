@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Collapse, Spinner, Icon } from "@blueprintjs/core";
 import { findSimilarNodesVectorOnly, type VectorMatch } from "~/utils/hyde";
-import ReactDOM from "react-dom";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import extractContentFromTitle from "~/utils/extractContentFromTitle";
+import { handleTitleAdditions } from "~/utils/handleTitleAdditions";
 
 type VectorSearchParams = {
   text: string;
@@ -170,39 +170,8 @@ export const renderPossibleDuplicates = (
   title: string,
   node: DiscourseNode,
 ) => {
-  const titleContainer = h1.parentElement;
-  if (!titleContainer || !titleContainer.parentElement) {
-    return;
-  }
-  const headerContainer = titleContainer.parentElement;
-  const VECTOR_CONTAINER_CLASS = "discourse-graph-duplicates-vector";
-
-  let vectorContainer = headerContainer.querySelector<HTMLElement>(
-    `.${VECTOR_CONTAINER_CLASS}`,
+  handleTitleAdditions(
+    h1,
+    <VectorDuplicateMatches pageTitle={title} node={node} />,
   );
-  if (vectorContainer && vectorContainer.dataset.pageTitle !== title) {
-    /*eslint-disable-next-line react/no-deprecated*/
-    ReactDOM.unmountComponentAtNode(vectorContainer);
-    vectorContainer.remove();
-    vectorContainer = null;
-  }
-  if (!vectorContainer) {
-    vectorContainer = document.createElement("div");
-    vectorContainer.className = `${VECTOR_CONTAINER_CLASS} w-full mt-2`;
-    vectorContainer.dataset.pageTitle = title;
-
-    headerContainer.insertBefore(vectorContainer, titleContainer.nextSibling);
-  } else if (
-    vectorContainer.parentElement !== headerContainer ||
-    vectorContainer.previousElementSibling !== titleContainer
-  ) {
-    headerContainer.insertBefore(vectorContainer, titleContainer.nextSibling);
-  }
-
-  /*eslint-disable-next-line react/no-deprecated*/
-  ReactDOM.render(
-    React.createElement(VectorDuplicateMatches, { pageTitle: title, node }),
-    vectorContainer,
-  );
-  /*eslint-disable-next-line react/no-deprecated*/
 };

@@ -88,12 +88,21 @@ export const initObservers = async ({
       const title = getPageTitleValueByHtmlElement(h1);
       const props = { title, h1, onloadArgs };
 
+      const isSuggestiveModeEnabled = getUidAndBooleanSetting({
+        tree: getBasicTreeByParentUid(
+          getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
+        ),
+        text: "(BETA) Suggestive Mode Enabled",
+      }).value;
+
       const uid = getPageUidByPageTitle(title);
       const nodes = getDiscourseNodes();
       const node = findDiscourseNode(uid, nodes);
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
-        renderPossibleDuplicates(h1, title, node);
+        if (isSuggestiveModeEnabled) {
+          renderPossibleDuplicates(h1, title, node);
+        }
         const linkedReferencesDiv = document.querySelector(
           ".rm-reference-main",
         ) as HTMLDivElement;
