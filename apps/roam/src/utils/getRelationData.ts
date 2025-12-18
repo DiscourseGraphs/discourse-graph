@@ -18,45 +18,45 @@ export const getRelationDataUtil = async (
           s.triples.some((t) => t[2] === "destination"),
       )
       .flatMap((s) => {
-        try {
-          const sourceLabel = nodeLabelByType[s.source];
-          const targetLabel = nodeLabelByType[s.destination];
-          return !sourceLabel || !targetLabel
-            ? []
-            : fireQuery({
-                returnNode: sourceLabel,
-                conditions: [
-                  {
-                    relation: s.label,
-                    source: sourceLabel,
-                    target: targetLabel,
-                    uid: s.id,
-                    type: "clause",
-                  },
-                ],
-                selections: [
-                  {
-                    uid: window.roamAlphaAPI.util.generateUID(),
-                    text: `node:${targetLabel}`,
-                    label: "target",
-                  },
-                ],
-              }).then((results) =>
+        const sourceLabel = nodeLabelByType[s.source];
+        const targetLabel = nodeLabelByType[s.destination];
+        return !sourceLabel || !targetLabel
+          ? []
+          : fireQuery({
+              returnNode: sourceLabel,
+              conditions: [
+                {
+                  relation: s.label,
+                  source: sourceLabel,
+                  target: targetLabel,
+                  uid: s.id,
+                  type: "clause",
+                },
+              ],
+              selections: [
+                {
+                  uid: window.roamAlphaAPI.util.generateUID(),
+                  text: `node:${targetLabel}`,
+                  label: "target",
+                },
+              ],
+            })
+              .then((results) =>
                 results.map((result) => ({
                   source: result.uid,
                   target: result["target-uid"],
                   relUid: s.id,
                   label: s.label,
                 })),
-              );
-        } catch (error) {
-          internalError({
-            error,
-            type: "Get relation data",
-            userMessage: `Could not find relations of type ${s.label}`,
-          });
-          return [];
-        }
+              )
+              .catch((error) => {
+                internalError({
+                  error,
+                  type: "Get relation data",
+                  userMessage: `Could not find relations of type ${s.label}`,
+                });
+                return [];
+              });
       }),
   ).then((r) => r.flat());
 
