@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Collapse, Spinner, Icon } from "@blueprintjs/core";
 import { findSimilarNodesVectorOnly, type VectorMatch } from "~/utils/hyde";
-import { useNodeContext, type NodeContext } from "~/utils/useNodeContext";
 import ReactDOM from "react-dom";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import { DiscourseNode } from "~/utils/getDiscourseNodes";
+import extractContentFromTitle from "~/utils/extractContentFromTitle";
 
 type VectorSearchParams = {
   text: string;
@@ -17,10 +19,12 @@ export const VectorDuplicateMatches = ({
   pageTitle,
   text,
   limit = 15,
+  node,
 }: {
   pageTitle?: string;
   text?: string;
   limit?: number;
+  node: DiscourseNode;
 }) => {
   const [debouncedText, setDebouncedText] = useState(text);
   useEffect(() => {
@@ -37,13 +41,14 @@ export const VectorDuplicateMatches = ({
   const [hasSearched, setHasSearched] = useState(false);
   const [suggestions, setSuggestions] = useState<VectorMatch[]>([]);
 
-  const nodeContext: NodeContext | null = useNodeContext(pageTitle || "");
+  const searchText = extractContentFromTitle(pageTitle || "", node);
+  const pageUid = getPageUidByPageTitle(searchText);
   const activeContext = useMemo(
     () =>
       text !== undefined
         ? { searchText: debouncedText || "", pageUid: null }
-        : nodeContext,
-    [text, debouncedText, nodeContext],
+        : { searchText, pageUid },
+    [text, debouncedText, searchText, pageUid],
   );
 
   useEffect(() => {
@@ -163,6 +168,7 @@ export const VectorDuplicateMatches = ({
 export const renderPossibleDuplicates = (
   h1: HTMLHeadingElement,
   title: string,
+  node: DiscourseNode,
 ) => {
   const titleContainer = h1.parentElement;
   if (!titleContainer || !titleContainer.parentElement) {
@@ -195,7 +201,7 @@ export const renderPossibleDuplicates = (
 
   /*eslint-disable-next-line react/no-deprecated*/
   ReactDOM.render(
-    React.createElement(VectorDuplicateMatches, { pageTitle: title }),
+    React.createElement(VectorDuplicateMatches, { pageTitle: title, node }),
     vectorContainer,
   );
   /*eslint-disable-next-line react/no-deprecated*/

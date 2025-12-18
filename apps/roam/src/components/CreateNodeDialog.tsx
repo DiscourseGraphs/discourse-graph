@@ -12,7 +12,6 @@ import getDiscourseNodes, {
 import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import createBlock from "roamjs-components/writes/createBlock";
-import { VectorDuplicateMatches } from "./VectorDuplicateMatches";
 
 export type CreateNodeDialogProps = {
   onClose: () => void;
@@ -137,7 +136,6 @@ const CreateNodeDialog = ({
               onChange={(e) => setTitle(e.currentTarget.value)}
               inputRef={inputRef}
             />
-            <VectorDuplicateMatches text={title} limit={5} />
           </div>
 
           <Label>
