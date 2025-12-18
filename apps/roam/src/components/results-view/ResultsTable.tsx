@@ -24,7 +24,6 @@ import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
 import { getSetting } from "~/utils/extensionSettings";
 import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
-import formatDistanceStrictWithOptions from "date-fns/esm/fp/formatDistanceStrictWithOptions/index.js";
 
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;
 type ExtraRowType = (typeof EXTRA_ROW_TYPES)[number] | null;
@@ -372,15 +371,19 @@ const ResultRow = ({
               ) : (
                 cell(key)
               )}
-              {useReifiedRel && r["ctxTargetUid"] !== undefined && (
-                <Button
-                  minimal
-                  icon="delete"
-                  className="float-right"
-                  title="Delete relation"
-                  onClick={onDelete}
-                ></Button>
-              )}
+              {useReifiedRel &&
+                typeof r["ctxTargetUid"] === "string" &&
+                typeof r["id"] === "string" &&
+                typeof r["complement"] === "number" &&
+                i === columns.length - 1 && (
+                  <Button
+                    minimal
+                    icon="delete"
+                    className="float-right"
+                    title="Delete relation"
+                    onClick={onDelete}
+                  ></Button>
+                )}
               {i < columns.length - 1 && (
                 <div
                   style={{
