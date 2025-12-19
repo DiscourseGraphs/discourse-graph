@@ -39,7 +39,7 @@ import { useAtom } from "@tldraw/state";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import { Result } from "roamjs-components/types/query-builder";
 import fuzzy from "fuzzy";
-import { getAllReferencesOnPage } from "~/utils/hyde";
+import getAllReferencesOnPage from "~/utils/getAllReferencesOnPage";
 import isDiscourseNode from "~/utils/isDiscourseNode";
 import {
   DiscourseNodeShape,

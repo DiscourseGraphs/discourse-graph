@@ -6,6 +6,7 @@ import { nextApiRoot } from "@repo/utils/execContext";
 import { DiscourseNode } from "./getDiscourseNodes";
 import getExtensionAPI from "roamjs-components/util/extensionApiContext";
 import { getNodesByType } from "@repo/database/lib/queries";
+import getAllReferencesOnPage from "./getAllReferencesOnPage";
 
 type ApiEmbeddingResponse = {
   data: Array<{
@@ -382,21 +383,6 @@ export const extractPagesFromParentBlock = async (
         [?rf :node/title ?title]]]`,
   )) as Array<[string, string]>;
   return results.map(([uid, title]) => ({ uid, text: title }));
-};
-
-export const getAllReferencesOnPage = async (
-  pageTitle: string,
-): Promise<{ uid: string; text: string }[]> => {
-  const referencedPages = (await window.roamAlphaAPI.data.backend.q(
-    `[:find ?uid ?text
-      :where
-        [?page :node/title "${normalizePageTitle(pageTitle)}"]
-        [?b :block/page ?page]
-        [?b :block/refs ?refPage]
-        [?refPage :block/uid ?uid]
-        [?refPage :node/title ?text]]`,
-  )) as Array<[string, string]>;
-  return referencedPages.map(([uid, text]) => ({ uid, text }));
 };
 
 export type PerformHydeSearchParams = {
