@@ -152,10 +152,8 @@ export const getOnSelectForShape = ({
         imageUrl: src,
         onSuccess: async ({ text, uid, newPageUid }) => {
           const finalUid = newPageUid || uid;
-          // Delete the original image shape
           editor.deleteShapes([shape.id]);
 
-          // Create the discourse node shape
           const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
             nodeText: text,
             extensionAPI,

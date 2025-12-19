@@ -6,8 +6,6 @@ import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
 import compileDatalog from "./compileDatalog";
 import discourseNodeFormatToDatalog from "./discourseNodeFormatToDatalog";
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
-import { render as renderToast } from "roamjs-components/components/Toast";
-import FormDialog from "roamjs-components/components/FormDialog";
 import { QBClause, Result } from "./types";
 import findDiscourseNode from "./findDiscourseNode";
 import extractTag from "roamjs-components/util/extractTag";

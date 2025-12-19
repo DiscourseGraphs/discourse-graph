@@ -178,7 +178,13 @@ const ModifyNodeDialog = ({
         }
       } catch (error) {
         if (contentRequestIdRef.current === req && alive) {
-          console.error("Error fetching content options:", error);
+          renderToast({
+            id: `discourse-node-error-${Date.now()}`,
+            intent: "danger",
+            content: (
+              <span>Error fetching content options: {String(error)}</span>
+            ),
+          });
         }
       } finally {
         if (contentRequestIdRef.current === req && alive) {
@@ -313,7 +319,6 @@ const ModifyNodeDialog = ({
             nodeType: selectedNodeType.type,
             blockUid: sourceBlockUid,
           });
-          console.log("formattedTitle", formattedTitle);
         }
         if (!formattedTitle) {
           return;

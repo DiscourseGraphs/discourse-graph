@@ -46,7 +46,7 @@ import {
 import { getSetting } from "~/utils/extensionSettings";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
-import { OnloadArgs } from "roamjs-components/types";
+import { render as renderToast } from "roamjs-components/components/Toast";
 
 // TODO REPLACE WITH TLDRAW DEFAULTS
 // https://github.com/tldraw/tldraw/pull/1580/files
@@ -555,10 +555,13 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
                   finalUid,
                 });
               } catch (error) {
-                console.error(
-                  "[DiscourseNodeUtil] Error creating relations:",
-                  error,
-                );
+                renderToast({
+                  id: `discourse-node-error-${Date.now()}`,
+                  intent: "danger",
+                  content: (
+                    <span>Error creating relations: {String(error)}</span>
+                  ),
+                });
               }
             }
 
