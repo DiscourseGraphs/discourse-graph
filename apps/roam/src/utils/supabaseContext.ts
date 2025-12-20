@@ -1,8 +1,8 @@
 import getCurrentUserEmail from "roamjs-components/queries/getCurrentUserEmail";
 import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 
+import canonicalRoamUrl from "./canonicalRoamUrl";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
@@ -26,8 +26,6 @@ export type SupabaseContext = {
 };
 
 let _contextCache: SupabaseContext | null = null;
-
-const ROAM_URL_PREFIX = "https://roamresearch.com/#/app/";
 
 const getOrCreateSpacePassword = () => {
   const settingsConfigPageUid = getPageUidByPageTitle(
@@ -57,7 +55,7 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
       const personEmail = getCurrentUserEmail();
       const personName = getCurrentUserDisplayName();
       const spaceName = window.roamAlphaAPI.graph.name;
-      const url = ROAM_URL_PREFIX + spaceName;
+      const url = canonicalRoamUrl(spaceName);
       const platform: Platform = "Roam";
       const spaceResult = await fetchOrCreateSpaceDirect({
         password: spacePassword,
