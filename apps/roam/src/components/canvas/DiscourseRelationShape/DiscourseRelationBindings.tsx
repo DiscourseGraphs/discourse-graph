@@ -31,6 +31,7 @@ import {
   removeArrowBinding,
 } from "./helpers";
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
+import getDiscourseRelations from "~/utils/getDiscourseRelations";
 
 export const createAllReferencedNodeBindings = (
   allAddReferencedNodeByAction: AddReferencedNodeType,
@@ -229,29 +230,30 @@ function reparentArrow(editor: Editor, arrowId: TLShapeId) {
 
   let finalIndex: IndexKey;
 
+  const relationIds = new Set(getDiscourseRelations().map((r) => r.id));
+  relationIds.add(arrow.type);
+
+  // if the next sibling is also a bound arrow though, we can end up
+  // all fighting for the same indexes. so lets find the next
+  // siblings which are not arrows or relations
   const higherSiblings = editor
     .getSortedChildIdsForParent(highestSibling.parentId)
     .map((id) => editor.getShape(id)!)
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    .filter((sibling) => sibling.index > highestSibling!.index);
+    .filter(
+      (sibling) =>
+        sibling.index > highestSibling.index && !relationIds.has(sibling.type), // avoid fighting for the same index
+    );
 
   if (higherSiblings.length) {
     // there are siblings above the highest bound sibling, we need to
     // insert between them.
 
-    // if the next sibling is also a bound arrow though, we can end up
-    // all fighting for the same indexes. so lets find the next
-    // non-arrow sibling...
-    const nextHighestNonArrowSibling = higherSiblings.find(
-      (sibling) => sibling.type !== arrow.type,
-    );
-
+    const nextHighestNonArrowSibling = higherSiblings[0];
     if (
       // ...then, if we're above the last shape we want to be above...
       reparentedArrow.index > highestSibling.index &&
       // ...but below the next non-arrow sibling...
-      (!nextHighestNonArrowSibling ||
-        reparentedArrow.index < nextHighestNonArrowSibling.index)
+      reparentedArrow.index < nextHighestNonArrowSibling.index
     ) {
       // ...then we're already in the right place. no need to update!
       return;
@@ -260,7 +262,10 @@ function reparentArrow(editor: Editor, arrowId: TLShapeId) {
     // otherwise, we need to find the index between the highest sibling
     // we want to be above, and the next highest sibling we want to be
     // below:
-    finalIndex = getIndexBetween(highestSibling.index, higherSiblings[0].index);
+    finalIndex = getIndexBetween(
+      highestSibling.index,
+      nextHighestNonArrowSibling.index,
+    );
   } else {
     // if there are no siblings above us, we can just get the next index:
     finalIndex = getIndexAbove(highestSibling.index);
