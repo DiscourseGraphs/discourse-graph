@@ -1,0 +1,77 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix dgb: <https://discoursegraphs.com/schema/db_base#> .
+
+<https://discoursegraphs.com/schema/db_base#>
+    dc:date "2025-11-01" ;
+    dc:description "Discourse Graphs foundation vocabulary"@en ;
+    dc:title "Discourse Graphs foundation vocabulary"@en ;
+    owl:versionInfo "0 (tentative)" ;
+    a owl:Ontology.
+
+dgb:Node a owl:Class ;
+    dc:description "Discourse Graphs nodes"@en .
+
+dgb:NodeSchema
+rdfs:subClassOf owl:Class , dgb:Node ;
+    dc:description "class of Discourse Graphs node schemata"@en .
+
+dgb:Role
+    rdfs:subClassOf owl:ObjectProperty,
+        [a owl:Restriction; owl:onProperty rdfs:range ; owl:allValuesFrom dgb:RoleSchema ],
+        [a owl:Restriction; owl:onProperty rdfs:domain ; owl:allValuesFrom dgb:NodeSchema ];
+    dc:description "A role within a NodeSchema"@en .
+
+dgb:BinaryRelationSchema
+rdfs:subClassOf dgb:NodeSchema, owl:ObjectProperty ;
+    dc:description "Discourse Graphs binary relation schema"@en .
+
+dgb:BinaryRelation
+a rdf:Statement, dgb:Node .
+
+dgb:source
+a dgb:Role ;
+    rdfs:subPropertyOf rdf:subject ;
+    rdfs:domain dgb:BinaryRelationSchema ;
+    rdfs:range dgb:Node ;
+    dc:description "The source of a binary relation"@en .
+
+dgb:destination
+a dgb:Role ;
+    rdfs:subPropertyOf rdf:object ;
+    rdfs:domain dgb:BinaryRelationSchema ;
+    rdfs:range dgb:Node ;
+    dc:description "The destination of a binary relation"@en .
+
+dgb:reltype
+    rdfs:subPropertyOf rdf:predicate ;
+    rdfs:domain dgb:BinaryRelation ;
+    rdf:range dgb:BinaryRelationSchema .
+
+
+# examples
+
+# :x a dgb:NodeSchema .
+# :y a dgb:NodeSchema .
+# :x0 a :x.
+# :y0 a :y.
+# :r a dgb:NodeSchema.
+# :x_r a dgb:Role ;
+#     rdfs:domain :r ;
+#     rdfs:range :x .
+
+# :r0 a :r;
+#  :x_r :x0.
+
+# :br a dgb:BinaryRelationSchema.
+
+# :br0
+#  a dgb:BinaryRelation;
+#  dgb:reltype :br .
+#  dgb:source :x0 ;
+#  dgb:destination :y0 ;
+
+# # This is "about" :x0 :br :y0;

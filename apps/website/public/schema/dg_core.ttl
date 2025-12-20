@@ -1,0 +1,68 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix vs: <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
+@prefix sioc: <http://rdfs.org/sioc/ns#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dgb: <https://discoursegraphs.com/schema/dg_base#> .
+@prefix dg: <https://discoursegraphs.com/schema/dg_core#> .
+
+dg:Question a dgb:NodeSchema;
+  rdfs:label "Question"@en.
+
+dg:Claim a dgb:NodeSchema;
+  rdfs:label "Claim"@en.
+
+dg:Result a dgb:NodeSchema;
+  rdfs:label "Result"@en.
+
+dg:Opposes a dgb:BinaryRelationSchema;
+  rdfs:label "Opposes"@en;
+  rdfs:range dg:Claim;
+  rdfs:domain dg:Result.
+
+# I might actually need to be more verbose than rdfs:range/domain... Still needs research.
+
+# owl:subClassOf [
+#   {
+#     a owl:Restriction;
+#     owl:onProperty dgb:source;
+#     owl:allValuesFrom: dg:Claim
+#   },
+#   {
+#     a owl:Restriction;
+#     owl:onProperty dgb:destination;
+#     owl:allValuesFrom: dg:Result
+#   },
+# ],
+
+dg:OpposedBy a dgb:BinaryRelationSchema;
+  rdfs:label "OpposedBy"@en;
+  owl:inverseOf dg:Opposes;
+  rdfs:range dg:Result;
+  rdfs:domain dg:Claim.
+
+
+dg:Supports a dgb:BinaryRelationSchema;
+  rdfs:label "Supports"@en;
+  rdfs:range dg:Claim;
+  rdfs:domain dg:Result.
+
+dg:SupportedBy a dgb:BinaryRelationSchema;
+  rdfs:label "SupportedBy"@en;
+  owl:inverseOf dg:Supports;
+  rdfs:range dg:Result;
+  rdfs:domain dg:Claim.
+
+dg:Addresses a dgb:BinaryRelationSchema;
+  rdfs:label "Addresses"@en;
+  rdfs:range dg:Question;
+  rdfs:domain dg:Claim.
+
+dg:AddressedBy a dgb:BinaryRelationSchema;
+rdfs:label "AddressedBy"@en;
+  owl:inverseOf dg:Addresses;
+  rdfs:range dg:Claim;
+  rdfs:domain dg:Question.
