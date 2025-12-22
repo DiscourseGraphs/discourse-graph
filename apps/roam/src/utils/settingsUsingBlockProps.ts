@@ -10,6 +10,11 @@ export const getBlockPropBasedSettings = ({
 }: {
   keys: string[];
 }): { blockProps: json | undefined; blockUid: string } => {
+  if (keys.length === 0) {
+    console.warn("Attempting to get block prop with no keys");
+    return { blockProps: undefined, blockUid: "" };
+  }
+
   const sectionKey = keys[0];
 
   const blockUid = getBlockUidByTextOnPage({
