@@ -9,3 +9,4 @@ export const DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY =
   "discourse-context-overlay-in-canvas";
 export const STREAMLINE_STYLING_KEY = "streamline-styling";
 export const DISALLOW_DIAGNOSTICS = "disallow-diagnostics";
+export const USE_REIFIED_RELATIONS = "use-reified-relations";

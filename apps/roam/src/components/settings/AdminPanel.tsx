@@ -36,6 +36,7 @@ import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
+import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -260,7 +261,7 @@ const MigrationTab = (): React.ReactElement => {
   const [useMigrationResults, setMigrationResults] = useState<string>("");
   const [useOngoing, setOngoing] = useState<boolean>(false);
   const [useDryRun, setDryRun] = useState<boolean>(false);
-  const enabled = getSetting("use-reified-relations", false);
+  const enabled = getSetting(USE_REIFIED_RELATIONS, false);
   const doMigrateRelations = async () => {
     setOngoing(true);
     try {
@@ -331,7 +332,7 @@ const MigrationTab = (): React.ReactElement => {
 
 const FeatureFlagsTab = (): React.ReactElement => {
   const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
-    getSetting("use-reified-relations"),
+    getSetting(USE_REIFIED_RELATIONS),
   );
   const settings = useMemo(() => {
     refreshConfigTree();
@@ -428,7 +429,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
           setUseReifiedRelations(target.checked);
-          void setSetting("use-reified-relations", target.checked).catch(
+          void setSetting(USE_REIFIED_RELATIONS, target.checked).catch(
             () => undefined,
           );
         }}

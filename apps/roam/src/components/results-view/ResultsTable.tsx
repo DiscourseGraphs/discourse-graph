@@ -22,6 +22,7 @@ import toCellValue from "~/utils/toCellValue";
 import { ContextContent } from "~/components/DiscourseContext";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
+import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
 
@@ -205,7 +206,7 @@ const ResultRow = ({
   onDragEnd,
   onRefresh,
 }: ResultRowProps) => {
-  const useReifiedRel = getSetting<boolean>("use-reified-relations");
+  const useReifiedRel = getSetting<boolean>(USE_REIFIED_RELATIONS);
   const cell = (key: string) => {
     const value = toCellValue({
       value: r[`${key}-display`] || r[key] || "",
