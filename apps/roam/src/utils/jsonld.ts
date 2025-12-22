@@ -7,6 +7,7 @@ import { pageToMarkdown } from "./pageToMardkown";
 import { getRelationDataUtil } from "./getRelationData";
 import { uniqJsonArray, getPageData } from "./exportUtils";
 import { getExportSettings } from "./getExportSettings";
+import canonicalRoamUrl from "./canonicalRoamUrl";
 
 export const getJsonLdData = async ({
   results,
@@ -21,7 +22,7 @@ export const getJsonLdData = async ({
   nodeLabelByType: Record<string, string>;
   updateExportProgress: (progress: number) => void;
 }) => {
-  const roamUrl = getRoamUrl();
+  const roamUrl = canonicalRoamUrl();
   const getRelationData = () =>
     getRelationDataUtil(allRelations, nodeLabelByType);
   updateExportProgress(0);
@@ -37,16 +38,20 @@ export const getJsonLdData = async ({
     dc: "http://purl.org/dc/elements/1.1/",
     prov: "http://www.w3.org/ns/prov#",
     sioc: "http://rdfs.org/sioc/ns#",
-    dg: "https://discoursegraphs.com/schema/dg_core#",
+    dgb: "https://discoursegraphs.com/schema/dg_base",
     subClassOf: "rdfs:subClassOf",
     title: "dc:title",
+    label: "rdfs:label",
     modified: "dc:modified",
     created: "dc:date",
     creator: "dc:creator",
     content: "sioc:content",
-    source: "dg:source",
-    destination: "dg:destination",
-    reltype: "dg:reltype",
+    source: "dgb:source",
+    destination: "dgb:destination",
+    predicate: "rdf:predicate",
+    nodeSchema: "dgb:NodeSchema",
+    relationDef: "dgb:RelationDef",
+    relationInstance: "dgb:RelationInstance",
     pages: `${roamUrl}/page/`,
   };
   const settings = {
@@ -70,8 +75,8 @@ export const getJsonLdData = async ({
       await new Promise((resolve) => setTimeout(resolve));
       return {
         "@id": `pages:${node.type}`,
-        "@type": "dg:NodeSchema",
-        title: node.text,
+        "@type": "nodeSchema",
+        label: node.text,
         content: r.content,
         modified: modified?.toJSON(),
         created: date.toJSON(),
@@ -81,43 +86,23 @@ export const getJsonLdData = async ({
   );
   const relSchemaData = allRelations.map((r: DiscourseRelation) => ({
     "@id": `pages:${r.id}`,
-    "@type": "dg:BinaryRelationSchema",
-    subClassOf: [
-      {
-        "@type": "owl:Restriction",
-        "owl:onProperty": "dg:source",
-        "owl:allValuesFrom": `pages:${r.source}`,
-      },
-      {
-        "@type": "owl:Restriction",
-        "owl:onProperty": "dg:destination",
-        "owl:allValuesFrom": `pages:${r.destination}`,
-      },
-    ],
-    title: r.label,
+    "@type": "relationDef",
+    domain: `pages:${r.source}`,
+    range: `pages:${r.destination}`,
+    label: r.label,
   }));
   const schemaData = [...nodeSchemaData, ...relSchemaData];
 
   const schemaUriByName = Object.fromEntries(
-    schemaData.map((node) => [node.title, node["@id"]]),
+    schemaData.map((node) => [node.label, node["@id"]]),
   );
 
   const inverseRelSchemaData = allRelations.map((r: DiscourseRelation) => ({
     "@id": `pages:${r.id}-inverse`,
-    "@type": "dg:BinaryRelationSchema",
-    subClassOf: [
-      {
-        "@type": "owl:Restriction",
-        "owl:onProperty": "dg:source",
-        "owl:allValuesFrom": `pages:${r.destination}`,
-      },
-      {
-        "@type": "owl:Restriction",
-        "owl:onProperty": "dg:destination",
-        "owl:allValuesFrom": `pages:${r.source}`,
-      },
-    ],
-    title: r.complement,
+    "@type": "relationDef",
+    domain: `pages:${r.destination}`,
+    range: `pages:${r.source}`,
+    label: r.complement,
     "owl:inverse-of": `pages:${r.id}`,
   }));
 
@@ -170,8 +155,8 @@ export const getJsonLdData = async ({
   );
   const relData = relations.map(({ source, target, label }) => ({
     // no id yet, just a blank node
-    "@type": "dg:BinaryRelation",
-    reltype: schemaUriByName[label],
+    "@type": "relationInstance",
+    predicate: schemaUriByName[label],
     source: `pages:${source}`,
     destination: `pages:${target}`,
   }));

@@ -6,50 +6,42 @@
 @prefix dgb: <https://discoursegraphs.com/schema/db_base#> .
 
 <https://discoursegraphs.com/schema/db_base#>
-    dc:date "2025-11-01" ;
-    dc:description "Discourse Graphs foundation vocabulary"@en ;
-    dc:title "Discourse Graphs foundation vocabulary"@en ;
+    dc:date "2025-12-22" ;
+    rdfs:comment "DiscourseGraph foundation vocabulary"@en ;
+    rdfs:label "DiscourseGraph foundation vocabulary"@en ;
     owl:versionInfo "0 (tentative)" ;
     a owl:Ontology.
 
-dgb:Node a owl:Class ;
-    dc:description "Discourse Graphs nodes"@en .
+# This is inspired by https://hyperknowledge.org/schemas/hyperknowledge_frames.ttl
+# and topic mapping
 
 dgb:NodeSchema
-rdfs:subClassOf owl:Class , dgb:Node ;
-    dc:description "class of Discourse Graphs node schemata"@en .
+rdfs:subClassOf owl:Class;
+    rdfs:comment "Subclasses of DiscourseGraph nodes"@en .
 
 dgb:Role
     rdfs:subClassOf owl:ObjectProperty,
-        [a owl:Restriction; owl:onProperty rdfs:range ; owl:allValuesFrom dgb:RoleSchema ],
-        [a owl:Restriction; owl:onProperty rdfs:domain ; owl:allValuesFrom dgb:NodeSchema ];
-    dc:description "A role within a NodeSchema"@en .
+        [a owl:Restriction; owl:onProperty rdfs:domain ; owl:allValuesFrom dgb:NodeSchema ],
+        [a owl:Restriction; owl:onProperty rdfs:range ; owl:allValuesFrom dgb:NodeSchema ];
+    rdfs:comment "A role within a node schema"@en .
 
-dgb:BinaryRelationSchema
-rdfs:subClassOf dgb:NodeSchema, owl:ObjectProperty ;
-    dc:description "Discourse Graphs binary relation schema"@en .
+dgb:RelationDef rdfs:subClassOf owl:ObjectProperty;
+  rdfs:comment "DiscourseGraph relations"@en.
 
-dgb:BinaryRelation
-a rdf:Statement, dgb:Node .
+dgb:RelationInstance rdfs:subClassOf rdf:Statement, dgb:NodeSchema,
+  [a owl:Restriction; owl:onProperty rdfs:predicate ; owl:allValuesFrom dgb:RelationDef ].
 
-dgb:source
-a dgb:Role ;
+dgb:source a dgb:Role ;
     rdfs:subPropertyOf rdf:subject ;
-    rdfs:domain dgb:BinaryRelationSchema ;
-    rdfs:range dgb:Node ;
-    dc:description "The source of a binary relation"@en .
+    rdfs:domain dgb:RelationInstance ;
+    rdfs:range dgb:NodeSchema ;
+    rdfs:comment "The source of a binary relation"@en .
 
-dgb:destination
-a dgb:Role ;
+dgb:destination a dgb:Role ;
     rdfs:subPropertyOf rdf:object ;
-    rdfs:domain dgb:BinaryRelationSchema ;
-    rdfs:range dgb:Node ;
-    dc:description "The destination of a binary relation"@en .
-
-dgb:reltype
-    rdfs:subPropertyOf rdf:predicate ;
-    rdfs:domain dgb:BinaryRelation ;
-    rdf:range dgb:BinaryRelationSchema .
+    rdfs:domain dgb:RelationInstance ;
+    rdfs:range dgb:NodeSchema ;
+    rdfs:comment "The destination of a binary relation"@en .
 
 
 # examples
@@ -66,12 +58,25 @@ dgb:reltype
 # :r0 a :r;
 #  :x_r :x0.
 
-# :br a dgb:BinaryRelationSchema.
+# :br a dgb:RelationDef;
+#   rdfs:domain :x;
+#   rdfs:range :y;
 
 # :br0
-#  a dgb:BinaryRelation;
-#  dgb:reltype :br .
+#  a dgb:RelationInstance;
+#  rdf:predicate :br ;
 #  dgb:source :x0 ;
 #  dgb:destination :y0 ;
 
 # # This is "about" :x0 :br :y0;
+
+# Note: we could also use punning, and define
+# :br rdfs:subClassOf dgb:RelationInstance,
+#   [a owl:Restriction;
+#   owl:onProperty rdf:predicate ;
+#   owl:hasValue :br ].
+# Then we can more simply state
+# :br0
+#  a :br;
+#  dgb:source :x0 ;
+#  dgb:destination :y0 ;
