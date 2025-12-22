@@ -1048,6 +1048,7 @@ const ClipboardPageSection = ({
 export const ClipboardPanel = () => {
   const { isOpen, pages, closeClipboard, addPage, removePage } = useClipboard();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   if (!isOpen) return null;
 
@@ -1076,6 +1077,14 @@ export const ClipboardPanel = () => {
         </h2>
         <div className="flex-shrink-0">
           <Button
+            icon={<Icon icon="minus" />}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            minimal
+            small
+            className="h-6 min-h-0 p-1"
+            title={isCollapsed ? "Expand clipboard" : "Collapse clipboard"}
+          />
+          <Button
             icon={<Icon icon="cross" />}
             onClick={closeClipboard}
             minimal
@@ -1085,50 +1094,54 @@ export const ClipboardPanel = () => {
           />
         </div>
       </div>
-      <div
-        className="max-h-96 overflow-y-auto p-4"
-        style={{ borderTop: "1px solid hsl(0, 0%, 91%)" }}
-      >
-        {pages.length === 0 ? (
-          <NonIdealState
-            action={
+      {!isCollapsed && (
+        <>
+          <div
+            className="max-h-96 overflow-y-auto p-4"
+            style={{ borderTop: "1px solid hsl(0, 0%, 91%)" }}
+          >
+            {pages.length === 0 ? (
+              <NonIdealState
+                action={
+                  <Button
+                    icon="plus"
+                    onClick={() => setIsModalOpen(true)}
+                    minimal
+                    small
+                    text="Add page"
+                  />
+                }
+              />
+            ) : (
+              <div className="space-y-2">
+                {pages.map((page) => (
+                  <ClipboardPageSection
+                    key={page.uid}
+                    page={page}
+                    onRemove={removePage}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          {pages.length > 0 ? (
+            <div
+              className="flex flex-shrink-0 items-center justify-end border-t border-gray-200 p-2"
+              style={{
+                borderTop: "1px solid hsl(0, 0%, 91%)",
+              }}
+            >
               <Button
                 icon="plus"
                 onClick={() => setIsModalOpen(true)}
                 minimal
                 small
-                text="Add page"
-              />
-            }
-          />
-        ) : (
-          <div className="space-y-2">
-            {pages.map((page) => (
-              <ClipboardPageSection
-                key={page.uid}
-                page={page}
-                onRemove={removePage}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-      {pages.length > 0 ? (
-        <div
-          className="flex flex-shrink-0 items-center justify-end border-t border-gray-200 p-2"
-          style={{
-            borderTop: "1px solid hsl(0, 0%, 91%)",
-          }}
-        >
-          <Button
-            icon="plus"
-            onClick={() => setIsModalOpen(true)}
-            minimal
-            small
-            title="Add page"
-          />{" "}
-        </div>
-      ) : null}
+                title="Add page"
+              />{" "}
+            </div>
+          ) : null}
+        </>
+      )}
 
       <AddPageModal
         isOpen={isModalOpen}
