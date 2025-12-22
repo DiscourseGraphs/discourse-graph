@@ -269,9 +269,7 @@ const ContextTab = ({
       // TODO - always save settings, but maybe separate from root `parentUid`?
       preventSavingSettings
       parentUid={parentUid}
-      results={Object.values(results).map(
-        ({ target, complement, id, ...a }) => a as Result,
-      )}
+      results={Object.values(results).map(({ target, ...a }) => a as Result)}
       columns={columns}
       onRefresh={onRefresh}
       header={

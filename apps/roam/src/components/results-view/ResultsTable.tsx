@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { Button, HTMLTable, Icon, IconName } from "@blueprintjs/core";
 import { IconNames } from "@blueprintjs/icons";
+import { render as renderToast } from "roamjs-components/components/Toast";
 import { Column, Result } from "~/utils/types";
 import type { FilterData, Sorts, Views } from "~/utils/parseResultSettings";
 import Filter, { Filters } from "roamjs-components/components/Filter";
@@ -21,6 +22,8 @@ import toCellValue from "~/utils/toCellValue";
 import { ContextContent } from "~/components/DiscourseContext";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
+import { getSetting } from "~/utils/extensionSettings";
+import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
 
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;
 type ExtraRowType = (typeof EXTRA_ROW_TYPES)[number] | null;
@@ -202,6 +205,7 @@ const ResultRow = ({
   onDragEnd,
   onRefresh,
 }: ResultRowProps) => {
+  const useReifiedRel = getSetting<boolean>("use-reified-relations");
   const cell = (key: string) => {
     const value = toCellValue({
       value: r[`${key}-display`] || r[key] || "",
@@ -264,6 +268,53 @@ const ResultRow = ({
     [views],
   );
   const trRef = useRef<HTMLTableRowElement>(null);
+  const onDelete = () => {
+    const data = {
+      sourceUid: r["complement"] === 1 ? r["uid"] : r["ctxTargetUid"],
+      destinationUid: r["complement"] === 1 ? r["ctxTargetUid"] : r["uid"],
+      hasSchema: r["id"],
+    } as Record<string, string>;
+    // types got checked as a condition for displaying the button
+    strictQueryForReifiedBlocks(data)
+      .then((blockUid) => {
+        if (blockUid === null) {
+          renderToast({
+            id: "delete-relation-error",
+            content: "Could not find relation",
+            intent: "warning",
+          });
+          return;
+        }
+        deleteBlock(blockUid)
+          .then(() => {
+            renderToast({
+              id: "delete-relation-success",
+              content: "Relation deleted",
+              intent: "success",
+            });
+            onRefresh();
+          })
+          .catch((e) => {
+            // this one should be an internalError
+            console.error(e);
+            renderToast({
+              id: "delete-relation-error",
+              content: "Could not delete relation",
+              intent: "danger",
+            });
+          });
+      })
+      .catch((e) => {
+        // this one should be an internalError
+        console.error(e);
+        renderToast({
+          id: "delete-relation-error",
+          content: "Error searching for relation",
+          intent: "danger",
+        });
+      });
+  };
+
   return (
     <>
       <tr ref={trRef} data-uid={r.uid}>
@@ -321,6 +372,19 @@ const ResultRow = ({
               ) : (
                 cell(key)
               )}
+              {useReifiedRel &&
+                typeof r["ctxTargetUid"] === "string" &&
+                typeof r["id"] === "string" &&
+                typeof r["complement"] === "number" &&
+                i === columns.length - 1 && (
+                  <Button
+                    minimal
+                    icon="delete"
+                    className="float-right"
+                    title="Delete relation"
+                    onClick={onDelete}
+                  ></Button>
+                )}
               {i < columns.length - 1 && (
                 <div
                   style={{

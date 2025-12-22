@@ -76,7 +76,8 @@ const executeQueries = async (
   onResult?: onResult,
 ) => {
   const promises = queryConfigs.map(async ({ relation, queryPromise }) => {
-    const results = await queryPromise();
+    let results = await queryPromise();
+    results = results.map((r) => ({ ...r, ctxTargetUid: targetUid }));
     if (onResult) {
       const groupedResult = {
         label: relation.text,
