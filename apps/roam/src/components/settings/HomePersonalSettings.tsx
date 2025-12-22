@@ -32,7 +32,12 @@ import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
-  const settings = getFormattedConfigTree();
+import React, { useMemo } from "react";
+
+const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
+  const extensionAPI = onloadArgs.extensionAPI;
+  const overlayHandler = getOverlayHandler(onloadArgs);
+  const settings = useMemo(() => getFormattedConfigTree(), []);
 
   return (
     <div className="flex flex-col gap-4 p-1">
