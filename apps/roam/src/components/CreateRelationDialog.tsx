@@ -374,7 +374,7 @@ export const renderCreateRelationDialog = (
 export const CreateRelationButton = (
   props: CreateRelationDialogProps,
 ): React.JSX.Element | null => {
-  const showAddRelation = getSetting(USE_REIFIED_RELATIONS);
+  const showAddRelation = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
   if (!showAddRelation) return null;
   let extProps: ExtendedCreateRelationDialogProps | null = null;
   try {

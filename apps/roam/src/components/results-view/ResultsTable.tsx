@@ -206,7 +206,7 @@ const ResultRow = ({
   onDragEnd,
   onRefresh,
 }: ResultRowProps) => {
-  const useReifiedRel = getSetting<boolean>(USE_REIFIED_RELATIONS);
+  const useReifiedRel = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
   const cell = (key: string) => {
     const value = toCellValue({
       value: r[`${key}-display`] || r[key] || "",

@@ -12,7 +12,7 @@ import {
 const MIGRATION_PROP_NAME = "relation-migration";
 
 const migrateRelations = async (dryRun = false): Promise<number> => {
-  const authorized = getSetting(USE_REIFIED_RELATIONS);
+  const authorized = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
   if (!authorized) return 0;
   let numProcessed = 0;
   await setSetting(USE_REIFIED_RELATIONS, false); // so queries use patterns

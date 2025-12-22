@@ -554,7 +554,7 @@ export const createAllRelationShapeUtils = (
         if (arrow.type !== target.type) {
           editor.updateShapes([{ id: arrow.id, type: target.type }]);
         }
-        if (getSetting(USE_REIFIED_RELATIONS)) {
+        if (getSetting<boolean>(USE_REIFIED_RELATIONS, false)) {
           const sourceAsDNS = asDiscourseNodeShape(source, editor);
           const targetAsDNS = asDiscourseNodeShape(target, editor);
 

@@ -261,7 +261,7 @@ const MigrationTab = (): React.ReactElement => {
   const [useMigrationResults, setMigrationResults] = useState<string>("");
   const [useOngoing, setOngoing] = useState<boolean>(false);
   const [useDryRun, setDryRun] = useState<boolean>(false);
-  const enabled = getSetting(USE_REIFIED_RELATIONS, false);
+  const enabled = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
   const doMigrateRelations = async () => {
     setOngoing(true);
     try {
@@ -332,7 +332,7 @@ const MigrationTab = (): React.ReactElement => {
 
 const FeatureFlagsTab = (): React.ReactElement => {
   const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
-    getSetting(USE_REIFIED_RELATIONS),
+    getSetting<boolean>(USE_REIFIED_RELATIONS, false),
   );
   const settings = useMemo(() => {
     refreshConfigTree();
