@@ -57,7 +57,7 @@ import { MAX_WIDTH } from "./Tldraw";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
 import { measureCanvasNodeText } from "~/utils/measureCanvasNodeText";
-import sendErrorEmail from "~/utils/sendErrorEmail";
+import internalError from "~/utils/internalError";
 
 export type ClipboardPage = {
   uid: string;
@@ -78,21 +78,6 @@ type ClipboardContextValue = {
 const ClipboardContext = createContext<ClipboardContextValue | null>(null);
 
 const CLIPBOARD_PROP_KEY = "pages";
-
-const toError = (error: unknown, fallbackMessage: string): Error => {
-  if (error instanceof Error) {
-    return error;
-  }
-  if (typeof error === "string") {
-    return new Error(error);
-  }
-  try {
-    const serialized = JSON.stringify(error);
-    return new Error(serialized || fallbackMessage);
-  } catch {
-    return new Error(fallbackMessage);
-  }
-};
 
 const getOrCreateClipboardBlock = async (
   canvasPageTitle: string,
@@ -155,11 +140,13 @@ export const ClipboardProvider = ({
       try {
         const userUid = getCurrentUserUid();
         if (!userUid) {
-          sendErrorEmail({
+          internalError({
             error: new Error("Missing current user UID"),
             type: "Canvas Clipboard: Missing current user UID",
-            context: { canvasPageTitle },
-          }).catch(() => {});
+            context: {
+              canvasPageTitle,
+            },
+          });
           setIsInitialized(true);
           return;
         }
@@ -179,13 +166,12 @@ export const ClipboardProvider = ({
         ) {
           setPages(storedPages as ClipboardPage[]);
         }
-      } catch (e) {
-        const normalizedError = toError(e, "Failed to initialize clipboard");
-        sendErrorEmail({
-          error: normalizedError,
+      } catch (error) {
+        internalError({
+          error,
           type: "Canvas Clipboard: Failed to initialize",
           context: { canvasPageTitle },
-        }).catch(() => {});
+        });
       } finally {
         setIsInitialized(true);
       }
@@ -201,13 +187,12 @@ export const ClipboardProvider = ({
       setBlockProps(clipboardBlockUid, {
         [CLIPBOARD_PROP_KEY]: pages,
       });
-    } catch (e) {
-      const normalizedError = toError(e, "Failed to persist clipboard state");
-      sendErrorEmail({
-        error: normalizedError,
+    } catch (error) {
+      internalError({
+        error,
         type: "Canvas Clipboard: Failed to persist state",
         context: { clipboardBlockUid, pageCount: pages.length },
-      }).catch(() => {});
+      });
     }
   }, [pages, clipboardBlockUid, isInitialized]);
 
@@ -287,8 +272,8 @@ const AddPageModal = ({ isOpen, onClose, onConfirm }: AddPageModalProps) => {
         // eslint-disable-next-line @typescript-eslint/await-thenable
         const raw = await window.roamAlphaAPI.data.backend.q(
           `
-            [:find ?text ?uid 
-            :where 
+            [:find ?text ?uid
+            :where
             [?e :node/title ?text]
             [?e :block/uid ?uid]]`,
         );
@@ -447,15 +432,11 @@ const ClipboardPageSection = ({
         );
         setDiscourseNodes(nodes);
       } catch (error) {
-        const normalizedError = toError(
+        internalError({
           error,
-          "Failed to fetch discourse nodes",
-        );
-        sendErrorEmail({
-          error: normalizedError,
           type: "Canvas Clipboard: Failed to fetch discourse nodes",
           context: { pageTitle: page.text },
-        }).catch(() => {});
+        });
         setDiscourseNodes([]);
       } finally {
         setIsLoading(false);
@@ -610,11 +591,11 @@ const ClipboardPageSection = ({
 
       const nodeType = findDiscourseNode(node.uid);
       if (!nodeType) {
-        sendErrorEmail({
-          error: new Error("Node type not found"),
+        internalError({
+          error: new Error("Canvas Clipboard: Node type not found"),
           type: "Canvas Clipboard: Node type not found",
           context: { uid: node.uid },
-        }).catch(() => {});
+        });
         return;
       }
 

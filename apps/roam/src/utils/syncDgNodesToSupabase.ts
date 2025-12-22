@@ -21,7 +21,7 @@ import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddi
 import { createClient, type DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json, CompositeTypes, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import sendErrorEmail from "~/utils/sendErrorEmail";
+import internalError from "~/utils/internalError";
 type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 type AccountLocalInput = CompositeTypes<"account_local_input">;
 
@@ -60,11 +60,11 @@ const notifyEndSyncFailure = ({
     });
   }
 
-  sendErrorEmail({
+  internalError({
     error: new Error(reason),
     type: "Sync Failed",
     context: { status },
-  }).catch(() => {});
+  });
 };
 
 export const endSyncTask = async (

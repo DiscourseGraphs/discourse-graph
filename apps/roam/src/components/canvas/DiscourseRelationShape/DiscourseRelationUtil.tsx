@@ -80,7 +80,7 @@ import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
-import sendErrorEmail from "~/utils/sendErrorEmail";
+import internalError from "~/utils/internalError";
 
 const COLOR_ARRAY = Array.from(textShapeProps.color.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
@@ -564,12 +564,10 @@ export const createAllRelationShapeUtils = (
               relationBlockUid: relation.id,
             });
           else {
-            void sendErrorEmail({
-              error: new Error(
-                "attempt to create a relation between non discourse nodes",
-              ),
-              type: "canvas-create-relation-non-dgn",
-            }).catch(() => undefined);
+            void internalError({
+              error: "attempt to create a relation between non discourse nodes",
+              type: "Canvas create relation",
+            });
           }
         } else {
           const { triples, label: relationLabel } = relation;

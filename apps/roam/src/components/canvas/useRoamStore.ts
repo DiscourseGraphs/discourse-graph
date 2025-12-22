@@ -25,8 +25,7 @@ import {
 } from "tldraw";
 import { AddPullWatch } from "roamjs-components/types";
 import { LEGACY_SCHEMA } from "~/data/legacyTldrawSchema";
-import sendErrorEmail from "~/utils/sendErrorEmail";
-import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserDisplayName";
+import internalError from "~/utils/internalError";
 
 const THROTTLE = 350;
 
@@ -137,26 +136,25 @@ export const useRoamStore = ({
 
     const handleStoreError = ({
       error,
-      errorMessage,
+      type,
     }: {
       error: Error;
-      errorMessage: string;
+      type: string;
     }): void => {
-      console.error(errorMessage, error);
       setError(error);
       setLoading(false);
       const snapshotSize = initialSnapshot
         ? JSON.stringify(initialSnapshot).length
         : 0;
-      sendErrorEmail({
+      internalError({
         error,
-        type: errorMessage,
+        type,
         context: {
           pageUid,
           snapshotSize,
           ...(snapshotSize < 10000 ? { initialSnapshot } : {}),
         },
-      }).catch(() => {});
+      });
     };
 
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -171,7 +169,7 @@ export const useRoamStore = ({
     } catch (e) {
       handleStoreError({
         error: e as Error,
-        errorMessage: "Failed to create TLStore",
+        type: "Failed to create TLStore",
       });
       return null;
     }
@@ -182,7 +180,7 @@ export const useRoamStore = ({
       } catch (e) {
         handleStoreError({
           error: e as Error,
-          errorMessage: "Failed to migrate snapshot",
+          type: "Failed to migrate snapshot",
         });
         return null;
       }
@@ -305,14 +303,13 @@ export const useRoamStore = ({
       setNeedsUpgrade(false);
       setInitialSnapshot(null);
       setError(error);
-      sendErrorEmail({
+      internalError({
         error,
         type: "Failed to perform Canvas upgrade",
         context: {
           data: { oldData },
         },
-      }).catch(() => {});
-      console.error("Failed to perform Canvas upgrade", error);
+      });
     }
   };
 

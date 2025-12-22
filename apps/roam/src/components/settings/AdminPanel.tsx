@@ -30,7 +30,7 @@ import {
 import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import { DGSupabaseClient } from "@repo/database/lib/client";
-import sendErrorEmail from "~/utils/sendErrorEmail";
+import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
@@ -449,10 +449,12 @@ const FeatureFlagsTab = (): React.ReactElement => {
         icon="send-message"
         onClick={() => {
           console.log("sending error email");
-          sendErrorEmail({
+          internalError({
             error: new Error("test"),
             type: "Test",
-          }).catch(() => {});
+            sendEmail: true,
+            forceSendInDev: true,
+          });
         }}
       >
         Send Error Email

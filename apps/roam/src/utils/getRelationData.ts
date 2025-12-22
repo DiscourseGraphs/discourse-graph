@@ -2,6 +2,7 @@ import fireQuery from "./fireQuery";
 import getDiscourseNodes from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
+import internalError from "./internalError";
 
 // lifted from getExportTypes
 
@@ -39,14 +40,23 @@ export const getRelationDataUtil = async (
                   label: "target",
                 },
               ],
-            }).then((results) =>
-              results.map((result) => ({
-                source: result.uid,
-                target: result["target-uid"],
-                relUid: s.id,
-                label: s.label,
-              })),
-            );
+            })
+              .then((results) =>
+                results.map((result) => ({
+                  source: result.uid,
+                  target: result["target-uid"],
+                  relUid: s.id,
+                  label: s.label,
+                })),
+              )
+              .catch((error) => {
+                internalError({
+                  error,
+                  type: "Get relation data",
+                  userMessage: `Could not find relations of type ${s.label}`,
+                });
+                return [];
+              });
       }),
   ).then((r) => r.flat());
 

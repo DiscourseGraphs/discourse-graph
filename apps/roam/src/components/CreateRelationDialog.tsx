@@ -12,7 +12,6 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import sendErrorEmail from "~/utils/sendErrorEmail";
 import { getSetting } from "~/utils/extensionSettings";
 import getDiscourseRelations, {
   type DiscourseRelation,
@@ -22,6 +21,7 @@ import { findDiscourseNodeByTitleAndUid } from "~/utils/findDiscourseNode";
 import { getDiscourseNodeFormatInnerExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { Result } from "~/utils/types";
+import internalError from "~/utils/internalError";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 
 export type CreateRelationDialogProps = {
@@ -37,15 +37,6 @@ type ExtendedCreateRelationDialogProps = CreateRelationDialogProps & {
   relData: RelWithDirection[];
   sourceNodeTitle: string;
   selectedSourceType: DiscourseNode;
-};
-
-const internalError = (msg: string) => {
-  process.env.NODE_ENV === "development"
-    ? console.error(msg)
-    : void sendErrorEmail({
-        error: new Error(msg),
-        type: "Create Relation Dialog Failed",
-      }).catch(() => {});
 };
 
 const CreateRelationDialog = ({
@@ -112,7 +103,10 @@ const CreateRelationDialog = ({
     });
     if (selectedTargetType === false) {
       // should not happen at this point, since the pattern was vetted at input.
-      internalError("Could not find identify node downstream");
+      internalError({
+        type: "Create Relation dialog",
+        error: "Could not identify node downstream",
+      });
       return null;
     }
     const candidateRelations = relDataByTag[selectedRelationName].filter(
@@ -132,14 +126,18 @@ const CreateRelationDialog = ({
     );
     if (candidateRelations.length === 0) {
       // also should not happen
-      internalError("Could not find the relation");
+      internalError({
+        type: "Create Relation dialog",
+        error: "Could not find the relation",
+      });
       return null;
     }
     if (candidateRelations.length !== 1) {
       // This seems to happen... I need more data.
-      internalError(
-        `Too many relations between ${selectedTargetType.type} and ${selectedSourceType.type}: ${candidateRelations.map((r) => r.id).join(",")}`,
-      );
+      internalError({
+        type: "Create Relation dialog",
+        error: `Too many relations between ${selectedTargetType.type} and ${selectedSourceType.type}: ${candidateRelations.map((r) => r.id).join(",")}`,
+      });
       return null;
     }
     return candidateRelations[0];
@@ -288,7 +286,10 @@ const prepareRelData = (
   });
   if (!nodeSchema) {
     // should not happen at this point, since the pattern was vetted at input.
-    internalError("Could not find identify node downstream");
+    internalError({
+      error: "Could not identify node downstream",
+      type: "Create Relation dialog",
+    });
     return [];
   }
   // note the same relation could be used in both directions
