@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
@@ -27,10 +27,12 @@ import internalError from "~/utils/internalError";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import streamlineStyling from "~/styles/streamlineStyling";
+import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
+  const settings = useMemo(() => getFormattedConfigTree(), []);
 
   return (
     <div className="flex flex-col gap-4 p-1">
@@ -83,31 +85,33 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
-      <Checkbox
-        defaultChecked={
-          extensionAPI.settings.get("suggestive-mode-overlay") as boolean
-        }
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          void extensionAPI.settings.set(
-            "suggestive-mode-overlay",
-            target.checked,
-          );
-          onPageRefObserverChange(getSuggestiveOverlayHandler(onloadArgs))(
-            target.checked,
-          );
-        }}
-        labelElement={
-          <>
-            Suggestive Mode Overlay
-            <Description
-              description={
-                "Whether or not to overlay Suggestive Mode button over Discourse Node references."
-              }
-            />
-          </>
-        }
-      />
+      {settings.suggestiveModeEnabled?.value && (
+        <Checkbox
+          defaultChecked={
+            extensionAPI.settings.get("suggestive-mode-overlay") as boolean
+          }
+          onChange={(e) => {
+            const target = e.target as HTMLInputElement;
+            void extensionAPI.settings.set(
+              "suggestive-mode-overlay",
+              target.checked,
+            );
+            onPageRefObserverChange(getSuggestiveOverlayHandler(onloadArgs))(
+              target.checked,
+            );
+          }}
+          labelElement={
+            <>
+              Suggestive Mode Overlay
+              <Description
+                description={
+                  "Whether or not to overlay Suggestive Mode button over Discourse Node references."
+                }
+              />
+            </>
+          }
+        />
+      )}
       <Checkbox
         defaultChecked={
           extensionAPI.settings.get("text-selection-popup") !== false
