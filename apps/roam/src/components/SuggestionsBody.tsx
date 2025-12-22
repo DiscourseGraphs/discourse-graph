@@ -19,9 +19,7 @@ import { performHydeSearch } from "../utils/hyde";
 import { createBlock } from "roamjs-components/writes";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import findDiscourseNode, {
-  findDiscourseNodeByTitleAndUid,
-} from "~/utils/findDiscourseNode";
+import findDiscourseNode from "~/utils/findDiscourseNode";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
@@ -319,25 +317,11 @@ const SuggestionsBody = ({
         });
         return;
       }
-      const selectedNodeType = findDiscourseNodeByTitleAndUid({
-        uid: node.uid,
-        title: node.text,
-      });
-      if (selectedNodeType === false) {
-        renderToast({
-          id: "suggestions-create-block-error",
-          content: "Could not identify type of target",
-          intent: "danger",
-          timeout: 5000,
-        });
-        return;
-      }
       const relevantRelns = validRelations.filter(
         (rel) =>
-          (rel.source === selectedNodeType.type &&
+          (rel.source === node.type &&
             rel.destination === discourseNode.type) ||
-          (rel.destination === selectedNodeType.type &&
-            rel.source === discourseNode.type),
+          (rel.destination === node.type && rel.source === discourseNode.type),
       );
       if (relevantRelns.length) {
         if (relevantRelns.length > 1) {
@@ -347,7 +331,7 @@ const SuggestionsBody = ({
         }
         const rel = relevantRelns[0];
         try {
-          if (rel.destination === selectedNodeType.type)
+          if (rel.destination === node.type)
             await createReifiedRelation({
               sourceUid: tagUid,
               destinationUid: node.uid,
