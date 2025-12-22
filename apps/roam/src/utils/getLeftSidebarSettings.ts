@@ -209,7 +209,7 @@ export const getLeftSidebarSettings = (
   const leftSidebarChildren = leftSidebarNode?.children || [];
   const global = getLeftSidebarGlobalSectionConfig(leftSidebarChildren);
   const personal = getLeftSidebarPersonalSectionConfig(leftSidebarChildren);
-  // TODO: remove this on complete migration task 
+  // TODO: remove this on complete migration task [ENG-1171: Remove `migrateLeftSideBarSettings`](https://linear.app/discourse-graphs/issue/ENG-1171/remove-migrateleftsidebarsettings)
   const allPersonalSections =
     getAllLeftSidebarPersonalSectionConfigs(leftSidebarChildren);
   const favoritesMigrated = getUidAndBooleanSetting({
