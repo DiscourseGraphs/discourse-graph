@@ -196,9 +196,10 @@ const upsertNodeSchemaToContent = async ({
   ]
   `;
 
-  const result = (await Promise.resolve(
-    window.roamAlphaAPI.data.backend.q(query, nodeTypesUids),
-  )) as unknown as RoamDiscourseNodeData[];
+  const result = (await window.roamAlphaAPI.data.backend.q(
+    query,
+    nodeTypesUids,
+  )) as unknown[] as RoamDiscourseNodeData[];
 
   const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
     nodes: result,
@@ -336,9 +337,9 @@ const getAllUsers = async (): Promise<AccountLocalInput[]> => {
     [?user-eid :user/uid ?author_local_id]
     [(get-else $ ?user-eid :user/display-name "") ?author_name]
 ]`;
-  const result = (await Promise.resolve(
-    window.roamAlphaAPI.data.backend.q(query),
-  )) as unknown as {
+  const result = (await window.roamAlphaAPI.data.backend.q(
+    query,
+  )) as unknown[] as {
     author_local_id: string;
     name: string;
   }[];

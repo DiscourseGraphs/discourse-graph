@@ -52,19 +52,17 @@ export const getDiscourseNodeTypeWithSettingsBlockNodes = async (
         [?user-eid :user/uid ?author_local_id]
         [(get-else $ ?child :edit/user ?user-eid) ?eu]
         [(get-else $ ?eu :user/display-name "Anonymous User") ?author_name]
-        [or 
+        [or
          [(> ?childEditTime ?since)]
          [(> ?nodeEditTime ?since)]]
         ]`;
 
-  const blockNode = (await Promise.resolve(
-    window.roamAlphaAPI.data.backend.q(
-      queryBlock,
-      String(firstChildUid),
-      String(node.type),
-      sinceMs,
-    ),
-  )) as unknown as RoamDiscourseNodeData[];
+  const blockNode = (await window.roamAlphaAPI.data.backend.q(
+    queryBlock,
+    String(firstChildUid),
+    String(node.type),
+    sinceMs,
+  )) as unknown[] as RoamDiscourseNodeData[];
   return blockNode;
 };
 
@@ -99,9 +97,11 @@ export const getAllDiscourseNodesSince = async (
           [(> ?nodeEditTime ?since)]
       ]`;
 
-      const nodesOfType = (await Promise.resolve(
-        window.roamAlphaAPI.data.backend.q(query, sinceMs, String(node.type)),
-      )) as unknown as RoamDiscourseNodeData[];
+      const nodesOfType = (await window.roamAlphaAPI.data.backend.q(
+        query,
+        sinceMs,
+        String(node.type),
+      )) as unknown[] as RoamDiscourseNodeData[];
 
       nodesOfType.forEach((n) => {
         if (n.source_local_id) {

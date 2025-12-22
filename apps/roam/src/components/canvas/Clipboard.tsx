@@ -268,8 +268,6 @@ const AddPageModal = ({ isOpen, onClose, onConfirm }: AddPageModalProps) => {
     const fetchAllPages = async () => {
       setIsLoading(true);
       try {
-        // TODO update roamjs-components
-        // eslint-disable-next-line @typescript-eslint/await-thenable
         const raw = await window.roamAlphaAPI.data.backend.q(
           `
             [:find ?text ?uid
