@@ -231,7 +231,7 @@ function reparentArrow(editor: Editor, arrowId: TLShapeId) {
   let finalIndex: IndexKey;
 
   const relationIds = new Set(getDiscourseRelations().map((r) => r.id));
-  relationIds.add(arrow.type);
+  relationIds.add("arrow");
 
   // if the next sibling is also a bound arrow though, we can end up
   // all fighting for the same indexes. so lets find the next
