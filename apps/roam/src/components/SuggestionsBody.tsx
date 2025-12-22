@@ -29,6 +29,7 @@ import { type RelationDetails } from "~/utils/hyde";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { getSetting } from "~/utils/extensionSettings";
+import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 
 export type DiscourseData = {
@@ -308,7 +309,7 @@ const SuggestionsBody = ({
   };
 
   const handleCreateBlock = async (node: SuggestedNode) => {
-    if (getSetting("use-reified-relations")) {
+    if (getSetting<boolean>(USE_REIFIED_RELATIONS, false)) {
       if (discourseNode === false) {
         renderToast({
           id: "suggestions-create-block-error",
