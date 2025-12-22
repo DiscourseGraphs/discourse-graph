@@ -59,6 +59,19 @@ export const migrateLeftSidebarSettings = async () => {
     }
   }
 
+  const allPersonalSections = leftSidebarSettings.allPersonalSections;
+
+  for (const [_, userPersonalSection] of Object.entries(
+    allPersonalSections,
+  )) {
+    for (const section of userPersonalSection.sections) {
+      const children = section.children || [];
+      if (children.length > 0) {
+        await migrateSectionChildren(children);
+      }
+    }
+  }
+
   if (leftSidebarSettings.uid) {
     await createBlock({
       parentUid: leftSidebarSettings.uid,

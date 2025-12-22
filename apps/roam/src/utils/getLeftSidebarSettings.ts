@@ -45,6 +45,7 @@ export type LeftSidebarConfig = {
   favoritesMigrated: BooleanSetting;
   sidebarMigrated: BooleanSetting;
   global: LeftSidebarGlobalSectionConfig;
+  allPersonalSections: AllUsersPersonalSections;
   personal: {
     uid: string;
     sections: LeftSidebarPersonalSectionConfig[];
@@ -125,14 +126,22 @@ const getPersonalSectionSettings = (
   };
 };
 
+export type AllUsersPersonalSections = {
+  [userUid: string]: {
+    uid: string;
+    sections: LeftSidebarPersonalSectionConfig[];
+  };
+};
+
 export const getLeftSidebarPersonalSectionConfig = (
   leftSidebarChildren: RoamBasicNode[],
+  userUid?: string,
 ): { uid: string; sections: LeftSidebarPersonalSectionConfig[] } => {
-  const userUid = window.roamAlphaAPI.user.uid();
+  const targetUserUid = userUid ?? window.roamAlphaAPI.user.uid();
 
   const personalLeftSidebarNode = getSubTree({
     tree: leftSidebarChildren,
-    key: userUid + "/Personal-Section",
+    key: targetUserUid + "/Personal-Section",
   });
 
   if (personalLeftSidebarNode.uid === "") {
@@ -173,7 +182,23 @@ export const getLeftSidebarPersonalSectionConfig = (
     sections,
   };
 };
+export const getAllLeftSidebarPersonalSectionConfigs = (
+  leftSidebarChildren: RoamBasicNode[],
+): AllUsersPersonalSections => {
+  const result: AllUsersPersonalSections = {};
 
+  leftSidebarChildren
+    .filter((node) => node.text.endsWith("/Personal-Section"))
+    .forEach((node) => {
+      const userUid = node.text.replace("/Personal-Section", "");
+      result[userUid] = getLeftSidebarPersonalSectionConfig(
+        leftSidebarChildren,
+        userUid,
+      );
+    });
+
+  return result;
+};
 export const getLeftSidebarSettings = (
   globalTree: RoamBasicNode[],
 ): LeftSidebarConfig => {
@@ -184,6 +209,9 @@ export const getLeftSidebarSettings = (
   const leftSidebarChildren = leftSidebarNode?.children || [];
   const global = getLeftSidebarGlobalSectionConfig(leftSidebarChildren);
   const personal = getLeftSidebarPersonalSectionConfig(leftSidebarChildren);
+  // TODO: remove this on complete migration task 
+  const allPersonalSections =
+    getAllLeftSidebarPersonalSectionConfigs(leftSidebarChildren);
   const favoritesMigrated = getUidAndBooleanSetting({
     tree: leftSidebarChildren,
     text: "Favorites Migrated",
@@ -198,5 +226,6 @@ export const getLeftSidebarSettings = (
     sidebarMigrated,
     global,
     personal,
+    allPersonalSections,
   };
 };
