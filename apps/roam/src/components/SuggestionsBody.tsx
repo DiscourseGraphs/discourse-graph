@@ -25,6 +25,10 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import { type RelationDetails } from "~/utils/hyde";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import { render as renderToast } from "roamjs-components/components/Toast";
+import { getSetting } from "~/utils/extensionSettings";
+import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import { createReifiedRelation } from "~/utils/createReifiedBlock";
 
 export type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -303,10 +307,66 @@ const SuggestionsBody = ({
   };
 
   const handleCreateBlock = async (node: SuggestedNode) => {
-    await createBlock({
-      parentUid: blockUid,
-      node: { text: `[[${node.text}]]` },
-    });
+    if (getSetting<boolean>(USE_REIFIED_RELATIONS, false)) {
+      if (discourseNode === false) {
+        renderToast({
+          id: "suggestions-create-block-error",
+          content: "Could not identify type of source",
+          intent: "danger",
+          timeout: 5000,
+        });
+        return;
+      }
+      const relevantRelns = validRelations.filter(
+        (rel) =>
+          (rel.source === node.type &&
+            rel.destination === discourseNode.type) ||
+          (rel.destination === node.type && rel.source === discourseNode.type),
+      );
+      if (relevantRelns.length) {
+        if (relevantRelns.length > 1) {
+          // I don't want to panick the user with this.
+          // TODO: Maybe think of adding a relation type picker?
+          console.warn("Picking an arbitrary relation");
+        }
+        const rel = relevantRelns[0];
+        try {
+          if (rel.destination === node.type)
+            await createReifiedRelation({
+              sourceUid: tagUid,
+              destinationUid: node.uid,
+              relationBlockUid: rel.id,
+            });
+          else
+            await createReifiedRelation({
+              sourceUid: node.uid,
+              destinationUid: tagUid,
+              relationBlockUid: rel.id,
+            });
+        } catch (error) {
+          console.error("Failed to create reified relation:", error);
+          renderToast({
+            id: "suggestions-create-block-error",
+            content: "Failed to create relation",
+            intent: "danger",
+            timeout: 5000,
+          });
+          return;
+        }
+      } else {
+        renderToast({
+          id: "suggestions-create-block-error",
+          content: "Could not identify a relevant relation",
+          intent: "danger",
+          timeout: 5000,
+        });
+      }
+    } else {
+      await createBlock({
+        parentUid: blockUid,
+        node: { text: `[[${node.text}]]` },
+      });
+    }
     setHydeFilteredNodes((prev) => prev.filter((n) => n.uid !== node.uid));
   };
 
