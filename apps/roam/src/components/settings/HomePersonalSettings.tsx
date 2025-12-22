@@ -90,7 +90,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
-      {settings.suggestiveModeEnabled.value && (
+      {settings.suggestiveModeEnabled?.value && (
         <Checkbox
           defaultChecked={
             extensionAPI.settings.get("suggestive-mode-overlay") as boolean
