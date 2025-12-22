@@ -293,7 +293,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }}
         labelElement={
           <>
-            Disable product diagnostics
+            Disable Product Diagnostics
             <Description
               description={
                 "Disable sending usage signals and error reports that help us improve the product."
