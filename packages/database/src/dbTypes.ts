@@ -652,6 +652,7 @@ export type Database = {
         Row: {
           failure_count: number | null
           id: number
+          last_success_start: string | null
           last_task_end: string | null
           last_task_start: string | null
           status: Database["public"]["Enums"]["task_status"] | null
@@ -664,6 +665,7 @@ export type Database = {
         Insert: {
           failure_count?: number | null
           id?: number
+          last_success_start?: string | null
           last_task_end?: string | null
           last_task_start?: string | null
           status?: Database["public"]["Enums"]["task_status"] | null
@@ -676,6 +678,7 @@ export type Database = {
         Update: {
           failure_count?: number | null
           id?: number
+          last_success_start?: string | null
           last_task_end?: string | null
           last_task_start?: string | null
           status?: Database["public"]["Enums"]["task_status"] | null
