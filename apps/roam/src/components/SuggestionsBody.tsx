@@ -218,7 +218,10 @@ const SuggestionsBody = ({
   >([]);
 
   const tagUid = useMemo(() => getPageUidByPageTitle(tag), [tag]);
-  const discourseNode = useMemo(() => findDiscourseNode(tagUid), [tagUid]);
+  const discourseNode = useMemo(
+    () => findDiscourseNode({ uid: tagUid }),
+    [tagUid],
+  );
   const allRelations = useMemo(() => getDiscourseRelations(), []);
   const allNodes = useMemo(() => getDiscourseNodes(), []);
 

@@ -112,7 +112,7 @@ const DiscourseContextOverlay = ({
     () =>
       getOverlayInfo(tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : ""))
         .then(({ refs, results }) => {
-          const discourseNode = findDiscourseNode(tagUid);
+          const discourseNode = findDiscourseNode({ uid: tagUid });
           if (discourseNode) {
             const attribute = getSettingValueFromTree({
               tree: getBasicTreeByParentUid(discourseNode.type),

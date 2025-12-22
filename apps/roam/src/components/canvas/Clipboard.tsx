@@ -587,7 +587,7 @@ const ClipboardPageSection = ({
     async (node: { uid: string; text: string }, pagePoint: Vec) => {
       if (!extensionAPI) return;
 
-      const nodeType = findDiscourseNode(node.uid);
+      const nodeType = findDiscourseNode({ uid: node.uid });
       if (!nodeType) {
         internalError({
           error: new Error("Canvas Clipboard: Node type not found"),
@@ -726,7 +726,7 @@ const ClipboardPageSection = ({
       const nodeText = target.dataset.clipboardNodeText;
       if (!nodeUid || !nodeText) return;
 
-      const nodeType = findDiscourseNode(nodeUid);
+      const nodeType = findDiscourseNode({ uid: nodeUid });
       if (!nodeType) return;
       const { backgroundColor, textColor } = getDiscourseNodeColors({
         nodeType: nodeType.type,
