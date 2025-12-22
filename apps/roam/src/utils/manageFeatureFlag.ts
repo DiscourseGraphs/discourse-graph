@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { FeatureFlagsSchema, type FeatureFlags } from "./zodSchemaForSettings";
 import { TOP_LEVEL_BLOCK_PROP_KEYS } from "~/data/blockPropsSettingsConfig";
 import {
@@ -23,5 +24,10 @@ export const setFeatureFlag = (
 ): void => {
   const featureFlagKey = TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags;
 
-  void setBlockPropBasedSettings({ keys: [featureFlagKey, key], value });
+  const validatedValue = z.boolean().parse(value);
+
+  void setBlockPropBasedSettings({
+    keys: [featureFlagKey, key],
+    value: validatedValue,
+  });
 };
