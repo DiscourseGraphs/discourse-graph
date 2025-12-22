@@ -54,6 +54,7 @@ const VIEWS: Record<string, { value: boolean }> = {
   plain: { value: false },
   embed: { value: true },
   alias: { value: true },
+  hidden: { value: false },
 };
 
 const EMBED_FOLD_VALUES = ["default", "open", "closed"];
@@ -395,15 +396,21 @@ const ResultsView: ResultsViewComponent = ({
     () => (Array.isArray(layout.mode) ? layout.mode[0] : layout.mode),
     [layout],
   );
+  const isColumnViewsDirty = useMemo(
+    () => views.some((v) => v.mode === "hidden"),
+    [views],
+  );
   const isMenuIconDirty = useMemo(
     () =>
       (searchFilter && !showSearchFilter) ||
+      isColumnViewsDirty ||
       columnFilters.length ||
       random.count ||
       (activeSort.length && layout.mode !== "table"), // indicator is on ResultHeader
     [
       searchFilter,
       showSearchFilter,
+      isColumnViewsDirty,
       columnFilters,
       random,
       activeSort,
@@ -439,6 +446,10 @@ const ResultsView: ResultsViewComponent = ({
   const debounceRef = useRef(0);
   const showColumnViewOptions = views.some(
     (view) => VIEWS[view.mode]?.value === true,
+  );
+  const visibleColumnCount = useMemo(
+    () => views.filter((view) => view.mode !== "hidden").length,
+    [views],
   );
 
   return (
@@ -1045,7 +1056,12 @@ const ResultsView: ResultsViewComponent = ({
                           <td className="whitespace-nowrap">
                             <MenuItemSelect
                               className="roamjs-view-select"
-                              items={Object.keys(VIEWS)}
+                              items={Object.keys(VIEWS).filter(
+                                (viewMode) =>
+                                  viewMode !== "hidden" ||
+                                  visibleColumnCount > 1 ||
+                                  mode === "hidden",
+                              )}
                               activeItem={mode}
                               onItemSelect={(m) => {
                                 posthog.capture(
@@ -1143,6 +1159,7 @@ const ResultsView: ResultsViewComponent = ({
                     <MenuItem
                       icon={"eye-open"}
                       text={"Column Views"}
+                      className={isColumnViewsDirty ? "roamjs-item-dirty" : ""}
                       onClick={() => {
                         setIsEditViews(true);
                       }}
