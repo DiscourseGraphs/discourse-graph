@@ -228,7 +228,7 @@ const ContextTab = ({
   r: DiscourseContextResults[number];
   groupByTarget: boolean;
   setGroupByTarget: (b: boolean) => void;
-  onRefresh: () => void;
+  onRefresh: (ignoreCache?: boolean) => void;
 }) => {
   const [subTabId, setSubTabId] = useState(0);
 
@@ -343,14 +343,17 @@ export const ContextContent = ({ uid, results }: Props) => {
     }));
   }, []);
 
-  const onRefresh = useCallback(() => {
-    setRawQueryResults({});
-    getDiscourseContextResults({
-      uid,
-      onResult: addLabels,
-      ignoreCache: true,
-    }).finally(() => setLoading(false));
-  }, [uid, setRawQueryResults, setLoading, addLabels]);
+  const onRefresh = useCallback(
+    (ignoreCache = true) => {
+      setRawQueryResults({});
+      void getDiscourseContextResults({
+        uid,
+        onResult: addLabels,
+        ignoreCache,
+      }).finally(() => setLoading(false));
+    },
+    [uid, setRawQueryResults, setLoading, addLabels],
+  );
 
   const delayedRefresh = () => {
     window.setTimeout(onRefresh, 250);
@@ -358,7 +361,7 @@ export const ContextContent = ({ uid, results }: Props) => {
 
   useEffect(() => {
     if (!results) {
-      onRefresh();
+      onRefresh(false);
     } else {
       results.forEach(addLabels);
       setLoading(false);

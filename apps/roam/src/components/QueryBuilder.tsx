@@ -65,44 +65,41 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
   const [columns, setColumns] = useState<Column[]>([]);
   const [results, setResults] = useState<Result[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
-  const onRefresh = useCallback(
-    (loadInBackground = false) => {
-      setError("");
-      setLoading(!loadInBackground);
-      const args = parseQuery(pageUid);
-      const { inputs } = parseResultSettings(pageUid, args.columns);
-      const transformedInputs = Object.fromEntries(
-        inputs.map(({ key, inputValue }) => [key, inputValue]),
-      );
-      setTimeout(() => {
-        fireQuery({ ...args, inputs: transformedInputs })
-          .then((results) => {
-            setColumns(args.columns);
-            setResults(results);
-          })
-          .catch(() => {
-            setError(
-              `Query failed to run. Try running a new query from the editor.`,
-            );
-          })
-          .finally(() => {
-            const tree = getBasicTreeByParentUid(pageUid);
-            const node = getSubTree({ tree, key: "results" });
-            return (
-              node.uid
-                ? Promise.resolve(node.uid)
-                : createBlock({
-                    parentUid: pageUid,
-                    node: { text: "results" },
-                  })
-            ).then(() => {
-              setLoading(false);
-            });
+  const onRefresh = useCallback(() => {
+    setError("");
+    setLoading(true);
+    const args = parseQuery(pageUid);
+    const { inputs } = parseResultSettings(pageUid, args.columns);
+    const transformedInputs = Object.fromEntries(
+      inputs.map(({ key, inputValue }) => [key, inputValue]),
+    );
+    setTimeout(() => {
+      fireQuery({ ...args, inputs: transformedInputs })
+        .then((results) => {
+          setColumns(args.columns);
+          setResults(results);
+        })
+        .catch(() => {
+          setError(
+            `Query failed to run. Try running a new query from the editor.`,
+          );
+        })
+        .finally(() => {
+          const tree = getBasicTreeByParentUid(pageUid);
+          const node = getSubTree({ tree, key: "results" });
+          void (
+            node.uid
+              ? Promise.resolve(node.uid)
+              : createBlock({
+                  parentUid: pageUid,
+                  node: { text: "results" },
+                })
+          ).then(() => {
+            setLoading(false);
           });
-      }, 1);
-    },
-    [setResults, pageUid, setLoading, setColumns],
-  );
+        });
+    }, 1);
+  }, [setResults, pageUid, setLoading, setColumns]);
   useEffect(() => {
     if (!isEdit) {
       if (hasResults) {
