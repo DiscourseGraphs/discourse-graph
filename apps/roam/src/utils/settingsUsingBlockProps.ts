@@ -1,9 +1,7 @@
 import getBlockProps, { type json } from "./getBlockProps";
 import getBlockUidByTextOnPage from "roamjs-components/queries/getBlockUidByTextOnPage";
 import setBlockProps from "./setBlockProps";
-
-export const DG_BLOCK_PROP_SETTINGS_PAGE_TITLE =
-  "roam/js/discourse-graph/block-prop-settings";
+import { DG_BLOCK_PROP_SETTINGS_PAGE_TITLE } from "~/data/blockPropsSettingsConfig";
 
 export const getBlockPropBasedSettings = ({
   keys,
