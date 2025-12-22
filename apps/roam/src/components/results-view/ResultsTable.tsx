@@ -404,6 +404,18 @@ const ResultsTable = ({
     rightStartWidth: 0,
   });
 
+  const viewsByColumn = useMemo(
+    () => Object.fromEntries(views.map((v) => [v.column, v])),
+    [views],
+  );
+
+  const visibleColumns = useMemo(() => {
+    const filtered = columns.filter(
+      (column) => viewsByColumn[column.key]?.mode !== "hidden",
+    );
+    return filtered.length ? filtered : columns;
+  }, [columns, viewsByColumn]);
+
   const rafIdRef = useRef<number | null>(null);
   const throttledSetColumnWidths = useCallback((update: ColumnWidths) => {
     if (rafIdRef.current !== null) {
@@ -435,7 +447,7 @@ const ResultsTable = ({
       widths.map((w) => w.split(" - ")).filter((p) => p.length === 2),
     );
     const allWidths: ColumnWidths = {};
-    const defaultWidth = `${100 / columns.length}%`;
+    const defaultWidth = `${100 / (visibleColumns.length || columns.length)}%`;
     columns.forEach((c) => {
       allWidths[c.uid] = fromLayout[c.uid] || defaultWidth;
     });
@@ -527,8 +539,8 @@ const ResultsTable = ({
     const minWidth = 40;
     const minPercent = (minWidth / totalWidth) * 100;
 
-    const finalWidths: ColumnWidths = {};
-    const uids = columns.map((c) => c.uid);
+    const finalWidths: ColumnWidths = { ...columnWidths };
+    const uids = visibleColumns.map((c) => c.uid);
     uids.forEach((uid) => {
       const header = tableRef.current?.querySelector(
         `thead td[data-column="${uid}"]`,
@@ -553,7 +565,7 @@ const ResultsTable = ({
         values: Object.entries(finalWidths).map(([k, v]) => `${k} - ${v}`),
       });
     }
-  }, [columns, parentUid, columnWidths]);
+  }, [parentUid, columnWidths, visibleColumns]);
 
   const resultHeaderSetFilters = React.useCallback(
     (fs: FilterData) => {
@@ -653,7 +665,7 @@ const ResultsTable = ({
     >
       <thead style={{ background: "#eeeeee80" }}>
         <tr style={{ visibility: !showInterface ? "collapse" : "visible" }}>
-          {columns.map((c) => (
+          {visibleColumns.map((c) => (
             <ResultHeader
               key={c.uid}
               c={c}
@@ -676,14 +688,14 @@ const ResultsTable = ({
               parentUid={parentUid}
               views={views}
               onRefresh={onRefresh}
-              columns={columns}
+              columns={visibleColumns}
               onDragStart={onDragStart}
               onDrag={onDrag}
               onDragEnd={onDragEnd}
             />
             {extraRowUid === r.uid && (
               <tr className={`roamjs-${extraRowType}-row roamjs-extra-row`}>
-                <td colSpan={columns.length}>
+                <td colSpan={visibleColumns.length}>
                   {extraRowUid && extraRowType === "context" ? (
                     <ExtraContextRow uid={extraRowUid} />
                   ) : extraRowUid && extraRowType === "discourse" ? (
