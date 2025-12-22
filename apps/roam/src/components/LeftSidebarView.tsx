@@ -531,4 +531,15 @@ export const mountLeftSidebar = async (
   ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
 };
 
+export const unmountLeftSidebar = (wrapper: HTMLElement): void => {
+  if (!wrapper) return;
+  const id = "dg-left-sidebar-root";
+  const root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
+  if (root) {
+    ReactDOM.unmountComponentAtNode(root);
+    root.remove();
+  }
+  wrapper.style.padding = "";
+};
+
 export default LeftSidebarView;

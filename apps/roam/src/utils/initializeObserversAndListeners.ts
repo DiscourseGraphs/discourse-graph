@@ -49,11 +49,16 @@ import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { renderImageToolsMenu } from "./renderImageToolsMenu";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { getSetting } from "./extensionSettings";
-import { mountLeftSidebar } from "~/components/LeftSidebarView";
-import { getUidAndBooleanSetting } from "./getExportSettings";
+import {
+  mountLeftSidebar,
+  unmountLeftSidebar,
+} from "~/components/LeftSidebarView";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
+import { getFeatureFlag } from "./manageFeatureFlag";
+import { setupPullWatchBlockPropsBasedSettings } from "./pullWatchBlockPropsBasedSettings";
+import { initSchema } from "./initBlockPropSettings";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -77,6 +82,7 @@ export const initObservers = async ({
     nodeCreationPopoverListener: EventListener;
   };
 }> => {
+  const topLevelBlockProps = await initSchema();
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
@@ -238,24 +244,32 @@ export const initObservers = async ({
   const personalTrigger = personalTriggerCombo?.key;
   const personalModifiers = getModifiersFromCombo(personalTriggerCombo);
 
+  let leftSidebarContainer: HTMLDivElement | null = null;
+
+  const updateLeftSidebar = (container: HTMLDivElement) => {
+    const isLeftSidebarEnabled = getFeatureFlag("Enable Left Sidebar");
+    if (isLeftSidebarEnabled) {
+      container.style.padding = "0";
+      void mountLeftSidebar(container, onloadArgs);
+    } else {
+      unmountLeftSidebar(container);
+    }
+  };
   const leftSidebarObserver = createHTMLObserver({
     tag: "DIV",
     useBody: true,
     className: "starred-pages-wrapper",
     callback: (el) => {
-      void (async () => {
-        const isLeftSidebarEnabled = getUidAndBooleanSetting({
-          tree: configTree,
-          text: "(BETA) Left Sidebar",
-        }).value;
-        const container = el as HTMLDivElement;
-        if (isLeftSidebarEnabled) {
-          container.style.padding = "0";
-          await mountLeftSidebar(container, onloadArgs);
-        }
-      })();
+      leftSidebarContainer = el as HTMLDivElement;
+      updateLeftSidebar(leftSidebarContainer);
     },
   });
+
+  setupPullWatchBlockPropsBasedSettings(
+    topLevelBlockProps,
+    updateLeftSidebar,
+    leftSidebarContainer as unknown as HTMLDivElement,
+  );
 
   const handleNodeMenuRender = (target: HTMLElement, evt: KeyboardEvent) => {
     if (
