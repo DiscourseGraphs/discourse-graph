@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
@@ -28,11 +28,6 @@ import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import streamlineStyling from "~/styles/streamlineStyling";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
-
-const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const extensionAPI = onloadArgs.extensionAPI;
-  const overlayHandler = getOverlayHandler(onloadArgs);
-import React, { useMemo } from "react";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
