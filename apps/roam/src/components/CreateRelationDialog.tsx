@@ -23,6 +23,7 @@ import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { Result } from "~/utils/types";
 import internalError from "~/utils/internalError";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 
 export type CreateRelationDialogProps = {
   onClose: () => void;
@@ -373,7 +374,7 @@ export const renderCreateRelationDialog = (
 export const CreateRelationButton = (
   props: CreateRelationDialogProps,
 ): React.JSX.Element | null => {
-  const showAddRelation = getSetting("use-reified-relations");
+  const showAddRelation = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
   if (!showAddRelation) return null;
   let extProps: ExtendedCreateRelationDialogProps | null = null;
   try {

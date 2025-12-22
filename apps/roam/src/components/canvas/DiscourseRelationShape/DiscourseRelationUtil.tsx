@@ -81,6 +81,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import internalError from "~/utils/internalError";
+import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 
 const COLOR_ARRAY = Array.from(textShapeProps.color.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
@@ -553,7 +554,7 @@ export const createAllRelationShapeUtils = (
         if (arrow.type !== target.type) {
           editor.updateShapes([{ id: arrow.id, type: target.type }]);
         }
-        if (getSetting("use-reified-relations")) {
+        if (getSetting<boolean>(USE_REIFIED_RELATIONS, false)) {
           const sourceAsDNS = asDiscourseNodeShape(source, editor);
           const targetAsDNS = asDiscourseNodeShape(target, editor);
 
