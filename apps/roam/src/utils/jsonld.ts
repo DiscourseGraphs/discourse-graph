@@ -135,6 +135,9 @@ export const getJsonLdData = async ({
       const r = await pageToMarkdown(page, {
         ...settings,
         allNodes,
+        linkType: "roam url",
+        blockAnchors: true,
+        blockRefsAsLinks: true,
       });
       page.content = r.content;
       numTreatedPages += 1;
