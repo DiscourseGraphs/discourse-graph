@@ -2,7 +2,7 @@ import type { Result } from "roamjs-components/types/query-builder";
 import type { DiscourseRelation } from "./getDiscourseRelations";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import getPageMetadata from "./getPageMetadata";
-import { pageToMarkdown } from "./pageToMardkown";
+import { pageToMarkdown } from "./pageToMarkdown";
 import { getRelationDataUtil } from "./getRelationData";
 import { uniqJsonArray, getPageData } from "./exportUtils";
 import { getExportSettings } from "./getExportSettings";

@@ -11,7 +11,7 @@ import getDiscourseContextResults from "./getDiscourseContextResults";
 import { getRelationDataUtil } from "./getRelationData";
 import { ExportTypes } from "./types";
 import { getExportSettings } from "./getExportSettings";
-import { pageToMarkdown, toMarkdown } from "./pageToMardkown";
+import { pageToMarkdown, toMarkdown } from "./pageToMarkdown";
 import { getJsonLdData } from "./jsonld";
 import {
   uniqJsonArray,
