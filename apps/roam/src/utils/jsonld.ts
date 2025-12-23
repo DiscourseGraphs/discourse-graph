@@ -25,6 +25,7 @@ export const jsonLdContext = (baseUrl: string): Record<string, string> => ({
   content: "sioc:content",
   source: "dgb:source",
   destination: "dgb:destination",
+  textRefersToNode: "dgb:textRefersToNode",
   predicate: "rdf:predicate",
   nodeSchema: "dgb:NodeSchema",
   relationDef: "dgb:RelationDef",
@@ -106,10 +107,12 @@ export const getJsonLdData = async ({
   Record<string, string | Record<string, string> | Record<string, string>[]>
 > => {
   const roamUrl = canonicalRoamUrl();
+  const roamUrlRe = new RegExp(roamUrl + "/page/([\\w\\d-]{9,10})\\b", "g");
   const getRelationData = () =>
     getRelationDataUtil(allRelations, nodeLabelByType);
   await updateExportProgress(0);
   const pageData = await getPageData({ results, allNodes });
+  const nodeUids = new Set(pageData.map((p) => p.uid));
   const numPages = pageData.length + allNodes.length;
   let numTreatedPages = 0;
   const settings = {
@@ -147,7 +150,12 @@ export const getJsonLdData = async ({
 
   const nodes = pageData.map(({ text, uid, content, type }) => {
     const { date, displayName, modified } = getPageMetadata(text);
-    return {
+    const textRefersToNode = [
+      ...new Set([...(content as string).matchAll(roamUrlRe)].map((r) => r[1])),
+    ]
+      .filter((r) => nodeUids.has(r))
+      .map((r) => `page:${r}`);
+    const r = {
       "@id": `pages:${uid}`, // eslint-disable-line @typescript-eslint/naming-convention
       "@type": nodeSchemaUriByName[type], // eslint-disable-line @typescript-eslint/naming-convention
       title: text,
@@ -156,6 +164,8 @@ export const getJsonLdData = async ({
       created: date.toJSON(),
       creator: displayName,
     };
+    if (textRefersToNode.length > 0) return { ...r, textRefersToNode };
+    return r;
   });
   const nodeSet = new Set(pageData.map((n) => n.uid));
   const rels = await getRelationData();
