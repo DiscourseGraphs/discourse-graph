@@ -156,8 +156,11 @@ const getExportTypes = ({
           allNodes,
           allRelations,
           nodeLabelByType,
-          updateExportProgress: (progress: number) =>
-            updateExportProgress({ progress, id: exportId }),
+          updateExportProgress: async (progress: number) => {
+            updateExportProgress({ progress, id: exportId });
+            // skip a beat to let progress render
+            await new Promise((resolve) => setTimeout(resolve));
+          },
         });
         return [
           {
