@@ -51,11 +51,17 @@ export const migrateLeftSidebarSettings = async () => {
     await migrateSectionChildren(globalChildren);
   }
 
-  const personalSections = leftSidebarSettings.personal.sections;
-  for (const section of personalSections) {
-    const children = section.children || [];
-    if (children.length > 0) {
-      await migrateSectionChildren(children);
+
+  const allPersonalSections = leftSidebarSettings.allPersonalSections;
+
+  for (const [_, userPersonalSection] of Object.entries(
+    allPersonalSections,
+  )) {
+    for (const section of userPersonalSection.sections) {
+      const children = section.children || [];
+      if (children.length > 0) {
+        await migrateSectionChildren(children);
+      }
     }
   }
 
