@@ -3,7 +3,7 @@
 @prefix : <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix dgb: <https://discoursegraphs.com/schema/db_base#> .
+@prefix dgb: <https://discoursegraphs.com/schema/dg_base#> .
 
 <https://discoursegraphs.com/schema/db_base#>
     dc:date "2025-12-22" ;
@@ -45,7 +45,7 @@ dgb:destination a dgb:Role ;
 
 dgb:textRefersToNode a owl:ObjectRelation;
   rdfs:domain dgb:NodeSchema;
-  rdfs:range dbg:NodeSchema;
+  rdfs:range dgb:NodeSchema;
   rdfs:comment "The text of a node refers to another node"@en .
 
 

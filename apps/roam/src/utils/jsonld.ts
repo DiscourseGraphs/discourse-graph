@@ -30,7 +30,7 @@ export const jsonLdContext = (baseUrl: string): Record<string, string> => ({
   nodeSchema: "dgb:NodeSchema",
   relationDef: "dgb:RelationDef",
   relationInstance: "dgb:RelationInstance",
-  inverseOf: "owl:inverse-of",
+  inverseOf: "owl:inverseOf",
   pages: `${baseUrl}/page/`,
 });
 

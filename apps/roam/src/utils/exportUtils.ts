@@ -79,8 +79,7 @@ const getContentFromNodes = ({
   if (!nodeFormat) return title;
   const regex = new RegExp(
     `^${nodeFormat
-      .replace(/\[/g, "\\[")
-      .replace(/]/g, "\\]")
+      .replace(/(\[|\]|\?|\.|\+)/g, "\\$1")
       .replace("{content}", "(.*?)")
       .replace(/{[^}]+}/g, "(?:.*?)")}$`,
   );
