@@ -533,8 +533,7 @@ export const mountLeftSidebar = async (
 
 export const unmountLeftSidebar = (wrapper: HTMLElement): void => {
   if (!wrapper) return;
-  const id = "dg-left-sidebar-root";
-  const root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
+  const root = wrapper.querySelector(`#${"dg-left-sidebar-root"}`) as HTMLDivElement;
   if (root) {
     ReactDOM.unmountComponentAtNode(root);
     root.remove();

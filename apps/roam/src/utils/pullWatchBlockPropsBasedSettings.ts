@@ -21,10 +21,10 @@ export const setupPullWatchBlockPropsBasedSettings = (
           (after?.[":block/props"] || {}) as json,
         ) as Record<string, json>;
 
-        const beforeEnabled = beforeProps["Enable Left sidebar"] as
+        const beforeEnabled = beforeProps["Enable Left Sidebar"] as
           | boolean
           | undefined;
-        const afterEnabled = afterProps["Enable Left sidebar"] as
+        const afterEnabled = afterProps["Enable Left Sidebar"] as
           | boolean
           | undefined;
 
