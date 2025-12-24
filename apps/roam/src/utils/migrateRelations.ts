@@ -20,7 +20,7 @@ const migrateRelations = async (dryRun = false): Promise<number> => {
   await new Promise((resolve) => setTimeout(resolve, 150));
   try {
     const processed = new Set<string>();
-    const relationData = await getRelationData();
+    const relationData = await getRelationData(true);
     for (const rel of relationData) {
       const key = `${rel.source}:${rel.relUid}:${rel.target}`;
       if (processed.has(key)) continue;
