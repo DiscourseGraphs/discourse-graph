@@ -14,6 +14,7 @@ import predefinedSelections, {
 import { DEFAULT_RETURN_NODE } from "./parseQuery";
 import { DiscourseNode } from "./getDiscourseNodes";
 import { DiscourseRelation } from "./getDiscourseRelations";
+import type { json } from "./getBlockProps";
 import nanoid from "nanoid";
 
 export type QueryArgs = {
@@ -315,6 +316,29 @@ export const fireQuerySync = (args: FireQueryArgs): QueryResult[] => {
   }));
 };
 
+const PROP_NAME_RE = /:[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+\b/g;
+const PULL_RE = /\(pull [^)]+\)/g;
+
+const renamePropsInResult = (
+  result: json | null,
+  mapping: Record<string, string>,
+): json | null => {
+  const rename = (x: json | null): json | null => {
+    if (Array.isArray(x)) return x.map(rename);
+    if (x === null || x === undefined) return x;
+    if (typeof x === "object") {
+      return Object.fromEntries(
+        Object.entries(x as object).map(([k, v]) => [
+          mapping[k] || k,
+          rename(v),
+        ]),
+      );
+    }
+    return x;
+  };
+  return rename(result);
+};
+
 const fireQuery: FireQuery = async (_args) => {
   const { isCustomEnabled, customNode, local, ...args } = _args;
 
@@ -349,11 +373,46 @@ const fireQuery: FireQuery = async (_args) => {
     }
 
     let queryResults: unknown[][] = [];
+    // NOTE: The slow path (async.q with property remapping) is intentionally disabled
+    // but preserved for potential future use pending comprehensive query testing.
+    // We have seen some errors in (fast) backend queries, but not so far in local fast ones.
+    const preferSlow = false;
     if (local) {
-      queryResults = await window.roamAlphaAPI.data.async.fast.q(
-        query,
-        ...inputs,
-      );
+      let useSlow = preferSlow;
+      let propNamesSub: Record<string, string> | undefined;
+      if (preferSlow) {
+        // keeping this code in case it turns out the fast results are more fragile than the slow ones
+        // TODO: Remove when we have a more comprehensive test suite.
+        const pulls = [...query.matchAll(PULL_RE)].map((r) => r[0]);
+        if (pulls.length > 0) {
+          // pull in base async query (vs fast or backend) returns non-namespaced names,
+          // so there are a few possibilities of conflict,
+          // namely: {log,version,window}/id; {graph,user}/settings; {block,user}/uid; {create,edit}/time
+          // So look for collisions in property names in pull part of query.
+          const propNames = new Set(
+            [...pulls.join(" ").matchAll(PROP_NAME_RE)].map((m) => m[0]),
+          );
+          propNamesSub = Object.fromEntries(
+            [...propNames].map((n) => [n.split("/")[1], n]),
+          );
+          useSlow = Object.keys(propNamesSub).length === propNames.size;
+        }
+      }
+      if (useSlow) {
+        // no name conflict, safe to use async query
+        // BUT it returns non-namespaced names, so substitute prop names back
+        queryResults = await window.roamAlphaAPI.data.async.q(query, ...inputs);
+        if (propNamesSub !== undefined)
+          queryResults = renamePropsInResult(
+            queryResults as json,
+            propNamesSub,
+          ) as unknown[][];
+      } else {
+        queryResults = await window.roamAlphaAPI.data.async.fast.q(
+          query,
+          ...inputs,
+        );
+      }
     } else {
       queryResults = await window.roamAlphaAPI.data.backend.q(query, ...inputs);
     }
