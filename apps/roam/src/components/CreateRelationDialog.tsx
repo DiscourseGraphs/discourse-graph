@@ -17,7 +17,7 @@ import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
-import { findDiscourseNodeByTitleAndUid } from "~/utils/findDiscourseNode";
+import findDiscourseNode from "~/utils/findDiscourseNode";
 import { getDiscourseNodeFormatInnerExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { Result } from "~/utils/types";
@@ -97,7 +97,7 @@ const CreateRelationDialog = ({
 
   const identifyRelationMatch = (target: Result): RelWithDirection | null => {
     if (target.text.length === 0) return null;
-    const selectedTargetType = findDiscourseNodeByTitleAndUid({
+    const selectedTargetType = findDiscourseNode({
       uid: target.uid,
       title: target.text,
       nodes: discourseNodes,
@@ -280,7 +280,7 @@ const prepareRelData = (
   nodeTitle = nodeTitle || getPageTitleByPageUid(targetNodeUid).trim();
   const discourseNodeSchemas = getDiscourseNodes();
   const relations = getDiscourseRelations();
-  const nodeSchema = findDiscourseNodeByTitleAndUid({
+  const nodeSchema = findDiscourseNode({
     uid: targetNodeUid,
     title: nodeTitle,
     nodes: discourseNodeSchemas,
@@ -319,7 +319,7 @@ const extendProps = ({
 }: CreateRelationDialogProps): ExtendedCreateRelationDialogProps | null => {
   const nodeTitle = getPageTitleByPageUid(sourceNodeUid).trim();
   const relData = prepareRelData(sourceNodeUid, nodeTitle);
-  const selectedSourceType = findDiscourseNodeByTitleAndUid({
+  const selectedSourceType = findDiscourseNode({
     uid: sourceNodeUid,
     title: nodeTitle,
   });

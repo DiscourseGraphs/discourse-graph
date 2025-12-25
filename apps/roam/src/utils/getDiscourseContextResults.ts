@@ -182,7 +182,7 @@ const getDiscourseContextResults = async ({
 }) => {
   const args = { ignoreCache };
 
-  const discourseNode = findDiscourseNode(targetUid);
+  const discourseNode = findDiscourseNode({ uid: targetUid });
   if (!discourseNode) return [];
   const nodeType = discourseNode?.type;
   const nodeTextByType = Object.fromEntries(

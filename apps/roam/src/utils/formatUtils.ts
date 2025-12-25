@@ -136,7 +136,7 @@ export const getReferencedNodeInFormat = ({
 }) => {
   let format = providedFormat;
   if (!format) {
-    const discourseNode = findDiscourseNode(uid);
+    const discourseNode = findDiscourseNode({ uid });
     if (discourseNode) format = discourseNode.format;
   }
   if (!format) return null;

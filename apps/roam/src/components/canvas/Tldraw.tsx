@@ -478,7 +478,10 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       const position = lastTime
         ? { x: lastTime.x + w * 0.025, y: lastTime.y + h * 0.05 }
         : { x: x - DEFAULT_WIDTH / 2, y: y - DEFAULT_HEIGHT / 2 };
-      const nodeType = findDiscourseNode(e.detail.uid, allNodes);
+      const nodeType = findDiscourseNode({
+        uid: e.detail.uid,
+        nodes: allNodes,
+      });
       if (nodeType) {
         app.createShapes([
           {

@@ -49,7 +49,7 @@ const deriveNodeAttribute = async ({
 }): Promise<string | number> => {
   const relations = getDiscourseRelations();
   const nodes = getDiscourseNodes(relations);
-  const discourseNode = findDiscourseNode(uid, nodes);
+  const discourseNode = findDiscourseNode({ uid, nodes });
   if (!discourseNode) return 0;
   const nodeType = discourseNode.type;
   const attributeNode = getSubTree({

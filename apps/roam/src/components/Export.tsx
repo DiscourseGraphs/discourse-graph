@@ -328,7 +328,7 @@ const ExportDialog: ExportDialogComponent = ({
     let nextShapeX = COMMON_BOUNDS_XOFFSET;
     let shapeY = commonBounds.top;
     for (const [i, r] of results.entries()) {
-      const discourseNode = findDiscourseNode(r.uid);
+      const discourseNode = findDiscourseNode({ uid: r.uid });
       const nodeType = discourseNode ? discourseNode.type : "page-node";
       const extensionAPI = getExtensionAPI();
       const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({

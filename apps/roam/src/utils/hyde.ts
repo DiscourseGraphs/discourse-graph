@@ -449,7 +449,9 @@ export const performHydeSearch = async ({
       })
     )
       .map((c) => {
-        const node = findDiscourseNode(c.Content?.source_local_id || "");
+        const node = findDiscourseNode({
+          uid: c.Content?.source_local_id || "",
+        });
         return {
           uid: c.Content?.source_local_id || "",
           text: c.Content?.text || "",
@@ -478,7 +480,7 @@ export const performHydeSearch = async ({
     );
     candidateNodesForHyde = uniqueReferenced
       .map((n) => {
-        const node = findDiscourseNode(n.uid);
+        const node = findDiscourseNode({ uid: n.uid });
         if (
           !node ||
           node.backedBy === "default" ||
