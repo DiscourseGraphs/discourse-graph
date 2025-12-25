@@ -1,5 +1,8 @@
-import { getFeatureFlag, setFeatureFlag } from "~/utils/manageFeatureFlag";
-import { type FeatureFlags } from "~/utils/zodSchemaForSettings";
+import {
+  getFeatureFlag,
+  setFeatureFlag,
+} from "~/utils/Settings/accessors";
+import { type FeatureFlags } from "~/utils/Settings/zodSchema";
 import { Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import idToTitle from "roamjs-components/util/idToTitle";

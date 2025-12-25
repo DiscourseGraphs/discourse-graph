@@ -56,9 +56,9 @@ import {
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
-import { getFeatureFlag } from "./manageFeatureFlag";
-import { setupPullWatchBlockPropsBasedSettings } from "./pullWatchBlockPropsBasedSettings";
-import { initSchema } from "./initBlockPropSettings";
+import { getFeatureFlag } from "./Settings/accessors";
+import { setupPullWatchBlockPropsBasedSettings } from "~/utils/Settings/pullWatch";
+import { initSchema } from "./Settings/init";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;

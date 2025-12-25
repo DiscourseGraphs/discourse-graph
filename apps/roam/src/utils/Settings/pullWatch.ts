@@ -1,5 +1,5 @@
 import { TOP_LEVEL_BLOCK_PROP_KEYS } from "~/data/blockPropsSettingsConfig";
-import { json, normalizeProps } from "./getBlockProps";
+import { json, normalizeProps } from "~/utils/getBlockProps";
 
 export const setupPullWatchBlockPropsBasedSettings = (
   blockUids: Record<string, string>,
