@@ -1,6 +1,5 @@
 import { BLOCK_REF_REGEX } from "roamjs-components/dom/constants";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
-import getPageUidByBlockUid from "roamjs-components/queries/getPageUidByBlockUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getPageMetadata from "./getPageMetadata";
 import getPageViewType from "roamjs-components/queries/getPageViewType";
@@ -21,7 +20,6 @@ import {
   pullBlockToTreeNode,
   collectUids,
 } from "./exportUtils";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 const MATCHES_NONE = /$.+^/;
 

@@ -16,7 +16,7 @@ export const uniqJsonArray = <T extends Record<string, unknown>>(arr: T[]) =>
     ),
   ).map((entries) => Object.fromEntries(JSON.parse(entries))) as T[];
 
-export const getPageData = async ({
+export const getPageData = ({
   results,
   allNodes,
   isExportDiscourseGraph,
@@ -24,7 +24,7 @@ export const getPageData = async ({
   results: Result[];
   allNodes: DiscourseNode[];
   isExportDiscourseGraph?: boolean;
-}): Promise<(Result & { type: string })[]> => {
+}): (Result & { type: string })[] => {
   const allResults = results || [];
 
   if (isExportDiscourseGraph) return allResults as DiscourseExportResult[];

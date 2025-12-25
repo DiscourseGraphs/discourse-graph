@@ -58,19 +58,17 @@ const getExportTypes = ({
       destination: nodeLabelByType[destination],
       source: nodeLabelByType[source],
     }));
-    const nodes = (await getPageData({ results, allNodes })).map(
-      ({ text, uid }) => {
-        const { date, displayName } = getPageMetadata(text);
-        const { children } = getFullTreeByParentUid(uid);
-        return {
-          uid,
-          title: text,
-          children,
-          date: date.toJSON(),
-          createdBy: displayName,
-        };
-      },
-    );
+    const nodes = getPageData({ results, allNodes }).map(({ text, uid }) => {
+      const { date, displayName } = getPageMetadata(text);
+      const { children } = getFullTreeByParentUid(uid);
+      return {
+        uid,
+        title: text,
+        children,
+        date: date.toJSON(),
+        createdBy: displayName,
+      };
+    });
     const nodeSet = new Set(nodes.map((n) => n.uid));
     return getRelationData().then((rels) => {
       const relations = uniqJsonArray(
@@ -94,7 +92,7 @@ const getExportTypes = ({
           maxFilenameLength,
           removeSpecialCharacters,
         } = settings;
-        const allPages = await getPageData({
+        const allPages = getPageData({
           results,
           allNodes,
           isExportDiscourseGraph,
@@ -151,7 +149,7 @@ const getExportTypes = ({
       callback: async ({ filename }) => {
         if (!results) return [];
         const nodeHeader = "uid:ID,label:LABEL,title,author,date\n";
-        const nodeData = (await getPageData({ results, allNodes }))
+        const nodeData = getPageData({ results, allNodes })
           .map(({ text, uid, type }) => {
             const value = text.replace(new RegExp(`^\\[\\[\\w*\\]\\] - `), "");
             const { displayName, date } = getPageMetadata(text);
@@ -213,7 +211,7 @@ const getExportTypes = ({
           removeSpecialCharacters,
           linkType,
         } = getExportSettings();
-        const allPages = await getPageData({
+        const allPages = getPageData({
           results,
           allNodes,
           isExportDiscourseGraph,
