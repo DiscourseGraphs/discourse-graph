@@ -30,7 +30,7 @@ const InfoSection = () => {
       >
         <div
           ref={logoRef}
-          className="h-12 w-12"
+          className="flex h-12 w-12 items-center justify-center"
           style={{ color: "var(--interactive-accent)" }}
         />
         <div
