@@ -1,7 +1,9 @@
-import getBlockProps, { type json } from "./getBlockProps";
+import getBlockProps, { type json } from "../getBlockProps";
 import getBlockUidByTextOnPage from "roamjs-components/queries/getBlockUidByTextOnPage";
-import setBlockProps from "./setBlockProps";
-import { DG_BLOCK_PROP_SETTINGS_PAGE_TITLE } from "~/data/blockPropsSettingsConfig";
+import setBlockProps from "../setBlockProps";
+import { DG_BLOCK_PROP_SETTINGS_PAGE_TITLE, TOP_LEVEL_BLOCK_PROP_KEYS } from "~/data/blockPropsSettingsConfig";
+import z from "zod";
+import { FeatureFlags, FeatureFlagsSchema } from "./zodSchema";
 
 export const getBlockPropBasedSettings = ({
   keys,
@@ -99,4 +101,31 @@ export const setBlockPropBasedSettings = ({
   );
 
   setBlockProps(blockUid, updatedProps, true);
+};
+
+
+export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
+  const featureFlagKey = TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags;
+
+  const { blockProps } = getBlockPropBasedSettings({
+    keys: [featureFlagKey],
+  });
+
+  const flags = FeatureFlagsSchema.parse(blockProps || {});
+
+  return flags[key];
+};
+
+export const setFeatureFlag = (
+  key: keyof FeatureFlags,
+  value: boolean,
+): void => {
+  const featureFlagKey = TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags;
+
+  const validatedValue = z.boolean().parse(value);
+
+  void setBlockPropBasedSettings({
+    keys: [featureFlagKey, key],
+    value: validatedValue,
+  });
 };
