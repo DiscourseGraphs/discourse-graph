@@ -1,5 +1,5 @@
 import { TOP_LEVEL_BLOCK_PROP_KEYS } from "~/data/blockPropsSettingsConfig";
-import { json, normalizeProps } from "~/utils/getBlockProps";
+import { type json, normalizeProps } from "~/utils/getBlockProps";
 
 export const setupPullWatchBlockPropsBasedSettings = (
   blockUids: Record<string, string>,
@@ -8,6 +8,8 @@ export const setupPullWatchBlockPropsBasedSettings = (
 ) => {
   const featureFlagsBlockUid =
     blockUids[TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags];
+
+  const globalSettingsBlockUid = blockUids[TOP_LEVEL_BLOCK_PROP_KEYS.global];
 
   if (featureFlagsBlockUid) {
     window.roamAlphaAPI.data.addPullWatch(
@@ -32,6 +34,16 @@ export const setupPullWatchBlockPropsBasedSettings = (
         if (beforeEnabled !== afterEnabled) {
           updateLeftSidebar(leftSidebarContainer);
         }
+      },
+    );
+  }
+
+  if (globalSettingsBlockUid) {
+    window.roamAlphaAPI.data.addPullWatch(
+      "[:block/props]",
+      `[:block/uid "${globalSettingsBlockUid}"]`,
+      () => {
+        updateLeftSidebar(leftSidebarContainer);
       },
     );
   }

@@ -6,13 +6,17 @@ export const FeatureFlagsSchema = z.object({
 });
 
 export const GlobalSettingsSchema = z.object({
-  "Left Sidebar": z.object({
-    Children: z.array(z.string()).default([]),
-    Settings: z.object({
-      Collapsable: z.boolean().default(false),
-      Folded: z.boolean().default(false),
-    }),
-  }),
+  "Left Sidebar": z
+    .object({
+      Children: z.array(z.string()).default([]),
+      Settings: z
+        .object({
+          Collapsable: z.boolean().default(false),
+          Folded: z.boolean().default(false),
+        })
+        .default({}),
+    })
+    .default({}),
 });
 /* eslint-disable @typescript-eslint/naming-convention */
 

@@ -77,7 +77,7 @@ export const setBlockPropBasedSettings = ({
   });
 
   if (keys.length === 1) {
-    setBlockProps(blockUid, value as Record<string, json>, true);
+    setBlockProps(blockUid, value as Record<string, json>, false);
     return;
   }
 
@@ -110,7 +110,7 @@ export const setBlockPropBasedSettings = ({
     updatedProps,
   );
 
-  setBlockProps(blockUid, updatedProps, true);
+  setBlockProps(blockUid, updatedProps, false);
 };
 
 export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
