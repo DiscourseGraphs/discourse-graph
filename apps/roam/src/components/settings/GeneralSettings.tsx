@@ -3,9 +3,9 @@ import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
-import { TOP_LEVEL_BLOCK_PROP_KEYS } from "~/data/blockPropsSettingsConfig";
+import { TOP_LEVEL_BLOCK_PROP_KEYS } from "~/components/settings/block-prop/data/blockPropsSettingsConfig";
 import { Alert, Intent } from "@blueprintjs/core";
-import { FlagPanel } from "./block-prop/FlagPanel";
+import { FlagPanel } from "./block-prop/components/FlagPanel";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {

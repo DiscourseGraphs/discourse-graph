@@ -19,8 +19,6 @@ import {
   TabId,
 } from "@blueprintjs/core";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
-import extractRef from "roamjs-components/util/extractRef";
 import {
   getFormattedConfigTree,
   notify,
@@ -40,50 +38,9 @@ import { OnloadArgs } from "roamjs-components/types";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
-import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
-
-const parseReference = (text: string) => {
-  const extracted = extractRef(text);
-  if (text.startsWith("((") && text.endsWith("))")) {
-    return { type: "block" as const, uid: extracted, display: text };
-  } else {
-    return { type: "page" as const, display: text };
-  }
-};
-
-const truncate = (s: string, max: number | undefined): string => {
-  if (!max || max <= 0) return s;
-  return s.length > max ? `${s.slice(0, max)}...` : s;
-};
-
-const openTarget = async (e: React.MouseEvent, targetUid: string) => {
-  e.preventDefault();
-  e.stopPropagation();
-  const target = parseReference(targetUid);
-  if (target.type === "block") {
-    if (e.shiftKey) {
-      await openBlockInSidebar(target.uid);
-      return;
-    }
-    await window.roamAlphaAPI.ui.mainWindow.openBlock({
-      block: { uid: target.uid },
-    });
-    return;
-  }
-
-  if (e.shiftKey) {
-    await window.roamAlphaAPI.ui.rightSidebar.addWindow({
-      // @ts-expect-error - todo test
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      window: { type: "outline", "block-uid": targetUid },
-    });
-  } else {
-    await window.roamAlphaAPI.ui.mainWindow.openPage({
-      page: { uid: targetUid },
-    });
-  }
-};
+import { parseReference, SectionChildren } from "./left-sidebar/utils";
+import { ViewGlobalLeftSidebar } from "./left-sidebar/ViewGlobalLeftSidebar";
 
 const toggleFoldedState = ({
   isOpen,
@@ -113,44 +70,6 @@ const toggleFoldedState = ({
     folded.uid = newUid;
     folded.value = true;
   }
-};
-
-const SectionChildren = ({
-  childrenNodes,
-  truncateAt,
-}: {
-  childrenNodes: { uid: string; text: string; alias?: { value: string } }[];
-  truncateAt?: number;
-}) => {
-  if (!childrenNodes?.length) return null;
-  return (
-    <>
-      {childrenNodes.map((child) => {
-        const ref = parseReference(child.text);
-        const alias = child.alias?.value;
-        const display =
-          ref.type === "page"
-            ? getPageTitleByPageUid(ref.display)
-            : getTextByBlockUid(ref.uid);
-        const label = alias || truncate(display, truncateAt);
-        const onClick = (e: React.MouseEvent) => {
-          return void openTarget(e, child.text);
-        };
-        return (
-          <div key={child.uid} className="pl-8 pr-2.5">
-            <div
-              className={
-                "section-child-item page cursor-pointer rounded-sm leading-normal text-gray-600"
-              }
-              onClick={onClick}
-            >
-              {label}
-            </div>
-          </div>
-        );
-      })}
-    </>
-  );
 };
 
 const PersonalSectionItem = ({
@@ -227,47 +146,6 @@ const PersonalSections = ({ config }: { config: LeftSidebarConfig }) => {
         </div>
       ))}
     </div>
-  );
-};
-
-const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
-  const [isOpen, setIsOpen] = useState<boolean>(
-    !!config.settings?.folded.value,
-  );
-  if (!config.children?.length) return null;
-  const isCollapsable = config.settings?.collapsable.value;
-
-  return (
-    <>
-      <div
-        className="sidebar-title-button flex w-full items-center border-none bg-transparent py-1 pl-6 pr-2.5 font-semibold outline-none"
-        onClick={() => {
-          if (!isCollapsable || !config.settings) return;
-          toggleFoldedState({
-            isOpen,
-            setIsOpen,
-            folded: config.settings.folded,
-            parentUid: config.settings.uid,
-          });
-        }}
-      >
-        <div className="flex w-full items-center justify-between">
-          <span>GLOBAL</span>
-          {isCollapsable && (
-            <span className="sidebar-title-button-chevron p-1">
-              <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
-            </span>
-          )}
-        </div>
-      </div>
-      {isCollapsable ? (
-        <Collapse isOpen={isOpen}>
-          <SectionChildren childrenNodes={config.children} />
-        </Collapse>
-      ) : (
-        <SectionChildren childrenNodes={config.children} />
-      )}
-    </>
   );
 };
 
@@ -408,7 +286,7 @@ const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   return (
     <>
       <FavoritesPopover onloadArgs={onloadArgs} />
-      <GlobalSection config={config.global} />
+      <ViewGlobalLeftSidebar />
       <PersonalSections config={config} />
     </>
   );
@@ -533,7 +411,9 @@ export const mountLeftSidebar = async (
 
 export const unmountLeftSidebar = (wrapper: HTMLElement): void => {
   if (!wrapper) return;
-  const root = wrapper.querySelector(`#${"dg-left-sidebar-root"}`) as HTMLDivElement;
+  const root = wrapper.querySelector(
+    `#${"dg-left-sidebar-root"}`,
+  ) as HTMLDivElement;
   if (root) {
     ReactDOM.unmountComponentAtNode(root);
     root.remove();

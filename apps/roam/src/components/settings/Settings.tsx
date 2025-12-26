@@ -26,8 +26,8 @@ import HomePersonalSettings from "./HomePersonalSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
 import { getVersionWithDate } from "~/utils/getVersion";
-import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
-import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
+import { LeftSidebarPersonalSections } from "../left-sidebar/LeftSidebarPersonalSettings";
+import { LeftSidebarGlobalSections } from "../left-sidebar/LeftSidebarGlobalSettings";
 
 type SectionHeaderProps = {
   children: React.ReactNode;

@@ -7,10 +7,10 @@ import {
   getGlobalSetting,
   setFeatureFlag,
   setGlobalSetting,
-} from "~/utils/Settings/accessors";
-import { type FeatureFlags } from "~/utils/Settings/zodSchema";
+} from "~/components/settings/block-prop/utils/accessors";
+import { type FeatureFlags } from "~/components/settings/block-prop/utils/zodSchema";
 import z from "zod";
-import { TOP_LEVEL_BLOCK_PROP_KEYS } from "~/data/blockPropsSettingsConfig";
+import { TOP_LEVEL_BLOCK_PROP_KEYS } from "~/components/settings/block-prop/data/blockPropsSettingsConfig";
 
 type FeatureFlagPath = [
   typeof TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags,
