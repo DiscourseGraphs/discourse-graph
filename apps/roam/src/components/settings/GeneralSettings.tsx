@@ -3,8 +3,9 @@ import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
+import { TOP_LEVEL_BLOCK_PROP_KEYS } from "~/data/blockPropsSettingsConfig";
 import { Alert, Intent } from "@blueprintjs/core";
-import { BlockPropFeatureFlagPanel } from "./BlockPropFeatureFlagPanel";
+import { FlagPanel } from "./block-prop/FlagPanel";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {
@@ -33,10 +34,10 @@ const DiscourseGraphHome = () => {
         value={settings.canvasPageFormat.value}
         defaultValue={DEFAULT_CANVAS_PAGE_FORMAT}
       />
-      <BlockPropFeatureFlagPanel
+      <FlagPanel
         title="(BETA) Left Sidebar"
         description="Whether or not to enable the left sidebar."
-        featureKey="Enable Left Sidebar"
+        flag={[TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags, "Enable Left Sidebar"]}
       />
       <Alert
         isOpen={isAlertOpen}
