@@ -12,17 +12,21 @@ const HIDE_DELAY = 100;
 const OBSERVER_RESTART_DELAY = 100;
 const TOOLTIP_OFFSET = 40;
 
+const LIST_INDICATOR_REGEX = /^(\s*)(\d+[.)]\s+|[-*+]\s+(?:\[[ xX]\]\s+)?)/;
+
 const sanitizeTitle = (title: string): string => {
   const invalidChars = /[\\/:]/g;
 
-  // Remove list item indicators (numbered, bulleted, etc.)
-  const listIndicator = /^(\s*)(\d+\.\s+|-\s+|\*\s+|\+\s+)/;
-
   return title
-    .replace(listIndicator, "")
+    .replace(LIST_INDICATOR_REGEX, "")
     .replace(invalidChars, "")
     .replace(/\s+/g, " ")
     .trim();
+};
+
+const extractListPrefix = (line: string): string => {
+  const match = line.match(LIST_INDICATOR_REGEX);
+  return match ? match[0] : "";
 };
 
 type ExtractedTagData = {
@@ -350,9 +354,11 @@ export class TagNodeHandler {
         return;
       }
 
-      // Replace the entire line with just the discourse node link
+      const listPrefix = extractListPrefix(actualLineText);
+      const replacementText = listPrefix + linkText;
+
       editor.replaceRange(
-        linkText,
+        replacementText,
         { line: lineNumber, ch: 0 },
         { line: lineNumber, ch: actualLineText.length },
       );
