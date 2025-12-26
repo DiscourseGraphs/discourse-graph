@@ -10,7 +10,9 @@ import {
   FeatureFlags,
   FeatureFlagsSchema,
   GlobalSettingsSchema,
+  PersonalSettingsSchema,
 } from "~/components/settings/block-prop/utils/zodSchema";
+import { getPersonalSettingsKey } from "~/components/settings/block-prop/utils/init";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -159,6 +161,30 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
 
   void setBlockPropBasedSettings({
     keys: [globalKey, ...keys],
+    value,
+  });
+};
+
+export const getPersonalSetting = (keys: string[]): unknown => {
+  const personalKey = getPersonalSettingsKey();
+
+  const { blockProps } = getBlockPropBasedSettings({
+    keys: [personalKey],
+  });
+
+  const settings = PersonalSettingsSchema.parse(blockProps || {});
+
+  return keys.reduce<unknown>((current, key) => {
+    if (!isRecord(current) || !(key in current)) return undefined;
+    return current[key];
+  }, settings);
+};
+
+export const setPersonalSetting = (keys: string[], value: json): void => {
+  const personalKey = getPersonalSettingsKey();
+
+  void setBlockPropBasedSettings({
+    keys: [personalKey, ...keys],
     value,
   });
 };

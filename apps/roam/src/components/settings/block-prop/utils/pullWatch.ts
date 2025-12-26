@@ -1,5 +1,21 @@
 import { TOP_LEVEL_BLOCK_PROP_KEYS } from "~/components/settings/block-prop/data/blockPropsSettingsConfig";
 import { type json, normalizeProps } from "~/utils/getBlockProps";
+import { getPersonalSettingsKey } from "~/components/settings/block-prop/utils/init";
+
+const hasPropChanged = (
+  before: unknown,
+  after: unknown,
+  key: string,
+): boolean => {
+  const beforeProps = normalizeProps(
+    ((before as Record<string, unknown>)?.[":block/props"] || {}) as json,
+  ) as Record<string, json>;
+  const afterProps = normalizeProps(
+    ((after as Record<string, unknown>)?.[":block/props"] || {}) as json,
+  ) as Record<string, json>;
+
+  return JSON.stringify(beforeProps[key]) !== JSON.stringify(afterProps[key]);
+};
 
 export const setupPullWatchBlockPropsBasedSettings = (
   blockUids: Record<string, string>,
@@ -16,22 +32,7 @@ export const setupPullWatchBlockPropsBasedSettings = (
       "[:block/props]",
       `[:block/uid "${featureFlagsBlockUid}"]`,
       (before, after) => {
-        const beforeProps = normalizeProps(
-          (before?.[":block/props"] || {}) as json,
-        ) as Record<string, json>;
-        const afterProps = normalizeProps(
-          (after?.[":block/props"] || {}) as json,
-        ) as Record<string, json>;
-
-        const beforeEnabled = beforeProps["Enable Left Sidebar"] as
-          | boolean
-          | undefined;
-        const afterEnabled = afterProps["Enable Left Sidebar"] as
-          | boolean
-          | undefined;
-
-        // Only update if the flag actually changed
-        if (beforeEnabled !== afterEnabled) {
+        if (hasPropChanged(before, after, "Enable Left Sidebar")) {
           updateLeftSidebar(leftSidebarContainer);
         }
       },
@@ -42,8 +43,25 @@ export const setupPullWatchBlockPropsBasedSettings = (
     window.roamAlphaAPI.data.addPullWatch(
       "[:block/props]",
       `[:block/uid "${globalSettingsBlockUid}"]`,
-      () => {
-        updateLeftSidebar(leftSidebarContainer);
+      (before, after) => {
+        if (hasPropChanged(before, after, "Left Sidebar")) {
+          updateLeftSidebar(leftSidebarContainer);
+        }
+      },
+    );
+  }
+
+  const personalSettingsKey = getPersonalSettingsKey();
+  const personalSettingsBlockUid = blockUids[personalSettingsKey];
+
+  if (personalSettingsBlockUid) {
+    window.roamAlphaAPI.data.addPullWatch(
+      "[:block/props]",
+      `[:block/uid "${personalSettingsBlockUid}"]`,
+      (before, after) => {
+        if (hasPropChanged(before, after, "Left Sidebar")) {
+          updateLeftSidebar(leftSidebarContainer);
+        }
       },
     );
   }
