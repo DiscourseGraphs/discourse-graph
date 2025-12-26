@@ -150,22 +150,21 @@ export const getOnSelectForShape = ({
         extensionAPI,
         includeDefaultNodes: true,
         imageUrl: src,
-        onSuccess: async ({ text, uid, newPageUid }) => {
-          const finalUid = newPageUid || uid;
+        onSuccess: async ({ text, uid }) => {
           editor.deleteShapes([shape.id]);
 
           const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
             nodeText: text,
             extensionAPI,
             nodeType,
-            uid: finalUid,
+            uid,
           });
           editor.createShapes([
             {
               type: nodeType,
               id: createShapeId(),
               props: {
-                uid: finalUid,
+                uid,
                 title: text,
                 h,
                 w,

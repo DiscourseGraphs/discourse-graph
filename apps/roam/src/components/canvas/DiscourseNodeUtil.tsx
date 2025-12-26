@@ -509,11 +509,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               : undefined,
           extensionAPI,
           includeDefaultNodes: true,
-          onSuccess: async ({ text, uid, action, newPageUid }) => {
-            // For canvas creation, the dialog already created the node
-            // Use the correct UID: newPageUid for new nodes, uid for existing
-            const finalUid = newPageUid || uid;
-
+          onSuccess: async ({ text, uid, action }) => {
             if (action === "edit") {
               if (isPageUid(shape.props.uid))
                 await window.roamAlphaAPI.updatePage({
@@ -522,23 +518,19 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               else await updateBlock({ uid: shape.props.uid, text });
             }
 
-            if (
-              action === "create" &&
-              !getPageUidByPageTitle(text) &&
-              !newPageUid
-            ) {
+            if (action === "create" && !getPageUidByPageTitle(text) && !uid) {
               void createDiscourseNode({
                 configPageUid: shape.type,
                 text,
-                newPageUid: finalUid,
+                newPageUid: uid,
                 extensionAPI,
               });
             }
 
-            void setSizeAndImgPropsLocal({ text, uid: finalUid });
+            void setSizeAndImgPropsLocal({ text, uid });
             this.updateProps(shape.id, shape.type, {
               title: text,
-              uid: finalUid,
+              uid,
             });
 
             const autoCanvasRelations = getSetting<boolean>(
@@ -552,7 +544,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
                 await this.createExistingRelations({
                   shape,
                   relationIds,
-                  finalUid,
+                  finalUid: uid,
                 });
               } catch (error) {
                 renderToast({

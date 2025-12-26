@@ -50,7 +50,6 @@ export type ModifyNodeDialogProps = {
     text: string;
     uid: string;
     action: string;
-    newPageUid?: string;
   }) => Promise<void>;
   onClose: () => void;
 };
