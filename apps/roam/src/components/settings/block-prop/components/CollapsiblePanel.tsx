@@ -1,6 +1,12 @@
 import React, { useState, ReactNode, useCallback } from "react";
 import { Button, Collapse } from "@blueprintjs/core";
-import { getGlobalSetting, setGlobalSetting } from "~/components/settings/block-prop/utils/accessors";
+import {
+  getGlobalSetting,
+  getPersonalSetting,
+  setGlobalSetting,
+  setPersonalSetting,
+} from "~/components/settings/block-prop/utils/accessors";
+import { getPersonalSettingsKey } from "~/components/settings/block-prop/utils/init";
 import z from "zod";
 
 type Props = {
@@ -9,6 +15,22 @@ type Props = {
   settingKey?: string[];
   defaultOpen?: boolean;
   className?: string;
+};
+
+const getAccessors = (settingKey: string[]) => {
+  const [root, ...rest] = settingKey;
+
+  if (root === getPersonalSettingsKey()) {
+    return {
+      get: () => getPersonalSetting(rest),
+      set: (value: boolean) => setPersonalSetting(rest, value),
+    };
+  }
+
+  return {
+    get: () => getGlobalSetting(settingKey),
+    set: (value: boolean) => setGlobalSetting(settingKey, value),
+  };
 };
 
 export const CollapsiblePanel = ({
@@ -20,7 +42,8 @@ export const CollapsiblePanel = ({
 }: Props) => {
   const getPersistedValue = useCallback(() => {
     if (!settingKey || settingKey.length === 0) return undefined;
-    const current = getGlobalSetting(settingKey);
+    const { get } = getAccessors(settingKey);
+    const current = get();
     const parsed = z.boolean().safeParse(current);
     return parsed.success ? parsed.data : undefined;
   }, [settingKey]);
@@ -34,7 +57,8 @@ export const CollapsiblePanel = ({
     const newState = !isOpen;
     setIsOpen(newState);
     if (settingKey && settingKey.length > 0) {
-      setGlobalSetting(settingKey, newState);
+      const { set } = getAccessors(settingKey);
+      set(newState);
     }
   };
 
