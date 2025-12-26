@@ -25,11 +25,16 @@ import getDiscourseNodes, {
 } from "~/utils/getDiscourseNodes";
 import FuzzySelectInput from "./FuzzySelectInput";
 import { createBlock, updateBlock } from "roamjs-components/writes";
-import { getNewDiscourseNodeText } from "~/utils/formatUtils";
+import {
+  getNewDiscourseNodeText,
+  getReferencedNodeInFormat,
+} from "~/utils/formatUtils";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import resolveQueryBuilderRef from "~/utils/resolveQueryBuilderRef";
+import runQuery from "~/utils/runQuery";
 
 export type ModifyNodeDialogMode = "create" | "edit";
 export type ModifyNodeDialogProps = {
@@ -45,7 +50,6 @@ export type ModifyNodeDialogProps = {
     text: string;
     uid: string;
     action: string;
-    newPageUid?: string;
   }) => Promise<void>;
   onClose: () => void;
 };
@@ -93,10 +97,7 @@ const ModifyNodeDialog = ({
     referencedNode: Result[];
   }>({ content: [], referencedNode: [] });
 
-  const [loading, setLoading] = useState<{
-    content: boolean;
-    referencedNode: boolean;
-  }>({ content: false, referencedNode: false });
+  const [loading, setLoading] = useState(false);
 
   const contentRequestIdRef = useRef(0);
   const referencedNodeRequestIdRef = useRef(0);
@@ -119,35 +120,20 @@ const ModifyNodeDialog = ({
   }, [selectedNodeType]);
 
   const referencedNode = useMemo(() => {
-    const regex = /{([\w\d-]*)}/g;
-    const matches = [...nodeFormat.matchAll(regex)];
+    const refNode = getReferencedNodeInFormat({
+      format: nodeFormat,
+    });
 
-    for (const match of matches) {
-      const val = match[1];
-      if (val.toLowerCase() === "content") continue;
-      if (val.toLowerCase() === "context") continue;
+    if (!refNode) return null;
 
-      const allNodes = includeDefaultNodes
-        ? getDiscourseNodes()
-        : getDiscourseNodes().filter(excludeDefaultNodes);
-
-      const refNode = allNodes.find(({ text }) =>
-        new RegExp(text, "i").test(val),
-      );
-
-      if (refNode) {
-        return {
-          name: refNode.text,
-          nodeType: refNode.type,
-        };
-      }
-    }
-
-    return null;
-  }, [nodeFormat, includeDefaultNodes]);
+    return {
+      name: refNode.text,
+      nodeType: refNode.type,
+    };
+  }, [nodeFormat]);
 
   useEffect(() => {
-    setLoading({ content: true, referencedNode: Boolean(referencedNode) });
+    setLoading(true);
 
     let alive = true;
     const req = ++contentRequestIdRef.current;
@@ -186,10 +172,6 @@ const ModifyNodeDialog = ({
             ),
           });
         }
-      } finally {
-        if (contentRequestIdRef.current === req && alive) {
-          setLoading((prev) => ({ ...prev, content: false }));
-        }
       }
     };
 
@@ -215,17 +197,30 @@ const ModifyNodeDialog = ({
         }
       } catch (error) {
         if (referencedNodeRequestIdRef.current === refReq && refAlive) {
-          console.error("Error fetching referenced node options:", error);
-        }
-      } finally {
-        if (referencedNodeRequestIdRef.current === refReq && refAlive) {
-          setLoading((prev) => ({ ...prev, referencedNode: false }));
+          renderToast({
+            id: `discourse-node-error-${Date.now()}`,
+            intent: "danger",
+            content: (
+              <span>
+                Error fetching referenced node options: {String(error)}
+              </span>
+            ),
+          });
         }
       }
     };
 
-    void fetchOptions();
-    void fetchReferencedOptions();
+    void (async () => {
+      const promises = [fetchOptions()];
+      if (referencedNode) {
+        promises.push(fetchReferencedOptions());
+      }
+      await Promise.all(promises);
+      if (contentRequestIdRef.current === req && alive) {
+        setLoading(false);
+      }
+    })();
+
     return () => {
       alive = false;
       refAlive = false;
@@ -245,15 +240,67 @@ const ModifyNodeDialog = ({
   }, [onClose]);
 
   const addImageToPage = useCallback(
-    async (pageUid: string, imageUrl: string) => {
-      const imageMarkdown = `![](${imageUrl})`;
-      await createBlock({
-        node: { text: imageMarkdown },
-        order: 0,
-        parentUid: pageUid,
-      });
+    async ({
+      pageUid,
+      imageUrl,
+      configPageUid,
+      extensionAPI,
+    }: {
+      pageUid: string;
+      imageUrl: string;
+      configPageUid: string;
+      extensionAPI?: OnloadArgs["extensionAPI"];
+    }) => {
+      const discourseNodes = getDiscourseNodes();
+      const canvasSettings = Object.fromEntries(
+        discourseNodes.map((n) => [n.type, { ...n.canvasSettings }]),
+      );
+      const {
+        "query-builder-alias": qbAlias = "",
+        "key-image": isKeyImage = "",
+        "key-image-option": keyImageOption = "",
+      } = canvasSettings[configPageUid] || {};
+
+      const createOrUpdateImageBlock = async (imagePlaceholderUid?: string) => {
+        const imageMarkdown = `![](${imageUrl})`;
+        if (imagePlaceholderUid) {
+          await updateBlock({
+            uid: imagePlaceholderUid,
+            text: imageMarkdown,
+          });
+        } else {
+          await createBlock({
+            node: { text: imageMarkdown },
+            order: 0,
+            parentUid: pageUid,
+          });
+        }
+      };
+
+      if (!isKeyImage || !extensionAPI) {
+        await createOrUpdateImageBlock();
+        return;
+      }
+
+      if (keyImageOption === "query-builder") {
+        const parentUid = resolveQueryBuilderRef({
+          queryRef: qbAlias,
+          extensionAPI,
+        });
+        const results = await runQuery({
+          extensionAPI,
+          parentUid,
+          // due to query format
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          inputs: { NODETEXT: content.text, NODEUID: pageUid },
+        });
+        const imagePlaceholderUid = results.allProcessedResults[0]?.uid;
+        await createOrUpdateImageBlock(imagePlaceholderUid);
+      } else {
+        await createOrUpdateImageBlock();
+      }
     },
-    [],
+    [content.text],
   );
 
   const onSubmit = async () => {
@@ -273,7 +320,12 @@ const ModifyNodeDialog = ({
           if (imageUrl) {
             const pageUid = content.uid || getPageUidByPageTitle(content.text);
             if (pageUid) {
-              await addImageToPage(pageUid, imageUrl);
+              await addImageToPage({
+                pageUid,
+                imageUrl,
+                configPageUid: selectedNodeType.type,
+                extensionAPI,
+              });
             }
           }
 
@@ -306,6 +358,8 @@ const ModifyNodeDialog = ({
 
           formattedTitle = nodeFormat.replace(
             /{([\w\d-]*)}/g,
+            // unused variable will take _ as name
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             (_, val: string) => {
               if (/content/i.test(val)) return content.text.trim();
               if (new RegExp(referencedNode.name, "i").test(val))
@@ -364,6 +418,7 @@ const ModifyNodeDialog = ({
                       await window.roamAlphaAPI.ui.rightSidebar.addWindow({
                         window: {
                           // @ts-expect-error TODO: fix this
+                          // eslint-disable-next-line @typescript-eslint/naming-convention
                           "block-uid": newPageUid,
                           type: "outline",
                         },
@@ -386,7 +441,6 @@ const ModifyNodeDialog = ({
           text: formattedTitle,
           uid: newPageUid,
           action: "create",
-          newPageUid,
         });
       } else {
         // Edit mode: update the existing block
@@ -395,6 +449,8 @@ const ModifyNodeDialog = ({
         // Format with referenced node if present
         if (referencedNode && referencedNodeValue.text) {
           updatedContent = nodeFormat
+            // unused variable will take _ as name
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             .replace(/{([\w\d-]*)}/g, (_, val: string) => {
               if (/content/i.test(val)) return content.text.trim();
               if (new RegExp(referencedNode.name, "i").test(val))
@@ -476,11 +532,11 @@ const ModifyNodeDialog = ({
               setValue={setValue}
               options={options.content}
               placeholder={
-                loading.content
+                loading
                   ? "..."
                   : `Enter a ${selectedNodeType.text.toLowerCase()} ...`
               }
-              disabled={loading.content}
+              disabled={loading}
               mode={mode}
               initialUid={content.uid}
             />
@@ -494,10 +550,8 @@ const ModifyNodeDialog = ({
                 value={referencedNodeValue}
                 setValue={setReferencedNodeValueCallback}
                 options={options.referencedNode}
-                placeholder={
-                  loading.referencedNode ? "..." : "Select a referenced node"
-                }
-                disabled={loading.referencedNode}
+                placeholder={loading ? "..." : "Select a referenced node"}
+                disabled={loading}
                 mode={"create"}
                 initialUid={referencedNodeValue.uid}
                 initialIsLocked={isReferencedNodeLocked}
@@ -514,17 +568,17 @@ const ModifyNodeDialog = ({
               text="Confirm"
               intent={Intent.PRIMARY}
               onClick={() => void onSubmit()}
-              disabled={loading.content || !content.text.trim()}
+              disabled={loading || !content.text.trim()}
               className="flex-shrink-0"
             />
             <Button
               text="Cancel"
               onClick={onCancelClick}
-              disabled={loading.content}
+              disabled={loading}
               className="flex-shrink-0"
             />
             <span className="flex-grow text-red-800">{error}</span>
-            {loading.content && <Spinner size={SpinnerSize.SMALL} />}
+            {loading && <Spinner size={SpinnerSize.SMALL} />}
           </div>
         </div>
       </div>
@@ -534,6 +588,7 @@ const ModifyNodeDialog = ({
 
 export const renderModifyNodeDialog = (props: ModifyNodeDialogProps) =>
   renderOverlay({
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     Overlay: ModifyNodeDialog,
     props,
   });

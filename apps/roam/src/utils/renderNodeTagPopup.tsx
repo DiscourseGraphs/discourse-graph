@@ -46,7 +46,7 @@ export const renderNodeTagPopupButton = (
   const rawBlockText = blockUid ? getTextByBlockUid(blockUid) : "";
   const cleanedBlockText = rawBlockText.replace(textContent, "").trim();
 
-  const getInitialReferencedNode = () => {
+  const getInitialReferencedNode = async () => {
     if (!blockUid) return { text: "", uid: "" };
 
     const referencedNodeType = getReferencedNodeInFormat({
@@ -56,15 +56,17 @@ export const renderNodeTagPopupButton = (
     if (!referencedNodeType) return { text: "", uid: "" };
 
     try {
-      const referenced = window.roamAlphaAPI.data.fast.q(
-        `[:find (pull ?r [:node/title :block/string]) :where [?b :block/uid "${blockUid}"] (or-join [?b ?r] (and [?b :block/parents ?p] [?p :block/refs ?r]) (and [?b :block/page ?r])) ${discourseNodeFormatToDatalog(
-          {
-            freeVar: "r",
-            ...referencedNodeType,
-          },
+      const referenced = (
+        await window.roamAlphaAPI.data.async.fast.q(
+          `[:find (pull ?r [:node/title :block/string]) :where [?b :block/uid "${blockUid}"] (or-join [?b ?r] (and [?b :block/parents ?p] [?p :block/refs ?r]) (and [?b :block/page ?r])) ${discourseNodeFormatToDatalog(
+            {
+              freeVar: "r",
+              ...referencedNodeType,
+            },
+          )
+            .map((c) => compileDatalog(c, 0))
+            .join(" ")}]`,
         )
-          .map((c) => compileDatalog(c, 0))
-          .join(" ")}]`,
       )?.[0]?.[0] as PullBlock;
 
       if (referenced) {
@@ -82,27 +84,29 @@ export const renderNodeTagPopupButton = (
     return { text: "", uid: "" };
   };
 
+  const handleClick = async () => {
+    const initialReferencedNode = await getInitialReferencedNode();
+    renderModifyNodeDialog({
+      mode: "create",
+      nodeType: matchedNode.type,
+      initialValue: { text: cleanedBlockText, uid: "" },
+      initialReferencedNode,
+      onSuccess: async () => {
+        // Success is handled by the dialog itself
+      },
+      onClose: () => {},
+      sourceBlockUid: blockUid,
+      extensionAPI,
+    });
+  };
+
   ReactDOM.render(
     <Popover
       content={
         <Button
           minimal
           outlined
-          onClick={() => {
-            const initialReferencedNode = getInitialReferencedNode();
-            renderModifyNodeDialog({
-              mode: "create",
-              nodeType: matchedNode.type,
-              initialValue: { text: cleanedBlockText, uid: "" },
-              initialReferencedNode,
-              onSuccess: async () => {
-                // Success is handled by the dialog itself
-              },
-              onClose: () => {},
-              sourceBlockUid: blockUid,
-              extensionAPI,
-            });
-          }}
+          onClick={() => void handleClick()}
           text={`Create ${matchedNode.text}`}
         />
       }
