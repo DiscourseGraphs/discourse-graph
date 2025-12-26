@@ -28,10 +28,11 @@ export const ViewGlobalLeftSidebar = () => {
     return (
       <div className="global-left-sidebar-section">
         <CollapsiblePanel
+          variant="sidebar"
           header={header}
           settingKey={["Left Sidebar", "Settings", "Folded"]}
           defaultOpen={!folded}
-          className="border-none bg-transparent p-0 hover:bg-transparent"
+          className="!hover:bg-transparent !border-none !bg-transparent !p-0"
         >
           <SectionChildren childrenNodes={childrenNodes} />
         </CollapsiblePanel>

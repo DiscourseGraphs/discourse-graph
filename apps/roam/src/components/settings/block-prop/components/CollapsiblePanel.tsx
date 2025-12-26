@@ -1,5 +1,5 @@
 import React, { useState, ReactNode, useCallback } from "react";
-import { Button, Collapse } from "@blueprintjs/core";
+import { Button, Collapse, Icon } from "@blueprintjs/core";
 import {
   getGlobalSetting,
   getPersonalSetting,
@@ -15,6 +15,7 @@ type Props = {
   settingKey?: string[];
   defaultOpen?: boolean;
   className?: string;
+  variant?: "panel" | "sidebar";
 };
 
 const getAccessors = (settingKey: string[]) => {
@@ -39,6 +40,7 @@ export const CollapsiblePanel = ({
   settingKey,
   defaultOpen = false,
   className = "",
+  variant = "panel",
 }: Props) => {
   const getPersistedValue = useCallback(() => {
     if (!settingKey || settingKey.length === 0) return undefined;
@@ -62,12 +64,28 @@ export const CollapsiblePanel = ({
     }
   };
 
+  if (variant === "sidebar") {
+    return (
+      <div className={`collapsible-panel ${className}`}>
+        <div
+          className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none"
+          onClick={handleToggle}
+        >
+          <div className="flex w-full items-center justify-between">
+            {header}
+            <span className="sidebar-title-button-chevron p-1">
+              <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
+            </span>
+          </div>
+        </div>
+        <Collapse isOpen={isOpen}>{children}</Collapse>
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`collapsible-panel rounded-md p-3 hover:bg-gray-50 ${className}`}
-      style={{
-        border: "1px solid rgba(51, 51, 51, 0.2)",
-      }}
+      className={`collapsible-panel rounded-md border border-[rgba(51,51,51,0.2)] p-3 hover:bg-gray-50 ${className}`}
     >
       <div
         className="mb-2 flex cursor-pointer items-center justify-between"

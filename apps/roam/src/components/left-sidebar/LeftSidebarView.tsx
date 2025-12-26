@@ -1,14 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import {
-  Collapse,
   Icon,
   Popover,
   Menu,
@@ -24,130 +17,16 @@ import {
   notify,
   subscribe,
 } from "~/utils/discourseConfigRef";
-import type {
-  LeftSidebarConfig,
-  LeftSidebarPersonalSectionConfig,
-} from "~/utils/getLeftSidebarSettings";
 import { createBlock } from "roamjs-components/writes";
-import deleteBlock from "roamjs-components/writes/deleteBlock";
-import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-import { Dispatch, SetStateAction } from "react";
-import { SettingsDialog } from "./settings/Settings";
+import { SettingsDialog } from "../settings/Settings";
 import { OnloadArgs } from "roamjs-components/types";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
-import { parseReference, SectionChildren } from "./left-sidebar/utils";
-import { ViewGlobalLeftSidebar } from "./left-sidebar/ViewGlobalLeftSidebar";
-
-const toggleFoldedState = ({
-  isOpen,
-  setIsOpen,
-  folded,
-  parentUid,
-}: {
-  isOpen: boolean;
-  setIsOpen: Dispatch<SetStateAction<boolean>>;
-  folded: { uid?: string; value: boolean };
-  parentUid: string;
-}) => {
-  if (isOpen) {
-    setIsOpen(false);
-    if (folded.uid) {
-      void deleteBlock(folded.uid);
-      folded.uid = undefined;
-      folded.value = false;
-    }
-  } else {
-    setIsOpen(true);
-    const newUid = window.roamAlphaAPI.util.generateUID();
-    void createBlock({
-      parentUid,
-      node: { text: "Folded", uid: newUid },
-    });
-    folded.uid = newUid;
-    folded.value = true;
-  }
-};
-
-const PersonalSectionItem = ({
-  section,
-}: {
-  section: LeftSidebarPersonalSectionConfig;
-}) => {
-  const titleRef = parseReference(section.text);
-  const blockText = useMemo(
-    () =>
-      titleRef.type === "block" ? getTextByBlockUid(titleRef.uid) : undefined,
-    [titleRef],
-  );
-  const truncateAt = section.settings?.truncateResult.value;
-  const [isOpen, setIsOpen] = useState<boolean>(
-    !!section.settings?.folded.value || false,
-  );
-
-  const handleChevronClick = () => {
-    if (!section.settings) return;
-
-    toggleFoldedState({
-      isOpen,
-      setIsOpen,
-      folded: section.settings.folded,
-      parentUid: section.settings.uid || "",
-    });
-  };
-
-  return (
-    <>
-      <div className="sidebar-title-button flex w-full cursor-pointer items-center border-none bg-transparent pl-6 pr-2.5 font-semibold outline-none">
-        <div className="flex w-full items-center justify-between">
-          <div
-            className="flex items-center"
-            onClick={() => {
-              if ((section.children?.length || 0) > 0) {
-                handleChevronClick();
-              }
-            }}
-          >
-            {(blockText || titleRef.display).toUpperCase()}
-          </div>
-          {(section.children?.length || 0) > 0 && (
-            <span
-              className="sidebar-title-button-chevron p-1"
-              onClick={handleChevronClick}
-            >
-              <Icon icon={isOpen ? "chevron-down" : "chevron-right"} />
-            </span>
-          )}
-        </div>
-      </div>
-      <Collapse isOpen={isOpen}>
-        <SectionChildren
-          childrenNodes={section.children || []}
-          truncateAt={truncateAt}
-        />
-      </Collapse>
-    </>
-  );
-};
-
-const PersonalSections = ({ config }: { config: LeftSidebarConfig }) => {
-  const sections = config.personal.sections || [];
-
-  if (!sections.length) return null;
-
-  return (
-    <div className="personal-left-sidebar-sections">
-      {sections.map((section) => (
-        <div key={section.uid}>
-          <PersonalSectionItem section={section} />
-        </div>
-      ))}
-    </div>
-  );
-};
+import { ViewGlobalLeftSidebar } from "./ViewGlobalLeftSidebar";
+import { ViewPersonalLeftSidebar } from "./ViewPersonalLeftSidebar";
 
 export const useConfig = () => {
   const [config, setConfig] = useState(
@@ -281,13 +160,11 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 };
 
 const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const { config } = useConfig();
-
   return (
     <>
       <FavoritesPopover onloadArgs={onloadArgs} />
       <ViewGlobalLeftSidebar />
-      <PersonalSections config={config} />
+      <ViewPersonalLeftSidebar />
     </>
   );
 };
