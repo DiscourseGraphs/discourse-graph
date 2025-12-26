@@ -52,7 +52,7 @@ import { getSetting } from "./extensionSettings";
 import {
   mountLeftSidebar,
   unmountLeftSidebar,
-} from "~/components/LeftSidebarView";
+} from "~/components/left-sidebar/LeftSidebarView";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
