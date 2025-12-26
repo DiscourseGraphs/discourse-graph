@@ -1,9 +1,19 @@
 import getBlockProps, { type json } from "../getBlockProps";
 import getBlockUidByTextOnPage from "roamjs-components/queries/getBlockUidByTextOnPage";
 import setBlockProps from "../setBlockProps";
-import { DG_BLOCK_PROP_SETTINGS_PAGE_TITLE, TOP_LEVEL_BLOCK_PROP_KEYS } from "~/data/blockPropsSettingsConfig";
+import {
+  DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
+  TOP_LEVEL_BLOCK_PROP_KEYS,
+} from "~/data/blockPropsSettingsConfig";
 import z from "zod";
-import { FeatureFlags, FeatureFlagsSchema } from "./zodSchema";
+import {
+  FeatureFlags,
+  FeatureFlagsSchema,
+  GlobalSettingsSchema,
+} from "./zodSchema";
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 export const getBlockPropBasedSettings = ({
   keys,
@@ -103,7 +113,6 @@ export const setBlockPropBasedSettings = ({
   setBlockProps(blockUid, updatedProps, true);
 };
 
-
 export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
   const featureFlagKey = TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags;
 
@@ -127,5 +136,29 @@ export const setFeatureFlag = (
   void setBlockPropBasedSettings({
     keys: [featureFlagKey, key],
     value: validatedValue,
+  });
+};
+
+export const getGlobalSetting = (keys: string[]): unknown => {
+  const globalKey = TOP_LEVEL_BLOCK_PROP_KEYS.global;
+
+  const { blockProps } = getBlockPropBasedSettings({
+    keys: [globalKey],
+  });
+
+  const settings = GlobalSettingsSchema.parse(blockProps || {});
+
+  return keys.reduce<unknown>((current, key) => {
+    if (!isRecord(current) || !(key in current)) return undefined;
+    return current[key];
+  }, settings);
+};
+
+export const setGlobalSetting = (keys: string[], value: json): void => {
+  const globalKey = TOP_LEVEL_BLOCK_PROP_KEYS.global;
+
+  void setBlockPropBasedSettings({
+    keys: [globalKey, ...keys],
+    value,
   });
 };

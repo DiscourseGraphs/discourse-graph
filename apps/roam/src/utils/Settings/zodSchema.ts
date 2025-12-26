@@ -7,10 +7,10 @@ export const FeatureFlagsSchema = z.object({
 
 export const GlobalSettingsSchema = z.object({
   "Left Sidebar": z.object({
-    Children: z.array(z.string()),
+    Children: z.array(z.string()).default([]),
     Settings: z.object({
-      Foldable: z.boolean(),
-      "Truncate at": z.number().int(),
+      Collapsable: z.boolean().default(false),
+      Folded: z.boolean().default(false),
     }),
   }),
 });
