@@ -1,6 +1,6 @@
-import { getGlobalSetting } from "~/utils/Settings/accessors";
-import { GlobalSettingsSchema } from "~/utils/Settings/zodSchema";
-import { CollapsiblePanel } from "~/components/settings/block-prop/CollapsiblePanel";
+import { getGlobalSetting } from "~/components/settings/block-prop/utils/accessors";
+import { GlobalSettingsSchema } from "~/components/settings/block-prop/utils/zodSchema";
+import { CollapsiblePanel } from "~/components/settings/block-prop/components/CollapsiblePanel";
 import React from "react";
 import { SectionChildren } from "./utils";
 

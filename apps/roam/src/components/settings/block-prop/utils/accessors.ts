@@ -1,16 +1,16 @@
-import getBlockProps, { type json } from "../getBlockProps";
+import getBlockProps, { type json } from "~/utils/getBlockProps";
 import getBlockUidByTextOnPage from "roamjs-components/queries/getBlockUidByTextOnPage";
-import setBlockProps from "../setBlockProps";
+import setBlockProps from "~/utils/setBlockProps";
 import {
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
   TOP_LEVEL_BLOCK_PROP_KEYS,
-} from "~/data/blockPropsSettingsConfig";
+} from "~/components/settings/block-prop/data/blockPropsSettingsConfig";
 import z from "zod";
 import {
   FeatureFlags,
   FeatureFlagsSchema,
   GlobalSettingsSchema,
-} from "./zodSchema";
+} from "~/components/settings/block-prop/utils/zodSchema";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);

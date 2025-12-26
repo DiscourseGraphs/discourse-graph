@@ -1,4 +1,4 @@
-import { TOP_LEVEL_BLOCK_PROP_KEYS } from "~/data/blockPropsSettingsConfig";
+import { TOP_LEVEL_BLOCK_PROP_KEYS } from "~/components/settings/block-prop/data/blockPropsSettingsConfig";
 import { type json, normalizeProps } from "~/utils/getBlockProps";
 
 export const setupPullWatchBlockPropsBasedSettings = (

@@ -1,6 +1,6 @@
 import React, { useState, ReactNode, useCallback } from "react";
 import { Button, Collapse } from "@blueprintjs/core";
-import { getGlobalSetting, setGlobalSetting } from "~/utils/Settings/accessors";
+import { getGlobalSetting, setGlobalSetting } from "~/components/settings/block-prop/utils/accessors";
 import z from "zod";
 
 type Props = {
