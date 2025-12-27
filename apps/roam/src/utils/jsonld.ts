@@ -7,6 +7,7 @@ import { getRelationDataUtil } from "./getRelationData";
 import { uniqJsonArray, getPageData } from "./exportUtils";
 import { getExportSettings } from "./getExportSettings";
 import canonicalRoamUrl from "./canonicalRoamUrl";
+import internalError from "./internalError";
 
 export const jsonLdContext = (baseUrl: string): Record<string, string> => ({
   rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
@@ -146,9 +147,15 @@ export const getJsonLdData = async ({
 
   const nodes = pageData.map(({ text, uid, content, type }) => {
     const { date, displayName, modified } = getPageMetadata(text);
+    const nodeType = nodeSchemaUriByName[type];
+    if (!nodeType) {
+      internalError({
+        error: `Unknown node type "${type}" for page "${text}"`,
+      });
+    }
     const r = {
       "@id": `pages:${uid}`, // eslint-disable-line @typescript-eslint/naming-convention
-      "@type": nodeSchemaUriByName[type], // eslint-disable-line @typescript-eslint/naming-convention
+      "@type": nodeType ?? "nodeSchema", // eslint-disable-line @typescript-eslint/naming-convention
       title: text,
       content: content as string,
       modified: modified?.toJSON(),

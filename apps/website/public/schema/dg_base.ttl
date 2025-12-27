@@ -5,7 +5,7 @@
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix dgb: <https://discoursegraphs.com/schema/dg_base#> .
 
-<https://discoursegraphs.com/schema/db_base#>
+<https://discoursegraphs.com/schema/dg_base#>
     dc:date "2025-12-22" ;
     rdfs:comment "DiscourseGraph foundation vocabulary"@en ;
     rdfs:label "DiscourseGraph foundation vocabulary"@en ;
@@ -43,7 +43,7 @@ dgb:destination a dgb:Role ;
     rdfs:range dgb:NodeSchema ;
     rdfs:comment "The destination of a binary relation"@en .
 
-dgb:textRefersToNode a owl:ObjectRelation;
+dgb:textRefersToNode a owl:ObjectProperty;
   rdfs:domain dgb:NodeSchema;
   rdfs:range dgb:NodeSchema;
   rdfs:comment "The text of a node refers to another node"@en .
