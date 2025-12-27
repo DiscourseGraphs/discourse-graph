@@ -161,7 +161,7 @@ export const getJsonLdData = async ({
       ...new Set([...(content as string).matchAll(roamUrlRe)].map((r) => r[1])),
     ]
       .filter((r) => nodeUids.has(r))
-      .map((r) => `page:${r}`);
+      .map((r) => `pages:${r}`);
     const r = {
       "@id": `pages:${uid}`, // eslint-disable-line @typescript-eslint/naming-convention
       "@type": nodeType ?? "nodeSchema", // eslint-disable-line @typescript-eslint/naming-convention
