@@ -12,6 +12,7 @@ import { getRelationDataUtil } from "./getRelationData";
 import { ExportTypes } from "./types";
 import { getExportSettings } from "./getExportSettings";
 import { pageToMarkdown, toMarkdown } from "./pageToMarkdown";
+import { getJsonLdData } from "./jsonld";
 import {
   uniqJsonArray,
   getPageData,
@@ -140,6 +141,29 @@ const getExportTypes = ({
           {
             title: `${filename.replace(/\.json$/, "")}.json`,
             content: JSON.stringify(data),
+          },
+        ];
+      },
+    },
+    {
+      name: "JSON-LD (Experimental)",
+      callback: async ({ filename }) => {
+        if (!results) return [];
+        const data = await getJsonLdData({
+          results,
+          allNodes,
+          allRelations,
+          nodeLabelByType,
+          updateExportProgress: async (progress: number) => {
+            updateExportProgress({ progress, id: exportId });
+            // skip a beat to let progress render
+            await new Promise((resolve) => setTimeout(resolve));
+          },
+        });
+        return [
+          {
+            title: `${filename.replace(/\.json$/, "")}.json`,
+            content: JSON.stringify(data, undefined, "  "),
           },
         ];
       },

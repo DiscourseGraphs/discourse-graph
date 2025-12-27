@@ -14,21 +14,25 @@ const getDisplayName = (s: string) => {
 
 const getPageMetadata = (title: string, cacheKey?: string) => {
   const results = window.roamAlphaAPI.q(
-    `[:find (pull ?p [:create/time :block/uid]) (pull ?cu [:user/uid]) :where [?p :node/title "${normalizePageTitle(
+    `[:find (pull ?p [:block/uid :create/time [:edit/time :as "modified"]]) (pull ?cu [:user/uid]) :where [?p :node/title "${normalizePageTitle(
       title,
     )}"] [?p :create/user ?cu]]`,
-  ) as [[{ time: number; uid: string }, { uid: string }]];
+  ) as [[{ uid: string; time: number; modified: number }, { uid: string }]];
   if (results.length) {
-    const [[{ time: createdTime, uid: id }, { uid }]] = results;
+    const [[{ uid: id, time: createdTime, modified: modifiedTime }, { uid }]] =
+      results;
 
     const displayName = getDisplayName(uid);
     const date = new Date(createdTime);
-    return { displayName, date, id };
+    const modified = new Date(modifiedTime);
+    return { displayName, date, id, modified };
   }
+  const date = new Date();
   return {
     displayName: "Unknown",
-    date: new Date(),
+    date,
     id: "",
+    modified: date,
   };
 };
 
