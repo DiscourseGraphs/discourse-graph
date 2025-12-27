@@ -108,10 +108,12 @@ export const getJsonLdData = async ({
   Record<string, string | Record<string, string> | Record<string, string>[]>
 > => {
   const roamUrl = canonicalRoamUrl();
+  const roamUrlRe = new RegExp(roamUrl + "/page/([\\w\\d-]{9,10})\\b", "g");
   const getRelationData = () =>
     getRelationDataUtil({ allRelations, nodeLabelByType });
   await updateExportProgress(0);
   const pageData = getPageData({ results, allNodes });
+  const nodeUids = new Set(pageData.map((p) => p.uid));
   const numPages = pageData.length + allNodes.length;
   let numTreatedPages = 0;
   const settings = {
@@ -138,6 +140,8 @@ export const getJsonLdData = async ({
         ...settings,
         allNodes,
         linkType: "roam url",
+        blockAnchors: true,
+        blockRefsAsLinks: true,
       });
       page.content = r.content;
       numTreatedPages += 1;
@@ -153,6 +157,11 @@ export const getJsonLdData = async ({
         error: `Unknown node type "${type}" for page "${text}"`,
       });
     }
+    const textRefersToNode = [
+      ...new Set([...(content as string).matchAll(roamUrlRe)].map((r) => r[1])),
+    ]
+      .filter((r) => nodeUids.has(r))
+      .map((r) => `pages:${r}`);
     const r = {
       "@id": `pages:${uid}`, // eslint-disable-line @typescript-eslint/naming-convention
       "@type": nodeType ?? "nodeSchema", // eslint-disable-line @typescript-eslint/naming-convention
@@ -162,6 +171,7 @@ export const getJsonLdData = async ({
       created: date.toJSON(),
       creator: displayName,
     };
+    if (textRefersToNode.length > 0) return { ...r, textRefersToNode };
     return r;
   });
   const nodeSet = new Set(pageData.map((n) => n.uid));
