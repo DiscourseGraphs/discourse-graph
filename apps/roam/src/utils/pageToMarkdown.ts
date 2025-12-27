@@ -233,8 +233,6 @@ export const pageToMarkdown = async (
     maxFilenameLength: number;
     removeSpecialCharacters: boolean;
     linkType: string;
-    blockRefsAsLinks?: boolean;
-    blockAnchors?: boolean;
   },
 ): Promise<{ title: string; content: string; uids: Set<string> }> => {
   const v = getPageViewType(text) || "bullet";
@@ -251,7 +249,7 @@ export const pageToMarkdown = async (
   const referenceResults = isFlagEnabled("render references")
     ? (
         window.roamAlphaAPI.data.fast.q(
-          `[:find (pull ?pr [:node/title]) (pull ?r [:block/heading [:block/string :as "text"] [:children/view-type :as "viewType"] {:block/children ...}]) :where [?p :node/title "${normalizePageTitle(
+          `[:find (pull ?pr [:node/title :block/uid]) (pull ?r [:block/heading [:block/string :as "text"] [:children/view-type :as "viewType"] {:block/children ...}]) :where [?p :node/title "${normalizePageTitle(
             text,
           )}"] [?r :block/refs ?p] [?r :block/page ?pr]]`,
         ) as [PullBlock, PullBlock][]
