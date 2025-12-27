@@ -222,8 +222,6 @@ export const pageToMarkdown = async (
     maxFilenameLength,
     removeSpecialCharacters,
     linkType,
-    blockRefsAsLinks = false,
-    blockAnchors = false,
   }: {
     includeDiscourseContext: boolean;
     appendRefNodeContext: boolean;
