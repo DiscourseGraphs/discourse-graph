@@ -24,26 +24,33 @@ export const getNewDiscourseNodeText = async ({
   text,
   nodeType,
   blockUid,
+  skipBlockUpdate = false,
 }: {
   text: string;
   nodeType: string;
   blockUid?: string;
+  skipBlockUpdate?: boolean;
 }) => {
   const discourseNodes = getDiscourseNodes();
   let newText = text;
+  let textFromDialog = false;
+
   if (!text) {
+    textFromDialog = true;
     newText = await new Promise<string>((resolve) => {
+      let resolvedText = "";
       renderFormDialog({
         mode: "create",
         nodeType: nodeType,
         initialValue: { text: text, uid: "" },
-        onSuccess: async () => {
+        onSuccess: async (result) => {
+          resolvedText = result.text;
           return Promise.resolve();
         },
-        sourceBlockUid: blockUid,
+        sourceBlockUid: skipBlockUpdate ? undefined : blockUid,
         extensionAPI: getExtensionAPI(),
         onClose: () => {
-          resolve("");
+          resolve(resolvedText);
         },
       });
     });
@@ -51,6 +58,9 @@ export const getNewDiscourseNodeText = async ({
 
   if (!newText || !newText.trim()) {
     return "";
+  }
+  if (textFromDialog) {
+    return newText;
   }
 
   const indexedByType = Object.fromEntries(
