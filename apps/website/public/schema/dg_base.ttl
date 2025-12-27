@@ -1,0 +1,87 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix dgb: <https://discoursegraphs.com/schema/dg_base#> .
+
+<https://discoursegraphs.com/schema/db_base#>
+    dc:date "2025-12-22" ;
+    rdfs:comment "DiscourseGraph foundation vocabulary"@en ;
+    rdfs:label "DiscourseGraph foundation vocabulary"@en ;
+    owl:versionInfo "0 (tentative)" ;
+    a owl:Ontology.
+
+# This is inspired by https://hyperknowledge.org/schemas/hyperknowledge_frames.ttl
+# and topic mapping
+
+dgb:NodeSchema
+rdfs:subClassOf owl:Class;
+    rdfs:comment "Subclasses of DiscourseGraph nodes"@en .
+
+dgb:Role
+    rdfs:subClassOf owl:ObjectProperty,
+        [a owl:Restriction; owl:onProperty rdfs:domain ; owl:allValuesFrom dgb:NodeSchema ],
+        [a owl:Restriction; owl:onProperty rdfs:range ; owl:allValuesFrom dgb:NodeSchema ];
+    rdfs:comment "A role within a node schema"@en .
+
+dgb:RelationDef rdfs:subClassOf owl:ObjectProperty;
+  rdfs:comment "DiscourseGraph relations"@en.
+
+dgb:RelationInstance rdfs:subClassOf rdf:Statement, dgb:NodeSchema,
+  [a owl:Restriction; owl:onProperty rdfs:predicate ; owl:allValuesFrom dgb:RelationDef ].
+
+dgb:source a dgb:Role ;
+    rdfs:subPropertyOf rdf:subject ;
+    rdfs:domain dgb:RelationInstance ;
+    rdfs:range dgb:NodeSchema ;
+    rdfs:comment "The source of a binary relation"@en .
+
+dgb:destination a dgb:Role ;
+    rdfs:subPropertyOf rdf:object ;
+    rdfs:domain dgb:RelationInstance ;
+    rdfs:range dgb:NodeSchema ;
+    rdfs:comment "The destination of a binary relation"@en .
+
+dgb:textRefersToNode a owl:ObjectRelation;
+  rdfs:domain dgb:NodeSchema;
+  rdfs:range dgb:NodeSchema;
+  rdfs:comment "The text of a node refers to another node"@en .
+
+
+# examples
+
+# :x a dgb:NodeSchema .
+# :y a dgb:NodeSchema .
+# :x0 a :x.
+# :y0 a :y.
+# :r a dgb:NodeSchema.
+# :x_r a dgb:Role ;
+#     rdfs:domain :r ;
+#     rdfs:range :x .
+
+# :r0 a :r;
+#  :x_r :x0.
+
+# :br a dgb:RelationDef;
+#   rdfs:domain :x;
+#   rdfs:range :y;
+
+# :br0
+#  a dgb:RelationInstance;
+#  rdf:predicate :br ;
+#  dgb:source :x0 ;
+#  dgb:destination :y0 ;
+
+# # This is "about" :x0 :br :y0;
+
+# Note: we could also use punning, and define
+# :br rdfs:subClassOf dgb:RelationInstance,
+#   [a owl:Restriction;
+#   owl:onProperty rdf:predicate ;
+#   owl:hasValue :br ].
+# Then we can more simply state
+# :br0
+#  a :br;
+#  dgb:source :x0 ;
+#  dgb:destination :y0 ;
