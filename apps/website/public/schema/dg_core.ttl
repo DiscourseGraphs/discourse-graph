@@ -32,7 +32,7 @@ dg:opposesCE a dgb:RelationDef;
 
 dg:opposedByEC a dgb:RelationDef;
   rdfs:label "Opposed by"@en;
-  owl:inverseOf dg:OpposesCE;
+  owl:inverseOf dg:opposesCE;
   rdfs:range dg:Evidence;
   rdfs:domain dg:Claim.
 
@@ -43,7 +43,7 @@ dg:supportsCE a dgb:RelationDef;
 
 dg:supportedByEC a dgb:RelationDef;
   rdfs:label "Supported by"@en;
-  owl:inverseOf dg:SupportsCE;
+  owl:inverseOf dg:supportsCE;
   rdfs:range dg:Evidence;
   rdfs:domain dg:Claim.
 
@@ -54,7 +54,7 @@ dg:opposesCC a dgb:RelationDef;
 
 dg:opposedByCC a dgb:RelationDef;
   rdfs:label "Opposed by"@en;
-  owl:inverseOf dg:OpposesCC;
+  owl:inverseOf dg:opposesCC;
   rdfs:range dg:Claim;
   rdfs:domain dg:Claim.
 
@@ -65,7 +65,7 @@ dg:supportsCC a dgb:RelationDef;
 
 dg:supportedByCC a dgb:RelationDef;
   rdfs:label "Supported by"@en;
-  owl:inverseOf dg:SupportsCC;
+  owl:inverseOf dg:supportsCC;
   rdfs:range dg:Claim;
   rdfs:domain dg:Claim.
 
