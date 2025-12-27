@@ -25,35 +25,24 @@ export const getPageData = ({
   allNodes: DiscourseNode[];
   isExportDiscourseGraph?: boolean;
 }): (Result & { type: string })[] => {
-  const allResults = results || [];
-
-  if (isExportDiscourseGraph) return allResults as DiscourseExportResult[];
+  if (isExportDiscourseGraph) return results as DiscourseExportResult[];
 
   const matchedTexts = new Set();
+  const mappedResults = results.flatMap((r) =>
+    Object.keys(r)
+      .filter((k) => k.endsWith(`-uid`) && k !== "text-uid")
+      .map((k) => ({
+        ...r,
+        text: r[k.slice(0, -4)].toString(),
+        uid: r[k] as string,
+      }))
+      .concat({
+        text: r.text,
+        uid: r.uid,
+      }),
+  );
   return allNodes.flatMap((n) =>
-    (allResults
-      ? allResults.flatMap((r) =>
-          Object.keys(r)
-            .filter((k) => k.endsWith(`-uid`) && k !== "text-uid")
-            .map((k) => ({
-              ...r,
-              text: r[k.slice(0, -4)].toString(),
-              uid: r[k] as string,
-            }))
-            .concat({
-              text: r.text,
-              uid: r.uid,
-            }),
-        )
-      : (
-          window.roamAlphaAPI.q(
-            "[:find (pull ?e [:block/uid :node/title]) :where [?e :node/title _]]",
-          ) as [Record<string, string>][]
-        ).map(([{ title, uid }]) => ({
-          text: title,
-          uid,
-        }))
-    )
+    mappedResults
       .filter(({ text }) => {
         if (!text) return false;
         if (matchedTexts.has(text)) return false;
