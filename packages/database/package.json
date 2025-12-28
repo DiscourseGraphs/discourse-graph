@@ -6,9 +6,10 @@
   "exports": {
     "./lib/*": "./src/lib/*.ts",
     "./dbDotEnv": {
-      "types": "./types/dbDotEnv.d.ts",
-      "import": "./src/dbDotEnv.mjs",
-      "default": "./src/dbDotEnv.mjs"
+      "types": "./dist/src/dbDotEnv.d.mts",
+      "import": "./dist/src/dbDotEnv.mjs",
+      "require": "./dist/src/dbDotEnv.mjs",
+      "default": "./dist/src/dbDotEnv.mjs"
     },
     "./dbTypes": "./src/dbTypes.ts",
     "./inputTypes": "./src/inputTypes.ts"
@@ -16,18 +17,19 @@
   "typesVersions": {
     "*": {
       "./dbDotEnv": [
-        "types/dbDotEnv.d.ts"
+        "dist/src/dbDotEnv.d.mts"
       ]
     }
   },
   "scripts": {
     "init": "supabase login",
-    "setup": "pnpm run genenv && pnpm run migrate",
+    "setup": "pnpm run bootstrap && pnpm run genenv && pnpm run migrate",
+    "bootstrap": "tsc -p tsconfig_bootstrap.json",
     "dev": "pnpm run setup && pnpm run serve",
     "build": "pnpm run setup && tsc",
     "serve": "tsx scripts/serve.ts",
     "stop": "supabase stop",
-    "check-types": "tsc --noEmit --skipLibCheck",
+    "check-types": "tsc -p tsconfig_lint.json",
     "check-schema": "tsx scripts/lintSchemas.ts && supabase stop && pnpm run dbdiff",
     "lint": "eslint . && tsx scripts/lintSchemas.ts && tsx scripts/lintFunctions.ts",
     "lint:fix": "eslint --fix . && tsx scripts/lintSchemas.ts -f && tsx scripts/lintFunctions.ts",
