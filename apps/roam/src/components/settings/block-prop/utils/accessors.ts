@@ -11,11 +11,79 @@ import {
   FeatureFlagsSchema,
   GlobalSettingsSchema,
   PersonalSettingsSchema,
+  DiscourseNodeSchema,
+  DiscourseNodeSettings,
 } from "~/components/settings/block-prop/utils/zodSchema";
-import { getPersonalSettingsKey } from "~/components/settings/block-prop/utils/init";
+import {
+  getPersonalSettingsKey,
+  getDiscourseNodePageUid,
+} from "~/components/settings/block-prop/utils/init";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const getBlockPropsByUid = (
+  blockUid: string,
+  keys: string[],
+): json | undefined => {
+  const allBlockProps = getBlockProps(blockUid);
+
+  if (keys.length === 0) {
+    return allBlockProps;
+  }
+
+  const targetValue = keys.reduce((currentContext: json, currentKey) => {
+    if (
+      currentContext &&
+      typeof currentContext === "object" &&
+      !Array.isArray(currentContext)
+    ) {
+      const value = (currentContext as Record<string, json>)[currentKey];
+      return value === undefined ? null : value;
+    }
+    return null;
+  }, allBlockProps);
+
+  return targetValue === null ? undefined : targetValue;
+};
+
+export const setBlockPropsByUid = (
+  blockUid: string,
+  keys: string[],
+  value: json,
+): void => {
+  if (keys.length === 0) {
+    setBlockProps(blockUid, value as Record<string, json>, false);
+    return;
+  }
+
+  const currentProps = getBlockProps(blockUid);
+  const updatedProps = JSON.parse(JSON.stringify(currentProps || {})) as Record<
+    string,
+    json
+  >;
+
+  const lastKeyIndex = keys.length - 1;
+
+  keys.reduce<Record<string, json>>((currentContext, currentKey, index) => {
+    if (index === lastKeyIndex) {
+      currentContext[currentKey] = value;
+      return currentContext;
+    }
+
+    if (
+      !currentContext[currentKey] ||
+      typeof currentContext[currentKey] !== "object" ||
+      Array.isArray(currentContext[currentKey])
+    ) {
+      currentContext[currentKey] = {};
+    }
+
+    return currentContext[currentKey] as Record<string, json>;
+  }, updatedProps);
+
+  setBlockProps(blockUid, updatedProps, false);
+};
 
 export const getBlockPropBasedSettings = ({
   keys,
@@ -27,38 +95,14 @@ export const getBlockPropBasedSettings = ({
     return { blockProps: undefined, blockUid: "" };
   }
 
-  const sectionKey = keys[0];
-
   const blockUid = getBlockUidByTextOnPage({
-    text: sectionKey,
+    text: keys[0],
     title: DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
   });
 
-  const allBlockPropsForSection = getBlockProps(blockUid);
+  const blockProps = getBlockPropsByUid(blockUid, keys.slice(1));
 
-  if (keys.length > 1) {
-    const propertyPath = keys.slice(1);
-
-    const targetValue = propertyPath.reduce(
-      (currentContext: json, currentKey) => {
-        if (
-          currentContext &&
-          typeof currentContext === "object" &&
-          !Array.isArray(currentContext)
-        ) {
-          const value = (currentContext as Record<string, json>)[currentKey];
-          return value === undefined ? null : value;
-        }
-        return null;
-      },
-      allBlockPropsForSection,
-    );
-    return {
-      blockProps: targetValue === null ? undefined : targetValue,
-      blockUid,
-    };
-  }
-  return { blockProps: allBlockPropsForSection, blockUid };
+  return { blockProps, blockUid };
 };
 
 export const setBlockPropBasedSettings = ({
@@ -78,41 +122,7 @@ export const setBlockPropBasedSettings = ({
     title: DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
   });
 
-  if (keys.length === 1) {
-    setBlockProps(blockUid, value as Record<string, json>, false);
-    return;
-  }
-
-  const currentProps = getBlockProps(blockUid);
-  const updatedProps = JSON.parse(JSON.stringify(currentProps || {})) as Record<
-    string,
-    json
-  >;
-
-  const propertyPath = keys.slice(1);
-  const lastKeyIndex = propertyPath.length - 1;
-
-  propertyPath.reduce<Record<string, json>>(
-    (currentContext, currentKey, index) => {
-      if (index === lastKeyIndex) {
-        currentContext[currentKey] = value;
-        return currentContext;
-      }
-
-      if (
-        !currentContext[currentKey] ||
-        typeof currentContext[currentKey] !== "object" ||
-        Array.isArray(currentContext[currentKey])
-      ) {
-        currentContext[currentKey] = {};
-      }
-
-      return currentContext[currentKey] as Record<string, json>;
-    },
-    updatedProps,
-  );
-
-  setBlockProps(blockUid, updatedProps, false);
+  setBlockPropsByUid(blockUid, keys.slice(1), value);
 };
 
 export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
@@ -187,4 +197,47 @@ export const setPersonalSetting = (keys: string[], value: json): void => {
     keys: [personalKey, ...keys],
     value,
   });
+};
+
+export const getDiscourseNodeSettings = (
+  nodeType: string,
+): DiscourseNodeSettings | undefined => {
+  const pageUid = getDiscourseNodePageUid(nodeType);
+
+  if (!pageUid) return undefined;
+
+  const blockProps = getBlockPropsByUid(pageUid, []);
+
+  if (!blockProps) return undefined;
+
+  return DiscourseNodeSchema.parse(blockProps);
+};
+
+export const getDiscourseNodeSetting = (
+  nodeType: string,
+  keys: string[],
+): unknown => {
+  const settings = getDiscourseNodeSettings(nodeType);
+
+  if (!settings) return undefined;
+
+  return keys.reduce<unknown>((current, key) => {
+    if (!isRecord(current) || !(key in current)) return undefined;
+    return current[key];
+  }, settings);
+};
+
+export const setDiscourseNodeSetting = (
+  nodeType: string,
+  keys: string[],
+  value: json,
+): void => {
+  const pageUid = getDiscourseNodePageUid(nodeType);
+
+  if (!pageUid) {
+    console.warn(`Discourse node page not found for type: ${nodeType}`);
+    return;
+  }
+
+  setBlockPropsByUid(pageUid, keys, value);
 };
