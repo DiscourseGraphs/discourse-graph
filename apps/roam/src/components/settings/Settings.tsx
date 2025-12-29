@@ -17,13 +17,10 @@ import DiscourseGraphHome from "./GeneralSettings";
 import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
 import AdminPanel from "./AdminPanel";
-import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
-import getDiscourseNodes, {
-  excludeDefaultNodes,
-} from "~/utils/getDiscourseNodes";
-import NodeConfig from "./NodeConfig";
+import DiscourseNodeSettings from "../discourse-nodes/DiscourseNodeSettings";
+import DiscourseNodeConfigPanel from "../discourse-nodes/DiscourseNodeConfigPanel";
+import { getAllDiscourseNodes } from "~/components/settings/block-prop/utils/accessors";
 import HomePersonalSettings from "./HomePersonalSettings";
-import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
 import { getVersionWithDate } from "~/utils/getVersion";
 import { LeftSidebarPersonalSections } from "../left-sidebar/LeftSidebarPersonalSettings";
@@ -72,7 +69,7 @@ export const SettingsDialog = ({
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const settings = getFormattedConfigTree();
-  const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
+  const nodes = getAllDiscourseNodes().filter((n) => n.backedBy === "user");
   const [activeTabId, setActiveTabId] = useState<TabId>(
     selectedTabId ?? "discourse-graph-home-personal",
   );
@@ -93,7 +90,6 @@ export const SettingsDialog = ({
     <Dialog
       isOpen={isOpen}
       onClose={() => {
-        refreshConfigTree();
         onClose?.();
       }}
       enforceFocus={false}
@@ -209,10 +205,13 @@ export const SettingsDialog = ({
           <SectionHeader>Nodes</SectionHeader>
           {nodes.map((n) => (
             <Tab
+              key={n.type}
               id={n.type}
               title={n.text}
               className="overflow-y-auto"
-              panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
+              panel={
+                <DiscourseNodeSettings nodeType={n.type} />
+              }
             />
           ))}
           <Tabs.Expander />

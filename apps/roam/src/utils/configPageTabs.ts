@@ -5,7 +5,7 @@ import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import CustomPanel from "roamjs-components/components/ConfigPanels/CustomPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
-import DiscourseNodeConfigPanel from "~/components/settings/DiscourseNodeConfigPanel";
+import DiscourseNodeConfigPanel from "~/components/discourse-nodes/DiscourseNodeConfigPanel";
 import DiscourseRelationConfigPanel from "~/components/settings/DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import { ConfigTab } from "roamjs-components/components/ConfigPage";

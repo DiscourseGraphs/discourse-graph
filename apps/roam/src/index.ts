@@ -15,7 +15,6 @@ import { registerSmartBlock } from "./utils/registerSmartBlock";
 import { initObservers } from "./utils/initializeObserversAndListeners";
 import { addGraphViewNodeStyling } from "./utils/graphViewNodeStyling";
 import { setQueryPages } from "./utils/setQueryPages";
-import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
 import styles from "./styles/styles.css";
 import discourseFloatingMenuStyles from "./styles/discourseFloatingMenuStyles.css";
 import settingsStyles from "./styles/settingsStyles.css";
@@ -105,8 +104,6 @@ export default runExtension(async (onloadArgs) => {
 
   initPluginTimer();
 
-  await initializeDiscourseNodes();
-  refreshConfigTree();
 
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);

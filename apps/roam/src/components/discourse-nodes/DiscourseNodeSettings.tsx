@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-  useMemo,
-} from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import {
   Label,
   Tabs,
@@ -19,9 +13,9 @@ import {
   getDiscourseNodeSettings,
   setDiscourseNodeSetting,
 } from "~/components/settings/block-prop/utils/accessors";
-import { validateTagFormat, generateTagPlaceholder } from "~/components/discourse-nodes/utils";
-import CanvasSettings from "~/components/settings/DiscourseNodeCanvasSettings";
-import Attributes from "~/components/settings/DiscourseNodeAttributes";
+import { validateTagFormat, generateTagPlaceholder } from "./utils";
+import CanvasSettings from "./CanvasSettings";
+import Attributes from "./Attributes";
 import { BlocksPanel } from "~/components/settings/block-prop/components/BlocksPanel";
 
 type Props = {
@@ -151,7 +145,11 @@ const DiscourseNodeSettings = ({ nodeType }: Props) => {
     settings?.shortcut || "",
   );
   const tag = useDebouncedSave(nodeType, ["tag"], settings?.tag || "");
-  const format = useDebouncedSave(nodeType, ["format"], settings?.format || "");
+  const format = useDebouncedSave(
+    nodeType,
+    ["format"],
+    settings?.format || "",
+  );
 
   // Validate tag/format on changes
   useEffect(() => {

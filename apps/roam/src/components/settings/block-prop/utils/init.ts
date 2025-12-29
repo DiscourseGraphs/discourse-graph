@@ -77,7 +77,46 @@ export const getPersonalSettingsKey = (): string => {
   return `${userUid}/Personal-Section`;
 };
 
-export const initSchema = async (): Promise<Record<string, string>> => {
+export const getDiscourseNodePageTitle = (nodeType: string): string => {
+  return `${DISCOURSE_NODE_PAGE_PREFIX}${nodeType}`;
+};
+
+export const getDiscourseNodePageUid = (
+  nodeType: string,
+): string | undefined => {
+  const pageTitle = getDiscourseNodePageTitle(nodeType);
+  const pageUid = getPageUidByPageTitle(pageTitle);
+  console.log(`[DG:init] getDiscourseNodePageUid(${nodeType}) - looking for page: "${pageTitle}" - found: ${pageUid || "NOT FOUND"}`);
+  return pageUid || undefined;
+};
+
+const ensureDiscourseNodePageExists = async (
+  nodeType: string,
+): Promise<string> => {
+  const pageTitle = getDiscourseNodePageTitle(nodeType);
+  return ensurePageExists(pageTitle);
+};
+
+const ensureNodeSettingBlockExists = async (
+  pageUid: string,
+  blockText: string,
+): Promise<string> => {
+  const existingChildren = getShallowTreeByParentUid(pageUid);
+  const existingBlock = existingChildren.find((c) => c.text === blockText);
+
+  if (existingBlock) {
+    return existingBlock.uid;
+  }
+
+  const uid = await createBlock({
+    parentUid: pageUid,
+    node: { text: blockText },
+  });
+
+  return uid;
+};
+
+const initSettingsPageBlocks = async (): Promise<Record<string, string>> => {
   const pageUid = await ensurePageExists(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
   const existingChildren = getShallowTreeByParentUid(pageUid);
 
@@ -94,37 +133,25 @@ export const initSchema = async (): Promise<Record<string, string>> => {
   return blockMap;
 };
 
-export const getDiscourseNodePageTitle = (nodeType: string): string => {
-  return `${DISCOURSE_NODE_PAGE_PREFIX}${nodeType}`;
-};
-
-export const getDiscourseNodePageUid = (
-  nodeType: string,
-): string | undefined => {
-  const pageTitle = getDiscourseNodePageTitle(nodeType);
-  const pageUid = getPageUidByPageTitle(pageTitle);
-  return pageUid || undefined;
-};
-
-const ensureDiscourseNodePageExists = async (
-  nodeType: string,
-): Promise<string> => {
-  const pageTitle = getDiscourseNodePageTitle(nodeType);
-  return ensurePageExists(pageTitle);
-};
-
-export const initDiscourseNodes = async (): Promise<
-  Record<string, string>
-> => {
+const initDiscourseNodePages = async (): Promise<Record<string, string>> => {
+  console.log(`[DG:init] initDiscourseNodePages - starting with ${INITIAL_NODE_VALUES.length} default nodes`);
   const nodePageUids: Record<string, string> = {};
 
   for (const node of INITIAL_NODE_VALUES) {
-    if (!node.type) continue;
+    if (!node.text) continue;
 
-    const pageUid = await ensureDiscourseNodePageExists(node.type);
-    nodePageUids[node.type] = pageUid;
+    console.log(`[DG:init] initDiscourseNodePages - processing node: ${node.text} (type: ${node.type})`);
+    // Use node.text for page title: discourse-graph/nodes/Claim
+    const pageUid = await ensureDiscourseNodePageExists(node.text);
+    nodePageUids[pageUid] = pageUid; // Key by pageUid since that's what getDiscourseNodes uses as type
+    console.log(`[DG:init] initDiscourseNodePages - page created/found: ${pageUid}`);
 
     const existingProps = getBlockProps(pageUid);
+    console.log(`[DG:init] initDiscourseNodePages - existing props:`, existingProps);
+
+    const templateUid = await ensureNodeSettingBlockExists(pageUid, "Template");
+    const indexUid = await ensureNodeSettingBlockExists(pageUid, "Index");
+    const specificationUid = await ensureNodeSettingBlockExists(pageUid, "Specification");
 
     if (!existingProps || Object.keys(existingProps).length === 0) {
       const nodeData = DiscourseNodeSchema.parse({
@@ -135,12 +162,67 @@ export const initDiscourseNodes = async (): Promise<
         tag: node.tag,
         graphOverview: node.graphOverview,
         canvasSettings: node.canvasSettings || {},
+        templateUid,
+        indexUid,
+        specificationUid,
         backedBy: "user",
       });
 
+      console.log(`[DG:init] initDiscourseNodePages - setting block props:`, nodeData);
       setBlockProps(pageUid, nodeData as Record<string, json>, false);
+    } else if (!existingProps.templateUid || !existingProps.indexUid || !existingProps.specificationUid) {
+      setBlockProps(pageUid, { templateUid, indexUid, specificationUid }, true);
     }
   }
 
+  console.log(`[DG:init] initDiscourseNodePages - completed. nodePageUids:`, nodePageUids);
   return nodePageUids;
+};
+
+export type InitSchemaResult = {
+  blockUids: Record<string, string>;
+  nodePageUids: Record<string, string>;
+};
+
+export type CreateDiscourseNodeResult = {
+  pageUid: string;
+  templateUid: string;
+  indexUid: string;
+  specificationUid: string;
+};
+
+export const createDiscourseNodePage = async (
+  label: string,
+  options?: {
+    format?: string;
+    shortcut?: string;
+  },
+): Promise<CreateDiscourseNodeResult> => {
+  const pageUid = await ensureDiscourseNodePageExists(label);
+
+  const templateUid = await ensureNodeSettingBlockExists(pageUid, "Template");
+  const indexUid = await ensureNodeSettingBlockExists(pageUid, "Index");
+  const specificationUid = await ensureNodeSettingBlockExists(pageUid, "Specification");
+
+  const nodeData = DiscourseNodeSchema.parse({
+    text: label,
+    type: pageUid,
+    format: options?.format || "",
+    shortcut: options?.shortcut || "",
+    templateUid,
+    indexUid,
+    specificationUid,
+    backedBy: "user",
+  });
+
+  setBlockProps(pageUid, nodeData as Record<string, json>, false);
+
+  return { pageUid, templateUid, indexUid, specificationUid };
+};
+
+export const initSchema = async (): Promise<InitSchemaResult> => {
+  const blockUids = await initSettingsPageBlocks();
+  const nodePageUids = await initDiscourseNodePages();
+
+  return { blockUids, nodePageUids };
 };
