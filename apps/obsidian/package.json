@@ -37,6 +37,9 @@
   },
   "dependencies": {
     "@codemirror/view": "^6.38.8",
+    "@repo/database": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@supabase/supabase-js": "catalog:",
     "date-fns": "^4.1.0",
     "nanoid": "^4.0.2",
     "react": "catalog:obsidian",

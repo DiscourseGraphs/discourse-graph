@@ -34,6 +34,9 @@ export type Settings = {
   canvasFolderPath: string;
   canvasAttachmentsFolderPath: string;
   nodeTagHotkey: string;
+  spacePassword?: string;
+  accountLocalId?: string;
+  syncModeEnabled?: boolean;
 };
 
 export type BulkImportCandidate = {

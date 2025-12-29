@@ -22,6 +22,7 @@ import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { TagNodeHandler } from "~/utils/tagNodeHandler";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
+import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -32,6 +33,11 @@ export default class DiscourseGraphPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
+
+    if (this.settings.syncModeEnabled === true) {
+      void initializeSupabaseSync(this);
+    }
+
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
 
