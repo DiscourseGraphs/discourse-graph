@@ -59,13 +59,13 @@ export const getSupabaseContext = async (
     try {
       // Get vault name - try getName() first, fallback to adapter path
       let vaultName: string;
-      if (typeof (plugin.app.vault as any).getName === "function") {
-        vaultName = (plugin.app.vault as any).getName();
+      if (typeof plugin.app.vault.getName === "function") {
+        vaultName = plugin.app.vault.getName();
       } else {
         // Fallback: use adapter basePath and extract folder name
-        const adapter = (plugin.app.vault as any).adapter;
-        if (adapter?.basePath) {
-          const pathParts = adapter.basePath.split(/[/\\]/);
+        const adapter = plugin.app.vault.adapter;
+        if (adapter && "basePath" in adapter) {
+          const pathParts = (adapter.basePath as string).split(/[/\\]/);
           vaultName = pathParts[pathParts.length - 1] || "obsidian-vault";
         } else {
           vaultName = "obsidian-vault";
@@ -118,25 +118,25 @@ export const getSupabaseContext = async (
   return contextCache;
 };
 
-let _loggedInClient: DGSupabaseClient | null = null;
+let loggedInClient: DGSupabaseClient | null = null;
 
 export const getLoggedInClient = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<DGSupabaseClient | null> => {
-  if (_loggedInClient === null) {
+  if (loggedInClient === null) {
     const context = await getSupabaseContext(plugin);
     if (context === null) throw new Error("Could not create context");
-    _loggedInClient = await createLoggedInClient(
+    loggedInClient = await createLoggedInClient(
       context.platform,
       context.spaceId,
       context.spacePassword,
     );
   } else {
     // renew session
-    const { error } = await _loggedInClient.auth.getSession();
+    const { error } = await loggedInClient.auth.getSession();
     if (error) {
-      _loggedInClient = null;
+      loggedInClient = null;
     }
   }
-  return _loggedInClient;
+  return loggedInClient;
 };
