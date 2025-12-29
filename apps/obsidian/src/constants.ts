@@ -70,6 +70,9 @@ export const DEFAULT_SETTINGS: Settings = {
   canvasFolderPath: "Discourse Canvas",
   canvasAttachmentsFolderPath: "attachments",
   nodeTagHotkey: "\\",
+  spacePassword: undefined,
+  accountLocalId: undefined,
+  syncModeEnabled: false,
 };
 
 export const FEATURE_FLAGS = {

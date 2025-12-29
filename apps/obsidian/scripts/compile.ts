@@ -10,6 +10,21 @@ import autoprefixer from "autoprefixer";
 
 dotenv.config();
 
+// Load database environment variables
+// Requires SUPABASE_USE_DB to be set (e.g., "local", "branch", "production")
+// For local dev: Set SUPABASE_USE_DB=local and run `pnpm run genenv` in packages/database
+let envContents: (() => Record<string, string>) | null = null;
+try {
+  const dbDotEnv = require("@repo/database/dbDotEnv");
+  envContents = dbDotEnv.envContents;
+} catch (error) {
+  if ((error as Error).message.includes("Cannot find module")) {
+    console.error("Build the database module before compiling obsidian");
+    process.exit(1);
+  }
+  throw error;
+}
+
 const DEFAULT_FILES_INCLUDED = ["manifest.json"];
 const isProd = process.env.NODE_ENV === "production";
 
@@ -89,6 +104,11 @@ export const compile = ({
   fs.mkdirSync(outdir, { recursive: true });
 
   const buildPromises = [] as Promise<void>[];
+  if (!envContents) {
+    throw new Error("envContents not loaded. Build the database module first.");
+  }
+  const dbEnv = envContents();
+  console.log("dbEnv", dbEnv);
   buildPromises.push(
     builder({
       absWorkingDir: process.cwd(),
@@ -100,6 +120,15 @@ export const compile = ({
       minify: isProd,
       entryNames: out,
       external: external,
+      define: {
+        "process.env.SUPABASE_URL": dbEnv.SUPABASE_URL
+          ? `"${dbEnv.SUPABASE_URL}"`
+          : "null",
+        "process.env.SUPABASE_ANON_KEY": dbEnv.SUPABASE_ANON_KEY
+          ? `"${dbEnv.SUPABASE_ANON_KEY}"`
+          : "null",
+        "process.env.NEXT_API_ROOT": `"${dbEnv.NEXT_API_ROOT || ""}"`,
+      },
       plugins: [
         {
           name: "log",
