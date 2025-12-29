@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
@@ -10,8 +11,6 @@ import autoprefixer from "autoprefixer";
 
 dotenv.config();
 
-// Load database environment variables
-// Requires SUPABASE_USE_DB to be set (e.g., "local", "branch", "production")
 // For local dev: Set SUPABASE_USE_DB=local and run `pnpm run genenv` in packages/database
 let envContents: (() => Record<string, string>) | null = null;
 try {
@@ -108,7 +107,6 @@ export const compile = ({
     throw new Error("envContents not loaded. Build the database module first.");
   }
   const dbEnv = envContents();
-  console.log("dbEnv", dbEnv);
   buildPromises.push(
     builder({
       absWorkingDir: process.cwd(),
