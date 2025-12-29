@@ -6,6 +6,7 @@ import {
   TFile,
   MarkdownView,
   WorkspaceLeaf,
+  Notice,
 } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { SettingsTab } from "~/components/Settings";
@@ -35,7 +36,13 @@ export default class DiscourseGraphPlugin extends Plugin {
     await this.loadSettings();
 
     if (this.settings.syncModeEnabled === true) {
-      void initializeSupabaseSync(this);
+      void initializeSupabaseSync(this).catch((error) => {
+        console.error("Failed to initialize Supabase sync:", error);
+        new Notice(
+          `Failed to initialize Supabase sync: ${error instanceof Error ? error.message : String(error)}`,
+          5000,
+        );
+      });
     }
 
     registerCommands(this);

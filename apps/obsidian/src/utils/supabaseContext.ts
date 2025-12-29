@@ -57,23 +57,7 @@ export const getSupabaseContext = async (
 ): Promise<SupabaseContext | null> => {
   if (contextCache === null) {
     try {
-      // Get vault name - try getName() first, fallback to adapter path
-      let vaultName: string;
-      if (typeof plugin.app.vault.getName === "function") {
-        vaultName = plugin.app.vault.getName();
-      } else {
-        // Fallback: use adapter basePath and extract folder name
-        const adapter = plugin.app.vault.adapter;
-        if (adapter && "basePath" in adapter) {
-          const pathParts = (adapter.basePath as string).split(/[/\\]/);
-          vaultName = pathParts[pathParts.length - 1] || "obsidian-vault";
-        } else {
-          vaultName = "obsidian-vault";
-        }
-      }
-      if (!vaultName) {
-        throw new Error("Could not get vault name");
-      }
+      const vaultName = plugin.app.vault.getName() || "obsidian-vault";
 
       const spacePassword = await getOrCreateSpacePassword(plugin);
       const accountLocalId = await getOrCreateAccountLocalId(plugin, vaultName);
