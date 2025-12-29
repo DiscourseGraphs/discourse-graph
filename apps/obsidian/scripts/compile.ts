@@ -57,6 +57,7 @@ export const args = {
     "@lezer/common",
     "@lezer/highlight",
     "@lezer/lr",
+    "tslib=window.TSLib",
     ...builtins,
   ],
 } as CliOpts;
