@@ -93,8 +93,10 @@ export const setupPullWatchDiscourseNodes = (
     const callback: PullWatchCallback = (before, after) => {
       if (hasPropChanged(before, after)) {
         const afterProps = getNormalizedProps(after);
-        const settings = DiscourseNodeSchema.parse(afterProps);
-        onNodeChange(nodeType, settings);
+        const result = DiscourseNodeSchema.safeParse(afterProps);
+        if (result.success) {
+          onNodeChange(nodeType, result.data);
+        }
       }
     };
 

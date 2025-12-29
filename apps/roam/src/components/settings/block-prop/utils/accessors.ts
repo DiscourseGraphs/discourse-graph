@@ -17,6 +17,7 @@ import {
 import {
   getPersonalSettingsKey,
   getDiscourseNodePageUid,
+  DISCOURSE_NODE_PAGE_PREFIX,
 } from "~/components/settings/block-prop/utils/init";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -202,15 +203,33 @@ export const setPersonalSetting = (keys: string[], value: json): void => {
 export const getDiscourseNodeSettings = (
   nodeType: string,
 ): DiscourseNodeSettings | undefined => {
-  const pageUid = getDiscourseNodePageUid(nodeType);
+  // nodeType is already the page UID for discourse-graph/nodes/* pages
+  // Try using it directly first, then fall back to looking up by title
+  let pageUid = nodeType;
 
-  if (!pageUid) return undefined;
+  // Check if this UID exists by trying to get props
+  let blockProps = getBlockPropsByUid(pageUid, []);
 
-  const blockProps = getBlockPropsByUid(pageUid, []);
+  // If not found, try looking up by page title (for default nodes like _CLM-node)
+  if (!blockProps) {
+    const lookedUpUid = getDiscourseNodePageUid(nodeType);
+    if (lookedUpUid) {
+      pageUid = lookedUpUid;
+      blockProps = getBlockPropsByUid(pageUid, []);
+    }
+  }
+
+  console.log(`[DG:accessor] getDiscourseNodeSettings(${nodeType}) - pageUid: ${pageUid}, blockProps:`, blockProps);
 
   if (!blockProps) return undefined;
 
-  return DiscourseNodeSchema.parse(blockProps);
+  const result = DiscourseNodeSchema.safeParse(blockProps);
+  if (!result.success) {
+    console.warn(`[DG:accessor] getDiscourseNodeSettings(${nodeType}) - parse failed:`, result.error);
+    return undefined;
+  }
+  console.log(`[DG:accessor] getDiscourseNodeSettings(${nodeType}) - parsed:`, result.data);
+  return result.data;
 };
 
 export const getDiscourseNodeSetting = (
@@ -232,12 +251,38 @@ export const setDiscourseNodeSetting = (
   keys: string[],
   value: json,
 ): void => {
-  const pageUid = getDiscourseNodePageUid(nodeType);
+  // nodeType is already the page UID for discourse-graph/nodes/* pages
+  const pageUid = nodeType;
 
-  if (!pageUid) {
-    console.warn(`Discourse node page not found for type: ${nodeType}`);
-    return;
-  }
+  console.log(`[DG:accessor] setDiscourseNodeSetting(${nodeType}) - pageUid: ${pageUid}, keys: ${JSON.stringify(keys)}, value:`, value);
 
   setBlockPropsByUid(pageUid, keys, value);
+};
+
+export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
+  const results = window.roamAlphaAPI.q(`
+    [:find ?uid ?title
+     :where
+     [?page :node/title ?title]
+     [?page :block/uid ?uid]
+     [(clojure.string/starts-with? ?title "${DISCOURSE_NODE_PAGE_PREFIX}")]]
+  `) as [string, string][];
+
+  const nodes: DiscourseNodeSettings[] = [];
+
+  for (const [pageUid, title] of results) {
+    const blockProps = getBlockPropsByUid(pageUid, []);
+    if (!blockProps) continue;
+
+    const result = DiscourseNodeSchema.safeParse(blockProps);
+    if (result.success) {
+      nodes.push({
+        ...result.data,
+        type: pageUid,
+        text: title.replace(DISCOURSE_NODE_PAGE_PREFIX, ""),
+      });
+    }
+  }
+
+  return nodes;
 };

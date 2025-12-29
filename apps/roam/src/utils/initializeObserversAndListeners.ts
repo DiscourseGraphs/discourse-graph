@@ -11,12 +11,8 @@ import {
   renderTldrawCanvasInSidebar,
 } from "~/components/canvas/Tldraw";
 import { renderQueryPage, renderQueryBlock } from "~/components/QueryBuilder";
-import {
-  DISCOURSE_CONFIG_PAGE_TITLE,
-  renderNodeConfigPage,
-} from "~/utils/renderNodeConfigPage";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import { isCurrentPageCanvas, isSidebarCanvas } from "~/utils/isCanvasPage";
-import { isDiscourseNodeConfigPage as isNodeConfigPage } from "~/utils/isDiscourseNodeConfigPage";
 import { isQueryPage } from "~/utils/isQueryPage";
 import {
   enablePageRefObserver,
@@ -53,11 +49,14 @@ import {
   mountLeftSidebar,
   unmountLeftSidebar,
 } from "~/components/left-sidebar/LeftSidebarView";
-import { getCleanTagText } from "~/components/settings/NodeConfig";
+import { getCleanTagText } from "~/components/discourse-nodes/utils";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
 import { getFeatureFlag } from "~/components/settings/block-prop/utils/accessors";
-import { setupPullWatchBlockPropsBasedSettings } from "~/components/settings/block-prop/utils/pullWatch";
+import {
+  setupPullWatchBlockPropsBasedSettings,
+  setupPullWatchDiscourseNodes,
+} from "~/components/settings/block-prop/utils/pullWatch";
 import { initSchema } from "../components/settings/block-prop/utils/init";
 
 const debounce = (fn: () => void, delay = 250) => {
@@ -82,7 +81,8 @@ export const initObservers = async ({
     nodeCreationPopoverListener: EventListener;
   };
 }> => {
-  const topLevelBlockProps = await initSchema();
+  const { blockUids, nodePageUids } = await initSchema();
+
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
@@ -91,8 +91,7 @@ export const initObservers = async ({
       const title = getPageTitleValueByHtmlElement(h1);
       const props = { title, h1, onloadArgs };
 
-      if (isNodeConfigPage(title)) renderNodeConfigPage(props);
-      else if (isQueryPage(props)) renderQueryPage(props);
+      if (isQueryPage(props)) renderQueryPage(props);
       else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);
       else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
     },
@@ -264,9 +263,11 @@ export const initObservers = async ({
       updateLeftSidebar(leftSidebarContainer);
     },
   });
-
+  setupPullWatchDiscourseNodes(nodePageUids, () => {
+    // TODO: Handle discourse node changes
+  });
   setupPullWatchBlockPropsBasedSettings(
-    topLevelBlockProps,
+    blockUids,
     updateLeftSidebar,
     leftSidebarContainer as unknown as HTMLDivElement,
   );

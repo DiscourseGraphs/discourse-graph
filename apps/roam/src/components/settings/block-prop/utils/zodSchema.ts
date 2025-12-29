@@ -26,30 +26,40 @@ export const SuggestiveRulesSchema = z.object({
 
 export const AttributesSchema = z.record(z.string(), z.string()).default({});
 
+const stringWithDefault = (defaultVal: string) =>
+  z.string().nullable().optional().transform(val => val ?? defaultVal);
+
+const booleanWithDefault = (defaultVal: boolean) =>
+  z.boolean().nullable().optional().transform(val => val ?? defaultVal);
+
 export const DiscourseNodeSchema = z.object({
   text: z.string(),
   type: z.string(),
-  format: z.string().default(""),
-  shortcut: z.string().default(""),
-  tag: z.string().optional(),
-  description: z.string().optional(),
-  specification: z.array(z.unknown()).default([]),
-  template: z.array(z.unknown()).optional(),
-  canvasSettings: z.record(z.string(), z.string()).default({}),
-  graphOverview: z.boolean().optional(),
-  attributes: AttributesSchema,
-  overlay: z.string().optional(),
-  index: z.unknown().optional(),
-  suggestiveRules: SuggestiveRulesSchema.optional(),
-  embeddingRef: z.string().optional(),
-  embeddingRefUid: z.string().optional(),
+  format: stringWithDefault(""),
+  shortcut: stringWithDefault(""),
+  tag: stringWithDefault(""),
+  description: stringWithDefault(""),
+  specification: z.array(z.unknown()).nullable().optional().transform(val => val ?? []),
+  specificationUid: stringWithDefault(""),
+  template: z.array(z.unknown()).nullable().optional().transform(val => val ?? []),
+  templateUid: stringWithDefault(""),
+  canvasSettings: z.record(z.string(), z.string()).nullable().optional().transform(val => val ?? {}),
+  graphOverview: booleanWithDefault(false),
+  attributes: z.record(z.string(), z.string()).nullable().optional().transform(val => val ?? {}),
+  overlay: stringWithDefault(""),
+  index: z.unknown().nullable().optional(),
+  indexUid: stringWithDefault(""),
+  suggestiveRules: SuggestiveRulesSchema.nullable().optional(),
+  embeddingRef: stringWithDefault(""),
+  embeddingRefUid: stringWithDefault(""),
   isFirstChild: z
     .object({
       uid: z.string(),
       value: z.boolean(),
     })
+    .nullable()
     .optional(),
-  backedBy: z.enum(["user", "default", "relation"]).default("user"),
+  backedBy: z.enum(["user", "default", "relation"]).nullable().transform(val => val ?? "user"),
 });
 
 

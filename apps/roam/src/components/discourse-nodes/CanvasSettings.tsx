@@ -28,11 +28,7 @@ type CanvasSettingsProps = {
   graphOverview: boolean;
 };
 
-const CanvasSettings = ({
-  nodeType,
-  canvasSettings,
-  graphOverview,
-}: CanvasSettingsProps) => {
+const CanvasSettings = ({ nodeType, canvasSettings, graphOverview }: CanvasSettingsProps) => {
   const [color, setColor] = useState<string>(() =>
     formatHexColor(canvasSettings.color || ""),
   );
@@ -59,8 +55,8 @@ const CanvasSettings = ({
         checked={isGraphOverview}
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          setDiscourseNodeSetting(nodeType, ["graphOverview"], target.checked);
           setIsGraphOverview(target.checked);
+          setDiscourseNodeSetting(nodeType, ["graphOverview"], target.checked);
         }}
       >
         Graph Overview
@@ -80,8 +76,8 @@ const CanvasSettings = ({
             type={"color"}
             value={color}
             onChange={(e) => {
-              saveCanvasSetting("color", e.target.value.replace("#", ""));
               setColor(e.target.value);
+              saveCanvasSetting("color", e.target.value.replace("#", ""));
             }}
           />
           <Tooltip content={color ? "Unset" : "Color not set"}>
