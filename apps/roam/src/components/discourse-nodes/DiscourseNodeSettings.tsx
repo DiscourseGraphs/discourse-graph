@@ -8,6 +8,7 @@ import {
   TextArea,
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
+import type { OnloadArgs } from "roamjs-components/types";
 import type { DiscourseNodeSettings as DiscourseNodeSettingsType } from "~/components/settings/block-prop/utils/zodSchema";
 import {
   getDiscourseNodeSettings,
@@ -17,9 +18,12 @@ import { validateTagFormat, generateTagPlaceholder } from "./utils";
 import CanvasSettings from "./CanvasSettings";
 import Attributes from "./Attributes";
 import { BlocksPanel } from "~/components/settings/block-prop/components/BlocksPanel";
+import DiscourseNodeSpecification from "~/components/settings/DiscourseNodeSpecification";
+import DiscourseNodeIndex from "~/components/settings/DiscourseNodeIndex";
 
 type Props = {
   nodeType: string;
+  onloadArgs: OnloadArgs;
 };
 
 const useDebouncedSave = (
@@ -124,7 +128,7 @@ const ValidatedTextareaPanel = ({
   </div>
 );
 
-const DiscourseNodeSettings = ({ nodeType }: Props) => {
+const DiscourseNodeSettings = ({ nodeType, onloadArgs }: Props) => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
   const [tagError, setTagError] = useState("");
   const [formatError, setFormatError] = useState("");
@@ -226,11 +230,24 @@ const DiscourseNodeSettings = ({ nodeType }: Props) => {
               onBlur={handleFormatBlur}
               error={formatError}
             />
-            <BlocksPanel
-              title="Specification"
-              description={`The conditions specified to identify a ${nodeText} node.`}
-              uid={settings.specificationUid}
-            />
+            <Label>
+              Specification
+              <Description
+                description={`The conditions specified to identify a ${nodeText} node.`}
+              />
+              <DiscourseNodeSpecification
+                parentUid={settings.specificationUid}
+                node={{
+                  text: settings.text,
+                  format: settings.format,
+                  type: nodeType,
+                  shortcut: settings.shortcut,
+                  specification: [],
+                  backedBy: settings.backedBy,
+                  canvasSettings: settings.canvasSettings,
+                }}
+              />
+            </Label>
           </div>
         }
       />
@@ -278,10 +295,18 @@ const DiscourseNodeSettings = ({ nodeType }: Props) => {
         title="Index"
         panel={
           <div className="flex flex-col gap-4 p-1">
-            <BlocksPanel
-              title="Index"
-              description={`Query configuration for indexing ${nodeText} nodes.`}
-              uid={settings.indexUid}
+            <DiscourseNodeIndex
+              parentUid={settings.indexUid}
+              node={{
+                text: settings.text,
+                format: settings.format,
+                type: nodeType,
+                shortcut: settings.shortcut,
+                specification: [],
+                backedBy: settings.backedBy,
+                canvasSettings: settings.canvasSettings,
+              }}
+              onloadArgs={onloadArgs}
             />
           </div>
         }

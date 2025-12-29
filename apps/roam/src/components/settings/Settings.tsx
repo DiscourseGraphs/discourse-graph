@@ -210,7 +210,7 @@ export const SettingsDialog = ({
               title={n.text}
               className="overflow-y-auto"
               panel={
-                <DiscourseNodeSettings nodeType={n.type} />
+                <DiscourseNodeSettings nodeType={n.type} onloadArgs={onloadArgs} />
               }
             />
           ))}
