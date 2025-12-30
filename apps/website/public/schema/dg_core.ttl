@@ -1,0 +1,92 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix vs: <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
+@prefix sioc: <http://rdfs.org/sioc/ns#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dgb: <https://discoursegraphs.com/schema/dg_base#> .
+@prefix dg: <https://discoursegraphs.com/schema/dg_core#> .
+
+dg:Question a dgb:NodeSchema;
+  rdfs:label "Question"@en;
+  rdfs:comment "Scientific unknowns that we want to make known, and are addressable by the systematic application of research methods"@en.
+
+dg:Claim a dgb:NodeSchema;
+  rdfs:label "Claim"@en;
+  rdfs:comment "Atomic, generalized assertions about the world that (propose to) answer research questions"@en.
+
+dg:Evidence a dgb:NodeSchema;
+  rdfs:label "Evidence"@en;
+  rdfs:comment "A specific empirical observation from a particular application of a research method"@en.
+
+dg:Source a dgb:NodeSchema;
+  rdfs:label "Source"@en;
+  rdfs:comment "Some research source that reports/generates evidence, like an experiment/study, book, conference paper, or journal article"@en.
+
+dg:opposesCE a dgb:RelationDef;
+  rdfs:label "Opposes"@en;
+  rdfs:range dg:Claim;
+  rdfs:domain dg:Evidence.
+
+dg:opposedByEC a dgb:RelationDef;
+  rdfs:label "Opposed by"@en;
+  owl:inverseOf dg:opposesCE;
+  rdfs:range dg:Evidence;
+  rdfs:domain dg:Claim.
+
+dg:supportsCE a dgb:RelationDef;
+  rdfs:label "Supports"@en;
+  rdfs:range dg:Claim;
+  rdfs:domain dg:Evidence.
+
+dg:supportedByEC a dgb:RelationDef;
+  rdfs:label "Supported by"@en;
+  owl:inverseOf dg:supportsCE;
+  rdfs:range dg:Evidence;
+  rdfs:domain dg:Claim.
+
+dg:opposesCC a dgb:RelationDef;
+  rdfs:label "Opposes"@en;
+  rdfs:range dg:Claim;
+  rdfs:domain dg:Claim.
+
+dg:opposedByCC a dgb:RelationDef;
+  rdfs:label "Opposed by"@en;
+  owl:inverseOf dg:opposesCC;
+  rdfs:range dg:Claim;
+  rdfs:domain dg:Claim.
+
+dg:supportsCC a dgb:RelationDef;
+  rdfs:label "Supports"@en;
+  rdfs:range dg:Claim;
+  rdfs:domain dg:Claim.
+
+dg:supportedByCC a dgb:RelationDef;
+  rdfs:label "Supported by"@en;
+  owl:inverseOf dg:supportsCC;
+  rdfs:range dg:Claim;
+  rdfs:domain dg:Claim.
+
+dg:addresses a dgb:RelationDef;
+  rdfs:label "Addresses"@en;
+  rdfs:range dg:Question;
+  rdfs:domain dg:Claim.
+
+dg:addressedBy a dgb:RelationDef;
+  rdfs:label "Addressed by"@en;
+  owl:inverseOf dg:addresses;
+  rdfs:range dg:Claim;
+  rdfs:domain dg:Question.
+
+dg:curatedTo a dgb:RelationDef;
+  rdfs:label "Curated to"@en;
+  rdfs:range dg:Source;
+  rdfs:domain dg:Evidence.
+
+dg:curatedFrom a dgb:RelationDef;
+  owl:inverseOf dg:curatedTo;
+  rdfs:label "Curated from"@en;
+  rdfs:range dg:Evidence;
+  rdfs:domain dg:Source.
