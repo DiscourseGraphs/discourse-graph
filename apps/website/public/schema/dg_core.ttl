@@ -3,11 +3,18 @@
 @prefix : <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix vs: <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
-@prefix sioc: <http://rdfs.org/sioc/ns#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix dgb: <https://discoursegraphs.com/schema/dg_base#> .
 @prefix dg: <https://discoursegraphs.com/schema/dg_core#> .
+# http://purl.org/spar/po
+@prefix po: <http://www.essepuntato.it/2008/12/pattern#> .
+
+<https://discoursegraphs.com/schema/dg_core#>
+    dc:date "2025-12-31" ;
+    rdfs:comment "DiscourseGraph core vocabulary"@en ;
+    rdfs:label "DiscourseGraph core vocabulary"@en ;
+    owl:versionInfo "0 (tentative)" ;
+    a owl:Ontology.
 
 dg:Question a dgb:NodeSchema;
   rdfs:label "Question"@en;
@@ -90,3 +97,15 @@ dg:curatedFrom a dgb:RelationDef;
   rdfs:label "Curated from"@en;
   rdfs:range dg:Evidence;
   rdfs:domain dg:Source.
+
+dg:containsRec a owl:TransitiveProperty.
+po:contains rdfs:subClassOf dg:containsRec.
+dct:hasPart rdfs:subClassOf dg:containsRec.
+
+dg:containsRef a owl:ObjectProperty;
+  owl:propertyChainAxiom (dg:containsRec dct:references);
+  rdfs:label "Contains a reference to"@en.
+
+dg:backlink a owl:ObjectProperty;
+  owl:inverseOf dg:containsRef;
+  rdfs:label "is referred by"@en.
