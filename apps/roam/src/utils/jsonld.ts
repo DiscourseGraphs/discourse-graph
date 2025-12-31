@@ -107,7 +107,10 @@ export const getJsonLdData = async ({
   nodeLabelByType: Record<string, string>;
   updateExportProgress: (progress: number) => Promise<void>;
 }): Promise<
-  Record<string, string | Record<string, string> | Record<string, string>[]>
+  Record<
+    string,
+    string | Record<string, string> | Record<string, string | string[]>[]
+  >
 > => {
   const roamUrl = canonicalRoamUrl();
   const getRelationData = () =>
