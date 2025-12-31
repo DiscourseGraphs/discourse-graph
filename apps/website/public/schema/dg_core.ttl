@@ -100,10 +100,10 @@ dg:curatedFrom a dgb:RelationDef;
 
 dg:containsRec a owl:TransitiveProperty.
 po:contains rdfs:subClassOf dg:containsRec.
-dct:hasPart rdfs:subClassOf dg:containsRec.
+dc:hasPart rdfs:subClassOf dg:containsRec.
 
 dg:containsRef a owl:ObjectProperty;
-  owl:propertyChainAxiom (dg:containsRec dct:references);
+  owl:propertyChainAxiom (dg:containsRec dc:references);
   rdfs:label "Contains a reference to"@en.
 
 dg:backlink a owl:ObjectProperty;
