@@ -171,7 +171,7 @@ export const getJsonLdData = async ({
         .filter((x) => nodeSet.has(x));
       const r: Record<string, string | string[]> = {
         "@id": `pages:${uid}`, // eslint-disable-line @typescript-eslint/naming-convention
-        "@type": nodeType ?? "nodeSchema", // eslint-disable-line @typescript-eslint/naming-convention
+        "@type": nodeType, // eslint-disable-line @typescript-eslint/naming-convention
         title: text,
         content,
         modified: modified?.toJSON(),
