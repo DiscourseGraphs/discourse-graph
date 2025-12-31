@@ -99,8 +99,8 @@ dg:curatedFrom a dgb:RelationDef;
   rdfs:domain dg:Source.
 
 dg:containsRec a owl:TransitiveProperty.
-po:contains rdfs:subClassOf dg:containsRec.
-dc:hasPart rdfs:subClassOf dg:containsRec.
+po:contains rdfs:subPropertyOf dg:containsRec.
+dc:hasPart rdfs:subPropertyOf dg:containsRec.
 
 dg:containsRef a owl:ObjectProperty;
   owl:propertyChainAxiom (dg:containsRec dc:references);
