@@ -532,6 +532,24 @@ export type Database = {
           },
         ]
       }
+      group_membership: {
+        Row: {
+          admin: boolean | null
+          group_id: string
+          member_id: string
+        }
+        Insert: {
+          admin?: boolean | null
+          group_id: string
+          member_id: string
+        }
+        Update: {
+          admin?: boolean | null
+          group_id?: string
+          member_id?: string
+        }
+        Relationships: []
+      }
       LocalAccess: {
         Row: {
           account_id: number
@@ -1452,6 +1470,8 @@ export type Database = {
         }
         Returns: string
       }
+      group_exists: { Args: { group_id_: string }; Returns: boolean }
+      in_group: { Args: { group_id_: string }; Returns: boolean }
       in_space: { Args: { space_id: number }; Returns: boolean }
       instances_of_schema:
         | {
@@ -1478,6 +1498,7 @@ export type Database = {
               isSetofReturn: true
             }
           }
+      is_group_admin: { Args: { group_id_: string }; Returns: boolean }
       is_my_account: { Args: { account_id: number }; Returns: boolean }
       match_content_embeddings: {
         Args: {
@@ -1503,6 +1524,7 @@ export type Database = {
         }[]
       }
       my_space_ids: { Args: never; Returns: number[] }
+      my_user_accounts: { Args: never; Returns: string[] }
       propose_sync_task: {
         Args: {
           s_function: string
