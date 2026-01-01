@@ -93,7 +93,7 @@ ADD CONSTRAINT "LocalAccess_space_id_fkey" FOREIGN KEY (
 
 GRANT ALL ON TABLE public."LocalAccess" TO authenticated;
 GRANT ALL ON TABLE public."LocalAccess" TO service_role;
-
+REVOKE ALL ON TABLE public."LocalAccess" FROM anon;
 
 CREATE TABLE IF NOT EXISTS public."SpaceAccess" (
     account_uid UUID NOT NULL,
@@ -126,6 +126,7 @@ ADD CONSTRAINT "SpaceAccess_space_id_fkey" FOREIGN KEY (
 
 GRANT ALL ON TABLE public."SpaceAccess" TO authenticated;
 GRANT ALL ON TABLE public."SpaceAccess" TO service_role;
+REVOKE ALL ON TABLE public."SpaceAccess" FROM anon;
 
 CREATE TYPE public.account_local_input AS (
     -- PlatformAccount columns

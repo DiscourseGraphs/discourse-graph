@@ -51,6 +51,7 @@ ADD CONSTRAINT "SpaceAccess_space_id_fkey" FOREIGN KEY (
 
 GRANT ALL ON TABLE public."SpaceAccess" TO authenticated;
 GRANT ALL ON TABLE public."SpaceAccess" TO service_role;
+REVOKE ALL ON TABLE public."SpaceAccess" FROM anon;
 
 INSERT INTO public."SpaceAccess"
 SELECT pa.dg_account, la.space_id, la.editor
