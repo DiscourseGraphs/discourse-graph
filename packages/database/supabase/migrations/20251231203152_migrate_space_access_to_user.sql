@@ -69,8 +69,11 @@ STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT COUNT(id) > 0 FROM public."PlatformAccount"
-    WHERE id = account_id AND dg_account = auth.uid();
+    SELECT EXISTS (
+        SELECT 1 FROM public."PlatformAccount"
+        WHERE id = account_id AND dg_account = auth.uid()
+        LIMIT 1
+    );
 $$;
 
 CREATE OR REPLACE FUNCTION public.my_space_ids() RETURNS BIGINT []
@@ -132,7 +135,7 @@ AS $$
 DECLARE
     platform_ public."Platform";
     account_id_ BIGINT;
-    user_uuid VARCHAR;
+    user_uid UUID;
 BEGIN
     SELECT platform INTO STRICT platform_ FROM public."Space" WHERE id = space_id_;
     INSERT INTO public."PlatformAccount" AS pa (
@@ -141,10 +144,10 @@ BEGIN
             local_account.account_local_id, local_account.name, platform_
         ) ON CONFLICT (account_local_id, platform) DO UPDATE SET
             name = COALESCE(NULLIF(TRIM(EXCLUDED.name), ''), pa.name)
-        RETURNING id, dg_account INTO STRICT account_id_, user_uuid;
-    IF user_uuid IS NOT NULL THEN
+        RETURNING id, dg_account INTO STRICT account_id_, user_uid;
+    IF user_uid IS NOT NULL THEN
         INSERT INTO public."SpaceAccess" as sa (space_id, account_uid, editor)
-            VALUES (space_id_, user_uuid, COALESCE(local_account.space_editor, true))
+            VALUES (space_id_, user_uid, COALESCE(local_account.space_editor, true))
             ON CONFLICT (space_id, account_uid)
             DO UPDATE SET editor = COALESCE(local_account.space_editor, sa.editor, true);
     END IF;
