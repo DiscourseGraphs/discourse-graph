@@ -64,15 +64,46 @@ GRANT ALL ON TABLE public."AgentIdentifier" TO service_role;
 CREATE INDEX platform_account_dg_account_idx ON public."PlatformAccount" (dg_account);
 
 
-CREATE TABLE IF NOT EXISTS public."SpaceAccess" (
-    space_id bigint,
+CREATE TABLE IF NOT EXISTS public."LocalAccess" (
     account_id bigint NOT NULL,
+    space_id bigint NOT NULL
+);
+
+ALTER TABLE public."LocalAccess" OWNER TO "postgres";
+
+ALTER TABLE public."LocalAccess" ADD CONSTRAINT "LocalAccess_pkey" PRIMARY KEY (account_id, space_id);
+
+COMMENT ON TABLE public."LocalAccess" IS 'A record of which platform accounts have used this space';
+
+COMMENT ON COLUMN public."LocalAccess".space_id IS 'The space in which the content is located';
+
+COMMENT ON COLUMN public."LocalAccess".account_id IS 'The identity of the local account in this space';
+
+ALTER TABLE ONLY public."LocalAccess"
+ADD CONSTRAINT "LocalAccess_account_id_fkey" FOREIGN KEY (
+    account_id
+) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+ALTER TABLE ONLY public."LocalAccess"
+ADD CONSTRAINT "LocalAccess_space_id_fkey" FOREIGN KEY (
+    space_id
+) REFERENCES public."Space" (
+    id
+) ON UPDATE CASCADE ON DELETE CASCADE;
+
+GRANT ALL ON TABLE public."LocalAccess" TO anon;
+GRANT ALL ON TABLE public."LocalAccess" TO authenticated;
+GRANT ALL ON TABLE public."LocalAccess" TO service_role;
+
+
+CREATE TABLE IF NOT EXISTS public."SpaceAccess" (
+    account_uid UUID NOT NULL,
+    space_id bigint NOT NULL,
     editor boolean NOT NULL
 );
 
 ALTER TABLE ONLY public."SpaceAccess"
-ADD CONSTRAINT "SpaceAccess_pkey" PRIMARY KEY (space_id, account_id);
-
+ADD CONSTRAINT "SpaceAccess_pkey" PRIMARY KEY (account_uid, space_id);
 
 ALTER TABLE public."SpaceAccess" OWNER TO "postgres";
 
@@ -80,12 +111,12 @@ COMMENT ON TABLE public."SpaceAccess" IS 'An access control entry for a space';
 
 COMMENT ON COLUMN public."SpaceAccess".space_id IS 'The space in which the content is located';
 
-COMMENT ON COLUMN public."SpaceAccess".account_id IS 'The identity of the account in this space';
+COMMENT ON COLUMN public."SpaceAccess".account_uid IS 'The identity of the user account';
 
 ALTER TABLE ONLY public."SpaceAccess"
-ADD CONSTRAINT "SpaceAccess_account_id_fkey" FOREIGN KEY (
-    account_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+ADD CONSTRAINT "SpaceAccess_account_uid_fkey" FOREIGN KEY (
+    account_uid
+) REFERENCES auth.users (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public."SpaceAccess"
 ADD CONSTRAINT "SpaceAccess_space_id_fkey" FOREIGN KEY (
@@ -119,6 +150,7 @@ AS $$
 DECLARE
     platform_ public."Platform";
     account_id_ BIGINT;
+    user_uuid VARCHAR;
 BEGIN
     SELECT platform INTO STRICT platform_ FROM public."Space" WHERE id = space_id_;
     INSERT INTO public."PlatformAccount" AS pa (
@@ -127,10 +159,16 @@ BEGIN
             local_account.account_local_id, local_account.name, platform_
         ) ON CONFLICT (account_local_id, platform) DO UPDATE SET
             name = COALESCE(NULLIF(TRIM(EXCLUDED.name), ''), pa.name)
-        RETURNING id INTO STRICT account_id_;
-    INSERT INTO public."SpaceAccess" as sa (space_id, account_id, editor) values (space_id_, account_id_, COALESCE(local_account.space_editor, true))
+        RETURNING id, dg_account INTO STRICT account_id_, user_uuid;
+    IF user_uuid IS NOT NULL THEN
+        INSERT INTO public."SpaceAccess" as sa (space_id, account_uid, editor)
+            VALUES (space_id_, user_uuid, COALESCE(local_account.space_editor, true))
+            ON CONFLICT (space_id, account_uid)
+            DO UPDATE SET editor = COALESCE(local_account.space_editor, sa.editor, true);
+    END IF;
+    INSERT INTO public."LocalAccess" as sa (space_id, account_id) values (space_id_, account_id_)
         ON CONFLICT (space_id, account_id)
-        DO UPDATE SET editor = COALESCE(local_account.space_editor, sa.editor, true);
+        DO NOTHING;
     IF local_account.email IS NOT NULL THEN
         -- TODO: how to distinguish basic untrusted from platform placeholder email?
         INSERT INTO public."AgentIdentifier" as ai (account_id, value, identifier_type, trusted) VALUES (account_id_, local_account.email, 'email', COALESCE(local_account.email_trusted, false))
@@ -186,35 +224,20 @@ STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    WITH u AS (SELECT auth.uid() LIMIT 1)
-    SELECT true FROM public."PlatformAccount" pa
-    JOIN u ON pa.dg_account = u.uid
-    WHERE pa.id = account_id;
+    SELECT COUNT(id) > 0 FROM public."PlatformAccount"
+    WHERE id = account_id AND dg_account = auth.uid();
 $$;
 
 COMMENT ON FUNCTION public.is_my_account IS 'security utility: is this my own account?';
-
-CREATE OR REPLACE FUNCTION public.my_account() RETURNS BIGINT
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    WITH u AS (SELECT auth.uid() LIMIT 1)
-    SELECT id FROM public."PlatformAccount" pa
-    JOIN u ON pa.dg_account = u.uid LIMIT 1;
-$$;
-
-COMMENT ON FUNCTION public.my_account IS 'security utility: id of my account';
 
 CREATE OR REPLACE FUNCTION public.my_space_ids() RETURNS BIGINT []
 STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    WITH u AS (SELECT auth.uid() LIMIT 1)
-    SELECT COALESCE(array_agg(distinct sa.space_id), '{}') AS ids FROM public."SpaceAccess" AS sa
-        JOIN public."PlatformAccount" AS pa ON pa.id=sa.account_id
-        JOIN u ON pa.dg_account = u.uid;
+    SELECT COALESCE(array_agg(distinct space_id), '{}') AS ids
+        FROM public."SpaceAccess"
+        WHERE account_uid = auth.uid();
 $$;
 COMMENT ON FUNCTION public.my_space_ids IS 'security utility: all spaces the user has access to';
 
@@ -224,11 +247,9 @@ STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    WITH u AS (SELECT auth.uid() LIMIT 1),
-    pa AS (SELECT sa.space_id AS id FROM public."SpaceAccess" AS sa
-                JOIN public."PlatformAccount" AS pa ON pa.id=sa.account_id
-                JOIN u ON pa.dg_account = u.uid)
-    SELECT EXISTS (SELECT id FROM pa WHERE id = space_id );
+    SELECT EXISTS (SELECT 1 FROM public."SpaceAccess" AS sa
+        WHERE sa.space_id = in_space.space_id
+        AND sa.account_uid=auth.uid());
 $$;
 
 COMMENT ON FUNCTION public.in_space IS 'security utility: does current user have access to this space?';
@@ -240,9 +261,10 @@ SET search_path = ''
 LANGUAGE sql AS $$
     SELECT EXISTS (
       SELECT 1
-      FROM public."SpaceAccess" AS sa
-      WHERE sa.account_id = p_account_id
-        AND sa.space_id = ANY(public.my_space_ids())
+      FROM public."LocalAccess" AS la
+      JOIN public."SpaceAccess" AS sa USING (space_id)
+      WHERE la.account_id = p_account_id
+        AND sa.account_uid = auth.uid()
     );
 $$;
 
@@ -253,12 +275,13 @@ STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql AS $$
     SELECT EXISTS (
-      SELECT 1
-      FROM public."SpaceAccess" AS sa
-      JOIN public."PlatformAccount" AS pa ON (pa.id = sa.account_id)
-      WHERE sa.account_id = p_account_id
-        AND sa.space_id = ANY(public.my_space_ids())
-        AND pa.dg_account IS NULL
+        SELECT 1
+        FROM public."SpaceAccess" AS sa
+        JOIN public."LocalAccess" AS la USING (space_id)
+        JOIN public."PlatformAccount" AS pa ON (pa.id=la.account_id)
+        WHERE la.account_id = p_account_id
+          AND sa.account_uid = auth.uid()
+          AND pa.dg_account IS NULL
     );
 $$;
 
@@ -290,22 +313,20 @@ ALTER TABLE public."PlatformAccount" ENABLE ROW LEVEL SECURITY;
 
 CREATE OR REPLACE VIEW public.my_accounts AS
 SELECT
-    pa.id,
-    pa.name,
-    pa.platform,
-    pa.account_local_id,
-    pa.write_permission,
-    pa.active,
-    pa.agent_type,
-    pa.metadata,
-    pa.dg_account
-FROM public."PlatformAccount" AS pa
-WHERE EXISTS (
-    SELECT 1
-    FROM public."SpaceAccess" AS sa
-    WHERE
-        sa.account_id = pa.id
-        AND sa.space_id = any(public.my_space_ids())
+    id,
+    name,
+    platform,
+    account_local_id,
+    write_permission,
+    active,
+    agent_type,
+    metadata,
+    dg_account
+FROM public."PlatformAccount"
+WHERE id IN (
+    SELECT "LocalAccess".account_id FROM public."LocalAccess"
+        JOIN public."SpaceAccess" USING (space_id)
+    WHERE "SpaceAccess".account_uid = auth.uid()
 );
 
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount";
@@ -334,13 +355,29 @@ DROP POLICY IF EXISTS space_access_select_policy ON public."SpaceAccess";
 CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR SELECT USING (public.in_space(space_id));
 
 DROP POLICY IF EXISTS space_access_delete_policy ON public."SpaceAccess";
-CREATE POLICY space_access_delete_policy ON public."SpaceAccess" FOR DELETE USING (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+CREATE POLICY space_access_delete_policy ON public."SpaceAccess" FOR DELETE USING (account_uid = auth.uid());
 
 DROP POLICY IF EXISTS space_access_insert_policy ON public."SpaceAccess";
-CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (account_uid = auth.uid());
 
 DROP POLICY IF EXISTS space_access_update_policy ON public."SpaceAccess";
-CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE WITH CHECK (account_uid = auth.uid());
+
+ALTER TABLE public."LocalAccess" ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS local_access_policy ON public."LocalAccess";
+
+DROP POLICY IF EXISTS local_access_select_policy ON public."LocalAccess";
+CREATE POLICY local_access_select_policy ON public."LocalAccess" FOR SELECT USING (public.in_space(space_id));
+
+DROP POLICY IF EXISTS local_access_delete_policy ON public."LocalAccess";
+CREATE POLICY local_access_delete_policy ON public."LocalAccess" FOR DELETE USING (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
+
+DROP POLICY IF EXISTS local_access_insert_policy ON public."LocalAccess";
+CREATE POLICY local_access_insert_policy ON public."LocalAccess" FOR INSERT WITH CHECK (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
+
+DROP POLICY IF EXISTS local_access_update_policy ON public."LocalAccess";
+CREATE POLICY local_access_update_policy ON public."LocalAccess" FOR UPDATE WITH CHECK (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
 
 -- AgentIdentifier: Allow space members to do anything, to allow editing authors.
 -- Eventually: Once the account is claimed by a user, only allow this user to modify it.
@@ -353,10 +390,10 @@ DROP POLICY IF EXISTS agent_identifier_select_policy ON public."AgentIdentifier"
 CREATE POLICY agent_identifier_select_policy ON public."AgentIdentifier" FOR SELECT USING (public.account_in_shared_space(account_id));
 
 DROP POLICY IF EXISTS agent_identifier_delete_policy ON public."AgentIdentifier";
-CREATE POLICY agent_identifier_delete_policy ON public."AgentIdentifier" FOR DELETE USING (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+CREATE POLICY agent_identifier_delete_policy ON public."AgentIdentifier" FOR DELETE USING (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
 
 DROP POLICY IF EXISTS agent_identifier_insert_policy ON public."AgentIdentifier";
-CREATE POLICY agent_identifier_insert_policy ON public."AgentIdentifier" FOR INSERT WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+CREATE POLICY agent_identifier_insert_policy ON public."AgentIdentifier" FOR INSERT WITH CHECK (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
 
 DROP POLICY IF EXISTS agent_identifier_update_policy ON public."AgentIdentifier";
-CREATE POLICY agent_identifier_update_policy ON public."AgentIdentifier" FOR UPDATE WITH CHECK (public.unowned_account_in_shared_space(account_id) OR account_id = public.my_account());
+CREATE POLICY agent_identifier_update_policy ON public."AgentIdentifier" FOR UPDATE WITH CHECK (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
