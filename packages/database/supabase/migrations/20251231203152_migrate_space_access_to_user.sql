@@ -1,3 +1,4 @@
+REVOKE ALL ON TABLE public."SpaceAccess" FROM anon;
 DROP POLICY IF EXISTS space_access_select_policy ON public."SpaceAccess";
 DROP POLICY IF EXISTS space_access_delete_policy ON public."SpaceAccess";
 DROP POLICY IF EXISTS space_access_insert_policy ON public."SpaceAccess";
@@ -48,7 +49,6 @@ ADD CONSTRAINT "SpaceAccess_space_id_fkey" FOREIGN KEY (
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
-GRANT ALL ON TABLE public."SpaceAccess" TO anon;
 GRANT ALL ON TABLE public."SpaceAccess" TO authenticated;
 GRANT ALL ON TABLE public."SpaceAccess" TO service_role;
 
@@ -148,7 +148,7 @@ BEGIN
             ON CONFLICT (space_id, account_uid)
             DO UPDATE SET editor = COALESCE(local_account.space_editor, sa.editor, true);
     END IF;
-    INSERT INTO public."LocalAccess" as sa (space_id, account_id) values (space_id_, account_id_)
+    INSERT INTO public."LocalAccess" (space_id, account_id) values (space_id_, account_id_)
         ON CONFLICT (space_id, account_id)
         DO NOTHING;
     IF local_account.email IS NOT NULL THEN
