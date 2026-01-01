@@ -265,7 +265,7 @@ STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT auth.uid() UNION
+    SELECT auth.uid() WHERE auth.uid() IS NOT NULL UNION
     SELECT group_id FROM public.group_membership
     WHERE member_id = auth.uid();
 $$;

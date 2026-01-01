@@ -65,7 +65,7 @@ STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT auth.uid() UNION
+    SELECT auth.uid() WHERE auth.uid() IS NOT NULL UNION
     SELECT group_id FROM public.group_membership
     WHERE member_id = auth.uid();
 $$;
@@ -137,9 +137,3 @@ WHERE id IN (
         JOIN public."SpaceAccess" USING (space_id)
         JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
 );
-
-
-
-
-
--- ALTER  TYPE public."ContentVariant" ADD VALUE 'full';
