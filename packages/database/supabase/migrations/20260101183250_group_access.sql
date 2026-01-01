@@ -1,6 +1,6 @@
 CREATE TABLE public.group_membership (
-    member_id UUID,
-    group_id UUID,
+    member_id UUID NOT NULL,
+    group_id UUID NOT NULL,
     admin BOOLEAN default true
 );
 

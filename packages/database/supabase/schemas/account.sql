@@ -129,8 +129,8 @@ GRANT ALL ON TABLE public."SpaceAccess" TO service_role;
 REVOKE ALL ON TABLE public."SpaceAccess" FROM anon;
 
 CREATE TABLE IF NOT EXISTS public.group_membership (
-    member_id UUID,
-    group_id UUID,
+    member_id UUID NOT NULL,
+    group_id UUID NOT NULL,
     admin BOOLEAN default true
 );
 
