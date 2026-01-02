@@ -1,6 +1,7 @@
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import { Result } from "./types";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
+import { render as renderToast } from "roamjs-components/components/Toast";
 import findDiscourseNode from "./findDiscourseNode";
 import { nextApiRoot } from "@repo/utils/execContext";
 import { DiscourseNode } from "./getDiscourseNodes";
@@ -59,7 +60,7 @@ type EmbeddingFunc = (text: string) => Promise<EmbeddingVectorType>;
 
 type SearchFunc = (params: {
   queryEmbedding: EmbeddingVectorType;
-  indexData: CandidateNodeWithEmbedding[];
+  indexData: Result[];
 }) => Promise<NodeSearchResult[]>;
 
 const API_CONFIG = {
@@ -508,4 +509,63 @@ export const performHydeSearch = async ({
     return found;
   }
   return [];
+};
+
+export type VectorMatch = {
+  node: Result;
+  score: number;
+};
+
+export const findSimilarNodesVectorOnly = async ({
+  text,
+  threshold = 0.4,
+  limit = 15,
+}: {
+  text: string;
+  threshold?: number;
+  limit?: number;
+}): Promise<VectorMatch[]> => {
+  if (!text.trim()) {
+    return [];
+  }
+
+  try {
+    const supabase = await getLoggedInClient();
+    if (!supabase) return [];
+
+    const queryEmbedding = await createEmbedding(text);
+
+    const { data, error } = await supabase.rpc("match_content_embeddings", {
+      query_embedding: JSON.stringify(queryEmbedding),
+      match_threshold: threshold,
+      match_count: limit,
+    });
+
+    if (error) {
+      console.error("Vector search failed:", error);
+      throw error;
+    }
+
+    if (!data || !Array.isArray(data)) return [];
+
+    const results: VectorMatch[] = data.map((item) => ({
+      node: {
+        uid: item.roam_uid,
+        text: item.text_content,
+      },
+      score: item.similarity,
+    }));
+
+    return results;
+  } catch (error) {
+    console.error("Error in vector-only similar nodes search:", error);
+    renderToast({
+      content: `Error in vector-only similar nodes search: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      intent: "danger",
+      id: "vector-search-error",
+    });
+    return [];
+  }
 };
