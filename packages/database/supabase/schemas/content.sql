@@ -669,6 +669,6 @@ CREATE POLICY content_access_select_policy ON public."ContentAccess" FOR SELECT 
 DROP POLICY IF EXISTS content_access_delete_policy ON public."ContentAccess";
 CREATE POLICY content_access_delete_policy ON public."ContentAccess" FOR DELETE USING (public.content_in_editable_space(content_id) OR public.can_access_account(account_uid));
 DROP POLICY IF EXISTS content_access_insert_policy ON public."ContentAccess";
-CREATE POLICY content_access_insert_policy ON public."ContentAccess" FOR INSERT WITH CHECK (public.editor_in_space(content_id));
+CREATE POLICY content_access_insert_policy ON public."ContentAccess" FOR INSERT WITH CHECK (public.content_in_editable_space(content_id));
 DROP POLICY IF EXISTS content_access_update_policy ON public."ContentAccess";
-CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE WITH CHECK (public.editor_in_space(content_id));
+CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE WITH CHECK (public.content_in_editable_space(content_id));

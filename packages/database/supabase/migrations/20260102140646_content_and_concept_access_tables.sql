@@ -136,9 +136,9 @@ CREATE POLICY content_access_select_policy ON public."ContentAccess" FOR SELECT 
 DROP POLICY IF EXISTS content_access_delete_policy ON public."ContentAccess";
 CREATE POLICY content_access_delete_policy ON public."ContentAccess" FOR DELETE USING (public.content_in_editable_space(content_id) OR public.can_access_account(account_uid));
 DROP POLICY IF EXISTS content_access_insert_policy ON public."ContentAccess";
-CREATE POLICY content_access_insert_policy ON public."ContentAccess" FOR INSERT WITH CHECK (public.editor_in_space(content_id));
+CREATE POLICY content_access_insert_policy ON public."ContentAccess" FOR INSERT WITH CHECK (public.content_in_editable_space(content_id));
 DROP POLICY IF EXISTS content_access_update_policy ON public."ContentAccess";
-CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE WITH CHECK (public.editor_in_space(content_id));
+CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE WITH CHECK (public.content_in_editable_space(content_id));
 
 
 CREATE TABLE IF NOT EXISTS public."ConceptAccess" (
@@ -224,6 +224,6 @@ CREATE POLICY concept_access_select_policy ON public."ConceptAccess" FOR SELECT 
 DROP POLICY IF EXISTS concept_access_delete_policy ON public."ConceptAccess";
 CREATE POLICY concept_access_delete_policy ON public."ConceptAccess" FOR DELETE USING (public.concept_in_editable_space(concept_id) OR public.can_access_account(account_uid));
 DROP POLICY IF EXISTS concept_access_insert_policy ON public."ConceptAccess";
-CREATE POLICY concept_access_insert_policy ON public."ConceptAccess" FOR INSERT WITH CHECK (public.editor_in_space(concept_id));
+CREATE POLICY concept_access_insert_policy ON public."ConceptAccess" FOR INSERT WITH CHECK (public.concept_in_editable_space(concept_id));
 DROP POLICY IF EXISTS concept_access_update_policy ON public."ConceptAccess";
-CREATE POLICY concept_access_update_policy ON public."ConceptAccess" FOR UPDATE WITH CHECK (public.editor_in_space(concept_id));
+CREATE POLICY concept_access_update_policy ON public."ConceptAccess" FOR UPDATE WITH CHECK (public.concept_in_editable_space(concept_id));
