@@ -40,6 +40,6 @@ published: true
 ## Next Steps
 
 After installation, you'll want to:
-1. [Configure your node types](./extending-personalizing-graph#edit-node-types)
-2. [Set up relationship types](./extending-personalizing-graph#edit-relation-types)
+1. [Configure your node types](./node-types-templates)
+2. [Set up relationship types](./relationship-types)
 3. [Create your first node](./creating-discourse-nodes) 
