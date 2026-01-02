@@ -194,13 +194,21 @@ classes:
       space_url:
         unique_key_slots:
           - url
+  LocalAccess:
+    description: A record of which platform accounts have used this space
+    slots:
+      - space
+    attributes:
+      account:
+        range: PlatformAccount
+        required: true
   SpaceAccess:
     description: An access control entry for a space
     slots:
       - space
     attributes:
       account:
-        range: PlatformAccount
+        range: Users
         required: true
       editor:
         range: boolean

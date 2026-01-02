@@ -167,11 +167,11 @@ const processAndGetOrCreateSpace = async (
     .upsert(
       {
         space_id,
-        account_id: anonPlatformUserResult.data.id,
+        account_uid: anonymousUser.id,
         editor: true,
       },
       {
-        onConflict: "space_id,account_id",
+        onConflict: "account_uid,space_id",
         ignoreDuplicates: false,
         count: "estimated",
       },

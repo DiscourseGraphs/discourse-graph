@@ -15,18 +15,21 @@ class "PlatformAccount" [[{An account for an agent on a platform}]] {
 class "Users" [[{A database user account. Managed by the auth infrastructure.}]] {
     {field} id : integer  
 }
-"PlatformAccount" --> "0..1" "Users" : "dg_account"
 class "SpaceAccess" [[{An access control entry for a space}]] {
     {field} editor : boolean  
 }
+"PlatformAccount" --> "0..1" "Users" : "dg_account"
+"SpaceAccess" --> "1" "Users" : "account"
 class "Space" [[{A space on a platform representing a community engaged in a conversation}]] {
     {field} id : integer  
     {field} url : string  
     {field} name : string  
     {field} platform : Platform  
 }
-"SpaceAccess" --> "1" "PlatformAccount" : "account"
 "SpaceAccess" --> "0..1" "Space" : "space"
+class "LocalAccess" [[{A record of which platform accounts have used this space}]] {
+
+}
 class "Content" [[{A unit of content}]] {
     {field} id : integer  
     {field} source_local_id : string  
@@ -57,6 +60,7 @@ class "Concept" [[{An abstract concept, claim or relation}]] {
     {field} literal_content : JSON  
     {field} is_schema : boolean  
 }
+"LocalAccess" --> "0..1" "Space" : "space"
 "Content" --> "0..1" "Space" : "space"
 "Document" --> "0..1" "Space" : "space"
 "Concept" --> "0..1" "Space" : "space"
@@ -73,6 +77,7 @@ class "AgentIdentifier" [[{An identifying attribute associated with an agent, ca
 "Document" --> "0..*" "PlatformAccount" : "contributors"
 "Concept" --> "0..*" "PlatformAccount" : "contributors"
 "Content" --> "1" "PlatformAccount" : "creator"
+"LocalAccess" --> "1" "PlatformAccount" : "account"
 "Content" --> "1" "Document" : "document"
 abstract "ContentEmbedding" [[{An embedding for a piece of content.}]] {
     {field} model : EmbeddingName  

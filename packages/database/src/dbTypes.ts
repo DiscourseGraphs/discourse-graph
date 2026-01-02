@@ -532,6 +532,50 @@ export type Database = {
           },
         ]
       }
+      LocalAccess: {
+        Row: {
+          account_id: number
+          space_id: number
+        }
+        Insert: {
+          account_id: number
+          space_id: number
+        }
+        Update: {
+          account_id?: number
+          space_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "LocalAccess_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "my_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "LocalAccess_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "PlatformAccount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "LocalAccess_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "my_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "LocalAccess_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "Space"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       PlatformAccount: {
         Row: {
           account_local_id: string
@@ -603,35 +647,21 @@ export type Database = {
       }
       SpaceAccess: {
         Row: {
-          account_id: number
+          account_uid: string
           editor: boolean
           space_id: number
         }
         Insert: {
-          account_id: number
+          account_uid: string
           editor: boolean
           space_id: number
         }
         Update: {
-          account_id?: number
+          account_uid?: string
           editor?: boolean
           space_id?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "SpaceAccess_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "my_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "SpaceAccess_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "PlatformAccount"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "SpaceAccess_space_id_fkey"
             columns: ["space_id"]
@@ -1472,7 +1502,6 @@ export type Database = {
           text_content: string
         }[]
       }
-      my_account: { Args: never; Returns: number }
       my_space_ids: { Args: never; Returns: number[] }
       propose_sync_task: {
         Args: {
