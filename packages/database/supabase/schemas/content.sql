@@ -177,7 +177,7 @@ ALTER TABLE public."ContentAccess" OWNER TO "postgres";
 
 COMMENT ON TABLE public."ContentAccess" IS 'An access control entry for a content';
 
-COMMENT ON COLUMN public."ContentAccess".content_id IS 'The content in which the content is located';
+COMMENT ON COLUMN public."ContentAccess".content_id IS 'The content item for which access is granted';
 
 COMMENT ON COLUMN public."ContentAccess".account_uid IS 'The identity of the user account';
 

@@ -67,7 +67,7 @@ ALTER TABLE public."ContentAccess" OWNER TO "postgres";
 
 COMMENT ON TABLE public."ContentAccess" IS 'An access control entry for a content';
 
-COMMENT ON COLUMN public."ContentAccess".content_id IS 'The content in which the content is located';
+COMMENT ON COLUMN public."ContentAccess".content_id IS 'The content item for which access is granted';
 
 COMMENT ON COLUMN public."ContentAccess".account_uid IS 'The identity of the user account';
 
@@ -153,7 +153,7 @@ ALTER TABLE public."ConceptAccess" OWNER TO "postgres";
 
 COMMENT ON TABLE public."ConceptAccess" IS 'An access control entry for a concept';
 
-COMMENT ON COLUMN public."ConceptAccess".concept_id IS 'The concept in which the concept is located';
+COMMENT ON COLUMN public."ConceptAccess".concept_id IS 'The concept item for which access is granted';
 
 COMMENT ON COLUMN public."ConceptAccess".account_uid IS 'The identity of the user account';
 
