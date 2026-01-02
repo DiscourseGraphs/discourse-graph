@@ -10,6 +10,8 @@ AS $$
     );
 $$;
 
+COMMENT ON FUNCTION public.can_access_account IS 'security utility: Is this my account or one of my groups?';
+
 CREATE OR REPLACE FUNCTION public.my_editable_space_ids() RETURNS BIGINT []
 STABLE SECURITY DEFINER
 SET search_path = ''
