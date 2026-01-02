@@ -131,10 +131,13 @@ REVOKE ALL ON TABLE public."SpaceAccess" FROM anon;
 CREATE TABLE IF NOT EXISTS public.group_membership (
     member_id UUID NOT NULL,
     group_id UUID NOT NULL,
-    admin BOOLEAN default true
+    admin BOOLEAN DEFAULT true
 );
 
-ALTER TABLE public.group_membership ADD CONSTRAINT group_membership_pkey PRIMARY KEY (member_id, group_id);
+ALTER TABLE public.group_membership
+ADD CONSTRAINT group_membership_pkey PRIMARY KEY (member_id, group_id);
+
+CREATE INDEX IF NOT EXISTS group_membership_group_idx ON public.group_membership (group_id);
 
 ALTER TABLE public.group_membership OWNER TO "postgres";
 

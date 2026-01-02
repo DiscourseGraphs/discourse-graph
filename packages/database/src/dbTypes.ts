@@ -630,18 +630,6 @@ export type Database = {
         }
         Relationships: []
       }
-      result: {
-        Row: {
-          max: string | null
-        }
-        Insert: {
-          max?: string | null
-        }
-        Update: {
-          max?: string | null
-        }
-        Relationships: []
-      }
       Space: {
         Row: {
           id: number
@@ -702,7 +690,7 @@ export type Database = {
           id: number
           last_success_start: string | null
           last_task_end: string | null
-          last_task_start: string | null
+          last_task_start: string
           status: Database["public"]["Enums"]["task_status"] | null
           sync_function: string | null
           sync_target: number | null
@@ -715,7 +703,7 @@ export type Database = {
           id?: number
           last_success_start?: string | null
           last_task_end?: string | null
-          last_task_start?: string | null
+          last_task_start: string
           status?: Database["public"]["Enums"]["task_status"] | null
           sync_function?: string | null
           sync_target?: number | null
@@ -728,7 +716,7 @@ export type Database = {
           id?: number
           last_success_start?: string | null
           last_task_end?: string | null
-          last_task_start?: string | null
+          last_task_start?: string
           status?: Database["public"]["Enums"]["task_status"] | null
           sync_function?: string | null
           sync_target?: number | null
