@@ -438,6 +438,16 @@ $$;
 
 COMMENT ON FUNCTION public.concept_in_space IS 'security utility: does current user have access to this concept''s space?';
 
+CREATE OR REPLACE FUNCTION public.concept_in_editable_space(concept_id BIGINT) RETURNS boolean
+STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT public.editor_in_space(space_id) FROM public."Concept" WHERE id=concept_id
+$$;
+
+COMMENT ON FUNCTION public.concept_in_editable_space IS 'security utility: does current user have editor access to this concept''s space?';
+
 
 ALTER TABLE public."Concept" ENABLE ROW LEVEL SECURITY;
 

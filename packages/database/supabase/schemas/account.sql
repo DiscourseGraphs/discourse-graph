@@ -263,6 +263,20 @@ $$;
 
 COMMENT ON FUNCTION public.is_my_account IS 'security utility: is this my own account?';
 
+CREATE OR REPLACE FUNCTION public.can_access_account(account_uid UUID) RETURNS boolean
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT account_uid = auth.uid() OR EXISTS (
+        SELECT 1 FROM public.group_membership
+        WHERE member_id = auth.uid() AND group_id=account_uid
+        LIMIT 1
+    );
+$$;
+
+COMMENT ON FUNCTION public.can_access_account IS 'security utility: Is this my account or one of my groups?';
+
 CREATE OR REPLACE FUNCTION public.my_user_accounts() RETURNS SETOF UUID
 STABLE SECURITY DEFINER
 SET search_path = ''
@@ -324,6 +338,31 @@ AS $$
 $$;
 
 COMMENT ON FUNCTION public.in_space IS 'security utility: does current user have access to this space?';
+
+CREATE OR REPLACE FUNCTION public.my_editable_space_ids() RETURNS BIGINT []
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT COALESCE(array_agg(distinct space_id), '{}') AS ids
+        FROM public."SpaceAccess"
+        JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
+        WHERE editor;
+$$;
+COMMENT ON FUNCTION public.my_editable_space_ids IS 'security utility: all spaces the user has edit access to';
+
+
+CREATE OR REPLACE FUNCTION public.editor_in_space(space_id BIGINT) RETURNS boolean
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT EXISTS (SELECT 1 FROM public."SpaceAccess" AS sa
+        JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
+        WHERE sa.space_id = editor_in_space.space_id AND sa.editor);
+$$;
+
+COMMENT ON FUNCTION public.editor_in_space IS 'security utility: does current user have edit access to this space?';
 
 
 CREATE OR REPLACE FUNCTION public.account_in_shared_space(p_account_id BIGINT) RETURNS boolean

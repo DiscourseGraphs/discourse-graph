@@ -624,6 +624,16 @@ $$;
 
 COMMENT ON FUNCTION public.content_in_space IS 'security utility: does current user have access to this content''s space?';
 
+CREATE OR REPLACE FUNCTION public.content_in_editable_space(content_id BIGINT) RETURNS boolean
+STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT public.editor_in_space(space_id) FROM public."Content" WHERE id=content_id
+$$;
+
+COMMENT ON FUNCTION public.content_in_editable_space IS 'security utility: does current user have editor access to this content''s space?';
+
 CREATE OR REPLACE FUNCTION public.document_in_space(document_id BIGINT) RETURNS boolean
 STABLE
 SET search_path = ''
@@ -650,3 +660,15 @@ DROP POLICY IF EXISTS content_insert_policy ON public."Content";
 CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (public.in_space(space_id));
 DROP POLICY IF EXISTS content_update_policy ON public."Content";
 CREATE POLICY content_update_policy ON public."Content" FOR UPDATE WITH CHECK (public.in_space(space_id));
+
+ALTER TABLE public."ContentAccess" ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS content_access_policy ON public."ContentAccess";
+DROP POLICY IF EXISTS content_access_select_policy ON public."ContentAccess";
+CREATE POLICY content_access_select_policy ON public."ContentAccess" FOR SELECT USING (public.content_in_space(content_id) OR public.can_access_account(account_uid));
+DROP POLICY IF EXISTS content_access_delete_policy ON public."ContentAccess";
+CREATE POLICY content_access_delete_policy ON public."ContentAccess" FOR DELETE USING (public.content_in_editable_space(content_id) OR public.can_access_account(account_uid));
+DROP POLICY IF EXISTS content_access_insert_policy ON public."ContentAccess";
+CREATE POLICY content_access_insert_policy ON public."ContentAccess" FOR INSERT WITH CHECK (public.editor_in_space(content_id));
+DROP POLICY IF EXISTS content_access_update_policy ON public."ContentAccess";
+CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE WITH CHECK (public.editor_in_space(content_id));

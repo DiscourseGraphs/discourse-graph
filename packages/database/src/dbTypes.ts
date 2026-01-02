@@ -1387,11 +1387,16 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      can_access_account: { Args: { account_uid: string }; Returns: boolean }
       can_view_specific_concept: { Args: { id: number }; Returns: boolean }
       can_view_specific_content: { Args: { id: number }; Returns: boolean }
       compute_arity_local: {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
+      }
+      concept_in_editable_space: {
+        Args: { concept_id: number }
+        Returns: boolean
       }
       concept_in_relations:
         | {
@@ -1446,6 +1451,10 @@ export type Database = {
               isSetofReturn: true
             }
           }
+      content_in_editable_space: {
+        Args: { content_id: number }
+        Returns: boolean
+      }
       content_in_space: { Args: { content_id: number }; Returns: boolean }
       content_of_concept: {
         Args: { concept: Database["public"]["Views"]["my_concepts"]["Row"] }
@@ -1503,6 +1512,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      editor_in_space: { Args: { space_id: number }; Returns: boolean }
       end_sync_task: {
         Args: {
           s_function: string
@@ -1580,6 +1590,7 @@ export type Database = {
           text_content: string
         }[]
       }
+      my_editable_space_ids: { Args: never; Returns: number[] }
       my_space_ids: { Args: never; Returns: number[] }
       my_user_accounts: { Args: never; Returns: string[] }
       propose_sync_task: {

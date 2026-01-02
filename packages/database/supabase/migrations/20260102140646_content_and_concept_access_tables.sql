@@ -1,3 +1,60 @@
+CREATE OR REPLACE FUNCTION public.can_access_account(account_uid UUID) RETURNS boolean
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT account_uid = auth.uid() OR EXISTS (
+        SELECT 1 FROM public.group_membership
+        WHERE member_id = auth.uid() AND group_id=account_uid
+        LIMIT 1
+    );
+$$;
+
+CREATE OR REPLACE FUNCTION public.my_editable_space_ids() RETURNS BIGINT []
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT COALESCE(array_agg(distinct space_id), '{}') AS ids
+        FROM public."SpaceAccess"
+        JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
+        WHERE editor;
+$$;
+COMMENT ON FUNCTION public.my_editable_space_ids IS 'security utility: all spaces the user has edit access to';
+
+
+CREATE OR REPLACE FUNCTION public.editor_in_space(space_id BIGINT) RETURNS boolean
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT EXISTS (SELECT 1 FROM public."SpaceAccess" AS sa
+        JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
+        WHERE sa.space_id = editor_in_space.space_id AND sa.editor);
+$$;
+
+COMMENT ON FUNCTION public.editor_in_space IS 'security utility: does current user have edit access to this space?';
+
+CREATE OR REPLACE FUNCTION public.content_in_editable_space(content_id BIGINT) RETURNS boolean
+STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT public.editor_in_space(space_id) FROM public."Content" WHERE id=content_id
+$$;
+
+COMMENT ON FUNCTION public.content_in_editable_space IS 'security utility: does current user have editor access to this content''s space?';
+
+CREATE OR REPLACE FUNCTION public.concept_in_editable_space(concept_id BIGINT) RETURNS boolean
+STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT public.editor_in_space(space_id) FROM public."Concept" WHERE id=concept_id
+$$;
+
+COMMENT ON FUNCTION public.concept_in_editable_space IS 'security utility: does current user have editor access to this concept''s space?';
+
 CREATE TABLE IF NOT EXISTS public."ContentAccess" (
     account_uid UUID NOT NULL,
     content_id bigint NOT NULL
@@ -70,6 +127,18 @@ CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (public
 CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (public.in_space(space_id));
 CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (public.in_space(space_id));
 CREATE POLICY content_update_policy ON public."Content" FOR UPDATE WITH CHECK (public.in_space(space_id));
+
+ALTER TABLE public."ContentAccess" ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS content_access_policy ON public."ContentAccess";
+DROP POLICY IF EXISTS content_access_select_policy ON public."ContentAccess";
+CREATE POLICY content_access_select_policy ON public."ContentAccess" FOR SELECT USING (public.content_in_space(content_id) OR public.can_access_account(account_uid));
+DROP POLICY IF EXISTS content_access_delete_policy ON public."ContentAccess";
+CREATE POLICY content_access_delete_policy ON public."ContentAccess" FOR DELETE USING (public.content_in_editable_space(content_id) OR public.can_access_account(account_uid));
+DROP POLICY IF EXISTS content_access_insert_policy ON public."ContentAccess";
+CREATE POLICY content_access_insert_policy ON public."ContentAccess" FOR INSERT WITH CHECK (public.editor_in_space(content_id));
+DROP POLICY IF EXISTS content_access_update_policy ON public."ContentAccess";
+CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE WITH CHECK (public.editor_in_space(content_id));
 
 
 CREATE TABLE IF NOT EXISTS public."ConceptAccess" (
@@ -146,3 +215,15 @@ CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (public
 CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (public.in_space(space_id));
 CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (public.in_space(space_id));
 CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE WITH CHECK (public.in_space(space_id));
+
+ALTER TABLE public."ConceptAccess" ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS concept_access_policy ON public."ConceptAccess";
+DROP POLICY IF EXISTS concept_access_select_policy ON public."ConceptAccess";
+CREATE POLICY concept_access_select_policy ON public."ConceptAccess" FOR SELECT USING (public.concept_in_space(concept_id) OR public.can_access_account(account_uid));
+DROP POLICY IF EXISTS concept_access_delete_policy ON public."ConceptAccess";
+CREATE POLICY concept_access_delete_policy ON public."ConceptAccess" FOR DELETE USING (public.concept_in_editable_space(concept_id) OR public.can_access_account(account_uid));
+DROP POLICY IF EXISTS concept_access_insert_policy ON public."ConceptAccess";
+CREATE POLICY concept_access_insert_policy ON public."ConceptAccess" FOR INSERT WITH CHECK (public.editor_in_space(concept_id));
+DROP POLICY IF EXISTS concept_access_update_policy ON public."ConceptAccess";
+CREATE POLICY concept_access_update_policy ON public."ConceptAccess" FOR UPDATE WITH CHECK (public.editor_in_space(concept_id));
