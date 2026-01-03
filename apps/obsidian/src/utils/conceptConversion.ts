@@ -59,7 +59,6 @@ export const discourseNodeInstanceToLocalConcept = ({
   accountLocalId: string;
 }): LocalConceptDataInput => {
   const extraData = getNodeExtraData(nodeData.file, accountLocalId);
-  console.log(nodeData.frontmatter);
   const concept = {
     space_id: context.spaceId,
     name: nodeData.file.basename,
