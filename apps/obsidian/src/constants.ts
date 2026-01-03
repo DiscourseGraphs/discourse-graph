@@ -70,6 +70,9 @@ export const DEFAULT_SETTINGS: Settings = {
   canvasFolderPath: "Discourse Canvas",
   canvasAttachmentsFolderPath: "attachments",
   nodeTagHotkey: "\\",
+  spacePassword: undefined,
+  accountLocalId: undefined,
+  syncModeEnabled: false,
 };
 export const FRONTMATTER_KEY = "tldr-dg";
 export const TLDATA_DELIMITER_START =

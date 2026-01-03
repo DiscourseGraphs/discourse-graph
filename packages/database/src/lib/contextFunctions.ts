@@ -14,7 +14,11 @@ const baseUrl = nextApiRoot() + "/supabase";
 type SpaceDataInput = TablesInsert<"Space">;
 export type SpaceRecord = Tables<"Space">;
 
-export type SpaceCreationInput = SpaceDataInput & { password: string };
+export type SpaceCreationInput = SpaceDataInput & {
+  password: string;
+  accountLocalId?: string;
+  accountName?: string;
+};
 
 export const asPostgrestFailure = (
   message: string,
@@ -123,15 +127,25 @@ export const fetchOrCreateSpaceDirect = async (
   };
 };
 
-export const createLoggedInClient = async (
-  platform: Platform,
-  spaceId: number,
-  password: string,
-): Promise<DGSupabaseClient | null> => {
+export const createLoggedInClient = async ({
+  platform,
+  spaceId,
+  password,
+  accountLocalId,
+}: {
+  platform: Platform;
+  spaceId: number;
+  password: string;
+  accountLocalId?: string;
+}): Promise<DGSupabaseClient | null> => {
   const loggedInClient: DGSupabaseClient | null = createClient();
   if (!loggedInClient) return null;
+  const email =
+    platform === "Obsidian" && accountLocalId
+      ? accountLocalId
+      : spaceAnonUserEmail(platform, spaceId);
   const { error } = await loggedInClient.auth.signInWithPassword({
-    email: spaceAnonUserEmail(platform, spaceId),
+    email,
     password: password,
   });
   if (error) {
@@ -155,9 +169,28 @@ export const fetchOrCreatePlatformAccount = async ({
   spaceId: number;
   password: string;
 }): Promise<number> => {
-  const supabase = await createLoggedInClient(platform, spaceId, password);
+  const supabase = await createLoggedInClient({
+    platform,
+    spaceId,
+    password,
+    accountLocalId,
+  });
   if (!supabase) throw Error("Missing database connection");
 
+  // For Obsidian, user account is already created in create-space, so just fetch it
+  if (platform === "Obsidian") {
+    const result = await supabase
+      .from("PlatformAccount")
+      .select("id")
+      .eq("account_local_id", accountLocalId)
+      .eq("platform", platform)
+      .single();
+    if (result.error) throw Error(result.error.message);
+    if (!result.data) throw Error("Account not found");
+    return result.data.id;
+  }
+
+  // For Roam, use the existing flow
   const result = await supabase.rpc("create_account_in_space", {
     space_id_: spaceId,
     account_local_id_: accountLocalId,
