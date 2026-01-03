@@ -1,0 +1,1 @@
+export const DG_BLOCK_PROP_SETTINGS_PAGE_TITLE ="roam/js/discourse-graph/block-prop-settings";
