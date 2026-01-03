@@ -123,15 +123,20 @@ export const fetchOrCreateSpaceDirect = async (
   };
 };
 
-export const createLoggedInClient = async (
-  platform: Platform,
-  spaceId: number,
-  password: string,
-): Promise<DGSupabaseClient | null> => {
+export const createLoggedInClient = async ({
+  platform,
+  spaceId,
+  password,
+}: {
+  platform: Platform;
+  spaceId: number;
+  password: string;
+}): Promise<DGSupabaseClient | null> => {
   const loggedInClient: DGSupabaseClient | null = createClient();
   if (!loggedInClient) return null;
+  const email = spaceAnonUserEmail(platform, spaceId);
   const { error } = await loggedInClient.auth.signInWithPassword({
-    email: spaceAnonUserEmail(platform, spaceId),
+    email,
     password: password,
   });
   if (error) {
@@ -155,7 +160,11 @@ export const fetchOrCreatePlatformAccount = async ({
   spaceId: number;
   password: string;
 }): Promise<number> => {
-  const supabase = await createLoggedInClient(platform, spaceId, password);
+  const supabase = await createLoggedInClient({
+    platform,
+    spaceId,
+    password,
+  });
   if (!supabase) throw Error("Missing database connection");
 
   const result = await supabase.rpc("create_account_in_space", {
