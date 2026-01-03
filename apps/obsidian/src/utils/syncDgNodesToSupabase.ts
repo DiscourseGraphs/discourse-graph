@@ -274,7 +274,6 @@ export const createOrUpdateDiscourseEmbedding = async (
     }
 
     const supabaseClient = await getLoggedInClient(plugin);
-    console.log("supabaseClient", supabaseClient);
     if (!supabaseClient) {
       throw new Error("Could not log in to Supabase client");
     }
