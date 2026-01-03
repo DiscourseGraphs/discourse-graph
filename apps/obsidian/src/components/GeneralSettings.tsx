@@ -3,7 +3,6 @@ import { usePlugin } from "./PluginContext";
 import { Notice, setIcon } from "obsidian";
 import SuggestInput from "./SuggestInput";
 import { SLACK_LOGO, WHITE_LOGO_SVG } from "~/icons";
-import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 
 const DOCS_URL = "https://discoursegraphs.com/docs/obsidian";
 const COMMUNITY_URL =
@@ -158,9 +157,6 @@ const GeneralSettings = () => {
   const [nodeTagHotkey, setNodeTagHotkey] = useState<string>(
     plugin.settings.nodeTagHotkey,
   );
-  const [syncModeEnabled, setSyncModeEnabled] = useState<boolean>(
-    plugin.settings.syncModeEnabled ?? false,
-  );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const handleToggleChange = (newValue: boolean) => {
@@ -194,11 +190,6 @@ const GeneralSettings = () => {
     }
   }, []);
 
-  const handleSyncModeToggle = useCallback((newValue: boolean) => {
-    setSyncModeEnabled(newValue);
-    setHasUnsavedChanges(true);
-  }, []);
-
   const handleSave = async () => {
     const trimmedNodesFolderPath = nodesFolderPath.trim();
     const trimmedCanvasFolderPath = canvasFolderPath.trim();
@@ -210,25 +201,12 @@ const GeneralSettings = () => {
     plugin.settings.canvasAttachmentsFolderPath =
       trimmedCanvasAttachmentsFolderPath;
     plugin.settings.nodeTagHotkey = nodeTagHotkey || "";
-    plugin.settings.syncModeEnabled = syncModeEnabled;
     setNodesFolderPath(trimmedNodesFolderPath);
     setCanvasFolderPath(trimmedCanvasFolderPath);
     setCanvasAttachmentsFolderPath(trimmedCanvasAttachmentsFolderPath);
     await plugin.saveSettings();
     new Notice("General settings saved");
     setHasUnsavedChanges(false);
-
-    if (syncModeEnabled) {
-      try {
-        await initializeSupabaseSync(plugin);
-        new Notice("Sync mode initialized successfully");
-      } catch (error) {
-        console.error("Failed to initialize sync mode:", error);
-        new Notice(
-          `Failed to initialize sync mode: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    }
   };
 
   return (
@@ -330,23 +308,6 @@ const GeneralSettings = () => {
             maxLength={1}
             className="setting-item-control"
           />
-        </div>
-      </div>
-
-      <div className="setting-item">
-        <div className="setting-item-info">
-          <div className="setting-item-name">(BETA) Sync mode enable</div>
-          <div className="setting-item-description">
-            Enable synchronization with Discourse Graph database
-          </div>
-        </div>
-        <div className="setting-item-control">
-          <div
-            className={`checkbox-container ${syncModeEnabled ? "is-enabled" : ""}`}
-            onClick={() => handleSyncModeToggle(!syncModeEnabled)}
-          >
-            <input type="checkbox" checked={syncModeEnabled} />
-          </div>
         </div>
       </div>
 
