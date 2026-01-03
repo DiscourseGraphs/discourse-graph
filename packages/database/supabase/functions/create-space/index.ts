@@ -51,7 +51,7 @@ const asPostgrestFailure = <T>(
 const spaceValidator = (space: SpaceCreationInput): string | null => {
   if (!space || typeof space !== "object")
     return "Invalid request body: expected a JSON object.";
-  const { name, url, platform, password } = space;
+  const { name, url, platform, password, accountLocalId, accountName } = space;
 
   if (!name || typeof name !== "string" || name.trim() === "")
     return "Missing or invalid name.";
@@ -61,6 +61,12 @@ const spaceValidator = (space: SpaceCreationInput): string | null => {
     return "Missing or invalid platform.";
   if (!password || typeof password !== "string" || password.length < 8)
     return "password must be at least 8 characters";
+  if (platform === "Obsidian") {
+    if (!accountLocalId || typeof accountLocalId !== "string")
+      return "Missing or invalid accountLocalId for Obsidian platform.";
+    if (!accountName || typeof accountName !== "string")
+      return "Missing or invalid accountName for Obsidian platform.";
+  }
   return null;
 };
 
@@ -95,62 +101,90 @@ const processAndGetOrCreateSpace = async (
   const space_id = result.data.id;
 
   // this is related but each step is idempotent, so con retry w/o transaction
-  const email = spaceAnonUserEmail(platform, result.data.id);
-  let anonymousUser: User | null = null;
+  // For Obsidian: create real user account (not anonymous)
+  // For Roam: create anonymous account
+  let email: string;
+  let accountLocalIdForStorage: string;
+  let accountName: string;
+  let agentType: "person" | "anonymous";
+
+  if (platform === "Obsidian") {
+    if (!data.accountLocalId || !data.accountName) {
+      return asPostgrestFailure<SpaceRecord>(
+        "accountLocalId and accountName are required for Obsidian platform",
+        "invalid space",
+      );
+    }
+    email = data.accountLocalId;
+    accountLocalIdForStorage = data.accountLocalId;
+    accountName = data.accountName;
+    agentType = "person";
+  } else {
+    email = spaceAnonUserEmail(platform, result.data.id);
+    accountLocalIdForStorage = email;
+    accountName = `Anonymous of space ${space_id}`;
+    agentType = "anonymous";
+  }
+
+  let authUser: User | null = null;
   {
-    const { error, data } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error: signInError, data: signInData } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
     if (
-      error &&
+      signInError &&
       !(
-        error.code === "invalid_credentials" ||
-        error.message === "Invalid login credentials"
+        signInError.code === "invalid_credentials" ||
+        signInError.message === "Invalid login credentials"
       )
     ) {
       // Handle unexpected errors
-      return asPostgrestFailure(error.message, "authentication_error");
+      return asPostgrestFailure(signInError.message, "authentication_error");
     }
-    anonymousUser = data.user;
+    authUser = signInData?.user ?? null;
     await supabase.auth.signOut({ scope: "local" });
   }
-  if (anonymousUser === null) {
-    const resultCreateAnonymousUser = await supabase.auth.admin.createUser({
+
+  if (authUser === null) {
+    const resultCreateUser = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
     });
-    if (resultCreateAnonymousUser.error) {
+    if (resultCreateUser.error) {
       return {
         count: null,
-        status: resultCreateAnonymousUser.error.status || -1,
-        statusText: resultCreateAnonymousUser.error.message,
+        status: resultCreateUser.error.status || -1,
+        statusText: resultCreateUser.error.message,
         data: null,
         error: new PostgrestError({
-          message: resultCreateAnonymousUser.error.message,
+          message: resultCreateUser.error.message,
           details:
-            typeof resultCreateAnonymousUser.error.cause === "string"
-              ? resultCreateAnonymousUser.error.cause
+            typeof resultCreateUser.error.cause === "string"
+              ? resultCreateUser.error.cause
               : "",
           hint: "",
-          code: resultCreateAnonymousUser.error.code || "unknown",
+          code: resultCreateUser.error.code || "unknown",
         }),
-      }; // space created but not its user, try again
+      };
     }
-    anonymousUser = resultCreateAnonymousUser.data.user as User;
+    authUser = resultCreateUser.data.user as User;
   }
-  // NOTE: The next few steps could be done as the new user, except the SpaceAccess
-  const anonPlatformUserResult = await supabase
+
+  // For Obsidian: real user with name=vaultName, agent_type=person
+  // For Roam: anonymous account
+  const platformAccountResult = await supabase
     .from("PlatformAccount")
     .upsert(
       {
         platform,
-        account_local_id: email,
-        name: `Anonymous of space ${space_id}`,
-        agent_type: "anonymous",
-        dg_account: anonymousUser.id,
+        account_local_id: accountLocalIdForStorage,
+        name: accountName,
+        agent_type: agentType,
+        dg_account: authUser.id,
       },
       {
         onConflict: "account_local_id,platform",
@@ -160,14 +194,14 @@ const processAndGetOrCreateSpace = async (
     )
     .select()
     .single();
-  if (anonPlatformUserResult.error) return anonPlatformUserResult;
+  if (platformAccountResult.error) return platformAccountResult;
 
-  const resultAnonUserSpaceAccess = await supabase
+  const resultUserSpaceAccess = await supabase
     .from("SpaceAccess")
     .upsert(
       {
         space_id,
-        account_id: anonPlatformUserResult.data.id,
+        account_id: platformAccountResult.data.id,
         editor: true,
       },
       {
@@ -178,7 +212,7 @@ const processAndGetOrCreateSpace = async (
     )
     .select()
     .single();
-  if (resultAnonUserSpaceAccess.error) return resultAnonUserSpaceAccess; // space created but not connected, try again
+  if (resultUserSpaceAccess.error) return resultUserSpaceAccess; // space created but not connected, try again
   return result;
 };
 

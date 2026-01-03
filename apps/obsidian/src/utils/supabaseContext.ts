@@ -19,11 +19,12 @@ export type SupabaseContext = {
 let contextCache: SupabaseContext | null = null;
 
 const generateAccountLocalId = (vaultName: string): string => {
-  const randomSuffix = Math.random()
-    .toString(36)
-    .substring(2, 8)
-    .toUpperCase();
-  return `${vaultName}-${randomSuffix}`;
+  const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const sanitizedVaultName = vaultName
+    .replace(/\s+/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .replace(/-+/g, "-");
+  return `${sanitizedVaultName}${randomSuffix}@database.discoursegraphs.com`;
 };
 
 const getOrCreateSpacePassword = async (
@@ -71,6 +72,8 @@ export const getSupabaseContext = async (
         url,
         name: vaultName,
         platform,
+        accountLocalId,
+        accountName: vaultName,
       });
 
       if (!spaceResult.data) {
@@ -107,19 +110,55 @@ let loggedInClient: DGSupabaseClient | null = null;
 export const getLoggedInClient = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<DGSupabaseClient | null> => {
+  const accountLocalId = plugin.settings.accountLocalId;
+  if (!accountLocalId) {
+    throw new Error("accountLocalId not found in plugin settings");
+  }
   if (loggedInClient === null) {
     const context = await getSupabaseContext(plugin);
-    if (context === null) throw new Error("Could not create context");
-    loggedInClient = await createLoggedInClient(
-      context.platform,
-      context.spaceId,
-      context.spacePassword,
-    );
+    if (context === null) {
+      throw new Error("Could not create Supabase context");
+    }
+    try {
+      loggedInClient = await createLoggedInClient({
+        platform: context.platform,
+        spaceId: context.spaceId,
+        password: context.spacePassword,
+        accountLocalId,
+      });
+      if (!loggedInClient) {
+        throw new Error(
+          "Failed to create Supabase client - check environment variables",
+        );
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("Failed to create logged-in client:", errorMessage);
+      throw new Error(`Supabase authentication failed: ${errorMessage}`);
+    }
   } else {
     // renew session
     const { error } = await loggedInClient.auth.getSession();
     if (error) {
+      console.warn("Session renewal failed, re-authenticating:", error);
       loggedInClient = null;
+      const context = await getSupabaseContext(plugin);
+      if (context === null) {
+        throw new Error(
+          "Could not create Supabase context for re-authentication",
+        );
+      }
+
+      loggedInClient = await createLoggedInClient({
+        platform: context.platform,
+        spaceId: context.spaceId,
+        password: context.spacePassword,
+        accountLocalId,
+      });
+      if (!loggedInClient) {
+        throw new Error("Failed to re-authenticate Supabase client");
+      }
     }
   }
   return loggedInClient;

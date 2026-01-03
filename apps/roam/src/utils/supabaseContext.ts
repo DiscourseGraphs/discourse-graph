@@ -96,11 +96,11 @@ export const getLoggedInClient = async (): Promise<DGSupabaseClient | null> => {
   if (_loggedInClient === null) {
     const context = await getSupabaseContext();
     if (context === null) throw new Error("Could not create context");
-    _loggedInClient = await createLoggedInClient(
-      context.platform,
-      context.spaceId,
-      context.spacePassword,
-    );
+    _loggedInClient = await createLoggedInClient({
+      platform: context.platform,
+      spaceId: context.spaceId,
+      password: context.spacePassword,
+    });
   } else {
     // renew session
     const { error } = await _loggedInClient.auth.getSession();
