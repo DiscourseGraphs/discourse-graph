@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { envContents } from "@repo/database/dbDotEnv";
+const { envContents } = require("@repo/database/dbDotEnv");
 
 // This would allow to create Next pages gated by a login middleware,
 // as described here: https://nextjs.org/docs/app/api-reference/file-conventions/middleware

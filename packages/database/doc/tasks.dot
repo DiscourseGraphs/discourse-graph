@@ -20,6 +20,7 @@ deploy
 deploy_functions
 migrate
 gentypes
+bootstrap
 
 /* supabase functions */
 node [color=purple]
@@ -58,6 +59,7 @@ cucumber_js
     s_migrate -> migrations_up
     dev -> setup
     dev -> serve
+    setup -> bootstrap
     setup -> genenv
     setup -> migrate
     serve -> s_serve
@@ -83,4 +85,5 @@ cucumber_js
     build -> tsc
     s_genTypes -> generate_schema
     s_migrate -> sup_start
+    bootstrap -> tsc
 }
