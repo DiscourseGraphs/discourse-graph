@@ -59,11 +59,7 @@ export const DiscourseNodeSchema = z.object({
     .optional()
     .transform((val) => val ?? []),
   templateUid: stringWithDefault(""),
-  canvasSettings: z
-    .record(z.string(), z.string())
-    .nullable()
-    .optional()
-    .transform((val) => val ?? {}),
+  canvasSettings: CanvasSettingsSchema.partial().nullable().optional(),
   graphOverview: booleanWithDefault(false),
   attributes: z
     .record(z.string(), z.string())
