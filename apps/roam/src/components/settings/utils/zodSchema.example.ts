@@ -18,7 +18,7 @@ import type {
   RoamBlock,
 } from "./zodSchema";
 
-export const exampleCanvasSettings: CanvasSettings = {
+const canvasSettings: CanvasSettings = {
   color: "#4A90D9",
   alias: "CLM",
   "key-image": true,
@@ -26,7 +26,7 @@ export const exampleCanvasSettings: CanvasSettings = {
   "query-builder-alias": "Key Image Query",
 };
 
-export const exampleSuggestiveRules: SuggestiveRules = {
+const suggestiveRules: SuggestiveRules = {
   template: [
     { text: "Summary::", children: [] },
     { text: "Key Points::", children: [] },
@@ -39,7 +39,7 @@ export const exampleSuggestiveRules: SuggestiveRules = {
   },
 };
 
-export const exampleDiscourseNodeSettings: DiscourseNodeSettings = {
+const discourseNodeSettings: DiscourseNodeSettings = {
   text: "Claim",
   type: "discourse-graph/nodes/claim",
   format: "[[CLM]] - {content}",
@@ -95,19 +95,19 @@ export const exampleDiscourseNodeSettings: DiscourseNodeSettings = {
   backedBy: "user",
 };
 
-export const exampleFeatureFlags: FeatureFlags = {
+const featureFlags: FeatureFlags = {
   "Enable Left Sidebar": true,
   "Suggestive Mode Enabled": true,
   "Reified Relation Triples": false,
 };
 
-export const defaultFeatureFlags: FeatureFlags = {
+const defaultFeatureFlags: FeatureFlags = {
   "Enable Left Sidebar": false,
   "Suggestive Mode Enabled": false,
   "Reified Relation Triples": false,
 };
 
-export const exampleExportSettings: ExportSettings = {
+const exportSettings: ExportSettings = {
   "Remove Special Characters": true,
   "Resolve Block References": true,
   "Resolve Block Embeds": false,
@@ -122,12 +122,12 @@ export const exampleExportSettings: ExportSettings = {
   ],
 };
 
-export const examplePageGroup: PageGroup = {
+const pageGroup: PageGroup = {
   name: "Research Papers",
   pages: ["page-uid-1", "page-uid-2", "page-uid-3"],
 };
 
-export const exampleSuggestiveModeGlobalSettings: SuggestiveModeGlobalSettings =
+const suggestiveModeGlobalSettings: SuggestiveModeGlobalSettings =
   {
     "Include Current Page Relations": true,
     "Include Parent And Child Blocks": true,
@@ -143,7 +143,7 @@ export const exampleSuggestiveModeGlobalSettings: SuggestiveModeGlobalSettings =
     ],
   };
 
-export const exampleLeftSidebarGlobalSettings: LeftSidebarGlobalSettings = {
+const leftSidebarGlobalSettings: LeftSidebarGlobalSettings = {
   Children: ["daily-notes-uid", "quick-capture-uid", "inbox-uid"],
   Settings: {
     Collapsable: true,
@@ -151,7 +151,7 @@ export const exampleLeftSidebarGlobalSettings: LeftSidebarGlobalSettings = {
   },
 };
 
-export const exampleGlobalSettings: GlobalSettings = {
+const globalSettings: GlobalSettings = {
   Trigger: ";;",
   "Canvas Page Format": "Canvas - {date} - {title}",
   "Left Sidebar": {
@@ -182,7 +182,7 @@ export const exampleGlobalSettings: GlobalSettings = {
   },
 };
 
-export const defaultGlobalSettings: GlobalSettings = {
+const defaultGlobalSettings: GlobalSettings = {
   Trigger: "",
   "Canvas Page Format": "",
   "Left Sidebar": {
@@ -208,7 +208,7 @@ export const defaultGlobalSettings: GlobalSettings = {
   },
 };
 
-export const examplePersonalSection: PersonalSection = {
+const personalSection: PersonalSection = {
   Children: [
     { Page: "daily-notes-uid", Alias: "Daily Notes" },
     { Page: "inbox-uid", Alias: "Inbox" },
@@ -220,7 +220,7 @@ export const examplePersonalSection: PersonalSection = {
   },
 };
 
-export const exampleLeftSidebarPersonalSettings: LeftSidebarPersonalSettings = {
+const leftSidebarPersonalSettings: LeftSidebarPersonalSettings = {
   "My Workspace": {
     Children: [
       { Page: "daily-notes-uid", Alias: "Daily Notes" },
@@ -244,13 +244,13 @@ export const exampleLeftSidebarPersonalSettings: LeftSidebarPersonalSettings = {
   },
 };
 
-export const exampleQueryFilter: QueryFilter = {
+const queryFilter: QueryFilter = {
   includes: true,
   key: "node-type",
   value: "Claim",
 };
 
-export const exampleQuerySettings: QuerySettings = {
+const querySettings: QuerySettings = {
   "Hide Query Metadata": true,
   "Default Page Size": 25,
   "Query Pages": ["query-page-uid-1", "query-page-uid-2"],
@@ -260,7 +260,7 @@ export const exampleQuerySettings: QuerySettings = {
   ],
 };
 
-export const examplePersonalSettings: PersonalSettings = {
+const personalSettings: PersonalSettings = {
   "Left Sidebar": {
     "My Workspace": {
       Children: [
@@ -304,7 +304,7 @@ export const examplePersonalSettings: PersonalSettings = {
   },
 };
 
-export const defaultPersonalSettings: PersonalSettings = {
+const defaultPersonalSettings: PersonalSettings = {
   "Left Sidebar": {},
   "Personal Node Menu Trigger": "",
   "Node Search Menu Trigger": "",
@@ -327,7 +327,7 @@ export const defaultPersonalSettings: PersonalSettings = {
   },
 };
 
-export const exampleGithubSettings: GithubSettings = {
+const githubSettings: GithubSettings = {
   "oauth-github": "ghp_xxxxxxxxxxxxxxxxxxxx",
   "selected-repo": "username/repository-name",
 };
@@ -356,7 +356,7 @@ export const exampleGithubSettings: GithubSettings = {
  *         - {value}                   // e.g. "Claim", regex pattern
  */
 
-export const exampleQueryBlockMinimal: RoamBlock = {
+const queryBlockMinimal: RoamBlock = {
   text: "scratch",
   children: [
     { text: "custom" },
@@ -376,7 +376,7 @@ export const exampleQueryBlockMinimal: RoamBlock = {
   ],
 };
 
-export const exampleQueryBlockSimple: RoamBlock = {
+const queryBlockSimple: RoamBlock = {
   text: "scratch",
   children: [
     { text: "custom" },
@@ -397,7 +397,7 @@ export const exampleQueryBlockSimple: RoamBlock = {
   ],
 };
 
-export const exampleQueryBlockWithSelections: RoamBlock = {
+const queryBlockWithSelections: RoamBlock = {
   text: "scratch",
   children: [
     { text: "custom" },
@@ -425,7 +425,7 @@ export const exampleQueryBlockWithSelections: RoamBlock = {
   ],
 };
 
-export const exampleQueryBlockWithCustom: RoamBlock = {
+const queryBlockWithCustom: RoamBlock = {
   text: "scratch",
   children: [
     {
@@ -449,7 +449,7 @@ export const exampleQueryBlockWithCustom: RoamBlock = {
   ],
 };
 
-export const exampleQueryBlockMultipleConditions: RoamBlock = {
+const queryBlockMultipleConditions: RoamBlock = {
   text: "scratch",
   children: [
     { text: "custom" },
@@ -492,8 +492,7 @@ export const exampleQueryBlockMultipleConditions: RoamBlock = {
   ],
 };
 
-// Query block with NOT condition
-export const exampleQueryBlockWithNot: RoamBlock = {
+const queryBlockWithNot: RoamBlock = {
   text: "scratch",
   children: [
     { text: "custom" },
@@ -522,8 +521,7 @@ export const exampleQueryBlockWithNot: RoamBlock = {
   ],
 };
 
-// Query block with OR condition (nested)
-export const exampleQueryBlockWithOr: RoamBlock = {
+const queryBlockWithOr: RoamBlock = {
   text: "scratch",
   children: [
     { text: "custom" },
@@ -575,7 +573,7 @@ export const exampleQueryBlockWithOr: RoamBlock = {
   ],
 };
 
-export const exampleQueryBlockWithRegex: RoamBlock = {
+const queryBlockWithRegex: RoamBlock = {
   text: "scratch",
   children: [
     { text: "custom" },
