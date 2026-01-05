@@ -150,7 +150,6 @@ export const RelationConditionSchema = z.object({
 });
 
 export const DiscourseRelationSchema = z.object({
-  id: z.string(),
   label: z.string(),
   source: z.string(),
   destination: z.string(),
@@ -201,7 +200,9 @@ export const GlobalSettingsSchema = z.object({
   "Left Sidebar": LeftSidebarGlobalSettingsSchema.default({}),
   Export: ExportSettingsSchema.default({}),
   "Suggestive Mode": SuggestiveModeGlobalSettingsSchema.default({}),
-  Relations: z.array(DiscourseRelationSchema).default(DEFAULT_RELATIONS_BLOCK_PROPS),
+  Relations: z
+    .record(z.string(), DiscourseRelationSchema)
+    .default(DEFAULT_RELATIONS_BLOCK_PROPS),
 });
 
 export const PersonalSectionSchema = z.object({
@@ -267,14 +268,18 @@ export const getPersonalSettingsKey = (): string => {
   return cachedPersonalSettingsKey;
 };
 
+export const TOP_LEVEL_BLOCK_PROP_KEYS = {
+  featureFlags: "Feature Flags",
+  global: "Global",
+} as const;
+
 export const getTopLevelBlockPropsConfig = () => [
-  { key: "Feature Flags", schema: FeatureFlagsSchema },
-  { key: "Global", schema: GlobalSettingsSchema },
+  { key: TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags, schema: FeatureFlagsSchema },
+  { key: TOP_LEVEL_BLOCK_PROP_KEYS.global, schema: GlobalSettingsSchema },
   { key: getPersonalSettingsKey(), schema: PersonalSettingsSchema },
 ];
 
-export const DG_BLOCK_PROP_SETTINGS_PAGE_TITLE =
-  "roam/js/discourse-graph";
+export const DG_BLOCK_PROP_SETTINGS_PAGE_TITLE = "roam/js/discourse-graph";
 export const DISCOURSE_NODE_PAGE_PREFIX = "discourse-graph/nodes/";
 
 export type CanvasSettings = z.infer<typeof CanvasSettingsSchema>;
