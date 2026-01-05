@@ -16,7 +16,8 @@ ALTER TYPE public."Scale" OWNER TO postgres;
 CREATE TYPE public."ContentVariant" AS ENUM (
     'direct',
     'direct_and_children',
-    'direct_and_description'
+    'direct_and_description',
+    'full'
 );
 
 ALTER TYPE public."ContentVariant" OWNER TO postgres;

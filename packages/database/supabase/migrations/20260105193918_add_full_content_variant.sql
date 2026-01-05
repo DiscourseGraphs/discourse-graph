@@ -1,0 +1,1 @@
+ALTER TYPE "public"."ContentVariant" ADD VALUE 'full';
