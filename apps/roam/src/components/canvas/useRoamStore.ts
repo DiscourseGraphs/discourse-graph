@@ -29,7 +29,7 @@ import internalError from "~/utils/internalError";
 
 const THROTTLE = 350;
 
-const isTLStoreSnapshot = (value: unknown): value is TLStoreSnapshot => {
+export const isTLStoreSnapshot = (value: unknown): value is TLStoreSnapshot => {
   return (
     typeof value === "object" &&
     value !== null &&

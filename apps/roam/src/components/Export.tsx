@@ -50,12 +50,39 @@ import {
   TLParentId,
   getIndexAbove,
   TLShape,
+  defaultShapeUtils,
+  defaultBindingUtils,
 } from "tldraw";
+import {
+  createTLStore,
+  SerializedStore,
+  TLRecord,
+  TLStoreSnapshot,
+  loadSnapshot,
+} from "@tldraw/editor";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
-import { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
-import { MAX_WIDTH } from "~/components/canvas/Tldraw";
+import {
+  createNodeShapeUtils,
+  DiscourseNodeShape,
+} from "~/components/canvas/DiscourseNodeUtil";
+import { discourseContext, MAX_WIDTH } from "~/components/canvas/Tldraw";
 import internalError from "~/utils/internalError";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
+import { isTLStoreSnapshot } from "./canvas/useRoamStore";
+import { createMigrations } from "./canvas/DiscourseRelationShape/discourseRelationMigrations";
+import {
+  createAllRelationBindings,
+  createAllReferencedNodeBindings,
+} from "./canvas/DiscourseRelationShape/DiscourseRelationBindings";
+import {
+  createAllRelationShapeUtils,
+  createAllReferencedNodeUtils,
+} from "./canvas/DiscourseRelationShape/DiscourseRelationUtil";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import getDiscourseRelations, {
+  DiscourseRelation,
+} from "~/utils/getDiscourseRelations";
+import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/DiscourseRelationTool";
 
 const ExportProgress = ({ id }: { id: string }) => {
   const [progress, setProgress] = useState(0);
@@ -219,49 +246,199 @@ const ExportDialog: ExportDialogComponent = ({
     setSelectedPageUid(getPageUidByPageTitle(title));
   };
 
+  /* eslint-disable @typescript-eslint/naming-convention */
   const addToSelectedCanvas = async (pageUid: string) => {
-    if (typeof results !== "object") return;
+    if (typeof results !== "object") return false;
 
-    const props: Record<string, unknown> = getBlockProps(pageUid);
+    const blockProps: Record<string, unknown> = getBlockProps(pageUid);
 
     const PADDING_BETWEEN_SHAPES = 20;
     const COMMON_BOUNDS_XOFFSET = 250;
     const MAX_COLUMNS = 5;
     const COLUMN_WIDTH = Number(MAX_WIDTH.replace("px", ""));
-    const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
-    const tldraw = (rjsqb?.["tldraw"] as Record<string, unknown>) || {};
-    const store = (tldraw?.["store"] as Record<string, unknown>) || {
-      "document:document": {
-        gridSize: 10,
-        name: "",
-        meta: {},
-        id: "document:document",
-        typeName: "document",
-      },
-      "page:page": {
-        meta: {},
-        id: "page:page",
-        name: "Page 1",
-        index: "a1",
-        typeName: "page",
-      },
-    };
+    const rjsqb = blockProps["roamjs-query-builder"] as Record<string, unknown>;
+    const tldrawRaw = rjsqb?.["tldraw"];
+    const isTLStore = isTLStoreSnapshot(tldrawRaw);
+    // tldraw is either TLStoreSnapshot or a mutable Record (empty object when new)
+    const tldraw: TLStoreSnapshot | Record<string, unknown> = isTLStore
+      ? tldrawRaw
+      : (tldrawRaw as Record<string, unknown>) || {};
 
+    const isLegacyStore =
+      !isTLStore &&
+      tldraw !== null &&
+      tldraw !== undefined &&
+      typeof tldraw === "object" &&
+      Object.keys(tldraw).length !== 0;
+    if (isLegacyStore) {
+      const toastContent = (
+        <>
+          Canvas page{" "}
+          <a
+            onClick={(event) => {
+              if (event.shiftKey) {
+                void window.roamAlphaAPI.ui.rightSidebar.addWindow({
+                  // @ts-expect-error - todo test
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  window: { "block-uid": pageUid, type: "outline" },
+                });
+              } else {
+                void window.roamAlphaAPI.ui.mainWindow.openPage({
+                  page: { uid: pageUid },
+                });
+              }
+            }}
+          >
+            [[{selectedPageTitle}]]
+          </a>{" "}
+          is using a legacy store format. Please upgrade to the latest version
+          of the extension to continue.
+        </>
+      );
+      renderToast({
+        content: toastContent,
+        id: "legacy-store-format-not-supported",
+      });
+      return false;
+    }
+
+    let tempTlStoreSnapshot: TLStoreSnapshot | undefined;
+
+    // New Canvas Page, creating new TLStore
+    // TODO lots of this is reused in tldraw.tsx, use a function to avoid duplication
+    if (!isTLStore) {
+      const relations = getDiscourseRelations();
+      discourseContext.relations = relations.reduce(
+        (acc, r) => {
+          if (acc[r.label]) {
+            acc[r.label].push(r);
+          } else {
+            acc[r.label] = [r];
+          }
+          return acc;
+        },
+        {} as Record<string, DiscourseRelation[]>,
+      );
+      const allRelations = relations;
+      const allRelationIds = allRelations.map((r) => r.id);
+      const allNodes = getDiscourseNodes(allRelations);
+      const allAddReferencedNodeByAction = (() => {
+        const obj: AddReferencedNodeType = {};
+
+        // TODO: support multiple referenced node
+        // with migration from format to specification
+        allNodes.forEach((n) => {
+          const referencedNodes = [
+            ...n.format.matchAll(/{([\w\d-]+)}/g),
+          ].filter((match) => match[1] !== "content");
+
+          if (referencedNodes.length > 0) {
+            const sourceName = referencedNodes[0][1];
+            const sourceType = allNodes.find((node) => node.text === sourceName)
+              ?.type as string;
+
+            if (!obj[`Add ${sourceName}`]) obj[`Add ${sourceName}`] = [];
+
+            obj[`Add ${sourceName}`].push({
+              format: n.format,
+              sourceName,
+              sourceType,
+              destinationType: n.type,
+              destinationName: n.text,
+            });
+          }
+        });
+
+        return obj;
+      })();
+      const allAddReferencedNodeActions = Object.keys(
+        allAddReferencedNodeByAction,
+      );
+
+      // UTILS
+      const discourseNodeUtils = createNodeShapeUtils(allNodes);
+      const discourseRelationUtils =
+        createAllRelationShapeUtils(allRelationIds);
+      const referencedNodeUtils = createAllReferencedNodeUtils(
+        allAddReferencedNodeByAction,
+      );
+      const customShapeUtils = [
+        ...discourseNodeUtils,
+        ...discourseRelationUtils,
+        ...referencedNodeUtils,
+      ];
+      // BINDINGS
+      const relationBindings = createAllRelationBindings(allRelationIds);
+      const referencedNodeBindings = createAllReferencedNodeBindings(
+        allAddReferencedNodeByAction,
+      );
+      const customBindingUtils = [
+        ...relationBindings,
+        ...referencedNodeBindings,
+      ];
+      const discourseMigrations = createMigrations({
+        allRelationIds,
+        allAddReferencedNodeActions,
+        allNodeTypes: allNodes.map((node) => node.type),
+      });
+      const migrations = [discourseMigrations];
+
+      const tlStore = createTLStore({
+        migrations,
+        shapeUtils: [...defaultShapeUtils, ...customShapeUtils],
+        bindingUtils: [...defaultBindingUtils, ...customBindingUtils],
+      });
+
+      // Initialize store with default document and page records
+      const defaultStore = {
+        "document:document": {
+          gridSize: 10,
+          name: "",
+          meta: {},
+          id: "document:document",
+          typeName: "document",
+        } as TLRecord,
+        "page:page": {
+          meta: {},
+          id: "page:page",
+          name: "Page 1",
+          index: "a1",
+          typeName: "page",
+        } as TLRecord,
+      } as SerializedStore<TLRecord>;
+
+      const defaultSnapshot: TLStoreSnapshot = {
+        store: defaultStore,
+        schema: tlStore.schema.serialize(),
+      };
+
+      loadSnapshot(tlStore, defaultSnapshot);
+      tldraw.schema = tlStore.schema.serialize();
+      tempTlStoreSnapshot = tlStore.getStoreSnapshot();
+    }
+    /* eslint-disable @typescript-eslint/naming-convention */
+
+    const tlStoreSnapshot = isTLStore
+      ? (tldraw as TLStoreSnapshot) // isTlStore type checked above
+      : tempTlStoreSnapshot;
+
+    if (!tlStoreSnapshot) return console.log("no tlStoreSnapshot");
     const getPageKey = (
-      obj: Record<string, unknown>,
+      obj: SerializedStore<TLRecord>,
     ): TLParentId | undefined => {
-      for (const key in obj) {
+      for (const [key, value] of Object.entries(obj)) {
         if (
-          obj[key] &&
-          typeof obj[key] === "object" &&
-          (obj[key] as any)["typeName"] === "page"
+          value &&
+          typeof value === "object" &&
+          "typeName" in value &&
+          value.typeName === "page"
         ) {
           return key as TLParentId;
         }
       }
       return undefined;
     };
-    const pageKey = getPageKey(store);
+    const pageKey = getPageKey(tlStoreSnapshot.store);
     if (!pageKey) return console.log("no page key");
 
     type TLdrawProps = { [key: string]: any };
@@ -275,10 +452,10 @@ const ExportDialog: ExportDialogComponent = ({
           return { x: shape.x, y: shape.y, w: shape.props.w, h: shape.props.h };
         });
     };
-    const shapeBounds = extractShapesBounds(store);
+    const shapeBounds = extractShapesBounds(tlStoreSnapshot.store);
 
     // Get existing shapes to determine the highest index
-    const existingShapes = Object.values(store).filter(
+    const existingShapes = Object.values(tlStoreSnapshot.store).filter(
       (shape) => (shape as TLShape).typeName === "shape",
     );
 
@@ -371,23 +548,43 @@ const ExportDialog: ExportDialogComponent = ({
         nextShapeX = COMMON_BOUNDS_XOFFSET;
       }
 
-      store[newShapeId] = newShape;
+      tlStoreSnapshot.store[newShapeId] = newShape;
     }
 
     const newStateId = nanoid();
-    window.roamAlphaAPI.updateBlock({
-      block: {
-        uid: pageUid,
-        props: {
-          ...props,
-          ["roamjs-query-builder"]: {
-            ...rjsqb,
-            tldraw: { ...tldraw, store },
-            stateId: newStateId,
+    try {
+      await window.roamAlphaAPI.updateBlock({
+        block: {
+          uid: pageUid,
+          props: {
+            ...blockProps,
+            ["roamjs-query-builder"]: {
+              ...rjsqb,
+              tldraw: {
+                ...(isTLStore ? tldraw : {}),
+                store: tlStoreSnapshot.store,
+                schema: tlStoreSnapshot.schema,
+              },
+              stateId: newStateId,
+            },
           },
         },
-      },
-    });
+      });
+      return true;
+    } catch (error) {
+      internalError({
+        error: error as Error,
+        type: "Failed to add to selected canvas",
+        userMessage:
+          "Failed to add to selected canvas. The team has been notified.",
+        context: {
+          pageUid,
+          results,
+          blockProps,
+        },
+      });
+      return false;
+    }
   };
 
   const addToSelectedPage = (pageUid: string) => {
@@ -435,8 +632,10 @@ const ExportDialog: ExportDialogComponent = ({
       } else {
         const isNewPage = !isLiveBlock(uid);
         if (isNewPage) uid = await createPage({ title });
-        if (isCanvasPage) await addToSelectedCanvas(uid);
-        else addToSelectedPage(uid);
+        if (isCanvasPage) {
+          const success = await addToSelectedCanvas(uid);
+          if (!success) return;
+        } else addToSelectedPage(uid);
 
         toastContent = (
           <>
