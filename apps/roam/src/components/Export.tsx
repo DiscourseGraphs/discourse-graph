@@ -422,7 +422,20 @@ const ExportDialog: ExportDialogComponent = ({
       ? (tldraw as TLStoreSnapshot) // isTlStore type checked above
       : tempTlStoreSnapshot;
 
-    if (!tlStoreSnapshot) return console.log("no tlStoreSnapshot");
+    if (!tlStoreSnapshot) {
+      internalError({
+        error: new Error("no tlStoreSnapshot"),
+        type: "Failed to add to selected canvas",
+        userMessage:
+          "Failed to add to selected canvas. The team has been notified.",
+        context: {
+          pageUid,
+          results,
+          blockProps,
+        },
+      });
+      return false;
+    }
     const getPageKey = (
       obj: SerializedStore<TLRecord>,
     ): TLParentId | undefined => {
@@ -439,7 +452,20 @@ const ExportDialog: ExportDialogComponent = ({
       return undefined;
     };
     const pageKey = getPageKey(tlStoreSnapshot.store);
-    if (!pageKey) return console.log("no page key");
+    if (!pageKey) {
+      internalError({
+        error: new Error("no page key"),
+        type: "Failed to add to selected canvas",
+        userMessage:
+          "Failed to add to selected canvas. The team has been notified.",
+        context: {
+          pageUid,
+          results,
+          blockProps,
+        },
+      });
+      return false;
+    }
 
     type TLdrawProps = { [key: string]: any };
     type ShapeBounds = { x: number; y: number; w: number; h: number };
