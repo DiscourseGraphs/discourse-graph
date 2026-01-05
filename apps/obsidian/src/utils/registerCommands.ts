@@ -3,6 +3,7 @@ import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
+import { FeatureFlagModal } from "~/components/FeatureFlagModal";
 import { createDiscourseNode } from "./createNode";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
@@ -51,10 +52,10 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
           } else {
             await createDiscourseNode({
               plugin,
-            nodeType,
-            text: title,
-            editor,
-          });
+              nodeType,
+              text: title,
+              editor,
+            });
           }
         },
       }).open();
@@ -129,5 +130,14 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Create new Discourse Graph canvas",
     icon: "layout-dashboard", // Using Lucide icon as per style guide
     callback: () => createCanvas(plugin),
+  });
+
+  plugin.addCommand({
+    id: "open-feature-flag-settings",
+    name: "Open Feature Flag Settings",
+    hotkeys: [{ modifiers: ["Mod", "Shift"], key: "a" }],
+    callback: () => {
+      new FeatureFlagModal(plugin.app, plugin).open();
+    },
   });
 };
