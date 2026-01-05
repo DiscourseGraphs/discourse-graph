@@ -3,7 +3,7 @@
 // This enables autocomplete, go to definition, etc.
 
 import "@supabase/functions-js/edge-runtime";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, UserResponse } from "@supabase/supabase-js";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 
 // The following lines are duplicated from apps/website/app/utils/llm/cors.ts
@@ -63,20 +63,26 @@ Deno.serve(async (req) => {
   const groupName = crypto.randomUUID();
   const password = crypto.randomUUID();
   const supabaseAdmin: DGSupabaseClient = createClient(url, service_key);
-  const userResponse = await supabaseAdmin.auth.admin.createUser({
-    email: `${groupName}@groups.discoursegraphs.com`,
-    password,
-    email_confirm: false, // eslint-disable-line @typescript-eslint/naming-convention
-  });
-  if (userResponse.error)
-    throw userResponse.error;
-  if (!userResponse.data.user)
-    throw new Error("Did not create user");
+  let userResponse: UserResponse | undefined;
+  try {
+    userResponse = await supabaseAdmin.auth.admin.createUser({
+      email: `${groupName}@groups.discoursegraphs.com`,
+      password,
+      email_confirm: false, // eslint-disable-line @typescript-eslint/naming-convention
+    });
+    if (userResponse.error)
+      throw userResponse.error;
+    if (!userResponse.data.user)
+      throw new Error("Did not create user");
+  } catch (error) {
+    return Response.json({ msg: 'Failed to create group user', error: error.message }, { status: 500 });
+  }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const group_id = userResponse.data.user.id;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const membershipResponse = await supabaseAdmin.from("group_membership").insert({group_id, member_id:data.claims.sub, admin:true});
-  console.log(membershipResponse)
+  if (membershipResponse.error)
+    return Response.json({ msg: `Failed to create membership for group ${group_id}`, error: membershipResponse.error.message }, { status: 500 });
 
   const res = new Response(group_id);
 
