@@ -132,12 +132,14 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     callback: () => createCanvas(plugin),
   });
 
-  plugin.addCommand({
-    id: "open-feature-flag-settings",
-    name: "Open Feature Flag Settings",
-    hotkeys: [{ modifiers: ["Mod", "Shift"], key: "a" }],
-    callback: () => {
+  plugin.registerDomEvent(document, "keydown", (evt: KeyboardEvent) => {
+    const isMod = evt.metaKey || evt.ctrlKey;
+    const isShift = evt.shiftKey;
+
+    if (isMod && isShift && evt.key.toLowerCase() === "a") {
+      evt.preventDefault();
+      evt.stopPropagation();
       new FeatureFlagModal(plugin.app, plugin).open();
-    },
+    }
   });
 };
