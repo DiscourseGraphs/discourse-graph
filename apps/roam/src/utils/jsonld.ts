@@ -155,13 +155,12 @@ export const getJsonLdData = async ({
           error: `Unknown node type "${type as string}" for page "${text}"`,
         });
       }
-      const backlinks = (
+      const directBacklinks = (
         await (window.roamAlphaAPI.data.backend.q(
           `[:find ?uid
         :where
           [?page :block/uid "${uid}"]
-          [?block :block/page ?page]
-          [or [?refBlock :block/refs ?block] [?refBlock :block/refs ?page]]
+          [?refBlock :block/refs ?page]
           [?refBlock :block/page ?refPage]
           [?refPage :block/uid ?uid]
           ]`,
@@ -169,6 +168,22 @@ export const getJsonLdData = async ({
       )
         .map((x) => x[0])
         .filter((x) => nodeSet.has(x));
+      const indirectBacklinks = (
+        await (window.roamAlphaAPI.data.backend.q(
+          `[:find ?uid
+        :where
+          [?page :block/uid "${uid}"]
+          [?block :block/page ?page]
+          [?refBlock :block/refs ?block]
+          [?refBlock :block/page ?refPage]
+          [?refPage :block/uid ?uid]
+          ]`,
+        ) as Promise<Array<[string]>>)
+      )
+        .map((x) => x[0])
+        .filter((x) => nodeSet.has(x));
+      directBacklinks.push(...indirectBacklinks);
+      const backlinks = [...new Set(directBacklinks)];
       const r: Record<string, string | string[]> = {
         "@id": `pages:${uid}`, // eslint-disable-line @typescript-eslint/naming-convention
         "@type": nodeType, // eslint-disable-line @typescript-eslint/naming-convention
@@ -179,7 +194,7 @@ export const getJsonLdData = async ({
         creator: displayName,
       };
       if (backlinks.length > 0) {
-        r["backlinks"] = backlinks.map((x) => `pages:${x}`);
+        r["backlink"] = backlinks.map((x) => `pages:${x}`);
       }
       numTreatedPages += 1;
       await updateExportProgress(0.1 + (numTreatedPages / numPages) * 0.75);
