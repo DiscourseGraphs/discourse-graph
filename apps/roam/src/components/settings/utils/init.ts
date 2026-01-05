@@ -21,7 +21,7 @@ import {
 
 let cachedPersonalSettingsKey: string | null = null;
 
-const getPersonalSettingsKey = (): string => {
+export const getPersonalSettingsKey = (): string => {
   if (cachedPersonalSettingsKey !== null) {
     return cachedPersonalSettingsKey;
   }
@@ -29,8 +29,13 @@ const getPersonalSettingsKey = (): string => {
   return cachedPersonalSettingsKey;
 };
 
-const getDiscourseNodePageTitle = (nodeLabel: string): string => {
+export const getDiscourseNodePageTitle = (nodeLabel: string): string => {
   return `${DISCOURSE_NODE_PAGE_PREFIX}${nodeLabel}`;
+};
+
+export const getDiscourseNodePageUid = (nodeLabel: string): string => {
+  const pageTitle = getDiscourseNodePageTitle(nodeLabel);
+  return getPageUidByPageTitle(pageTitle);
 };
 
 const ensurePageExists = async (pageTitle: string): Promise<string> => {
