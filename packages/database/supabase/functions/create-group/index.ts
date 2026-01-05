@@ -32,6 +32,12 @@ Deno.serve(async (req) => {
       },
     });
   }
+  if (req.method !== "POST") {
+    return Response.json(
+      { msg: 'Method not allowed' },
+      { status: 405 }
+    );
+  }
 
   // @ts-ignore Deno is not visible to the IDE
   const url = Deno.env.get("SUPABASE_URL");
@@ -84,7 +90,7 @@ Deno.serve(async (req) => {
   if (membershipResponse.error)
     return Response.json({ msg: `Failed to create membership for group ${group_id}`, error: membershipResponse.error.message }, { status: 500 });
 
-  const res = new Response(group_id);
+  const res = Response.json({group_id});
 
   if (originIsAllowed) {
     res.headers.set("Access-Control-Allow-Origin", origin as string);
