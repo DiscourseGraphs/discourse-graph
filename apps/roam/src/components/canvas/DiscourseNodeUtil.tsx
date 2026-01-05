@@ -21,6 +21,7 @@ import {
   FONT_FAMILIES,
   TLDefaultFontStyle,
   DefaultFontStyle,
+  toDomPrecision,
 } from "tldraw";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
@@ -424,7 +425,13 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
   };
 
   indicator(shape: DiscourseNodeShape) {
-    return <rect width={shape.props.w} height={shape.props.h} />;
+    const { bounds } = this.editor.getShapeGeometry(shape);
+    return (
+      <rect
+        width={toDomPrecision(bounds.width)}
+        height={toDomPrecision(bounds.height)}
+      />
+    );
   }
 
   updateProps(
