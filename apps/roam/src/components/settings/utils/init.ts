@@ -18,10 +18,14 @@ import {
   DISCOURSE_NODE_PAGE_PREFIX,
   TOP_LEVEL_BLOCK_PROP_KEYS,
 } from "../data/blockPropsSettingsConfig";
+import {
+  stubSetLeftSidebarPersonalSections,
+  stubGetLeftSidebarPersonalSections,
+} from "./accessors";
 
 let cachedPersonalSettingsKey: string | null = null;
 
-const getPersonalSettingsKey = (): string => {
+export const getPersonalSettingsKey = (): string => {
   if (cachedPersonalSettingsKey !== null) {
     return cachedPersonalSettingsKey;
   }
@@ -29,8 +33,13 @@ const getPersonalSettingsKey = (): string => {
   return cachedPersonalSettingsKey;
 };
 
-const getDiscourseNodePageTitle = (nodeLabel: string): string => {
+export const getDiscourseNodePageTitle = (nodeLabel: string): string => {
   return `${DISCOURSE_NODE_PAGE_PREFIX}${nodeLabel}`;
+};
+
+export const getDiscourseNodePageUid = (nodeLabel: string): string => {
+  const pageTitle = getDiscourseNodePageTitle(nodeLabel);
+  return getPageUidByPageTitle(pageTitle);
 };
 
 const ensurePageExists = async (pageTitle: string): Promise<string> => {
@@ -243,9 +252,14 @@ export const initSchema = async (): Promise<InitSchemaResult> => {
   const blockUids = await initSettingsPageBlocks();
   const nodePageUids = await initDiscourseNodePages();
 
-  // Delay print to allow async block updates to complete
   setTimeout(() => {
     printAllSettings(blockUids, nodePageUids);
+
+    // TODO: REMOVE stub calls after testing
+    stubSetLeftSidebarPersonalSections();
+    setTimeout(() => {
+      stubGetLeftSidebarPersonalSections();
+    }, 3000);
   }, 2000);
 
   return { blockUids, nodePageUids };
