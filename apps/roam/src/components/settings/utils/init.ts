@@ -5,10 +5,16 @@ import setBlockProps from "~/utils/setBlockProps";
 import getBlockProps  from "~/utils/getBlockProps";
 import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
 import {
+  stubSetLeftSidebarPersonalSections,
+  stubGetLeftSidebarPersonalSections,
+  getAllDiscourseNodes,
+} from "./accessors";
+import {
   DiscourseNodeSchema,
   getTopLevelBlockPropsConfig,
 } from "~/components/settings/utils/zodSchema";
 import { DG_BLOCK_PROP_SETTINGS_PAGE_TITLE, DISCOURSE_NODE_PAGE_PREFIX } from "./zodSchema";
+
 
 const ensurePageExists = async (pageTitle: string): Promise<string> => {
   let pageUid = getPageUidByPageTitle(pageTitle);
@@ -91,27 +97,7 @@ const initSettingsPageBlocks = async (): Promise<Record<string, string>> => {
 };
 
 const hasNonDefaultNodes = (): boolean => {
-  const results = window.roamAlphaAPI.q(`
-    [:find ?uid ?title
-     :where
-     [?page :node/title ?title]
-     [?page :block/uid ?uid]
-     [(clojure.string/starts-with? ?title "${DISCOURSE_NODE_PAGE_PREFIX}")]]
-  `) as [string, string][];
-
-  for (const [pageUid] of results) {
-    const blockProps = getBlockProps(pageUid);
-    if (!blockProps) continue;
-
-    const parsed = DiscourseNodeSchema.safeParse(blockProps);
-    if (!parsed.success) continue;
-
-    if (parsed.data.backedBy !== "default") {
-      return true;
-    }
-  }
-
-  return false;
+  return getAllDiscourseNodes().some((node) => node.backedBy !== "default");
 };
 
 const initSingleDiscourseNode = async (
