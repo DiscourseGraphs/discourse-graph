@@ -65,6 +65,8 @@ GRANT ALL ON TABLE public.file_gc TO service_role;
 REVOKE ALL ON TABLE public.file_gc FROM authenticated;
 REVOKE ALL ON TABLE public.file_gc FROM anon;
 
+-- we could also find out if the storage exists, but not sure how that works with ACLs.
+-- This is both faster and safer.
 CREATE OR REPLACE FUNCTION public.file_exists(hashvalue VARCHAR) RETURNS boolean
 SET search_path = ''
 SECURITY DEFINER
@@ -80,7 +82,8 @@ LANGUAGE plpgsql AS $$
 BEGIN
     IF (SELECT count(content_id) FROM public."FileReference" AS fr WHERE fr.filepath=OLD.filepath) = 0 THEN
         INSERT INTO file_gc VALUES (OLD.filepath);
-        -- TODO: Invocation with pg_net.
+        -- TODO: Invocation with pg_net, following the pattern in
+        -- https://supabase.com/docs/guides/functions/schedule-functions
     END IF;
     RETURN NEW;
 END;
