@@ -40,12 +40,12 @@ We follow the Supabase [Declarative Database Schema](https://supabase.com/docs/g
    1. Check your logic with `sqruff lint supabase/schemas`
       1. If there are errors there, you can fix them with `pnpm run lint:fix`
    2. Stop Supabase.
-   3. See if there would be a migration to apply with `supabase db diff`
-   4. Also check with `supabase db diff:legacy`, which has known false positives (esp. views), but is more complete (esp. with respect to grants).
+   3. See if there would be a migration to apply with `pnpm run dbdiff`
+   4. Also check with `pnpm run dbdiff:legacy`, which has known false positives (esp. views), but is more complete (esp. with respect to grants).
 5. If applying the new schema fails, repeat step 4
 6. If you are satisfied with the migration, create a migration file with `pnpm run dbdiff:save some_meaningful_migration_name`
    1. If all goes well, there should be a new file named `supabase/migrations/2..._some_meaningful_migration_name.sql` which you should `git add`.
-   2. If there were valid migration steps identified by `dbdiff:legacy` that were missing in `dbdiff` you may have to add them by hand.
+   2. If there were _valid_ migration steps identified by `dbdiff:legacy` that were missing in `dbdiff` you may have to add them by hand to that file.
 7. `pnpm run migrate`, which will do the following:
    1. Start Supabase
    2. Apply the new migration locally
