@@ -35,8 +35,9 @@
     "test": "pnpm run build && cucumber-js",
     "genenv": "tsx scripts/createEnv.mts",
     "gentypes": "tsx scripts/genTypes.ts",
-    "dbdiff": "supabase stop && supabase db diff",
-    "dbdiff:save": "supabase stop && supabase db diff -f",
+    "dbdiff": "supabase stop && supabase db diff --use-pg-schema",
+    "dbdiff:legacy": "supabase stop && supabase db diff",
+    "dbdiff:save": "supabase stop && supabase db diff --use-pg-schema -f",
     "deploy": "tsx scripts/deploy.ts",
     "deploy:functions": "tsx scripts/deploy.ts -f"
   },
