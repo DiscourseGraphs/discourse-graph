@@ -511,6 +511,81 @@ export type Database = {
           },
         ]
       }
+      file_gc: {
+        Row: {
+          filepath: string
+        }
+        Insert: {
+          filepath: string
+        }
+        Update: {
+          filepath?: string
+        }
+        Relationships: []
+      }
+      FileReference: {
+        Row: {
+          content_id: number
+          created: string
+          filehash: string
+          filepath: string
+          last_modified: string
+          space_id: number
+        }
+        Insert: {
+          content_id: number
+          created: string
+          filehash: string
+          filepath: string
+          last_modified: string
+          space_id: number
+        }
+        Update: {
+          content_id?: number
+          created?: string
+          filehash?: string
+          filepath?: string
+          last_modified?: string
+          space_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "FileReference_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "Content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "FileReference_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "FileReference_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "FileReference_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "my_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "FileReference_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "Space"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_membership: {
         Row: {
           admin: boolean | null
@@ -1153,6 +1228,69 @@ export type Database = {
           },
         ]
       }
+      my_file_references: {
+        Row: {
+          content_id: number | null
+          created: string | null
+          filehash: string | null
+          filepath: string | null
+          last_modified: string | null
+          space_id: number | null
+        }
+        Insert: {
+          content_id?: number | null
+          created?: string | null
+          filehash?: string | null
+          filepath?: string | null
+          last_modified?: string | null
+          space_id?: number | null
+        }
+        Update: {
+          content_id?: number | null
+          created?: string | null
+          filehash?: string | null
+          filepath?: string | null
+          last_modified?: string | null
+          space_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "FileReference_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "Content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "FileReference_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "FileReference_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "FileReference_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "my_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "FileReference_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "Space"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       my_spaces: {
         Row: {
           id: number | null
@@ -1434,6 +1572,7 @@ export type Database = {
         Returns: undefined
       }
       extract_references: { Args: { refs: Json }; Returns: number[] }
+      file_exists: { Args: { hashvalue: string }; Returns: boolean }
       generic_entity_access: {
         Args: {
           target_id: number
