@@ -14,11 +14,20 @@ export const metadata: Metadata = {
     title: "Discourse Graphs",
     description: "A tool and ecosystem for collaborative knowledge synthesis",
     type: "website",
+    images: [
+      {
+        url: "/MATSU_lab_journal_club_graph_view.png",
+        width: 1200,
+        height: 630,
+        alt: "Discourse Graphs collaboration map preview",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Discourse Graphs",
     description: "A tool and ecosystem for collaborative knowledge synthesis",
+    images: ["/MATSU_lab_journal_club_graph_view.png"],
   },
 };
 
