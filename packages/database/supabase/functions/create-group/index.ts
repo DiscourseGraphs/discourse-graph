@@ -3,7 +3,7 @@
 // This enables autocomplete, go to definition, etc.
 
 import "@supabase/functions-js/edge-runtime";
-import { createClient, UserResponse } from "@supabase/supabase-js";
+import { createClient, type UserResponse } from "@supabase/supabase-js";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 
 // The following lines are duplicated from apps/website/app/utils/llm/cors.ts

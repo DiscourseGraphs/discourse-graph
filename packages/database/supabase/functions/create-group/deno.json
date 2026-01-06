@@ -3,9 +3,6 @@
     "@supabase/functions-js/edge-runtime": "jsr:@supabase/functions-js/edge-runtime.d.ts",
     "@supabase/supabase-js": "jsr:@supabase/supabase-js@2",
     "@supabase/functions-js": "jsr:@supabase/functions-js@2",
-    "@repo/database/dbTypes": "../../../src/dbTypes.ts",
-    "@repo/database/lib/contextFunctions": "../../../src/lib/contextFunctions.ts",
-    "@repo/database/lib/client": "../../../src/lib/client.ts",
-    "@repo/utils/lib/execContext": "../../../../utils/src/lib/execContext.ts"
+    "@repo/database/lib/client": "../../../src/lib/client.ts"
   }
 }
