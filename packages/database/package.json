@@ -45,6 +45,7 @@
     "@repo/utils": "workspace:*",
     "@supabase/auth-js": "catalog:",
     "@supabase/functions-js": "catalog:",
+    "@supabase/storage-js": "catalog:",
     "@supabase/supabase-js": "catalog:",
     "tslib": "2.5.1"
   },
