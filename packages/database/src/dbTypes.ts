@@ -1672,6 +1672,7 @@ export type Database = {
         | "direct"
         | "direct_and_children"
         | "direct_and_description"
+        | "full"
       EmbeddingName:
         | "openai_text_embedding_ada2_1536"
         | "openai_text_embedding_3_small_512"
@@ -1922,6 +1923,7 @@ export const Constants = {
         "direct",
         "direct_and_children",
         "direct_and_description",
+        "full",
       ],
       EmbeddingName: [
         "openai_text_embedding_ada2_1536",
