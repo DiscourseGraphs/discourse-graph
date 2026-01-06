@@ -39,6 +39,14 @@ Deno.serve(async (req) => {
     );
   }
 
+  const input: {name?: string} = await req.json();
+  const groupName = input.name;
+  if (groupName === undefined) {
+    return new Response("Missing group name", {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
   // @ts-ignore Deno is not visible to the IDE
   const url = Deno.env.get("SUPABASE_URL");
   // @ts-ignore Deno is not visible to the IDE
@@ -66,14 +74,17 @@ Deno.serve(async (req) => {
       }
     )
   }
-  const groupName = crypto.randomUUID();
+  // This password is discarded; nobody is expected to ever login as a group.
   const password = crypto.randomUUID();
+  const email = `${groupName}@groups.discoursegraphs.com`;
   const supabaseAdmin: DGSupabaseClient = createClient(url, service_key);
   let userResponse: UserResponse | undefined;
   try {
     userResponse = await supabaseAdmin.auth.admin.createUser({
-      email: `${groupName}@groups.discoursegraphs.com`,
+      email,
       password,
+      role:'anon',
+      user_metadata: {group: true},
       email_confirm: false, // eslint-disable-line @typescript-eslint/naming-convention
     });
     if (userResponse.error)
@@ -81,6 +92,13 @@ Deno.serve(async (req) => {
     if (!userResponse.data.user)
       throw new Error("Did not create user");
   } catch (error) {
+    if (error.code === 'email_exists') {
+      return Response.json(
+        { msg: 'A group by this name exists' },
+        {
+          status: 400,
+        });
+    }
     return Response.json({ msg: 'Failed to create group user', error: error.message }, { status: 500 });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
