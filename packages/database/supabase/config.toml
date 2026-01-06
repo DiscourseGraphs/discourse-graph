@@ -55,6 +55,7 @@ schema_paths = [
     './schemas/account.sql',
     './schemas/content.sql',
     './schemas/embedding.sql',
+    './schemas/assets.sql',
     './schemas/concept.sql',
     './schemas/contributor.sql',
     './schemas/sync.sql',
