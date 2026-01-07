@@ -11,11 +11,13 @@ import type {
   GlobalSettings,
   PersonalSection,
   LeftSidebarPersonalSettings,
-  QueryFilter,
+  StoredFilters,
   QuerySettings,
   PersonalSettings,
   GithubSettings,
-  RoamBlock,
+  QueryCondition,
+  QuerySelection,
+  RoamNodeType,
 } from "./zodSchema";
 
 const canvasSettings: CanvasSettings = {
@@ -28,11 +30,10 @@ const canvasSettings: CanvasSettings = {
 
 const suggestiveRules: SuggestiveRules = {
   template: [
-    { text: "Summary::", children: [] },
-    { text: "Key Points::", children: [] },
+    { text: "Summary::", heading: 2 },
+    { text: "Key Points::", heading: 2, children: [{ text: "" }] },
   ],
   embeddingRef: "((block-uid-123))",
-  embeddingRefUid: "block-uid-123",
   isFirstChild: {
     uid: "first-child-uid",
     value: true,
@@ -41,24 +42,25 @@ const suggestiveRules: SuggestiveRules = {
 
 const discourseNodeSettings: DiscourseNodeSettings = {
   text: "Claim",
-  type: "discourse-graph/nodes/claim",
+  type: "_CLM-node",
   format: "[[CLM]] - {content}",
   shortcut: "C",
   tag: "#claim",
   description: "A statement or assertion that can be supported or refuted",
   specification: [
     {
-      type: "has title",
-      text: "starts with [[CLM]]",
+      uid: "spec-uid-1",
+      type: "clause",
+      source: "Claim",
+      relation: "has title",
+      target: "/^\\[\\[CLM\\]\\]/",
     },
   ],
-  specificationUid: "spec-uid-123",
   template: [
-    { text: "Summary::", children: [] },
-    { text: "Evidence::", children: [] },
-    { text: "Counterarguments::", children: [] },
+    { text: "Summary::", heading: 2 },
+    { text: "Evidence::", heading: 2, children: [{ text: "" }] },
+    { text: "Counterarguments::", heading: 2, children: [{ text: "" }] },
   ],
-  templateUid: "template-uid-123",
   canvasSettings: {
     color: "#4A90D9",
     alias: "CLM",
@@ -76,18 +78,15 @@ const discourseNodeSettings: DiscourseNodeSettings = {
       attribute: "Status",
     },
   ],
-  indexUid: "index-uid-123",
   suggestiveRules: {
     template: [],
     embeddingRef: "((embed-ref))",
-    embeddingRefUid: "embed-ref",
     isFirstChild: {
       uid: "is-first-child-uid",
       value: false,
     },
   },
   embeddingRef: "((main-embed-ref))",
-  embeddingRefUid: "main-embed-ref",
   isFirstChild: {
     uid: "main-first-child-uid",
     value: true,
@@ -127,21 +126,20 @@ const pageGroup: PageGroup = {
   pages: ["page-uid-1", "page-uid-2", "page-uid-3"],
 };
 
-const suggestiveModeGlobalSettings: SuggestiveModeGlobalSettings =
-  {
-    "Include Current Page Relations": true,
-    "Include Parent And Child Blocks": true,
-    "Page Groups": [
-      {
-        name: "Research Papers",
-        pages: ["paper-1-uid", "paper-2-uid"],
-      },
-      {
-        name: "Meeting Notes",
-        pages: ["meeting-1-uid", "meeting-2-uid", "meeting-3-uid"],
-      },
-    ],
-  };
+const suggestiveModeGlobalSettings: SuggestiveModeGlobalSettings = {
+  "Include Current Page Relations": true,
+  "Include Parent And Child Blocks": true,
+  "Page Groups": [
+    {
+      name: "Research Papers",
+      pages: ["paper-1-uid", "paper-2-uid"],
+    },
+    {
+      name: "Meeting Notes",
+      pages: ["meeting-1-uid", "meeting-2-uid", "meeting-3-uid"],
+    },
+  ],
+};
 
 const leftSidebarGlobalSettings: LeftSidebarGlobalSettings = {
   Children: ["daily-notes-uid", "quick-capture-uid", "inbox-uid"],
@@ -244,20 +242,25 @@ const leftSidebarPersonalSettings: LeftSidebarPersonalSettings = {
   },
 };
 
-const queryFilter: QueryFilter = {
-  includes: true,
-  key: "node-type",
-  value: "Claim",
+const storedFilters: StoredFilters = {
+  includes: { values: ["Claim", "Evidence"] },
+  excludes: { values: ["archived"] },
 };
 
 const querySettings: QuerySettings = {
   "Hide Query Metadata": true,
   "Default Page Size": 25,
   "Query Pages": ["query-page-uid-1", "query-page-uid-2"],
-  "Default Filters": [
-    { includes: true, key: "node-type", value: "Claim" },
-    { includes: false, key: "status", value: "archived" },
-  ],
+  "Default Filters": {
+    "node-type": {
+      includes: { values: ["Claim"] },
+      excludes: { values: [] },
+    },
+    status: {
+      includes: { values: [] },
+      excludes: { values: ["archived"] },
+    },
+  },
 };
 
 const personalSettings: PersonalSettings = {
@@ -300,7 +303,12 @@ const personalSettings: PersonalSettings = {
     "Hide Query Metadata": true,
     "Default Page Size": 25,
     "Query Pages": ["query-page-uid-1"],
-    "Default Filters": [{ includes: true, key: "node-type", value: "Claim" }],
+    "Default Filters": {
+      "node-type": {
+        includes: { values: ["Claim"] },
+        excludes: { values: [] },
+      },
+    },
   },
 };
 
@@ -323,7 +331,7 @@ const defaultPersonalSettings: PersonalSettings = {
     "Hide Query Metadata": false,
     "Default Page Size": 10,
     "Query Pages": [],
-    "Default Filters": [],
+    "Default Filters": {},
   },
 };
 
@@ -332,264 +340,115 @@ const githubSettings: GithubSettings = {
   "selected-repo": "username/repository-name",
 };
 
-/**
- * Query Block (scratch) Structure Reference
- *
- * The "scratch" block is a child of {{query block}} and contains all query configuration.
- * It has three main children: custom, selections, and conditions.
- *
- * Structure:
- * - scratch
- *   - custom                          // Custom return node configuration
- *     - {custom node text}            // Optional: custom node identifier
- *     - enabled                       // Optional: flag to enable custom node
- *   - selections                      // Column selections for results
- *     - {variable name}               // e.g. "node", "Created Date"
- *       - {label}                     // Optional: display label for column
- *   - conditions                      // Query conditions
- *     - clause | not | or | not or    // Condition type
- *       - source                      // Required for clause/not
- *         - {value}                   // e.g. "node", node type name
- *       - relation                    // Required for clause/not
- *         - {value}                   // e.g. "is a", "has title", "references"
- *       - target                      // Optional for clause/not
- *         - {value}                   // e.g. "Claim", regex pattern
- */
+const clauseCondition: QueryCondition = {
+  uid: "clause-uid-1",
+  type: "clause",
+  source: "node",
+  relation: "is a",
+  target: "Claim",
+};
 
-const queryBlockMinimal: RoamBlock = {
-  text: "scratch",
-  children: [
-    { text: "custom" },
-    { text: "selections" },
-    {
-      text: "conditions",
-      children: [
-        {
-          text: "clause",
-          children: [
-            { text: "source", children: [{ text: "node" }] },
-            { text: "relation" },
-          ],
-        },
-      ],
-    },
+const notCondition: QueryCondition = {
+  uid: "not-uid-1",
+  type: "not",
+  source: "node",
+  relation: "has attribute",
+  target: "Archived",
+};
+
+const orCondition: QueryCondition = {
+  uid: "or-uid-1",
+  type: "or",
+  conditions: [
+    [
+      {
+        uid: "clause-uid-2",
+        type: "clause",
+        source: "node",
+        relation: "has attribute",
+        target: "High Priority",
+      },
+    ],
+    [
+      {
+        uid: "clause-uid-3",
+        type: "clause",
+        source: "node",
+        relation: "has attribute",
+        target: "Urgent",
+      },
+    ],
   ],
 };
 
-const queryBlockSimple: RoamBlock = {
-  text: "scratch",
-  children: [
-    { text: "custom" },
-    { text: "selections" },
-    {
-      text: "conditions",
-      children: [
-        {
-          text: "clause",
-          children: [
-            { text: "source", children: [{ text: "node" }] },
-            { text: "relation", children: [{ text: "is a" }] },
-            { text: "target", children: [{ text: "Claim" }] },
-          ],
-        },
-      ],
-    },
+const norCondition: QueryCondition = {
+  uid: "nor-uid-1",
+  type: "not or",
+  conditions: [
+    [
+      {
+        uid: "clause-uid-4",
+        type: "clause",
+        source: "node",
+        relation: "is a",
+        target: "Draft",
+      },
+    ],
+    [
+      {
+        uid: "clause-uid-5",
+        type: "clause",
+        source: "node",
+        relation: "is a",
+        target: "Archived",
+      },
+    ],
   ],
 };
 
-const queryBlockWithSelections: RoamBlock = {
-  text: "scratch",
+const exampleConditions: QueryCondition[] = [
+  clauseCondition,
+  notCondition,
+  orCondition,
+  norCondition,
+];
+
+const titleSelection: QuerySelection = {
+  uid: "sel-uid-1",
+  text: "node",
+  label: "Title",
+};
+
+const dateSelection: QuerySelection = {
+  uid: "sel-uid-2",
+  text: "Created Date",
+  label: "Created",
+};
+
+const exampleSelections: QuerySelection[] = [titleSelection, dateSelection];
+
+const simpleNode: RoamNodeType = {
+  text: "A simple block",
+};
+
+const nodeWithHeading: RoamNodeType = {
+  text: "Section Title",
+  heading: 1,
+};
+
+const nodeWithChildren: RoamNodeType = {
+  text: "Steps:",
   children: [
-    { text: "custom" },
-    {
-      text: "selections",
-      children: [
-        { text: "node", children: [{ text: "Title" }] },
-        { text: "Created Date", children: [{ text: "Created" }] },
-        { text: "Author" },
-      ],
-    },
-    {
-      text: "conditions",
-      children: [
-        {
-          text: "clause",
-          children: [
-            { text: "source", children: [{ text: "node" }] },
-            { text: "relation", children: [{ text: "is a" }] },
-            { text: "target", children: [{ text: "Claim" }] },
-          ],
-        },
-      ],
-    },
+    { text: "First step" },
+    { text: "Second step" },
+    { text: "Third step" },
   ],
 };
 
-const queryBlockWithCustom: RoamBlock = {
-  text: "scratch",
-  children: [
-    {
-      text: "custom",
-      children: [{ text: "myCustomNode" }, { text: "enabled" }],
-    },
-    { text: "selections" },
-    {
-      text: "conditions",
-      children: [
-        {
-          text: "clause",
-          children: [
-            { text: "source", children: [{ text: "node" }] },
-            { text: "relation", children: [{ text: "is a" }] },
-            { text: "target", children: [{ text: "Evidence" }] },
-          ],
-        },
-      ],
-    },
-  ],
-};
-
-const queryBlockMultipleConditions: RoamBlock = {
-  text: "scratch",
-  children: [
-    { text: "custom" },
-    {
-      text: "selections",
-      children: [
-        { text: "node", children: [{ text: "Claim" }] },
-        { text: "target", children: [{ text: "Supporting Evidence" }] },
-      ],
-    },
-    {
-      text: "conditions",
-      children: [
-        {
-          text: "clause",
-          children: [
-            { text: "source", children: [{ text: "node" }] },
-            { text: "relation", children: [{ text: "is a" }] },
-            { text: "target", children: [{ text: "Claim" }] },
-          ],
-        },
-        {
-          text: "clause",
-          children: [
-            { text: "source", children: [{ text: "node" }] },
-            { text: "relation", children: [{ text: "Supported By" }] },
-            { text: "target", children: [{ text: "target" }] },
-          ],
-        },
-        {
-          text: "clause",
-          children: [
-            { text: "source", children: [{ text: "target" }] },
-            { text: "relation", children: [{ text: "is a" }] },
-            { text: "target", children: [{ text: "Evidence" }] },
-          ],
-        },
-      ],
-    },
-  ],
-};
-
-const queryBlockWithNot: RoamBlock = {
-  text: "scratch",
-  children: [
-    { text: "custom" },
-    { text: "selections" },
-    {
-      text: "conditions",
-      children: [
-        {
-          text: "clause",
-          children: [
-            { text: "source", children: [{ text: "node" }] },
-            { text: "relation", children: [{ text: "is a" }] },
-            { text: "target", children: [{ text: "Claim" }] },
-          ],
-        },
-        {
-          text: "not",
-          children: [
-            { text: "source", children: [{ text: "node" }] },
-            { text: "relation", children: [{ text: "has attribute" }] },
-            { text: "target", children: [{ text: "Archived" }] },
-          ],
-        },
-      ],
-    },
-  ],
-};
-
-const queryBlockWithOr: RoamBlock = {
-  text: "scratch",
-  children: [
-    { text: "custom" },
-    { text: "selections" },
-    {
-      text: "conditions",
-      children: [
-        {
-          text: "clause",
-          children: [
-            { text: "source", children: [{ text: "node" }] },
-            { text: "relation", children: [{ text: "is a" }] },
-            { text: "target", children: [{ text: "Claim" }] },
-          ],
-        },
-        {
-          text: "or",
-          children: [
-            {
-              text: "0",
-              children: [
-                {
-                  text: "clause",
-                  children: [
-                    { text: "source", children: [{ text: "node" }] },
-                    { text: "relation", children: [{ text: "has attribute" }] },
-                    { text: "target", children: [{ text: "High Priority" }] },
-                  ],
-                },
-              ],
-            },
-            {
-              text: "1",
-              children: [
-                {
-                  text: "clause",
-                  children: [
-                    { text: "source", children: [{ text: "node" }] },
-                    { text: "relation", children: [{ text: "has attribute" }] },
-                    { text: "target", children: [{ text: "Urgent" }] },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-  ],
-};
-
-const queryBlockWithRegex: RoamBlock = {
-  text: "scratch",
-  children: [
-    { text: "custom" },
-    { text: "selections" },
-    {
-      text: "conditions",
-      children: [
-        {
-          text: "clause",
-          children: [
-            { text: "source", children: [{ text: "node" }] },
-            { text: "relation", children: [{ text: "has title" }] },
-            { text: "target", children: [{ text: "/^\\[\\[CLM\\]\\]/" }] },
-          ],
-        },
-      ],
-    },
-  ],
-};
+const fullTemplateExample: RoamNodeType[] = [
+  { text: "Meeting Notes", heading: 1 },
+  { text: "Attendees::" },
+  { text: "Agenda::", heading: 2, children: [{ text: "" }] },
+  { text: "Discussion::", heading: 2 },
+  { text: "Action Items::", heading: 2, children: [{ text: "" }] },
+];
