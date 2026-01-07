@@ -3,7 +3,7 @@ import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
-import { FeatureFlagModal } from "~/components/FeatureFlagModal";
+import { AdminPanelModal } from "~/components/AdminPanelModal";
 import { createDiscourseNode } from "./createNode";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
@@ -139,7 +139,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     if (isMod && isShift && evt.key.toLowerCase() === "a") {
       evt.preventDefault();
       evt.stopPropagation();
-      new FeatureFlagModal(plugin.app, plugin).open();
+      new AdminPanelModal(plugin.app, plugin).open();
     }
   });
 };

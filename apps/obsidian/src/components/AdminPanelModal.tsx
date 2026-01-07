@@ -1,12 +1,12 @@
-import { StrictMode } from "react";
 import { App, Modal } from "obsidian";
 import { Root, createRoot } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
 import { ContextProvider } from "./AppContext";
 import { PluginProvider } from "./PluginContext";
-import { FeatureFlagSettings } from "./FeatureFlagSettings";
+import { AdminPanelSettings } from "./AdminPanelSettings";
+import { StrictMode } from "react";
 
-export class FeatureFlagModal extends Modal {
+export class AdminPanelModal extends Modal {
   private plugin: DiscourseGraphPlugin;
   private root: Root | null = null;
 
@@ -18,7 +18,7 @@ export class FeatureFlagModal extends Modal {
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    this.setTitle("Feature Flag Settings");
+    this.setTitle("Admin Panel");
 
     const settingsComponentEl = contentEl.createDiv();
     this.root = createRoot(settingsComponentEl);
@@ -26,7 +26,7 @@ export class FeatureFlagModal extends Modal {
       <StrictMode>
         <ContextProvider app={this.app}>
           <PluginProvider plugin={this.plugin}>
-            <FeatureFlagSettings />
+            <AdminPanelSettings />
           </PluginProvider>
         </ContextProvider>
       </StrictMode>,

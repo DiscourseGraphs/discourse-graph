@@ -73,7 +73,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export const FEATURE_FLAGS = {
-  // settings for these features are in the FeatureFlagSettings component
+  // settings for these features are in the AdminPanelSettings component
   DATABASE_SYNC: "databaseSync",
 } as const;
 
