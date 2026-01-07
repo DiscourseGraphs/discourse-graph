@@ -3,7 +3,6 @@ import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
-import { AdminPanelModal } from "~/components/AdminPanelModal";
 import { createDiscourseNode } from "./createNode";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
@@ -130,16 +129,5 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Create new Discourse Graph canvas",
     icon: "layout-dashboard", // Using Lucide icon as per style guide
     callback: () => createCanvas(plugin),
-  });
-
-  plugin.registerDomEvent(document, "keydown", (evt: KeyboardEvent) => {
-    const isMod = evt.metaKey || evt.ctrlKey;
-    const isShift = evt.shiftKey;
-
-    if (isMod && isShift && evt.key.toLowerCase() === "a") {
-      evt.preventDefault();
-      evt.stopPropagation();
-      new AdminPanelModal(plugin.app, plugin).open();
-    }
   });
 };

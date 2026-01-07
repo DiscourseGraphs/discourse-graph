@@ -1,4 +1,4 @@
-import { StrictMode, useState } from "react";
+import { StrictMode, useState, useEffect } from "react";
 import { App, PluginSettingTab } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { Root, createRoot } from "react-dom/client";
@@ -7,10 +7,25 @@ import RelationshipTypeSettings from "./RelationshipTypeSettings";
 import RelationshipSettings from "./RelationshipSettings";
 import NodeTypeSettings from "./NodeTypeSettings";
 import GeneralSettings from "./GeneralSettings";
+import { AdminPanelSettings } from "./AdminPanelSettings";
 import { PluginProvider } from "./PluginContext";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
+
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (isMod && e.shiftKey && e.key.toLowerCase() === "a") {
+        e.stopPropagation();
+        e.preventDefault();
+        setActiveTab("admin-panel");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -56,6 +71,12 @@ const Settings = () => {
         >
           Discourse Relations
         </button>
+        {/* Hidden Admin Panel tab - only visible when activeTab is "admin-panel" */}
+        {activeTab === "admin-panel" && (
+          <button className="!bg-modifier-hover accent-border-bottom mr-2 cursor-pointer border-0 px-4 py-2">
+            Admin Panel
+          </button>
+        )}
       </div>
 
       {activeTab === "general" && <GeneralSettings />}
@@ -63,6 +84,7 @@ const Settings = () => {
       {activeTab === "relationTypes" && <RelationshipTypeSettings />}
       {activeTab === "relations" && <RelationshipSettings />}
       {activeTab === "frontmatter" && <GeneralSettings />}
+      {activeTab === "admin-panel" && <AdminPanelSettings />}
     </div>
   );
 };
