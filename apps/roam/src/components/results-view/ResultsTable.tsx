@@ -183,15 +183,7 @@ export const CellEmbed = ({
   );
 };
 
-export const CellLink = ({
-  content,
-  uid,
-  ctrlClick,
-}: {
-  content: string;
-  uid: string;
-  ctrlClick?: (e: Result) => void;
-}) => {
+export const CellLink = ({ content }: { content: string }) => {
   const contentRef = useRef<HTMLSpanElement>(null);
   
   useEffect(() => {
@@ -203,61 +195,6 @@ export const CellLink = ({
       });
     }
   }, [content]);
-
-  useEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
-
-    const handleMouseDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const link = target.closest("a");
-      
-      if (link) {
-        if (e.shiftKey) {
-          openBlockInSidebar(uid);
-          e.preventDefault();
-          e.stopPropagation();
-        } else if (e.ctrlKey && ctrlClick) {
-          ctrlClick({
-            text: content,
-            uid,
-          });
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      }
-    };
-
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const link = target.closest("a");
-      
-      if (link && (e.shiftKey || e.ctrlKey)) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-
-    const handleContextMenu = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const link = target.closest("a");
-      
-      if (link && e.ctrlKey) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-
-    el.addEventListener("mousedown", handleMouseDown);
-    el.addEventListener("click", handleClick);
-    el.addEventListener("contextmenu", handleContextMenu);
-
-    return () => {
-      el.removeEventListener("mousedown", handleMouseDown);
-      el.removeEventListener("click", handleClick);
-      el.removeEventListener("contextmenu", handleContextMenu);
-    };
-  }, [uid, content, ctrlClick]);
 
   return <span ref={contentRef} className="roamjs-query-link-cell" />;
 };
@@ -414,11 +351,7 @@ const ResultRow = ({
               {val === "" ? (
                 <i>[block is blank]</i>
               ) : view === "link" ? (
-                <CellLink
-                  content={val.toString()}
-                  uid={uid}
-                  ctrlClick={ctrlClick}
-                />
+                <CellLink content={val.toString()} />
               ) : view === "alias" ? (
                 <a
                   className={"rm-page-ref"}
