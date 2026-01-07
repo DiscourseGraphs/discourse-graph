@@ -25,6 +25,7 @@ import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
+import internalError from "~/utils/internalError";
 
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;
 type ExtraRowType = (typeof EXTRA_ROW_TYPES)[number] | null;
@@ -35,17 +36,35 @@ const ExtraContextRow = ({ uid }: { uid: string }) => {
   useEffect(() => {
     if (!containerRef.current) return;
     if (getPageTitleByPageUid(uid)) {
-      window.roamAlphaAPI.ui.components.renderPage({
-        uid,
-        el: containerRef.current,
-        "hide-mentions?": true,
-      });
+      window.roamAlphaAPI.ui.components
+        .renderPage({
+          uid,
+          el: containerRef.current,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "hide-mentions?": true,
+        })
+        .catch((error) => {
+          internalError({
+            error,
+            type: "Results Table: Extra Context Row",
+            context: { uid },
+          });
+        });
     } else {
-      window.roamAlphaAPI.ui.components.renderBlock({
-        uid,
-        el: containerRef.current,
-        "zoom-path?": true,
-      });
+      window.roamAlphaAPI.ui.components
+        .renderBlock({
+          uid,
+          el: containerRef.current,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "zoom-path?": true,
+        })
+        .catch((error) => {
+          internalError({
+            error,
+            type: "Results Table: Extra Context Row",
+            context: { uid },
+          });
+        });
     }
   }, [containerRef, uid]);
 
@@ -167,15 +186,22 @@ export const CellEmbed = ({
   useEffect(() => {
     const el = contentRef.current;
     const open =
-      viewValue === "open" ? true : viewValue === "closed" ? false : null;
+      viewValue === "open" ? true : viewValue === "closed" ? false : undefined;
     if (el) {
-      window.roamAlphaAPI.ui.components.renderBlock({
-        uid,
-        el,
-        // @ts-expect-error - add to roamjs-components
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "open?": open,
-      });
+      window.roamAlphaAPI.ui.components
+        .renderBlock({
+          uid,
+          el,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "open?": open,
+        })
+        .catch((error) => {
+          internalError({
+            error,
+            type: "Results Table: Cell Embed",
+            context: { uid },
+          });
+        });
     }
   }, [contentRef, uid, viewValue]);
   return (
