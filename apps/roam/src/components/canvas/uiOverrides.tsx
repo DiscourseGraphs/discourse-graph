@@ -33,89 +33,18 @@ import {
 } from "tldraw";
 import { IKeyCombo } from "@blueprintjs/core";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import { getNewDiscourseNodeText } from "~/utils/formatUtils";
-import createDiscourseNode from "~/utils/createDiscourseNode";
 import type { OnloadArgs } from "roamjs-components/types";
 import { DiscourseContextType } from "./Tldraw";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { COLOR_ARRAY } from "./DiscourseNodeUtil";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
-import { dispatchToastEvent } from "./ToastListener";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
-
-const convertToDiscourseNode = async ({
-  text,
-  type,
-  imageShapeUrl,
-  extensionAPI,
-  editor,
-  selectedShape,
-}: {
-  text: string;
-  type: string;
-  imageShapeUrl?: string;
-  extensionAPI: OnloadArgs["extensionAPI"];
-  editor: Editor;
-  selectedShape: TLShape | null;
-}) => {
-  if (!extensionAPI) {
-    dispatchToastEvent({
-      id: "tldraw-warning",
-      title: `Failed to convert to ${type}.  Please contact support`,
-      severity: "error",
-    });
-    return;
-  }
-  if (!selectedShape) {
-    dispatchToastEvent({
-      id: "tldraw-warning",
-      title: `No shape selected.`,
-      severity: "warning",
-    });
-    return;
-  }
-  const nodeText =
-    type === "blck-node"
-      ? text
-      : await getNewDiscourseNodeText({ text, nodeType: type });
-  const uid = await createDiscourseNode({
-    configPageUid: type,
-    text: nodeText,
-    imageUrl: imageShapeUrl,
-    extensionAPI,
-  });
-  editor.deleteShapes([selectedShape.id]);
-  const { x, y } = selectedShape;
-  const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
-    nodeText: nodeText,
-    extensionAPI,
-    nodeType: type,
-    uid,
-  });
-  editor.createShapes([
-    {
-      type,
-      id: createShapeId(),
-      props: {
-        uid,
-        title: nodeText,
-        h,
-        w,
-        imageUrl,
-        fontFamily: "sans",
-        size: "s",
-      },
-      x,
-      y,
-    },
-  ]);
-};
 
 export const getOnSelectForShape = ({
   shape,
@@ -128,6 +57,57 @@ export const getOnSelectForShape = ({
   editor: Editor;
   extensionAPI: OnloadArgs["extensionAPI"];
 }) => {
+  const { x, y } = shape;
+
+  const openDialogAndCreateShape = ({
+    initialText,
+    imageUrl,
+  }: {
+    initialText: string;
+    imageUrl?: string;
+  }) => {
+    renderModifyNodeDialog({
+      mode: "create",
+      nodeType,
+      initialValue: { text: initialText, uid: "" },
+      extensionAPI,
+      includeDefaultNodes: true,
+      imageUrl,
+      onSuccess: async ({ text, uid }) => {
+        editor.deleteShapes([shape.id]);
+
+        const {
+          h,
+          w,
+          imageUrl: nodeImageUrl,
+        } = await calcCanvasNodeSizeAndImg({
+          nodeText: text,
+          extensionAPI,
+          nodeType,
+          uid,
+        });
+        editor.createShapes([
+          {
+            type: nodeType,
+            id: createShapeId(),
+            props: {
+              uid,
+              title: text,
+              h,
+              w,
+              imageUrl: nodeImageUrl,
+              fontFamily: "sans",
+              size: "s",
+            },
+            x,
+            y,
+          },
+        ]);
+      },
+      onClose: () => {},
+    });
+  };
+
   if (shape.type === "image") {
     return async () => {
       const { assetId } = (shape as TLImageShape).props;
@@ -141,55 +121,13 @@ export const getOnSelectForShape = ({
       // eslint-disable-next-line @typescript-eslint/await-thenable
       const src = await window.roamAlphaAPI.util.uploadFile({ file });
       const initialText = nodeType === "blck-node" ? `![](${src})` : "";
-      const { x, y } = shape;
 
-      renderModifyNodeDialog({
-        mode: "create",
-        nodeType,
-        initialValue: { text: initialText, uid: "" },
-        extensionAPI,
-        includeDefaultNodes: true,
-        imageUrl: src,
-        onSuccess: async ({ text, uid }) => {
-          editor.deleteShapes([shape.id]);
-
-          const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
-            nodeText: text,
-            extensionAPI,
-            nodeType,
-            uid,
-          });
-          editor.createShapes([
-            {
-              type: nodeType,
-              id: createShapeId(),
-              props: {
-                uid,
-                title: text,
-                h,
-                w,
-                imageUrl,
-                fontFamily: "sans",
-                size: "s",
-              },
-              x,
-              y,
-            },
-          ]);
-        },
-        onClose: () => {},
-      });
+      openDialogAndCreateShape({ initialText, imageUrl: src });
     };
   } else if (shape.type === "text") {
     return () => {
       const { text } = (shape as TLTextShape).props;
-      void convertToDiscourseNode({
-        text,
-        type: nodeType,
-        editor,
-        selectedShape: shape,
-        extensionAPI,
-      });
+      openDialogAndCreateShape({ initialText: text });
     };
   }
   return () => {};
