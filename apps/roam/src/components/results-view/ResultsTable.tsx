@@ -88,19 +88,16 @@ const ResultHeader = React.forwardRef<
     columnWidth?: string;
   }
 >(
-  (
-    {
-      c,
-      allResults,
-      activeSort,
-      setActiveSort,
-      filters,
-      setFilters,
-      initialFilter,
-      columnWidth,
-    },
-    ref,
-  ) => {
+  ({
+    c,
+    allResults,
+    activeSort,
+    setActiveSort,
+    filters,
+    setFilters,
+    initialFilter,
+    columnWidth,
+  }) => {
     const filterData = useMemo(
       () => ({
         values: Array.from(
@@ -174,6 +171,8 @@ const ResultHeader = React.forwardRef<
   },
 );
 
+ResultHeader.displayName = "ResultHeader";
+
 export const CellEmbed = ({
   uid,
   viewValue,
@@ -223,10 +222,18 @@ export const CellLink = ({
   useEffect(() => {
     const el = contentRef.current;
     if (el && displayString) {
-      window.roamAlphaAPI.ui.components.renderString({
-        el,
-        string: displayString,
-      });
+      window.roamAlphaAPI.ui.components
+        .renderString({
+          el,
+          string: displayString,
+        })
+        .catch((error) => {
+          internalError({
+            error,
+            type: "Results Table: Cell Link",
+            context: { displayString },
+          });
+        });
     }
   }, [displayString]);
 
@@ -378,7 +385,8 @@ const ResultRow = ({
               className={"relative overflow-hidden text-ellipsis"}
               key={key}
               {...{
-                [`data-cell-content`]: typeof val === "string" ? val : `${val}`,
+                [`data-cell-content`]:
+                  typeof val === "string" ? val : String(val),
                 [`data-column-title`]: key,
               }}
             >
@@ -393,7 +401,7 @@ const ResultRow = ({
                   href={(r[`${key}-url`] as string) || getRoamUrl(uid)}
                   onMouseDown={(e) => {
                     if (e.shiftKey) {
-                      openBlockInSidebar(uid);
+                      void openBlockInSidebar(uid);
                       e.preventDefault();
                       e.stopPropagation();
                     } else if (e.ctrlKey) {
@@ -693,7 +701,7 @@ const ResultsTable = ({
         key: "filters",
         parentUid,
       });
-      filtersNode.children.forEach((c) => deleteBlock(c.uid));
+      filtersNode.children.forEach((c) => void deleteBlock(c.uid));
       Object.entries(fs)
         .filter(
           ([, data]) => data.includes.values.size || data.excludes.values.size,
@@ -715,12 +723,13 @@ const ResultsTable = ({
             },
           ],
         }))
-        .forEach((node, order) =>
-          createBlock({
-            parentUid: filtersNode.uid,
-            node,
-            order,
-          }),
+        .forEach(
+          (node, order) =>
+            void createBlock({
+              parentUid: filtersNode.uid,
+              node,
+              order,
+            }),
         );
     },
     [setFilters, preventSavingSettings, parentUid],
