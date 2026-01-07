@@ -12,19 +12,78 @@ export const CanvasSettingsSchema = z.object({
   "query-builder-alias": z.string().default(""),
 });
 
-export const SuggestiveRulesSchema = z.object({
-  template: z.array(z.unknown()).default([]),
-  embeddingRef: z.string().optional(),
-  embeddingRefUid: z.string().optional(),
-  isFirstChild: z
-    .object({
-      uid: z.string(),
-      value: z.boolean(),
-    })
-    .optional(),
-});
+export const SuggestiveRulesSchema = z.lazy(() =>
+  z.object({
+    template: z.array(RoamNodeSchema).default([]),
+    embeddingRef: z.string().optional(),
+    isFirstChild: z
+      .object({
+        uid: z.string(),
+        value: z.boolean(),
+      })
+      .optional(),
+  }),
+);
 
 export const AttributesSchema = z.record(z.string(), z.string()).default({});
+
+const QBClauseDataSchema = z.object({
+  uid: z.string(),
+  source: z.string(),
+  relation: z.string(),
+  target: z.string(),
+  not: z.boolean().optional(),
+});
+
+type Condition =
+  | (z.infer<typeof QBClauseDataSchema> & { type: "clause" })
+  | (z.infer<typeof QBClauseDataSchema> & { type: "not" })
+  | { uid: string; type: "or"; conditions: Condition[][] }
+  | { uid: string; type: "not or"; conditions: Condition[][] };
+
+export const ConditionSchema: z.ZodType<Condition> = z.discriminatedUnion(
+  "type",
+  [
+    QBClauseDataSchema.extend({ type: z.literal("clause") }),
+    QBClauseDataSchema.extend({ type: z.literal("not") }),
+    z.object({
+      uid: z.string(),
+      type: z.literal("or"),
+      conditions: z.lazy(() => ConditionSchema.array().array()),
+    }),
+    z.object({
+      uid: z.string(),
+      type: z.literal("not or"),
+      conditions: z.lazy(() => ConditionSchema.array().array()),
+    }),
+  ],
+);
+
+export const SelectionSchema = z.object({
+  uid: z.string(),
+  text: z.string(),
+  label: z.string(),
+});
+
+type RoamNode = {
+  text: string;
+  children?: RoamNode[];
+  uid?: string;
+  heading?: 0 | 1 | 2 | 3;
+  open?: boolean;
+};
+
+export const RoamNodeSchema: z.ZodType<RoamNode> = z.lazy(() =>
+  z.object({
+    text: z.string(),
+    children: RoamNodeSchema.array().optional(),
+    uid: z.string().optional(),
+    heading: z
+      .union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
+      .optional(),
+    open: z.boolean().optional(),
+  }),
+);
 
 const stringWithDefault = (defaultVal: string) =>
   z
@@ -48,17 +107,15 @@ export const DiscourseNodeSchema = z.object({
   tag: stringWithDefault(""),
   description: stringWithDefault(""),
   specification: z
-    .array(z.unknown())
+    .array(ConditionSchema)
     .nullable()
     .optional()
     .transform((val) => val ?? []),
-  specificationUid: stringWithDefault(""),
   template: z
-    .array(z.unknown())
+    .array(RoamNodeSchema)
     .nullable()
     .optional()
     .transform((val) => val ?? []),
-  templateUid: stringWithDefault(""),
   canvasSettings: CanvasSettingsSchema.partial().nullable().optional(),
   graphOverview: booleanWithDefault(false),
   attributes: z
@@ -68,10 +125,8 @@ export const DiscourseNodeSchema = z.object({
     .transform((val) => val ?? {}),
   overlay: stringWithDefault(""),
   index: z.unknown().nullable().optional(),
-  indexUid: stringWithDefault(""),
   suggestiveRules: SuggestiveRulesSchema.nullable().optional(),
   embeddingRef: stringWithDefault(""),
-  embeddingRefUid: stringWithDefault(""),
   isFirstChild: z
     .object({
       uid: z.string(),
@@ -151,17 +206,16 @@ export const LeftSidebarPersonalSettingsSchema = z
   .record(z.string(), PersonalSectionSchema)
   .default({});
 
-export const QueryFilterSchema = z.object({
-  includes: z.boolean().default(true),
-  key: z.string(),
-  value: z.string(),
+export const StoredFiltersSchema = z.object({
+  includes: z.object({ values: z.array(z.string()).default([]) }).default({}),
+  excludes: z.object({ values: z.array(z.string()).default([]) }).default({}),
 });
 
 export const QuerySettingsSchema = z.object({
   "Hide Query Metadata": z.boolean().default(false),
   "Default Page Size": z.number().default(10),
   "Query Pages": z.array(z.string()).default([]),
-  "Default Filters": z.array(QueryFilterSchema).default([]),
+  "Default Filters": z.record(z.string(), StoredFiltersSchema).default({}),
 });
 
 export const PersonalSettingsSchema = z.object({
@@ -187,53 +241,6 @@ export const GithubSettingsSchema = z.object({
   "selected-repo": z.string().optional(),
 });
 
-const RoamBlockNodeSchema: z.ZodType<RoamBlockNode> = z.lazy(() =>
-  z.object({
-    text: z.string(),
-    children: z.array(RoamBlockNodeSchema).optional(),
-  }),
-);
-
-type RoamBlockNode = {
-  text: string;
-  children?: RoamBlockNode[];
-};
-
-export const QueryClauseSchema = z.object({
-  text: z.enum(["clause", "not"]),
-  children: z.array(
-    z.object({
-      text: z.enum(["source", "relation", "target"]),
-      children: z.array(z.object({ text: z.string() })).optional(),
-    }),
-  ),
-});
-
-export const QueryNestedConditionSchema = z.object({
-  text: z.enum(["or", "not or"]),
-  children: z.array(z.unknown()),
-});
-
-export const QuerySelectionSchema = z.object({
-  text: z.string(),
-  children: z.array(z.object({ text: z.string() })).optional(),
-});
-
-export const QueryCustomSchema = z.object({
-  text: z.literal("custom"),
-  children: z
-    .tuple([
-      z.object({ text: z.string() }),
-      z.object({ text: z.literal("enabled") }).optional(),
-    ])
-    .optional(),
-});
-
-export const QueryBlockSchema = z.object({
-  text: z.literal("scratch"),
-  children: z.array(RoamBlockNodeSchema),
-});
-
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export type CanvasSettings = z.infer<typeof CanvasSettingsSchema>;
@@ -253,12 +260,10 @@ export type PersonalSection = z.infer<typeof PersonalSectionSchema>;
 export type LeftSidebarPersonalSettings = z.infer<
   typeof LeftSidebarPersonalSettingsSchema
 >;
-export type QueryFilter = z.infer<typeof QueryFilterSchema>;
+export type StoredFilters = z.infer<typeof StoredFiltersSchema>;
 export type QuerySettings = z.infer<typeof QuerySettingsSchema>;
 export type PersonalSettings = z.infer<typeof PersonalSettingsSchema>;
 export type GithubSettings = z.infer<typeof GithubSettingsSchema>;
-export type QueryBlock = z.infer<typeof QueryBlockSchema>;
-export type QueryClause = z.infer<typeof QueryClauseSchema>;
-export type QuerySelection = z.infer<typeof QuerySelectionSchema>;
-export type QueryCustom = z.infer<typeof QueryCustomSchema>;
-export type RoamBlock = RoamBlockNode;
+export type QueryCondition = z.infer<typeof ConditionSchema>;
+export type QuerySelection = z.infer<typeof SelectionSchema>;
+export type RoamNodeType = z.infer<typeof RoamNodeSchema>;
