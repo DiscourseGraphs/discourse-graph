@@ -208,7 +208,7 @@ export const CellEmbed = ({
   );
 };
 
-export const CellLink = ({
+export const CellRender = ({
   content,
   uid,
 }: {
@@ -230,7 +230,7 @@ export const CellLink = ({
         .catch((error) => {
           internalError({
             error,
-            type: "Results Table: Cell Link",
+            type: "Results Table: Cell Render",
             context: { displayString },
           });
         });
@@ -238,6 +238,55 @@ export const CellLink = ({
   }, [displayString]);
 
   return <span ref={contentRef} className="roamjs-query-link-cell" />;
+};
+
+export const CellLink = ({
+  content,
+  uid,
+  url,
+  ctrlClick,
+}: {
+  content: string;
+  uid: string;
+  url?: string;
+  ctrlClick?: (e: { text: string; uid: string }) => void;
+}) => {
+  const pageTitle = getPageTitleByPageUid(uid);
+  return (
+    <a
+      className={"rm-page-ref"}
+      data-link-title={pageTitle || ""}
+      href={url || getRoamUrl(uid)}
+      onMouseDown={(e) => {
+        if (e.shiftKey) {
+          void openBlockInSidebar(uid);
+          e.preventDefault();
+          e.stopPropagation();
+        } else if (e.ctrlKey && ctrlClick) {
+          ctrlClick({
+            text: content,
+            uid,
+          });
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+      onClick={(e) => {
+        if (e.shiftKey || e.ctrlKey) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+      onContextMenu={(e) => {
+        if (e.ctrlKey) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+    >
+      {content}
+    </a>
+  );
 };
 
 type ResultRowProps = {
@@ -393,7 +442,14 @@ const ResultRow = ({
               {val === "" ? (
                 <i>[block is blank]</i>
               ) : view === "link" ? (
-                <CellLink content={val.toString()} uid={uid} />
+                <CellLink
+                  content={val.toString()}
+                  uid={uid}
+                  url={(r[`${key}-url`] as string) || undefined}
+                  ctrlClick={ctrlClick}
+                />
+              ) : view === "render" ? (
+                <CellRender content={val.toString()} uid={uid} />
               ) : view === "alias" ? (
                 <a
                   className={"rm-page-ref"}

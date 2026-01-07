@@ -51,6 +51,7 @@ import { Inputs } from "./Inputs";
 
 const VIEWS: Record<string, { value: boolean }> = {
   link: { value: false },
+  render: { value: false },
   plain: { value: false },
   embed: { value: true },
   alias: { value: true },
