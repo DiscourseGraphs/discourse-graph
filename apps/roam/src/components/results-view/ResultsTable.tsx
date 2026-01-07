@@ -183,18 +183,26 @@ export const CellEmbed = ({
   );
 };
 
-export const CellLink = ({ content }: { content: string }) => {
+export const CellLink = ({
+  content,
+  uid,
+}: {
+  content: string;
+  uid: string;
+}) => {
   const contentRef = useRef<HTMLSpanElement>(null);
-  
+  const isPage = !!getPageTitleByPageUid(uid);
+  const displayString = isPage ? `[[${content}]]` : content;
+
   useEffect(() => {
     const el = contentRef.current;
-    if (el && content) {
+    if (el && displayString) {
       window.roamAlphaAPI.ui.components.renderString({
         el,
-        string: content,
+        string: displayString,
       });
     }
-  }, [content]);
+  }, [displayString]);
 
   return <span ref={contentRef} className="roamjs-query-link-cell" />;
 };
@@ -351,7 +359,7 @@ const ResultRow = ({
               {val === "" ? (
                 <i>[block is blank]</i>
               ) : view === "link" ? (
-                <CellLink content={val.toString()} />
+                <CellLink content={val.toString()} uid={uid} />
               ) : view === "alias" ? (
                 <a
                   className={"rm-page-ref"}
