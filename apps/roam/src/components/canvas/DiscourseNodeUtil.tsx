@@ -24,12 +24,10 @@ import {
 } from "tldraw";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useExtensionAPI } from "roamjs-components/components/ExtensionApiContext";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import { Button, Icon } from "@blueprintjs/core";
-import createDiscourseNode from "~/utils/createDiscourseNode";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { isPageUid } from "./Tldraw";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
@@ -518,14 +516,7 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
               else await updateBlock({ uid: shape.props.uid, text });
             }
 
-            if (action === "create" && !getPageUidByPageTitle(text) && !uid) {
-              void createDiscourseNode({
-                configPageUid: shape.type,
-                text,
-                newPageUid: uid,
-                extensionAPI,
-              });
-            }
+            // Node creation is handled by ModifyNodeDialog - no fallback needed here
 
             void setSizeAndImgPropsLocal({ text, uid });
             this.updateProps(shape.id, shape.type, {
