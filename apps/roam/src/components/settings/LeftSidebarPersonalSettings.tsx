@@ -1,5 +1,11 @@
 import discourseConfigRef from "~/utils/discourseConfigRef";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import {
@@ -524,6 +530,7 @@ const LeftSidebarPersonalSectionsContent = ({
   const [settingsDialogSectionUid, setSettingsDialogSectionUid] = useState<
     string | null
   >(null);
+  const sectionTitleUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     const initialize = async () => {
@@ -704,19 +711,21 @@ const LeftSidebarPersonalSectionsContent = ({
                   value={activeDialogSection.text}
                   onChange={(e) => {
                     const nextValue = e.target.value;
+                    const sectionUid = activeDialogSection.uid;
                     setSections((prev) =>
                       prev.map((s) =>
-                        s.uid === activeDialogSection.uid
-                          ? { ...s, text: nextValue }
-                          : s,
+                        s.uid === sectionUid ? { ...s, text: nextValue } : s,
                       ),
                     );
-                    void updateBlock({
-                      uid: activeDialogSection.uid,
-                      text: nextValue,
-                    }).then(() => {
-                      refreshAndNotify();
-                    });
+                    clearTimeout(sectionTitleUpdateTimeoutRef.current);
+                    sectionTitleUpdateTimeoutRef.current = setTimeout(() => {
+                      void updateBlock({
+                        uid: sectionUid,
+                        text: nextValue,
+                      }).then(() => {
+                        refreshAndNotify();
+                      });
+                    }, 300);
                   }}
                 />
               </div>
