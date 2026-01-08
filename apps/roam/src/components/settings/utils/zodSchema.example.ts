@@ -42,7 +42,7 @@ const suggestiveRules: SuggestiveRules = {
 
 const discourseNodeSettings: DiscourseNodeSettings = {
   text: "Claim",
-  type: "_CLM-node",
+  uid: "_CLM-node",
   format: "[[CLM]] - {content}",
   shortcut: "C",
   tag: "#claim",

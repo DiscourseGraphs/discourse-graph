@@ -101,7 +101,7 @@ const booleanWithDefault = (defaultVal: boolean) =>
 
 export const DiscourseNodeSchema = z.object({
   text: z.string(),
-  type: z.string(),
+  uid: z.string(),
   format: stringWithDefault(""),
   shortcut: stringWithDefault(""),
   tag: stringWithDefault(""),
