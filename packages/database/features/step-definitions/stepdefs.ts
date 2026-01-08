@@ -64,6 +64,19 @@ Given("the database is blank", async () => {
   assert.equal(r.error, null);
   r = await client.from("AgentIdentifier").delete().neq("account_id", -1);
   assert.equal(r.error, null);
+  const r3 = await client.from("group_membership").select("group_id");
+  assert.equal(r3.error, null);
+  const groupIds = new Set((r3.data || []).map(({group_id})=>group_id));
+  for (const id of groupIds) {
+    const ur = await client.auth.admin.deleteUser(id);
+    assert.equal(ur.error, null);
+  }
+  const r2 = await client.from("PlatformAccount").select("dg_account").not('dg_account', 'is', 'null');
+  assert.equal(r2.error, null);
+  for (const {dg_account} of r2.data || []) {
+    const r = await client.auth.admin.deleteUser(dg_account!);
+    assert.equal(r.error, null);
+  }
   r = await client.from("PlatformAccount").delete().neq("id", -1);
   assert.equal(r.error, null);
   r = await client.from("Space").delete().neq("id", -1);
@@ -389,3 +402,40 @@ Then("query results should look like this", (table: DataTable) => {
     assert.deepEqual(truncatedResults, values);
   }
 });
+
+When("user of space {word} creates group {word}", async (spaceName: string, name: string)=>{
+  const localRefs = (world.localRefs || {}) as Record<string, number|string>;
+  const spaceId = localRefs[spaceName];
+  if (spaceId === undefined) assert.fail("spaceId");
+  const client = await getLoggedinDatabase(spaceId as number);
+  try{
+    const response = await client.functions.invoke<{group_id: string}>("create-group", {body:{name}});
+    assert.equal(response.error, null);
+    localRefs[name] = response.data!.group_id;
+  } catch (error) {
+    console.error((error as any).actual);
+    throw error;
+  }
+})
+
+When("user of space {word} adds space {word} to group {word}",
+    async (space1Name: string, space2Name:string, groupName: string)=>{
+  const localRefs = (world.localRefs || {}) as Record<string, number|string>;
+  const space1Id = localRefs[space1Name] as number;
+  const space2Id = localRefs[space2Name] as number;
+  const groupId = localRefs[groupName] as string;
+  if (space1Id === undefined) assert.fail("space1Id");
+  if (space2Id === undefined) assert.fail("space2Id");
+  if (groupId === undefined) assert.fail("groupId");
+  const client1 = await getLoggedinDatabase(space1Id as number);
+  const client2 = await getLoggedinDatabase(space2Id as number);
+  const r1 = await client2.from("PlatformAccount").select("dg_account").eq("account_local_id", spaceAnonUserEmail("Roam", space2Id)).maybeSingle();
+  assert.equal(r1.error, null);
+  const memberId = r1.data?.dg_account;
+  assert(!!memberId);
+  const r2 = await client1.from("group_membership").insert({
+    group_id: groupId,
+    member_id: memberId!
+  });
+  assert.equal(r2.error, null);
+})
