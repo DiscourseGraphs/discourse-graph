@@ -11,6 +11,7 @@ import {
 } from "@blueprintjs/core";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
+import updateBlock from "roamjs-components/writes/updateBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
 import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
@@ -633,7 +634,6 @@ const LeftSidebarPersonalSectionsContent = ({
   if (!personalSectionUid) {
     return null;
   }
-
   return (
     <div className="flex flex-col gap-4 p-1">
       <div className="mb-2">
@@ -692,6 +692,34 @@ const LeftSidebarPersonalSectionsContent = ({
         >
           <div className="space-y-4 p-4">
             <div className="space-y-3">
+              <div>
+                <label className="mb-1 flex items-center text-sm font-medium">
+                  Section Title
+                  <span
+                    className="bp3-icon bp3-icon-info-sign ml-1"
+                    title="Display name for this section"
+                  />
+                </label>
+                <InputGroup
+                  value={activeDialogSection.text}
+                  onChange={(e) => {
+                    const nextValue = e.target.value;
+                    setSections((prev) =>
+                      prev.map((s) =>
+                        s.uid === activeDialogSection.uid
+                          ? { ...s, text: nextValue }
+                          : s,
+                      ),
+                    );
+                    void updateBlock({
+                      uid: activeDialogSection.uid,
+                      text: nextValue,
+                    }).then(() => {
+                      refreshAndNotify();
+                    });
+                  }}
+                />
+              </div>
               <NumberPanel
                 title="Truncate-result?"
                 description="Maximum characters to display"
