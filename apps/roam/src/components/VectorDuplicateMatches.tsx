@@ -1,19 +1,13 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Collapse, Spinner, Icon } from "@blueprintjs/core";
-import { findSimilarNodesVectorOnly, type VectorMatch } from "~/utils/hyde";
+import {
+  findSimilarNodesVectorOnly as vectorSearch,
+  type VectorMatch,
+} from "~/utils/hyde";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import extractContentFromTitle from "~/utils/extractContentFromTitle";
 import { handleTitleAdditions } from "~/utils/handleTitleAdditions";
-
-type VectorSearchParams = {
-  text: string;
-  threshold?: number;
-  limit?: number;
-};
-
-const vectorSearch = (params: VectorSearchParams) =>
-  findSimilarNodesVectorOnly(params);
 
 export const VectorDuplicateMatches = ({
   pageTitle,
