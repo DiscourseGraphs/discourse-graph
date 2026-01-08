@@ -36,14 +36,16 @@ We follow the Supabase [Declarative Database Schema](https://supabase.com/docs/g
 1. Assuming you're working on a feature branch.
 2. Make changes to the schema, by editing files in `packages/database/supabase/schemas`
 3. If you created a new schema file, make sure to add it to `[db.migrations] schema_paths` in `packages/database/supabase/config.toml`. Schema files are applied in that order, you may need to be strategic in placing your file.
-4. `turbo check-schema`, which will do the following:
+4. `pnpm run check-schema`, which will do the following:
    1. Check your logic with `sqruff lint supabase/schemas`
       1. If there are errors there, you can fix them with `pnpm run lint:fix`
    2. Stop Supabase.
-   3. See if there would be a migration to apply with `supabase db diff`
+   3. See if there would be a migration to apply with `pnpm run dbdiff`
+   4. Also check with `pnpm run dbdiff:legacy`, which has known false positives (esp. views), but is more complete (esp. with respect to grants).
 5. If applying the new schema fails, repeat step 4
 6. If you are satisfied with the migration, create a migration file with `pnpm run dbdiff:save some_meaningful_migration_name`
    1. If all goes well, there should be a new file named `supabase/migrations/2..._some_meaningful_migration_name.sql` which you should `git add`.
+   2. If there were _valid_ migration steps identified by `dbdiff:legacy` that were missing in `dbdiff` you may have to add them by hand to that file.
 7. `pnpm run migrate`, which will do the following:
    1. Start Supabase
    2. Apply the new migration locally
