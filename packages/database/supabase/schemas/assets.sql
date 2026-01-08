@@ -74,6 +74,18 @@ LANGUAGE sql AS $$
 SELECT EXISTS (SELECT true FROM public."FileReference" WHERE filehash = hashvalue LIMIT 1);
 $$;
 
+CREATE OR REPLACE FUNCTION public.file_access(hashvalue VARCHAR) RETURNS boolean
+SET search_path = ''
+SECURITY DEFINER
+LANGUAGE sql AS $$
+SELECT EXISTS (
+    SELECT true FROM public."FileReference"
+    WHERE filehash = hashvalue AND (
+        public.in_space(space_id) OR
+        public.can_view_specific_content(content_id)
+    )
+    LIMIT 1);
+$$;
 
 CREATE OR REPLACE FUNCTION public.after_delete_update_fref() RETURNS TRIGGER
 SET search_path = ''
@@ -91,3 +103,29 @@ $$;
 
 CREATE TRIGGER on_delete_file_reference_trigger AFTER DELETE ON public."FileReference" FOR EACH ROW EXECUTE FUNCTION public.after_delete_update_fref();
 CREATE TRIGGER on_update_file_reference_trigger AFTER UPDATE ON public."FileReference" FOR EACH ROW EXECUTE FUNCTION public.after_delete_update_fref();
+
+INSERT INTO storage.buckets
+(id, name, public)
+VALUES
+('assets', 'assets', true);
+
+CREATE POLICY "storage_insert_assets_authenticated"
+ON storage.objects FOR INSERT TO authenticated WITH CHECK (
+    bucket_id = 'assets'
+);
+
+CREATE POLICY "storage_select_assets_access"
+ON storage.objects FOR SELECT TO authenticated WITH CHECK (
+    bucket_id = 'assets' AND file_access(name)
+);
+
+CREATE POLICY "storage_delete_assets_noref"
+ON storage.objects FOR DELETE TO authenticated USING (
+    bucket_id = 'assets' AND NOT EXISTS (
+        SELECT true FROM public."FileReference"
+        WHERE filehash = name LIMIT 1
+    )
+);
+
+CREATE POLICY "storage_update_assets_never"
+ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'assets' AND false);
