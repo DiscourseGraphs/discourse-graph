@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type {
   CanvasSettings,
   SuggestiveRules,
@@ -49,7 +50,6 @@ const discourseNodeSettings: DiscourseNodeSettings = {
   description: "A statement or assertion that can be supported or refuted",
   specification: [
     {
-      uid: "spec-uid-1",
       type: "clause",
       source: "Claim",
       relation: "has title",
@@ -341,7 +341,6 @@ const githubSettings: GithubSettings = {
 };
 
 const clauseCondition: QueryCondition = {
-  uid: "clause-uid-1",
   type: "clause",
   source: "node",
   relation: "is a",
@@ -349,7 +348,6 @@ const clauseCondition: QueryCondition = {
 };
 
 const notCondition: QueryCondition = {
-  uid: "not-uid-1",
   type: "not",
   source: "node",
   relation: "has attribute",
@@ -357,12 +355,10 @@ const notCondition: QueryCondition = {
 };
 
 const orCondition: QueryCondition = {
-  uid: "or-uid-1",
   type: "or",
   conditions: [
     [
       {
-        uid: "clause-uid-2",
         type: "clause",
         source: "node",
         relation: "has attribute",
@@ -371,7 +367,6 @@ const orCondition: QueryCondition = {
     ],
     [
       {
-        uid: "clause-uid-3",
         type: "clause",
         source: "node",
         relation: "has attribute",
@@ -382,12 +377,10 @@ const orCondition: QueryCondition = {
 };
 
 const norCondition: QueryCondition = {
-  uid: "nor-uid-1",
   type: "not or",
   conditions: [
     [
       {
-        uid: "clause-uid-4",
         type: "clause",
         source: "node",
         relation: "is a",
@@ -396,7 +389,6 @@ const norCondition: QueryCondition = {
     ],
     [
       {
-        uid: "clause-uid-5",
         type: "clause",
         source: "node",
         relation: "is a",
@@ -414,13 +406,11 @@ const exampleConditions: QueryCondition[] = [
 ];
 
 const titleSelection: QuerySelection = {
-  uid: "sel-uid-1",
   text: "node",
   label: "Title",
 };
 
 const dateSelection: QuerySelection = {
-  uid: "sel-uid-2",
   text: "Created Date",
   label: "Created",
 };

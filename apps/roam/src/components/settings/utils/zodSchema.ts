@@ -28,7 +28,6 @@ export const SuggestiveRulesSchema = z.lazy(() =>
 export const AttributesSchema = z.record(z.string(), z.string()).default({});
 
 const QBClauseDataSchema = z.object({
-  uid: z.string(),
   source: z.string(),
   relation: z.string(),
   target: z.string(),
@@ -38,8 +37,8 @@ const QBClauseDataSchema = z.object({
 type Condition =
   | (z.infer<typeof QBClauseDataSchema> & { type: "clause" })
   | (z.infer<typeof QBClauseDataSchema> & { type: "not" })
-  | { uid: string; type: "or"; conditions: Condition[][] }
-  | { uid: string; type: "not or"; conditions: Condition[][] };
+  | { type: "or"; conditions: Condition[][] }
+  | { type: "not or"; conditions: Condition[][] };
 
 export const ConditionSchema: z.ZodType<Condition> = z.discriminatedUnion(
   "type",
@@ -47,12 +46,10 @@ export const ConditionSchema: z.ZodType<Condition> = z.discriminatedUnion(
     QBClauseDataSchema.extend({ type: z.literal("clause") }),
     QBClauseDataSchema.extend({ type: z.literal("not") }),
     z.object({
-      uid: z.string(),
       type: z.literal("or"),
       conditions: z.lazy(() => ConditionSchema.array().array()),
     }),
     z.object({
-      uid: z.string(),
       type: z.literal("not or"),
       conditions: z.lazy(() => ConditionSchema.array().array()),
     }),
@@ -60,7 +57,6 @@ export const ConditionSchema: z.ZodType<Condition> = z.discriminatedUnion(
 );
 
 export const SelectionSchema = z.object({
-  uid: z.string(),
   text: z.string(),
   label: z.string(),
 });
