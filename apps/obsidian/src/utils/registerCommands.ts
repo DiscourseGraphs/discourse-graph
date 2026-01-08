@@ -51,10 +51,10 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
           } else {
             await createDiscourseNode({
               plugin,
-            nodeType,
-            text: title,
-            editor,
-          });
+              nodeType,
+              text: title,
+              editor,
+            });
           }
         },
       }).open();

@@ -71,6 +71,13 @@ export const DEFAULT_SETTINGS: Settings = {
   canvasAttachmentsFolderPath: "attachments",
   nodeTagHotkey: "\\",
 };
+
+export const FEATURE_FLAGS = {
+  // settings for these features are in the Admin Panel (hidden tab in Settings, toggle with Ctrl+Shift+A)
+  DATABASE_SYNC: "databaseSync",
+} as const;
+
+export type FeatureFlagKey = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
 export const FRONTMATTER_KEY = "tldr-dg";
 export const TLDATA_DELIMITER_START =
   "!!!_START_OF_TLDRAW_DG_DATA__DO_NOT_CHANGE_THIS_PHRASE_!!!";
