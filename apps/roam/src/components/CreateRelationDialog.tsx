@@ -141,7 +141,7 @@ const CreateRelationDialog = ({
       if (setOfRels.size > 1) {
         internalError({
           type: "Create Relation dialog",
-          error: `Too many relations between ${selectedTargetType.type} and ${selectedSourceType.type}: ${setOfRels.values().join(",")}`,
+          error: `Too many relations between ${selectedTargetType.type} and ${selectedSourceType.type}: ${[...setOfRels].join(",")}`,
         });
         // let it still fall through to the first
       }
