@@ -4,7 +4,7 @@ import {
   getPageTitleValueByHtmlElement,
 } from "roamjs-components/dom";
 import { createBlock } from "roamjs-components/writes";
-import { renderLinkedReferenceAdditions } from "~/utils/renderLinkedReferenceAdditions";
+import { renderDiscourseContextAndCanvasReferences } from "~/utils/renderLinkedReferenceAdditions";
 import { createConfigObserver } from "roamjs-components/components/ConfigPage";
 import {
   renderTldrawCanvas,
@@ -54,6 +54,9 @@ import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
+import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import findDiscourseNode from "./findDiscourseNode";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -85,21 +88,37 @@ export const initObservers = async ({
       const title = getPageTitleValueByHtmlElement(h1);
       const props = { title, h1, onloadArgs };
 
+      const isSuggestiveModeEnabled = getUidAndBooleanSetting({
+        tree: getBasicTreeByParentUid(
+          getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
+        ),
+        text: "(BETA) Suggestive Mode Enabled",
+      }).value;
+
+      const nodes = getDiscourseNodes();
+      const node = findDiscourseNode({ title, nodes });
+      const isDiscourseNode = node && node.backedBy !== "default";
+      if (isDiscourseNode) {
+        const uid = getPageUidByPageTitle(title);
+        if (isSuggestiveModeEnabled) {
+          renderPossibleDuplicates(h1, title, node);
+        }
+        const linkedReferencesDiv = document.querySelector(
+          ".rm-reference-main",
+        ) as HTMLDivElement;
+        if (linkedReferencesDiv) {
+          renderDiscourseContextAndCanvasReferences(
+            linkedReferencesDiv,
+            uid,
+            onloadArgs,
+          );
+        }
+      }
+
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
       else if (isQueryPage(props)) renderQueryPage(props);
       else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);
       else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
-    },
-  });
-
-  // TODO: contains roam query: https://github.com/DiscourseGraphs/discourse-graph/issues/39
-  const linkedReferencesObserver = createHTMLObserver({
-    tag: "DIV",
-    useBody: true,
-    className: "rm-reference-main",
-    callback: async (el) => {
-      const div = el as HTMLDivElement;
-      await renderLinkedReferenceAdditions(div, onloadArgs);
     },
   });
 
@@ -391,7 +410,6 @@ export const initObservers = async ({
       pageTitleObserver,
       queryBlockObserver,
       configPageObserver,
-      linkedReferencesObserver,
       graphOverviewExportObserver,
       nodeTagPopupButtonObserver,
       leftSidebarObserver,
