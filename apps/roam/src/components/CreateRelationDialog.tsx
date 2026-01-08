@@ -133,13 +133,18 @@ const CreateRelationDialog = ({
       });
       return null;
     }
-    if (candidateRelations.length !== 1) {
-      // This seems to happen... I need more data.
-      internalError({
-        type: "Create Relation dialog",
-        error: `Too many relations between ${selectedTargetType.type} and ${selectedSourceType.type}: ${candidateRelations.map((r) => r.id).join(",")}`,
-      });
-      return null;
+    if (candidateRelations.length > 1) {
+      // Control for one very innocuous case: Many times the same relation, with different triples.
+      const setOfRels = new Set(
+        candidateRelations.map((r) => (r.forward ? r.id : `-${r.id}`)),
+      );
+      if (setOfRels.size > 1) {
+        internalError({
+          type: "Create Relation dialog",
+          error: `Too many relations between ${selectedTargetType.type} and ${selectedSourceType.type}: ${setOfRels.values().join(",")}`,
+        });
+        // let it still fall through to the first
+      }
     }
     return candidateRelations[0];
   };
