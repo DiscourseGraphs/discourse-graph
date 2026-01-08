@@ -45,7 +45,8 @@
     "@repo/utils": "workspace:*",
     "@supabase/auth-js": "catalog:",
     "@supabase/functions-js": "catalog:",
-    "@supabase/supabase-js": "catalog:"
+    "@supabase/supabase-js": "catalog:",
+    "tslib": "2.5.1"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.1.0",

@@ -6,6 +6,7 @@ import {
   TFile,
   MarkdownView,
   WorkspaceLeaf,
+  Notice,
 } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { SettingsTab } from "~/components/Settings";
@@ -22,6 +23,7 @@ import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { TagNodeHandler } from "~/utils/tagNodeHandler";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
+import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -32,6 +34,17 @@ export default class DiscourseGraphPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
+
+    if (this.settings.syncModeEnabled === true) {
+      void initializeSupabaseSync(this).catch((error) => {
+        console.error("Failed to initialize Supabase sync:", error);
+        new Notice(
+          `Failed to initialize Supabase sync: ${error instanceof Error ? error.message : String(error)}`,
+          5000,
+        );
+      });
+    }
+
     registerCommands(this);
     this.addSettingTab(new SettingsTab(this.app, this));
 
