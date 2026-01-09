@@ -1,11 +1,15 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Button, Popover, Position } from "@blueprintjs/core";
-import { renderCreateNodeDialog } from "~/components/CreateNodeDialog";
-import { OnloadArgs } from "roamjs-components/types";
+import { OnloadArgs, PullBlock } from "roamjs-components/types";
 import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import { type DiscourseNode } from "./getDiscourseNodes";
+import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
+import { getReferencedNodeInFormat } from "./formatUtils";
+import discourseNodeFormatToDatalog from "./discourseNodeFormatToDatalog";
+import compileDatalog from "./compileDatalog";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 export const renderNodeTagPopupButton = (
   parent: HTMLSpanElement,
@@ -42,21 +46,67 @@ export const renderNodeTagPopupButton = (
   const rawBlockText = blockUid ? getTextByBlockUid(blockUid) : "";
   const cleanedBlockText = rawBlockText.replace(textContent, "").trim();
 
+  const getInitialReferencedNode = async () => {
+    if (!blockUid) return { text: "", uid: "" };
+
+    const referencedNodeType = getReferencedNodeInFormat({
+      format: matchedNode.format,
+    });
+
+    if (!referencedNodeType) return { text: "", uid: "" };
+
+    try {
+      const referenced = (
+        await window.roamAlphaAPI.data.async.fast.q(
+          `[:find (pull ?r [:node/title :block/string]) :where [?b :block/uid "${blockUid}"] (or-join [?b ?r] (and [?b :block/parents ?p] [?p :block/refs ?r]) (and [?b :block/page ?r])) ${discourseNodeFormatToDatalog(
+            {
+              freeVar: "r",
+              ...referencedNodeType,
+            },
+          )
+            .map((c) => compileDatalog(c, 0))
+            .join(" ")}]`,
+        )
+      )?.[0]?.[0] as PullBlock;
+
+      if (referenced) {
+        const title =
+          referenced[":node/title"] || referenced[":block/string"] || "";
+        if (title) {
+          const uid = getPageUidByPageTitle(title);
+          return { text: title, uid: uid };
+        }
+      }
+    } catch (error) {
+      console.error("Error getting initial referenced node:", error);
+    }
+
+    return { text: "", uid: "" };
+  };
+
+  const handleClick = async () => {
+    const initialReferencedNode = await getInitialReferencedNode();
+    renderModifyNodeDialog({
+      mode: "create",
+      nodeType: matchedNode.type,
+      initialValue: { text: cleanedBlockText, uid: "" },
+      initialReferencedNode,
+      onSuccess: async () => {
+        // Success is handled by the dialog itself
+      },
+      onClose: () => {},
+      sourceBlockUid: blockUid,
+      extensionAPI,
+    });
+  };
+
   ReactDOM.render(
     <Popover
       content={
         <Button
           minimal
           outlined
-          onClick={() => {
-            renderCreateNodeDialog({
-              onClose: () => {},
-              defaultNodeTypeUid: matchedNode.type,
-              extensionAPI,
-              sourceBlockUid: blockUid,
-              initialTitle: cleanedBlockText,
-            });
-          }}
+          onClick={() => void handleClick()}
           text={`Create ${matchedNode.text}`}
         />
       }

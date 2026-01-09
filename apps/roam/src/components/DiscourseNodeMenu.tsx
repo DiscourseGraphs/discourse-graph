@@ -102,6 +102,7 @@ const NodeMenu = ({
             text: highlighted,
             nodeType: nodeUid,
             blockUid: targetBlockUid,
+            skipBlockUpdate: true,
           });
           if (!pageName) return;
 
