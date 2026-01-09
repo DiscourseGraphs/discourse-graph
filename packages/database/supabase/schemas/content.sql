@@ -489,6 +489,7 @@ COMMENT ON FUNCTION public.upsert_content_embedding IS 'single content embedding
 -- This may trigger creation of PlatformAccounts and Documents appropriately.
 CREATE OR REPLACE FUNCTION public.upsert_content(v_space_id bigint, data jsonb, v_creator_id BIGINT, content_as_document boolean DEFAULT TRUE)
 RETURNS SETOF BIGINT
+SECURITY DEFINER
 SET search_path = ''
 LANGUAGE plpgsql
 AS $$
