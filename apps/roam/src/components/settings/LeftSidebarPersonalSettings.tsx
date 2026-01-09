@@ -1,5 +1,11 @@
 import discourseConfigRef from "~/utils/discourseConfigRef";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import {
@@ -11,6 +17,7 @@ import {
 } from "@blueprintjs/core";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
+import updateBlock from "roamjs-components/writes/updateBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
 import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
@@ -523,6 +530,7 @@ const LeftSidebarPersonalSectionsContent = ({
   const [settingsDialogSectionUid, setSettingsDialogSectionUid] = useState<
     string | null
   >(null);
+  const sectionTitleUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     const initialize = async () => {
@@ -633,7 +641,6 @@ const LeftSidebarPersonalSectionsContent = ({
   if (!personalSectionUid) {
     return null;
   }
-
   return (
     <div className="flex flex-col gap-4 p-1">
       <div className="mb-2">
@@ -692,6 +699,36 @@ const LeftSidebarPersonalSectionsContent = ({
         >
           <div className="space-y-4 p-4">
             <div className="space-y-3">
+              <div>
+                <label className="mb-1 flex items-center text-sm font-medium">
+                  Section Title
+                  <span
+                    className="bp3-icon bp3-icon-info-sign ml-1"
+                    title="Display name for this section"
+                  />
+                </label>
+                <InputGroup
+                  value={activeDialogSection.text}
+                  onChange={(e) => {
+                    const nextValue = e.target.value;
+                    const sectionUid = activeDialogSection.uid;
+                    setSections((prev) =>
+                      prev.map((s) =>
+                        s.uid === sectionUid ? { ...s, text: nextValue } : s,
+                      ),
+                    );
+                    clearTimeout(sectionTitleUpdateTimeoutRef.current);
+                    sectionTitleUpdateTimeoutRef.current = setTimeout(() => {
+                      void updateBlock({
+                        uid: sectionUid,
+                        text: nextValue,
+                      }).then(() => {
+                        refreshAndNotify();
+                      });
+                    }, 300);
+                  }}
+                />
+              </div>
               <NumberPanel
                 title="Truncate-result?"
                 description="Maximum characters to display"
