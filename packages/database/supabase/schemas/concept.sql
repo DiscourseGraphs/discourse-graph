@@ -378,7 +378,6 @@ CREATE OR REPLACE FUNCTION public.upsert_concepts(v_space_id bigint, data jsonb)
 RETURNS SETOF BIGINT
 SET search_path = ''
 LANGUAGE plpgsql
-SECURITY DEFINER
 AS $$
 DECLARE
   v_platform public."Platform";
