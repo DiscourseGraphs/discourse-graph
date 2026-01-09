@@ -1,13 +1,22 @@
 import { NextRequest } from "next/server";
 
-const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000"];
+const allowedOrigins = [
+  "https://roamresearch.com",
+  "http://localhost:3000",
+  "app://obsidian.md",
+];
 
 const isVercelPreviewUrl = (origin: string): boolean =>
   /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin);
 
+const isObsidianOrigin = (origin: string): boolean =>
+  origin.startsWith("app://");
+
 const isAllowedOrigin = (origin: string): boolean =>
+  allowedOrigins.includes(origin) ||
   allowedOrigins.some((allowed) => origin.startsWith(allowed)) ||
-  isVercelPreviewUrl(origin);
+  isVercelPreviewUrl(origin) ||
+  isObsidianOrigin(origin);
 
 export default function cors(req: NextRequest, res: Response) {
   const origin = req.headers.get("origin");
