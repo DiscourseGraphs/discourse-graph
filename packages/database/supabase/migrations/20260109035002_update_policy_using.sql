@@ -1,3 +1,5 @@
+DROP POLICY IF EXISTS content_update_policy ON public."Content";
+CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (public.in_space(space_id));
 DROP POLICY content_access_update_policy ON public."ContentAccess";
 CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE USING (public.content_in_editable_space(content_id));
 DROP POLICY concept_update_policy ON public."Concept";
