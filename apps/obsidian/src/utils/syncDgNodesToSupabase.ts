@@ -1,24 +1,21 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { TFile } from "obsidian";
 import { DGSupabaseClient } from "@repo/database/lib/client";
-// import { Json } from "@repo/database/dbTypes";
+import { Json } from "@repo/database/dbTypes";
 import {
   getSupabaseContext,
   getLoggedInClient,
   SupabaseContext,
 } from "./supabaseContext";
 import { default as DiscourseGraphPlugin } from "~/index";
-// import { DiscourseNode } from "~/types";
 import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
-// TODO: Re-enable concept conversion when ready
-// import {
-//   discourseNodeSchemaToLocalConcept,
-//   discourseNodeBlockToLocalConcept,
-//   orderConceptsByDependency,
-// } from "./conceptConversion";
-// import { LocalConceptDataInput } from "@repo/database/inputTypes";
+import {
+  orderConceptsByDependency,
+  discourseNodeInstanceToLocalConcept,
+} from "./conceptConversion";
+import { LocalConceptDataInput } from "@repo/database/inputTypes";
 
-const DEFAULT_TIME = new Date("1970-01-01");
+export type ChangeType = "title" | "content" | "new";
 
 export type ObsidianDiscourseNodeData = {
   file: TFile;
@@ -27,23 +24,7 @@ export type ObsidianDiscourseNodeData = {
   nodeInstanceId: string;
   created: string;
   last_modified: string;
-};
-
-/**
- * Get the last sync time from the database by querying MAX(last_modified) from Content table
- */
-const getLastSyncTime = async (
-  supabaseClient: DGSupabaseClient,
-  spaceId: number,
-): Promise<Date> => {
-  const { data } = await supabaseClient
-    .from("Content")
-    .select("last_modified")
-    .eq("space_id", spaceId)
-    .order("last_modified", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return new Date(data?.last_modified || DEFAULT_TIME);
+  changeTypes: ChangeType[];
 };
 
 const ensureNodeInstanceId = async (
@@ -65,18 +46,16 @@ const ensureNodeInstanceId = async (
 };
 
 /**
- * Get all discourse nodes that were created/updated since lastSyncTime
- * Also detects filename changes even if mtime hasn't changed
+ * Get all discourse nodes that have changed compared to what's stored in Supabase.
+ * Detects what specifically changed: title, content, or new file
  */
-const getAllDiscourseNodesSince = async ({
+const getChangedDiscourseNodes = async ({
   plugin,
-  lastSyncTime,
   supabaseClient,
   context,
   testFolderPath,
 }: {
   plugin: DiscourseGraphPlugin;
-  lastSyncTime: Date;
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
   testFolderPath?: string;
@@ -135,47 +114,97 @@ const getAllDiscourseNodesSince = async ({
   }
 
   const nodeInstanceIds = candidateNodes.map((n) => n.nodeInstanceId);
+
+  // Query both 'direct' (title) and 'full' (content) variants
   const { data: existingContent, error } = await supabaseClient
     .from("Content")
-    .select("source_local_id, text")
+    .select("source_local_id, text, variant")
     .eq("space_id", context.spaceId)
+    .in("variant", ["direct", "full"])
     .in("source_local_id", nodeInstanceIds);
 
   if (error) {
     console.error("Error fetching existing content:", error);
   }
 
-  const existingTextMap = new Map<string, string>();
+  console.log(
+    `[Debug] SELECT from Content returned ${existingContent?.length ?? 0} rows, error:`,
+    error,
+  );
+
+  // Build maps for both variants
+  const existingDirectMap = new Map<string, string>();
+  const existingFullMap = new Map<string, string>();
   if (existingContent) {
     for (const content of existingContent) {
       if (content.source_local_id && content.text) {
-        existingTextMap.set(content.source_local_id, content.text);
+        if (content.variant === "direct") {
+          existingDirectMap.set(content.source_local_id, content.text);
+        } else if (content.variant === "full") {
+          existingFullMap.set(content.source_local_id, content.text);
+        }
       }
     }
   }
 
   for (const candidate of candidateNodes) {
-    const fileMtime = new Date(candidate.file.stat.mtime);
     const currentFilename = candidate.file.basename;
-    const existingText = existingTextMap.get(candidate.nodeInstanceId);
+    const existingTitle = existingDirectMap.get(candidate.nodeInstanceId);
+    const existingFullContent = existingFullMap.get(candidate.nodeInstanceId);
 
-    const wasModified = fileMtime > lastSyncTime;
-    const filenameChanged =
-      existingText !== undefined && existingText !== currentFilename;
-    const isNewFile = existingText === undefined;
+    const isNewFile = existingTitle === undefined;
+    const titleChanged =
+      existingTitle !== undefined && existingTitle !== currentFilename;
 
-    if (!wasModified && !filenameChanged && !isNewFile) {
-      continue; // File hasn't been modified, filename hasn't changed, and it's not new
+    // Read current file content to compare with stored full content
+    let currentContent: string | undefined;
+    let contentChanged = false;
+
+    if (!isNewFile) {
+      try {
+        currentContent = await plugin.app.vault.read(candidate.file);
+        contentChanged =
+          existingFullContent !== undefined &&
+          existingFullContent !== currentContent;
+      } catch (e) {
+        console.error(`Error reading file ${candidate.file.path}:`, e);
+      }
     }
 
+    // Determine what changed
+    const changeTypes: ChangeType[] = [];
+    if (isNewFile) {
+      changeTypes.push("new");
+    } else {
+      if (titleChanged) {
+        changeTypes.push("title");
+      }
+      if (contentChanged) {
+        changeTypes.push("content");
+      }
+    }
+
+    // Skip if nothing changed
+    if (changeTypes.length === 0) {
+      continue;
+    }
+
+    // Log what changed
     if (isNewFile) {
       console.log(
         `New file detected: ${candidate.nodeInstanceId} with filename "${currentFilename}"`,
       );
-    } else if (filenameChanged) {
-      console.log(
-        `Filename changed for ${candidate.nodeInstanceId}: "${existingText}" -> "${currentFilename}"`,
-      );
+    } else {
+      if (titleChanged) {
+        console.log(
+          `Title changed for ${candidate.nodeInstanceId}: "${existingTitle}" -> "${currentFilename}"`,
+        );
+      }
+      if (contentChanged) {
+        console.log(
+          `Content changed for ${candidate.nodeInstanceId} (filename: "${currentFilename}")`,
+        );
+      }
     }
 
     nodes.push({
@@ -185,6 +214,7 @@ const getAllDiscourseNodesSince = async ({
       nodeInstanceId: candidate.nodeInstanceId,
       created: new Date(candidate.file.stat.ctime).toISOString(),
       last_modified: new Date(candidate.file.stat.mtime).toISOString(),
+      changeTypes,
     });
   }
 
@@ -204,22 +234,19 @@ export const createOrUpdateDiscourseEmbedding = async (
     }
 
     const supabaseClient = await getLoggedInClient(plugin);
+    console.log("supabaseClient", supabaseClient);
     if (!supabaseClient) {
       throw new Error("Could not log in to Supabase client");
     }
     console.debug("Supabase client:", supabaseClient);
 
-    const lastSyncTime = await getLastSyncTime(supabaseClient, context.spaceId);
-    console.debug("Last sync time:", lastSyncTime);
-
-    // Get all discourse nodes modified since last sync
+    // Get all discourse nodes that have changed compared to what's stored in Supabase
     // For testing: only sync nodes from specific folder
     // TODO: Remove this after testing
     const testFolderPath =
       "/Users/trang.doan/Documents/Trang Doan Obsidian/Trang Doan/testSyncNodes";
-    const allNodeInstances = await getAllDiscourseNodesSince({
+    const allNodeInstances = await getChangedDiscourseNodes({
       plugin,
-      lastSyncTime,
       supabaseClient,
       context,
       testFolderPath, // Remove this parameter to sync all nodes
@@ -231,9 +258,6 @@ export const createOrUpdateDiscourseEmbedding = async (
       console.debug("No nodes to sync");
       return;
     }
-
-    // TODO: Re-enable concept conversion when ready
-    // const allDgNodeTypes = plugin.settings.nodeTypes.filter((n) => n.id);
 
     const accountLocalId = plugin.settings.accountLocalId;
     if (!accountLocalId) {
@@ -248,14 +272,21 @@ export const createOrUpdateDiscourseEmbedding = async (
       plugin,
     });
 
-    // TODO: Re-enable concept conversion when ready
-    // await convertDgToSupabaseConcepts({
-    //   nodesSince: allNodeInstances,
-    //   allNodeTypes: allDgNodeTypes,
-    //   supabaseClient,
-    //   context,
-    //   accountLocalId,
-    // });
+    // Only upsert concepts for nodes with title changes or new files
+    // (concepts store the title, so content-only changes don't affect them)
+    const nodesNeedingConceptUpsert = allNodeInstances.filter(
+      (node) =>
+        node.changeTypes.includes("new") || node.changeTypes.includes("title"),
+    );
+
+    if (nodesNeedingConceptUpsert.length > 0) {
+      await convertDgToSupabaseConcepts({
+        nodesSince: nodesNeedingConceptUpsert,
+        supabaseClient,
+        context,
+        accountLocalId,
+      });
+    }
 
     console.debug("Sync completed successfully");
   } catch (error) {
@@ -264,58 +295,50 @@ export const createOrUpdateDiscourseEmbedding = async (
   }
 };
 
-// TODO: Re-enable concept conversion when ready. Blocked by MAP
-// const convertDgToSupabaseConcepts = async ({
-//   nodesSince,
-//   allNodeTypes,
-//   supabaseClient,
-//   context,
-//   accountLocalId,
-// }: {
-//   nodesSince: ObsidianDiscourseNodeData[];
-//   allNodeTypes: DiscourseNode[];
-//   supabaseClient: DGSupabaseClient;
-//   context: SupabaseContext;
-//   accountLocalId: string;
-// }): Promise<void> => {
-//   const nodesTypesToLocalConcepts = allNodeTypes.map((node) => {
-//     return discourseNodeSchemaToLocalConcept({
-//       context,
-//       node,
-//       accountLocalId,
-//     });
-//   });
-//
-//   const nodeBlockToLocalConcepts = nodesSince.map((node) => {
-//     return discourseNodeBlockToLocalConcept({
-//       context,
-//       nodeData: node,
-//       accountLocalId,
-//     });
-//   });
-//
-//   const conceptsToUpsert: LocalConceptDataInput[] = [
-//     ...nodesTypesToLocalConcepts,
-//     ...nodeBlockToLocalConcepts,
-//   ];
-//
-//   const { ordered } = orderConceptsByDependency(conceptsToUpsert);
-//
-//   const { error } = await supabaseClient.rpc("upsert_concepts", {
-//     data: ordered as Json,
-//     v_space_id: context.spaceId,
-//   });
-//
-//   if (error) {
-//     const errorMessage =
-//       error instanceof Error
-//         ? error.message
-//         : typeof error === "string"
-//           ? error
-//           : JSON.stringify(error, null, 2);
-//     throw new Error(`upsert_concepts failed: ${errorMessage}`);
-//   }
-// };
+const convertDgToSupabaseConcepts = async ({
+  nodesSince,
+  supabaseClient,
+  context,
+  accountLocalId,
+}: {
+  nodesSince: ObsidianDiscourseNodeData[];
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+  accountLocalId: string;
+}): Promise<void> => {
+  // TODO: handling schema (node types and relations) will be handled in the future by ENG-1181
+  // Schema upsert will need allNodeTypes parameter when enabled
+
+  const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
+    return discourseNodeInstanceToLocalConcept({
+      context,
+      nodeData: node,
+      accountLocalId,
+    });
+  });
+
+  const conceptsToUpsert: LocalConceptDataInput[] = [
+    // ...nodesTypesToLocalConcepts,
+    ...nodeInstanceToLocalConcepts,
+  ];
+
+  const { ordered } = orderConceptsByDependency(conceptsToUpsert);
+
+  const { error } = await supabaseClient.rpc("upsert_concepts", {
+    data: ordered as Json,
+    v_space_id: context.spaceId,
+  });
+
+  if (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : typeof error === "string"
+          ? error
+          : JSON.stringify(error, null, 2);
+    throw new Error(`upsert_concepts failed: ${errorMessage}`);
+  }
+};
 
 export const initializeSupabaseSync = async (
   plugin: DiscourseGraphPlugin,

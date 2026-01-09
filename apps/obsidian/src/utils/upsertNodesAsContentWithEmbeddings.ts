@@ -3,10 +3,12 @@ import { nextApiRoot } from "@repo/utils/execContext";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import { Json, CompositeTypes } from "@repo/database/dbTypes";
 import { SupabaseContext } from "./supabaseContext";
-import { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
+import { ObsidianDiscourseNodeData, ChangeType } from "./syncDgNodesToSupabase";
 import { default as DiscourseGraphPlugin } from "~/index";
 
 type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
+
+type ContentVariant = "direct" | "full";
 
 const EMBEDDING_BATCH_SIZE = 200;
 const EMBEDDING_MODEL = "openai_text_embedding_3_small_1536";
@@ -17,11 +19,38 @@ type EmbeddingApiResponse = {
   }[];
 };
 
+/**
+ * Determine which content variants to create based on change types
+ */
+const getVariantsToCreate = (changeTypes: ChangeType[]): ContentVariant[] => {
+  if (changeTypes.includes("new")) {
+    return ["direct", "full"];
+  }
+
+  const variants: ContentVariant[] = [];
+
+  if (changeTypes.includes("title")) {
+    variants.push("direct");
+  }
+
+  if (changeTypes.includes("content")) {
+    variants.push("full");
+  }
+
+  return variants;
+};
+
 const createNodeContentEntries = async (
   node: ObsidianDiscourseNodeData,
   accountLocalId: string,
   plugin: DiscourseGraphPlugin,
 ): Promise<LocalContentDataInput[]> => {
+  const variantsToCreate = getVariantsToCreate(node.changeTypes);
+
+  if (variantsToCreate.length === 0) {
+    return [];
+  }
+
   const baseEntry = {
     author_local_id: accountLocalId,
     creator_local_id: accountLocalId,
@@ -32,26 +61,32 @@ const createNodeContentEntries = async (
     metadata: node.frontmatter as Json,
   };
 
-  // First entry: node title (basename) with variant "direct" - will get embeddings
-  const directEntry: LocalContentDataInput = {
-    ...baseEntry,
-    text: node.file.basename,
-    variant: "direct",
-  };
+  const entries: LocalContentDataInput[] = [];
 
-  // Second entry: full markdown content with variant "full" - no embeddings
-  try {
-    const fullContent = await plugin.app.vault.read(node.file);
-    const fullEntry: LocalContentDataInput = {
+  // Create direct entry (title) if needed - will get embeddings
+  if (variantsToCreate.includes("direct")) {
+    entries.push({
       ...baseEntry,
-      text: fullContent,
-      variant: "full",
-    };
-    return [directEntry, fullEntry];
-  } catch (error) {
-    console.error(`Error reading file content for ${node.file.path}:`, error);
-    return [directEntry];
+      text: node.file.basename,
+      variant: "direct",
+    });
   }
+
+  // Create full entry (content) if needed - no embeddings
+  if (variantsToCreate.includes("full")) {
+    try {
+      const fullContent = await plugin.app.vault.read(node.file);
+      entries.push({
+        ...baseEntry,
+        text: fullContent,
+        variant: "full",
+      });
+    } catch (error) {
+      console.error(`Error reading file content for ${node.file.path}:`, error);
+    }
+  }
+
+  return entries;
 };
 
 export const convertObsidianNodeToLocalContent = async ({

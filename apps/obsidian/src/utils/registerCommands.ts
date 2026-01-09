@@ -138,6 +138,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Sync Discourse Nodes to Supabase",
     checkCallback: (checking: boolean) => {
       if (!plugin.settings.syncModeEnabled) {
+        new Notice("Sync mode is not enabled", 3000);
         return false;
       }
       if (!checking) {

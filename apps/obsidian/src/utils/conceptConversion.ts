@@ -4,6 +4,7 @@ import { DiscourseNode } from "~/types";
 import { SupabaseContext } from "./supabaseContext";
 import { LocalConceptDataInput } from "@repo/database/inputTypes";
 import { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
+import { Json } from "@repo/database/dbTypes";
 
 /**
  * Get extra data (author, timestamps) from file metadata
@@ -58,12 +59,16 @@ export const discourseNodeInstanceToLocalConcept = ({
   accountLocalId: string;
 }): LocalConceptDataInput => {
   const extraData = getNodeExtraData(nodeData.file, accountLocalId);
+  console.log(nodeData.frontmatter);
   const concept = {
     space_id: context.spaceId,
     name: nodeData.file.basename,
     represented_by_local_id: nodeData.nodeInstanceId,
     schema_represented_by_local_id: nodeData.nodeTypeId,
     is_schema: false,
+    literal_content: {
+      ...nodeData.frontmatter,
+    } as unknown as Json,
     ...extraData,
   };
   console.log(
