@@ -15,6 +15,7 @@ import {
 } from "./conceptConversion";
 import { LocalConceptDataInput } from "@repo/database/inputTypes";
 
+const DEFAULT_TIME = new Date("1970-01-01");
 export type ChangeType = "title" | "content" | "new";
 
 export type ObsidianDiscourseNodeData = {
@@ -44,33 +45,39 @@ const ensureNodeInstanceId = async (
 
   return nodeInstanceId;
 };
+const getLastSyncTime = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<Date> => {
+  const { data } = await supabaseClient
+    .from("Content")
+    .select("last_modified")
+    .eq("space_id", spaceId)
+    .order("last_modified", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return new Date(data?.last_modified || DEFAULT_TIME);
+};
+
+type DiscourseNodeInVault = {
+  file: TFile;
+  frontmatter: Record<string, unknown>;
+  nodeTypeId: string;
+  nodeInstanceId: string;
+};
 
 /**
- * Get all discourse nodes that have changed compared to what's stored in Supabase.
- * Detects what specifically changed: title, content, or new file
+ * Step 1: Collect all discourse nodes from the vault
+ * Filters markdown files that have nodeTypeId in frontmatter
  */
-const getChangedDiscourseNodes = async ({
-  plugin,
-  supabaseClient,
-  context,
-  testFolderPath,
-}: {
-  plugin: DiscourseGraphPlugin;
-  supabaseClient: DGSupabaseClient;
-  context: SupabaseContext;
-  testFolderPath?: string;
-}): Promise<ObsidianDiscourseNodeData[]> => {
+const collectDiscourseNodesFromVault = async (
+  plugin: DiscourseGraphPlugin,
+  testFolderPath?: string,
+): Promise<DiscourseNodeInVault[]> => {
   const allFiles = plugin.app.vault.getMarkdownFiles();
-  const nodes: ObsidianDiscourseNodeData[] = [];
-  const candidateNodes: Array<{
-    file: TFile;
-    frontmatter: Record<string, unknown>;
-    nodeTypeId: string;
-    nodeInstanceId: string;
-  }> = [];
+  const dgNodes: DiscourseNodeInVault[] = [];
 
   for (const file of allFiles) {
-    // Filter by test folder if specified
     // TODO: Remove this after testing
     if (testFolderPath) {
       const folderName = testFolderPath.split("/").pop() || "";
@@ -86,7 +93,8 @@ const getChangedDiscourseNodes = async ({
     const cache = plugin.app.metadataCache.getFileCache(file);
     const frontmatter = cache?.frontmatter;
 
-    if (!frontmatter || !frontmatter.nodeTypeId) {
+    // Not a discourse node
+    if (!frontmatter?.nodeTypeId) {
       continue;
     }
 
@@ -101,7 +109,7 @@ const getChangedDiscourseNodes = async ({
       frontmatter as Record<string, unknown>,
     );
 
-    candidateNodes.push({
+    dgNodes.push({
       file,
       frontmatter: frontmatter as Record<string, unknown>,
       nodeTypeId,
@@ -109,116 +117,166 @@ const getChangedDiscourseNodes = async ({
     });
   }
 
-  if (candidateNodes.length === 0) {
-    return nodes;
+  return dgNodes;
+};
+
+/**
+ * Query database for existing titles (from "direct" variant)
+ * Returns a map of nodeInstanceId -> stored filename
+ */
+const getExistingTitlesFromDatabase = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+  nodeInstanceIds: string[],
+): Promise<Map<string, string>> => {
+  const { data: existingDirectContent, error: directError } =
+    await supabaseClient
+      .from("Content")
+      .select("source_local_id, text")
+      .eq("space_id", spaceId)
+      .eq("variant", "direct")
+      .in("source_local_id", nodeInstanceIds);
+
+  if (directError) {
+    console.error("Error fetching existing direct content:", directError);
   }
 
-  const nodeInstanceIds = candidateNodes.map((n) => n.nodeInstanceId);
-
-  // Query both 'direct' (title) and 'full' (content) variants
-  const { data: existingContent, error } = await supabaseClient
-    .from("Content")
-    .select("source_local_id, text, variant")
-    .eq("space_id", context.spaceId)
-    .in("variant", ["direct", "full"])
-    .in("source_local_id", nodeInstanceIds);
-
-  if (error) {
-    console.error("Error fetching existing content:", error);
+  const titleMap = new Map<string, string>();
+  if (existingDirectContent) {
+    for (const content of existingDirectContent) {
+      if (content.source_local_id && content.text) {
+        titleMap.set(content.source_local_id, content.text);
+      }
+    }
   }
 
-  console.log(
-    `[Debug] SELECT from Content returned ${existingContent?.length ?? 0} rows, error:`,
-    error,
+  return titleMap;
+};
+
+const detectNodeChanges = (
+  node: DiscourseNodeInVault,
+  existingTitle: string | undefined,
+  lastSyncTime: Date,
+): ChangeType[] => {
+  const currentFilename = node.file.basename;
+  const fileModifiedTime = new Date(node.file.stat.mtime);
+
+  const isNewFile = existingTitle === undefined;
+  if (isNewFile) {
+    return ["new"];
+  }
+
+  const titleChanged = existingTitle !== currentFilename;
+  const contentChanged = fileModifiedTime > lastSyncTime;
+
+  const changeTypes: ChangeType[] = [];
+  if (titleChanged) {
+    changeTypes.push("title");
+  }
+  if (contentChanged) {
+    changeTypes.push("content");
+  }
+
+  return changeTypes;
+};
+
+const logNodeChanges = ({
+  node,
+  changeTypes,
+  existingTitle,
+  lastSyncTime,
+}: {
+  node: DiscourseNodeInVault;
+  changeTypes: ChangeType[];
+  existingTitle: string | undefined;
+  lastSyncTime: Date;
+}): void => {
+  const currentFilename = node.file.basename;
+  const fileModifiedTime = new Date(node.file.stat.mtime);
+
+  if (changeTypes.includes("new")) {
+    console.log(
+      `New file detected: ${node.nodeInstanceId} with filename "${currentFilename}"`,
+    );
+    return;
+  }
+
+  if (changeTypes.includes("title")) {
+    console.log(
+      `Title changed for ${node.nodeInstanceId}: "${existingTitle}" -> "${currentFilename}"`,
+    );
+  }
+
+  if (changeTypes.includes("content")) {
+    console.log(
+      `Content changed for ${node.nodeInstanceId} (filename: "${currentFilename}") - file mtime: ${fileModifiedTime.toISOString()}, lastSyncTime: ${lastSyncTime.toISOString()}`,
+    );
+  }
+};
+
+/**
+ * Get all discourse nodes that have changed compared to what's stored in Supabase.
+ * Detects what specifically changed: title, content, or new file
+ *
+ * Flow:
+ * 1. Collect all discourse nodes from vault
+ * 2. Query database for existing titles
+ * 3. Get last sync time for the space
+ * 4. For each node, detect what changed
+ * 5. Return only nodes that have changes
+ */
+const getChangedDiscourseNodes = async ({
+  plugin,
+  supabaseClient,
+  context,
+  testFolderPath,
+}: {
+  plugin: DiscourseGraphPlugin;
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+  testFolderPath?: string;
+}): Promise<ObsidianDiscourseNodeData[]> => {
+  const dgNodesInVault = await collectDiscourseNodesFromVault(
+    plugin,
+    testFolderPath,
   );
 
-  // Build maps for both variants
-  const existingDirectMap = new Map<string, string>();
-  const existingFullMap = new Map<string, string>();
-  if (existingContent) {
-    for (const content of existingContent) {
-      if (content.source_local_id && content.text) {
-        if (content.variant === "direct") {
-          existingDirectMap.set(content.source_local_id, content.text);
-        } else if (content.variant === "full") {
-          existingFullMap.set(content.source_local_id, content.text);
-        }
-      }
-    }
+  if (dgNodesInVault.length === 0) {
+    return [];
   }
 
-  for (const candidate of candidateNodes) {
-    const currentFilename = candidate.file.basename;
-    const existingTitle = existingDirectMap.get(candidate.nodeInstanceId);
-    const existingFullContent = existingFullMap.get(candidate.nodeInstanceId);
+  const nodeInstanceIds = dgNodesInVault.map((n) => n.nodeInstanceId);
+  const existingTitleMap = await getExistingTitlesFromDatabase(
+    supabaseClient,
+    context.spaceId,
+    nodeInstanceIds,
+  );
 
-    const isNewFile = existingTitle === undefined;
-    const titleChanged =
-      existingTitle !== undefined && existingTitle !== currentFilename;
+  const lastSyncTime = await getLastSyncTime(supabaseClient, context.spaceId);
+  const changedNodes: ObsidianDiscourseNodeData[] = [];
 
-    // Read current file content to compare with stored full content
-    let currentContent: string | undefined;
-    let contentChanged = false;
+  for (const node of dgNodesInVault) {
+    const existingTitle = existingTitleMap.get(node.nodeInstanceId);
+    const changeTypes = detectNodeChanges(node, existingTitle, lastSyncTime);
 
-    if (!isNewFile) {
-      try {
-        currentContent = await plugin.app.vault.read(candidate.file);
-        contentChanged =
-          existingFullContent !== undefined &&
-          existingFullContent !== currentContent;
-      } catch (e) {
-        console.error(`Error reading file ${candidate.file.path}:`, e);
-      }
-    }
-
-    // Determine what changed
-    const changeTypes: ChangeType[] = [];
-    if (isNewFile) {
-      changeTypes.push("new");
-    } else {
-      if (titleChanged) {
-        changeTypes.push("title");
-      }
-      if (contentChanged) {
-        changeTypes.push("content");
-      }
-    }
-
-    // Skip if nothing changed
     if (changeTypes.length === 0) {
       continue;
     }
 
-    // Log what changed
-    if (isNewFile) {
-      console.log(
-        `New file detected: ${candidate.nodeInstanceId} with filename "${currentFilename}"`,
-      );
-    } else {
-      if (titleChanged) {
-        console.log(
-          `Title changed for ${candidate.nodeInstanceId}: "${existingTitle}" -> "${currentFilename}"`,
-        );
-      }
-      if (contentChanged) {
-        console.log(
-          `Content changed for ${candidate.nodeInstanceId} (filename: "${currentFilename}")`,
-        );
-      }
-    }
+    logNodeChanges({ node, changeTypes, existingTitle, lastSyncTime });
 
-    nodes.push({
-      file: candidate.file,
-      frontmatter: candidate.frontmatter,
-      nodeTypeId: candidate.nodeTypeId,
-      nodeInstanceId: candidate.nodeInstanceId,
-      created: new Date(candidate.file.stat.ctime).toISOString(),
-      last_modified: new Date(candidate.file.stat.mtime).toISOString(),
+    changedNodes.push({
+      file: node.file,
+      frontmatter: node.frontmatter,
+      nodeTypeId: node.nodeTypeId,
+      nodeInstanceId: node.nodeInstanceId,
+      created: new Date(node.file.stat.ctime).toISOString(),
+      last_modified: new Date(node.file.stat.mtime).toISOString(),
       changeTypes,
     });
   }
 
-  return nodes;
+  return changedNodes;
 };
 
 export const createOrUpdateDiscourseEmbedding = async (
