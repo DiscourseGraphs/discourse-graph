@@ -451,7 +451,7 @@ DROP POLICY IF EXISTS platform_account_insert_policy ON public."PlatformAccount"
 CREATE POLICY platform_account_insert_policy ON public."PlatformAccount" FOR INSERT WITH CHECK (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
 
 DROP POLICY IF EXISTS platform_account_update_policy ON public."PlatformAccount";
-CREATE POLICY platform_account_update_policy ON public."PlatformAccount" FOR UPDATE WITH CHECK (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
+CREATE POLICY platform_account_update_policy ON public."PlatformAccount" FOR UPDATE USING (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
 
 -- SpaceAccess: Created through the create_account_in_space and the Space create route, both of which bypass RLS.
 -- Can be updated by a space peer for now, unless claimed by a user.
@@ -471,7 +471,7 @@ DROP POLICY IF EXISTS space_access_insert_policy ON public."SpaceAccess";
 CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (account_uid = auth.uid());
 
 DROP POLICY IF EXISTS space_access_update_policy ON public."SpaceAccess";
-CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE WITH CHECK (account_uid = auth.uid());
+CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE USING (account_uid = auth.uid());
 
 ALTER TABLE public."LocalAccess" ENABLE ROW LEVEL SECURITY;
 
@@ -487,7 +487,7 @@ DROP POLICY IF EXISTS local_access_insert_policy ON public."LocalAccess";
 CREATE POLICY local_access_insert_policy ON public."LocalAccess" FOR INSERT WITH CHECK (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
 
 DROP POLICY IF EXISTS local_access_update_policy ON public."LocalAccess";
-CREATE POLICY local_access_update_policy ON public."LocalAccess" FOR UPDATE WITH CHECK (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
+CREATE POLICY local_access_update_policy ON public."LocalAccess" FOR UPDATE USING (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
 
 -- AgentIdentifier: Allow space members to do anything, to allow editing authors.
 -- Eventually: Once the account is claimed by a user, only allow this user to modify it.
@@ -506,7 +506,7 @@ DROP POLICY IF EXISTS agent_identifier_insert_policy ON public."AgentIdentifier"
 CREATE POLICY agent_identifier_insert_policy ON public."AgentIdentifier" FOR INSERT WITH CHECK (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
 
 DROP POLICY IF EXISTS agent_identifier_update_policy ON public."AgentIdentifier";
-CREATE POLICY agent_identifier_update_policy ON public."AgentIdentifier" FOR UPDATE WITH CHECK (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
+CREATE POLICY agent_identifier_update_policy ON public."AgentIdentifier" FOR UPDATE USING (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
 
 ALTER TABLE public.group_membership ENABLE ROW LEVEL SECURITY;
 
@@ -520,4 +520,4 @@ DROP POLICY IF EXISTS group_membership_insert_policy ON public.group_membership;
 CREATE POLICY group_membership_insert_policy ON public.group_membership FOR INSERT WITH CHECK (public.is_group_admin(group_id) OR NOT public.group_exists(group_id));
 
 DROP POLICY IF EXISTS group_membership_update_policy ON public.group_membership;
-CREATE POLICY group_membership_update_policy ON public.group_membership FOR UPDATE WITH CHECK (public.is_group_admin(group_id));
+CREATE POLICY group_membership_update_policy ON public.group_membership FOR UPDATE USING (public.is_group_admin(group_id));
