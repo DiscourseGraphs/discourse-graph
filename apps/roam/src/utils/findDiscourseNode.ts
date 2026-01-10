@@ -12,18 +12,18 @@ const findDiscourseNode = ({
   title?: string;
   nodes?: DiscourseNode[];
 }): DiscourseNode | false => {
-  if (uid === undefined) return false;
-  if (typeof discourseNodeTypeCache[uid] !== "undefined") {
+  if (uid === undefined && title === undefined) return false;
+  if (uid && typeof discourseNodeTypeCache[uid] !== "undefined") {
     return discourseNodeTypeCache[uid];
   }
 
   const matchingNode =
     nodes.find((node) =>
       title === undefined
-        ? matchDiscourseNode({ ...node, uid: uid })
+        ? matchDiscourseNode({ ...node, uid: uid! })
         : matchDiscourseNode({ ...node, title }),
     ) || false;
-  discourseNodeTypeCache[uid] = matchingNode;
+  if (uid) discourseNodeTypeCache[uid] = matchingNode;
   return matchingNode;
 };
 export default findDiscourseNode;
