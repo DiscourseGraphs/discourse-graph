@@ -42,6 +42,10 @@ import {
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
 import { initSchema } from "./components/settings/utils/init";
+import {
+  setupPullWatchOnSettingsPage,
+  setupPullWatchDiscourseNodes,
+} from "./components/settings/utils/pullWatchers";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -79,8 +83,10 @@ export default runExtension(async (onloadArgs) => {
   await initializeDiscourseNodes();
   refreshConfigTree();
 
-  // For testing purposes
-  await initSchema();
+  // TODO: REMOVE stub call after testing - Initialize block prop settings and pull watchers
+  const { blockUids, nodePageUids } = await initSchema();
+  const cleanupSettingsWatchers = setupPullWatchOnSettingsPage(blockUids);
+  const cleanupNodeWatchers = setupPullWatchDiscourseNodes(nodePageUids);
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
@@ -167,6 +173,8 @@ export default runExtension(async (onloadArgs) => {
     ],
     observers: observers,
     unload: () => {
+      cleanupSettingsWatchers();
+      cleanupNodeWatchers();
       setSyncActivity(false);
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       // @ts-expect-error - tldraw throws a warning on multiple loads
