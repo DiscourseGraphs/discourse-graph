@@ -22,10 +22,9 @@ import toCellValue from "~/utils/toCellValue";
 import { ContextContent } from "~/components/DiscourseContext";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
-import { getSetting } from "~/utils/extensionSettings";
 import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
 import internalError from "~/utils/internalError";
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;
 type ExtraRowType = (typeof EXTRA_ROW_TYPES)[number] | null;
@@ -263,7 +262,7 @@ const ResultRow = ({
   onDragEnd,
   onRefresh,
 }: ResultRowProps) => {
-  const useReifiedRel = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
+  const useReifiedRel = getFeatureFlag("Reified Relation Triples");
   const cell = (key: string) => {
     const value = toCellValue({
       value: r[`${key}-display`] || r[key] || "",
