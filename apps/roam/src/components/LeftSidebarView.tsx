@@ -508,11 +508,19 @@ const migrateFavorites = async () => {
   refreshConfigTree();
 };
 
+let cachedOnloadArgs: OnloadArgs | null = null;
+
+export const cacheOnloadArgs = (onloadArgs: OnloadArgs): void => {
+  cachedOnloadArgs = onloadArgs;
+};
+
 export const mountLeftSidebar = async (
   wrapper: HTMLElement,
   onloadArgs: OnloadArgs,
 ): Promise<void> => {
   if (!wrapper) return;
+
+  cachedOnloadArgs = onloadArgs;
 
   const id = "dg-left-sidebar-root";
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
@@ -529,6 +537,26 @@ export const mountLeftSidebar = async (
     root.className = "starred-pages";
   }
   ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
+};
+
+export const unmountLeftSidebar = (): void => {
+  const wrapper = document.querySelector(".starred-pages-wrapper") as HTMLDivElement;
+  if (!wrapper) return;
+
+  const root = wrapper.querySelector("#dg-left-sidebar-root") as HTMLDivElement;
+  if (root) {
+    ReactDOM.unmountComponentAtNode(root);
+    root.remove();
+  }
+  wrapper.style.padding = "";
+};
+
+export const remountLeftSidebar = async (): Promise<void> => {
+  const wrapper = document.querySelector(".starred-pages-wrapper") as HTMLDivElement;
+  if (!wrapper || !cachedOnloadArgs) return;
+
+  wrapper.style.padding = "0";
+  await mountLeftSidebar(wrapper, cachedOnloadArgs);
 };
 
 export default LeftSidebarView;
