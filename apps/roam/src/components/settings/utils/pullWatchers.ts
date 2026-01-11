@@ -1,7 +1,6 @@
 import { type json, normalizeProps } from "~/utils/getBlockProps";
 import {
   TOP_LEVEL_BLOCK_PROP_KEYS,
-  DISCOURSE_NODE_PAGE_PREFIX,
 } from "../data/blockPropsSettingsConfig";
 import { getPersonalSettingsKey } from "./init";
 import {
@@ -253,24 +252,5 @@ export const setupPullWatchDiscourseNodes = (
   return createCleanupFn(watches);
 };
 
-
-export const queryAllDiscourseNodePageUids = (): Record<string, string> => {
-  const results = window.roamAlphaAPI.q(`
-    [:find ?uid ?title
-     :where
-     [?page :node/title ?title]
-     [?page :block/uid ?uid]
-     [(clojure.string/starts-with? ?title "${DISCOURSE_NODE_PAGE_PREFIX}")]]
-  `) as [string, string][];
-
-  const nodePageUids: Record<string, string> = {};
-
-  for (const [pageUid, title] of results) {
-    const nodeLabel = title.replace(DISCOURSE_NODE_PAGE_PREFIX, "");
-    nodePageUids[nodeLabel] = pageUid;
-  }
-
-  return nodePageUids;
-};
 
 export { hasPropChanged, getNormalizedProps };
