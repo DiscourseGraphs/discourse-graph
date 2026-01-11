@@ -71,13 +71,17 @@ const discourseNodeSettings: DiscourseNodeSettings = {
     Confidence: "confidence-attr-uid",
   },
   overlay: "Status",
-  index: [
-    {
-      type: "filter",
-      condition: "has attribute",
-      attribute: "Status",
-    },
-  ],
+  index: {
+    conditions: [
+      {
+        type: "clause",
+        source: "Claim",
+        relation: "has attribute",
+        target: "Status",
+      },
+    ],
+    selections: [],
+  },
   suggestiveRules: {
     template: [],
     embeddingRef: "((embed-ref))",
