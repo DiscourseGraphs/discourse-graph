@@ -174,25 +174,16 @@ const initSingleDiscourseNode = async (
   if (!existingProps || Object.keys(existingProps).length === 0) {
     const nodeData = DiscourseNodeSchema.parse({
       text: node.text,
-      type: node.type,
+      uid: pageUid,
       format: node.format || "",
       shortcut: node.shortcut || "",
       tag: node.tag || "",
       graphOverview: node.graphOverview ?? false,
       canvasSettings: node.canvasSettings || {},
-      templateUid,
-      indexUid,
-      specificationUid,
       backedBy: "user",
     });
 
     setBlockProps(pageUid, nodeData as Record<string, json>, false);
-  } else if (
-    !existingProps.templateUid ||
-    !existingProps.indexUid ||
-    !existingProps.specificationUid
-  ) {
-    setBlockProps(pageUid, { templateUid, indexUid, specificationUid }, true);
   }
 
   return { label: node.text, pageUid };
