@@ -49,7 +49,7 @@ import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { renderImageToolsMenu } from "./renderImageToolsMenu";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { getSetting } from "./extensionSettings";
-import { mountLeftSidebar } from "~/components/LeftSidebarView";
+import { mountLeftSidebar, cacheOnloadArgs } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import { getFeatureFlag } from "~/components/settings/utils/accessors";
@@ -258,6 +258,8 @@ export const initObservers = async ({
     className: "starred-pages-wrapper",
     callback: (el) => {
       void (async () => {
+        cacheOnloadArgs(onloadArgs);
+
         const isLeftSidebarEnabled = getFeatureFlag("Enable Left Sidebar");
         const container = el as HTMLDivElement;
         if (isLeftSidebarEnabled) {
