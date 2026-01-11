@@ -29,7 +29,7 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import { getFeatureFlag } from "./utils/accessors";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 
 export const getCleanTagText = (tag: string): string => {
@@ -172,10 +172,7 @@ const NodeConfig = ({
   node: DiscourseNode;
   onloadArgs: OnloadArgs;
 }) => {
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
+  const suggestiveModeEnabled = useMemo(() => getFeatureFlag("Suggestive Mode Enabled"), []);
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,
@@ -410,7 +407,7 @@ const NodeConfig = ({
             </div>
           }
         />
-        {settings.suggestiveModeEnabled.value && (
+        {suggestiveModeEnabled && (
           <Tab
             id="suggestive-mode"
             title="Suggestive Mode"
