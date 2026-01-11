@@ -12,6 +12,8 @@ import {
   type PersonalSettings,
   type DiscourseNodeSettings,
 } from "./zodSchema";
+import { render as renderToast } from "roamjs-components/components/Toast";
+import { unmountLeftSidebar, remountLeftSidebar } from "~/components/LeftSidebarView";
 
 type PullWatchCallback = Parameters<AddPullWatch>[2];
 
@@ -86,10 +88,47 @@ const addPullWatch = (
 export const featureFlagHandlers: Partial<
   Record<keyof FeatureFlags, (newValue: boolean, oldValue: boolean, allFlags: FeatureFlags) => void>
 > = {
-  // Add handlers as needed:
-  // "Enable Left Sidebar": (newValue) => { ... },
-  // "Suggestive Mode Enabled": (newValue) => { ... },
-  // "Reified Relation Triples": (newValue) => { ... },
+  "Enable Left Sidebar": (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      if (newValue) {
+        void remountLeftSidebar();
+        renderToast({
+          id: "left-sidebar-enabled",
+          content: "Left Sidebar enabled.",
+          intent: "success",
+          timeout: 3000,
+        });
+      } else {
+        unmountLeftSidebar();
+        renderToast({
+          id: "left-sidebar-disabled",
+          content: "Left Sidebar disabled.",
+          intent: "primary",
+          timeout: 3000,
+        });
+      }
+    }
+  },
+  "Suggestive Mode Enabled": (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      renderToast({
+        id: "suggestive-mode-changed",
+        content: `Suggestive Mode ${newValue ? "enabled" : "disabled"}. Please reload the graph for changes to take effect.`,
+        intent: "primary",
+        timeout: 5000,
+      });
+    }
+  },
+  "Reified Relation Triples": (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      renderToast({
+        id: "reified-relations-changed",
+        content: `Reified Relation Triples ${newValue ? "enabled" : "disabled"}. Please reload the graph for changes to take effect.`,
+        intent: "primary",
+        timeout: 5000,
+      });
+    }
+  },
 };
 
 type GlobalSettingsHandlers = {
