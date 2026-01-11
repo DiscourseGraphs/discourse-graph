@@ -63,7 +63,6 @@ import {
   shapeAtTranslationStart,
   updateArrowTerminal,
 } from "./helpers";
-import { getSetting } from "~/utils/extensionSettings";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { discourseContext, isPageUid } from "~/components/canvas/Tldraw";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -81,7 +80,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import internalError from "~/utils/internalError";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 
 const COLOR_ARRAY = Array.from(textShapeProps.color.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
@@ -612,7 +611,7 @@ export const createAllRelationShapeUtils = (
         if (arrow.type !== target.type) {
           editor.updateShapes([{ id: arrow.id, type: target.type }]);
         }
-        if (getSetting<boolean>(USE_REIFIED_RELATIONS, false)) {
+        if (getFeatureFlag("Reified Relation Triples")) {
           const sourceAsDNS = asDiscourseNodeShape(source, editor);
           const targetAsDNS = asDiscourseNodeShape(target, editor);
 

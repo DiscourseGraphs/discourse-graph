@@ -52,6 +52,7 @@ import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
 import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
@@ -102,12 +103,7 @@ export const initObservers = async ({
       const { title, uid } = getTitleAndUidFromHeader(h1);
       const props = { title, h1, onloadArgs };
 
-      const isSuggestiveModeEnabled = getUidAndBooleanSetting({
-        tree: getBasicTreeByParentUid(
-          getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-        ),
-        text: "(BETA) Suggestive Mode Enabled",
-      }).value;
+      const isSuggestiveModeEnabled = getFeatureFlag("Suggestive Mode Enabled");
 
       const node = findDiscourseNode({ uid, title });
       const isDiscourseNode = node && node.backedBy !== "default";
@@ -275,10 +271,7 @@ export const initObservers = async ({
     className: "starred-pages-wrapper",
     callback: (el) => {
       void (async () => {
-        const isLeftSidebarEnabled = getUidAndBooleanSetting({
-          tree: configTree,
-          text: "(BETA) Left Sidebar",
-        }).value;
+        const isLeftSidebarEnabled = getFeatureFlag("Enable Left Sidebar");
         const container = el as HTMLDivElement;
         if (isLeftSidebarEnabled) {
           container.style.padding = "0";
