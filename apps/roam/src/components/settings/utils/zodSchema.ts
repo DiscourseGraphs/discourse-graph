@@ -190,8 +190,8 @@ export const LeftSidebarGlobalSettingsSchema = z.object({
 });
 
 export const GlobalSettingsSchema = z.object({
-  Trigger: z.string().default(""),
-  "Canvas Page Format": z.string().default(""),
+  Trigger: z.string().default("\\"),
+  "Canvas Page Format": z.string().default("Canvas/*"),
   "Left Sidebar": LeftSidebarGlobalSettingsSchema.default({}),
   Export: ExportSettingsSchema.default({}),
   "Suggestive Mode": SuggestiveModeGlobalSettingsSchema.default({}),
@@ -234,7 +234,7 @@ export const QuerySettingsSchema = z.object({
 export const PersonalSettingsSchema = z.object({
   "Left Sidebar": LeftSidebarPersonalSettingsSchema,
   "Personal Node Menu Trigger": z.string().default(""),
-  "Node Search Menu Trigger": z.string().default(""),
+  "Node Search Menu Trigger": z.string().default("@"),
   "Discourse Tool Shortcut": z.string().default(""),
   "Discourse Context Overlay": z.boolean().default(false),
   "Suggestive Mode Overlay": z.boolean().default(false),

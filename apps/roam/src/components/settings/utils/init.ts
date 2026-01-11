@@ -5,6 +5,7 @@ import setBlockProps from "~/utils/setBlockProps";
 import getBlockProps, { type json } from "~/utils/getBlockProps";
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
+// eslint-disable-next-line @typescript-eslint/naming-convention
 import {
   DiscourseNodeSchema,
   FeatureFlagsSchema,
@@ -16,7 +17,6 @@ import {
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
   DISCOURSE_NODE_PAGE_PREFIX,
   TOP_LEVEL_BLOCK_PROP_KEYS,
-  DISCOURSE_NODE_BLOCK_KEYS,
 } from "../data/blockPropsSettingsConfig";
 
 let cachedPersonalSettingsKey: string | null = null;
@@ -156,20 +156,6 @@ const initSingleDiscourseNode = async (
 
   const pageUid = await ensureDiscourseNodePageExists(node.text);
   const existingProps = getBlockProps(pageUid);
-  const blockMap = buildBlockMap(pageUid);
-
-  for (const key of Object.values(DISCOURSE_NODE_BLOCK_KEYS)) {
-    if (!blockMap[key]) {
-      blockMap[key] = await createBlock({
-        parentUid: pageUid,
-        node: { text: key },
-      });
-    }
-  }
-
-  const templateUid = blockMap[DISCOURSE_NODE_BLOCK_KEYS.template];
-  const indexUid = blockMap[DISCOURSE_NODE_BLOCK_KEYS.index];
-  const specificationUid = blockMap[DISCOURSE_NODE_BLOCK_KEYS.specification];
 
   if (!existingProps || Object.keys(existingProps).length === 0) {
     const nodeData = DiscourseNodeSchema.parse({
@@ -180,19 +166,10 @@ const initSingleDiscourseNode = async (
       tag: node.tag || "",
       graphOverview: node.graphOverview ?? false,
       canvasSettings: node.canvasSettings || {},
-      templateUid,
-      indexUid,
-      specificationUid,
       backedBy: "user",
     });
 
     setBlockProps(pageUid, nodeData as Record<string, json>, false);
-  } else if (
-    !existingProps.templateUid ||
-    !existingProps.indexUid ||
-    !existingProps.specificationUid
-  ) {
-    setBlockProps(pageUid, { templateUid, indexUid, specificationUid }, true);
   }
 
   return { label: node.text, pageUid };
@@ -213,7 +190,11 @@ const initDiscourseNodePages = async (): Promise<Record<string, string>> => {
   return nodePageUids;
 };
 
-const printAllSettings = (blockMap: Record<string, string>): void => {
+// TODO: REMOVE the printAllSettings function after we are done testing
+const printAllSettings = (
+  blockMap: Record<string, string>,
+  nodePageUids: Record<string, string>,
+): void => {
   const featureFlagsUid = blockMap[TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags];
   const globalUid = blockMap[TOP_LEVEL_BLOCK_PROP_KEYS.global];
   const personalKey = getPersonalSettingsKey();
@@ -223,100 +204,32 @@ const printAllSettings = (blockMap: Record<string, string>): void => {
   const globalSettings = globalUid ? getBlockProps(globalUid) : null;
   const personalSettings = personalUid ? getBlockProps(personalUid) : null;
 
-  console.group("🔧 Discourse Graph Settings Initialized");
+  console.group("🔧 Discourse Graph Settings Initialized (RAW DATA)");
 
-  if (featureFlags) {
-    console.group("🚩 Feature Flags");
-    console.table(featureFlags);
+  // Feature Flags - complete raw data
+  console.group(`🚩 Feature Flags (uid: ${featureFlagsUid})`);
+  console.log("Raw block props:", JSON.stringify(featureFlags, null, 2));
+  console.groupEnd();
+
+  // Global Settings - complete raw data
+  console.group(`🌍 Global Settings (uid: ${globalUid})`);
+  console.log("Raw block props:", JSON.stringify(globalSettings, null, 2));
+  console.groupEnd();
+
+  // Personal Settings - complete raw data
+  console.group(`👤 Personal Settings (uid: ${personalUid})`);
+  console.log("Raw block props:", JSON.stringify(personalSettings, null, 2));
+  console.groupEnd();
+
+  // Discourse Nodes - complete raw data for each
+  console.group("📝 Discourse Nodes");
+  for (const [nodeLabel, pageUid] of Object.entries(nodePageUids)) {
+    const nodeProps = getBlockProps(pageUid);
+    console.group(`${nodeLabel} (uid: ${pageUid})`);
+    console.log("Raw block props:", JSON.stringify(nodeProps, null, 2));
     console.groupEnd();
   }
-
-  if (globalSettings) {
-    console.group("🌍 Global Settings");
-    console.log("Trigger:", globalSettings?.Trigger || "(empty)");
-    console.log(
-      "Canvas Page Format:",
-      globalSettings?.["Canvas Page Format"] || "(empty)",
-    );
-
-    if (globalSettings?.["Left Sidebar"]) {
-      console.group("📂 Left Sidebar");
-      console.log(globalSettings["Left Sidebar"]);
-      console.groupEnd();
-    }
-
-    if (globalSettings?.Export) {
-      console.group("📤 Export Settings");
-      console.table(globalSettings.Export);
-      console.groupEnd();
-    }
-
-    if (globalSettings?.["Suggestive Mode"]) {
-      console.group("💡 Suggestive Mode");
-      console.log(globalSettings["Suggestive Mode"]);
-      console.groupEnd();
-    }
-
-    console.groupEnd();
-  }
-
-  if (personalSettings) {
-    console.group("👤 Personal Settings");
-    console.log(
-      "Personal Node Menu Trigger:",
-      personalSettings?.["Personal Node Menu Trigger"] || "(empty)",
-    );
-    console.log(
-      "Node Search Menu Trigger:",
-      personalSettings?.["Node Search Menu Trigger"] || "(empty)",
-    );
-    console.log(
-      "Discourse Tool Shortcut:",
-      personalSettings?.["Discourse Tool Shortcut"] || "(empty)",
-    );
-
-    console.group("🎛️ Toggles");
-    const toggles = {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Discourse Context Overlay":
-        personalSettings?.["Discourse Context Overlay"],
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Suggestive Mode Overlay": personalSettings?.["Suggestive Mode Overlay"],
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Overlay in Canvas": personalSettings?.["Overlay in Canvas"],
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Text Selection Popup": personalSettings?.["Text Selection Popup"],
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Disable Sidebar Open": personalSettings?.["Disable Sidebar Open"],
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Page Preview": personalSettings?.["Page Preview"],
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Hide Feedback Button": personalSettings?.["Hide Feedback Button"],
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Streamline Styling": personalSettings?.["Streamline Styling"],
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Auto Canvas Relations": personalSettings?.["Auto Canvas Relations"],
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Disable Product Diagnostics":
-        personalSettings?.["Disable Product Diagnostics"],
-    };
-    console.table(toggles);
-    console.groupEnd();
-
-    if (personalSettings?.["Left Sidebar"]) {
-      console.group("📂 Personal Left Sidebar");
-      console.log(personalSettings["Left Sidebar"]);
-      console.groupEnd();
-    }
-
-    if (personalSettings?.Query) {
-      console.group("🔍 Query Settings");
-      console.table(personalSettings.Query);
-      console.groupEnd();
-    }
-
-    console.groupEnd();
-  }
+  console.groupEnd();
 
   console.groupEnd();
 };
@@ -330,7 +243,10 @@ export const initSchema = async (): Promise<InitSchemaResult> => {
   const blockUids = await initSettingsPageBlocks();
   const nodePageUids = await initDiscourseNodePages();
 
-  printAllSettings(blockUids);
+  // Delay print to allow async block updates to complete
+  setTimeout(() => {
+    printAllSettings(blockUids, nodePageUids);
+  }, 2000);
 
   return { blockUids, nodePageUids };
 };
