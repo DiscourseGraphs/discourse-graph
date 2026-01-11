@@ -12,7 +12,6 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import { getSetting } from "~/utils/extensionSettings";
 import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
@@ -23,7 +22,7 @@ import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { Result } from "~/utils/types";
 import internalError from "~/utils/internalError";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 
 export type CreateRelationDialogProps = {
   onClose: () => void;
@@ -379,7 +378,7 @@ export const renderCreateRelationDialog = (
 export const CreateRelationButton = (
   props: CreateRelationDialogProps,
 ): React.JSX.Element | null => {
-  const showAddRelation = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
+  const showAddRelation = getFeatureFlag("Reified Relation Triples");
   if (!showAddRelation) return null;
   let extProps: ExtendedCreateRelationDialogProps | null = null;
   try {
