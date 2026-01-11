@@ -6,7 +6,6 @@ import getBlockProps  from "~/utils/getBlockProps";
 import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
 import {
   stubSetLeftSidebarPersonalSections,
-  stubGetLeftSidebarPersonalSections,
   getAllDiscourseNodes,
 } from "./accessors";
 import {
@@ -130,7 +129,12 @@ const initSingleDiscourseNode = async (
 
 const initDiscourseNodePages = async (): Promise<Record<string, string>> => {
   if (hasNonDefaultNodes()) {
-    return {};
+    const existingNodes = getAllDiscourseNodes();
+    const nodePageUids: Record<string, string> = {};
+    for (const node of existingNodes) {
+      nodePageUids[node.text] = node.type; 
+    }
+    return nodePageUids;
   }
 
   const results = await Promise.all(
@@ -147,8 +151,6 @@ const initDiscourseNodePages = async (): Promise<Record<string, string>> => {
   return nodePageUids;
 };
 
-
-
 export type InitSchemaResult = {
   blockUids: Record<string, string>;
   nodePageUids: Record<string, string>;
@@ -157,6 +159,5 @@ export type InitSchemaResult = {
 export const initSchema = async (): Promise<InitSchemaResult> => {
   const blockUids = await initSettingsPageBlocks();
   const nodePageUids = await initDiscourseNodePages();
-
   return { blockUids, nodePageUids };
 };
