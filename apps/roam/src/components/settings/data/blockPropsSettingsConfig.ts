@@ -10,10 +10,5 @@ export const TOP_LEVEL_BLOCK_PROP_KEYS = {
   global: "Global",
 } as const;
 
-export const DISCOURSE_NODE_BLOCK_KEYS = {
-  template: "Template",
-  index: "Index",
-  specification: "Specification",
-} as const;
 
 /* eslint-enable @typescript-eslint/naming-convention */

@@ -5,6 +5,7 @@ import setBlockProps from "~/utils/setBlockProps";
 import getBlockProps, { type json } from "~/utils/getBlockProps";
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
+// eslint-disable-next-line @typescript-eslint/naming-convention
 import {
   DiscourseNodeSchema,
   FeatureFlagsSchema,
@@ -16,7 +17,6 @@ import {
   DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
   DISCOURSE_NODE_PAGE_PREFIX,
   TOP_LEVEL_BLOCK_PROP_KEYS,
-  DISCOURSE_NODE_BLOCK_KEYS,
 } from "../data/blockPropsSettingsConfig";
 
 let cachedPersonalSettingsKey: string | null = null;
@@ -156,20 +156,6 @@ const initSingleDiscourseNode = async (
 
   const pageUid = await ensureDiscourseNodePageExists(node.text);
   const existingProps = getBlockProps(pageUid);
-  const blockMap = buildBlockMap(pageUid);
-
-  for (const key of Object.values(DISCOURSE_NODE_BLOCK_KEYS)) {
-    if (!blockMap[key]) {
-      blockMap[key] = await createBlock({
-        parentUid: pageUid,
-        node: { text: key },
-      });
-    }
-  }
-
-  const templateUid = blockMap[DISCOURSE_NODE_BLOCK_KEYS.template];
-  const indexUid = blockMap[DISCOURSE_NODE_BLOCK_KEYS.index];
-  const specificationUid = blockMap[DISCOURSE_NODE_BLOCK_KEYS.specification];
 
   if (!existingProps || Object.keys(existingProps).length === 0) {
     const nodeData = DiscourseNodeSchema.parse({
@@ -180,19 +166,10 @@ const initSingleDiscourseNode = async (
       tag: node.tag || "",
       graphOverview: node.graphOverview ?? false,
       canvasSettings: node.canvasSettings || {},
-      templateUid,
-      indexUid,
-      specificationUid,
       backedBy: "user",
     });
 
     setBlockProps(pageUid, nodeData as Record<string, json>, false);
-  } else if (
-    !existingProps.templateUid ||
-    !existingProps.indexUid ||
-    !existingProps.specificationUid
-  ) {
-    setBlockProps(pageUid, { templateUid, indexUid, specificationUid }, true);
   }
 
   return { label: node.text, pageUid };
@@ -213,6 +190,7 @@ const initDiscourseNodePages = async (): Promise<Record<string, string>> => {
   return nodePageUids;
 };
 
+// TODO: REMOVE the prinAllSettings function after we are done testing
 const printAllSettings = (blockMap: Record<string, string>): void => {
   const featureFlagsUid = blockMap[TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags];
   const globalUid = blockMap[TOP_LEVEL_BLOCK_PROP_KEYS.global];
