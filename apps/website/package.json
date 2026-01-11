@@ -24,6 +24,7 @@
     "mdast-util-to-string": "^4.0.0",
     "next": "15.5.7",
     "openai": "^4.98.0",
+    "posthog-js": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "rehype-parse": "^9.0.1",

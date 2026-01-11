@@ -169,7 +169,7 @@ export const compile = ({
         "window.__DISCOURSE_GRAPH_VERSION__": `"${getVersion()}"`,
         "window.__DISCOURSE_GRAPH_BUILD_DATE__": `"${getBuildDate()}"`,
       },
-      sourcemap: process.env.NODE_ENV === "production" ? undefined : "inline",
+      sourcemap: process.env.NODE_ENV === "production" ? "external" : "inline",
       minify: process.env.NODE_ENV === "production",
       entryNames: out,
       external: externalModules.map(([e]) => e).concat(["crypto"]),
