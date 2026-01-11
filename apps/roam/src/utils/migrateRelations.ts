@@ -2,20 +2,19 @@ import getRelationData from "./getRelationData";
 import getBlockProps from "./getBlockProps";
 import type { json } from "./getBlockProps";
 import setBlockProps from "./setBlockProps";
-import { getSetting, setSetting } from "./extensionSettings";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import {
   createReifiedRelation,
   DISCOURSE_GRAPH_PROP_NAME,
 } from "./createReifiedBlock";
+import { getFeatureFlag, setFeatureFlag } from "~/components/settings/utils/accessors";
 
 const MIGRATION_PROP_NAME = "relation-migration";
 
 const migrateRelations = async (dryRun = false): Promise<number> => {
-  const authorized = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
+  const authorized = getFeatureFlag("Reified Relation Triples");
   if (!authorized) return 0;
   let numProcessed = 0;
-  await setSetting(USE_REIFIED_RELATIONS, false); // so queries use patterns
+  setFeatureFlag("Reified Relation Triples", false); // so queries use patterns
   // wait for the settings to propagate
   await new Promise((resolve) => setTimeout(resolve, 150));
   try {
@@ -65,7 +64,7 @@ const migrateRelations = async (dryRun = false): Promise<number> => {
       numProcessed++;
     }
   } finally {
-    await setSetting(USE_REIFIED_RELATIONS, true);
+    setFeatureFlag("Reified Relation Triples", true);
   }
   return numProcessed;
 };
