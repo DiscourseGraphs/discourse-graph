@@ -26,9 +26,8 @@ import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import { type RelationDetails } from "~/utils/hyde";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { getSetting } from "~/utils/extensionSettings";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 
 export type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -309,7 +308,7 @@ const SuggestionsBody = ({
   };
 
   const handleCreateBlock = async (node: SuggestedNode) => {
-    if (getSetting<boolean>(USE_REIFIED_RELATIONS, false)) {
+    if (getFeatureFlag("Reified Relation Triples")) {
       if (discourseNode === false) {
         renderToast({
           id: "suggestions-create-block-error",
