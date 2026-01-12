@@ -177,6 +177,7 @@ export const BlockPropMultiTextPanel = ({
   };
 
   const handleRemove = (index: number) => {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     const newValues = values.filter((_, i) => i !== index);
     setValues(newValues);
     setGlobalSetting(settingKeys, newValues);
