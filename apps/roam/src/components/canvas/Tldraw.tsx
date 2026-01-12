@@ -479,7 +479,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         ? { x: lastTime.x + w * 0.025, y: lastTime.y + h * 0.05 }
         : { x: x - DEFAULT_WIDTH / 2, y: y - DEFAULT_HEIGHT / 2 };
       const nodeType = findDiscourseNode({
-        uid: e.detail.uid,
+        uid: e.detail.uid || "",
         nodes: allNodes,
       });
       if (nodeType) {

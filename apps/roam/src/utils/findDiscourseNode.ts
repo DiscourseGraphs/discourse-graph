@@ -8,19 +8,18 @@ const findDiscourseNode = ({
   title,
   nodes = getDiscourseNodes(),
 }: {
-  uid?: string;
+  uid: string;
   title?: string;
   nodes?: DiscourseNode[];
 }): DiscourseNode | false => {
-  if (uid === undefined && title === undefined) return false;
-  if (uid && typeof discourseNodeTypeCache[uid] !== "undefined") {
+  if (typeof discourseNodeTypeCache[uid] !== "undefined") {
     return discourseNodeTypeCache[uid];
   }
 
   const matchingNode =
     nodes.find((node) =>
       title === undefined
-        ? matchDiscourseNode({ ...node, uid: uid! })
+        ? matchDiscourseNode({ ...node, uid })
         : matchDiscourseNode({ ...node, title }),
     ) || false;
   if (uid) discourseNodeTypeCache[uid] = matchingNode;
