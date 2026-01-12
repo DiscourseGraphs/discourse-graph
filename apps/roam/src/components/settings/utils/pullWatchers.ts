@@ -14,11 +14,15 @@ import {
   type PersonalSettings,
   type DiscourseNodeSettings,
 } from "./zodSchema";
-import { render as renderToast } from "roamjs-components/components/Toast";
 import {
   unmountLeftSidebar,
   remountLeftSidebar,
 } from "~/components/LeftSidebarView";
+import {
+  initializeSupabaseSync,
+  setSyncActivity,
+} from "~/utils/syncDgNodesToSupabase";
+import { emitFeatureFlagChange } from "./hooks";
 
 type PullWatchCallback = (before: unknown, after: unknown) => void;
 
@@ -102,6 +106,7 @@ export const featureFlagHandlers: Partial<
 > = {
   "Enable Left Sidebar": (newValue, oldValue) => {
     if (newValue !== oldValue) {
+      emitFeatureFlagChange("Enable Left Sidebar", newValue);
       if (newValue) {
         void remountLeftSidebar();
       } else {
@@ -111,22 +116,17 @@ export const featureFlagHandlers: Partial<
   },
   "Suggestive Mode Enabled": (newValue, oldValue) => {
     if (newValue !== oldValue) {
-      renderToast({
-        id: "suggestive-mode-changed",
-        content: `Suggestive Mode ${newValue ? "enabled" : "disabled"}. Please reload the graph for changes to take effect.`,
-        intent: "primary",
-        timeout: 5000,
-      });
+      emitFeatureFlagChange("Suggestive Mode Enabled", newValue);
+      if (newValue) {
+        initializeSupabaseSync();
+      } else {
+        setSyncActivity(false);
+      }
     }
   },
   "Reified Relation Triples": (newValue, oldValue) => {
     if (newValue !== oldValue) {
-      renderToast({
-        id: "reified-relations-changed",
-        content: `Reified Relation Triples ${newValue ? "enabled" : "disabled"}. Please reload the graph for changes to take effect.`,
-        intent: "primary",
-        timeout: 5000,
-      });
+      emitFeatureFlagChange("Reified Relation Triples", newValue);
     }
   },
 };

@@ -22,7 +22,7 @@ import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { Result } from "~/utils/types";
 import internalError from "~/utils/internalError";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import { getFeatureFlag } from "~/components/settings/utils/accessors";
+import { useFeatureFlag } from "~/components/settings/utils/hooks";
 
 export type CreateRelationDialogProps = {
   onClose: () => void;
@@ -378,7 +378,7 @@ export const renderCreateRelationDialog = (
 export const CreateRelationButton = (
   props: CreateRelationDialogProps,
 ): React.JSX.Element | null => {
-  const showAddRelation = getFeatureFlag("Reified Relation Triples");
+  const showAddRelation = useFeatureFlag("Reified Relation Triples");
   if (!showAddRelation) return null;
   let extProps: ExtendedCreateRelationDialogProps | null = null;
   try {

@@ -24,7 +24,7 @@ import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
 import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
 import internalError from "~/utils/internalError";
-import { getFeatureFlag } from "~/components/settings/utils/accessors";
+import { useFeatureFlag } from "~/components/settings/utils/hooks";
 
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;
 type ExtraRowType = (typeof EXTRA_ROW_TYPES)[number] | null;
@@ -262,7 +262,7 @@ const ResultRow = ({
   onDragEnd,
   onRefresh,
 }: ResultRowProps) => {
-  const useReifiedRel = getFeatureFlag("Reified Relation Triples");
+  const useReifiedRel = useFeatureFlag("Reified Relation Triples");
   const cell = (key: string) => {
     const value = toCellValue({
       value: r[`${key}-display`] || r[key] || "",
