@@ -472,6 +472,9 @@ export const FeatureFlagPanel = ({
   featureKey,
   onBeforeEnable,
   onAfterChange,
+  parentUid,
+  uid,
+  order,
 }: {
   title: string;
   description: string;
@@ -485,6 +488,7 @@ export const FeatureFlagPanel = ({
     ? async (checked) => {
         if (checked) {
           return onBeforeEnable();
+
         }
         return true;
       }
@@ -499,6 +503,9 @@ export const FeatureFlagPanel = ({
       setter={featureFlagSetter}
       onBeforeChange={handleBeforeChange}
       onChange={onAfterChange}
+      parentUid={parentUid}
+      uid={uid}
+      order={order}
     />
   );
 };
