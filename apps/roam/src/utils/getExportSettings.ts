@@ -3,8 +3,6 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import { RoamBasicNode } from "roamjs-components/types";
 import { getSubTree } from "roamjs-components/util";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
-import { getGlobalSetting } from "~/components/settings/utils/accessors";
-import type { ExportSettings } from "~/components/settings/utils/zodSchema";
 
 type UidPair<T> = {
   uid?: string;
@@ -112,18 +110,16 @@ export const getExportSettingsAndUids = (): ExportConfigWithUids => {
 };
 
 export const getExportSettings = (): Omit<ExportConfig, "exportUid"> => {
-  // Zod schema applies defaults, so we can trust the values exist
-  const exportSettings = getGlobalSetting<ExportSettings>(["Export"])!;
-
+  const settings = getExportSettingsAndUids();
   return {
-    maxFilenameLength: exportSettings["Max Filename Length"],
-    openSidebar: false, // Only in old config page, not in Settings dialog
-    removeSpecialCharacters: exportSettings["Remove Special Characters"],
-    simplifiedFilename: false, // Only in old config page, not in Settings dialog
-    optsEmbeds: exportSettings["Resolve Block Embeds"],
-    optsRefs: exportSettings["Resolve Block References"],
-    linkType: exportSettings["Link Type"],
-    appendRefNodeContext: exportSettings["Append Referenced Node"],
-    frontmatter: exportSettings["Frontmatter"],
+    maxFilenameLength: settings.maxFilenameLength.value,
+    openSidebar: settings.openSidebar.value,
+    removeSpecialCharacters: settings.removeSpecialCharacters.value,
+    simplifiedFilename: settings.simplifiedFilename.value,
+    optsEmbeds: settings.optsEmbeds.value,
+    optsRefs: settings.optsRefs.value,
+    linkType: settings.linkType.value,
+    appendRefNodeContext: settings.appendRefNodeContext.value,
+    frontmatter: settings.frontmatter.values,
   };
 };
