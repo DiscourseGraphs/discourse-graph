@@ -4,7 +4,7 @@ import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 import { Alert, Intent } from "@blueprintjs/core";
-import { BlockPropFeatureFlagPanel } from "./BlockPropFeatureFlagPanel";
+import { BlockPropFeatureFlagPanel } from "./components/BlockPropFeatureFlagPanel";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {
