@@ -3,7 +3,7 @@ import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
-import { BlockPropFeatureFlagPanel } from "./components/BlockPropFeatureFlagPanel";
+import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {
@@ -30,7 +30,7 @@ const DiscourseGraphHome = () => {
         value={settings.canvasPageFormat.value}
         defaultValue={DEFAULT_CANVAS_PAGE_FORMAT}
       />
-      <BlockPropFeatureFlagPanel
+      <FeatureFlagPanel
         title="(BETA) Enable Left Sidebar"
         description="Whether or not to enable the left sidebar."
         featureKey="Enable Left Sidebar"

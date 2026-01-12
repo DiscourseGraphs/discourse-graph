@@ -38,15 +38,11 @@ import {
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
 import { initSchema } from "./components/settings/utils/init";
-<<<<<<< HEAD
 import {
   setupPullWatchOnSettingsPage,
   setupPullWatchDiscourseNodes,
 } from "./components/settings/utils/pullWatchers";
-=======
-import { setupPullWatchSettings } from "./components/settings/utils/pullWatchers";
 import { getFeatureFlag } from "./components/settings/utils/accessors";
->>>>>>> a3a8ea85 (make feature flags fully reactive)
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -84,17 +80,11 @@ export default runExtension(async (onloadArgs) => {
   await initializeDiscourseNodes();
   refreshConfigTree();
 
-<<<<<<< HEAD
   // TODO: REMOVE stub call after testing - Initialize block prop settings and pull watchers
   const { blockUids, nodePageUids } = await initSchema();
   const cleanupSettingsWatchers = setupPullWatchOnSettingsPage(blockUids);
   const cleanupNodeWatchers = setupPullWatchDiscourseNodes(nodePageUids);
-=======
-  // For testing purposes
-  await initSchema();
-  const { blockUids } = await initSchema();
-  const cleanupPullWatch = setupPullWatchSettings(blockUids);
->>>>>>> a3a8ea85 (make feature flags fully reactive)
+
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
