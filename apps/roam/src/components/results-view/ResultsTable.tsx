@@ -25,6 +25,7 @@ import { CONTEXT_OVERLAY_SUGGESTION } from "~/utils/predefinedSelections";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
+import internalError from "~/utils/internalError";
 
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;
 type ExtraRowType = (typeof EXTRA_ROW_TYPES)[number] | null;
@@ -35,17 +36,35 @@ const ExtraContextRow = ({ uid }: { uid: string }) => {
   useEffect(() => {
     if (!containerRef.current) return;
     if (getPageTitleByPageUid(uid)) {
-      window.roamAlphaAPI.ui.components.renderPage({
-        uid,
-        el: containerRef.current,
-        "hide-mentions?": true,
-      });
+      window.roamAlphaAPI.ui.components
+        .renderPage({
+          uid,
+          el: containerRef.current,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "hide-mentions?": true,
+        })
+        .catch((error) => {
+          internalError({
+            error,
+            type: "Results Table: Extra Context Row",
+            context: { uid },
+          });
+        });
     } else {
-      window.roamAlphaAPI.ui.components.renderBlock({
-        uid,
-        el: containerRef.current,
-        "zoom-path?": true,
-      });
+      window.roamAlphaAPI.ui.components
+        .renderBlock({
+          uid,
+          el: containerRef.current,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "zoom-path?": true,
+        })
+        .catch((error) => {
+          internalError({
+            error,
+            type: "Results Table: Extra Context Row",
+            context: { uid },
+          });
+        });
     }
   }, [containerRef, uid]);
 
@@ -69,19 +88,16 @@ const ResultHeader = React.forwardRef<
     columnWidth?: string;
   }
 >(
-  (
-    {
-      c,
-      allResults,
-      activeSort,
-      setActiveSort,
-      filters,
-      setFilters,
-      initialFilter,
-      columnWidth,
-    },
-    ref,
-  ) => {
+  ({
+    c,
+    allResults,
+    activeSort,
+    setActiveSort,
+    filters,
+    setFilters,
+    initialFilter,
+    columnWidth,
+  }) => {
     const filterData = useMemo(
       () => ({
         values: Array.from(
@@ -155,6 +171,8 @@ const ResultHeader = React.forwardRef<
   },
 );
 
+ResultHeader.displayName = "ResultHeader";
+
 export const CellEmbed = ({
   uid,
   viewValue,
@@ -167,20 +185,59 @@ export const CellEmbed = ({
   useEffect(() => {
     const el = contentRef.current;
     const open =
-      viewValue === "open" ? true : viewValue === "closed" ? false : null;
+      viewValue === "open" ? true : viewValue === "closed" ? false : undefined;
     if (el) {
-      window.roamAlphaAPI.ui.components.renderBlock({
-        uid,
-        el,
-        // @ts-expect-error - add to roamjs-components
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "open?": open,
-      });
+      window.roamAlphaAPI.ui.components
+        .renderBlock({
+          uid,
+          el,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "open?": open,
+        })
+        .catch((error) => {
+          internalError({
+            error,
+            type: "Results Table: Cell Embed",
+            context: { uid },
+          });
+        });
     }
   }, [contentRef, uid, viewValue]);
   return (
     <div ref={contentRef} className={title ? "page-embed" : "block-embed"} />
   );
+};
+
+export const CellRender = ({
+  content,
+  uid,
+}: {
+  content: string;
+  uid: string;
+}) => {
+  const contentRef = useRef<HTMLSpanElement>(null);
+  const isPage = !!getPageTitleByPageUid(uid);
+  const displayString = isPage ? `[[${content}]]` : content;
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (el && displayString) {
+      window.roamAlphaAPI.ui.components
+        .renderString({
+          el,
+          string: displayString,
+        })
+        .catch((error) => {
+          internalError({
+            error,
+            type: "Results Table: Cell Render",
+            context: { displayString },
+          });
+        });
+    }
+  }, [displayString]);
+
+  return <span ref={contentRef} className="roamjs-query-link-cell" />;
 };
 
 type ResultRowProps = {
@@ -328,12 +385,15 @@ const ResultRow = ({
               className={"relative overflow-hidden text-ellipsis"}
               key={key}
               {...{
-                [`data-cell-content`]: typeof val === "string" ? val : `${val}`,
+                [`data-cell-content`]:
+                  typeof val === "string" ? val : String(val),
                 [`data-column-title`]: key,
               }}
             >
               {val === "" ? (
                 <i>[block is blank]</i>
+              ) : view === "render" ? (
+                <CellRender content={val.toString()} uid={uid} />
               ) : view === "link" || view === "alias" ? (
                 <a
                   className={"rm-page-ref"}
@@ -341,7 +401,7 @@ const ResultRow = ({
                   href={(r[`${key}-url`] as string) || getRoamUrl(uid)}
                   onMouseDown={(e) => {
                     if (e.shiftKey) {
-                      openBlockInSidebar(uid);
+                      void openBlockInSidebar(uid);
                       e.preventDefault();
                       e.stopPropagation();
                     } else if (e.ctrlKey) {
@@ -641,7 +701,7 @@ const ResultsTable = ({
         key: "filters",
         parentUid,
       });
-      filtersNode.children.forEach((c) => deleteBlock(c.uid));
+      filtersNode.children.forEach((c) => void deleteBlock(c.uid));
       Object.entries(fs)
         .filter(
           ([, data]) => data.includes.values.size || data.excludes.values.size,
@@ -663,12 +723,13 @@ const ResultsTable = ({
             },
           ],
         }))
-        .forEach((node, order) =>
-          createBlock({
-            parentUid: filtersNode.uid,
-            node,
-            order,
-          }),
+        .forEach(
+          (node, order) =>
+            void createBlock({
+              parentUid: filtersNode.uid,
+              node,
+              order,
+            }),
         );
     },
     [setFilters, preventSavingSettings, parentUid],
