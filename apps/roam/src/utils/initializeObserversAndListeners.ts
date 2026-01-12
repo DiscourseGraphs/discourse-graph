@@ -31,8 +31,6 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { render as renderGraphOverviewExport } from "~/components/ExportDiscourseContext";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import { getSettingValueFromTree } from "roamjs-components/util";
 import {
   getModifiersFromCombo,
   render as renderDiscourseNodeMenu,
@@ -52,7 +50,10 @@ import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar, cacheOnloadArgs } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
-import { getFeatureFlag } from "~/components/settings/utils/accessors";
+import {
+  getFeatureFlag,
+  getGlobalSetting,
+} from "~/components/settings/utils/accessors";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
 import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
@@ -239,12 +240,9 @@ export const initObservers = async ({
     }
   };
 
-  const configTree = getBasicTreeByParentUid(configPageUid);
-  const globalTrigger = getSettingValueFromTree({
-    tree: configTree,
-    key: "trigger",
-    defaultValue: "\\",
-  }).trim();
+  const globalTrigger = (
+    getGlobalSetting<string>(["Trigger"]) || "\\"
+  ).trim();
   const personalTriggerCombo =
     (onloadArgs.extensionAPI.settings.get(
       "personal-node-menu-trigger",
