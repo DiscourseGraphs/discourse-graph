@@ -6,6 +6,8 @@
     "GITHUB_HEAD_REF",
     "GITHUB_REF_NAME",
     "NEXT_API_ROOT",
+    "NEXT_PUBLIC_POSTHOG_HOST",
+    "NEXT_PUBLIC_POSTHOG_KEY",
     "NODE_ENV",
     "POSTGRES_DATABASE",
     "POSTGRES_HOST",
@@ -72,6 +74,11 @@
       "outputs": [".env*"]
     },
     "deploy": {
+      "passThroughEnv": [
+        "POSTHOG_CLI_HOST",
+        "POSTHOG_CLI_TOKEN",
+        "POSTHOG_CLI_ENV_ID"
+      ],
       "cache": false,
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
