@@ -30,7 +30,7 @@ import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
-import { BlockPropFeatureFlagPanel } from "./BlockPropFeatureFlagPanel";
+import { BlockPropFeatureFlagPanel } from "./components/BlockPropFeatureFlagPanel";
 import { getFeatureFlag } from "./utils/accessors";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
