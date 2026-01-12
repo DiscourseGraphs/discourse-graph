@@ -22,7 +22,7 @@ const findDiscourseNode = ({
         ? matchDiscourseNode({ ...node, uid })
         : matchDiscourseNode({ ...node, title }),
     ) || false;
-  if (uid) discourseNodeTypeCache[uid] = matchingNode;
+  discourseNodeTypeCache[uid] = matchingNode;
   return matchingNode;
 };
 export default findDiscourseNode;
