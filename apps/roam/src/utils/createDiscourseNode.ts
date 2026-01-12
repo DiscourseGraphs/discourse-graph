@@ -7,7 +7,6 @@ import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParen
 import getSubTree from "roamjs-components/util/getSubTree";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getDiscourseNodes from "./getDiscourseNodes";
-import isFlagEnabled from "./isFlagEnabled";
 import resolveQueryBuilderRef from "./resolveQueryBuilderRef";
 import { OnloadArgs, RoamBasicNode } from "roamjs-components/types";
 import runQuery from "./runQuery";
