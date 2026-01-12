@@ -9,6 +9,28 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 - Minor version bumps are released on a regular cadence.
 - Patch version bumps are for bugfixes and hotfixes.
 
+## [0.16.0] - 2026-01-11
+
+### Added
+
+- **Base JSON-LD export**
+- **Canvas clipboard:** add a canvas page to the clipboard to view all nodes on that canvas
+- **Left sidebar:** allow editing of section names
+- **Query Builder:** column view "render" added, uses `renderString` API to render links, block references, etc
+
+### Changed
+
+- **Query metadata is hidden by default**, plus a command palette command to toggle it
+- **Performance:** optimize Discourse Node page observer checks
+
+### Fixed
+
+- **Discourse Context Overlay:**
+  - fix failure to add reified relations from the overlay
+  - component not loading
+- **Canvas:** inconsistent “send nodes to canvas” behavior
+- **Relations:** prevent moving the entire relation arrow; drag only changes bend in Roam
+
 ## [0.15.0] - 2025-12-24
 
 ### Added
