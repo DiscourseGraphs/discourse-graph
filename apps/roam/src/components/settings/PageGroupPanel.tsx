@@ -132,7 +132,7 @@ const PageGroupsPanel = ({
             key={groupKey}
             value={newGroupName}
             onChange={(e) => handleNewGroupNameChange(e.target.value)}
-            placeholder="Page group name ..."
+            placeholder="Page group name"
           />
           <Button
             icon="plus"
