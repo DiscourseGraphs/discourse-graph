@@ -17,6 +17,10 @@ import {
   onPageRefObserverChange,
 } from "./pageRefObserverHandlers";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
+import {
+  getPersonalSetting,
+  setPersonalSetting,
+} from "~/components/settings/utils/accessors";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
@@ -139,21 +143,11 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
 
   const renderSettingsPopup = () => renderSettings({ onloadArgs });
 
-  const toggleDiscourseContextOverlay = async () => {
+  const toggleDiscourseContextOverlay = () => {
     const currentValue =
-      (extensionAPI.settings.get("discourse-context-overlay") as boolean) ??
-      false;
+      getPersonalSetting<boolean>(["Discourse Context Overlay"]) ?? false;
     const newValue = !currentValue;
-    try {
-      await extensionAPI.settings.set("discourse-context-overlay", newValue);
-    } catch (error) {
-      const e = error as Error;
-      renderToast({
-        id: "discourse-context-overlay-toggle-error",
-        content: `Failed to toggle discourse context overlay: ${e.message}`,
-      });
-      return;
-    }
+    setPersonalSetting(["Discourse Context Overlay"], newValue);
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(newValue);
     renderToast({
