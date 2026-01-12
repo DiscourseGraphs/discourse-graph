@@ -12,6 +12,7 @@ import {
 } from "@blueprintjs/core";
 import { FeedbackWidget } from "./BirdEatsBugs";
 import { render as renderSettings } from "~/components/settings/Settings";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
 
 type DiscourseFloatingMenuProps = {
   // CSS placement class
@@ -118,7 +119,7 @@ export const installDiscourseFloatingMenu = (
     floatingMenuAnchor.id = ANCHOR_ID;
     document.getElementById("app")?.appendChild(floatingMenuAnchor);
   }
-  if (onLoadArgs.extensionAPI.settings.get("hide-feedback-button") as boolean) {
+  if (getPersonalSetting<boolean>(["Hide Feedback Button"])) {
     floatingMenuAnchor.classList.add("hidden");
   }
   ReactDOM.render(
