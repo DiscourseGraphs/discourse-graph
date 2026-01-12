@@ -13,7 +13,10 @@ import {
   type DiscourseNodeSettings,
 } from "./zodSchema";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { unmountLeftSidebar, remountLeftSidebar } from "~/components/LeftSidebarView";
+import {
+  unmountLeftSidebar,
+  remountLeftSidebar,
+} from "~/components/LeftSidebarView";
 
 type PullWatchCallback = Parameters<AddPullWatch>[2];
 
@@ -85,6 +88,7 @@ const addPullWatch = (
 };
 
 
+
 export const featureFlagHandlers: Partial<
   Record<keyof FeatureFlags, (newValue: boolean, oldValue: boolean, allFlags: FeatureFlags) => void>
 > = {
@@ -92,20 +96,8 @@ export const featureFlagHandlers: Partial<
     if (newValue !== oldValue) {
       if (newValue) {
         void remountLeftSidebar();
-        renderToast({
-          id: "left-sidebar-enabled",
-          content: "Left Sidebar enabled.",
-          intent: "success",
-          timeout: 3000,
-        });
       } else {
         unmountLeftSidebar();
-        renderToast({
-          id: "left-sidebar-disabled",
-          content: "Left Sidebar disabled.",
-          intent: "primary",
-          timeout: 3000,
-        });
       }
     }
   },
@@ -233,6 +225,7 @@ export const setupPullWatchOnSettingsPage = (
               newSettings,
             );
           }
+
         }
       }
     ));
@@ -252,6 +245,7 @@ export const setupPullWatchOnSettingsPage = (
               newSettings,
             );
           }
+
         }
       }
     ));
@@ -259,7 +253,6 @@ export const setupPullWatchOnSettingsPage = (
 
   return createCleanupFn(watches);
 };
-
 
 export const setupPullWatchDiscourseNodes = (
   nodePageUids: Record<string, string>,
