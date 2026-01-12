@@ -13,9 +13,9 @@ import {
   type DiscourseNodeSettings,
 } from "./zodSchema";
 import {
-  unmountLeftSidebar,
   remountLeftSidebar,
-} from "~/components/LeftSidebarView";
+  unmountLeftSidebar,
+} from "~/components/LeftSidebar/lifecycle";
 import {
   initializeSupabaseSync,
   setSyncActivity,
@@ -96,30 +96,28 @@ const addPullWatch = (
 export const featureFlagHandlers: Partial<
   Record<keyof FeatureFlags, (newValue: boolean, oldValue: boolean, allFlags: FeatureFlags) => void>
 > = {
-  "Enable Left Sidebar": (newValue, oldValue) => {
-    if (newValue !== oldValue) {
-      emitFeatureFlagChange("Enable Left Sidebar", newValue);
-      if (newValue) {
-        void remountLeftSidebar();
-      } else {
-        unmountLeftSidebar();
-      }
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  "Enable Left Sidebar": (newValue) => {
+    emitFeatureFlagChange("Enable Left Sidebar", newValue);
+    if (newValue) {
+      void remountLeftSidebar();
+    } else {
+      unmountLeftSidebar();
     }
   },
-  "Suggestive Mode Enabled": (newValue, oldValue) => {
-    if (newValue !== oldValue) {
-      emitFeatureFlagChange("Suggestive Mode Enabled", newValue);
-      if (newValue) {
-        initializeSupabaseSync();
-      } else {
-        setSyncActivity(false);
-      }
+  // eslint-disable-next-line @typescript-eslint/naming-convention 
+  "Suggestive Mode Enabled": (newValue) => {
+    emitFeatureFlagChange("Suggestive Mode Enabled", newValue);
+    if (newValue) {
+      initializeSupabaseSync();
+    } else {
+      setSyncActivity(false);
     }
   },
-  "Reified Relation Triples": (newValue, oldValue) => {
-    if (newValue !== oldValue) {
-      emitFeatureFlagChange("Reified Relation Triples", newValue);
-    }
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention 
+  "Reified Relation Triples": (newValue) => {
+    emitFeatureFlagChange("Reified Relation Triples", newValue);
   },
 };
 

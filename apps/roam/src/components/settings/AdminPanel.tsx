@@ -30,7 +30,7 @@ import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
-import { BlockPropFeatureFlagPanel } from "./components/BlockPropFeatureFlagPanel";
+import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 import { useFeatureFlag } from "./utils/hooks";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
@@ -339,7 +339,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <BlockPropFeatureFlagPanel
+      <FeatureFlagPanel
         title="(BETA) Suggestive Mode Enabled"
         description="Whether or not to enable the suggestive mode, if this is first time enabling it, you will need to generate and upload all node embeddings to supabase. Go to Suggestive Mode -> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"
         featureKey="Suggestive Mode Enabled"
@@ -390,7 +390,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
         </p>
       </Alert>
 
-      <BlockPropFeatureFlagPanel
+      <FeatureFlagPanel
         title="Reified Relation Triples"
         description="When ON, relations are read/written as reifiedRelationUid in [[roam/js/discourse-graph/relations]]."
         featureKey="Reified Relation Triples"
