@@ -30,6 +30,6 @@
     "tailwindConfig": "./packages/tailwind-config/tailwind.config.ts"
   },
   "dependencies": {
-    "posthog-js": "^1.306.1"
+    "posthog-js": "catalog:"
   }
 }
