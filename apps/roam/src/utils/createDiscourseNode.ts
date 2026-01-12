@@ -8,6 +8,7 @@ import getSubTree from "roamjs-components/util/getSubTree";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getDiscourseNodes from "./getDiscourseNodes";
 import isFlagEnabled from "./isFlagEnabled";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import resolveQueryBuilderRef from "./resolveQueryBuilderRef";
 import { OnloadArgs, RoamBasicNode } from "roamjs-components/types";
 import runQuery from "./runQuery";
@@ -33,7 +34,7 @@ const createDiscourseNode = async ({
     text: text,
   });
   const handleOpenInSidebar = (uid: string) => {
-    if (extensionAPI?.settings.get("disable-sidebar-open")) return;
+    if (getPersonalSetting<boolean>(["Disable Sidebar Open"])) return;
     openBlockInSidebar(uid);
     setTimeout(() => {
       const sidebarTitle = document.querySelector(

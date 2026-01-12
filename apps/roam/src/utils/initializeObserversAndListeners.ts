@@ -53,6 +53,7 @@ import { getCleanTagText } from "~/components/settings/NodeConfig";
 import {
   getFeatureFlag,
   getGlobalSetting,
+  getPersonalSetting,
 } from "~/components/settings/utils/accessors";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
@@ -187,7 +188,7 @@ export const initObservers = async ({
       });
   }) as EventListener;
 
-  if (onloadArgs.extensionAPI.settings.get("suggestive-mode-overlay")) {
+  if (getPersonalSetting<boolean>(["Suggestive Mode Overlay"])) {
     addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
 
@@ -210,9 +211,9 @@ export const initObservers = async ({
     },
   });
 
-  if (onloadArgs.extensionAPI.settings.get("page-preview"))
+  if (getPersonalSetting<boolean>(["Page Preview"]))
     addPageRefObserver(previewPageRefHandler);
-  if (onloadArgs.extensionAPI.settings.get("discourse-context-overlay")) {
+  if (getPersonalSetting<boolean>(["Discourse Context Overlay"])) {
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(true);
   }
@@ -363,7 +364,7 @@ export const initObservers = async ({
 
   const nodeCreationPopoverListener = debounce(() => {
     const isTextSelectionPopupEnabled =
-      onloadArgs.extensionAPI.settings.get("text-selection-popup") !== false;
+      getPersonalSetting<boolean>(["Text Selection Popup"]) !== false;
 
     if (!isTextSelectionPopupEnabled) return;
 
