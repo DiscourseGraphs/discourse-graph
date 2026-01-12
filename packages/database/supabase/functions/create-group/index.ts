@@ -7,7 +7,7 @@ import { createClient, type UserResponse } from "@supabase/supabase-js";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 
 // The following lines are duplicated from apps/website/app/utils/llm/cors.ts
-const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000"];
+const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000", "app://obsidian.md"];
 
 const isVercelPreviewUrl = (origin: string): boolean =>
   /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin);
