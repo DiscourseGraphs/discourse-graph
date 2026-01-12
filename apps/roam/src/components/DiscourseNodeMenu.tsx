@@ -443,7 +443,7 @@ export const NodeMenuTriggerComponent = ({
   return (
     <InputGroup
       inputRef={inputRef}
-      placeholder={isActive ? "Press keys ..." : "Click to set trigger"}
+      placeholder={isActive ? "Press keys" : "Click to set trigger"}
       value={shortcut}
       onKeyDown={handleKeyDown}
       onFocus={() => setIsActive(true)}

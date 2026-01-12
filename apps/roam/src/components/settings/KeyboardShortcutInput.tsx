@@ -67,7 +67,7 @@ const KeyboardShortcutInput = ({
   settingKey,
   label,
   description,
-  placeholder = "Click to set shortcut...",
+  placeholder = "Click to set shortcut",
 }: KeyboardShortcutInputProps) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -141,7 +141,7 @@ const KeyboardShortcutInput = ({
       <Description description={description} />
       <InputGroup
         inputRef={inputRef}
-        placeholder={isActive ? "Press keys ..." : placeholder}
+        placeholder={isActive ? "Press keys" : placeholder}
         value={shortcut}
         onKeyDown={handleKeyDown}
         onFocus={() => setIsActive(true)}
