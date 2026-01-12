@@ -25,6 +25,7 @@ import { Column } from "~/utils/types";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import posthog from "posthog-js";
 import parseResultSettings from "~/utils/parseResultSettings";
+import { HIDE_METADATA_KEY } from "~/data/userSettings";
 
 type QueryPageComponent = (props: {
   pageUid: string;
@@ -37,7 +38,9 @@ type Props = Parameters<QueryPageComponent>[0];
 const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
   const extensionAPI = useExtensionAPI();
   const hideMetadata = useMemo(
-    () => !!extensionAPI && !!extensionAPI.settings.get("hide-metadata"),
+    () =>
+      !!extensionAPI &&
+      ((extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean) ?? true),
     [extensionAPI],
   );
   const tree = useMemo(() => getBasicTreeByParentUid(pageUid), [pageUid]);
