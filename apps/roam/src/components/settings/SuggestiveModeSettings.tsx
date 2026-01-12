@@ -8,27 +8,20 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { BlockPropFlagPanel } from "./components/BlockPropGlobalSettingPanels";
-import { getGlobalSetting } from "./utils/accessors";
+import { GlobalFlagPanel } from "./components/BlockPropSettingPanels";
 
 const SuggestiveModeSettings = () => {
-  // Keep old config tree for PageGroups (not yet migrated)
   const settings = getFormattedConfigTree();
-  const pageGroupsUid = settings.suggestiveMode.pageGroups.uid;
 
   const [suggestiveModeUid, setSuggestiveModeUid] = useState(
     settings.suggestiveMode.parentUid,
   );
+  const pageGroupsUid = settings.suggestiveMode.pageGroups.uid;
 
-  // Track includePageRelations to control the disabled state of includeParentAndChildren
-  const [includePageRelations, setIncludePageRelations] = useState(() =>
-    getGlobalSetting<boolean>([
-      "Suggestive Mode",
-      "Include Current Page Relations",
-    ]),
+  const [includePageRelations, setIncludePageRelations] = useState(
+    settings.suggestiveMode.includePageRelations.value,
   );
 
-  // Keep this useEffect for PageGroups compatibility (old system)
   useEffect(() => {
     if (suggestiveModeUid) return;
     void (async () => {
@@ -39,6 +32,9 @@ const SuggestiveModeSettings = () => {
       setSuggestiveModeUid(smUid);
     })();
   }, [suggestiveModeUid]);
+
+  const effectiveSuggestiveModeUid =
+  suggestiveModeUid || settings.suggestiveMode.parentUid;
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("page-groups");
 
@@ -68,14 +64,17 @@ const SuggestiveModeSettings = () => {
           panel={
             <div className="flex flex-col gap-4 p-1">
               <div className="sync-config-settings">
-                <BlockPropFlagPanel
+                <GlobalFlagPanel
                   title="Include Current Page Relations"
                   description="Include relations from pages referenced on the current page"
                   settingKeys={["Suggestive Mode", "Include Current Page Relations"]}
+                  order={0}
+                  uid={settings.suggestiveMode.includePageRelations.uid}
+                  parentUid={effectiveSuggestiveModeUid}
                   onChange={setIncludePageRelations}
                 />
 
-                <BlockPropFlagPanel
+                <GlobalFlagPanel
                   title="Include Parent And Child Blocks"
                   description={
                     includePageRelations
@@ -83,6 +82,9 @@ const SuggestiveModeSettings = () => {
                       : "Include relations from parent and child blocks"
                   }
                   settingKeys={["Suggestive Mode", "Include Parent And Child Blocks"]}
+                  order={1}
+                  uid={settings.suggestiveMode.includeParentAndChildren.uid}
+                  parentUid={effectiveSuggestiveModeUid}
                   disabled={includePageRelations}
                 />
               </div>
