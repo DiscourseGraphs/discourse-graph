@@ -16,6 +16,7 @@ import {
   getOverlayHandler,
   onPageRefObserverChange,
 } from "./pageRefObserverHandlers";
+import { HIDE_METADATA_KEY } from "~/data/userSettings";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
@@ -161,6 +162,26 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     });
   };
 
+  const toggleQueryMetadata = async () => {
+    const currentValue =
+      (extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean) ?? true;
+    const newValue = !currentValue;
+    try {
+      await extensionAPI.settings.set(HIDE_METADATA_KEY, newValue);
+    } catch (error) {
+      const e = error as Error;
+      renderToast({
+        id: "query-metadata-toggle-error",
+        content: `Failed to toggle query metadata: ${e.message}`,
+      });
+      return;
+    }
+    renderToast({
+      id: "query-metadata-toggle",
+      content: `Query metadata ${newValue ? "hidden" : "shown"}`,
+    });
+  };
+
   const addCommand = (label: string, callback: () => void) => {
     return extensionAPI.ui.commandPalette.addCommand({
       label,
@@ -176,6 +197,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand(
     "DG: Toggle - Discourse context overlay",
     toggleDiscourseContextOverlay,
+  );
+  void addCommand(
+    "DG: Toggle - Hide query metadata",
+    () => void toggleQueryMetadata(),
   );
   void addCommand("DG: Query block - Create", createQueryBlock);
   void addCommand("DG: Query block - Refresh", refreshCurrentQueryBuilder);

@@ -11,6 +11,7 @@ import getSettingValuesFromTree from "roamjs-components/util/getSettingValuesFro
 import {
   DEFAULT_FILTERS_KEY,
   DEFAULT_PAGE_SIZE_KEY,
+  HIDE_METADATA_KEY,
 } from "~/data/userSettings";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 
@@ -81,6 +82,8 @@ export const getSettings = (extensionAPI?: OnloadArgs["extensionAPI"]) => {
     ),
     globalPageSize:
       Number(extensionAPI?.settings.get(DEFAULT_PAGE_SIZE_KEY)) || 10,
+    hideMetadata:
+      (extensionAPI?.settings.get(HIDE_METADATA_KEY) as boolean) ?? true,
   };
 };
 

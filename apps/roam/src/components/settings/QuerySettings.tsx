@@ -6,20 +6,21 @@ import { getSettings } from "~/utils/parseResultSettings";
 import { DEFAULT_PAGE_SIZE_KEY, HIDE_METADATA_KEY } from "~/data/userSettings";
 import DefaultFilters from "./DefaultFilters";
 import QueryPagesPanel from "./QueryPagesPanel";
+import { setSetting } from "~/utils/extensionSettings";
 
 const QuerySettings = ({
   extensionAPI,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
 }) => {
-  const { globalPageSize } = getSettings(extensionAPI);
+  const { globalPageSize, hideMetadata } = getSettings(extensionAPI);
   return (
     <div className="flex flex-col gap-4 p-1">
       <Checkbox
-        defaultChecked={extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean}
+        defaultChecked={hideMetadata}
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set(HIDE_METADATA_KEY, target.checked);
+          void setSetting<boolean>(HIDE_METADATA_KEY, target.checked);
         }}
         labelElement={
           <>
@@ -40,7 +41,7 @@ const QuerySettings = ({
         <NumericInput
           defaultValue={globalPageSize.toString()}
           onValueChange={(value) =>
-            extensionAPI.settings.set(DEFAULT_PAGE_SIZE_KEY, value)
+            void extensionAPI.settings.set(DEFAULT_PAGE_SIZE_KEY, value)
           }
         />
       </Label>
