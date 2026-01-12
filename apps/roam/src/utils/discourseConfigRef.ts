@@ -4,8 +4,6 @@ import {
   StringSetting,
   ExportConfigWithUids,
   getUidAndStringSetting,
-  getUidAndBooleanSetting,
-  BooleanSetting,
 } from "./getExportSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -44,8 +42,6 @@ type FormattedConfigTree = {
   canvasPageFormat: StringSetting;
   suggestiveMode: SuggestiveModeConfigWithUids;
   leftSidebar: LeftSidebarConfig;
-  leftSidebarEnabled: BooleanSetting;
-  suggestiveModeEnabled: BooleanSetting;
 };
 
 export const getFormattedConfigTree = (): FormattedConfigTree => {
@@ -74,14 +70,6 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
     }),
     suggestiveMode: getSuggestiveModeConfigAndUids(configTreeRef.tree),
     leftSidebar: getLeftSidebarSettings(configTreeRef.tree),
-    leftSidebarEnabled: getUidAndBooleanSetting({
-      tree: configTreeRef.tree,
-      text: "(BETA) Left Sidebar",
-    }),
-    suggestiveModeEnabled: getUidAndBooleanSetting({
-      tree: configTreeRef.tree,
-      text: "(BETA) Suggestive Mode Enabled",
-    }),
   };
 };
 export default configTreeRef;
