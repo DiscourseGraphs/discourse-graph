@@ -1,33 +1,20 @@
-import React, { useMemo } from "react";
-import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
-import refreshConfigTree from "~/utils/refreshConfigTree";
+import React from "react";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
-import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
+import { FeatureFlagPanel, GlobalTextPanel } from "./components/BlockPropSettingPanels";
 
 const DiscourseGraphHome = () => {
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
-
   return (
     <div className="flex flex-col gap-4 p-1">
-      <TextPanel
+      <GlobalTextPanel
         title="trigger"
         description="The trigger to create the node menu."
-        order={0}
-        uid={settings.trigger.uid}
-        parentUid={settings.settingsUid}
-        value={settings.trigger.value}
+        settingKeys={["Trigger"]}
+        defaultValue="\\"
       />
-      <TextPanel
+      <GlobalTextPanel
         title="Canvas Page Format"
         description="The page format for canvas pages"
-        order={1}
-        uid={settings.canvasPageFormat.uid}
-        parentUid={settings.settingsUid}
-        value={settings.canvasPageFormat.value}
+        settingKeys={["Canvas Page Format"]}
         defaultValue={DEFAULT_CANVAS_PAGE_FORMAT}
       />
       <FeatureFlagPanel
