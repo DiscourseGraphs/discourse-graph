@@ -15,7 +15,10 @@ import {
   type DiscourseNodeSettings,
 } from "./zodSchema";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { unmountLeftSidebar, remountLeftSidebar } from "~/components/LeftSidebarView";
+import {
+  unmountLeftSidebar,
+  remountLeftSidebar,
+} from "~/components/LeftSidebarView";
 
 type PullWatchCallback = (before: unknown, after: unknown) => void;
 
@@ -72,13 +75,17 @@ type FeatureFlagHandler = (
   allSettings: FeatureFlags,
 ) => void;
 
-type GlobalSettingHandler<K extends keyof GlobalSettings = keyof GlobalSettings> = (
+type GlobalSettingHandler<
+  K extends keyof GlobalSettings = keyof GlobalSettings,
+> = (
   newValue: GlobalSettings[K],
   oldValue: GlobalSettings[K],
   allSettings: GlobalSettings,
 ) => void;
 
-type PersonalSettingHandler<K extends keyof PersonalSettings = keyof PersonalSettings> = (
+type PersonalSettingHandler<
+  K extends keyof PersonalSettings = keyof PersonalSettings,
+> = (
   newValue: PersonalSettings[K],
   oldValue: PersonalSettings[K],
   allSettings: PersonalSettings,
@@ -97,20 +104,8 @@ export const featureFlagHandlers: Partial<
     if (newValue !== oldValue) {
       if (newValue) {
         void remountLeftSidebar();
-        renderToast({
-          id: "left-sidebar-enabled",
-          content: "Left Sidebar enabled.",
-          intent: "success",
-          timeout: 3000,
-        });
       } else {
         unmountLeftSidebar();
-        renderToast({
-          id: "left-sidebar-disabled",
-          content: "Left Sidebar disabled.",
-          intent: "primary",
-          timeout: 3000,
-        });
       }
     }
   },
@@ -157,12 +152,10 @@ export const personalSettingsHandlers: Partial<
   // etc.
 };
 
-
 export const discourseNodeHandlers: DiscourseNodeHandler[] = [
   // Add handlers as needed:
   // (nodeType, newSettings, oldSettings) => { ... },
 ];
-
 
 export const setupPullWatchSettings = (
   blockUids: Record<string, string>,
@@ -202,7 +195,10 @@ export const setupPullWatchSettings = (
     });
   }
 
-  if (globalSettingsBlockUid && Object.keys(globalSettingsHandlers).length > 0) {
+  if (
+    globalSettingsBlockUid &&
+    Object.keys(globalSettingsHandlers).length > 0
+  ) {
     addPullWatch(watches, globalSettingsBlockUid, (before, after) => {
       if (!hasPropChanged(before, after)) return;
 
@@ -229,7 +225,10 @@ export const setupPullWatchSettings = (
     });
   }
 
-  if (personalSettingsBlockUid && Object.keys(personalSettingsHandlers).length > 0) {
+  if (
+    personalSettingsBlockUid &&
+    Object.keys(personalSettingsHandlers).length > 0
+  ) {
     addPullWatch(watches, personalSettingsBlockUid, (before, after) => {
       if (!hasPropChanged(before, after)) return;
 
@@ -258,7 +257,6 @@ export const setupPullWatchSettings = (
 
   return createCleanupFn(watches);
 };
-
 
 export const setupPullWatchDiscourseNodes = (
   nodePageUids: Record<string, string>,
@@ -291,6 +289,5 @@ export const setupPullWatchDiscourseNodes = (
 
   return createCleanupFn(watches);
 };
-
 
 export { hasPropChanged, getNormalizedProps };
