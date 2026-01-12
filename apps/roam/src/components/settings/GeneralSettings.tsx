@@ -1,13 +1,12 @@
 import React, { useMemo, useState } from "react";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 import { Alert, Intent } from "@blueprintjs/core";
-import {  GlobalTextPanel } from "./components/BlockPropSettingPanels";
+import { GlobalTextPanel, FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 
 const DiscourseGraphHome = () => {
-    const settings = useMemo(() => {
+  const settings = useMemo(() => {
     refreshConfigTree();
     return getFormattedConfigTree();
   }, []);
@@ -20,26 +19,30 @@ const DiscourseGraphHome = () => {
         description="The trigger to create the node menu."
         settingKeys={["Trigger"]}
         defaultValue="\\"
+        order={0}
+        uid={settings.trigger.uid}
+        parentUid={settings.settingsUid}
       />
       <GlobalTextPanel
         title="Canvas Page Format"
         description="The page format for canvas pages"
         settingKeys={["Canvas Page Format"]}
         defaultValue={DEFAULT_CANVAS_PAGE_FORMAT}
+        order={1}
+        uid={settings.canvasPageFormat.uid}
+        parentUid={settings.settingsUid}
       />
-      <FlagPanel
+      <FeatureFlagPanel
         title="(BETA) Left Sidebar"
         description="Whether or not to enable the left sidebar."
+        featureKey="Enable Left Sidebar"
         order={2}
         uid={settings.leftSidebarEnabled.uid}
         parentUid={settings.settingsUid}
-        value={settings.leftSidebarEnabled.value || false}
-        options={{
-          onChange: (checked: boolean) => {
-            if (checked) {
-              setIsAlertOpen(true);
-            }
-          },
+        onAfterChange={(checked: boolean) => {
+          if (checked) {
+            setIsAlertOpen(true);
+          }
         }}
       />
       <Alert
