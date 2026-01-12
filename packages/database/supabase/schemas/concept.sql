@@ -459,7 +459,7 @@ CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (public
 DROP POLICY IF EXISTS concept_insert_policy ON public."Concept";
 CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (public.in_space(space_id));
 DROP POLICY IF EXISTS concept_update_policy ON public."Concept";
-CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE WITH CHECK (public.in_space(space_id));
+CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (public.in_space(space_id));
 
 ALTER TABLE public."ConceptAccess" ENABLE ROW LEVEL SECURITY;
 
@@ -471,4 +471,4 @@ CREATE POLICY concept_access_delete_policy ON public."ConceptAccess" FOR DELETE 
 DROP POLICY IF EXISTS concept_access_insert_policy ON public."ConceptAccess";
 CREATE POLICY concept_access_insert_policy ON public."ConceptAccess" FOR INSERT WITH CHECK (public.concept_in_editable_space(concept_id));
 DROP POLICY IF EXISTS concept_access_update_policy ON public."ConceptAccess";
-CREATE POLICY concept_access_update_policy ON public."ConceptAccess" FOR UPDATE WITH CHECK (public.concept_in_editable_space(concept_id));
+CREATE POLICY concept_access_update_policy ON public."ConceptAccess" FOR UPDATE USING (public.concept_in_editable_space(concept_id));

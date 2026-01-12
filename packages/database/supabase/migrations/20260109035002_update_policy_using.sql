@@ -1,0 +1,18 @@
+DROP POLICY IF EXISTS content_update_policy ON public."Content";
+CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (public.in_space(space_id));
+DROP POLICY content_access_update_policy ON public."ContentAccess";
+CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE USING (public.content_in_editable_space(content_id));
+DROP POLICY concept_update_policy ON public."Concept";
+CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (public.in_space(space_id));
+DROP POLICY concept_access_update_policy ON public."ConceptAccess";
+CREATE POLICY concept_access_update_policy ON public."ConceptAccess" FOR UPDATE USING (public.concept_in_editable_space(concept_id));
+DROP POLICY platform_account_update_policy ON public."PlatformAccount";
+CREATE POLICY platform_account_update_policy ON public."PlatformAccount" FOR UPDATE USING (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id)));
+DROP POLICY space_access_update_policy ON public."SpaceAccess";
+CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE USING (account_uid = auth.uid());
+DROP POLICY local_access_update_policy ON public."LocalAccess";
+CREATE POLICY local_access_update_policy ON public."LocalAccess" FOR UPDATE USING (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
+DROP POLICY agent_identifier_update_policy ON public."AgentIdentifier";
+CREATE POLICY agent_identifier_update_policy ON public."AgentIdentifier" FOR UPDATE USING (public.unowned_account_in_shared_space(account_id) OR public.is_my_account(account_id));
+DROP POLICY group_membership_update_policy ON public.group_membership;
+CREATE POLICY group_membership_update_policy ON public.group_membership FOR UPDATE USING (public.is_group_admin(group_id));

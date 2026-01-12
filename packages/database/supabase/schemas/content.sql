@@ -660,7 +660,7 @@ CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (public
 DROP POLICY IF EXISTS content_insert_policy ON public."Content";
 CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (public.in_space(space_id));
 DROP POLICY IF EXISTS content_update_policy ON public."Content";
-CREATE POLICY content_update_policy ON public."Content" FOR UPDATE WITH CHECK (public.in_space(space_id));
+CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (public.in_space(space_id));
 
 ALTER TABLE public."ContentAccess" ENABLE ROW LEVEL SECURITY;
 
@@ -672,4 +672,4 @@ CREATE POLICY content_access_delete_policy ON public."ContentAccess" FOR DELETE 
 DROP POLICY IF EXISTS content_access_insert_policy ON public."ContentAccess";
 CREATE POLICY content_access_insert_policy ON public."ContentAccess" FOR INSERT WITH CHECK (public.content_in_editable_space(content_id));
 DROP POLICY IF EXISTS content_access_update_policy ON public."ContentAccess";
-CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE WITH CHECK (public.content_in_editable_space(content_id));
+CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE USING (public.content_in_editable_space(content_id));
