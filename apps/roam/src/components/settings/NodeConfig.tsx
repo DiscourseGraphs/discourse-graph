@@ -3,7 +3,6 @@ import React, {
   useCallback,
   useRef,
   useEffect,
-  useMemo,
 } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
@@ -29,7 +28,7 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
-import { getFeatureFlag } from "./utils/accessors";
+import { useFeatureFlag } from "./utils/hooks";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 
 export const getCleanTagText = (tag: string): string => {
@@ -172,7 +171,7 @@ const NodeConfig = ({
   node: DiscourseNode;
   onloadArgs: OnloadArgs;
 }) => {
-  const suggestiveModeEnabled = useMemo(() => getFeatureFlag("Suggestive Mode Enabled"), []);
+  const suggestiveModeEnabled = useFeatureFlag("Suggestive Mode Enabled");
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,

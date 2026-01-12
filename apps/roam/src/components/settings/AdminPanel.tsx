@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Button,
   Checkbox,
@@ -31,7 +31,7 @@ import { DGSupabaseClient } from "@repo/database/lib/client";
 import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import { BlockPropFeatureFlagPanel } from "./components/BlockPropFeatureFlagPanel";
-import { getFeatureFlag } from "./utils/accessors";
+import { useFeatureFlag } from "./utils/hooks";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -256,7 +256,7 @@ const MigrationTab = (): React.ReactElement => {
   const [useMigrationResults, setMigrationResults] = useState<string>("");
   const [useOngoing, setOngoing] = useState<boolean>(false);
   const [useDryRun, setDryRun] = useState<boolean>(false);
-  const enabled = getFeatureFlag("Reified Relation Triples");
+  const enabled = useFeatureFlag("Reified Relation Triples");
   const doMigrateRelations = async () => {
     setOngoing(true);
     try {
@@ -375,10 +375,9 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
       <Alert
         isOpen={isInstructionOpen}
-        onConfirm={() => window.location.reload()}
+        onConfirm={() => setIsInstructionOpen(false)}
         onCancel={() => setIsInstructionOpen(false)}
-        confirmButtonText="Reload Graph"
-        cancelButtonText="Later"
+        confirmButtonText="Got it"
         intent={Intent.PRIMARY}
       >
         <p>
@@ -386,12 +385,8 @@ const FeatureFlagsTab = (): React.ReactElement => {
           upload all node embeddings to supabase.
         </p>
         <p>
-          Please reload the graph to see the new &apos;Suggestive Mode&apos;
-          tab.
-        </p>
-        <p>
-          Then go to Suggestive Mode{" "}
-          {"-> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"}
+          Go to the new &apos;Suggestive Mode&apos; tab, then Sync Config{" "}
+          {"-> Click on 'Generate & Upload All Node Embeddings'"}
         </p>
       </Alert>
 
@@ -422,10 +417,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
 const AdminPanel = (): React.ReactElement => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
-  const suggestiveModeEnabled = useMemo(
-    () => getFeatureFlag("Suggestive Mode Enabled"),
-    [],
-  );
+  const suggestiveModeEnabled = useFeatureFlag("Suggestive Mode Enabled");
 
   return (
     <Tabs

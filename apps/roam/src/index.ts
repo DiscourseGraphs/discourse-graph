@@ -31,10 +31,6 @@ import {
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
-import { getUidAndBooleanSetting } from "./utils/getExportSettings";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "./utils/renderNodeConfigPage";
 import { getSetting } from "./utils/extensionSettings";
 import { initPostHog } from "./utils/posthog";
 import {
@@ -42,10 +38,15 @@ import {
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
 import { initSchema } from "./components/settings/utils/init";
+<<<<<<< HEAD
 import {
   setupPullWatchOnSettingsPage,
   setupPullWatchDiscourseNodes,
 } from "./components/settings/utils/pullWatchers";
+=======
+import { setupPullWatchSettings } from "./components/settings/utils/pullWatchers";
+import { getFeatureFlag } from "./components/settings/utils/accessors";
+>>>>>>> a3a8ea85 (make feature flags fully reactive)
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -83,10 +84,17 @@ export default runExtension(async (onloadArgs) => {
   await initializeDiscourseNodes();
   refreshConfigTree();
 
+<<<<<<< HEAD
   // TODO: REMOVE stub call after testing - Initialize block prop settings and pull watchers
   const { blockUids, nodePageUids } = await initSchema();
   const cleanupSettingsWatchers = setupPullWatchOnSettingsPage(blockUids);
   const cleanupNodeWatchers = setupPullWatchDiscourseNodes(nodePageUids);
+=======
+  // For testing purposes
+  await initSchema();
+  const { blockUids } = await initSchema();
+  const cleanupPullWatch = setupPullWatchSettings(blockUids);
+>>>>>>> a3a8ea85 (make feature flags fully reactive)
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
@@ -120,14 +128,9 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  const isSuggestiveModeEnabled = getUidAndBooleanSetting({
-    tree: getBasicTreeByParentUid(
-      getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-    ),
-    text: "(BETA) Suggestive Mode Enabled",
-  }).value;
-
-  if (isSuggestiveModeEnabled) {
+  // Initialize sync if suggestive mode was already enabled before plugin load
+  // (pull watcher handles reactive changes after this)
+  if (getFeatureFlag("Suggestive Mode Enabled")) {
     initializeSupabaseSync();
   }
 
