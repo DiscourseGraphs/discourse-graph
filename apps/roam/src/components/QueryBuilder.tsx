@@ -39,8 +39,8 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
   const extensionAPI = useExtensionAPI();
   const hideMetadata = useMemo(
     () =>
-      !!extensionAPI &&
-      ((extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean) ?? true),
+      (extensionAPI?.settings.get(HIDE_METADATA_KEY) as boolean | undefined) ??
+      true,
     [extensionAPI],
   );
   const tree = useMemo(() => getBasicTreeByParentUid(pageUid), [pageUid]);
