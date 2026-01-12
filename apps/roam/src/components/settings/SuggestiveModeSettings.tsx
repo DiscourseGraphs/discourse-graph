@@ -8,7 +8,7 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { BlockPropFlagPanel } from "./components/BlockPropGlobalSettingPanels";
+import { GlobalFlagPanel } from "./components/BlockPropSettingPanels";
 import { getGlobalSetting } from "./utils/accessors";
 
 const SuggestiveModeSettings = () => {
@@ -68,14 +68,14 @@ const SuggestiveModeSettings = () => {
           panel={
             <div className="flex flex-col gap-4 p-1">
               <div className="sync-config-settings">
-                <BlockPropFlagPanel
+                <GlobalFlagPanel
                   title="Include Current Page Relations"
                   description="Include relations from pages referenced on the current page"
                   settingKeys={["Suggestive Mode", "Include Current Page Relations"]}
                   onChange={setIncludePageRelations}
                 />
 
-                <BlockPropFlagPanel
+                <GlobalFlagPanel
                   title="Include Parent And Child Blocks"
                   description={
                     includePageRelations
