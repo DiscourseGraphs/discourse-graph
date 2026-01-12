@@ -1,36 +1,30 @@
 import React, { useMemo, useState } from "react";
-import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 import { Alert, Intent } from "@blueprintjs/core";
+import {  GlobalTextPanel } from "./components/BlockPropSettingPanels";
 
 const DiscourseGraphHome = () => {
-  const settings = useMemo(() => {
+    const settings = useMemo(() => {
     refreshConfigTree();
     return getFormattedConfigTree();
   }, []);
 
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-
   return (
     <div className="flex flex-col gap-4 p-1">
-      <TextPanel
+      <GlobalTextPanel
         title="trigger"
         description="The trigger to create the node menu."
-        order={0}
-        uid={settings.trigger.uid}
-        parentUid={settings.settingsUid}
-        value={settings.trigger.value}
+        settingKeys={["Trigger"]}
+        defaultValue="\\"
       />
-      <TextPanel
+      <GlobalTextPanel
         title="Canvas Page Format"
         description="The page format for canvas pages"
-        order={1}
-        uid={settings.canvasPageFormat.uid}
-        parentUid={settings.settingsUid}
-        value={settings.canvasPageFormat.value}
+        settingKeys={["Canvas Page Format"]}
         defaultValue={DEFAULT_CANVAS_PAGE_FORMAT}
       />
       <FlagPanel
