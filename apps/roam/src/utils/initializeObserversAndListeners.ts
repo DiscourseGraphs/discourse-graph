@@ -95,11 +95,10 @@ export const initObservers = async ({
         text: "(BETA) Suggestive Mode Enabled",
       }).value;
 
-      const nodes = getDiscourseNodes();
-      const node = findDiscourseNode({ title, nodes });
+      const uid = getPageUidByPageTitle(title);
+      const node = findDiscourseNode({ uid, title });
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
-        const uid = getPageUidByPageTitle(title);
         if (isSuggestiveModeEnabled) {
           renderPossibleDuplicates(h1, title, node);
         }
