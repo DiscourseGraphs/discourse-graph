@@ -144,8 +144,9 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const renderSettingsPopup = () => renderSettings({ onloadArgs });
 
   const toggleDiscourseContextOverlay = () => {
-    const currentValue =
-      getPersonalSetting<boolean>(["Discourse Context Overlay"]) ?? false;
+    const currentValue = getPersonalSetting<boolean>([
+      "Discourse Context Overlay",
+    ])!;
     const newValue = !currentValue;
     setPersonalSetting(["Discourse Context Overlay"], newValue);
     const overlayHandler = getOverlayHandler(onloadArgs);
