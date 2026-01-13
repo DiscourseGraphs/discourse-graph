@@ -4,7 +4,6 @@ import CanvasReferences from "~/components/canvas/CanvasReferences";
 import { OnloadArgs } from "roamjs-components/types";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { handleTitleAdditions } from "./handleTitleAdditions";
-import nanoid from "nanoid";
 
 export const renderDiscourseContext = ({
   h1,
@@ -13,9 +12,14 @@ export const renderDiscourseContext = ({
   h1: HTMLHeadingElement;
   uid: string;
 }): void => {
+  if (document.getElementById("top-discourse-context")) return;
+
   handleTitleAdditions(
     h1,
-    createElement(DiscourseContextOverlay, { uid, id: nanoid() }),
+    createElement(DiscourseContextOverlay, {
+      uid,
+      id: "top-discourse-context",
+    }),
   );
 };
 
@@ -24,9 +28,9 @@ export const renderCanvasReferences = (
   uid: string,
   onloadArgs: OnloadArgs,
 ): void => {
-  if (div.getAttribute("data-roamjs-discourse-context")) return;
+  if (div.getAttribute("data-roamjs-canvas-reference")) return;
 
-  div.setAttribute("data-roamjs-discourse-context", "true");
+  div.setAttribute("data-roamjs-canvas-reference", "true");
   const parent = div.firstElementChild;
   if (!parent) return;
 
