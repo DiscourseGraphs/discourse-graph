@@ -1,10 +1,26 @@
 import { createElement } from "react";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
-import { DiscourseContext } from "~/components";
 import CanvasReferences from "~/components/canvas/CanvasReferences";
 import { OnloadArgs } from "roamjs-components/types";
+import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
+import { handleTitleAdditions } from "./handleTitleAdditions";
 
-export const renderDiscourseContextAndCanvasReferences = (
+export const renderDiscourseContext = ({
+  h1,
+  uid,
+  tag,
+}: {
+  h1: HTMLHeadingElement;
+  uid: string;
+  tag: string;
+}): void => {
+  handleTitleAdditions(
+    h1,
+    createElement(DiscourseContextOverlay, { uid, tag }),
+  );
+};
+
+export const renderCanvasReferences = (
   div: HTMLDivElement,
   uid: string,
   onloadArgs: OnloadArgs,
@@ -16,17 +32,6 @@ export const renderDiscourseContextAndCanvasReferences = (
   if (!parent) return;
 
   const insertBefore = parent.firstElementChild;
-
-  const p = document.createElement("div");
-  parent.insertBefore(p, insertBefore);
-  renderWithUnmount(
-    createElement(DiscourseContext, {
-      uid,
-      results: [],
-    }),
-    p,
-    onloadArgs,
-  );
 
   const canvasP = document.createElement("div");
   parent.insertBefore(canvasP, insertBefore);

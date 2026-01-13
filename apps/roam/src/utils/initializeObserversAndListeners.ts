@@ -4,7 +4,10 @@ import {
   getPageTitleValueByHtmlElement,
 } from "roamjs-components/dom";
 import { createBlock } from "roamjs-components/writes";
-import { renderDiscourseContextAndCanvasReferences } from "~/utils/renderLinkedReferenceAdditions";
+import {
+  renderCanvasReferences,
+  renderDiscourseContext,
+} from "~/utils/renderLinkedReferenceAdditions";
 import { createConfigObserver } from "roamjs-components/components/ConfigPage";
 import {
   renderTldrawCanvas,
@@ -112,6 +115,7 @@ export const initObservers = async ({
       const node = findDiscourseNode({ uid, title });
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
+        renderDiscourseContext({ h1, uid, tag: title });
         if (isSuggestiveModeEnabled) {
           renderPossibleDuplicates(h1, title, node);
         }
@@ -119,11 +123,7 @@ export const initObservers = async ({
           ".rm-reference-main",
         ) as HTMLDivElement;
         if (linkedReferencesDiv) {
-          renderDiscourseContextAndCanvasReferences(
-            linkedReferencesDiv,
-            uid,
-            onloadArgs,
-          );
+          renderCanvasReferences(linkedReferencesDiv, uid, onloadArgs);
         }
       }
 
@@ -232,7 +232,7 @@ export const initObservers = async ({
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(true);
   }
-  if (!!getPageRefObserversSize()) enablePageRefObserver();
+  if (getPageRefObserversSize()) enablePageRefObserver();
 
   const { pageUid: configPageUid, observer: configPageObserver } =
     await createConfigObserver({
