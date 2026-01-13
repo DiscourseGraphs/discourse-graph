@@ -16,8 +16,10 @@ import {
   setPersonalSetting,
   getFeatureFlag,
   setFeatureFlag,
-} from "~/components/settings/utils/accessors";
-import type { FeatureFlags } from "~/components/settings/utils/zodSchema";
+  getDiscourseNodeSetting,
+  setDiscourseNodeSetting,
+} from "../utils/accessors";
+import type { FeatureFlags } from "../utils/zodSchema";
 
 type RoamBlockSyncProps = {
   parentUid?: string;
@@ -531,4 +533,66 @@ export const PersonalSelectPanel = (props: SelectWrapperProps) => (
 
 export const PersonalMultiTextPanel = (props: MultiTextWrapperProps) => (
   <BaseMultiTextPanel {...props} {...personalAccessors.multiText} />
+
+const createDiscourseNodeGetter =
+  (nodeType: string) =>
+  <T,>(keys: string[]): T | undefined =>
+    getDiscourseNodeSetting<T>(nodeType, keys);
+
+const createDiscourseNodeSetter =
+  (nodeType: string) =>
+  (keys: string[], value: json): void =>
+    setDiscourseNodeSetting(nodeType, keys, value);
+
+type DiscourseNodeWrapperProps = WrapperProps & {
+  nodeType: string;
+};
+
+export const DiscourseNodeTextPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeWrapperProps & { defaultValue?: string; placeholder?: string }) => (
+  <BaseTextPanel
+    {...props}
+    getter={createDiscourseNodeGetter(nodeType)}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
+);
+
+export const DiscourseNodeFlagPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeWrapperProps & {
+  defaultValue?: boolean;
+  disabled?: boolean;
+  onBeforeChange?: (checked: boolean) => Promise<boolean>;
+  onChange?: (checked: boolean) => void;
+}) => (
+  <BaseFlagPanel
+    {...props}
+    getter={createDiscourseNodeGetter(nodeType)}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
+);
+
+export const DiscourseNodeSelectPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeWrapperProps & { options: string[]; defaultValue?: string }) => (
+  <BaseSelectPanel
+    {...props}
+    getter={createDiscourseNodeGetter(nodeType)}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
+);
+
+export const DiscourseNodeNumberPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeWrapperProps & { defaultValue?: number; min?: number; max?: number }) => (
+  <BaseNumberPanel
+    {...props}
+    getter={createDiscourseNodeGetter(nodeType)}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
 );
