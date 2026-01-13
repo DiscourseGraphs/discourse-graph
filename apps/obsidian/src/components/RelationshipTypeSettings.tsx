@@ -1,9 +1,94 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DiscourseRelationType } from "~/types";
 import { Notice } from "obsidian";
 import { usePlugin } from "./PluginContext";
 import generateUid from "~/utils/generateUid";
 import { ConfirmationModal } from "./ConfirmationModal";
+import {
+  TLDRAW_COLOR_NAMES,
+  TLDRAW_COLOR_LABELS,
+  DEFAULT_TLDRAW_COLOR,
+  COLOR_PALETTE,
+  type TldrawColorName,
+} from "~/utils/tldrawColors";
+import { getContrastColor } from "~/utils/colorUtils";
+
+type ColorPickerProps = {
+  value: string;
+  onChange: (color: TldrawColorName) => void;
+};
+
+const ColorPicker = ({ value, onChange }: ColorPickerProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [isOpen]);
+
+  const currentColor = value as TldrawColorName;
+  const bgColor = COLOR_PALETTE[currentColor] ?? COLOR_PALETTE.black;
+  const textColor = getContrastColor(bgColor ?? DEFAULT_TLDRAW_COLOR);
+
+  return (
+    <div ref={dropdownRef} className="relative min-w-32">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between rounded border px-3 py-2 text-left"
+        style={{ backgroundColor: bgColor, color: textColor }}
+      >
+        <span className="flex items-center gap-2">
+          <span
+            className="inline-block h-3 w-3 rounded-full border-2 border-solid"
+            style={{ backgroundColor: bgColor, border: `${textColor}` }}
+          />
+          {TLDRAW_COLOR_LABELS[currentColor]}
+        </span>
+        <span className="text-sm">{isOpen ? "▲" : "▼"}</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-1 max-h-40 w-full overflow-y-auto">
+          {TLDRAW_COLOR_NAMES.map((colorName) => {
+            const bgColor = COLOR_PALETTE[colorName] ?? COLOR_PALETTE.black;
+            return (
+              <button
+                key={colorName}
+                type="button"
+                onClick={() => {
+                  onChange(colorName);
+                  setIsOpen(false);
+                }}
+                className="flex w-full flex-row justify-start gap-2 rounded-none px-3 py-2"
+              >
+                <span
+                  className="inline-block h-3 w-3 rounded-full"
+                  style={{ backgroundColor: bgColor }}
+                />
+                {TLDRAW_COLOR_LABELS[colorName]}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const RelationshipTypeSettings = () => {
   const plugin = usePlugin();
@@ -24,11 +109,14 @@ const RelationshipTypeSettings = () => {
         id: newId,
         label: "",
         complement: "",
-        color: "#000000",
+        color: DEFAULT_TLDRAW_COLOR,
       };
     }
-
-    updatedRelationTypes[index][field] = value;
+    if (field === "color") {
+      updatedRelationTypes[index].color = value as TldrawColorName;
+    } else {
+      updatedRelationTypes[index][field] = value;
+    }
     setRelationTypes(updatedRelationTypes);
     setHasUnsavedChanges(true);
   };
@@ -42,7 +130,7 @@ const RelationshipTypeSettings = () => {
         id: newId,
         label: "",
         complement: "",
-        color: "#000000",
+        color: DEFAULT_TLDRAW_COLOR,
       },
     ];
     setRelationTypes(updatedRelationTypes);
@@ -53,7 +141,7 @@ const RelationshipTypeSettings = () => {
     const relationType = relationTypes[index] || {
       label: "Unnamed",
       complement: "",
-      color: "#000000",
+      color: DEFAULT_TLDRAW_COLOR,
     };
     const modal = new ConfirmationModal(plugin.app, {
       title: "Delete Relation Type",
@@ -132,14 +220,11 @@ const RelationshipTypeSettings = () => {
                 }
                 className="flex-1"
               />
-              <input
-                type="color"
+              <ColorPicker
                 value={relationType.color}
-                onChange={(e) =>
-                  handleRelationTypeChange(index, "color", e.target.value)
+                onChange={(color) =>
+                  handleRelationTypeChange(index, "color", color)
                 }
-                className="w-12 h-8 rounded border"
-                title="Relation color"
               />
               <button
                 onClick={() => confirmDeleteRelationType(index)}

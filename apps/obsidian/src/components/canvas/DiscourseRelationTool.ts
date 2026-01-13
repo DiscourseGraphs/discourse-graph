@@ -6,6 +6,7 @@ import { getRelationTypeById } from "~/utils/typeUtils";
 import { DiscourseRelationShape } from "./shapes/DiscourseRelationShape";
 import { getNodeTypeById } from "~/utils/typeUtils";
 import { showToast } from "./utils/toastUtils";
+import { DEFAULT_TLDRAW_COLOR } from "~/utils/tldrawColors";
 
 type RelationToolContext = {
   plugin: DiscourseGraphPlugin;
@@ -250,6 +251,7 @@ class Pointing extends StateNode {
       props: {
         relationTypeId: relationToolContext.relationTypeId,
         text: relationType?.label ?? "",
+        color: relationType?.color ?? DEFAULT_TLDRAW_COLOR,
         scale: this.editor.user.getIsDynamicResizeMode()
           ? 1 / this.editor.getZoomLevel()
           : 1,

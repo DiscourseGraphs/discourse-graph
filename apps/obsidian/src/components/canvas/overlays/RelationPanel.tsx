@@ -16,6 +16,7 @@ import {
 import { getFrontmatterForFile } from "~/components/canvas/shapes/discourseNodeShapeUtils";
 import { getRelationTypeById } from "~/utils/typeUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
+import { DEFAULT_TLDRAW_COLOR } from "~/utils/tldrawColors";
 
 type GroupedRelation = {
   key: string;
@@ -379,7 +380,7 @@ export const RelationsPanel = ({
           dash: "draw",
           size: "m",
           fill: "none",
-          color: "black",
+          color: relationType?.color ?? DEFAULT_TLDRAW_COLOR,
           labelColor: "black",
           bend: 0,
           // Will be updated by bindings
