@@ -26,6 +26,10 @@ import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpr
 import { Result } from "~/utils/types";
 import { getSetting } from "~/utils/extensionSettings";
 import MiniSearch from "minisearch";
+import {
+  getPersonalSetting,
+  setPersonalSetting,
+} from "~/components/settings/utils/accessors";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -703,14 +707,9 @@ export const renderDiscourseNodeSearchMenu = (props: Props) => {
   );
 };
 
-export const NodeSearchMenuTriggerSetting = ({
-  onloadArgs,
-}: {
-  onloadArgs: OnloadArgs;
-}) => {
-  const extensionAPI = onloadArgs.extensionAPI;
-  const [nodeSearchTrigger, setNodeSearchTrigger] = useState<string>(
-    getSetting("node-search-trigger", "@"),
+export const NodeSearchMenuTriggerSetting = () => {
+  const [nodeSearchTrigger, setNodeSearchTriggerState] = useState<string>(
+    () => getPersonalSetting<string>(["Node Search Menu Trigger"]) ?? "@",
   );
 
   const handleNodeSearchTriggerChange = (
@@ -723,8 +722,8 @@ export const NodeSearchMenuTriggerSetting = ({
       .replace(/\+/g, "\\+")
       .trim();
 
-    setNodeSearchTrigger(trigger);
-    extensionAPI.settings.set("node-search-trigger", trigger);
+    setNodeSearchTriggerState(trigger);
+    setPersonalSetting(["Node Search Menu Trigger"], trigger);
   };
   return (
     <InputGroup
