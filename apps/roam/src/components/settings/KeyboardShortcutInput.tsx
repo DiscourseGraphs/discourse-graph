@@ -23,7 +23,7 @@ const KeyboardShortcutInput = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isActive, setIsActive] = useState(false);
   const [shortcutKey, setShortcutKey] = useState<string>(
-    () => getPersonalSetting<string>([settingKey]) ?? "",
+    () => getPersonalSetting<string>([settingKey])!,
   );
 
   const handleKeyDown = useCallback(

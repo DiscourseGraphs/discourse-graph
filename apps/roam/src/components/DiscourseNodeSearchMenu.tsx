@@ -709,7 +709,7 @@ export const renderDiscourseNodeSearchMenu = (props: Props) => {
 
 export const NodeSearchMenuTriggerSetting = () => {
   const [nodeSearchTrigger, setNodeSearchTriggerState] = useState<string>(
-    () => getPersonalSetting<string>(["Node Search Menu Trigger"]) ?? "@",
+    () => getPersonalSetting<string>(["Node Search Menu Trigger"])!,
   );
 
   const handleNodeSearchTriggerChange = (
