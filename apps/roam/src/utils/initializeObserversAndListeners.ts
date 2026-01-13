@@ -309,8 +309,7 @@ export const initObservers = async ({
     }
   };
 
-  const customTrigger =
-    getPersonalSetting<string>(["Node Search Menu Trigger"]) ?? "@";
+  const customTrigger = getPersonalSetting<string>(["Node Search Menu Trigger"])!;
 
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;
