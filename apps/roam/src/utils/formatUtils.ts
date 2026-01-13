@@ -6,93 +6,61 @@ import getDiscourseNodes, { DiscourseNode } from "./getDiscourseNodes";
 import compileDatalog from "./compileDatalog";
 import discourseNodeFormatToDatalog from "./discourseNodeFormatToDatalog";
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
-import { render as renderToast } from "roamjs-components/components/Toast";
-import FormDialog from "roamjs-components/components/FormDialog";
 import { QBClause, Result } from "./types";
 import findDiscourseNode from "./findDiscourseNode";
 import extractTag from "roamjs-components/util/extractTag";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import ModifyNodeDialog, {
+  ModifyNodeDialogProps,
+} from "~/components/ModifyNodeDialog";
+import getExtensionAPI from "roamjs-components/util/extensionApiContext";
 
-type FormDialogProps = Parameters<typeof FormDialog>[0];
-const renderFormDialog = createOverlayRender<FormDialogProps>(
+const renderFormDialog = createOverlayRender<ModifyNodeDialogProps>(
   "form-dialog",
-  FormDialog,
+  ModifyNodeDialog,
 );
 
 export const getNewDiscourseNodeText = async ({
   text,
   nodeType,
   blockUid,
+  skipBlockUpdate = false,
 }: {
   text: string;
   nodeType: string;
   blockUid?: string;
+  skipBlockUpdate?: boolean;
 }) => {
   const discourseNodes = getDiscourseNodes();
   let newText = text;
+  let textFromDialog = false;
+
   if (!text) {
+    textFromDialog = true;
     newText = await new Promise<string>((resolve) => {
-      const nodeName =
-        discourseNodes.find((n) => n.type === nodeType)?.text || "Discourse";
+      let resolvedText = "";
       renderFormDialog({
-        title: `Create ${nodeName} Node`,
-        fields: {
-          textField: {
-            type: "text",
-            label: `Create ${nodeName} Node`,
-          },
+        mode: "create",
+        nodeType: nodeType,
+        initialValue: { text: text, uid: "" },
+        onSuccess: async (result) => {
+          resolvedText = result.text;
+          return Promise.resolve();
         },
-        onSubmit: (data: Record<string, unknown>) => {
-          const textValue = data.textField as string;
-          if (textValue?.trim()) {
-            resolve(textValue);
-          } else {
-            renderToast({
-              content: "Text field cannot be empty.",
-              id: "roamjs-create-discourse-node-dialog-error",
-              intent: "warning",
-            });
-            return false;
-          }
-        },
+        sourceBlockUid: skipBlockUpdate ? undefined : blockUid,
+        extensionAPI: getExtensionAPI(),
         onClose: () => {
-          resolve("");
+          resolve(resolvedText);
         },
-        isOpen: true,
       });
-
-      const setupButtonControl = () => {
-        const dialogs = document.querySelectorAll(".bp3-dialog");
-        const dialog = dialogs[dialogs.length - 1] as HTMLElement;
-
-        const input = dialog.querySelector(
-          'input[type="text"].bp3-input',
-        ) as HTMLInputElement;
-        const submitBtn = dialog.querySelector(
-          ".bp3-dialog-footer .bp3-button.bp3-intent-primary",
-        ) as HTMLButtonElement;
-
-        const updateButtonState = () => {
-          const currentValue = input.value;
-          const hasValue = currentValue.trim().length > 0;
-          const shouldBeDisabled = !hasValue;
-          submitBtn.disabled = shouldBeDisabled;
-        };
-
-        updateButtonState();
-
-        const listenerKey = "_discourseNodeListenerAttached";
-        if (!(input as any)[listenerKey]) {
-          input.addEventListener("input", updateButtonState);
-          (input as any)[listenerKey] = true;
-        }
-      };
-      requestAnimationFrame(setupButtonControl);
     });
   }
 
   if (!newText || !newText.trim()) {
     return "";
+  }
+  if (textFromDialog) {
+    return newText;
   }
 
   const indexedByType = Object.fromEntries(

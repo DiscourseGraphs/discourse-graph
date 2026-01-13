@@ -119,12 +119,28 @@ const createDiscourseNode = async ({
   }
 
   let pageUid: string;
+  let isNewPage = false;
+
   if (newPageUid) {
     await createPage({ title: text, uid: newPageUid });
     pageUid = newPageUid;
+    isNewPage = true;
   } else {
-    pageUid =
-      getPageUidByPageTitle(text) || (await createPage({ title: text }));
+    const existingPageUid = getPageUidByPageTitle(text);
+    if (existingPageUid) {
+      pageUid = existingPageUid;
+      isNewPage = false;
+    } else {
+      pageUid = await createPage({ title: text });
+      isNewPage = true;
+    }
+  }
+
+  // Skip template creation if the page already exists and has children
+  const existingChildren = getFullTreeByParentUid(pageUid).children || [];
+  if (!isNewPage && existingChildren.length > 0) {
+    handleOpenInSidebar(pageUid);
+    return pageUid;
   }
 
   const nodeTree = getFullTreeByParentUid(configPageUid).children;
