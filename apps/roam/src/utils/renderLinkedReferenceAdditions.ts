@@ -4,19 +4,18 @@ import CanvasReferences from "~/components/canvas/CanvasReferences";
 import { OnloadArgs } from "roamjs-components/types";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { handleTitleAdditions } from "./handleTitleAdditions";
+import nanoid from "nanoid";
 
 export const renderDiscourseContext = ({
   h1,
   uid,
-  tag,
 }: {
   h1: HTMLHeadingElement;
   uid: string;
-  tag: string;
 }): void => {
   handleTitleAdditions(
     h1,
-    createElement(DiscourseContextOverlay, { uid, tag }),
+    createElement(DiscourseContextOverlay, { uid, id: nanoid() }),
   );
 };
 
