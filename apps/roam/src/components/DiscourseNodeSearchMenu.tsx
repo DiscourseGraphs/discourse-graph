@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import React, {
   useCallback,
   useEffect,
@@ -25,13 +26,17 @@ import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { Result } from "~/utils/types";
 import { getSetting } from "~/utils/extensionSettings";
-import fuzzy from "fuzzy";
+import MiniSearch from "minisearch";
 
 type Props = {
   textarea: HTMLTextAreaElement;
   triggerPosition: number;
   onClose: () => void;
   triggerText: string;
+};
+
+type MinisearchResult = Result & {
+  type: string;
 };
 
 const waitForBlock = ({
@@ -76,7 +81,6 @@ const NodeSearchMenu = ({
   const [discourseTypes, setDiscourseTypes] = useState<DiscourseNode[]>([]);
   const [checkedTypes, setCheckedTypes] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [allNodes, setAllNodes] = useState<Record<string, Result[]>>({});
   const [searchResults, setSearchResults] = useState<Record<string, Result[]>>(
     {},
   );
@@ -91,6 +95,7 @@ const NodeSearchMenu = ({
   );
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const miniSearchRef = useRef<MiniSearch<MinisearchResult> | null>(null);
   const POPOVER_TOP_OFFSET = 30;
 
   const debouncedSearchTerm = useCallback((term: string) => {
@@ -135,16 +140,91 @@ const NodeSearchMenu = ({
     }
   };
 
-  const filterNodesLocally = useCallback(
-    (nodes: Result[], searchTerm: string): Result[] => {
-      if (!searchTerm.trim()) return nodes;
+  const searchWithMiniSearch = useCallback(
+    (searchTerm: string, typeFilter?: string[]): Record<string, Result[]> => {
+      const searchStartTime = performance.now();
+      if (!miniSearchRef.current) {
+        return {};
+      }
 
-      return fuzzy
-        .filter(searchTerm, nodes, {
-          extract: (node) => node.text,
-        })
-        .map((result) => result.original)
-        .filter((node): node is Result => !!node);
+      const search = miniSearchRef.current;
+
+      // Early return for empty search - return all nodes for selected types
+      if (!searchTerm.trim()) {
+        const allDocuments = search.documentCount;
+        const searchEndTime = performance.now();
+        const searchDuration = searchEndTime - searchStartTime;
+
+        console.log(
+          `[MiniSearch] Empty search - ${allDocuments} total documents, ${searchDuration.toFixed(2)}ms`,
+        );
+
+        if (!typeFilter) {
+          return {};
+        }
+
+        const allResults: Record<string, Result[]> = {};
+        typeFilter.forEach((type) => {
+          const results = (
+            search.search(MiniSearch.wildcard, {
+              filter: (result) =>
+                (result as unknown as MinisearchResult).type === type,
+            }) as unknown as MinisearchResult[]
+          ).map((r) => ({
+            text: r.text,
+            uid: r.uid,
+          }));
+          allResults[type] = results;
+        });
+
+        return allResults;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const rawSearchResults = search.search(searchTerm, {
+        fields: ["text"],
+        fuzzy: 0.2,
+        prefix: true,
+        combineWith: "AND",
+        filter: typeFilter
+          ? (result) =>
+              typeFilter.includes((result as unknown as MinisearchResult).type)
+          : undefined,
+      });
+
+      const filteredResults = rawSearchResults.filter((r) => r.score > 0.1);
+
+      const searchResults = (
+        filteredResults as unknown as MinisearchResult[]
+      ).map((r) => ({
+        text: r.text,
+        uid: r.uid,
+        type: r.type,
+      }));
+
+      const results = searchResults.reduce(
+        (acc, result) => {
+          if (!acc[result.type]) {
+            acc[result.type] = [];
+          }
+          acc[result.type].push({
+            text: result.text,
+            uid: result.uid,
+          });
+          return acc;
+        },
+        {} as Record<string, Result[]>,
+      );
+
+      const searchEndTime = performance.now();
+      const searchDuration = searchEndTime - searchStartTime;
+      const totalResults = searchResults.length;
+
+      console.log(
+        `[MiniSearch] Search "${searchTerm}" - ${totalResults} results in ${searchDuration.toFixed(2)}ms`,
+      );
+
+      return results;
     },
     [],
   );
@@ -152,6 +232,7 @@ const NodeSearchMenu = ({
   useEffect(() => {
     const fetchNodeTypes = () => {
       setIsLoading(true);
+      const indexStartTime = performance.now();
 
       const allNodeTypes = getDiscourseNodes().filter(
         (n) => n.backedBy === "user",
@@ -169,7 +250,40 @@ const NodeSearchMenu = ({
       allNodeTypes.forEach((type) => {
         allNodesCache[type.type] = searchNodesForType(type);
       });
-      setAllNodes(allNodesCache);
+
+      const miniSearch = new MiniSearch<MinisearchResult>({
+        fields: ["text"],
+        storeFields: ["text", "uid", "type"],
+        idField: "uid",
+      });
+
+      const documentsToIndex: MinisearchResult[] = [];
+      let totalNodeCount = 0;
+
+      allNodeTypes.forEach((type) => {
+        const nodes = allNodesCache[type.type] || [];
+        totalNodeCount += nodes.length;
+        nodes.forEach((node) => {
+          documentsToIndex.push({
+            ...node,
+            type: type.type,
+          });
+        });
+      });
+
+      const indexDocumentsStartTime = performance.now();
+      miniSearch.addAll(documentsToIndex);
+      const indexDocumentsEndTime = performance.now();
+      const indexDuration = indexDocumentsEndTime - indexDocumentsStartTime;
+
+      miniSearchRef.current = miniSearch;
+
+      const indexEndTime = performance.now();
+      const totalIndexDuration = indexEndTime - indexStartTime;
+
+      console.log(
+        `[MiniSearch] Indexed ${totalNodeCount} nodes across ${allNodeTypes.length} types - Indexing: ${indexDuration.toFixed(2)}ms, Total: ${totalIndexDuration.toFixed(2)}ms`,
+      );
 
       const initialSearchResults = Object.fromEntries(
         allNodeTypes.map((type) => [type.type, []]),
@@ -183,17 +297,21 @@ const NodeSearchMenu = ({
   }, []);
 
   useEffect(() => {
-    if (isLoading || Object.keys(allNodes).length === 0) return;
+    if (isLoading || !miniSearchRef.current) return;
 
-    const newResults: Record<string, Result[]> = {};
+    const selectedTypes = discourseTypes
+      .filter((type) => checkedTypes[type.type])
+      .map((type) => type.type);
 
-    discourseTypes.forEach((type) => {
-      const cachedNodes = allNodes[type.type] || [];
-      newResults[type.type] = filterNodesLocally(cachedNodes, searchTerm);
-    });
-
+    const newResults = searchWithMiniSearch(searchTerm, selectedTypes);
     setSearchResults(newResults);
-  }, [searchTerm, isLoading, allNodes, discourseTypes, filterNodesLocally]);
+  }, [
+    searchTerm,
+    isLoading,
+    discourseTypes,
+    checkedTypes,
+    searchWithMiniSearch,
+  ]);
 
   const menuRef = useRef<HTMLUListElement>(null);
   const { ["block-uid"]: blockUid, ["window-id"]: windowId } = useMemo(
@@ -232,61 +350,61 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: Result) => {
-       if (!blockUid) {
-         onClose();
-         return;
-       }
-       void waitForBlock({ uid: blockUid, text: textarea.value })
-         .then(() => {
-           onClose();
+      if (!blockUid) {
+        onClose();
+        return;
+      }
+      void waitForBlock({ uid: blockUid, text: textarea.value })
+        .then(() => {
+          onClose();
 
-           setTimeout(() => {
-             const originalText = getTextByBlockUid(blockUid);
+          setTimeout(() => {
+            const originalText = getTextByBlockUid(blockUid);
 
-             const prefix = originalText.substring(0, triggerPosition);
-             const suffix = originalText.substring(textarea.selectionStart);
-             const pageRef = `[[${item.text}]]`;
+            const prefix = originalText.substring(0, triggerPosition);
+            const suffix = originalText.substring(textarea.selectionStart);
+            const pageRef = `[[${item.text}]]`;
 
-             const newText = `${prefix}${pageRef}${suffix}`;
-             void updateBlock({ uid: blockUid, text: newText }).then(() => {
-               const newCursorPosition = triggerPosition + pageRef.length;
+            const newText = `${prefix}${pageRef}${suffix}`;
+            void updateBlock({ uid: blockUid, text: newText }).then(() => {
+              const newCursorPosition = triggerPosition + pageRef.length;
 
-               if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
-                 void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-                   location: {
-                     // eslint-disable-next-line @typescript-eslint/naming-convention
-                     "block-uid": blockUid,
-                     // eslint-disable-next-line @typescript-eslint/naming-convention
-                     "window-id": windowId,
-                   },
-                   selection: { start: newCursorPosition },
-                 });
-               } else {
-                 setTimeout(() => {
-                   const textareaElements =
-                     document.querySelectorAll("textarea");
-                   for (const el of textareaElements) {
-                     if (getUids(el).blockUid === blockUid) {
-                       el.focus();
-                       el.setSelectionRange(
-                         newCursorPosition,
-                         newCursorPosition,
-                       );
-                       break;
-                     }
-                   }
-                 }, 50);
-               }
-             });
-             posthog.capture("Discourse Node: Selected from Search Menu", {
-               id: item.id,
-               text: item.text,
-             });
-           }, 10);
-         })
-         .catch((error) => {
-           console.error("Error waiting for block:", error);
-         });
+              if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
+                void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+                  location: {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    "block-uid": blockUid,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    "window-id": windowId,
+                  },
+                  selection: { start: newCursorPosition },
+                });
+              } else {
+                setTimeout(() => {
+                  const textareaElements =
+                    document.querySelectorAll("textarea");
+                  for (const el of textareaElements) {
+                    if (getUids(el).blockUid === blockUid) {
+                      el.focus();
+                      el.setSelectionRange(
+                        newCursorPosition,
+                        newCursorPosition,
+                      );
+                      break;
+                    }
+                  }
+                }, 50);
+              }
+            });
+            posthog.capture("Discourse Node: Selected from Search Menu", {
+              id: item.id,
+              text: item.text,
+            });
+          }, 10);
+        })
+        .catch((error) => {
+          console.error("Error waiting for block:", error);
+        });
     },
     [blockUid, onClose, textarea, triggerPosition, windowId],
   );
