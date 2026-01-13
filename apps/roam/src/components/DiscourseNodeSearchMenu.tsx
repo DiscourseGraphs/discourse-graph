@@ -40,6 +40,7 @@ type MinisearchResult = Result & {
 };
 
 const MIN_SEARCH_SCORE = 0.1;
+const MAX_ITEMS_PER_TYPE = 10;
 
 const waitForBlock = ({
   uid,
@@ -201,10 +202,12 @@ const NodeSearchMenu = ({
           if (!acc[result.type]) {
             acc[result.type] = [];
           }
-          acc[result.type].push({
-            text: result.text,
-            uid: result.uid,
-          });
+          if (acc[result.type].length < MAX_ITEMS_PER_TYPE) {
+            acc[result.type].push({
+              text: result.text,
+              uid: result.uid,
+            });
+          }
           return acc;
         },
         {} as Record<string, Result[]>,
