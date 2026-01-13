@@ -367,7 +367,7 @@ const personalSettings: PersonalSettings = {
       },
     },
   },
-  "Personal Node Menu Trigger": ";;",
+  "Personal Node Menu Trigger": { key: ";", modifiers: 0 },
   "Node Search Menu Trigger": "//",
   "Discourse Tool Shortcut": "d",
   "Discourse Context Overlay": true,
@@ -395,7 +395,7 @@ const personalSettings: PersonalSettings = {
 
 const defaultPersonalSettings: PersonalSettings = {
   "Left Sidebar": {},
-  "Personal Node Menu Trigger": "",
+  "Personal Node Menu Trigger": { key: "", modifiers: 0 },
   "Node Search Menu Trigger": "",
   "Discourse Tool Shortcut": "",
   "Discourse Context Overlay": false,
