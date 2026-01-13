@@ -289,39 +289,18 @@ export const createOrUpdateDiscourseEmbedding = async (
     console.log("allNodeInstances", allNodeInstances);
     console.debug(`Found ${allNodeInstances.length} nodes to sync`);
 
-    if (allNodeInstances.length === 0) {
-      console.debug("No nodes to sync");
-      return;
-    }
-
     const accountLocalId = plugin.settings.accountLocalId;
     if (!accountLocalId) {
       throw new Error("accountLocalId not found in plugin settings");
     }
 
-    await upsertNodesToSupabaseAsContentWithEmbeddings({
-      obsidianNodes: allNodeInstances,
+    await syncChangedNodesToSupabase({
+      changedNodes: allNodeInstances,
+      plugin,
       supabaseClient,
       context,
       accountLocalId,
-      plugin,
     });
-
-    // Only upsert concepts for nodes with title changes or new files
-    // (concepts store the title, so content-only changes don't affect them)
-    const nodesNeedingConceptUpsert = allNodeInstances.filter(
-      (node) =>
-        node.changeTypes.includes("new") || node.changeTypes.includes("title"),
-    );
-
-    if (nodesNeedingConceptUpsert.length > 0) {
-      await convertDgToSupabaseConcepts({
-        nodesSince: nodesNeedingConceptUpsert,
-        supabaseClient,
-        context,
-        accountLocalId,
-      });
-    }
 
     console.debug("Sync completed successfully");
   } catch (error) {
@@ -372,6 +351,195 @@ const convertDgToSupabaseConcepts = async ({
           ? error
           : JSON.stringify(error, null, 2);
     throw new Error(`upsert_concepts failed: ${errorMessage}`);
+  }
+};
+
+/**
+ * Shared function to sync changed nodes to Supabase
+ * Handles content/embedding upsert and concept upsert
+ */
+const syncChangedNodesToSupabase = async ({
+  changedNodes,
+  plugin,
+  supabaseClient,
+  context,
+  accountLocalId,
+}: {
+  changedNodes: ObsidianDiscourseNodeData[];
+  plugin: DiscourseGraphPlugin;
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+  accountLocalId: string;
+}): Promise<void> => {
+  if (changedNodes.length === 0) {
+    console.debug("No nodes to sync");
+    return;
+  }
+
+  await upsertNodesToSupabaseAsContentWithEmbeddings({
+    obsidianNodes: changedNodes,
+    supabaseClient,
+    context,
+    accountLocalId,
+    plugin,
+  });
+
+  // Only upsert concepts for nodes with title changes or new files
+  // (concepts store the title, so content-only changes don't affect them)
+  const nodesNeedingConceptUpsert = changedNodes.filter(
+    (node) =>
+      node.changeTypes.includes("new") || node.changeTypes.includes("title"),
+  );
+
+  if (nodesNeedingConceptUpsert.length > 0) {
+    await convertDgToSupabaseConcepts({
+      nodesSince: nodesNeedingConceptUpsert,
+      supabaseClient,
+      context,
+      accountLocalId,
+    });
+  }
+};
+
+/**
+ * Collect discourse nodes from specific file paths
+ */
+const collectDiscourseNodesFromPaths = async (
+  plugin: DiscourseGraphPlugin,
+  filePaths: string[],
+): Promise<DiscourseNodeInVault[]> => {
+  const dgNodes: DiscourseNodeInVault[] = [];
+
+  for (const filePath of filePaths) {
+    const file = plugin.app.vault.getAbstractFileByPath(filePath);
+    if (!(file instanceof TFile)) {
+      console.debug(`File not found or not a TFile: ${filePath}`);
+      continue;
+    }
+
+    // Only process markdown files
+    if (!file.path.endsWith(".md")) {
+      continue;
+    }
+
+    const cache = plugin.app.metadataCache.getFileCache(file);
+    const frontmatter = cache?.frontmatter;
+
+    // Not a discourse node
+    if (!frontmatter?.nodeTypeId) {
+      console.debug(`File is not a DG node: ${filePath}`);
+      continue;
+    }
+
+    const nodeTypeId = frontmatter.nodeTypeId as string;
+    if (!nodeTypeId) {
+      continue;
+    }
+
+    const nodeInstanceId = await ensureNodeInstanceId(
+      plugin,
+      file,
+      frontmatter as Record<string, unknown>,
+    );
+
+    dgNodes.push({
+      file,
+      frontmatter: frontmatter as Record<string, unknown>,
+      nodeTypeId,
+      nodeInstanceId,
+    });
+  }
+
+  return dgNodes;
+};
+
+/**
+ * Sync specific files by their paths
+ * Used by FileChangeListener to sync only changed files
+ */
+export const syncSpecificFiles = async (
+  plugin: DiscourseGraphPlugin,
+  filePaths: string[],
+): Promise<void> => {
+  try {
+    console.debug(`Syncing ${filePaths.length} specific file(s)`);
+
+    const context = await getSupabaseContext(plugin);
+    if (!context) {
+      throw new Error("Could not create Supabase context");
+    }
+
+    const supabaseClient = await getLoggedInClient(plugin);
+    if (!supabaseClient) {
+      throw new Error("Could not log in to Supabase client");
+    }
+
+    // Collect DG nodes from the specified file paths
+    const dgNodesInVault = await collectDiscourseNodesFromPaths(
+      plugin,
+      filePaths,
+    );
+
+    if (dgNodesInVault.length === 0) {
+      console.debug("No DG nodes found in specified files");
+      return;
+    }
+
+    const nodeInstanceIds = dgNodesInVault.map((n) => n.nodeInstanceId);
+    const existingTitleMap = await getExistingTitlesFromDatabase(
+      supabaseClient,
+      context.spaceId,
+      nodeInstanceIds,
+    );
+
+    const lastSyncTime = await getLastSyncTime(supabaseClient, context.spaceId);
+    const changedNodes: ObsidianDiscourseNodeData[] = [];
+
+    for (const node of dgNodesInVault) {
+      const existingTitle = existingTitleMap.get(node.nodeInstanceId);
+      const changeTypes = detectNodeChanges(node, existingTitle, lastSyncTime);
+
+      // For file listener, we always sync the file (even if change detection
+      // says nothing changed, because the file was explicitly modified)
+      // But we still use change detection to determine what to sync
+      const finalChangeTypes =
+        changeTypes.length > 0 ? changeTypes : (["content"] as ChangeType[]);
+
+      logNodeChanges({
+        node,
+        changeTypes: finalChangeTypes,
+        existingTitle,
+        lastSyncTime,
+      });
+
+      changedNodes.push({
+        file: node.file,
+        frontmatter: node.frontmatter,
+        nodeTypeId: node.nodeTypeId,
+        nodeInstanceId: node.nodeInstanceId,
+        created: new Date(node.file.stat.ctime).toISOString(),
+        last_modified: new Date(node.file.stat.mtime).toISOString(),
+        changeTypes: finalChangeTypes,
+      });
+    }
+
+    const accountLocalId = plugin.settings.accountLocalId;
+    if (!accountLocalId) {
+      throw new Error("accountLocalId not found in plugin settings");
+    }
+
+    await syncChangedNodesToSupabase({
+      changedNodes,
+      plugin,
+      supabaseClient,
+      context,
+      accountLocalId,
+    });
+
+    console.debug(`Successfully synced ${changedNodes.length} node(s)`);
+  } catch (error) {
+    console.error("syncSpecificFiles: Process failed:", error);
+    throw error;
   }
 };
 
