@@ -39,6 +39,8 @@ type MinisearchResult = Result & {
   type: string;
 };
 
+const MIN_SEARCH_SCORE = 0.1;
+
 const waitForBlock = ({
   uid,
   text,
@@ -142,23 +144,13 @@ const NodeSearchMenu = ({
 
   const searchWithMiniSearch = useCallback(
     (searchTerm: string, typeFilter?: string[]): Record<string, Result[]> => {
-      const searchStartTime = performance.now();
       if (!miniSearchRef.current) {
         return {};
       }
 
       const search = miniSearchRef.current;
 
-      // Early return for empty search - return all nodes for selected types
       if (!searchTerm.trim()) {
-        const allDocuments = search.documentCount;
-        const searchEndTime = performance.now();
-        const searchDuration = searchEndTime - searchStartTime;
-
-        console.log(
-          `[MiniSearch] Empty search - ${allDocuments} total documents, ${searchDuration.toFixed(2)}ms`,
-        );
-
         if (!typeFilter) {
           return {};
         }
@@ -192,7 +184,9 @@ const NodeSearchMenu = ({
           : undefined,
       });
 
-      const filteredResults = rawSearchResults.filter((r) => r.score > 0.1);
+      const filteredResults = rawSearchResults.filter(
+        (r) => r.score > MIN_SEARCH_SCORE,
+      );
 
       const searchResults = (
         filteredResults as unknown as MinisearchResult[]
@@ -216,14 +210,6 @@ const NodeSearchMenu = ({
         {} as Record<string, Result[]>,
       );
 
-      const searchEndTime = performance.now();
-      const searchDuration = searchEndTime - searchStartTime;
-      const totalResults = searchResults.length;
-
-      console.log(
-        `[MiniSearch] Search "${searchTerm}" - ${totalResults} results in ${searchDuration.toFixed(2)}ms`,
-      );
-
       return results;
     },
     [],
@@ -232,7 +218,6 @@ const NodeSearchMenu = ({
   useEffect(() => {
     const fetchNodeTypes = () => {
       setIsLoading(true);
-      const indexStartTime = performance.now();
 
       const allNodeTypes = getDiscourseNodes().filter(
         (n) => n.backedBy === "user",
@@ -258,11 +243,9 @@ const NodeSearchMenu = ({
       });
 
       const documentsToIndex: MinisearchResult[] = [];
-      let totalNodeCount = 0;
 
       allNodeTypes.forEach((type) => {
         const nodes = allNodesCache[type.type] || [];
-        totalNodeCount += nodes.length;
         nodes.forEach((node) => {
           documentsToIndex.push({
             ...node,
@@ -271,19 +254,8 @@ const NodeSearchMenu = ({
         });
       });
 
-      const indexDocumentsStartTime = performance.now();
       miniSearch.addAll(documentsToIndex);
-      const indexDocumentsEndTime = performance.now();
-      const indexDuration = indexDocumentsEndTime - indexDocumentsStartTime;
-
       miniSearchRef.current = miniSearch;
-
-      const indexEndTime = performance.now();
-      const totalIndexDuration = indexEndTime - indexStartTime;
-
-      console.log(
-        `[MiniSearch] Indexed ${totalNodeCount} nodes across ${allNodeTypes.length} types - Indexing: ${indexDuration.toFixed(2)}ms, Total: ${totalIndexDuration.toFixed(2)}ms`,
-      );
 
       const initialSearchResults = Object.fromEntries(
         allNodeTypes.map((type) => [type.type, []]),
