@@ -6,10 +6,8 @@ import React, {
   useMemo,
 } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
-import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
 import {
@@ -25,12 +23,18 @@ import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import createBlock from "roamjs-components/writes/createBlock";
-import updateBlock from "roamjs-components/writes/updateBlock";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
+<<<<<<< HEAD
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
+=======
+import { useFeatureFlag } from "./utils/hooks";
+import {
+  DiscourseNodeTextPanel,
+  DiscourseNodeFlagPanel,
+} from "./components/BlockPropSettingPanels";
+import { setDiscourseNodeSetting } from "./utils/accessors";
+>>>>>>> 3b986016 (ENG-1225: Discourse node migration)
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -101,10 +105,11 @@ const ValidatedTextareaPanel = ({
   </div>
 );
 
-const useDebouncedRoamUpdater = <
+const useDebouncedBlockPropUpdater = <
   T extends HTMLInputElement | HTMLTextAreaElement,
 >(
-  uid: string,
+  nodeType: string,
+  settingKey: string,
   initialValue: string,
   isValid: boolean,
 ) => {
@@ -113,7 +118,7 @@ const useDebouncedRoamUpdater = <
   const isValidRef = useRef(isValid);
   isValidRef.current = isValid;
 
-  const saveToRoam = useCallback(
+  const saveToBlockProp = useCallback(
     (text: string, timeout: boolean) => {
       window.clearTimeout(debounceRef.current);
       debounceRef.current = window.setTimeout(
@@ -121,33 +126,26 @@ const useDebouncedRoamUpdater = <
           if (!isValidRef.current) {
             return;
           }
-          const existingBlock = getBasicTreeByParentUid(uid)[0];
-          if (existingBlock) {
-            if (existingBlock.text !== text) {
-              void updateBlock({ uid: existingBlock.uid, text });
-            }
-          } else if (text) {
-            void createBlock({ parentUid: uid, node: { text } });
-          }
+          setDiscourseNodeSetting(nodeType, [settingKey], text);
         },
         timeout ? 500 : 0,
       );
     },
-    [uid],
+    [nodeType, settingKey],
   );
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<T>) => {
       const newValue = e.target.value;
       setValue(newValue);
-      saveToRoam(newValue, true);
+      saveToBlockProp(newValue, true);
     },
-    [saveToRoam],
+    [saveToBlockProp],
   );
 
   const handleBlur = useCallback(() => {
-    saveToRoam(value, false);
-  }, [value, saveToRoam]);
+    saveToBlockProp(value, false);
+  }, [value, saveToBlockProp]);
 
   return { value, handleChange, handleBlur };
 };
@@ -172,23 +170,22 @@ const NodeConfig = ({
   node: DiscourseNode;
   onloadArgs: OnloadArgs;
 }) => {
+<<<<<<< HEAD
   const settings = useMemo(() => {
     refreshConfigTree();
     return getFormattedConfigTree();
   }, []);
+=======
+  const suggestiveModeEnabled = useFeatureFlag("Suggestive Mode Enabled");
+  // UIDs still needed for deferred complex settings (template, specification, etc.)
+>>>>>>> 3b986016 (ENG-1225: Discourse node migration)
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,
       key: key,
     }).uid;
-  const formatUid = getUid("Format");
-  const descriptionUid = getUid("Description");
-  const shortcutUid = getUid("Shortcut");
-  const tagUid = getUid("Tag");
   const templateUid = getUid("Template");
   const overlayUid = getUid("Overlay");
-  const canvasUid = getUid("Canvas");
-  const graphOverviewUid = getUid("Graph Overview");
   const specificationUid = getUid("Specification");
   const indexUid = getUid("Index");
   const suggestiveRulesUid = getUid("Suggestive Rules");
@@ -206,8 +203,9 @@ const NodeConfig = ({
     value: tagValue,
     handleChange: handleTagChange,
     handleBlur: handleTagBlurFromHook,
-  } = useDebouncedRoamUpdater<HTMLInputElement>(
-    tagUid,
+  } = useDebouncedBlockPropUpdater<HTMLInputElement>(
+    node.type,
+    "tag",
     node.tag || "",
     isConfigurationValid,
   );
@@ -215,8 +213,9 @@ const NodeConfig = ({
     value: formatValue,
     handleChange: handleFormatChange,
     handleBlur: handleFormatBlurFromHook,
-  } = useDebouncedRoamUpdater<HTMLInputElement>(
-    formatUid,
+  } = useDebouncedBlockPropUpdater<HTMLInputElement>(
+    node.type,
+    "format",
     node.format,
     isConfigurationValid,
   );
@@ -224,8 +223,9 @@ const NodeConfig = ({
     value: descriptionValue,
     handleChange: handleDescriptionChange,
     handleBlur: handleDescriptionBlur,
-  } = useDebouncedRoamUpdater<HTMLTextAreaElement>(
-    descriptionUid,
+  } = useDebouncedBlockPropUpdater<HTMLTextAreaElement>(
+    node.type,
+    "description",
     node.description || "",
     true,
   );
@@ -318,12 +318,11 @@ const NodeConfig = ({
                 onChange={handleDescriptionChange}
                 onBlur={handleDescriptionBlur}
               />
-              <TextPanel
+              <DiscourseNodeTextPanel
+                nodeType={node.type}
                 title="Shortcut"
                 description={`The trigger to quickly create a ${node.text} page from the node menu.`}
-                order={0}
-                parentUid={node.type}
-                uid={shortcutUid}
+                settingKeys={["shortcut"]}
                 defaultValue={node.shortcut}
               />
               <ValidatedInputPanel
@@ -426,14 +425,13 @@ const NodeConfig = ({
           title="Canvas"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeCanvasSettings uid={canvasUid} />
-              <FlagPanel
+              <DiscourseNodeCanvasSettings nodeType={node.type} />
+              <DiscourseNodeFlagPanel
+                nodeType={node.type}
                 title="Graph Overview"
-                description="Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification."
-                order={0}
-                parentUid={node.type}
-                uid={graphOverviewUid}
-                value={node.graphOverview}
+                description="Whether to color the node in the graph overview based on canvas color. This is based on the node's plain title as described by a `has title` condition in its specification."
+                settingKeys={["graphOverview"]}
+                defaultValue={node.graphOverview}
               />
             </div>
           }
