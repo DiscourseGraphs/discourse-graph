@@ -39,7 +39,11 @@ import {
 } from "./data/userSettings";
 import { initSchema } from "./components/settings/utils/init";
 import {
+<<<<<<< HEAD
   setupPullWatchOnSettingsPage,
+=======
+  setupPullWatchSettings,
+>>>>>>> 481f2be5 (ENG-1225: Discourse node migration)
   setupPullWatchDiscourseNodes,
 } from "./components/settings/utils/pullWatchers";
 import { getFeatureFlag } from "./components/settings/utils/accessors";
@@ -80,10 +84,17 @@ export default runExtension(async (onloadArgs) => {
   await initializeDiscourseNodes();
   refreshConfigTree();
 
+<<<<<<< HEAD
   // TODO: REMOVE stub call after testing - Initialize block prop settings and pull watchers
   const { blockUids, nodePageUids } = await initSchema();
   const cleanupSettingsWatchers = setupPullWatchOnSettingsPage(blockUids);
   const cleanupNodeWatchers = setupPullWatchDiscourseNodes(nodePageUids);
+=======
+  // For testing purposes
+  const { blockUids, nodePageUids } = await initSchema();
+  const cleanupPullWatchSettings = setupPullWatchSettings(blockUids);
+  const cleanupPullWatchNodes = setupPullWatchDiscourseNodes(nodePageUids);
+>>>>>>> 481f2be5 (ENG-1225: Discourse node migration)
 
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
@@ -166,8 +177,13 @@ export default runExtension(async (onloadArgs) => {
     ],
     observers: observers,
     unload: () => {
+<<<<<<< HEAD
       cleanupSettingsWatchers();
       cleanupNodeWatchers();
+=======
+      cleanupPullWatchSettings();
+      cleanupPullWatchNodes();
+>>>>>>> 481f2be5 (ENG-1225: Discourse node migration)
       setSyncActivity(false);
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       // @ts-expect-error - tldraw throws a warning on multiple loads
