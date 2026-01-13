@@ -24,11 +24,13 @@ import { TagNodeHandler } from "~/utils/tagNodeHandler";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
+import { FileChangeListener } from "~/utils/fileChangeListener";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
   private styleElement: HTMLStyleElement | null = null;
   private tagNodeHandler: TagNodeHandler | null = null;
+  private fileChangeListener: FileChangeListener | null = null;
   private currentViewActions: { leaf: WorkspaceLeaf; action: any }[] = [];
   private pendingCanvasSwitches = new Set<string>();
 
@@ -43,6 +45,14 @@ export default class DiscourseGraphPlugin extends Plugin {
           5000,
         );
       });
+
+      try {
+        this.fileChangeListener = new FileChangeListener(this);
+        this.fileChangeListener.initialize();
+      } catch (error) {
+        console.error("Failed to initialize FileChangeListener:", error);
+        this.fileChangeListener = null;
+      }
     }
 
     registerCommands(this);
@@ -351,6 +361,11 @@ export default class DiscourseGraphPlugin extends Plugin {
     if (this.tagNodeHandler) {
       this.tagNodeHandler.cleanup();
       this.tagNodeHandler = null;
+    }
+
+    if (this.fileChangeListener) {
+      this.fileChangeListener.cleanup();
+      this.fileChangeListener = null;
     }
 
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT);
