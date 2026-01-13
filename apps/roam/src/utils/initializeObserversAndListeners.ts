@@ -35,7 +35,6 @@ import {
   getModifiersFromCombo,
   render as renderDiscourseNodeMenu,
 } from "~/components/DiscourseNodeMenu";
-import { IKeyCombo } from "@blueprintjs/core";
 import { configPageTabs } from "~/utils/configPageTabs";
 import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchMenu";
 import {
@@ -244,10 +243,10 @@ export const initObservers = async ({
   const globalTrigger = (
     getGlobalSetting<string>(["Trigger"]) || "\\"
   ).trim();
-  const personalTriggerCombo =
-    (onloadArgs.extensionAPI.settings.get(
-      "personal-node-menu-trigger",
-    ) as IKeyCombo) || undefined;
+  const personalTriggerCombo = getPersonalSetting<{
+    key: string;
+    modifiers: number;
+  }>(["Personal Node Menu Trigger"]);
   const personalTrigger = personalTriggerCombo?.key;
   const personalModifiers = getModifiersFromCombo(personalTriggerCombo);
 
@@ -310,7 +309,8 @@ export const initObservers = async ({
     }
   };
 
-  const customTrigger = getSetting("node-search-trigger", "@");
+  const customTrigger =
+    getPersonalSetting<string>(["Node Search Menu Trigger"]) ?? "@";
 
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;

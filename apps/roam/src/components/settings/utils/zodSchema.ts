@@ -233,7 +233,9 @@ export const QuerySettingsSchema = z.object({
 
 export const PersonalSettingsSchema = z.object({
   "Left Sidebar": LeftSidebarPersonalSettingsSchema,
-  "Personal Node Menu Trigger": z.string().default(""),
+  "Personal Node Menu Trigger": z
+    .object({ key: z.string(), modifiers: z.number() })
+    .default({ key: "", modifiers: 0 }),
   "Node Search Menu Trigger": z.string().default("@"),
   "Discourse Tool Shortcut": z.string().default(""),
   "Discourse Context Overlay": z.boolean().default(false),
