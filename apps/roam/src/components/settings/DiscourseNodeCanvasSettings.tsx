@@ -28,36 +28,29 @@ export const formatHexColor = (color: string) => {
 
 const DiscourseNodeCanvasSettings = ({ nodeType }: { nodeType: string }) => {
   const [color, setColor] = useState<string>(() => {
-    const storedColor =
-      getDiscourseNodeSetting<string>(nodeType, ["canvasSettings", "color"]) ??
-      "";
+    const storedColor = getDiscourseNodeSetting<string>(nodeType, [
+      "canvasSettings",
+      "color",
+    ])!;
     return formatHexColor(storedColor);
   });
-  const [alias, setAlias] = useState<string>(
-    () =>
-      getDiscourseNodeSetting<string>(nodeType, ["canvasSettings", "alias"]) ??
-      "",
+  const [alias, setAlias] = useState<string>(() =>
+    getDiscourseNodeSetting<string>(nodeType, ["canvasSettings", "alias"])!,
   );
-  const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(
-    () =>
-      getDiscourseNodeSetting<string>(nodeType, [
-        "canvasSettings",
-        "query-builder-alias",
-      ]) ?? "",
-  );
-  const [isKeyImage, setIsKeyImage] = useState(() => {
-    const value = getDiscourseNodeSetting<boolean>(nodeType, [
+  const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(() =>
+    getDiscourseNodeSetting<string>(nodeType, [
       "canvasSettings",
-      "key-image",
-    ]);
-    return value === true;
-  });
-  const [keyImageOption, setKeyImageOption] = useState(
-    () =>
-      getDiscourseNodeSetting<string>(nodeType, [
-        "canvasSettings",
-        "key-image-option",
-      ]) ?? "first-image",
+      "query-builder-alias",
+    ])!,
+  );
+  const [isKeyImage, setIsKeyImage] = useState(() =>
+    getDiscourseNodeSetting<boolean>(nodeType, ["canvasSettings", "key-image"])!,
+  );
+  const [keyImageOption, setKeyImageOption] = useState(() =>
+    getDiscourseNodeSetting<string>(nodeType, [
+      "canvasSettings",
+      "key-image-option",
+    ])!,
   );
 
   return (
