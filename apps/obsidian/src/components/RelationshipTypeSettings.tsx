@@ -45,39 +45,25 @@ const ColorPicker = ({ value, onChange }: ColorPickerProps) => {
   const textColor = getContrastColor(bgColor ?? DEFAULT_TLDRAW_COLOR);
 
   return (
-    <div ref={dropdownRef} className="relative" style={{ minWidth: "140px" }}>
+    <div ref={dropdownRef} className="relative min-w-32">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center justify-between rounded border px-3 py-2 text-left"
-        style={{
-          backgroundColor: bgColor,
-          color: textColor,
-        }}
+        style={{ backgroundColor: bgColor, color: textColor }}
       >
         <span className="flex items-center gap-2">
           <span
-            className="inline-block rounded-full"
-            style={{
-              width: "12px",
-              height: "12px",
-              backgroundColor: bgColor,
-              border: `2px solid ${textColor}`,
-            }}
+            className="inline-block h-3 w-3 rounded-full border-2 border-solid"
+            style={{ backgroundColor: bgColor, border: `${textColor}` }}
           />
           {TLDRAW_COLOR_LABELS[currentColor]}
         </span>
-        <span style={{ fontSize: "10px" }}>{isOpen ? "▲" : "▼"}</span>
+        <span className="text-sm">{isOpen ? "▲" : "▼"}</span>
       </button>
 
       {isOpen && (
-        <div
-          className="absolute z-50 mt-1 w-full"
-          style={{
-            maxHeight: "300px",
-            overflowY: "auto",
-          }}
-        >
+        <div className="absolute z-50 mt-1 max-h-40 w-full overflow-y-auto">
           {TLDRAW_COLOR_NAMES.map((colorName) => {
             const bgColor = COLOR_PALETTE[colorName] ?? COLOR_PALETTE.black;
             return (
@@ -91,12 +77,8 @@ const ColorPicker = ({ value, onChange }: ColorPickerProps) => {
                 className="flex w-full flex-row justify-start gap-2 rounded-none px-3 py-2"
               >
                 <span
-                  className="inline-block rounded-full"
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    backgroundColor: bgColor,
-                  }}
+                  className="inline-block h-3 w-3 rounded-full"
+                  style={{ backgroundColor: bgColor }}
                 />
                 {TLDRAW_COLOR_LABELS[colorName]}
               </button>
