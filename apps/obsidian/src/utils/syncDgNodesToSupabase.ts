@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { TFile } from "obsidian";
+import { Notice, TFile } from "obsidian";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import { Json } from "@repo/database/dbTypes";
 import {
@@ -72,24 +72,11 @@ type DiscourseNodeInVault = {
  */
 const collectDiscourseNodesFromVault = async (
   plugin: DiscourseGraphPlugin,
-  testFolderPath?: string,
 ): Promise<DiscourseNodeInVault[]> => {
   const allFiles = plugin.app.vault.getMarkdownFiles();
   const dgNodes: DiscourseNodeInVault[] = [];
 
   for (const file of allFiles) {
-    // TODO: Remove this after testing
-    if (testFolderPath) {
-      const folderName = testFolderPath.split("/").pop() || "";
-      if (!file.path.includes(folderName)) {
-        continue;
-      }
-      const pathParts = file.path.split("/");
-      if (!pathParts.includes(folderName)) {
-        continue;
-      }
-    }
-
     const cache = plugin.app.metadataCache.getFileCache(file);
     const frontmatter = cache?.frontmatter;
 
@@ -229,17 +216,12 @@ const getChangedDiscourseNodes = async ({
   plugin,
   supabaseClient,
   context,
-  testFolderPath,
 }: {
   plugin: DiscourseGraphPlugin;
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
-  testFolderPath?: string;
 }): Promise<ObsidianDiscourseNodeData[]> => {
-  const dgNodesInVault = await collectDiscourseNodesFromVault(
-    plugin,
-    testFolderPath,
-  );
+  const dgNodesInVault = await collectDiscourseNodesFromVault(plugin);
 
   if (dgNodesInVault.length === 0) {
     return [];
@@ -299,15 +281,10 @@ export const createOrUpdateDiscourseEmbedding = async (
     console.debug("Supabase client:", supabaseClient);
 
     // Get all discourse nodes that have changed compared to what's stored in Supabase
-    // For testing: only sync nodes from specific folder
-    // TODO: Remove this after testing
-    const testFolderPath =
-      "/Users/trang.doan/Documents/Trang Doan Obsidian/Trang Doan/testSyncNodes";
     const allNodeInstances = await getChangedDiscourseNodes({
       plugin,
       supabaseClient,
       context,
-      testFolderPath, // Remove this parameter to sync all nodes
     });
     console.log("allNodeInstances", allNodeInstances);
     console.debug(`Found ${allNodeInstances.length} nodes to sync`);
@@ -409,6 +386,7 @@ export const initializeSupabaseSync = async (
   }
 
   await createOrUpdateDiscourseEmbedding(plugin, context).catch((error) => {
+    new Notice(`Initial sync failed: ${error}`);
     console.error("Initial sync failed:", error);
   });
 };
