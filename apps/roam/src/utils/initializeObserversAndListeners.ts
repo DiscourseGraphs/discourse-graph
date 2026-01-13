@@ -115,7 +115,7 @@ export const initObservers = async ({
       const node = findDiscourseNode({ uid, title });
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
-        renderDiscourseContext({ h1, uid, tag: title });
+        renderDiscourseContext({ h1, uid });
         if (isSuggestiveModeEnabled) {
           renderPossibleDuplicates(h1, title, node);
         }
