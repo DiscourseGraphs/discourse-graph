@@ -356,7 +356,7 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
         setLoading(false);
       });
     },
-    [uid, setRawQueryResults, setLoading, addLabels],
+    [uid, setRawQueryResults, setLoading, addLabels, overlayRefresh],
   );
 
   const delayedRefresh = () => {
