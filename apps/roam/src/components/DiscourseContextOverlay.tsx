@@ -148,7 +148,11 @@ const DiscourseContextOverlay = ({
             results.length === 0 ? "flex items-center justify-center" : ""
           }`}
         >
-          <ContextContent uid={tagUid} results={results} />
+          <ContextContent
+            uid={tagUid}
+            results={results}
+            overlayRefresh={refresh}
+          />
         </div>
       }
       target={
