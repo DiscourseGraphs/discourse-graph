@@ -16,6 +16,7 @@ import {
 } from "~/components/DiscourseFloatingMenu";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 import { enablePostHog, disablePostHog } from "~/utils/posthog";
+import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import streamlineStyling from "~/styles/streamlineStyling";
 import { useFeatureFlag } from "./utils/hooks";
@@ -46,10 +47,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         <NodeSearchMenuTriggerSetting />
       </Label>
       <KeyboardShortcutInput
-        settingKey="Discourse Tool Shortcut"
-        label="Discourse Tool Keyboard Shortcut"
-        description="Set a single key to activate the Discourse Tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
-        placeholder="Click to set single key"
+        onloadArgs={onloadArgs}
+        settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
+        label="Discourse tool keyboard shortcut"
+        description="Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
       />
       <PersonalFlagPanel
         title="Overlay"

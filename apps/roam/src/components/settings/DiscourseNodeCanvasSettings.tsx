@@ -6,13 +6,13 @@ import {
   Tooltip,
   Icon,
   ControlGroup,
-  Checkbox,
 } from "@blueprintjs/core";
 import React, { useState } from "react";
 import {
   getDiscourseNodeSetting,
   setDiscourseNodeSetting,
 } from "./utils/accessors";
+import { DiscourseNodeFlagPanel } from "./components/BlockPropSettingPanels";
 
 export const formatHexColor = (color: string) => {
   if (!color) return "";
@@ -34,23 +34,20 @@ const DiscourseNodeCanvasSettings = ({ nodeType }: { nodeType: string }) => {
     ])!;
     return formatHexColor(storedColor);
   });
-  const [alias, setAlias] = useState<string>(() =>
-    getDiscourseNodeSetting<string>(nodeType, ["canvasSettings", "alias"])!,
-  );
-  const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(() =>
-    getDiscourseNodeSetting<string>(nodeType, [
-      "canvasSettings",
-      "query-builder-alias",
-    ])!,
+  const [alias, setAlias] = useState(
+    () => getDiscourseNodeSetting<string>(nodeType, ["canvasSettings", "alias"]),
   );
   const [isKeyImage, setIsKeyImage] = useState(() =>
-    getDiscourseNodeSetting<boolean>(nodeType, ["canvasSettings", "key-image"])!,
+    getDiscourseNodeSetting<boolean>(nodeType, ["canvasSettings", "key-image"]),
   );
   const [keyImageOption, setKeyImageOption] = useState(() =>
     getDiscourseNodeSetting<string>(nodeType, [
       "canvasSettings",
       "key-image-option",
-    ])!,
+    ]),
+  );
+  const [queryBuilderAlias, setQueryBuilderAlias] = useState(
+    () => getDiscourseNodeSetting<string>(nodeType, ["canvasSettings", "query-builder-alias"]),
   );
 
   return (
@@ -61,7 +58,7 @@ const DiscourseNodeCanvasSettings = ({ nodeType }: { nodeType: string }) => {
           <InputGroup
             style={{ width: 120 }}
             type={"color"}
-            value={color || "#000000"}
+            value={color}
             onChange={(e) => {
               setColor(e.target.value);
               setDiscourseNodeSetting(
@@ -101,48 +98,28 @@ const DiscourseNodeCanvasSettings = ({ nodeType }: { nodeType: string }) => {
           }}
         />
       </Label>
-      <Checkbox
-        style={{ width: 240, lineHeight: "normal" }}
-        checked={isKeyImage}
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          setIsKeyImage(target.checked);
-          if (target.checked) {
-            if (!keyImageOption) setKeyImageOption("first-image");
-            setDiscourseNodeSetting(
-              nodeType,
-              ["canvasSettings", "key-image"],
-              true,
-            );
-          } else {
-            setDiscourseNodeSetting(
-              nodeType,
-              ["canvasSettings", "key-image"],
-              false,
-            );
-          }
+      <DiscourseNodeFlagPanel
+        nodeType={nodeType}
+        title="Key Image"
+        description="Add an image to the discourse node"
+        settingKeys={["canvasSettings", "key-image"]}
+        defaultValue={false}
+        onChange={(checked) => {
+          setIsKeyImage(checked);
+          if (checked && !keyImageOption) setKeyImageOption("first-image");
         }}
-      >
-        Key Image
-        <Tooltip content={"Add an image to the discourse node"}>
-          <Icon
-            icon={"info-sign"}
-            iconSize={12}
-            className={"ml-2 align-middle opacity-80"}
-          />
-        </Tooltip>
-      </Checkbox>
+      />
       <RadioGroup
         disabled={!isKeyImage}
         selectedValue={keyImageOption || "first-image"}
         label="Key Image Location"
         onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          setKeyImageOption(target.value);
+          const value = (e.target as HTMLInputElement).value;
+          setKeyImageOption(value);
           setDiscourseNodeSetting(
             nodeType,
             ["canvasSettings", "key-image-option"],
-            target.value,
+            value,
           );
         }}
       >

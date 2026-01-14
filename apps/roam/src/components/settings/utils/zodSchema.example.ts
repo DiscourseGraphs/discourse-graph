@@ -35,10 +35,7 @@ const suggestiveRules: SuggestiveRules = {
     { text: "Key Points::", heading: 2, children: [{ text: "" }] },
   ],
   embeddingRef: "((block-uid-123))",
-  isFirstChild: {
-    uid: "first-child-uid",
-    value: true,
-  },
+  isFirstChild: true,
 };
 
 const discourseNodeSettings: DiscourseNodeSettings = {
@@ -61,10 +58,7 @@ const discourseNodeSettings: DiscourseNodeSettings = {
     { text: "Evidence::", heading: 2, children: [{ text: "" }] },
     { text: "Counterarguments::", heading: 2, children: [{ text: "" }] },
   ],
-  canvasSettings: {
-    color: "#4A90D9",
-    alias: "CLM",
-  },
+  canvasSettings,
   graphOverview: true,
   attributes: {
     Status: "status-attr-uid",
@@ -82,19 +76,7 @@ const discourseNodeSettings: DiscourseNodeSettings = {
     ],
     selections: [],
   },
-  suggestiveRules: {
-    template: [],
-    embeddingRef: "((embed-ref))",
-    isFirstChild: {
-      uid: "is-first-child-uid",
-      value: false,
-    },
-  },
-  embeddingRef: "((main-embed-ref))",
-  isFirstChild: {
-    uid: "main-first-child-uid",
-    value: true,
-  },
+  suggestiveRules,
   backedBy: "user",
 };
 

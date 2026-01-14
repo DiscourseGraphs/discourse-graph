@@ -31,29 +31,20 @@ import {
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
-import { getSetting } from "./utils/extensionSettings";
 import { initPostHog } from "./utils/posthog";
-import {
-  STREAMLINE_STYLING_KEY,
-  DISALLOW_DIAGNOSTICS,
-} from "./data/userSettings";
+import { getFeatureFlag, getPersonalSetting } from "./components/settings/utils/accessors";
 import { initSchema } from "./components/settings/utils/init";
 import {
-<<<<<<< HEAD
   setupPullWatchOnSettingsPage,
-=======
-  setupPullWatchSettings,
->>>>>>> 481f2be5 (ENG-1225: Discourse node migration)
   setupPullWatchDiscourseNodes,
 } from "./components/settings/utils/pullWatchers";
-import { getFeatureFlag } from "./components/settings/utils/accessors";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
   const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
-  const disallowDiagnostics = getSetting(DISALLOW_DIAGNOSTICS, false);
+  const disallowDiagnostics = getPersonalSetting<boolean>(["Disable Product Diagnostics"]);
   if (!isEncrypted && !isOffline && !disallowDiagnostics) {
     initPostHog();
   }
@@ -84,17 +75,10 @@ export default runExtension(async (onloadArgs) => {
   await initializeDiscourseNodes();
   refreshConfigTree();
 
-<<<<<<< HEAD
   // TODO: REMOVE stub call after testing - Initialize block prop settings and pull watchers
   const { blockUids, nodePageUids } = await initSchema();
   const cleanupSettingsWatchers = setupPullWatchOnSettingsPage(blockUids);
   const cleanupNodeWatchers = setupPullWatchDiscourseNodes(nodePageUids);
-=======
-  // For testing purposes
-  const { blockUids, nodePageUids } = await initSchema();
-  const cleanupPullWatchSettings = setupPullWatchSettings(blockUids);
-  const cleanupPullWatchNodes = setupPullWatchDiscourseNodes(nodePageUids);
->>>>>>> 481f2be5 (ENG-1225: Discourse node migration)
 
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
@@ -108,7 +92,7 @@ export default runExtension(async (onloadArgs) => {
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
 
   // Add streamline styling only if enabled
-  const isStreamlineStylingEnabled = getSetting(STREAMLINE_STYLING_KEY, false);
+  const isStreamlineStylingEnabled = getPersonalSetting<boolean>(["Streamline Styling"]);
   let streamlineStyleElement: HTMLStyleElement | null = null;
   if (isStreamlineStylingEnabled) {
     streamlineStyleElement = addStyle(streamlineStyling);
@@ -177,13 +161,8 @@ export default runExtension(async (onloadArgs) => {
     ],
     observers: observers,
     unload: () => {
-<<<<<<< HEAD
       cleanupSettingsWatchers();
       cleanupNodeWatchers();
-=======
-      cleanupPullWatchSettings();
-      cleanupPullWatchNodes();
->>>>>>> 481f2be5 (ENG-1225: Discourse node migration)
       setSyncActivity(false);
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       // @ts-expect-error - tldraw throws a warning on multiple loads

@@ -1,24 +1,13 @@
-import React, {
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-} from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
-import {
-  Label,
-  Tabs,
-  Tab,
-  TabId,
-  InputGroup,
-  TextArea,
-} from "@blueprintjs/core";
+import { Label, Tabs, Tab, TabId, InputGroup } from "@blueprintjs/core";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
+import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
@@ -28,7 +17,10 @@ import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
 } from "./components/BlockPropSettingPanels";
-import { setDiscourseNodeSetting } from "./utils/accessors";
+import {
+  getDiscourseNodeSetting,
+  setDiscourseNodeSetting,
+} from "./utils/accessors";
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -68,40 +60,7 @@ const ValidatedInputPanel = ({
   </div>
 );
 
-const ValidatedTextareaPanel = ({
-  label,
-  description,
-  value,
-  onChange,
-  onBlur,
-  placeholder,
-}: {
-  label: string;
-  description: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onBlur: () => void;
-  placeholder?: string;
-}) => (
-  <div className="flex flex-col">
-    <Label>
-      {label}
-      <Description description={description} />
-      <TextArea
-        value={value}
-        onChange={onChange}
-        onBlur={onBlur}
-        placeholder={placeholder}
-        className="w-full"
-        style={{ minHeight: 80, resize: "vertical" }}
-      />
-    </Label>
-  </div>
-);
-
-const useDebouncedBlockPropUpdater = <
-  T extends HTMLInputElement | HTMLTextAreaElement,
->(
+const useDebouncedBlockPropUpdater = (
   nodeType: string,
   settingKey: string,
   initialValue: string,
@@ -129,7 +88,7 @@ const useDebouncedBlockPropUpdater = <
   );
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<T>) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
       setValue(newValue);
       saveToBlockProp(newValue, true);
@@ -172,58 +131,49 @@ const NodeConfig = ({
       key: key,
     }).uid;
   const templateUid = getUid("Template");
-  const overlayUid = getUid("Overlay");
   const specificationUid = getUid("Specification");
   const indexUid = getUid("Index");
-  const suggestiveRulesUid = getUid("Suggestive Rules");
+  const overlayUid = getUid("Overlay");
   const attributeNode = getSubTree({
     parentUid: node.type,
     key: "Attributes",
   });
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
-  const [tagError, setTagError] = useState("");
   const [formatError, setFormatError] = useState("");
-  const isConfigurationValid = !tagError && !formatError;
 
-  const {
-    value: tagValue,
-    handleChange: handleTagChange,
-    handleBlur: handleTagBlurFromHook,
-  } = useDebouncedBlockPropUpdater<HTMLInputElement>(
-    node.type,
-    "tag",
-    node.tag || "",
-    isConfigurationValid,
-  );
   const {
     value: formatValue,
     handleChange: handleFormatChange,
     handleBlur: handleFormatBlurFromHook,
-  } = useDebouncedBlockPropUpdater<HTMLInputElement>(
+  } = useDebouncedBlockPropUpdater(
     node.type,
     "format",
     node.format,
-    isConfigurationValid,
-  );
-  const {
-    value: descriptionValue,
-    handleChange: handleDescriptionChange,
-    handleBlur: handleDescriptionBlur,
-  } = useDebouncedBlockPropUpdater<HTMLTextAreaElement>(
-    node.type,
-    "description",
-    node.description || "",
-    true,
+    !formatError,
   );
 
-  const validate = useCallback(
+  const validateTag = (tag: string): string | undefined => {
+    const cleanTag = getCleanTagText(tag);
+    if (!cleanTag) return undefined;
+    const format = getDiscourseNodeSetting<string>(node.type, ["format"])!;
+    const roamTagRegex = /#?\[\[(.*?)\]\]|#(\S+)/g;
+    const formatTags: string[] = [];
+    for (const match of format.matchAll(roamTagRegex)) {
+      const tagName = match[1] || match[2];
+      if (tagName) formatTags.push(tagName.toUpperCase());
+    }
+    if (formatTags.includes(cleanTag)) {
+      return `The tag "${tag}" is referenced in the format. Please use a different tag or format.`;
+    }
+    return undefined;
+  };
+
+  const validateFormat = useCallback(
     ({
-      tag,
       format,
       isSpecificationEnabled,
     }: {
-      tag: string;
       format: string;
       isSpecificationEnabled?: boolean;
     }) => {
@@ -233,14 +183,13 @@ const NodeConfig = ({
           key: "enabled",
         })?.uid?.length;
       if (format.trim().length === 0 && !isSpecificationEnabled) {
-        setTagError("");
         setFormatError("Error: you must set either a format or specification");
         return;
       }
+      const tag = getDiscourseNodeSetting<string>(node.type, ["tag"])!;
       const cleanTag = getCleanTagText(tag);
 
       if (!cleanTag) {
-        setTagError("");
         setFormatError("");
         return;
       }
@@ -261,30 +210,17 @@ const NodeConfig = ({
         setFormatError(
           `The format references the node's tag "${tag}". Please use a different format or tag.`,
         );
-        setTagError(
-          `The tag "${tag}" is referenced in the format. Please use a different tag or format.`,
-        );
       } else {
-        setTagError("");
         setFormatError("");
       }
     },
-    [specificationUid],
+    [specificationUid, node.type],
   );
-
-  useEffect(() => {
-    validate({ tag: tagValue, format: formatValue });
-  }, [tagValue, formatValue, validate]);
-
-  const handleTagBlur = useCallback(() => {
-    handleTagBlurFromHook();
-    validate({ tag: tagValue, format: formatValue });
-  }, [handleTagBlurFromHook, tagValue, formatValue, validate]);
 
   const handleFormatBlur = useCallback(() => {
     handleFormatBlurFromHook();
-    validate({ tag: tagValue, format: formatValue });
-  }, [handleFormatBlurFromHook, tagValue, formatValue, validate]);
+    validateFormat({ format: formatValue });
+  }, [handleFormatBlurFromHook, formatValue, validateFormat]);
 
   return (
     <>
@@ -298,12 +234,12 @@ const NodeConfig = ({
           title="General"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <ValidatedTextareaPanel
-                label="Description"
+              <DiscourseNodeTextPanel
+                nodeType={node.type}
+                title="Description"
                 description={`Describing what the ${node.text} node represents in your graph.`}
-                value={descriptionValue}
-                onChange={handleDescriptionChange}
-                onBlur={handleDescriptionBlur}
+                settingKeys={["description"]}
+                defaultValue={node.description}
               />
               <DiscourseNodeTextPanel
                 nodeType={node.type}
@@ -312,14 +248,14 @@ const NodeConfig = ({
                 settingKeys={["shortcut"]}
                 defaultValue={node.shortcut}
               />
-              <ValidatedInputPanel
-                label="Tag"
+              <DiscourseNodeTextPanel
+                nodeType={node.type}
+                title="Tag"
                 description={`Designate a hashtag for marking potential ${node.text}.`}
-                value={tagValue}
-                onChange={handleTagChange}
-                onBlur={handleTagBlur}
-                error={tagError}
+                settingKeys={["tag"]}
+                defaultValue={node.tag}
                 placeholder={generateTagPlaceholder(node)}
+                validate={validateTag}
               />
             </div>
           }
@@ -361,8 +297,7 @@ const NodeConfig = ({
                   node={node}
                   parentUid={specificationUid}
                   parentSetEnabled={(isSpecificationEnabled) => {
-                    validate({
-                      tag: tagValue,
+                    validateFormat({
                       format: formatValue,
                       isSpecificationEnabled,
                     });
@@ -429,10 +364,7 @@ const NodeConfig = ({
             title="Suggestive Mode"
             panel={
               <div className="flex flex-col gap-4 p-1">
-                <DiscourseNodeSuggestiveRules
-                  node={node}
-                  parentUid={suggestiveRulesUid}
-                />
+                <DiscourseNodeSuggestiveRules node={node} />
               </div>
             }
           />

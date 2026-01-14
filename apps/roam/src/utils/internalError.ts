@@ -2,8 +2,7 @@ import posthog from "posthog-js";
 import type { Properties } from "posthog-js";
 import renderToast from "roamjs-components/components/Toast";
 import sendErrorEmail from "~/utils/sendErrorEmail";
-import { getSetting } from "~/utils/extensionSettings";
-import { DISALLOW_DIAGNOSTICS } from "~/data/userSettings";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
 
 const NON_WORD = /\W+/g;
 
@@ -23,7 +22,7 @@ const internalError = ({
   forceSendInDev?: boolean;
 }): void => {
   if (
-    getSetting(DISALLOW_DIAGNOSTICS, false) ||
+    getPersonalSetting<boolean>(["Disable Product Diagnostics"]) ||
     (process.env.NODE_ENV === "development" && forceSendInDev !== true)
   ) {
     console.error(error, context);
