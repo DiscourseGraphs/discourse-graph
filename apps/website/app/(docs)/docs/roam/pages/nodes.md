@@ -6,7 +6,6 @@ published: true
 ---
 
 - `discourse node`
-
   - as defined in your grammar (e.g., base grammar will include CLM or EVD, for example)
 
 - `block`
@@ -20,4 +19,4 @@ When in doubt, check the preview of your relation pattern to ensure you're corre
 
 ## Next
 
-- [Operators and Relations](./operators-relations)
+- [Operators and relations](./operators-relations)

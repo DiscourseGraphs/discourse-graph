@@ -1,5 +1,5 @@
 ---
-title: "Relations and Patterns"
+title: "Relations and patterns"
 date: "2025-01-01"
 author: ""
 published: true

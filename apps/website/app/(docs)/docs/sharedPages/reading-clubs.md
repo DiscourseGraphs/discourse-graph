@@ -1,5 +1,5 @@
 ---
-title: "Reading Clubs"
+title: "Reading clubs"
 date: "2025-01-01"
 author: ""
 published: true

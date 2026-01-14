@@ -1,5 +1,5 @@
 ---
-title: "Node Types & Templates"
+title: "Node types & templates"
 date: "2025-01-01"
 author: ""
 published: true
@@ -19,7 +19,8 @@ Node types are the building blocks of your discourse graph. Each node type repre
    - Ensure you have the Templates plugin enabled and configured with a template folder
    - The dropdown will show all available template files from your configured template folder
 
-      ![add node types with template](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FHMg_Tq6qiR.png?alt=media&token=69828bfc-c939-41b0-abd4-2cc8931c5a38)
+     ![add node types with template](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FHMg_Tq6qiR.png?alt=media&token=69828bfc-c939-41b0-abd4-2cc8931c5a38)
+
    - Click "Save Changes"
 
 ## Working with Templates
@@ -29,13 +30,13 @@ Templates allow you to automatically add predefined content when creating new no
 ### Setting Up Templates
 
 1. Create a new folder for templates
-![new folder](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FyTtJ1a0iI2.png?alt=media&token=b5d09b10-f170-47cd-a239-ee5f7acd89dc)
+   ![new folder](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FyTtJ1a0iI2.png?alt=media&token=b5d09b10-f170-47cd-a239-ee5f7acd89dc)
 
 2. Configure the template folder location in settings
-![template](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FhzZg_GJXY9.png?alt=media&token=508c8d19-1f13-4fb3-adf1-898dcf694f08)
+   ![template](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FhzZg_GJXY9.png?alt=media&token=508c8d19-1f13-4fb3-adf1-898dcf694f08)
 
 3. Create template files
-![create template file](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FtTr9vOnXnX.png?alt=media&token=dda1fe25-3ccf-42b4-8f3c-1cd29f82c3f7)
+   ![create template file](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FtTr9vOnXnX.png?alt=media&token=dda1fe25-3ccf-42b4-8f3c-1cd29f82c3f7)
 
 ## Template Requirements
 
@@ -48,4 +49,4 @@ Templates allow you to automatically add predefined content when creating new no
 
 - [Configure relationship types](./relationship-types)
 - [Learn about creating nodes](./creating-discourse-nodes)
-- [Explore advanced template usage](./using-templates) 
+- [Explore advanced template usage](./using-templates)

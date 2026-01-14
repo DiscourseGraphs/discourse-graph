@@ -1,5 +1,5 @@
 ---
-title: "Discourse Attributes"
+title: "Discourse attributes"
 date: "2025-01-01"
 author: ""
 published: true
@@ -7,8 +7,8 @@ published: true
 
 - [Discourse context](./discourse-context)
 - [Discourse context overlay](./discourse-context-overlay)
-- [Discourse Attributes](./discourse-attributes)
-- [Node Index](./node-index)
+- [Discourse attributes](./discourse-attributes)
+- [Node index](./node-index)
 
 ## Define Discourse Attributes
 

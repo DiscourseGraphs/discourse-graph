@@ -1,5 +1,5 @@
 ---
-title: "Operators and Relations"
+title: "Operators and relations"
 date: "2025-01-01"
 author: ""
 published: true
@@ -13,7 +13,6 @@ published: true
 - **source**: a `block`
 - **target**: a `page`
 - example:
-
   - this block references \[\[some page\]\]
 
 ### `is in page`
@@ -68,4 +67,4 @@ published: true
 
 ## Next
 
-- [Relations Patterns](./relations-patterns)
+- [Relations patterns](./relations-patterns)

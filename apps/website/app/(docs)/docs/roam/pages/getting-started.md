@@ -28,5 +28,5 @@ Follow our handy guides to get started on the basics as quickly as possible:
 Learn the fundamentals of the Discourse Graph extension to get a deeper understanding of our main features:
 
 - [What is a Discourse Graph?](./what-is-discourse-graph)
-- [The Discourse Graph Extension Grammar](./grammar)
-- [The Base Grammar: Questions, Claims, and Evidence](./base-grammar)
+- [The Discourse Graph extension grammar](./grammar)
+- [The base grammar: questions, claims, and evidence](./base-grammar)

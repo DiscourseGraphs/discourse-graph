@@ -9,5 +9,5 @@ The extension adds features to enable you to seamlessly explore your discourse g
 
 - [Discourse context](./discourse-context)
 - [Discourse context overlay](./discourse-context-overlay)
-- [Discourse Attributes](./discourse-attributes)
-- [Node Index](./node-index)
+- [Discourse attributes](./discourse-attributes)
+- [Node index](./node-index)

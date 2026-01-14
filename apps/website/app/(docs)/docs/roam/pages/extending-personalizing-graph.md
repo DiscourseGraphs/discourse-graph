@@ -1,5 +1,5 @@
 ---
-title: "Extending and Personalizing Your Discourse Graph"
+title: "Extending and personalizing Your Discourse Graph"
 date: "2025-01-01"
 author: ""
 published: true
