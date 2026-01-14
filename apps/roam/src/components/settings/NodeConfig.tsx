@@ -231,6 +231,16 @@ const NodeConfig = ({
   );
 
   const validate = useCallback((tag: string, format: string) => {
+    const enabled =
+      getSubTree({
+        tree: getBasicTreeByParentUid(specificationUid),
+        key: "enabled",
+      })?.uid?.length || 0 !== 0;
+    if (format.trim().length === 0 && !enabled) {
+      setTagError("");
+      setFormatError("Error: you must set either a format or specification");
+      return;
+    }
     const cleanTag = getCleanTagText(tag);
 
     if (!cleanTag) {
@@ -353,6 +363,9 @@ const NodeConfig = ({
                 <DiscourseNodeSpecification
                   node={node}
                   parentUid={specificationUid}
+                  parentSetEnabled={() => {
+                    validate(tagValue, formatValue);
+                  }}
                 />
               </Label>
             </div>
