@@ -15,6 +15,7 @@ import type { CustomField } from "roamjs-components/components/ConfigPanels/type
 import posthog from "posthog-js";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { deleteBlock } from "roamjs-components/writes";
+import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 
 type DiscourseNodeConfigPanelProps = React.ComponentProps<
   CustomField["options"]["component"]
@@ -127,7 +128,16 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                 onClick={() => navigateToNode(n.type)}
                 style={{ verticalAlign: "middle" }}
               >
-                {n.text}
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-3 w-3 rounded-full"
+                    style={{
+                      backgroundColor:
+                        formatHexColor(n.canvasSettings?.color) || "#000",
+                    }}
+                  />
+                  <span>{n.text}</span>
+                </div>
               </td>
               <td>
                 <Tooltip content="Edit" hoverOpenDelay={500}>
