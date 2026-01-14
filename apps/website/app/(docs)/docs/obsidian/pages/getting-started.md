@@ -1,5 +1,5 @@
 ---
-title: "Getting Started"
+title: "Getting started"
 date: "2025-01-01"
 author: ""
 published: true
@@ -27,16 +27,16 @@ For more information about Discourse Graphs, check out our website at [https://d
 
 Follow our handy guides to get started on the basics as quickly as possible:
 
-- [Creating Discourse Nodes](./creating-discourse-nodes)
-- [Creating Discourse Relationships](./creating-discourse-relationships)
+- [Creating discourse nodes](./creating-discourse-nodes)
+- [Creating discourse relationships](./creating-discourse-relationships)
 - [Exploring your Discourse Graph](./exploring-discourse-graph)
 - [Querying your Discourse Graph](./querying-discourse-graph)
-- [Extending and Personalizing your Discourse Graph](./extending-personalizing-graph)
+- [Extending and personalizing your Discourse Graph](./extending-personalizing-graph)
 
 ## Fundamentals: Dive a little deeper
 
 Learn the fundamentals of the Discourse Graph plugin to get a deeper understanding of our main features:
 
 - [What is a Discourse Graph?](./what-is-discourse-graph)
-- [The Discourse Graph Plugin Grammar](./grammar)
-- [The Base Grammar: Questions, Claims, and Evidence](./base-grammar) 
+- [The Discourse Graph plugin grammar](./grammar)
+- [The Base Grammar: questions, claims, and evidence](./base-grammar)

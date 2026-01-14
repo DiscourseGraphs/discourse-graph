@@ -154,7 +154,7 @@ const getAllDiscourseContext = async (
 ) => {
   await updateProgressWithDelay({
     progress: 0.01,
-    message: "Gathering Initial Discourse Results",
+    message: "Gathering initial discourse results",
   });
   const discourseNodeUids = initialUids.filter((uid) => isDiscourseNode(uid));
 
@@ -278,7 +278,7 @@ const GraphExportDialog: GraphExportDialogComponent = ({
   const ByDiscourseContextPanel = (
     <>
       <Callout className="mb-5">
-        Export Discourse Nodes and their Discourse Context based on relation
+        Export discourse nodes and their discourse context based on relation
         depth from the initial nodes.
       </Callout>
       <Label>Depth</Label>
@@ -299,7 +299,7 @@ const GraphExportDialog: GraphExportDialogComponent = ({
   const ByReferencesPanel = (
     <>
       <Callout className="mb-5">
-        Export any Discourse Nodes and their Discourse Context that reference or
+        Export any discourse nodes and their discourse context that reference or
         are referenced by any page starting from the initial pages.
       </Callout>
       <Tooltip placement="top" content={"Pages that link to a selected page"}>
@@ -415,7 +415,7 @@ const GraphExportDialog: GraphExportDialogComponent = ({
 
       await updateProgressWithDelay({
         progress: 0.5,
-        message: "Filtering Discourse Nodes",
+        message: "Filtering discourse nodes",
       });
       const discourseNodeUids = Array.from(referenceUids).filter((uid) =>
         isDiscourseNode(uid),
@@ -469,7 +469,7 @@ const GraphExportDialog: GraphExportDialogComponent = ({
   const onExport = async () => {
     exportRender({
       results,
-      title: "Export Discourse Graph",
+      title: "Export discourse graph",
     });
     onClose();
   };
@@ -477,7 +477,7 @@ const GraphExportDialog: GraphExportDialogComponent = ({
   return (
     <Dialog
       isOpen={isOpen}
-      title="Discourse Graph Context Export"
+      title="Discourse graph context export"
       onClose={onClose}
       autoFocus={false}
     >
@@ -493,12 +493,12 @@ const GraphExportDialog: GraphExportDialogComponent = ({
         >
           <Tab
             id="by-references"
-            title="By References"
+            title="By references"
             panel={ByReferencesPanel}
           />
           <Tab
             id="by-discourse-relations"
-            title="By Discourse Relations"
+            title="By discourse relations"
             panel={ByDiscourseContextPanel}
           />
         </Tabs>

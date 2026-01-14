@@ -458,7 +458,7 @@ const DiscourseContext = ({ uid }: Props) => {
         />
         <div style={{ flex: "0 1 2px" }} />
         <div style={{ color: "rgb(206, 217, 224)" }}>
-          <strong>Discourse Context</strong>
+          <strong>Discourse context</strong>
         </div>
       </div>
       <div style={{ paddingLeft: 16 }}>

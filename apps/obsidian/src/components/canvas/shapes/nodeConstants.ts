@@ -1,7 +1,7 @@
 /**
- * Constants for Discourse Node styling and sizing.
+ * Constants for discourse node styling and sizing.
  * These values match the Tailwind classes used in DiscourseNodeShape component.
- * 
+ *
  * IMPORTANT: If you change these values, you must also update:
  * - The Tailwind classes in DiscourseNodeShape.tsx (line ~263)
  * - The measurement function in measureNodeText.ts
@@ -44,4 +44,3 @@ export const IMAGE_GAP = 4;
 
 // Base height for nodes without images (estimated)
 export const BASE_HEIGHT_NO_IMAGE = 100;
-

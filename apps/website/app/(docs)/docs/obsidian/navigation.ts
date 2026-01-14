@@ -4,17 +4,17 @@ const ROOT = "/docs/obsidian";
 
 export const navigation: NavigationList = [
   {
-    title: "🏠 Getting Started",
+    title: "🏠 Getting started",
     links: [
-      { title: "Getting Started", href: `${ROOT}/getting-started` },
+      { title: "Getting started", href: `${ROOT}/getting-started` },
       { title: "Installation", href: `${ROOT}/installation` },
     ],
   },
   {
-    title: "🧱 FUNDAMENTALS",
+    title: "🧱 Fundamentals",
     links: [
       {
-        title: "What is a Discourse Graph?",
+        title: "What is a discourse graph?",
         href: `${ROOT}/what-is-discourse-graph`,
       },
       {
@@ -27,32 +27,32 @@ export const navigation: NavigationList = [
     title: "⚙️ Configuration",
     links: [
       {
-        title: "Node Types & Templates",
+        title: "Node types & templates",
         href: `${ROOT}/node-types-templates`,
       },
       {
-        title: "Relationship Types",
+        title: "Relationship types",
         href: `${ROOT}/relationship-types`,
       },
       {
-        title: "General Settings",
+        title: "General settings",
         href: `${ROOT}/general-settings`,
       },
     ],
   },
   {
-    title: "🗺️ Core Features",
+    title: "🗺️ Core features",
     links: [
       {
-        title: "Creating Nodes",
+        title: "Creating nodes",
         href: `${ROOT}/creating-discourse-nodes`,
       },
       {
-        title: "Discourse Context",
+        title: "Discourse context",
         href: `${ROOT}/discourse-context`,
       },
       {
-        title: "Creating Relationships",
+        title: "Creating relationships",
         href: `${ROOT}/creating-discourse-relationships`,
       },
       {
@@ -67,7 +67,7 @@ export const navigation: NavigationList = [
   },
 
   {
-    title: "🔍 Advanced Features",
+    title: "🔍 Advanced features",
     links: [
       {
         title: "Commands",
@@ -76,22 +76,22 @@ export const navigation: NavigationList = [
     ],
   },
   {
-    title: "🚢 Use Cases",
+    title: "🚢 Use cases",
     links: [
       {
-        title: "Literature Review",
+        title: "Literature review",
         href: `${ROOT}/literature-reviewing`,
       },
       {
-        title: "Research Notes",
+        title: "Research notes",
         href: `${ROOT}/research-roadmapping`,
       },
       {
-        title: "Reading Clubs & Seminars",
+        title: "Reading clubs & seminars",
         href: `${ROOT}/reading-clubs`,
       },
       {
-        title: "Lab Notebooks",
+        title: "Lab notebooks",
         href: `${ROOT}/lab-notebooks`,
       },
     ],

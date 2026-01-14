@@ -23,15 +23,15 @@ We have a range of options for customizing the markdown export. These can be fou
 
 Here is a brief explanation of each option:
 
-`Max Filename Length`
+`Max filename length`
 
 - sets the maximum length of the filenames; this is important if you have page names that are quite long and may run afoul of, say, Windows' filename length limit of 250-260 characters.
 
-`Remove Special Characters`
+`Remove special characters`
 
 - removes all "special characters" that may lead to trouble for filenames in different operating systems, such as `?` (not allowed on Windows) or `/` (denotes file/folder boundaries).
 
-`Simplified Filename`
+`Simplified filename`
 
 - strips away all "template" characters (i.e., everything except the `{content}` in the node format: for example, if you define a Claim node as `[[CLM]] - {content}`, and have a Claim node `[[[[CLM]] - people are lazy]]`, the exported filename will be `people are lazy`
 
@@ -40,20 +40,18 @@ Here is a brief explanation of each option:
 - specifies what properties to add to the YAML.
 
 - By default, the properties are:
-
   - `title: {text}`
   - `author: {author}`
   - `date: {date}`
 
 - You can add properties as key-value pairs in the same format:
-
   - ![](/docs/roam/settings-export-frontmatter.png)
 
-`Resolve Block References` and `Resolve Block Embeds`
+`Resolve block references` and `Resolve block embeds`
 
 - control whether you want to resolve block references/embeds in your export. You can keep this turned off if you are unsure of the privacy implications of references/embeds.
 
-`Link Type`
+`Link type`
 
 - controls whether inline page references are wikilinks (`[[like this]]`) or alias (`[like this](pageName.md)`)
 

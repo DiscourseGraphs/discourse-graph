@@ -86,7 +86,7 @@ const collectVariables = (clauses: DatalogClause[]): Set<string> =>
     }),
   );
 
-const ANY_DISCOURSE_NODE = "Any Discourse Node";
+const ANY_DISCOURSE_NODE = "Any discourse node";
 
 const registerDiscourseDatalogTranslators = () => {
   const discourseRelations = getDiscourseRelations();

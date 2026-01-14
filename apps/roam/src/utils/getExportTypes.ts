@@ -292,7 +292,7 @@ const getExportTypes = ({
               )
               .join("\n");
 
-            return `### Discourse Context\n\n${formattedResults}`;
+            return `### Discourse context\n\n${formattedResults}`;
           };
           const getReferenceResultsContent = async () => {
             const normalizedTitle = normalizePageTitle(text);

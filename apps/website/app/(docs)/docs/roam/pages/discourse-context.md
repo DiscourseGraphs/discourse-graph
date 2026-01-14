@@ -1,14 +1,14 @@
 ---
-title: "Discourse Context"
+title: "Discourse context"
 date: "2025-01-01"
 author: ""
 published: true
 ---
 
-- [Discourse Context](./discourse-context)
-- [Discourse Context Overlay](./discourse-context-overlay)
-- [Discourse Attributes](./discourse-attributes)
-- [Node Index](./node-index)
+- [Discourse context](./discourse-context)
+- [Discourse context overlay](./discourse-context-overlay)
+- [Discourse attributes](./discourse-attributes)
+- [Node index](./node-index)
 
 The discourse context component adds a "higher-signal" linked references section to each discourse node, that allows you to explore _discourse_ relations (e.g., inform, support, etc.) between this node and other nodes in your discourse graph.
 

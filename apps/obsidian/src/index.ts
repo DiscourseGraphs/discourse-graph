@@ -109,7 +109,7 @@ export default class DiscourseGraphPlugin extends Plugin {
       (leaf) => new DiscourseContextView(leaf, this),
     );
 
-    this.addRibbonIcon("telescope", "Toggle Discourse Context", () => {
+    this.addRibbonIcon("telescope", "Toggle discourse context", () => {
       this.toggleDiscourseContextView();
     });
 
@@ -181,7 +181,7 @@ export default class DiscourseGraphPlugin extends Plugin {
         if (!editor.getSelection()) return;
 
         menu.addItem((menuItem) => {
-          menuItem.setTitle("Turn into Discourse Node");
+          menuItem.setTitle("Turn into discourse node");
           menuItem.setIcon("file-type");
 
           // Create submenu using the unofficial API pattern

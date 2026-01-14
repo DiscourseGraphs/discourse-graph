@@ -1,5 +1,5 @@
 ---
-title: "Base Grammar"
+title: "Base grammar"
 date: "2025-01-01"
 author: ""
 published: true

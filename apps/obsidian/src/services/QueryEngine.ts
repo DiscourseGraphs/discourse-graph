@@ -38,7 +38,7 @@ export class QueryEngine {
   }
 
   /**
-   * Search across all Discourse Nodes (files that have frontmatter nodeTypeId)
+   * Search across all discourse nodes (files that have frontmatter nodeTypeId)
    */
   searchDiscourseNodesByTitle = async (
     query: string,

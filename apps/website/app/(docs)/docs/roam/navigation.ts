@@ -6,23 +6,23 @@ export const navigation: NavigationList = [
   {
     title: "🏠 Welcome!",
     links: [
-      { title: "Getting Started", href: `${ROOT}/getting-started` },
+      { title: "Getting started", href: `${ROOT}/getting-started` },
       { title: "Installation", href: `${ROOT}/installation` },
     ],
   },
   {
-    title: "🗺️ GUIDES",
+    title: "🗺️ Guides",
     links: [
       {
-        title: "Creating Nodes",
+        title: "Creating nodes",
         href: `${ROOT}/creating-discourse-nodes`,
       },
       {
-        title: "Tagging Candidate Nodes",
+        title: "Tagging candidate nodes",
         href: `${ROOT}/tagging-candidate-nodes`,
       },
       {
-        title: "Creating Relationships",
+        title: "Creating relationships",
         href: `${ROOT}/creating-discourse-relationships`,
       },
       {
@@ -44,10 +44,10 @@ export const navigation: NavigationList = [
     ],
   },
   {
-    title: "🧱 FUNDAMENTALS",
+    title: "🧱 Fundamentals",
     links: [
       {
-        title: "What is a Discourse Graph?",
+        title: "What is a discourse graph?",
         href: `${ROOT}/what-is-discourse-graph`,
       },
       {
@@ -57,10 +57,10 @@ export const navigation: NavigationList = [
     ],
   },
   {
-    title: "🚢 USE CASES",
+    title: "🚢 Use cases",
     links: [
       {
-        title: "Literature Reviewing",
+        title: "Literature reviewing",
         href: `${ROOT}/literature-reviewing`,
       },
       {
@@ -68,7 +68,7 @@ export const navigation: NavigationList = [
         href: `${ROOT}/enhanced-zettelkasten`,
       },
       {
-        title: "Reading Clubs / Seminars",
+        title: "Reading clubs / seminars",
         href: `${ROOT}/reading-clubs`,
       },
       {
@@ -76,7 +76,7 @@ export const navigation: NavigationList = [
         href: `${ROOT}/lab-notebooks`,
       },
       {
-        title: "Product / Research Roadmapping",
+        title: "Product / research roadmapping",
         href: `${ROOT}/research-roadmapping`,
       },
     ],

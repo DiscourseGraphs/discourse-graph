@@ -1,5 +1,5 @@
 ---
-title: "Creating Discourse Nodes"
+title: "Creating discourse nodes"
 date: "2025-01-01"
 author: ""
 published: true

@@ -1,20 +1,20 @@
 ---
-title: "Creating Discourse Relationships"
+title: "Creating discourse relationships"
 date: "2025-01-01"
 author: ""
 published: true
 ---
 
-## Creating a Relationship
+## Creating a relationship
 
 To create a relationship between discourse nodes:
 
 1. Open a note that you want to create a relationship from
-2. Open the Discourse Context by clicking the telescope icon on the left bar
+2. Open the discourse context by clicking the telescope icon on the left bar
 ![open discourse context](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FE10krHZcDM.png?alt=media&token=c1796a9f-7e51-437f-913d-91f5433d9bab)
 
    Alternatively, you can:
-   - Set a hotkey to toggle the Discourse Context view
+   - Set a hotkey to toggle the discourse context view
    - Access it via the Command Palette
    ![command palette](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2F5ybScaQISO.png?alt=media&token=2b36f0e7-4247-47b7-a53d-c784dfd4609b)
 
@@ -29,7 +29,7 @@ To create a relationship between discourse nodes:
 6. Click "Confirm" to create the relationship
 ![relationship created](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FK8XAhCqrUL.png?alt=media&token=a559c477-c7f6-4b3e-8b00-ece7da5d4fec)
 
-## Next Steps
+## Next steps
 
 After creating relationships:
 - [Learn how to explore your graph](./exploring-discourse-graph)

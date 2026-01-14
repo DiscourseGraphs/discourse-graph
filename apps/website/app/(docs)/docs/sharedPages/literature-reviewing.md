@@ -1,5 +1,5 @@
 ---
-title: "Literature Reviewing"
+title: "Literature reviewing"
 date: "2025-01-01"
 author: ""
 published: true

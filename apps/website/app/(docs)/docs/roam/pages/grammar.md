@@ -1,14 +1,14 @@
 ---
-title: "Extension Grammar"
+title: "Extension grammar"
 date: "2025-01-01"
 author: ""
 published: true
 ---
 
 - [Nodes](./nodes)
-- [Operators and Relations](./operators-relations)
-- [Relations Patterns](./relations-patterns)
-- [Base Grammar](./base-grammar)
+- [Operators and relations](./operators-relations)
+- [Relations patterns](./relations-patterns)
+- [Base grammar](./base-grammar)
 
 The basic technical intuition behind the extension is that it creates a mapping between the following two elements:
 
