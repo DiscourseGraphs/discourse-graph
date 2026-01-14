@@ -1,7 +1,6 @@
 import React from "react";
 import CustomPanel from "roamjs-components/components/ConfigPanels/CustomPanel";
 import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
-import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 
@@ -9,17 +8,14 @@ import {
   Field,
   CustomField,
   TextField,
-  SelectField,
   FieldPanel,
   FlagField,
 } from "roamjs-components/components/ConfigPanels/types";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { OnloadArgs } from "roamjs-components/types";
-import { getSubTree } from "roamjs-components/util";
 import {
   DiscourseNodeIndex,
   DiscourseNodeSpecification,
-  DiscourseNodeAttributes,
+  DiscourseNodeAttributesTab,
   DiscourseNodeCanvasSettings,
 } from "~/components";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
@@ -116,29 +112,22 @@ export const renderNodeConfigPage = ({
             description: `A set of derived properties about the node based on queryable data.`,
             Panel: CustomPanel,
             options: {
-              component: DiscourseNodeAttributes,
+              component: () =>
+                React.createElement(DiscourseNodeAttributesTab, {
+                  nodeType: node.type,
+                }),
             },
           } as Field<CustomField>,
-          // @ts-ignore
-          {
-            title: "Overlay",
-            description: `Select which attribute is used for the Discourse Overlay`,
-            Panel: SelectPanel,
-            options: {
-              items: () =>
-                getSubTree({
-                  parentUid: getPageUidByPageTitle(title),
-                  key: "Attributes",
-                }).children.map((c) => c.text),
-            },
-          } as Field<SelectField>,
           // @ts-ignore
           {
             title: "Canvas",
             description: `Various options for this node in the Discourse Canvas`,
             Panel: CustomPanel,
             options: {
-              component: DiscourseNodeCanvasSettings,
+              component: () =>
+                React.createElement(DiscourseNodeCanvasSettings, {
+                  nodeType: node.type,
+                }),
             },
           } as Field<CustomField>,
           // @ts-ignore
@@ -153,10 +142,9 @@ export const renderNodeConfigPage = ({
             title: "Suggestive Rules",
             Panel: CustomPanel,
             options: {
-              component: ({ uid }) =>
+              component: () =>
                 React.createElement(DiscourseNodeSuggestiveRules, {
                   node,
-                  parentUid: uid,
                 }),
             },
           } as Field<CustomField>,

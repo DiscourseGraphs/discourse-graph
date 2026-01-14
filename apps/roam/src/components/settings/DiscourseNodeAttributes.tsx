@@ -1,24 +1,22 @@
-import { Button, InputGroup, Label } from "@blueprintjs/core";
+import { Button, InputGroup, Label, HTMLSelect } from "@blueprintjs/core";
 import React, { useRef, useState } from "react";
-import createBlock from "roamjs-components/writes/createBlock";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getFirstChildUidByBlockUid from "roamjs-components/queries/getFirstChildUidByBlockUid";
-import updateBlock from "roamjs-components/writes/updateBlock";
-import deleteBlock from "roamjs-components/writes/deleteBlock";
+import Description from "roamjs-components/components/Description";
+import {
+  getDiscourseNodeSetting,
+  setDiscourseNodeSetting,
+} from "./utils/accessors";
 
-type Attribute = {
-  uid: string;
+type AttributeEntry = {
   label: string;
   value: string;
 };
 
 const NodeAttribute = ({
-  uid,
   label,
   value,
   onChange,
   onDelete,
-}: Attribute & { onChange: (v: string) => void; onDelete: () => void }) => {
+}: AttributeEntry & { onChange: (v: string) => void; onDelete: () => void }) => {
   const timeoutRef = useRef(0);
   return (
     <div
@@ -34,12 +32,10 @@ const NodeAttribute = ({
         className="roamjs-attribute-value"
         onChange={(e) => {
           clearTimeout(timeoutRef.current);
-          onChange(e.target.value);
+          const newValue = e.target.value;
+          onChange(newValue);
           timeoutRef.current = window.setTimeout(() => {
-            updateBlock({
-              text: e.target.value,
-              uid: getFirstChildUidByBlockUid(uid),
-            });
+            // onChange already updates the parent state which saves
           }, 500);
         }}
       />
@@ -53,34 +49,60 @@ const NodeAttribute = ({
   );
 };
 
-const NodeAttributes = ({ uid }: { uid: string }) => {
-  const [attributes, setAttributes] = useState<Attribute[]>(() =>
-    getBasicTreeByParentUid(uid).map((t) => ({
-      uid: t.uid,
-      label: t.text,
-      value: t.children[0]?.text,
-    })),
-  );
+const NodeAttributes = ({ nodeType }: { nodeType: string }) => {
+  const [attributes, setAttributes] = useState<AttributeEntry[]>(() => {
+    const record =
+      getDiscourseNodeSetting<Record<string, string>>(nodeType, [
+        "attributes",
+      ]) ?? {};
+    return Object.entries(record).map(([label, value]) => ({ label, value }));
+  });
   const [newAttribute, setNewAttribute] = useState("");
+
+  const saveAttributes = (newAttributes: AttributeEntry[]) => {
+    const record: Record<string, string> = {};
+    for (const attr of newAttributes) {
+      record[attr.label] = attr.value;
+    }
+    setDiscourseNodeSetting(nodeType, ["attributes"], record);
+  };
+
+  const handleChange = (label: string, newValue: string) => {
+    const newAttributes = attributes.map((a) =>
+      a.label === label ? { ...a, value: newValue } : a,
+    );
+    setAttributes(newAttributes);
+    saveAttributes(newAttributes);
+  };
+
+  const handleDelete = (label: string) => {
+    const newAttributes = attributes.filter((a) => a.label !== label);
+    setAttributes(newAttributes);
+    saveAttributes(newAttributes);
+  };
+
+  const handleAdd = () => {
+    if (!newAttribute.trim()) return;
+    const DEFAULT = "{count:Has Any Relation To:any}";
+    const newAttributes = [
+      ...attributes,
+      { label: newAttribute.trim(), value: DEFAULT },
+    ];
+    setAttributes(newAttributes);
+    saveAttributes(newAttributes);
+    setNewAttribute("");
+  };
+
   return (
     <div>
       <div style={{ marginBottom: 32 }}>
         {attributes.map((a) => (
           <NodeAttribute
-            key={a.uid}
-            {...a}
-            onChange={(v) =>
-              setAttributes(
-                attributes.map((aa) =>
-                  a.uid === aa.uid ? { ...a, value: v } : aa,
-                ),
-              )
-            }
-            onDelete={() =>
-              deleteBlock(a.uid).then(() =>
-                setAttributes(attributes.filter((aa) => a.uid !== aa.uid)),
-              )
-            }
+            key={a.label}
+            label={a.label}
+            value={a.value}
+            onChange={(v) => handleChange(a.label, v)}
+            onDelete={() => handleDelete(a.label)}
           />
         ))}
       </div>
@@ -90,31 +112,135 @@ const NodeAttributes = ({ uid }: { uid: string }) => {
           <InputGroup
             value={newAttribute}
             onChange={(e) => setNewAttribute(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleAdd();
+              }
+            }}
           />
           <Button
             text={"Add"}
             rightIcon={"plus"}
             style={{ marginLeft: 16 }}
-            onClick={() => {
-              const DEFAULT = "{count:Has Any Relation To:any}";
-              createBlock({
-                node: {
-                  text: newAttribute,
-                  children: [{ text: DEFAULT }],
-                },
-                parentUid: uid,
-                order: attributes.length,
-              }).then((uid) => {
-                setAttributes([
-                  ...attributes,
-                  { uid, label: newAttribute, value: DEFAULT },
-                ]);
-                setNewAttribute("");
-              });
-            }}
+            onClick={handleAdd}
+            disabled={!newAttribute.trim()}
           />
         </div>
       </div>
+    </div>
+  );
+};
+
+export const DiscourseNodeAttributesTab = ({
+  nodeType,
+}: {
+  nodeType: string;
+}) => {
+  const [attributes, setAttributes] = useState<AttributeEntry[]>(() => {
+    const record =
+      getDiscourseNodeSetting<Record<string, string>>(nodeType, [
+        "attributes",
+      ]) ?? {};
+    return Object.entries(record).map(([label, value]) => ({ label, value }));
+  });
+  const [newAttribute, setNewAttribute] = useState("");
+  const [overlay, setOverlay] = useState<string>(
+    () => getDiscourseNodeSetting<string>(nodeType, ["overlay"]) ?? "",
+  );
+
+  const saveAttributes = (newAttributes: AttributeEntry[]) => {
+    const record: Record<string, string> = {};
+    for (const attr of newAttributes) {
+      record[attr.label] = attr.value;
+    }
+    setDiscourseNodeSetting(nodeType, ["attributes"], record);
+  };
+
+  const handleChange = (label: string, newValue: string) => {
+    const newAttributes = attributes.map((a) =>
+      a.label === label ? { ...a, value: newValue } : a,
+    );
+    setAttributes(newAttributes);
+    saveAttributes(newAttributes);
+  };
+
+  const handleDelete = (label: string) => {
+    const newAttributes = attributes.filter((a) => a.label !== label);
+    setAttributes(newAttributes);
+    saveAttributes(newAttributes);
+    // Clear overlay if deleted attribute was selected
+    if (overlay === label) {
+      setOverlay("");
+      setDiscourseNodeSetting(nodeType, ["overlay"], "");
+    }
+  };
+
+  const handleAdd = () => {
+    if (!newAttribute.trim()) return;
+    const DEFAULT = "{count:Has Any Relation To:any}";
+    const newAttributes = [
+      ...attributes,
+      { label: newAttribute.trim(), value: DEFAULT },
+    ];
+    setAttributes(newAttributes);
+    saveAttributes(newAttributes);
+    setNewAttribute("");
+  };
+
+  const handleOverlayChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = e.target.value;
+    setOverlay(newValue);
+    setDiscourseNodeSetting(nodeType, ["overlay"], newValue);
+  };
+
+  const attributeLabels = attributes.map((a) => a.label);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <div style={{ marginBottom: 32 }}>
+          {attributes.map((a) => (
+            <NodeAttribute
+              key={a.label}
+              label={a.label}
+              value={a.value}
+              onChange={(v) => handleChange(a.label, v)}
+              onDelete={() => handleDelete(a.label)}
+            />
+          ))}
+        </div>
+        <div>
+          <Label style={{ marginBottom: 8 }}>Attribute Label</Label>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <InputGroup
+              value={newAttribute}
+              onChange={(e) => setNewAttribute(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleAdd();
+                }
+              }}
+            />
+            <Button
+              text={"Add"}
+              rightIcon={"plus"}
+              style={{ marginLeft: 16 }}
+              onClick={handleAdd}
+              disabled={!newAttribute.trim()}
+            />
+          </div>
+        </div>
+      </div>
+      <Label>
+        Overlay
+        <Description description="Select which attribute is used for the Discourse Overlay" />
+        <HTMLSelect
+          value={overlay}
+          onChange={handleOverlayChange}
+          fill
+          options={["", ...attributeLabels]}
+        />
+      </Label>
     </div>
   );
 };

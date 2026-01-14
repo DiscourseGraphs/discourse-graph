@@ -5,7 +5,6 @@ import React, {
   useEffect,
 } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
@@ -18,7 +17,7 @@ import {
   TextArea,
 } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
-import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
+import { DiscourseNodeAttributesTab } from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
@@ -172,14 +171,8 @@ const NodeConfig = ({
       key: key,
     }).uid;
   const templateUid = getUid("Template");
-  const overlayUid = getUid("Overlay");
   const specificationUid = getUid("Specification");
   const indexUid = getUid("Index");
-  const suggestiveRulesUid = getUid("Suggestive Rules");
-  const attributeNode = getSubTree({
-    parentUid: node.type,
-    key: "Attributes",
-  });
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
   const [tagError, setTagError] = useState("");
@@ -365,17 +358,7 @@ const NodeConfig = ({
           title="Attributes"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeAttributes uid={attributeNode.uid} />
-              <SelectPanel
-                title="Overlay"
-                description="Select which attribute is used for the Discourse Overlay"
-                order={0}
-                parentUid={node.type}
-                uid={overlayUid}
-                options={{
-                  items: () => attributeNode.children.map((c) => c.text),
-                }}
-              />
+              <DiscourseNodeAttributesTab nodeType={node.type} />
             </div>
           }
         />
@@ -401,10 +384,7 @@ const NodeConfig = ({
             title="Suggestive Mode"
             panel={
               <div className="flex flex-col gap-4 p-1">
-                <DiscourseNodeSuggestiveRules
-                  node={node}
-                  parentUid={suggestiveRulesUid}
-                />
+                <DiscourseNodeSuggestiveRules node={node} />
               </div>
             }
           />
