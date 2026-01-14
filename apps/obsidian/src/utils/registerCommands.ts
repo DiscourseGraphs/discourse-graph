@@ -12,7 +12,7 @@ import { Notice } from "obsidian";
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
     id: "open-node-type-menu",
-    name: "Open Node Type Menu",
+    name: "Open node type menu",
     hotkeys: [{ modifiers: ["Mod"], key: "\\" }],
     editorCallback: (editor: Editor) => {
       const hasSelection = !!editor.getSelection();
@@ -42,7 +42,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
   plugin.addCommand({
     id: "create-discourse-node",
-    name: "Create Discourse Node",
+    name: "Create discourse node",
     editorCallback: (editor: Editor) => {
       new ModifyNodeModal(plugin.app, {
         nodeTypes: plugin.settings.nodeTypes,
@@ -65,7 +65,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
   plugin.addCommand({
     id: "bulk-identify-discourse-nodes",
-    name: "Bulk Identify Discourse Nodes",
+    name: "Bulk identify discourse nodes",
     callback: () => {
       new BulkIdentifyDiscourseNodesModal(plugin.app, plugin).open();
     },
@@ -73,7 +73,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
   plugin.addCommand({
     id: "toggle-discourse-context",
-    name: "Toggle Discourse Context",
+    name: "Toggle discourse context",
     callback: () => {
       plugin.toggleDiscourseContextView();
     },
@@ -81,7 +81,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
   plugin.addCommand({
     id: "open-discourse-graph-settings",
-    name: "Open Discourse Graph Settings",
+    name: "Open Discourse Graphs settings",
     callback: () => {
       // plugin.app.setting is an unofficial API
       /* eslint-disable @typescript-eslint/no-unsafe-call */
@@ -94,7 +94,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
   plugin.addCommand({
     id: "switch-to-tldraw-edit",
-    name: "Switch to Discourse Markdown Edit",
+    name: "Switch to discourse markdown edit",
     checkCallback: (checking: boolean) => {
       const leaf = plugin.app.workspace.activeLeaf;
       if (!leaf) return false;
@@ -111,7 +111,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
   plugin.addCommand({
     id: "switch-to-tldraw-preview",
-    name: "Switch to Discourse Graph Canvas View",
+    name: "Switch to Discourse Graph canvas view",
     checkCallback: (checking: boolean) => {
       const leaf = plugin.app.workspace.activeLeaf;
       if (!leaf) return false;

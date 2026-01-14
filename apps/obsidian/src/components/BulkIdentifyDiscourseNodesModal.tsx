@@ -379,7 +379,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
             className="!bg-accent !text-on-accent rounded px-4 py-2"
             disabled={candidates.filter((c) => c.selected).length === 0}
           >
-            Identify Selected as Discourse Nodes (
+            Identify selected as discourse nodes (
             {candidates.filter((c) => c.selected).length})
           </button>
         </div>
@@ -389,7 +389,7 @@ const BulkImportContent = ({ plugin, onClose }: BulkImportModalProps) => {
 
   const renderIdentifyingStep = () => (
     <div className="text-center">
-      <h3 className="mb-4">Identifying Files as Discourse Nodes</h3>
+      <h3 className="mb-4">Identifying files as discourse nodes</h3>
       <div className="mb-4">
         <div className="bg-modifier-border mb-2 h-2 rounded-full">
           <div

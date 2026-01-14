@@ -37,19 +37,19 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   return (
     <div className="flex flex-col gap-4 p-1">
       <Label>
-        Personal Node Menu Trigger
+        Personal node menu trigger
         <Description
           description={
-            "Override the global trigger for the Discourse Node Menu. Must refresh after editing."
+            "Override the global trigger for the discourse node menu. Must refresh after editing."
           }
         />
         <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
       </Label>
       <Label>
-        Node Search Menu Trigger
+        Node search menu trigger
         <Description
           description={
-            "Set the trigger character for the Node Search Menu. Must refresh after editing."
+            "Set the trigger character for the node search menu. Must refresh after editing."
           }
         />
         <NodeSearchMenuTriggerSetting onloadArgs={onloadArgs} />
@@ -57,8 +57,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <KeyboardShortcutInput
         onloadArgs={onloadArgs}
         settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
-        label="Discourse Tool Keyboard Shortcut"
-        description="Set a single key to activate the Discourse Tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
+        label="Discourse tool keyboard shortcut"
+        description="Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
         placeholder="Click to set single key"
       />
       <Checkbox
@@ -79,7 +79,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             Overlay
             <Description
               description={
-                "Whether or not to overlay Discourse Context information over Discourse Node references."
+                "Whether or not to overlay discourse context information over discourse node references."
               }
             />
           </>
@@ -101,11 +101,11 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             );
           }}
           labelElement={
-            <>
-              Suggestive Mode Overlay
+          <>
+              Suggestive mode overlay
               <Description
                 description={
-                  "Whether or not to overlay Suggestive Mode button over Discourse Node references."
+                  "Whether or not to overlay suggestive mode button over discourse node references."
                 }
               />
             </>
@@ -122,10 +122,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }}
         labelElement={
           <>
-            Text Selection Popup
+            Text selection popup
             <Description
               description={
-                "Whether or not to show the Discourse Node Menu when selecting text."
+                "Whether or not to show the discourse node menu when selecting text."
               }
             />
           </>
@@ -232,7 +232,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             (BETA) Overlay in Canvas
             <Description
               description={
-                "Whether or not to overlay Discourse Context information over Canvas Nodes."
+                "Whether or not to overlay discourse context information over canvas nodes."
               }
             />
           </>

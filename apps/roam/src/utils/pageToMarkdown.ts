@@ -292,7 +292,7 @@ export const pageToMarkdown = async (
     )
     .join("\n")}\n${
     discourseResults.length
-      ? `\n###### Discourse Context\n\n${discourseResults
+      ? `\n###### Discourse context\n\n${discourseResults
           .flatMap((r) =>
             Object.values(r.results).map(
               (t) =>

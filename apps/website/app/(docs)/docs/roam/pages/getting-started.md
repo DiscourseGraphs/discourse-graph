@@ -1,5 +1,5 @@
 ---
-title: "Getting Started"
+title: "Getting started"
 date: "2025-01-01"
 author: ""
 published: true
@@ -17,8 +17,8 @@ Here is a relatively brief walkthrough of some of the main features of the exten
 
 Follow our handy guides to get started on the basics as quickly as possible:
 
-- [Creating Discourse Nodes](./creating-discourse-nodes)
-- [Creating Discourse Relationships](./creating-discourse-relationships)
+- [Creating discourse nodes](./creating-discourse-nodes)
+- [Creating discourse relationships](./creating-discourse-relationships)
 - [Exploring your Discourse Graph](./exploring-discourse-graph)
 - [Querying your Discourse Graph](./querying-discourse-graph)
 - [Extending and Personalizing your Discourse Graph](./extending-personalizing-discourse-graph)

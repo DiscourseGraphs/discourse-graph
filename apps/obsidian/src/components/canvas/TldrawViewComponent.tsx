@@ -384,7 +384,7 @@ export const TldrawPreviewComponent = ({
               tools: (editor, tools) => {
                 tools["discourse-node"] = {
                   id: "discourse-node",
-                  label: "Discourse Node",
+                  label: "Discourse node",
                   readonlyOk: false,
                   icon: "discourseNodeIcon",
                   onSelect: () => {
@@ -393,7 +393,7 @@ export const TldrawPreviewComponent = ({
                 };
                 tools["discourse-relation"] = {
                   id: "discourse-relation",
-                  label: "Discourse Relation",
+                  label: "Discourse relation",
                   readonlyOk: false,
                   icon: "tool-arrow",
                   onSelect: () => {

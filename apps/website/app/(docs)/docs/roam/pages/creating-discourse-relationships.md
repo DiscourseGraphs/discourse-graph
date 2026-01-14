@@ -1,5 +1,5 @@
 ---
-title: "Creating Discourse Relationships"
+title: "Creating discourse relationships"
 date: "2025-01-01"
 author: ""
 published: true

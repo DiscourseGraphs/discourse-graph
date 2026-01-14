@@ -5,8 +5,8 @@ author: ""
 published: true
 ---
 
-- [Discourse Context](./discourse-context)
-- [Discourse Context Overlay](./discourse-context-overlay)
+- [Discourse context](./discourse-context)
+- [Discourse context overlay](./discourse-context-overlay)
 - [Discourse Attributes](./discourse-attributes)
 - [Node Index](./node-index)
 

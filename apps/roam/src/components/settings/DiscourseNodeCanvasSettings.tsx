@@ -114,7 +114,7 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
         }}
       >
         Key Image
-        <Tooltip content={"Add an image to the Discourse Node"}>
+        <Tooltip content={"Add an image to the discourse node"}>
           <Icon
             icon={"info-sign"}
             iconSize={12}

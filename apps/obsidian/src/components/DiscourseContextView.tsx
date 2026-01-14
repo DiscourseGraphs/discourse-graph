@@ -78,7 +78,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
 
   return (
     <div>
-      <h3 className="dg-h3">Discourse Context</h3>
+      <h3 className="dg-h3">Discourse context</h3>
       {renderContent()}
     </div>
   );
@@ -104,7 +104,7 @@ export class DiscourseContextView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Discourse Context";
+    return "Discourse context";
   }
 
   getIcon(): string {

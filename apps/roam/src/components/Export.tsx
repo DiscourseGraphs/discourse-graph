@@ -810,10 +810,10 @@ const ExportDialog: ExportDialogComponent = ({
                   <Tooltip
                     className="m-0"
                     content={
-                      "Include the Discourse Context of each result in the export."
+                      "Include the discourse context of each result in the export."
                     }
                   >
-                    <span>Discourse Context</span>
+                    <span>Discourse context</span>
                   </Tooltip>
                 }
               />
