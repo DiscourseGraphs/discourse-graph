@@ -4,7 +4,6 @@ import createBlock from "roamjs-components/writes/createBlock";
 import { Checkbox } from "@blueprintjs/core";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
-import refreshConfigTree from "~/utils/refreshConfigTree";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import QueryEditor from "~/components/QueryEditor";
@@ -73,9 +72,6 @@ const NodeSpecification = ({
       const scratchNode = getSubTree({ tree, key: "scratch" });
       Promise.all(scratchNode.children.map((c) => deleteBlock(c.uid)));
     }
-    return () => {
-      refreshConfigTree();
-    };
   }, [parentUid, setMigrated, enabled]);
   return (
     <div className={"roamjs-node-specification"}>
