@@ -1,4 +1,4 @@
-import React, { type ChangeEvent, useState, useCallback, useRef } from "react";
+import React, { type ChangeEvent, useState, useCallback, useRef, useEffect } from "react";
 import {
   Checkbox,
   InputGroup,
@@ -20,6 +20,7 @@ import {
   setDiscourseNodeSetting,
 } from "../utils/accessors";
 import type { FeatureFlags } from "../utils/zodSchema";
+import type { json } from "~/utils/getBlockProps";
 
 type RoamBlockSyncProps = {
   parentUid?: string;
@@ -42,6 +43,7 @@ type BaseTextPanelProps = {
   setter: TextSetter;
   initialValue?: string;
   placeholder?: string;
+  validate?: (value: string) => string | undefined;
   onChange?: (value: string) => void;
 } & RoamBlockSyncProps;
 
@@ -86,6 +88,8 @@ type BaseMultiTextPanelProps = {
   onChange?: (values: string[]) => void;
 } & RoamBlockSyncProps;
 
+const DEBOUNCE_MS = 500;
+
 const BaseTextPanel = ({
   title,
   description,
@@ -93,12 +97,17 @@ const BaseTextPanel = ({
   setter,
   initialValue,
   placeholder,
+  validate,
   onChange,
   parentUid,
   uid,
   order,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? "");
+  const [error, setError] = useState<string | undefined>(() =>
+    validate?.(value),
+  );
+  const debounceRef = useRef(0);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
     title,
@@ -111,24 +120,42 @@ const BaseTextPanel = ({
   });
   const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
 
+  useEffect(() => {
+    return () => window.clearTimeout(debounceRef.current);
+  }, []);
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
-    setter(settingKeys, newValue);
-    syncToBlock?.(newValue);
     onChange?.(newValue);
+
+    const validationError = validate?.(newValue);
+    setError(validationError);
+    if (validationError) return;
+
+    window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      setter(settingKeys, newValue);
+      syncToBlock?.(newValue);
+    }, DEBOUNCE_MS);
   };
 
   return (
-    <Label>
-      {title}
-      <Description description={description} />
-      <InputGroup
-        value={value}
-        onChange={handleChange}
-        placeholder={placeholder || initialValue}
-      />
-    </Label>
+
+    <div className="flex flex-col">
+      <Label>
+        {title}
+        <Description description={description} />
+        <InputGroup
+          value={value}
+          onChange={handleChange}
+          placeholder={placeholder || initialValue}
+        />
+      </Label>
+      {error && (
+        <div className="mt-1 text-sm font-medium text-red-600">{error}</div>
+      )}
+    </div>
   );
 };
 
@@ -533,28 +560,26 @@ export const PersonalSelectPanel = (props: SelectWrapperProps) => (
 
 export const PersonalMultiTextPanel = (props: MultiTextWrapperProps) => (
   <BaseMultiTextPanel {...props} {...personalAccessors.multiText} />
-
-const createDiscourseNodeGetter =
-  (nodeType: string) =>
-  <T,>(keys: string[]): T | undefined =>
-    getDiscourseNodeSetting<T>(nodeType, keys);
+);
 
 const createDiscourseNodeSetter =
   (nodeType: string) =>
   (keys: string[], value: json): void =>
     setDiscourseNodeSetting(nodeType, keys, value);
 
-type DiscourseNodeWrapperProps = WrapperProps & {
+type DiscourseNodeBaseProps = {
   nodeType: string;
+  title: string;
+  description: string;
+  settingKeys: string[];
 };
 
 export const DiscourseNodeTextPanel = ({
   nodeType,
   ...props
-}: DiscourseNodeWrapperProps & { defaultValue?: string; placeholder?: string }) => (
+}: DiscourseNodeBaseProps & RoamBlockSyncProps & { defaultValue?: string; placeholder?: string; validate?: (value: string) => string | undefined; onChange?: (value: string) => void }) => (
   <BaseTextPanel
     {...props}
-    getter={createDiscourseNodeGetter(nodeType)}
     setter={createDiscourseNodeSetter(nodeType)}
   />
 );
@@ -562,7 +587,7 @@ export const DiscourseNodeTextPanel = ({
 export const DiscourseNodeFlagPanel = ({
   nodeType,
   ...props
-}: DiscourseNodeWrapperProps & {
+}: DiscourseNodeBaseProps & RoamBlockSyncProps & {
   defaultValue?: boolean;
   disabled?: boolean;
   onBeforeChange?: (checked: boolean) => Promise<boolean>;
@@ -570,7 +595,6 @@ export const DiscourseNodeFlagPanel = ({
 }) => (
   <BaseFlagPanel
     {...props}
-    getter={createDiscourseNodeGetter(nodeType)}
     setter={createDiscourseNodeSetter(nodeType)}
   />
 );
@@ -578,10 +602,9 @@ export const DiscourseNodeFlagPanel = ({
 export const DiscourseNodeSelectPanel = ({
   nodeType,
   ...props
-}: DiscourseNodeWrapperProps & { options: string[]; defaultValue?: string }) => (
+}: DiscourseNodeBaseProps & RoamBlockSyncProps & { options: string[]; defaultValue?: string }) => (
   <BaseSelectPanel
     {...props}
-    getter={createDiscourseNodeGetter(nodeType)}
     setter={createDiscourseNodeSetter(nodeType)}
   />
 );
@@ -589,10 +612,9 @@ export const DiscourseNodeSelectPanel = ({
 export const DiscourseNodeNumberPanel = ({
   nodeType,
   ...props
-}: DiscourseNodeWrapperProps & { defaultValue?: number; min?: number; max?: number }) => (
+}: DiscourseNodeBaseProps & RoamBlockSyncProps & { defaultValue?: number; min?: number; max?: number }) => (
   <BaseNumberPanel
     {...props}
-    getter={createDiscourseNodeGetter(nodeType)}
     setter={createDiscourseNodeSetter(nodeType)}
   />
 );
