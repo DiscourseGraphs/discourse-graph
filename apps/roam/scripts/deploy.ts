@@ -2,6 +2,7 @@ import { put } from "@vercel/blob";
 import fs, { readFileSync } from "fs";
 import { join } from "path";
 import { compile } from "./compile";
+import { posthog } from "./posthog";
 import { config } from "@repo/database/dbDotEnv";
 import { execSync } from "child_process";
 
@@ -20,6 +21,13 @@ const deploy = async () => {
     await compile({});
   } catch (error) {
     console.error("Deployment failed on compile:", error);
+    process.exit(1);
+  }
+
+  try {
+    posthog();
+  } catch (error) {
+    console.error("Deployment failed on posthog:", error);
     process.exit(1);
   }
 
