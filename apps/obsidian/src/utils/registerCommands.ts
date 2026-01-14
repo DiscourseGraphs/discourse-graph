@@ -6,6 +6,8 @@ import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscou
 import { createDiscourseNode } from "./createNode";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
+import { createOrUpdateDiscourseEmbedding } from "./syncDgNodesToSupabase";
+import { Notice } from "obsidian";
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
@@ -129,5 +131,29 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Create new Discourse Graph canvas",
     icon: "layout-dashboard", // Using Lucide icon as per style guide
     callback: () => createCanvas(plugin),
+  });
+
+  plugin.addCommand({
+    id: "sync-discourse-nodes-to-supabase",
+    name: "Sync Discourse Nodes to Supabase",
+    checkCallback: (checking: boolean) => {
+      if (!plugin.settings.syncModeEnabled) {
+        new Notice("Sync mode is not enabled", 3000);
+        return false;
+      }
+      if (!checking) {
+        void createOrUpdateDiscourseEmbedding(plugin)
+          .then(() => {
+            new Notice("Discourse nodes synced successfully", 3000);
+          })
+          .catch((error) => {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            new Notice(`Sync failed: ${errorMessage}`, 5000);
+            console.error("Manual sync failed:", error);
+          });
+      }
+      return true;
+    },
   });
 };

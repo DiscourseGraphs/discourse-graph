@@ -1,15 +1,392 @@
-import { getSupabaseContext } from "./supabaseContext";
-import type DiscourseGraphPlugin from "~/index";
+/* eslint-disable @typescript-eslint/naming-convention */
+import { Notice, TFile } from "obsidian";
+import { DGSupabaseClient } from "@repo/database/lib/client";
+import { Json } from "@repo/database/dbTypes";
+import {
+  getSupabaseContext,
+  getLoggedInClient,
+  SupabaseContext,
+} from "./supabaseContext";
+import { default as DiscourseGraphPlugin } from "~/index";
+import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
+import {
+  orderConceptsByDependency,
+  discourseNodeInstanceToLocalConcept,
+} from "./conceptConversion";
+import { LocalConceptDataInput } from "@repo/database/inputTypes";
+
+const DEFAULT_TIME = new Date("1970-01-01");
+export type ChangeType = "title" | "content" | "new";
+
+export type ObsidianDiscourseNodeData = {
+  file: TFile;
+  frontmatter: Record<string, unknown>;
+  nodeTypeId: string;
+  nodeInstanceId: string;
+  created: string;
+  last_modified: string;
+  changeTypes: ChangeType[];
+};
+
+const ensureNodeInstanceId = async (
+  plugin: DiscourseGraphPlugin,
+  file: TFile,
+  frontmatter: Record<string, unknown>,
+): Promise<string> => {
+  const existingId = frontmatter["nodeInstanceId"] as string | undefined;
+  if (existingId && typeof existingId === "string") {
+    return existingId;
+  }
+
+  const nodeInstanceId = crypto.randomUUID();
+  await plugin.app.fileManager.processFrontMatter(file, (fm) => {
+    (fm as Record<string, unknown>).nodeInstanceId = nodeInstanceId;
+  });
+
+  return nodeInstanceId;
+};
+const getLastSyncTime = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<Date> => {
+  const { data } = await supabaseClient
+    .from("Content")
+    .select("last_modified")
+    .eq("space_id", spaceId)
+    .order("last_modified", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return new Date(data?.last_modified || DEFAULT_TIME);
+};
+
+type DiscourseNodeInVault = {
+  file: TFile;
+  frontmatter: Record<string, unknown>;
+  nodeTypeId: string;
+  nodeInstanceId: string;
+};
+
+/**
+ * Step 1: Collect all discourse nodes from the vault
+ * Filters markdown files that have nodeTypeId in frontmatter
+ */
+const collectDiscourseNodesFromVault = async (
+  plugin: DiscourseGraphPlugin,
+): Promise<DiscourseNodeInVault[]> => {
+  const allFiles = plugin.app.vault.getMarkdownFiles();
+  const dgNodes: DiscourseNodeInVault[] = [];
+
+  for (const file of allFiles) {
+    const cache = plugin.app.metadataCache.getFileCache(file);
+    const frontmatter = cache?.frontmatter;
+
+    // Not a discourse node
+    if (!frontmatter?.nodeTypeId) {
+      continue;
+    }
+
+    const nodeTypeId = frontmatter.nodeTypeId as string;
+    if (!nodeTypeId) {
+      continue;
+    }
+
+    const nodeInstanceId = await ensureNodeInstanceId(
+      plugin,
+      file,
+      frontmatter as Record<string, unknown>,
+    );
+
+    dgNodes.push({
+      file,
+      frontmatter: frontmatter as Record<string, unknown>,
+      nodeTypeId,
+      nodeInstanceId,
+    });
+  }
+
+  return dgNodes;
+};
+
+/**
+ * Query database for existing titles (from "direct" variant)
+ * Returns a map of nodeInstanceId -> stored filename
+ */
+const getExistingTitlesFromDatabase = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+  nodeInstanceIds: string[],
+): Promise<Map<string, string>> => {
+  const { data: existingDirectContent, error: directError } =
+    await supabaseClient
+      .from("Content")
+      .select("source_local_id, text")
+      .eq("space_id", spaceId)
+      .eq("variant", "direct")
+      .in("source_local_id", nodeInstanceIds);
+
+  if (directError) {
+    console.error("Error fetching existing direct content:", directError);
+  }
+
+  const titleMap = new Map<string, string>();
+  if (existingDirectContent) {
+    for (const content of existingDirectContent) {
+      if (content.source_local_id && content.text) {
+        titleMap.set(content.source_local_id, content.text);
+      }
+    }
+  }
+
+  return titleMap;
+};
+
+const detectNodeChanges = (
+  node: DiscourseNodeInVault,
+  existingTitle: string | undefined,
+  lastSyncTime: Date,
+): ChangeType[] => {
+  const currentFilename = node.file.basename;
+  const fileModifiedTime = new Date(node.file.stat.mtime);
+
+  const isNewFile = existingTitle === undefined;
+  if (isNewFile) {
+    return ["new"];
+  }
+
+  const titleChanged = existingTitle !== currentFilename;
+  const contentChanged = fileModifiedTime > lastSyncTime;
+
+  const changeTypes: ChangeType[] = [];
+  if (titleChanged) {
+    changeTypes.push("title");
+  }
+  if (contentChanged) {
+    changeTypes.push("content");
+  }
+
+  return changeTypes;
+};
+
+const logNodeChanges = ({
+  node,
+  changeTypes,
+  existingTitle,
+  lastSyncTime,
+}: {
+  node: DiscourseNodeInVault;
+  changeTypes: ChangeType[];
+  existingTitle: string | undefined;
+  lastSyncTime: Date;
+}): void => {
+  const currentFilename = node.file.basename;
+  const fileModifiedTime = new Date(node.file.stat.mtime);
+
+  if (changeTypes.includes("new")) {
+    console.log(
+      `New file detected: ${node.nodeInstanceId} with filename "${currentFilename}"`,
+    );
+    return;
+  }
+
+  if (changeTypes.includes("title")) {
+    console.log(
+      `Title changed for ${node.nodeInstanceId}: "${existingTitle}" -> "${currentFilename}"`,
+    );
+  }
+
+  if (changeTypes.includes("content")) {
+    console.log(
+      `Content changed for ${node.nodeInstanceId} (filename: "${currentFilename}") - file mtime: ${fileModifiedTime.toISOString()}, lastSyncTime: ${lastSyncTime.toISOString()}`,
+    );
+  }
+};
+
+/**
+ * Get all discourse nodes that have changed compared to what's stored in Supabase.
+ * Detects what specifically changed: title, content, or new file
+ *
+ * Flow:
+ * 1. Collect all discourse nodes from vault
+ * 2. Query database for existing titles
+ * 3. Get last sync time for the space
+ * 4. For each node, detect what changed
+ * 5. Return only nodes that have changes
+ */
+const getChangedDiscourseNodes = async ({
+  plugin,
+  supabaseClient,
+  context,
+}: {
+  plugin: DiscourseGraphPlugin;
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+}): Promise<ObsidianDiscourseNodeData[]> => {
+  const dgNodesInVault = await collectDiscourseNodesFromVault(plugin);
+
+  if (dgNodesInVault.length === 0) {
+    return [];
+  }
+
+  const nodeInstanceIds = dgNodesInVault.map((n) => n.nodeInstanceId);
+  const existingTitleMap = await getExistingTitlesFromDatabase(
+    supabaseClient,
+    context.spaceId,
+    nodeInstanceIds,
+  );
+
+  const lastSyncTime = await getLastSyncTime(supabaseClient, context.spaceId);
+  const changedNodes: ObsidianDiscourseNodeData[] = [];
+
+  for (const node of dgNodesInVault) {
+    const existingTitle = existingTitleMap.get(node.nodeInstanceId);
+    const changeTypes = detectNodeChanges(node, existingTitle, lastSyncTime);
+
+    if (changeTypes.length === 0) {
+      continue;
+    }
+
+    logNodeChanges({ node, changeTypes, existingTitle, lastSyncTime });
+
+    changedNodes.push({
+      file: node.file,
+      frontmatter: node.frontmatter,
+      nodeTypeId: node.nodeTypeId,
+      nodeInstanceId: node.nodeInstanceId,
+      created: new Date(node.file.stat.ctime).toISOString(),
+      last_modified: new Date(node.file.stat.mtime).toISOString(),
+      changeTypes,
+    });
+  }
+
+  return changedNodes;
+};
+
+export const createOrUpdateDiscourseEmbedding = async (
+  plugin: DiscourseGraphPlugin,
+  supabaseContext?: SupabaseContext,
+): Promise<void> => {
+  try {
+    console.debug("Starting createOrUpdateDiscourseEmbedding");
+
+    const context = supabaseContext ?? (await getSupabaseContext(plugin));
+    if (!context) {
+      throw new Error("Could not create Supabase context");
+    }
+
+    const supabaseClient = await getLoggedInClient(plugin);
+    console.log("supabaseClient", supabaseClient);
+    if (!supabaseClient) {
+      throw new Error("Could not log in to Supabase client");
+    }
+    console.debug("Supabase client:", supabaseClient);
+
+    // Get all discourse nodes that have changed compared to what's stored in Supabase
+    const allNodeInstances = await getChangedDiscourseNodes({
+      plugin,
+      supabaseClient,
+      context,
+    });
+    console.log("allNodeInstances", allNodeInstances);
+    console.debug(`Found ${allNodeInstances.length} nodes to sync`);
+
+    if (allNodeInstances.length === 0) {
+      console.debug("No nodes to sync");
+      return;
+    }
+
+    const accountLocalId = plugin.settings.accountLocalId;
+    if (!accountLocalId) {
+      throw new Error("accountLocalId not found in plugin settings");
+    }
+
+    await upsertNodesToSupabaseAsContentWithEmbeddings({
+      obsidianNodes: allNodeInstances,
+      supabaseClient,
+      context,
+      accountLocalId,
+      plugin,
+    });
+
+    // Only upsert concepts for nodes with title changes or new files
+    // (concepts store the title, so content-only changes don't affect them)
+    const nodesNeedingConceptUpsert = allNodeInstances.filter(
+      (node) =>
+        node.changeTypes.includes("new") || node.changeTypes.includes("title"),
+    );
+
+    if (nodesNeedingConceptUpsert.length > 0) {
+      await convertDgToSupabaseConcepts({
+        nodesSince: nodesNeedingConceptUpsert,
+        supabaseClient,
+        context,
+        accountLocalId,
+      });
+    }
+
+    console.debug("Sync completed successfully");
+  } catch (error) {
+    console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
+    throw error;
+  }
+};
+
+const convertDgToSupabaseConcepts = async ({
+  nodesSince,
+  supabaseClient,
+  context,
+  accountLocalId,
+}: {
+  nodesSince: ObsidianDiscourseNodeData[];
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+  accountLocalId: string;
+}): Promise<void> => {
+  // TODO: handling schema (node types and relations) will be handled in the future by ENG-1181
+  // Schema upsert will need allNodeTypes parameter when enabled
+
+  const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
+    return discourseNodeInstanceToLocalConcept({
+      context,
+      nodeData: node,
+      accountLocalId,
+    });
+  });
+
+  const conceptsToUpsert: LocalConceptDataInput[] = [
+    // ...nodesTypesToLocalConcepts,
+    ...nodeInstanceToLocalConcepts,
+  ];
+
+  const { ordered } = orderConceptsByDependency(conceptsToUpsert);
+
+  const { error } = await supabaseClient.rpc("upsert_concepts", {
+    data: ordered as Json,
+    v_space_id: context.spaceId,
+  });
+
+  if (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : typeof error === "string"
+          ? error
+          : JSON.stringify(error, null, 2);
+    throw new Error(`upsert_concepts failed: ${errorMessage}`);
+  }
+};
 
 export const initializeSupabaseSync = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<void> => {
   const context = await getSupabaseContext(plugin);
   if (!context) {
-    throw new Error("Failed to initialize Supabase sync: could not create context");
+    throw new Error(
+      "Failed to initialize Supabase sync: could not create context",
+    );
   }
-  console.log("Supabase sync initialized successfully", {
-    spaceId: context.spaceId,
-    userId: context.userId,
+
+  await createOrUpdateDiscourseEmbedding(plugin, context).catch((error) => {
+    new Notice(`Initial sync failed: ${error}`);
+    console.error("Initial sync failed:", error);
   });
 };
