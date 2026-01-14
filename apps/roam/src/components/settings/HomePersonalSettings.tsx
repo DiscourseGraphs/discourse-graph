@@ -42,7 +42,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             "Override the global trigger for the discourse node menu. Must refresh after editing."
           }
         />
-        <NodeMenuTriggerComponent />
+        <NodeMenuTriggerComponent extensionAPI={onloadArgs.extensionAPI} />
       </Label>
       <Label>
         Node search menu trigger
@@ -51,13 +51,13 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             "Set the trigger character for the node search menu. Must refresh after editing."
           }
         />
-        <NodeSearchMenuTriggerSetting />
+        <NodeSearchMenuTriggerSetting onloadArgs={onloadArgs} />
       </Label>
       <KeyboardShortcutInput
-        settingKey="Discourse Tool Shortcut"
-        label="Discourse Tool Keyboard Shortcut"
-        description="Set a single key to activate the Discourse Tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
-        placeholder="Click to set single key"
+        onloadArgs={onloadArgs}
+        settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
+        label="Discourse tool keyboard shortcut"
+        description="Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
       />
       <PersonalFlagPanel
         title="Overlay"

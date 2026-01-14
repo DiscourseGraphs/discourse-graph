@@ -27,10 +27,6 @@ import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
-import {
-  getPersonalSetting,
-  setPersonalSetting,
-} from "./settings/utils/accessors";
 
 type Props = {
   textarea?: HTMLTextAreaElement;
@@ -400,9 +396,7 @@ const normalizeKeyCombo = (combo: string) => {
   });
 };
 
-export const getModifiersFromCombo = (
-  comboKey: IKeyCombo | { key: string; modifiers: number } | undefined,
-) => {
+export const getModifiersFromCombo = (comboKey: IKeyCombo) => {
   if (!comboKey) return [];
   return [
     comboKey.modifiers & MODIFIER_BIT_MASKS.alt && "alt",
@@ -412,26 +406,32 @@ export const getModifiersFromCombo = (
   ].filter(Boolean);
 };
 
-export const NodeMenuTriggerComponent = () => {
+export const NodeMenuTriggerComponent = ({
+  extensionAPI,
+}: {
+  extensionAPI: OnloadArgs["extensionAPI"];
+}) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isActive, setIsActive] = useState(false);
-  const [comboKey, setComboKey] = useState<IKeyCombo>(() => {
-    const saved = getPersonalSetting<{ key: string; modifiers: number }>([
-      "Personal Node Menu Trigger",
-    ]);
-    return saved ?? { modifiers: 0, key: "" };
-  });
+  const [comboKey, setComboKey] = useState<IKeyCombo>(
+    () =>
+      (extensionAPI.settings.get(
+        "personal-node-menu-trigger",
+      ) as IKeyCombo) || { modifiers: 0, key: "" },
+  );
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const comboObj = getKeyCombo(e.nativeEvent);
-    if (!comboObj.key) return;
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const comboObj = getKeyCombo(e.nativeEvent);
+      if (!comboObj.key) return;
 
-    const newCombo = { key: comboObj.key, modifiers: comboObj.modifiers };
-    setComboKey(newCombo);
-    setPersonalSetting(["Personal Node Menu Trigger"], newCombo);
-  }, []);
+      setComboKey({ key: comboObj.key, modifiers: comboObj.modifiers });
+      extensionAPI.settings.set("personal-node-menu-trigger", comboObj);
+    },
+    [extensionAPI],
+  );
 
   const shortcut = useMemo(() => {
     if (!comboKey.key) return "";
@@ -454,9 +454,8 @@ export const NodeMenuTriggerComponent = () => {
           hidden={!comboKey.key}
           icon={"remove"}
           onClick={() => {
-            const emptyCombo = { modifiers: 0, key: "" };
-            setComboKey(emptyCombo);
-            setPersonalSetting(["Personal Node Menu Trigger"], emptyCombo);
+            setComboKey({ modifiers: 0, key: "" });
+            extensionAPI.settings.set("personal-node-menu-trigger", "");
           }}
           minimal
         />
