@@ -49,11 +49,9 @@ export const renderNodeConfigPage = ({
             description: "Index of all of the pages in your graph of this type",
             Panel: CustomPanel,
             options: {
-              component: ({ uid }) =>
+              component: () =>
                 React.createElement(DiscourseNodeIndex, {
                   node,
-                  parentUid: uid,
-                  onloadArgs,
                 }),
             },
           } as Field<CustomField>,
@@ -73,10 +71,9 @@ export const renderNodeConfigPage = ({
             description: `The conditions specified to identify a ${nodeText} node.`,
             Panel: CustomPanel,
             options: {
-              component: ({ uid }) =>
+              component: () =>
                 React.createElement(DiscourseNodeSpecification, {
                   node,
-                  parentUid: uid,
                 }),
             },
           } as Field<CustomField>,

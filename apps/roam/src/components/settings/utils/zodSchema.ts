@@ -120,7 +120,13 @@ export const DiscourseNodeSchema = z.object({
     .optional()
     .transform((val) => val ?? {}),
   overlay: stringWithDefault(""),
-  index: z.unknown().nullable().optional(),
+  index: z
+    .object({
+      conditions: z.array(ConditionSchema).default([]),
+      selections: z.array(SelectionSchema).default([]),
+    })
+    .nullable()
+    .optional(),
   suggestiveRules: SuggestiveRulesSchema.nullable().optional(),
   embeddingRef: stringWithDefault(""),
   isFirstChild: z

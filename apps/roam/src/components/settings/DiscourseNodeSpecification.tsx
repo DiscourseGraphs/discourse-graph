@@ -1,78 +1,66 @@
 import React from "react";
-import getSubTree from "roamjs-components/util/getSubTree";
-import createBlock from "roamjs-components/writes/createBlock";
 import { Checkbox } from "@blueprintjs/core";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
-import QueryEditor from "~/components/QueryEditor";
+import DiscourseNodeQueryEditor from "./components/DiscourseNodeQueryEditor";
+import {
+  getDiscourseNodeSetting,
+  setDiscourseNodeSetting,
+} from "./utils/accessors";
+import type { Condition } from "~/utils/types";
+
+const generateUID = (): string =>
+  window.roamAlphaAPI?.util?.generateUID?.() ??
+  Math.random().toString(36).substring(2, 11);
 
 const NodeSpecification = ({
-  parentUid,
   node,
 }: {
-  parentUid: string;
   node: ReturnType<typeof getDiscourseNodes>[number];
 }) => {
-  const [migrated, setMigrated] = React.useState(false);
-  const [enabled, setEnabled] = React.useState(
-    () =>
-      getSubTree({ tree: getBasicTreeByParentUid(parentUid), key: "enabled" })
-        ?.uid,
-  );
-  React.useEffect(() => {
-    if (enabled) {
-      const scratchNode = getSubTree({ parentUid, key: "scratch" });
-      if (
-        !scratchNode.children.length ||
-        !getSubTree({ tree: scratchNode.children, key: "conditions" }).children
-          .length
-      ) {
-        const conditionsUid = getSubTree({
-          parentUid: scratchNode.uid,
-          key: "conditions",
-        }).uid;
-        const returnUid = getSubTree({
-          parentUid: scratchNode.uid,
-          key: "return",
-        }).uid;
-        createBlock({
-          parentUid: returnUid,
-          node: {
-            text: node.text,
-          },
-        })
-          .then(() =>
-            createBlock({
-              parentUid: conditionsUid,
-              node: {
-                text: "clause",
-                children: [
-                  { text: "source", children: [{ text: node.text }] },
-                  { text: "relation", children: [{ text: "has title" }] },
-                  {
-                    text: "target",
-                    children: [
-                      {
-                        text: `/${
-                          getDiscourseNodeFormatExpression(node.format).source
-                        }/`,
-                      },
-                    ],
-                  },
-                ],
-              },
-            }),
-          )
-          .then(() => setMigrated(true));
+  const nodeType = node.type;
+
+  const [enabled, setEnabled] = React.useState(() => {
+    const spec = getDiscourseNodeSetting<Condition[]>(nodeType, [
+      "specification",
+    ]);
+    return spec !== null && spec !== undefined && spec.length > 0;
+  });
+
+  const createInitialCondition = React.useCallback((): Condition => {
+    return {
+      uid: generateUID(),
+      type: "clause",
+      source: node.text,
+      relation: "has title",
+      target: `/${getDiscourseNodeFormatExpression(node.format).source}/`,
+    };
+  }, [node.text, node.format]);
+
+  const handleEnabledChange = React.useCallback(
+    (e: React.FormEvent<HTMLInputElement>) => {
+      const flag = (e.target as HTMLInputElement).checked;
+      setEnabled(flag);
+
+      if (flag) {
+        // Create initial condition when enabling
+        const existingSpec = getDiscourseNodeSetting<Condition[]>(nodeType, [
+          "specification",
+        ]);
+        if (!existingSpec || existingSpec.length === 0) {
+          const initialCondition = createInitialCondition();
+          setDiscourseNodeSetting(nodeType, ["specification"], [
+            initialCondition,
+          ]);
+        }
+      } else {
+        // Clear specification when disabling
+        setDiscourseNodeSetting(nodeType, ["specification"], []);
       }
-    } else {
-      const tree = getBasicTreeByParentUid(parentUid);
-      const scratchNode = getSubTree({ tree, key: "scratch" });
-      Promise.all(scratchNode.children.map((c) => deleteBlock(c.uid)));
-    }
-  }, [parentUid, setMigrated, enabled]);
+    },
+    [nodeType, createInitialCondition],
+  );
+
   return (
     <div className={"roamjs-node-specification"}>
       <style>
@@ -80,29 +68,18 @@ const NodeSpecification = ({
       </style>
       <p>
         <Checkbox
-          checked={!!enabled}
+          checked={enabled}
           className={"ml-8 inline-block"}
-          onChange={(e) => {
-            const flag = (e.target as HTMLInputElement).checked;
-            if (flag) {
-              createBlock({
-                parentUid,
-                order: 2,
-                node: { text: "enabled" },
-              }).then(setEnabled);
-            } else {
-              deleteBlock(enabled).then(() => setEnabled(""));
-            }
-          }}
+          onChange={handleEnabledChange}
         />
       </p>
       <div
-        className={`${enabled ? "" : "bg-gray-200 opacity-75"} overflow-auto`}
+        className={`${enabled ? "" : "bg-gray-200 opacity-75 pointer-events-none"} overflow-auto`}
       >
-        <QueryEditor
-          parentUid={parentUid}
-          key={Number(migrated)}
-          hideCustomSwitch
+        <DiscourseNodeQueryEditor
+          nodeType={nodeType}
+          defaultConditions={enabled ? [createInitialCondition()] : []}
+          key={String(enabled)}
         />
       </div>
     </div>
