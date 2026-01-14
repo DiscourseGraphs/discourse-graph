@@ -164,22 +164,21 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         new Notice("Sync mode is not enabled", 3000);
         return false;
       }
+      const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      if (!activeView || !activeView.file) {
+        return false;
+      }
+      const file = activeView.file;
+      const cache = plugin.app.metadataCache.getFileCache(file);
+      const frontmatter = cache?.frontmatter || {};
+      if (!frontmatter.nodeTypeId) {
+        return false;
+      }
       if (!checking) {
-        const activeView =
-          plugin.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!activeView || !activeView.file) {
-          new Notice("Apply to a discourse node");
-          return;
+        if (!frontmatter.nodeInstanceId) {
+          new Notice("Please sync the node first");
+          return true;
         }
-        const file = activeView.file;
-        const cache = plugin.app.metadataCache.getFileCache(file);
-        const frontmatter = cache?.frontmatter || {};
-        if (!frontmatter.nodeTypeId) {
-          new Notice("Apply to a discourse node");
-          return;
-        }
-        if (!frontmatter.nodeInstanceId)
-          throw new Error("Please sync the node first");
         // TODO (in follow-up PRs):
         // Maybe sync the node now if unsynced
         // Ensure that the node schema is synced to the database, and shared

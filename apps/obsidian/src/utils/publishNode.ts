@@ -19,7 +19,7 @@ export const publishNode = async (
   if (!myGroup) throw new Error("Cannot get group");
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];
-  if (existingPublish && existingPublish.includes(myGroup)) return; // already published
+  if (existingPublish.includes(myGroup)) return; // already published
   const idResponse = await client
     .from("Content")
     .select("id")
@@ -39,11 +39,10 @@ export const publishNode = async (
   if (publishResponse.error && publishResponse.error.code !== "23505")
     // 23505 is duplicate key, which counts as a success.
     throw publishResponse.error;
-  existingPublish.push(myGroup);
   await plugin.app.fileManager.processFrontMatter(
     file,
     (fm: Record<string, unknown>) => {
-      fm.publishedToGroups = existingPublish;
+      fm.publishedToGroups = [...existingPublish, myGroup];
     },
   );
 };
