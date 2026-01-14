@@ -25,10 +25,6 @@ import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { Result } from "~/utils/types";
 import { getSetting } from "~/utils/extensionSettings";
-import {
-  getPersonalSetting,
-  setPersonalSetting,
-} from "~/components/settings/utils/accessors";
 import fuzzy from "fuzzy";
 
 type Props = {
@@ -610,9 +606,14 @@ export const renderDiscourseNodeSearchMenu = (props: Props) => {
   );
 };
 
-export const NodeSearchMenuTriggerSetting = () => {
-  const [nodeSearchTrigger, setNodeSearchTriggerState] = useState<string>(
-    () => getPersonalSetting<string>(["Node Search Menu Trigger"])!,
+export const NodeSearchMenuTriggerSetting = ({
+  onloadArgs,
+}: {
+  onloadArgs: OnloadArgs;
+}) => {
+  const extensionAPI = onloadArgs.extensionAPI;
+  const [nodeSearchTrigger, setNodeSearchTrigger] = useState<string>(
+    getSetting("node-search-trigger", "@"),
   );
 
   const handleNodeSearchTriggerChange = (
@@ -625,8 +626,8 @@ export const NodeSearchMenuTriggerSetting = () => {
       .replace(/\+/g, "\\+")
       .trim();
 
-    setNodeSearchTriggerState(trigger);
-    setPersonalSetting(["Node Search Menu Trigger"], trigger);
+    setNodeSearchTrigger(trigger);
+    extensionAPI.settings.set("node-search-trigger", trigger);
   };
   return (
     <InputGroup
