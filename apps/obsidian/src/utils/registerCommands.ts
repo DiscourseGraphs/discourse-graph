@@ -135,7 +135,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
   plugin.addCommand({
     id: "sync-discourse-nodes-to-supabase",
-    name: "Sync Discourse Nodes to Supabase",
+    name: "Sync discourse nodes to Supabase",
     checkCallback: (checking: boolean) => {
       if (!plugin.settings.syncModeEnabled) {
         new Notice("Sync mode is not enabled", 3000);

@@ -33,7 +33,7 @@ Or click on the canvas icon at the top right corner
 
 **WARNING: DO NOT MODIFY MARKDOWN CONTENT OF FILE**
 
-## Discourse Nodes
+## Discourse nodes
 
 ### Creating new discourse nodes
 
@@ -52,7 +52,7 @@ Or click on the canvas icon at the top right corner
 **Using node search**
 
 - Use the search bar in the top-right of the canvas
-- Type to search for existing Discourse Nodes
+- Type to search for existing discourse Nodes
 - Click on a node from the search results to add it to the canvas
 
 ![Node search](/docs/obsidian/node-search.gif)
@@ -73,7 +73,7 @@ Or click on the canvas icon at the top right corner
 
 ![Create relations](/docs/obsidian/create-relations.gif)
 
-_Note_: The relation type selected must be compatible between the source and target nodes. Otherwise, you will receive a relation tool error. To update the setting on what relation types are possible between two kinds of Discourse Nodes, you can change the setting [Relation types setting](./relationship-types#configuring-valid-relationships)
+_Note_: The relation type selected must be compatible between the source and target nodes. Otherwise, you will receive a relation tool error. To update the setting on what relation types are possible between two kinds of discourse nodes, you can change the setting [Relation types setting](./relationship-types#configuring-valid-relationships)
 
 ![Relation error](/docs/obsidian/relation-error.png)
 
@@ -82,7 +82,7 @@ _Note_: The relation type selected must be compatible between the source and tar
 - Click on the discourse node you're trying to add existing relations of
 - Click on the "Relations" button that pops up. You'll see a panel showing all the relations that this node has
 - Click on the '+' or '-' to add these relations to the canvas
-  - For relations whose target Discourse Node isn't on canvas yet, it will be added to the canvas along with the relation
+  - For relations whose target discourse node isn't on canvas yet, it will be added to the canvas along with the relation
 
 ![Adding existing relations](/docs/obsidian/adding-existing-relations.gif)
 

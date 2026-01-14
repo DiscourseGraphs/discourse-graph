@@ -21,7 +21,7 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 ### Changed
 
 - **Query metadata is hidden by default**, plus a command palette command to toggle it
-- **Performance:** optimize Discourse Node page observer checks
+- **Performance:** optimize discourse node page observer checks
 
 ### Fixed
 
