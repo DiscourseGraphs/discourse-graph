@@ -223,8 +223,8 @@ export const useRoamStore = ({
         const newstateId = nanoid();
         localStateIds.current.push(newstateId);
         localStateIds.current.splice(0, localStateIds.current.length - 25);
-        void window.roamAlphaAPI.updateBlock({
-          block: {
+        void window.roamAlphaAPI.data.page.update({
+          page: {
             uid: pageUid,
             props: {
               ...props,
@@ -278,8 +278,8 @@ export const useRoamStore = ({
         typeof props["roamjs-query-builder"] === "object"
           ? (props["roamjs-query-builder"] as Record<string, unknown>)
           : {};
-      void window.roamAlphaAPI.updateBlock({
-        block: {
+      void window.roamAlphaAPI.data.page.update({
+        page: {
           uid: pageUid,
           props: {
             ...props,
