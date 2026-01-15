@@ -16,7 +16,7 @@ import {
 import { LocalConceptDataInput } from "@repo/database/inputTypes";
 
 const DEFAULT_TIME = new Date("1970-01-01");
-export type ChangeType = "title" | "content" | "new";
+export type ChangeType = "title" | "content";
 
 export type ObsidianDiscourseNodeData = {
   file: TFile;
@@ -26,6 +26,95 @@ export type ObsidianDiscourseNodeData = {
   created: string;
   last_modified: string;
   changeTypes: ChangeType[];
+};
+
+export type DiscourseNodeFileChange = {
+  filePath: string;
+  changeTypes: ChangeType[];
+  oldPath?: string;
+};
+
+const getAllNodeInstanceIdsFromSupabase = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<string[]> => {
+  try {
+    const { data, error } = await supabaseClient
+      .from("Content")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .eq("scale", "document")
+      .not("source_local_id", "is", null);
+
+    if (error) {
+      console.error(
+        "Failed to get discourse node content from Supabase:",
+        error,
+      );
+      return [];
+    }
+
+    return (
+      data
+        ?.map((c: { source_local_id: string | null }) => c.source_local_id)
+        .filter((id: string | null): id is string => !!id) || []
+    );
+  } catch (error) {
+    console.error("Error in getAllNodeInstanceIdsFromSupabase:", error);
+    return [];
+  }
+};
+
+const deleteNodesFromSupabase = async (
+  nodeInstanceIds: string[],
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<void> => {
+  try {
+    if (nodeInstanceIds.length === 0) {
+      return;
+    }
+
+    const { data: contentData, error: contentError } = await supabaseClient
+      .from("Content")
+      .select("id")
+      .eq("space_id", spaceId)
+      .in("source_local_id", nodeInstanceIds);
+
+    if (contentError) {
+      console.error("Failed to get content from Supabase:", contentError);
+    }
+
+    const contentIds = contentData?.map((c: { id: number }) => c.id) || [];
+
+    if (contentIds.length === 0) {
+      return;
+    }
+
+    const { error: conceptError } = await supabaseClient
+      .from("Concept")
+      .delete()
+      .in("represented_by_id", contentIds)
+      .eq("is_schema", false);
+
+    if (conceptError) {
+      console.error("Failed to delete concepts from Supabase:", conceptError);
+    }
+
+    const { error: contentDeleteError } = await supabaseClient
+      .from("Content")
+      .delete()
+      .in("id", contentIds);
+
+    if (contentDeleteError) {
+      console.error(
+        "Failed to delete content from Supabase:",
+        contentDeleteError,
+      );
+    }
+  } catch (error) {
+    console.error("Error in deleteNodesFromSupabase:", error);
+  }
 };
 
 const ensureNodeInstanceId = async (
@@ -64,6 +153,41 @@ type DiscourseNodeInVault = {
   frontmatter: Record<string, unknown>;
   nodeTypeId: string;
   nodeInstanceId: string;
+};
+
+type BuildChangedNodesOptions = {
+  nodes: DiscourseNodeInVault[];
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+  changeTypesByPath?: Map<string, ChangeType[]>;
+};
+
+const mergeChangeTypes = (
+  base: ChangeType[],
+  additional: ChangeType[],
+): ChangeType[] => {
+  const merged = new Set<ChangeType>([...base, ...additional]);
+  return Array.from(merged);
+};
+
+const buildChangeTypesByPath = (
+  fileChanges: DiscourseNodeFileChange[],
+): Map<string, ChangeType[]> => {
+  const changeTypesByPath = new Map<string, ChangeType[]>();
+
+  for (const change of fileChanges) {
+    if (change.changeTypes.length === 0) {
+      continue;
+    }
+
+    const existing = changeTypesByPath.get(change.filePath) ?? [];
+    changeTypesByPath.set(
+      change.filePath,
+      mergeChangeTypes(existing, change.changeTypes),
+    );
+  }
+
+  return changeTypesByPath;
 };
 
 /**
@@ -105,6 +229,27 @@ const collectDiscourseNodesFromVault = async (
   }
 
   return dgNodes;
+};
+
+const getOrphanedNodeInstanceIds = async ({
+  plugin,
+  supabaseClient,
+  context,
+}: {
+  plugin: DiscourseGraphPlugin;
+  supabaseClient: DGSupabaseClient;
+  context: SupabaseContext;
+}): Promise<string[]> => {
+  const dgNodesInVault = await collectDiscourseNodesFromVault(plugin);
+  const vaultNodeIds = new Set(
+    dgNodesInVault.map((node) => node.nodeInstanceId),
+  );
+  const supabaseNodeIds = await getAllNodeInstanceIdsFromSupabase(
+    supabaseClient,
+    context.spaceId,
+  );
+
+  return supabaseNodeIds.filter((nodeId) => !vaultNodeIds.has(nodeId));
 };
 
 /**
@@ -150,7 +295,7 @@ const detectNodeChanges = (
 
   const isNewFile = existingTitle === undefined;
   if (isNewFile) {
-    return ["new"];
+    return ["title", "content"];
   }
 
   const titleChanged = existingTitle !== currentFilename;
@@ -181,13 +326,6 @@ const logNodeChanges = ({
   const currentFilename = node.file.basename;
   const fileModifiedTime = new Date(node.file.stat.mtime);
 
-  if (changeTypes.includes("new")) {
-    console.log(
-      `New file detected: ${node.nodeInstanceId} with filename "${currentFilename}"`,
-    );
-    return;
-  }
-
   if (changeTypes.includes("title")) {
     console.log(
       `Title changed for ${node.nodeInstanceId}: "${existingTitle}" -> "${currentFilename}"`,
@@ -199,6 +337,65 @@ const logNodeChanges = ({
       `Content changed for ${node.nodeInstanceId} (filename: "${currentFilename}") - file mtime: ${fileModifiedTime.toISOString()}, lastSyncTime: ${lastSyncTime.toISOString()}`,
     );
   }
+};
+
+const buildChangedNodesFromNodes = async ({
+  nodes,
+  supabaseClient,
+  context,
+  changeTypesByPath,
+}: BuildChangedNodesOptions): Promise<ObsidianDiscourseNodeData[]> => {
+  if (nodes.length === 0) {
+    return [];
+  }
+
+  const nodeInstanceIds = nodes.map((node) => node.nodeInstanceId);
+  const existingTitleMap = await getExistingTitlesFromDatabase(
+    supabaseClient,
+    context.spaceId,
+    nodeInstanceIds,
+  );
+
+  const lastSyncTime = await getLastSyncTime(supabaseClient, context.spaceId);
+  const changedNodes: ObsidianDiscourseNodeData[] = [];
+
+  for (const node of nodes) {
+    const existingTitle = existingTitleMap.get(node.nodeInstanceId);
+    const detectedChangeTypes = detectNodeChanges(
+      node,
+      existingTitle,
+      lastSyncTime,
+    );
+    const overrideChangeTypes = changeTypesByPath?.get(node.file.path) ?? [];
+    const mergedChangeTypes =
+      overrideChangeTypes.length > 0
+        ? mergeChangeTypes(overrideChangeTypes, detectedChangeTypes)
+        : detectedChangeTypes;
+    const finalChangeTypes = mergedChangeTypes;
+
+    if (finalChangeTypes.length === 0) {
+      continue;
+    }
+
+    logNodeChanges({
+      node,
+      changeTypes: finalChangeTypes,
+      existingTitle,
+      lastSyncTime,
+    });
+
+    changedNodes.push({
+      file: node.file,
+      frontmatter: node.frontmatter,
+      nodeTypeId: node.nodeTypeId,
+      nodeInstanceId: node.nodeInstanceId,
+      created: new Date(node.file.stat.ctime).toISOString(),
+      last_modified: new Date(node.file.stat.mtime).toISOString(),
+      changeTypes: finalChangeTypes,
+    });
+  }
+
+  return changedNodes;
 };
 
 /**
@@ -223,42 +420,11 @@ const getChangedDiscourseNodes = async ({
 }): Promise<ObsidianDiscourseNodeData[]> => {
   const dgNodesInVault = await collectDiscourseNodesFromVault(plugin);
 
-  if (dgNodesInVault.length === 0) {
-    return [];
-  }
-
-  const nodeInstanceIds = dgNodesInVault.map((n) => n.nodeInstanceId);
-  const existingTitleMap = await getExistingTitlesFromDatabase(
+  return buildChangedNodesFromNodes({
+    nodes: dgNodesInVault,
     supabaseClient,
-    context.spaceId,
-    nodeInstanceIds,
-  );
-
-  const lastSyncTime = await getLastSyncTime(supabaseClient, context.spaceId);
-  const changedNodes: ObsidianDiscourseNodeData[] = [];
-
-  for (const node of dgNodesInVault) {
-    const existingTitle = existingTitleMap.get(node.nodeInstanceId);
-    const changeTypes = detectNodeChanges(node, existingTitle, lastSyncTime);
-
-    if (changeTypes.length === 0) {
-      continue;
-    }
-
-    logNodeChanges({ node, changeTypes, existingTitle, lastSyncTime });
-
-    changedNodes.push({
-      file: node.file,
-      frontmatter: node.frontmatter,
-      nodeTypeId: node.nodeTypeId,
-      nodeInstanceId: node.nodeInstanceId,
-      created: new Date(node.file.stat.ctime).toISOString(),
-      last_modified: new Date(node.file.stat.mtime).toISOString(),
-      changeTypes,
-    });
-  }
-
-  return changedNodes;
+    context,
+  });
 };
 
 export const createOrUpdateDiscourseEmbedding = async (
@@ -386,9 +552,8 @@ const syncChangedNodesToSupabase = async ({
 
   // Only upsert concepts for nodes with title changes or new files
   // (concepts store the title, so content-only changes don't affect them)
-  const nodesNeedingConceptUpsert = changedNodes.filter(
-    (node) =>
-      node.changeTypes.includes("new") || node.changeTypes.includes("title"),
+  const nodesNeedingConceptUpsert = changedNodes.filter((node) =>
+    node.changeTypes.includes("title"),
   );
 
   if (nodesNeedingConceptUpsert.length > 0) {
@@ -461,8 +626,32 @@ export const syncSpecificFiles = async (
   plugin: DiscourseGraphPlugin,
   filePaths: string[],
 ): Promise<void> => {
+  const fileChanges = filePaths.map((filePath) => ({
+    filePath,
+    changeTypes: ["content"] as ChangeType[],
+  }));
+
+  await syncDiscourseNodeChanges(plugin, fileChanges);
+};
+
+/**
+ * Sync nodes based on explicit file change metadata.
+ */
+export const syncDiscourseNodeChanges = async (
+  plugin: DiscourseGraphPlugin,
+  fileChanges: DiscourseNodeFileChange[],
+): Promise<void> => {
   try {
-    console.debug(`Syncing ${filePaths.length} specific file(s)`);
+    const filePaths = fileChanges.map((change) => change.filePath);
+
+    console.debug(
+      `Syncing ${filePaths.length} file change(s) with explicit types`,
+    );
+
+    if (filePaths.length === 0) {
+      console.debug("No files to sync");
+      return;
+    }
 
     const context = await getSupabaseContext(plugin);
     if (!context) {
@@ -474,7 +663,6 @@ export const syncSpecificFiles = async (
       throw new Error("Could not log in to Supabase client");
     }
 
-    // Collect DG nodes from the specified file paths
     const dgNodesInVault = await collectDiscourseNodesFromPaths(
       plugin,
       filePaths,
@@ -485,43 +673,12 @@ export const syncSpecificFiles = async (
       return;
     }
 
-    const nodeInstanceIds = dgNodesInVault.map((n) => n.nodeInstanceId);
-    const existingTitleMap = await getExistingTitlesFromDatabase(
+    const changedNodes = await buildChangedNodesFromNodes({
+      nodes: dgNodesInVault,
       supabaseClient,
-      context.spaceId,
-      nodeInstanceIds,
-    );
-
-    const lastSyncTime = await getLastSyncTime(supabaseClient, context.spaceId);
-    const changedNodes: ObsidianDiscourseNodeData[] = [];
-
-    for (const node of dgNodesInVault) {
-      const existingTitle = existingTitleMap.get(node.nodeInstanceId);
-      const changeTypes = detectNodeChanges(node, existingTitle, lastSyncTime);
-
-      // For file listener, we always sync the file (even if change detection
-      // says nothing changed, because the file was explicitly modified)
-      // But we still use change detection to determine what to sync
-      const finalChangeTypes =
-        changeTypes.length > 0 ? changeTypes : (["content"] as ChangeType[]);
-
-      logNodeChanges({
-        node,
-        changeTypes: finalChangeTypes,
-        existingTitle,
-        lastSyncTime,
-      });
-
-      changedNodes.push({
-        file: node.file,
-        frontmatter: node.frontmatter,
-        nodeTypeId: node.nodeTypeId,
-        nodeInstanceId: node.nodeInstanceId,
-        created: new Date(node.file.stat.ctime).toISOString(),
-        last_modified: new Date(node.file.stat.mtime).toISOString(),
-        changeTypes: finalChangeTypes,
-      });
-    }
+      context,
+      changeTypesByPath: buildChangeTypesByPath(fileChanges),
+    });
 
     const accountLocalId = plugin.settings.accountLocalId;
     if (!accountLocalId) {
@@ -538,8 +695,45 @@ export const syncSpecificFiles = async (
 
     console.debug(`Successfully synced ${changedNodes.length} node(s)`);
   } catch (error) {
-    console.error("syncSpecificFiles: Process failed:", error);
+    console.error("syncDiscourseNodeChanges: Process failed:", error);
     throw error;
+  }
+};
+
+export const cleanupOrphanedNodes = async (
+  plugin: DiscourseGraphPlugin,
+): Promise<number> => {
+  try {
+    const context = await getSupabaseContext(plugin);
+    if (!context) {
+      throw new Error("Could not create Supabase context");
+    }
+
+    const supabaseClient = await getLoggedInClient(plugin);
+    if (!supabaseClient) {
+      throw new Error("Could not log in to Supabase client");
+    }
+
+    const orphanedNodeIds = await getOrphanedNodeInstanceIds({
+      plugin,
+      supabaseClient,
+      context,
+    });
+
+    if (orphanedNodeIds.length === 0) {
+      return 0;
+    }
+
+    await deleteNodesFromSupabase(
+      orphanedNodeIds,
+      supabaseClient,
+      context.spaceId,
+    );
+
+    return orphanedNodeIds.length;
+  } catch (error) {
+    console.error("cleanupOrphanedNodes: Process failed:", error);
+    return 0;
   }
 };
 
@@ -557,4 +751,6 @@ export const initializeSupabaseSync = async (
     new Notice(`Initial sync failed: ${error}`);
     console.error("Initial sync failed:", error);
   });
+
+  await cleanupOrphanedNodes(plugin);
 };
