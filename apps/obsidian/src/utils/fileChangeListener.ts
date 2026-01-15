@@ -36,7 +36,6 @@ export class FileChangeListener {
    * Initialize the file change listener and register vault event handlers
    */
   initialize(): void {
-    // Listen for file creation
     const createRef = this.plugin.app.vault.on(
       "create",
       (file: TAbstractFile) => {
@@ -45,7 +44,6 @@ export class FileChangeListener {
     );
     this.eventRefs.push(createRef);
 
-    // Listen for file modification
     const modifyRef = this.plugin.app.vault.on(
       "modify",
       (file: TAbstractFile) => {
@@ -54,7 +52,6 @@ export class FileChangeListener {
     );
     this.eventRefs.push(modifyRef);
 
-    // Listen for file deletion
     const deleteRef = this.plugin.app.vault.on(
       "delete",
       (file: TAbstractFile) => {
@@ -63,7 +60,6 @@ export class FileChangeListener {
     );
     this.eventRefs.push(deleteRef);
 
-    // Listen for file rename/move
     const renameRef = this.plugin.app.vault.on(
       "rename",
       (file: TAbstractFile, oldPath: string) => {
@@ -72,7 +68,6 @@ export class FileChangeListener {
     );
     this.eventRefs.push(renameRef);
 
-    // Listen for metadata changes (for relation metadata placeholder)
     this.metadataChangeCallback = (file: TFile) => {
       this.handleMetadataChange(file);
     };
@@ -179,12 +174,9 @@ export class FileChangeListener {
     // In the future, this can detect specific relation changes
     const cache = this.plugin.app.metadataCache.getFileCache(file);
     if (cache?.frontmatter) {
-      // Check if any relation metadata fields changed
-      // This is a placeholder - actual implementation will come later
       console.debug(
         `Metadata changed for ${file.path} (relation metadata placeholder)`,
       );
-      // Don't queue relation changes yet - just log
     }
   }
 
@@ -198,7 +190,6 @@ export class FileChangeListener {
   ): void {
     const existing = this.changeQueue.get(filePath);
     if (existing) {
-      // Merge change types for the same file
       existing.changeTypes.add(changeType);
       if (oldPath && !existing.oldPath) {
         existing.oldPath = oldPath;
@@ -211,7 +202,6 @@ export class FileChangeListener {
       });
     }
 
-    // Reset debounce timer
     this.resetDebounceTimer();
   }
 
