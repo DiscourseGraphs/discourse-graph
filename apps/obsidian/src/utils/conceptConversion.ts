@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TFile } from "obsidian";
-import type { DiscourseNode } from "~/types";
+import type DiscourseGraphPlugin from "~/index";
+import type {
+  DiscourseNode,
+  DiscourseRelation,
+  DiscourseRelationType,
+} from "~/types";
 import type { SupabaseContext } from "./supabaseContext";
+import type { DiscourseNodeInVault } from "./syncDgNodesToSupabase";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { Json } from "@repo/database/dbTypes";
@@ -52,21 +58,150 @@ export const discourseNodeSchemaToLocalConcept = ({
   };
 };
 
+const STANDARD_ROLES = ["source", "destination"];
+
+export const discourseRelationTypeToLocalConcept = ({
+  context,
+  relationType,
+  accountLocalId,
+}: {
+  context: SupabaseContext;
+  relationType: DiscourseRelationType;
+  accountLocalId: string;
+}): LocalConceptDataInput => {
+  const { id, label, complement, created, modified, ...otherData } =
+    relationType;
+  return {
+    space_id: context.spaceId,
+    name: label,
+    source_local_id: id,
+    is_schema: true,
+    author_local_id: accountLocalId,
+    created: new Date(created).toISOString(),
+    last_modified: new Date(modified).toISOString(),
+    literal_content: {
+      label,
+      complement,
+      source_data: otherData,
+    } as unknown as Json,
+  };
+};
+
+export const discourseRelationSchemaToLocalConcept = ({
+  context,
+  relation,
+  accountLocalId,
+  nodeTypesById,
+  relationTypesById,
+}: {
+  context: SupabaseContext;
+  relation: DiscourseRelation;
+  accountLocalId: string;
+  nodeTypesById: Record<string, DiscourseNode>;
+  relationTypesById: Record<string, DiscourseRelationType>;
+}): LocalConceptDataInput => {
+  const { id, relationshipTypeId, sourceId, destinationId, created, modified } =
+    relation;
+  const sourceName = nodeTypesById[sourceId]?.name ?? sourceId;
+  const destinationName = nodeTypesById[destinationId]?.name ?? destinationId;
+  const relationType = relationTypesById[relationshipTypeId];
+  if (!relationType)
+    throw new Error(`missing relation type ${relationshipTypeId}`);
+  const { label, complement } = relationType;
+
+  return {
+    space_id: context.spaceId,
+    name: `${sourceName} -${label}-> ${destinationName}`,
+    source_local_id: id,
+    is_schema: true,
+    author_local_id: accountLocalId,
+    created: new Date(created).toISOString(),
+    last_modified: new Date(modified).toISOString(),
+    literal_content: {
+      roles: STANDARD_ROLES,
+      label,
+      complement,
+    },
+    local_reference_content: {
+      relation_type: relationshipTypeId,
+      source: sourceId,
+      destination: destinationId,
+    },
+  };
+};
+
 /**
  * Convert discourse node instance (file) to LocalConceptDataInput
  */
-export const discourseNodeInstanceToLocalConcept = ({
+export const discourseNodeInstanceToLocalConcepts = ({
+  plugin,
+  allNodesByName,
   context,
   nodeData,
   accountLocalId,
 }: {
+  plugin: DiscourseGraphPlugin;
+  allNodesByName: Record<string, DiscourseNodeInVault>;
   context: SupabaseContext;
   nodeData: ObsidianDiscourseNodeData;
   accountLocalId: string;
-}): LocalConceptDataInput => {
+}): LocalConceptDataInput[] => {
   const extraData = getNodeExtraData(nodeData.file, accountLocalId);
   const { nodeInstanceId, nodeTypeId, ...otherData } = nodeData.frontmatter;
-  return {
+  const response: LocalConceptDataInput[] = [];
+  for (const relType of plugin.settings.relationTypes) {
+    const rels = otherData[relType.id];
+    if (rels) {
+      delete otherData[relType.id];
+      const triples = plugin.settings.discourseRelations.filter(
+        (r) => r.relationshipTypeId === relType.id && r.sourceId === nodeTypeId,
+      );
+      if (!triples.length) {
+        // we're probably the target.
+        continue;
+      }
+      const tripleIdByDestType = Object.fromEntries(
+        triples.map((rel) => [rel.destinationId, rel.id]),
+      );
+      for (let rel of rels as string[]) {
+        if (rel.startsWith("[[") && rel.endsWith("]]"))
+          rel = rel.substring(2, rel.length - 2);
+        if (rel.endsWith(".md")) rel = rel.substring(0, rel.length - 3);
+        const target = allNodesByName[rel];
+        if (!target) {
+          console.error(`Could not find node name ${rel}`);
+          continue;
+        }
+        const targetTypeId = target.frontmatter.nodeTypeId as string;
+        const targetInstanceId = target.frontmatter.nodeInstanceId as string;
+        const relSchemaId = tripleIdByDestType[targetTypeId];
+        if (relSchemaId === undefined) {
+          console.error(
+            `Found a relation of type ${relType.id} between ${nodeData.file.path} and ${rel} but no relation fits`,
+          );
+          continue;
+        }
+        const compositeInstanceId = [
+          relSchemaId,
+          nodeInstanceId as string,
+          targetInstanceId,
+        ].join(":");
+        response.push({
+          space_id: context.spaceId,
+          name: `[[${nodeData.file.basename}]] -${relType.label}-> [[${target.file.basename}]]`,
+          source_local_id: compositeInstanceId,
+          schema_represented_by_local_id: relSchemaId,
+          is_schema: false,
+          local_reference_content: {
+            source: nodeInstanceId as string,
+            destination: targetInstanceId,
+          },
+          ...extraData,
+        });
+      }
+    }
+  }
+  response.push({
     space_id: context.spaceId,
     name: nodeData.file.path,
     source_local_id: nodeInstanceId as string,
@@ -77,7 +212,8 @@ export const discourseNodeInstanceToLocalConcept = ({
       source_data: otherData as unknown as Json,
     },
     ...extraData,
-  };
+  });
+  return response;
 };
 
 export const relatedConcepts = (concept: LocalConceptDataInput): string[] => {
