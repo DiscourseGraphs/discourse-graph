@@ -1,13 +1,15 @@
 import { TFile, TAbstractFile, EventRef } from "obsidian";
 import { default as DiscourseGraphPlugin } from "~/index";
-import { syncSpecificFiles } from "./syncDgNodesToSupabase";
+import {
+  syncDiscourseNodeChanges,
+  type ChangeType,
+  cleanupOrphanedNodes,
+} from "./syncDgNodesToSupabase";
 import { getNodeTypeById } from "./typeUtils";
-
-type FileChangeType = "create" | "edit" | "rename" | "delete" | "relation";
 
 type QueuedChange = {
   filePath: string;
-  changeTypes: Set<FileChangeType>;
+  changeTypes: Set<ChangeType>;
   oldPath?: string; // For rename operations
 };
 
@@ -24,6 +26,7 @@ export class FileChangeListener {
   private eventRefs: EventRef[] = [];
   private metadataChangeCallback: ((file: TFile) => void) | null = null;
   private isProcessing = false;
+  private hasPendingOrphanCleanup = false;
 
   constructor(plugin: DiscourseGraphPlugin) {
     this.plugin = plugin;
@@ -73,10 +76,7 @@ export class FileChangeListener {
     this.metadataChangeCallback = (file: TFile) => {
       this.handleMetadataChange(file);
     };
-    this.plugin.app.metadataCache.on(
-      "changed",
-      this.metadataChangeCallback,
-    );
+    this.plugin.app.metadataCache.on("changed", this.metadataChangeCallback);
 
     console.debug("FileChangeListener initialized");
   }
@@ -114,7 +114,8 @@ export class FileChangeListener {
     }
 
     console.debug(`File created: ${file.path}`);
-    this.queueChange(file.path, "create");
+    this.queueChange(file.path, "title");
+    this.queueChange(file.path, "content");
   }
 
   /**
@@ -126,20 +127,20 @@ export class FileChangeListener {
     }
 
     console.debug(`File modified: ${file.path}`);
-    this.queueChange(file.path, "edit");
+    this.queueChange(file.path, "content");
   }
 
   /**
    * Handle file deletion event (placeholder - log only)
    */
   private handleFileDelete(file: TAbstractFile): void {
-    if (!this.isDiscourseNode(file)) {
+    if (!(file instanceof TFile) || !file.path.endsWith(".md")) {
       return;
     }
 
-    console.debug(`File deleted: ${file.path} (placeholder - not syncing)`);
-    // Placeholder: Just log for now, don't sync deletion
-    this.queueChange(file.path, "delete");
+    console.debug(`File deleted: ${file.path}`);
+    this.hasPendingOrphanCleanup = true;
+    this.resetDebounceTimer();
   }
 
   /**
@@ -150,19 +151,19 @@ export class FileChangeListener {
       // Check if the old file was a DG node (in case it lost nodeTypeId)
       const oldFile = this.plugin.app.vault.getAbstractFileByPath(oldPath);
       if (oldFile instanceof TFile) {
-        const oldCache =
-          this.plugin.app.metadataCache.getFileCache(oldFile);
+        const oldCache = this.plugin.app.metadataCache.getFileCache(oldFile);
         if (oldCache?.frontmatter?.nodeTypeId) {
-          // Old file was a DG node, track the rename
-          console.debug(`File renamed from DG node: ${oldPath} -> ${file.path}`);
-          this.queueChange(file.path, "rename", oldPath);
+          console.debug(
+            `File renamed from DG node: ${oldPath} -> ${file.path}`,
+          );
+          this.queueChange(file.path, "title", oldPath);
         }
       }
       return;
     }
 
     console.debug(`File renamed: ${oldPath} -> ${file.path}`);
-    this.queueChange(file.path, "rename", oldPath);
+    this.queueChange(file.path, "title", oldPath);
   }
 
   /**
@@ -192,7 +193,7 @@ export class FileChangeListener {
    */
   private queueChange(
     filePath: string,
-    changeType: FileChangeType,
+    changeType: ChangeType,
     oldPath?: string,
   ): void {
     const existing = this.changeQueue.get(filePath);
@@ -236,35 +237,40 @@ export class FileChangeListener {
       return;
     }
 
-    if (this.changeQueue.size === 0) {
+    if (this.changeQueue.size === 0 && !this.hasPendingOrphanCleanup) {
       return;
     }
 
     this.isProcessing = true;
 
     try {
-      // Filter out delete operations (placeholder)
-      const filesToSync = Array.from(this.changeQueue.values()).filter(
-        (change) => !change.changeTypes.has("delete"),
-      );
+      const filesToSync = Array.from(this.changeQueue.values());
 
-      if (filesToSync.length === 0) {
-        console.debug("No files to sync (only deletions in queue)");
-        this.changeQueue.clear();
-        return;
+      if (filesToSync.length > 0) {
+        const filePaths = filesToSync.map((change) => change.filePath);
+        console.debug(
+          `Processing ${filePaths.length} file(s) for sync:`,
+          filePaths,
+        );
+
+        const fileChanges = filesToSync.map((change) => ({
+          filePath: change.filePath,
+          changeTypes: Array.from(change.changeTypes),
+          oldPath: change.oldPath,
+        }));
+
+        await syncDiscourseNodeChanges(this.plugin, fileChanges);
       }
 
-      const filePaths = filesToSync.map((change) => change.filePath);
-      console.debug(
-        `Processing ${filePaths.length} file(s) for sync:`,
-        filePaths,
-      );
+      if (this.hasPendingOrphanCleanup) {
+        const deletedCount = await cleanupOrphanedNodes(this.plugin);
+        if (deletedCount > 0) {
+          console.debug(`Deleted ${deletedCount} orphaned node(s)`);
+        }
+      }
 
-      // Sync the specific files
-      await syncSpecificFiles(this.plugin, filePaths);
-
-      // Clear the queue after successful sync
       this.changeQueue.clear();
+      this.hasPendingOrphanCleanup = false;
       console.debug("Sync queue processed successfully");
     } catch (error) {
       console.error("Error processing sync queue:", error);
@@ -278,19 +284,16 @@ export class FileChangeListener {
    * Cleanup event listeners
    */
   cleanup(): void {
-    // Clear debounce timer
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
 
-    // Remove all vault event listeners
     this.eventRefs.forEach((ref) => {
       this.plugin.app.vault.offref(ref);
     });
     this.eventRefs = [];
 
-    // Remove metadata cache listener
     if (this.metadataChangeCallback) {
       this.plugin.app.metadataCache.off(
         "changed",
@@ -299,7 +302,6 @@ export class FileChangeListener {
       this.metadataChangeCallback = null;
     }
 
-    // Clear the queue
     this.changeQueue.clear();
     this.isProcessing = false;
 
