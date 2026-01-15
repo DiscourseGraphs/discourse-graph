@@ -230,49 +230,52 @@ const NodeConfig = ({
     true,
   );
 
-  const validate = useCallback((tag: string, format: string) => {
-    const enabled =
-      getSubTree({
-        tree: getBasicTreeByParentUid(specificationUid),
-        key: "enabled",
-      })?.uid?.length || 0 !== 0;
-    if (format.trim().length === 0 && !enabled) {
-      setTagError("");
-      setFormatError("Error: you must set either a format or specification");
-      return;
-    }
-    const cleanTag = getCleanTagText(tag);
-
-    if (!cleanTag) {
-      setTagError("");
-      setFormatError("");
-      return;
-    }
-
-    const roamTagRegex = /#?\[\[(.*?)\]\]|#(\S+)/g;
-    const matches = format.matchAll(roamTagRegex);
-    const formatTags: string[] = [];
-    for (const match of matches) {
-      const tagName = match[1] || match[2];
-      if (tagName) {
-        formatTags.push(tagName.toUpperCase());
+  const validate = useCallback(
+    (tag: string, format: string) => {
+      const enabled =
+        getSubTree({
+          tree: getBasicTreeByParentUid(specificationUid),
+          key: "enabled",
+        })?.uid?.length || 0 !== 0;
+      if (format.trim().length === 0 && !enabled) {
+        setTagError("");
+        setFormatError("Error: you must set either a format or specification");
+        return;
       }
-    }
+      const cleanTag = getCleanTagText(tag);
 
-    const hasConflict = formatTags.includes(cleanTag);
+      if (!cleanTag) {
+        setTagError("");
+        setFormatError("");
+        return;
+      }
 
-    if (hasConflict) {
-      setFormatError(
-        `The format references the node's tag "${tag}". Please use a different format or tag.`,
-      );
-      setTagError(
-        `The tag "${tag}" is referenced in the format. Please use a different tag or format.`,
-      );
-    } else {
-      setTagError("");
-      setFormatError("");
-    }
-  }, []);
+      const roamTagRegex = /#?\[\[(.*?)\]\]|#(\S+)/g;
+      const matches = format.matchAll(roamTagRegex);
+      const formatTags: string[] = [];
+      for (const match of matches) {
+        const tagName = match[1] || match[2];
+        if (tagName) {
+          formatTags.push(tagName.toUpperCase());
+        }
+      }
+
+      const hasConflict = formatTags.includes(cleanTag);
+
+      if (hasConflict) {
+        setFormatError(
+          `The format references the node's tag "${tag}". Please use a different format or tag.`,
+        );
+        setTagError(
+          `The tag "${tag}" is referenced in the format. Please use a different tag or format.`,
+        );
+      } else {
+        setTagError("");
+        setFormatError("");
+      }
+    },
+    [specificationUid],
+  );
 
   useEffect(() => {
     validate(tagValue, formatValue);
