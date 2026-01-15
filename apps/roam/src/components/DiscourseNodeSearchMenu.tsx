@@ -443,6 +443,7 @@ const NodeSearchMenu = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSelectOnly(item);
+                  setIsFilterMenuVisible(false);
                 }}
                 onMouseDown={(e) => e.preventDefault()}
               >
