@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { getFeatureFlag, getGlobalSetting } from "./accessors";
-import type { FeatureFlags, LeftSidebarGlobalSettings } from "./zodSchema";
-import { LeftSidebarGlobalSettingsSchema } from "./zodSchema";
+import { getFeatureFlag, getGlobalSetting, getPersonalSetting } from "./accessors";
+import type { FeatureFlags, LeftSidebarGlobalSettings, LeftSidebarPersonalSettings } from "./zodSchema";
+import { LeftSidebarGlobalSettingsSchema, LeftSidebarPersonalSettingsSchema } from "./zodSchema";
 import type { json } from "~/utils/getBlockProps";
 
 const FEATURE_FLAG_CHANGE_EVENT = "discourse-graph:feature-flag-change";
 const GLOBAL_SETTING_CHANGE_EVENT = "discourse-graph:global-setting-change";
+const PERSONAL_SETTING_CHANGE_EVENT = "discourse-graph:personal-setting-change";
 
 type FeatureFlagChangeDetail = {
   key: keyof FeatureFlags;
@@ -56,6 +57,14 @@ export const useFeatureFlag = (key: keyof FeatureFlags): boolean => {
   return value;
 };
 
+export const emitPersonalSettingChange = (keys: string[], value: json): void => {
+  window.dispatchEvent(
+    new CustomEvent<GlobalSettingChangeDetail>(PERSONAL_SETTING_CHANGE_EVENT, {
+      detail: { keys, value },
+    }),
+  );
+};
+
 export const useLeftSidebarGlobalSettings = (): LeftSidebarGlobalSettings => {
   const [settings, setSettings] = useState<LeftSidebarGlobalSettings>(() => {
     const raw = getGlobalSetting<LeftSidebarGlobalSettings>(["Left Sidebar"]);
@@ -78,6 +87,34 @@ export const useLeftSidebarGlobalSettings = (): LeftSidebarGlobalSettings => {
     window.addEventListener(GLOBAL_SETTING_CHANGE_EVENT, handleChange);
     return () => {
       window.removeEventListener(GLOBAL_SETTING_CHANGE_EVENT, handleChange);
+    };
+  }, [refreshSettings]);
+
+  return settings;
+};
+
+export const useLeftSidebarPersonalSettings = (): LeftSidebarPersonalSettings => {
+  const [settings, setSettings] = useState<LeftSidebarPersonalSettings>(() => {
+    const raw = getPersonalSetting<LeftSidebarPersonalSettings>(["Left Sidebar"]);
+    return LeftSidebarPersonalSettingsSchema.parse(raw ?? {});
+  });
+
+  const refreshSettings = useCallback(() => {
+    const raw = getPersonalSetting<LeftSidebarPersonalSettings>(["Left Sidebar"]);
+    setSettings(LeftSidebarPersonalSettingsSchema.parse(raw ?? {}));
+  }, []);
+
+  useEffect(() => {
+    const handleChange = (event: Event) => {
+      const customEvent = event as CustomEvent<GlobalSettingChangeDetail>;
+      if (customEvent.detail.keys[0] === "Left Sidebar") {
+        refreshSettings();
+      }
+    };
+
+    window.addEventListener(PERSONAL_SETTING_CHANGE_EVENT, handleChange);
+    return () => {
+      window.removeEventListener(PERSONAL_SETTING_CHANGE_EVENT, handleChange);
     };
   }, [refreshSettings]);
 
