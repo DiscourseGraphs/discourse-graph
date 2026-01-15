@@ -12,6 +12,9 @@ import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsCon
 import {
   orderConceptsByDependency,
   discourseNodeInstanceToLocalConcept,
+  discourseNodeSchemaToLocalConcept,
+  discourseRelationSchemaToLocalConcept,
+  discourseRelationTypeToLocalConcept,
 } from "./conceptConversion";
 import { LocalConceptDataInput } from "@repo/database/inputTypes";
 
@@ -466,12 +469,20 @@ export const createOrUpdateDiscourseEmbedding = async (
       throw new Error("accountLocalId not found in plugin settings");
     }
 
-    await syncChangedNodesToSupabase({
-      changedNodes: allNodeInstances,
-      plugin,
+    await upsertNodesToSupabaseAsContentWithEmbeddings({
+      obsidianNodes: allNodeInstances,
       supabaseClient,
       context,
       accountLocalId,
+      plugin,
+    });
+
+    await convertDgToSupabaseConcepts({
+      nodesSince: allNodeInstances,
+      supabaseClient,
+      context,
+      accountLocalId,
+      plugin,
     });
 
     console.debug("Sync completed successfully");
@@ -486,14 +497,50 @@ const convertDgToSupabaseConcepts = async ({
   supabaseClient,
   context,
   accountLocalId,
+  plugin,
 }: {
   nodesSince: ObsidianDiscourseNodeData[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
   accountLocalId: string;
+  plugin: DiscourseGraphPlugin;
 }): Promise<void> => {
-  // TODO: handling schema (node types and relations) will be handled in the future by ENG-1181
-  // Schema upsert will need allNodeTypes parameter when enabled
+  const nodeTypes = plugin.settings.nodeTypes ?? [];
+  const relationTypes = plugin.settings.relationTypes ?? [];
+  const discourseRelations = plugin.settings.discourseRelations ?? [];
+
+  const nodeTypesById = Object.fromEntries(
+    nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
+  );
+  const relationTypesById = Object.fromEntries(
+    relationTypes.map((relationType) => [relationType.id, relationType]),
+  );
+
+  const nodesTypesToLocalConcepts = nodeTypes.map((nodeType) =>
+    discourseNodeSchemaToLocalConcept({
+      context,
+      node: nodeType,
+      accountLocalId,
+    }),
+  );
+
+  const relationTypesToLocalConcepts = relationTypes.map((relationType) =>
+    discourseRelationTypeToLocalConcept({
+      context,
+      relationType,
+      accountLocalId,
+    }),
+  );
+
+  const discourseRelationsToLocalConcepts = discourseRelations.map((relation) =>
+    discourseRelationSchemaToLocalConcept({
+      context,
+      relation,
+      accountLocalId,
+      nodeTypesById,
+      relationTypesById,
+    }),
+  );
 
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
     return discourseNodeInstanceToLocalConcept({
@@ -504,7 +551,9 @@ const convertDgToSupabaseConcepts = async ({
   });
 
   const conceptsToUpsert: LocalConceptDataInput[] = [
-    // ...nodesTypesToLocalConcepts,
+    ...nodesTypesToLocalConcepts,
+    ...relationTypesToLocalConcepts,
+    ...discourseRelationsToLocalConcepts,
     ...nodeInstanceToLocalConcepts,
   ];
 
@@ -543,18 +592,15 @@ const syncChangedNodesToSupabase = async ({
   context: SupabaseContext;
   accountLocalId: string;
 }): Promise<void> => {
-  if (changedNodes.length === 0) {
-    console.debug("No nodes to sync");
-    return;
+  if (changedNodes.length > 0) {
+    await upsertNodesToSupabaseAsContentWithEmbeddings({
+      obsidianNodes: changedNodes,
+      supabaseClient,
+      context,
+      accountLocalId,
+      plugin,
+    });
   }
-
-  await upsertNodesToSupabaseAsContentWithEmbeddings({
-    obsidianNodes: changedNodes,
-    supabaseClient,
-    context,
-    accountLocalId,
-    plugin,
-  });
 
   // Only upsert concepts for nodes with title changes or new files
   // (concepts store the title, so content-only changes don't affect them)
@@ -562,14 +608,13 @@ const syncChangedNodesToSupabase = async ({
     node.changeTypes.includes("title"),
   );
 
-  if (nodesNeedingConceptUpsert.length > 0) {
-    await convertDgToSupabaseConcepts({
-      nodesSince: nodesNeedingConceptUpsert,
-      supabaseClient,
-      context,
-      accountLocalId,
-    });
-  }
+  await convertDgToSupabaseConcepts({
+    nodesSince: nodesNeedingConceptUpsert,
+    supabaseClient,
+    context,
+    accountLocalId,
+    plugin,
+  });
 };
 
 /**
