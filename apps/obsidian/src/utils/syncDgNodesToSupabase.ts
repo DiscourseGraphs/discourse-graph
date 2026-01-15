@@ -423,7 +423,7 @@ export const syncAllNodesAndRelations = async (
     }
     console.debug("Supabase client:", supabaseClient);
 
-    const allNodes = await collectDiscourseNodesFromVault(plugin);
+    const allNodes = await collectDiscourseNodesFromVault(plugin, true);
 
     const changedNodeInstances = relationsOnly
       ? []
@@ -495,7 +495,7 @@ const convertDgToSupabaseConcepts = async ({
   const nodeTypes = plugin.settings.nodeTypes ?? [];
   const relationTypes = plugin.settings.relationTypes ?? [];
   const discourseRelations = plugin.settings.discourseRelations ?? [];
-  allNodes = allNodes ?? (await collectDiscourseNodesFromVault(plugin));
+  allNodes = allNodes ?? (await collectDiscourseNodesFromVault(plugin, true));
   const allNodesById = Object.fromEntries(
     allNodes.map((n) => [n.nodeInstanceId, n]),
   );
