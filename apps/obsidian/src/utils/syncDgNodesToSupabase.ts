@@ -15,7 +15,11 @@ import {
   orderConceptsByDependency,
   discourseNodeInstanceToLocalConcept,
   discourseNodeSchemaToLocalConcept,
+  discourseRelationTripleSchemaToLocalConcept,
+  discourseRelationTypeToLocalConcept,
+  relationInstanceToLocalConcept,
 } from "./conceptConversion";
+import { loadRelations } from "~/utils/relationsStore";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import {
   type DiscourseNodeInVault,
@@ -176,6 +180,22 @@ const getLastSchemaSyncTime = async (
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
+    .order("last_modified", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
+};
+
+const getLastRelationSyncTime = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<Date> => {
+  const { data } = await supabaseClient
+    .from("Concept")
+    .select("last_modified")
+    .eq("space_id", spaceId)
+    .eq("is_schema", false)
+    .gt("arity", 0)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -471,29 +491,102 @@ const convertDgToSupabaseConcepts = async ({
   const lastSchemaSync = (
     await getLastSchemaSyncTime(supabaseClient, context.spaceId)
   ).getTime();
-  const newNodeTypes = (plugin.settings.nodeTypes ?? []).filter(
-    (n) => n.modified > lastSchemaSync,
+  const lastRelationsSync = (
+    await getLastRelationSyncTime(supabaseClient, context.spaceId)
+  ).getTime();
+  const nodeTypes = plugin.settings.nodeTypes ?? [];
+  const relationTypes = plugin.settings.relationTypes ?? [];
+  const discourseRelations = plugin.settings.discourseRelations ?? [];
+  const allNodes = await collectDiscourseNodesFromVault(plugin);
+  const allNodesById = Object.fromEntries(
+    allNodes.map((n) => [n.nodeInstanceId, n]),
   );
 
-  const nodesTypesToLocalConcepts = newNodeTypes.map((nodeType) =>
-    discourseNodeSchemaToLocalConcept({
-      context,
-      node: nodeType,
-      accountLocalId,
-    }),
+  const nodeTypesById = Object.fromEntries(
+    nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
   );
 
-  const nodeInstanceToLocalConcepts = nodesSince.map((node) =>
-    discourseNodeInstanceToLocalConcept({
+  const nodesTypesToLocalConcepts = nodeTypes
+    .filter((nodeType) => nodeType.modified > lastSchemaSync)
+    .map((nodeType) =>
+      discourseNodeSchemaToLocalConcept({
+        context,
+        node: nodeType,
+        accountLocalId,
+      }),
+    );
+
+  const relationTypesById = Object.fromEntries(
+    relationTypes.map((relationType) => [relationType.id, relationType]),
+  );
+
+  const relationTypesToLocalConcepts = relationTypes
+    .filter((relationType) => relationType.modified > lastSchemaSync)
+    .map((relationType) =>
+      discourseRelationTypeToLocalConcept({
+        context,
+        relationType,
+        accountLocalId,
+      }),
+    );
+
+  const discourseRelationTriplesToLocalConcepts = discourseRelations
+    .filter(
+      (relationTriple) =>
+        relationTriple.modified > lastSchemaSync ||
+        // resync if type was changed, to update labels in triple
+        (relationTypesById[relationTriple.relationshipTypeId]?.modified ?? 0) >
+          lastSchemaSync ||
+        // resync if source or destination node type was changed, to update names in triple
+        (nodeTypesById[relationTriple.sourceId]?.modified ?? 0) >
+          lastSchemaSync ||
+        (nodeTypesById[relationTriple.destinationId]?.modified ?? 0) >
+          lastSchemaSync,
+    )
+    .map((relation) =>
+      discourseRelationTripleSchemaToLocalConcept({
+        context,
+        relation,
+        accountLocalId,
+        nodeTypesById,
+        relationTypesById,
+      }),
+    );
+
+  const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
+    return discourseNodeInstanceToLocalConcept({
       context,
       nodeData: node,
       accountLocalId,
-    }),
-  );
+    });
+  });
+
+  const relationInstancesData = await loadRelations(plugin);
+  const relationsToLocalConcepts = Object.values(
+    relationInstancesData.relations,
+  )
+    .filter(
+      (relationInstanceData) =>
+        !relationInstanceData.importedFromRid &&
+        (relationInstanceData.lastModified || relationInstanceData.created) >
+          lastRelationsSync,
+    )
+    .map((relationInstanceData) =>
+      relationInstanceToLocalConcept({
+        context,
+        relationTypesById,
+        allNodesById,
+        relationInstanceData,
+      }),
+    )
+    .filter((n) => !!n);
 
   const conceptsToUpsert: LocalConceptDataInput[] = [
     ...nodesTypesToLocalConcepts,
+    ...relationTypesToLocalConcepts,
+    ...discourseRelationTriplesToLocalConcepts,
     ...nodeInstanceToLocalConcepts,
+    ...relationsToLocalConcepts,
   ];
 
   if (conceptsToUpsert.length > 0) {

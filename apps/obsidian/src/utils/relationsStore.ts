@@ -4,7 +4,7 @@ import type DiscourseGraphPlugin from "~/index";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import { checkAndCreateFolder } from "~/utils/file";
 import { getVaultId } from "./supabaseContext";
-import { RelationInstance } from "../types";
+import type { RelationInstance } from "~/types";
 
 const RELATIONS_FILE_NAME = "relations.json";
 const RELATIONS_FILE_VERSION = 1;
