@@ -43,6 +43,27 @@ export const publishNode = async ({
   if (publishResponse.error && publishResponse.error.code !== "23505")
     // 23505 is duplicate key, which counts as a success.
     throw publishResponse.error;
+  // check if there is a corresponding concept.
+  const conceptIdResponse = await client
+    .from("Concept")
+    .select("id")
+    .eq("represented_by_id", contentId)
+    .maybeSingle();
+  if (conceptIdResponse.error) throw conceptIdResponse.error;
+  if (conceptIdResponse.data) {
+    const publishConceptResponse = await client.from("ConceptAccess").insert({
+      /* eslint-disable @typescript-eslint/naming-convention */
+      account_uid: myGroup,
+      concept_id: conceptIdResponse.data.id,
+      /* eslint-enable @typescript-eslint/naming-convention */
+    });
+    if (
+      publishConceptResponse.error &&
+      publishConceptResponse.error.code !== "23505"
+    )
+      // 23505 is duplicate key, which counts as a success.
+      throw publishConceptResponse.error;
+  }
   await plugin.app.fileManager.processFrontMatter(
     file,
     (fm: Record<string, unknown>) => {
