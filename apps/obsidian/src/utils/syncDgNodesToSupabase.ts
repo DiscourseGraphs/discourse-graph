@@ -497,7 +497,7 @@ const convertDgToSupabaseConcepts = async ({
   const nodeTypes = plugin.settings.nodeTypes ?? [];
   const relationTypes = plugin.settings.relationTypes ?? [];
   const discourseRelations = plugin.settings.discourseRelations ?? [];
-  const allNodes = await collectDiscourseNodesFromVault(plugin);
+  const allNodes = await collectDiscourseNodesFromVault(plugin, true);
   const allNodesById = Object.fromEntries(
     allNodes.map((n) => [n.nodeInstanceId, n]),
   );

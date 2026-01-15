@@ -227,12 +227,10 @@ export const relationInstanceToLocalConcept = ({
   }
   const sourceNode = allNodesById[source];
   const destinationNode = allNodesById[destination];
-  if (
-    sourceNode?.frontmatter.importedFromRid ||
-    destinationNode?.frontmatter.importedFromRid
-  )
+  if (sourceNode === undefined || destinationNode === undefined) {
+    console.error("Cannot find the nodes");
     return null; // punt relation to imported nodes for now.
-  // otherwise put the importedFromRid in source, dest.
+  }
 
   /* eslint-disable @typescript-eslint/naming-convention */
   const literal_content: Record<string, Json> = {};
@@ -248,8 +246,12 @@ export const relationInstanceToLocalConcept = ({
     last_modified: new Date(lastModified ?? created).toISOString(),
     literal_content,
     local_reference_content: {
-      source,
-      destination,
+      source:
+        (sourceNode.frontmatter.importedFromRid as string | undefined) ??
+        source,
+      destination:
+        (destinationNode.frontmatter.importedFromRid as string | undefined) ??
+        destination,
     },
     /* eslint-enable @typescript-eslint/naming-convention */
   };
