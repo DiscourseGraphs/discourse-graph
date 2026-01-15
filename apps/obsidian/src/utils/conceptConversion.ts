@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { TFile } from "obsidian";
-import { DiscourseNode } from "~/types";
+import {
+  DiscourseNode,
+  DiscourseRelation,
+  DiscourseRelationType,
+} from "~/types";
 import { SupabaseContext } from "./supabaseContext";
 import { LocalConceptDataInput } from "@repo/database/inputTypes";
 import { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
@@ -41,8 +45,76 @@ export const discourseNodeSchemaToLocalConcept = ({
     is_schema: true,
     author_local_id: accountLocalId,
     created: now,
-    // TODO: get the template or any other info to put into literal_content jsonb
+    literal_content: {
+      ...node,
+    } as unknown as Json,
     last_modified: now,
+  };
+};
+
+export const discourseRelationTypeToLocalConcept = ({
+  context,
+  relationType,
+  accountLocalId,
+}: {
+  context: SupabaseContext;
+  relationType: DiscourseRelationType;
+  accountLocalId: string;
+}): LocalConceptDataInput => {
+  const now = new Date().toISOString();
+  return {
+    space_id: context.spaceId,
+    name: `${relationType.id}-${relationType.label}`,
+    represented_by_local_id: relationType.id,
+    is_schema: true,
+    author_local_id: accountLocalId,
+    created: now,
+    literal_content: {
+      ...relationType,
+    } as unknown as Json,
+    last_modified: now,
+  };
+};
+
+export const discourseRelationSchemaToLocalConcept = ({
+  context,
+  relation,
+  accountLocalId,
+  nodeTypesById,
+  relationTypesById,
+}: {
+  context: SupabaseContext;
+  relation: DiscourseRelation;
+  accountLocalId: string;
+  nodeTypesById: Record<string, DiscourseNode>;
+  relationTypesById: Record<string, DiscourseRelationType>;
+}): LocalConceptDataInput => {
+  const sourceName =
+    nodeTypesById[relation.sourceId]?.name ?? relation.sourceId;
+  const destinationName =
+    nodeTypesById[relation.destinationId]?.name ?? relation.destinationId;
+  const relationLabel =
+    relationTypesById[relation.relationshipTypeId]?.label ??
+    relation.relationshipTypeId;
+  const now = new Date().toISOString();
+  const representedByLocalId = [
+    "relation",
+    relation.sourceId,
+    relation.relationshipTypeId,
+    relation.destinationId,
+  ].join("_");
+
+  return {
+    space_id: context.spaceId,
+    name: `${sourceName} ${relationLabel} ${destinationName}`,
+    represented_by_local_id: representedByLocalId,
+    is_schema: true,
+    author_local_id: accountLocalId,
+    created: now,
+    last_modified: now,
+    literal_content: {
+      ...relation,
+    } as unknown as Json,
   };
 };
 
