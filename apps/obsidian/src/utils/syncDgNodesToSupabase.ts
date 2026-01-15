@@ -1,19 +1,20 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { Notice, TFile } from "obsidian";
-import { DGSupabaseClient } from "@repo/database/lib/client";
-import { Json } from "@repo/database/dbTypes";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Json } from "@repo/database/dbTypes";
 import {
   getSupabaseContext,
   getLoggedInClient,
-  SupabaseContext,
+  type SupabaseContext,
 } from "./supabaseContext";
 import { default as DiscourseGraphPlugin } from "~/index";
 import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
 import {
   orderConceptsByDependency,
   discourseNodeInstanceToLocalConcept,
+  discourseNodeSchemaToLocalConcept,
 } from "./conceptConversion";
-import { LocalConceptDataInput } from "@repo/database/inputTypes";
+import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 
 const DEFAULT_TIME = new Date("1970-01-01");
 export type ChangeType = "title" | "content";
@@ -101,7 +102,10 @@ const deleteNodesFromSupabase = async (
     if (conceptDeleteError) {
       result.success = false;
       result.errors.concept = conceptDeleteError;
-      console.error("Failed to delete concepts from Supabase:", conceptDeleteError);
+      console.error(
+        "Failed to delete concepts from Supabase:",
+        conceptDeleteError,
+      );
     }
 
     const { error: contentDeleteError } = await supabaseClient
@@ -194,7 +198,6 @@ const mergeChangeTypes = (
   const merged = new Set<ChangeType>([...base, ...additional]);
   return Array.from(merged);
 };
-
 
 /**
  * Step 1: Collect all discourse nodes from the vault
@@ -466,12 +469,20 @@ export const createOrUpdateDiscourseEmbedding = async (
       throw new Error("accountLocalId not found in plugin settings");
     }
 
-    await syncChangedNodesToSupabase({
-      changedNodes: allNodeInstances,
-      plugin,
+    await upsertNodesToSupabaseAsContentWithEmbeddings({
+      obsidianNodes: allNodeInstances,
       supabaseClient,
       context,
       accountLocalId,
+      plugin,
+    });
+
+    await convertDgToSupabaseConcepts({
+      nodesSince: allNodeInstances,
+      supabaseClient,
+      context,
+      accountLocalId,
+      plugin,
     });
 
     console.debug("Sync completed successfully");
@@ -486,25 +497,34 @@ const convertDgToSupabaseConcepts = async ({
   supabaseClient,
   context,
   accountLocalId,
+  plugin,
 }: {
   nodesSince: ObsidianDiscourseNodeData[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
   accountLocalId: string;
+  plugin: DiscourseGraphPlugin;
 }): Promise<void> => {
-  // TODO: handling schema (node types and relations) will be handled in the future by ENG-1181
-  // Schema upsert will need allNodeTypes parameter when enabled
+  const nodeTypes = plugin.settings.nodeTypes ?? [];
 
-  const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return discourseNodeInstanceToLocalConcept({
+  const nodesTypesToLocalConcepts = nodeTypes.map((nodeType) =>
+    discourseNodeSchemaToLocalConcept({
+      context,
+      node: nodeType,
+      accountLocalId,
+    }),
+  );
+
+  const nodeInstanceToLocalConcepts = nodesSince.map((node) =>
+    discourseNodeInstanceToLocalConcept({
       context,
       nodeData: node,
       accountLocalId,
-    });
-  });
+    }),
+  );
 
   const conceptsToUpsert: LocalConceptDataInput[] = [
-    // ...nodesTypesToLocalConcepts,
+    ...nodesTypesToLocalConcepts,
     ...nodeInstanceToLocalConcepts,
   ];
 
@@ -543,18 +563,15 @@ const syncChangedNodesToSupabase = async ({
   context: SupabaseContext;
   accountLocalId: string;
 }): Promise<void> => {
-  if (changedNodes.length === 0) {
-    console.debug("No nodes to sync");
-    return;
+  if (changedNodes.length > 0) {
+    await upsertNodesToSupabaseAsContentWithEmbeddings({
+      obsidianNodes: changedNodes,
+      supabaseClient,
+      context,
+      accountLocalId,
+      plugin,
+    });
   }
-
-  await upsertNodesToSupabaseAsContentWithEmbeddings({
-    obsidianNodes: changedNodes,
-    supabaseClient,
-    context,
-    accountLocalId,
-    plugin,
-  });
 
   // Only upsert concepts for nodes with title changes or new files
   // (concepts store the title, so content-only changes don't affect them)
@@ -562,14 +579,13 @@ const syncChangedNodesToSupabase = async ({
     node.changeTypes.includes("title"),
   );
 
-  if (nodesNeedingConceptUpsert.length > 0) {
-    await convertDgToSupabaseConcepts({
-      nodesSince: nodesNeedingConceptUpsert,
-      supabaseClient,
-      context,
-      accountLocalId,
-    });
-  }
+  await convertDgToSupabaseConcepts({
+    nodesSince: nodesNeedingConceptUpsert,
+    supabaseClient,
+    context,
+    accountLocalId,
+    plugin,
+  });
 };
 
 /**
@@ -635,10 +651,7 @@ export const syncSpecificFiles = async (
   const changeTypesByPath = new Map<string, ChangeType[]>();
   for (const filePath of filePaths) {
     const existing = changeTypesByPath.get(filePath) ?? [];
-    changeTypesByPath.set(
-      filePath,
-      mergeChangeTypes(existing, ["content"]),
-    );
+    changeTypesByPath.set(filePath, mergeChangeTypes(existing, ["content"]));
   }
 
   await syncDiscourseNodeChanges(plugin, changeTypesByPath);
