@@ -52,3 +52,14 @@ This repository uses Turborepo.
 - Break down complex operations into smaller, meaningful functions
 - Prefer early returns over nested conditionals for better readability
 - Prefer util functions for reusable logic and common operations
+
+### Documentation
+
+- Add comments only when necessary; descriptive names should minimize the need for comments
+- Explain the why, not the what, focusing on reasoning, trade-offs, and approaches
+- Document limitations, known bugs, or edge cases where behavior may not align with expectations
+
+### Testing
+
+- Write unit tests for new functionality
+- Ensure tests are meaningful and maintainable
