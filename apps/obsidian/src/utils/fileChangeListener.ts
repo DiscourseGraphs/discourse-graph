@@ -27,6 +27,7 @@ export class FileChangeListener {
   private metadataChangeCallback: ((file: TFile) => void) | null = null;
   private isProcessing = false;
   private hasPendingOrphanCleanup = false;
+  private pendingCreates: Set<string> = new Set();
 
   constructor(plugin: DiscourseGraphPlugin) {
     this.plugin = plugin;
@@ -104,13 +105,21 @@ export class FileChangeListener {
    * Handle file creation event
    */
   private handleFileCreate(file: TAbstractFile): void {
-    if (!this.isDiscourseNode(file)) {
+    if (!(file instanceof TFile)) {
       return;
     }
 
-    console.debug(`File created: ${file.path}`);
-    this.queueChange(file.path, "title");
-    this.queueChange(file.path, "content");
+    if (!file.path.endsWith(".md")) {
+      return;
+    }
+
+    this.pendingCreates.add(file.path);
+
+    if (this.isDiscourseNode(file)) {
+      this.queueChange(file.path, "title");
+      this.queueChange(file.path, "content");
+      this.pendingCreates.delete(file.path);
+    }
   }
 
   /**
@@ -121,7 +130,7 @@ export class FileChangeListener {
       return;
     }
 
-    console.debug(`File modified: ${file.path}`);
+    console.log(`File modified: ${file.path}`);
     this.queueChange(file.path, "content");
   }
 
@@ -133,7 +142,7 @@ export class FileChangeListener {
       return;
     }
 
-    console.debug(`File deleted: ${file.path}`);
+    console.log(`File deleted: ${file.path}`);
     this.hasPendingOrphanCleanup = true;
     this.resetDebounceTimer();
   }
@@ -148,16 +157,14 @@ export class FileChangeListener {
       if (oldFile instanceof TFile) {
         const oldCache = this.plugin.app.metadataCache.getFileCache(oldFile);
         if (oldCache?.frontmatter?.nodeTypeId) {
-          console.debug(
-            `File renamed from DG node: ${oldPath} -> ${file.path}`,
-          );
+          console.log(`File renamed from DG node: ${oldPath} -> ${file.path}`);
           this.queueChange(file.path, "title", oldPath);
         }
       }
       return;
     }
 
-    console.debug(`File renamed: ${oldPath} -> ${file.path}`);
+    console.log(`File renamed: ${oldPath} -> ${file.path}`);
     this.queueChange(file.path, "title", oldPath);
   }
 
@@ -166,6 +173,13 @@ export class FileChangeListener {
    */
   private handleMetadataChange(file: TFile): void {
     if (!this.isDiscourseNode(file)) {
+      return;
+    }
+
+    if (this.pendingCreates.has(file.path)) {
+      this.queueChange(file.path, "title");
+      this.queueChange(file.path, "content");
+      this.pendingCreates.delete(file.path);
       return;
     }
 
@@ -293,6 +307,7 @@ export class FileChangeListener {
     }
 
     this.changeQueue.clear();
+    this.pendingCreates.clear();
     this.isProcessing = false;
 
     console.debug("FileChangeListener cleaned up");
