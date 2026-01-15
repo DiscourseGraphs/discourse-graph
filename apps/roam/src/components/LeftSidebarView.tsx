@@ -42,6 +42,8 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
+import { useLeftSidebarGlobalSettings } from "./settings/utils/hooks";
+import { setGlobalSetting } from "./settings/utils/accessors";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -230,26 +232,37 @@ const PersonalSections = ({ config }: { config: LeftSidebarConfig }) => {
   );
 };
 
-const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
-  const [isOpen, setIsOpen] = useState<boolean>(
-    !!config.settings?.folded.value,
-  );
-  if (!config.children?.length) return null;
-  const isCollapsable = config.settings?.collapsable.value;
+const GlobalSection = () => {
+  const globalSettings = useLeftSidebarGlobalSettings();
+  const children = globalSettings.Children || [];
+  const isCollapsable = globalSettings.Settings?.Collapsable ?? false;
+  const isFolded = globalSettings.Settings?.Folded ?? false;
+
+  const [isOpen, setIsOpen] = useState<boolean>(isFolded);
+
+  useEffect(() => {
+    setIsOpen(isFolded);
+  }, [isFolded]);
+
+  const handleToggleFold = useCallback(() => {
+    if (!isCollapsable) return;
+    const newFoldedState = !isOpen;
+    setIsOpen(newFoldedState);
+    setGlobalSetting(["Left Sidebar", "Settings", "Folded"], newFoldedState);
+  }, [isCollapsable, isOpen]);
+
+  if (!children.length) return null;
+
+  const childrenNodes = children.map((uid) => ({
+    uid,
+    text: uid,
+  }));
 
   return (
     <>
       <div
         className="sidebar-title-button flex w-full items-center border-none bg-transparent py-1 pl-6 pr-2.5 font-semibold outline-none"
-        onClick={() => {
-          if (!isCollapsable || !config.settings) return;
-          toggleFoldedState({
-            isOpen,
-            setIsOpen,
-            folded: config.settings.folded,
-            parentUid: config.settings.uid,
-          });
-        }}
+        onClick={handleToggleFold}
       >
         <div className="flex w-full items-center justify-between">
           <span>GLOBAL</span>
@@ -262,10 +275,10 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
       </div>
       {isCollapsable ? (
         <Collapse isOpen={isOpen}>
-          <SectionChildren childrenNodes={config.children} />
+          <SectionChildren childrenNodes={childrenNodes} />
         </Collapse>
       ) : (
-        <SectionChildren childrenNodes={config.children} />
+        <SectionChildren childrenNodes={childrenNodes} />
       )}
     </>
   );
@@ -408,7 +421,7 @@ const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   return (
     <>
       <FavoritesPopover onloadArgs={onloadArgs} />
-      <GlobalSection config={config.global} />
+      <GlobalSection />
       <PersonalSections config={config} />
     </>
   );
