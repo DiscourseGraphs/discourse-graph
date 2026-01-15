@@ -2,11 +2,15 @@ import type { FrontMatterCache, TFile } from "obsidian";
 import type { default as DiscourseGraphPlugin } from "~/index";
 import { getLoggedInClient } from "./supabaseContext";
 
-export const publishNode = async (
-  plugin: DiscourseGraphPlugin,
-  file: TFile,
-  frontmatter: FrontMatterCache,
-): Promise<void> => {
+export const publishNode = async ({
+  plugin,
+  file,
+  frontmatter,
+}: {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+  frontmatter: FrontMatterCache;
+}): Promise<void> => {
   const nodeId = frontmatter.nodeInstanceId as string | undefined;
   if (!nodeId) throw new Error("Please sync the node first");
   const client = await getLoggedInClient(plugin);
