@@ -7,12 +7,13 @@ const allowedOrigins = [
 ];
 
 const isVercelPreviewUrl = (origin: string): boolean =>
-  /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin); 
+  /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin);
 
 const isAllowedOrigin = (origin: string): boolean =>
   allowedOrigins.includes(origin) ||
   allowedOrigins.some((allowed) => origin.startsWith(allowed)) ||
   isVercelPreviewUrl(origin);
+
 export default function cors(req: NextRequest, res: Response) {
   const origin = req.headers.get("origin");
   const originIsAllowed = origin && isAllowedOrigin(origin);
