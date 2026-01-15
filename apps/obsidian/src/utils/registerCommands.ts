@@ -183,7 +183,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         // Maybe sync the node now if unsynced
         // Ensure that the node schema is synced to the database, and shared
         // sync the assets to the database
-        publishNode(plugin, file, frontmatter)
+        publishNode({ plugin, file, frontmatter })
           .then(() => {
             new Notice("Published");
           })
