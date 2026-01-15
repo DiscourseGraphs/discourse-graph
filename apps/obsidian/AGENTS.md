@@ -1,18 +1,13 @@
----
-description: 
-globs: apps/obsidian/**
-alwaysApply: false
----
 You are working on the Obsidian plugin that implements the Discourse Graph protocol.
 
-## dependencies
-prefer existing depedencies from [package.json](mdc:apps/obsidian/package.json)
+## Dependencies
+Prefer existing dependencies from package.json.
 
 ## Obsidian Style Guide
-Use the obsidian style guide from help.obsidian.md/style-guide and docs.obsidian.md/Developer+policies
+Use the obsidian style guide from help.obsidian.md/style-guide and docs.obsidian.md/Developer+policies.
 
-### Icons 
-platform-native UI
+### Icons
+Platform-native UI.
 Lucide and custom Obsidian icons can be used alongside detailed elements to provide a visual representation of a feature.
 
 Example: In the ribbon on the left, select Create new canvas ( lucide-layout-dashboard.svg > icon ) to create a canvas in the same folder as the active file.
@@ -26,7 +21,7 @@ Example: The icon for creating a new canvas should be named lucide-layout-dashbo
 
 Use the SVG version of the icons available.
 Icons should be 18 pixels in width, 18 pixels in height, and have a stroke width of 1.5. You can adjust these settings in the SVG data.
-Adjusting size and stroke in an SVG
+Adjusting size and stroke in an SVG.
 Utilize the icon anchor in embedded images, to tweak the spacing around the icon so that it aligns neatly with the text in the vicinity.
 Icons should be surrounded by parenthesis. ( lucide-cog.svg > icon )
 Example: ( ![[lucide-cog.svg#icon]] )
