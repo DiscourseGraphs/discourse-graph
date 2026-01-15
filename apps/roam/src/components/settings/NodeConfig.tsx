@@ -233,10 +233,10 @@ const NodeConfig = ({
   const validate = useCallback(
     (tag: string, format: string) => {
       const enabled =
-        getSubTree({
+        (getSubTree({
           tree: getBasicTreeByParentUid(specificationUid),
           key: "enabled",
-        })?.uid?.length || 0 !== 0;
+        })?.uid?.length || 0) !== 0;
       if (format.trim().length === 0 && !enabled) {
         setTagError("");
         setFormatError("Error: you must set either a format or specification");
