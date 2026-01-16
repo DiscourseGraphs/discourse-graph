@@ -260,6 +260,7 @@ export const createUiOverrides = ({
   discourseContext,
   toggleMaximized,
   setConvertToDialogOpen,
+  onToolSelected,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
@@ -267,6 +268,7 @@ export const createUiOverrides = ({
   discourseContext: DiscourseContextType;
   toggleMaximized: () => void;
   setConvertToDialogOpen: (open: boolean) => void;
+  onToolSelected?: (toolId: string) => void;
 }): TLUiOverrides => ({
   tools: (editor, tools) => {
     // Get the custom keyboard shortcut for the discourse tool
@@ -285,9 +287,21 @@ export const createUiOverrides = ({
       kbd: discourseToolShortcut,
       readonlyOk: true,
       onSelect: () => {
+        onToolSelected?.("discourse-tool");
         editor.setCurrentTool("discourse-tool");
       },
     };
+    if (tools["select"]) {
+      const selectTool = tools["select"];
+      tools["select"] = {
+        ...selectTool,
+        onSelect: (source) => {
+          onToolSelected?.("select");
+          selectTool.onSelect?.(source);
+          editor.setCurrentTool("select");
+        },
+      };
+    }
     allNodes.forEach((node, index) => {
       const nodeId = node.type;
       tools[nodeId] = {
@@ -296,6 +310,7 @@ export const createUiOverrides = ({
         label: `shape.node.${node.type}` as TLUiTranslationKey,
         kbd: node.shortcut,
         onSelect: () => {
+          onToolSelected?.(nodeId);
           editor.setCurrentTool(nodeId);
         },
         readonlyOk: true,
@@ -315,6 +330,7 @@ export const createUiOverrides = ({
         kbd: "",
         readonlyOk: true,
         onSelect: () => {
+          onToolSelected?.(name);
           editor.setCurrentTool(name);
         },
         style: {
@@ -338,6 +354,7 @@ export const createUiOverrides = ({
         kbd: "",
         readonlyOk: true,
         onSelect: () => {
+          onToolSelected?.(name);
           editor.setCurrentTool(`${name}`);
         },
         style: {
