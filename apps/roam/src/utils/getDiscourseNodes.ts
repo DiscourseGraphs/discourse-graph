@@ -5,6 +5,11 @@ import getDiscourseRelations from "./getDiscourseRelations";
 import { roamNodeToCondition } from "./parseQuery";
 import { Condition } from "./types";
 import { InputTextNode, RoamBasicNode } from "roamjs-components/types";
+import {
+  NanopubTripleType,
+  PredicateKey,
+  TripleType,
+} from "../components/nanopub/NanopubNodeConfig";
 
 export const excludeDefaultNodes = (node: DiscourseNode) => {
   return node.backedBy !== "default";
@@ -32,6 +37,17 @@ export type DiscourseNode = {
     uid: string;
     value: boolean;
   };
+  nanopub?: NanopubConfig;
+};
+
+export type NanopubConfig = {
+  enabled: boolean;
+  nodeType: string; // defined node URI
+  triples: NanopubTripleType[];
+  requireContributors: boolean;
+  useCustomBody: boolean;
+  customBodyUid: string;
+  requireSource: boolean;
 };
 
 const DEFAULT_NODES: DiscourseNode[] = [
@@ -102,6 +118,67 @@ const getUidAndBooleanSetting = ({
   };
 };
 
+const parseNanopub = (nanopubNode: RoamBasicNode): NanopubConfig => {
+  if (!nanopubNode.uid) {
+    return {
+      enabled: false,
+      nodeType: "",
+      triples: [],
+      requireContributors: false,
+      useCustomBody: false,
+      customBodyUid: "",
+      requireSource: false,
+    };
+  }
+  const triplesNode = getSubTree({
+    tree: nanopubNode.children,
+    key: "triples",
+  });
+  const enabled = !!getSubTree({
+    tree: nanopubNode.children,
+    key: "enabled",
+  }).uid;
+  const nodeType = getSubTree({
+    tree: nanopubNode.children,
+    key: "node-type",
+  }).children[0]?.text;
+  const requireContributors = !!getSubTree({
+    tree: nanopubNode.children,
+    key: "require-contributors",
+  }).uid;
+  const useCustomBody = !!getSubTree({
+    tree: nanopubNode.children,
+    key: "use-custom-body",
+  }).uid;
+  const customBodyUid = getSubTree({
+    tree: nanopubNode.children,
+    key: "custom-body-definition",
+  }).uid;
+  const requireSource = !!getSubTree({
+    tree: nanopubNode.children,
+    key: "require-source",
+  }).uid;
+
+  return {
+    enabled,
+    nodeType: nodeType || "",
+    requireContributors,
+    requireSource,
+    useCustomBody,
+    customBodyUid: customBodyUid || "",
+    triples: triplesNode.children
+      .map((tripleType) =>
+        tripleType.children.map((t) => ({
+          uid: t.uid,
+          predicate: (t?.text as PredicateKey) || "",
+          object: t.children[0]?.text || "",
+          type: tripleType.text as TripleType,
+        }))
+      )
+      .flat(),
+  };
+};
+
 const getDiscourseNodes = (relations = getDiscourseRelations()) => {
   const configuredNodes = Object.entries(discourseConfigRef.nodes)
     .map(([type, { text, children }]): DiscourseNode => {
@@ -140,6 +217,12 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           tree: suggestiveRules.children,
           text: "First Child",
         }),
+        nanopub: parseNanopub(
+          getSubTree({
+            tree: children,
+            key: "Nanopub",
+          })
+        ),
       };
     })
     .concat(
@@ -167,6 +250,15 @@ const getDiscourseNodes = (relations = getDiscourseRelations()) => {
           })),
           backedBy: "relation",
           canvasSettings: {},
+          nanopub: {
+            enabled: false,
+            nodeType: "",
+            triples: [],
+            requireContributors: false,
+            useCustomBody: false,
+            customBodyUid: "",
+            requireSource: false,
+          },
         })),
     );
   const configuredNodeTexts = new Set(configuredNodes.map((n) => n.text));
