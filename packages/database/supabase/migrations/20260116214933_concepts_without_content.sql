@@ -41,7 +41,7 @@ SELECT
     is_schema,
     source_local_id
 FROM "Concept"
-WHERE (space_id = any(my_space_ids())) OR can_view_specific_concept(id);;
+WHERE (space_id = any(my_space_ids())) OR can_view_specific_concept(id);
 
 ALTER TABLE public."Concept" DROP COLUMN represented_by_id;
 
@@ -133,7 +133,8 @@ BEGIN
   END IF;
   IF data.schema_represented_by_local_id IS NOT NULL THEN
     SELECT cpt.id FROM public."Concept" cpt
-      WHERE cpt.source_local_id = data.schema_represented_by_local_id INTO concept.schema_id;
+      WHERE cpt.source_local_id = data.schema_represented_by_local_id
+      AND cpt.space_id = concept.space_id INTO concept.schema_id;
   END IF;
   IF concept.source_local_id = '' THEN
     concept.source_local_id := NULL;
@@ -216,6 +217,6 @@ BEGIN
             RETURN NEXT -1; -- Return a special value to indicate conflict
     END;
   END LOOP;
-  RAISE DEBUG 'Completed upsert_content successfully';
+  RAISE DEBUG 'Completed upsert_concepts successfully';
 END;
 $$;
