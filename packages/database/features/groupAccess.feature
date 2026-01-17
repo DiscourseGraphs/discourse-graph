@@ -30,7 +30,7 @@ Feature: Group content access
     Then a user logged in space s1 should see 1 Content in the database
     But a user logged in space s2 should see 0 Content in the database
     And ContentAccess are added to the database:
-      | _account_uid | _content_id |
-      | my_group     | ct1         |
+      | _account_uid | _space_id | source_local_id |
+      | my_group     | s1        | lct1            |
     Then a user logged in space s1 should see 1 Content in the database
     Then a user logged in space s2 should see 1 Content in the database
