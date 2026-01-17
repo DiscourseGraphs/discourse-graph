@@ -800,122 +800,104 @@ const InsideEditorAndUiContext = ({
     ];
     const isImage = (ext: string) => ACCEPTED_IMG_TYPE.includes(ext);
 
-    // Intercept external content handler registration to capture the default text handler
+    // Intercept registration so we can capture the default text handler.
     const originalRegister = editor.registerExternalContentHandler.bind(editor);
-    const registeredHandlers = new Set<string>();
     let defaultTextHandler:
-      | ((content: TLExternalContent) => Promise<unknown> | unknown)
+      | ((
+          content: TLExternalContent & { type: "text" },
+        ) => Promise<void> | void)
       | null = null;
-    let isHandlingText = false; // Guard to prevent recursive calls
 
-    editor.registerExternalContentHandler = (
-      type: string,
-      handler: (content: TLExternalContent) => Promise<unknown> | unknown,
+    const interceptRegister: typeof editor.registerExternalContentHandler = (
+      type,
+      handler,
     ) => {
-      registeredHandlers.add(type);
-
-      // Store the default text handler when it's registered (before our custom one)
       if (type === "text" && !defaultTextHandler) {
-        defaultTextHandler = handler;
+        defaultTextHandler = handler as (
+          content: TLExternalContent & { type: "text" },
+        ) => Promise<void> | void;
       }
 
-      return originalRegister(
-        type as "text" | "url" | "embed" | "files" | "svg-text",
-        handler,
-      );
+      return originalRegister(type, handler);
     };
 
-    registerDefaultExternalContentHandlers(
-      editor,
-      {
-        maxImageDimension: 5000,
-        maxAssetSize: 10 * 1024 * 1024, // 10mb
-        acceptedImageMimeTypes: DEFAULT_SUPPORTED_IMAGE_TYPES,
-        acceptedVideoMimeTypes: DEFAULT_SUPPORT_VIDEO_TYPES,
-      },
-      { toasts, msg },
-    );
+    editor.registerExternalContentHandler = interceptRegister;
+    try {
+      registerDefaultExternalContentHandlers(
+        editor,
+        {
+          maxImageDimension: 5000,
+          maxAssetSize: 10 * 1024 * 1024, // 10mb
+          acceptedImageMimeTypes: DEFAULT_SUPPORTED_IMAGE_TYPES,
+          acceptedVideoMimeTypes: DEFAULT_SUPPORT_VIDEO_TYPES,
+        },
+        { toasts, msg },
+      );
+    } finally {
+      // Restore original register now that defaults are attached.
+      editor.registerExternalContentHandler = originalRegister;
+    }
 
-    // Helper function to call default text handler and handle Promise returns
     const callDefaultTextHandler = async (
-      content: TLExternalContent,
-    ): Promise<unknown> => {
+      content: TLExternalContent & { type: "text" },
+    ): Promise<void> => {
       if (!defaultTextHandler) return;
-      const result = defaultTextHandler(content);
-      if (result instanceof Promise) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return await result;
-      }
-      return result;
+      await defaultTextHandler(content);
     };
 
     // Register custom text handler that checks for ((uid)) pattern
     // If it matches, create discourse node; otherwise, delegate to default handler
-    const textHandler = (content: TLExternalContent): Promise<unknown> => {
-      return (async () => {
-        // Prevent recursive calls
-        if (isHandlingText) return await callDefaultTextHandler(content);
-        isHandlingText = true;
+    const textHandler = (
+      content: TLExternalContent & { type: "text" },
+    ): void => {
+      void (async () => {
+        const text = content.text ?? "";
+        const uidMatch = text.match(BLOCK_REF_REGEX);
+
+        if (!uidMatch?.[1]) return await callDefaultTextHandler(content);
+
+        const uid = uidMatch[1];
+        const blockText = getTextByBlockUid(uid);
+        const isLive = isLiveBlock(uid);
+        if (!blockText || !isLive) return await callDefaultTextHandler(content);
+
         try {
-          if (content.type !== "text")
-            return await callDefaultTextHandler(content);
+          const { h, w } = await calcCanvasNodeSizeAndImg({
+            nodeText: blockText,
+            uid,
+            nodeType: "block-node",
+            extensionAPI,
+          });
 
-          const text = content.text || "";
-          const uidMatch = text.match(BLOCK_REF_REGEX);
+          const position =
+            content.point ??
+            (editor.inputs.shiftKey
+              ? editor.inputs.currentPagePoint
+              : editor.getViewportPageBounds().center);
 
-          if (uidMatch && uidMatch[1]) {
-            const uid = uidMatch[1];
-
-            try {
-              const blockText = getTextByBlockUid(uid);
-              if (!blockText) return await callDefaultTextHandler(content);
-
-              const { h, w } = await calcCanvasNodeSizeAndImg({
-                nodeText: blockText,
+          editor.createShapes([
+            {
+              id: createShapeId(),
+              type: "blck-node",
+              x: position.x - w / 2,
+              y: position.y - h / 2,
+              props: {
                 uid,
-                nodeType: "block-node",
-                extensionAPI,
-              });
-
-              const position =
-                content.point ??
-                (editor.inputs.shiftKey
-                  ? editor.inputs.currentPagePoint
-                  : editor.getViewportPageBounds().center);
-
-              editor.createShapes([
-                {
-                  id: createShapeId(),
-                  type: "blck-node",
-                  x: position.x - w / 2,
-                  y: position.y - h / 2,
-                  props: {
-                    uid,
-                    title: blockText,
-                    w,
-                    h,
-                    size: "s",
-                    fontFamily: "sans",
-                  },
-                },
-              ]);
-
-              return;
-            } catch (error) {
-              return await callDefaultTextHandler(content);
-            }
-          }
-
-          // Not a ((uid)) pattern, use default handler
-          // Call the original unwrapped handler directly to avoid going through our wrapper again
-          return await callDefaultTextHandler(content);
-        } finally {
-          isHandlingText = false;
+                title: blockText,
+                w,
+                h,
+                size: "s",
+                fontFamily: "sans",
+              },
+            },
+          ]);
+        } catch (error) {
+          await callDefaultTextHandler(content);
         }
       })();
     };
 
-    void editor.registerExternalContentHandler("text", textHandler);
+    editor.registerExternalContentHandler("text", textHandler);
     editor.registerExternalContentHandler(
       "files",
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -1101,7 +1083,7 @@ const InsideEditorAndUiContext = ({
       cleanupSideEffects();
       cleanupCustomSideEffects();
     };
-  }, [editor, msg, toasts, allNodes, extensionAPI]);
+  }, [editor, msg, toasts, extensionAPI]);
 
   return <CustomContextMenu extensionAPI={extensionAPI} allNodes={allNodes} />;
 };
