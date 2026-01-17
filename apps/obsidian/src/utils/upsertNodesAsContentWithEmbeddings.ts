@@ -23,10 +23,6 @@ type EmbeddingApiResponse = {
  * Determine which content variants to create based on change types
  */
 const getVariantsToCreate = (changeTypes: ChangeType[]): ContentVariant[] => {
-  if (changeTypes.includes("new")) {
-    return ["direct", "full"];
-  }
-
   const variants: ContentVariant[] = [];
 
   if (changeTypes.includes("title")) {
