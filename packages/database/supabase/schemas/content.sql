@@ -168,17 +168,19 @@ COMMENT ON COLUMN public."Content".part_of_id IS 'This content is part of a larg
 
 CREATE TABLE IF NOT EXISTS public."ContentAccess" (
     account_uid UUID NOT NULL,
-    content_id bigint NOT NULL
+    space_id bigint NOT NULL,
+    source_local_id CHARACTER VARYING NOT NULL
 );
 
 ALTER TABLE ONLY public."ContentAccess"
-ADD CONSTRAINT "ContentAccess_pkey" PRIMARY KEY (account_uid, content_id);
+ADD CONSTRAINT "ContentAccess_pkey" PRIMARY KEY (account_uid, source_local_id, space_id);
 
 ALTER TABLE public."ContentAccess" OWNER TO "postgres";
 
 COMMENT ON TABLE public."ContentAccess" IS 'An access control entry for a content';
 
-COMMENT ON COLUMN public."ContentAccess".content_id IS 'The content item for which access is granted';
+COMMENT ON COLUMN public."ContentAccess".space_id IS 'The space_id of the content item for which access is granted';
+COMMENT ON COLUMN public."ContentAccess".source_local_id IS 'The source_local_id of the content item for which access is granted';
 
 COMMENT ON COLUMN public."ContentAccess".account_uid IS 'The identity of the user account';
 
@@ -187,14 +189,9 @@ ADD CONSTRAINT "ContentAccess_account_uid_fkey" FOREIGN KEY (
     account_uid
 ) REFERENCES auth.users (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
-CREATE INDEX content_access_content_id_idx ON public."ContentAccess" (content_id);
+CREATE INDEX content_access_content_local_id_idx ON public."ContentAccess" (source_local_id, space_id);
 
-ALTER TABLE ONLY public."ContentAccess"
-ADD CONSTRAINT "ContentAccess_content_id_fkey" FOREIGN KEY (
-    content_id
-) REFERENCES public."Content" (
-    id
-) ON UPDATE CASCADE ON DELETE CASCADE;
+-- note that I cannot have a foreign key for Content because the variant is part of the unique key.
 
 GRANT ALL ON TABLE public."ContentAccess" TO authenticated;
 GRANT ALL ON TABLE public."ContentAccess" TO service_role;
@@ -208,7 +205,7 @@ REVOKE ALL ON TABLE public."Content" FROM anon;
 GRANT ALL ON TABLE public."Content" TO authenticated;
 GRANT ALL ON TABLE public."Content" TO service_role;
 
-CREATE OR REPLACE FUNCTION public.can_view_specific_content(id BIGINT) RETURNS BOOLEAN
+CREATE OR REPLACE FUNCTION public.can_view_specific_content(space_id_ BIGINT, source_local_id_ VARCHAR) RETURNS BOOLEAN
 STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
@@ -216,7 +213,8 @@ AS $$
     SELECT EXISTS(
         SELECT true FROM public."ContentAccess"
         JOIN public.my_user_accounts() ON (account_uid=my_user_accounts)
-        WHERE content_id=id
+        WHERE space_id=space_id_
+        AND source_local_id = source_local_id_
         LIMIT 1);
 $$;
 
@@ -239,7 +237,7 @@ SELECT
 FROM public."Content"
 WHERE (
     space_id = any(public.my_space_ids())
-    OR public.can_view_specific_content(id)
+    OR public.can_view_specific_content(space_id, source_local_id)
 );
 
 CREATE OR REPLACE FUNCTION public.document_of_content(content public.my_contents)
@@ -654,7 +652,7 @@ ALTER TABLE public."Content" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS content_policy ON public."Content";
 DROP POLICY IF EXISTS content_select_policy ON public."Content";
-CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(id));
+CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(space_id, source_local_id));
 DROP POLICY IF EXISTS content_delete_policy ON public."Content";
 CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (public.in_space(space_id));
 DROP POLICY IF EXISTS content_insert_policy ON public."Content";
@@ -666,10 +664,10 @@ ALTER TABLE public."ContentAccess" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS content_access_policy ON public."ContentAccess";
 DROP POLICY IF EXISTS content_access_select_policy ON public."ContentAccess";
-CREATE POLICY content_access_select_policy ON public."ContentAccess" FOR SELECT USING (public.content_in_space(content_id) OR public.can_access_account(account_uid));
+CREATE POLICY content_access_select_policy ON public."ContentAccess" FOR SELECT USING (public.in_space(space_id) OR public.can_access_account(account_uid));
 DROP POLICY IF EXISTS content_access_delete_policy ON public."ContentAccess";
-CREATE POLICY content_access_delete_policy ON public."ContentAccess" FOR DELETE USING (public.content_in_editable_space(content_id) OR public.can_access_account(account_uid));
+CREATE POLICY content_access_delete_policy ON public."ContentAccess" FOR DELETE USING (public.editor_in_space(space_id) OR public.can_access_account(account_uid));
 DROP POLICY IF EXISTS content_access_insert_policy ON public."ContentAccess";
-CREATE POLICY content_access_insert_policy ON public."ContentAccess" FOR INSERT WITH CHECK (public.content_in_editable_space(content_id));
+CREATE POLICY content_access_insert_policy ON public."ContentAccess" FOR INSERT WITH CHECK (public.editor_in_space(space_id));
 DROP POLICY IF EXISTS content_access_update_policy ON public."ContentAccess";
-CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE USING (public.content_in_editable_space(content_id));
+CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE USING (public.editor_in_space(space_id));

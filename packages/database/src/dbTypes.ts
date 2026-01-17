@@ -226,36 +226,6 @@ export type Database = {
           },
         ]
       }
-      ConceptAccess: {
-        Row: {
-          account_uid: string
-          concept_id: number
-        }
-        Insert: {
-          account_uid: string
-          concept_id: number
-        }
-        Update: {
-          account_uid?: string
-          concept_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ConceptAccess_concept_id_fkey"
-            columns: ["concept_id"]
-            isOneToOne: false
-            referencedRelation: "Concept"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ConceptAccess_concept_id_fkey"
-            columns: ["concept_id"]
-            isOneToOne: false
-            referencedRelation: "my_concepts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       Content: {
         Row: {
           author_id: number | null
@@ -436,39 +406,20 @@ export type Database = {
       ContentAccess: {
         Row: {
           account_uid: string
-          content_id: number
+          source_local_id: string
+          space_id: number
         }
         Insert: {
           account_uid: string
-          content_id: number
+          source_local_id: string
+          space_id: number
         }
         Update: {
           account_uid?: string
-          content_id?: number
+          source_local_id?: string
+          space_id?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "ContentAccess_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "Content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ContentAccess_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "my_contents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ContentAccess_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ContentEmbedding_openai_text_embedding_3_small_1536: {
         Row: {
@@ -1346,8 +1297,14 @@ export type Database = {
         }
       }
       can_access_account: { Args: { account_uid: string }; Returns: boolean }
-      can_view_specific_concept: { Args: { id: number }; Returns: boolean }
-      can_view_specific_content: { Args: { id: number }; Returns: boolean }
+      can_view_specific_concept: {
+        Args: { source_local_id_: string; space_id_: number }
+        Returns: boolean
+      }
+      can_view_specific_content: {
+        Args: { source_local_id_: string; space_id_: number }
+        Returns: boolean
+      }
       compute_arity_local: {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
