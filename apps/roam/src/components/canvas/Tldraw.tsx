@@ -63,7 +63,10 @@ import {
 } from "./DiscourseNodeUtil";
 import { useRoamStore } from "./useRoamStore";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import getUids from "roamjs-components/dom/getUids";
 import findDiscourseNode from "~/utils/findDiscourseNode";
+import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -372,6 +375,57 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   const extensionAPI = useExtensionAPI();
 
+  const getBlockUidFromBullet = (bulletEl: HTMLElement): string | undefined => {
+    // Navigate up to find the rm-block-main or rm-block__self container
+    const blockMain =
+      bulletEl.closest(".rm-block-main") || bulletEl.closest(".rm-block__self");
+    if (!blockMain) return undefined;
+
+    // Find the rm-block__input div within the block container
+    const blockInput = blockMain.querySelector(".rm-block__input");
+    if (!blockInput) return undefined;
+
+    return getUids(blockInput as HTMLDivElement).blockUid;
+  };
+
+  // Handle Roam block drag and drop
+  useEffect(() => {
+    const handleDragStart = (e: DragEvent) => {
+      const target = e.target as HTMLElement;
+      const uid = getBlockUidFromBullet(target);
+
+      if (uid) e.dataTransfer?.setData("application/x-roam-uid", uid);
+    };
+
+    document.addEventListener("dragstart", handleDragStart);
+    return () => document.removeEventListener("dragstart", handleDragStart);
+  }, []);
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const uid = e.dataTransfer.getData("application/x-roam-uid");
+
+    if (!uid || !appRef.current || !extensionAPI) return;
+    if (!appRef.current) return;
+
+    // Use the text content handler to process ((uid)) - this will handle both
+    // creating discourse nodes and falling back to text shapes
+    const dropPoint = appRef.current.screenToPage({
+      x: e.clientX,
+      y: e.clientY,
+    });
+
+    void appRef.current.putExternalContent({
+      type: "text",
+      text: `((${uid}))`,
+      point: dropPoint,
+    });
+  };
+
   // COMPONENTS
   const defaultEditorComponents: TLEditorComponents = {
     Scribble: TldrawScribble,
@@ -548,6 +602,8 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       className="roamjs-tldraw-canvas-container relative z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white"
       ref={containerRef}
       tabIndex={-1}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       <style>{tldrawStyles}</style>
 
