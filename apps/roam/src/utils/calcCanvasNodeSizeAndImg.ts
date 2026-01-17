@@ -126,6 +126,9 @@ const calcCanvasNodeSizeAndImg = async ({
 
   try {
     const { width, height } = await loadImage(imageUrl);
+    if (!width || !height || !Number.isFinite(width) || !Number.isFinite(height)) {
+      return { w, h, imageUrl: "" };
+    }
     
     const aspectRatio = width / height;
     const nodeImageHeight = w / aspectRatio;
