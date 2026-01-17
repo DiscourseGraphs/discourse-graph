@@ -1,5 +1,6 @@
 import type { SupabaseContext } from "./supabaseContext";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import internalError from "./internalError";
 
 const getAllNodesFromSupabase = async (
   supabaseClient: DGSupabaseClient,
@@ -14,10 +15,10 @@ const getAllNodesFromSupabase = async (
       .eq("arity", 0);
 
     if (schemasError) {
-      console.error(
-        "Failed to get all discourse node schemas from Supabase:",
-        schemasError,
-      );
+      internalError({
+        error: schemasError,
+        userMessage: "Failed to get all discourse node schemas from Supabase:",
+      });
       return [];
     }
 
@@ -27,30 +28,25 @@ const getAllNodesFromSupabase = async (
     if (schemaIds.length > 0) {
       const conceptResponse = await supabaseClient
         .from("Concept")
-        .select(
-          `
-        Content!inner (
-            source_local_id
-        )
-      `,
-        )
+        .select("source_local_id")
         .eq("space_id", spaceId)
         .eq("is_schema", false)
         .in("schema_id", schemaIds)
-        .not("Content.source_local_id", "is", null);
+        .not("source_local_id", "is", null);
 
       if (conceptResponse.error) {
-        console.error(
-          "Failed to get concepts from Supabase:",
-          conceptResponse.error,
-        );
+        internalError({
+          error: conceptResponse.error,
+          userMessage: "Failed to get concepts from Supabase",
+          type: "cleanup_orphans_get_concepts",
+        });
         return [];
       }
       nodeResult =
         conceptResponse.data
           ?.map(
-            (c: { Content?: { source_local_id: string | null } }) =>
-              c.Content?.source_local_id || null,
+            (c: { source_local_id: string | null }) =>
+              c.source_local_id || null,
           )
           .filter((id: string | null): id is string => !!id) || [];
     }
@@ -63,10 +59,10 @@ const getAllNodesFromSupabase = async (
       .not("source_local_id", "is", null);
 
     if (blockContentResponse.error) {
-      console.error(
-        "Failed to get block content from Supabase:",
-        blockContentResponse.error,
-      );
+      internalError({
+        error: blockContentResponse.error,
+        userMessage: "Failed to get block content from Supabase:",
+      });
       return [];
     }
 
@@ -79,7 +75,7 @@ const getAllNodesFromSupabase = async (
 
     return result;
   } catch (error) {
-    console.error("Error in getAllNodesFromSupabase:", error);
+    internalError({ error, userMessage: "Error in getAllNodesFromSupabase:" });
     return [];
   }
 };
@@ -91,36 +87,33 @@ const getAllNodeSchemasFromSupabase = async (
   try {
     const { data, error } = await supabaseClient
       .from("Concept")
-      .select(
-        `
-        Content!inner (
-            source_local_id
-        )
-      `,
-      )
+      .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("is_schema", true)
       .eq("arity", 0)
-      .not("Content.source_local_id", "is", null);
+      .not("source_local_id", "is", null);
 
     if (error) {
-      console.error(
-        "Failed to get all discourse node schemas from Supabase:",
+      internalError({
         error,
-      );
+        userMessage: "Failed to get all discourse node schemas from Supabase",
+        type: "cleanup_orphans_get_schemas",
+      });
       return [];
     }
 
     return (
       data
         ?.map(
-          (c: { Content?: { source_local_id: string | null } }) =>
-            c.Content?.source_local_id || null,
+          (c: { source_local_id: string | null }) => c.source_local_id || null,
         )
         .filter((id: string | null): id is string => !!id) || []
     );
   } catch (error) {
-    console.error("Error in getAllNodeSchemasFromSupabase:", error);
+    internalError({
+      error,
+      userMessage: "Error in getAllNodeSchemasFromSupabase",
+    });
     return [];
   }
 };
@@ -140,7 +133,10 @@ const getNonExistentRoamUids = (nodeUids: string[]): string[] => {
 
     return results.map(([uid]) => uid);
   } catch (error) {
-    console.error("Error checking existing Roam nodes:", error);
+    internalError({
+      error,
+      userMessage: "Error checking existing Roam nodes",
+    });
     return [];
   }
 };
@@ -151,43 +147,36 @@ const deleteNodesFromSupabase = async (
   supabaseClient: DGSupabaseClient,
 ): Promise<void> => {
   try {
-    const { data: contentData, error: contentError } = await supabaseClient
+    if (uids.length === 0) return;
+
+    const { error: conceptDeleteError } = await supabaseClient
+      .from("Concept")
+      .delete()
+      .eq("space_id", spaceId)
+      .in("source_local_id", uids)
+      .eq("is_schema", false);
+
+    if (conceptDeleteError) {
+      internalError({
+        error: conceptDeleteError,
+        userMessage: "Failed to delete concepts from Supabase",
+      });
+    }
+
+    const { error: contentDeleteError } = await supabaseClient
       .from("Content")
-      .select("id")
+      .delete()
       .eq("space_id", spaceId)
       .in("source_local_id", uids);
 
-    if (contentError) {
-      console.error("Failed to get content from Supabase:", contentError);
-    }
-
-    const contentIds = contentData?.map((c: { id: number }) => c.id) || [];
-
-    if (contentIds.length > 0) {
-      const { error: conceptError } = await supabaseClient
-        .from("Concept")
-        .delete()
-        .in("represented_by_id", contentIds)
-        .eq("is_schema", false);
-
-      if (conceptError) {
-        console.error("Failed to delete concepts from Supabase:", conceptError);
-      }
-
-      const { error: contentDeleteError } = await supabaseClient
-        .from("Content")
-        .delete()
-        .in("id", contentIds);
-
-      if (contentDeleteError) {
-        console.error(
-          "Failed to delete content from Supabase:",
-          contentDeleteError,
-        );
-      }
+    if (contentDeleteError) {
+      internalError({
+        error: contentDeleteError,
+        userMessage: "Failed to delete content from Supabase:",
+      });
     }
   } catch (error) {
-    console.error("Error in deleteNodesFromSupabase:", error);
+    internalError({ error, userMessage: "Error in deleteNodesFromSupabase" });
   }
 };
 
@@ -195,30 +184,9 @@ const deleteNodeSchemasFromSupabase = async (
   uids: string[],
   supabaseClient: DGSupabaseClient,
   spaceId: number,
-): Promise<number> => {
+): Promise<void> => {
   try {
-    if (uids.length === 0) return 0;
-
-    const { data: schemaContentData, error: contentLookupError } =
-      await supabaseClient
-        .from("Content")
-        .select("id, source_local_id")
-        .eq("space_id", spaceId)
-        .in("source_local_id", uids);
-
-    if (contentLookupError) {
-      console.error(
-        "deleteNodeSchemasFromSupabase: content lookup failed:",
-        contentLookupError,
-      );
-      return 0;
-    }
-
-    if (!schemaContentData || schemaContentData.length === 0) {
-      return 0;
-    }
-
-    const schemaContentIds = schemaContentData.map((c: { id: number }) => c.id);
+    if (uids.length === 0) return;
 
     const { data: schemaConceptData, error: schemaConceptError } =
       await supabaseClient
@@ -226,133 +194,122 @@ const deleteNodeSchemasFromSupabase = async (
         .select("id")
         .eq("space_id", spaceId)
         .eq("is_schema", true)
-        .in("represented_by_id", schemaContentIds);
+        .in("source_local_id", uids);
 
     if (schemaConceptError) {
-      console.error(
-        "deleteNodeSchemasFromSupabase: schema concept lookup failed:",
-        schemaConceptError,
-      );
-      return 0;
+      internalError({
+        error: schemaConceptError,
+        userMessage:
+          "deleteNodeSchemasFromSupabase: schema concept lookup failed",
+      });
     }
 
     const schemaConceptIds = (schemaConceptData || []).map(
       (c: { id: number }) => c.id,
     );
 
-    let instanceConceptIds: number[] = [];
-    let instanceContentIds: number[] = [];
-    let instanceSourceLocalIds: string[] = [];
-
     if (schemaConceptIds.length > 0) {
       const { data: instanceConceptData, error: instanceConceptError } =
         await supabaseClient
           .from("Concept")
-          .select("id, represented_by_id")
+          .select("source_local_id")
           .eq("space_id", spaceId)
           .eq("is_schema", false)
           .in("schema_id", schemaConceptIds);
 
       if (instanceConceptError) {
-        console.error(
-          "deleteNodeSchemasFromSupabase: instance concept lookup failed:",
-          instanceConceptError,
-        );
-        return 0;
-      }
+        internalError({
+          error: instanceConceptError,
+          userMessage:
+            "deleteNodeSchemasFromSupabase: instance concept lookup failed",
+        });
+      } else {
+        const instanceSourceLocalIds = (instanceConceptData || [])
+          .map((ic: { source_local_id: string | null }) => ic.source_local_id)
+          .filter((x: string | null): x is string => typeof x === "string");
 
-      instanceConceptIds = (instanceConceptData || []).map(
-        (ic: { id: number }) => ic.id,
-      );
-      instanceContentIds = (instanceConceptData || [])
-        .map((ic: { represented_by_id: number | null }) => ic.represented_by_id)
-        .filter((x: number | null): x is number => typeof x === "number");
-
-      if (instanceContentIds.length > 0) {
-        const { data: instanceContentData, error: instanceContentLookupError } =
-          await supabaseClient
+        if (instanceSourceLocalIds.length > 0) {
+          const { error: deleteInstanceConceptError } = await supabaseClient
+            .from("Concept")
+            .delete()
+            .eq("is_schema", false)
+            .eq("space_id", spaceId)
+            .in("source_local_id", instanceSourceLocalIds);
+          if (deleteInstanceConceptError) {
+            internalError({
+              error: deleteInstanceConceptError,
+              userMessage:
+                "deleteNodeSchemasFromSupabase: delete instance concepts failed",
+            });
+          }
+          const { error: deleteInstanceContentError } = await supabaseClient
             .from("Content")
-            .select("source_local_id")
-            .in("id", instanceContentIds);
-
-        if (instanceContentLookupError) {
-          console.error(
-            "deleteNodeSchemasFromSupabase: instance content lookup failed:",
-            instanceContentLookupError,
-          );
-          return 0;
+            .delete()
+            .eq("space_id", spaceId)
+            .in("source_local_id", instanceSourceLocalIds);
+          if (deleteInstanceContentError) {
+            internalError({
+              error: deleteInstanceContentError,
+              userMessage:
+                "deleteNodeSchemasFromSupabase: delete instance contents failed",
+            });
+          }
+          const { error: deleteInstanceDocumentError } = await supabaseClient
+            .from("Document")
+            .delete()
+            .eq("space_id", spaceId)
+            .in("source_local_id", instanceSourceLocalIds);
+          if (deleteInstanceDocumentError) {
+            internalError({
+              error: deleteInstanceDocumentError,
+              userMessage:
+                "deleteNodeSchemasFromSupabase: delete instance document failed",
+            });
+          }
         }
-        instanceSourceLocalIds = (instanceContentData || [])
-          .map((c: { source_local_id: string | null }) => c.source_local_id)
-          .filter((id: string | null): id is string => !!id);
       }
-    }
 
-    if (instanceConceptIds.length > 0) {
-      const { error: deleteInstanceConceptError } = await supabaseClient
-        .from("Concept")
-        .delete()
-        .in("id", instanceConceptIds);
-      if (deleteInstanceConceptError) {
-        console.error(
-          "deleteNodeSchemasFromSupabase: delete instance concepts failed:",
-          deleteInstanceConceptError,
-        );
-        return 0;
-      }
-    }
-
-    if (schemaConceptIds.length > 0) {
       const { error: deleteSchemaConceptError } = await supabaseClient
         .from("Concept")
         .delete()
         .in("id", schemaConceptIds);
       if (deleteSchemaConceptError) {
-        console.error(
-          "deleteNodeSchemasFromSupabase: delete schema concepts failed:",
-          deleteSchemaConceptError,
-        );
-        return 0;
+        internalError({
+          error: deleteSchemaConceptError,
+          userMessage:
+            "deleteNodeSchemasFromSupabase: delete schema concepts failed",
+        });
       }
     }
 
-    const allContentIds = [...schemaContentIds, ...instanceContentIds];
-    if (allContentIds.length > 0) {
-      const { error: deleteContentError } = await supabaseClient
-        .from("Content")
-        .delete()
-        .in("id", allContentIds);
-      if (deleteContentError) {
-        console.error(
-          "deleteNodeSchemasFromSupabase: delete content failed:",
-          deleteContentError,
-        );
-        return 0;
-      }
+    const { error: deleteSchemaContentError } = await supabaseClient
+      .from("Content")
+      .delete()
+      .eq("space_id", spaceId)
+      .in("source_local_id", uids);
+    if (deleteSchemaContentError) {
+      internalError({
+        error: deleteSchemaContentError,
+        userMessage: "deleteNodeSchemasFromSupabase: delete content failed",
+      });
     }
 
-    const docLocalIds = [...uids, ...instanceSourceLocalIds];
-    let deletedDocsCount = 0;
-    if (docLocalIds.length > 0) {
-      const { error: docError, count } = await supabaseClient
-        .from("Document")
-        .delete({ count: "exact" })
-        .eq("space_id", spaceId)
-        .in("source_local_id", docLocalIds);
-      if (docError) {
-        console.error(
-          "deleteNodeSchemasFromSupabase: delete documents failed:",
-          docError,
-        );
-        return 0;
-      }
-      deletedDocsCount = count ?? 0;
+    const { error: deleteSchemaDocument } = await supabaseClient
+      .from("Document")
+      .delete()
+      .eq("space_id", spaceId)
+      .in("source_local_id", uids);
+    if (deleteSchemaDocument) {
+      internalError({
+        error: deleteSchemaDocument,
+        userMessage: "deleteNodeSchemasFromSupabase: delete documents failed",
+      });
     }
-
-    return deletedDocsCount;
   } catch (error) {
-    console.error("Error in deleteNodeSchemasFromSupabase:", error);
-    return 0;
+    internalError({
+      error,
+      userMessage: "Error in deleteNodeSchemasFromSupabase",
+    });
   }
 };
 
@@ -391,6 +348,6 @@ export const cleanupOrphanedNodes = async (
       }
     }
   } catch (error) {
-    console.error("Error in cleanupOrphanedNodes:", error);
+    internalError({ error, userMessage: "Error in cleanupOrphanedNodes:" });
   }
 };

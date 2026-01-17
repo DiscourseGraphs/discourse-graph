@@ -292,7 +292,7 @@ const composeConceptQuery = ({
     if (documentFields.length > 0) {
       ctArgs.push(`Document:my_documents!document_id${innerContent ? "!inner" : ""} (\n ${documentFields.join(",\n")} )`);
     }
-    q += `,\nContent:my_contents!represented_by_id${innerContent ? "!inner" : ""} (\n${ctArgs.join(",\n")})`;
+    q += `,\nContent:content_of_concept${innerContent ? "!inner" : ""} (\n${ctArgs.join(",\n")})`;
   }
   if (scope.author !== undefined) {
     q += ", author:my_accounts!author_id!inner(account_local_id)";
@@ -315,7 +315,7 @@ const composeConceptQuery = ({
       if (inRelsToNodesOfType !== undefined && !args2.includes("schema_id"))
         args2.push("schema_id");
       if (inRelsToNodeLocalIds !== undefined)
-        args2.push("Content:my_contents!represented_by_id!inner(source_local_id)");
+        args2.push("Content:content_of_concept!inner(source_local_id)");
       if (inRelsToNodesOfAuthor !== undefined) {
         if (!args2.includes("author_id")) args2.push("author_id");
         args2.push("author:my_accounts!author_id!inner(account_local_id)");
@@ -540,7 +540,7 @@ export const CONCEPT_FIELDS: (keyof Concept)[] = [
   "refs",
   "is_schema",
   "schema_id",
-  "represented_by_id",
+  "source_local_id",
 ];
 
 export const CONTENT_FIELDS: (keyof Content)[] = [

@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS public."Concept" (
     reference_content jsonb NOT NULL DEFAULT '{}'::jsonb,
     refs BIGINT [] NOT NULL GENERATED ALWAYS AS (extract_references(reference_content)) STORED,
     is_schema boolean DEFAULT false NOT NULL,
-    represented_by_id bigint
+    source_local_id character varying
 );
 
 ALTER TABLE public."Concept" OWNER TO "postgres";
@@ -66,14 +66,10 @@ COMMENT ON COLUMN public."Concept".last_modified IS 'The last time the content w
 
 COMMENT ON COLUMN public."Concept".space_id IS 'The space in which the content is located';
 
+COMMENT ON COLUMN public."Concept".source_local_id IS 'The unique identifier of the concept in the remote source';
 
 ALTER TABLE ONLY public."Concept"
 ADD CONSTRAINT "Concept_pkey" PRIMARY KEY (id);
-
-ALTER TABLE ONLY public."Concept"
-ADD FOREIGN KEY (represented_by_id) REFERENCES public."Content" (
-    id
-) ON DELETE SET NULL ON UPDATE CASCADE;
 
 CREATE INDEX concept_literal_content_idx ON public."Concept" USING gin (
     literal_content jsonb_ops
@@ -85,9 +81,9 @@ CREATE INDEX "Concept_schema" ON public."Concept" USING btree (schema_id);
 
 CREATE INDEX "Concept_space" ON public."Concept" USING btree (space_id);
 
-CREATE UNIQUE INDEX "Concept_represented_by" ON public."Concept" (
-    represented_by_id
-);
+CREATE UNIQUE INDEX concept_space_local_id_idx ON public."Concept" USING btree (
+    source_local_id, space_id
+) NULLS DISTINCT;
 
 -- maybe make that for schemas only?
 CREATE UNIQUE INDEX concept_space_and_name_idx ON public."Concept" (space_id, name);
@@ -177,7 +173,7 @@ SELECT
     reference_content,
     refs,
     is_schema,
-    represented_by_id
+    source_local_id
 FROM public."Concept"
 WHERE (
     space_id = any(public.my_space_ids())
@@ -273,7 +269,9 @@ ROWS 1
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT * from public.my_contents WHERE id=concept.represented_by_id;
+    SELECT * from public.my_contents AS cnt
+        WHERE cnt.space_id=concept.space_id
+        AND cnt.source_local_id=concept.source_local_id;
 $$;
 COMMENT ON FUNCTION public.content_of_concept(public.my_concepts)
 IS 'Computed one-to-one: returns the representing Content for a given Concept.';
@@ -306,10 +304,11 @@ CREATE TYPE public.concept_local_input AS (
     reference_content jsonb,
     -- local values
     author_local_id VARCHAR,
-    represented_by_local_id VARCHAR,
+    represented_by_local_id VARCHAR, -- deprecated, use source_local_id
     schema_represented_by_local_id VARCHAR,
     space_url VARCHAR,
-    local_reference_content JSONB
+    local_reference_content JSONB,
+    source_local_id VARCHAR
 );
 
 -- private function. Transform concept with local (platform) references to concept with db references
@@ -332,9 +331,9 @@ BEGIN
     SELECT id FROM public."PlatformAccount"
       WHERE account_local_id = data.author_local_id INTO concept.author_id;
   END IF;
-  IF data.represented_by_local_id IS NOT NULL THEN
-    SELECT id FROM public."Content"
-      WHERE source_local_id = data.represented_by_local_id INTO concept.represented_by_id;
+  IF data.represented_by_id IS NOT NULL THEN
+    SELECT space_id, source_local_id FROM public."Content"
+      WHERE id = data.represented_by_id INTO concept.space_id, concept.source_local_id;
   END IF;
   IF data.space_url IS NOT NULL THEN
     SELECT id FROM public."Space"
@@ -342,9 +341,15 @@ BEGIN
   END IF;
   IF data.schema_represented_by_local_id IS NOT NULL THEN
     SELECT cpt.id FROM public."Concept" cpt
-      JOIN public."Content" AS cnt ON cpt.represented_by_id = cnt.id
-      WHERE cnt.source_local_id = data.schema_represented_by_local_id INTO concept.schema_id;
+      WHERE cpt.source_local_id = data.schema_represented_by_local_id INTO concept.schema_id;
   END IF;
+  IF concept.source_local_id = '' THEN
+    concept.source_local_id := NULL;
+  END IF;
+  IF data.represented_by_local_id = '' THEN
+    data.represented_by_local_id := NULL;
+  END IF;
+  concept.source_local_id = COALESCE(concept.source_local_id, data.represented_by_local_id); -- legacy input field
   IF data.local_reference_content IS NOT NULL THEN
     FOR key, value IN SELECT * FROM jsonb_each(data.local_reference_content) LOOP
       IF jsonb_typeof(value) = 'array' THEN
@@ -352,14 +357,12 @@ BEGIN
         ela AS (SELECT array_agg(x) AS a FROM el)
         SELECT array_agg(DISTINCT cpt.id) INTO STRICT ref_array_val
             FROM public."Concept" AS cpt
-            JOIN public."Content" AS cnt ON (cpt.represented_by_id = cnt.id)
-            JOIN ela ON (true) WHERE cnt.source_local_id = ANY(ela.a);
+            JOIN ela ON (true) WHERE cpt.source_local_id = ANY(ela.a) AND cpt.space_id=concept.space_id;
         reference_content := jsonb_set(reference_content, ARRAY[key], to_jsonb(ref_array_val));
       ELSIF jsonb_typeof(value) = 'string' THEN
         SELECT cpt.id INTO STRICT ref_single_val
             FROM public."Concept" AS cpt
-            JOIN public."Content" AS cnt ON (cpt.represented_by_id = cnt.id)
-            WHERE cnt.source_local_id = (value #>> '{}');
+            WHERE cpt.source_local_id = (value #>> '{}') AND cpt.space_id=concept.space_id;
         reference_content := jsonb_set(reference_content, ARRAY[key], to_jsonb(ref_single_val));
       ELSE
         RAISE EXCEPTION 'Invalid value in local_reference_content % %', value, jsonb_typeof(value);
@@ -372,7 +375,7 @@ END;
 $$;
 
 -- The data should be an array of LocalConceptDataInput
--- Concepts are upserted, based on represented_by_id. New (or old) IDs are returned.
+-- Concepts are upserted, based on source_local_id. New (or old) IDs are returned.
 -- name conflicts will cause an insertion failure, and the ID will be given as -1
 CREATE OR REPLACE FUNCTION public.upsert_concepts(v_space_id bigint, data jsonb)
 RETURNS SETOF BIGINT
@@ -398,18 +401,17 @@ BEGIN
     BEGIN
         -- cannot use db_concept.* because of refs.
         INSERT INTO public."Concept" (
-        epistemic_status, name, description, author_id, created, last_modified, space_id, schema_id, literal_content, is_schema, represented_by_id, reference_content
+        epistemic_status, name, description, author_id, created, last_modified, space_id, schema_id, literal_content, is_schema, source_local_id, reference_content
         ) VALUES (
-        db_concept.epistemic_status, db_concept.name, db_concept.description, db_concept.author_id, db_concept.created, db_concept.last_modified, db_concept.space_id, db_concept.schema_id, db_concept.literal_content, db_concept.is_schema, db_concept.represented_by_id, db_concept.reference_content
+        db_concept.epistemic_status, db_concept.name, db_concept.description, db_concept.author_id, db_concept.created, db_concept.last_modified, db_concept.space_id, db_concept.schema_id, db_concept.literal_content, db_concept.is_schema, db_concept.source_local_id, db_concept.reference_content
         )
-        ON CONFLICT (represented_by_id) DO UPDATE SET
+        ON CONFLICT (space_id, source_local_id) DO UPDATE SET
             epistemic_status = db_concept.epistemic_status,
             name = db_concept.name,
             description = db_concept.description,
             author_id = db_concept.author_id,
             created = db_concept.created,
             last_modified = db_concept.last_modified,
-            space_id = db_concept.space_id,
             schema_id = db_concept.schema_id,
             literal_content = db_concept.literal_content,
             is_schema = db_concept.is_schema,
