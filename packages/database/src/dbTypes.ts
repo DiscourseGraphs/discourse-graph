@@ -1481,6 +1481,10 @@ export type Database = {
             }
           }
       is_group_admin: { Args: { group_id_: string }; Returns: boolean }
+      is_last_local_reference: {
+        Args: { source_local_id_: string; space_id_: number }
+        Returns: boolean
+      }
       is_my_account: { Args: { account_id: number }; Returns: boolean }
       match_content_embeddings: {
         Args: {
