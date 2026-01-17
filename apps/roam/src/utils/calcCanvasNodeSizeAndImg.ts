@@ -124,16 +124,17 @@ const calcCanvasNodeSizeAndImg = async ({
   }
   if (!imageUrl) return { w, h, imageUrl: "" };
 
-  const padding = Number(DEFAULT_STYLE_PROPS.padding.replace("px", ""));
-  const maxWidth = Number(MAX_WIDTH.replace("px", ""));
-  const effectiveWidth = maxWidth - 2 * padding;
-
   try {
     const { width, height } = await loadImage(imageUrl);
+    if (!width || !height || !Number.isFinite(width) || !Number.isFinite(height)) {
+      return { w, h, imageUrl: "" };
+    }
+    
     const aspectRatio = width / height;
-    const nodeImageHeight = effectiveWidth / aspectRatio;
+    const nodeImageHeight = w / aspectRatio;
+    const newHeight = h + nodeImageHeight;
 
-    return { w, h: h + nodeImageHeight + padding * 2, imageUrl };
+    return { w, h: newHeight, imageUrl };
   } catch {
     renderToast({
       id: "tldraw-image-load-fail",
