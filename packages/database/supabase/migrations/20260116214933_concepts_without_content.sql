@@ -5,13 +5,14 @@ SET source_local_id = (SELECT source_local_id FROM public."Content" AS cnt WHERE
 WHERE represented_by_id IS NOT NULL;
 
 CREATE UNIQUE INDEX concept_space_local_id_idx ON public."Concept" USING btree (
-    source_local_id, space_id
+    space_id, source_local_id
 ) NULLS DISTINCT;
 
 COMMENT ON COLUMN public."Concept".source_local_id IS 'The unique identifier of the concept in the remote source';
 
 ALTER TABLE public."Concept" DROP CONSTRAINT "Concept_represented_by_id_fkey";
 DROP INDEX public."Concept_represented_by";
+DROP INDEX "Concept_space";
 
 -- explicitly dropping dependencies of my_concept
 DROP FUNCTION schema_of_concept(my_concepts);

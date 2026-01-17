@@ -79,10 +79,8 @@ CREATE INDEX concept_refs_idx ON public."Concept" USING gin (refs);
 
 CREATE INDEX "Concept_schema" ON public."Concept" USING btree (schema_id);
 
-CREATE INDEX "Concept_space" ON public."Concept" USING btree (space_id);
-
 CREATE UNIQUE INDEX concept_space_local_id_idx ON public."Concept" USING btree (
-    source_local_id, space_id
+    space_id, source_local_id
 ) NULLS DISTINCT;
 
 -- maybe make that for schemas only?
