@@ -29,6 +29,12 @@ export const overlayPageRefHandler = (
   onloadArgs: OnloadArgs,
 ) => {
   if (s.parentElement && !s.parentElement.closest(".rm-page-ref")) {
+    if (
+      s.closest(".rm-title-display, .rm-title-display-container") ||
+      s.parentElement?.closest(".rm-title-display, .rm-title-display-container")
+    ) {
+      return;
+    }
     const tag =
       s.getAttribute("data-tag") ||
       s.parentElement.getAttribute("data-link-title");
