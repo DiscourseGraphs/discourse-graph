@@ -646,7 +646,14 @@ COMMENT ON FUNCTION public.document_in_space IS 'security utility: does current 
 ALTER TABLE public."Document" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS document_policy ON public."Document";
-CREATE POLICY document_policy ON public."Document" FOR ALL USING (public.in_space(space_id));
+DROP POLICY IF EXISTS document_select_policy ON public."Document";
+CREATE POLICY document_select_policy ON public."Document" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(space_id, source_local_id));
+DROP POLICY IF EXISTS document_delete_policy ON public."Document";
+CREATE POLICY document_delete_policy ON public."Document" FOR DELETE USING (public.in_space(space_id));
+DROP POLICY IF EXISTS document_insert_policy ON public."Document";
+CREATE POLICY document_insert_policy ON public."Document" FOR INSERT WITH CHECK (public.in_space(space_id));
+DROP POLICY IF EXISTS document_update_policy ON public."Document";
+CREATE POLICY document_update_policy ON public."Document" FOR UPDATE USING (public.in_space(space_id));
 
 ALTER TABLE public."Content" ENABLE ROW LEVEL SECURITY;
 
