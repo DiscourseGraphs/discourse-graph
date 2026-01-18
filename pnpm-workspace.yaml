@@ -31,6 +31,7 @@ catalog:
   react-dom: ^19.1.0
   "@supabase/supabase-js": 2.88.0
   "@supabase/functions-js": 2.88.0
+  "@supabase/storage-js": 2.88.0
   "@supabase/auth-js": 2.88.0
 
 catalogs:
