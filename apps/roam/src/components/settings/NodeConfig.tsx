@@ -10,7 +10,6 @@ import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
-import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
 import {
   Label,
@@ -31,6 +30,8 @@ import updateBlock from "roamjs-components/writes/updateBlock";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
+import NanopubConfigPanel from "../nanopub/NanopubNodeConfig";
+import getSubTree from "roamjs-components/util/getSubTree";
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -419,6 +420,25 @@ const NodeConfig = ({
                 <DiscourseNodeSuggestiveRules
                   node={node}
                   parentUid={suggestiveRulesUid}
+                />
+              </div>
+            }
+          />
+        )}
+        {settings.nanopubEnabled.value && (
+          <Tab
+            id="nanopub"
+            title="Nanopub"
+            panel={
+              <div className="flex flex-col gap-4 p-1">
+                <NanopubConfigPanel
+                  uid={
+                    getSubTree({
+                      tree: getBasicTreeByParentUid(node.type),
+                      key: "Nanopub",
+                    }).uid
+                  }
+                  node={node}
                 />
               </div>
             }

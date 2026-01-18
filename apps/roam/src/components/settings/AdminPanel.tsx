@@ -32,11 +32,16 @@ import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
+import NanopubMainConfig from "../nanopub/NanopubMainConfig";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import getSubTree from "roamjs-components/util/getSubTree";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -348,6 +353,13 @@ const FeatureFlagsTab = (): React.ReactElement => {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isInstructionOpen, setIsInstructionOpen] = useState(false);
 
+  const [nanopubEnabled, setNanopubEnabled] = useState(
+    settings.nanopubEnabled.value || false,
+  );
+  const [nanopubUid, setNanopubUid] = useState(
+    settings.nanopubEnabled.uid,
+  );
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <Checkbox
@@ -423,6 +435,38 @@ const FeatureFlagsTab = (): React.ReactElement => {
           {"-> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"}
         </p>
       </Alert>
+
+      <Checkbox
+        checked={nanopubEnabled}
+        onChange={(e) => {
+          const checked = (e.target as HTMLInputElement).checked;
+          if (checked) {
+            void createBlock({
+              parentUid: settings.settingsUid,
+              node: { text: "(BETA) Nanopub Enabled" },
+            }).then((uid) => {
+              setNanopubUid(uid);
+              setNanopubEnabled(true);
+            });
+          } else {
+            if (nanopubUid) {
+              void deleteBlock(nanopubUid);
+              setNanopubUid(undefined);
+            }
+            setNanopubEnabled(false);
+          }
+        }}
+        labelElement={
+          <>
+            (BETA) Nanopub Enabled
+            <Description
+              description={
+                "Whether or not to enable nanopub publishing functionality. This allows you to publish discourse nodes as nanopublications to https://nanopub.net/"
+              }
+            />
+          </>
+        }
+      />
 
       <Checkbox
         defaultChecked={useReifiedRelations}
@@ -510,6 +554,31 @@ const AdminPanel = (): React.ReactElement => {
           title="Suggestive Mode"
           className="overflow-y-auto"
           panel={<SuggestiveModeSettings />}
+        />
+      )}
+      {settings.nanopubEnabled.value && (
+        <Tab
+          id="nanopub-settings"
+          title="Nanopub"
+          className="overflow-y-auto"
+          panel={
+            <NanopubMainConfig
+              onloadArgs={
+                (window.roamjs?.extension?.queryBuilder as { onloadArgs?: any })
+                  ?.onloadArgs || {
+                  extensionAPI: window.roamAlphaAPI,
+                }
+              }
+              uid={
+                getSubTree({
+                  tree: getBasicTreeByParentUid(
+                    getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE)
+                  ),
+                  key: "Nanopub",
+                }).uid
+              }
+            />
+          }
         />
       )}
     </Tabs>

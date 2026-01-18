@@ -28,6 +28,11 @@ import { FeedbackWidget } from "~/components/BirdEatsBugs";
 import { getVersionWithDate } from "~/utils/getVersion";
 import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
 import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
+import NanopubMainConfig from "../nanopub/NanopubMainConfig";
+import getSubTree from "roamjs-components/util/getSubTree";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -177,6 +182,28 @@ export const SettingsDialog = ({
             className="overflow-y-auto"
             panel={<LeftSidebarGlobalSections />}
           />
+          {settings.nanopubEnabled.value && (
+            <Tab
+              id="nanopub-settings"
+              title="Nanopub"
+              className="overflow-y-auto"
+              panel={
+                <NanopubMainConfig
+                  onloadArgs={onloadArgs}
+                  uid={(() => {
+                    const parentUid = getPageUidByPageTitle(
+                      DISCOURSE_CONFIG_PAGE_TITLE,
+                    );
+                    return getSubTree({
+                      tree: getBasicTreeByParentUid(parentUid),
+                      key: "Nanopub",
+                      parentUid: parentUid,
+                    }).uid;
+                  })()}
+                />
+              }
+            />
+          )}
           <SectionHeader>Grammar</SectionHeader>
           <Tab
             id="discourse-relations"

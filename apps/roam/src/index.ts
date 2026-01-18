@@ -136,6 +136,7 @@ export default runExtension(async (onloadArgs) => {
     isDiscourseNode: isDiscourseNode,
     // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
+    onloadArgs,
   };
 
   installDiscourseFloatingMenu(onloadArgs);
@@ -182,6 +183,13 @@ export default runExtension(async (onloadArgs) => {
       removeDiscourseFloatingMenu();
       window.roamAlphaAPI.ui.graphView.wholeGraph.removeCallback({
         label: "discourse-node-styling",
+      });
+      // Remove nanopub buttons
+      const nanopubButtons = document.querySelectorAll(
+        ".github-sync-container",
+      );
+      nanopubButtons.forEach((button) => {
+        button.remove();
       });
     },
   };
