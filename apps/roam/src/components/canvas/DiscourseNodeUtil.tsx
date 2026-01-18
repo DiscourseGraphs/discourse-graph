@@ -1,13 +1,10 @@
 import {
-  ShapeUtil,
-  Rectangle2d,
+  BaseBoxShapeUtil,
   HTMLContainer,
   TLBaseShape,
   useEditor,
   DefaultColorStyle,
   Editor,
-  TLOnResizeHandler,
-  resizeBox,
   createShapeId,
   TLDefaultHorizontalAlignStyle,
   TLDefaultVerticalAlignStyle,
@@ -167,7 +164,7 @@ export type DiscourseNodeShape = TLBaseShape<
     fontFamily: TLDefaultFontStyle;
   }
 >;
-export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
+export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   type: string;
 
   constructor(editor: Editor, type: string) {
@@ -190,14 +187,6 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
   override canResize = () => true;
   override canBind = () => true;
   override canEdit = () => true;
-  getGeometry(shape: DiscourseNodeShape) {
-    return new Rectangle2d({
-      width: shape.props.w,
-      height: shape.props.h,
-      isFilled: true,
-    });
-  }
-
   getDefaultProps(): DiscourseNodeShape["props"] {
     return {
       // opacity: "1" as DiscourseNodeShape["props"]["opacity"],
@@ -418,10 +407,6 @@ export class BaseDiscourseNodeUtil extends ShapeUtil<DiscourseNodeShape> {
       </g>
     );
   }
-
-  override onResize: TLOnResizeHandler<DiscourseNodeShape> = (shape, info) => {
-    return resizeBox(shape, info);
-  };
 
   indicator(shape: DiscourseNodeShape) {
     const { bounds } = this.editor.getShapeGeometry(shape);
