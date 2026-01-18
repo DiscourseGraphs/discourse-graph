@@ -1,7 +1,7 @@
 export { default as DefaultFilters } from "./settings/DefaultFilters";
 export { default as DiscourseContext } from "./DiscourseContext";
 export { default as DiscourseContextOverlay } from "./DiscourseContextOverlay";
-export { default as DiscourseNodeAttributes } from "./settings/DiscourseNodeAttributes";
+export { default as DiscourseNodeAttributes, DiscourseNodeAttributesTab } from "./settings/DiscourseNodeAttributes";
 export { default as DiscourseNodeCanvasSettings } from "./settings/DiscourseNodeCanvasSettings";
 export { default as DiscourseNodeIndex } from "./settings/DiscourseNodeIndex";
 export { default as DiscourseNodeMenu } from "./DiscourseNodeMenu";

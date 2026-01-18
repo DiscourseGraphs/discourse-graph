@@ -8,10 +8,11 @@ import {
   ControlGroup,
   Checkbox,
 } from "@blueprintjs/core";
-import React, { useState, useMemo } from "react";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
-import setInputSetting from "roamjs-components/util/setInputSetting";
+import React, { useState } from "react";
+import {
+  getDiscourseNodeSetting,
+  setDiscourseNodeSetting,
+} from "./utils/accessors";
 
 export const formatHexColor = (color: string) => {
   if (!color) return "";
@@ -25,24 +26,33 @@ export const formatHexColor = (color: string) => {
   return "";
 };
 
-const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
-  const tree = useMemo(() => getBasicTreeByParentUid(uid), [uid]);
+const DiscourseNodeCanvasSettings = ({ nodeType }: { nodeType: string }) => {
   const [color, setColor] = useState<string>(() => {
-    const color = getSettingValueFromTree({ tree, key: "color" });
-    return formatHexColor(color);
+    const storedColor = getDiscourseNodeSetting<string>(nodeType, [
+      "canvasSettings",
+      "color",
+    ])!;
+    return formatHexColor(storedColor);
   });
   const [alias, setAlias] = useState<string>(() =>
-    getSettingValueFromTree({ tree, key: "alias" }),
+    getDiscourseNodeSetting<string>(nodeType, ["canvasSettings", "alias"])!,
   );
   const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(() =>
-    getSettingValueFromTree({ tree, key: "query-builder-alias" }),
+    getDiscourseNodeSetting<string>(nodeType, [
+      "canvasSettings",
+      "query-builder-alias",
+    ])!,
   );
-  const [isKeyImage, setIsKeyImage] = useState(
-    () => getSettingValueFromTree({ tree, key: "key-image" }) === "true",
+  const [isKeyImage, setIsKeyImage] = useState(() =>
+    getDiscourseNodeSetting<boolean>(nodeType, ["canvasSettings", "key-image"])!,
   );
   const [keyImageOption, setKeyImageOption] = useState(() =>
-    getSettingValueFromTree({ tree, key: "key-image-option" }),
+    getDiscourseNodeSetting<string>(nodeType, [
+      "canvasSettings",
+      "key-image-option",
+    ])!,
   );
+
   return (
     <div>
       <div className="mb-4">
@@ -51,14 +61,14 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
           <InputGroup
             style={{ width: 120 }}
             type={"color"}
-            value={color}
+            value={color || "#000000"}
             onChange={(e) => {
               setColor(e.target.value);
-              setInputSetting({
-                blockUid: uid,
-                key: "color",
-                value: e.target.value.replace("#", ""), // remove hash to not create roam link
-              });
+              setDiscourseNodeSetting(
+                nodeType,
+                ["canvasSettings", "color"],
+                e.target.value.replace("#", ""), // remove hash to not create roam link
+              );
             }}
           />
           <Tooltip content={color ? "Unset" : "Color not set"}>
@@ -67,11 +77,11 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
               icon={color ? "delete" : "info-sign"}
               onClick={() => {
                 setColor("");
-                setInputSetting({
-                  blockUid: uid,
-                  key: "color",
-                  value: "",
-                });
+                setDiscourseNodeSetting(
+                  nodeType,
+                  ["canvasSettings", "color"],
+                  "",
+                );
               }}
             />
           </Tooltip>
@@ -83,11 +93,11 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
           value={alias}
           onChange={(e) => {
             setAlias(e.target.value);
-            setInputSetting({
-              blockUid: uid,
-              key: "alias",
-              value: e.target.value,
-            });
+            setDiscourseNodeSetting(
+              nodeType,
+              ["canvasSettings", "alias"],
+              e.target.value,
+            );
           }}
         />
       </Label>
@@ -99,17 +109,17 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
           setIsKeyImage(target.checked);
           if (target.checked) {
             if (!keyImageOption) setKeyImageOption("first-image");
-            setInputSetting({
-              blockUid: uid,
-              key: "key-image",
-              value: "true",
-            });
+            setDiscourseNodeSetting(
+              nodeType,
+              ["canvasSettings", "key-image"],
+              true,
+            );
           } else {
-            setInputSetting({
-              blockUid: uid,
-              key: "key-image",
-              value: "false",
-            });
+            setDiscourseNodeSetting(
+              nodeType,
+              ["canvasSettings", "key-image"],
+              false,
+            );
           }
         }}
       >
@@ -122,19 +132,18 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
           />
         </Tooltip>
       </Checkbox>
-      {/* </Tooltip> */}
       <RadioGroup
         disabled={!isKeyImage}
-        selectedValue={!!keyImageOption ? keyImageOption : "first-image"}
+        selectedValue={keyImageOption || "first-image"}
         label="Key Image Location"
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
           setKeyImageOption(target.value);
-          setInputSetting({
-            blockUid: uid,
-            key: "key-image-option",
-            value: target.value,
-          });
+          setDiscourseNodeSetting(
+            nodeType,
+            ["canvasSettings", "key-image-option"],
+            target.value,
+          );
         }}
       >
         <Radio label="First image on page" value="first-image" />
@@ -155,11 +164,11 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
         value={queryBuilderAlias}
         onChange={(e) => {
           setQueryBuilderAlias(e.target.value);
-          setInputSetting({
-            blockUid: uid,
-            key: "query-builder-alias",
-            value: e.target.value,
-          });
+          setDiscourseNodeSetting(
+            nodeType,
+            ["canvasSettings", "query-builder-alias"],
+            e.target.value,
+          );
         }}
       />
     </div>
