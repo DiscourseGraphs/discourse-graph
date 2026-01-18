@@ -350,7 +350,7 @@ const ResultRow = ({
               content: "Relation deleted",
               intent: "success",
             });
-            onRefresh();
+            onRefresh(true);
           })
           .catch((e) => {
             // this one should be an internalError

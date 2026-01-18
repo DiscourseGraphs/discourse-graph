@@ -31,6 +31,7 @@ export type DiscourseContextResults = Awaited<
 type Props = {
   uid: string;
   results?: DiscourseContextResults;
+  overlayRefresh?: () => void;
 };
 
 const ExtraColumnRow = (r: Result) => {
@@ -279,7 +280,7 @@ const ContextTab = ({
             <CreateRelationButton
               sourceNodeUid={parentUid}
               onClose={() => {
-                window.setTimeout(onRefresh, 250);
+                window.setTimeout(onRefresh, 450, true);
               }}
             />
             <Switch
@@ -316,7 +317,7 @@ const ContextTab = ({
   );
 };
 
-export const ContextContent = ({ uid, results }: Props) => {
+export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   const [rawQueryResults, setRawQueryResults] = useState<
     Record<string, DiscourseContextResults[number]>
   >({});
@@ -350,13 +351,16 @@ export const ContextContent = ({ uid, results }: Props) => {
         uid,
         onResult: addLabels,
         ignoreCache,
-      }).finally(() => setLoading(false));
+      }).finally(() => {
+        if (overlayRefresh) overlayRefresh();
+        setLoading(false);
+      });
     },
-    [uid, setRawQueryResults, setLoading, addLabels],
+    [uid, setRawQueryResults, setLoading, addLabels, overlayRefresh],
   );
 
   const delayedRefresh = () => {
-    window.setTimeout(onRefresh, 250);
+    window.setTimeout(onRefresh, 450, true);
   };
 
   useEffect(() => {
