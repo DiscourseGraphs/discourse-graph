@@ -77,7 +77,7 @@ export const publishNode = async ({
     await addFile({
       client,
       spaceId,
-      contentId,
+      sourceLocalId: nodeId,
       fname: attachment.path,
       mimetype,
       created: new Date(attachment.stat.ctime),
@@ -88,7 +88,8 @@ export const publishNode = async ({
   let cleanupCommand = client
     .from("FileReference")
     .delete()
-    .eq("content_id", contentId);
+    .eq("space_id", spaceId)
+    .eq("source_local_id", nodeId);
   if (existingFiles.length)
     cleanupCommand = cleanupCommand.notIn("filepath", [
       ...new Set(existingFiles),

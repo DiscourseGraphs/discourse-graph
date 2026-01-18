@@ -525,64 +525,53 @@ export type Database = {
       }
       FileReference: {
         Row: {
-          content_id: number
           created: string
           filehash: string
           filepath: string
           last_modified: string
+          source_local_id: string
           space_id: number
+          variant: Database["public"]["Enums"]["ContentVariant"] | null
         }
         Insert: {
-          content_id: number
           created: string
           filehash: string
           filepath: string
           last_modified: string
+          source_local_id: string
           space_id: number
+          variant?: Database["public"]["Enums"]["ContentVariant"] | null
         }
         Update: {
-          content_id?: number
           created?: string
           filehash?: string
           filepath?: string
           last_modified?: string
+          source_local_id?: string
           space_id?: number
+          variant?: Database["public"]["Enums"]["ContentVariant"] | null
         }
         Relationships: [
           {
-            foreignKeyName: "FileReference_content_id_fkey"
-            columns: ["content_id"]
+            foreignKeyName: "FileReference_content_fkey"
+            columns: ["space_id", "source_local_id", "variant"]
             isOneToOne: false
             referencedRelation: "Content"
-            referencedColumns: ["id"]
+            referencedColumns: ["space_id", "source_local_id", "variant"]
           },
           {
-            foreignKeyName: "FileReference_content_id_fkey"
-            columns: ["content_id"]
+            foreignKeyName: "FileReference_content_fkey"
+            columns: ["space_id", "source_local_id", "variant"]
             isOneToOne: false
             referencedRelation: "my_contents"
-            referencedColumns: ["id"]
+            referencedColumns: ["space_id", "source_local_id", "variant"]
           },
           {
-            foreignKeyName: "FileReference_content_id_fkey"
-            columns: ["content_id"]
+            foreignKeyName: "FileReference_content_fkey"
+            columns: ["space_id", "source_local_id", "variant"]
             isOneToOne: false
             referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "FileReference_space_id_fkey"
-            columns: ["space_id"]
-            isOneToOne: false
-            referencedRelation: "my_spaces"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "FileReference_space_id_fkey"
-            columns: ["space_id"]
-            isOneToOne: false
-            referencedRelation: "Space"
-            referencedColumns: ["id"]
+            referencedColumns: ["space_id", "source_local_id", "variant"]
           },
         ]
       }
@@ -1230,66 +1219,30 @@ export type Database = {
       }
       my_file_references: {
         Row: {
-          content_id: number | null
           created: string | null
           filehash: string | null
           filepath: string | null
           last_modified: string | null
+          source_local_id: string | null
           space_id: number | null
         }
         Insert: {
-          content_id?: number | null
           created?: string | null
           filehash?: string | null
           filepath?: string | null
           last_modified?: string | null
+          source_local_id?: string | null
           space_id?: number | null
         }
         Update: {
-          content_id?: number | null
           created?: string | null
           filehash?: string | null
           filepath?: string | null
           last_modified?: string | null
+          source_local_id?: string | null
           space_id?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "FileReference_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "Content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "FileReference_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "my_contents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "FileReference_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "FileReference_space_id_fkey"
-            columns: ["space_id"]
-            isOneToOne: false
-            referencedRelation: "my_spaces"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "FileReference_space_id_fkey"
-            columns: ["space_id"]
-            isOneToOne: false
-            referencedRelation: "Space"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       my_spaces: {
         Row: {
@@ -1572,6 +1525,7 @@ export type Database = {
         Returns: undefined
       }
       extract_references: { Args: { refs: Json }; Returns: number[] }
+      file_access: { Args: { hashvalue: string }; Returns: boolean }
       file_exists: { Args: { hashvalue: string }; Returns: boolean }
       generic_entity_access: {
         Args: {
