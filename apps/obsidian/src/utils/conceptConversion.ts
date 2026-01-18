@@ -37,7 +37,7 @@ export const discourseNodeSchemaToLocalConcept = ({
   return {
     space_id: context.spaceId,
     name: node.name,
-    represented_by_local_id: node.id,
+    source_local_id: node.id,
     is_schema: true,
     author_local_id: accountLocalId,
     created: now,
@@ -63,7 +63,7 @@ export const discourseNodeInstanceToLocalConcept = ({
   const concept = {
     space_id: context.spaceId,
     name: nodeData.file.basename,
-    represented_by_local_id: nodeData.nodeInstanceId,
+    source_local_id: nodeData.nodeInstanceId,
     schema_represented_by_local_id: nodeData.nodeTypeId,
     is_schema: false,
     literal_content: {
@@ -72,7 +72,7 @@ export const discourseNodeInstanceToLocalConcept = ({
     ...extraData,
   };
   console.log(
-    `[discourseNodeInstanceToLocalConcept] Converting concept: represented_by_local_id=${nodeData.nodeInstanceId}, name="${nodeData.file.basename}"`,
+    `[discourseNodeInstanceToLocalConcept] Converting concept: source_local_id=${nodeData.nodeInstanceId}, name="${nodeData.file.basename}"`,
   );
   return concept;
 };
@@ -112,7 +112,7 @@ const orderConceptsRec = (
     }
   }
   ordered.push(concept);
-  delete remainder[concept.represented_by_local_id!];
+  delete remainder[concept.source_local_id!];
   return missing;
 };
 
@@ -123,8 +123,8 @@ export const orderConceptsByDependency = (
   const conceptById: { [key: string]: LocalConceptDataInput } =
     Object.fromEntries(
       concepts
-        .filter((c) => c.represented_by_local_id)
-        .map((c) => [c.represented_by_local_id!, c]),
+        .filter((c) => c.source_local_id)
+        .map((c) => [c.source_local_id!, c]),
     );
   const ordered: LocalConceptDataInput[] = [];
   let missing: Set<string> = new Set();

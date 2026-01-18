@@ -99,8 +99,8 @@ export type Database = {
           name: string
           reference_content: Json
           refs: number[]
-          represented_by_id: number | null
           schema_id: number | null
+          source_local_id: string | null
           space_id: number
         }
         Insert: {
@@ -116,8 +116,8 @@ export type Database = {
           name: string
           reference_content?: Json
           refs?: number[]
-          represented_by_id?: number | null
           schema_id?: number | null
+          source_local_id?: string | null
           space_id: number
         }
         Update: {
@@ -133,8 +133,8 @@ export type Database = {
           name?: string
           reference_content?: Json
           refs?: number[]
-          represented_by_id?: number | null
           schema_id?: number | null
+          source_local_id?: string | null
           space_id?: number
         }
         Relationships: [
@@ -150,27 +150,6 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "PlatformAccount"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Concept_represented_by_id_fkey"
-            columns: ["represented_by_id"]
-            isOneToOne: false
-            referencedRelation: "Content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Concept_represented_by_id_fkey"
-            columns: ["represented_by_id"]
-            isOneToOne: false
-            referencedRelation: "my_contents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Concept_represented_by_id_fkey"
-            columns: ["represented_by_id"]
-            isOneToOne: false
-            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
             referencedColumns: ["id"]
           },
           {
@@ -847,8 +826,8 @@ export type Database = {
           name: string | null
           reference_content: Json | null
           refs: number[] | null
-          represented_by_id: number | null
           schema_id: number | null
+          source_local_id: string | null
           space_id: number | null
         }
         Insert: {
@@ -866,8 +845,8 @@ export type Database = {
           name?: string | null
           reference_content?: Json | null
           refs?: number[] | null
-          represented_by_id?: number | null
           schema_id?: number | null
+          source_local_id?: string | null
           space_id?: number | null
         }
         Update: {
@@ -885,8 +864,8 @@ export type Database = {
           name?: string | null
           reference_content?: Json | null
           refs?: number[] | null
-          represented_by_id?: number | null
           schema_id?: number | null
+          source_local_id?: string | null
           space_id?: number | null
         }
         Relationships: [
@@ -902,27 +881,6 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "PlatformAccount"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Concept_represented_by_id_fkey"
-            columns: ["represented_by_id"]
-            isOneToOne: false
-            referencedRelation: "Content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Concept_represented_by_id_fkey"
-            columns: ["represented_by_id"]
-            isOneToOne: false
-            referencedRelation: "my_contents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Concept_represented_by_id_fkey"
-            columns: ["represented_by_id"]
-            isOneToOne: false
-            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
             referencedColumns: ["id"]
           },
           {
@@ -1284,8 +1242,8 @@ export type Database = {
           name: string
           reference_content: Json
           refs: number[]
-          represented_by_id: number | null
           schema_id: number | null
+          source_local_id: string | null
           space_id: number
         }
         SetofOptions: {
@@ -1742,6 +1700,7 @@ export type Database = {
         schema_represented_by_local_id: string | null
         space_url: string | null
         local_reference_content: Json | null
+        source_local_id: string | null
       }
       content_local_input: {
         document_id: number | null
