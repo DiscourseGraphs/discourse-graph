@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label, Checkbox } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
@@ -27,12 +27,12 @@ import internalError from "~/utils/internalError";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import streamlineStyling from "~/styles/streamlineStyling";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import { useFeatureFlag } from "./utils/hooks";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
-  const settings = useMemo(() => getFormattedConfigTree(), []);
+  const suggestiveModeEnabled = useFeatureFlag("Suggestive Mode Enabled");
 
   return (
     <div className="flex flex-col gap-4 p-1">
@@ -85,7 +85,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           </>
         }
       />
-      {settings.suggestiveModeEnabled?.value && (
+      {suggestiveModeEnabled && (
         <Checkbox
           defaultChecked={
             extensionAPI.settings.get("suggestive-mode-overlay") as boolean

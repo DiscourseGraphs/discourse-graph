@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Button,
   Checkbox,
@@ -12,9 +12,7 @@ import {
   TabId,
   Tabs,
 } from "@blueprintjs/core";
-import Description from "roamjs-components/components/Description";
 import { Select } from "@blueprintjs/select";
-import { getSetting, setSetting } from "~/utils/extensionSettings";
 import {
   getSupabaseContext,
   getLoggedInClient,
@@ -32,11 +30,8 @@ import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
-import refreshConfigTree from "~/utils/refreshConfigTree";
-import createBlock from "roamjs-components/writes/createBlock";
-import deleteBlock from "roamjs-components/writes/deleteBlock";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
+import { useFeatureFlag } from "./utils/hooks";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -261,7 +256,7 @@ const MigrationTab = (): React.ReactElement => {
   const [useMigrationResults, setMigrationResults] = useState<string>("");
   const [useOngoing, setOngoing] = useState<boolean>(false);
   const [useDryRun, setDryRun] = useState<boolean>(false);
-  const enabled = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
+  const enabled = useFeatureFlag("Reified Relation Triples");
   const doMigrateRelations = async () => {
     setOngoing(true);
     try {
@@ -331,64 +326,40 @@ const MigrationTab = (): React.ReactElement => {
 };
 
 const FeatureFlagsTab = (): React.ReactElement => {
-  const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
-    getSetting<boolean>(USE_REIFIED_RELATIONS, false),
-  );
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
-
-  const [suggestiveModeEnabled, setSuggestiveModeEnabled] = useState(
-    settings.suggestiveModeEnabled.value || false,
-  );
-  const [suggestiveModeUid, setSuggestiveModeUid] = useState(
-    settings.suggestiveModeEnabled.uid,
-  );
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isInstructionOpen, setIsInstructionOpen] = useState(false);
+  const confirmResolverRef = useRef<((value: boolean) => void) | null>(null);
+
+  const handleSuggestiveModeBeforeEnable = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      confirmResolverRef.current = resolve;
+      setIsAlertOpen(true);
+    });
+  };
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <Checkbox
-        checked={suggestiveModeEnabled}
-        onChange={(e) => {
-          const checked = (e.target as HTMLInputElement).checked;
-          if (checked) {
-            setIsAlertOpen(true);
-          } else {
-            if (suggestiveModeUid) {
-              void deleteBlock(suggestiveModeUid);
-              setSuggestiveModeUid(undefined);
-            }
-            setSuggestiveModeEnabled(false);
-          }
+      <FeatureFlagPanel
+        title="(BETA) Suggestive Mode Enabled"
+        description="Whether or not to enable the suggestive mode, if this is first time enabling it, you will need to generate and upload all node embeddings to supabase. Go to Suggestive Mode -> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"
+        featureKey="Suggestive Mode Enabled"
+        onBeforeEnable={handleSuggestiveModeBeforeEnable}
+        onAfterChange={(checked) => {
+          if (checked) setIsInstructionOpen(true);
         }}
-        labelElement={
-          <>
-            (BETA) Suggestive Mode Enabled
-            <Description
-              description={
-                "Whether or not to enable the suggestive mode, if this is first time enabling it, you will need to generate and upload all node embeddings to supabase. Go to Suggestive Mode -> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"
-              }
-            />
-          </>
-        }
       />
       <Alert
         isOpen={isAlertOpen}
         onConfirm={() => {
-          void createBlock({
-            parentUid: settings.settingsUid,
-            node: { text: "(BETA) Suggestive Mode Enabled" },
-          }).then((uid) => {
-            setSuggestiveModeUid(uid);
-            setSuggestiveModeEnabled(true);
-            setIsAlertOpen(false);
-            setIsInstructionOpen(true);
-          });
+          confirmResolverRef.current?.(true);
+          confirmResolverRef.current = null;
+          setIsAlertOpen(false);
         }}
-        onCancel={() => setIsAlertOpen(false)}
+        onCancel={() => {
+          confirmResolverRef.current?.(false);
+          confirmResolverRef.current = null;
+          setIsAlertOpen(false);
+        }}
         canEscapeKeyCancel={true}
         canOutsideClickCancel={true}
         intent={Intent.PRIMARY}
@@ -404,10 +375,9 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
       <Alert
         isOpen={isInstructionOpen}
-        onConfirm={() => window.location.reload()}
+        onConfirm={() => setIsInstructionOpen(false)}
         onCancel={() => setIsInstructionOpen(false)}
-        confirmButtonText="Reload Graph"
-        cancelButtonText="Later"
+        confirmButtonText="Got it"
         intent={Intent.PRIMARY}
       >
         <p>
@@ -415,34 +385,15 @@ const FeatureFlagsTab = (): React.ReactElement => {
           upload all node embeddings to supabase.
         </p>
         <p>
-          Please reload the graph to see the new &apos;Suggestive Mode&apos;
-          tab.
-        </p>
-        <p>
-          Then go to Suggestive Mode{" "}
-          {"-> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"}
+          Go to the new &apos;Suggestive Mode&apos; tab, then Sync Config{" "}
+          {"-> Click on 'Generate & Upload All Node Embeddings'"}
         </p>
       </Alert>
 
-      <Checkbox
-        defaultChecked={useReifiedRelations}
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          setUseReifiedRelations(target.checked);
-          void setSetting(USE_REIFIED_RELATIONS, target.checked).catch(
-            () => undefined,
-          );
-        }}
-        labelElement={
-          <>
-            Reified Relation Triples
-            <Description
-              description={
-                "When ON, relations are read/written as reifiedRelationUid in [[roam/js/discourse-graph/relations]]."
-              }
-            />
-          </>
-        }
+      <FeatureFlagPanel
+        title="Reified Relation Triples"
+        description="When ON, relations are read/written as reifiedRelationUid in [[roam/js/discourse-graph/relations]]."
+        featureKey="Reified Relation Triples"
       />
 
       <Button
@@ -466,10 +417,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
 const AdminPanel = (): React.ReactElement => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
+  const suggestiveModeEnabled = useFeatureFlag("Suggestive Mode Enabled");
 
   return (
     <Tabs
@@ -504,7 +452,7 @@ const AdminPanel = (): React.ReactElement => {
           </div>
         }
       />
-      {settings.suggestiveModeEnabled.value && (
+      {suggestiveModeEnabled && (
         <Tab
           id="suggestive-mode-settings"
           title="Suggestive Mode"

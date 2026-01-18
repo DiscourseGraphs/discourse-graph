@@ -1,18 +1,15 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
-import { Alert, Intent } from "@blueprintjs/core";
+import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {
     refreshConfigTree();
     return getFormattedConfigTree();
   }, []);
-
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-4 p-1">
@@ -33,32 +30,11 @@ const DiscourseGraphHome = () => {
         value={settings.canvasPageFormat.value}
         defaultValue={DEFAULT_CANVAS_PAGE_FORMAT}
       />
-      <FlagPanel
-        title="(BETA) Left Sidebar"
+      <FeatureFlagPanel
+        title="(BETA) Enable Left Sidebar"
         description="Whether or not to enable the left sidebar."
-        order={2}
-        uid={settings.leftSidebarEnabled.uid}
-        parentUid={settings.settingsUid}
-        value={settings.leftSidebarEnabled.value || false}
-        options={{
-          onChange: (checked: boolean) => {
-            if (checked) {
-              setIsAlertOpen(true);
-            }
-          },
-        }}
+        featureKey="Enable Left Sidebar"
       />
-      <Alert
-        isOpen={isAlertOpen}
-        onConfirm={() => window.location.reload()}
-        onCancel={() => setIsAlertOpen(false)}
-        confirmButtonText="Reload Graph"
-        cancelButtonText="Later"
-        intent={Intent.PRIMARY}
-      >
-        <p>Enabling the Left Sidebar requires a graph reload to take effect.</p>
-        <p>Would you like to reload now?</p>
-      </Alert>
     </div>
   );
 };

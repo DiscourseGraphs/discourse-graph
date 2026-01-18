@@ -14,6 +14,15 @@ import {
   type PersonalSettings,
   type DiscourseNodeSettings,
 } from "./zodSchema";
+import {
+  unmountLeftSidebar,
+  remountLeftSidebar,
+} from "~/components/LeftSidebarView";
+import {
+  initializeSupabaseSync,
+  setSyncActivity,
+} from "~/utils/syncDgNodesToSupabase";
+import { emitFeatureFlagChange } from "./hooks";
 
 type PullWatchCallback = (before: unknown, after: unknown) => void;
 
@@ -70,13 +79,17 @@ type FeatureFlagHandler = (
   allSettings: FeatureFlags,
 ) => void;
 
-type GlobalSettingHandler<K extends keyof GlobalSettings = keyof GlobalSettings> = (
+type GlobalSettingHandler<
+  K extends keyof GlobalSettings = keyof GlobalSettings,
+> = (
   newValue: GlobalSettings[K],
   oldValue: GlobalSettings[K],
   allSettings: GlobalSettings,
 ) => void;
 
-type PersonalSettingHandler<K extends keyof PersonalSettings = keyof PersonalSettings> = (
+type PersonalSettingHandler<
+  K extends keyof PersonalSettings = keyof PersonalSettings,
+> = (
   newValue: PersonalSettings[K],
   oldValue: PersonalSettings[K],
   allSettings: PersonalSettings,
@@ -91,10 +104,31 @@ type DiscourseNodeHandler = (
 export const featureFlagHandlers: Partial<
   Record<keyof FeatureFlags, FeatureFlagHandler>
 > = {
-  // Add handlers as needed:
-  // "Enable Left Sidebar": (newValue) => { ... },
-  // "Suggestive Mode Enabled": (newValue) => { ... },
-  // "Reified Relation Triples": (newValue) => { ... },
+  "Enable Left Sidebar": (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      emitFeatureFlagChange("Enable Left Sidebar", newValue);
+      if (newValue) {
+        void remountLeftSidebar();
+      } else {
+        unmountLeftSidebar();
+      }
+    }
+  },
+  "Suggestive Mode Enabled": (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      emitFeatureFlagChange("Suggestive Mode Enabled", newValue);
+      if (newValue) {
+        initializeSupabaseSync();
+      } else {
+        setSyncActivity(false);
+      }
+    }
+  },
+  "Reified Relation Triples": (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      emitFeatureFlagChange("Reified Relation Triples", newValue);
+    }
+  },
 };
 
 export const globalSettingsHandlers: Partial<
@@ -118,12 +152,10 @@ export const personalSettingsHandlers: Partial<
   // etc.
 };
 
-
 export const discourseNodeHandlers: DiscourseNodeHandler[] = [
   // Add handlers as needed:
   // (nodeType, newSettings, oldSettings) => { ... },
 ];
-
 
 export const setupPullWatchSettings = (
   blockUids: Record<string, string>,
@@ -163,7 +195,10 @@ export const setupPullWatchSettings = (
     });
   }
 
-  if (globalSettingsBlockUid && Object.keys(globalSettingsHandlers).length > 0) {
+  if (
+    globalSettingsBlockUid &&
+    Object.keys(globalSettingsHandlers).length > 0
+  ) {
     addPullWatch(watches, globalSettingsBlockUid, (before, after) => {
       if (!hasPropChanged(before, after)) return;
 
@@ -190,7 +225,10 @@ export const setupPullWatchSettings = (
     });
   }
 
-  if (personalSettingsBlockUid && Object.keys(personalSettingsHandlers).length > 0) {
+  if (
+    personalSettingsBlockUid &&
+    Object.keys(personalSettingsHandlers).length > 0
+  ) {
     addPullWatch(watches, personalSettingsBlockUid, (before, after) => {
       if (!hasPropChanged(before, after)) return;
 
@@ -219,7 +257,6 @@ export const setupPullWatchSettings = (
 
   return createCleanupFn(watches);
 };
-
 
 export const setupPullWatchDiscourseNodes = (
   nodePageUids: Record<string, string>,
@@ -252,6 +289,5 @@ export const setupPullWatchDiscourseNodes = (
 
   return createCleanupFn(watches);
 };
-
 
 export { hasPropChanged, getNormalizedProps };
