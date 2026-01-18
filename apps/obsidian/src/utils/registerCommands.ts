@@ -1,4 +1,4 @@
-import { Editor } from "obsidian";
+import { Editor, MarkdownView, Notice } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
@@ -7,7 +7,7 @@ import { createDiscourseNode } from "./createNode";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
 import { createOrUpdateDiscourseEmbedding } from "./syncDgNodesToSupabase";
-import { Notice } from "obsidian";
+import { publishNode } from "./publishNode";
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
@@ -151,6 +151,45 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
               error instanceof Error ? error.message : String(error);
             new Notice(`Sync failed: ${errorMessage}`, 5000);
             console.error("Manual sync failed:", error);
+          });
+      }
+      return true;
+    },
+  });
+  plugin.addCommand({
+    id: "publish-discourse-node",
+    name: "Publish current node to lab space",
+    checkCallback: (checking: boolean) => {
+      if (!plugin.settings.syncModeEnabled) {
+        new Notice("Sync mode is not enabled", 3000);
+        return false;
+      }
+      const activeView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      if (!activeView || !activeView.file) {
+        return false;
+      }
+      const file = activeView.file;
+      const cache = plugin.app.metadataCache.getFileCache(file);
+      const frontmatter = cache?.frontmatter || {};
+      if (!frontmatter.nodeTypeId) {
+        return false;
+      }
+      if (!checking) {
+        if (!frontmatter.nodeInstanceId) {
+          new Notice("Please sync the node first");
+          return true;
+        }
+        // TODO (in follow-up PRs):
+        // Maybe sync the node now if unsynced
+        // Ensure that the node schema is synced to the database, and shared
+        // sync the assets to the database
+        publishNode({ plugin, file, frontmatter })
+          .then(() => {
+            new Notice("Published");
+          })
+          .catch((error: Error) => {
+            new Notice(error.message);
+            console.error(error);
           });
       }
       return true;
