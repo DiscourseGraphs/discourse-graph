@@ -3,11 +3,11 @@ import type { DGSupabaseClient } from "./client";
 const ASSETS_BUCKET_NAME = "assets";
 
 export const addFile = async ({
-  client, spaceId, contentId, fname, mimetype, created, lastModified, content
+  client, spaceId, sourceLocalId, fname, mimetype, created, lastModified, content
 }:{
   client: DGSupabaseClient,
   spaceId: number,
-  contentId: number,
+  sourceLocalId: string,
   fname: string,
   mimetype: string,
   created: Date,
@@ -33,7 +33,7 @@ export const addFile = async ({
   const frefResult = await client.from("FileReference").insert({
     /* eslint-disable @typescript-eslint/naming-convention */
     space_id: spaceId,
-    content_id: contentId,
+    source_local_id: sourceLocalId,
     last_modified: lastModified.toISOString(),
     /* eslint-enable @typescript-eslint/naming-convention */
     filepath: fname,
@@ -44,13 +44,11 @@ export const addFile = async ({
   if (frefResult.error) {
     if (frefResult.error.code === "23505") {
       const updateResult = await client.from("FileReference").update({
-        /* eslint-disable @typescript-eslint/naming-convention */
-        space_id: spaceId,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         last_modified: lastModified.toISOString(),
-        /* eslint-enable @typescript-eslint/naming-convention */
         filehash: hashvalue,
         created: created.toISOString()
-      }).eq("content_id", contentId).eq("filepath", fname);
+      }).eq("source_local_id", sourceLocalId).eq("space_id", spaceId).eq("filepath", fname);
       if (updateResult.error) throw updateResult.error;
     } else
       throw frefResult.error;

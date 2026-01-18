@@ -1,23 +1,19 @@
 CREATE TABLE IF NOT EXISTS public."FileReference" (
-    content_id bigint NOT NULL,
+    source_local_id character varying NOT NULL,
     space_id bigint NOT NULL,
     filepath character varying NOT NULL,
     filehash character varying NOT NULL, -- or binary?
     "created" timestamp without time zone NOT NULL,
-    last_modified timestamp without time zone NOT NULL
+    last_modified timestamp without time zone NOT NULL,
+    variant public."ContentVariant" GENERATED ALWAYS AS ('full') STORED
 );
 ALTER TABLE ONLY public."FileReference"
-ADD CONSTRAINT "FileReference_pkey" PRIMARY KEY (content_id, filepath);
+ADD CONSTRAINT "FileReference_pkey" PRIMARY KEY (source_local_id, space_id, filepath);
 
 ALTER TABLE ONLY public."FileReference"
-ADD CONSTRAINT "FileReference_content_id_fkey" FOREIGN KEY (
-    content_id
-) REFERENCES public."Content" (id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-ALTER TABLE ONLY public."FileReference"
-ADD CONSTRAINT "FileReference_space_id_fkey" FOREIGN KEY (
-    space_id
-) REFERENCES public."Space" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+ADD CONSTRAINT "FileReference_content_fkey" FOREIGN KEY (
+    space_id, source_local_id, variant
+) REFERENCES public."Content" (space_id, source_local_id, variant) ON DELETE CASCADE;
 
 CREATE INDEX file_reference_filepath_idx ON public."FileReference" USING btree (filepath);
 CREATE INDEX file_reference_filehash_idx ON public."FileReference" USING btree (filehash);
@@ -25,7 +21,7 @@ ALTER TABLE public."FileReference" OWNER TO "postgres";
 
 CREATE OR REPLACE VIEW public.my_file_references AS
 SELECT
-    content_id,
+    source_local_id,
     space_id,
     filepath,
     filehash,
@@ -34,7 +30,7 @@ SELECT
 FROM public."FileReference"
 WHERE (
     space_id = any(public.my_space_ids())
-    OR public.can_view_specific_content(content_id)
+    OR public.can_view_specific_content(space_id, source_local_id)
 );
 
 GRANT ALL ON TABLE public."FileReference" TO authenticated;
@@ -45,7 +41,7 @@ ALTER TABLE public."FileReference" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS file_reference_policy ON public."FileReference";
 DROP POLICY IF EXISTS file_reference_select_policy ON public."FileReference";
-CREATE POLICY file_reference_select_policy ON public."FileReference" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(content_id));
+CREATE POLICY file_reference_select_policy ON public."FileReference" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(space_id, source_local_id));
 DROP POLICY IF EXISTS file_reference_delete_policy ON public."FileReference";
 CREATE POLICY file_reference_delete_policy ON public."FileReference" FOR DELETE USING (public.in_space(space_id));
 DROP POLICY IF EXISTS file_reference_insert_policy ON public."FileReference";
@@ -82,7 +78,7 @@ SELECT EXISTS (
     SELECT true FROM public."FileReference"
     WHERE filehash = hashvalue AND (
         public.in_space(space_id) OR
-        public.can_view_specific_content(content_id)
+        public.can_view_specific_content(space_id, source_local_id)
     )
     LIMIT 1);
 $$;
@@ -124,16 +120,19 @@ VALUES
 ('assets', 'assets', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "storage_insert_assets_authenticated" ON storage.objects;
 CREATE POLICY "storage_insert_assets_authenticated"
 ON storage.objects FOR INSERT TO authenticated WITH CHECK (
     bucket_id = 'assets'
 );
 
+DROP POLICY IF EXISTS "storage_select_assets_access" ON storage.objects;
 CREATE POLICY "storage_select_assets_access"
 ON storage.objects FOR SELECT TO authenticated USING (
     bucket_id = 'assets' AND file_access(name)
 );
 
+DROP POLICY IF EXISTS "storage_delete_assets_noref" ON storage.objects;
 CREATE POLICY "storage_delete_assets_noref"
 ON storage.objects FOR DELETE TO authenticated USING (
     bucket_id = 'assets' AND NOT EXISTS (
@@ -142,5 +141,6 @@ ON storage.objects FOR DELETE TO authenticated USING (
     )
 );
 
+DROP POLICY IF EXISTS "storage_update_assets_authenticated" ON storage.objects;
 CREATE POLICY "storage_update_assets_authenticated"
 ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'assets');
