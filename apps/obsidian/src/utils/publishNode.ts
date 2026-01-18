@@ -30,7 +30,7 @@ export const publishNode = async ({
     (frontmatter.publishedToGroups as undefined | string[]) || [];
   const idResponse = await client
     .from("Content")
-    .select("id,last_modified")
+    .select("last_modified")
     .eq("source_local_id", nodeId)
     .eq("space_id", spaceId)
     .eq("variant", "full")
@@ -38,7 +38,6 @@ export const publishNode = async ({
   if (idResponse.error || !idResponse.data) {
     throw idResponse.error || new Error("no data while fetching node");
   }
-  const contentId = idResponse.data.id;
   const lastModifiedDb = new Date(idResponse.data.last_modified + "Z");
   if (
     existingPublish.includes(myGroup) &&
