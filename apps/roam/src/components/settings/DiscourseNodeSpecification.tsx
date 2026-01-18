@@ -12,12 +12,14 @@ import QueryEditor from "~/components/QueryEditor";
 const NodeSpecification = ({
   parentUid,
   node,
+  parentSetEnabled,
 }: {
   parentUid: string;
   node: ReturnType<typeof getDiscourseNodes>[number];
+  parentSetEnabled?: (enabled: boolean) => void;
 }) => {
   const [migrated, setMigrated] = React.useState(false);
-  const [enabled, setEnabled] = React.useState(
+  const [enabled, setEnabled] = React.useState<string>(
     () =>
       getSubTree({ tree: getBasicTreeByParentUid(parentUid), key: "enabled" })
         ?.uid,
@@ -93,9 +95,15 @@ const NodeSpecification = ({
                 parentUid,
                 order: 2,
                 node: { text: "enabled" },
-              }).then(setEnabled);
+              }).then((uid: string) => {
+                setEnabled(uid);
+                if (parentSetEnabled) parentSetEnabled(true);
+              });
             } else {
-              deleteBlock(enabled).then(() => setEnabled(""));
+              deleteBlock(enabled).then(() => {
+                setEnabled("");
+                if (parentSetEnabled) parentSetEnabled(false);
+              });
             }
           }}
         />
