@@ -8,14 +8,16 @@ import {
   Tooltip,
 } from "@blueprintjs/core";
 import React, { useState } from "react";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import refreshConfigTree from "~/utils/refreshConfigTree";
-import createPage from "roamjs-components/writes/createPage";
+import { createPage } from "roamjs-components/writes";
 import type { CustomField } from "roamjs-components/components/ConfigPanels/types";
 import posthog from "posthog-js";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { deleteBlock } from "roamjs-components/writes";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
+import { getAllDiscourseNodes } from "./utils/accessors";
+import setBlockProps from "~/utils/setBlockProps";
+import { DiscourseNodeSchema } from "./utils/zodSchema";
+import type { json } from "~/utils/getBlockProps";
 
 type DiscourseNodeConfigPanelProps = React.ComponentProps<
   CustomField["options"]["component"]
@@ -29,7 +31,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
   setSelectedTabId,
 }) => {
   const [nodes, setNodes] = useState(() =>
-    getDiscourseNodes().filter((n) => n.backedBy === "user"),
+    getAllDiscourseNodes().filter((n) => n.backedBy === "user"),
   );
   const [label, setLabel] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
@@ -53,7 +55,6 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
       page: { uid },
     });
     setNodes((prevNodes) => prevNodes.filter((nn) => nn.type !== uid));
-    refreshConfigTree();
     setDeleteConfirmation(null);
   };
 
@@ -75,39 +76,17 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
             posthog.capture("Discourse Node: Type Created", { label: label });
             createPage({
               title: `discourse-graph/nodes/${label}`,
-              tree: [
-                {
-                  text: "Shortcut",
-                  children: [{ text: label.slice(0, 1).toUpperCase() }],
-                },
-                {
-                  text: "Tag",
-                  children: [{ text: "" }],
-                },
-                {
-                  text: "Format",
-                  children: [
-                    {
-                      text: `[[${label.slice(0, 3).toUpperCase()}]] - {content}`,
-                    },
-                  ],
-                },
-              ],
-            }).then((valueUid) => {
-              setNodes([
-                ...nodes,
-                {
-                  format: "",
-                  type: valueUid,
-                  text: label,
-                  shortcut: "",
-                  tag: "",
-                  specification: [],
-                  backedBy: "user",
-                  canvasSettings: {},
-                },
-              ]);
-              refreshConfigTree();
+            }).then((pageUid) => {
+              const nodeData = DiscourseNodeSchema.parse({
+                text: label,
+                type: pageUid,
+                format: `[[${label.slice(0, 3).toUpperCase()}]] - {content}`,
+                shortcut: label.slice(0, 1).toUpperCase(),
+                tag: "",
+                backedBy: "user",
+              });
+              setBlockProps(pageUid, nodeData as Record<string, json>, false);
+              setNodes([...nodes, nodeData]);
               setLabel("");
             });
           }}
@@ -133,7 +112,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                     className="h-3 w-3 rounded-full"
                     style={{
                       backgroundColor:
-                        formatHexColor(n.canvasSettings?.color) || "#000",
+                        formatHexColor(n.canvasSettings?.color ?? "") || "#000",
                     }}
                   />
                   <span>{n.text}</span>
