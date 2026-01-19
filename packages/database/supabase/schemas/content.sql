@@ -70,19 +70,6 @@ COMMENT ON COLUMN public."Document".author_id IS 'The author of content';
 
 COMMENT ON COLUMN public."Document".contents IS 'A large object OID for the downloaded raw content';
 
--- explicit fields require more maintenance, but respects declared table order.
-CREATE OR REPLACE VIEW public.my_documents AS
-SELECT
-    id,
-    space_id,
-    source_local_id,
-    url,
-    "created",
-    metadata,
-    last_modified,
-    author_id,
-    contents
-FROM public."Document" WHERE space_id = any(public.my_space_ids());
 
 CREATE TABLE IF NOT EXISTS public."Content" (
     id bigint DEFAULT nextval(
@@ -218,6 +205,20 @@ AS $$
         LIMIT 1);
 $$;
 
+-- explicit fields require more maintenance, but respects declared table order.
+CREATE OR REPLACE VIEW public.my_documents AS
+SELECT
+    id,
+    space_id,
+    source_local_id,
+    url,
+    "created",
+    metadata,
+    last_modified,
+    author_id,
+    contents
+FROM public."Document" WHERE space_id = any(public.my_space_ids())
+    OR public.can_view_specific_content(space_id, source_local_id);
 
 CREATE OR REPLACE VIEW public.my_contents AS
 SELECT
