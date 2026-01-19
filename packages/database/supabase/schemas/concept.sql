@@ -456,7 +456,8 @@ SECURITY DEFINER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    IF (OLD.space_id != NEW.space_id OR OLD.source_local_id != NEW.source_local_id)
+    IF (OLD.space_id IS DISTINCT FROM NEW.space_id OR
+        OLD.source_local_id IS DISTINCT FROM NEW.source_local_id)
     AND public.is_last_local_reference(OLD.space_id, OLD.source_local_id) THEN
         DELETE FROM public."ContentAccess" WHERE space_id=OLD.space_id AND source_local_id=OLD.source_local_id;
     END IF;
@@ -475,7 +476,7 @@ SECURITY DEFINER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    DELETE FROM public."ContentAccess" WHERE space_id=OLD.space_id;
+    DELETE FROM public."ContentAccess" WHERE space_id=OLD.id;
     RETURN OLD;
 END;
 $$;
