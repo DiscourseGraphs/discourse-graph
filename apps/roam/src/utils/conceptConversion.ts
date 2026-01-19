@@ -59,7 +59,7 @@ export const discourseNodeSchemaToLocalConcept = (
   return {
     space_id: context.spaceId,
     name: titleParts[titleParts.length - 1],
-    represented_by_local_id: node.type,
+    source_local_id: node.type,
     is_schema: true,
     ...getNodeExtraData(node.type),
   };
@@ -80,7 +80,7 @@ export const discourseNodeBlockToLocalConcept = (
   return {
     space_id: context.spaceId,
     name: text,
-    represented_by_local_id: nodeUid,
+    source_local_id: nodeUid,
     schema_represented_by_local_id: schemaUid,
     is_schema: false,
     ...getNodeExtraData(nodeUid),
@@ -95,7 +95,7 @@ export const discourseRelationSchemaToLocalConcept = (
 ): LocalConceptDataInput => {
   return {
     space_id: context.spaceId,
-    represented_by_local_id: relation.id,
+    source_local_id: relation.id,
     // Not using the label directly, because it is not unique and name should be unique
     name: `${relation.id}-${relation.label}`,
     is_schema: true,
@@ -152,11 +152,10 @@ export const discourseRelationDataToLocalConcept = (
     Math.max(...nodeData.map((nd) => new Date(nd.created).getTime())),
   ).toISOString();
   const author_local_id: string = nodeData[0].author_uid; // take any one; again until I get the relation object
-  const represented_by_local_id =
-    casting["target"] || Object.values(casting)[0]; // This one is tricky. Prefer the target for now.
+  const source_local_id = casting["target"] || Object.values(casting)[0]; // This one is tricky. Prefer the target for now.
   return {
     space_id: context.spaceId,
-    represented_by_local_id,
+    source_local_id,
     author_local_id,
     created,
     last_modified,
@@ -199,7 +198,7 @@ const orderConceptsRec = (
     }
   }
   ordered.push(concept);
-  delete remainder[concept.represented_by_local_id!];
+  delete remainder[concept.source_local_id!];
   return missing;
 };
 
@@ -211,7 +210,7 @@ If you upsert in the following order: [node schemas, relation schemas, nodes, re
 then the depencies will be implicitly respected.
 (It will be tricker when we have recursive relations.)
 If you are starting from a random stream of nodes, you would want to order them with this function.
-It assumes all input has defined represented_by_local_id,
+It assumes all input has defined source_local_id,
 and that nodes that are not in the upsert set are already in the database.
 the Id of those nodes is returned and can be used to check that assumption.
 We also assume that there are no dependency cycles.
@@ -221,7 +220,7 @@ export const orderConceptsByDependency = (
 ): { ordered: LocalConceptDataInput[]; missing: string[] } => {
   if (concepts.length === 0) return { ordered: concepts, missing: [] };
   const conceptById: { [key: string]: LocalConceptDataInput } =
-    Object.fromEntries(concepts.map((c) => [c.represented_by_local_id, c]));
+    Object.fromEntries(concepts.map((c) => [c.source_local_id, c]));
   const ordered: LocalConceptDataInput[] = [];
   let missing: Set<string> = new Set();
   while (Object.keys(conceptById).length > 0) {
@@ -237,8 +236,8 @@ export const orderConceptsByDependency = (
 // the input to the upsert method would look like this:
 
 // const idata: LocalConceptDataInput[] = [
-//   { "name": "Claim", "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2", "represented_by_local_id": "a_roam_uid", "created": "2000/01/01", "last_modified": "2001/01/02", "is_schema": true },
-//   { "name": "A Claim", "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2", "represented_by_local_id": "a_roam_uid2", "created": "2000/01/03", "last_modified": "2001/01/04", "is_schema": false, "schema_represented_by_local_id": "a_roam_uid" },
+//   { "name": "Claim", "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2", "source_local_id": "a_roam_uid", "created": "2000/01/01", "last_modified": "2001/01/02", "is_schema": true },
+//   { "name": "A Claim", "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2", "source_local_id": "a_roam_uid2", "created": "2000/01/03", "last_modified": "2001/01/04", "is_schema": false, "schema_represented_by_local_id": "a_roam_uid" },
 //   { "name": "test2", "author_local_id": "sR22zZ470dNPkIf9PpjQXXdTBjG2", "created": "2000/01/04", "last_modified": "2001/01/05", "is_schema": false, "literal_content": { "source": "a_roam_uid", "target": ["a_roam_uid", "a_roam_uid2"] }, "local_reference_content": { "source": "a_roam_uid", "target": ["a_roam_uid", "a_roam_uid2"] } }]
 
 // const { data, error } = await supabase_client.rpc("upsert_concepts", { v_space_id: 12, data: idata });

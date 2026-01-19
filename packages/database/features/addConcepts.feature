@@ -125,7 +125,7 @@ Feature: Concept upsert
         {
           "name": "Claim",
           "author_local_id": "user2",
-          "represented_by_local_id": "s1",
+          "source_local_id": "s1",
           "created": "2000/01/01",
           "last_modified": "2001/01/02",
           "is_schema": true
@@ -133,7 +133,7 @@ Feature: Concept upsert
         {
           "name": "A Claim",
           "author_local_id": "user2",
-          "represented_by_local_id": "s2",
+          "source_local_id": "s2",
           "created": "2000/01/03",
           "last_modified": "2001/01/04",
           "is_schema": false,
@@ -142,7 +142,7 @@ Feature: Concept upsert
         {
           "name": "Another Claim",
           "author_local_id": "user2",
-          "represented_by_local_id": "s3",
+          "source_local_id": "s3",
           "created": "2000/01/03",
           "last_modified": "2001/01/04",
           "is_schema": false,
