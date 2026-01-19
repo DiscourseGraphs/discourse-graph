@@ -14,7 +14,7 @@ Feature: Group content access
     And the user user1 opens the Roam plugin in space s1
     And the user user2 opens the Roam plugin in space s2
 
-  Scenario Outline: Creating content
+  Scenario: Creating content
     When Document are added to the database:
       | $id | source_local_id | created    | last_modified | _author_id | _space_id |
       | d1  | ld1             | 2025/01/01 |    2025/01/01 | user1      | s1        |
