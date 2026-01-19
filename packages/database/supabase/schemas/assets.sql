@@ -91,7 +91,7 @@ SET search_path = ''
 SECURITY DEFINER
 LANGUAGE plpgsql AS $$
 BEGIN
-    IF (SELECT count(content_id) FROM public."FileReference" AS fr WHERE fr.filepath=OLD.filepath) = 0 THEN
+    IF (SELECT count(source_local_id) FROM public."FileReference" AS fr WHERE fr.filepath=OLD.filepath) = 0 THEN
         INSERT INTO public.file_gc VALUES (OLD.filehash);
         -- TODO: Invocation with pg_net, following the pattern in
         -- https://supabase.com/docs/guides/functions/schedule-functions
