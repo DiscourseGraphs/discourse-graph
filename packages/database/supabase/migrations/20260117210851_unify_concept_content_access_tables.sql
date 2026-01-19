@@ -171,8 +171,7 @@ CREATE TRIGGER on_update_content_trigger AFTER UPDATE ON public."Content" FOR EA
 CREATE TRIGGER on_update_concept_trigger AFTER UPDATE ON public."Concept" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
 CREATE TRIGGER on_update_document_trigger AFTER UPDATE ON public."Document" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
 
-CREATE OR REPLACE FUNCTION on_delete_space_revoke_local_access() RETURNS TRIGGER
-STABLE
+CREATE OR REPLACE FUNCTION public.on_delete_space_revoke_local_access() RETURNS TRIGGER
 SET search_path = ''
 SECURITY DEFINER
 LANGUAGE plpgsql
