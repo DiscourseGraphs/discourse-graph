@@ -56,7 +56,7 @@ CREATE POLICY file_reference_update_policy ON public."FileReference" FOR UPDATE 
 -- We could pass the name to the edge function, but it's safer to accumulate paths in a table
 -- so next invocation will find all collected paths.
 CREATE TABLE IF NOT EXISTS public.file_gc (
-    filepath character varying NOT NULL PRIMARY KEY
+    filehash character varying NOT NULL PRIMARY KEY
 );
 ALTER TABLE public.file_gc OWNER TO "postgres";
 
@@ -91,13 +91,13 @@ SET search_path = ''
 SECURITY DEFINER
 LANGUAGE plpgsql AS $$
 BEGIN
-    IF (SELECT count(source_local_id) FROM public."FileReference" AS fr WHERE fr.filepath=OLD.filepath) = 0 THEN
+    IF (SELECT count(source_local_id) FROM public."FileReference" AS fr WHERE fr.filehash=OLD.filehash) = 0 THEN
         INSERT INTO public.file_gc VALUES (OLD.filehash);
         -- TODO: Invocation with pg_net, following the pattern in
         -- https://supabase.com/docs/guides/functions/schedule-functions
     END IF;
     IF NEW.filehash IS NOT NULL THEN
-        DELETE FROM public.file_gc WHERE filepath = NEW.filehash;
+        DELETE FROM public.file_gc WHERE filehash = NEW.filehash;
     END IF;
     RETURN OLD;
 END;
@@ -108,7 +108,7 @@ SET search_path = ''
 SECURITY DEFINER
 LANGUAGE plpgsql AS $$
 BEGIN
-    DELETE FROM public.file_gc WHERE filepath = NEW.filehash;
+    DELETE FROM public.file_gc WHERE filehash = NEW.filehash;
     RETURN NEW;
 END;
 $$;
