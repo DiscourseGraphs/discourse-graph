@@ -71,7 +71,7 @@ Given("the database is blank", async () => {
     const ur = await client.auth.admin.deleteUser(id);
     assert.equal(ur.error, null);
   }
-  const r2 = await client.from("PlatformAccount").select("dg_account").not('dg_account', 'is', 'null');
+  const r2 = await client.from("PlatformAccount").select("dg_account").not('dg_account', 'is', null);
   assert.equal(r2.error, null);
   for (const {dg_account} of r2.data || []) {
     const r = await client.auth.admin.deleteUser(dg_account!);
@@ -409,11 +409,13 @@ When("user of space {word} creates group {word}", async (spaceName: string, name
   if (spaceId === undefined) assert.fail("spaceId");
   const client = await getLoggedinDatabase(spaceId as number);
   try{
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     const response = await client.functions.invoke<{group_id: string}>("create-group", {body:{name}});
     assert.equal(response.error, null);
+    assert.notStrictEqual(response.data, null);
     localRefs[name] = response.data!.group_id;
   } catch (error) {
-    console.error((error as any).actual);
+    console.error((error as Record<string, any>).actual);
     throw error;
   }
 })
@@ -427,15 +429,17 @@ When("user of space {word} adds space {word} to group {word}",
   if (space1Id === undefined) assert.fail("space1Id");
   if (space2Id === undefined) assert.fail("space2Id");
   if (groupId === undefined) assert.fail("groupId");
-  const client1 = await getLoggedinDatabase(space1Id as number);
-  const client2 = await getLoggedinDatabase(space2Id as number);
+  const client2 = await getLoggedinDatabase(space2Id);
   const r1 = await client2.from("PlatformAccount").select("dg_account").eq("account_local_id", spaceAnonUserEmail("Roam", space2Id)).maybeSingle();
   assert.equal(r1.error, null);
   const memberId = r1.data?.dg_account;
   assert(!!memberId);
+  const client1 = await getLoggedinDatabase(space1Id);
   const r2 = await client1.from("group_membership").insert({
+    /* eslint-disable @typescript-eslint/naming-convention */
     group_id: groupId,
-    member_id: memberId!
+    member_id: memberId
+    /* eslint-enable @typescript-eslint/naming-convention */
   });
   assert.equal(r2.error, null);
 })
