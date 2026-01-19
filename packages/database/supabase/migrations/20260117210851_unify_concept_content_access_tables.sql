@@ -134,7 +134,6 @@ AS $$
 $$;
 
 CREATE OR REPLACE FUNCTION on_delete_local_reference() RETURNS TRIGGER
-STABLE
 SET search_path = ''
 SECURITY DEFINER
 LANGUAGE plpgsql
@@ -152,7 +151,6 @@ CREATE TRIGGER on_delete_concept_trigger AFTER DELETE ON public."Concept" FOR EA
 CREATE TRIGGER on_delete_document_trigger AFTER DELETE ON public."Document" FOR EACH ROW EXECUTE FUNCTION public.on_delete_local_reference();
 
 CREATE OR REPLACE FUNCTION on_update_local_reference() RETURNS TRIGGER
-STABLE
 SET search_path = ''
 SECURITY DEFINER
 LANGUAGE plpgsql
