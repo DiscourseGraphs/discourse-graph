@@ -292,6 +292,11 @@ export const setDiscourseNodeSetting = (
   setBlockPropsByUid(pageUid, keys, value);
 };
 
+export const getQueryPages = (): string[] => {
+  const value = getPersonalSetting<string[]>(["Query", "Query Pages"]);
+  return Array.isArray(value) && value.length > 0 ? value : ["queries/*"];
+};
+
 export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
   const results = window.roamAlphaAPI.q(`
     [:find ?uid ?title

@@ -82,12 +82,8 @@ const createDiscourseNode = async ({
       if (keyImageOption === "query-builder") {
         if (!extensionAPI) return;
 
-        const parentUid = resolveQueryBuilderRef({
-          queryRef: qbAlias,
-          extensionAPI,
-        });
+        const parentUid = resolveQueryBuilderRef({ queryRef: qbAlias });
         const results = await runQuery({
-          extensionAPI,
           parentUid,
           inputs: { NODETEXT: text, NODEUID: pageUid },
         });

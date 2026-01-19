@@ -1,7 +1,10 @@
 import { Button, Intent, InputGroup } from "@blueprintjs/core";
 import React, { useEffect, useState } from "react";
-import type { OnloadArgs } from "roamjs-components/types";
 import type { Filters } from "roamjs-components/components/Filter";
+import {
+  getPersonalSetting,
+  setPersonalSetting,
+} from "./utils/accessors";
 
 //
 // TODO - REWORK THIS COMPONENT
@@ -95,19 +98,15 @@ const Filter = ({
   );
 };
 
-const DefaultFilters = ({
-  extensionAPI,
-}: {
-  extensionAPI: OnloadArgs["extensionAPI"];
-}) => {
+const DefaultFilters = () => {
   const [newColumn, setNewColumn] = useState("");
   const [filters, setFilters] = useState(() =>
     Object.fromEntries(
       Object.entries(
-        (extensionAPI.settings.get("default-filters") as Record<
-          string,
-          StoredFilters
-        >) || {},
+        getPersonalSetting<Record<string, StoredFilters>>([
+          "Query",
+          "Default Filters",
+        ]) || {},
       ).map(([k, v]) => [
         k,
         {
@@ -123,8 +122,8 @@ const DefaultFilters = ({
   );
 
   useEffect(() => {
-    extensionAPI.settings.set(
-      "default-filters",
+    setPersonalSetting(
+      ["Query", "Default Filters"],
       Object.fromEntries(
         Object.entries(filters).map(([k, v]) => [
           k,
@@ -198,7 +197,6 @@ const DefaultFilters = ({
               },
             };
             setFilters(newFilters);
-            // extensionAPI.settings.set("default-filters", newFilters);
             setNewColumn("");
           }}
         />

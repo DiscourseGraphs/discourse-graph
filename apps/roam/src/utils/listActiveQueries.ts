@@ -1,13 +1,12 @@
 import { PullBlock } from "roamjs-components/types";
-import { getQueryPages } from "~/components/settings/QueryPagesPanel";
-import { OnloadArgs } from "roamjs-components/types";
+import { getQueryPages } from "~/components/settings/utils/accessors";
 
-export const listActiveQueries = (extensionAPI: OnloadArgs["extensionAPI"]) =>
+export const listActiveQueries = () =>
   (
     window.roamAlphaAPI.data.fast.q(
-      `[:find (pull ?b [:block/uid]) :where [or-join [?b] 
+      `[:find (pull ?b [:block/uid]) :where [or-join [?b]
                [and [?b :block/string ?s] [[clojure.string/includes? ?s "{{query block}}"]] ]
-               ${getQueryPages(extensionAPI).map(
+               ${getQueryPages().map(
                  (p) =>
                    `[and [?b :node/title ?t] [[re-pattern "^${p.replace(
                      /\*/,

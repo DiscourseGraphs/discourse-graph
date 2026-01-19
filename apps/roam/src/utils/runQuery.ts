@@ -1,4 +1,3 @@
-import type { OnloadArgs } from "roamjs-components/types/native";
 import fireQuery, { QueryArgs } from "./fireQuery";
 import parseQuery from "./parseQuery";
 import parseResultSettings from "./parseResultSettings";
@@ -7,11 +6,9 @@ import { Column } from "./types";
 
 const runQuery = ({
   parentUid,
-  extensionAPI,
   inputs,
 }: {
   parentUid: string;
-  extensionAPI: OnloadArgs["extensionAPI"];
   inputs?: QueryArgs["inputs"];
 }) => {
   const queryArgs = Object.assign(parseQuery(parentUid), { inputs });
@@ -31,7 +28,6 @@ const runQuery = ({
           selection: s.text,
         })),
       ),
-      extensionAPI,
     );
     return postProcessResults(results, settings);
   });

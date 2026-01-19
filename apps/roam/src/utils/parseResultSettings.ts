@@ -1,6 +1,6 @@
 import { Filters } from "roamjs-components/components/Filter";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import { OnloadArgs, RoamBasicNode } from "roamjs-components/types/native";
+import { RoamBasicNode } from "roamjs-components/types/native";
 import getSettingIntFromTree from "roamjs-components/util/getSettingIntFromTree";
 import getSubTree from "roamjs-components/util/getSubTree";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
@@ -8,12 +8,8 @@ import { StoredFilters } from "~/components/settings/DefaultFilters";
 import { Column } from "./types";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import getSettingValuesFromTree from "roamjs-components/util/getSettingValuesFromTree";
-import {
-  DEFAULT_FILTERS_KEY,
-  DEFAULT_PAGE_SIZE_KEY,
-  HIDE_METADATA_KEY,
-} from "~/data/userSettings";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
 
 export type Sorts = { key: string; descending: boolean }[];
 export type InputValues = {
@@ -60,15 +56,16 @@ const getFilterEntries = (
     },
   ]);
 
-export const getSettings = (extensionAPI?: OnloadArgs["extensionAPI"]) => {
+export const getSettings = () => {
+  const storedFilters =
+    getPersonalSetting<Record<string, StoredFilters>>([
+      "Query",
+      "Default Filters",
+    ]) || {};
+
   return {
     globalFiltersData: Object.fromEntries(
-      Object.entries(
-        (extensionAPI?.settings.get(DEFAULT_FILTERS_KEY) as Record<
-          string,
-          StoredFilters
-        >) || {},
-      ).map(([k, v]) => [
+      Object.entries(storedFilters).map(([k, v]) => [
         k,
         {
           includes: Object.fromEntries(
@@ -81,9 +78,9 @@ export const getSettings = (extensionAPI?: OnloadArgs["extensionAPI"]) => {
       ]),
     ),
     globalPageSize:
-      Number(extensionAPI?.settings.get(DEFAULT_PAGE_SIZE_KEY)) || 10,
+      getPersonalSetting<number>(["Query", "Default Page Size"]) || 10,
     hideMetadata:
-      (extensionAPI?.settings.get(HIDE_METADATA_KEY) as boolean) ?? true,
+      getPersonalSetting<boolean>(["Query", "Hide Query Metadata"]) ?? true,
   };
 };
 
@@ -91,9 +88,8 @@ const parseResultSettings = (
   // TODO - this should be the resultNode uid
   parentUid: string,
   columns: Column[],
-  extensionAPI?: OnloadArgs["extensionAPI"],
 ) => {
-  const { globalFiltersData, globalPageSize } = getSettings(extensionAPI);
+  const { globalFiltersData, globalPageSize } = getSettings();
   const tree = getBasicTreeByParentUid(parentUid);
   const resultNode = getSubTree({ tree, key: "results" });
   const sortsNode = getSubTree({ tree: resultNode.children, key: "sorts" });
