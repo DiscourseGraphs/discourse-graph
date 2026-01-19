@@ -45,7 +45,7 @@ export const config = [
         // Allow PascalCase for React imports
         {
           selector: "import",
-          format: ["camelCase", "PascalCase"],
+          format: ["camelCase", "PascalCase", "UPPER_CASE"],
         },
       ],
       "preferArrows/prefer-arrow-functions": [
