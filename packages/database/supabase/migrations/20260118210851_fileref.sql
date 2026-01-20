@@ -70,6 +70,9 @@ LANGUAGE sql AS $$
 SELECT EXISTS (SELECT true FROM public."FileReference" WHERE filehash = hashvalue LIMIT 1);
 $$;
 
+REVOKE EXECUTE ON FUNCTION public.file_exists(VARCHAR) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.file_exists(VARCHAR) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.file_access(hashvalue VARCHAR) RETURNS boolean
 SET search_path = ''
 SECURITY DEFINER
@@ -118,7 +121,7 @@ CREATE TRIGGER on_insert_file_reference_trigger AFTER INSERT ON public."FileRefe
 INSERT INTO storage.buckets
 (id, name, public)
 VALUES
-('assets', 'assets', true)
+('assets', 'assets', false)
 ON CONFLICT (id) DO NOTHING;
 
 DROP POLICY IF EXISTS "storage_insert_assets_authenticated" ON storage.objects;

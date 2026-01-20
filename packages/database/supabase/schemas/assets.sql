@@ -121,7 +121,7 @@ CREATE TRIGGER on_insert_file_reference_trigger AFTER INSERT ON public."FileRefe
 INSERT INTO storage.buckets
 (id, name, public)
 VALUES
-('assets', 'assets', true)
+('assets', 'assets', false)
 ON CONFLICT (id) DO NOTHING;
 
 DROP POLICY IF EXISTS "storage_insert_assets_authenticated" ON storage.objects;
