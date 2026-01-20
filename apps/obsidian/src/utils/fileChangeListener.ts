@@ -148,22 +148,9 @@ export class FileChangeListener {
   }
 
   /**
-   * Handle file rename/move event
+   * Handle file rename event
    */
   private handleFileRename(file: TAbstractFile, oldPath: string): void {
-    if (!this.isDiscourseNode(file)) {
-      // Check if the old file was a DG node (in case it lost nodeTypeId)
-      const oldFile = this.plugin.app.vault.getAbstractFileByPath(oldPath);
-      if (oldFile instanceof TFile) {
-        const oldCache = this.plugin.app.metadataCache.getFileCache(oldFile);
-        if (oldCache?.frontmatter?.nodeTypeId) {
-          console.log(`File renamed from DG node: ${oldPath} -> ${file.path}`);
-          this.queueChange(file.path, "title", oldPath);
-        }
-      }
-      return;
-    }
-
     console.log(`File renamed: ${oldPath} -> ${file.path}`);
     this.queueChange(file.path, "title", oldPath);
   }
