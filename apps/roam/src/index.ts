@@ -124,17 +124,16 @@ export default runExtension(async (onloadArgs) => {
     initializeSupabaseSync();
   }
 
-  const { extensionAPI } = onloadArgs;
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>
-      runQuery({ parentUid, extensionAPI }).then(
+      runQuery({ parentUid }).then(
         ({ allProcessedResults }) => allProcessedResults,
       ),
     runQuerySync: (parentUid: string) => {
       const queryArgs = parseQuery(parentUid);
       return fireQuerySync(queryArgs);
     },
-    listActiveQueries: () => listActiveQueries(extensionAPI),
+    listActiveQueries: () => listActiveQueries(),
     isDiscourseNode: isDiscourseNode,
     // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,

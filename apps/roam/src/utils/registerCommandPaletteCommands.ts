@@ -16,7 +16,6 @@ import {
   getOverlayHandler,
   onPageRefObserverChange,
 } from "./pageRefObserverHandlers";
-import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import {
   getPersonalSetting,
   setPersonalSetting,
@@ -157,20 +156,11 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     });
   };
 
-  const toggleQueryMetadata = async () => {
+  const toggleQueryMetadata = () => {
     const currentValue =
-      (extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean) ?? true;
+      getPersonalSetting<boolean>(["Query", "Hide Query Metadata"]) ?? true;
     const newValue = !currentValue;
-    try {
-      await extensionAPI.settings.set(HIDE_METADATA_KEY, newValue);
-    } catch (error) {
-      const e = error as Error;
-      renderToast({
-        id: "query-metadata-toggle-error",
-        content: `Failed to toggle query metadata: ${e.message}`,
-      });
-      return;
-    }
+    setPersonalSetting(["Query", "Hide Query Metadata"], newValue);
     renderToast({
       id: "query-metadata-toggle",
       content: `Query metadata ${newValue ? "hidden" : "shown"}`,

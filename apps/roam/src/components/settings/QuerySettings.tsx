@@ -1,59 +1,35 @@
 import React from "react";
-import { OnloadArgs } from "roamjs-components/types";
-import { Label, NumericInput, Checkbox } from "@blueprintjs/core";
+import { Label } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
-import { getSettings } from "~/utils/parseResultSettings";
-import { DEFAULT_PAGE_SIZE_KEY, HIDE_METADATA_KEY } from "~/data/userSettings";
 import DefaultFilters from "./DefaultFilters";
-import QueryPagesPanel from "./QueryPagesPanel";
-import { setSetting } from "~/utils/extensionSettings";
+import {
+  PersonalFlagPanel,
+  PersonalNumberPanel,
+  PersonalMultiTextPanel,
+} from "./components/BlockPropSettingPanels";
 
-const QuerySettings = ({
-  extensionAPI,
-}: {
-  extensionAPI: OnloadArgs["extensionAPI"];
-}) => {
-  const { globalPageSize, hideMetadata } = getSettings(extensionAPI);
+const QuerySettings = () => {
   return (
     <div className="flex flex-col gap-4 p-1">
-      <Checkbox
-        defaultChecked={hideMetadata}
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          void setSetting<boolean>(HIDE_METADATA_KEY, target.checked);
-        }}
-        labelElement={
-          <>
-            Hide Query Metadata
-            <Description
-              description={
-                "Hide the Roam blocks that are used to power each query"
-              }
-            />
-          </>
-        }
+      <PersonalFlagPanel
+        title="Hide Query Metadata"
+        description="Hide the Roam blocks that are used to power each query"
+        settingKeys={["Query", "Hide Query Metadata"]}
+        defaultValue={false}
       />
-      <Label>
-        Default Page Size
-        <Description
-          description={"The default page size used for query results"}
-        />
-        <NumericInput
-          defaultValue={globalPageSize.toString()}
-          onValueChange={(value) =>
-            void extensionAPI.settings.set(DEFAULT_PAGE_SIZE_KEY, value)
-          }
-        />
-      </Label>
-      <Label>
-        Query Pages
-        <Description
-          description={
-            "The title formats of pages that you would like to serve as pages that generate queries"
-          }
-        />
-        <QueryPagesPanel extensionAPI={extensionAPI} />
-      </Label>
+      <PersonalNumberPanel
+        title="Default Page Size"
+        description="The default page size used for query results"
+        settingKeys={["Query", "Default Page Size"]}
+        defaultValue={10}
+        min={1}
+      />
+      <PersonalMultiTextPanel
+        title="Query Pages"
+        description="The title formats of pages that you would like to serve as pages that generate queries"
+        settingKeys={["Query", "Query Pages"]}
+        defaultValue={[]}
+      />
       <Label>
         Default Filters
         <Description
@@ -61,7 +37,7 @@ const QuerySettings = ({
             "Any filters that should be applied to your results by default"
           }
         />
-        <DefaultFilters extensionAPI={extensionAPI} />
+        <DefaultFilters />
       </Label>
     </div>
   );

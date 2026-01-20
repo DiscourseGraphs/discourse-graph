@@ -148,7 +148,7 @@ export const SettingsDialog = ({
             id="query-settings"
             title="Queries"
             className="overflow-y-auto"
-            panel={<QuerySettings extensionAPI={extensionAPI} />}
+            panel={<QuerySettings />}
           />
           <Tab
             id="left-sidebar-personal-settings"

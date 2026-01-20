@@ -288,9 +288,8 @@ const ResultsView: ResultsViewComponent = ({
   exportIsOpen = false,
   toggleExport,
 }) => {
-  const extensionAPI = useExtensionAPI();
   const settings = useMemo(
-    () => parseResultSettings(parentUid, columns, extensionAPI),
+    () => parseResultSettings(parentUid, columns),
     [parentUid],
   );
   const [activeSort, setActiveSort] = useState(settings.activeSort);

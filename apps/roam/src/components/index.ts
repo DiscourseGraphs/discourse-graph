@@ -15,7 +15,6 @@ export { render as renderQueryDrawer } from "./QueryDrawer";
 export { openQueryDrawer as QueryDrawer } from "./QueryDrawer";
 export { default as QueryEditor } from "./QueryEditor";
 export { default as QueryBuilder } from "./QueryBuilder";
-export { default as QueryPagesPanel } from "./settings/QueryPagesPanel";
 export { default as ResizableDrawer } from "./ResizableDrawer";
 export { default as ResultsView } from "./results-view/ResultsView";
 export { default as Timeline } from "./results-view/Timeline";
