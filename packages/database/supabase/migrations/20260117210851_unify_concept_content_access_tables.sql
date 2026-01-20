@@ -129,8 +129,8 @@ SECURITY DEFINER
 LANGUAGE sql
 AS $$
     SELECT NOT EXISTS (SELECT id FROM public."Content" WHERE space_id=space_id_ AND source_local_id=source_local_id_ LIMIT 1)
-       AND NOT EXISTS (SELECT id FROM public."Concept" WHERE space_id=space_id_ AND source_local_id=source_local_id_)
-       AND NOT EXISTS (SELECT id FROM public."Document" WHERE space_id=space_id_ AND source_local_id=source_local_id_);
+       AND NOT EXISTS (SELECT id FROM public."Concept" WHERE space_id=space_id_ AND source_local_id=source_local_id_ LIMIT 1)
+       AND NOT EXISTS (SELECT id FROM public."Document" WHERE space_id=space_id_ AND source_local_id=source_local_id_ LIMIT 1);
 $$;
 
 CREATE OR REPLACE FUNCTION on_delete_local_reference() RETURNS TRIGGER
