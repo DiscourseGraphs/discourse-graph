@@ -15,7 +15,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -34,3 +34,19 @@ jobs:
 
       - name: Update Roam Depot Extension
         run: npx turbo run publish --filter=roam
+
+      - name: Get Roam Version
+        id: roam-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+        with:
+          path: apps/roam
+
+      - name: Inject & upload source maps to PostHog
+        uses: PostHog/upload-source-maps@v0.4.6
+        with:
+          directory: apps/roam/dist
+          env-id: ${{ env.POSTHOG_CLI_ENV_ID }}
+          cli-token: ${{ secrets.POSTHOG_CLI_TOKEN }}
+          host: ${{ env.POSTHOG_CLI_HOST }}
+          project: Roam
+          version: ${{ steps.roam-version.outputs.current-version }}
