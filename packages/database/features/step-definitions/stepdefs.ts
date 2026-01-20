@@ -430,7 +430,10 @@ When("user of space {word} adds space {word} to group {word}",
   if (space2Id === undefined) assert.fail("space2Id not found");
   if (groupId === undefined) assert.fail("groupId not found");
   const client2 = await getLoggedinDatabase(space2Id as number);
-  const r1 = await client2.from("PlatformAccount").select("dg_account").eq("account_local_id", spaceAnonUserEmail("Roam", space2Id)).maybeSingle();
+  const r1 = await client2.from("PlatformAccount")
+      .select("dg_account")
+      .eq("account_local_id", spaceAnonUserEmail("Roam", space2Id as number))
+      .maybeSingle();
   assert.equal(r1.error, null);
   const memberId = r1.data?.dg_account;
   assert.ok(memberId, "memberId not found for space2");
