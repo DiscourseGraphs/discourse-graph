@@ -248,22 +248,55 @@ export class FileChangeListener {
     this.isProcessing = true;
 
     try {
-      const filesToSync = Array.from(this.changeQueue.values());
+      // Process files one by one, removing from queue as we go
+      const processedFiles: string[] = [];
+      const failedFiles: string[] = [];
 
-      if (filesToSync.length > 0) {
-        const filePaths = filesToSync.map((change) => change.filePath);
+      while (this.changeQueue.size > 0) {
+        // Get the first item from the queue
+        const firstEntry = this.changeQueue.entries().next().value as
+          | [string, QueuedChange]
+          | undefined;
+
+        if (!firstEntry) {
+          break;
+        }
+
+        const [filePath, change] = firstEntry;
+
+        try {
+          const changeTypesByPath = new Map<string, ChangeType[]>();
+          changeTypesByPath.set(filePath, Array.from(change.changeTypes));
+
+          await syncDiscourseNodeChanges(this.plugin, changeTypesByPath);
+
+          // Only remove from queue after successful processing
+          this.changeQueue.delete(filePath);
+          processedFiles.push(filePath);
+        } catch (error) {
+          console.error(
+            `Error processing file ${filePath}, will retry later:`,
+            error,
+          );
+          // Remove from queue even on failure to prevent infinite retry loops
+          // Failed files will be re-queued if they change again
+          this.changeQueue.delete(filePath);
+          failedFiles.push(filePath);
+        }
+      }
+
+      if (processedFiles.length > 0) {
         console.debug(
-          `Processing ${filePaths.length} file(s) for sync:`,
-          filePaths,
+          `Successfully processed ${processedFiles.length} file(s):`,
+          processedFiles,
         );
+      }
 
-        const fileChanges = filesToSync.map((change) => ({
-          filePath: change.filePath,
-          changeTypes: Array.from(change.changeTypes),
-          oldPath: change.oldPath,
-        }));
-
-        await syncDiscourseNodeChanges(this.plugin, fileChanges);
+      if (failedFiles.length > 0) {
+        console.warn(
+          `Failed to process ${failedFiles.length} file(s), will retry on next change:`,
+          failedFiles,
+        );
       }
 
       if (this.hasPendingOrphanCleanup) {
@@ -271,14 +304,15 @@ export class FileChangeListener {
         if (deletedCount > 0) {
           console.debug(`Deleted ${deletedCount} orphaned node(s)`);
         }
+        this.hasPendingOrphanCleanup = false;
       }
 
-      this.changeQueue.clear();
-      this.hasPendingOrphanCleanup = false;
-      console.debug("Sync queue processed successfully");
+      if (processedFiles.length > 0 || failedFiles.length === 0) {
+        console.debug("Sync queue processed");
+      }
     } catch (error) {
       console.error("Error processing sync queue:", error);
-      // Keep the queue for retry (could implement retry logic later)
+      // Items that weren't processed remain in the queue for retry
     } finally {
       this.isProcessing = false;
     }

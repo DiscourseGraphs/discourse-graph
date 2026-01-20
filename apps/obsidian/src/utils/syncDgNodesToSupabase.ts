@@ -54,67 +54,92 @@ const getAllNodeInstanceIdsFromSupabase = async (
       return [];
     }
 
-    return (
+    const sourceLocalIds =
       data
         ?.map((c: { source_local_id: string | null }) => c.source_local_id)
-        .filter((id: string | null): id is string => !!id) || []
-    );
+        .filter((id: string | null): id is string => !!id) || [];
+
+    return [...new Set(sourceLocalIds)];
   } catch (error) {
     console.error("Error in getAllNodeInstanceIdsFromSupabase:", error);
     return [];
   }
 };
 
+type DeleteNodesResult = {
+  success: boolean;
+  errors: {
+    concept?: unknown;
+    content?: unknown;
+    document?: unknown;
+    unexpected?: unknown;
+  };
+};
+
 const deleteNodesFromSupabase = async (
   nodeInstanceIds: string[],
   supabaseClient: DGSupabaseClient,
   spaceId: number,
-): Promise<void> => {
+): Promise<DeleteNodesResult> => {
+  const result: DeleteNodesResult = {
+    success: true,
+    errors: {},
+  };
+
   try {
     if (nodeInstanceIds.length === 0) {
-      return;
+      return result;
     }
 
-    const { data: contentData, error: contentError } = await supabaseClient
-      .from("Content")
-      .select("id")
-      .eq("space_id", spaceId)
-      .in("source_local_id", nodeInstanceIds);
-
-    if (contentError) {
-      console.error("Failed to get content from Supabase:", contentError);
-    }
-
-    const contentIds = contentData?.map((c: { id: number }) => c.id) || [];
-
-    if (contentIds.length === 0) {
-      return;
-    }
-
-    const { error: conceptError } = await supabaseClient
+    const { error: conceptDeleteError } = await supabaseClient
       .from("Concept")
       .delete()
-      .in("represented_by_id", contentIds)
+      .eq("space_id", spaceId)
+      .in("source_local_id", nodeInstanceIds)
       .eq("is_schema", false);
 
-    if (conceptError) {
-      console.error("Failed to delete concepts from Supabase:", conceptError);
+    if (conceptDeleteError) {
+      result.success = false;
+      result.errors.concept = conceptDeleteError;
+      console.error("Failed to delete concepts from Supabase:", conceptDeleteError);
     }
 
     const { error: contentDeleteError } = await supabaseClient
       .from("Content")
       .delete()
-      .in("id", contentIds);
+      .eq("space_id", spaceId)
+      .in("source_local_id", nodeInstanceIds);
 
     if (contentDeleteError) {
+      result.success = false;
+      result.errors.content = contentDeleteError;
       console.error(
         "Failed to delete content from Supabase:",
         contentDeleteError,
       );
     }
+
+    const { error: documentDeleteError } = await supabaseClient
+      .from("Document")
+      .delete()
+      .eq("space_id", spaceId)
+      .in("source_local_id", nodeInstanceIds);
+
+    if (documentDeleteError) {
+      result.success = false;
+      result.errors.document = documentDeleteError;
+      console.error(
+        "Failed to delete documents from Supabase:",
+        documentDeleteError,
+      );
+    }
   } catch (error) {
+    result.success = false;
+    result.errors.unexpected = error;
     console.error("Error in deleteNodesFromSupabase:", error);
   }
+
+  return result;
 };
 
 const ensureNodeInstanceId = async (
@@ -170,25 +195,6 @@ const mergeChangeTypes = (
   return Array.from(merged);
 };
 
-const buildChangeTypesByPath = (
-  fileChanges: DiscourseNodeFileChange[],
-): Map<string, ChangeType[]> => {
-  const changeTypesByPath = new Map<string, ChangeType[]>();
-
-  for (const change of fileChanges) {
-    if (change.changeTypes.length === 0) {
-      continue;
-    }
-
-    const existing = changeTypesByPath.get(change.filePath) ?? [];
-    changeTypesByPath.set(
-      change.filePath,
-      mergeChangeTypes(existing, change.changeTypes),
-    );
-  }
-
-  return changeTypesByPath;
-};
 
 /**
  * Step 1: Collect all discourse nodes from the vault
@@ -626,12 +632,16 @@ export const syncSpecificFiles = async (
   plugin: DiscourseGraphPlugin,
   filePaths: string[],
 ): Promise<void> => {
-  const fileChanges = filePaths.map((filePath) => ({
-    filePath,
-    changeTypes: ["content"] as ChangeType[],
-  }));
+  const changeTypesByPath = new Map<string, ChangeType[]>();
+  for (const filePath of filePaths) {
+    const existing = changeTypesByPath.get(filePath) ?? [];
+    changeTypesByPath.set(
+      filePath,
+      mergeChangeTypes(existing, ["content"]),
+    );
+  }
 
-  await syncDiscourseNodeChanges(plugin, fileChanges);
+  await syncDiscourseNodeChanges(plugin, changeTypesByPath);
 };
 
 /**
@@ -639,10 +649,10 @@ export const syncSpecificFiles = async (
  */
 export const syncDiscourseNodeChanges = async (
   plugin: DiscourseGraphPlugin,
-  fileChanges: DiscourseNodeFileChange[],
+  changeTypesByPath: Map<string, ChangeType[]>,
 ): Promise<void> => {
   try {
-    const filePaths = fileChanges.map((change) => change.filePath);
+    const filePaths = Array.from(changeTypesByPath.keys());
 
     console.debug(
       `Syncing ${filePaths.length} file change(s) with explicit types`,
@@ -677,7 +687,7 @@ export const syncDiscourseNodeChanges = async (
       nodes: dgNodesInVault,
       supabaseClient,
       context,
-      changeTypesByPath: buildChangeTypesByPath(fileChanges),
+      changeTypesByPath,
     });
 
     const accountLocalId = plugin.settings.accountLocalId;
@@ -724,11 +734,24 @@ export const cleanupOrphanedNodes = async (
       return 0;
     }
 
-    await deleteNodesFromSupabase(
+    const deleteResult = await deleteNodesFromSupabase(
       orphanedNodeIds,
       supabaseClient,
       context.spaceId,
     );
+
+    if (!deleteResult.success) {
+      const errorMessages = Object.entries(deleteResult.errors)
+        .filter(([, error]) => error !== undefined)
+        .map(
+          ([table, error]) =>
+            `${table}: ${error instanceof Error ? error.message : String(error)}`,
+        )
+        .join(", ");
+      console.error(
+        `Partial failure deleting orphaned nodes: ${errorMessages}`,
+      );
+    }
 
     return orphanedNodeIds.length;
   } catch (error) {
