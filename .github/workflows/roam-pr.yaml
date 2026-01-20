@@ -46,7 +46,7 @@ jobs:
         uses: PostHog/upload-source-maps@v0.4.6
         with:
           directory: apps/roam/dist
-          env-id: ${{ env.POSTHOG_CLI_ENV_ID }}
+          env-id: ${{ secrets.POSTHOG_CLI_ENV_ID }}
           cli-token: ${{ secrets.POSTHOG_CLI_TOKEN }}
           project: Roam
           version: ${{ github.sha }} # Optional; falls back to current commit SHA
