@@ -1297,11 +1297,7 @@ export type Database = {
         }
       }
       can_access_account: { Args: { account_uid: string }; Returns: boolean }
-      can_view_specific_concept: {
-        Args: { source_local_id_: string; space_id_: number }
-        Returns: boolean
-      }
-      can_view_specific_content: {
+      can_view_specific_resource: {
         Args: { source_local_id_: string; space_id_: number }
         Returns: boolean
       }

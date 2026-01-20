@@ -129,7 +129,7 @@ SELECT
 FROM public."Concept"
 WHERE (
     space_id = any(public.my_space_ids())
-    OR public.can_view_specific_content(space_id, source_local_id)
+    OR public.can_view_specific_resource(space_id, source_local_id)
 );
 
 -- following https://docs.postgrest.org/en/v13/references/api/resource_embedding.html#recursive-relationships
@@ -408,7 +408,7 @@ ALTER TABLE public."Concept" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS concept_policy ON public."Concept";
 DROP POLICY IF EXISTS concept_select_policy ON public."Concept";
-CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(space_id, source_local_id));
+CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS concept_delete_policy ON public."Concept";
 CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (public.in_space(space_id));
 DROP POLICY IF EXISTS concept_insert_policy ON public."Concept";

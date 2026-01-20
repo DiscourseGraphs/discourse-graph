@@ -192,7 +192,7 @@ REVOKE ALL ON TABLE public."Content" FROM anon;
 GRANT ALL ON TABLE public."Content" TO authenticated;
 GRANT ALL ON TABLE public."Content" TO service_role;
 
-CREATE OR REPLACE FUNCTION public.can_view_specific_content(space_id_ BIGINT, source_local_id_ VARCHAR) RETURNS BOOLEAN
+CREATE OR REPLACE FUNCTION public.can_view_specific_resource(space_id_ BIGINT, source_local_id_ VARCHAR) RETURNS BOOLEAN
 STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
@@ -218,7 +218,7 @@ SELECT
     author_id,
     contents
 FROM public."Document" WHERE space_id = any(public.my_space_ids())
-    OR public.can_view_specific_content(space_id, source_local_id);
+    OR public.can_view_specific_resource(space_id, source_local_id);
 
 CREATE OR REPLACE VIEW public.my_contents AS
 SELECT
@@ -238,7 +238,7 @@ SELECT
 FROM public."Content"
 WHERE (
     space_id = any(public.my_space_ids())
-    OR public.can_view_specific_content(space_id, source_local_id)
+    OR public.can_view_specific_resource(space_id, source_local_id)
 );
 
 CREATE OR REPLACE FUNCTION public.document_of_content(content public.my_contents)
@@ -648,7 +648,7 @@ ALTER TABLE public."Document" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS document_policy ON public."Document";
 DROP POLICY IF EXISTS document_select_policy ON public."Document";
-CREATE POLICY document_select_policy ON public."Document" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(space_id, source_local_id));
+CREATE POLICY document_select_policy ON public."Document" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS document_delete_policy ON public."Document";
 CREATE POLICY document_delete_policy ON public."Document" FOR DELETE USING (public.in_space(space_id));
 DROP POLICY IF EXISTS document_insert_policy ON public."Document";
@@ -660,7 +660,7 @@ ALTER TABLE public."Content" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS content_policy ON public."Content";
 DROP POLICY IF EXISTS content_select_policy ON public."Content";
-CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(space_id, source_local_id));
+CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS content_delete_policy ON public."Content";
 CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (public.in_space(space_id));
 DROP POLICY IF EXISTS content_insert_policy ON public."Content";

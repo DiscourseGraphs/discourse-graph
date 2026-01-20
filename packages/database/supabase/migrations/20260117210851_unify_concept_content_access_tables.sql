@@ -25,7 +25,7 @@ ADD CONSTRAINT "ResourceAccess_pkey" PRIMARY KEY (account_uid, source_local_id, 
 
 CREATE INDEX resource_access_content_local_id_idx ON public."ResourceAccess" (source_local_id, space_id);
 
-CREATE OR REPLACE FUNCTION public.can_view_specific_content(space_id_ BIGINT, source_local_id_ VARCHAR) RETURNS BOOLEAN
+CREATE OR REPLACE FUNCTION public.can_view_specific_resource(space_id_ BIGINT, source_local_id_ VARCHAR) RETURNS BOOLEAN
 STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
@@ -50,7 +50,7 @@ SELECT
     author_id,
     contents
 FROM public."Document" WHERE space_id = any(public.my_space_ids())
-    OR public.can_view_specific_content(space_id, source_local_id);
+    OR public.can_view_specific_resource(space_id, source_local_id);
 
 CREATE OR REPLACE VIEW public.my_contents AS
 SELECT
@@ -70,12 +70,12 @@ SELECT
 FROM public."Content"
 WHERE (
     space_id = any(public.my_space_ids())
-    OR public.can_view_specific_content(space_id, source_local_id)
+    OR public.can_view_specific_resource(space_id, source_local_id)
 );
 
 DROP POLICY IF EXISTS document_policy ON public."Document";
 DROP POLICY IF EXISTS document_select_policy ON public."Document";
-CREATE POLICY document_select_policy ON public."Document" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(space_id, source_local_id));
+CREATE POLICY document_select_policy ON public."Document" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS document_delete_policy ON public."Document";
 CREATE POLICY document_delete_policy ON public."Document" FOR DELETE USING (public.in_space(space_id));
 DROP POLICY IF EXISTS document_insert_policy ON public."Document";
@@ -84,7 +84,7 @@ DROP POLICY IF EXISTS document_update_policy ON public."Document";
 CREATE POLICY document_update_policy ON public."Document" FOR UPDATE USING (public.in_space(space_id));
 
 DROP POLICY IF EXISTS content_select_policy ON public."Content";
-CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(space_id, source_local_id));
+CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 
 DROP POLICY IF EXISTS content_access_select_policy ON public."ResourceAccess";
 DROP POLICY IF EXISTS content_access_delete_policy ON public."ResourceAccess";
@@ -122,12 +122,12 @@ SELECT
 FROM public."Concept"
 WHERE (
     space_id = any(public.my_space_ids())
-    OR public.can_view_specific_content(space_id, source_local_id)
+    OR public.can_view_specific_resource(space_id, source_local_id)
 );
 
 
 DROP POLICY IF EXISTS concept_select_policy ON public."Concept";
-CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(space_id, source_local_id));
+CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 
 DROP FUNCTION public.can_view_specific_concept(BIGINT);
 
