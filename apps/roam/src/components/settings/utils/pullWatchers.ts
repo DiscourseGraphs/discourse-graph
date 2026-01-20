@@ -21,7 +21,7 @@ import {
   initializeSupabaseSync,
   setSyncActivity,
 } from "~/utils/syncDgNodesToSupabase";
-import { emitFeatureFlagChange } from "./hooks";
+import { emitFeatureFlagChange, emitGlobalSettingChange } from "./hooks";
 
 type PullWatchCallback = (before: unknown, after: unknown) => void;
 
@@ -133,28 +133,18 @@ export const featureFlagHandlers: Partial<
 export const globalSettingsHandlers: Partial<
   Record<keyof GlobalSettings, GlobalSettingHandler>
 > = {
-  // Add handlers as needed:
-  // "Trigger": (newValue) => { ... },
-  // "Canvas Page Format": (newValue) => { ... },
-  // "Left Sidebar": (newValue) => { ... },
-  // "Export": (newValue) => { ... },
-  // "Suggestive Mode": (newValue) => { ... },
+  "Left Sidebar": (newValue, oldValue) => {
+    if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
+      emitGlobalSettingChange(["Left Sidebar"], newValue);
+    }
+  },
 };
 
 export const personalSettingsHandlers: Partial<
   Record<keyof PersonalSettings, PersonalSettingHandler>
-> = {
-  // Add handlers as needed:
-  // "Left Sidebar": (newValue) => { ... },
-  // "Discourse Context Overlay": (newValue) => { ... },
-  // "Page Preview": (newValue) => { ... },
-  // etc.
-};
+> = {};
 
-export const discourseNodeHandlers: DiscourseNodeHandler[] = [
-  // Add handlers as needed:
-  // (nodeType, newSettings, oldSettings) => { ... },
-];
+export const discourseNodeHandlers: DiscourseNodeHandler[] = [];
 
 export const setupPullWatchSettings = (
   blockUids: Record<string, string>,

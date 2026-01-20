@@ -1,22 +1,23 @@
-import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
+import React, { useCallback, useMemo, useState, memo } from "react";
 import { Button, ButtonGroup, Collapse } from "@blueprintjs/core";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
-import createBlock from "roamjs-components/writes/createBlock";
-import deleteBlock from "roamjs-components/writes/deleteBlock";
-import type { RoamBasicNode } from "roamjs-components/types";
-import { extractRef, getSubTree } from "roamjs-components/util";
+import { extractRef } from "roamjs-components/util";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import discourseConfigRef from "~/utils/discourseConfigRef";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
-import { getLeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
-import { LeftSidebarGlobalSectionConfig } from "~/utils/getLeftSidebarSettings";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import refreshConfigTree from "~/utils/refreshConfigTree";
-import { refreshAndNotify } from "~/components/LeftSidebarView";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import {
+  getGlobalSetting,
+  setGlobalSetting,
+} from "~/components/settings/utils/accessors";
+import { LeftSidebarGlobalSettingsSchema } from "~/components/settings/utils/zodSchema";
+import { GlobalFlagPanel } from "./components/BlockPropSettingPanels";
+
+type PageData = {
+  uid: string;
+  text: string;
+};
 
 const PageItem = memo(
   ({
@@ -27,12 +28,12 @@ const PageItem = memo(
     onMove,
     onRemove,
   }: {
-    page: RoamBasicNode;
+    page: PageData;
     index: number;
     isFirst: boolean;
     isLast: boolean;
     onMove: (index: number, direction: "up" | "down") => void;
-    onRemove: (page: RoamBasicNode) => void;
+    onRemove: (page: PageData) => void;
   }) => {
     const pageDisplayTitle =
       getPageTitleByPageUid(page.text) ||
@@ -74,79 +75,25 @@ const PageItem = memo(
 
 PageItem.displayName = "PageItem";
 
-const LeftSidebarGlobalSectionsContent = ({
-  leftSidebar,
-}: {
-  leftSidebar: RoamBasicNode;
-}) => {
-  const [globalSection, setGlobalSection] =
-    useState<LeftSidebarGlobalSectionConfig | null>(null);
-  const [pages, setPages] = useState<RoamBasicNode[]>([]);
-  const [childrenUid, setChildrenUid] = useState<string | null>(null);
+const LeftSidebarGlobalSectionsContent = () => {
+  const [pages, setPages] = useState<PageData[]>(() => {
+    const leftSidebarSettings = LeftSidebarGlobalSettingsSchema.parse(
+      getGlobalSetting(["Left Sidebar"]) ?? {},
+    );
+    return (leftSidebarSettings.Children || []).map((uid: string) => ({
+      uid,
+      text: uid,
+    }));
+  });
   const [newPageInput, setNewPageInput] = useState("");
   const [autocompleteKey, setAutocompleteKey] = useState(0);
-  const [isInitializing, setIsInitializing] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
 
   const pageNames = useMemo(() => getAllPageNames(), []);
 
-  useEffect(() => {
-    const initialize = async () => {
-      setIsInitializing(true);
-      const globalSectionText = "Global-Section";
-      const config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
-
-      const existingGlobalSection = leftSidebar.children.find(
-        (n) => n.text === globalSectionText,
-      );
-
-      if (!existingGlobalSection) {
-        try {
-          const globalSectionUid = await createBlock({
-            parentUid: leftSidebar.uid,
-            order: 0,
-            node: { text: globalSectionText },
-          });
-          const settingsUid = await createBlock({
-            parentUid: globalSectionUid,
-            order: 0,
-            node: { text: "Settings" },
-          });
-          const childrenUid = await createBlock({
-            parentUid: globalSectionUid,
-            order: 0,
-            node: { text: "Children" },
-          });
-          setChildrenUid(childrenUid || null);
-          setPages([]);
-          setGlobalSection({
-            uid: globalSectionUid,
-            settings: {
-              uid: settingsUid,
-              collapsable: { uid: undefined, value: false },
-              folded: { uid: undefined, value: false },
-            },
-            childrenUid,
-            children: [],
-          });
-          refreshAndNotify();
-        } catch (error) {
-          renderToast({
-            content: "Failed to create global section",
-            intent: "danger",
-            id: "create-global-section-error",
-          });
-        }
-      } else {
-        setChildrenUid(config.childrenUid || null);
-        setPages(config.children || []);
-        setGlobalSection(config);
-      }
-      setIsInitializing(false);
-    };
-
-    void initialize();
-  }, [leftSidebar]);
+  const updateChildren = useCallback((newChildren: string[]) => {
+    setGlobalSetting(["Left Sidebar", "Children"], newChildren);
+  }, []);
 
   const movePage = useCallback(
     (index: number, direction: "up" | "down") => {
@@ -159,75 +106,52 @@ const LeftSidebarGlobalSectionsContent = ({
       newPages.splice(newIndex, 0, removed);
 
       setPages(newPages);
-
-      if (childrenUid) {
-        const order = direction === "down" ? newIndex + 1 : newIndex;
-
-        void window.roamAlphaAPI
-          /* eslint-disable @typescript-eslint/naming-convention */
-          .moveBlock({
-            location: { "parent-uid": childrenUid, order },
-            block: { uid: removed.uid },
-          })
-          .then(() => {
-            refreshAndNotify();
-          });
-      }
+      updateChildren(newPages.map((p) => p.text));
     },
-    [pages, childrenUid],
+    [pages, updateChildren],
   );
 
   const addPage = useCallback(
-    async (pageName: string) => {
-      if (!pageName || !childrenUid) return;
+    (pageName: string) => {
+      if (!pageName) return;
 
       const targetUid = getPageUidByPageTitle(pageName);
+      if (!targetUid) {
+        renderToast({
+          content: `Page "${pageName}" not found`,
+          intent: "warning",
+          id: "page-not-found",
+        });
+        return;
+      }
+
       if (pages.some((p) => p.text === targetUid)) {
         console.warn(`Page "${pageName}" already exists in global section`);
         return;
       }
 
-      try {
-        const newPageUid = await createBlock({
-          parentUid: childrenUid,
-          order: "last",
-          node: { text: targetUid },
-        });
+      const newPage: PageData = {
+        uid: targetUid,
+        text: targetUid,
+      };
 
-        const newPage: RoamBasicNode = {
-          text: targetUid,
-          uid: newPageUid,
-          children: [],
-        };
-
-        setPages((prev) => [...prev, newPage]);
-        setNewPageInput("");
-        setAutocompleteKey((prev) => prev + 1);
-        refreshAndNotify();
-      } catch (error) {
-        renderToast({
-          content: "Failed to add page",
-          intent: "danger",
-          id: "add-page-error",
-        });
-      }
+      const nextPages = [...pages, newPage];
+      setPages(nextPages);
+      updateChildren(nextPages.map((p) => p.text));
+      setNewPageInput("");
+      setAutocompleteKey((prev) => prev + 1);
     },
-    [childrenUid, pages],
+    [pages, updateChildren],
   );
 
-  const removePage = useCallback(async (page: RoamBasicNode) => {
-    try {
-      await deleteBlock(page.uid);
-      setPages((prev) => prev.filter((p) => p.uid !== page.uid));
-      refreshAndNotify();
-    } catch (error) {
-      renderToast({
-        content: "Failed to remove page",
-        intent: "danger",
-        id: "remove-page-error",
-      });
-    }
-  }, []);
+  const removePage = useCallback(
+    (page: PageData) => {
+      const nextPages = pages.filter((p) => p.uid !== page.uid);
+      setPages(nextPages);
+      updateChildren(nextPages.map((p) => p.text));
+    },
+    [pages, updateChildren],
+  );
 
   const handlePageInputChange = useCallback((value: string) => {
     setNewPageInput(value);
@@ -243,14 +167,6 @@ const LeftSidebarGlobalSectionsContent = ({
     return !targetUid || pages.some((p) => p.text === targetUid);
   }, [newPageInput, pages]);
 
-  if (isInitializing || !globalSection) {
-    return (
-      <div className="flex items-center justify-center p-4">
-        <span className="text-gray-500">Loading...</span>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-4 p-1">
       <div
@@ -259,21 +175,16 @@ const LeftSidebarGlobalSectionsContent = ({
           border: "1px solid rgba(51, 51, 51, 0.2)",
         }}
       >
-        <FlagPanel
+        <GlobalFlagPanel
           title="Folded"
           description="If children are present, start with global section collapsed in left sidebar"
-          order={0}
-          uid={globalSection.settings?.folded?.uid || ""}
-          parentUid={globalSection.settings?.uid || ""}
-          disabled={!globalSection.children?.length}
+          settingKeys={["Left Sidebar", "Settings", "Folded"]}
+          disabled={!pages.length}
         />
-        <FlagPanel
+        <GlobalFlagPanel
           title="Collapsable"
           description="Make global section collapsable"
-          order={1}
-          uid={globalSection.settings?.collapsable?.uid || ""}
-          parentUid={globalSection.settings?.uid || ""}
-          value={globalSection.settings?.collapsable?.value || false}
+          settingKeys={["Left Sidebar", "Settings", "Collapsable"]}
         />
       </div>
 
@@ -312,14 +223,14 @@ const LeftSidebarGlobalSectionsContent = ({
                 options={pageNames}
                 maxItemsDisplayed={50}
                 autoFocus
-                onConfirm={() => void addPage(newPageInput)}
+                onConfirm={() => addPage(newPageInput)}
               />
               <Button
                 icon="plus"
                 small
                 minimal
                 disabled={isAddButtonDisabled}
-                onClick={() => void addPage(newPageInput)}
+                onClick={() => addPage(newPageInput)}
                 title="Add page"
               />
             </div>
@@ -333,7 +244,7 @@ const LeftSidebarGlobalSectionsContent = ({
                     isFirst={index === 0}
                     isLast={index === pages.length - 1}
                     onMove={movePage}
-                    onRemove={() => void removePage(page)}
+                    onRemove={removePage}
                   />
                 ))}
               </div>
@@ -350,32 +261,5 @@ const LeftSidebarGlobalSectionsContent = ({
 };
 
 export const LeftSidebarGlobalSections = () => {
-  const [leftSidebar, setLeftSidebar] = useState<RoamBasicNode | null>(null);
-
-  useEffect(() => {
-    const loadData = () => {
-      refreshConfigTree();
-
-      const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
-      const updatedSettings = discourseConfigRef.tree;
-      const leftSidebarNode = getSubTree({
-        tree: updatedSettings,
-        parentUid: configPageUid,
-        key: "Left Sidebar",
-      });
-
-      setTimeout(() => {
-        refreshAndNotify();
-      }, 10);
-      setLeftSidebar(leftSidebarNode);
-    };
-
-    void loadData();
-  }, []);
-
-  if (!leftSidebar) {
-    return null;
-  }
-
-  return <LeftSidebarGlobalSectionsContent leftSidebar={leftSidebar} />;
+  return <LeftSidebarGlobalSectionsContent />;
 };
