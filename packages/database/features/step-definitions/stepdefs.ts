@@ -415,6 +415,7 @@ When("user of space {word} creates group {word}", async (spaceName: string, name
     assert.equal(response.error, null);
     assert.ok(response.data?.group_id, "create-group response missing group_id");
     localRefs[name] = response.data.group_id;
+    world.localRefs = localRefs;
   } catch (error) {
     console.error((error as Record<string, any>).actual);
     throw error;
