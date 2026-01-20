@@ -136,6 +136,22 @@ export const DiscourseNodeSchema = z.object({
     .transform((val) => val ?? "user"),
 });
 
+export const TripleSchema = z.tuple([z.string(), z.string(), z.string()]);
+
+export const RelationConditionSchema = z.object({
+  triples: z.array(TripleSchema).default([]),
+  nodePositions: z.record(z.string(), z.string()).default({}),
+});
+
+export const DiscourseRelationSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  source: z.string(),
+  destination: z.string(),
+  complement: z.string().default(""),
+  ifConditions: z.array(RelationConditionSchema).default([]),
+});
+
 export const FeatureFlagsSchema = z.object({
   "Enable Left Sidebar": z.boolean().default(false),
   "Suggestive Mode Enabled": z.boolean().default(false),
@@ -179,6 +195,7 @@ export const GlobalSettingsSchema = z.object({
   "Left Sidebar": LeftSidebarGlobalSettingsSchema.default({}),
   Export: ExportSettingsSchema.default({}),
   "Suggestive Mode": SuggestiveModeGlobalSettingsSchema.default({}),
+  Relations: z.array(DiscourseRelationSchema).default([]),
 });
 
 export const PersonalSectionSchema = z.object({
@@ -242,6 +259,9 @@ export const GithubSettingsSchema = z.object({
 export type CanvasSettings = z.infer<typeof CanvasSettingsSchema>;
 export type SuggestiveRules = z.infer<typeof SuggestiveRulesSchema>;
 export type DiscourseNodeSettings = z.infer<typeof DiscourseNodeSchema>;
+export type Triple = z.infer<typeof TripleSchema>;
+export type RelationCondition = z.infer<typeof RelationConditionSchema>;
+export type DiscourseRelationSettings = z.infer<typeof DiscourseRelationSchema>;
 export type FeatureFlags = z.infer<typeof FeatureFlagsSchema>;
 export type ExportSettings = z.infer<typeof ExportSettingsSchema>;
 export type PageGroup = z.infer<typeof PageGroupSchema>;
