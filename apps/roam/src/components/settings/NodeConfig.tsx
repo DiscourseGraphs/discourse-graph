@@ -231,13 +231,21 @@ const NodeConfig = ({
   );
 
   const validate = useCallback(
-    (tag: string, format: string) => {
-      const enabled =
-        (getSubTree({
+    ({
+      tag,
+      format,
+      isSpecificationEnabled,
+    }: {
+      tag: string;
+      format: string;
+      isSpecificationEnabled?: boolean;
+    }) => {
+      if (isSpecificationEnabled === undefined)
+        isSpecificationEnabled = !!getSubTree({
           tree: getBasicTreeByParentUid(specificationUid),
           key: "enabled",
-        })?.uid?.length || 0) !== 0;
-      if (format.trim().length === 0 && !enabled) {
+        })?.uid?.length;
+      if (format.trim().length === 0 && !isSpecificationEnabled) {
         setTagError("");
         setFormatError("Error: you must set either a format or specification");
         return;
@@ -278,17 +286,17 @@ const NodeConfig = ({
   );
 
   useEffect(() => {
-    validate(tagValue, formatValue);
+    validate({ tag: tagValue, format: formatValue });
   }, [tagValue, formatValue, validate]);
 
   const handleTagBlur = useCallback(() => {
     handleTagBlurFromHook();
-    validate(tagValue, formatValue);
+    validate({ tag: tagValue, format: formatValue });
   }, [handleTagBlurFromHook, tagValue, formatValue, validate]);
 
   const handleFormatBlur = useCallback(() => {
     handleFormatBlurFromHook();
-    validate(tagValue, formatValue);
+    validate({ tag: tagValue, format: formatValue });
   }, [handleFormatBlurFromHook, tagValue, formatValue, validate]);
 
   return (
@@ -366,8 +374,12 @@ const NodeConfig = ({
                 <DiscourseNodeSpecification
                   node={node}
                   parentUid={specificationUid}
-                  parentSetEnabled={() => {
-                    validate(tagValue, formatValue);
+                  parentSetEnabled={(isSpecificationEnabled) => {
+                    validate({
+                      tag: tagValue,
+                      format: formatValue,
+                      isSpecificationEnabled,
+                    });
                   }}
                 />
               </Label>
