@@ -21,7 +21,11 @@ import {
   initializeSupabaseSync,
   setSyncActivity,
 } from "~/utils/syncDgNodesToSupabase";
-import { emitFeatureFlagChange, emitGlobalSettingChange } from "./hooks";
+import {
+  emitFeatureFlagChange,
+  emitGlobalSettingChange,
+  emitPersonalSettingChange,
+} from "./hooks";
 
 type PullWatchCallback = (before: unknown, after: unknown) => void;
 
@@ -142,7 +146,13 @@ export const globalSettingsHandlers: Partial<
 
 export const personalSettingsHandlers: Partial<
   Record<keyof PersonalSettings, PersonalSettingHandler>
-> = {};
+> = {
+  "Left Sidebar": (newValue, oldValue) => {
+    if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
+      emitPersonalSettingChange(["Left Sidebar"], newValue);
+    }
+  },
+};
 
 export const discourseNodeHandlers: DiscourseNodeHandler[] = [];
 

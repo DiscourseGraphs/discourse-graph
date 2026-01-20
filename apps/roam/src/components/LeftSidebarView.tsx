@@ -1,11 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import {
   Collapse,
@@ -21,29 +15,23 @@ import {
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import extractRef from "roamjs-components/util/extractRef";
-import {
-  getFormattedConfigTree,
-  notify,
-  subscribe,
-} from "~/utils/discourseConfigRef";
-import type {
-  LeftSidebarConfig,
-  LeftSidebarPersonalSectionConfig,
-} from "~/utils/getLeftSidebarSettings";
+import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { createBlock } from "roamjs-components/writes";
-import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-import { Dispatch, SetStateAction } from "react";
 import { SettingsDialog } from "./settings/Settings";
 import { OnloadArgs } from "roamjs-components/types";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
-import { useLeftSidebarGlobalSettings } from "./settings/utils/hooks";
-import { setGlobalSetting } from "./settings/utils/accessors";
+import {
+  useLeftSidebarGlobalSettings,
+  useLeftSidebarPersonalSettings,
+} from "./settings/utils/hooks";
+import { getGlobalSetting, setGlobalSetting, setPersonalSetting } from "./settings/utils/accessors";
+import type { LeftSidebarGlobalSettings } from "./settings/utils/zodSchema";
+import type { PersonalSection } from "./settings/utils/zodSchema";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -87,36 +75,6 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
   }
 };
 
-const toggleFoldedState = ({
-  isOpen,
-  setIsOpen,
-  folded,
-  parentUid,
-}: {
-  isOpen: boolean;
-  setIsOpen: Dispatch<SetStateAction<boolean>>;
-  folded: { uid?: string; value: boolean };
-  parentUid: string;
-}) => {
-  if (isOpen) {
-    setIsOpen(false);
-    if (folded.uid) {
-      void deleteBlock(folded.uid);
-      folded.uid = undefined;
-      folded.value = false;
-    }
-  } else {
-    setIsOpen(true);
-    const newUid = window.roamAlphaAPI.util.generateUID();
-    void createBlock({
-      parentUid,
-      node: { text: "Folded", uid: newUid },
-    });
-    folded.uid = newUid;
-    folded.value = true;
-  }
-};
-
 const SectionChildren = ({
   childrenNodes,
   truncateAt,
@@ -156,31 +114,32 @@ const SectionChildren = ({
 };
 
 const PersonalSectionItem = ({
+  sectionName,
   section,
+  onToggleFolded,
 }: {
-  section: LeftSidebarPersonalSectionConfig;
+  sectionName: string;
+  section: PersonalSection;
+  onToggleFolded: (sectionName: string) => void;
 }) => {
-  const titleRef = parseReference(section.text);
-  const blockText = useMemo(
-    () =>
-      titleRef.type === "block" ? getTextByBlockUid(titleRef.uid) : undefined,
-    [titleRef],
-  );
-  const truncateAt = section.settings?.truncateResult.value;
-  const [isOpen, setIsOpen] = useState<boolean>(
-    !!section.settings?.folded.value || false,
-  );
+  const truncateAt = section.Settings?.["Truncate-result?"];
+  const [isOpen, setIsOpen] = useState<boolean>(section.Settings?.Folded ?? false);
 
-  const handleChevronClick = () => {
-    if (!section.settings) return;
+  useEffect(() => {
+    setIsOpen(section.Settings?.Folded ?? false);
+  }, [section.Settings?.Folded]);
 
-    toggleFoldedState({
-      isOpen,
-      setIsOpen,
-      folded: section.settings.folded,
-      parentUid: section.settings.uid || "",
-    });
-  };
+  const handleChevronClick = useCallback(() => {
+    const newState = !isOpen;
+    setIsOpen(newState);
+    onToggleFolded(sectionName);
+  }, [isOpen, sectionName, onToggleFolded]);
+
+  const childrenNodes = section.Children.map((child) => ({
+    uid: child.Page,
+    text: child.Page,
+    alias: child.Alias ? { value: child.Alias } : undefined,
+  }));
 
   return (
     <>
@@ -189,14 +148,14 @@ const PersonalSectionItem = ({
           <div
             className="flex items-center"
             onClick={() => {
-              if ((section.children?.length || 0) > 0) {
+              if (section.Children.length > 0) {
                 handleChevronClick();
               }
             }}
           >
-            {(blockText || titleRef.display).toUpperCase()}
+            {sectionName.toUpperCase()}
           </div>
-          {(section.children?.length || 0) > 0 && (
+          {section.Children.length > 0 && (
             <span
               className="sidebar-title-button-chevron p-1"
               onClick={handleChevronClick}
@@ -207,25 +166,37 @@ const PersonalSectionItem = ({
         </div>
       </div>
       <Collapse isOpen={isOpen}>
-        <SectionChildren
-          childrenNodes={section.children || []}
-          truncateAt={truncateAt}
-        />
+        <SectionChildren childrenNodes={childrenNodes} truncateAt={truncateAt} />
       </Collapse>
     </>
   );
 };
 
-const PersonalSections = ({ config }: { config: LeftSidebarConfig }) => {
-  const sections = config.personal.sections || [];
+const PersonalSections = () => {
+  const personalSettings = useLeftSidebarPersonalSettings();
+  const sections = Object.entries(personalSettings);
+
+  const handleToggleFolded = useCallback(
+    (sectionName: string) => {
+      const section = personalSettings[sectionName];
+      if (!section) return;
+      const newFolded = !section.Settings.Folded;
+      setPersonalSetting(["Left Sidebar", sectionName, "Settings", "Folded"], newFolded);
+    },
+    [personalSettings],
+  );
 
   if (!sections.length) return null;
 
   return (
     <div className="personal-left-sidebar-sections">
-      {sections.map((section) => (
-        <div key={section.uid}>
-          <PersonalSectionItem section={section} />
+      {sections.map(([name, section]) => (
+        <div key={name}>
+          <PersonalSectionItem
+            sectionName={name}
+            section={section}
+            onToggleFolded={handleToggleFolded}
+          />
         </div>
       ))}
     </div>
@@ -282,27 +253,6 @@ const GlobalSection = () => {
       )}
     </>
   );
-};
-
-export const useConfig = () => {
-  const [config, setConfig] = useState(
-    () => getFormattedConfigTree().leftSidebar,
-  );
-  useEffect(() => {
-    const handleUpdate = () => {
-      setConfig(getFormattedConfigTree().leftSidebar);
-    };
-    const unsubscribe = subscribe(handleUpdate);
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-  return { config, setConfig };
-};
-
-export const refreshAndNotify = () => {
-  refreshConfigTree();
-  notify();
 };
 
 const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
@@ -416,13 +366,11 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
 };
 
 const LeftSidebarView = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const { config } = useConfig();
-
   return (
     <>
       <FavoritesPopover onloadArgs={onloadArgs} />
       <GlobalSection />
-      <PersonalSections config={config} />
+      <PersonalSections />
     </>
   );
 };
@@ -435,31 +383,23 @@ const migrateFavorites = async () => {
   const configPageUid = getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE);
   if (!configPageUid) return;
 
-  let leftSidebarUid = config.uid;
-  if (leftSidebarUid) {
-    const leftSidebarTree = getBasicTreeByParentUid(leftSidebarUid);
-    const hasAnyPersonalSection = leftSidebarTree.some((node) =>
-      node.text.endsWith("/Personal-Section"),
-    );
-    if (hasAnyPersonalSection) {
-      await createBlock({
-        parentUid: leftSidebarUid,
-        node: { text: "Favorites Migrated" },
-      });
-      refreshConfigTree();
-      return;
-    }
-  }
-
   const results = window.roamAlphaAPI.q(`
-    [:find ?uid 
+    [:find ?uid
      :where [?e :page/sidebar]
             [?e :block/uid ?uid]]
   `);
-  const favorites = (results as string[][]).map(([uid]) => ({
-    uid,
-  }));
+  const favorites = (results as string[][]).map(([uid]) => uid);
 
+  const currentSettings = getGlobalSetting<LeftSidebarGlobalSettings>(["Left Sidebar"]);
+  const existingChildren = new Set(currentSettings?.Children || []);
+  const newFavorites = favorites.filter((uid) => !existingChildren.has(uid));
+
+  if (newFavorites.length > 0) {
+    const mergedChildren = [...(currentSettings?.Children || []), ...newFavorites];
+    setGlobalSetting(["Left Sidebar", "Children"], mergedChildren);
+  }
+
+  let leftSidebarUid = config.uid;
   if (!leftSidebarUid) {
     const tree = getBasicTreeByParentUid(configPageUid);
     const found = tree.find((n) => n.text === "Left Sidebar");
@@ -471,47 +411,6 @@ const migrateFavorites = async () => {
         node: { text: "Left Sidebar" },
       });
     }
-  }
-
-  let globalSectionUid = config.global.uid;
-  if (!globalSectionUid) {
-    const tree = getBasicTreeByParentUid(leftSidebarUid);
-    const found = tree.find((n) => n.text === "Global-Section");
-    if (found) {
-      globalSectionUid = found.uid;
-    } else {
-      globalSectionUid = await createBlock({
-        parentUid: leftSidebarUid,
-        node: { text: "Global-Section" },
-      });
-    }
-  }
-
-  let childrenUid = config.global.childrenUid;
-  if (!childrenUid) {
-    const tree = getBasicTreeByParentUid(globalSectionUid);
-    const found = tree.find((n) => n.text === "Children");
-    if (found) {
-      childrenUid = found.uid;
-    } else {
-      childrenUid = await createBlock({
-        parentUid: globalSectionUid,
-        node: { text: "Children" },
-      });
-    }
-  }
-
-  const childrenTree = getBasicTreeByParentUid(childrenUid);
-  const existingTexts = new Set(childrenTree.map((c) => c.text));
-  const newFavorites = favorites.filter(({ uid }) => !existingTexts.has(uid));
-
-  if (newFavorites.length > 0) {
-    await Promise.all(
-      newFavorites.map(({ uid }) =>
-        createBlock({ parentUid: childrenUid, node: { text: uid } }),
-      ),
-    );
-    refreshAndNotify();
   }
 
   await createBlock({
@@ -539,7 +438,6 @@ export const mountLeftSidebar = async (
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
   if (!root) {
     await migrateFavorites();
-    await migrateLeftSidebarSettings();
     wrapper.innerHTML = "";
     root = document.createElement("div");
     root.id = id;
