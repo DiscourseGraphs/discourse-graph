@@ -27,7 +27,7 @@ export const publishNode = async ({
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];
   if (existingPublish.includes(myGroup)) return; // already published
-  const publishResponse = await client.from("ContentAccess").insert({
+  const publishResponse = await client.from("ResourceAccess").insert({
     /* eslint-disable @typescript-eslint/naming-convention */
     account_uid: myGroup,
     source_local_id: nodeId,
