@@ -513,13 +513,13 @@ export type Database = {
       }
       file_gc: {
         Row: {
-          filepath: string
+          filehash: string
         }
         Insert: {
-          filepath: string
+          filehash: string
         }
         Update: {
-          filepath?: string
+          filehash?: string
         }
         Relationships: []
       }
@@ -1983,3 +1983,4 @@ export const Constants = {
     },
   },
 } as const
+

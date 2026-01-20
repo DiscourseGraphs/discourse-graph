@@ -33,7 +33,7 @@ SELECT
 FROM public."FileReference"
 WHERE (
     space_id = any(public.my_space_ids())
-    OR public.can_view_specific_content(space_id, source_local_id)
+    OR public.can_view_specific_resource(space_id, source_local_id)
 );
 
 GRANT ALL ON TABLE public."FileReference" TO authenticated;
@@ -44,7 +44,7 @@ ALTER TABLE public."FileReference" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS file_reference_policy ON public."FileReference";
 DROP POLICY IF EXISTS file_reference_select_policy ON public."FileReference";
-CREATE POLICY file_reference_select_policy ON public."FileReference" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_content(space_id, source_local_id));
+CREATE POLICY file_reference_select_policy ON public."FileReference" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS file_reference_delete_policy ON public."FileReference";
 CREATE POLICY file_reference_delete_policy ON public."FileReference" FOR DELETE USING (public.in_space(space_id));
 DROP POLICY IF EXISTS file_reference_insert_policy ON public."FileReference";
@@ -81,7 +81,7 @@ SELECT EXISTS (
     SELECT true FROM public."FileReference"
     WHERE filehash = hashvalue AND (
         public.in_space(space_id) OR
-        public.can_view_specific_content(space_id, source_local_id)
+        public.can_view_specific_resource(space_id, source_local_id)
     )
     LIMIT 1);
 $$;
@@ -91,7 +91,8 @@ SET search_path = ''
 SECURITY DEFINER
 LANGUAGE plpgsql AS $$
 BEGIN
-    IF (SELECT count(source_local_id) FROM public."FileReference" AS fr WHERE fr.filehash=OLD.filehash) = 0 THEN
+    PERFORM pg_advisory_xact_lock(hashtext(OLD.filehash));
+    IF NOT public.file_exists(OLD.filehash) THEN
         INSERT INTO public.file_gc VALUES (OLD.filehash);
         -- TODO: Invocation with pg_net, following the pattern in
         -- https://supabase.com/docs/guides/functions/schedule-functions

@@ -38,11 +38,28 @@ export const publishNode = async ({
   if (idResponse.error || !idResponse.data) {
     throw idResponse.error || new Error("no data while fetching node");
   }
-  const lastModifiedDb = new Date(idResponse.data.last_modified + "Z");
-  if (
-    existingPublish.includes(myGroup) &&
-    file.stat.mtime <= lastModifiedDb.getTime()
-  )
+  const lastModifiedDb = new Date(
+    idResponse.data.last_modified + "Z",
+  ).getTime();
+  const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
+  const attachments = embeds
+    .map(({ link }) => {
+      const attachment = plugin.app.metadataCache.getFirstLinkpathDest(
+        link,
+        file.path,
+      );
+      if (attachment === null) {
+        console.warn("Could not find file for " + link);
+      }
+      return attachment;
+    })
+    .filter((a) => !!a);
+  const lastModified = Math.max(
+    file.stat.mtime,
+    ...attachments.map((a) => a.stat.mtime),
+  );
+
+  if (existingPublish.includes(myGroup) && lastModified <= lastModifiedDb)
     return; // already published
   const publishResponse = await client.from("ResourceAccess").upsert(
     {
@@ -59,16 +76,7 @@ export const publishNode = async ({
     throw publishResponse.error;
 
   const existingFiles: string[] = [];
-  const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
-  for (const { link } of embeds) {
-    const attachment = plugin.app.metadataCache.getFirstLinkpathDest(
-      link,
-      file.path,
-    );
-    if (attachment === null) {
-      console.warn("Could not find file for " + link);
-      continue;
-    }
+  for (const attachment of attachments) {
     const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
     if (mimetype.startsWith("text/")) continue;
     existingFiles.push(attachment.path);
