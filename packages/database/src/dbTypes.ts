@@ -403,24 +403,6 @@ export type Database = {
           },
         ]
       }
-      ResourceAccess: {
-        Row: {
-          account_uid: string
-          source_local_id: string
-          space_id: number
-        }
-        Insert: {
-          account_uid: string
-          source_local_id: string
-          space_id: number
-        }
-        Update: {
-          account_uid?: string
-          source_local_id?: string
-          space_id?: number
-        }
-        Relationships: []
-      }
       ContentEmbedding_openai_text_embedding_3_small_1536: {
         Row: {
           model: Database["public"]["Enums"]["EmbeddingName"]
@@ -624,6 +606,24 @@ export type Database = {
           name?: string
           platform?: Database["public"]["Enums"]["Platform"]
           write_permission?: boolean
+        }
+        Relationships: []
+      }
+      ResourceAccess: {
+        Row: {
+          account_uid: string
+          source_local_id: string
+          space_id: number
+        }
+        Insert: {
+          account_uid: string
+          source_local_id: string
+          space_id: number
+        }
+        Update: {
+          account_uid?: string
+          source_local_id?: string
+          space_id?: number
         }
         Relationships: []
       }
