@@ -8,16 +8,19 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import QueryEditor from "~/components/QueryEditor";
+import internalError from "~/utils/internalError";
 
 const NodeSpecification = ({
   parentUid,
   node,
+  parentSetEnabled,
 }: {
   parentUid: string;
   node: ReturnType<typeof getDiscourseNodes>[number];
+  parentSetEnabled?: (enabled: boolean) => void;
 }) => {
   const [migrated, setMigrated] = React.useState(false);
-  const [enabled, setEnabled] = React.useState(
+  const [enabled, setEnabled] = React.useState<string>(
     () =>
       getSubTree({ tree: getBasicTreeByParentUid(parentUid), key: "enabled" })
         ?.uid,
@@ -66,17 +69,24 @@ const NodeSpecification = ({
               },
             }),
           )
-          .then(() => setMigrated(true));
+          .then(() => setMigrated(true))
+          .catch((error) => {
+            internalError({ error });
+          });
       }
     } else {
       const tree = getBasicTreeByParentUid(parentUid);
       const scratchNode = getSubTree({ tree, key: "scratch" });
-      Promise.all(scratchNode.children.map((c) => deleteBlock(c.uid)));
+      Promise.all(scratchNode.children.map((c) => deleteBlock(c.uid))).catch(
+        (error) => {
+          internalError({ error });
+        },
+      );
     }
     return () => {
       refreshConfigTree();
     };
-  }, [parentUid, setMigrated, enabled]);
+  }, [parentUid, setMigrated, enabled, node.format, node.text]);
   return (
     <div className={"roamjs-node-specification"}>
       <style>
@@ -93,9 +103,23 @@ const NodeSpecification = ({
                 parentUid,
                 order: 2,
                 node: { text: "enabled" },
-              }).then(setEnabled);
+              })
+                .then((uid: string) => {
+                  setEnabled(uid);
+                  if (parentSetEnabled) parentSetEnabled(true);
+                })
+                .catch((error) => {
+                  internalError({ error });
+                });
             } else {
-              deleteBlock(enabled).then(() => setEnabled(""));
+              deleteBlock(enabled)
+                .then(() => {
+                  setEnabled("");
+                  if (parentSetEnabled) parentSetEnabled(false);
+                })
+                .catch((error) => {
+                  internalError({ error });
+                });
             }
           }}
         />
