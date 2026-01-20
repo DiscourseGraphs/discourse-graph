@@ -164,15 +164,13 @@ const NodeConfig = ({
   onloadArgs: OnloadArgs;
 }) => {
   const suggestiveModeEnabled = useFeatureFlag("Suggestive Mode Enabled");
-  // UIDs still needed for deferred complex settings (template, specification, etc.)
+  // UIDs still needed for deferred complex settings (template)
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,
       key: key,
     }).uid;
   const templateUid = getUid("Template");
-  const specificationUid = getUid("Specification");
-  const indexUid = getUid("Index");
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
   const [tagError, setTagError] = useState("");
@@ -301,11 +299,7 @@ const NodeConfig = ({
           title="Index"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeIndex
-                node={node}
-                parentUid={indexUid}
-                onloadArgs={onloadArgs}
-              />
+              <DiscourseNodeIndex node={node} />
             </div>
           }
         />
@@ -329,10 +323,7 @@ const NodeConfig = ({
                     "The conditions specified to identify a ${nodeText} node."
                   }
                 />
-                <DiscourseNodeSpecification
-                  node={node}
-                  parentUid={specificationUid}
-                />
+                <DiscourseNodeSpecification node={node} />
               </Label>
             </div>
           }
