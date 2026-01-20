@@ -403,7 +403,7 @@ export type Database = {
           },
         ]
       }
-      ContentAccess: {
+      ResourceAccess: {
         Row: {
           account_uid: string
           source_local_id: string
@@ -1894,4 +1894,3 @@ export const Constants = {
     },
   },
 } as const
-

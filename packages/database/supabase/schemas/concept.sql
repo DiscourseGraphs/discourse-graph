@@ -416,7 +416,7 @@ CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (p
 DROP POLICY IF EXISTS concept_update_policy ON public."Concept";
 CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (public.in_space(space_id));
 
--- since ContentAccess is used for both Content and Concepts,
+-- since ResourceAccess is used for both Content and Concepts,
 -- we cannot count on the usual foreign key delete cascades.
 -- Implementing with triggers
 
@@ -427,8 +427,8 @@ SECURITY DEFINER
 LANGUAGE sql
 AS $$
     SELECT NOT EXISTS (SELECT id FROM public."Content" WHERE space_id=space_id_ AND source_local_id=source_local_id_ LIMIT 1)
-       AND NOT EXISTS (SELECT id FROM public."Concept" WHERE space_id=space_id_ AND source_local_id=source_local_id_)
-       AND NOT EXISTS (SELECT id FROM public."Document" WHERE space_id=space_id_ AND source_local_id=source_local_id_);
+       AND NOT EXISTS (SELECT id FROM public."Concept" WHERE space_id=space_id_ AND source_local_id=source_local_id_ LIMIT 1)
+       AND NOT EXISTS (SELECT id FROM public."Document" WHERE space_id=space_id_ AND source_local_id=source_local_id_ LIMIT 1);
 $$;
 
 CREATE OR REPLACE FUNCTION on_delete_local_reference() RETURNS TRIGGER
@@ -438,7 +438,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     IF public.is_last_local_reference(OLD.space_id, OLD.source_local_id) THEN
-    DELETE FROM public."ContentAccess" WHERE space_id=OLD.space_id AND source_local_id=OLD.source_local_id;
+    DELETE FROM public."ResourceAccess" WHERE space_id=OLD.space_id AND source_local_id=OLD.source_local_id;
     END IF;
     RETURN OLD;
 END;
@@ -457,7 +457,7 @@ BEGIN
     IF (OLD.space_id IS DISTINCT FROM NEW.space_id OR
         OLD.source_local_id IS DISTINCT FROM NEW.source_local_id)
     AND public.is_last_local_reference(OLD.space_id, OLD.source_local_id) THEN
-        DELETE FROM public."ContentAccess" WHERE space_id=OLD.space_id AND source_local_id=OLD.source_local_id;
+        DELETE FROM public."ResourceAccess" WHERE space_id=OLD.space_id AND source_local_id=OLD.source_local_id;
     END IF;
     RETURN NEW;
 END;
@@ -473,7 +473,7 @@ SECURITY DEFINER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    DELETE FROM public."ContentAccess" WHERE space_id=OLD.id;
+    DELETE FROM public."ResourceAccess" WHERE space_id=OLD.id;
     RETURN OLD;
 END;
 $$;

@@ -153,36 +153,36 @@ COMMENT ON COLUMN public."Content".last_modified IS 'The last time the content w
 
 COMMENT ON COLUMN public."Content".part_of_id IS 'This content is part of a larger content unit';
 
-CREATE TABLE IF NOT EXISTS public."ContentAccess" (
+CREATE TABLE IF NOT EXISTS public."ResourceAccess" (
     account_uid UUID NOT NULL,
     space_id bigint NOT NULL,
     source_local_id CHARACTER VARYING NOT NULL
 );
 
-ALTER TABLE ONLY public."ContentAccess"
-ADD CONSTRAINT "ContentAccess_pkey" PRIMARY KEY (account_uid, source_local_id, space_id);
+ALTER TABLE ONLY public."ResourceAccess"
+ADD CONSTRAINT "ResourceAccess_pkey" PRIMARY KEY (account_uid, source_local_id, space_id);
 
-ALTER TABLE public."ContentAccess" OWNER TO "postgres";
+ALTER TABLE public."ResourceAccess" OWNER TO "postgres";
 
-COMMENT ON TABLE public."ContentAccess" IS 'An access control entry for a content';
+COMMENT ON TABLE public."ResourceAccess" IS 'An access control entry for a content';
 
-COMMENT ON COLUMN public."ContentAccess".space_id IS 'The space_id of the content item for which access is granted';
-COMMENT ON COLUMN public."ContentAccess".source_local_id IS 'The source_local_id of the content item for which access is granted';
+COMMENT ON COLUMN public."ResourceAccess".space_id IS 'The space_id of the content item for which access is granted';
+COMMENT ON COLUMN public."ResourceAccess".source_local_id IS 'The source_local_id of the content item for which access is granted';
 
-COMMENT ON COLUMN public."ContentAccess".account_uid IS 'The identity of the user account';
+COMMENT ON COLUMN public."ResourceAccess".account_uid IS 'The identity of the user account';
 
-ALTER TABLE ONLY public."ContentAccess"
-ADD CONSTRAINT "ContentAccess_account_uid_fkey" FOREIGN KEY (
+ALTER TABLE ONLY public."ResourceAccess"
+ADD CONSTRAINT "ResourceAccess_account_uid_fkey" FOREIGN KEY (
     account_uid
 ) REFERENCES auth.users (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
-CREATE INDEX content_access_content_local_id_idx ON public."ContentAccess" (source_local_id, space_id);
+CREATE INDEX resource_access_content_local_id_idx ON public."ResourceAccess" (source_local_id, space_id);
 
 -- note that I cannot have a foreign key for Content because the variant is part of the unique key.
 
-GRANT ALL ON TABLE public."ContentAccess" TO authenticated;
-GRANT ALL ON TABLE public."ContentAccess" TO service_role;
-REVOKE ALL ON TABLE public."ContentAccess" FROM anon;
+GRANT ALL ON TABLE public."ResourceAccess" TO authenticated;
+GRANT ALL ON TABLE public."ResourceAccess" TO service_role;
+REVOKE ALL ON TABLE public."ResourceAccess" FROM anon;
 
 REVOKE ALL ON TABLE public."Document" FROM anon;
 GRANT ALL ON TABLE public."Document" TO authenticated;
@@ -198,7 +198,7 @@ SET search_path = ''
 LANGUAGE sql
 AS $$
     SELECT EXISTS(
-        SELECT true FROM public."ContentAccess"
+        SELECT true FROM public."ResourceAccess"
         JOIN public.my_user_accounts() ON (account_uid=my_user_accounts)
         WHERE space_id=space_id_
         AND source_local_id = source_local_id_
@@ -668,14 +668,14 @@ CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (p
 DROP POLICY IF EXISTS content_update_policy ON public."Content";
 CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (public.in_space(space_id));
 
-ALTER TABLE public."ContentAccess" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."ResourceAccess" ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS content_access_policy ON public."ContentAccess";
-DROP POLICY IF EXISTS content_access_select_policy ON public."ContentAccess";
-CREATE POLICY content_access_select_policy ON public."ContentAccess" FOR SELECT USING (public.in_space(space_id) OR public.can_access_account(account_uid));
-DROP POLICY IF EXISTS content_access_delete_policy ON public."ContentAccess";
-CREATE POLICY content_access_delete_policy ON public."ContentAccess" FOR DELETE USING (public.editor_in_space(space_id) OR public.can_access_account(account_uid));
-DROP POLICY IF EXISTS content_access_insert_policy ON public."ContentAccess";
-CREATE POLICY content_access_insert_policy ON public."ContentAccess" FOR INSERT WITH CHECK (public.editor_in_space(space_id));
-DROP POLICY IF EXISTS content_access_update_policy ON public."ContentAccess";
-CREATE POLICY content_access_update_policy ON public."ContentAccess" FOR UPDATE USING (public.editor_in_space(space_id));
+DROP POLICY IF EXISTS resource_access_policy ON public."ResourceAccess";
+DROP POLICY IF EXISTS resource_access_select_policy ON public."ResourceAccess";
+CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (public.in_space(space_id) OR public.can_access_account(account_uid));
+DROP POLICY IF EXISTS resource_access_delete_policy ON public."ResourceAccess";
+CREATE POLICY resource_access_delete_policy ON public."ResourceAccess" FOR DELETE USING (public.editor_in_space(space_id) OR public.can_access_account(account_uid));
+DROP POLICY IF EXISTS resource_access_insert_policy ON public."ResourceAccess";
+CREATE POLICY resource_access_insert_policy ON public."ResourceAccess" FOR INSERT WITH CHECK (public.editor_in_space(space_id));
+DROP POLICY IF EXISTS resource_access_update_policy ON public."ResourceAccess";
+CREATE POLICY resource_access_update_policy ON public."ResourceAccess" FOR UPDATE USING (public.editor_in_space(space_id));
