@@ -39,8 +39,8 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Deploy
-        run: npx turbo run deploy --filter=roam
+      - name: Build
+        run: npx turbo run build --filter=roam --ui stream
 
       - name: Inject & upload source maps to PostHog
         uses: PostHog/upload-source-maps@v0.4.6
@@ -50,3 +50,6 @@ jobs:
           cli-token: ${{ secrets.POSTHOG_CLI_TOKEN }}
           project: Roam
           version: ${{ github.sha }} # Optional; falls back to current commit SHA
+
+      - name: Deploy
+        run: npx turbo run deploy --filter=roam --ui stream

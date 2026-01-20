@@ -42,7 +42,7 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["@repo/database#genenv"],
+      "dependsOn": ["@repo/database#genenv", "^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "src/dbTypes.ts"]
     },
@@ -80,7 +80,7 @@
         "POSTHOG_CLI_ENV_ID"
       ],
       "cache": false,
-      "dependsOn": ["^build"],
+      "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
     "publish": {
