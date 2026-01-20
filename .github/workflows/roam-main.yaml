@@ -47,6 +47,5 @@ jobs:
           directory: apps/roam/dist
           env-id: ${{ env.POSTHOG_CLI_ENV_ID }}
           cli-token: ${{ secrets.POSTHOG_CLI_TOKEN }}
-          host: ${{ env.POSTHOG_CLI_HOST }}
           project: Roam
           version: ${{ github.sha }}
