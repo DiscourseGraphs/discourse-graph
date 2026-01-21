@@ -51,6 +51,8 @@ import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSetting
 import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
+import { NanoPubTitleButtons } from "../components/nanopub/Nanopub";
+import { handleTitleAdditions } from "./handleTitleAdditions";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
@@ -88,11 +90,16 @@ export const initObservers = async ({
       const title = getPageTitleValueByHtmlElement(h1);
       const props = { title, h1, onloadArgs };
 
+      const configTree = getBasicTreeByParentUid(
+        getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
+      );
       const isSuggestiveModeEnabled = getUidAndBooleanSetting({
-        tree: getBasicTreeByParentUid(
-          getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-        ),
+        tree: configTree,
         text: "(BETA) Suggestive Mode Enabled",
+      }).value;
+      const isNanopubEnabled = getUidAndBooleanSetting({
+        tree: configTree,
+        text: "(BETA) Nanopub Enabled",
       }).value;
 
       const uid = getPageUidByPageTitle(title);
@@ -101,6 +108,17 @@ export const initObservers = async ({
       if (isDiscourseNode) {
         if (isSuggestiveModeEnabled) {
           renderPossibleDuplicates(h1, title, node);
+        }
+        if (
+          isNanopubEnabled &&
+          node &&
+          node.nanopub &&
+          node.nanopub.enabled
+        ) {
+          handleTitleAdditions(
+            h1,
+            NanoPubTitleButtons({ uid, onloadArgs }),
+          );
         }
         const linkedReferencesDiv = document.querySelector(
           ".rm-reference-main",

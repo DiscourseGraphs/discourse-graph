@@ -46,6 +46,7 @@ type FormattedConfigTree = {
   leftSidebar: LeftSidebarConfig;
   leftSidebarEnabled: BooleanSetting;
   suggestiveModeEnabled: BooleanSetting;
+  nanopubEnabled: BooleanSetting;
 };
 
 export const getFormattedConfigTree = (): FormattedConfigTree => {
@@ -81,6 +82,10 @@ export const getFormattedConfigTree = (): FormattedConfigTree => {
     suggestiveModeEnabled: getUidAndBooleanSetting({
       tree: configTreeRef.tree,
       text: "(BETA) Suggestive Mode Enabled",
+    }),
+    nanopubEnabled: getUidAndBooleanSetting({
+      tree: configTreeRef.tree,
+      text: "(BETA) Nanopub Enabled",
     }),
   };
 };
