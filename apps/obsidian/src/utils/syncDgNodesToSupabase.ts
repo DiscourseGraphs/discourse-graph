@@ -11,7 +11,7 @@ import { default as DiscourseGraphPlugin } from "~/index";
 import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
 import {
   orderConceptsByDependency,
-  discourseNodeInstanceToLocalConcept,
+  discourseNodeInstanceToLocalConcepts,
   discourseNodeSchemaToLocalConcept,
   discourseRelationSchemaToLocalConcept,
   discourseRelationTypeToLocalConcept,
@@ -104,7 +104,10 @@ const deleteNodesFromSupabase = async (
     if (conceptDeleteError) {
       result.success = false;
       result.errors.concept = conceptDeleteError;
-      console.error("Failed to delete concepts from Supabase:", conceptDeleteError);
+      console.error(
+        "Failed to delete concepts from Supabase:",
+        conceptDeleteError,
+      );
     }
 
     const { error: contentDeleteError } = await supabaseClient
@@ -176,7 +179,7 @@ const getLastSyncTime = async (
   return new Date(data?.last_modified || DEFAULT_TIME);
 };
 
-type DiscourseNodeInVault = {
+export type DiscourseNodeInVault = {
   file: TFile;
   frontmatter: Record<string, unknown>;
   nodeTypeId: string;
@@ -198,12 +201,11 @@ const mergeChangeTypes = (
   return Array.from(merged);
 };
 
-
 /**
  * Step 1: Collect all discourse nodes from the vault
  * Filters markdown files that have nodeTypeId in frontmatter
  */
-const collectDiscourseNodesFromVault = async (
+export const collectDiscourseNodesFromVault = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<DiscourseNodeInVault[]> => {
   const allFiles = plugin.app.vault.getMarkdownFiles();
@@ -508,6 +510,10 @@ const convertDgToSupabaseConcepts = async ({
   const nodeTypes = plugin.settings.nodeTypes ?? [];
   const relationTypes = plugin.settings.relationTypes ?? [];
   const discourseRelations = plugin.settings.discourseRelations ?? [];
+  const allNodes = await collectDiscourseNodesFromVault(plugin);
+  const allNodesByName = Object.fromEntries(
+    allNodes.map((n) => [n.file.basename, n]),
+  );
 
   const nodeTypesById = Object.fromEntries(
     nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
@@ -542,13 +548,17 @@ const convertDgToSupabaseConcepts = async ({
     }),
   );
 
-  const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return discourseNodeInstanceToLocalConcept({
-      context,
-      nodeData: node,
-      accountLocalId,
-    });
-  });
+  const nodeInstanceToLocalConcepts = nodesSince
+    .map((node) => {
+      return discourseNodeInstanceToLocalConcepts({
+        plugin,
+        allNodesByName,
+        context,
+        nodeData: node,
+        accountLocalId,
+      });
+    })
+    .flat();
 
   const conceptsToUpsert: LocalConceptDataInput[] = [
     ...nodesTypesToLocalConcepts,
@@ -558,7 +568,7 @@ const convertDgToSupabaseConcepts = async ({
   ];
 
   const { ordered } = orderConceptsByDependency(conceptsToUpsert);
-
+  console.log(ordered);
   const { error } = await supabaseClient.rpc("upsert_concepts", {
     data: ordered as Json,
     v_space_id: context.spaceId,
@@ -680,10 +690,7 @@ export const syncSpecificFiles = async (
   const changeTypesByPath = new Map<string, ChangeType[]>();
   for (const filePath of filePaths) {
     const existing = changeTypesByPath.get(filePath) ?? [];
-    changeTypesByPath.set(
-      filePath,
-      mergeChangeTypes(existing, ["content"]),
-    );
+    changeTypesByPath.set(filePath, mergeChangeTypes(existing, ["content"]));
   }
 
   await syncDiscourseNodeChanges(plugin, changeTypesByPath);
