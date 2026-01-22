@@ -42,7 +42,7 @@ jobs:
           path: apps/roam
 
       - name: Inject & upload source maps to PostHog
-        uses: PostHog/upload-source-maps@v0.4.6
+        uses: PostHog/upload-source-maps@v0.5.7.0
         with:
           directory: apps/roam/dist
           env-id: ${{ secrets.POSTHOG_CLI_ENV_ID }}

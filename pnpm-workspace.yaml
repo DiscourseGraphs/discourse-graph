@@ -29,7 +29,7 @@ catalog:
   eslint: 8.57.1
   react: ^19.1.0
   react-dom: ^19.1.0
-  posthog-js: 1.331.1
+  posthog-js: 1.334.1
   "@supabase/supabase-js": 2.88.0
   "@supabase/functions-js": 2.88.0
   "@supabase/storage-js": 2.88.0
