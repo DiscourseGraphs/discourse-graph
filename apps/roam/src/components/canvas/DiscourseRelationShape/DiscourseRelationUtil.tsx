@@ -628,11 +628,34 @@ export const createAllRelationShapeUtils = (
         const sourceNodeType = source.type;
         const targetNodeType = target.type;
 
-        const { isDirect, isReverse } = this.checkConnectionType(
+        // First check if the current relation matches
+        let { isDirect, isReverse } = this.checkConnectionType(
           relation,
           sourceNodeType,
           targetNodeType,
         );
+
+        // If current relation doesn't match, check all relations with the same label
+        let matchingRelation = relation;
+        if (!isDirect && !isReverse) {
+          const relationsWithSameLabel =
+            discourseContext.relations[relation.label];
+          if (relationsWithSameLabel) {
+            for (const rel of relationsWithSameLabel) {
+              const connectionCheck = this.checkConnectionType(
+                rel,
+                sourceNodeType,
+                targetNodeType,
+              );
+              if (connectionCheck.isDirect || connectionCheck.isReverse) {
+                matchingRelation = rel;
+                isDirect = connectionCheck.isDirect;
+                isReverse = connectionCheck.isReverse;
+                break;
+              }
+            }
+          }
+        }
 
         if (!isDirect && !isReverse) {
           const possibleTargets = discourseContext.relations[relation.label]
@@ -653,8 +676,23 @@ export const createAllRelationShapeUtils = (
             `Target node must be of type ${uniqueTargetTexts.join(", ")}`,
           );
         }
-        if (arrow.type !== target.type) {
-          editor.updateShapes([{ id: arrow.id, type: target.type }]);
+
+        // If we found a matching relation with a different ID, switch to it
+        if (matchingRelation.id !== arrow.type) {
+          // Get bindings before updating the shape type
+          const existingBindings = editor.getBindingsFromShape(
+            arrow,
+            arrow.type,
+          );
+          // Update the shape type
+          editor.updateShapes([{ id: arrow.id, type: matchingRelation.id }]);
+          // Update bindings to use the new relation type
+          for (const binding of existingBindings) {
+            editor.updateBinding({
+              ...binding,
+              type: matchingRelation.id,
+            });
+          }
         }
         if (getStoredRelationsEnabled()) {
           const sourceAsDNS = asDiscourseNodeShape(source, editor);
@@ -664,7 +702,7 @@ export const createAllRelationShapeUtils = (
             await createReifiedRelation({
               sourceUid: sourceAsDNS.props.uid,
               destinationUid: targetAsDNS.props.uid,
-              relationBlockUid: relation.id,
+              relationBlockUid: matchingRelation.id,
             });
           else {
             void internalError({
@@ -673,7 +711,7 @@ export const createAllRelationShapeUtils = (
             });
           }
         } else {
-          const { triples } = relation;
+          const { triples } = matchingRelation;
           const isOriginal = isDirect && !isReverse;
 
           const newTriples = triples
@@ -1720,13 +1758,24 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     const relation = relations.find((r) => r.id === relationId);
     if (!relation) return false;
 
-    const { isDirect, isReverse } = this.checkConnectionType(
-      relation,
-      sourceNodeType,
-      targetNodeType,
-    );
+    // Get all relations with the same label as this relation
+    const relationsWithSameLabel = discourseContext.relations[relation.label];
+    if (!relationsWithSameLabel) return false;
 
-    return isDirect || isReverse;
+    // Check if any relation with the same label matches the source-target connection
+    for (const rel of relationsWithSameLabel) {
+      const { isDirect, isReverse } = this.checkConnectionType(
+        rel,
+        sourceNodeType,
+        targetNodeType,
+      );
+
+      if (isDirect || isReverse) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   component(shape: DiscourseRelationShape) {
