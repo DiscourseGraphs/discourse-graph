@@ -43,6 +43,7 @@ export const addFile = async ({
 
   if (frefResult.error) {
     if (frefResult.error.code === "23505") {
+      // 23505 is duplicate key, which means the file is already there, not an error
       const updateResult = await client.from("FileReference").update({
         // eslint-disable-next-line @typescript-eslint/naming-convention
         last_modified: lastModified.toISOString(),
