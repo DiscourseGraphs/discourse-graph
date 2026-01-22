@@ -500,26 +500,22 @@ const convertDgToSupabaseConcepts = async ({
   context,
   accountLocalId,
   plugin,
+  convertRelations,
 }: {
   nodesSince: ObsidianDiscourseNodeData[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
   accountLocalId: string;
   plugin: DiscourseGraphPlugin;
+  convertRelations?: boolean;
 }): Promise<void> => {
   const nodeTypes = plugin.settings.nodeTypes ?? [];
   const relationTypes = plugin.settings.relationTypes ?? [];
   const discourseRelations = plugin.settings.discourseRelations ?? [];
-  const allNodes = await collectDiscourseNodesFromVault(plugin);
-  const allNodesByName = Object.fromEntries(
-    allNodes.map((n) => [n.file.basename, n]),
-  );
+  let allNodesByName: Record<string, DiscourseNodeInVault> = {};
 
   const nodeTypesById = Object.fromEntries(
     nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
-  );
-  const relationTypesById = Object.fromEntries(
-    relationTypes.map((relationType) => [relationType.id, relationType]),
   );
 
   const nodesTypesToLocalConcepts = nodeTypes.map((nodeType) =>
@@ -530,23 +526,35 @@ const convertDgToSupabaseConcepts = async ({
     }),
   );
 
-  const relationTypesToLocalConcepts = relationTypes.map((relationType) =>
-    discourseRelationTypeToLocalConcept({
-      context,
-      relationType,
-      accountLocalId,
-    }),
-  );
+  let relationTypesToLocalConcepts: LocalConceptDataInput[] = [];
+  let discourseRelationsToLocalConcepts: LocalConceptDataInput[] = [];
+  if (convertRelations) {
+    const allNodes = await collectDiscourseNodesFromVault(plugin);
+    allNodesByName = Object.fromEntries(
+      allNodes.map((n) => [n.file.basename, n]),
+    );
+    const relationTypesById = Object.fromEntries(
+      relationTypes.map((relationType) => [relationType.id, relationType]),
+    );
 
-  const discourseRelationsToLocalConcepts = discourseRelations.map((relation) =>
-    discourseRelationSchemaToLocalConcept({
-      context,
-      relation,
-      accountLocalId,
-      nodeTypesById,
-      relationTypesById,
-    }),
-  );
+    relationTypesToLocalConcepts = relationTypes.map((relationType) =>
+      discourseRelationTypeToLocalConcept({
+        context,
+        relationType,
+        accountLocalId,
+      }),
+    );
+
+    discourseRelationsToLocalConcepts = discourseRelations.map((relation) =>
+      discourseRelationSchemaToLocalConcept({
+        context,
+        relation,
+        accountLocalId,
+        nodeTypesById,
+        relationTypesById,
+      }),
+    );
+  }
 
   const nodeInstanceToLocalConcepts = nodesSince
     .map((node) => {
@@ -556,6 +564,7 @@ const convertDgToSupabaseConcepts = async ({
         context,
         nodeData: node,
         accountLocalId,
+        convertRelations,
       });
     })
     .flat();

@@ -146,12 +146,14 @@ export const discourseNodeInstanceToLocalConcepts = ({
   context,
   nodeData,
   accountLocalId,
+  convertRelations,
 }: {
-  plugin: DiscourseGraphPlugin;
-  allNodesByName: Record<string, DiscourseNodeInVault>;
+  plugin?: DiscourseGraphPlugin;
+  allNodesByName?: Record<string, DiscourseNodeInVault>;
   context: SupabaseContext;
   nodeData: ObsidianDiscourseNodeData;
   accountLocalId: string;
+  convertRelations?: boolean;
 }): LocalConceptDataInput[] => {
   const extraData = getNodeExtraData(nodeData.file, accountLocalId);
   console.log(nodeData.frontmatter);
@@ -160,55 +162,64 @@ export const discourseNodeInstanceToLocalConcepts = ({
     `[discourseNodeInstanceToLocalConcept] Converting concept: source_local_id=${nodeData.nodeInstanceId}, name="${nodeData.file.basename}"`,
   );
   const response: LocalConceptDataInput[] = [];
-  for (const relType of plugin.settings.relationTypes) {
-    const rels = otherData[relType.id];
-    if (rels) {
-      delete otherData[relType.id];
-      const triples = plugin.settings.discourseRelations.filter(
-        (r) => r.relationshipTypeId === relType.id && r.sourceId === nodeTypeId,
-      );
-      if (!triples.length) {
-        // we're probably the target.
-        continue;
-      }
-      const tripleDestTypes = new Set(triples.map((rel) => rel.destinationId));
-      for (let rel of rels as string[]) {
-        if (rel.startsWith("[[") && rel.endsWith("]]"))
-          rel = rel.substring(2, rel.length - 2);
-        if (rel.endsWith(".md")) rel = rel.substring(0, rel.length - 3);
-        const target = allNodesByName[rel];
-        if (!target) {
-          console.error(`Could not find node name ${rel}`);
-          continue;
-        }
-        const targetTypeId = target.frontmatter.nodeTypeId as string;
-        const targetInstanceId = target.frontmatter.nodeInstanceId as string;
-        if (!tripleDestTypes.has(targetTypeId)) {
-          console.error(
-            `Found a relation of type ${relType.id} between ${nodeData.file.path} and ${rel} but no relation fits`,
-          );
-          continue;
-        }
-        const compositeSchemaId = [relType.id, nodeTypeId, targetTypeId].join(
-          ":",
+  if (
+    convertRelations &&
+    plugin !== undefined &&
+    allNodesByName !== undefined
+  ) {
+    for (const relType of plugin.settings.relationTypes) {
+      const rels = otherData[relType.id];
+      if (rels) {
+        delete otherData[relType.id];
+        const triples = plugin.settings.discourseRelations.filter(
+          (r) =>
+            r.relationshipTypeId === relType.id && r.sourceId === nodeTypeId,
         );
-        const compositeInstanceId = [
-          relType.id,
-          nodeInstanceId as string,
-          targetInstanceId,
-        ].join(":");
-        response.push({
-          space_id: context.spaceId,
-          name: `[[${nodeData.file.basename}]] -${relType.label}-> [[${target.file.basename}]]`,
-          source_local_id: compositeInstanceId,
-          schema_represented_by_local_id: compositeSchemaId,
-          is_schema: false,
-          local_reference_content: {
-            source: nodeInstanceId as string,
-            destination: targetInstanceId,
-          },
-          ...extraData,
-        });
+        if (!triples.length) {
+          // we're probably the target.
+          continue;
+        }
+        const tripleDestTypes = new Set(
+          triples.map((rel) => rel.destinationId),
+        );
+        for (let rel of rels as string[]) {
+          if (rel.startsWith("[[") && rel.endsWith("]]"))
+            rel = rel.substring(2, rel.length - 2);
+          if (rel.endsWith(".md")) rel = rel.substring(0, rel.length - 3);
+          const target = allNodesByName[rel];
+          if (!target) {
+            console.error(`Could not find node name ${rel}`);
+            continue;
+          }
+          const targetTypeId = target.frontmatter.nodeTypeId as string;
+          const targetInstanceId = target.frontmatter.nodeInstanceId as string;
+          if (!tripleDestTypes.has(targetTypeId)) {
+            console.error(
+              `Found a relation of type ${relType.id} between ${nodeData.file.path} and ${rel} but no relation fits`,
+            );
+            continue;
+          }
+          const compositeSchemaId = [relType.id, nodeTypeId, targetTypeId].join(
+            ":",
+          );
+          const compositeInstanceId = [
+            relType.id,
+            nodeInstanceId as string,
+            targetInstanceId,
+          ].join(":");
+          response.push({
+            space_id: context.spaceId,
+            name: `[[${nodeData.file.basename}]] -${relType.label}-> [[${target.file.basename}]]`,
+            source_local_id: compositeInstanceId,
+            schema_represented_by_local_id: compositeSchemaId,
+            is_schema: false,
+            local_reference_content: {
+              source: nodeInstanceId as string,
+              destination: targetInstanceId,
+            },
+            ...extraData,
+          });
+        }
       }
     }
   }
