@@ -51,4 +51,4 @@ jobs:
           version: ${{ steps.roam-version.outputs.current-version }}
 
       - name: Update Roam Depot Extension
-        run: npx turbo run publish --filter=roam --ui stream
+        run: npx turbo run publish --filter=roam --ui stream -- --no-compile

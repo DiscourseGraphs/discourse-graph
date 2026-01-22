@@ -80,6 +80,7 @@
         "POSTHOG_CLI_ENV_ID"
       ],
       "cache": false,
+      "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
     "publish": {

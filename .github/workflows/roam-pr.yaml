@@ -52,4 +52,4 @@ jobs:
           version: ${{ github.sha }} # Optional; falls back to current commit SHA
 
       - name: Deploy
-        run: npx turbo run deploy --filter=roam --ui stream
+        run: npx turbo run deploy --filter=roam --ui stream -- --no-compile
