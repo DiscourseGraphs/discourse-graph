@@ -49,7 +49,7 @@ jobs:
           env-id: ${{ secrets.POSTHOG_CLI_ENV_ID }}
           cli-token: ${{ secrets.POSTHOG_CLI_TOKEN }}
           project: Roam
-          version: ${{ github.sha }} # Optional; falls back to current commit SHA
+          version: ${{ github.event.pull_request.head.sha }} # Optional; falls back to current commit SHA
 
       - name: Deploy
         run: npx turbo run deploy --filter=roam --ui stream -- --no-compile
