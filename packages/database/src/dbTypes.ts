@@ -511,6 +511,70 @@ export type Database = {
           },
         ]
       }
+      file_gc: {
+        Row: {
+          filehash: string
+        }
+        Insert: {
+          filehash: string
+        }
+        Update: {
+          filehash?: string
+        }
+        Relationships: []
+      }
+      FileReference: {
+        Row: {
+          created: string
+          filehash: string
+          filepath: string
+          last_modified: string
+          source_local_id: string
+          space_id: number
+          variant: Database["public"]["Enums"]["ContentVariant"] | null
+        }
+        Insert: {
+          created: string
+          filehash: string
+          filepath: string
+          last_modified: string
+          source_local_id: string
+          space_id: number
+          variant?: Database["public"]["Enums"]["ContentVariant"] | null
+        }
+        Update: {
+          created?: string
+          filehash?: string
+          filepath?: string
+          last_modified?: string
+          source_local_id?: string
+          space_id?: number
+          variant?: Database["public"]["Enums"]["ContentVariant"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "FileReference_content_fkey"
+            columns: ["space_id", "source_local_id", "variant"]
+            isOneToOne: false
+            referencedRelation: "Content"
+            referencedColumns: ["space_id", "source_local_id", "variant"]
+          },
+          {
+            foreignKeyName: "FileReference_content_fkey"
+            columns: ["space_id", "source_local_id", "variant"]
+            isOneToOne: false
+            referencedRelation: "my_contents"
+            referencedColumns: ["space_id", "source_local_id", "variant"]
+          },
+          {
+            foreignKeyName: "FileReference_content_fkey"
+            columns: ["space_id", "source_local_id", "variant"]
+            isOneToOne: false
+            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
+            referencedColumns: ["space_id", "source_local_id", "variant"]
+          },
+        ]
+      }
       group_membership: {
         Row: {
           admin: boolean | null
@@ -1153,6 +1217,33 @@ export type Database = {
           },
         ]
       }
+      my_file_references: {
+        Row: {
+          created: string | null
+          filehash: string | null
+          filepath: string | null
+          last_modified: string | null
+          source_local_id: string | null
+          space_id: number | null
+        }
+        Insert: {
+          created?: string | null
+          filehash?: string | null
+          filepath?: string | null
+          last_modified?: string | null
+          source_local_id?: string | null
+          space_id?: number | null
+        }
+        Update: {
+          created?: string | null
+          filehash?: string | null
+          filepath?: string | null
+          last_modified?: string | null
+          source_local_id?: string | null
+          space_id?: number | null
+        }
+        Relationships: []
+      }
       my_spaces: {
         Row: {
           id: number | null
@@ -1434,6 +1525,8 @@ export type Database = {
         Returns: undefined
       }
       extract_references: { Args: { refs: Json }; Returns: number[] }
+      file_access: { Args: { hashvalue: string }; Returns: boolean }
+      file_exists: { Args: { hashvalue: string }; Returns: boolean }
       generic_entity_access: {
         Args: {
           target_id: number
@@ -1890,3 +1983,4 @@ export const Constants = {
     },
   },
 } as const
+
