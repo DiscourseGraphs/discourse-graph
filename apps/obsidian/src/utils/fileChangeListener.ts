@@ -170,6 +170,9 @@ export class FileChangeListener {
       return;
     }
 
+    // Note: pendingCreates helps track files that are created -> added nodeTypeId -> synced to Supabase.
+    // If a file is created -> added nodeTypeId manually, it won't be detected until the next global sync (onLoad).
+
     // Placeholder: Check for relation metadata changes
     // For now, we'll just log that metadata changed
     // In the future, this can detect specific relation changes
