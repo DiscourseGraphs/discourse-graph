@@ -109,52 +109,6 @@ REVOKE ALL ON TABLE public."Concept" FROM anon;
 GRANT ALL ON TABLE public."Concept" TO authenticated;
 GRANT ALL ON TABLE public."Concept" TO service_role;
 
-CREATE TABLE IF NOT EXISTS public."ConceptAccess" (
-    account_uid UUID NOT NULL,
-    concept_id bigint NOT NULL
-);
-
-ALTER TABLE ONLY public."ConceptAccess"
-ADD CONSTRAINT "ConceptAccess_pkey" PRIMARY KEY (account_uid, concept_id);
-
-ALTER TABLE public."ConceptAccess" OWNER TO "postgres";
-
-COMMENT ON TABLE public."ConceptAccess" IS 'An access control entry for a concept';
-
-COMMENT ON COLUMN public."ConceptAccess".concept_id IS 'The concept item for which access is granted';
-
-COMMENT ON COLUMN public."ConceptAccess".account_uid IS 'The identity of the user account';
-
-ALTER TABLE ONLY public."ConceptAccess"
-ADD CONSTRAINT "ConceptAccess_account_uid_fkey" FOREIGN KEY (
-    account_uid
-) REFERENCES auth.users (id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-CREATE INDEX concept_access_concept_id_idx ON public."ConceptAccess" (concept_id);
-
-ALTER TABLE ONLY public."ConceptAccess"
-ADD CONSTRAINT "ConceptAccess_concept_id_fkey" FOREIGN KEY (
-    concept_id
-) REFERENCES public."Concept" (
-    id
-) ON UPDATE CASCADE ON DELETE CASCADE;
-
-GRANT ALL ON TABLE public."ConceptAccess" TO authenticated;
-GRANT ALL ON TABLE public."ConceptAccess" TO service_role;
-REVOKE ALL ON TABLE public."ConceptAccess" FROM anon;
-
-CREATE OR REPLACE FUNCTION public.can_view_specific_concept(id BIGINT) RETURNS BOOLEAN
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT EXISTS(
-        SELECT true FROM public."ConceptAccess"
-        JOIN public.my_user_accounts() ON (account_uid=my_user_accounts)
-        WHERE concept_id=id
-        LIMIT 1);
-$$;
-
 CREATE OR REPLACE VIEW public.my_concepts AS
 SELECT
     id,
@@ -175,7 +129,7 @@ SELECT
 FROM public."Concept"
 WHERE (
     space_id = any(public.my_space_ids())
-    OR public.can_view_specific_concept(id)
+    OR public.can_view_specific_resource(space_id, source_local_id)
 );
 
 -- following https://docs.postgrest.org/en/v13/references/api/resource_embedding.html#recursive-relationships
@@ -454,7 +408,7 @@ ALTER TABLE public."Concept" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS concept_policy ON public."Concept";
 DROP POLICY IF EXISTS concept_select_policy ON public."Concept";
-CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_concept(id));
+CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
 DROP POLICY IF EXISTS concept_delete_policy ON public."Concept";
 CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (public.in_space(space_id));
 DROP POLICY IF EXISTS concept_insert_policy ON public."Concept";
@@ -462,14 +416,66 @@ CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (p
 DROP POLICY IF EXISTS concept_update_policy ON public."Concept";
 CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (public.in_space(space_id));
 
-ALTER TABLE public."ConceptAccess" ENABLE ROW LEVEL SECURITY;
+-- since ResourceAccess is used for both Content and Concepts,
+-- we cannot count on the usual foreign key delete cascades.
+-- Implementing with triggers
 
-DROP POLICY IF EXISTS concept_access_policy ON public."ConceptAccess";
-DROP POLICY IF EXISTS concept_access_select_policy ON public."ConceptAccess";
-CREATE POLICY concept_access_select_policy ON public."ConceptAccess" FOR SELECT USING (public.concept_in_space(concept_id) OR public.can_access_account(account_uid));
-DROP POLICY IF EXISTS concept_access_delete_policy ON public."ConceptAccess";
-CREATE POLICY concept_access_delete_policy ON public."ConceptAccess" FOR DELETE USING (public.concept_in_editable_space(concept_id) OR public.can_access_account(account_uid));
-DROP POLICY IF EXISTS concept_access_insert_policy ON public."ConceptAccess";
-CREATE POLICY concept_access_insert_policy ON public."ConceptAccess" FOR INSERT WITH CHECK (public.concept_in_editable_space(concept_id));
-DROP POLICY IF EXISTS concept_access_update_policy ON public."ConceptAccess";
-CREATE POLICY concept_access_update_policy ON public."ConceptAccess" FOR UPDATE USING (public.concept_in_editable_space(concept_id));
+CREATE OR REPLACE FUNCTION public.is_last_local_reference(space_id_ BIGINT, source_local_id_ VARCHAR) RETURNS boolean
+STABLE
+SET search_path = ''
+SECURITY DEFINER
+LANGUAGE sql
+AS $$
+    SELECT NOT EXISTS (SELECT id FROM public."Content" WHERE space_id=space_id_ AND source_local_id=source_local_id_ LIMIT 1)
+       AND NOT EXISTS (SELECT id FROM public."Concept" WHERE space_id=space_id_ AND source_local_id=source_local_id_ LIMIT 1)
+       AND NOT EXISTS (SELECT id FROM public."Document" WHERE space_id=space_id_ AND source_local_id=source_local_id_ LIMIT 1);
+$$;
+
+CREATE OR REPLACE FUNCTION on_delete_local_reference() RETURNS TRIGGER
+SET search_path = ''
+SECURITY DEFINER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF public.is_last_local_reference(OLD.space_id, OLD.source_local_id) THEN
+    DELETE FROM public."ResourceAccess" WHERE space_id=OLD.space_id AND source_local_id=OLD.source_local_id;
+    END IF;
+    RETURN OLD;
+END;
+$$;
+
+CREATE TRIGGER on_delete_content_trigger AFTER DELETE ON public."Content" FOR EACH ROW EXECUTE FUNCTION public.on_delete_local_reference();
+CREATE TRIGGER on_delete_concept_trigger AFTER DELETE ON public."Concept" FOR EACH ROW EXECUTE FUNCTION public.on_delete_local_reference();
+CREATE TRIGGER on_delete_document_trigger AFTER DELETE ON public."Document" FOR EACH ROW EXECUTE FUNCTION public.on_delete_local_reference();
+
+CREATE OR REPLACE FUNCTION on_update_local_reference() RETURNS TRIGGER
+SET search_path = ''
+SECURITY DEFINER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF (OLD.space_id IS DISTINCT FROM NEW.space_id OR
+        OLD.source_local_id IS DISTINCT FROM NEW.source_local_id)
+    AND public.is_last_local_reference(OLD.space_id, OLD.source_local_id) THEN
+        DELETE FROM public."ResourceAccess" WHERE space_id=OLD.space_id AND source_local_id=OLD.source_local_id;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_update_content_trigger AFTER UPDATE ON public."Content" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
+CREATE TRIGGER on_update_concept_trigger AFTER UPDATE ON public."Concept" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
+CREATE TRIGGER on_update_document_trigger AFTER UPDATE ON public."Document" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
+
+CREATE OR REPLACE FUNCTION public.on_delete_space_revoke_local_access() RETURNS TRIGGER
+SET search_path = ''
+SECURITY DEFINER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    DELETE FROM public."ResourceAccess" WHERE space_id=OLD.id;
+    RETURN OLD;
+END;
+$$;
+
+CREATE TRIGGER on_delete_space_revoke_access_trigger AFTER DELETE ON public."Space" FOR EACH ROW EXECUTE FUNCTION public.on_delete_space_revoke_local_access();

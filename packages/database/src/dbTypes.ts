@@ -226,36 +226,6 @@ export type Database = {
           },
         ]
       }
-      ConceptAccess: {
-        Row: {
-          account_uid: string
-          concept_id: number
-        }
-        Insert: {
-          account_uid: string
-          concept_id: number
-        }
-        Update: {
-          account_uid?: string
-          concept_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ConceptAccess_concept_id_fkey"
-            columns: ["concept_id"]
-            isOneToOne: false
-            referencedRelation: "Concept"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ConceptAccess_concept_id_fkey"
-            columns: ["concept_id"]
-            isOneToOne: false
-            referencedRelation: "my_concepts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       Content: {
         Row: {
           author_id: number | null
@@ -429,43 +399,6 @@ export type Database = {
             columns: ["contributor_id"]
             isOneToOne: false
             referencedRelation: "PlatformAccount"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ContentAccess: {
-        Row: {
-          account_uid: string
-          content_id: number
-        }
-        Insert: {
-          account_uid: string
-          content_id: number
-        }
-        Update: {
-          account_uid?: string
-          content_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ContentAccess_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "Content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ContentAccess_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "my_contents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ContentAccess_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "my_contents_with_embedding_openai_text_embedding_3_small_1536"
             referencedColumns: ["id"]
           },
         ]
@@ -673,6 +606,24 @@ export type Database = {
           name?: string
           platform?: Database["public"]["Enums"]["Platform"]
           write_permission?: boolean
+        }
+        Relationships: []
+      }
+      ResourceAccess: {
+        Row: {
+          account_uid: string
+          source_local_id: string
+          space_id: number
+        }
+        Insert: {
+          account_uid: string
+          source_local_id: string
+          space_id: number
+        }
+        Update: {
+          account_uid?: string
+          source_local_id?: string
+          space_id?: number
         }
         Relationships: []
       }
@@ -1346,8 +1297,10 @@ export type Database = {
         }
       }
       can_access_account: { Args: { account_uid: string }; Returns: boolean }
-      can_view_specific_concept: { Args: { id: number }; Returns: boolean }
-      can_view_specific_content: { Args: { id: number }; Returns: boolean }
+      can_view_specific_resource: {
+        Args: { source_local_id_: string; space_id_: number }
+        Returns: boolean
+      }
       compute_arity_local: {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
@@ -1524,6 +1477,10 @@ export type Database = {
             }
           }
       is_group_admin: { Args: { group_id_: string }; Returns: boolean }
+      is_last_local_reference: {
+        Args: { source_local_id_: string; space_id_: number }
+        Returns: boolean
+      }
       is_my_account: { Args: { account_id: number }; Returns: boolean }
       match_content_embeddings: {
         Args: {
@@ -1933,4 +1890,3 @@ export const Constants = {
     },
   },
 } as const
-
