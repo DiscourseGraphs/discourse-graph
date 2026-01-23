@@ -272,7 +272,14 @@ export default class DiscourseGraphPlugin extends Plugin {
       const keysToHide: string[] = [];
 
       if (!this.settings.showIdsInFrontmatter) {
-        keysToHide.push("nodeTypeId");
+        keysToHide.push(
+          ...[
+            "nodeTypeId",
+            "importedFromSpaceId",
+            "nodeInstanceId",
+            "publishedToGroups",
+          ],
+        );
         keysToHide.push(...this.settings.relationTypes.map((rt) => rt.id));
       }
 
