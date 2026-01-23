@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
 import generateUid from "~/utils/generateUid";
+import { QueryEngine } from "~/services/QueryEngine";
 
 export const getAvailableGroups = async (
   client: DGSupabaseClient,
@@ -225,6 +227,7 @@ export const fetchNodeMetadata = async ({
   };
 };
 
+
 const sanitizeFileName = (fileName: string): string => {
   // Remove invalid characters for file names
   return fileName
@@ -413,9 +416,9 @@ const processFileContent = async ({
   sourceSpaceId: number;
   rawContent: string;
   filePath: string;
-}): Promise<void> => {
+}): Promise<{ file: TFile; error?: string }> => {
   const { frontmatter } = parseFrontmatter(rawContent);
-  const sourceNodeTypeId = frontmatter.nodeTypeId
+  const sourceNodeTypeId = frontmatter.nodeTypeId;
 
   let mappedNodeTypeId: string | undefined;
   if (sourceNodeTypeId && typeof sourceNodeTypeId === "string") {
@@ -427,14 +430,20 @@ const processFileContent = async ({
     });
   }
 
-  const file = await plugin.app.vault.create(filePath, rawContent);
-
+  let file: TFile | null = plugin.app.vault.getFileByPath(filePath);
+  if (!file) {
+    file = await plugin.app.vault.create(filePath, rawContent);
+  } else {
+    await plugin.app.vault.modify(file, rawContent);
+  }
   await plugin.app.fileManager.processFrontMatter(file, (fm) => {
     if (mappedNodeTypeId !== undefined) {
       (fm as Record<string, unknown>).nodeTypeId = mappedNodeTypeId;
     }
     (fm as Record<string, unknown>).importedFromSpaceId = sourceSpaceId;
   });
+
+  return { file };
 };
 
 export const importSelectedNodes = async ({
@@ -453,6 +462,8 @@ export const importSelectedNodes = async ({
   if (!context) {
     throw new Error("Cannot get Supabase context");
   }
+
+  const queryEngine = new QueryEngine(plugin.app);
 
   let successCount = 0;
   let failedCount = 0;
@@ -480,6 +491,12 @@ export const importSelectedNodes = async ({
     // Process each node in this space
     for (const node of nodes) {
       try {
+        // Check if file already exists by nodeInstanceId + importedFromSpaceId
+        const existingFile = queryEngine.findExistingImportedFile(
+          node.nodeInstanceId,
+          node.spaceId,
+        );
+
         // Fetch the file name (direct variant) and content (full variant)
         const fileName = await fetchNodeContent({
           client,
@@ -504,34 +521,62 @@ export const importSelectedNodes = async ({
         });
 
         if (content === null) {
-          console.warn(
-            `No full variant found for node ${node.nodeInstanceId}`,
-          );
+          console.warn(`No full variant found for node ${node.nodeInstanceId}`);
           failedCount++;
           continue;
         }
 
         // Sanitize file name
         const sanitizedFileName = sanitizeFileName(fileName);
-        const filePath = `${importFolderPath}/${sanitizedFileName}.md`;
+        let finalFilePath: string;
 
-        // Check if file already exists and handle duplicates
-        let finalFilePath = filePath;
-        let counter = 1;
-        while (await plugin.app.vault.adapter.exists(finalFilePath)) {
-          finalFilePath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
-          counter++;
+        if (existingFile) {
+          // Update existing file - use its current path
+          finalFilePath = existingFile.path;
+        } else {
+          // Create new file in the import folder
+          finalFilePath = `${importFolderPath}/${sanitizedFileName}.md`;
+
+          // Check if file path already exists (edge case: same title but different nodeInstanceId)
+          let counter = 1;
+          while (await plugin.app.vault.adapter.exists(finalFilePath)) {
+            finalFilePath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
+            counter++;
+          }
         }
 
         // Process the file content (maps nodeTypeId, handles frontmatter)
-        // This creates the file and uses Obsidian's processFrontMatter API
-        await processFileContent({
+        // This updates existing file or creates new one
+        const result = await processFileContent({
           plugin,
           client,
           sourceSpaceId: node.spaceId,
           rawContent: content,
           filePath: finalFilePath,
         });
+
+        if (result.error) {
+          console.error(
+            `Error processing file content for node ${node.nodeInstanceId}:`,
+            result.error,
+          );
+          failedCount++;
+          continue;
+        }
+
+        // If title changed and file exists, rename it to match the new title
+        const processedFile = result.file;
+        if (existingFile && processedFile.basename !== sanitizedFileName) {
+          const newPath = `${importFolderPath}/${sanitizedFileName}.md`;
+          let targetPath = newPath;
+          let counter = 1;
+          while (await plugin.app.vault.adapter.exists(targetPath)) {
+            targetPath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
+            counter++;
+          }
+          await plugin.app.fileManager.renameFile(processedFile, targetPath);
+        }
+
         successCount++;
       } catch (error) {
         console.error(
@@ -544,4 +589,81 @@ export const importSelectedNodes = async ({
   }
 
   return { success: successCount, failed: failedCount };
+};
+
+/**
+ * Refresh a single imported file by fetching the latest content from the database
+ * Reuses the same logic as importSelectedNodes by treating it as a single-node import
+ */
+export const refreshImportedFile = async ({
+  plugin,
+  file,
+  client,
+}: {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+  client?: DGSupabaseClient;
+}): Promise<{ success: boolean; error?: string }> => {
+  const supabaseClient = client || await getLoggedInClient(plugin);
+  if (!supabaseClient) {
+    throw new Error("Cannot get Supabase client");
+  }
+  const cache = plugin.app.metadataCache.getFileCache(file);
+  const frontmatter = cache?.frontmatter;
+  const spaceName = await getSpaceName(supabaseClient, frontmatter?.importedFromSpaceId as number);
+  const result = await importSelectedNodes({ plugin, selectedNodes: [{
+    nodeInstanceId: frontmatter?.nodeInstanceId as string,
+    title: file.basename,
+    spaceId: frontmatter?.importedFromSpaceId as number,
+    spaceName: spaceName,
+    groupId: frontmatter?.publishedToGroups?.[0] as string,
+    selected: false,
+  }] });
+  return { success: result.success > 0, error: result.failed > 0 ? "Failed to refresh imported file" : undefined };
+};
+
+/**
+ * Refresh all imported files in the vault
+ */
+export const refreshAllImportedFiles = async (
+  plugin: DiscourseGraphPlugin,
+): Promise<{ success: number; failed: number; errors: Array<{ file: string; error: string }> }> => {
+  const allFiles = plugin.app.vault.getMarkdownFiles();
+  const importedFiles: TFile[] = [];
+  const client = await getLoggedInClient(plugin);
+  if (!client) {
+    throw new Error("Cannot get Supabase client");
+  }
+  // Find all imported files
+  for (const file of allFiles) {
+    const cache = plugin.app.metadataCache.getFileCache(file);
+    const frontmatter = cache?.frontmatter;
+    if (frontmatter?.importedFromSpaceId && frontmatter?.nodeInstanceId) {
+      importedFiles.push(file);
+    }
+  }
+
+  if (importedFiles.length === 0) {
+    return { success: 0, failed: 0, errors: [] };
+  }
+
+  let successCount = 0;
+  let failedCount = 0;
+  const errors: Array<{ file: string; error: string }> = [];
+
+  // Refresh each file
+  for (const file of importedFiles) {
+    const result = await refreshImportedFile({ plugin, file, client });
+    if (result.success) {
+      successCount++;
+    } else {
+      failedCount++;
+      errors.push({
+        file: file.path,
+        error: result.error || "Unknown error",
+      });
+    }
+  }
+
+  return { success: successCount, failed: failedCount, errors };
 };
