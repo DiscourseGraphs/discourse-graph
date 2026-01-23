@@ -67,7 +67,6 @@ export type ImportableNode = {
   spaceId: number;
   spaceName: string;
   groupId: string;
-  groupName?: string;
   selected: boolean;
 };
 

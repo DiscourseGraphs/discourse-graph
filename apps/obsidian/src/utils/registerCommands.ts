@@ -5,6 +5,7 @@ import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
 import { ImportNodesModal } from "~/components/ImportNodesModal";
 import { createDiscourseNode } from "./createNode";
+import { refreshAllImportedFiles } from "./importNodes";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
 import { createOrUpdateDiscourseEmbedding } from "./syncDgNodesToSupabase";
@@ -84,6 +85,47 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       }
       if (!checking) {
         new ImportNodesModal(plugin.app, plugin).open();
+      }
+      return true;
+    },
+  });
+
+  plugin.addCommand({
+    id: "refresh-imported-nodes",
+    name: "Fetch latest content from imported nodes",
+    checkCallback: (checking: boolean) => {
+      if (!plugin.settings.syncModeEnabled) {
+        if (!checking) {
+          new Notice("Sync mode is not enabled", 3000);
+        }
+        return false;
+      }
+      if (!checking) {
+        void refreshAllImportedFiles(plugin)
+          .then((result) => {
+            if (result.failed > 0) {
+              new Notice(
+                `Refresh completed with some issues:\n${result.success} file(s) refreshed successfully\n${result.failed} file(s) failed`,
+                5000,
+              );
+              if (result.errors.length > 0) {
+                console.error("Refresh errors:", result.errors);
+              }
+            } else if (result.success > 0) {
+              new Notice(
+                `Successfully refreshed ${result.success} imported node(s)`,
+                3000,
+              );
+            } else {
+              new Notice("No imported files found to refresh", 3000);
+            }
+          })
+          .catch((error) => {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            new Notice(`Refresh failed: ${errorMessage}`, 5000);
+            console.error("Refresh failed:", error);
+          });
       }
       return true;
     },
