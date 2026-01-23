@@ -237,6 +237,10 @@ export const collectDiscourseNodesFromVault = async (
       continue;
     }
 
+    if (frontmatter.importedFromSpaceId) {
+      continue;
+    }
+
     const nodeTypeId = frontmatter.nodeTypeId as string;
     if (!nodeTypeId) {
       continue;
@@ -686,6 +690,11 @@ const collectDiscourseNodesFromPaths = async (
     // Not a discourse node
     if (!frontmatter?.nodeTypeId) {
       console.debug(`File is not a DG node: ${filePath}`);
+      continue;
+    }
+
+    if (frontmatter.importedFromSpaceId) {
+      console.debug(`Skipping imported file: ${filePath}`);
       continue;
     }
 
