@@ -65,6 +65,10 @@ const FuzzySelectInput = <T extends Result = Result>({
         setValue(item);
         setIsOpen(false);
       }
+      // Refocus the input after selection to maintain keyboard workflow
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
     },
     [mode, initialUid, setValue, onLockedChange],
   );

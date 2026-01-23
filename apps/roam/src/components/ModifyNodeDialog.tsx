@@ -539,6 +539,7 @@ const ModifyNodeDialog = ({
               disabled={loading}
               mode={mode}
               initialUid={content.uid}
+              autoFocus={true}
             />
           </div>
 
