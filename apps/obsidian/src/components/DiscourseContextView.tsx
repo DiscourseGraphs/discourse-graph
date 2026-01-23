@@ -1,4 +1,4 @@
-import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, TFile, WorkspaceLeaf, Notice } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import DiscourseGraphPlugin from "~/index";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
@@ -6,6 +6,8 @@ import { RelationshipSection } from "~/components/RelationshipSection";
 import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { PluginProvider, usePlugin } from "~/components/PluginContext";
 import { getNodeTypeById } from "~/utils/typeUtils";
+import { refreshImportedFile } from "~/utils/importNodes";
+import { useState } from "react";
 
 type DiscourseContextProps = {
   activeFile: TFile | null;
@@ -13,12 +15,37 @@ type DiscourseContextProps = {
 
 const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const extractContentFromTitle = (format: string, title: string): string => {
     if (!format) return "";
     const regex = getDiscourseNodeFormatExpression(format);
     const match = title.match(regex);
     return match?.[1] ?? title;
+  };
+
+  const handleRefresh = async () => {
+    if (!activeFile || isRefreshing) return;
+
+    setIsRefreshing(true);
+    try {
+      const result = await refreshImportedFile({ plugin, file: activeFile });
+      if (result.success) {
+        new Notice("File refreshed successfully", 3000);
+      } else {
+        new Notice(
+          `Failed to refresh file: ${result.error || "Unknown error"}`,
+          5000,
+        );
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      new Notice(`Refresh failed: ${errorMessage}`, 5000);
+      console.error("Refresh failed:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const renderContent = () => {
@@ -45,6 +72,9 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
     if (!nodeType) {
       return <div>Unknown node type: {frontmatter.nodeTypeId}</div>;
     }
+
+    const isImported = !!frontmatter.importedFromSpaceId;
+
     return (
       <>
         <div className="mb-6">
@@ -56,6 +86,18 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
               />
             )}
             {nodeType.name || "Unnamed Node Type"}
+            {isImported && (
+              <button
+                onClick={() => {
+                  void handleRefresh();
+                }}
+                disabled={isRefreshing}
+                className="ml-auto rounded border px-2 py-1 text-xs"
+                title="Refresh from source"
+              >
+                {isRefreshing ? "Refreshing..." : "🔄 Refresh"}
+              </button>
+            )}
           </div>
 
           {nodeType.format && (

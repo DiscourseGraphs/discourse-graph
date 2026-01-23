@@ -290,6 +290,36 @@ export class QueryEngine {
     }
   }
 
+  /**
+   * Find an existing imported file by nodeInstanceId and importedFromSpaceId
+   * Returns the file if found, null otherwise
+   */
+  findExistingImportedFile = (
+    nodeInstanceId: string,
+    importedFromSpaceId: number,
+  ): TFile | null => {
+    if (this.dc) {
+      try {
+        const dcQuery = `@page and nodeInstanceId = "${nodeInstanceId}" and importedFromSpaceId = ${importedFromSpaceId}`;
+        const results = this.dc.query(dcQuery);
+
+        for (const page of results) {
+          if (page.$path) {
+            const file = this.app.vault.getAbstractFileByPath(page.$path);
+            if (file && file instanceof TFile) {
+              return file;
+            }
+          }
+        }
+        return null;
+      } catch (error) {
+        console.warn("Error querying DataCore for imported file:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+
   private async fallbackScanVault(
     patterns: BulkImportPattern[],
     validNodeTypes: DiscourseNode[],
