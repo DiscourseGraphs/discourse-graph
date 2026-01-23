@@ -3,6 +3,7 @@ import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
+import { ImportNodesModal } from "~/components/ImportNodesModal";
 import { createDiscourseNode } from "./createNode";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
@@ -68,6 +69,23 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     name: "Bulk identify discourse nodes",
     callback: () => {
       new BulkIdentifyDiscourseNodesModal(plugin.app, plugin).open();
+    },
+  });
+
+  plugin.addCommand({
+    id: "import-nodes-from-another-space",
+    name: "Import nodes from another space",
+    checkCallback: (checking: boolean) => {
+      if (!plugin.settings.syncModeEnabled) {
+        if (!checking) {
+          new Notice("Sync mode is not enabled", 3000);
+        }
+        return false;
+      }
+      if (!checking) {
+        new ImportNodesModal(plugin.app, plugin).open();
+      }
+      return true;
     },
   });
 

@@ -61,4 +61,20 @@ export type BulkImportPattern = {
   enabled: boolean;
 };
 
+export type ImportableNode = {
+  nodeInstanceId: string;
+  title: string;
+  spaceId: number;
+  spaceName: string;
+  groupId: string;
+  groupName?: string;
+  selected: boolean;
+};
+
+export type GroupWithNodes = {
+  groupId: string;
+  groupName?: string;
+  nodes: ImportableNode[];
+};
+
 export const VIEW_TYPE_DISCOURSE_CONTEXT = "discourse-context-view";
