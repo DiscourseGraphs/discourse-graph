@@ -25,6 +25,7 @@ import { TldrawView } from "~/components/canvas/TldrawView";
 import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
+import generateUid from "~/utils/generateUid";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -263,7 +264,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     try {
       this.createStyleElement();
 
-      let keysToHide: string[] = [];
+      const keysToHide: string[] = [];
 
       if (!this.settings.showIdsInFrontmatter) {
         keysToHide.push("nodeTypeId");
@@ -318,8 +319,9 @@ export default class DiscourseGraphPlugin extends Plugin {
   async loadSettings() {
     const loadedData = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
+    const changed = this.migrateSettings();
 
-    if (!loadedData || this.hasNewFields(loadedData)) {
+    if (changed || !loadedData || this.hasNewFields(loadedData)) {
       await this.saveSettings();
     } else {
       this.updateFrontmatterStyles();
@@ -333,6 +335,29 @@ export default class DiscourseGraphPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
     this.updateFrontmatterStyles();
+  }
+
+  private migrateSettings(): boolean {
+    let changed = false;
+    const now = new Date().getTime();
+    for (const typeObject of [
+      ...this.settings.nodeTypes,
+      ...this.settings.relationTypes,
+      ...this.settings.discourseRelations,
+    ]) {
+      if (!typeObject.created) {
+        typeObject.created = now;
+        changed = true;
+      }
+      if (!typeObject.modified) {
+        typeObject.modified = now;
+        changed = true;
+      }
+      if (!typeObject.id) {
+        typeObject.id = generateUid("rel3");
+      }
+    }
+    return changed;
   }
 
   private cleanupViewActions() {

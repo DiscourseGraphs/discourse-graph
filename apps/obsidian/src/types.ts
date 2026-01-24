@@ -11,6 +11,8 @@ export type DiscourseNode = {
   color?: string;
   tag?: string;
   keyImage?: boolean;
+  created: number;
+  modified: number;
 };
 
 export type DiscourseRelationType = {
@@ -18,12 +20,17 @@ export type DiscourseRelationType = {
   label: string;
   complement: string;
   color: TldrawColorName;
+  created: number;
+  modified: number;
 };
 
 export type DiscourseRelation = {
+  id: string;
   sourceId: string;
   destinationId: string;
   relationshipTypeId: string;
+  created: number;
+  modified: number;
 };
 
 export type Settings = {

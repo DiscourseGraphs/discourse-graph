@@ -2,12 +2,16 @@ import { TLDefaultSizeStyle } from "tldraw";
 import { DiscourseNode, DiscourseRelationType, Settings } from "~/types";
 import generateUid from "~/utils/generateUid";
 
+const now = new Date().getTime();
+
 export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
   Question: {
     id: generateUid("node"),
     name: "Question",
     format: "QUE - {content}",
     color: "#99890e",
+    created: now,
+    modified: now,
   },
   Claim: {
     id: generateUid("node"),
@@ -15,6 +19,8 @@ export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
     format: "CLM - {content}",
     color: "#7DA13E",
     tag: "clm-candidate",
+    created: now,
+    modified: now,
   },
   Evidence: {
     id: generateUid("node"),
@@ -22,6 +28,8 @@ export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
     format: "EVD - {content}",
     color: "#DB134A",
     tag: "evd-candidate",
+    created: now,
+    modified: now,
   },
 };
 export const DEFAULT_RELATION_TYPES: Record<string, DiscourseRelationType> = {
@@ -30,18 +38,24 @@ export const DEFAULT_RELATION_TYPES: Record<string, DiscourseRelationType> = {
     label: "supports",
     complement: "is supported by",
     color: "green",
+    created: now,
+    modified: now,
   },
   opposes: {
     id: generateUid("relation"),
     label: "opposes",
     complement: "is opposed by",
     color: "red",
+    created: now,
+    modified: now,
   },
   informs: {
     id: generateUid("relation"),
     label: "informs",
     complement: "is informed by",
     color: "grey",
+    created: now,
+    modified: now,
   },
 };
 
@@ -50,19 +64,28 @@ export const DEFAULT_SETTINGS: Settings = {
   relationTypes: Object.values(DEFAULT_RELATION_TYPES),
   discourseRelations: [
     {
+      id: generateUid("rel3"),
       sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
       destinationId: DEFAULT_NODE_TYPES.Question!.id,
       relationshipTypeId: DEFAULT_RELATION_TYPES.informs!.id,
+      created: now,
+      modified: now,
     },
     {
+      id: generateUid("rel3"),
       sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
       destinationId: DEFAULT_NODE_TYPES.Claim!.id,
       relationshipTypeId: DEFAULT_RELATION_TYPES.supports!.id,
+      created: now,
+      modified: now,
     },
     {
+      id: generateUid("rel3"),
       sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
       destinationId: DEFAULT_NODE_TYPES.Claim!.id,
       relationshipTypeId: DEFAULT_RELATION_TYPES.opposes!.id,
+      created: now,
+      modified: now,
     },
   ],
   showIdsInFrontmatter: false,
