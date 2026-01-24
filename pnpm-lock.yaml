@@ -184,6 +184,9 @@ importers:
       typescript:
         specifier: 5.5.4
         version: 5.5.4
+      uuidv7:
+        specifier: 1.1.0
+        version: 1.1.0
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -15225,6 +15228,13 @@ packages:
       }
     hasBin: true
 
+  uuidv7@1.1.0:
+    resolution:
+      {
+        integrity: sha512-2VNnOC0+XQlwogChUDzy6pe8GQEys9QFZBGOh54l6qVfwoCUwwRvk7rDTgaIsRgsF5GFa5oiNg8LqXE3jofBBg==,
+      }
+    hasBin: true
+
   v8-compile-cache-lib@3.0.1:
     resolution:
       {
@@ -26287,6 +26297,8 @@ snapshots:
   uuid@9.0.0: {}
 
   uuid@9.0.1: {}
+
+  uuidv7@1.1.0: {}
 
   v8-compile-cache-lib@3.0.1: {}
 

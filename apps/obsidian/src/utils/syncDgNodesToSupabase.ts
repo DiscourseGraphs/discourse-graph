@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { uuidv7 } from "uuidv7";
 import { Notice, TFile } from "obsidian";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import { Json } from "@repo/database/dbTypes";
@@ -101,7 +102,10 @@ const deleteNodesFromSupabase = async (
     if (conceptDeleteError) {
       result.success = false;
       result.errors.concept = conceptDeleteError;
-      console.error("Failed to delete concepts from Supabase:", conceptDeleteError);
+      console.error(
+        "Failed to delete concepts from Supabase:",
+        conceptDeleteError,
+      );
     }
 
     const { error: contentDeleteError } = await supabaseClient
@@ -152,7 +156,7 @@ const ensureNodeInstanceId = async (
     return existingId;
   }
 
-  const nodeInstanceId = crypto.randomUUID();
+  const nodeInstanceId = uuidv7();
   await plugin.app.fileManager.processFrontMatter(file, (fm) => {
     (fm as Record<string, unknown>).nodeInstanceId = nodeInstanceId;
   });
@@ -194,7 +198,6 @@ const mergeChangeTypes = (
   const merged = new Set<ChangeType>([...base, ...additional]);
   return Array.from(merged);
 };
-
 
 /**
  * Step 1: Collect all discourse nodes from the vault
@@ -635,10 +638,7 @@ export const syncSpecificFiles = async (
   const changeTypesByPath = new Map<string, ChangeType[]>();
   for (const filePath of filePaths) {
     const existing = changeTypesByPath.get(filePath) ?? [];
-    changeTypesByPath.set(
-      filePath,
-      mergeChangeTypes(existing, ["content"]),
-    );
+    changeTypesByPath.set(filePath, mergeChangeTypes(existing, ["content"]));
   }
 
   await syncDiscourseNodeChanges(plugin, changeTypesByPath);
