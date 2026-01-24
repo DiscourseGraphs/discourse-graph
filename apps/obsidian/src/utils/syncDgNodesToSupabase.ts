@@ -163,7 +163,8 @@ const ensureNodeInstanceId = async (
 
   return nodeInstanceId;
 };
-const getLastSyncTime = async (
+
+const getLastContentSyncTime = async (
   supabaseClient: DGSupabaseClient,
   spaceId: number,
 ): Promise<Date> => {
@@ -174,7 +175,22 @@ const getLastSyncTime = async (
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return new Date(data?.last_modified || DEFAULT_TIME);
+  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
+};
+
+const getLastSchemaSyncTime = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<Date> => {
+  const { data } = await supabaseClient
+    .from("Concept")
+    .select("last_modified")
+    .eq("space_id", spaceId)
+    .eq("is_schema", true)
+    .order("last_modified", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
 };
 
 type DiscourseNodeInVault = {
@@ -365,7 +381,10 @@ const buildChangedNodesFromNodes = async ({
     nodeInstanceIds,
   );
 
-  const lastSyncTime = await getLastSyncTime(supabaseClient, context.spaceId);
+  const lastSyncTime = await getLastContentSyncTime(
+    supabaseClient,
+    context.spaceId,
+  );
   const changedNodes: ObsidianDiscourseNodeData[] = [];
 
   for (const node of nodes) {
@@ -505,9 +524,14 @@ const convertDgToSupabaseConcepts = async ({
   accountLocalId: string;
   plugin: DiscourseGraphPlugin;
 }): Promise<void> => {
-  const nodeTypes = plugin.settings.nodeTypes ?? [];
+  const lastSchemaSync = (
+    await getLastSchemaSyncTime(supabaseClient, context.spaceId)
+  ).getTime();
+  const newNodeTypes = (plugin.settings.nodeTypes ?? []).filter(
+    (n) => n.modified > lastSchemaSync,
+  );
 
-  const nodesTypesToLocalConcepts = nodeTypes.map((nodeType) =>
+  const nodesTypesToLocalConcepts = newNodeTypes.map((nodeType) =>
     discourseNodeSchemaToLocalConcept({
       context,
       node: nodeType,
@@ -528,21 +552,23 @@ const convertDgToSupabaseConcepts = async ({
     ...nodeInstanceToLocalConcepts,
   ];
 
-  const { ordered } = orderConceptsByDependency(conceptsToUpsert);
+  if (conceptsToUpsert.length > 0) {
+    const { ordered } = orderConceptsByDependency(conceptsToUpsert);
 
-  const { error } = await supabaseClient.rpc("upsert_concepts", {
-    data: ordered as Json,
-    v_space_id: context.spaceId,
-  });
+    const { error } = await supabaseClient.rpc("upsert_concepts", {
+      data: ordered as Json,
+      v_space_id: context.spaceId,
+    });
 
-  if (error) {
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : typeof error === "string"
-          ? error
-          : JSON.stringify(error, null, 2);
-    throw new Error(`upsert_concepts failed: ${errorMessage}`);
+    if (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : JSON.stringify(error, null, 2);
+      throw new Error(`upsert_concepts failed: ${errorMessage}`);
+    }
   }
 };
 
