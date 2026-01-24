@@ -33,16 +33,16 @@ export const discourseNodeSchemaToLocalConcept = ({
   node: DiscourseNode;
   accountLocalId: string;
 }): LocalConceptDataInput => {
-  const now = new Date().toISOString();
-  const { description, template, id, name, ...otherData } = node;
+  const { description, template, id, name, created, modified, ...otherData } =
+    node;
   return {
     space_id: context.spaceId,
     name: name,
     source_local_id: id,
     is_schema: true,
     author_local_id: accountLocalId,
-    created: now,
-    last_modified: now,
+    created: new Date(created).toISOString(),
+    last_modified: new Date(modified).toISOString(),
     description: description,
     literal_content: {
       label: name,
