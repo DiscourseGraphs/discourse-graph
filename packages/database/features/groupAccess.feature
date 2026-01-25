@@ -18,19 +18,26 @@ Feature: Group content access
     When Document are added to the database:
       | $id | source_local_id | created    | last_modified | _author_id | _space_id |
       | d1  | ld1             | 2025/01/01 |    2025/01/01 | user1      | s1        |
+      | d2  | ld2             | 2025/01/01 |    2025/01/01 | user1      | s1        |
     And Content are added to the database:
-      | $id | source_local_id | _document_id | text  | created    | last_modified | scale    | _author_id | _space_id |
-      | ct1 | lct1            | d1           | Claim | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
+      | $id | source_local_id | _document_id | text    | created    | last_modified | scale    | _author_id | _space_id |
+      | ct1 | lct1            | d1           | Claim 1 | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
+      | ct2 | lct2            | d2           | Claim 2 | 2025/01/01 |    2025/01/01 | document | user1      | s1        |
     Then a user logged in space s1 should see 2 PlatformAccount in the database
-    And a user logged in space s1 should see 1 Content in the database
+    And a user logged in space s1 should see 2 Content in the database
     And a user logged in space s2 should see 2 PlatformAccount in the database
     But a user logged in space s2 should see 0 Content in the database
     When user of space s1 creates group my_group
     And user of space s1 adds space s2 to group my_group
-    Then a user logged in space s1 should see 1 Content in the database
+    Then a user logged in space s1 should see 2 Content in the database
     But a user logged in space s2 should see 0 Content in the database
+    And a user logged in space s2 should see 1 Space in the database
     And ResourceAccess are added to the database:
       | _account_uid | _space_id | source_local_id |
       | my_group     | s1        | lct1            |
-    Then a user logged in space s1 should see 1 Content in the database
+    And SpaceAccess are added to the database:
+      | _account_uid | _space_id | permissions |
+      | my_group     | s1        | partial     |
+    Then a user logged in space s1 should see 2 Content in the database
     Then a user logged in space s2 should see 1 Content in the database
+    And a user logged in space s2 should see 2 Space in the database
