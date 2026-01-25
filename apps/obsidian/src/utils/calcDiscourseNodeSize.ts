@@ -32,11 +32,9 @@ export const calcDiscourseNodeSize = async ({
   fontFamily = "draw",
 }: CalcNodeSizeParams): Promise<{ w: number; h: number }> => {
   const nodeType = getNodeTypeById(plugin, nodeTypeId);
-  const nodeTypeName = nodeType?.name || "";
 
   const { w, h: textHeight } = measureNodeText({
     title,
-    subtitle: nodeTypeName,
     size,
     fontFamily,
   });
