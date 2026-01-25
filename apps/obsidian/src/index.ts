@@ -355,6 +355,7 @@ export default class DiscourseGraphPlugin extends Plugin {
       }
       if (!typeObject.id) {
         typeObject.id = generateUid("rel3");
+        changed = true;
       }
     }
     return changed;
