@@ -47,7 +47,6 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         return;
       }
 
-      // Get user's groups
       const groups = await getAvailableGroups(client);
       if (groups.length === 0) {
         new Notice("You are not a member of any groups");
@@ -57,29 +56,23 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
 
       const groupIds = groups.map((g) => g.group_id);
 
-      // Get published nodes for these groups
       const publishedNodes = await getPublishedNodesForGroups({
         client,
         groupIds,
         currentSpaceId: context.spaceId,
       });
 
-      // Get local nodeInstanceIds to filter out existing nodes
       const localNodeInstanceIds = await getLocalNodeInstanceIds(plugin);
-      const localIdsSet = new Set(localNodeInstanceIds);
 
       // Filter out nodes that already exist locally
       const importableNodes = publishedNodes.filter(
-        (node) => !localIdsSet.has(node.source_local_id),
+        (node) => !localNodeInstanceIds.has(node.source_local_id),
       );
 
-      // Get space names
       const uniqueSpaceIds = [
         ...new Set(importableNodes.map((n) => n.space_id)),
       ];
       const spaceNames = await getSpaceNames(client, uniqueSpaceIds);
-      console.log("spaceNames", spaceNames);
-      // Group nodes by group and space
       const grouped: Map<string, GroupWithNodes> = new Map();
 
       for (const node of importableNodes) {
@@ -156,7 +149,13 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
     setImportProgress({ current: 0, total: selectedNodes.length });
 
     try {
-      const result = await importSelectedNodes({ plugin, selectedNodes });
+      const result = await importSelectedNodes({
+        plugin,
+        selectedNodes,
+        onProgress: (current, total) => {
+          setImportProgress({ current, total });
+        },
+      });
 
       if (result.failed > 0) {
         new Notice(
