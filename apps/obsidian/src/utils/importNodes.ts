@@ -67,12 +67,18 @@ export const getPublishedNodesForGroups = async ({
     }
   }
 
-  // Fetch Content with variant "direct" for all these nodes
-  const spaceIdSourceIdPairs = Array.from(nodeKeys).map((key) => {
+  // Group nodes by space_id for batched queries
+  const nodesBySpace = new Map<number, Set<string>>();
+  for (const key of nodeKeys) {
     const [spaceId, sourceLocalId] = key.split(":");
-    return { spaceId: parseInt(spaceId || "0", 10), sourceLocalId: sourceLocalId || "" };
-  });
+    const spaceIdNum = parseInt(spaceId || "0", 10);
+    if (!nodesBySpace.has(spaceIdNum)) {
+      nodesBySpace.set(spaceIdNum, new Set<string>());
+    }
+    nodesBySpace.get(spaceIdNum)!.add(sourceLocalId || "");
+  }
 
+  // Fetch Content with variant "direct" for all nodes, batched by space
   const nodes: Array<{
     source_local_id: string;
     space_id: number;
@@ -80,26 +86,43 @@ export const getPublishedNodesForGroups = async ({
     account_uid: string;
   }> = [];
 
-  for (const { spaceId, sourceLocalId } of spaceIdSourceIdPairs) {
-    const { data: contentData } = await client
+  for (const [spaceId, sourceLocalIds] of nodesBySpace.entries()) {
+    const sourceLocalIdsArray = Array.from(sourceLocalIds);
+    if (sourceLocalIdsArray.length === 0) {
+      continue;
+    }
+
+    // Single query for all nodes in this space
+    const { data: contentDataArray } = await client
       .from("Content")
-      .select("text")
-      .eq("source_local_id", sourceLocalId)
+      .select("source_local_id, text")
       .eq("space_id", spaceId)
       .eq("variant", "direct")
-      .maybeSingle();
+      .in("source_local_id", sourceLocalIdsArray);
 
-    if (contentData?.text) {
-      const relevantRAs = resourceAccessData.filter(
-        (ra) =>
-          ra.source_local_id === sourceLocalId && ra.space_id === spaceId,
-      );
+    if (!contentDataArray || contentDataArray.length === 0) {
+      continue;
+    }
 
-      for (const ra of relevantRAs) {
+    // Create a map for quick lookup
+    const contentMap = new Map<string, string>();
+    for (const content of contentDataArray) {
+      if (content.source_local_id && content.text) {
+        contentMap.set(content.source_local_id, content.text);
+      }
+    }
+
+    // Match content with ResourceAccess entries
+    for (const ra of resourceAccessData) {
+      if (
+        ra.space_id === spaceId &&
+        ra.source_local_id &&
+        contentMap.has(ra.source_local_id)
+      ) {
         nodes.push({
-          source_local_id: sourceLocalId,
+          source_local_id: ra.source_local_id,
           space_id: spaceId,
-          text: contentData.text,
+          text: contentMap.get(ra.source_local_id)!,
           account_uid: ra.account_uid,
         });
       }
@@ -120,10 +143,7 @@ export const getLocalNodeInstanceIds = async (
     const frontmatter = cache?.frontmatter;
 
     if (frontmatter?.nodeInstanceId) {
-      const nodeInstanceId = frontmatter.nodeInstanceId as string;
-      if (nodeInstanceId) {
-        nodeInstanceIds.add(nodeInstanceId);
-      }
+      nodeInstanceIds.add(frontmatter.nodeInstanceId as string);
     }
   }
 
@@ -269,7 +289,7 @@ const parseFrontmatter = (content: string): {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!line) continue;
-    
+
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
 
@@ -280,34 +300,50 @@ const parseFrontmatter = (content: string): {
     const valueStr = trimmed.slice(colonIndex + 1).trim();
     let value: unknown = valueStr;
 
-    // Handle array values (simple parsing for publishedToGroups)
-    if (valueStr.startsWith("-")) {
+    // Handle array values: inline (valueStr starts with "-") or block (valueStr empty, next lines start with "-")
+    const isInlineArrayStart = valueStr.startsWith("-");
+    const isEmptyValue = !valueStr || valueStr.trim() === "";
+
+    if (isInlineArrayStart || isEmptyValue) {
       const arrayValues: string[] = [];
-      let currentLine: string | undefined = trimmed;
       let nextLineIndex = i + 1;
 
-      // Collect array items
-      while (currentLine && currentLine.trim().startsWith("-")) {
-        const itemValue = currentLine.slice(1).trim();
+      // First item on same line (inline): "key: - item"
+      if (isInlineArrayStart) {
+        const firstItem = valueStr.slice(1).trim();
+        if (firstItem) arrayValues.push(firstItem);
+      }
+
+      // Collect array items from subsequent lines that trim-start with "-"
+      let currentLine: string | undefined =
+        nextLineIndex < lines.length ? lines[nextLineIndex] : undefined;
+      while (currentLine != null && currentLine.trim().startsWith("-")) {
+        const itemValue = currentLine.trim().slice(1).trim();
         if (itemValue) arrayValues.push(itemValue);
-        if (nextLineIndex < lines.length) {
-          currentLine = lines[nextLineIndex];
-          nextLineIndex++;
-        } else {
-          break;
-        }
+        nextLineIndex++;
+        currentLine =
+          nextLineIndex < lines.length ? lines[nextLineIndex] : undefined;
       }
-      value = arrayValues.length > 0 ? arrayValues : [trimmed.slice(1).trim()];
+
+      value =
+        arrayValues.length > 0
+          ? arrayValues
+          : isInlineArrayStart
+            ? [valueStr.slice(1).trim()]
+            : [];
+      frontmatter[key] = value;
+      i = nextLineIndex - 1; // skip consumed lines
+      continue;
+    }
+
+    // Scalar value: remove quotes if present
+    if (
+      (valueStr.startsWith('"') && valueStr.endsWith('"')) ||
+      (valueStr.startsWith("'") && valueStr.endsWith("'"))
+    ) {
+      value = valueStr.slice(1, -1);
     } else {
-      // Remove quotes if present
-      if (
-        (valueStr.startsWith('"') && valueStr.endsWith('"')) ||
-        (valueStr.startsWith("'") && valueStr.endsWith("'"))
-      ) {
-        value = valueStr.slice(1, -1);
-      } else {
-        value = valueStr;
-      }
+      value = valueStr;
     }
 
     frontmatter[key] = value;
@@ -417,8 +453,18 @@ const processFileContent = async ({
   rawContent: string;
   filePath: string;
 }): Promise<{ file: TFile; error?: string }> => {
+  // 1. Create or update the file with the fetched content first
+  let file: TFile | null = plugin.app.vault.getFileByPath(filePath);
+  if (!file) {
+    file = await plugin.app.vault.create(filePath, rawContent);
+  } else {
+    await plugin.app.vault.modify(file, rawContent);
+  }
+
+  // 2. Parse frontmatter from rawContent (metadataCache is updated async and is
+  //    often empty immediately after create/modify), then map nodeTypeId and  update frontmatter.
   const { frontmatter } = parseFrontmatter(rawContent);
-  const sourceNodeTypeId = frontmatter.nodeTypeId;
+  const sourceNodeTypeId = frontmatter.nodeTypeId as string | undefined;
 
   let mappedNodeTypeId: string | undefined;
   if (sourceNodeTypeId && typeof sourceNodeTypeId === "string") {
@@ -430,12 +476,6 @@ const processFileContent = async ({
     });
   }
 
-  let file: TFile | null = plugin.app.vault.getFileByPath(filePath);
-  if (!file) {
-    file = await plugin.app.vault.create(filePath, rawContent);
-  } else {
-    await plugin.app.vault.modify(file, rawContent);
-  }
   await plugin.app.fileManager.processFrontMatter(file, (fm) => {
     if (mappedNodeTypeId !== undefined) {
       (fm as Record<string, unknown>).nodeTypeId = mappedNodeTypeId;
@@ -449,9 +489,11 @@ const processFileContent = async ({
 export const importSelectedNodes = async ({
   plugin,
   selectedNodes,
+  onProgress,
 }: {
   plugin: DiscourseGraphPlugin;
   selectedNodes: ImportableNode[];
+  onProgress?: (current: number, total: number) => void;
 }): Promise<{ success: number; failed: number }> => {
   const client = await getLoggedInClient(plugin);
   if (!client) {
@@ -467,6 +509,8 @@ export const importSelectedNodes = async ({
 
   let successCount = 0;
   let failedCount = 0;
+  let processedCount = 0;
+  const totalNodes = selectedNodes.length;
 
   // Group nodes by space to create folders efficiently
   const nodesBySpace = new Map<number, ImportableNode[]>();
@@ -483,7 +527,8 @@ export const importSelectedNodes = async ({
     const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
 
     // Ensure the folder exists
-    const folderExists = await plugin.app.vault.adapter.exists(importFolderPath);
+    const folderExists =
+      await plugin.app.vault.adapter.exists(importFolderPath);
     if (!folderExists) {
       await plugin.app.vault.createFolder(importFolderPath);
     }
@@ -496,6 +541,8 @@ export const importSelectedNodes = async ({
           node.nodeInstanceId,
           node.spaceId,
         );
+
+        console.log("existingFile", existingFile);
 
         // Fetch the file name (direct variant) and content (full variant)
         const fileName = await fetchNodeContent({
@@ -510,6 +557,8 @@ export const importSelectedNodes = async ({
             `No direct variant found for node ${node.nodeInstanceId}`,
           );
           failedCount++;
+          processedCount++;
+          onProgress?.(processedCount, totalNodes);
           continue;
         }
 
@@ -523,6 +572,8 @@ export const importSelectedNodes = async ({
         if (content === null) {
           console.warn(`No full variant found for node ${node.nodeInstanceId}`);
           failedCount++;
+          processedCount++;
+          onProgress?.(processedCount, totalNodes);
           continue;
         }
 
@@ -561,6 +612,8 @@ export const importSelectedNodes = async ({
             result.error,
           );
           failedCount++;
+          processedCount++;
+          onProgress?.(processedCount, totalNodes);
           continue;
         }
 
@@ -578,12 +631,13 @@ export const importSelectedNodes = async ({
         }
 
         successCount++;
+        processedCount++;
+        onProgress?.(processedCount, totalNodes);
       } catch (error) {
-        console.error(
-          `Error importing node ${node.nodeInstanceId}:`,
-          error,
-        );
+        console.error(`Error importing node ${node.nodeInstanceId}:`, error);
         failedCount++;
+        processedCount++;
+        onProgress?.(processedCount, totalNodes);
       }
     }
   }
@@ -609,16 +663,35 @@ export const refreshImportedFile = async ({
     throw new Error("Cannot get Supabase client");
   }
   const cache = plugin.app.metadataCache.getFileCache(file);
-  const frontmatter = cache?.frontmatter;
-  const spaceName = await getSpaceName(supabaseClient, frontmatter?.importedFromSpaceId as number);
-  const result = await importSelectedNodes({ plugin, selectedNodes: [{
-    nodeInstanceId: frontmatter?.nodeInstanceId as string,
-    title: file.basename,
-    spaceId: frontmatter?.importedFromSpaceId as number,
-    spaceName: spaceName,
-    groupId: frontmatter?.publishedToGroups?.[0] as string,
-    selected: false,
-  }] });
+  const frontmatter = cache?.frontmatter as Record<string, unknown>;
+  if (
+    !frontmatter.importedFromSpaceId ||
+    !frontmatter.nodeInstanceId ||
+    !frontmatter.publishedToGroups
+  ) {
+    return {
+      success: false,
+      error:
+        "Missing frontmatter: importedFromSpaceId or nodeInstanceId or publishedToGroups",
+    };
+  }
+  const spaceName = await getSpaceName(
+    supabaseClient,
+    frontmatter.importedFromSpaceId as number,
+  );
+  const result = await importSelectedNodes({
+    plugin,
+    selectedNodes: [
+      {
+        nodeInstanceId: frontmatter.nodeInstanceId as string,
+        title: file.basename,
+        spaceId: frontmatter.importedFromSpaceId as number,
+        spaceName: spaceName,
+        groupId: (frontmatter.publishedToGroups as string[])[0] ?? "",
+        selected: false,
+      },
+    ],
+  });
   return { success: result.success > 0, error: result.failed > 0 ? "Failed to refresh imported file" : undefined };
 };
 
