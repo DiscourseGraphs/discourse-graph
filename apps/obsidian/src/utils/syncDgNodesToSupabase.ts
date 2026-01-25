@@ -16,7 +16,7 @@ import {
 } from "./conceptConversion";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 
-const DEFAULT_TIME = new Date("1970-01-01");
+const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
 
 export type ObsidianDiscourseNodeData = {
