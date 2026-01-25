@@ -30,24 +30,24 @@ GRANT ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" 
 
 CREATE OR REPLACE VIEW public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS
 SELECT
-    ct.id,
-    ct.document_id,
-    ct.source_local_id,
-    ct.variant,
-    ct.author_id,
-    ct.creator_id,
-    ct.created,
-    ct.text,
-    ct.metadata,
-    ct.scale,
-    ct.space_id,
-    ct.last_modified,
-    ct.part_of_id,
-    emb.model,
-    emb.vector
+ct.id,
+ct.document_id,
+ct.source_local_id,
+ct.variant,
+ct.author_id,
+ct.creator_id,
+ct.created,
+ct.text,
+ct.metadata,
+ct.scale,
+ct.space_id,
+ct.last_modified,
+ct.part_of_id,
+emb.model,
+emb.vector
 FROM public."Content" AS ct
-JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id=emb.target_id)
-WHERE ct.space_id = any(public.my_space_ids()) AND NOT emb.obsolete;
+JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id = emb.target_id)
+WHERE ct.space_id = any (public.my_space_ids ('reader')) AND NOT emb.obsolete ;
 
 set search_path to public, extensions ;
 

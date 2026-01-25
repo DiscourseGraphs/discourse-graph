@@ -95,10 +95,17 @@ GRANT ALL ON TABLE public."LocalAccess" TO authenticated;
 GRANT ALL ON TABLE public."LocalAccess" TO service_role;
 REVOKE ALL ON TABLE public."LocalAccess" FROM anon;
 
+
+CREATE TYPE public."SpaceAccessPermissions" AS ENUM (
+    'partial',
+    'reader',
+    'editor'
+);
+
 CREATE TABLE IF NOT EXISTS public."SpaceAccess" (
     account_uid UUID NOT NULL,
     space_id bigint NOT NULL,
-    editor boolean NOT NULL
+    permissions public."SpaceAccessPermissions" NOT NULL
 );
 
 ALTER TABLE ONLY public."SpaceAccess"
@@ -111,6 +118,8 @@ COMMENT ON TABLE public."SpaceAccess" IS 'An access control entry for a space';
 COMMENT ON COLUMN public."SpaceAccess".space_id IS 'The space in which the content is located';
 
 COMMENT ON COLUMN public."SpaceAccess".account_uid IS 'The identity of the user account';
+
+COMMENT ON COLUMN public."SpaceAccess".permissions IS 'The permission this account has on this space';
 
 ALTER TABLE ONLY public."SpaceAccess"
 ADD CONSTRAINT "SpaceAccess_account_uid_fkey" FOREIGN KEY (
@@ -191,10 +200,14 @@ BEGIN
             name = COALESCE(NULLIF(TRIM(EXCLUDED.name), ''), pa.name)
         RETURNING id, dg_account INTO STRICT account_id_, user_uid;
     IF user_uid IS NOT NULL THEN
-        INSERT INTO public."SpaceAccess" as sa (space_id, account_uid, editor)
-            VALUES (space_id_, user_uid, COALESCE(local_account.space_editor, true))
+        INSERT INTO public."SpaceAccess" as sa (space_id, account_uid, permissions)
+            VALUES (space_id_, user_uid,
+                CASE WHEN COALESCE(local_account.space_editor, true) THEN 'editor'
+                ELSE 'reader' END)
             ON CONFLICT (space_id, account_uid)
-            DO UPDATE SET editor = COALESCE(local_account.space_editor, sa.editor, true);
+            DO UPDATE SET editor = CASE
+                WHEN COALESCE(local_account.space_editor, sa.editor, true) THEN 'editor'
+                ELSE 'reader' END;
     END IF;
     INSERT INTO public."LocalAccess" (space_id, account_id) values (space_id_, account_id_)
         ON CONFLICT (space_id, account_id)
@@ -315,31 +328,7 @@ AS $$
     SELECT EXISTS (SELECT true FROM public.group_membership WHERE group_id = group_id_ LIMIT 1);
 $$;
 
-CREATE OR REPLACE FUNCTION public.my_space_ids() RETURNS BIGINT []
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT COALESCE(array_agg(distinct space_id), '{}') AS ids
-        FROM public."SpaceAccess"
-        JOIN public.my_user_accounts() ON (account_uid = my_user_accounts);
-$$;
-COMMENT ON FUNCTION public.my_space_ids IS 'security utility: all spaces the user has access to';
-
-
-CREATE OR REPLACE FUNCTION public.in_space(space_id BIGINT) RETURNS boolean
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT EXISTS (SELECT 1 FROM public."SpaceAccess" AS sa
-        JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
-        WHERE sa.space_id = in_space.space_id);
-$$;
-
-COMMENT ON FUNCTION public.in_space IS 'security utility: does current user have access to this space?';
-
-CREATE OR REPLACE FUNCTION public.my_editable_space_ids() RETURNS BIGINT []
+CREATE OR REPLACE FUNCTION public.my_space_ids(access_level public."SpaceAccessPermissions" = 'reader') RETURNS BIGINT []
 STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
@@ -347,23 +336,21 @@ AS $$
     SELECT COALESCE(array_agg(distinct space_id), '{}') AS ids
         FROM public."SpaceAccess"
         JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
-        WHERE editor;
+        WHERE permissions >= access_level;
 $$;
-COMMENT ON FUNCTION public.my_editable_space_ids IS 'security utility: all spaces the user has edit access to';
+COMMENT ON FUNCTION public.my_space_ids IS 'security utility: all spaces the user has access to';
 
-
-CREATE OR REPLACE FUNCTION public.editor_in_space(space_id BIGINT) RETURNS boolean
+CREATE OR REPLACE FUNCTION public.in_space(space_id BIGINT, access_level public."SpaceAccessPermissions" = 'reader') RETURNS boolean
 STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
 AS $$
     SELECT EXISTS (SELECT 1 FROM public."SpaceAccess" AS sa
         JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
-        WHERE sa.space_id = editor_in_space.space_id AND sa.editor);
+        WHERE sa.space_id = in_space.space_id AND sa.permissions >= access_level);
 $$;
 
-COMMENT ON FUNCTION public.editor_in_space IS 'security utility: does current user have edit access to this space?';
-
+COMMENT ON FUNCTION public.in_space IS 'security utility: does current user have access to this space?';
 
 CREATE OR REPLACE FUNCTION public.account_in_shared_space(p_account_id BIGINT) RETURNS boolean
 STABLE SECURITY DEFINER
@@ -375,6 +362,7 @@ LANGUAGE sql AS $$
       JOIN public."SpaceAccess" AS sa USING (space_id)
       JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
       WHERE la.account_id = p_account_id
+      AND sa.permissions >= 'reader'
     );
 $$;
 
@@ -392,6 +380,7 @@ LANGUAGE sql AS $$
         JOIN public."PlatformAccount" AS pa ON (pa.id=la.account_id)
         WHERE la.account_id = p_account_id
           AND pa.dg_account IS NULL
+          AND sa.permissions >= 'reader'
     );
 $$;
 
@@ -402,8 +391,12 @@ COMMENT ON FUNCTION public.unowned_account_in_shared_space IS 'security utility:
 ALTER TABLE public."Space" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS space_policy ON public."Space";
-CREATE POLICY space_policy ON public."Space" FOR ALL USING (public.in_space(id));
-
+DROP POLICY IF EXISTS space_select_policy ON public."Space";
+CREATE POLICY space_select_policy ON public."Space" FOR SELECT USING (public.in_space(id, 'partial'));
+DROP POLICY IF EXISTS space_delete_policy ON public."Space";
+CREATE POLICY space_delete_policy ON public."Space" FOR DELETE USING (public.in_space(id, 'editor'));
+DROP POLICY IF EXISTS space_update_policy ON public."Space";
+CREATE POLICY space_update_policy ON public."Space" FOR DELETE USING (public.in_space(id, 'editor'));
 DROP POLICY IF EXISTS space_insert_policy ON public."Space";
 CREATE POLICY space_insert_policy ON public."Space" FOR INSERT WITH CHECK (true);
 
@@ -413,7 +406,7 @@ SELECT
     url,
     name,
     platform
-FROM public."Space" WHERE id = any(public.my_space_ids());
+FROM public."Space" WHERE id = any(public.my_space_ids('partial'));
 
 -- PlatformAccount: Access to anyone sharing a space with you to create an account, to allow editing authors
 -- Once the account is claimed by a user, only allow this user to modify it.
@@ -437,6 +430,7 @@ WHERE id IN (
     SELECT "LocalAccess".account_id FROM public."LocalAccess"
         JOIN public."SpaceAccess" USING (space_id)
         JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
+    WHERE permissions >= 'reader'
 );
 
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount";

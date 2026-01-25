@@ -217,8 +217,9 @@ SELECT
     last_modified,
     author_id,
     contents
-FROM public."Document" WHERE space_id = any(public.my_space_ids())
-    OR public.can_view_specific_resource(space_id, source_local_id);
+FROM
+    public."Document" WHERE space_id = any(public.my_space_ids('reader'))
+OR public.can_view_specific_resource(space_id, source_local_id);
 
 CREATE OR REPLACE VIEW public.my_contents AS
 SELECT
@@ -237,7 +238,7 @@ SELECT
     part_of_id
 FROM public."Content"
 WHERE (
-    space_id = any(public.my_space_ids())
+    space_id = any(public.my_space_ids('reader'))
     OR public.can_view_specific_resource(space_id, source_local_id)
 );
 
@@ -614,25 +615,15 @@ $$;
 
 COMMENT ON FUNCTION public.upsert_content IS 'batch content upsert';
 
-CREATE OR REPLACE FUNCTION public.content_in_space(content_id BIGINT) RETURNS boolean
+CREATE OR REPLACE FUNCTION public.content_in_space(content_id BIGINT, access_level public."SpaceAccessPermissions" = 'reader') RETURNS boolean
 STABLE
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT public.in_space(space_id) FROM public."Content" WHERE id=content_id
+    SELECT public.in_space(space_id, access_level) FROM public."Content" WHERE id=content_id
 $$;
 
 COMMENT ON FUNCTION public.content_in_space IS 'security utility: does current user have access to this content''s space?';
-
-CREATE OR REPLACE FUNCTION public.content_in_editable_space(content_id BIGINT) RETURNS boolean
-STABLE
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT public.editor_in_space(space_id) FROM public."Content" WHERE id=content_id
-$$;
-
-COMMENT ON FUNCTION public.content_in_editable_space IS 'security utility: does current user have editor access to this content''s space?';
 
 CREATE OR REPLACE FUNCTION public.document_in_space(document_id BIGINT) RETURNS boolean
 STABLE
@@ -674,8 +665,8 @@ DROP POLICY IF EXISTS resource_access_policy ON public."ResourceAccess";
 DROP POLICY IF EXISTS resource_access_select_policy ON public."ResourceAccess";
 CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (public.in_space(space_id) OR public.can_access_account(account_uid));
 DROP POLICY IF EXISTS resource_access_delete_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_delete_policy ON public."ResourceAccess" FOR DELETE USING (public.editor_in_space(space_id) OR public.can_access_account(account_uid));
+CREATE POLICY resource_access_delete_policy ON public."ResourceAccess" FOR DELETE USING (public.in_space(space_id, 'editor') OR public.can_access_account(account_uid));
 DROP POLICY IF EXISTS resource_access_insert_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_insert_policy ON public."ResourceAccess" FOR INSERT WITH CHECK (public.editor_in_space(space_id));
+CREATE POLICY resource_access_insert_policy ON public."ResourceAccess" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
 DROP POLICY IF EXISTS resource_access_update_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_update_policy ON public."ResourceAccess" FOR UPDATE USING (public.editor_in_space(space_id));
+CREATE POLICY resource_access_update_policy ON public."ResourceAccess" FOR UPDATE USING (public.in_space(space_id, 'editor'));

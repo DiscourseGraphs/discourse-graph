@@ -32,7 +32,7 @@ SELECT
     last_modified
 FROM public."FileReference"
 WHERE (
-    space_id = any(public.my_space_ids())
+    space_id = any(public.my_space_ids('reader'))
     OR public.can_view_specific_resource(space_id, source_local_id)
 );
 
