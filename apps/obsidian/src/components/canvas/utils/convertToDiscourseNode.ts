@@ -129,7 +129,10 @@ const convertImageShapeToNode = async ({
     plugin,
     initialNodeType: nodeType,
     initialTitle: "",
-    onSubmit: async ({ nodeType: selectedNodeType, title }) => {
+    onSubmit: async ({
+      nodeType: selectedNodeType,
+      title,
+    }) => {
       try {
         const createdFile = await createDiscourseNodeFile({
           plugin,

@@ -20,19 +20,44 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       if (hasSelection) {
         new NodeTypeModal(editor, plugin.settings.nodeTypes, plugin).open();
       } else {
+        const activeView =
+          plugin.app.workspace.getActiveViewOfType(MarkdownView);
+        const currentFile = activeView?.file || undefined;
+
         new ModifyNodeModal(plugin.app, {
           nodeTypes: plugin.settings.nodeTypes,
           plugin,
-          onSubmit: async ({ nodeType, title, selectedExistingNode }) => {
+          currentFile,
+          onSubmit: async ({
+            nodeType,
+            title,
+            selectedExistingNode,
+            relationshipTypeId,
+            relationshipTargetFile,
+          }) => {
             if (selectedExistingNode) {
               editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
             } else {
-              await createDiscourseNode({
+              const newFile = await createDiscourseNode({
                 plugin,
                 nodeType,
                 text: title,
                 editor,
               });
+
+              // Add relationship if specified
+              if (newFile && relationshipTypeId && relationshipTargetFile) {
+                const { addRelationToFrontmatter } = await import(
+                  "~/components/canvas/utils/frontmatterUtils"
+                );
+                await addRelationToFrontmatter({
+                  app: plugin.app,
+                  plugin,
+                  sourceFile: newFile,
+                  targetFile: relationshipTargetFile,
+                  relationTypeId: relationshipTypeId,
+                });
+              }
             }
           },
         }).open();
@@ -44,19 +69,44 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "create-discourse-node",
     name: "Create discourse node",
     editorCallback: (editor: Editor) => {
+      const activeView =
+        plugin.app.workspace.getActiveViewOfType(MarkdownView);
+      const currentFile = activeView?.file || undefined;
+
       new ModifyNodeModal(plugin.app, {
         nodeTypes: plugin.settings.nodeTypes,
         plugin,
-        onSubmit: async ({ nodeType, title, selectedExistingNode }) => {
+        currentFile,
+        onSubmit: async ({
+          nodeType,
+          title,
+          selectedExistingNode,
+          relationshipTypeId,
+          relationshipTargetFile,
+        }) => {
           if (selectedExistingNode) {
             editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
           } else {
-            await createDiscourseNode({
+            const newFile = await createDiscourseNode({
               plugin,
               nodeType,
               text: title,
               editor,
             });
+
+            // Add relationship if specified
+            if (newFile && relationshipTypeId && relationshipTargetFile) {
+              const { addRelationToFrontmatter } = await import(
+                "~/components/canvas/utils/frontmatterUtils"
+              );
+              await addRelationToFrontmatter({
+                app: plugin.app,
+                plugin,
+                sourceFile: newFile,
+                targetFile: relationshipTargetFile,
+                relationTypeId: relationshipTypeId,
+              });
+            }
           }
         },
       }).open();
