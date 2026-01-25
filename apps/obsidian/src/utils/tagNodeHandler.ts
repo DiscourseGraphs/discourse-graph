@@ -6,6 +6,7 @@ import type DiscourseGraphPlugin from "~/index";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { createDiscourseNodeFile, formatNodeName } from "./createNode";
 import { getNodeTagColors } from "./colorUtils";
+import { addRelationToFrontmatter } from "~/components/canvas/utils/frontmatterUtils";
 
 const HOVER_DELAY = 200;
 const HIDE_DELAY = 100;
@@ -346,9 +347,6 @@ export class TagNodeHandler {
 
       // Add relationship to frontmatter if specified
       if (relationshipTypeId && relationshipTargetFile) {
-        const { addRelationToFrontmatter } = await import(
-          "~/components/canvas/utils/frontmatterUtils"
-        );
         await addRelationToFrontmatter({
           app: this.app,
           plugin: this.plugin,
