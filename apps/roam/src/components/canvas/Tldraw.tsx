@@ -685,6 +685,10 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
               appRef.current = app;
 
+              // Store canvas page UID on editor instance for relation creation
+              // @ts-expect-error - Adding custom property to editor
+              app.canvasPageUid = pageUid;
+
               app.on("change", (entry) => {
                 lastActionsRef.current.push(entry);
                 if (lastActionsRef.current.length > 5)
