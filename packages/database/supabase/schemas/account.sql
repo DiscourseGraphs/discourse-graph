@@ -205,7 +205,7 @@ BEGIN
                 CASE WHEN COALESCE(local_account.space_editor, true) THEN 'editor'
                 ELSE 'reader' END)
             ON CONFLICT (space_id, account_uid)
-            DO UPDATE SET editor = CASE
+            DO UPDATE SET permissions = CASE
                 WHEN COALESCE(local_account.space_editor, sa.editor, true) THEN 'editor'
                 ELSE 'reader' END;
     END IF;
@@ -396,7 +396,7 @@ CREATE POLICY space_select_policy ON public."Space" FOR SELECT USING (public.in_
 DROP POLICY IF EXISTS space_delete_policy ON public."Space";
 CREATE POLICY space_delete_policy ON public."Space" FOR DELETE USING (public.in_space(id, 'editor'));
 DROP POLICY IF EXISTS space_update_policy ON public."Space";
-CREATE POLICY space_update_policy ON public."Space" FOR DELETE USING (public.in_space(id, 'editor'));
+CREATE POLICY space_update_policy ON public."Space" FOR UPDATE USING (public.in_space(id, 'editor'));
 DROP POLICY IF EXISTS space_insert_policy ON public."Space";
 CREATE POLICY space_insert_policy ON public."Space" FOR INSERT WITH CHECK (true);
 
