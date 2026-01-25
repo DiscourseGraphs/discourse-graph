@@ -148,8 +148,7 @@ export const ModifyNodeForm = ({
       return [];
     }
 
-    const currentFileCache =
-      plugin.app.metadataCache.getFileCache(currentFile);
+    const currentFileCache = plugin.app.metadataCache.getFileCache(currentFile);
     const currentNodeTypeId = currentFileCache?.frontmatter?.nodeTypeId;
 
     if (!currentNodeTypeId) {
@@ -165,37 +164,35 @@ export const ModifyNodeForm = ({
           relation.destinationId === currentNodeTypeId),
     );
 
-    return relevantRelations.map((relation) => {
-      const relationType = plugin.settings.relationTypes.find(
-        (rt) => rt.id === relation.relationshipTypeId,
-      );
-      if (!relationType) return null;
+    return relevantRelations
+      .map((relation) => {
+        const relationType = plugin.settings.relationTypes.find(
+          (rt) => rt.id === relation.relationshipTypeId,
+        );
+        if (!relationType) return null;
 
-      const isCurrentFileSource = relation.sourceId === currentNodeTypeId;
-      return {
-        relationTypeId: relationType.id,
-        label: isCurrentFileSource
-          ? relationType.label
-          : relationType.complement,
-        isCurrentFileSource,
-      };
-    }).filter(Boolean) as Array<{
+        const isCurrentFileSource = relation.sourceId === currentNodeTypeId;
+        return {
+          relationTypeId: relationType.id,
+          label: isCurrentFileSource
+            ? relationType.label
+            : relationType.complement,
+          isCurrentFileSource,
+        };
+      })
+      .filter(Boolean) as Array<{
       relationTypeId: string;
       label: string;
       isCurrentFileSource: boolean;
     }>;
   }, [currentFile, selectedNodeType, isEditMode, plugin]);
 
-  // Auto-select relationship if there's only one option
   useEffect(() => {
-    if (
-      availableRelationships.length === 1 &&
-      !selectedRelationshipTypeId &&
-      availableRelationships[0]
-    ) {
+    if (!selectedRelationshipTypeId && availableRelationships[0]) {
       setSelectedRelationshipTypeId(availableRelationships[0].relationTypeId);
     }
-  }, [availableRelationships, selectedRelationshipTypeId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when availableRelationships changes
+  }, [availableRelationships]);
 
   const isFormValid = title.trim() && selectedNodeType;
 
@@ -289,8 +286,7 @@ export const ModifyNodeForm = ({
         title: trimmedTitle,
         initialFile,
         selectedExistingNode: selectedExistingNode || undefined,
-        relationshipTypeId:
-          selectedRelationshipTypeId || undefined,
+        relationshipTypeId: selectedRelationshipTypeId || undefined,
         relationshipTargetFile: currentFile || undefined,
       });
       onCancel();
@@ -322,7 +318,9 @@ export const ModifyNodeForm = ({
 
   return (
     <div>
-      <h2>{isEditMode ? "Modify discourse node" : "Create discourse node"}</h2>
+      <h2>
+        {isEditMode ? "Modify discourse node" : "Create discourse nodeeeee"}
+      </h2>
       <div className="setting-item">
         <div className="setting-item-name">Type</div>
         <div className="setting-item-control">
@@ -450,7 +448,8 @@ export const ModifyNodeForm = ({
               <option value="">No relation</option>
               {availableRelationships.map((rel) => (
                 <option key={rel.relationTypeId} value={rel.relationTypeId}>
-                  {rel.label} {currentFile?.basename}
+                  {rel.label} &quot;{currentFile?.basename}
+                  &quot;
                 </option>
               ))}
             </select>
