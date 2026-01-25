@@ -31,6 +31,13 @@ export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
     created: now,
     modified: now,
   },
+  Source: {
+    id: generateUid("node"),
+    name: "Source",
+    format: "SRC - {content}",
+    color: "#3B82F6",
+    tag: "src-candidate",
+  },
 };
 export const DEFAULT_RELATION_TYPES: Record<string, DiscourseRelationType> = {
   supports: {
@@ -56,6 +63,12 @@ export const DEFAULT_RELATION_TYPES: Record<string, DiscourseRelationType> = {
     color: "grey",
     created: now,
     modified: now,
+  },
+  derivedFrom: {
+    id: generateUid("relation"),
+    label: "derived from",
+    complement: "has derivation",
+    color: "blue",
   },
 };
 
@@ -86,6 +99,11 @@ export const DEFAULT_SETTINGS: Settings = {
       relationshipTypeId: DEFAULT_RELATION_TYPES.opposes!.id,
       created: now,
       modified: now,
+    },
+    {
+      sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
+      destinationId: DEFAULT_NODE_TYPES.Source!.id,
+      relationshipTypeId: DEFAULT_RELATION_TYPES.derivedFrom!.id,
     },
   ],
   showIdsInFrontmatter: false,
