@@ -19,11 +19,14 @@ type ModifyNodeFormProps = {
     title: string;
     initialFile?: TFile; // for edit mode
     selectedExistingNode?: TFile;
+    relationshipTypeId?: string;
+    relationshipTargetFile?: TFile;
   }) => Promise<void>;
   onCancel: () => void;
   initialTitle?: string;
   initialNodeType?: DiscourseNode;
   initialFile?: TFile; // for edit mode
+  currentFile?: TFile; // the file where the node is being created from
   plugin: DiscourseGraphPlugin;
 };
 
@@ -34,6 +37,7 @@ export const ModifyNodeForm = ({
   initialTitle = "",
   initialNodeType,
   initialFile,
+  currentFile,
   plugin,
 }: ModifyNodeFormProps) => {
   const isEditMode = !!initialFile;
@@ -48,6 +52,8 @@ export const ModifyNodeForm = ({
   const [isFocused, setIsFocused] = useState(false);
   const [searchResults, setSearchResults] = useState<TFile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedRelationshipTypeId, setSelectedRelationshipTypeId] =
+    useState<string>("");
   const queryEngine = useRef(new QueryEngine(plugin.app));
   const titleInputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -135,6 +141,61 @@ export const ModifyNodeForm = ({
       }
     }
   }, [activeIndex, isOpen]);
+
+  // Determine available relationships based on current file and selected node type
+  const availableRelationships = useMemo(() => {
+    if (!currentFile || !selectedNodeType || isEditMode) {
+      return [];
+    }
+
+    const currentFileCache =
+      plugin.app.metadataCache.getFileCache(currentFile);
+    const currentNodeTypeId = currentFileCache?.frontmatter?.nodeTypeId;
+
+    if (!currentNodeTypeId) {
+      return [];
+    }
+
+    // Find all relations that connect the current node type to the selected node type
+    const relevantRelations = plugin.settings.discourseRelations.filter(
+      (relation) =>
+        (relation.sourceId === currentNodeTypeId &&
+          relation.destinationId === selectedNodeType.id) ||
+        (relation.sourceId === selectedNodeType.id &&
+          relation.destinationId === currentNodeTypeId),
+    );
+
+    return relevantRelations.map((relation) => {
+      const relationType = plugin.settings.relationTypes.find(
+        (rt) => rt.id === relation.relationshipTypeId,
+      );
+      if (!relationType) return null;
+
+      const isCurrentFileSource = relation.sourceId === currentNodeTypeId;
+      return {
+        relationTypeId: relationType.id,
+        label: isCurrentFileSource
+          ? relationType.label
+          : relationType.complement,
+        isCurrentFileSource,
+      };
+    }).filter(Boolean) as Array<{
+      relationTypeId: string;
+      label: string;
+      isCurrentFileSource: boolean;
+    }>;
+  }, [currentFile, selectedNodeType, isEditMode, plugin]);
+
+  // Auto-select relationship if there's only one option
+  useEffect(() => {
+    if (
+      availableRelationships.length === 1 &&
+      !selectedRelationshipTypeId &&
+      availableRelationships[0]
+    ) {
+      setSelectedRelationshipTypeId(availableRelationships[0].relationTypeId);
+    }
+  }, [availableRelationships, selectedRelationshipTypeId]);
 
   const isFormValid = title.trim() && selectedNodeType;
 
@@ -228,6 +289,9 @@ export const ModifyNodeForm = ({
         title: trimmedTitle,
         initialFile,
         selectedExistingNode: selectedExistingNode || undefined,
+        relationshipTypeId:
+          selectedRelationshipTypeId || undefined,
+        relationshipTargetFile: currentFile || undefined,
       });
       onCancel();
     } catch (error) {
@@ -252,6 +316,8 @@ export const ModifyNodeForm = ({
     isEditMode,
     initialFile,
     selectedExistingNode,
+    selectedRelationshipTypeId,
+    currentFile,
   ]);
 
   return (
@@ -371,6 +437,27 @@ export const ModifyNodeForm = ({
         </div>
       </div>
 
+      {availableRelationships.length > 0 && !isEditMode && (
+        <div className="setting-item">
+          <div className="setting-item-name">Relationship</div>
+          <div className="setting-item-control">
+            <select
+              value={selectedRelationshipTypeId}
+              onChange={(e) => setSelectedRelationshipTypeId(e.target.value)}
+              disabled={isSubmitting}
+              className="w-full"
+            >
+              <option value="">No relation</option>
+              {availableRelationships.map((rel) => (
+                <option key={rel.relationTypeId} value={rel.relationTypeId}>
+                  {rel.label} {currentFile?.basename}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       <div className="modal-button-container mt-5 flex justify-end gap-2">
         <button
           type="button"
@@ -407,10 +494,13 @@ type ModifyNodeModalProps = {
     title: string;
     initialFile?: TFile;
     selectedExistingNode?: TFile;
+    relationshipTypeId?: string;
+    relationshipTargetFile?: TFile;
   }) => Promise<void>;
   initialTitle?: string;
   initialNodeType?: DiscourseNode;
   initialFile?: TFile;
+  currentFile?: TFile;
 };
 
 class ModifyNodeModal extends Modal {
@@ -420,11 +510,14 @@ class ModifyNodeModal extends Modal {
     title: string;
     initialFile?: TFile;
     selectedExistingNode?: TFile;
+    relationshipTypeId?: string;
+    relationshipTargetFile?: TFile;
   }) => Promise<void>;
   private root: Root | null = null;
   private initialTitle?: string;
   private initialNodeType?: DiscourseNode;
   private initialFile?: TFile;
+  private currentFile?: TFile;
   private plugin: DiscourseGraphPlugin;
 
   constructor(app: App, props: ModifyNodeModalProps) {
@@ -434,6 +527,7 @@ class ModifyNodeModal extends Modal {
     this.initialTitle = props.initialTitle;
     this.initialNodeType = props.initialNodeType;
     this.initialFile = props.initialFile;
+    this.currentFile = props.currentFile;
     this.plugin = props.plugin;
   }
 
@@ -451,6 +545,7 @@ class ModifyNodeModal extends Modal {
           initialTitle={this.initialTitle}
           initialNodeType={this.initialNodeType}
           initialFile={this.initialFile}
+          currentFile={this.currentFile}
           plugin={this.plugin}
         />
       </StrictMode>,
