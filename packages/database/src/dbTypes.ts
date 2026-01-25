@@ -715,17 +715,17 @@ export type Database = {
       SpaceAccess: {
         Row: {
           account_uid: string
-          editor: boolean
+          permissions: Database["public"]["Enums"]["SpaceAccessPermissions"]
           space_id: number
         }
         Insert: {
           account_uid: string
-          editor: boolean
+          permissions: Database["public"]["Enums"]["SpaceAccessPermissions"]
           space_id: number
         }
         Update: {
           account_uid?: string
-          editor?: boolean
+          permissions?: Database["public"]["Enums"]["SpaceAccessPermissions"]
           space_id?: number
         }
         Relationships: [
@@ -1396,10 +1396,6 @@ export type Database = {
         Args: { lit_content: Json; schema_id: number }
         Returns: number
       }
-      concept_in_editable_space: {
-        Args: { concept_id: number }
-        Returns: boolean
-      }
       concept_in_relations:
         | {
             Args: { concept: Database["public"]["Tables"]["Concept"]["Row"] }
@@ -1425,7 +1421,13 @@ export type Database = {
               isSetofReturn: true
             }
           }
-      concept_in_space: { Args: { concept_id: number }; Returns: boolean }
+      concept_in_space: {
+        Args: {
+          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
+          concept_id: number
+        }
+        Returns: boolean
+      }
       concepts_of_relation:
         | {
             Args: { relation: Database["public"]["Tables"]["Concept"]["Row"] }
@@ -1453,11 +1455,13 @@ export type Database = {
               isSetofReturn: true
             }
           }
-      content_in_editable_space: {
-        Args: { content_id: number }
+      content_in_space: {
+        Args: {
+          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
+          content_id: number
+        }
         Returns: boolean
       }
-      content_in_space: { Args: { content_id: number }; Returns: boolean }
       content_of_concept: {
         Args: { concept: Database["public"]["Views"]["my_concepts"]["Row"] }
         Returns: {
@@ -1514,7 +1518,6 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      editor_in_space: { Args: { space_id: number }; Returns: boolean }
       end_sync_task: {
         Args: {
           s_function: string
@@ -1543,7 +1546,13 @@ export type Database = {
       }
       group_exists: { Args: { group_id_: string }; Returns: boolean }
       in_group: { Args: { group_id_: string }; Returns: boolean }
-      in_space: { Args: { space_id: number }; Returns: boolean }
+      in_space: {
+        Args: {
+          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
+          space_id: number
+        }
+        Returns: boolean
+      }
       instances_of_schema:
         | {
             Args: { schema: Database["public"]["Tables"]["Concept"]["Row"] }
@@ -1598,8 +1607,12 @@ export type Database = {
           text_content: string
         }[]
       }
-      my_editable_space_ids: { Args: never; Returns: number[] }
-      my_space_ids: { Args: never; Returns: number[] }
+      my_space_ids: {
+        Args: {
+          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"]
+        }
+        Returns: number[]
+      }
       my_user_accounts: { Args: never; Returns: string[] }
       propose_sync_task: {
         Args: {
@@ -1722,6 +1735,7 @@ export type Database = {
         | "quote"
         | "sentence"
         | "phrase"
+      SpaceAccessPermissions: "partial" | "reader" | "editor"
       task_status: "active" | "timeout" | "complete" | "failed"
     }
     CompositeTypes: {
@@ -1979,6 +1993,7 @@ export const Constants = {
         "sentence",
         "phrase",
       ],
+      SpaceAccessPermissions: ["partial", "reader", "editor"],
       task_status: ["active", "timeout", "complete", "failed"],
     },
   },

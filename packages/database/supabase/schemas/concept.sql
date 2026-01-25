@@ -128,7 +128,7 @@ SELECT
     source_local_id
 FROM public."Concept"
 WHERE (
-    space_id = any(public.my_space_ids())
+    space_id = any(public.my_space_ids('reader'))
     OR public.can_view_specific_resource(space_id, source_local_id)
 );
 
@@ -383,26 +383,15 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.concept_in_space(concept_id BIGINT) RETURNS boolean
+CREATE OR REPLACE FUNCTION public.concept_in_space(concept_id BIGINT, access_level public."SpaceAccessPermissions" = 'reader') RETURNS boolean
 STABLE
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT public.in_space(space_id) FROM public."Concept" WHERE id=concept_id
+    SELECT public.in_space(space_id, access_level) FROM public."Concept" WHERE id=concept_id
 $$;
 
 COMMENT ON FUNCTION public.concept_in_space IS 'security utility: does current user have access to this concept''s space?';
-
-CREATE OR REPLACE FUNCTION public.concept_in_editable_space(concept_id BIGINT) RETURNS boolean
-STABLE
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT public.editor_in_space(space_id) FROM public."Concept" WHERE id=concept_id
-$$;
-
-COMMENT ON FUNCTION public.concept_in_editable_space IS 'security utility: does current user have editor access to this concept''s space?';
-
 
 ALTER TABLE public."Concept" ENABLE ROW LEVEL SECURITY;
 
