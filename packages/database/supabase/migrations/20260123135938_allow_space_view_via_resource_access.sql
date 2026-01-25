@@ -6,7 +6,6 @@
 -- 1. User has SpaceAccess (in_space(id)) - existing behavior, can see all columns
 -- 2. User has ResourceAccess to at least one resource in that space - new behavior, can only see 'name' column
 --
--- Column-level security: Users with only ResourceAccess can only SELECT the 'name' column.
 -- Users with SpaceAccess can SELECT all columns (id, url, name, platform).
 
 DROP POLICY IF EXISTS space_policy ON public."Space";
