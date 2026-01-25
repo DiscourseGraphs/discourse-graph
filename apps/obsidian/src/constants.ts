@@ -23,6 +23,13 @@ export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
     color: "#DB134A",
     tag: "evd-candidate",
   },
+  Source: {
+    id: generateUid("node"),
+    name: "Source",
+    format: "SRC - {content}",
+    color: "#3B82F6",
+    tag: "src-candidate",
+  },
 };
 export const DEFAULT_RELATION_TYPES: Record<string, DiscourseRelationType> = {
   supports: {
@@ -42,6 +49,12 @@ export const DEFAULT_RELATION_TYPES: Record<string, DiscourseRelationType> = {
     label: "informs",
     complement: "is informed by",
     color: "grey",
+  },
+  derivedFrom: {
+    id: generateUid("relation"),
+    label: "derived from",
+    complement: "has derivation",
+    color: "blue",
   },
 };
 
@@ -63,6 +76,11 @@ export const DEFAULT_SETTINGS: Settings = {
       sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
       destinationId: DEFAULT_NODE_TYPES.Claim!.id,
       relationshipTypeId: DEFAULT_RELATION_TYPES.opposes!.id,
+    },
+    {
+      sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
+      destinationId: DEFAULT_NODE_TYPES.Source!.id,
+      relationshipTypeId: DEFAULT_RELATION_TYPES.derivedFrom!.id,
     },
   ],
   showIdsInFrontmatter: false,
