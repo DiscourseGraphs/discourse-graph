@@ -76,12 +76,16 @@ export const SettingsDialog = ({
   const [activeTabId, setActiveTabId] = useState<TabId>(
     selectedTabId ?? "discourse-graph-home-personal",
   );
+  const [showAdminPanel, setShowAdminPanel] = useState(
+    window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
+  );
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === "A") {
         e.stopPropagation();
         e.preventDefault();
+        setShowAdminPanel(true);
         setActiveTabId("secret-admin-panel");
       }
     };
@@ -216,11 +220,11 @@ export const SettingsDialog = ({
             />
           ))}
           <Tabs.Expander />
-          {/* Secret Dev Panel */}
+          {/* Secret Admin Panel */}
           <Tab
-            hidden={true}
+            hidden={!showAdminPanel}
             id="secret-admin-panel"
-            title="Secret Admin Panel"
+            title="Admin"
             className="overflow-y-auto"
             panel={<AdminPanel />}
           />
