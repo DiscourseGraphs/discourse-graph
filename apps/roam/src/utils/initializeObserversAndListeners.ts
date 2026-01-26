@@ -56,6 +56,7 @@ import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
 import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import findDiscourseNode from "./findDiscourseNode";
 
 const debounce = (fn: () => void, delay = 250) => {
@@ -64,6 +65,19 @@ const debounce = (fn: () => void, delay = 250) => {
     clearTimeout(timeout);
     timeout = window.setTimeout(fn, delay);
   };
+};
+
+const getTitleAndUidFromHeader = (h1: HTMLHeadingElement) => {
+  const titleDisplayContainer = h1.closest(".rm-title-display-container");
+  const dataUid = titleDisplayContainer?.getAttribute("data-page-uid") || "";
+  if (dataUid) {
+    const titleByUid = getPageTitleByPageUid(dataUid) || "";
+    return { title: titleByUid, uid: dataUid };
+  }
+
+  const title = getPageTitleValueByHtmlElement(h1);
+  const uid = getPageUidByPageTitle(title);
+  return { title, uid };
 };
 
 export const initObservers = async ({
@@ -85,7 +99,7 @@ export const initObservers = async ({
     className: "rm-title-display",
     callback: (e) => {
       const h1 = e as HTMLHeadingElement;
-      const title = getPageTitleValueByHtmlElement(h1);
+      const { title, uid } = getTitleAndUidFromHeader(h1);
       const props = { title, h1, onloadArgs };
 
       const isSuggestiveModeEnabled = getUidAndBooleanSetting({
@@ -95,7 +109,6 @@ export const initObservers = async ({
         text: "(BETA) Suggestive Mode Enabled",
       }).value;
 
-      const uid = getPageUidByPageTitle(title);
       const node = findDiscourseNode({ uid, title });
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
