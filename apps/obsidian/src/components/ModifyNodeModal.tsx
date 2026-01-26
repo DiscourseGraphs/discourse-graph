@@ -319,7 +319,7 @@ export const ModifyNodeForm = ({
   return (
     <div>
       <h2>
-        {isEditMode ? "Modify discourse node" : "Create discourse nodeeeee"}
+        {isEditMode ? "Modify discourse node" : "Create discourse node"}
       </h2>
       <div className="setting-item">
         <div className="setting-item-name">Type</div>
