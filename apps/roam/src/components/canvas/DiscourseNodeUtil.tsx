@@ -558,14 +558,17 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
     return (
       <HTMLContainer
         id={shape.id}
-        className="roamjs-tldraw-node pointer-events-auto flex items-center justify-center overflow-hidden rounded-2xl"
+        className="roamjs-tldraw-node pointer-events-auto flex h-full w-full overflow-hidden rounded-2xl"
         style={{
           background: backgroundColor,
           color: textColor,
         }}
         onPointerEnter={() => setOverlayMounted(true)}
       >
-        <div style={{ pointerEvents: "all" }}>
+        <div
+          className="relative flex h-full w-full flex-col"
+          style={{ pointerEvents: "all" }}
+        >
           {/* Open in Sidebar Button */}
           <Button
             className="absolute left-1 top-1 z-10"
@@ -587,16 +590,21 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
           />
 
           {shape.props.imageUrl && isKeyImage === "true" ? (
-            <img
-              src={shape.props.imageUrl}
-              className="h-auto w-full object-cover"
-              draggable="false"
-              style={{ pointerEvents: "none" }}
-            />
+            <div className="mt-2 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+              <img
+                src={shape.props.imageUrl}
+                loading="lazy"
+                decoding="async"
+                draggable="false"
+                className="max-h-full max-w-full object-contain"
+                style={{ pointerEvents: "none" }}
+              />
+            </div>
           ) : null}
 
           <div
             ref={contentRef}
+            className="relative"
             style={{
               ...DEFAULT_STYLE_PROPS,
               maxWidth: "",
