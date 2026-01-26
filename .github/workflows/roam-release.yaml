@@ -6,6 +6,8 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
   APP_ID: ${{ secrets.APP_ID }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
 jobs:
   update-extension:
