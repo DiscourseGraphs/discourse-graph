@@ -4,7 +4,6 @@ import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
-import generateUid from "~/utils/generateUid";
 import { QueryEngine } from "~/services/QueryEngine";
 
 export const getAvailableGroups = async (
@@ -132,9 +131,9 @@ export const getPublishedNodesForGroups = async ({
   return nodes;
 };
 
-export const getLocalNodeInstanceIds = async (
+export const getLocalNodeInstanceIds = (
   plugin: DiscourseGraphPlugin,
-): Promise<Set<string>> => {
+): Set<string> => {
   const allFiles = plugin.app.vault.getMarkdownFiles();
   const nodeInstanceIds = new Set<string>();
 
@@ -263,23 +262,21 @@ type ParsedFrontmatter = {
   [key: string]: unknown;
 };
 
-const parseFrontmatter = (content: string): {
+const parseFrontmatter = (
+  content: string,
+): {
   frontmatter: ParsedFrontmatter;
   body: string;
 } => {
-  // Updated regex to handle files with only frontmatter (no body content)
-  // The body is optional - it can be empty or not exist at all
   // Pattern: ---\n(frontmatter)\n---\n(body - optional)
   const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*(?:\n([\s\S]*))?$/;
   const match = content.match(frontmatterRegex);
 
   if (!match || !match[1]) {
-    // No frontmatter, return empty frontmatter and full content as body
     return { frontmatter: {}, body: content };
   }
 
   const frontmatterText = match[1];
-  // Body is optional - if there's no body content, match[2] will be undefined
   const body = match[2] ?? "";
 
   // Parse YAML-like frontmatter (simple parser for key: value pairs)
@@ -423,14 +420,18 @@ const mapNodeTypeIdToLocal = async ({
     schemaName,
   );
 
+  const now = new Date().getTime();
+
   const newNodeType: DiscourseNode = {
-    id: generateUid("node"),
+    id: sourceNodeTypeId,
     name: parsed.name,
     format: parsed.format,
     color: parsed.color,
     tag: parsed.tag,
     template: parsed.template,
     keyImage: parsed.keyImage,
+    created: now,
+    modified: now,
   };
   plugin.settings.nodeTypes = [
     ...plugin.settings.nodeTypes,
@@ -464,7 +465,7 @@ const processFileContent = async ({
   // 2. Parse frontmatter from rawContent (metadataCache is updated async and is
   //    often empty immediately after create/modify), then map nodeTypeId and  update frontmatter.
   const { frontmatter } = parseFrontmatter(rawContent);
-  const sourceNodeTypeId = frontmatter.nodeTypeId as string | undefined;
+  const sourceNodeTypeId = frontmatter.nodeTypeId;
 
   let mappedNodeTypeId: string | undefined;
   if (sourceNodeTypeId && typeof sourceNodeTypeId === "string") {
@@ -664,15 +665,10 @@ export const refreshImportedFile = async ({
   }
   const cache = plugin.app.metadataCache.getFileCache(file);
   const frontmatter = cache?.frontmatter as Record<string, unknown>;
-  if (
-    !frontmatter.importedFromSpaceId ||
-    !frontmatter.nodeInstanceId ||
-    !frontmatter.publishedToGroups
-  ) {
+  if (!frontmatter.importedFromSpaceId || !frontmatter.nodeInstanceId) {
     return {
       success: false,
-      error:
-        "Missing frontmatter: importedFromSpaceId or nodeInstanceId or publishedToGroups",
+      error: "Missing frontmatter: importedFromSpaceId or nodeInstanceId",
     };
   }
   const spaceName = await getSpaceName(
