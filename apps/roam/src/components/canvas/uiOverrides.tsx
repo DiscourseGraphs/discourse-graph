@@ -163,7 +163,7 @@ export const CustomContextMenu = ({
                   <TldrawUiMenuItem
                     key={node.type}
                     id={`convert-to-${node.type}`}
-                    label={`Convert To ${node.text}`}
+                    label={node.text}
                     readonlyOk
                     onSelect={getOnSelectForShape({
                       shape: selectedShape,
