@@ -459,13 +459,13 @@ DROP POLICY IF EXISTS space_access_select_policy ON public."SpaceAccess";
 CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR SELECT USING (public.in_space(space_id));
 
 DROP POLICY IF EXISTS space_access_delete_policy ON public."SpaceAccess";
-CREATE POLICY space_access_delete_policy ON public."SpaceAccess" FOR DELETE USING (account_uid = auth.uid());
+CREATE POLICY space_access_delete_policy ON public."SpaceAccess" FOR DELETE USING (public.in_space(space_id, 'editor'));
 
 DROP POLICY IF EXISTS space_access_insert_policy ON public."SpaceAccess";
-CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (account_uid = auth.uid());
+CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
 
 DROP POLICY IF EXISTS space_access_update_policy ON public."SpaceAccess";
-CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE USING (account_uid = auth.uid());
+CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE USING (public.in_space(space_id, 'editor'));
 
 ALTER TABLE public."LocalAccess" ENABLE ROW LEVEL SECURITY;
 
