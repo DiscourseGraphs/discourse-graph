@@ -42,7 +42,7 @@ jobs:
           env-id: ${{ secrets.POSTHOG_CLI_ENV_ID }}
           cli-token: ${{ secrets.POSTHOG_CLI_TOKEN }}
           project: Roam
-          version: $(node -e 'fs.readFile("package.json", (err, data)=>{ console.log(JSON.parse(data).version) })')
+          version: $(node -e "console.log(require('./apps/roam/package.json').version)")
 
       - name: Update Roam Depot Extension
         run: npx turbo run publish --filter=roam --ui stream -- --no-compile
