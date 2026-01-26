@@ -26,6 +26,7 @@ import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
 import generateUid from "~/utils/generateUid";
+import type { DiscourseNode, DiscourseRelation } from "~/types";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -353,6 +354,9 @@ export default class DiscourseGraphPlugin extends Plugin {
         typeObject.modified = now;
         changed = true;
       }
+    }
+    // nodeTypes and relationTypes already have Ids
+    for (const typeObject of this.settings.discourseRelations) {
       if (!typeObject.id) {
         typeObject.id = generateUid("rel3");
         changed = true;
