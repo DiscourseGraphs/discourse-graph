@@ -88,7 +88,9 @@ export const BaseFlagPanel = ({
     () => getter<boolean>(settingKeys) ?? defaultValue,
   );
 
-  const handleChange = async (e: React.FormEvent<HTMLInputElement>) => {
+  const handleChange = async (
+    e: React.FormEvent<HTMLInputElement>,
+  ): Promise<void> => {
     const { checked } = e.target as HTMLInputElement;
 
     if (onBeforeChange) {
@@ -270,17 +272,28 @@ export const FeatureFlagPanel = ({
   featureKey: keyof FeatureFlags;
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
-}) => (
-  <BaseFlagPanel
-    title={title}
-    description={description}
-    settingKeys={[featureKey]}
-    getter={featureFlagGetter}
-    setter={featureFlagSetter}
-    onBeforeChange={onBeforeEnable ? (checked) => (checked ? onBeforeEnable() : Promise.resolve(true)) : undefined}
-    onChange={onAfterChange}
-  />
-);
+}) => {
+  const handleBeforeChange = onBeforeEnable
+    ? async (checked: boolean): Promise<boolean> => {
+        if (checked) {
+          return onBeforeEnable();
+        }
+        return true;
+      }
+    : undefined;
+
+  return (
+    <BaseFlagPanel
+      title={title}
+      description={description}
+      settingKeys={[featureKey as string]}
+      getter={featureFlagGetter}
+      setter={featureFlagSetter}
+      onBeforeChange={handleBeforeChange}
+      onChange={onAfterChange}
+    />
+  );
+};
 
 export const GlobalTextPanel = (
   props: WrapperProps & { defaultValue?: string; placeholder?: string },
