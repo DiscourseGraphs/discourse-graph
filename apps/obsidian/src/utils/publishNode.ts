@@ -3,6 +3,58 @@ import type { default as DiscourseGraphPlugin } from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import { addFile } from "@repo/database/lib/files";
 import mime from "mime-types";
+import { DGSupabaseClient } from "@repo/database/lib/client";
+
+const publishSchema = async ({
+  client,
+  spaceId,
+  nodeTypeId,
+  groupId,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  nodeTypeId: string;
+  groupId: string;
+}): Promise<void> => {
+  // Check if schema exists
+  const schemaResponse = await client
+    .from("Concept")
+    .select("source_local_id")
+    .eq("space_id", spaceId)
+    .eq("is_schema", true)
+    .eq("source_local_id", nodeTypeId)
+    .maybeSingle();
+
+  if (schemaResponse.error) {
+    console.error("Error checking schema existence:", schemaResponse.error);
+    return; // Don't fail node publishing if schema check fails
+  }
+
+  if (!schemaResponse.data) {
+    console.warn(
+      `Schema with nodeTypeId ${nodeTypeId} not found in space ${spaceId}`,
+    );
+    return; // Schema doesn't exist, skip publishing
+  }
+
+  // Publish schema to group via ResourceAccess
+  const publishResponse = await client.from("ResourceAccess").upsert(
+    {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      account_uid: groupId,
+      source_local_id: nodeTypeId,
+      space_id: spaceId,
+      /* eslint-enable @typescript-eslint/naming-convention */
+    },
+    { ignoreDuplicates: true },
+  );
+
+  if (publishResponse.error && publishResponse.error.code !== "23505") {
+    // 23505 is duplicate key, which counts as a success.
+    console.error("Error publishing schema:", publishResponse.error);
+    // Don't throw - schema publishing failure shouldn't block node publishing
+  }
+};
 
 export const publishNode = async ({
   plugin,
@@ -74,6 +126,17 @@ export const publishNode = async ({
   if (publishResponse.error && publishResponse.error.code !== "23505")
     // 23505 is duplicate key, which counts as a success.
     throw publishResponse.error;
+
+  // Also publish the schema so it's accessible when importing nodes
+  const nodeTypeId = frontmatter.nodeTypeId as string | undefined;
+  if (nodeTypeId) {
+    await publishSchema({
+      client,
+      spaceId,
+      nodeTypeId,
+      groupId: myGroup,
+    });
+  }
 
   const existingFiles: string[] = [];
   for (const attachment of attachments) {
