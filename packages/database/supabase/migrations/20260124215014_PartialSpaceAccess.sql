@@ -194,6 +194,9 @@ DROP POLICY IF EXISTS resource_access_select_policy ON public."ResourceAccess";
 DROP POLICY IF EXISTS space_access_select_policy ON public."SpaceAccess";
 DROP POLICY IF EXISTS concept_contributors_policy ON public."concept_contributors";
 DROP POLICY IF EXISTS content_contributors_policy ON public."content_contributors";
+DROP POLICY IF EXISTS space_access_delete_policy ON public."SpaceAccess";
+DROP POLICY IF EXISTS space_access_insert_policy ON public."SpaceAccess";
+DROP POLICY IF EXISTS space_access_update_policy ON public."SpaceAccess";
 
 DROP FUNCTION IF EXISTS public.editor_in_space(bigint);
 
@@ -381,3 +384,6 @@ CREATE POLICY space_select_policy ON public."Space" FOR SELECT USING (public.in_
 CREATE POLICY space_delete_policy ON public."Space" FOR DELETE USING (public.in_space(id, 'editor'));
 CREATE POLICY space_update_policy ON public."Space" FOR UPDATE USING (public.in_space(id, 'editor'));
 CREATE POLICY space_insert_policy ON public."Space" FOR INSERT WITH CHECK (true);
+CREATE POLICY space_access_delete_policy ON public."SpaceAccess" FOR DELETE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
+CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE USING (public.in_space(space_id, 'editor'));
