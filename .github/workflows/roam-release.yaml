@@ -35,6 +35,10 @@ jobs:
       - name: Build
         run: npx turbo run build --filter=roam --ui stream
 
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./apps/roam/package.json').version")" >> $GITHUB_OUTPUT
+
       - name: Inject & upload source maps to PostHog
         uses: PostHog/upload-source-maps@v0.5.7.0
         with:
@@ -42,7 +46,7 @@ jobs:
           env-id: ${{ secrets.POSTHOG_CLI_ENV_ID }}
           cli-token: ${{ secrets.POSTHOG_CLI_TOKEN }}
           project: Roam
-          version: $(node -e "console.log(require('./apps/roam/package.json').version)")
+          version: ${{ steps.version.outputs.version }}
 
       - name: Update Roam Depot Extension
         run: npx turbo run publish --filter=roam --ui stream -- --no-compile
