@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { TFile } from "obsidian";
+import { App, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
@@ -243,6 +243,432 @@ export const fetchNodeMetadata = async ({
 
   return {
     nodeTypeId: (conceptData?.literal_content as unknown as { nodeTypeId?: string })?.nodeTypeId || undefined,
+  };
+};
+
+const fetchFileReferences = async ({
+  client,
+  spaceId,
+  nodeInstanceId,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  nodeInstanceId: string;
+}): Promise<
+  Array<{
+    filepath: string;
+    filehash: string;
+    created: string;
+    last_modified: string;
+  }>
+> => {
+  const { data, error } = await client
+    .from("FileReference")
+    .select("filepath, filehash, created, last_modified")
+    .eq("space_id", spaceId)
+    .eq("source_local_id", nodeInstanceId);
+
+  if (error) {
+    console.error("Error fetching file references:", error);
+    return [];
+  }
+
+  return data || [];
+};
+
+const downloadFileFromStorage = async ({
+  client,
+  filehash,
+}: {
+  client: DGSupabaseClient;
+  filehash: string;
+}): Promise<ArrayBuffer | null> => {
+  try {
+    const { data, error } = await client.storage
+      .from("assets")
+      .download(filehash);
+
+    if (error) {
+      console.warn(`Error downloading file ${filehash}:`, error);
+      return null;
+    }
+
+    if (!data) {
+      console.warn(`No data returned for file ${filehash}`);
+      return null;
+    }
+
+    return await data.arrayBuffer();
+  } catch (error) {
+    console.error(`Exception downloading file ${filehash}:`, error);
+    return null;
+  }
+};
+
+const extractFileName = (filepath: string): { name: string; ext: string } => {
+  // Handle paths like "attachments/image.png" or "folder/subfolder/file.jpg"
+  // Extract just the filename with extension
+  const parts = filepath.split("/");
+  const fileName = parts[parts.length - 1] || filepath;
+
+  // Split filename and extension
+  const lastDotIndex = fileName.lastIndexOf(".");
+  if (lastDotIndex === -1 || lastDotIndex === fileName.length - 1) {
+    // No extension or extension is empty
+    return { name: fileName, ext: "" };
+  }
+
+  const name = fileName.slice(0, lastDotIndex);
+  const ext = fileName.slice(lastDotIndex + 1);
+
+  return { name, ext };
+};
+
+const updateMarkdownAssetLinks = ({
+  content,
+  oldPathToNewPath,
+  targetFile,
+  app,
+}: {
+  content: string;
+  oldPathToNewPath: Map<string, string>;
+  targetFile: TFile;
+  app: App;
+}): string => {
+  if (oldPathToNewPath.size === 0) {
+    return content;
+  }
+
+  // Create a set of all new paths for quick lookup
+  const newPaths = new Set(oldPathToNewPath.values());
+
+  // Create a map of old paths to new files for quick lookup
+  const oldPathToNewFile = new Map<string, TFile>();
+  for (const [oldPath, newPath] of oldPathToNewPath.entries()) {
+    const newFile = app.metadataCache.getFirstLinkpathDest(
+      newPath,
+      targetFile.path,
+    );
+    if (newFile) {
+      oldPathToNewFile.set(oldPath, newFile);
+    }
+  }
+
+  let updatedContent = content;
+
+  // Helper to check if a link path matches an old path
+  const matchesOldPath = (linkPath: string, oldPath: string): boolean => {
+    // Exact match
+    if (linkPath === oldPath) return true;
+
+    // Match by filename (handles relative paths)
+    const oldFileName = extractFileName(oldPath);
+    const linkFileName = extractFileName(linkPath);
+    if (
+      oldFileName.name === linkFileName.name &&
+      oldFileName.ext === linkFileName.ext
+    ) {
+      return true;
+    }
+
+    // Match if linkPath ends with oldPath or vice versa (handles relative vs absolute)
+    if (linkPath.endsWith(oldPath) || oldPath.endsWith(linkPath)) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // Helper to find file for a link path, checking if it's one of our imported assets
+  const findImportedAssetFile = (linkPath: string): TFile | null => {
+    // Try to resolve the link
+    const resolvedFile = app.metadataCache.getFirstLinkpathDest(
+      linkPath,
+      targetFile.path,
+    );
+
+    if (resolvedFile && newPaths.has(resolvedFile.path)) {
+      // This file is one of our imported assets
+      return resolvedFile;
+    }
+
+    // Also check if the resolved file is in an assets folder (user may have renamed it)
+    if (resolvedFile && resolvedFile.path.includes("/assets/")) {
+      // Check if any of our new files match this one (by checking if path is similar)
+      for (const newPath of newPaths) {
+        const newFile = app.metadataCache.getFirstLinkpathDest(
+          newPath,
+          targetFile.path,
+        );
+        if (newFile && newFile.path === resolvedFile.path) {
+          return resolvedFile;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  // Match wiki links: [[path]] or [[path|alias]]
+  const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
+  updatedContent = updatedContent.replace(wikiLinkRegex, (match, linkContent) => {
+    // Extract path and optional alias
+    const [linkPath, alias] = linkContent.split("|").map((s: string) => s.trim());
+
+    // Skip external URLs
+    if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
+      return match;
+    }
+
+    // First, try to find if this link resolves to one of our imported assets
+    const importedAssetFile = findImportedAssetFile(linkPath);
+    if (importedAssetFile) {
+      const linkText = app.metadataCache.fileToLinktext(
+        importedAssetFile,
+        targetFile.path,
+      );
+      if (alias) {
+        return `[[${linkText}|${alias}]]`;
+      }
+      return `[[${linkText}]]`;
+    }
+
+    // Fallback: Find matching old path
+    for (const [oldPath, newFile] of oldPathToNewFile.entries()) {
+      if (matchesOldPath(linkPath, oldPath)) {
+        const linkText = app.metadataCache.fileToLinktext(newFile, targetFile.path);
+        if (alias) {
+          return `[[${linkText}|${alias}]]`;
+        }
+        return `[[${linkText}]]`;
+      }
+    }
+
+    return match;
+  });
+
+  // Match markdown image links: ![alt](path) or ![alt](path "title")
+  const markdownImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  updatedContent = updatedContent.replace(
+    markdownImageRegex,
+    (match, alt, linkPath) => {
+      // Remove optional title from linkPath: "path" or "path title"
+      const cleanPath = linkPath.replace(/\s+"[^"]*"$/, "").trim();
+
+      // Skip external URLs
+      if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
+        return match;
+      }
+
+      // First, try to find if this link resolves to one of our imported assets
+      const importedAssetFile = findImportedAssetFile(cleanPath);
+      if (importedAssetFile) {
+        const linkText = app.metadataCache.fileToLinktext(
+          importedAssetFile,
+          targetFile.path,
+        );
+        return `![${alt}](${linkText})`;
+      }
+
+      // Fallback: Find matching old path
+      for (const [oldPath, newFile] of oldPathToNewFile.entries()) {
+        if (matchesOldPath(cleanPath, oldPath)) {
+          const linkText = app.metadataCache.fileToLinktext(newFile, targetFile.path);
+          return `![${alt}](${linkText})`;
+        }
+      }
+
+      return match;
+    },
+  );
+
+  return updatedContent;
+};
+
+
+const importAssetsForNode = async ({
+  plugin,
+  client,
+  spaceId,
+  nodeInstanceId,
+  spaceName,
+  targetMarkdownFile,
+}: {
+  plugin: DiscourseGraphPlugin;
+  client: DGSupabaseClient;
+  spaceId: number;
+  nodeInstanceId: string;
+  spaceName: string;
+  targetMarkdownFile: TFile;
+}): Promise<{
+  success: boolean;
+  pathMapping: Map<string, string>; // old path -> new path
+  errors: string[];
+}> => {
+  const pathMapping = new Map<string, string>();
+  const errors: string[] = [];
+
+  // Fetch FileReference records for the node
+  const fileReferences = await fetchFileReferences({
+    client,
+    spaceId,
+    nodeInstanceId,
+  });
+
+  if (fileReferences.length === 0) {
+    return { success: true, pathMapping, errors };
+  }
+
+  const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
+  const assetsFolderPath = `${importFolderPath}/assets`;
+
+  // Ensure assets folder exists
+  const assetsFolderExists =
+    await plugin.app.vault.adapter.exists(assetsFolderPath);
+  if (!assetsFolderExists) {
+    await plugin.app.vault.createFolder(assetsFolderPath);
+  }
+
+  // Get existing asset mappings from frontmatter
+  const cache = plugin.app.metadataCache.getFileCache(targetMarkdownFile);
+  const frontmatter = (cache?.frontmatter as Record<string, unknown>) || {};
+  const importedAssetsRaw = frontmatter.importedAssets;
+  const importedAssets: Record<string, string> =
+    importedAssetsRaw && typeof importedAssetsRaw === "object" && !Array.isArray(importedAssetsRaw)
+      ? (importedAssetsRaw as Record<string, string>)
+      : {};
+  // importedAssets format: { filehash: vaultPath }
+
+  // Process each file reference
+  for (const fileRef of fileReferences) {
+    try {
+      const { filepath, filehash } = fileRef;
+      const { name, ext } = extractFileName(filepath);
+
+      // Check if we already have a file for this hash
+      let existingAssetPath: string | undefined = importedAssets[filehash];
+      let existingFile: TFile | null = null;
+
+      if (existingAssetPath) {
+        // Check if the file still exists at the stored path
+        const file = plugin.app.vault.getAbstractFileByPath(existingAssetPath);
+        if (file && file instanceof TFile) {
+          existingFile = file;
+        } else {
+          // File was moved/renamed - search for it in the assets folder
+          // Try to find a file with the same name in the assets folder
+          const { name: fileName, ext: fileExt } = extractFileName(existingAssetPath);
+          const searchFileName = `${fileName}${fileExt ? `.${fileExt}` : ""}`;
+
+          // Search all files in the assets folder
+          const allFiles = plugin.app.vault.getFiles();
+          for (const vaultFile of allFiles) {
+            if (
+              vaultFile instanceof TFile &&
+              vaultFile.path.startsWith(assetsFolderPath) &&
+              vaultFile.basename === fileName &&
+              vaultFile.extension === fileExt
+            ) {
+              // Found a file with matching name in assets folder - likely the same file
+              existingFile = vaultFile;
+              existingAssetPath = vaultFile.path;
+              // Update frontmatter with new path
+              await plugin.app.fileManager.processFrontMatter(
+                targetMarkdownFile,
+                (fm) => {
+                  const assetsRaw = (fm as Record<string, unknown>).importedAssets;
+                  const assets: Record<string, string> =
+                    assetsRaw && typeof assetsRaw === "object" && !Array.isArray(assetsRaw)
+                      ? (assetsRaw as Record<string, string>)
+                      : {};
+                  assets[filehash] = vaultFile.path;
+                  (fm as Record<string, unknown>).importedAssets = assets;
+                },
+              );
+              break;
+            }
+          }
+        }
+      }
+
+      // If we found an existing file, reuse it
+      if (existingFile) {
+        pathMapping.set(filepath, existingFile.path);
+        console.log(`Reusing existing asset: ${filehash} -> ${existingFile.path}`);
+        continue;
+      }
+
+      // No existing file found, need to download
+      // Determine target path
+      const sanitizedName = sanitizeFileName(name);
+      const sanitizedExt = ext ? `.${ext}` : "";
+      const sanitizedFileName = `${sanitizedName}${sanitizedExt}`;
+      let targetPath = `${assetsFolderPath}/${sanitizedFileName}`;
+
+      // Check if file already exists at target path (avoid duplicates)
+      if (await plugin.app.vault.adapter.exists(targetPath)) {
+        // File exists at expected path, reuse it
+        const file = plugin.app.vault.getAbstractFileByPath(targetPath);
+        if (file && file instanceof TFile) {
+          pathMapping.set(filepath, targetPath);
+          // Update frontmatter to track this mapping
+          await plugin.app.fileManager.processFrontMatter(
+            targetMarkdownFile,
+            (fm) => {
+              const assetsRaw = (fm as Record<string, unknown>).importedAssets;
+              const assets: Record<string, string> =
+                assetsRaw && typeof assetsRaw === "object" && !Array.isArray(assetsRaw)
+                  ? (assetsRaw as Record<string, string>)
+                  : {};
+              assets[filehash] = targetPath;
+              (fm as Record<string, unknown>).importedAssets = assets;
+            },
+          );
+          console.log(`Reusing existing file at path: ${targetPath}`);
+          continue;
+        }
+      }
+
+      // File doesn't exist, download it
+      const fileContent = await downloadFileFromStorage({
+        client,
+        filehash,
+      });
+
+      if (!fileContent) {
+        errors.push(`Failed to download file: ${filepath}`);
+        console.warn(`Failed to download file ${filepath} (hash: ${filehash})`);
+        continue;
+      }
+
+      // Save file to vault
+      await plugin.app.vault.createBinary(targetPath, fileContent);
+
+      // Update frontmatter to track this mapping
+      await plugin.app.fileManager.processFrontMatter(targetMarkdownFile, (fm) => {
+        const assetsRaw = (fm as Record<string, unknown>).importedAssets;
+        const assets: Record<string, string> =
+          assetsRaw && typeof assetsRaw === "object" && !Array.isArray(assetsRaw)
+            ? (assetsRaw as Record<string, string>)
+            : {};
+        assets[filehash] = targetPath;
+        (fm as Record<string, unknown>).importedAssets = assets;
+      });
+
+      // Track path mapping
+      pathMapping.set(filepath, targetPath);
+      console.log(`Imported asset: ${filepath} -> ${targetPath}`);
+    } catch (error) {
+      const errorMsg = `Error importing asset ${fileRef.filepath}: ${error}`;
+      errors.push(errorMsg);
+      console.error(errorMsg, error);
+    }
+  }
+
+  return {
+    success: errors.length === 0 || pathMapping.size > 0,
+    pathMapping,
+    errors,
   };
 };
 
@@ -526,12 +952,20 @@ export const importSelectedNodes = async ({
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
     const spaceName = await getSpaceName(client, spaceId);
     const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
+    const assetsFolderPath = `${importFolderPath}/assets`;
 
-    // Ensure the folder exists
+    // Ensure the import folder exists
     const folderExists =
       await plugin.app.vault.adapter.exists(importFolderPath);
     if (!folderExists) {
       await plugin.app.vault.createFolder(importFolderPath);
+    }
+
+    // Ensure the assets folder exists
+    const assetsFolderExists =
+      await plugin.app.vault.adapter.exists(assetsFolderPath);
+    if (!assetsFolderExists) {
+      await plugin.app.vault.createFolder(assetsFolderPath);
     }
 
     // Process each node in this space
@@ -618,8 +1052,43 @@ export const importSelectedNodes = async ({
           continue;
         }
 
-        // If title changed and file exists, rename it to match the new title
         const processedFile = result.file;
+
+        // Import assets for this node
+        const assetImportResult = await importAssetsForNode({
+          plugin,
+          client,
+          spaceId: node.spaceId,
+          nodeInstanceId: node.nodeInstanceId,
+          spaceName,
+          targetMarkdownFile: processedFile,
+        });
+
+        // Update markdown content with new asset paths if assets were imported
+        if (assetImportResult.pathMapping.size > 0) {
+          const currentContent = await plugin.app.vault.read(processedFile);
+          const updatedContent = updateMarkdownAssetLinks({
+            content: currentContent,
+            oldPathToNewPath: assetImportResult.pathMapping,
+            targetFile: processedFile,
+            app: plugin.app,
+          });
+
+          // Only update if content changed
+          if (updatedContent !== currentContent) {
+            await plugin.app.vault.modify(processedFile, updatedContent);
+          }
+        }
+
+        // Log asset import errors if any
+        if (assetImportResult.errors.length > 0) {
+          console.warn(
+            `Some assets failed to import for node ${node.nodeInstanceId}:`,
+            assetImportResult.errors,
+          );
+        }
+
+        // If title changed and file exists, rename it to match the new title
         if (existingFile && processedFile.basename !== sanitizedFileName) {
           const newPath = `${importFolderPath}/${sanitizedFileName}.md`;
           let targetPath = newPath;
