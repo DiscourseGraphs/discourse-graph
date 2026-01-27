@@ -4,6 +4,7 @@ import { Notice } from "obsidian";
 import { usePlugin } from "./PluginContext";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { getNodeTypeById } from "~/utils/typeUtils";
+import generateUid from "~/utils/generateUid";
 
 const RelationshipSettings = () => {
   const plugin = usePlugin();
@@ -18,33 +19,49 @@ const RelationshipSettings = () => {
     return plugin.settings.relationTypes.find((relType) => relType.id === id);
   };
 
+  type EditableFieldKey = keyof Omit<
+    DiscourseRelation,
+    "id" | "modified" | "created"
+  >;
+
   const handleRelationChange = async (
     index: number,
-    field: keyof DiscourseRelation,
+    field: EditableFieldKey,
     value: string,
   ): Promise<void> => {
     const updatedRelations = [...discourseRelations];
 
+    const now = new Date().getTime();
     if (!updatedRelations[index]) {
+      const newId = generateUid("rel3");
       updatedRelations[index] = {
+        id: newId,
         sourceId: "",
         destinationId: "",
         relationshipTypeId: "",
+        created: now,
+        modified: now,
       };
     }
 
     updatedRelations[index][field] = value;
+    updatedRelations[index].modified = now;
     setDiscourseRelations(updatedRelations);
     setHasUnsavedChanges(true);
   };
 
   const handleAddRelation = (): void => {
+    const newId = generateUid("rel3");
+    const now = new Date().getTime();
     const updatedRelations = [
       ...discourseRelations,
       {
+        id: newId,
         sourceId: "",
         destinationId: "",
         relationshipTypeId: "",
+        created: now,
+        modified: now,
       },
     ];
     setDiscourseRelations(updatedRelations);

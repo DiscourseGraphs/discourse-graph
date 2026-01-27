@@ -25,7 +25,10 @@ const generateTagPlaceholder = (format: string, nodeName?: string): string => {
   return "Enter tag (e.g., clm-candidate)";
 };
 
-type EditableFieldKey = keyof Omit<DiscourseNode, "id" | "shortcut">;
+type EditableFieldKey = keyof Omit<
+  DiscourseNode,
+  "id" | "shortcut" | "modified" | "created"
+>;
 
 type BaseFieldConfig = {
   key: EditableFieldKey;
@@ -323,7 +326,11 @@ const NodeTypeSettings = () => {
   ): void => {
     if (!editingNodeType) return;
 
-    const updatedNodeType = { ...editingNodeType, [field]: value };
+    const updatedNodeType = {
+      ...editingNodeType,
+      [field]: value,
+      modified: new Date().getTime(),
+    };
     if (typeof value === "string") {
       validateField(field, value, updatedNodeType);
     }
@@ -332,12 +339,15 @@ const NodeTypeSettings = () => {
   };
 
   const handleAddNodeType = (): void => {
+    const now = new Date().getTime();
     const newNodeType: DiscourseNode = {
       id: generateUid("node"),
       name: "",
       format: "",
       template: "",
       tag: "",
+      created: now,
+      modified: now,
     };
     setEditingNodeType(newNodeType);
     setSelectedNodeIndex(nodeTypes.length);

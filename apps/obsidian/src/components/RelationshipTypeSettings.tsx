@@ -97,11 +97,17 @@ const RelationshipTypeSettings = () => {
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  type EditableFieldKey = keyof Omit<
+    DiscourseRelationType,
+    "id" | "modified" | "created"
+  >;
+
   const handleRelationTypeChange = (
     index: number,
-    field: keyof DiscourseRelationType,
+    field: EditableFieldKey,
     value: string,
   ): void => {
+    const now = new Date().getTime();
     const updatedRelationTypes = [...relationTypes];
     if (!updatedRelationTypes[index]) {
       const newId = generateUid("rel");
@@ -110,8 +116,11 @@ const RelationshipTypeSettings = () => {
         label: "",
         complement: "",
         color: DEFAULT_TLDRAW_COLOR,
+        created: now,
+        modified: now,
       };
     }
+    updatedRelationTypes[index].modified = now;
     if (field === "color") {
       updatedRelationTypes[index].color = value as TldrawColorName;
     } else {
@@ -123,6 +132,7 @@ const RelationshipTypeSettings = () => {
 
   const handleAddRelationType = (): void => {
     const newId = generateUid("rel");
+    const now = new Date().getTime();
 
     const updatedRelationTypes = [
       ...relationTypes,
@@ -131,6 +141,8 @@ const RelationshipTypeSettings = () => {
         label: "",
         complement: "",
         color: DEFAULT_TLDRAW_COLOR,
+        created: now,
+        modified: now,
       },
     ];
     setRelationTypes(updatedRelationTypes);
