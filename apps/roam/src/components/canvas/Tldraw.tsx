@@ -800,6 +800,8 @@ const InsideEditorAndUiContext = ({
     ];
     const isImage = (ext: string) => ACCEPTED_IMG_TYPE.includes(ext);
 
+    // TODO: replace with defaultHandleExternalTextContent() in v3.10.0
+    // https://tldraw.dev/examples/external-content-sources
     // Intercept registration so we can capture the default text handler.
     const originalRegister = editor.registerExternalContentHandler.bind(editor);
     let defaultTextHandler:
