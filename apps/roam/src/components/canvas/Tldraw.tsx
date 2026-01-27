@@ -97,6 +97,7 @@ import { HistoryEntry } from "@tldraw/store";
 import { TLRecord } from "@tldraw/tlschema";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { BLOCK_REF_REGEX } from "roamjs-components/dom";
+import { defaultHandleExternalTextContent } from "./defaultHandleExternalTextContent";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -843,53 +844,26 @@ const InsideEditorAndUiContext = ({
     ];
     const isImage = (ext: string) => ACCEPTED_IMG_TYPE.includes(ext);
 
-    // TODO: replace with defaultHandleExternalTextContent() in v3.10.0
-    // https://tldraw.dev/examples/external-content-sources
-    // Intercept registration so we can capture the default text handler.
-    const originalRegister = editor.registerExternalContentHandler.bind(editor);
-    let defaultTextHandler:
-      | ((
-          content: TLExternalContent & { type: "text" },
-        ) => Promise<void> | void)
-      | null = null;
-
-    const interceptRegister: typeof editor.registerExternalContentHandler = (
-      type,
-      handler,
-    ) => {
-      if (type === "text" && !defaultTextHandler) {
-        defaultTextHandler = handler as (
-          content: TLExternalContent & { type: "text" },
-        ) => Promise<void> | void;
-      }
-
-      return originalRegister(type, handler);
-    };
-
-    editor.registerExternalContentHandler = interceptRegister;
-    try {
-      registerDefaultExternalContentHandlers(
-        editor,
-        {
-          maxImageDimension: 5000,
-          maxAssetSize: 10 * 1024 * 1024, // 10mb
-          acceptedImageMimeTypes: DEFAULT_SUPPORTED_IMAGE_TYPES,
-          acceptedVideoMimeTypes: DEFAULT_SUPPORT_VIDEO_TYPES,
-        },
-        { toasts, msg },
-      );
-    } finally {
-      // Restore original register now that defaults are attached.
-      editor.registerExternalContentHandler = originalRegister;
-    }
-
+    // Register default handlers for images and videos
+    registerDefaultExternalContentHandlers(
+      editor,
+      {
+        maxImageDimension: 5000,
+        maxAssetSize: 10 * 1024 * 1024, // 10mb
+        acceptedImageMimeTypes: DEFAULT_SUPPORTED_IMAGE_TYPES,
+        acceptedVideoMimeTypes: DEFAULT_SUPPORT_VIDEO_TYPES,
+      },
+      { toasts, msg },
+    );
     const callDefaultTextHandler = async (
       content: TLExternalContent & { type: "text" },
     ): Promise<void> => {
-      if (!defaultTextHandler) return;
-      await defaultTextHandler(content);
+      return await defaultHandleExternalTextContent({
+        point: content.point,
+        text: content?.text || "",
+        editor,
+      });
     };
-
     // Register custom text handler that checks for [[pageName]] and ((uid)) patterns
     // If it matches, create discourse node; otherwise, delegate to default handler
     const textHandler = (
@@ -905,6 +879,7 @@ const InsideEditorAndUiContext = ({
             const pageName = pageMatch[1];
             const pageUid = getPageUidByPageTitle(pageName);
             if (!pageUid) return await callDefaultTextHandler(content);
+
             const nodeType = findDiscourseNode({
               uid: pageUid,
               title: pageName,
