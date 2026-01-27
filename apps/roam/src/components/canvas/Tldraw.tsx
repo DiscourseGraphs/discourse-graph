@@ -411,7 +411,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     const uid = e.dataTransfer.getData("application/x-roam-uid");
 
     if (!uid || !appRef.current || !extensionAPI) return;
-    if (!appRef.current) return;
 
     // Use the text content handler to process ((uid)) - this will handle both
     // creating discourse nodes and falling back to text shapes
