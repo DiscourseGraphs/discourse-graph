@@ -16,13 +16,14 @@ const deploy = async () => {
   };
 
   console.log("Deploying ...");
-  try {
-    await compile({});
-  } catch (error) {
-    console.error("Deployment failed on compile:", error);
-    process.exit(1);
-  }
-
+  if (!process.argv.includes("--no-compile"))
+    try {
+      console.log("Building");
+      await compile({});
+    } catch (error) {
+      console.error("Deployment failed on compile:", error);
+      process.exit(1);
+    }
   try {
     const resolvedWorkspace = "roam";
     if (!resolvedWorkspace) throw new Error("Workspace is required");

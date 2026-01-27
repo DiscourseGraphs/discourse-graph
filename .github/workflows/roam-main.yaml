@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -38,5 +38,17 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build
+        run: npx turbo run build --filter=roam --ui stream
+
+      - name: Inject & upload source maps to PostHog
+        uses: PostHog/upload-source-maps@v0.5.7.0
+        with:
+          directory: apps/roam/dist
+          env-id: ${{ secrets.POSTHOG_CLI_ENV_ID }}
+          cli-token: ${{ secrets.POSTHOG_CLI_TOKEN }}
+          project: Roam
+          version: ${{ github.sha }}
+
       - name: Deploy
-        run: npx turbo run deploy --filter=roam
+        run: npx turbo run deploy --filter=roam --ui stream -- --no-compile
