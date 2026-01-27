@@ -2,39 +2,86 @@ import { TFile, App } from "obsidian";
 import { BulkImportPattern, BulkImportCandidate, DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import { extractContentFromTitle } from "~/utils/extractContentFromTitle";
-
-// This is a workaround to get the datacore API.
-// TODO: Remove once we can use datacore npm package
-type AppWithPlugins = App & {
-  plugins: {
-    plugins: {
-      [key: string]: {
-        api: unknown;
-      };
-    };
-  };
-};
+import { Datacore, DatacoreApi, Settings } from "@blacksmithgu/datacore";
 
 type DatacorePage = {
   $name: string;
   $path?: string;
 };
 
+// Default datacore settings
+const DEFAULT_DATACORE_SETTINGS: Settings = {
+  importerNumThreads: 4,
+  importerUtilization: 0.5,
+  enableJs: false,
+  defaultPagingEnabled: true,
+  defaultPageSize: 50,
+  scrollOnPageChange: true,
+  maxRecursiveRenderDepth: 4,
+  defaultDateFormat: "MMMM dd, yyyy",
+  defaultDateTimeFormat: "h:mm a - MMMM dd, yyyy",
+  renderNullAs: "-",
+  indexInlineFields: false,
+};
+
 export class QueryEngine {
   private app: App;
-  private dc:
-    | {
-        query: (query: string) => DatacorePage[];
-      }
-    | undefined;
+  private dc: DatacoreApi | undefined;
   private readonly MIN_QUERY_LENGTH = 2;
+  private datacoreCore: Datacore | undefined;
+  private initializationPromise: Promise<void> | undefined;
 
   constructor(app: App) {
-    const appWithPlugins = app as AppWithPlugins;
-    this.dc = appWithPlugins.plugins?.plugins?.["datacore"]?.api as
-      | { query: (query: string) => DatacorePage[] }
-      | undefined;
     this.app = app;
+    this.initializeDatacore();
+  }
+
+  private async initializeDatacore(): Promise<void> {
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+
+    this.initializationPromise = new Promise<void>((resolve) => {
+      try {
+        // Create datacore instance with version and settings
+        this.datacoreCore = new Datacore(
+          this.app,
+          "0.1.0", // Version
+          DEFAULT_DATACORE_SETTINGS,
+        );
+
+        // Set up initialization listener
+        const timeoutId = setTimeout(() => {
+          console.warn(
+            "Datacore initialization timeout - falling back to vault scanning",
+          );
+          resolve();
+        }, 10000); // 10 second timeout
+
+        this.datacoreCore.on("initialized", () => {
+          clearTimeout(timeoutId);
+          if (this.datacoreCore) {
+            this.dc = new DatacoreApi(this.datacoreCore);
+            console.log("Datacore initialized successfully");
+          }
+          resolve();
+        });
+
+        // Start initialization
+        this.datacoreCore.initialize();
+      } catch (error) {
+        console.error("Failed to initialize datacore:", error);
+        resolve();
+      }
+    });
+
+    return this.initializationPromise;
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+    }
   }
 
   /**
@@ -47,6 +94,9 @@ export class QueryEngine {
     if (!query || query.length < this.MIN_QUERY_LENGTH) {
       return [];
     }
+
+    await this.ensureInitialized();
+
     if (!this.dc) {
       console.warn(
         "Datacore API not available. Search functionality is not available.",
@@ -58,7 +108,7 @@ export class QueryEngine {
       const dcQuery = nodeTypeId
         ? `@page and exists(nodeTypeId) and nodeTypeId = "${nodeTypeId}"`
         : "@page and exists(nodeTypeId)";
-      const potentialNodes = await this.dc.query(dcQuery);
+      const potentialNodes = this.dc.query(dcQuery);
 
       const searchResults = potentialNodes.filter((p: DatacorePage) =>
         this.fuzzySearch(p.$name, query),
@@ -95,6 +145,9 @@ export class QueryEngine {
     if (!query || query.length < this.MIN_QUERY_LENGTH) {
       return [];
     }
+
+    await this.ensureInitialized();
+
     if (!this.dc) {
       console.warn(
         "Datacore API not available. Search functionality is not available.",
@@ -214,6 +267,8 @@ export class QueryEngine {
     validNodeTypes: DiscourseNode[],
   ): Promise<BulkImportCandidate[]> {
     const candidates: BulkImportCandidate[] = [];
+
+    await this.ensureInitialized();
 
     if (!this.dc) {
       console.warn(
@@ -346,5 +401,16 @@ export class QueryEngine {
     }
 
     return candidates;
+  }
+
+  /**
+   * Cleanup method to properly unload datacore
+   */
+  cleanup(): void {
+    if (this.datacoreCore) {
+      this.datacoreCore.unload();
+      this.datacoreCore = undefined;
+      this.dc = undefined;
+    }
   }
 }
