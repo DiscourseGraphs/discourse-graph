@@ -789,6 +789,49 @@ const InsideEditorAndUiContext = ({
   //   );
   // };
 
+  const createDiscourseNodeShape = async ({
+    uid,
+    nodeText,
+    nodeType,
+    content,
+  }: {
+    uid: string;
+    nodeText: string;
+    nodeType: string;
+    content: TLExternalContent & { type: "text" };
+  }): Promise<void> => {
+    const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
+      nodeText,
+      uid,
+      nodeType,
+      extensionAPI,
+    });
+
+    const position =
+      content.point ??
+      (editor.inputs.shiftKey
+        ? editor.inputs.currentPagePoint
+        : editor.getViewportPageBounds().center);
+
+    editor.createShapes([
+      {
+        id: createShapeId(),
+        type: nodeType,
+        x: position.x - w / 2,
+        y: position.y - h / 2,
+        props: {
+          uid,
+          title: nodeText,
+          w,
+          h,
+          ...(imageUrl && { imageUrl }),
+          size: "s",
+          fontFamily: "sans",
+        },
+      },
+    ]);
+  };
+
   useEffect(() => {
     // https://tldraw.dev/examples/data/assets/hosted-images
     const ACCEPTED_IMG_TYPE = [
@@ -853,97 +896,47 @@ const InsideEditorAndUiContext = ({
       content: TLExternalContent & { type: "text" },
     ): void => {
       void (async () => {
-        const text = content.text ?? "";
-
-        // Check for page reference: [[pageName]]
-        const pageMatch = text.match(/^\[\[(.+?)\]\]$/);
-        if (pageMatch?.[1]) {
-          const pageName = pageMatch[1];
-          const pageUid = getPageUidByPageTitle(pageName);
-          if (!pageUid) return await callDefaultTextHandler(content);
-          const nodeType = findDiscourseNode({
-            uid: pageUid,
-            title: pageName,
-            nodes: allNodes,
-          });
-          if (!nodeType) return await callDefaultTextHandler(content);
-
-          try {
-            const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
-              nodeText: pageName,
-              uid: pageUid,
-              nodeType: nodeType.type,
-              extensionAPI,
-            });
-
-            const position =
-              content.point ??
-              (editor.inputs.shiftKey
-                ? editor.inputs.currentPagePoint
-                : editor.getViewportPageBounds().center);
-
-            editor.createShapes([
-              {
-                id: createShapeId(),
-                type: nodeType.type,
-                x: position.x - w / 2,
-                y: position.y - h / 2,
-                props: {
-                  uid: pageUid,
-                  title: pageName,
-                  w,
-                  h,
-                  imageUrl,
-                  size: "s",
-                  fontFamily: "sans",
-                },
-              },
-            ]);
-          } catch (error) {
-            await callDefaultTextHandler(content);
-          }
-          return;
-        }
-
-        // Check for block reference: ((uid))
-        const uidMatch = text.match(BLOCK_REF_REGEX);
-        if (!uidMatch?.[1]) return await callDefaultTextHandler(content);
-
-        const uid = uidMatch[1];
-        const blockText = getTextByBlockUid(uid);
-        const isLive = isLiveBlock(uid);
-        if (!blockText || !isLive) return await callDefaultTextHandler(content);
-
         try {
-          const { h, w } = await calcCanvasNodeSizeAndImg({
-            nodeText: blockText,
+          const text = content.text ?? "";
+
+          // Check for page reference: [[pageName]]
+          const pageMatch = text.match(/^\[\[(.+?)\]\]$/);
+          if (pageMatch?.[1]) {
+            const pageName = pageMatch[1];
+            const pageUid = getPageUidByPageTitle(pageName);
+            if (!pageUid) return await callDefaultTextHandler(content);
+            const nodeType = findDiscourseNode({
+              uid: pageUid,
+              title: pageName,
+              nodes: allNodes,
+            });
+            if (!nodeType) return await callDefaultTextHandler(content);
+
+            await createDiscourseNodeShape({
+              uid: pageUid,
+              nodeText: pageName,
+              nodeType: nodeType.type,
+              content,
+            });
+            return;
+          }
+
+          // Check for block reference: ((uid))
+          const uidMatch = text.match(BLOCK_REF_REGEX);
+          if (!uidMatch?.[1]) return await callDefaultTextHandler(content);
+
+          const uid = uidMatch[1];
+          const blockText = getTextByBlockUid(uid);
+          const isLive = isLiveBlock(uid);
+          if (!blockText || !isLive)
+            return await callDefaultTextHandler(content);
+
+          await createDiscourseNodeShape({
             uid,
+            nodeText: blockText,
             nodeType: "blck-node",
-            extensionAPI,
+            content,
           });
-
-          const position =
-            content.point ??
-            (editor.inputs.shiftKey
-              ? editor.inputs.currentPagePoint
-              : editor.getViewportPageBounds().center);
-
-          editor.createShapes([
-            {
-              id: createShapeId(),
-              type: "blck-node",
-              x: position.x - w / 2,
-              y: position.y - h / 2,
-              props: {
-                uid,
-                title: blockText,
-                w,
-                h,
-                size: "s",
-                fontFamily: "sans",
-              },
-            },
-          ]);
         } catch (error) {
           await callDefaultTextHandler(content);
         }
