@@ -847,15 +847,66 @@ const InsideEditorAndUiContext = ({
       await defaultTextHandler(content);
     };
 
-    // Register custom text handler that checks for ((uid)) pattern
+    // Register custom text handler that checks for [[pageName]] and ((uid)) patterns
     // If it matches, create discourse node; otherwise, delegate to default handler
     const textHandler = (
       content: TLExternalContent & { type: "text" },
     ): void => {
       void (async () => {
         const text = content.text ?? "";
-        const uidMatch = text.match(BLOCK_REF_REGEX);
 
+        // Check for page reference: [[pageName]]
+        const pageMatch = text.match(/^\[\[(.+?)\]\]$/);
+        if (pageMatch?.[1]) {
+          const pageName = pageMatch[1];
+          const pageUid = getPageUidByPageTitle(pageName);
+          if (!pageUid) return await callDefaultTextHandler(content);
+          const nodeType = findDiscourseNode({
+            uid: pageUid,
+            title: pageName,
+            nodes: allNodes,
+          });
+          if (!nodeType) return await callDefaultTextHandler(content);
+
+          try {
+            const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
+              nodeText: pageName,
+              uid: pageUid,
+              nodeType: nodeType.type,
+              extensionAPI,
+            });
+
+            const position =
+              content.point ??
+              (editor.inputs.shiftKey
+                ? editor.inputs.currentPagePoint
+                : editor.getViewportPageBounds().center);
+
+            editor.createShapes([
+              {
+                id: createShapeId(),
+                type: nodeType.type,
+                x: position.x - w / 2,
+                y: position.y - h / 2,
+                props: {
+                  uid: pageUid,
+                  title: pageName,
+                  w,
+                  h,
+                  imageUrl,
+                  size: "s",
+                  fontFamily: "sans",
+                },
+              },
+            ]);
+          } catch (error) {
+            await callDefaultTextHandler(content);
+          }
+          return;
+        }
+
+        // Check for block reference: ((uid))
+        const uidMatch = text.match(BLOCK_REF_REGEX);
         if (!uidMatch?.[1]) return await callDefaultTextHandler(content);
 
         const uid = uidMatch[1];
