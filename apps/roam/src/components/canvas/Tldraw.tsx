@@ -63,7 +63,10 @@ import {
 } from "./DiscourseNodeUtil";
 import { useRoamStore } from "./useRoamStore";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import getUids from "roamjs-components/dom/getUids";
 import findDiscourseNode from "~/utils/findDiscourseNode";
+import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
@@ -93,6 +96,8 @@ import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import { HistoryEntry } from "@tldraw/store";
 import { TLRecord } from "@tldraw/tlschema";
 import { WHITE_LOGO_SVG } from "~/icons";
+import { BLOCK_REF_REGEX } from "roamjs-components/dom";
+import { defaultHandleExternalTextContent } from "./defaultHandleExternalTextContent";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -371,6 +376,56 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   const extensionAPI = useExtensionAPI();
 
+  const getBlockUidFromBullet = (bulletEl: HTMLElement): string | undefined => {
+    // Navigate up to find the rm-block-main or rm-block__self container
+    const blockMain =
+      bulletEl.closest(".rm-block-main") || bulletEl.closest(".rm-block__self");
+    if (!blockMain) return undefined;
+
+    // Find the rm-block__input div within the block container
+    const blockInput = blockMain.querySelector(".rm-block__input");
+    if (!blockInput) return undefined;
+
+    return getUids(blockInput as HTMLDivElement).blockUid;
+  };
+
+  // Handle Roam block drag and drop
+  useEffect(() => {
+    const handleDragStart = (e: DragEvent) => {
+      const target = e.target as HTMLElement;
+      const uid = getBlockUidFromBullet(target);
+
+      if (uid) e.dataTransfer?.setData("application/x-roam-uid", uid);
+    };
+
+    document.addEventListener("dragstart", handleDragStart);
+    return () => document.removeEventListener("dragstart", handleDragStart);
+  }, []);
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const uid = e.dataTransfer.getData("application/x-roam-uid");
+
+    if (!uid || !appRef.current || !extensionAPI) return;
+
+    // Use the text content handler to process ((uid)) - this will handle both
+    // creating discourse nodes and falling back to text shapes
+    const dropPoint = appRef.current.screenToPage({
+      x: e.clientX,
+      y: e.clientY,
+    });
+
+    void appRef.current.putExternalContent({
+      type: "text",
+      text: `((${uid}))`,
+      point: dropPoint,
+    });
+  };
+
   // COMPONENTS
   const defaultEditorComponents: TLEditorComponents = {
     Scribble: TldrawScribble,
@@ -547,6 +602,8 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       className="roamjs-tldraw-canvas-container relative z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white"
       ref={containerRef}
       tabIndex={-1}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       <style>{tldrawStyles}</style>
 
@@ -732,6 +789,49 @@ const InsideEditorAndUiContext = ({
   //   );
   // };
 
+  const createDiscourseNodeShape = async ({
+    uid,
+    nodeText,
+    nodeType,
+    content,
+  }: {
+    uid: string;
+    nodeText: string;
+    nodeType: string;
+    content: TLExternalContent & { type: "text" };
+  }): Promise<void> => {
+    const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
+      nodeText,
+      uid,
+      nodeType,
+      extensionAPI,
+    });
+
+    const position =
+      content.point ??
+      (editor.inputs.shiftKey
+        ? editor.inputs.currentPagePoint
+        : editor.getViewportPageBounds().center);
+
+    editor.createShapes([
+      {
+        id: createShapeId(),
+        type: nodeType,
+        x: position.x - w / 2,
+        y: position.y - h / 2,
+        props: {
+          uid,
+          title: nodeText,
+          w,
+          h,
+          ...(imageUrl && { imageUrl }),
+          size: "s",
+          fontFamily: "sans",
+        },
+      },
+    ]);
+  };
+
   useEffect(() => {
     // https://tldraw.dev/examples/data/assets/hosted-images
     const ACCEPTED_IMG_TYPE = [
@@ -743,6 +843,7 @@ const InsideEditorAndUiContext = ({
     ];
     const isImage = (ext: string) => ACCEPTED_IMG_TYPE.includes(ext);
 
+    // Register default handlers for images and videos
     registerDefaultExternalContentHandlers(
       editor,
       {
@@ -753,6 +854,70 @@ const InsideEditorAndUiContext = ({
       },
       { toasts, msg },
     );
+    const callDefaultTextHandler = async (
+      content: TLExternalContent & { type: "text" },
+    ): Promise<void> => {
+      return await defaultHandleExternalTextContent({
+        point: content.point,
+        text: content?.text || "",
+        editor,
+      });
+    };
+    // Register custom text handler that checks for [[pageName]] and ((uid)) patterns
+    // If it matches, create discourse node; otherwise, delegate to default handler
+    const textHandler = (
+      content: TLExternalContent & { type: "text" },
+    ): void => {
+      void (async () => {
+        try {
+          const text = content.text ?? "";
+
+          // Check for page reference: [[pageName]]
+          const pageMatch = text.match(/^\[\[(.+?)\]\]$/);
+          if (pageMatch?.[1]) {
+            const pageName = pageMatch[1];
+            const pageUid = getPageUidByPageTitle(pageName);
+            if (!pageUid) return await callDefaultTextHandler(content);
+
+            const nodeType = findDiscourseNode({
+              uid: pageUid,
+              title: pageName,
+              nodes: allNodes,
+            });
+            if (!nodeType) return await callDefaultTextHandler(content);
+
+            await createDiscourseNodeShape({
+              uid: pageUid,
+              nodeText: pageName,
+              nodeType: nodeType.type,
+              content,
+            });
+            return;
+          }
+
+          // Check for block reference: ((uid))
+          const uidMatch = text.match(BLOCK_REF_REGEX);
+          if (!uidMatch?.[1]) return await callDefaultTextHandler(content);
+
+          const uid = uidMatch[1];
+          const blockText = getTextByBlockUid(uid);
+          const isLive = isLiveBlock(uid);
+          if (!blockText || !isLive)
+            return await callDefaultTextHandler(content);
+
+          await createDiscourseNodeShape({
+            uid,
+            nodeText: blockText,
+            nodeType: "blck-node",
+            content,
+          });
+        } catch (error) {
+          await callDefaultTextHandler(content);
+        }
+      })();
+    };
+
+    editor.registerExternalContentHandler("text", textHandler);
     editor.registerExternalContentHandler(
       "files",
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -938,7 +1103,7 @@ const InsideEditorAndUiContext = ({
       cleanupSideEffects();
       cleanupCustomSideEffects();
     };
-  }, [editor, msg, toasts]);
+  }, [editor, msg, toasts, extensionAPI]);
 
   return <CustomContextMenu extensionAPI={extensionAPI} allNodes={allNodes} />;
 };
