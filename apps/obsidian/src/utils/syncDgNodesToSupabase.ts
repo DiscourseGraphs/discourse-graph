@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { uuidv7 } from "uuidv7";
 import { Notice, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json } from "@repo/database/dbTypes";
@@ -156,7 +157,7 @@ const ensureNodeInstanceId = async (
     return existingId;
   }
 
-  const nodeInstanceId = crypto.randomUUID();
+  const nodeInstanceId = uuidv7();
   await plugin.app.fileManager.processFrontMatter(file, (fm) => {
     (fm as Record<string, unknown>).nodeInstanceId = nodeInstanceId;
   });
