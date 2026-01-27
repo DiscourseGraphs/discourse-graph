@@ -16,7 +16,7 @@ export type SupabaseContext = {
   spacePassword: string;
 };
 
-const contextCache: Record<string, SupabaseContext> = {};
+let contextCache: SupabaseContext | null = null;
 
 const generateAccountLocalId = (vaultName: string): string => {
   const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -67,11 +67,10 @@ const canonicalObsidianUrl = (vaultId: string): string => {
 export const getSupabaseContext = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<SupabaseContext | null> => {
-  const vaultId = getVaultId(plugin.app);
-  let context = contextCache[vaultId];
-  if (context === undefined) {
+  if (contextCache === null) {
     try {
       const vaultName = plugin.app.vault.getName() || "obsidian-vault";
+      const vaultId = getVaultId(plugin.app);
 
       const spacePassword = await getOrCreateSpacePassword(plugin);
       const accountLocalId = await getOrCreateAccountLocalId(plugin, vaultName);
@@ -101,7 +100,7 @@ export const getSupabaseContext = async (
         password: spacePassword,
       });
 
-      contextCache[vaultId] = context = {
+      contextCache = {
         platform: "Obsidian",
         spaceId,
         userId,
@@ -112,18 +111,15 @@ export const getSupabaseContext = async (
       return null;
     }
   }
-  return context;
+  return contextCache;
 };
 
-const loggedInClients: Record<string, DGSupabaseClient> = {};
+let loggedInClient: DGSupabaseClient | null = null;
 
 export const getLoggedInClient = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<DGSupabaseClient | null> => {
-  const vaultId = getVaultId(plugin.app);
-  let loggedInClient: DGSupabaseClient | null | undefined =
-    loggedInClients[vaultId];
-  if (loggedInClient === undefined) {
+  if (loggedInClient === null) {
     const context = await getSupabaseContext(plugin);
     if (context === null) {
       throw new Error("Could not create Supabase context");
@@ -168,6 +164,5 @@ export const getLoggedInClient = async (
       }
     }
   }
-  loggedInClients[vaultId] = loggedInClient;
   return loggedInClient;
 };
