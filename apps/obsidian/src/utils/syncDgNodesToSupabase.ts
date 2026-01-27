@@ -1,21 +1,22 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { Notice, TFile } from "obsidian";
-import { DGSupabaseClient } from "@repo/database/lib/client";
-import { Json } from "@repo/database/dbTypes";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Json } from "@repo/database/dbTypes";
 import {
   getSupabaseContext,
   getLoggedInClient,
-  SupabaseContext,
+  type SupabaseContext,
 } from "./supabaseContext";
 import { default as DiscourseGraphPlugin } from "~/index";
 import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
 import {
   orderConceptsByDependency,
   discourseNodeInstanceToLocalConcept,
+  discourseNodeSchemaToLocalConcept,
 } from "./conceptConversion";
-import { LocalConceptDataInput } from "@repo/database/inputTypes";
+import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 
-const DEFAULT_TIME = new Date("1970-01-01");
+const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
 
 export type ObsidianDiscourseNodeData = {
@@ -101,7 +102,10 @@ const deleteNodesFromSupabase = async (
     if (conceptDeleteError) {
       result.success = false;
       result.errors.concept = conceptDeleteError;
-      console.error("Failed to delete concepts from Supabase:", conceptDeleteError);
+      console.error(
+        "Failed to delete concepts from Supabase:",
+        conceptDeleteError,
+      );
     }
 
     const { error: contentDeleteError } = await supabaseClient
@@ -159,7 +163,8 @@ const ensureNodeInstanceId = async (
 
   return nodeInstanceId;
 };
-const getLastSyncTime = async (
+
+const getLastContentSyncTime = async (
   supabaseClient: DGSupabaseClient,
   spaceId: number,
 ): Promise<Date> => {
@@ -170,7 +175,22 @@ const getLastSyncTime = async (
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return new Date(data?.last_modified || DEFAULT_TIME);
+  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
+};
+
+const getLastSchemaSyncTime = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<Date> => {
+  const { data } = await supabaseClient
+    .from("Concept")
+    .select("last_modified")
+    .eq("space_id", spaceId)
+    .eq("is_schema", true)
+    .order("last_modified", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
 };
 
 type DiscourseNodeInVault = {
@@ -194,7 +214,6 @@ const mergeChangeTypes = (
   const merged = new Set<ChangeType>([...base, ...additional]);
   return Array.from(merged);
 };
-
 
 /**
  * Step 1: Collect all discourse nodes from the vault
@@ -362,7 +381,10 @@ const buildChangedNodesFromNodes = async ({
     nodeInstanceIds,
   );
 
-  const lastSyncTime = await getLastSyncTime(supabaseClient, context.spaceId);
+  const lastSyncTime = await getLastContentSyncTime(
+    supabaseClient,
+    context.spaceId,
+  );
   const changedNodes: ObsidianDiscourseNodeData[] = [];
 
   for (const node of nodes) {
@@ -466,12 +488,20 @@ export const createOrUpdateDiscourseEmbedding = async (
       throw new Error("accountLocalId not found in plugin settings");
     }
 
-    await syncChangedNodesToSupabase({
-      changedNodes: allNodeInstances,
-      plugin,
+    await upsertNodesToSupabaseAsContentWithEmbeddings({
+      obsidianNodes: allNodeInstances,
       supabaseClient,
       context,
       accountLocalId,
+      plugin,
+    });
+
+    await convertDgToSupabaseConcepts({
+      nodesSince: allNodeInstances,
+      supabaseClient,
+      context,
+      accountLocalId,
+      plugin,
     });
 
     console.debug("Sync completed successfully");
@@ -486,43 +516,59 @@ const convertDgToSupabaseConcepts = async ({
   supabaseClient,
   context,
   accountLocalId,
+  plugin,
 }: {
   nodesSince: ObsidianDiscourseNodeData[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
   accountLocalId: string;
+  plugin: DiscourseGraphPlugin;
 }): Promise<void> => {
-  // TODO: handling schema (node types and relations) will be handled in the future by ENG-1181
-  // Schema upsert will need allNodeTypes parameter when enabled
+  const lastSchemaSync = (
+    await getLastSchemaSyncTime(supabaseClient, context.spaceId)
+  ).getTime();
+  const newNodeTypes = (plugin.settings.nodeTypes ?? []).filter(
+    (n) => n.modified > lastSchemaSync,
+  );
 
-  const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return discourseNodeInstanceToLocalConcept({
+  const nodesTypesToLocalConcepts = newNodeTypes.map((nodeType) =>
+    discourseNodeSchemaToLocalConcept({
+      context,
+      node: nodeType,
+      accountLocalId,
+    }),
+  );
+
+  const nodeInstanceToLocalConcepts = nodesSince.map((node) =>
+    discourseNodeInstanceToLocalConcept({
       context,
       nodeData: node,
       accountLocalId,
-    });
-  });
+    }),
+  );
 
   const conceptsToUpsert: LocalConceptDataInput[] = [
-    // ...nodesTypesToLocalConcepts,
+    ...nodesTypesToLocalConcepts,
     ...nodeInstanceToLocalConcepts,
   ];
 
-  const { ordered } = orderConceptsByDependency(conceptsToUpsert);
+  if (conceptsToUpsert.length > 0) {
+    const { ordered } = orderConceptsByDependency(conceptsToUpsert);
 
-  const { error } = await supabaseClient.rpc("upsert_concepts", {
-    data: ordered as Json,
-    v_space_id: context.spaceId,
-  });
+    const { error } = await supabaseClient.rpc("upsert_concepts", {
+      data: ordered as Json,
+      v_space_id: context.spaceId,
+    });
 
-  if (error) {
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : typeof error === "string"
-          ? error
-          : JSON.stringify(error, null, 2);
-    throw new Error(`upsert_concepts failed: ${errorMessage}`);
+    if (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : JSON.stringify(error, null, 2);
+      throw new Error(`upsert_concepts failed: ${errorMessage}`);
+    }
   }
 };
 
@@ -543,18 +589,15 @@ const syncChangedNodesToSupabase = async ({
   context: SupabaseContext;
   accountLocalId: string;
 }): Promise<void> => {
-  if (changedNodes.length === 0) {
-    console.debug("No nodes to sync");
-    return;
+  if (changedNodes.length > 0) {
+    await upsertNodesToSupabaseAsContentWithEmbeddings({
+      obsidianNodes: changedNodes,
+      supabaseClient,
+      context,
+      accountLocalId,
+      plugin,
+    });
   }
-
-  await upsertNodesToSupabaseAsContentWithEmbeddings({
-    obsidianNodes: changedNodes,
-    supabaseClient,
-    context,
-    accountLocalId,
-    plugin,
-  });
 
   // Only upsert concepts for nodes with title changes or new files
   // (concepts store the title, so content-only changes don't affect them)
@@ -562,14 +605,13 @@ const syncChangedNodesToSupabase = async ({
     node.changeTypes.includes("title"),
   );
 
-  if (nodesNeedingConceptUpsert.length > 0) {
-    await convertDgToSupabaseConcepts({
-      nodesSince: nodesNeedingConceptUpsert,
-      supabaseClient,
-      context,
-      accountLocalId,
-    });
-  }
+  await convertDgToSupabaseConcepts({
+    nodesSince: nodesNeedingConceptUpsert,
+    supabaseClient,
+    context,
+    accountLocalId,
+    plugin,
+  });
 };
 
 /**
@@ -635,10 +677,7 @@ export const syncSpecificFiles = async (
   const changeTypesByPath = new Map<string, ChangeType[]>();
   for (const filePath of filePaths) {
     const existing = changeTypesByPath.get(filePath) ?? [];
-    changeTypesByPath.set(
-      filePath,
-      mergeChangeTypes(existing, ["content"]),
-    );
+    changeTypesByPath.set(filePath, mergeChangeTypes(existing, ["content"]));
   }
 
   await syncDiscourseNodeChanges(plugin, changeTypesByPath);

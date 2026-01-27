@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { TFile } from "obsidian";
-import { DiscourseNode } from "~/types";
-import { SupabaseContext } from "./supabaseContext";
-import { LocalConceptDataInput } from "@repo/database/inputTypes";
-import { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
-import { Json } from "@repo/database/dbTypes";
+import type { TFile } from "obsidian";
+import type { DiscourseNode } from "~/types";
+import type { SupabaseContext } from "./supabaseContext";
+import type { LocalConceptDataInput } from "@repo/database/inputTypes";
+import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
+import type { Json } from "@repo/database/dbTypes";
 
 /**
  * Get extra data (author, timestamps) from file metadata
@@ -33,16 +33,22 @@ export const discourseNodeSchemaToLocalConcept = ({
   node: DiscourseNode;
   accountLocalId: string;
 }): LocalConceptDataInput => {
-  const now = new Date().toISOString();
+  const { description, template, id, name, created, modified, ...otherData } =
+    node;
   return {
     space_id: context.spaceId,
-    name: node.name,
-    source_local_id: node.id,
+    name: name,
+    source_local_id: id,
     is_schema: true,
     author_local_id: accountLocalId,
-    created: now,
-    // TODO: get the template or any other info to put into literal_content jsonb
-    last_modified: now,
+    created: new Date(created).toISOString(),
+    last_modified: new Date(modified).toISOString(),
+    description: description,
+    literal_content: {
+      label: name,
+      template: template,
+      source_data: otherData,
+    },
   };
 };
 
@@ -59,22 +65,19 @@ export const discourseNodeInstanceToLocalConcept = ({
   accountLocalId: string;
 }): LocalConceptDataInput => {
   const extraData = getNodeExtraData(nodeData.file, accountLocalId);
-  console.log(nodeData.frontmatter);
-  const concept = {
+  const { nodeInstanceId, nodeTypeId, ...otherData } = nodeData.frontmatter;
+  return {
     space_id: context.spaceId,
-    name: nodeData.file.basename,
-    source_local_id: nodeData.nodeInstanceId,
-    schema_represented_by_local_id: nodeData.nodeTypeId,
+    name: nodeData.file.path,
+    source_local_id: nodeInstanceId as string,
+    schema_represented_by_local_id: nodeTypeId as string,
     is_schema: false,
     literal_content: {
-      ...nodeData.frontmatter,
-    } as unknown as Json,
+      label: nodeData.file.basename,
+      source_data: otherData as unknown as Json,
+    },
     ...extraData,
   };
-  console.log(
-    `[discourseNodeInstanceToLocalConcept] Converting concept: source_local_id=${nodeData.nodeInstanceId}, name="${nodeData.file.basename}"`,
-  );
-  return concept;
 };
 
 export const relatedConcepts = (concept: LocalConceptDataInput): string[] => {
@@ -135,6 +138,7 @@ export const orderConceptsByDependency = (
       ...missing,
       ...orderConceptsRec(ordered, first, conceptById),
     ]);
+    if (missing.size > 0) console.error(`missing: ${[...missing]}`);
   }
   return { ordered, missing: Array.from(missing) };
 };
