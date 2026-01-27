@@ -113,6 +113,20 @@ export const publishNode = async ({
 
   if (existingPublish.includes(myGroup) && lastModified <= lastModifiedDb)
     return; // already published
+  const publishSpaceResponse = await client.from("SpaceAccess").upsert(
+    {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      account_uid: myGroup,
+      space_id: spaceId,
+      /* eslint-enable @typescript-eslint/naming-convention */
+      permissions: "partial",
+    },
+    { ignoreDuplicates: true },
+  );
+  if (publishSpaceResponse.error && publishSpaceResponse.error.code !== "23505")
+    // 23505 is duplicate key, which counts as a success.
+    throw publishSpaceResponse.error;
+
   const publishResponse = await client.from("ResourceAccess").upsert(
     {
       /* eslint-disable @typescript-eslint/naming-convention */

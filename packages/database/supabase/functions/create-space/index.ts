@@ -168,7 +168,7 @@ const processAndGetOrCreateSpace = async (
       {
         space_id,
         account_uid: anonymousUser.id,
-        editor: true,
+        permissions: 'editor',
       },
       {
         onConflict: "account_uid,space_id",
