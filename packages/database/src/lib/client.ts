@@ -8,14 +8,19 @@ import type { Database } from "@repo/database/dbTypes";
 
 export type DGSupabaseClient = SupabaseClient<Database, "public">;
 
+let client: DGSupabaseClient | null | undefined = undefined;
+
 export const createClient = (): DGSupabaseClient | null => {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
+  if (client === undefined) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_ANON_KEY;
 
-  if (!url || !key) {
-    console.error("Missing required Supabase environment variables");
-    return null;
+    if (!url || !key) {
+      console.error("Missing required Supabase environment variables");
+      client = null;
+    } else {
+      client = createSupabaseClient<Database, "public">(url, key);
+    }
   }
-
-  return createSupabaseClient<Database, "public">(url, key);
+  return client;
 };
