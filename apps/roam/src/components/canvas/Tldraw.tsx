@@ -867,7 +867,7 @@ const InsideEditorAndUiContext = ({
           const { h, w } = await calcCanvasNodeSizeAndImg({
             nodeText: blockText,
             uid,
-            nodeType: "block-node",
+            nodeType: "blck-node",
             extensionAPI,
           });
 
