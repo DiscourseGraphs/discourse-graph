@@ -83,21 +83,19 @@ export const fetchOrCreateSpaceIndirect = async (
   };
 };
 
-let client: DGSupabaseClient | null | undefined = undefined;
+let client: DGSupabaseClient | undefined = undefined;
 
 // let's avoid exporting this, and always use the createLoggedInClient
 // to ensure we never have conflict between multiple clients
 const createSingletonClient = (): DGSupabaseClient | null => {
-  if (client === undefined) {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_ANON_KEY;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
 
-    if (!url || !key) {
-      client = null;
-      throw new FatalError("Missing required Supabase environment variables");
-    } else {
+  if (!url || !key) {
+    throw new FatalError("Missing required Supabase environment variables");
+  }
+  if (client === undefined) {
       client = createClient<Database, "public">(url, key);
-    }
   }
   return client;
 };
@@ -119,9 +117,11 @@ export const fetchOrCreateSpaceDirect = async (
       .select()
       .eq("url", data.url)
       .maybeSingle();
+    if (result.error)
+      return result;
     if (result.data !== null)
       return result as PostgrestSingleResponse<SpaceRecord>;
-    // space does not exist, it may be client interference,
+    // space does not exist, or not visible from this account;
     // logout to be sure
     console.warn(`Creating a space while already logged in as ${session.data.session.user.email}; logging out`);
     await supabase.auth.signOut();
