@@ -182,9 +182,8 @@ const globalSettings: GlobalSettings = {
       },
     ],
   },
-  Relations: [
-    {
-      id: "relation-uid-1",
+  Relations: {
+    "relation-uid-1": {
       label: "Informs",
       source: "_EVD-node",
       destination: "_QUE-node",
@@ -204,8 +203,7 @@ const globalSettings: GlobalSettings = {
         },
       ],
     },
-    {
-      id: "relation-uid-2",
+    "relation-uid-2": {
       label: "Supports",
       source: "_EVD-node",
       destination: "_CLM-node",
@@ -259,7 +257,7 @@ const globalSettings: GlobalSettings = {
         },
       ],
     },
-  ],
+  },
 };
 
 const defaultGlobalSettings: GlobalSettings = {
@@ -286,7 +284,7 @@ const defaultGlobalSettings: GlobalSettings = {
     "Include Parent And Child Blocks": false,
     "Page Groups": [],
   },
-  Relations: [],
+  Relations: {},
 };
 
 const personalSection: PersonalSection = {

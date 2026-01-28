@@ -1,10 +1,9 @@
-import type { DiscourseRelationSettings } from "~/components/settings/utils/zodSchema";
 /* eslint-disable @typescript-eslint/naming-convention */ // This is for nodePosition keys
+import type { DiscourseRelationSettings } from "~/components/settings/utils/zodSchema";
 
 // TODO: Delete the original default relations in data/defaultRelations.ts when fully migrated.
-const DEFAULT_RELATIONS_BLOCK_PROPS: DiscourseRelationSettings[] = [
-  {
-    id: "informs",
+const DEFAULT_RELATIONS_BLOCK_PROPS: Record<string, DiscourseRelationSettings> = {
+  "_INF-rel": {
     label: "Informs",
     source: "_EVD-node",
     destination: "_QUE-node",
@@ -27,8 +26,7 @@ const DEFAULT_RELATIONS_BLOCK_PROPS: DiscourseRelationSettings[] = [
       },
     ],
   },
-  {
-    id: "supports",
+  "_SUP-rel": {
     label: "Supports",
     source: "_EVD-node",
     destination: "_CLM-node",
@@ -82,8 +80,7 @@ const DEFAULT_RELATIONS_BLOCK_PROPS: DiscourseRelationSettings[] = [
       },
     ],
   },
-  {
-    id: "opposes",
+  "_OPP-rel": {
     label: "Opposes",
     source: "_EVD-node",
     destination: "_CLM-node",
@@ -137,6 +134,6 @@ const DEFAULT_RELATIONS_BLOCK_PROPS: DiscourseRelationSettings[] = [
       },
     ],
   },
-];
+};
 
 export default DEFAULT_RELATIONS_BLOCK_PROPS;
