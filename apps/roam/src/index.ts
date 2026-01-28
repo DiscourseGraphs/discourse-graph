@@ -31,10 +31,6 @@ import {
   setSyncActivity,
 } from "./utils/syncDgNodesToSupabase";
 import { initPluginTimer } from "./utils/pluginTimer";
-import { getUidAndBooleanSetting } from "./utils/getExportSettings";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import { DISCOURSE_CONFIG_PAGE_TITLE } from "./utils/renderNodeConfigPage";
 import { getSetting } from "./utils/extensionSettings";
 import { initPostHog } from "./utils/posthog";
 import {
@@ -46,6 +42,7 @@ import {
   setupPullWatchOnSettingsPage,
   setupPullWatchDiscourseNodes,
 } from "./components/settings/utils/pullWatchers";
+import { getFeatureFlag } from "./components/settings/utils/accessors";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -87,6 +84,7 @@ export default runExtension(async (onloadArgs) => {
   const { blockUids, nodePageUids } = await initSchema();
   const cleanupSettingsWatchers = setupPullWatchOnSettingsPage(blockUids);
   const cleanupNodeWatchers = setupPullWatchDiscourseNodes(nodePageUids);
+
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
@@ -120,14 +118,9 @@ export default runExtension(async (onloadArgs) => {
   document.addEventListener("input", discourseNodeSearchTriggerListener);
   document.addEventListener("selectionchange", nodeCreationPopoverListener);
 
-  const isSuggestiveModeEnabled = getUidAndBooleanSetting({
-    tree: getBasicTreeByParentUid(
-      getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-    ),
-    text: "(BETA) Suggestive Mode Enabled",
-  }).value;
-
-  if (isSuggestiveModeEnabled) {
+  // Initialize sync if suggestive mode was already enabled before plugin load
+  // (pull watcher handles reactive changes after this)
+  if (getFeatureFlag("Suggestive Mode Enabled")) {
     initializeSupabaseSync();
   }
 

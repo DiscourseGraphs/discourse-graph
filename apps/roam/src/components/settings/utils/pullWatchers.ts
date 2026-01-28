@@ -12,6 +12,15 @@ import {
   type PersonalSettings,
   type DiscourseNodeSettings,
 } from "./zodSchema";
+import {
+  remountLeftSidebar,
+  unmountLeftSidebar,
+} from "~/components/LeftSidebar/lifecycle";
+import {
+  initializeSupabaseSync,
+  setSyncActivity,
+} from "~/utils/syncDgNodesToSupabase";
+import { emitFeatureFlagChange } from "./hooks";
 
 type PullWatchCallback = Parameters<AddPullWatch>[2];
 
@@ -83,13 +92,33 @@ const addPullWatch = (
 };
 
 
+
 export const featureFlagHandlers: Partial<
   Record<keyof FeatureFlags, (newValue: boolean, oldValue: boolean, allFlags: FeatureFlags) => void>
 > = {
-  // Add handlers as needed:
-  // "Enable Left Sidebar": (newValue) => { ... },
-  // "Suggestive Mode Enabled": (newValue) => { ... },
-  // "Reified Relation Triples": (newValue) => { ... },
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  "Enable Left Sidebar": (newValue) => {
+    emitFeatureFlagChange("Enable Left Sidebar", newValue);
+    if (newValue) {
+      void remountLeftSidebar();
+    } else {
+      unmountLeftSidebar();
+    }
+  },
+  // eslint-disable-next-line @typescript-eslint/naming-convention 
+  "Suggestive Mode Enabled": (newValue) => {
+    emitFeatureFlagChange("Suggestive Mode Enabled", newValue);
+    if (newValue) {
+      initializeSupabaseSync();
+    } else {
+      setSyncActivity(false);
+    }
+  },
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention 
+  "Reified Relation Triples": (newValue) => {
+    emitFeatureFlagChange("Reified Relation Triples", newValue);
+  },
 };
 
 type GlobalSettingsHandlers = {
@@ -194,6 +223,7 @@ export const setupPullWatchOnSettingsPage = (
               newSettings,
             );
           }
+
         }
       }
     ));
@@ -213,6 +243,7 @@ export const setupPullWatchOnSettingsPage = (
               newSettings,
             );
           }
+
         }
       }
     ));
@@ -220,7 +251,6 @@ export const setupPullWatchOnSettingsPage = (
 
   return createCleanupFn(watches);
 };
-
 
 export const setupPullWatchDiscourseNodes = (
   nodePageUids: Record<string, string>,

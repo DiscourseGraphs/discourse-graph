@@ -42,6 +42,7 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
+import { registerLeftSidebarLifecycle } from "./LeftSidebar/lifecycle";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -508,11 +509,22 @@ const migrateFavorites = async () => {
   refreshConfigTree();
 };
 
+// TODO: Temporary cache for onloadArgs - will be removed when left sidebar is fully migrated
+// to block prop settings. Currently needed because remountLeftSidebar() is called from
+// pullWatchers.ts which doesn't have access to onloadArgs.
+let cachedOnloadArgs: OnloadArgs | null = null;
+
+export const cacheOnloadArgs = (onloadArgs: OnloadArgs): void => {
+  cachedOnloadArgs = onloadArgs;
+};
+
 export const mountLeftSidebar = async (
   wrapper: HTMLElement,
   onloadArgs: OnloadArgs,
 ): Promise<void> => {
   if (!wrapper) return;
+
+  cachedOnloadArgs = onloadArgs;
 
   const id = "dg-left-sidebar-root";
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
@@ -530,5 +542,30 @@ export const mountLeftSidebar = async (
   }
   ReactDOM.render(<LeftSidebarView onloadArgs={onloadArgs} />, root);
 };
+
+export const unmountLeftSidebar = (): void => {
+  const wrapper = document.querySelector(".starred-pages-wrapper") as HTMLDivElement;
+  if (!wrapper) return;
+
+  const root = wrapper.querySelector("#dg-left-sidebar-root") as HTMLDivElement;
+  if (root) {
+    ReactDOM.unmountComponentAtNode(root);
+    root.remove();
+  }
+  wrapper.style.padding = "";
+};
+
+export const remountLeftSidebar = async (): Promise<void> => {
+  const wrapper = document.querySelector(".starred-pages-wrapper") as HTMLDivElement;
+  if (!wrapper || !cachedOnloadArgs) return;
+
+  wrapper.style.padding = "0";
+  await mountLeftSidebar(wrapper, cachedOnloadArgs);
+};
+
+registerLeftSidebarLifecycle({
+  mount: remountLeftSidebar,
+  unmount: unmountLeftSidebar,
+});
 
 export default LeftSidebarView;
