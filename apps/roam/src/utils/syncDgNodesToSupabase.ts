@@ -24,6 +24,7 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
 type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
 type AccountLocalInput = CompositeTypes<"account_local_input">;
+import { FatalError } from "@repo/database/lib/contextFunctions";
 
 const SYNC_FUNCTION = "embedding";
 // Minimal interval between syncs of all clients for this task.
@@ -33,8 +34,6 @@ const BASE_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const SYNC_TIMEOUT = "20s";
 const BATCH_SIZE = 200;
 const DEFAULT_TIME = new Date("1970-01-01");
-
-class FatalError extends Error {}
 
 type SyncTaskInfo = {
   lastUpdateTime?: Date;
@@ -399,6 +398,7 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
     if (!worker) {
       throw new FatalError("Unable to obtain user UID.");
     }
+
     const supabaseClient = await getLoggedInClient();
     if (!supabaseClient) {
       // TODO: Distinguish connection vs credentials error

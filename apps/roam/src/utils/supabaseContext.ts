@@ -13,6 +13,7 @@ import {
   fetchOrCreateSpaceDirect,
   fetchOrCreatePlatformAccount,
   createLoggedInClient,
+  FatalError,
 } from "@repo/database/lib/contextFunctions";
 
 declare const crypto: { randomUUID: () => string };
@@ -85,6 +86,7 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
       };
     } catch (error) {
       console.error(error);
+      if (error instanceof FatalError) throw error;
       return null;
     }
   }

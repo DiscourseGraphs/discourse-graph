@@ -37,6 +37,8 @@ export const asPostgrestFailure = (
   };
 };
 
+export class FatalError extends Error {}
+
 export const spaceValidator = (space: SpaceCreationInput): string | null => {
   if (!space || typeof space !== "object")
     return "Invalid request body: expected a JSON object.";
@@ -91,8 +93,8 @@ const createSingletonClient = (): DGSupabaseClient | null => {
     const key = process.env.SUPABASE_ANON_KEY;
 
     if (!url || !key) {
-      console.error("Missing required Supabase environment variables");
       client = null;
+      throw new FatalError("Missing required Supabase environment variables");
     } else {
       client = createClient<Database, "public">(url, key);
     }

@@ -4,6 +4,7 @@ import {
   fetchOrCreateSpaceDirect,
   fetchOrCreatePlatformAccount,
   createLoggedInClient,
+  FatalError,
 } from "@repo/database/lib/contextFunctions";
 import type DiscourseGraphPlugin from "~/index";
 
@@ -108,6 +109,7 @@ export const getSupabaseContext = async (
       };
     } catch (error) {
       console.error(error);
+      if (error instanceof FatalError) throw error;
       return null;
     }
   }
