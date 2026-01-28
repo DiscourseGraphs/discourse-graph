@@ -2,7 +2,7 @@ import { createElement } from "react";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import CanvasReferences from "~/components/canvas/CanvasReferences";
 import { OnloadArgs } from "roamjs-components/types";
-import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
+import { DiscourseContextCollapseOverlay } from "~/components/DiscourseContextOverlay";
 import { handleTitleAdditions } from "./handleTitleAdditions";
 
 export const renderDiscourseContext = ({
@@ -13,10 +13,9 @@ export const renderDiscourseContext = ({
   uid: string;
 }): void => {
   if (document.getElementById("top-discourse-context")) return;
-
   handleTitleAdditions(
     h1,
-    createElement(DiscourseContextOverlay, {
+    createElement(DiscourseContextCollapseOverlay, {
       uid,
       id: "top-discourse-context",
     }),
