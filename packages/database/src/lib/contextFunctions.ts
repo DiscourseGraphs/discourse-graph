@@ -164,10 +164,14 @@ export const createLoggedInClient = async ({
 }): Promise<DGSupabaseClient | null> => {
   const client: DGSupabaseClient | null = createSingletonClient();
   if (!client) return null;
-  const session = await client.auth.getSession();
-  if (session.data.session)
-    return client;  // already logged in
   const email = spaceAnonUserEmail(platform, spaceId);
+  const session = await client.auth.getSession();
+  if (session.data.session) {
+    if (session.data.session.user.email === email)
+      return client;  // already logged in
+    else
+      await client.auth.signOut();
+  }
   const { error } = await client.auth.signInWithPassword({
     email,
     password: password,
