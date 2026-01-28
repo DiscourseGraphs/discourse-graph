@@ -18,7 +18,7 @@ import {
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
-import { createClient, type DGSupabaseClient } from "@repo/database/lib/client";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json, CompositeTypes, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
@@ -398,11 +398,6 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
   try {
     if (!worker) {
       throw new FatalError("Unable to obtain user UID.");
-    }
-    if (!createClient()) {
-      // not worth retrying
-      // TODO: Differentiate setup vs connetion error
-      throw new FatalError("Could not access supabase.");
     }
     const supabaseClient = await getLoggedInClient();
     if (!supabaseClient) {
