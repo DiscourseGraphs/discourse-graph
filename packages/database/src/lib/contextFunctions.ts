@@ -87,7 +87,7 @@ let client: DGSupabaseClient | undefined = undefined;
 
 // let's avoid exporting this, and always use the createLoggedInClient
 // to ensure we never have conflict between multiple clients
-const createSingletonClient = (): DGSupabaseClient | null => {
+const createSingletonClient = (uniqueKey: string): DGSupabaseClient | null => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
 
@@ -95,7 +95,7 @@ const createSingletonClient = (): DGSupabaseClient | null => {
     throw new FatalError("Missing required Supabase environment variables");
   }
   if (client === undefined) {
-      client = createClient<Database, "public">(url, key);
+      client = createClient<Database, "public">(url, key, {auth: {storageKey: `sb-${uniqueKey}-auth-token`}});
   }
   return client;
 };
@@ -106,8 +106,8 @@ export const fetchOrCreateSpaceDirect = async (
   const error = spaceValidator(data);
   if (error !== null) return asPostgrestFailure(error, "invalid space");
   data.url = data.url.trim().replace(/\/$/, "");
-
-  const supabase = createSingletonClient();
+  const urlSlug = data.url.replaceAll(/\W/g,"");
+  const supabase = createSingletonClient(urlSlug);
   if (!supabase) return asPostgrestFailure("No database", "");
   const session = await supabase.auth.getSession();
   if (session.data.session) {
@@ -164,15 +164,16 @@ export const createLoggedInClient = async ({
   spaceId: number;
   password: string;
 }): Promise<DGSupabaseClient | null> => {
-  const client: DGSupabaseClient | null = createSingletonClient();
   if (!client) return null;
   const email = spaceAnonUserEmail(platform, spaceId);
   const session = await client.auth.getSession();
   if (session.data.session) {
     if (session.data.session.user.email === email)
       return client;  // already logged in
-    else
+    else {
+      console.warn("Email crosstalk")
       await client.auth.signOut();
+    }
   }
   const { error } = await client.auth.signInWithPassword({
     email,
