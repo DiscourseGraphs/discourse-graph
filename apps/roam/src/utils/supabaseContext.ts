@@ -8,10 +8,12 @@ import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
 import type { Enums } from "@repo/database/dbTypes";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import internalError from "./internalError";
 import {
   fetchOrCreateSpaceDirect,
   fetchOrCreatePlatformAccount,
   createLoggedInClient,
+  FatalError,
 } from "@repo/database/lib/contextFunctions";
 
 declare const crypto: { randomUUID: () => string };
@@ -84,29 +86,37 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
       };
     } catch (error) {
       console.error(error);
+      if (error instanceof FatalError) throw error;
       return null;
     }
   }
   return _contextCache;
 };
 
-let _loggedInClient: DGSupabaseClient | null = null;
+let loggedInClient: DGSupabaseClient | null = null;
 
 export const getLoggedInClient = async (): Promise<DGSupabaseClient | null> => {
-  if (_loggedInClient === null) {
-    const context = await getSupabaseContext();
-    if (context === null) throw new Error("Could not create context");
-    _loggedInClient = await createLoggedInClient({
-      platform: context.platform,
-      spaceId: context.spaceId,
-      password: context.spacePassword,
-    });
-  } else {
+  if (loggedInClient !== null) {
     // renew session
-    const { error } = await _loggedInClient.auth.getSession();
+    const { error } = await loggedInClient.auth.getSession();
     if (error) {
-      _loggedInClient = null;
+      loggedInClient = null;
     }
   }
-  return _loggedInClient;
+  if (loggedInClient === null) {
+    const context = await getSupabaseContext();
+    if (context === null) {
+      internalError({ error: "Could not create context" });
+    } else
+      try {
+        loggedInClient = await createLoggedInClient({
+          platform: context.platform,
+          spaceId: context.spaceId,
+          password: context.spacePassword,
+        });
+      } catch (error) {
+        internalError({ error, userMessage: "Could not access database" });
+      }
+  }
+  return loggedInClient;
 };
