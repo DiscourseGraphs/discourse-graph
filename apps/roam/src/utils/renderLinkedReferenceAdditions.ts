@@ -12,7 +12,7 @@ export const renderDiscourseContext = ({
   h1: HTMLHeadingElement;
   uid: string;
 }): void => {
-  if (document.getElementById("top-discourse-context")) return;
+  if (h1.parentElement!.querySelector("#top-discourse-context")) return;
   handleTitleAdditions(
     h1,
     createElement(DiscourseContextCollapseOverlay, {
