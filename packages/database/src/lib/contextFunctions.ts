@@ -84,6 +84,7 @@ export const fetchOrCreateSpaceIndirect = async (
 };
 
 let client: DGSupabaseClient | undefined = undefined;
+let lastStorageKey: string | undefined = undefined;
 
 // let's avoid exporting this, and always use the createLoggedInClient
 // to ensure we never have conflict between multiple clients
@@ -94,8 +95,17 @@ const createSingletonClient = (uniqueKey: string): DGSupabaseClient | null => {
   if (!url || !key) {
     throw new FatalError("Missing required Supabase environment variables");
   }
+  if (lastStorageKey !== undefined && lastStorageKey !== uniqueKey) {
+    console.error("Changed storage key")
+    // I.e. working on a new vault. Should never happen.
+    // Break singleton pattern in that edge case.
+    client = undefined;
+  }
   if (client === undefined) {
       client = createClient<Database, "public">(url, key, {auth: {storageKey: `sb-${uniqueKey}-auth-token`}});
+      if (client) {
+        lastStorageKey = uniqueKey;
+      }
   }
   return client;
 };
