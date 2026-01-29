@@ -591,7 +591,22 @@ export type Database = {
           group_id?: string
           member_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "group_membership_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "my_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_membership_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "my_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       LocalAccess: {
         Row: {
@@ -671,7 +686,15 @@ export type Database = {
           platform?: Database["public"]["Enums"]["Platform"]
           write_permission?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "PlatformAccount_dg_account_fkey"
+            columns: ["dg_account"]
+            isOneToOne: false
+            referencedRelation: "my_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ResourceAccess: {
         Row: {
@@ -689,7 +712,15 @@ export type Database = {
           source_local_id?: string
           space_id?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ResourceAccess_account_uid_fkey"
+            columns: ["account_uid"]
+            isOneToOne: false
+            referencedRelation: "my_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       Space: {
         Row: {
@@ -729,6 +760,13 @@ export type Database = {
           space_id?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "SpaceAccess_account_uid_fkey"
+            columns: ["account_uid"]
+            isOneToOne: false
+            referencedRelation: "my_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "SpaceAccess_space_id_fkey"
             columns: ["space_id"]
@@ -823,7 +861,15 @@ export type Database = {
           platform?: Database["public"]["Enums"]["Platform"] | null
           write_permission?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "PlatformAccount_dg_account_fkey"
+            columns: ["dg_account"]
+            isOneToOne: false
+            referencedRelation: "my_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       my_concepts: {
         Row: {
@@ -1241,6 +1287,13 @@ export type Database = {
           last_modified?: string | null
           source_local_id?: string | null
           space_id?: number | null
+        }
+        Relationships: []
+      }
+      my_groups: {
+        Row: {
+          id: string | null
+          name: string | null
         }
         Relationships: []
       }
@@ -1998,4 +2051,3 @@ export const Constants = {
     },
   },
 } as const
-
