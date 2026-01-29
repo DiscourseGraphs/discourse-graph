@@ -168,6 +168,11 @@ REVOKE ALL ON TABLE public.group_membership FROM anon;
 GRANT ALL ON TABLE public.group_membership TO authenticated;
 GRANT ALL ON TABLE public.group_membership TO service_role;
 
+CREATE OR REPLACE VIEW public.my_groups AS
+SELECT id, split_part(email,'@',1) AS name FROM auth.users
+    JOIN public.group_membership ON (group_id=id)
+    WHERE member_id = auth.uid();
+
 CREATE TYPE public.account_local_input AS (
     -- PlatformAccount columns
     name VARCHAR,
