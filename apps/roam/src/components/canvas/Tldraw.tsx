@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useMemo,
+  useEffect,
+  useCallback,
+} from "react";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
 } from "roamjs-components/components/ExtensionApiContext";
@@ -43,6 +49,7 @@ import {
   StateNode,
   DefaultSpinner,
   Box,
+  useValue,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
@@ -274,6 +281,31 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   const allAddReferencedNodeActions = useMemo(() => {
     return Object.keys(allAddReferencedNodeByAction);
   }, [allAddReferencedNodeByAction]);
+  const stickyToolIds = useMemo(
+    () => [
+      "discourse-tool",
+      ...allNodes.map((node) => node.type),
+      ...allRelationNames,
+      ...allAddReferencedNodeActions,
+    ],
+    [allNodes, allRelationNames, allAddReferencedNodeActions],
+  );
+  const toolSelectionRef = useRef<{
+    lastStickyToolId: string | null;
+    lastExplicitToolId: string | null;
+  }>({
+    lastStickyToolId: null,
+    lastExplicitToolId: null,
+  });
+  const handleToolSelected = useCallback(
+    (toolId: string) => {
+      toolSelectionRef.current.lastExplicitToolId = toolId;
+      if (stickyToolIds.includes(toolId)) {
+        toolSelectionRef.current.lastStickyToolId = toolId;
+      }
+    },
+    [stickyToolIds],
+  );
 
   const isRelationTool = (toolId: string) => {
     return (
@@ -488,6 +520,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     toggleMaximized: handleMaximizedChange,
     setConvertToDialogOpen,
     discourseContext,
+    onToolSelected: handleToolSelected,
   });
 
   // STORE
@@ -745,6 +778,8 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                 <InsideEditorAndUiContext
                   extensionAPI={extensionAPI}
                   allNodes={allNodes}
+                  stickyToolIds={stickyToolIds}
+                  toolSelectionRef={toolSelectionRef}
                   // allRelationIds={allRelationIds}
                   // allAddReferencedNodeActions={allAddReferencedNodeActions}
                 />
@@ -764,17 +799,49 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 const InsideEditorAndUiContext = ({
   extensionAPI,
   allNodes,
+  stickyToolIds,
+  toolSelectionRef,
   // allRelationIds,
   // allAddReferencedNodeActions,
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
   allNodes: DiscourseNode[];
+  stickyToolIds: string[];
+  toolSelectionRef: React.MutableRefObject<{
+    lastStickyToolId: string | null;
+    lastExplicitToolId: string | null;
+  }>;
   // allRelationIds: string[];
   // allAddReferencedNodeActions: string[];
 }) => {
   const editor = useEditor();
   const toasts = useToasts();
   const msg = useTranslation();
+  const currentToolId = useValue(
+    "currentToolId",
+    () => editor.getCurrentToolId(),
+    [editor],
+  );
+
+  useEffect(() => {
+    if (stickyToolIds.includes(currentToolId)) {
+      toolSelectionRef.current.lastStickyToolId = currentToolId;
+      return;
+    }
+
+    if (currentToolId !== "select") {
+      return;
+    }
+
+    if (toolSelectionRef.current.lastExplicitToolId === "select") return;
+
+    const lastStickyTool = toolSelectionRef.current.lastStickyToolId;
+    if (!lastStickyTool) return;
+    if (lastStickyTool === "select") return;
+    if (editor.getCurrentToolId() !== "select") return;
+
+    editor.setCurrentTool(lastStickyTool);
+  }, [currentToolId, editor, stickyToolIds, toolSelectionRef]);
 
   // const isCustomArrowShape = (shape: TLShape) => {
   //   // TODO: find a better way to identify custom arrow shapes
