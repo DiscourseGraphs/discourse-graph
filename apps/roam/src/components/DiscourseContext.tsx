@@ -280,7 +280,7 @@ const ContextTab = ({
             <CreateRelationButton
               sourceNodeUid={parentUid}
               onClose={() => {
-                window.setTimeout(onRefresh, 450, true);
+                window.setTimeout(onRefresh, 150, true);
               }}
             />
             <Switch
@@ -360,7 +360,7 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
   );
 
   const delayedRefresh = () => {
-    window.setTimeout(onRefresh, 450, true);
+    window.setTimeout(onRefresh, 150, true);
   };
 
   useEffect(() => {
