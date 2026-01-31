@@ -26,8 +26,12 @@ const cache: {
   [tag: string]: DiscourseData;
 } = {};
 
-const getOverlayInfo = async (tag: string): Promise<DiscourseData> => {
+const getOverlayInfo = async (
+  tag: string,
+  ignoreCache?: boolean,
+): Promise<DiscourseData> => {
   try {
+    if (ignoreCache) delete cache[tag];
     if (cache[tag]) return cache[tag];
 
     const relations = getDiscourseRelations();
@@ -38,6 +42,7 @@ const getOverlayInfo = async (tag: string): Promise<DiscourseData> => {
         uid: getPageUidByPageTitle(tag),
         nodes,
         relations,
+        ignoreCache,
       }),
       window.roamAlphaAPI.data.backend.q(
         `[:find ?a :where [?b :node/title "${normalizePageTitle(tag)}"] [?a :block/refs ?b]]`,
@@ -109,8 +114,11 @@ const DiscourseContextOverlay = ({
   const [refs, setRefs] = useState(0);
   const [score, setScore] = useState<number | string>(0);
   const getInfo = useCallback(
-    () =>
-      getOverlayInfo(tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : ""))
+    (ignoreCache?: boolean) =>
+      getOverlayInfo(
+        tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : ""),
+        ignoreCache,
+      )
         .then(({ refs, results }) => {
           const discourseNode = findDiscourseNode({ uid: tagUid });
           if (discourseNode) {
@@ -134,10 +142,10 @@ const DiscourseContextOverlay = ({
   );
   const refresh = useCallback(() => {
     setLoading(true);
-    getInfo();
+    void getInfo(true);
   }, [getInfo, setLoading]);
   useEffect(() => {
-    getInfo();
+    void getInfo();
   }, [refresh, getInfo]);
   return (
     <Popover
