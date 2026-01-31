@@ -292,6 +292,7 @@ export const createUiOverrides = ({
       const nodeId = node.type;
       tools[nodeId] = {
         id: nodeId,
+        // TODO: port this when all node settings are done
         icon: "color",
         label: `shape.node.${node.type}` as TLUiTranslationKey,
         kbd: node.shortcut,

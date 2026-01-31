@@ -13,19 +13,6 @@ export const CanvasSettingsSchema = z.object({
   "query-builder-alias": z.string().default(""),
 });
 
-export const SuggestiveRulesSchema = z.lazy(() =>
-  z.object({
-    template: z.array(RoamNodeSchema).default([]),
-    embeddingRef: z.string().optional(),
-    isFirstChild: z
-      .object({
-        uid: z.string(),
-        value: z.boolean(),
-      })
-      .optional(),
-  }),
-);
-
 export const AttributesSchema = z.record(z.string(), z.string()).default({});
 
 const QBClauseDataSchema = z.object({
@@ -87,6 +74,12 @@ export const RoamNodeSchema: z.ZodType<RoamNode> = z.lazy(() =>
   }),
 );
 
+export const SuggestiveRulesSchema = z.object({
+  template: z.array(RoamNodeSchema).default([]),
+  embeddingRef: z.string().default(""),
+  isFirstChild: z.boolean().default(false),
+});
+
 const stringWithDefault = (defaultVal: string) =>
   z
     .string()
@@ -118,7 +111,7 @@ export const DiscourseNodeSchema = z.object({
     .nullable()
     .optional()
     .transform((val) => val ?? []),
-  canvasSettings: CanvasSettingsSchema.partial().nullable().optional(),
+  canvasSettings: CanvasSettingsSchema.default({}),
   graphOverview: booleanWithDefault(false),
   attributes: z
     .record(z.string(), z.string())
@@ -127,15 +120,7 @@ export const DiscourseNodeSchema = z.object({
     .transform((val) => val ?? {}),
   overlay: stringWithDefault(""),
   index: IndexSchema.nullable().optional(),
-  suggestiveRules: SuggestiveRulesSchema.nullable().optional(),
-  embeddingRef: stringWithDefault(""),
-  isFirstChild: z
-    .object({
-      uid: z.string(),
-      value: z.boolean(),
-    })
-    .nullable()
-    .optional(),
+  suggestiveRules: SuggestiveRulesSchema.default({}),
   backedBy: z
     .enum(["user", "default", "relation"])
     .nullable()
@@ -240,7 +225,9 @@ export const QuerySettingsSchema = z.object({
 
 export const PersonalSettingsSchema = z.object({
   "Left Sidebar": LeftSidebarPersonalSettingsSchema,
-  "Personal Node Menu Trigger": z.string().default(""),
+  "Personal Node Menu Trigger": z
+    .object({ key: z.string(), modifiers: z.number() })
+    .default({ key: "", modifiers: 0 }),
   "Node Search Menu Trigger": z.string().default("@"),
   "Discourse Tool Shortcut": z.string().default(""),
   "Discourse Context Overlay": z.boolean().default(false),

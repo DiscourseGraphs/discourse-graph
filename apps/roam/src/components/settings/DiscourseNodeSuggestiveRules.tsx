@@ -1,21 +1,17 @@
-import React, {
-  useState,
-  useMemo,
-  useEffect,
-  useRef,
-  useCallback,
-} from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Button, Intent } from "@blueprintjs/core";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
-import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import getSubTree from "roamjs-components/util/getSubTree";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import extractRef from "roamjs-components/util/extractRef";
 import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
 import { upsertNodesToSupabaseAsContentWithEmbeddings } from "~/utils/syncDgNodesToSupabase";
-import { discourseNodeBlockToLocalConcept } from "~/utils/conceptConversion";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import {
+  DiscourseNodeFlagPanel,
+  DiscourseNodeTextPanel,
+} from "./components/BlockPropSettingPanels";
+import { getDiscourseNodeSetting } from "./utils/accessors";
 
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,19 +33,15 @@ const BlockRenderer = ({ uid }: { uid: string }) => {
 
 const DiscourseNodeSuggestiveRules = ({
   node,
-  parentUid,
 }: {
   node: DiscourseNode;
-  parentUid: string;
 }) => {
   const nodeUid = node.type;
+  const nodeType = node.type;
 
-  const [embeddingRef, setEmbeddingRef] = useState(node.embeddingRef);
-
-  useEffect(() => {
-    setEmbeddingRef(node.embeddingRef || "");
-  }, [node.embeddingRef]);
-
+  const [embeddingRef, setEmbeddingRef] = useState(() =>
+    getDiscourseNodeSetting<string>(nodeType, ["suggestiveRules", "embeddingRef"]),
+  );
   const blockUidToRender = useMemo(
     () => extractRef(embeddingRef),
     [embeddingRef],
@@ -64,14 +56,6 @@ const DiscourseNodeSuggestiveRules = ({
     [nodeUid],
   );
 
-  const handleEmbeddingRefChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = e.target.value;
-      setEmbeddingRef(newValue);
-      node.embeddingRef = newValue;
-    },
-    [node],
-  );
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleUpdateEmbeddings = async (): Promise<void> => {
@@ -96,6 +80,7 @@ const DiscourseNodeSuggestiveRules = ({
       setIsUpdating(false);
     }
   };
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <BlocksPanel
@@ -107,17 +92,13 @@ const DiscourseNodeSuggestiveRules = ({
         defaultValue={node.template}
       />
 
-      <TextPanel
+      <DiscourseNodeTextPanel
+        nodeType={nodeType}
         title="Embedding Block Ref"
         description="Copy block ref from template which you want to be embedded and ranked."
-        order={1}
-        uid={node.embeddingRefUid || ""}
-        parentUid={parentUid}
-        defaultValue={embeddingRef || ""}
-        options={{
-          placeholder: "((block-uid))",
-          onChange: handleEmbeddingRefChange,
-        }}
+        settingKeys={["suggestiveRules", "embeddingRef"]}
+        placeholder="((block-uid))"
+        onChange={setEmbeddingRef}
       />
 
       {blockUidToRender && (
@@ -127,13 +108,12 @@ const DiscourseNodeSuggestiveRules = ({
         </div>
       )}
 
-      <FlagPanel
+      <DiscourseNodeFlagPanel
+        nodeType={nodeType}
         title="First Child"
         description="If the block is the first child of the embedding block ref, it will be embedded and ranked."
-        order={2}
-        uid={node.isFirstChild?.uid || ""}
-        parentUid={parentUid}
-        value={node.isFirstChild?.value || false}
+        settingKeys={["suggestiveRules", "isFirstChild"]}
+        defaultValue={false}
       />
 
       <Button

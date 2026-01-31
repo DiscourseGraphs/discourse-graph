@@ -156,7 +156,6 @@ export const renderNodeConfigPage = ({
               component: ({ uid }) =>
                 React.createElement(DiscourseNodeSuggestiveRules, {
                   node,
-                  parentUid: uid,
                 }),
             },
           } as Field<CustomField>,

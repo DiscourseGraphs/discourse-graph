@@ -35,11 +35,7 @@ import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { createTextJsxFromSpans } from "./DiscourseRelationShape/helpers";
 import { loadImage } from "~/utils/loadImage";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
-import {
-  AUTO_CANVAS_RELATIONS_KEY,
-  DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
-} from "~/data/userSettings";
-import { getSetting } from "~/utils/extensionSettings";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import DiscourseContextOverlay from "~/components/DiscourseContextOverlay";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
@@ -435,7 +431,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
     } = discourseContext.nodes[shape.type] || {};
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const isOverlayEnabled = useMemo(
-      () => getSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, false),
+      () => getPersonalSetting<boolean>(["Overlay in Canvas"]),
       [],
     );
 
@@ -516,10 +512,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
               uid,
             });
 
-            const autoCanvasRelations = getSetting<boolean>(
-              AUTO_CANVAS_RELATIONS_KEY,
-              false,
-            );
+            const autoCanvasRelations = getPersonalSetting<boolean>(["Auto Canvas Relations"]);
             if (autoCanvasRelations) {
               try {
                 const relationIds = getRelationIds();

@@ -15,15 +15,14 @@ import {
   hideDiscourseFloatingMenu,
 } from "~/components/DiscourseFloatingMenu";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
-import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { enablePostHog, disablePostHog } from "~/utils/posthog";
+import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import streamlineStyling from "~/styles/streamlineStyling";
 import { useFeatureFlag } from "./utils/hooks";
 import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
   const suggestiveModeEnabled = useFeatureFlag("Suggestive Mode Enabled");
 
@@ -36,7 +35,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             "Override the global trigger for the discourse node menu. Must refresh after editing."
           }
         />
-        <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
+        <NodeMenuTriggerComponent />
       </Label>
       <Label>
         Node search menu trigger
@@ -45,14 +44,13 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             "Set the trigger character for the node search menu. Must refresh after editing."
           }
         />
-        <NodeSearchMenuTriggerSetting onloadArgs={onloadArgs} />
+        <NodeSearchMenuTriggerSetting />
       </Label>
       <KeyboardShortcutInput
         onloadArgs={onloadArgs}
         settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
         label="Discourse tool keyboard shortcut"
         description="Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
-        placeholder="Click to set single key"
       />
       <PersonalFlagPanel
         title="Overlay"

@@ -1,35 +1,26 @@
-import React, {
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-} from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
-import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
-import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
-import {
-  Label,
-  Tabs,
-  Tab,
-  TabId,
-  InputGroup,
-  TextArea,
-} from "@blueprintjs/core";
+import { Label, Tabs, Tab, TabId, InputGroup } from "@blueprintjs/core";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
+import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import createBlock from "roamjs-components/writes/createBlock";
-import updateBlock from "roamjs-components/writes/updateBlock";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 import { useFeatureFlag } from "./utils/hooks";
-import refreshConfigTree from "~/utils/refreshConfigTree";
+import {
+  DiscourseNodeTextPanel,
+  DiscourseNodeFlagPanel,
+} from "./components/BlockPropSettingPanels";
+import {
+  getDiscourseNodeSetting,
+  setDiscourseNodeSetting,
+} from "./utils/accessors";
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -69,41 +60,9 @@ const ValidatedInputPanel = ({
   </div>
 );
 
-const ValidatedTextareaPanel = ({
-  label,
-  description,
-  value,
-  onChange,
-  onBlur,
-  placeholder,
-}: {
-  label: string;
-  description: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onBlur: () => void;
-  placeholder?: string;
-}) => (
-  <div className="flex flex-col">
-    <Label>
-      {label}
-      <Description description={description} />
-      <TextArea
-        value={value}
-        onChange={onChange}
-        onBlur={onBlur}
-        placeholder={placeholder}
-        className="w-full"
-        style={{ minHeight: 80, resize: "vertical" }}
-      />
-    </Label>
-  </div>
-);
-
-const useDebouncedRoamUpdater = <
-  T extends HTMLInputElement | HTMLTextAreaElement,
->(
-  uid: string,
+const useDebouncedBlockPropUpdater = (
+  nodeType: string,
+  settingKey: string,
   initialValue: string,
   isValid: boolean,
 ) => {
@@ -112,7 +71,7 @@ const useDebouncedRoamUpdater = <
   const isValidRef = useRef(isValid);
   isValidRef.current = isValid;
 
-  const saveToRoam = useCallback(
+  const saveToBlockProp = useCallback(
     (text: string, timeout: boolean) => {
       window.clearTimeout(debounceRef.current);
       debounceRef.current = window.setTimeout(
@@ -120,33 +79,26 @@ const useDebouncedRoamUpdater = <
           if (!isValidRef.current) {
             return;
           }
-          const existingBlock = getBasicTreeByParentUid(uid)[0];
-          if (existingBlock) {
-            if (existingBlock.text !== text) {
-              void updateBlock({ uid: existingBlock.uid, text });
-            }
-          } else if (text) {
-            void createBlock({ parentUid: uid, node: { text } });
-          }
+          setDiscourseNodeSetting(nodeType, [settingKey], text);
         },
         timeout ? 500 : 0,
       );
     },
-    [uid],
+    [nodeType, settingKey],
   );
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<T>) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
       setValue(newValue);
-      saveToRoam(newValue, true);
+      saveToBlockProp(newValue, true);
     },
-    [saveToRoam],
+    [saveToBlockProp],
   );
 
   const handleBlur = useCallback(() => {
-    saveToRoam(value, false);
-  }, [value, saveToRoam]);
+    saveToBlockProp(value, false);
+  }, [value, saveToBlockProp]);
 
   return { value, handleChange, handleBlur };
 };
@@ -172,67 +124,56 @@ const NodeConfig = ({
   onloadArgs: OnloadArgs;
 }) => {
   const suggestiveModeEnabled = useFeatureFlag("Suggestive Mode Enabled");
+  // UIDs still needed for deferred complex settings (template, specification, etc.)
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,
       key: key,
     }).uid;
-  const formatUid = getUid("Format");
-  const descriptionUid = getUid("Description");
-  const shortcutUid = getUid("Shortcut");
-  const tagUid = getUid("Tag");
   const templateUid = getUid("Template");
-  const overlayUid = getUid("Overlay");
-  const canvasUid = getUid("Canvas");
-  const graphOverviewUid = getUid("Graph Overview");
   const specificationUid = getUid("Specification");
   const indexUid = getUid("Index");
-  const suggestiveRulesUid = getUid("Suggestive Rules");
+  const overlayUid = getUid("Overlay");
   const attributeNode = getSubTree({
     parentUid: node.type,
     key: "Attributes",
   });
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
-  const [tagError, setTagError] = useState("");
   const [formatError, setFormatError] = useState("");
-  const isConfigurationValid = !tagError && !formatError;
 
-  const {
-    value: tagValue,
-    handleChange: handleTagChange,
-    handleBlur: handleTagBlurFromHook,
-  } = useDebouncedRoamUpdater<HTMLInputElement>(
-    tagUid,
-    node.tag || "",
-    isConfigurationValid,
-  );
   const {
     value: formatValue,
     handleChange: handleFormatChange,
     handleBlur: handleFormatBlurFromHook,
-  } = useDebouncedRoamUpdater<HTMLInputElement>(
-    formatUid,
+  } = useDebouncedBlockPropUpdater(
+    node.type,
+    "format",
     node.format,
-    isConfigurationValid,
-  );
-  const {
-    value: descriptionValue,
-    handleChange: handleDescriptionChange,
-    handleBlur: handleDescriptionBlur,
-  } = useDebouncedRoamUpdater<HTMLTextAreaElement>(
-    descriptionUid,
-    node.description || "",
-    true,
+    !formatError,
   );
 
-  const validate = useCallback(
+  const validateTag = (tag: string): string | undefined => {
+    const cleanTag = getCleanTagText(tag);
+    if (!cleanTag) return undefined;
+    const format = getDiscourseNodeSetting<string>(node.type, ["format"])!;
+    const roamTagRegex = /#?\[\[(.*?)\]\]|#(\S+)/g;
+    const formatTags: string[] = [];
+    for (const match of format.matchAll(roamTagRegex)) {
+      const tagName = match[1] || match[2];
+      if (tagName) formatTags.push(tagName.toUpperCase());
+    }
+    if (formatTags.includes(cleanTag)) {
+      return `The tag "${tag}" is referenced in the format. Please use a different tag or format.`;
+    }
+    return undefined;
+  };
+
+  const validateFormat = useCallback(
     ({
-      tag,
       format,
       isSpecificationEnabled,
     }: {
-      tag: string;
       format: string;
       isSpecificationEnabled?: boolean;
     }) => {
@@ -242,14 +183,13 @@ const NodeConfig = ({
           key: "enabled",
         })?.uid?.length;
       if (format.trim().length === 0 && !isSpecificationEnabled) {
-        setTagError("");
         setFormatError("Error: you must set either a format or specification");
         return;
       }
+      const tag = getDiscourseNodeSetting<string>(node.type, ["tag"])!;
       const cleanTag = getCleanTagText(tag);
 
       if (!cleanTag) {
-        setTagError("");
         setFormatError("");
         return;
       }
@@ -270,30 +210,17 @@ const NodeConfig = ({
         setFormatError(
           `The format references the node's tag "${tag}". Please use a different format or tag.`,
         );
-        setTagError(
-          `The tag "${tag}" is referenced in the format. Please use a different tag or format.`,
-        );
       } else {
-        setTagError("");
         setFormatError("");
       }
     },
-    [specificationUid],
+    [specificationUid, node.type],
   );
-
-  useEffect(() => {
-    validate({ tag: tagValue, format: formatValue });
-  }, [tagValue, formatValue, validate]);
-
-  const handleTagBlur = useCallback(() => {
-    handleTagBlurFromHook();
-    validate({ tag: tagValue, format: formatValue });
-  }, [handleTagBlurFromHook, tagValue, formatValue, validate]);
 
   const handleFormatBlur = useCallback(() => {
     handleFormatBlurFromHook();
-    validate({ tag: tagValue, format: formatValue });
-  }, [handleFormatBlurFromHook, tagValue, formatValue, validate]);
+    validateFormat({ format: formatValue });
+  }, [handleFormatBlurFromHook, formatValue, validateFormat]);
 
   return (
     <>
@@ -307,29 +234,28 @@ const NodeConfig = ({
           title="General"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <ValidatedTextareaPanel
-                label="Description"
+              <DiscourseNodeTextPanel
+                nodeType={node.type}
+                title="Description"
                 description={`Describing what the ${node.text} node represents in your graph.`}
-                value={descriptionValue}
-                onChange={handleDescriptionChange}
-                onBlur={handleDescriptionBlur}
+                settingKeys={["description"]}
+                defaultValue={node.description}
               />
-              <TextPanel
+              <DiscourseNodeTextPanel
+                nodeType={node.type}
                 title="Shortcut"
                 description={`The trigger to quickly create a ${node.text} page from the node menu.`}
-                order={0}
-                parentUid={node.type}
-                uid={shortcutUid}
+                settingKeys={["shortcut"]}
                 defaultValue={node.shortcut}
               />
-              <ValidatedInputPanel
-                label="Tag"
+              <DiscourseNodeTextPanel
+                nodeType={node.type}
+                title="Tag"
                 description={`Designate a hashtag for marking potential ${node.text}.`}
-                value={tagValue}
-                onChange={handleTagChange}
-                onBlur={handleTagBlur}
-                error={tagError}
+                settingKeys={["tag"]}
+                defaultValue={node.tag}
                 placeholder={generateTagPlaceholder(node)}
+                validate={validateTag}
               />
             </div>
           }
@@ -371,8 +297,7 @@ const NodeConfig = ({
                   node={node}
                   parentUid={specificationUid}
                   parentSetEnabled={(isSpecificationEnabled) => {
-                    validate({
-                      tag: tagValue,
+                    validateFormat({
                       format: formatValue,
                       isSpecificationEnabled,
                     });
@@ -422,14 +347,13 @@ const NodeConfig = ({
           title="Canvas"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeCanvasSettings uid={canvasUid} />
-              <FlagPanel
+              <DiscourseNodeCanvasSettings nodeType={node.type} />
+              <DiscourseNodeFlagPanel
+                nodeType={node.type}
                 title="Graph Overview"
-                description="Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification."
-                order={0}
-                parentUid={node.type}
-                uid={graphOverviewUid}
-                value={node.graphOverview}
+                description="Whether to color the node in the graph overview based on canvas color. This is based on the node's plain title as described by a `has title` condition in its specification."
+                settingKeys={["graphOverview"]}
+                defaultValue={node.graphOverview}
               />
             </div>
           }
@@ -440,10 +364,7 @@ const NodeConfig = ({
             title="Suggestive Mode"
             panel={
               <div className="flex flex-col gap-4 p-1">
-                <DiscourseNodeSuggestiveRules
-                  node={node}
-                  parentUid={suggestiveRulesUid}
-                />
+                <DiscourseNodeSuggestiveRules node={node} />
               </div>
             }
           />

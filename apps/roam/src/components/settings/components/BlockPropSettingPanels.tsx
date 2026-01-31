@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Checkbox,
   InputGroup,
@@ -17,8 +17,11 @@ import {
   setPersonalSetting,
   getFeatureFlag,
   setFeatureFlag,
+  getDiscourseNodeSetting,
+  setDiscourseNodeSetting,
 } from "../utils/accessors";
 import type { FeatureFlags } from "../utils/zodSchema";
+import type { json } from "~/utils/getBlockProps";
 
 type TextGetter = (keys: string[]) => string | undefined;
 type TextSetter = (keys: string[], value: string) => void;
@@ -40,6 +43,8 @@ type BaseTextPanelProps = {
   setter: TextSetter;
   defaultValue?: string;
   placeholder?: string;
+  validate?: (value: string) => string | undefined;
+  onChange?: (value: string) => void;
 };
 
 type BaseFlagPanelProps = {
@@ -85,6 +90,8 @@ type BaseMultiTextPanelProps = {
 };
 
 
+const DEBOUNCE_MS = 500;
+
 const BaseTextPanel = ({
   title,
   description,
@@ -93,25 +100,49 @@ const BaseTextPanel = ({
   setter,
   defaultValue = "",
   placeholder,
+  validate,
+  onChange,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => getter(settingKeys) ?? defaultValue);
+  const [error, setError] = useState<string | undefined>(() =>
+    validate?.(value),
+  );
+  const debounceRef = useRef(0);
+
+  useEffect(() => {
+    return () => window.clearTimeout(debounceRef.current);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
-    setter(settingKeys, newValue);
+    onChange?.(newValue);
+
+    const validationError = validate?.(newValue);
+    setError(validationError);
+    if (validationError) return;
+
+    window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      setter(settingKeys, newValue);
+    }, DEBOUNCE_MS);
   };
 
   return (
-    <Label>
-      {idToTitle(title)}
-      <Description description={description} />
-      <InputGroup
-        value={value}
-        onChange={handleChange}
-        placeholder={placeholder || defaultValue}
-      />
-    </Label>
+    <div className="flex flex-col">
+      <Label>
+        {idToTitle(title)}
+        <Description description={description} />
+        <InputGroup
+          value={value}
+          onChange={handleChange}
+          placeholder={placeholder || defaultValue}
+        />
+      </Label>
+      {error && (
+        <div className="mt-1 text-sm font-medium text-red-600">{error}</div>
+      )}
+    </div>
   );
 };
 
@@ -398,4 +429,70 @@ export const PersonalSelectPanel = (props: SelectWrapperProps) => (
 
 export const PersonalMultiTextPanel = (props: MultiTextWrapperProps) => (
   <BaseMultiTextPanel {...props} {...personalAccessors.multiText} />
+);
+
+const createDiscourseNodeGetter =
+  (nodeType: string) =>
+  <T,>(keys: string[]): T | undefined =>
+    getDiscourseNodeSetting<T>(nodeType, keys);
+
+const createDiscourseNodeSetter =
+  (nodeType: string) =>
+  (keys: string[], value: json): void =>
+    setDiscourseNodeSetting(nodeType, keys, value);
+
+type DiscourseNodeBaseProps = {
+  nodeType: string;
+  title: string;
+  description: string;
+  settingKeys: string[];
+};
+
+export const DiscourseNodeTextPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeBaseProps & { defaultValue?: string; placeholder?: string; validate?: (value: string) => string | undefined; onChange?: (value: string) => void }) => (
+  <BaseTextPanel
+    {...props}
+    getter={createDiscourseNodeGetter(nodeType)}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
+);
+
+export const DiscourseNodeFlagPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeBaseProps & {
+  defaultValue?: boolean;
+  disabled?: boolean;
+  onBeforeChange?: (checked: boolean) => Promise<boolean>;
+  onChange?: (checked: boolean) => void;
+}) => (
+  <BaseFlagPanel
+    {...props}
+    getter={createDiscourseNodeGetter(nodeType)}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
+);
+
+export const DiscourseNodeSelectPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeBaseProps & { options: string[]; defaultValue?: string }) => (
+  <BaseSelectPanel
+    {...props}
+    getter={createDiscourseNodeGetter(nodeType)}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
+);
+
+export const DiscourseNodeNumberPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeBaseProps & { defaultValue?: number; min?: number; max?: number }) => (
+  <BaseNumberPanel
+    {...props}
+    getter={createDiscourseNodeGetter(nodeType)}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
 );
