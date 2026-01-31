@@ -124,7 +124,9 @@ const buildQueryConfig = ({
     isComplement,
   };
 
-  if (resultCache[cacheKey] && !ignoreCache) {
+  if (ignoreCache) delete resultCache[cacheKey];
+
+  if (resultCache[cacheKey]) {
     return {
       relation,
       queryPromise: () => Promise.resolve(resultCache[cacheKey]),
