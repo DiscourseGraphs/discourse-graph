@@ -28,6 +28,7 @@ import { FeedbackWidget } from "~/components/BirdEatsBugs";
 import { getVersionWithDate } from "~/utils/getVersion";
 import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
 import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
+import { Account } from "~/components/auth/Account";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -149,6 +150,12 @@ export const SettingsDialog = ({
             panel={<HomePersonalSettings onloadArgs={onloadArgs} />}
           />
           <Tab
+            id="discourse-graph-account"
+            title="Login"
+            className="overflow-y-auto"
+            panel={<Account/>}
+          />
+          <Tab
             id="query-settings"
             title="Queries"
             className="overflow-y-auto"
@@ -226,7 +233,32 @@ export const SettingsDialog = ({
             id="secret-admin-panel"
             title="Admin"
             className="overflow-y-auto"
+<<<<<<< HEAD
             panel={<AdminPanel />}
+=======
+            panel={
+              <div className="flex gap-4 p-4">
+                <Button
+                  onClick={() => {
+                    // console.log("NODE_ENV:", process.env.NODE_ENV);
+                  }}
+                >
+                  Log Node Env
+                </Button>
+                <Button
+                  onClick={() => {
+                    console.log("sending error email");
+                    sendErrorEmail({
+                      error: new Error("test"),
+                      type: "Test",
+                    });
+                  }}
+                >
+                  sendErrorEmail()
+                </Button>
+              </div>
+            }
+>>>>>>> abef632e (Auth components for Roam. Login/Logout/etc.)
           />
         </Tabs>
       </div>
