@@ -31,22 +31,18 @@ import {
  * Structure matches DiscourseNodeShape.tsx:
  * - Container: p-2 border-2 rounded-md (box-border flex-col)
  * - Title (h1): m-1 with dynamic fontSize and fontFamily
- * - Subtitle (p): m-0 opacity-80 with fontSize * 0.75 and same fontFamily
  */
 export const measureNodeText = ({
   title,
-  subtitle,
   size = "s",
   fontFamily = "draw",
 }: {
   title: string;
-  subtitle: string;
   size?: TLDefaultSizeStyle;
   fontFamily?: TLDefaultFontStyle;
 }): { w: number; h: number } => {
   const fontSize = FONT_SIZES[size];
   const fontFamilyValue = FONT_FAMILIES[fontFamily];
-  const subtitleFontSize = fontSize * 0.75;
   // Create a container matching the actual component structure
   const container = document.createElement("div");
   container.style.setProperty("position", "absolute");
@@ -83,17 +79,7 @@ export const measureNodeText = ({
   titleEl.style.setProperty("font-weight", TITLE_FONT_WEIGHT as string);
   titleEl.textContent = title || "...";
 
-  // Create subtitle element: <p className="m-0 opacity-80" with fontSize * 0.75 and same fontFamily>
-  const subtitleEl = document.createElement("p");
-  subtitleEl.style.setProperty("margin", SUBTITLE_MARGIN as string);
-  subtitleEl.style.setProperty("font-size", `${subtitleFontSize}px`);
-  subtitleEl.style.setProperty("font-family", fontFamilyValue);
-  subtitleEl.style.setProperty("line-height", String(SUBTITLE_LINE_HEIGHT));
-  subtitleEl.style.setProperty("opacity", "0.8");
-  subtitleEl.textContent = subtitle || "";
-
   container.appendChild(titleEl);
-  container.appendChild(subtitleEl);
 
   // Append to body, measure, and remove
   document.body.appendChild(container);

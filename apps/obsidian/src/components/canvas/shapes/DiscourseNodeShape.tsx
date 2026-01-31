@@ -458,15 +458,6 @@ const discourseNodeContent = memo(
         >
           {title || "..."}
         </h1>
-        <p
-          className="m-0 opacity-80"
-          style={{
-            fontSize: `${fontSize * 0.75}px`,
-            fontFamily,
-          }}
-        >
-          {nodeType?.name || ""}
-        </p>
       </div>
     );
   },
