@@ -7,7 +7,6 @@ import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
 import {
   DiscourseNodeSchema,
   getTopLevelBlockPropsConfig,
-  getPersonalSettingsKey,
 } from "~/components/settings/utils/zodSchema";
 import { DG_BLOCK_PROP_SETTINGS_PAGE_TITLE, DISCOURSE_NODE_PAGE_PREFIX } from "./zodSchema";
 
@@ -162,50 +161,7 @@ const initDiscourseNodePages = async (): Promise<Record<string, string>> => {
   return nodePageUids;
 };
 
-const printAllSettings = (
-  blockMap: Record<string, string>,
-  nodePageUids: Record<string, string>,
-): void => {
-  const configs = getTopLevelBlockPropsConfig();
-  const featureFlagsUid = blockMap[configs.find(({ key }) => key === "Feature Flags")?.key ?? ""];
-  const globalUid = blockMap[configs.find(({ key }) => key === "Global")?.key ?? ""];
-  const personalKey = getPersonalSettingsKey();
-  const personalUid = blockMap[personalKey];
 
-  const featureFlags = featureFlagsUid ? getBlockProps(featureFlagsUid) : null;
-  const globalSettings = globalUid ? getBlockProps(globalUid) : null;
-  const personalSettings = personalUid ? getBlockProps(personalUid) : null;
-
-  console.group("🔧 Discourse Graph Settings Initialized (RAW DATA)");
-
-  console.group(`🚩 Feature Flags (uid: ${featureFlagsUid})`);
-  console.log("Raw block props:", JSON.stringify(featureFlags, null, 2));
-  console.groupEnd();
-
-  console.group(`🌍 Global Settings (uid: ${globalUid})`);
-  console.log("Raw block props:", JSON.stringify(globalSettings, null, 2));
-  console.groupEnd();
-
-  console.group(`👤 Personal Settings (uid: ${personalUid})`);
-  console.log("Raw block props:", JSON.stringify(personalSettings, null, 2));
-  console.groupEnd();
-
-  console.group("📝 Discourse Nodes");
-  for (const [nodeLabel, pageUid] of Object.entries(nodePageUids)) {
-    const nodeProps = getBlockProps(pageUid);
-    console.group(`${nodeLabel} (uid: ${pageUid})`);
-    console.log("Raw block props:", JSON.stringify(nodeProps, null, 2));
-    console.groupEnd();
-  }
-  console.groupEnd();
-
-  const relations = (globalSettings as Record<string, unknown>)?.Relations;
-  console.group("🔗 Discourse Relations");
-  console.log("Relations:", JSON.stringify(relations, null, 2));
-  console.groupEnd();
-
-  console.groupEnd();
-};
 
 export type InitSchemaResult = {
   blockUids: Record<string, string>;
@@ -215,10 +171,6 @@ export type InitSchemaResult = {
 export const initSchema = async (): Promise<InitSchemaResult> => {
   const blockUids = await initSettingsPageBlocks();
   const nodePageUids = await initDiscourseNodePages();
-
-  setTimeout(() => {
-    printAllSettings(blockUids, nodePageUids);
-  }, 2000);
 
   return { blockUids, nodePageUids };
 };
