@@ -29,7 +29,7 @@ import {
 } from "@repo/database/lib/queries";
 import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
-import { DGSupabaseClient } from "@repo/database/lib/client";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
 import internalError from "~/utils/internalError";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";

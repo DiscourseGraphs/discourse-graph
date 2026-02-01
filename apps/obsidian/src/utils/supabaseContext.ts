@@ -4,6 +4,7 @@ import {
   fetchOrCreateSpaceDirect,
   fetchOrCreatePlatformAccount,
   createLoggedInClient,
+  FatalError,
 } from "@repo/database/lib/contextFunctions";
 import type DiscourseGraphPlugin from "~/index";
 
@@ -16,7 +17,7 @@ export type SupabaseContext = {
   spacePassword: string;
 };
 
-const contextCache: Record<string, SupabaseContext> = {};
+let contextCache: SupabaseContext | null = null;
 
 const generateAccountLocalId = (vaultName: string): string => {
   const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -67,11 +68,10 @@ const canonicalObsidianUrl = (vaultId: string): string => {
 export const getSupabaseContext = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<SupabaseContext | null> => {
-  const vaultId = getVaultId(plugin.app);
-  let context = contextCache[vaultId];
-  if (context === undefined) {
+  if (contextCache === null) {
     try {
       const vaultName = plugin.app.vault.getName() || "obsidian-vault";
+      const vaultId = getVaultId(plugin.app);
 
       const spacePassword = await getOrCreateSpacePassword(plugin);
       const accountLocalId = await getOrCreateAccountLocalId(plugin, vaultName);
@@ -101,7 +101,7 @@ export const getSupabaseContext = async (
         password: spacePassword,
       });
 
-      contextCache[vaultId] = context = {
+      contextCache = {
         platform: "Obsidian",
         spaceId,
         userId,
@@ -109,65 +109,47 @@ export const getSupabaseContext = async (
       };
     } catch (error) {
       console.error(error);
+      if (error instanceof FatalError) throw error;
       return null;
     }
   }
-  return context;
+  return contextCache;
 };
 
-const loggedInClients: Record<string, DGSupabaseClient> = {};
+let loggedInClient: DGSupabaseClient | null = null;
 
 export const getLoggedInClient = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<DGSupabaseClient | null> => {
-  const vaultId = getVaultId(plugin.app);
-  let loggedInClient: DGSupabaseClient | null | undefined =
-    loggedInClients[vaultId];
-  if (loggedInClient === undefined) {
-    const context = await getSupabaseContext(plugin);
-    if (context === null) {
-      throw new Error("Could not create Supabase context");
-    }
-    try {
-      loggedInClient = await createLoggedInClient({
-        platform: context.platform,
-        spaceId: context.spaceId,
-        password: context.spacePassword,
-      });
-      if (!loggedInClient) {
-        throw new Error(
-          "Failed to create Supabase client - check environment variables",
-        );
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error("Failed to create logged-in client:", errorMessage);
-      throw new Error(`Supabase authentication failed: ${errorMessage}`);
-    }
-  } else {
+  if (loggedInClient !== null) {
     // renew session
     const { error } = await loggedInClient.auth.getSession();
     if (error) {
       console.warn("Session renewal failed, re-authenticating:", error);
       loggedInClient = null;
-      const context = await getSupabaseContext(plugin);
-      if (context === null) {
-        throw new Error(
-          "Could not create Supabase context for re-authentication",
-        );
-      }
-
-      loggedInClient = await createLoggedInClient({
-        platform: context.platform,
-        spaceId: context.spaceId,
-        password: context.spacePassword,
-      });
-      if (!loggedInClient) {
-        throw new Error("Failed to re-authenticate Supabase client");
-      }
     }
   }
-  loggedInClients[vaultId] = loggedInClient;
+  if (loggedInClient === null) {
+    const context = await getSupabaseContext(plugin);
+    if (context === null) {
+      console.error("Could not create Supabase context");
+    } else
+      try {
+        loggedInClient = await createLoggedInClient({
+          platform: context.platform,
+          spaceId: context.spaceId,
+          password: context.spacePassword,
+        });
+        if (!loggedInClient) {
+          console.error(
+            "Failed to create Supabase client - check environment variables",
+          );
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error("Failed to create logged-in client:", errorMessage);
+      }
+  }
   return loggedInClient;
 };
