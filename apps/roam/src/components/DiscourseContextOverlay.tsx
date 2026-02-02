@@ -168,19 +168,16 @@ export const DiscourseContextButton = ({
   );
 };
 
-const DiscourseContextPopupOverlay = ({
-  tag,
-  id,
-  uid,
-  iconColor,
-  textColor,
-  opacity = "100",
-}: DiscourseContextOverlayProps) => {
+const useDiscourseContext = (
+  tag: string | undefined,
+  uid: string | undefined,
+) => {
   const tagUid = useMemo(() => uid ?? getPageUidByPageTitle(tag), [uid, tag]);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<DiscourseData["results"]>([]);
   const [refs, setRefs] = useState(0);
   const [score, setScore] = useState<number | string>(0);
+
   const getInfo = useCallback(
     (ignoreCache?: boolean) =>
       getOverlayInfo(
@@ -206,15 +203,31 @@ const DiscourseContextPopupOverlay = ({
           }
         })
         .finally(() => setLoading(false)),
-    [tag, uid, tagUid, setResults, setLoading, setRefs, setScore],
+    [tag, uid, tagUid],
   );
+
   const refresh = useCallback(() => {
     setLoading(true);
     void getInfo(true);
-  }, [getInfo, setLoading]);
+  }, [getInfo]);
+
   useEffect(() => {
     void getInfo();
-  }, [refresh, getInfo]);
+  }, [getInfo]);
+
+  return { tagUid, loading, results, refs, score, refresh };
+};
+
+const DiscourseContextPopupOverlay = ({
+  tag,
+  id,
+  uid,
+  iconColor,
+  textColor,
+  opacity = "100",
+}: DiscourseContextOverlayProps) => {
+  const { tagUid, loading, results, refs, score, refresh } =
+    useDiscourseContext(tag, uid);
   return (
     <Popover
       autoFocus={false}
@@ -255,46 +268,9 @@ export const DiscourseContextCollapseOverlay = ({
   textColor,
   opacity = "100",
 }: DiscourseContextOverlayProps) => {
-  const tagUid = useMemo(() => uid ?? getPageUidByPageTitle(tag), [uid, tag]);
-  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [results, setResults] = useState<DiscourseData["results"]>([]);
-  const [refs, setRefs] = useState(0);
-  const [score, setScore] = useState<number | string>(0);
-  const getInfo = useCallback(
-    (ignoreCache?: boolean) =>
-      getOverlayInfo(
-        tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : ""),
-        ignoreCache,
-      )
-        .then(({ refs, results }) => {
-          const discourseNode = findDiscourseNode({ uid: tagUid });
-          if (discourseNode) {
-            const attribute = getSettingValueFromTree({
-              tree: getBasicTreeByParentUid(discourseNode.type),
-              key: "Overlay",
-              defaultValue: "Overlay",
-            });
-            return deriveDiscourseNodeAttribute({
-              uid: tagUid,
-              attribute,
-            }).then((score) => {
-              setResults(results);
-              setRefs(refs);
-              setScore(score);
-            });
-          }
-        })
-        .finally(() => setLoading(false)),
-    [tag, uid, tagUid, setResults, setLoading, setRefs, setScore],
-  );
-  const refresh = useCallback(() => {
-    setLoading(true);
-    void getInfo(true);
-  }, [getInfo, setLoading]);
-  useEffect(() => {
-    void getInfo();
-  }, [refresh, getInfo]);
+  const { tagUid, loading, results, refs, score, refresh } =
+    useDiscourseContext(tag, uid);
   return (
     <>
       <DiscourseContextButton
