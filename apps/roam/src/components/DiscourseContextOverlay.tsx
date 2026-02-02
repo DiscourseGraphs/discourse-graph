@@ -168,11 +168,7 @@ export const DiscourseContextButton = ({
   );
 };
 
-const useDiscourseContext = (
-  tag: string | undefined,
-  uid: string | undefined,
-) => {
-  const tagUid = useMemo(() => uid ?? getPageUidByPageTitle(tag), [uid, tag]);
+const useDiscourseContext = (uid: string, tag: string) => {
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<DiscourseData["results"]>([]);
   const [refs, setRefs] = useState(0);
@@ -180,12 +176,9 @@ const useDiscourseContext = (
 
   const getInfo = useCallback(
     (ignoreCache?: boolean) =>
-      getOverlayInfo(
-        tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : ""),
-        ignoreCache,
-      )
+      getOverlayInfo(tag, ignoreCache)
         .then(({ refs, results }) => {
-          const discourseNode = findDiscourseNode({ uid: tagUid });
+          const discourseNode = findDiscourseNode({ uid: uid });
           if (discourseNode) {
             const attribute = getSettingValueFromTree({
               tree: getBasicTreeByParentUid(discourseNode.type),
@@ -193,7 +186,7 @@ const useDiscourseContext = (
               defaultValue: "Overlay",
             });
             return deriveDiscourseNodeAttribute({
-              uid: tagUid,
+              uid: uid,
               attribute,
             }).then((score) => {
               setResults(results);
@@ -203,7 +196,7 @@ const useDiscourseContext = (
           }
         })
         .finally(() => setLoading(false)),
-    [tag, uid, tagUid],
+    [tag, uid],
   );
 
   const refresh = useCallback(() => {
@@ -215,7 +208,7 @@ const useDiscourseContext = (
     void getInfo();
   }, [getInfo]);
 
-  return { tagUid, loading, results, refs, score, refresh };
+  return { loading, results, refs, score, refresh };
 };
 
 const DiscourseContextPopupOverlay = ({
@@ -226,8 +219,12 @@ const DiscourseContextPopupOverlay = ({
   textColor,
   opacity = "100",
 }: DiscourseContextOverlayProps) => {
-  const { tagUid, loading, results, refs, score, refresh } =
-    useDiscourseContext(tag, uid);
+  const tagUid = useMemo(() => uid ?? getPageUidByPageTitle(tag), [uid, tag]);
+  const uidTag = tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : "");
+  const { loading, results, refs, score, refresh } = useDiscourseContext(
+    tagUid,
+    uidTag,
+  );
   return (
     <Popover
       autoFocus={false}
@@ -269,8 +266,12 @@ export const DiscourseContextCollapseOverlay = ({
   opacity = "100",
 }: DiscourseContextOverlayProps) => {
   const [open, setOpen] = useState(false);
-  const { tagUid, loading, results, refs, score, refresh } =
-    useDiscourseContext(tag, uid);
+  const tagUid = useMemo(() => uid ?? getPageUidByPageTitle(tag), [uid, tag]);
+  const uidTag = tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : "");
+  const { loading, results, refs, score, refresh } = useDiscourseContext(
+    tagUid,
+    uidTag,
+  );
   return (
     <>
       <DiscourseContextButton
