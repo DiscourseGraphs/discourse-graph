@@ -54,15 +54,15 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^20",
-    "@vercel/sdk": "^1.18.2",
+    "@vercel/sdk": "^1.18.9",
     "dotenv": "^16.6.1",
     "eslint": "catalog:",
     "prettier-plugin-gherkin": "^3.1.2",
-    "supabase": "^2.67.1",
+    "supabase": "^2.75.0",
     "ts-node-maintained": "^10.9.5",
     "tsx": "4.20.6",
     "typescript": "5.9.2",
-    "vercel": "50.1.0"
+    "vercel": "50.9.6"
   },
   "prettier": {
     "plugins": [
