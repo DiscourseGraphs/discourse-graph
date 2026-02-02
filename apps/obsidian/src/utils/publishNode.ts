@@ -111,47 +111,51 @@ export const publishNode = async ({
     ...attachments.map((a) => a.stat.mtime),
   );
 
-  if (existingPublish.includes(myGroup) && lastModified <= lastModifiedDb)
-    return; // already published
-  const publishSpaceResponse = await client.from("SpaceAccess").upsert(
-    {
-      /* eslint-disable @typescript-eslint/naming-convention */
-      account_uid: myGroup,
-      space_id: spaceId,
-      /* eslint-enable @typescript-eslint/naming-convention */
-      permissions: "partial",
-    },
-    { ignoreDuplicates: true },
-  );
-  if (publishSpaceResponse.error && publishSpaceResponse.error.code !== "23505")
-    // 23505 is duplicate key, which counts as a success.
-    throw publishSpaceResponse.error;
+  const skipPublishAccess =
+    existingPublish.includes(myGroup) && lastModified <= lastModifiedDb;
 
-  const publishResponse = await client.from("ResourceAccess").upsert(
-    {
-      /* eslint-disable @typescript-eslint/naming-convention */
-      account_uid: myGroup,
-      source_local_id: nodeId,
-      space_id: spaceId,
-      /* eslint-enable @typescript-eslint/naming-convention */
-    },
-    { ignoreDuplicates: true },
-  );
-  if (publishResponse.error && publishResponse.error.code !== "23505")
-    // 23505 is duplicate key, which counts as a success.
-    throw publishResponse.error;
+  if (!skipPublishAccess) {
+    const publishSpaceResponse = await client.from("SpaceAccess").upsert(
+      {
+        /* eslint-disable @typescript-eslint/naming-convention */
+        account_uid: myGroup,
+        space_id: spaceId,
+        /* eslint-enable @typescript-eslint/naming-convention */
+        permissions: "partial",
+      },
+      { ignoreDuplicates: true },
+    );
+    if (
+      publishSpaceResponse.error &&
+      publishSpaceResponse.error.code !== "23505"
+    )
+      throw publishSpaceResponse.error;
 
-  // Also publish the schema so it's accessible when importing nodes
-  const nodeTypeId = frontmatter.nodeTypeId as string | undefined;
-  if (nodeTypeId) {
-    await publishSchema({
-      client,
-      spaceId,
-      nodeTypeId,
-      groupId: myGroup,
-    });
+    const publishResponse = await client.from("ResourceAccess").upsert(
+      {
+        /* eslint-disable @typescript-eslint/naming-convention */
+        account_uid: myGroup,
+        source_local_id: nodeId,
+        space_id: spaceId,
+        /* eslint-enable @typescript-eslint/naming-convention */
+      },
+      { ignoreDuplicates: true },
+    );
+    if (publishResponse.error && publishResponse.error.code !== "23505")
+      throw publishResponse.error;
+
+    const nodeTypeId = frontmatter.nodeTypeId as string | undefined;
+    if (nodeTypeId) {
+      await publishSchema({
+        client,
+        spaceId,
+        nodeTypeId,
+        groupId: myGroup,
+      });
+    }
   }
 
+  // Always sync non-text assets when node is published to this group
   const existingFiles: string[] = [];
   for (const attachment of attachments) {
     const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
