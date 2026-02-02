@@ -22,6 +22,7 @@ type FuzzySelectInputProps<T extends Result = Result> = {
   autoFocus?: boolean;
   disabled?: boolean;
   initialIsLocked?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement>;
 };
 
 const FuzzySelectInput = <T extends Result = Result>({
@@ -35,6 +36,7 @@ const FuzzySelectInput = <T extends Result = Result>({
   autoFocus,
   disabled,
   initialIsLocked,
+  inputRef,
 }: FuzzySelectInputProps<T>) => {
   const [isLocked, setIsLocked] = useState(initialIsLocked || false);
   const [query, setQuery] = useState<string>(() => value?.text || "");
@@ -43,7 +45,14 @@ const FuzzySelectInput = <T extends Result = Result>({
   const [isFocused, setIsFocused] = useState(false);
 
   const menuRef = useRef<HTMLUListElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    const id = window.setTimeout(() => {
+      inputRef?.current?.focus();
+    }, 150);
+    return () => window.clearTimeout(id);
+  }, [autoFocus, inputRef]);
 
   const filteredItems = useMemo(() => {
     if (!query) return options;
@@ -65,10 +74,6 @@ const FuzzySelectInput = <T extends Result = Result>({
         setValue(item);
         setIsOpen(false);
       }
-      // Refocus the input after selection to maintain keyboard workflow
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 0);
     },
     [mode, initialUid, setValue, onLockedChange],
   );
@@ -210,7 +215,6 @@ const FuzzySelectInput = <T extends Result = Result>({
           onKeyDown={handleKeyDown}
           autoFocus={autoFocus}
           placeholder={placeholder}
-          inputRef={inputRef}
           onFocus={() => {
             setIsFocused(true);
           }}
@@ -218,6 +222,7 @@ const FuzzySelectInput = <T extends Result = Result>({
             setIsFocused(false);
             setTimeout(() => setIsOpen(false), 200);
           }}
+          inputRef={inputRef}
         />
       }
     />

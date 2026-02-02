@@ -91,6 +91,15 @@ const ModifyNodeDialog = ({
       ),
     [referencedNodeValue.uid, initialReferencedNode?.uid],
   );
+  const contentInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const id = window.setTimeout(() => {
+      contentInputRef.current?.focus();
+    }, 100);
+    return () => window.clearTimeout(id);
+  }, [isOpen]);
 
   const [options, setOptions] = useState<{
     content: Result[];
@@ -540,6 +549,7 @@ const ModifyNodeDialog = ({
               mode={mode}
               initialUid={content.uid}
               autoFocus={true}
+              inputRef={contentInputRef}
             />
           </div>
 
