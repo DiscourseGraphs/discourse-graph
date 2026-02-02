@@ -1672,8 +1672,8 @@ export type Database = {
           s_function: string
           s_target: number
           s_worker: string
-          task_interval: unknown
-          timeout: unknown
+          task_interval: string
+          timeout: string
         }
         Returns: string
       }
@@ -2051,3 +2051,4 @@ export const Constants = {
     },
   },
 } as const
+
