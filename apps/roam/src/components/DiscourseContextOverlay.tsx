@@ -1,4 +1,11 @@
-import { Button, Icon, Popover, Position, Collapse } from "@blueprintjs/core";
+import {
+  Button,
+  Icon,
+  Popover,
+  Position,
+  Collapse,
+  Card,
+} from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
 import { ContextContent } from "./DiscourseContext";
@@ -302,26 +309,18 @@ export const DiscourseContextCollapseOverlay = ({
           setOpen(!open);
         }}
       />
-      <Collapse isOpen={open} keepChildrenMounted={true}>
-        {loading ? (
-          <div />
-        ) : (
-          <div
-            style={{
-              margin: "1ex",
-              padding: "1ex",
-              border: "1px",
-              borderStyle: "solid",
-              borderColor: iconColor,
-            }}
-          >
-            <ContextContent
-              uid={tagUid}
-              results={results}
-              overlayRefresh={refresh}
-            />
-          </div>
-        )}
+      <Collapse
+        isOpen={open}
+        keepChildrenMounted={true}
+        className="discourse-context-collapse-el"
+      >
+        <Card className={"my-3" + (loading ? " bp3-skeleton" : "")}>
+          <ContextContent
+            uid={tagUid}
+            results={results}
+            overlayRefresh={refresh}
+          />
+        </Card>
       </Collapse>
     </>
   );

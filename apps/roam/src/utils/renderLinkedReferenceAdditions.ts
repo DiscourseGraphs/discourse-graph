@@ -1,3 +1,4 @@
+import nanoid from "nanoid";
 import { createElement } from "react";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import CanvasReferences from "~/components/canvas/CanvasReferences";
@@ -12,12 +13,17 @@ export const renderDiscourseContext = ({
   h1: HTMLHeadingElement;
   uid: string;
 }): void => {
-  if (h1.parentElement!.querySelector("#top-discourse-context")) return;
+  if (
+    h1
+      .closest(".rm-title-display-container")
+      ?.parentElement?.querySelector(".discourse-context-collapse-el")
+  )
+    return;
   handleTitleAdditions(
     h1,
     createElement(DiscourseContextCollapseOverlay, {
       uid,
-      id: "top-discourse-context",
+      id: nanoid(),
     }),
   );
 };
