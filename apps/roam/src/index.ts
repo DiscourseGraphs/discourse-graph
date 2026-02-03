@@ -80,7 +80,7 @@ export default runExtension(async (onloadArgs) => {
   refreshConfigTree();
 
   // For testing purposes
-  await initSchema();
+  // await initSchema();
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
