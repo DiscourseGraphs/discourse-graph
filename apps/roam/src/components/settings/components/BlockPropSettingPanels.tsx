@@ -1,4 +1,4 @@
-import React, { type ChangeEvent, useState } from "react";
+import React, { type ChangeEvent, useState, useCallback, useRef } from "react";
 import {
   Checkbox,
   InputGroup,
@@ -10,6 +10,8 @@ import {
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import idToTitle from "roamjs-components/util/idToTitle";
+import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
+import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import {
   getGlobalSetting,
   setGlobalSetting,
@@ -19,6 +21,12 @@ import {
   setFeatureFlag,
 } from "~/components/settings/utils/accessors";
 import type { FeatureFlags } from "~/components/settings/utils/zodSchema";
+
+type RoamBlockSyncProps = {
+  parentUid?: string;
+  uid?: string;
+  order?: number;
+};
 
 type TextGetter = (keys: string[]) => string | undefined;
 type TextSetter = (keys: string[], value: string) => void;
@@ -40,7 +48,7 @@ type BaseTextPanelProps = {
   setter: TextSetter;
   defaultValue?: string;
   placeholder?: string;
-};
+} & RoamBlockSyncProps;
 
 type BaseFlagPanelProps = {
   title: string;
@@ -52,7 +60,7 @@ type BaseFlagPanelProps = {
   disabled?: boolean;
   onBeforeChange?: (checked: boolean) => Promise<boolean>;
   onChange?: (checked: boolean) => void;
-};
+} & RoamBlockSyncProps;
 
 type BaseNumberPanelProps = {
   title: string;
@@ -63,7 +71,7 @@ type BaseNumberPanelProps = {
   defaultValue?: number;
   min?: number;
   max?: number;
-};
+} & RoamBlockSyncProps;
 
 type BaseSelectPanelProps = {
   title: string;
@@ -73,7 +81,7 @@ type BaseSelectPanelProps = {
   setter: TextSetter;
   options: string[];
   defaultValue?: string;
-};
+} & RoamBlockSyncProps;
 
 type BaseMultiTextPanelProps = {
   title: string;
@@ -82,8 +90,7 @@ type BaseMultiTextPanelProps = {
   getter: MultiTextGetter;
   setter: MultiTextSetter;
   defaultValue?: string[];
-};
-
+} & RoamBlockSyncProps;
 
 const BaseTextPanel = ({
   title,
@@ -93,13 +100,28 @@ const BaseTextPanel = ({
   setter,
   defaultValue = "",
   placeholder,
+  parentUid,
+  uid,
+  order,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => getter(settingKeys) ?? defaultValue);
+  const hasBlockSync = parentUid !== undefined && order !== undefined;
+  const { onChange: rawSyncToBlock } = useSingleChildValue({
+    title,
+    parentUid: parentUid ?? "",
+    order: order ?? 0,
+    uid,
+    defaultValue,
+    transform: (s: string) => s,
+    toStr: (s: string) => s,
+  });
+  const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
     setter(settingKeys, newValue);
+    syncToBlock?.(newValue);
   };
 
   return (
@@ -125,8 +147,35 @@ const BaseFlagPanel = ({
   disabled = false,
   onBeforeChange,
   onChange,
+  parentUid,
+  uid: initialBlockUid,
+  order,
 }: BaseFlagPanelProps) => {
   const [value, setValue] = useState(() => getter(settingKeys) ?? defaultValue);
+  const blockUidRef = useRef(initialBlockUid);
+
+  const syncFlagToBlock = useCallback(
+    async (checked: boolean) => {
+      if (parentUid === undefined || order === undefined) return;
+      if (checked) {
+        if (blockUidRef.current) return;
+        const newUid = window.roamAlphaAPI.util.generateUID();
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        await window.roamAlphaAPI.createBlock({
+          block: { string: title, uid: newUid },
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          location: { order, "parent-uid": parentUid },
+        });
+        blockUidRef.current = newUid;
+      } else if (blockUidRef.current) {
+        await window.roamAlphaAPI.deleteBlock({
+          block: { uid: blockUidRef.current },
+        });
+        blockUidRef.current = undefined;
+      }
+    },
+    [title, parentUid, order],
+  );
 
   const handleChange = async (e: React.FormEvent<HTMLInputElement>) => {
     const { checked } = e.target as HTMLInputElement;
@@ -138,6 +187,7 @@ const BaseFlagPanel = ({
 
     setValue(checked);
     setter(settingKeys, checked);
+    await syncFlagToBlock(checked);
     onChange?.(checked);
   };
 
@@ -165,13 +215,28 @@ const BaseNumberPanel = ({
   defaultValue = 0,
   min,
   max,
+  parentUid,
+  uid,
+  order,
 }: BaseNumberPanelProps) => {
   const [value, setValue] = useState(() => getter(settingKeys) ?? defaultValue);
+  const hasBlockSync = parentUid !== undefined && order !== undefined;
+  const { onChange: rawSyncToBlock } = useSingleChildValue({
+    title,
+    parentUid: parentUid ?? "",
+    order: order ?? 0,
+    uid,
+    defaultValue,
+    transform: (s: string) => parseInt(s, 10),
+    toStr: (v: number) => `${v}`,
+  });
+  const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
 
   const handleChange = (valueAsNumber: number) => {
     if (Number.isNaN(valueAsNumber)) return;
     setValue(valueAsNumber);
     setter(settingKeys, valueAsNumber);
+    syncToBlock?.(valueAsNumber);
   };
 
   return (
@@ -197,22 +262,42 @@ const BaseSelectPanel = ({
   setter,
   options,
   defaultValue,
+  parentUid,
+  uid,
+  order,
 }: BaseSelectPanelProps) => {
   const [value, setValue] = useState(
     () => getter(settingKeys) ?? defaultValue ?? options[0],
   );
+  const hasBlockSync = parentUid !== undefined && order !== undefined;
+  const { onChange: rawSyncToBlock } = useSingleChildValue({
+    title,
+    parentUid: parentUid ?? "",
+    order: order ?? 0,
+    uid,
+    defaultValue: defaultValue ?? options[0] ?? "",
+    transform: (s: string) => s,
+    toStr: (s: string) => s,
+  });
+  const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
     setter(settingKeys, newValue);
+    syncToBlock?.(newValue);
   };
 
   return (
     <Label>
       {idToTitle(title)}
       <Description description={description} />
-      <HTMLSelect value={value} onChange={handleChange} fill options={options} />
+      <HTMLSelect
+        value={value}
+        onChange={handleChange}
+        fill
+        options={options}
+      />
     </Label>
   );
 };
@@ -224,18 +309,60 @@ const BaseMultiTextPanel = ({
   getter,
   setter,
   defaultValue = [],
+  parentUid,
+  uid: initialBlockUid,
+  order,
 }: BaseMultiTextPanelProps) => {
   const [values, setValues] = useState<string[]>(
     () => getter(settingKeys) ?? defaultValue,
   );
   const [inputValue, setInputValue] = useState("");
+  const hasBlockSync = parentUid !== undefined && order !== undefined;
+  const blockUidRef = useRef(initialBlockUid);
+  const childUidsRef = useRef<string[]>(
+    initialBlockUid
+      ? getShallowTreeByParentUid(initialBlockUid).map(
+          (c: { uid: string }) => c.uid,
+        )
+      : [],
+  );
 
-  const handleAdd = () => {
+  const ensureParentBlock = useCallback(async (): Promise<
+    string | undefined
+  > => {
+    if (blockUidRef.current) return blockUidRef.current;
+    if (parentUid === undefined || order === undefined) return undefined;
+    const newUid = window.roamAlphaAPI.util.generateUID();
+    await window.roamAlphaAPI.createBlock({
+      block: { string: title, uid: newUid },
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      location: { order, "parent-uid": parentUid },
+    });
+    blockUidRef.current = newUid;
+    return newUid;
+  }, [title, parentUid, order]);
+
+  const handleAdd = async () => {
     if (inputValue.trim() && !values.includes(inputValue.trim())) {
-      const newValues = [...values, inputValue.trim()];
+      const trimmed = inputValue.trim();
+      const newValues = [...values, trimmed];
       setValues(newValues);
       setter(settingKeys, newValues);
       setInputValue("");
+
+      const parent = await ensureParentBlock();
+      if (parent) {
+        const valueUid = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.createBlock({
+          block: { string: trimmed, uid: valueUid },
+          location: {
+            order: childUidsRef.current.length,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "parent-uid": parent,
+          },
+        });
+        childUidsRef.current = [...childUidsRef.current, valueUid];
+      }
     }
   };
 
@@ -244,12 +371,23 @@ const BaseMultiTextPanel = ({
     const newValues = values.filter((_, i) => i !== index);
     setValues(newValues);
     setter(settingKeys, newValues);
+
+    if (hasBlockSync) {
+      const removedUid = childUidsRef.current[index];
+      if (removedUid) {
+        void window.roamAlphaAPI.deleteBlock({ block: { uid: removedUid } });
+      }
+      childUidsRef.current = childUidsRef.current.filter(
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        (_, i) => i !== index,
+      );
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleAdd();
+      void handleAdd();
     }
   };
 
@@ -265,7 +403,11 @@ const BaseMultiTextPanel = ({
           placeholder="Add new item"
           className="flex-grow"
         />
-        <Button icon="plus" onClick={handleAdd} disabled={!inputValue.trim()} />
+        <Button
+          icon="plus"
+          onClick={() => void handleAdd()}
+          disabled={!inputValue.trim()}
+        />
       </div>
       {values.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
@@ -337,15 +479,16 @@ export const FeatureFlagPanel = ({
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
 }) => {
-  const handleBeforeChange: ((checked: boolean) => Promise<boolean>) | undefined =
-    onBeforeEnable
-      ? async (checked) => {
-          if (checked) {
-            return onBeforeEnable();
-          }
-          return true;
+  const handleBeforeChange:
+    | ((checked: boolean) => Promise<boolean>)
+    | undefined = onBeforeEnable
+    ? async (checked) => {
+        if (checked) {
+          return onBeforeEnable();
         }
-      : undefined;
+        return true;
+      }
+    : undefined;
 
   return (
     <BaseFlagPanel
