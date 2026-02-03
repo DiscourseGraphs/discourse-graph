@@ -36,7 +36,7 @@ export const POST = async (
         asPostgrestFailure(`${target} is not a number`, "type"),
       );
     }
-    const info: SyncTaskInfo = { ...SYNC_DEFAULTS, ...(await request.json()) };
+    const info = { ...SYNC_DEFAULTS, ...(await request.json()) };
     if (!info.worker) {
       return createApiResponse(
         request,
