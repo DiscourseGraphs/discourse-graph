@@ -30,7 +30,6 @@ import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
-  const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
   const settings = useMemo(() => getFormattedConfigTree(), []);
 
@@ -43,7 +42,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             "Override the global trigger for the discourse node menu. Must refresh after editing."
           }
         />
-        <NodeMenuTriggerComponent extensionAPI={extensionAPI} />
+        <NodeMenuTriggerComponent extensionAPI={onloadArgs.extensionAPI} />
       </Label>
       <Label>
         Node search menu trigger
@@ -59,7 +58,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
         label="Discourse tool keyboard shortcut"
         description="Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
-        placeholder="Click to set single key"
       />
       <PersonalFlagPanel
         title="Overlay"
