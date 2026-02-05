@@ -1,13 +1,9 @@
-import { InputTextNode } from "roamjs-components/types";
-import getBlockProps from "./getBlockProps";
 import { DiscourseNode } from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
 import type { SupabaseContext } from "~/utils/supabaseContext";
-import { DISCOURSE_GRAPH_PROP_NAME } from "~/utils/createReifiedBlock";
 
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
-import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 
 const getNodeExtraData = (
   node_uid: string,
@@ -55,39 +51,18 @@ const getNodeExtraData = (
   };
 };
 
-const indent = (s: string): string =>
-  s
-    .split("\n")
-    .map((l) => "   " + l)
-    .join("\n") + "\n";
-
-const templateToText = (template: InputTextNode[]): string =>
-  template
-    .filter((itn) => !itn.text.startsWith("{{"))
-    .map(
-      (itn) =>
-        `* ${itn.text}\n${itn.children?.length ? indent(templateToText(itn.children)) : ""}`,
-    )
-    .join("");
-
 export const discourseNodeSchemaToLocalConcept = (
   context: SupabaseContext,
   node: DiscourseNode,
 ): LocalConceptDataInput => {
   const titleParts = node.text.split("/");
-  const result: LocalConceptDataInput = {
+  return {
     space_id: context.spaceId,
-    name: node.text,
+    name: titleParts[titleParts.length - 1],
     source_local_id: node.type,
     is_schema: true,
     ...getNodeExtraData(node.type),
   };
-  if (node.template !== undefined)
-    result.literal_content = {
-      label: titleParts[titleParts.length - 1],
-      template: templateToText(node.template),
-    };
-  return result;
 };
 
 export const discourseNodeBlockToLocalConcept = (
@@ -112,7 +87,7 @@ export const discourseNodeBlockToLocalConcept = (
   };
 };
 
-const STANDARD_ROLES = ["source", "destination"];
+const STANDARD_ROLES = ["source", "target"];
 
 export const discourseRelationSchemaToLocalConcept = (
   context: SupabaseContext,
@@ -122,7 +97,7 @@ export const discourseRelationSchemaToLocalConcept = (
     space_id: context.spaceId,
     source_local_id: relation.id,
     // Not using the label directly, because it is not unique and name should be unique
-    name: getPageTitleByPageUid(relation.id),
+    name: `${relation.id}-${relation.label}`,
     is_schema: true,
     local_reference_content: Object.fromEntries(
       Object.entries(relation).filter(([key, v]) =>
@@ -141,21 +116,9 @@ export const discourseRelationSchemaToLocalConcept = (
 
 export const discourseRelationDataToLocalConcept = (
   context: SupabaseContext,
-  relationUid: string,
+  relationSchemaUid: string,
+  relationNodes: { [role: string]: string },
 ): LocalConceptDataInput => {
-  // assuming reified
-  const relationProps = getBlockProps(relationUid);
-  const relationSchemaData = relationProps[DISCOURSE_GRAPH_PROP_NAME] as Record<
-    string,
-    string
-  >;
-  if (!relationSchemaData) {
-    throw new Error(`Missing relation data for ${relationUid}`);
-  }
-  const relationSchemaUid = relationSchemaData.hasSchema;
-  if (!relationSchemaUid) {
-    throw new Error(`Missing relation schema uid for ${relationUid}`);
-  }
   const roamRelation = getDiscourseRelations().find(
     (r) => r.id === relationSchemaUid,
   );
@@ -169,7 +132,7 @@ export const discourseRelationDataToLocalConcept = (
   const roles = (litContent["roles"] as string[] | undefined) || STANDARD_ROLES;
   const casting: { [role: string]: string } = Object.fromEntries(
     roles
-      .map((role) => [role, relationSchemaData[role + "Uid"]])
+      .map((role) => [role, relationNodes[role]])
       .filter(([, uid]) => uid !== undefined),
   );
   if (Object.keys(casting).length === 0) {
@@ -189,13 +152,14 @@ export const discourseRelationDataToLocalConcept = (
     Math.max(...nodeData.map((nd) => new Date(nd.created).getTime())),
   ).toISOString();
   const author_local_id: string = nodeData[0].author_uid; // take any one; again until I get the relation object
+  const source_local_id = casting["target"] || Object.values(casting)[0]; // This one is tricky. Prefer the target for now.
   return {
     space_id: context.spaceId,
-    source_local_id: relationUid,
+    source_local_id,
     author_local_id,
     created,
     last_modified,
-    name: relationUid,
+    name: `${relationSchemaUid}-${Object.values(casting).join("-")}`,
     is_schema: false,
     schema_represented_by_local_id: relationSchemaUid,
     local_reference_content: casting,

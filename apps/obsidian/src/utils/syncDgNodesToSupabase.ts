@@ -12,10 +12,8 @@ import { default as DiscourseGraphPlugin } from "~/index";
 import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
 import {
   orderConceptsByDependency,
-  discourseNodeInstanceToLocalConcepts,
+  discourseNodeInstanceToLocalConcept,
   discourseNodeSchemaToLocalConcept,
-  discourseRelationSchemaToLocalConcept,
-  discourseRelationTypeToLocalConcept,
 } from "./conceptConversion";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 
@@ -178,7 +176,7 @@ const getLastSchemaSyncTime = async (
   return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
 };
 
-export type DiscourseNodeInVault = {
+type DiscourseNodeInVault = {
   file: TFile;
   frontmatter: Record<string, unknown>;
   nodeTypeId: string;
@@ -204,7 +202,7 @@ const mergeChangeTypes = (
  * Step 1: Collect all discourse nodes from the vault
  * Filters markdown files that have nodeTypeId in frontmatter
  */
-export const collectDiscourseNodesFromVault = async (
+const collectDiscourseNodesFromVault = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<DiscourseNodeInVault[]> => {
   const allFiles = plugin.app.vault.getMarkdownFiles();
@@ -512,26 +510,12 @@ const convertDgToSupabaseConcepts = async ({
   context: SupabaseContext;
   accountLocalId: string;
   plugin: DiscourseGraphPlugin;
-  convertRelations?: boolean;
 }): Promise<void> => {
   const lastSchemaSync = (
     await getLastSchemaSyncTime(supabaseClient, context.spaceId)
   ).getTime();
-  const nodeTypes = plugin.settings.nodeTypes ?? [];
-  const newNodeTypes = nodeTypes.filter((n) => n.modified > lastSchemaSync);
-  const relationTypes = (plugin.settings.relationTypes ?? []).filter(
+  const newNodeTypes = (plugin.settings.nodeTypes ?? []).filter(
     (n) => n.modified > lastSchemaSync,
-  );
-  const discourseRelations = (plugin.settings.discourseRelations ?? []).filter(
-    (n) => n.modified > lastSchemaSync,
-  );
-  const allNodes = await collectDiscourseNodesFromVault(plugin);
-  const allNodesByName = Object.fromEntries(
-    allNodes.map((n) => [n.file.basename, n]),
-  );
-
-  const nodeTypesById = Object.fromEntries(
-    nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
   );
 
   const nodesTypesToLocalConcepts = newNodeTypes.map((nodeType) =>
@@ -542,44 +526,16 @@ const convertDgToSupabaseConcepts = async ({
     }),
   );
 
-  const relationTypesById = Object.fromEntries(
-    relationTypes.map((relationType) => [relationType.id, relationType]),
-  );
-
-  const relationTypesToLocalConcepts = relationTypes.map((relationType) =>
-    discourseRelationTypeToLocalConcept({
+  const nodeInstanceToLocalConcepts = nodesSince.map((node) =>
+    discourseNodeInstanceToLocalConcept({
       context,
-      relationType,
+      nodeData: node,
       accountLocalId,
     }),
   );
-
-  const discourseRelationsToLocalConcepts = discourseRelations.map((relation) =>
-    discourseRelationSchemaToLocalConcept({
-      context,
-      relation,
-      accountLocalId,
-      nodeTypesById,
-      relationTypesById,
-    }),
-  );
-
-  const nodeInstanceToLocalConcepts = nodesSince
-    .map((node) => {
-      return discourseNodeInstanceToLocalConcepts({
-        plugin,
-        allNodesByName,
-        context,
-        nodeData: node,
-        accountLocalId,
-      });
-    })
-    .flat();
 
   const conceptsToUpsert: LocalConceptDataInput[] = [
     ...nodesTypesToLocalConcepts,
-    ...relationTypesToLocalConcepts,
-    ...discourseRelationsToLocalConcepts,
     ...nodeInstanceToLocalConcepts,
   ];
 
