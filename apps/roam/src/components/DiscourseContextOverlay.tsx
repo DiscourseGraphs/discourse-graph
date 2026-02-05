@@ -1,4 +1,11 @@
-import { Button, Icon, Popover, Position, Tooltip } from "@blueprintjs/core";
+import {
+  Button,
+  Icon,
+  Popover,
+  Position,
+  Collapse,
+  Card,
+} from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
 import { ContextContent } from "./DiscourseContext";
@@ -100,27 +107,78 @@ type DiscourseContextOverlayProps = DiscourseContextOverlayBaseProps &
 
 export const ICON_SIZE = 10;
 
-const DiscourseContextOverlay = ({
-  tag,
+export const DiscourseContextButton = ({
   id,
-  uid,
   iconColor,
   textColor,
+  loading,
+  score,
+  refs,
+  onClick,
   opacity = "100",
-}: DiscourseContextOverlayProps) => {
-  const tagUid = useMemo(() => uid ?? getPageUidByPageTitle(tag), [uid, tag]);
+}: DiscourseContextOverlayBaseProps & {
+  loading: boolean;
+  score: string | number;
+  refs: number;
+  onClick?: (event: React.MouseEvent) => void;
+}) => {
+  return (
+    <Button
+      small
+      id={id}
+      className={`roamjs-discourse-context-overlay ${
+        loading ? "animate-pulse" : ""
+      }`}
+      style={{
+        minHeight: "initial",
+        paddingTop: ".25rem",
+        paddingBottom: ".25rem",
+      }}
+      minimal
+      disabled={loading}
+      onClick={onClick}
+    >
+      <div className="flex items-center gap-1.5">
+        <Icon
+          icon={"diagram-tree"}
+          color={iconColor}
+          style={{ opacity: `${Number(opacity) / 100}` }}
+          size={ICON_SIZE}
+        />
+        <span
+          className={`mr-1 text-xs leading-none opacity-${opacity}`}
+          style={{ color: textColor }}
+        >
+          {loading ? "-" : score}
+        </span>
+        <Icon
+          icon={"link"}
+          color={iconColor}
+          style={{ opacity: `${Number(opacity) / 100}` }}
+          size={ICON_SIZE}
+        />
+        <span
+          className={`text-xs leading-none opacity-${opacity}`}
+          style={{ color: textColor }}
+        >
+          {loading ? "-" : refs}
+        </span>
+      </div>
+    </Button>
+  );
+};
+
+const useDiscourseContext = (uid: string, tag: string) => {
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<DiscourseData["results"]>([]);
   const [refs, setRefs] = useState(0);
   const [score, setScore] = useState<number | string>(0);
+
   const getInfo = useCallback(
     (ignoreCache?: boolean) =>
-      getOverlayInfo(
-        tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : ""),
-        ignoreCache,
-      )
+      getOverlayInfo(tag, ignoreCache)
         .then(({ refs, results }) => {
-          const discourseNode = findDiscourseNode({ uid: tagUid });
+          const discourseNode = findDiscourseNode({ uid: uid });
           if (discourseNode) {
             const attribute = getSettingValueFromTree({
               tree: getBasicTreeByParentUid(discourseNode.type),
@@ -128,7 +186,7 @@ const DiscourseContextOverlay = ({
               defaultValue: "Overlay",
             });
             return deriveDiscourseNodeAttribute({
-              uid: tagUid,
+              uid: uid,
               attribute,
             }).then((score) => {
               setResults(results);
@@ -138,15 +196,35 @@ const DiscourseContextOverlay = ({
           }
         })
         .finally(() => setLoading(false)),
-    [tag, uid, tagUid, setResults, setLoading, setRefs, setScore],
+    [tag, uid],
   );
+
   const refresh = useCallback(() => {
     setLoading(true);
     void getInfo(true);
-  }, [getInfo, setLoading]);
+  }, [getInfo]);
+
   useEffect(() => {
     void getInfo();
-  }, [refresh, getInfo]);
+  }, [getInfo]);
+
+  return { loading, results, refs, score, refresh };
+};
+
+const DiscourseContextPopupOverlay = ({
+  tag,
+  id,
+  uid,
+  iconColor,
+  textColor,
+  opacity = "100",
+}: DiscourseContextOverlayProps) => {
+  const tagUid = useMemo(() => uid ?? getPageUidByPageTitle(tag), [uid, tag]);
+  const uidTag = tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : "");
+  const { loading, results, refs, score, refresh } = useDiscourseContext(
+    tagUid,
+    uidTag,
+  );
   return (
     <Popover
       autoFocus={false}
@@ -164,50 +242,60 @@ const DiscourseContextOverlay = ({
         </div>
       }
       target={
-        <Button
-          small
+        <DiscourseContextButton
           id={id}
-          className={`roamjs-discourse-context-overlay ${
-            loading ? "animate-pulse" : ""
-          }`}
-          style={{
-            minHeight: "initial",
-            paddingTop: ".25rem",
-            paddingBottom: ".25rem",
-          }}
-          minimal
-          disabled={loading}
-        >
-          <div className="flex items-center gap-1.5">
-            <Icon
-              icon={"diagram-tree"}
-              color={iconColor}
-              style={{ opacity: `${Number(opacity) / 100}` }}
-              size={ICON_SIZE}
-            />
-            <span
-              className={`mr-1 text-xs leading-none opacity-${opacity}`}
-              style={{ color: textColor }}
-            >
-              {loading ? "-" : score}
-            </span>
-            <Icon
-              icon={"link"}
-              color={iconColor}
-              style={{ opacity: `${Number(opacity) / 100}` }}
-              size={ICON_SIZE}
-            />
-            <span
-              className={`text-xs leading-none opacity-${opacity}`}
-              style={{ color: textColor }}
-            >
-              {loading ? "-" : refs}
-            </span>
-          </div>
-        </Button>
+          iconColor={iconColor}
+          textColor={textColor}
+          loading={loading}
+          score={score}
+          refs={refs}
+          opacity={opacity}
+        ></DiscourseContextButton>
       }
       position={Position.BOTTOM}
     />
+  );
+};
+
+export const DiscourseContextCollapseOverlay = ({
+  tag,
+  id,
+  uid,
+  iconColor,
+  textColor,
+  opacity = "100",
+}: DiscourseContextOverlayProps) => {
+  const [open, setOpen] = useState(false);
+  const tagUid = useMemo(() => uid ?? getPageUidByPageTitle(tag), [uid, tag]);
+  const uidTag = tag ?? (uid ? (getPageTitleByPageUid(uid) ?? "") : "");
+  const { loading, results, refs, score, refresh } = useDiscourseContext(
+    tagUid,
+    uidTag,
+  );
+  return (
+    <>
+      <DiscourseContextButton
+        id={id}
+        iconColor={iconColor}
+        textColor={textColor}
+        loading={loading}
+        score={score}
+        refs={refs}
+        opacity={opacity}
+        onClick={() => {
+          setOpen(!open);
+        }}
+      />
+      <Collapse isOpen={open} keepChildrenMounted={true}>
+        <Card className={"my-3" + (loading ? " bp3-skeleton" : "")}>
+          <ContextContent
+            uid={tagUid}
+            results={results}
+            overlayRefresh={refresh}
+          />
+        </Card>
+      </Collapse>
+    </>
   );
 };
 
@@ -220,7 +308,7 @@ const Wrapper = ({ parent, tag }: { parent: HTMLElement; tag: string }) => {
     {},
   );
   return inViewport ? (
-    <DiscourseContextOverlay tag={tag} id={id} />
+    <DiscourseContextPopupOverlay tag={tag} id={id} />
   ) : (
     <Button
       small
@@ -263,4 +351,4 @@ export const render = ({
   );
 };
 
-export default DiscourseContextOverlay;
+export default DiscourseContextPopupOverlay;
