@@ -654,9 +654,8 @@ export const createAllRelationShapeUtils = (
               relation,
               target,
             }));
-          // Get canvas page UID from editor instance, fallback to current page UID
-          // @ts-expect-error - Custom property added to editor
-          const parentUid = this.editor.canvasPageUid || getCurrentPageUid();
+          // Get canvas page UID from discourse context, fallback to current page UID
+          const parentUid = discourseContext.canvasPageUid || getCurrentPageUid();
           const title = getPageTitleByPageUid(parentUid);
           await triplesToBlocks({
             defaultPageTitle: `Auto generated from [[${title}]]`,

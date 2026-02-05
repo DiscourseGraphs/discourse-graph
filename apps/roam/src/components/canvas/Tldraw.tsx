@@ -112,6 +112,7 @@ export type DiscourseContextType = {
   relations: Record<string, DiscourseRelation[]>;
   lastAppEvent: string;
   lastActions: HistoryEntry<TLRecord>[];
+  canvasPageUid: string;
 };
 
 export const discourseContext: DiscourseContextType = {
@@ -119,6 +120,7 @@ export const discourseContext: DiscourseContextType = {
   relations: {},
   lastAppEvent: "",
   lastActions: [],
+  canvasPageUid: "",
 };
 
 export const DEFAULT_WIDTH = 160;
@@ -685,9 +687,8 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
               appRef.current = app;
 
-              // Store canvas page UID on editor instance for relation creation
-              // @ts-expect-error - Adding custom property to editor
-              app.canvasPageUid = pageUid;
+              // Store canvas page UID in discourse context for relation creation
+              discourseContext.canvasPageUid = pageUid;
 
               app.on("change", (entry) => {
                 lastActionsRef.current.push(entry);
