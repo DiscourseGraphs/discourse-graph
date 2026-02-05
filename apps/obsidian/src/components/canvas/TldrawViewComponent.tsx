@@ -32,7 +32,6 @@ import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import {
   createDiscourseNodeUtil,
   DiscourseNodeShape,
-  DiscourseNodeUtil,
 } from "~/components/canvas/shapes/DiscourseNodeShape";
 import { DiscourseNodeTool } from "./DiscourseNodeTool";
 import { DiscourseToolPanel } from "./DiscourseToolPanel";
@@ -45,7 +44,6 @@ import {
 } from "~/components/canvas/shapes/DiscourseRelationBinding";
 import ToastListener from "./ToastListener";
 import { RelationsOverlay } from "./overlays/RelationOverlay";
-import { showToast } from "./utils/toastUtils";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { CustomContextMenu } from "./CustomContextMenu";
 import {
