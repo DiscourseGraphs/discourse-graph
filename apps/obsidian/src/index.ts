@@ -275,7 +275,7 @@ export default class DiscourseGraphPlugin extends Plugin {
         keysToHide.push(
           ...[
             "nodeTypeId",
-            "importedFromSpaceId",
+            "importedFromSpaceUri",
             "nodeInstanceId",
             "publishedToGroups",
           ],

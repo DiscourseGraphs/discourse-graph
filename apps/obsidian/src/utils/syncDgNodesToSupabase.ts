@@ -217,7 +217,7 @@ const collectDiscourseNodesFromVault = async (
       continue;
     }
 
-    if (frontmatter.importedFromSpaceId) {
+    if (frontmatter.importedFromSpaceUri) {
       continue;
     }
 
@@ -631,7 +631,7 @@ const collectDiscourseNodesFromPaths = async (
       continue;
     }
 
-    if (frontmatter.importedFromSpaceId) {
+    if (frontmatter.importedFromSpaceUri) {
       console.debug(`Skipping imported file: ${filePath}`);
       continue;
     }
