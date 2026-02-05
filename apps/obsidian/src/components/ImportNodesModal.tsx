@@ -7,7 +7,7 @@ import {
   getAvailableGroups,
   getPublishedNodesForGroups,
   getLocalNodeInstanceIds,
-  getSpaceNames,
+  getSpaceNameFromIds,
   importSelectedNodes,
 } from "~/utils/importNodes";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
@@ -21,9 +21,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
   const [step, setStep] = useState<"loading" | "select" | "importing">(
     "loading",
   );
-  const [groupsWithNodes, setGroupsWithNodes] = useState<GroupWithNodes[]>(
-    [],
-  );
+  const [groupsWithNodes, setGroupsWithNodes] = useState<GroupWithNodes[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [importProgress, setImportProgress] = useState({
     current: 0,
@@ -72,7 +70,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       const uniqueSpaceIds = [
         ...new Set(importableNodes.map((n) => n.space_id)),
       ];
-      const spaceNames = await getSpaceNames(client, uniqueSpaceIds);
+      const spaceNames = await getSpaceNameFromIds(client, uniqueSpaceIds);
       const grouped: Map<string, GroupWithNodes> = new Map();
 
       for (const node of importableNodes) {
@@ -120,15 +118,12 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         return {
           ...group,
           nodes: group.nodes.map((node, idx) =>
-            idx === nodeIndex
-              ? { ...node, selected: !node.selected }
-              : node,
+            idx === nodeIndex ? { ...node, selected: !node.selected } : node,
           ),
         };
       }),
     );
   };
-
 
   const handleImport = async () => {
     const selectedNodes: ImportableNode[] = [];
@@ -163,10 +158,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
           5000,
         );
       } else {
-        new Notice(
-          `Successfully imported ${result.success} node(s)`,
-          3000,
-        );
+        new Notice(`Successfully imported ${result.success} node(s)`, 3000);
       }
 
       onClose();
@@ -182,7 +174,9 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
   const renderLoadingStep = () => (
     <div className="text-center">
       <h3 className="mb-4">Loading importable nodes...</h3>
-      <div className="text-muted text-sm">Fetching groups and published nodes</div>
+      <div className="text-muted text-sm">
+        Fetching groups and published nodes
+      </div>
     </div>
   );
 
@@ -192,15 +186,21 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       0,
     );
     const selectedCount = groupsWithNodes.reduce(
-      (sum, group) =>
-        sum + group.nodes.filter((n) => n.selected).length,
+      (sum, group) => sum + group.nodes.filter((n) => n.selected).length,
       0,
     );
 
     // Group nodes by space for better organization
     const nodesBySpace = new Map<
       number,
-      { spaceName: string; nodes: Array<{ node: ImportableNode; groupId: string; nodeIndex: number }> }
+      {
+        spaceName: string;
+        nodes: Array<{
+          node: ImportableNode;
+          groupId: string;
+          nodeIndex: number;
+        }>;
+      }
     >();
 
     for (const group of groupsWithNodes) {
@@ -257,40 +257,42 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         </div>
 
         <div className="max-h-96 overflow-y-auto rounded border">
-          {Array.from(nodesBySpace.entries()).map(([spaceId, { spaceName, nodes }]) => {
-            return (
-              <div key={spaceId} className="border-b">
-                <div className="bg-muted/10 flex items-center px-3 py-2">
-                  <span className="mr-2">📂</span>
-                  <span className="text-accent-foreground line-clamp-1 font-medium italic">
-                    {spaceName}
-                  </span>
-                  <span className="ml-2 text-muted text-sm">
-                    ({nodes.length} node{nodes.length !== 1 ? "s" : ""})
-                  </span>
-                </div>
+          {Array.from(nodesBySpace.entries()).map(
+            ([spaceId, { spaceName, nodes }]) => {
+              return (
+                <div key={spaceId} className="border-b">
+                  <div className="bg-muted/10 flex items-center px-3 py-2">
+                    <span className="mr-2">📂</span>
+                    <span className="text-accent-foreground line-clamp-1 font-medium italic">
+                      {spaceName}
+                    </span>
+                    <span className="text-muted ml-2 text-sm">
+                      ({nodes.length} node{nodes.length !== 1 ? "s" : ""})
+                    </span>
+                  </div>
 
-                {nodes.map(({ node, groupId, nodeIndex }) => (
-                  <div
-                    key={`${node.nodeInstanceId}-${groupId}`}
-                    className="flex items-start border-t p-3 pl-8"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={node.selected}
-                      onChange={() => handleNodeToggle(groupId, nodeIndex)}
-                      className="mr-3 mt-1 flex-shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="line-clamp-3 font-medium">
-                        {node.title}
+                  {nodes.map(({ node, groupId, nodeIndex }) => (
+                    <div
+                      key={`${node.nodeInstanceId}-${groupId}`}
+                      className="flex items-start border-t p-3 pl-8"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={node.selected}
+                        onChange={() => handleNodeToggle(groupId, nodeIndex)}
+                        className="mr-3 mt-1 flex-shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="line-clamp-3 font-medium">
+                          {node.title}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
+                  ))}
+                </div>
+              );
+            },
+          )}
         </div>
 
         <div className="mt-6 flex justify-between">
