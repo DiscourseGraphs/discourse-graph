@@ -32,7 +32,7 @@ import {
   TLOnTranslateHandler,
   TLOnTranslateStartHandler,
   WeakCache,
-  textShapeProps,
+  DefaultColorStyle,
   TLShapeId,
   TLShapeUtilConstructor,
   TLShape,
@@ -83,9 +83,9 @@ import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import internalError from "~/utils/internalError";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 
-const COLOR_ARRAY = Array.from(textShapeProps.color.values)
+const COLOR_ARRAY = Array.from(DefaultColorStyle.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
-  .reverse() as readonly TLDefaultColorStyle[];
+  .reverse() as TLDefaultColorStyle[];
 
 export const getRelationColor = (
   relationName: string,

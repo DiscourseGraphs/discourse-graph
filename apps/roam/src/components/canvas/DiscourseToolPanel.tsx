@@ -11,7 +11,7 @@ import {
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
-import { useAtom } from "@tldraw/state";
+import { useAtom } from "@tldraw/state-react";
 import { TOOL_ARROW_ICON_SVG, NODE_COLOR_ICON_SVG } from "~/icons";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./Tldraw";

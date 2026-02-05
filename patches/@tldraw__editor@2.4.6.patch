@@ -1,0 +1,30 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+deleted file mode 100644
+index 1424fb4699181e1528420b9d50269080fbbf9c5e..0000000000000000000000000000000000000000
+diff --git a/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs b/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
+index 928288b81b2bf06f3b47e7a53f26fa53494eee20..56b5f58833cbd277bc1d6fff34e0f1c6138ffec5 100644
+--- a/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
++++ b/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
+@@ -22,6 +22,22 @@ const DefaultErrorFallback = ({ error, editor }) => {
+   }
+   const errorMessage = error instanceof Error ? error.message : String(error);
+   const errorStack = error instanceof Error ? error.stack : null;
++
++  // Notify Discourse Graphs that an error occurred
++  useEffect(() => {
++    const errorDetails = {
++      message: errorMessage,
++      stack: errorStack
++    };
++
++    const event = new CustomEvent("tldraw:error", {
++      detail: errorDetails,
++      bubbles: true
++    });
++
++    document.dispatchEvent(event);
++  }, [error]);
++
+   const isDarkModeFromApp = useValue(
+     "isDarkMode",
+     () => {

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
 } from "roamjs-components/components/ExtensionApiContext";
@@ -789,48 +789,51 @@ const InsideEditorAndUiContext = ({
   //   );
   // };
 
-  const createDiscourseNodeShape = async ({
-    uid,
-    nodeText,
-    nodeType,
-    content,
-  }: {
-    uid: string;
-    nodeText: string;
-    nodeType: string;
-    content: TLExternalContent & { type: "text" };
-  }): Promise<void> => {
-    const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
-      nodeText,
+  const createDiscourseNodeShape = useCallback(
+    async ({
       uid,
+      nodeText,
       nodeType,
-      extensionAPI,
-    });
+      content,
+    }: {
+      uid: string;
+      nodeText: string;
+      nodeType: string;
+      content: TLExternalContent & { type: "text" };
+    }): Promise<void> => {
+      const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
+        nodeText,
+        uid,
+        nodeType,
+        extensionAPI,
+      });
 
-    const position =
-      content.point ??
-      (editor.inputs.shiftKey
-        ? editor.inputs.currentPagePoint
-        : editor.getViewportPageBounds().center);
+      const position =
+        content.point ??
+        (editor.inputs.shiftKey
+          ? editor.inputs.currentPagePoint
+          : editor.getViewportPageBounds().center);
 
-    editor.createShapes([
-      {
-        id: createShapeId(),
-        type: nodeType,
-        x: position.x - w / 2,
-        y: position.y - h / 2,
-        props: {
-          uid,
-          title: nodeText,
-          w,
-          h,
-          ...(imageUrl && { imageUrl }),
-          size: "s",
-          fontFamily: "sans",
+      editor.createShapes([
+        {
+          id: createShapeId(),
+          type: nodeType,
+          x: position.x - w / 2,
+          y: position.y - h / 2,
+          props: {
+            uid,
+            title: nodeText,
+            w,
+            h,
+            ...(imageUrl && { imageUrl }),
+            size: "s",
+            fontFamily: "sans",
+          },
         },
-      },
-    ]);
-  };
+      ]);
+    },
+    [editor, extensionAPI],
+  );
 
   useEffect(() => {
     // https://tldraw.dev/examples/data/assets/hosted-images
@@ -1097,13 +1100,13 @@ const InsideEditorAndUiContext = ({
       };
     };
     const cleanupCustomSideEffects = registerCustomSideEffects();
-    const [cleanupSideEffects] = registerDefaultSideEffects(editor);
+    const cleanupSideEffects = registerDefaultSideEffects(editor);
 
     return () => {
       cleanupSideEffects();
       cleanupCustomSideEffects();
     };
-  }, [editor, msg, toasts, extensionAPI]);
+  }, [editor, msg, toasts, extensionAPI, allNodes, createDiscourseNodeShape]);
 
   return <CustomContextMenu extensionAPI={extensionAPI} allNodes={allNodes} />;
 };
