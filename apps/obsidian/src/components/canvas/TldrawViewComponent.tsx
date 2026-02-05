@@ -32,6 +32,7 @@ import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import {
   createDiscourseNodeUtil,
   DiscourseNodeShape,
+  DiscourseNodeUtil,
 } from "~/components/canvas/shapes/DiscourseNodeShape";
 import { DiscourseNodeTool } from "./DiscourseNodeTool";
 import { DiscourseToolPanel } from "./DiscourseToolPanel";
@@ -53,7 +54,6 @@ import {
   openFileInNewLeaf,
   resolveDiscourseNodeFile,
 } from "./utils/openFileUtils";
-
 type TldrawPreviewProps = {
   store: TLStore;
   file: TFile;

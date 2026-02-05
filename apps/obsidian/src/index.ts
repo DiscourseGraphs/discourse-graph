@@ -26,7 +26,7 @@ import { NodeTagSuggestPopover } from "~/components/NodeTagSuggestModal";
 import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
 import generateUid from "~/utils/generateUid";
-import type { DiscourseNode, DiscourseRelation } from "~/types";
+import { migrateFrontmatterRelationsToRelationsJson } from "~/utils/relationsStore";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -38,6 +38,10 @@ export default class DiscourseGraphPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
+
+    await migrateFrontmatterRelationsToRelationsJson(this).catch((error) => {
+      console.error("Failed to migrate frontmatter relations:", error);
+    });
 
     if (this.settings.syncModeEnabled === true) {
       void initializeSupabaseSync(this).catch((error) => {

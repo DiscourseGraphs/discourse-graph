@@ -1,4 +1,4 @@
-import { TFile, Notice, FrontMatterCache } from "obsidian";
+import { TFile, Notice } from "obsidian";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { QueryEngine } from "~/services/QueryEngine";
 import SearchBar from "./SearchBar";
@@ -6,6 +6,13 @@ import { DiscourseNode } from "~/types";
 import DropdownSelect from "./DropdownSelect";
 import { usePlugin } from "./PluginContext";
 import { getNodeTypeById } from "~/utils/typeUtils";
+import {
+  getNodeInstanceIdForFile,
+  getRelationsForNodeInstanceId,
+  getFileForNodeInstanceId,
+  addRelation,
+  removeRelationBySourceDestinationType,
+} from "~/utils/relationsStore";
 
 type RelationTypeOption = {
   id: string;
@@ -17,7 +24,14 @@ type RelationshipSectionProps = {
   activeFile: TFile;
 };
 
-const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
+type AddRelationshipProps = RelationshipSectionProps & {
+  onRelationsChange?: () => void;
+};
+
+const AddRelationship = ({
+  activeFile,
+  onRelationsChange,
+}: AddRelationshipProps) => {
   const plugin = usePlugin();
 
   const [selectedRelationType, setSelectedRelationType] = useState<string>("");
@@ -32,7 +46,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
 
   const activeNodeTypeId = (() => {
     const fileCache = plugin.app.metadataCache.getFileCache(activeFile);
-    return fileCache?.frontmatter?.nodeTypeId;
+    return fileCache?.frontmatter?.nodeTypeId as string | undefined;
   })();
 
   useEffect(() => {
@@ -65,6 +79,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
       .filter(Boolean) as DiscourseNode[];
 
     setCompatibleNodeTypes(compatibleNodeTypes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRelationType, activeNodeTypeId, plugin.settings]);
 
   const getAvailableRelationTypes = useCallback(() => {
@@ -195,28 +210,26 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
     if (!relationType) return;
 
     try {
-      const appendLinkToFrontmatter = async (file: TFile, link: string) => {
-        await plugin.app.fileManager.processFrontMatter(file, (fm) => {
-          const existingLinks = Array.isArray(fm[relationType.id])
-            ? fm[relationType.id]
-            : [];
-          fm[relationType.id] = [...existingLinks, link];
-        });
-      };
+      const sourceId = await getNodeInstanceIdForFile(plugin, activeFile);
+      const destId = await getNodeInstanceIdForFile(plugin, selectedNode);
+      if (!sourceId || !destId) {
+        new Notice(
+          "Could not resolve node instance IDs for the selected files.",
+        );
+        return;
+      }
 
-      await appendLinkToFrontmatter(
-        activeFile,
-        `"[[${selectedNode.name}]]"`.replace(/^['"]+|['"]+$/g, ""),
-      );
-      await appendLinkToFrontmatter(
-        selectedNode,
-        `"[[${activeFile.name}]]"`.replace(/^['"]+|['"]+$/g, ""),
-      );
+      await addRelation(plugin, {
+        type: selectedRelationType,
+        source: sourceId,
+        destination: destId,
+      });
 
       new Notice(
-        `Successfully added ${relationType.label} with ${selectedNode.name}`,
+        `Successfully added ${relationType.label} with ${selectedNode.basename}`,
       );
 
+      onRelationsChange?.();
       resetState();
     } catch (error) {
       console.error("Failed to add relationship:", error);
@@ -226,10 +239,10 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
     }
   }, [
     activeFile,
-    plugin.app.fileManager,
-    plugin.settings.relationTypes,
+    plugin,
     selectedNode,
     selectedRelationType,
+    onRelationsChange,
   ]);
 
   const resetState = () => {
@@ -310,7 +323,7 @@ const AddRelationship = ({ activeFile }: RelationshipSectionProps) => {
               ? "!bg-accent !text-on-accent cursor-pointer"
               : "!bg-modifier-border !text-normal cursor-not-allowed"
           }`}
-          onClick={addRelationship}
+          onClick={() => void addRelationship()}
         >
           Confirm
         </button>
@@ -331,62 +344,51 @@ type GroupedRelation = {
   linkedFiles: TFile[];
 };
 
-const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
+type CurrentRelationshipsProps = RelationshipSectionProps & {
+  relationsVersion: number;
+};
+
+const CurrentRelationships = ({
+  activeFile,
+  relationsVersion,
+}: CurrentRelationshipsProps) => {
   const plugin = usePlugin();
   const [groupedRelationships, setGroupedRelationships] = useState<
     GroupedRelation[]
   >([]);
 
-  useEffect(() => {
-    loadCurrentRelationships();
-
-    const onMetadataChange = (file: TFile) => {
-      if (file && file.path === activeFile.path) {
-        loadCurrentRelationships();
-      }
-    };
-
-    plugin.app.metadataCache.on("changed", onMetadataChange);
-
-    return () => {
-      plugin.app.metadataCache.off(
-        "changed",
-        onMetadataChange as (...data: unknown[]) => unknown,
-      );
-    };
-  }, [activeFile, plugin]);
-
   const loadCurrentRelationships = useCallback(async () => {
     const fileCache = plugin.app.metadataCache.getFileCache(activeFile);
     if (!fileCache?.frontmatter) return;
 
-    const tempRelationships = new Map<string, GroupedRelation>();
-    const activeNodeTypeId = fileCache.frontmatter.nodeTypeId;
-
+    const activeNodeTypeId = fileCache.frontmatter.nodeTypeId as
+      | string
+      | undefined;
     if (!activeNodeTypeId) return;
 
+    const nodeInstanceId = await getNodeInstanceIdForFile(plugin, activeFile);
+    if (!nodeInstanceId) return;
+
+    const relations = await getRelationsForNodeInstanceId(
+      plugin,
+      nodeInstanceId,
+    );
+    const tempRelationships = new Map<string, GroupedRelation>();
+
     for (const relationType of plugin.settings.relationTypes) {
-      const frontmatterLinks = fileCache.frontmatter[relationType.id];
-      if (!frontmatterLinks) continue;
-
-      const links = Array.isArray(frontmatterLinks)
-        ? frontmatterLinks
-        : [frontmatterLinks];
-
-      const relation = plugin.settings.discourseRelations.find(
+      const typeLevelRelation = plugin.settings.discourseRelations.find(
         (rel) =>
           (rel.sourceId === activeNodeTypeId ||
             rel.destinationId === activeNodeTypeId) &&
           rel.relationshipTypeId === relationType.id,
       );
+      if (!typeLevelRelation) continue;
 
-      if (!relation) continue;
-
-      const isSource = relation.sourceId === activeNodeTypeId;
+      const instanceRels = relations.filter((r) => r.type === relationType.id);
+      const isSource = typeLevelRelation.sourceId === activeNodeTypeId;
       const relationLabel = isSource
         ? relationType.label
         : relationType.complement;
-
       const relationKey = `${relationType.id}-${isSource}`;
 
       if (!tempRelationships.has(relationKey)) {
@@ -400,22 +402,14 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
         });
       }
 
-      for (const link of links) {
-        const match = link.match(/\[\[(.*?)\]\]/);
-        if (!match) continue;
-
-        const linkedFileName = match[1];
-        const linkedFile = plugin.app.metadataCache.getFirstLinkpathDest(
-          linkedFileName,
-          activeFile.path,
-        );
-
+      const group = tempRelationships.get(relationKey)!;
+      for (const r of instanceRels) {
+        const otherId = r.source === nodeInstanceId ? r.destination : r.source;
+        const linkedFile = await getFileForNodeInstanceId(plugin, otherId);
         if (!linkedFile) continue;
-
-        const group = tempRelationships.get(relationKey);
         if (
-          group &&
-          !group.linkedFiles.some((file) => file.path === linkedFile.path)
+          linkedFile &&
+          !group.linkedFiles.some((f) => f.path === linkedFile.path)
         ) {
           group.linkedFiles.push(linkedFile);
         }
@@ -425,6 +419,10 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
     setGroupedRelationships(Array.from(tempRelationships.values()));
   }, [activeFile, plugin]);
 
+  useEffect(() => {
+    void loadCurrentRelationships();
+  }, [activeFile, loadCurrentRelationships, relationsVersion]);
+
   const deleteRelationship = useCallback(
     async (linkedFile: TFile, relationTypeId: string) => {
       const relationType = plugin.settings.relationTypes.find(
@@ -433,43 +431,23 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
       if (!relationType) return;
 
       try {
-        const removeLinkFromFrontmatter = async (
-          file: TFile,
-          targetFileName: string,
-          relationTypeId: string,
-        ) => {
-          await plugin.app.fileManager.processFrontMatter(
-            file,
-            (fm: FrontMatterCache) => {
-              const existingLinks = Array.isArray(fm[relationTypeId])
-                ? fm[relationTypeId]
-                : [fm[relationTypeId]].filter(Boolean);
+        const activeId = await getNodeInstanceIdForFile(plugin, activeFile);
+        const linkedId = await getNodeInstanceIdForFile(plugin, linkedFile);
+        if (!activeId || !linkedId) {
+          new Notice("Could not resolve node instance IDs.");
+          return;
+        }
 
-              const linkToRemove = `[[${targetFileName}]]`;
-              const filteredLinks = existingLinks.filter(
-                (link) => link !== linkToRemove,
-              );
-
-              if (filteredLinks.length === 0) {
-                delete fm[relationTypeId];
-              } else {
-                fm[relationTypeId] = filteredLinks;
-              }
-            },
-          );
-        };
-
-        // Remove link from active file
-        await removeLinkFromFrontmatter(
-          activeFile,
-          linkedFile.name,
+        await removeRelationBySourceDestinationType(
+          plugin,
+          activeId,
+          linkedId,
           relationTypeId,
         );
-
-        // Remove reverse link from linked file
-        await removeLinkFromFrontmatter(
-          linkedFile,
-          activeFile.name,
+        await removeRelationBySourceDestinationType(
+          plugin,
+          linkedId,
+          activeId,
           relationTypeId,
         );
 
@@ -477,7 +455,7 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
           `Successfully removed ${relationType.label} with ${linkedFile.basename}`,
         );
 
-        loadCurrentRelationships();
+        await loadCurrentRelationships();
       } catch (error) {
         console.error("Failed to delete relationship:", error);
         new Notice(
@@ -485,12 +463,7 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
         );
       }
     },
-    [
-      activeFile,
-      plugin.app.fileManager,
-      plugin.settings.relationTypes,
-      loadCurrentRelationships,
-    ],
+    [activeFile, plugin, loadCurrentRelationships],
   );
 
   if (groupedRelationships.length === 0) return null;
@@ -499,52 +472,60 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
     <div className="current-relationships mb-6">
       <h4 className="mb-2 text-base font-medium">Current Relationships</h4>
       <ul className="border-modifier-border m-0 list-none rounded border p-0">
-        {groupedRelationships.map((group) => (
-          <li
-            key={`${group.relationTypeOptions.id}-${group.relationTypeOptions.isSource}`}
-            className="border-modifier-border border-b px-3 py-2"
-          >
-            <div className="mb-1 flex items-center">
-              <div className="mr-2">
-                {group.relationTypeOptions.isSource ? "→" : "←"}
-              </div>
-              <div className="font-bold">{group.relationTypeOptions.label}</div>
-            </div>
+        {groupedRelationships.map(
+          (group) =>
+            group.linkedFiles.length > 0 && (
+              <li
+                key={`${group.relationTypeOptions.id}-${group.relationTypeOptions.isSource}`}
+                className="border-modifier-border border-b px-3 py-2"
+              >
+                <div className="mb-1 flex items-center">
+                  <div className="mr-2">
+                    {group.relationTypeOptions.isSource ? "→" : "←"}
+                  </div>
+                  <div className="font-bold">
+                    {group.relationTypeOptions.label}
+                  </div>
+                </div>
 
-            <ul className="m-0 ml-6 list-none p-0">
-              {group.linkedFiles.map((file) => (
-                <li key={file.path} className="mt-1 flex items-center gap-2">
-                  <a
-                    href="#"
-                    className="text-accent-text flex-1"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      void plugin.app.workspace.openLinkText(
-                        file.path,
-                        activeFile.path,
-                      );
-                    }}
-                  >
-                    {file.basename}
-                  </a>
-                  <button
-                    className="!text-muted hover:!text-error flex h-6 w-6 cursor-pointer items-center justify-center border-0 !bg-transparent text-sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      void deleteRelationship(
-                        file,
-                        group.relationTypeOptions.id,
-                      );
-                    }}
-                    title="Delete relationship"
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
+                <ul className="m-0 ml-6 list-none p-0">
+                  {group.linkedFiles.map((file) => (
+                    <li
+                      key={file.path}
+                      className="mt-1 flex items-center gap-2"
+                    >
+                      <a
+                        href="#"
+                        className="text-accent-text flex-1"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          void plugin.app.workspace.openLinkText(
+                            file.path,
+                            activeFile.path,
+                          );
+                        }}
+                      >
+                        {file.basename}
+                      </a>
+                      <button
+                        className="!text-muted hover:!text-error flex h-6 w-6 cursor-pointer items-center justify-center border-0 !bg-transparent text-sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          void deleteRelationship(
+                            file,
+                            group.relationTypeOptions.id,
+                          );
+                        }}
+                        title="Delete relationship"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ),
+        )}
       </ul>
     </div>
   );
@@ -553,10 +534,21 @@ const CurrentRelationships = ({ activeFile }: RelationshipSectionProps) => {
 export const RelationshipSection = ({
   activeFile,
 }: RelationshipSectionProps) => {
+  const [relationsVersion, setRelationsVersion] = useState(0);
+  const onRelationsChange = useCallback(() => {
+    setRelationsVersion((v) => v + 1);
+  }, []);
+
   return (
     <div className="relationship-manager">
-      <CurrentRelationships activeFile={activeFile} />
-      <AddRelationship activeFile={activeFile} />
+      <CurrentRelationships
+        activeFile={activeFile}
+        relationsVersion={relationsVersion}
+      />
+      <AddRelationship
+        activeFile={activeFile}
+        onRelationsChange={onRelationsChange}
+      />
     </div>
   );
 };
