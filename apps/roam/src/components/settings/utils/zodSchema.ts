@@ -150,6 +150,7 @@ export const RelationConditionSchema = z.object({
 });
 
 export const DiscourseRelationSchema = z.object({
+  id: z.string().optional(),
   label: z.string(),
   source: z.string(),
   destination: z.string(),

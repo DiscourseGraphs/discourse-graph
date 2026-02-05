@@ -357,7 +357,10 @@ export const getAllRelations = (): DiscourseRelationSettings[] => {
 
   const settings = getGlobalSettings();
 
-  relationsCache = Object.values(settings.Relations);
+  relationsCache = Object.entries(settings.Relations).map(([id, relation]) => ({
+    ...relation,
+    id,
+  }));
 
   return relationsCache;
 };
