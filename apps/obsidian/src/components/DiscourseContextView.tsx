@@ -73,7 +73,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
       return <div>Unknown node type: {frontmatter.nodeTypeId}</div>;
     }
 
-    const isImported = !!frontmatter.importedFromSpaceId;
+    const isImported = !!frontmatter.importedFromSpaceUri;
 
     return (
       <>

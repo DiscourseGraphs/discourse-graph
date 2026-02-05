@@ -149,7 +149,7 @@ export const getLocalNodeInstanceIds = (
   return nodeInstanceIds;
 };
 
-export const getSpaceName = async (
+export const getSpaceNameFromId = async (
   client: DGSupabaseClient,
   spaceId: number,
 ): Promise<string> => {
@@ -167,7 +167,25 @@ export const getSpaceName = async (
   return data.name;
 };
 
-export const getSpaceNames = async (
+export const getSpaceNameIdFromUri = async (
+  client: DGSupabaseClient,
+  spaceUri: string,
+): Promise<{ spaceName: string; spaceId: number }> => {
+  const { data, error } = await client
+    .from("Space")
+    .select("name, id")
+    .eq("url", spaceUri)
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error("Error fetching space name:", error);
+    return { spaceName: "", spaceId: -1 };
+  }
+
+  return { spaceName: data.name, spaceId: data.id };
+};
+
+export const getSpaceNameFromIds = async (
   client: DGSupabaseClient,
   spaceIds: number[],
 ): Promise<Map<number, string>> => {
@@ -188,6 +206,32 @@ export const getSpaceNames = async (
   const spaceMap = new Map<number, string>();
   (data || []).forEach((space) => {
     spaceMap.set(space.id, space.name);
+  });
+
+  return spaceMap;
+};
+
+export const getSpaceUris = async (
+  client: DGSupabaseClient,
+  spaceIds: number[],
+): Promise<Map<number, string>> => {
+  if (spaceIds.length === 0) {
+    return new Map();
+  }
+
+  const { data, error } = await client
+    .from("Space")
+    .select("id, url")
+    .in("id", spaceIds);
+
+  if (error) {
+    console.error("Error fetching space urls:", error);
+    return new Map();
+  }
+
+  const spaceMap = new Map<number, string>();
+  (data || []).forEach((space) => {
+    spaceMap.set(space.id, space.url);
   });
 
   return spaceMap;
@@ -242,7 +286,9 @@ export const fetchNodeMetadata = async ({
     .maybeSingle();
 
   return {
-    nodeTypeId: (conceptData?.literal_content as unknown as { nodeTypeId?: string })?.nodeTypeId || undefined,
+    nodeTypeId:
+      (conceptData?.literal_content as unknown as { nodeTypeId?: string })
+        ?.nodeTypeId || undefined,
   };
 };
 
@@ -411,41 +457,49 @@ const updateMarkdownAssetLinks = ({
 
   // Match wiki links: [[path]] or [[path|alias]]
   const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
-  updatedContent = updatedContent.replace(wikiLinkRegex, (match, linkContent) => {
-    // Extract path and optional alias
-    const [linkPath, alias] = linkContent.split("|").map((s: string) => s.trim());
+  updatedContent = updatedContent.replace(
+    wikiLinkRegex,
+    (match, linkContent) => {
+      // Extract path and optional alias
+      const [linkPath, alias] = linkContent
+        .split("|")
+        .map((s: string) => s.trim());
 
-    // Skip external URLs
-    if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
-      return match;
-    }
-
-    // First, try to find if this link resolves to one of our imported assets
-    const importedAssetFile = findImportedAssetFile(linkPath);
-    if (importedAssetFile) {
-      const linkText = app.metadataCache.fileToLinktext(
-        importedAssetFile,
-        targetFile.path,
-      );
-      if (alias) {
-        return `[[${linkText}|${alias}]]`;
+      // Skip external URLs
+      if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
+        return match;
       }
-      return `[[${linkText}]]`;
-    }
 
-    // Fallback: Find matching old path
-    for (const [oldPath, newFile] of oldPathToNewFile.entries()) {
-      if (matchesOldPath(linkPath, oldPath)) {
-        const linkText = app.metadataCache.fileToLinktext(newFile, targetFile.path);
+      // First, try to find if this link resolves to one of our imported assets
+      const importedAssetFile = findImportedAssetFile(linkPath);
+      if (importedAssetFile) {
+        const linkText = app.metadataCache.fileToLinktext(
+          importedAssetFile,
+          targetFile.path,
+        );
         if (alias) {
           return `[[${linkText}|${alias}]]`;
         }
         return `[[${linkText}]]`;
       }
-    }
 
-    return match;
-  });
+      // Fallback: Find matching old path
+      for (const [oldPath, newFile] of oldPathToNewFile.entries()) {
+        if (matchesOldPath(linkPath, oldPath)) {
+          const linkText = app.metadataCache.fileToLinktext(
+            newFile,
+            targetFile.path,
+          );
+          if (alias) {
+            return `[[${linkText}|${alias}]]`;
+          }
+          return `[[${linkText}]]`;
+        }
+      }
+
+      return match;
+    },
+  );
 
   // Match markdown image links: ![alt](path) or ![alt](path "title")
   const markdownImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
@@ -473,7 +527,10 @@ const updateMarkdownAssetLinks = ({
       // Fallback: Find matching old path
       for (const [oldPath, newFile] of oldPathToNewFile.entries()) {
         if (matchesOldPath(cleanPath, oldPath)) {
-          const linkText = app.metadataCache.fileToLinktext(newFile, targetFile.path);
+          const linkText = app.metadataCache.fileToLinktext(
+            newFile,
+            targetFile.path,
+          );
           return `![${alt}](${linkText})`;
         }
       }
@@ -484,7 +541,6 @@ const updateMarkdownAssetLinks = ({
 
   return updatedContent;
 };
-
 
 const importAssetsForNode = async ({
   plugin,
@@ -534,7 +590,9 @@ const importAssetsForNode = async ({
   const frontmatter = (cache?.frontmatter as Record<string, unknown>) || {};
   const importedAssetsRaw = frontmatter.importedAssets;
   const importedAssets: Record<string, string> =
-    importedAssetsRaw && typeof importedAssetsRaw === "object" && !Array.isArray(importedAssetsRaw)
+    importedAssetsRaw &&
+    typeof importedAssetsRaw === "object" &&
+    !Array.isArray(importedAssetsRaw)
       ? (importedAssetsRaw as Record<string, string>)
       : {};
   // importedAssets format: { filehash: vaultPath }
@@ -557,7 +615,8 @@ const importAssetsForNode = async ({
         } else {
           // File was moved/renamed - search for it in the assets folder
           // Try to find a file with the same name in the assets folder
-          const { name: fileName, ext: fileExt } = extractFileName(existingAssetPath);
+          const { name: fileName, ext: fileExt } =
+            extractFileName(existingAssetPath);
           const searchFileName = `${fileName}${fileExt ? `.${fileExt}` : ""}`;
 
           // Search all files in the assets folder
@@ -576,9 +635,12 @@ const importAssetsForNode = async ({
               await plugin.app.fileManager.processFrontMatter(
                 targetMarkdownFile,
                 (fm) => {
-                  const assetsRaw = (fm as Record<string, unknown>).importedAssets;
+                  const assetsRaw = (fm as Record<string, unknown>)
+                    .importedAssets;
                   const assets: Record<string, string> =
-                    assetsRaw && typeof assetsRaw === "object" && !Array.isArray(assetsRaw)
+                    assetsRaw &&
+                    typeof assetsRaw === "object" &&
+                    !Array.isArray(assetsRaw)
                       ? (assetsRaw as Record<string, string>)
                       : {};
                   assets[filehash] = vaultFile.path;
@@ -594,7 +656,9 @@ const importAssetsForNode = async ({
       // If we found an existing file, reuse it
       if (existingFile) {
         pathMapping.set(filepath, existingFile.path);
-        console.log(`Reusing existing asset: ${filehash} -> ${existingFile.path}`);
+        console.log(
+          `Reusing existing asset: ${filehash} -> ${existingFile.path}`,
+        );
         continue;
       }
 
@@ -603,7 +667,7 @@ const importAssetsForNode = async ({
       const sanitizedName = sanitizeFileName(name);
       const sanitizedExt = ext ? `.${ext}` : "";
       const sanitizedFileName = `${sanitizedName}${sanitizedExt}`;
-      let targetPath = `${assetsFolderPath}/${sanitizedFileName}`;
+      const targetPath = `${assetsFolderPath}/${sanitizedFileName}`;
 
       // Check if file already exists at target path (avoid duplicates)
       if (await plugin.app.vault.adapter.exists(targetPath)) {
@@ -617,7 +681,9 @@ const importAssetsForNode = async ({
             (fm) => {
               const assetsRaw = (fm as Record<string, unknown>).importedAssets;
               const assets: Record<string, string> =
-                assetsRaw && typeof assetsRaw === "object" && !Array.isArray(assetsRaw)
+                assetsRaw &&
+                typeof assetsRaw === "object" &&
+                !Array.isArray(assetsRaw)
                   ? (assetsRaw as Record<string, string>)
                   : {};
               assets[filehash] = targetPath;
@@ -645,15 +711,20 @@ const importAssetsForNode = async ({
       await plugin.app.vault.createBinary(targetPath, fileContent);
 
       // Update frontmatter to track this mapping
-      await plugin.app.fileManager.processFrontMatter(targetMarkdownFile, (fm) => {
-        const assetsRaw = (fm as Record<string, unknown>).importedAssets;
-        const assets: Record<string, string> =
-          assetsRaw && typeof assetsRaw === "object" && !Array.isArray(assetsRaw)
-            ? (assetsRaw as Record<string, string>)
-            : {};
-        assets[filehash] = targetPath;
-        (fm as Record<string, unknown>).importedAssets = assets;
-      });
+      await plugin.app.fileManager.processFrontMatter(
+        targetMarkdownFile,
+        (fm) => {
+          const assetsRaw = (fm as Record<string, unknown>).importedAssets;
+          const assets: Record<string, string> =
+            assetsRaw &&
+            typeof assetsRaw === "object" &&
+            !Array.isArray(assetsRaw)
+              ? (assetsRaw as Record<string, string>)
+              : {};
+          assets[filehash] = targetPath;
+          (fm as Record<string, unknown>).importedAssets = assets;
+        },
+      );
 
       // Track path mapping
       pathMapping.set(filepath, targetPath);
@@ -671,7 +742,6 @@ const importAssetsForNode = async ({
     errors,
   };
 };
-
 
 const sanitizeFileName = (fileName: string): string => {
   // Remove invalid characters for file names
@@ -783,7 +853,10 @@ const parseFrontmatter = (
 const parseSchemaLiteralContent = (
   literalContent: unknown,
   fallbackName: string,
-): Pick<DiscourseNode, "name" | "format" | "color" | "tag" | "template" | "keyImage"> => {
+): Pick<
+  DiscourseNode,
+  "name" | "format" | "color" | "tag" | "template" | "keyImage"
+> => {
   const obj =
     typeof literalContent === "string"
       ? (JSON.parse(literalContent) as Record<string, unknown>)
@@ -793,15 +866,15 @@ const parseSchemaLiteralContent = (
   const formatFromSchema =
     (src.format as string) || (obj.format as string) || "";
   const format =
-    formatFromSchema ||
-    `${name.slice(0, 3).toUpperCase()} - {content}`;
+    formatFromSchema || `${name.slice(0, 3).toUpperCase()} - {content}`;
   return {
     name,
     format,
     color: (src.color as string) || (obj.color as string) || undefined,
     tag: (src.tag as string) || (obj.tag as string) || undefined,
     template: (obj.template as string) || undefined,
-    keyImage: (src.keyImage as boolean) ?? (obj.keyImage as boolean) ?? undefined,
+    keyImage:
+      (src.keyImage as boolean) ?? (obj.keyImage as boolean) ?? undefined,
   };
 };
 
@@ -859,10 +932,7 @@ const mapNodeTypeIdToLocal = async ({
     created: now,
     modified: now,
   };
-  plugin.settings.nodeTypes = [
-    ...plugin.settings.nodeTypes,
-    newNodeType,
-  ];
+  plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
   await plugin.saveSettings();
   return newNodeType.id;
 };
@@ -871,12 +941,14 @@ const processFileContent = async ({
   plugin,
   client,
   sourceSpaceId,
+  sourceSpaceUri,
   rawContent,
   filePath,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
   sourceSpaceId: number;
+  sourceSpaceUri: string;
   rawContent: string;
   filePath: string;
 }): Promise<{ file: TFile; error?: string }> => {
@@ -907,7 +979,7 @@ const processFileContent = async ({
     if (mappedNodeTypeId !== undefined) {
       (fm as Record<string, unknown>).nodeTypeId = mappedNodeTypeId;
     }
-    (fm as Record<string, unknown>).importedFromSpaceId = sourceSpaceId;
+    (fm as Record<string, unknown>).importedFromSpaceUri = sourceSpaceUri;
   });
 
   return { file };
@@ -948,11 +1020,18 @@ export const importSelectedNodes = async ({
     nodesBySpace.get(node.spaceId)!.push(node);
   }
 
+  const spaceUris = await getSpaceUris(client, [...nodesBySpace.keys()]);
+
   // Process each space
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
-    const spaceName = await getSpaceName(client, spaceId);
+    const spaceName = await getSpaceNameFromId(client, spaceId);
     const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
     const assetsFolderPath = `${importFolderPath}/assets`;
+    const spaceUri = spaceUris.get(spaceId);
+    if (!spaceUri) {
+      console.warn(`Missing URI for space ${spaceId}`);
+      continue;
+    }
 
     // Ensure the import folder exists
     const folderExists =
@@ -971,10 +1050,10 @@ export const importSelectedNodes = async ({
     // Process each node in this space
     for (const node of nodes) {
       try {
-        // Check if file already exists by nodeInstanceId + importedFromSpaceId
+        // Check if file already exists by nodeInstanceId + importedFromSpaceUri
         const existingFile = queryEngine.findExistingImportedFile(
           node.nodeInstanceId,
-          node.spaceId,
+          spaceUri,
         );
 
         console.log("existingFile", existingFile);
@@ -982,7 +1061,7 @@ export const importSelectedNodes = async ({
         // Fetch the file name (direct variant) and content (full variant)
         const fileName = await fetchNodeContent({
           client,
-          spaceId: node.spaceId,
+          spaceId,
           nodeInstanceId: node.nodeInstanceId,
           variant: "direct",
         });
@@ -999,7 +1078,7 @@ export const importSelectedNodes = async ({
 
         const content = await fetchNodeContent({
           client,
-          spaceId: node.spaceId,
+          spaceId,
           nodeInstanceId: node.nodeInstanceId,
           variant: "full",
         });
@@ -1036,7 +1115,8 @@ export const importSelectedNodes = async ({
         const result = await processFileContent({
           plugin,
           client,
-          sourceSpaceId: node.spaceId,
+          sourceSpaceId: spaceId,
+          sourceSpaceUri: spaceUri,
           rawContent: content,
           filePath: finalFilePath,
         });
@@ -1058,7 +1138,7 @@ export const importSelectedNodes = async ({
         const assetImportResult = await importAssetsForNode({
           plugin,
           client,
-          spaceId: node.spaceId,
+          spaceId,
           nodeInstanceId: node.nodeInstanceId,
           spaceName,
           targetMarkdownFile: processedFile,
@@ -1128,36 +1208,42 @@ export const refreshImportedFile = async ({
   file: TFile;
   client?: DGSupabaseClient;
 }): Promise<{ success: boolean; error?: string }> => {
-  const supabaseClient = client || await getLoggedInClient(plugin);
+  const supabaseClient = client || (await getLoggedInClient(plugin));
   if (!supabaseClient) {
     throw new Error("Cannot get Supabase client");
   }
   const cache = plugin.app.metadataCache.getFileCache(file);
   const frontmatter = cache?.frontmatter as Record<string, unknown>;
-  if (!frontmatter.importedFromSpaceId || !frontmatter.nodeInstanceId) {
+  if (!frontmatter.importedFromSpaceUri || !frontmatter.nodeInstanceId) {
     return {
       success: false,
-      error: "Missing frontmatter: importedFromSpaceId or nodeInstanceId",
+      error: "Missing frontmatter: importedFromSpaceUri or nodeInstanceId",
     };
   }
-  const spaceName = await getSpaceName(
+  const { spaceName, spaceId } = await getSpaceNameIdFromUri(
     supabaseClient,
-    frontmatter.importedFromSpaceId as number,
+    frontmatter.importedFromSpaceUri as string,
   );
+  if (spaceId === -1) {
+    return { success: false, error: "Could not get the space Id" };
+  }
   const result = await importSelectedNodes({
     plugin,
     selectedNodes: [
       {
         nodeInstanceId: frontmatter.nodeInstanceId as string,
         title: file.basename,
-        spaceId: frontmatter.importedFromSpaceId as number,
-        spaceName: spaceName,
+        spaceId,
+        spaceName,
         groupId: (frontmatter.publishedToGroups as string[])[0] ?? "",
         selected: false,
       },
     ],
   });
-  return { success: result.success > 0, error: result.failed > 0 ? "Failed to refresh imported file" : undefined };
+  return {
+    success: result.success > 0,
+    error: result.failed > 0 ? "Failed to refresh imported file" : undefined,
+  };
 };
 
 /**
@@ -1165,7 +1251,11 @@ export const refreshImportedFile = async ({
  */
 export const refreshAllImportedFiles = async (
   plugin: DiscourseGraphPlugin,
-): Promise<{ success: number; failed: number; errors: Array<{ file: string; error: string }> }> => {
+): Promise<{
+  success: number;
+  failed: number;
+  errors: Array<{ file: string; error: string }>;
+}> => {
   const allFiles = plugin.app.vault.getMarkdownFiles();
   const importedFiles: TFile[] = [];
   const client = await getLoggedInClient(plugin);
@@ -1176,7 +1266,7 @@ export const refreshAllImportedFiles = async (
   for (const file of allFiles) {
     const cache = plugin.app.metadataCache.getFileCache(file);
     const frontmatter = cache?.frontmatter;
-    if (frontmatter?.importedFromSpaceId && frontmatter?.nodeInstanceId) {
+    if (frontmatter?.importedFromSpaceUri && frontmatter?.nodeInstanceId) {
       importedFiles.push(file);
     }
   }
