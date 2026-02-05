@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import React, { useState, useRef, useMemo, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useRef,
+  useMemo,
+  useEffect,
+  useCallback,
+} from "react";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
 } from "roamjs-components/components/ExtensionApiContext";
@@ -61,7 +67,12 @@ import {
   createNodeShapeTools,
   createNodeShapeUtils,
 } from "./DiscourseNodeUtil";
-import { useRoamStore } from "./useRoamStore";
+import { hasRoamPersistedCanvasData, useRoamStore } from "./useRoamStore";
+import {
+  TLDRAW_CLOUDFLARE_SYNC_ENABLED,
+  TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL,
+  TldrawCanvasCloudflareSync,
+} from "./TldrawCanvasCloudflareSync";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getUids from "roamjs-components/dom/getUids";
@@ -133,6 +144,28 @@ export const isPageUid = (uid: string) =>
   ];
 
 const TldrawCanvas = ({ title }: { title: string }) => {
+  const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
+  const useCloudflareSync =
+    TLDRAW_CLOUDFLARE_SYNC_ENABLED &&
+    !!TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL &&
+    !hasRoamPersistedCanvasData(pageUid);
+
+  if (useCloudflareSync) {
+    return (
+      <div
+        className="roamjs-tldraw-canvas-container relative z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white"
+        tabIndex={-1}
+      >
+        <style>{tldrawStyles}</style>
+        <TldrawCanvasCloudflareSync pageUid={pageUid} />
+      </div>
+    );
+  }
+
+  return <TldrawCanvasRoam title={title} />;
+};
+
+const TldrawCanvasRoam = ({ title }: { title: string }) => {
   const appRef = useRef<Editor | null>(null);
   const lastInsertRef = useRef<VecModel>();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -761,7 +794,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
 // apps\examples\src\examples\exploded\ExplodedExample.tsx
 // We put these hooks into a component here so that they can run inside of the context provided by TldrawEditor and TldrawUi
-const InsideEditorAndUiContext = ({
+export const InsideEditorAndUiContext = ({
   extensionAPI,
   allNodes,
   // allRelationIds,

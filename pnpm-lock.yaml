@@ -236,6 +236,9 @@ importers:
       '@tldraw/store':
         specifier: 2.4.6
         version: 2.4.6(react@18.2.0)
+      '@tldraw/sync':
+        specifier: 2.4.6
+        version: 2.4.6(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@tldraw/tlschema':
         specifier: 2.4.6
         version: 2.4.6(react@18.2.0)
@@ -3970,6 +3973,18 @@ packages:
     peerDependencies:
       react: ^18.2.0 || ^19.0.0
 
+  '@tldraw/sync-core@2.4.6':
+    resolution: {integrity: sha512-D5X/tDoT/dOE6NGRo1FnY0kUYrAQLIO2/TpBs83BfdTx22rWUF2djBTzaz3PCZPC5BM+Famlo3hq+TPKrtcs6g==}
+    peerDependencies:
+      react: ^18
+      react-dom: ^18
+
+  '@tldraw/sync@2.4.6':
+    resolution: {integrity: sha512-OgAKoC1MO/NNZFdc6kwPCIb31x7m+qoIiRhoMWVh70OSueQwLH6XGoLPxiodfB/hy+1YnsIXHcJi5N05gkHhXA==}
+    peerDependencies:
+      react: ^18
+      react-dom: ^18
+
   '@tldraw/tlschema@2.4.6':
     resolution: {integrity: sha512-wsV+w86jn0sT2XB4i/E/XW4L4u5UJyyQHWgwr5fmMA38LYe1n/akvGpcrc99Tayk5PvArkT6HRSX1oy6iaMsXw==}
     peerDependencies:
@@ -7294,6 +7309,10 @@ packages:
 
   mz@2.7.0:
     resolution: {integrity: sha512-z81GNO7nnYMEhrGh9LeymoE4+Yr0Wn5McHIZMK5cfQCl+NDX08sCZgUc9/6MHni9IWuFLm1Z3HTCXu2z9fN62Q==}
+
+  nanoevents@7.0.1:
+    resolution: {integrity: sha512-o6lpKiCxLeijK4hgsqfR6CNToPyRU3keKyyI6uwuHRvpRTbZ0wXw51WRgyldVugZqoJfkGFrjrIenYH3bfEO3Q==}
+    engines: {node: ^14.0.0 || ^16.0.0 || >=18.0.0}
 
   nanoid@2.0.4:
     resolution: {integrity: sha512-sOJnBmY3TJQBVIBqKHoifuwygrocXg3NjS9rZSMnVl05XWSHK7Qxb177AIZQyMDjP86bz+yneozj/h9qsPLcCA==}
@@ -13656,6 +13675,41 @@ snapshots:
       '@tldraw/utils': 3.14.2
       react: 19.0.0
 
+  '@tldraw/sync-core@2.4.6(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+    dependencies:
+      '@tldraw/state': 2.4.6
+      '@tldraw/store': 2.4.6(react@18.2.0)
+      '@tldraw/tlschema': 2.4.6(react@18.2.0)
+      '@tldraw/utils': 2.4.6
+      lodash.isequal: 4.5.0
+      nanoevents: 7.0.1
+      nanoid: 4.0.2
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+      ws: 8.18.3
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@tldraw/sync@2.4.6(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+    dependencies:
+      '@tldraw/state': 2.4.6
+      '@tldraw/state-react': 2.4.6(react@18.2.0)
+      '@tldraw/sync-core': 2.4.6(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@tldraw/utils': 2.4.6
+      lodash.isequal: 4.5.0
+      nanoevents: 7.0.1
+      nanoid: 4.0.2
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+      tldraw: 2.4.6(patch_hash=56e196052862c9a58a11b43e5e121384cd1d6548416afa0f16e9fbfbf0e4080d)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      ws: 8.18.3
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+      - bufferutil
+      - utf-8-validate
+
   '@tldraw/tlschema@2.4.6(react@18.2.0)':
     dependencies:
       '@tldraw/state': 2.4.6
@@ -17711,6 +17765,8 @@ snapshots:
       any-promise: 1.3.0
       object-assign: 4.1.1
       thenify-all: 1.6.0
+
+  nanoevents@7.0.1: {}
 
   nanoid@2.0.4: {}
 
