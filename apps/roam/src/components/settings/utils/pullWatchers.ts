@@ -15,10 +15,12 @@ import {
 
 type PullWatchCallback = Parameters<AddPullWatch>[2];
 
-
 // Need assertions to bridge type defs between the (roamjs-components) and json type (getBlockProps.ts)
 const getNormalizedProps = (data: PullBlock | null): Record<string, json> => {
-  return normalizeProps((data?.[":block/props"] || {}) as json) as Record<string, json>;
+  return normalizeProps((data?.[":block/props"] || {}) as json) as Record<
+    string,
+    json
+  >;
 };
 
 const hasPropChanged = (
@@ -46,16 +48,14 @@ const createCleanupFn = (watches: Parameters<AddPullWatch>[]): (() => void) => {
 
 const createSettingsWatchCallback = <T>(
   schema: { safeParse: (data: unknown) => { success: boolean; data?: T } },
-  onSettingsChange: (
-    newSettings: T,
-    oldSettings: T | null,
-    before: PullBlock | null,
-    after: PullBlock | null
-  ) => void
+  onSettingsChange: (context: {
+    newSettings: T;
+    oldSettings: T | null;
+    before: PullBlock | null;
+    after: PullBlock | null;
+  }) => void,
 ): PullWatchCallback => {
   return (before, after) => {
-    if (!hasPropChanged(before, after)) return;
-
     const beforeProps = getNormalizedProps(before);
     const afterProps = getNormalizedProps(after);
     const beforeResult = schema.safeParse(beforeProps);
@@ -63,10 +63,12 @@ const createSettingsWatchCallback = <T>(
 
     if (!afterResult.success) return;
 
-    const oldSettings = beforeResult.success ? beforeResult.data ?? null : null;
+    const oldSettings = beforeResult.success
+      ? (beforeResult.data ?? null)
+      : null;
     const newSettings = afterResult.data as T;
 
-    onSettingsChange(newSettings, oldSettings, before, after);
+    onSettingsChange({ newSettings, oldSettings, before, after });
   };
 };
 
@@ -82,9 +84,11 @@ const addPullWatch = (
   watches.push([pattern, entityId, callback]);
 };
 
-
 export const featureFlagHandlers: Partial<
-  Record<keyof FeatureFlags, (newValue: boolean, oldValue: boolean, allFlags: FeatureFlags) => void>
+  Record<
+    keyof FeatureFlags,
+    (newValue: boolean, oldValue: boolean, allFlags: FeatureFlags) => void
+  >
 > = {
   // Add handlers as needed:
   // "Enable Left Sidebar": (newValue) => { ... },
@@ -96,7 +100,7 @@ type GlobalSettingsHandlers = {
   [K in keyof GlobalSettings]?: (
     newValue: GlobalSettings[K],
     oldValue: GlobalSettings[K],
-    allSettings: GlobalSettings
+    allSettings: GlobalSettings,
   ) => void;
 };
 
@@ -113,7 +117,7 @@ type PersonalSettingsHandlers = {
   [K in keyof PersonalSettings]?: (
     newValue: PersonalSettings[K],
     oldValue: PersonalSettings[K],
-    allSettings: PersonalSettings
+    allSettings: PersonalSettings,
   ) => void;
 };
 
@@ -145,82 +149,109 @@ export const personalSettingsHandlers: PersonalSettingsHandlers = {
 };
 
 export const discourseNodeHandlers: Array<
-  (nodeType: string, newSettings: DiscourseNodeSettings, oldSettings: DiscourseNodeSettings | null) => void
+  (
+    nodeType: string,
+    newSettings: DiscourseNodeSettings,
+    oldSettings: DiscourseNodeSettings | null,
+  ) => void
 > = [
   // Add handlers as needed:
   // (nodeType, newSettings, oldSettings) => { ... },
 ];
-
 
 export const setupPullWatchOnSettingsPage = (
   blockUids: Record<string, string>,
 ): (() => void) => {
   const watches: Parameters<AddPullWatch>[] = [];
 
-  const featureFlagsBlockUid = blockUids[TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags];
+  const featureFlagsBlockUid =
+    blockUids[TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags];
   const globalSettingsBlockUid = blockUids[TOP_LEVEL_BLOCK_PROP_KEYS.global];
   const personalSettingsKey = getPersonalSettingsKey();
   const personalSettingsBlockUid = blockUids[personalSettingsKey];
 
   if (featureFlagsBlockUid && Object.keys(featureFlagHandlers).length > 0) {
-    addPullWatch(watches, featureFlagsBlockUid, createSettingsWatchCallback(
-      FeatureFlagsSchema,
-      (newSettings, oldSettings, before, after) => {
-        for (const [key, handler] of Object.entries(featureFlagHandlers)) {
-          const typedKey = key as keyof FeatureFlags;
-          if (hasPropChanged(before, after, key) && handler) {
-            handler(
-              newSettings[typedKey],
-              oldSettings?.[typedKey] ?? false,
-              newSettings,
-            );
+    addPullWatch(
+      watches,
+      featureFlagsBlockUid,
+      createSettingsWatchCallback(
+        FeatureFlagsSchema,
+        ({ newSettings, oldSettings, before, after }) => {
+          for (const [key, handler] of Object.entries(featureFlagHandlers)) {
+            const typedKey = key as keyof FeatureFlags;
+            if (hasPropChanged(before, after, key) && handler) {
+              handler(
+                newSettings[typedKey],
+                oldSettings?.[typedKey] ?? false,
+                newSettings,
+              );
+            }
           }
-        }
-      }
-    ));
+        },
+      ),
+    );
   }
 
-  if (globalSettingsBlockUid && Object.keys(globalSettingsHandlers).length > 0) {
-    addPullWatch(watches, globalSettingsBlockUid, createSettingsWatchCallback(
-      GlobalSettingsSchema,
-      (newSettings, oldSettings, before, after) => {
-        for (const [key, handler] of Object.entries(globalSettingsHandlers)) {
-          const typedKey = key as keyof GlobalSettings;
-          if (hasPropChanged(before, after, key) && handler) {
-            // Object.entries loses key-handler correlation, but data is Zod-validated
-            (handler as (newValue: unknown, oldValue: unknown, allSettings: GlobalSettings) => void)(
-              newSettings[typedKey],
-              oldSettings?.[typedKey],
-              newSettings,
-            );
+  if (
+    globalSettingsBlockUid &&
+    Object.keys(globalSettingsHandlers).length > 0
+  ) {
+    addPullWatch(
+      watches,
+      globalSettingsBlockUid,
+      createSettingsWatchCallback(
+        GlobalSettingsSchema,
+        ({ newSettings, oldSettings, before, after }) => {
+          for (const [key, handler] of Object.entries(globalSettingsHandlers)) {
+            const typedKey = key as keyof GlobalSettings;
+            if (hasPropChanged(before, after, key) && handler) {
+              // Object.entries loses key-handler correlation, but data is Zod-validated
+              (
+                handler as (
+                  newValue: unknown,
+                  oldValue: unknown,
+                  allSettings: GlobalSettings,
+                ) => void
+              )(newSettings[typedKey], oldSettings?.[typedKey], newSettings);
+            }
           }
-        }
-      }
-    ));
+        },
+      ),
+    );
   }
 
-  if (personalSettingsBlockUid && Object.keys(personalSettingsHandlers).length > 0) {
-    addPullWatch(watches, personalSettingsBlockUid, createSettingsWatchCallback(
-      PersonalSettingsSchema,
-      (newSettings, oldSettings, before, after) => {
-        for (const [key, handler] of Object.entries(personalSettingsHandlers)) {
-          const typedKey = key as keyof PersonalSettings;
-          if (hasPropChanged(before, after, key) && handler) {
-            // Object.entries loses key-handler correlation, but data is Zod-validated
-            (handler as (newValue: unknown, oldValue: unknown, allSettings: PersonalSettings) => void)(
-              newSettings[typedKey],
-              oldSettings?.[typedKey],
-              newSettings,
-            );
+  if (
+    personalSettingsBlockUid &&
+    Object.keys(personalSettingsHandlers).length > 0
+  ) {
+    addPullWatch(
+      watches,
+      personalSettingsBlockUid,
+      createSettingsWatchCallback(
+        PersonalSettingsSchema,
+        ({ newSettings, oldSettings, before, after }) => {
+          for (const [key, handler] of Object.entries(
+            personalSettingsHandlers,
+          )) {
+            const typedKey = key as keyof PersonalSettings;
+            if (hasPropChanged(before, after, key) && handler) {
+              // Object.entries loses key-handler correlation, but data is Zod-validated
+              (
+                handler as (
+                  newValue: unknown,
+                  oldValue: unknown,
+                  allSettings: PersonalSettings,
+                ) => void
+              )(newSettings[typedKey], oldSettings?.[typedKey], newSettings);
+            }
           }
-        }
-      }
-    ));
+        },
+      ),
+    );
   }
 
   return createCleanupFn(watches);
 };
-
 
 export const setupPullWatchDiscourseNodes = (
   nodePageUids: Record<string, string>,
@@ -232,14 +263,18 @@ export const setupPullWatchDiscourseNodes = (
   }
 
   Object.entries(nodePageUids).forEach(([nodeType, pageUid]) => {
-    addPullWatch(watches, pageUid, createSettingsWatchCallback(
-      DiscourseNodeSchema,
-      (newSettings, oldSettings) => {
-        for (const handler of discourseNodeHandlers) {
-          handler(nodeType, newSettings, oldSettings);
-        }
-      }
-    ));
+    addPullWatch(
+      watches,
+      pageUid,
+      createSettingsWatchCallback(
+        DiscourseNodeSchema,
+        ({ newSettings, oldSettings }) => {
+          for (const handler of discourseNodeHandlers) {
+            handler(nodeType, newSettings, oldSettings);
+          }
+        },
+      ),
+    );
   });
 
   return createCleanupFn(watches);
