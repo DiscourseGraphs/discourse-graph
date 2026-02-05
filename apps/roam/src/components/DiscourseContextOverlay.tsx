@@ -286,11 +286,7 @@ export const DiscourseContextCollapseOverlay = ({
           setOpen(!open);
         }}
       />
-      <Collapse
-        isOpen={open}
-        keepChildrenMounted={true}
-        className="discourse-context-collapse-el"
-      >
+      <Collapse isOpen={open} keepChildrenMounted={true}>
         <Card className={"my-3" + (loading ? " bp3-skeleton" : "")}>
           <ContextContent
             uid={tagUid}

@@ -13,12 +13,7 @@ export const renderDiscourseContext = ({
   h1: HTMLHeadingElement;
   uid: string;
 }): void => {
-  if (
-    h1
-      .closest(".rm-title-display-container")
-      ?.parentElement?.querySelector(".discourse-context-collapse-el")
-  )
-    return;
+  if (h1.getAttribute("data-roamjs-top-discourse-context")) return;
   handleTitleAdditions(
     h1,
     createElement(DiscourseContextCollapseOverlay, {
@@ -26,6 +21,7 @@ export const renderDiscourseContext = ({
       id: nanoid(),
     }),
   );
+  h1.setAttribute("data-roamjs-top-discourse-context", "true");
 };
 
 export const renderCanvasReferences = (
