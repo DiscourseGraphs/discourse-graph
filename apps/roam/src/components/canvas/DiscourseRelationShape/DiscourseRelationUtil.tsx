@@ -654,8 +654,7 @@ export const createAllRelationShapeUtils = (
               relation,
               target,
             }));
-          // Get canvas page UID for this specific editor instance from the map
-          // This ensures we use the correct canvas even when multiple are open
+          // Ensure we use the correct canvas even when multiple are open
           const canvasPageUid = discourseContext.editorToPageUid.get(
             this.editor,
           );

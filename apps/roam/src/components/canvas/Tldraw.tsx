@@ -687,9 +687,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               }
 
               appRef.current = app;
-
-              // Map this editor instance to its canvas page UID
-              // This supports multiple canvases open simultaneously (e.g., in sidebars)
               discourseContext.editorToPageUid.set(app, pageUid);
 
               app.on("change", (entry) => {
