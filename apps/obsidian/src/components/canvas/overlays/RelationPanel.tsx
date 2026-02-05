@@ -378,22 +378,12 @@ export const RelationsPanel = ({
         return;
       }
 
-      if (
-        await relationExistsBetweenNodes({
-          plugin,
-          sourceNodeInstanceId: sourceId,
-          destNodeInstanceId: destId,
-          relationTypeId,
-        })
-      ) {
-        showToast({
-          severity: "warning",
-          title: "Relation Already Exists",
-          description: `This ${relationLabel} relation already exists between these nodes.`,
-          targetCanvasId: canvasFile.path,
-        });
-        return;
-      }
+      const existingRelationId = await relationExistsBetweenNodes({
+        plugin,
+        sourceNodeInstanceId: sourceId,
+        destNodeInstanceId: destId,
+        relationTypeId,
+      });
 
       const targetNode = await ensureNodeShapeForFile(targetFile);
 
@@ -465,11 +455,11 @@ export const RelationsPanel = ({
         snap: "none",
       });
 
-      const relationInstanceId = await addRelation(plugin, {
+      const relationInstanceId = existingRelationId ?? (await addRelation(plugin, {
         type: relationTypeId,
         source: sourceId,
         destination: destId,
-      });
+      }));
       editor.updateShape({
         id: shape.id,
         type: shape.type,
