@@ -3,8 +3,7 @@ import type DiscourseGraphPlugin from "~/index";
 import {
   addRelation as addRelationToStore,
   getNodeInstanceIdForFile,
-  loadRelations,
-  findRelationBySourceDestinationType,
+  relationExistsBetweenNodes,
 } from "~/utils/relationsStore";
 
 /**
@@ -34,15 +33,14 @@ export const addRelationToRelationsJson = async ({
     return { alreadyExisted: false };
   }
 
-  const data = await loadRelations(plugin);
-  const existing = findRelationBySourceDestinationType(
-    data,
-    sourceId,
-    destId,
+  const existing = await relationExistsBetweenNodes({
+    plugin,
+    sourceNodeInstanceId: sourceId,
+    destNodeInstanceId: destId,
     relationTypeId,
-  );
+  });
   if (existing) {
-    return { alreadyExisted: true, relationInstanceId: existing.id };
+    return { alreadyExisted: true, relationInstanceId: existing };
   }
 
   const relationInstanceId = await addRelationToStore(plugin, {

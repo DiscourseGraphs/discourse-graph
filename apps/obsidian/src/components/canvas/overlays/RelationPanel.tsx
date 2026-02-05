@@ -22,6 +22,7 @@ import {
   getRelationsForNodeInstanceId,
   getFileForNodeInstanceId,
   addRelation,
+  relationExistsBetweenNodes,
 } from "~/utils/relationsStore";
 
 type GroupedRelation = {
@@ -352,9 +353,49 @@ export const RelationsPanel = ({
     isSource: boolean,
   ) => {
     try {
-      const targetNode = await ensureNodeShapeForFile(targetFile);
       const relationType = getRelationTypeById(plugin, relationTypeId);
       const relationLabel = relationType?.label ?? "";
+
+      const currentFile = await resolveLinkedFileFromSrc({
+        app: plugin.app,
+        canvasFile,
+        src: nodeShape.props.src ?? "",
+      });
+      if (!currentFile || !targetFile) return;
+
+      const sourceFile = isSource ? currentFile : targetFile;
+      const destFile = isSource ? targetFile : currentFile;
+      const sourceId = await getNodeInstanceIdForFile(plugin, sourceFile);
+      const destId = await getNodeInstanceIdForFile(plugin, destFile);
+      if (!sourceId || !destId) {
+        showToast({
+          severity: "error",
+          title: "Could Not Resolve Nodes",
+          description:
+            "Could not resolve node instance IDs for the selected files.",
+          targetCanvasId: canvasFile.path,
+        });
+        return;
+      }
+
+      if (
+        await relationExistsBetweenNodes({
+          plugin,
+          sourceNodeInstanceId: sourceId,
+          destNodeInstanceId: destId,
+          relationTypeId,
+        })
+      ) {
+        showToast({
+          severity: "warning",
+          title: "Relation Already Exists",
+          description: `This ${relationLabel} relation already exists between these nodes.`,
+          targetCanvasId: canvasFile.path,
+        });
+        return;
+      }
+
+      const targetNode = await ensureNodeShapeForFile(targetFile);
 
       const id: TLShapeId = createShapeId();
 
@@ -424,28 +465,16 @@ export const RelationsPanel = ({
         snap: "none",
       });
 
-      const currentFile = await resolveLinkedFileFromSrc({
-        app: plugin.app,
-        canvasFile,
-        src: nodeShape.props.src ?? "",
+      const relationInstanceId = await addRelation(plugin, {
+        type: relationTypeId,
+        source: sourceId,
+        destination: destId,
       });
-      if (!currentFile || !targetFile) return;
-      const sourceFile = isSource ? currentFile : targetFile;
-      const destFile = isSource ? targetFile : currentFile;
-      const sourceId = await getNodeInstanceIdForFile(plugin, sourceFile);
-      const destId = await getNodeInstanceIdForFile(plugin, destFile);
-      if (sourceId && destId) {
-        const relationInstanceId = await addRelation(plugin, {
-          type: relationTypeId,
-          source: sourceId,
-          destination: destId,
-        });
-        editor.updateShape({
-          id: shape.id,
-          type: shape.type,
-          meta: { ...shape.meta, relationInstanceId },
-        });
-      }
+      editor.updateShape({
+        id: shape.id,
+        type: shape.type,
+        meta: { ...shape.meta, relationInstanceId },
+      });
     } catch (e) {
       console.error("Failed to create relation to file", e);
       showToast({
@@ -571,4 +600,3 @@ const computeRelations = async (
 
   return Array.from(result.values());
 };
-

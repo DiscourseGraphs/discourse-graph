@@ -187,7 +187,39 @@ export const findRelationBySourceDestinationType = (
     (r) =>
       r.source === source && r.destination === destination && r.type === type,
   );
-}
+};
+
+/**
+ * Returns true if a relation with the given type already exists between the two nodes
+ * in either direction (source→dest or dest→source).
+ */
+export const relationExistsBetweenNodes = async ({
+  plugin,
+  sourceNodeInstanceId,
+  destNodeInstanceId,
+  relationTypeId,
+}: {
+  plugin: DiscourseGraphPlugin;
+  sourceNodeInstanceId: string;
+  destNodeInstanceId: string;
+  relationTypeId: string;
+}): Promise<string | null> => {
+  const data = await loadRelations(plugin);
+  const forward = findRelationBySourceDestinationType(
+    data,
+    sourceNodeInstanceId,
+    destNodeInstanceId,
+    relationTypeId,
+  );
+  if (forward) return forward.id;
+  const reverse = findRelationBySourceDestinationType(
+    data,
+    destNodeInstanceId,
+    sourceNodeInstanceId,
+    relationTypeId,
+  );
+  return reverse ? reverse.id : null;
+};
 
 /**
  * Remove relation(s) matching source, destination, and type. Returns how many were removed.
@@ -253,6 +285,11 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
   const data = await loadRelations(plugin);
   const markdownFiles = plugin.app.vault.getMarkdownFiles();
   let added = 0;
+  const pendingCleanups: Array<{
+    file: TFile;
+    targetFile: TFile;
+    relationTypeId: string;
+  }> = [];
 
   for (const file of markdownFiles) {
     const cache = plugin.app.metadataCache.getFileCache(file);
@@ -319,12 +356,11 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
           author,
         };
         added++;
-        await removeRelationLinkFromFrontmatter(
-          plugin,
+        pendingCleanups.push({
           file,
           targetFile,
-          relationType.id,
-        );
+          relationTypeId: relationType.id,
+        });
       }
     }
   }
@@ -332,5 +368,13 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
   if (added > 0) {
     data.lastModified = Date.now();
     await saveRelations(plugin, data);
+    for (const { file, targetFile, relationTypeId } of pendingCleanups) {
+      await removeRelationLinkFromFrontmatter(
+        plugin,
+        file,
+        targetFile,
+        relationTypeId,
+      );
+    }
   }
 }

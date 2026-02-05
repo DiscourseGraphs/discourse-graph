@@ -12,6 +12,7 @@ import {
   getFileForNodeInstanceId,
   addRelation,
   removeRelationBySourceDestinationType,
+  relationExistsBetweenNodes,
 } from "~/utils/relationsStore";
 
 type RelationTypeOption = {
@@ -215,6 +216,20 @@ const AddRelationship = ({
       if (!sourceId || !destId) {
         new Notice(
           "Could not resolve node instance IDs for the selected files.",
+        );
+        return;
+      }
+
+      if (
+        await relationExistsBetweenNodes({
+          plugin,
+          sourceNodeInstanceId: sourceId,
+          destNodeInstanceId: destId,
+          relationTypeId: selectedRelationType,
+        })
+      ) {
+        new Notice(
+          `This ${relationType.label} relation already exists between these nodes.`,
         );
         return;
       }
