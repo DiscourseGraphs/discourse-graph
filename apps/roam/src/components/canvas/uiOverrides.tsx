@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import React from "react";
 import {
   TLImageShape,
@@ -400,23 +401,8 @@ export const createUiOverrides = ({
       ...Object.fromEntries(
         allNodes.map((node) => [`shape.node.${node.type}`, node.text]),
       ),
-      // "shape.myShape.myShape": "Relation",
-      // ...Object.fromEntries(
-      //   allRelationNames.map((name) => [`shape.relation.${name}`, name])
-      // ),
-      // ...Object.fromEntries(
-      //   allAddRefNodeActions.map((name) => [`shape.referenced.${name}`, name])
-      // ),
       "action.toggle-full-screen": "Toggle Full Screen",
       "tool.discourse-tool": "Discourse Graph",
-      // "action.convert-to": "Convert to",
-      // ...Object.fromEntries(
-      //   allNodes.map((node) => [
-      //     `action.convert-to-${node.type}`,
-      //     `${node.text}`,
-      //   ])
-      // ),
-      // TODO: copy as
     },
   },
 });

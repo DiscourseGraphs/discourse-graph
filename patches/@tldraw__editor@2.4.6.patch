@@ -1,5 +1,8 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+deleted file mode 100644
+index 1424fb4699181e1528420b9d50269080fbbf9c5e..0000000000000000000000000000000000000000
 diff --git a/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs b/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
-index f27802fae3e92e148c1121b2331b036f55b31f37..3c36f1b103641bc544278df8d53bcdf9300f7af7 100644
+index 928288b81b2bf06f3b47e7a53f26fa53494eee20..56b5f58833cbd277bc1d6fff34e0f1c6138ffec5 100644
 --- a/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
 +++ b/dist-esm/lib/components/default-components/DefaultErrorFallback.mjs
 @@ -22,6 +22,22 @@ const DefaultErrorFallback = ({ error, editor }) => {
@@ -13,12 +16,12 @@ index f27802fae3e92e148c1121b2331b036f55b31f37..3c36f1b103641bc544278df8d53bcdf9
 +      message: errorMessage,
 +      stack: errorStack
 +    };
-+    
++
 +    const event = new CustomEvent("tldraw:error", {
 +      detail: errorDetails,
 +      bubbles: true
 +    });
-+    
++
 +    document.dispatchEvent(event);
 +  }, [error]);
 +
@@ -26,48 +29,44 @@ index f27802fae3e92e148c1121b2331b036f55b31f37..3c36f1b103641bc544278df8d53bcdf9
      "isDarkMode",
      () => {
 diff --git a/dist-esm/lib/editor/Editor.mjs b/dist-esm/lib/editor/Editor.mjs
-index 2789a72c4ef85fc2ac3e0d2e26724ee7b01210a1..398c086c16e09edd8fb9b5992cdc583c0d6ab122 100644
+index 952b9b7cf8842db7a58bd135ca8a8679258df5cf..a199cfd637e6df40ec18c7220294e06c47133bab 100644
 --- a/dist-esm/lib/editor/Editor.mjs
 +++ b/dist-esm/lib/editor/Editor.mjs
-@@ -53,7 +53,8 @@ import {
+@@ -52,7 +52,8 @@ import {
  } from "@tldraw/utils";
  import EventEmitter from "eventemitter3";
  import { flushSync } from "react-dom";
 -import { createRoot } from "react-dom/client";
 +// import { createRoot } from "react-dom/client";
-+import ReactDOM from 'react-dom';
++import ReactDOM from "react-dom";
  import { getSnapshot, loadSnapshot } from "../config/TLEditorSnapshot.mjs";
  import { createTLUser } from "../config/createTLUser.mjs";
  import { checkBindings } from "../config/defaultBindings.mjs";
-@@ -6110,18 +6111,23 @@ class Editor extends EventEmitter {
+@@ -5993,17 +5994,21 @@ class Editor extends EventEmitter {
     *
     * @public
     */
-+  // query builder note
-+  // react-dom/client is from React 18
-+  // we only have access to 17.0.2
++  // React 17 compat: use ReactDOM.render instead of createRoot (Roam has React 17)
    async getSvgElement(shapes, opts = {}) {
      const result = await getSvgJsx(this, shapes, opts);
--    if (!result)
--      return void 0;
+-    if (!result) return void 0;
 +    if (!result) return undefined;
-+  
++
      const fragment = document.createDocumentFragment();
 -    const root = createRoot(fragment);
 -    flushSync(() => {
 -      root.render(result.jsx);
 -    });
 -    const svg = fragment.firstElementChild;
--    assert(svg instanceof SVGSVGElement, "Expected an SVG element");
--    root.unmount();
-+    const container = document.createElement('div'); 
++    const container = document.createElement("div");
 +    fragment.appendChild(container);
-+  
-+    ReactDOM.render(result.jsx, container); 
-+  
-+    const svg = container.firstElementChild; 
-+    assert(svg instanceof SVGSVGElement, 'Expected an SVG element');
-+  
++
++    ReactDOM.render(result.jsx, container);
++
++    const svg = container.firstElementChild;
+     assert(svg instanceof SVGSVGElement, "Expected an SVG element");
+-    root.unmount();
++
 +    ReactDOM.unmountComponentAtNode(container);
      return { svg, width: result.width, height: result.height };
    }

@@ -35,7 +35,7 @@ import {
   TLDefaultFontStyle,
   FONT_FAMILIES,
 } from "tldraw";
-import { useAtom } from "@tldraw/state";
+import { useAtom } from "@tldraw/state-react";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import { Result } from "roamjs-components/types/query-builder";
 import fuzzy from "fuzzy";
