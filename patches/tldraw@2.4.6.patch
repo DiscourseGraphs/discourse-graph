@@ -70,29 +70,6 @@ index 4dfb8bc221bed3552682312efc6779af5a653d57..4adab6b34d9468e6296669da363dfc5b
    ToggleTransparentBgMenuItem,
    ToggleWrapModeItem,
    ToolbarItem,
-diff --git a/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs b/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs
-index b469edb9c7cf10fdee3cfbb14f9f10c340a5df90..977bdd42bd9dc93305530b60455ff44b4d3eb5e2 100644
---- a/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs
-+++ b/dist-esm/lib/ui/components/Toolbar/OverflowingToolbar.mjs
-@@ -1,5 +1,5 @@
- import { Fragment, jsx, jsxs } from "react/jsx-runtime";
--import { preventDefault, useEditor, useEvent, useSafeId } from "@tldraw/editor";
-+import { preventDefault, useEditor, useEvent } from "@tldraw/editor";
- import classNames from "classnames";
- import hotkeys from "hotkeys-js";
- import { createContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-@@ -16,9 +16,10 @@ import {
- } from "../primitives/TldrawUiDropdownMenu.mjs";
- import { TldrawUiMenuContextProvider } from "../primitives/menus/TldrawUiMenuContext.mjs";
- const IsInOverflowContext = createContext(false);
-+// React 17 compat: useSafeId() uses React 18's useId(); Roam has React 17
- function OverflowingToolbar({ children }) {
-   const editor = useEditor();
--  const id = useSafeId();
-+  const id = "overflowing-toolbar";
-   const breakpoint = useBreakpoint();
-   const msg = useTranslation();
-   const overflowIndex = Math.min(8, 5 + breakpoint);
 diff --git a/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs b/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs
 index fcb8268d733b28ab2d31a91e60818d46dbcfc3a2..812c7e77c5209abbd389f209ffae3dcb66c302c8 100644
 --- a/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs

@@ -109,7 +109,7 @@ export const args = {
   root: ".",
   mirror: ".",
   external: [
-    "react-dom/client",
+    "react-dom/client=window.ReactDOM",
     "@blueprintjs/core=window.Blueprint.Core",
     "@blueprintjs/datetime=window.Blueprint.DateTime",
     "@blueprintjs/select=window.Blueprint.Select",
