@@ -183,7 +183,7 @@ const globalSettings: GlobalSettings = {
     ],
   },
   Relations: {
-    "relation-uid-1": {
+    "_INFO-rel": {
       label: "Informs",
       source: "_EVD-node",
       destination: "_QUE-node",
@@ -203,7 +203,7 @@ const globalSettings: GlobalSettings = {
         },
       ],
     },
-    "relation-uid-2": {
+    "_SUPP-rel": {
       label: "Supports",
       source: "_EVD-node",
       destination: "_CLM-node",

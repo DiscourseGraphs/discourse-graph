@@ -269,14 +269,26 @@ export const getPersonalSettingsKey = (): string => {
   return cachedPersonalSettingsKey;
 };
 
+const staticTopLevelEntries = [
+  {
+    propKey: "featureFlags" as const,
+    key: "Feature Flags",
+    schema: FeatureFlagsSchema,
+  },
+  {
+    propKey: "global" as const,
+    key: "Global",
+    schema: GlobalSettingsSchema,
+  },
+];
+
 export const TOP_LEVEL_BLOCK_PROP_KEYS = {
   featureFlags: "Feature Flags",
   global: "Global",
 } as const;
 
 export const getTopLevelBlockPropsConfig = () => [
-  { key: TOP_LEVEL_BLOCK_PROP_KEYS.featureFlags, schema: FeatureFlagsSchema },
-  { key: TOP_LEVEL_BLOCK_PROP_KEYS.global, schema: GlobalSettingsSchema },
+  ...staticTopLevelEntries,
   { key: getPersonalSettingsKey(), schema: PersonalSettingsSchema },
 ];
 

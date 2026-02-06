@@ -4,7 +4,7 @@ import type { DiscourseRelationSettings } from "~/components/settings/utils/zodS
 // TODO: Delete the original default relations in data/defaultRelations.ts when fully migrated.
 const DEFAULT_RELATIONS_BLOCK_PROPS: Record<string, DiscourseRelationSettings> =
   {
-    "_INFF-rel": {
+    "_INFO-rel": {
       label: "Informs",
       source: "_EVD-node",
       destination: "_QUE-node",
@@ -81,7 +81,7 @@ const DEFAULT_RELATIONS_BLOCK_PROPS: Record<string, DiscourseRelationSettings> =
         },
       ],
     },
-    "_OPPP-rel": {
+    "_OPPO-rel": {
       label: "Opposes",
       source: "_EVD-node",
       destination: "_CLM-node",

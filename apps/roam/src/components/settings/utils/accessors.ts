@@ -316,12 +316,6 @@ export const getGlobalSetting = <T = unknown>(
   }, settings) as T | undefined;
 };
 
-let relationsCache: DiscourseRelationSettings[] | null = null;
-
-export const invalidateRelationsCache = (): void => {
-  relationsCache = null;
-};
-
 export const setGlobalSetting = (keys: string[], value: json): void => {
   if (keys.length === 0) {
     internalError({
@@ -346,23 +340,15 @@ export const setGlobalSetting = (keys: string[], value: json): void => {
     keys: [TOP_LEVEL_BLOCK_PROP_KEYS.global, ...keys],
     value,
   });
-
-  if (keys[0] === "Relations") {
-    invalidateRelationsCache();
-  }
 };
 
 export const getAllRelations = (): DiscourseRelationSettings[] => {
-  if (relationsCache) return relationsCache;
-
   const settings = getGlobalSettings();
 
-  relationsCache = Object.entries(settings.Relations).map(([id, relation]) => ({
+  return Object.entries(settings.Relations).map(([id, relation]) => ({
     ...relation,
     id,
   }));
-
-  return relationsCache;
 };
 
 export const getPersonalSettings = (): PersonalSettings => {
@@ -459,12 +445,6 @@ export const getDiscourseNodeSetting = <T = unknown>(
   }, settings) as T | undefined;
 };
 
-let discourseNodesCache: DiscourseNodeSettings[] | null = null;
-
-export const invalidateDiscourseNodesCache = (): void => {
-  discourseNodesCache = null;
-};
-
 export const setDiscourseNodeSetting = (
   nodeType: string,
   keys: string[],
@@ -510,12 +490,9 @@ export const setDiscourseNodeSetting = (
   }
 
   setBlockPropAtPath(pageUid, keys, value);
-  invalidateDiscourseNodesCache();
 };
 
 export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
-  if (discourseNodesCache) return discourseNodesCache;
-
   const results = window.roamAlphaAPI.data.fast.q(`
     [:find ?uid ?title (pull ?page [:block/props])
      :where
@@ -556,6 +533,5 @@ export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
     }
   }
 
-  discourseNodesCache = nodes;
   return nodes;
 };
