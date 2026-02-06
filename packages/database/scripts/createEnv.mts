@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { Vercel } from "@vercel/sdk";
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
 const baseParams: Record<string, string> = {};
@@ -106,11 +107,27 @@ const makeProductionEnv = async (vercel: Vercel, vercelToken: string) => {
 };
 
 const main = async (variant: Variant) => {
-  // Do not execute in deployment or github action.
-  if (
+  if (process.env.ROAM_BUILD_SCRIPT) {
+    // special case: production build
+    try {
+      const response = execSync('curl https://discoursegraphs.com/api/supabase/env');
+      const asJson = JSON.parse(response.toString()) as Record<string, string>;
+      writeFileSync(
+        join(projectRoot, ".env"),
+        Object.entries(asJson).map(([k,v])=>`${k}=${v}`).join('\n')
+      );
+      return;
+    } catch (e) {
+      if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY)
+        return;
+      throw new Error("Could not get environment from site");
+    }
+  }
+  else if (
     process.env.HOME === "/vercel" ||
     process.env.GITHUB_ACTIONS !== undefined
   )
+    // Do not execute in deployment or github action.
     return;
 
   if (variant === Variant.none) return;
