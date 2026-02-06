@@ -212,9 +212,9 @@ Deno.serve(async (req) => {
   // @ts-ignore Deno is not visible to the IDE
   const url = Deno.env.get("SUPABASE_URL");
   // @ts-ignore Deno is not visible to the IDE
-  const key = Deno.env.get("SUPABASE_SECRET_KEY");
+  const key = Deno.env.get("SB_SECRET_KEY");
   if (!url || !key) {
-    return new Response("Missing SUPABASE_URL or SUPABASE_SECRET_KEY", {
+    return new Response("Missing SUPABASE_URL or SB_SECRET_KEY", {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
