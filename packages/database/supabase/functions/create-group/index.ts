@@ -5,6 +5,7 @@
 import "@supabase/functions-js/edge-runtime";
 import { createClient, type UserResponse } from "@supabase/supabase-js";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import { AuthMiddleware } from "../_shared/jwt/default.ts";
 
 // The following lines are duplicated from apps/website/app/utils/llm/cors.ts
 const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000", "app://obsidian.md"];
@@ -50,12 +51,12 @@ Deno.serve(async (req) => {
   // @ts-ignore Deno is not visible to the IDE
   const url = Deno.env.get("SUPABASE_URL");
   // @ts-ignore Deno is not visible to the IDE
-  const service_key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const service_key = Deno.env.get("SUPABASE_SECRET_KEY");
   // @ts-ignore Deno is not visible to the IDE
-  const anon_key = Deno.env.get("SUPABASE_ANON_KEY");
+  const anon_key = Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
 
   if (!url || !anon_key || !service_key) {
-    return new Response("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY", {
+    return new Response("Missing SUPABASE_URL or SUPABASE_SECRET_KEY or SUPABASE_PUBLISHABLE_KEY", {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

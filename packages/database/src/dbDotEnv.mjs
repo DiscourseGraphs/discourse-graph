@@ -17,7 +17,7 @@ const findRoot = () => {
 
 export const getVariant = () => {
   const processHasVars =
-    !!process.env["SUPABASE_URL"] && !!process.env["SUPABASE_ANON_KEY"];
+    !!process.env["SUPABASE_URL"] && !!process.env["SUPABASE_PUBLISHABLE_KEY"];
   const useDbArgPos = (process.argv || []).indexOf("--use-db");
   let variant =
     useDbArgPos > 0
@@ -74,7 +74,7 @@ export const envContents = () => {
     // Fallback to process.env when running in production environments
     const raw = {
       SUPABASE_URL: process.env.SUPABASE_URL,
-      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+      SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY,
       NEXT_API_ROOT: process.env.NEXT_API_ROOT,
     };
     return Object.fromEntries(Object.entries(raw).filter(([, v]) => !!v));
