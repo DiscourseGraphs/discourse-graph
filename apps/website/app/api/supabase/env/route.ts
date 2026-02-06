@@ -15,7 +15,7 @@ export const GET = async (request: NextRequest): Promise<NextResponse> => {
       { status: 200 },
     );
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/supabase/space");
+    return handleRouteError(request, e, "/api/supabase/env");
   }
 };
 
