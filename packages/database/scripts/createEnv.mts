@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { Vercel } from "@vercel/sdk";
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
 const baseParams: Record<string, string> = {};
@@ -117,7 +118,9 @@ const main = async (variant: Variant) => {
       );
       return;
     } catch (e) {
-      console.error("Could not get environment from site")
+      if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY)
+        return;
+      throw new Error("Could not get environment from site");
     }
   }
   else if (

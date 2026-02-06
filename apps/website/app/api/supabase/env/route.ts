@@ -4,7 +4,7 @@ import {
   defaultOptionsHandler,
 } from "~/utils/supabase/apiUtils";
 
-export const GET = async (request: NextRequest): Promise<NextResponse> => {
+export const GET = (request: NextRequest): NextResponse => {
   try {
     const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY)
