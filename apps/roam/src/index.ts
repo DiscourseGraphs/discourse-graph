@@ -41,7 +41,6 @@ import {
   STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
-import { initSchema } from "./components/settings/utils/init";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
