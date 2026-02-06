@@ -5,7 +5,6 @@
 import "@supabase/functions-js/edge-runtime";
 import { createClient, type UserResponse } from "@supabase/supabase-js";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import { AuthMiddleware } from "../_shared/jwt/default.ts";
 
 // The following lines are duplicated from apps/website/app/utils/llm/cors.ts
 const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000", "app://obsidian.md"];
