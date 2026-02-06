@@ -61,7 +61,15 @@ Deno.serve(async (req) => {
     });
   }
   const supabase = createClient(url, anon_key)
-  const authHeader = req.headers.get('Authorization')!
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return Response.json(
+      { msg: 'Missing authorization headers' },
+      {
+        status: 401,
+      }
+    )
+  }
   const token = authHeader.replace('Bearer ', '')
   const { data, error } = await supabase.auth.getClaims(token)
 
