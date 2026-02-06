@@ -57,6 +57,7 @@ type BaseFlagPanelProps = {
   getter: FlagGetter;
   setter: FlagSetter;
   defaultValue?: boolean;
+  overrideValue?: boolean;
   disabled?: boolean;
   onBeforeChange?: (checked: boolean) => Promise<boolean>;
   onChange?: (checked: boolean) => void;
@@ -98,20 +99,22 @@ const BaseTextPanel = ({
   settingKeys,
   getter,
   setter,
-  defaultValue = "",
+  defaultValue,
   placeholder,
   parentUid,
   uid,
   order,
 }: BaseTextPanelProps) => {
-  const [value, setValue] = useState(() => getter(settingKeys) ?? defaultValue);
+  const [value, setValue] = useState(
+    () => defaultValue ?? getter(settingKeys) ?? "",
+  );
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
     title,
     parentUid: parentUid ?? "",
     order: order ?? 0,
     uid,
-    defaultValue,
+    defaultValue: defaultValue ?? "",
     transform: (s: string) => s,
     toStr: (s: string) => s,
   });
@@ -143,7 +146,8 @@ const BaseFlagPanel = ({
   settingKeys,
   getter,
   setter,
-  defaultValue = false,
+  defaultValue,
+  overrideValue,
   disabled = false,
   onBeforeChange,
   onChange,
@@ -151,7 +155,9 @@ const BaseFlagPanel = ({
   uid: initialBlockUid,
   order,
 }: BaseFlagPanelProps) => {
-  const [value, setValue] = useState(() => getter(settingKeys) ?? defaultValue);
+  const [value, setValue] = useState(
+    () => defaultValue ?? getter(settingKeys) ?? false,
+  );
   const blockUidRef = useRef(initialBlockUid);
 
   const syncFlagToBlock = useCallback(
@@ -193,7 +199,7 @@ const BaseFlagPanel = ({
 
   return (
     <Checkbox
-      checked={value}
+      checked={overrideValue ?? value}
       onChange={(e) => void handleChange(e)}
       disabled={disabled}
       labelElement={
@@ -212,21 +218,23 @@ const BaseNumberPanel = ({
   settingKeys,
   getter,
   setter,
-  defaultValue = 0,
+  defaultValue,
   min,
   max,
   parentUid,
   uid,
   order,
 }: BaseNumberPanelProps) => {
-  const [value, setValue] = useState(() => getter(settingKeys) ?? defaultValue);
+  const [value, setValue] = useState(
+    () => defaultValue ?? getter(settingKeys) ?? 0,
+  );
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
     title,
     parentUid: parentUid ?? "",
     order: order ?? 0,
     uid,
-    defaultValue,
+    defaultValue: defaultValue ?? 0,
     transform: (s: string) => parseInt(s, 10),
     toStr: (v: number) => `${v}`,
   });
@@ -267,7 +275,7 @@ const BaseSelectPanel = ({
   order,
 }: BaseSelectPanelProps) => {
   const [value, setValue] = useState(
-    () => getter(settingKeys) ?? defaultValue ?? options[0],
+    () => defaultValue ?? getter(settingKeys) ?? options[0],
   );
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
@@ -308,13 +316,13 @@ const BaseMultiTextPanel = ({
   settingKeys,
   getter,
   setter,
-  defaultValue = [],
+  defaultValue,
   parentUid,
   uid: initialBlockUid,
   order,
 }: BaseMultiTextPanelProps) => {
   const [values, setValues] = useState<string[]>(
-    () => getter(settingKeys) ?? defaultValue,
+    () => defaultValue ?? getter(settingKeys) ?? [],
   );
   const [inputValue, setInputValue] = useState("");
   const hasBlockSync = parentUid !== undefined && order !== undefined;
@@ -481,7 +489,7 @@ export const FeatureFlagPanel = ({
   featureKey: keyof FeatureFlags;
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
-}) => {
+} & RoamBlockSyncProps) => {
   const handleBeforeChange:
     | ((checked: boolean) => Promise<boolean>)
     | undefined = onBeforeEnable

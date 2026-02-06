@@ -68,6 +68,7 @@ const SuggestiveModeSettings = () => {
                   title="Include Current Page Relations"
                   description="Include relations from pages referenced on the current page"
                   settingKeys={["Suggestive Mode", "Include Current Page Relations"]}
+                  defaultValue={settings.suggestiveMode.includePageRelations.value}
                   order={0}
                   uid={settings.suggestiveMode.includePageRelations.uid}
                   parentUid={effectiveSuggestiveModeUid}
@@ -82,6 +83,8 @@ const SuggestiveModeSettings = () => {
                       : "Include relations from parent and child blocks"
                   }
                   settingKeys={["Suggestive Mode", "Include Parent And Child Blocks"]}
+                  defaultValue={settings.suggestiveMode.includeParentAndChildren.value}
+                  overrideValue={includePageRelations ? true : undefined}
                   order={1}
                   uid={settings.suggestiveMode.includeParentAndChildren.uid}
                   parentUid={effectiveSuggestiveModeUid}
