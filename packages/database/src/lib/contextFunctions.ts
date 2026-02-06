@@ -116,7 +116,9 @@ export const fetchOrCreateSpaceDirect = async (
   const error = spaceValidator(data);
   if (error !== null) return asPostgrestFailure(error, "invalid space");
   data.url = data.url.trim().replace(/\/$/, "");
-  const urlSlug = data.url.replaceAll(/\W/g,"");
+  // Distinguish local, or various supabase branches
+  const supabaseUrlFirstFragment = new URL(process.env.SUPABASE_URL || 'http://null').hostname.split('.')[0];
+  const urlSlug = supabaseUrlFirstFragment+":"+data.name.replaceAll(/\W/g,"");
   const supabase = createSingletonClient(urlSlug);
   if (!supabase) return asPostgrestFailure("No database", "");
   const session = await supabase.auth.getSession();
@@ -127,14 +129,14 @@ export const fetchOrCreateSpaceDirect = async (
       .select()
       .eq("url", data.url)
       .maybeSingle();
-    if (result.error)
+    if (result.error && result.status >= 500)
       return result;
     if (result.data !== null)
       return result as PostgrestSingleResponse<SpaceRecord>;
     // space does not exist, or not visible from this account;
     // logout to be sure
     console.warn(`Creating a space while already logged in as ${session.data.session.user.email}; logging out`);
-    await supabase.auth.signOut();
+    await supabase.auth.refreshSession(); // this will clear an invalid session
   }
   // If it does not exist, create it
   const result2: FunctionsResponse<SpaceRecord> =
