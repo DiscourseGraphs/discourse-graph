@@ -106,11 +106,25 @@ const makeProductionEnv = async (vercel: Vercel, vercelToken: string) => {
 };
 
 const main = async (variant: Variant) => {
-  // Do not execute in deployment or github action.
-  if (
+  if (process.env.ROAM_BUILD_SCRIPT) {
+    // special case: production build
+    try {
+      const response = execSync('curl https://discoursegraphs.com/api/supabase/env');
+      const asJson = JSON.parse(response.toString()) as Record<string, string>;
+      writeFileSync(
+        join(projectRoot, ".env"),
+        Object.entries(asJson).map(([k,v])=>`${k}=${v}`).join('\n')
+      );
+      return;
+    } catch (e) {
+      console.error("Could not get environment from site")
+    }
+  }
+  else if (
     process.env.HOME === "/vercel" ||
     process.env.GITHUB_ACTIONS !== undefined
   )
+    // Do not execute in deployment or github action.
     return;
 
   if (variant === Variant.none) return;
