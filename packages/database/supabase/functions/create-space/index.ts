@@ -1,7 +1,7 @@
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
-
+import { AuthMiddleware } from "../_shared/jwt/default.ts";
 import "@supabase/functions-js/edge-runtime";
 import {
   createClient,
@@ -213,9 +213,9 @@ Deno.serve(async (req) => {
   // @ts-ignore Deno is not visible to the IDE
   const url = Deno.env.get("SUPABASE_URL");
   // @ts-ignore Deno is not visible to the IDE
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const key = Deno.env.get("SUPABASE_SECRET_KEY");
   if (!url || !key) {
-    return new Response("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY", {
+    return new Response("Missing SUPABASE_URL or SUPABASE_SECRET_KEY", {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
