@@ -41,7 +41,6 @@ import {
   STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
-import { getLoggedInClient } from "./utils/supabaseContext";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -139,7 +138,6 @@ export default runExtension(async (onloadArgs) => {
     isDiscourseNode: isDiscourseNode,
     // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
-    getLoggedInClient,
   };
 
   installDiscourseFloatingMenu(onloadArgs);
