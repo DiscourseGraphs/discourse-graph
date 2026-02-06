@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { type ChangeEvent, useState } from "react";
 import {
   Checkbox,
   InputGroup,
@@ -17,8 +17,8 @@ import {
   setPersonalSetting,
   getFeatureFlag,
   setFeatureFlag,
-} from "../utils/accessors";
-import type { FeatureFlags } from "../utils/zodSchema";
+} from "~/components/settings/utils/accessors";
+import type { FeatureFlags } from "~/components/settings/utils/zodSchema";
 
 type TextGetter = (keys: string[]) => string | undefined;
 type TextSetter = (keys: string[], value: string) => void;
@@ -96,7 +96,7 @@ const BaseTextPanel = ({
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => getter(settingKeys) ?? defaultValue);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
     setter(settingKeys, newValue);
@@ -202,7 +202,7 @@ const BaseSelectPanel = ({
     () => getter(settingKeys) ?? defaultValue ?? options[0],
   );
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
     setter(settingKeys, newValue);
@@ -262,7 +262,7 @@ const BaseMultiTextPanel = ({
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Add new item..."
+          placeholder="Add new item"
           className="flex-grow"
         />
         <Button icon="plus" onClick={handleAdd} disabled={!inputValue.trim()} />
