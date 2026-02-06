@@ -470,7 +470,7 @@ export const setDiscourseNodeSetting = (
   }
 
   let pageUid = nodeType;
-  const blockProps = getBlockPropsByUid(pageUid, []);
+  let blockProps = getBlockPropsByUid(pageUid, []);
 
   if (!blockProps || Object.keys(blockProps).length === 0) {
     const lookedUpUid = getPageUidByPageTitle(
@@ -478,10 +478,11 @@ export const setDiscourseNodeSetting = (
     );
     if (lookedUpUid) {
       pageUid = lookedUpUid;
+      blockProps = getBlockPropsByUid(pageUid, []);
     }
   }
 
-  if (!pageUid) {
+  if (!blockProps || Object.keys(blockProps).length === 0) {
     internalError({
       error: `setDiscourseNodeSetting - could not find page for: ${nodeType}`,
       type: "DG Accessor",
