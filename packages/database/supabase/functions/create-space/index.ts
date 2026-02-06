@@ -1,7 +1,6 @@
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
-import { AuthMiddleware } from "../_shared/jwt/default.ts";
 import "@supabase/functions-js/edge-runtime";
 import {
   createClient,
