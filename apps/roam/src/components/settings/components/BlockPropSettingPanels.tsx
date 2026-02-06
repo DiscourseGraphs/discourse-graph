@@ -161,7 +161,7 @@ const BaseFlagPanel = ({
         if (blockUidRef.current) return;
         const newUid = window.roamAlphaAPI.util.generateUID();
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        await window.roamAlphaAPI.createBlock({
+        await window.roamAlphaAPI.data.block.create({
           block: { string: title, uid: newUid },
           // eslint-disable-next-line @typescript-eslint/naming-convention
           location: { order, "parent-uid": parentUid },

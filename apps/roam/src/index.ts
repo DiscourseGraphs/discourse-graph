@@ -42,7 +42,6 @@ import {
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
 
-
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
