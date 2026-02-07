@@ -302,7 +302,7 @@ export class QueryEngine {
     if (this.dc) {
       try {
         const safeId = nodeInstanceId.replace(/"/g, '\\"');
-        const dcQuery = `@page and nodeInstanceId = "${safeId}" and importedFromSpaceUri = ${importedFromSpaceUri}`;
+       const dcQuery = `@page and nodeInstanceId = "${safeId}" and importedFromSpaceUri = "${importedFromSpaceUri.replace(/"/g, '\\"')}"`;
         const results = this.dc.query(dcQuery);
 
         for (const page of results) {

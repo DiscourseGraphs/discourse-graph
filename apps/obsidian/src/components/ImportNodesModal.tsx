@@ -60,7 +60,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         currentSpaceId: context.spaceId,
       });
 
-      const localNodeInstanceIds = await getLocalNodeInstanceIds(plugin);
+      const localNodeInstanceIds = getLocalNodeInstanceIds(plugin);
 
       // Filter out nodes that already exist locally
       const importableNodes = publishedNodes.filter(
@@ -223,8 +223,9 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       <div>
         <h3 className="mb-4">Select Nodes to Import</h3>
         <p className="text-muted mb-4 text-sm">
-          {totalNodes} importable node(s) found. Select which nodes to import
-          into your vault.
+          {totalNodes > 0
+            ? `${totalNodes} importable node(s) found. Select which nodes to import into your vault.`
+            : "No importable nodes found."}
         </p>
 
         <div className="mb-4">
