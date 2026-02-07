@@ -16,7 +16,7 @@ export const ensureNodeInstanceId = async (
     return existingId;
   }
 
-  const nodeInstanceId = uuidv7();
+  const nodeInstanceId = uuidv7() as string;
   await plugin.app.fileManager.processFrontMatter(file, (fm) => {
     (fm as Record<string, unknown>).nodeInstanceId = nodeInstanceId;
   });

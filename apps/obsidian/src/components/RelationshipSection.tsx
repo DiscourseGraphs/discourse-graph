@@ -12,7 +12,6 @@ import {
   getFileForNodeInstanceId,
   addRelation,
   removeRelationBySourceDestinationType,
-  relationExistsBetweenNodes,
 } from "~/utils/relationsStore";
 
 type RelationTypeOption = {
@@ -220,29 +219,21 @@ const AddRelationship = ({
         return;
       }
 
-      if (
-        await relationExistsBetweenNodes({
-          plugin,
-          sourceNodeInstanceId: sourceId,
-          destNodeInstanceId: destId,
-          relationTypeId: selectedRelationType,
-        })
-      ) {
-        new Notice(
-          `This ${relationType.label} relation already exists between these nodes.`,
-        );
-        return;
-      }
-
-      await addRelation(plugin, {
+      const { alreadyExisted } = await addRelation(plugin, {
         type: selectedRelationType,
         source: sourceId,
         destination: destId,
       });
 
-      new Notice(
-        `Successfully added ${relationType.label} with ${selectedNode.basename}`,
-      );
+      if (alreadyExisted) {
+        new Notice(
+          `This ${relationType.label} relation already exists between these nodes.`,
+        );
+      } else {
+        new Notice(
+          `Successfully added ${relationType.label} with ${selectedNode.basename}`,
+        );
+      }
 
       onRelationsChange?.();
       resetState();

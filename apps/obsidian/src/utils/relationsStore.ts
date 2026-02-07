@@ -3,15 +3,18 @@ import { uuidv7 } from "uuidv7";
 import type DiscourseGraphPlugin from "~/index";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import { checkAndCreateFolder } from "~/utils/file";
+import { getVaultId } from "./supabaseContext";
 
-const RELATIONS_DIR = "_discourse_graphs";
 const RELATIONS_FILE_NAME = "relations.json";
 const RELATIONS_FILE_VERSION = 1;
-const DEFAULT_AUTHOR = "local";
 
-/** Vault-relative path for relations.json: {vault}/_discourse_graphs/relations.json */
-export const getRelationsFilePath = (
-): string => normalizePath(`${RELATIONS_DIR}/${RELATIONS_FILE_NAME}`);
+/** Vault-relative path for relations.json, under the same folder as nodes (nodesFolderPath). */
+export const getRelationsFilePath = (plugin: DiscourseGraphPlugin): string => {
+  const folderPath = plugin.settings.nodesFolderPath.trim();
+  return folderPath
+    ? normalizePath(`${folderPath}/${RELATIONS_FILE_NAME}`)
+    : normalizePath(RELATIONS_FILE_NAME);
+};
 
 export type RelationInstance = {
   id: string;
@@ -40,7 +43,7 @@ const defaultRelationsFile = (): RelationsFile => ({
 export const loadRelations = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<RelationsFile> => {
-  const path = getRelationsFilePath();
+  const path = getRelationsFilePath(plugin);
   const file = plugin.app.vault.getAbstractFileByPath(path);
   if (!file || !(file instanceof TFile)) {
     return defaultRelationsFile();
@@ -70,8 +73,11 @@ export const saveRelations = async (
   plugin: DiscourseGraphPlugin,
   data: RelationsFile,
 ): Promise<void> => {
-  await checkAndCreateFolder(RELATIONS_DIR, plugin.app.vault);
-  const path = getRelationsFilePath();
+  const folderPath = plugin.settings.nodesFolderPath.trim();
+  if (folderPath) {
+    await checkAndCreateFolder(folderPath, plugin.app.vault);
+  }
+  const path = getRelationsFilePath(plugin);
   const toWrite: RelationsFile = {
     ...data,
     lastModified: Date.now(),
@@ -94,13 +100,18 @@ export type AddRelationParams = {
   publishedToGroupId?: string[];
 };
 
-export const addRelation = async (
+/**
+ * Adds a relation without checking for an existing one between the same nodes/type.
+ * Prefer addRelation() unless you intentionally need to skip the existence check (e.g. migration, sync).
+ */
+export const addRelationNoCheck = async (
   plugin: DiscourseGraphPlugin,
   params: AddRelationParams,
 ): Promise<string> => {
   const now = Date.now();
   const id = uuidv7();
-  const author = params.author ?? plugin.settings.accountLocalId ?? DEFAULT_AUTHOR;
+  const author =
+    params.author ?? plugin.settings.accountLocalId ?? getVaultId(plugin.app);
   const instance: RelationInstance = {
     id,
     type: params.type,
@@ -115,7 +126,30 @@ export const addRelation = async (
   data.relations[id] = instance;
   await saveRelations(plugin, data);
   return id;
-}
+};
+
+export type AddRelationResult = { id: string; alreadyExisted: boolean };
+
+/**
+ * Checks for an existing relation (same type, same two nodes in either direction), then adds if none.
+ * Returns the relation id and whether it already existed.
+ */
+export const addRelation = async (
+  plugin: DiscourseGraphPlugin,
+  params: AddRelationParams,
+): Promise<AddRelationResult> => {
+  const existingId = await relationExistsBetweenNodes({
+    plugin,
+    sourceNodeInstanceId: params.source,
+    destNodeInstanceId: params.destination,
+    relationTypeId: params.type,
+  });
+  if (existingId) {
+    return { id: existingId, alreadyExisted: true };
+  }
+  const id = await addRelationNoCheck(plugin, params);
+  return { id, alreadyExisted: false };
+};
 
 export const removeRelationById = async (
   plugin: DiscourseGraphPlugin,
@@ -151,7 +185,7 @@ export const getNodeInstanceIdForFile = async (
   if (!frontmatter?.nodeTypeId) {
     return null;
   }
-  return ensureNodeInstanceId(
+  return await ensureNodeInstanceId(
     plugin,
     file,
     frontmatter as Record<string, unknown>,
@@ -245,6 +279,26 @@ export const removeRelationBySourceDestinationType = async (
 }
 
 /**
+ * Returns true if the frontmatter link (e.g. "[[path]]" or "[[path.md]]") resolves to the same file as targetFile.
+ * Handles .md extension and other linktext variants that Obsidian treats as the same file.
+ */
+const frontmatterLinkPointsToFile = (
+  plugin: DiscourseGraphPlugin,
+  linkStr: string,
+  sourceFilePath: string,
+  targetFile: TFile,
+): boolean => {
+  const match = String(linkStr).trim().match(/\[\[(.*?)\]\]/);
+  const linkpath = match?.[1]?.trim();
+  if (!linkpath) return false;
+  const resolved = plugin.app.metadataCache.getFirstLinkpathDest(
+    linkpath,
+    sourceFilePath,
+  );
+  return resolved?.path === targetFile.path;
+};
+
+/**
  * Migrates relation links from frontmatter (bi-directional links under relationType.id)
  * into relations.json. Idempotent: only adds relations that don't already exist.
  * After migrating each relation, removes the corresponding link from both files' frontmatter.
@@ -255,18 +309,18 @@ const removeRelationLinkFromFrontmatter = async (
   targetFile: TFile,
   relationTypeId: string,
 ): Promise<void> => {
-  const linkToRemoveFromFile = `[[${plugin.app.metadataCache.fileToLinktext(targetFile, file.path)}]]`;
-  const linkToRemoveFromTarget = `[[${plugin.app.metadataCache.fileToLinktext(file, targetFile.path)}]]`;
-
   const removeFromFile = async (
     f: TFile,
-    linkToRemove: string,
+    targetToRemove: TFile,
   ): Promise<void> => {
     await plugin.app.fileManager.processFrontMatter(f, (fm) => {
       const raw = fm[relationTypeId] as unknown;
       if (!raw) return;
       const links = Array.isArray(raw) ? (raw as string[]) : [raw as string];
-      const filtered = links.filter((link) => String(link).trim() !== linkToRemove.trim());
+      const filtered = links.filter(
+        (link) =>
+          !frontmatterLinkPointsToFile(plugin, link, f.path, targetToRemove),
+      );
       if (filtered.length === 0) {
         delete fm[relationTypeId];
       } else {
@@ -275,8 +329,8 @@ const removeRelationLinkFromFrontmatter = async (
     });
   };
 
-  await removeFromFile(file, linkToRemoveFromFile);
-  await removeFromFile(targetFile, linkToRemoveFromTarget);
+  await removeFromFile(file, targetFile);
+  await removeFromFile(targetFile, file);
 };
 
 export const migrateFrontmatterRelationsToRelationsJson = async (
@@ -345,8 +399,7 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
 
         const id = uuidv7();
         const now = Date.now();
-        const author =
-          plugin.settings.accountLocalId ?? DEFAULT_AUTHOR;
+        const author = plugin.settings.accountLocalId ?? getVaultId(plugin.app);
         data.relations[id] = {
           id,
           type: relationType.id,

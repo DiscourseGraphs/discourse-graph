@@ -22,7 +22,6 @@ import {
   getRelationsForNodeInstanceId,
   getFileForNodeInstanceId,
   addRelation,
-  relationExistsBetweenNodes,
 } from "~/utils/relationsStore";
 
 type GroupedRelation = {
@@ -378,13 +377,6 @@ export const RelationsPanel = ({
         return;
       }
 
-      const existingRelationId = await relationExistsBetweenNodes({
-        plugin,
-        sourceNodeInstanceId: sourceId,
-        destNodeInstanceId: destId,
-        relationTypeId,
-      });
-
       const targetNode = await ensureNodeShapeForFile(targetFile);
 
       const id: TLShapeId = createShapeId();
@@ -455,11 +447,11 @@ export const RelationsPanel = ({
         snap: "none",
       });
 
-      const relationInstanceId = existingRelationId ?? (await addRelation(plugin, {
+      const { id: relationInstanceId } = await addRelation(plugin, {
         type: relationTypeId,
         source: sourceId,
         destination: destId,
-      }));
+      });
       editor.updateShape({
         id: shape.id,
         type: shape.type,

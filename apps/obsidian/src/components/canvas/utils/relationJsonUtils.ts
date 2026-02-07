@@ -1,20 +1,15 @@
 import type { App, TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
-import {
-  addRelation as addRelationToStore,
-  getNodeInstanceIdForFile,
-  relationExistsBetweenNodes,
-} from "~/utils/relationsStore";
+import { addRelation, getNodeInstanceIdForFile } from "~/utils/relationsStore";
 
 /**
  * Persists a relation between two files to the relations store (relations.json).
- * No longer writes to frontmatter.
+ * Uses addRelation (checks for existing relation by default).
  *
- * @returns Object indicating whether the relation already existed and the relation instance id (if new).
+ * @returns Object indicating whether the relation already existed and the relation instance id.
  */
-
 export const addRelationToRelationsJson = async ({
-  app: _app,
+  app,
   plugin,
   sourceFile,
   targetFile,
@@ -33,20 +28,10 @@ export const addRelationToRelationsJson = async ({
     return { alreadyExisted: false };
   }
 
-  const existing = await relationExistsBetweenNodes({
-    plugin,
-    sourceNodeInstanceId: sourceId,
-    destNodeInstanceId: destId,
-    relationTypeId,
-  });
-  if (existing) {
-    return { alreadyExisted: true, relationInstanceId: existing };
-  }
-
-  const relationInstanceId = await addRelationToStore(plugin, {
+  const { id, alreadyExisted } = await addRelation(plugin, {
     type: relationTypeId,
     source: sourceId,
     destination: destId,
   });
-  return { alreadyExisted: false, relationInstanceId };
+  return { alreadyExisted, relationInstanceId: id };
 };
