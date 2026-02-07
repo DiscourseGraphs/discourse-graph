@@ -136,7 +136,7 @@ const main = async (variant: Variant) => {
       );
       return;
     } catch (e) {
-      if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY)
+      if (process.env.SUPABASE_URL && process.env.SUPABASE_PUBLISHABLE_KEY)
         return;
       throw new Error("Could not get environment from site");
     }
