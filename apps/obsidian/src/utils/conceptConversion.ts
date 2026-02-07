@@ -37,7 +37,7 @@ export const discourseNodeSchemaToLocalConcept = ({
     node;
   return {
     space_id: context.spaceId,
-    name: name,
+    name: id ? `${name} (${id})` : name,
     source_local_id: id,
     is_schema: true,
     author_local_id: accountLocalId,
@@ -92,7 +92,11 @@ export const relatedConcepts = (concept: LocalConceptDataInput): string[] => {
 };
 
 /**
- * Recursively order concepts by dependency
+ * Recursively order concepts by dependency so that dependents (e.g. instances)
+ * come after their dependencies (e.g. schemas). When we look up a related
+ * concept by id in `remainder`, we use the same id that appears in
+ * schema_represented_by_local_id or local_reference_content — so that id
+ * must equal some concept's source_local_id or it is reported as "missing".
  */
 const orderConceptsRec = (
   ordered: LocalConceptDataInput[],
@@ -119,6 +123,13 @@ const orderConceptsRec = (
   return missing;
 };
 
+/**
+ * Order concepts so dependencies (schemas) are before dependents (instances).
+ * Assumes every concept has source_local_id; concepts without it are excluded
+ * from the map (same as Roam). A node type is "missing" when an instance
+ * references schema_represented_by_local_id = X but no concept in the input
+ * has source_local_id === X (e.g. schema not included, or id vs nodeTypeId mismatch).
+ */
 export const orderConceptsByDependency = (
   concepts: LocalConceptDataInput[],
 ): { ordered: LocalConceptDataInput[]; missing: string[] } => {
@@ -126,7 +137,7 @@ export const orderConceptsByDependency = (
   const conceptById: { [key: string]: LocalConceptDataInput } =
     Object.fromEntries(
       concepts
-        .filter((c) => c.source_local_id)
+        .filter((c) => c.source_local_id != null && c.source_local_id !== "")
         .map((c) => [c.source_local_id!, c]),
     );
   const ordered: LocalConceptDataInput[] = [];

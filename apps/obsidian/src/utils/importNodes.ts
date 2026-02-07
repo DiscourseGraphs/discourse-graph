@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import matter from "gray-matter";
 import { App, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
@@ -58,23 +59,16 @@ export const getPublishedNodesForGroups = async ({
     return [];
   }
 
-  // Group by space_id and source_local_id to fetch content efficiently
-  const nodeKeys = new Set<string>();
-  for (const ra of resourceAccessData) {
-    if (ra.source_local_id && ra.space_id) {
-      nodeKeys.add(`${ra.space_id}:${ra.source_local_id}`);
-    }
-  }
-
-  // Group nodes by space_id for batched queries
+  // Group unique (space_id, source_local_id) by space_id for batched queries.
+  // Build nodesBySpace directly so source_local_id can contain any character (e.g. colons).
   const nodesBySpace = new Map<number, Set<string>>();
-  for (const key of nodeKeys) {
-    const [spaceId, sourceLocalId] = key.split(":");
-    const spaceIdNum = parseInt(spaceId || "0", 10);
-    if (!nodesBySpace.has(spaceIdNum)) {
-      nodesBySpace.set(spaceIdNum, new Set<string>());
+  for (const ra of resourceAccessData) {
+    if (ra.source_local_id && ra.space_id != null) {
+      if (!nodesBySpace.has(ra.space_id)) {
+        nodesBySpace.set(ra.space_id, new Set<string>());
+      }
+      nodesBySpace.get(ra.space_id)!.add(ra.source_local_id);
     }
-    nodesBySpace.get(spaceIdNum)!.add(sourceLocalId || "");
   }
 
   // Fetch Content with variant "direct" for all nodes, batched by space
@@ -267,28 +261,41 @@ export const fetchNodeContent = async ({
   return data.text;
 };
 
-export const fetchNodeMetadata = async ({
+export const fetchNodeContentWithMetadata = async ({
   client,
   spaceId,
   nodeInstanceId,
+  variant,
 }: {
   client: DGSupabaseClient;
   spaceId: number;
   nodeInstanceId: string;
-}): Promise<{ nodeTypeId?: string }> => {
-  // Try to get nodeTypeId from Concept table
-  const { data: conceptData } = await client
-    .from("Concept")
-    .select("literal_content")
+  variant: "direct" | "full";
+}): Promise<{
+  content: string;
+  createdAt: string;
+  modifiedAt: string;
+} | null> => {
+  const { data, error } = await client
+    .from("Content")
+    .select("text, created, last_modified")
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
-    .eq("is_schema", false)
+    .eq("variant", variant)
     .maybeSingle();
 
+  if (error || !data) {
+    console.error(
+      `Error fetching node content with metadata (${variant}):`,
+      error || "No data",
+    );
+    return null;
+  }
+
   return {
-    nodeTypeId:
-      (conceptData?.literal_content as unknown as { nodeTypeId?: string })
-        ?.nodeTypeId || undefined,
+    content: data.text,
+    createdAt: data.created ?? new Date(0).toISOString(),
+    modifiedAt: data.last_modified ?? new Date(0).toISOString(),
   };
 };
 
@@ -402,28 +409,15 @@ const updateMarkdownAssetLinks = ({
 
   let updatedContent = content;
 
-  // Helper to check if a link path matches an old path
-  const matchesOldPath = (linkPath: string, oldPath: string): boolean => {
-    // Exact match
-    if (linkPath === oldPath) return true;
+  // Normalize path for comparison: strip leading "./", collapse repeated slashes.
+  // We match only by full path (exact after normalizing), not by filename alone,
+  // so that different paths with the same name (e.g. experiment1/result.jpg vs
+  // experiment2/result.jpg) are never treated as the same asset.
+  const normalizePathForMatch = (p: string): string =>
+    p.replace(/^\.\//, "").replace(/\/+/g, "/").trim();
 
-    // Match by filename (handles relative paths)
-    const oldFileName = extractFileName(oldPath);
-    const linkFileName = extractFileName(linkPath);
-    if (
-      oldFileName.name === linkFileName.name &&
-      oldFileName.ext === linkFileName.ext
-    ) {
-      return true;
-    }
-
-    // Match if linkPath ends with oldPath or vice versa (handles relative vs absolute)
-    if (linkPath.endsWith(oldPath) || oldPath.endsWith(linkPath)) {
-      return true;
-    }
-
-    return false;
-  };
+  const matchesOldPath = (linkPath: string, oldPath: string): boolean =>
+    normalizePathForMatch(linkPath) === normalizePathForMatch(oldPath);
 
   // Helper to find file for a link path, checking if it's one of our imported assets
   const findImportedAssetFile = (linkPath: string): TFile | null => {
@@ -653,45 +647,61 @@ const importAssetsForNode = async ({
         }
       }
 
-      // If we found an existing file, reuse it
+      let overwritePath: string | undefined;
       if (existingFile) {
-        pathMapping.set(filepath, existingFile.path);
-        console.log(
-          `Reusing existing asset: ${filehash} -> ${existingFile.path}`,
-        );
-        continue;
+        const refLastModifiedMs = fileRef.last_modified
+          ? new Date(fileRef.last_modified + "Z").getTime()
+          : 0;
+        const localModifiedAfterRef =
+          refLastModifiedMs > 0 && existingFile.stat.mtime > refLastModifiedMs;
+        if (!localModifiedAfterRef) {
+          pathMapping.set(filepath, existingFile.path);
+          console.log(
+            `Reusing existing asset: ${filehash} -> ${existingFile.path}`,
+          );
+          continue;
+        }
+        overwritePath = existingFile.path;
       }
 
-      // No existing file found, need to download
-      // Determine target path
+      // Determine target path (new file or overwrite of modified local file)
       const sanitizedName = sanitizeFileName(name);
       const sanitizedExt = ext ? `.${ext}` : "";
       const sanitizedFileName = `${sanitizedName}${sanitizedExt}`;
-      const targetPath = `${assetsFolderPath}/${sanitizedFileName}`;
+      const targetPath =
+        overwritePath ?? `${assetsFolderPath}/${sanitizedFileName}`;
 
-      // Check if file already exists at target path (avoid duplicates)
+      // If local mtime is newer than fileRef.last_modified, overwrite with DB version.
       if (await plugin.app.vault.adapter.exists(targetPath)) {
-        // File exists at expected path, reuse it
         const file = plugin.app.vault.getAbstractFileByPath(targetPath);
         if (file && file instanceof TFile) {
-          pathMapping.set(filepath, targetPath);
-          // Update frontmatter to track this mapping
-          await plugin.app.fileManager.processFrontMatter(
-            targetMarkdownFile,
-            (fm) => {
-              const assetsRaw = (fm as Record<string, unknown>).importedAssets;
-              const assets: Record<string, string> =
-                assetsRaw &&
-                typeof assetsRaw === "object" &&
-                !Array.isArray(assetsRaw)
-                  ? (assetsRaw as Record<string, string>)
-                  : {};
-              assets[filehash] = targetPath;
-              (fm as Record<string, unknown>).importedAssets = assets;
-            },
-          );
-          console.log(`Reusing existing file at path: ${targetPath}`);
-          continue;
+          const localMtimeMs = file.stat.mtime;
+          const refLastModifiedMs = fileRef.last_modified
+            ? new Date(fileRef.last_modified + "Z").getTime()
+            : 0;
+          const localModifiedAfterRef =
+            refLastModifiedMs > 0 && localMtimeMs > refLastModifiedMs;
+          if (!localModifiedAfterRef) {
+            pathMapping.set(filepath, targetPath);
+            await plugin.app.fileManager.processFrontMatter(
+              targetMarkdownFile,
+              (fm) => {
+                const assetsRaw = (fm as Record<string, unknown>)
+                  .importedAssets;
+                const assets: Record<string, string> =
+                  assetsRaw &&
+                  typeof assetsRaw === "object" &&
+                  !Array.isArray(assetsRaw)
+                    ? (assetsRaw as Record<string, string>)
+                    : {};
+                assets[filehash] = targetPath;
+                (fm as Record<string, unknown>).importedAssets = assets;
+              },
+            );
+            console.log(`Reusing existing file at path: ${targetPath}`);
+            continue;
+          }
+          // Local file was modified since fileRef's last_modified; overwrite with DB version
         }
       }
 
@@ -760,89 +770,12 @@ type ParsedFrontmatter = {
 
 const parseFrontmatter = (
   content: string,
-): {
-  frontmatter: ParsedFrontmatter;
-  body: string;
-} => {
-  // Pattern: ---\n(frontmatter)\n---\n(body - optional)
-  const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*(?:\n([\s\S]*))?$/;
-  const match = content.match(frontmatterRegex);
-
-  if (!match || !match[1]) {
-    return { frontmatter: {}, body: content };
-  }
-
-  const frontmatterText = match[1];
-  const body = match[2] ?? "";
-
-  // Parse YAML-like frontmatter (simple parser for key: value pairs)
-  const frontmatter: ParsedFrontmatter = {};
-  const lines = frontmatterText.split("\n");
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line) continue;
-
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    const colonIndex = trimmed.indexOf(":");
-    if (colonIndex === -1) continue;
-
-    const key = trimmed.slice(0, colonIndex).trim();
-    const valueStr = trimmed.slice(colonIndex + 1).trim();
-    let value: unknown = valueStr;
-
-    // Handle array values: inline (valueStr starts with "-") or block (valueStr empty, next lines start with "-")
-    const isInlineArrayStart = valueStr.startsWith("-");
-    const isEmptyValue = !valueStr || valueStr.trim() === "";
-
-    if (isInlineArrayStart || isEmptyValue) {
-      const arrayValues: string[] = [];
-      let nextLineIndex = i + 1;
-
-      // First item on same line (inline): "key: - item"
-      if (isInlineArrayStart) {
-        const firstItem = valueStr.slice(1).trim();
-        if (firstItem) arrayValues.push(firstItem);
-      }
-
-      // Collect array items from subsequent lines that trim-start with "-"
-      let currentLine: string | undefined =
-        nextLineIndex < lines.length ? lines[nextLineIndex] : undefined;
-      while (currentLine != null && currentLine.trim().startsWith("-")) {
-        const itemValue = currentLine.trim().slice(1).trim();
-        if (itemValue) arrayValues.push(itemValue);
-        nextLineIndex++;
-        currentLine =
-          nextLineIndex < lines.length ? lines[nextLineIndex] : undefined;
-      }
-
-      value =
-        arrayValues.length > 0
-          ? arrayValues
-          : isInlineArrayStart
-            ? [valueStr.slice(1).trim()]
-            : [];
-      frontmatter[key] = value;
-      i = nextLineIndex - 1; // skip consumed lines
-      continue;
-    }
-
-    // Scalar value: remove quotes if present
-    if (
-      (valueStr.startsWith('"') && valueStr.endsWith('"')) ||
-      (valueStr.startsWith("'") && valueStr.endsWith("'"))
-    ) {
-      value = valueStr.slice(1, -1);
-    } else {
-      value = valueStr;
-    }
-
-    frontmatter[key] = value;
-  }
-
-  return { frontmatter, body };
+): { frontmatter: ParsedFrontmatter; body: string } => {
+  const { data, content: body } = matter(content);
+  return {
+    frontmatter: (data ?? {}) as ParsedFrontmatter,
+    body: body ?? "",
+  };
 };
 
 /**
@@ -904,11 +837,18 @@ const mapNodeTypeIdToLocal = async ({
 
   const schemaName = schemaData.name;
 
-  // Find a local nodeType with the same name (use plugin.settings so we see newly created types)
+  // Prefer match by node type ID (imported type may already exist locally with same id)
+  const matchById = plugin.settings.nodeTypes.find(
+    (nt) => nt.id === sourceNodeTypeId,
+  );
+  if (matchById) {
+    return matchById.id;
+  }
+
+  // Fall back to match by name
   const matchingLocalNodeType = plugin.settings.nodeTypes.find(
     (nt) => nt.name === schemaName,
   );
-
   if (matchingLocalNodeType) {
     return matchingLocalNodeType.id;
   }
@@ -944,6 +884,8 @@ const processFileContent = async ({
   sourceSpaceUri,
   rawContent,
   filePath,
+  importedCreatedAt,
+  importedModifiedAt,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
@@ -951,6 +893,8 @@ const processFileContent = async ({
   sourceSpaceUri: string;
   rawContent: string;
   filePath: string;
+  importedCreatedAt?: string;
+  importedModifiedAt?: string;
 }): Promise<{ file: TFile; error?: string }> => {
   // 1. Create or update the file with the fetched content first
   let file: TFile | null = plugin.app.vault.getFileByPath(filePath);
@@ -961,7 +905,7 @@ const processFileContent = async ({
   }
 
   // 2. Parse frontmatter from rawContent (metadataCache is updated async and is
-  //    often empty immediately after create/modify), then map nodeTypeId and  update frontmatter.
+  //    often empty immediately after create/modify), then map nodeTypeId and update frontmatter.
   const { frontmatter } = parseFrontmatter(rawContent);
   const sourceNodeTypeId = frontmatter.nodeTypeId;
 
@@ -976,10 +920,17 @@ const processFileContent = async ({
   }
 
   await plugin.app.fileManager.processFrontMatter(file, (fm) => {
+    const record = fm as Record<string, unknown>;
     if (mappedNodeTypeId !== undefined) {
-      (fm as Record<string, unknown>).nodeTypeId = mappedNodeTypeId;
+      record.nodeTypeId = mappedNodeTypeId;
     }
-    (fm as Record<string, unknown>).importedFromSpaceUri = sourceSpaceUri;
+    record.importedFromSpaceUri = sourceSpaceUri;
+    if (importedCreatedAt !== undefined) {
+      record.importedCreatedAt = importedCreatedAt;
+    }
+    if (importedModifiedAt !== undefined) {
+      record.importedModifiedAt = importedModifiedAt;
+    }
   });
 
   return { file };
@@ -1076,20 +1027,22 @@ export const importSelectedNodes = async ({
           continue;
         }
 
-        const content = await fetchNodeContent({
+        const contentWithMeta = await fetchNodeContentWithMetadata({
           client,
           spaceId,
           nodeInstanceId: node.nodeInstanceId,
           variant: "full",
         });
 
-        if (content === null) {
+        if (contentWithMeta === null) {
           console.warn(`No full variant found for node ${node.nodeInstanceId}`);
           failedCount++;
           processedCount++;
           onProgress?.(processedCount, totalNodes);
           continue;
         }
+
+        const { content, createdAt, modifiedAt } = contentWithMeta;
 
         // Sanitize file name
         const sanitizedFileName = sanitizeFileName(fileName);
@@ -1110,7 +1063,7 @@ export const importSelectedNodes = async ({
           }
         }
 
-        // Process the file content (maps nodeTypeId, handles frontmatter)
+        // Process the file content (maps nodeTypeId, handles frontmatter, stores import timestamps)
         // This updates existing file or creates new one
         const result = await processFileContent({
           plugin,
@@ -1119,6 +1072,8 @@ export const importSelectedNodes = async ({
           sourceSpaceUri: spaceUri,
           rawContent: content,
           filePath: finalFilePath,
+          importedCreatedAt: createdAt,
+          importedModifiedAt: modifiedAt,
         });
 
         if (result.error) {
@@ -1235,7 +1190,8 @@ export const refreshImportedFile = async ({
         title: file.basename,
         spaceId,
         spaceName,
-        groupId: (frontmatter.publishedToGroups as string[])[0] ?? "",
+        groupId:
+          (frontmatter.publishedToGroups as string[] | undefined)?.[0] ?? "",
         selected: false,
       },
     ],
