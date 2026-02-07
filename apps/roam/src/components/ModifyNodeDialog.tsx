@@ -91,10 +91,17 @@ const ModifyNodeDialog = ({
       ),
     [referencedNodeValue.uid, initialReferencedNode?.uid],
   );
+
   const contentInputRef = useRef<HTMLInputElement>(null);
+  const hasFocusedContentRef = useRef(false);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      hasFocusedContentRef.current = false;
+      return;
+    }
+    if (hasFocusedContentRef.current) return;
+    hasFocusedContentRef.current = true;
     const id = window.setTimeout(() => {
       contentInputRef.current?.focus();
     }, 100);

@@ -44,14 +44,6 @@ const FuzzySelectInput = <T extends Result = Result>({
 
   const menuRef = useRef<HTMLUListElement>(null);
 
-  useEffect(() => {
-    if (!autoFocus) return;
-    const id = window.setTimeout(() => {
-      inputRef?.current?.focus();
-    }, 150);
-    return () => window.clearTimeout(id);
-  }, [autoFocus, inputRef]);
-
   const filteredItems = useMemo(() => {
     if (!query) return options;
     return fuzzy
