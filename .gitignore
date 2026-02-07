@@ -38,4 +38,3 @@ yarn-error.log*
 # Local development files
 local/*
 .cursor/debug.log
-CLAUDE.md
