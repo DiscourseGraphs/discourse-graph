@@ -46,14 +46,6 @@ const FuzzySelectInput = <T extends Result = Result>({
 
   const menuRef = useRef<HTMLUListElement>(null);
 
-  useEffect(() => {
-    if (!autoFocus) return;
-    const id = window.setTimeout(() => {
-      inputRef?.current?.focus();
-    }, 150);
-    return () => window.clearTimeout(id);
-  }, [autoFocus, inputRef]);
-
   const filteredItems = useMemo(() => {
     if (!query) return options;
     return fuzzy
@@ -181,8 +173,6 @@ const FuzzySelectInput = <T extends Result = Result>({
     <Popover
       isOpen={isOpen}
       minimal
-      autoFocus={false}
-      enforceFocus={false}
       position={PopoverPosition.BOTTOM_LEFT}
       modifiers={{
         flip: { enabled: false },
