@@ -41,6 +41,7 @@ type BaseTextPanelProps = {
   setter: TextSetter;
   initialValue?: string;
   placeholder?: string;
+  onChange?: (value: string) => void;
 } & RoamBlockSyncProps;
 
 type BaseFlagPanelProps = {
@@ -63,6 +64,7 @@ type BaseNumberPanelProps = {
   initialValue?: number;
   min?: number;
   max?: number;
+  onChange?: (value: number) => void;
 } & RoamBlockSyncProps;
 
 type BaseSelectPanelProps = {
@@ -80,6 +82,7 @@ type BaseMultiTextPanelProps = {
   settingKeys: string[];
   setter: MultiTextSetter;
   initialValue?: string[];
+  onChange?: (values: string[]) => void;
 } & RoamBlockSyncProps;
 
 const BaseTextPanel = ({
@@ -89,6 +92,7 @@ const BaseTextPanel = ({
   setter,
   initialValue,
   placeholder,
+  onChange,
   parentUid,
   uid,
   order,
@@ -205,6 +209,7 @@ const BaseNumberPanel = ({
   initialValue,
   min,
   max,
+  onChange,
   parentUid,
   uid,
   order,
@@ -295,6 +300,7 @@ const BaseMultiTextPanel = ({
   settingKeys,
   setter,
   initialValue,
+  onChange,
   parentUid,
   uid: initialBlockUid,
   order,
@@ -333,6 +339,7 @@ const BaseMultiTextPanel = ({
       setValues(newValues);
       setter(settingKeys, newValues);
       setInputValue("");
+      onChange?.(newValues);
 
       const parent = await ensureParentBlock();
       if (parent) {
@@ -355,6 +362,7 @@ const BaseMultiTextPanel = ({
     const newValues = values.filter((_, i) => i !== index);
     setValues(newValues);
     setter(settingKeys, newValues);
+    onChange?.(newValues);
 
     if (hasBlockSync) {
       const removedUid = childUidsRef.current[index];
