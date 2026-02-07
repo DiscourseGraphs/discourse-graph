@@ -1672,8 +1672,8 @@ export type Database = {
           s_function: string
           s_target: number
           s_worker: string
-          task_interval: string
-          timeout: string
+          task_interval: unknown
+          timeout: unknown
         }
         Returns: string
       }
