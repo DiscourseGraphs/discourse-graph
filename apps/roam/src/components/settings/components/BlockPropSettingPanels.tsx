@@ -48,6 +48,7 @@ type BaseTextPanelProps = {
   setter: TextSetter;
   defaultValue?: string;
   placeholder?: string;
+  onChange?: (value: string) => void;
 } & RoamBlockSyncProps;
 
 type BaseFlagPanelProps = {
@@ -72,6 +73,7 @@ type BaseNumberPanelProps = {
   defaultValue?: number;
   min?: number;
   max?: number;
+  onChange?: (value: number) => void;
 } & RoamBlockSyncProps;
 
 type BaseSelectPanelProps = {
@@ -91,6 +93,7 @@ type BaseMultiTextPanelProps = {
   getter: MultiTextGetter;
   setter: MultiTextSetter;
   defaultValue?: string[];
+  onChange?: (values: string[]) => void;
 } & RoamBlockSyncProps;
 
 const BaseTextPanel = ({
@@ -101,6 +104,7 @@ const BaseTextPanel = ({
   setter,
   defaultValue,
   placeholder,
+  onChange,
   parentUid,
   uid,
   order,
@@ -125,6 +129,7 @@ const BaseTextPanel = ({
     setValue(newValue);
     setter(settingKeys, newValue);
     syncToBlock?.(newValue);
+    onChange?.(newValue);
     setTimeout(() => {
       console.log(`[TextPanel] "${title}" after set, blockProp:`, getter(settingKeys));
     }, 500);
@@ -227,6 +232,7 @@ const BaseNumberPanel = ({
   defaultValue,
   min,
   max,
+  onChange,
   parentUid,
   uid,
   order,
@@ -251,6 +257,7 @@ const BaseNumberPanel = ({
     setValue(valueAsNumber);
     setter(settingKeys, valueAsNumber);
     syncToBlock?.(valueAsNumber);
+    onChange?.(valueAsNumber);
     setTimeout(() => {
       console.log(`[NumberPanel] "${title}" after set, blockProp:`, getter(settingKeys));
     }, 500);
@@ -329,6 +336,7 @@ const BaseMultiTextPanel = ({
   getter,
   setter,
   defaultValue,
+  onChange,
   parentUid,
   uid: initialBlockUid,
   order,
@@ -369,6 +377,7 @@ const BaseMultiTextPanel = ({
       setValues(newValues);
       setter(settingKeys, newValues);
       setInputValue("");
+      onChange?.(newValues);
 
       const parent = await ensureParentBlock();
       if (parent) {
@@ -394,6 +403,7 @@ const BaseMultiTextPanel = ({
     const newValues = values.filter((_, i) => i !== index);
     setValues(newValues);
     setter(settingKeys, newValues);
+    onChange?.(newValues);
 
     if (hasBlockSync) {
       const removedUid = childUidsRef.current[index];

@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label, Checkbox } from "@blueprintjs/core";
+import { Label } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { addStyle } from "roamjs-components/dom";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
@@ -16,18 +16,18 @@ import {
 } from "~/components/DiscourseFloatingMenu";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 import {
+  DISCOURSE_TOOL_SHORTCUT_KEY,
   AUTO_CANVAS_RELATIONS_KEY,
   DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
-  DISCOURSE_TOOL_SHORTCUT_KEY,
   STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
 } from "~/data/userSettings";
-import { enablePostHog, disablePostHog } from "~/utils/posthog";
-import internalError from "~/utils/internalError";
-import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
+import { enablePostHog, disablePostHog } from "~/utils/posthog";
+import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import streamlineStyling from "~/styles/streamlineStyling";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -61,246 +61,122 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         description="Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
         placeholder="Click to set single key"
       />
-      <Checkbox
-        defaultChecked={
-          extensionAPI.settings.get("discourse-context-overlay") as boolean
-        }
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set(
-            "discourse-context-overlay",
-            target.checked,
-          );
-
-          onPageRefObserverChange(overlayHandler)(target.checked);
+      <PersonalFlagPanel
+        title="Overlay"
+        description="Whether or not to overlay Discourse Context information over Discourse Node references."
+        settingKeys={["Discourse Context Overlay"]}
+        defaultValue={getSetting<boolean>("discourse-context-overlay", false)}
+        onChange={(checked) => {
+          void setSetting("discourse-context-overlay", checked);
+          onPageRefObserverChange(overlayHandler)(checked);
         }}
-        labelElement={
-          <>
-            Overlay
-            <Description
-              description={
-                "Whether or not to overlay discourse context information over discourse node references."
-              }
-            />
-          </>
-        }
       />
       {settings.suggestiveModeEnabled?.value && (
-        <Checkbox
-          defaultChecked={
-            extensionAPI.settings.get("suggestive-mode-overlay") as boolean
-          }
-          onChange={(e) => {
-            const target = e.target as HTMLInputElement;
-            void extensionAPI.settings.set(
-              "suggestive-mode-overlay",
-              target.checked,
-            );
+        <PersonalFlagPanel
+          title="Suggestive Mode Overlay"
+          description="Whether or not to overlay Suggestive Mode button over Discourse Node references."
+          settingKeys={["Suggestive Mode Overlay"]}
+          defaultValue={getSetting<boolean>("suggestive-mode-overlay", false)}
+          onChange={(checked) => {
+            void setSetting("suggestive-mode-overlay", checked);
             onPageRefObserverChange(getSuggestiveOverlayHandler(onloadArgs))(
-              target.checked,
+              checked,
             );
           }}
-          labelElement={
-          <>
-              Suggestive mode overlay
-              <Description
-                description={
-                  "Whether or not to overlay suggestive mode button over discourse node references."
-                }
-              />
-            </>
-          }
         />
       )}
-      <Checkbox
-        defaultChecked={
-          extensionAPI.settings.get("text-selection-popup") !== false
-        }
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("text-selection-popup", target.checked);
+      <PersonalFlagPanel
+        title="Text Selection Popup"
+        description="Whether or not to show the Discourse Node Menu when selecting text."
+        settingKeys={["Text Selection Popup"]}
+        defaultValue={getSetting("text-selection-popup", true)}
+        onChange={(checked) => {
+          void setSetting("text-selection-popup", checked);
         }}
-        labelElement={
-          <>
-            Text selection popup
-            <Description
-              description={
-                "Whether or not to show the discourse node menu when selecting text."
-              }
-            />
-          </>
-        }
       />
-      <Checkbox
-        defaultChecked={
-          extensionAPI.settings.get("disable-sidebar-open") as boolean
-        }
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("disable-sidebar-open", target.checked);
+      <PersonalFlagPanel
+        title="Disable Sidebar Open"
+        description="Disable opening new nodes in the sidebar when created"
+        settingKeys={["Disable Sidebar Open"]}
+        defaultValue={getSetting<boolean>("disable-sidebar-open", false)}
+        onChange={(checked) => {
+          void setSetting("disable-sidebar-open", checked);
         }}
-        labelElement={
-          <>
-            Disable Sidebar Open
-            <Description
-              description={
-                "Disable opening new nodes in the sidebar when created"
-              }
-            />
-          </>
-        }
       />
-      <Checkbox
-        defaultChecked={extensionAPI.settings.get("page-preview") as boolean}
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("page-preview", target.checked);
-          onPageRefObserverChange(previewPageRefHandler)(target.checked);
+      <PersonalFlagPanel
+        title="Preview"
+        description="Whether or not to display page previews when hovering over page refs"
+        settingKeys={["Page Preview"]}
+        defaultValue={getSetting<boolean>("page-preview", false)}
+        onChange={(checked) => {
+          void setSetting("page-preview", checked);
+          onPageRefObserverChange(previewPageRefHandler)(checked);
         }}
-        labelElement={
-          <>
-            Preview
-            <Description
-              description={
-                "Whether or not to display page previews when hovering over page refs"
-              }
-            />
-          </>
-        }
       />
-      <Checkbox
-        defaultChecked={
-          extensionAPI.settings.get("hide-feedback-button") as boolean
-        }
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          extensionAPI.settings.set("hide-feedback-button", target.checked);
-
-          if (target.checked) {
+      <PersonalFlagPanel
+        title="Hide Feedback Button"
+        description="Hide the 'Send feedback' button at the bottom right of the screen."
+        settingKeys={["Hide Feedback Button"]}
+        defaultValue={getSetting<boolean>("hide-feedback-button", false)}
+        onChange={(checked) => {
+          void setSetting("hide-feedback-button", checked);
+          if (checked) {
             hideDiscourseFloatingMenu();
           } else {
             showDiscourseFloatingMenu();
           }
         }}
-        labelElement={
-          <>
-            Hide Feedback Button
-            <Description
-              description={
-                "Hide the 'Send feedback' button at the bottom right of the screen."
-              }
-            />
-          </>
-        }
       />
-      <Checkbox
-        defaultChecked={
-          extensionAPI.settings.get(AUTO_CANVAS_RELATIONS_KEY) === true
-        }
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          void extensionAPI.settings.set(
-            AUTO_CANVAS_RELATIONS_KEY,
-            target.checked,
-          );
+      <PersonalFlagPanel
+        title="Auto Canvas Relations"
+        description="Automatically add discourse relations to canvas when a node is added"
+        settingKeys={["Auto Canvas Relations"]}
+        defaultValue={getSetting<boolean>(AUTO_CANVAS_RELATIONS_KEY, false)}
+        onChange={(checked) => {
+          void setSetting(AUTO_CANVAS_RELATIONS_KEY, checked);
         }}
-        labelElement={
-          <>
-            Auto Canvas Relations
-            <Description
-              description={
-                "Automatically add discourse relations to canvas when a node is added"
-              }
-            />
-          </>
-        }
       />
-      <Checkbox
-        defaultChecked={getSetting(
-          DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
-          false,
-        )}
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          void setSetting(
-            DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
-            target.checked,
-          ).catch(() => undefined);
-        }}
-        labelElement={
-          <>
-            (BETA) Overlay in Canvas
-            <Description
-              description={
-                "Whether or not to overlay discourse context information over canvas nodes."
-              }
-            />
-          </>
-        }
-      />
-      <Checkbox
-        defaultChecked={getSetting(STREAMLINE_STYLING_KEY, false)}
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          void setSetting(STREAMLINE_STYLING_KEY, target.checked).catch(
-            () => undefined,
-          );
 
-          // Load or unload the streamline styling
+      <PersonalFlagPanel
+        title="(BETA) Overlay in Canvas"
+        description="Whether or not to overlay Discourse Context information over Canvas Nodes."
+        settingKeys={["Overlay in Canvas"]}
+        defaultValue={getSetting<boolean>(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, false)}
+        onChange={(checked) => {
+          void setSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, checked);
+        }}
+      />
+      <PersonalFlagPanel
+        title="Streamline Styling"
+        description="Apply streamlined styling to your personal graph for a cleaner appearance."
+        settingKeys={["Streamline Styling"]}
+        defaultValue={getSetting<boolean>(STREAMLINE_STYLING_KEY, false)}
+        onChange={(checked) => {
+          void setSetting(STREAMLINE_STYLING_KEY, checked);
           const existingStyleElement =
             document.getElementById("streamline-styling");
 
-          if (target.checked && !existingStyleElement) {
-            // Load the styles
+          if (checked && !existingStyleElement) {
             const styleElement = addStyle(streamlineStyling);
             styleElement.id = "streamline-styling";
-          } else if (!target.checked && existingStyleElement) {
-            // Unload the styles
+          } else if (!checked && existingStyleElement) {
             existingStyleElement.remove();
           }
         }}
-        labelElement={
-          <>
-            Streamline Styling
-            <Description
-              description={
-                "Apply streamlined styling to your personal graph for a cleaner appearance."
-              }
-            />
-          </>
-        }
       />
-      <Checkbox
-        defaultChecked={getSetting(DISALLOW_DIAGNOSTICS, false)}
-        onChange={(e) => {
-          const target = e.target as HTMLInputElement;
-          const disallow = target.checked;
-          void setSetting(DISALLOW_DIAGNOSTICS, disallow)
-            .then(() => {
-              if (disallow) {
-                disablePostHog();
-              } else {
-                enablePostHog();
-              }
-            })
-            .catch((error) => {
-              target.checked = !disallow;
-              internalError({
-                error,
-                userMessage: "Could not change settings",
-              });
-            });
+      <PersonalFlagPanel
+        title="Disable Product Diagnostics"
+        description="Disable sending usage signals and error reports that help us improve the product."
+        settingKeys={["Disable Product Diagnostics"]}
+        defaultValue={getSetting<boolean>(DISALLOW_DIAGNOSTICS, false)}
+        onChange={(checked) => {
+          void setSetting(DISALLOW_DIAGNOSTICS, checked);
+          if (checked) {
+            disablePostHog();
+          } else {
+            enablePostHog();
+          }
         }}
-        labelElement={
-          <>
-            Disable Product Diagnostics
-            <Description
-              description={
-                "Disable sending usage signals and error reports that help us improve the product."
-              }
-            />
-          </>
-        }
       />
     </div>
   );
