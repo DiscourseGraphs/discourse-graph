@@ -942,6 +942,7 @@ const processFileContent = async ({
         record.nodeTypeId = mappedNodeTypeId;
       }
       record.importedFromSpaceUri = sourceSpaceUri;
+      record.lastModified = importedModifiedAt;
     },
     stat,
   );
