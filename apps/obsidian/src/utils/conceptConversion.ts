@@ -5,6 +5,7 @@ import type { SupabaseContext } from "./supabaseContext";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { Json } from "@repo/database/dbTypes";
+import DiscourseGraphPlugin from "..";
 
 /**
  * Get extra data (author, timestamps) from file metadata
@@ -37,7 +38,7 @@ export const discourseNodeSchemaToLocalConcept = ({
     node;
   return {
     space_id: context.spaceId,
-    name: id ? `${name} (${id})` : name,
+    name: `${name}`,
     source_local_id: id,
     is_schema: true,
     author_local_id: accountLocalId,

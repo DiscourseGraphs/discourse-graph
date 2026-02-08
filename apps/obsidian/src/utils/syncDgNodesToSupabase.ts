@@ -514,15 +514,11 @@ const convertDgToSupabaseConcepts = async ({
   const lastSchemaSync = (
     await getLastSchemaSyncTime(supabaseClient, context.spaceId)
   ).getTime();
-  const schemaIdsReferencedByInstances = new Set(
-    nodesSince.map((n) => n.nodeTypeId),
-  );
-  const nodeTypesToUpsert = (plugin.settings.nodeTypes ?? []).filter(
-    (n) =>
-      n.modified > lastSchemaSync || schemaIdsReferencedByInstances.has(n.id),
+  const newNodeTypes = (plugin.settings.nodeTypes ?? []).filter(
+    (n) => n.modified > lastSchemaSync,
   );
 
-  const nodesTypesToLocalConcepts = nodeTypesToUpsert.map((nodeType) =>
+  const nodesTypesToLocalConcepts = newNodeTypes.map((nodeType) =>
     discourseNodeSchemaToLocalConcept({
       context,
       node: nodeType,
@@ -543,13 +539,11 @@ const convertDgToSupabaseConcepts = async ({
     ...nodeInstanceToLocalConcepts,
   ];
 
-  console.log("conceptsToUpsert", conceptsToUpsert);
-
   if (conceptsToUpsert.length > 0) {
     const { ordered } = orderConceptsByDependency(conceptsToUpsert);
 
     const { error } = await supabaseClient.rpc("upsert_concepts", {
-      data: conceptsToUpsert as Json,
+      data: ordered as Json,
       v_space_id: context.spaceId,
     });
 

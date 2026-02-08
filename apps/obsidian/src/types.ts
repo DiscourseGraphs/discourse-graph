@@ -68,6 +68,9 @@ export type ImportableNode = {
   spaceName: string;
   groupId: string;
   selected: boolean;
+  /** From source Content (latest last_modified across variants). Set when loaded from getPublishedNodesForGroups. */
+  createdAt?: string;
+  modifiedAt?: string;
 };
 
 export type GroupWithNodes = {
