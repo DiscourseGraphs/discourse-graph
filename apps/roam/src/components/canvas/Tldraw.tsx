@@ -112,6 +112,8 @@ export type DiscourseContextType = {
   relations: Record<string, DiscourseRelation[]>;
   lastAppEvent: string;
   lastActions: HistoryEntry<TLRecord>[];
+  // Map editor instances to their canvas page UIDs to support multiple canvases
+  editorToPageUid: WeakMap<Editor, string>;
 };
 
 export const discourseContext: DiscourseContextType = {
@@ -119,6 +121,7 @@ export const discourseContext: DiscourseContextType = {
   relations: {},
   lastAppEvent: "",
   lastActions: [],
+  editorToPageUid: new WeakMap<Editor, string>(),
 };
 
 export const DEFAULT_WIDTH = 160;
@@ -675,6 +678,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               }
 
               appRef.current = app;
+              discourseContext.editorToPageUid.set(app, pageUid);
 
               app.on("change", (entry) => {
                 lastActionsRef.current.push(entry);

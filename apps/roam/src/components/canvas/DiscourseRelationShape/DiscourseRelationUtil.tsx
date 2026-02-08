@@ -654,7 +654,11 @@ export const createAllRelationShapeUtils = (
               relation,
               target,
             }));
-          const parentUid = getCurrentPageUid();
+          // Ensure we use the correct canvas even when multiple are open
+          const canvasPageUid = discourseContext.editorToPageUid.get(
+            this.editor,
+          );
+          const parentUid = canvasPageUid || getCurrentPageUid();
           const title = getPageTitleByPageUid(parentUid);
           await triplesToBlocks({
             defaultPageTitle: `Auto generated from [[${title}]]`,
