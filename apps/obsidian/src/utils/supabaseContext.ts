@@ -57,7 +57,7 @@ const getOrCreateAccountLocalId = async (
  * Gets the unique vault ID from Obsidian's internal API.
  * @see https://help.obsidian.md/Extending+Obsidian/Obsidian+URI
  */
-const getVaultId = (app: DiscourseGraphPlugin["app"]): string => {
+export const getVaultId = (app: DiscourseGraphPlugin["app"]): string => {
   return (app as unknown as { appId: string }).appId;
 };
 

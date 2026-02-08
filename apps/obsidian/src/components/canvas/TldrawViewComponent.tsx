@@ -44,7 +44,6 @@ import {
 } from "~/components/canvas/shapes/DiscourseRelationBinding";
 import ToastListener from "./ToastListener";
 import { RelationsOverlay } from "./overlays/RelationOverlay";
-import { showToast } from "./utils/toastUtils";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { CustomContextMenu } from "./CustomContextMenu";
 import {
@@ -53,7 +52,6 @@ import {
   openFileInNewLeaf,
   resolveDiscourseNodeFile,
 } from "./utils/openFileUtils";
-
 type TldrawPreviewProps = {
   store: TLStore;
   file: TFile;

@@ -59,7 +59,7 @@ import {
 } from "~/components/canvas/utils/relationUtils";
 import { RelationBindings } from "./DiscourseRelationBinding";
 import { DiscourseNodeShape, DiscourseNodeUtil } from "./DiscourseNodeShape";
-import { addRelationToFrontmatter } from "~/components/canvas/utils/frontmatterUtils";
+import { addRelationToRelationsJson } from "~/components/canvas/utils/relationJsonUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
 
 export enum ArrowHandles {
@@ -1210,16 +1210,23 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
         return;
       }
 
-      // Add the bidirectional relation to frontmatter
-      const { alreadyExisted } = await addRelationToFrontmatter({
-        app: this.options.app,
-        plugin: this.options.plugin,
-        sourceFile,
-        targetFile,
-        relationTypeId: shape.props.relationTypeId,
-      });
+      const { alreadyExisted, relationInstanceId } =
+        await addRelationToRelationsJson({
+          app: this.options.app,
+          plugin: this.options.plugin,
+          sourceFile,
+          targetFile,
+          relationTypeId: shape.props.relationTypeId,
+        });
 
-      // Show success notice
+      if (relationInstanceId) {
+        this.editor.updateShape({
+          id: shape.id,
+          type: shape.type,
+          meta: { ...shape.meta, relationInstanceId },
+        });
+      }
+
       const relationType = this.options.plugin.settings.relationTypes.find(
         (rt) => rt.id === shape.props.relationTypeId,
       );

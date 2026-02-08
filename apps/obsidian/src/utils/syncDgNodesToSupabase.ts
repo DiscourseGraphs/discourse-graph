@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { uuidv7 } from "uuidv7";
 import { Notice, TFile } from "obsidian";
+import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json } from "@repo/database/dbTypes";
 import {
@@ -145,24 +145,6 @@ const deleteNodesFromSupabase = async (
   }
 
   return result;
-};
-
-const ensureNodeInstanceId = async (
-  plugin: DiscourseGraphPlugin,
-  file: TFile,
-  frontmatter: Record<string, unknown>,
-): Promise<string> => {
-  const existingId = frontmatter["nodeInstanceId"] as string | undefined;
-  if (existingId && typeof existingId === "string") {
-    return existingId;
-  }
-
-  const nodeInstanceId = uuidv7();
-  await plugin.app.fileManager.processFrontMatter(file, (fm) => {
-    (fm as Record<string, unknown>).nodeInstanceId = nodeInstanceId;
-  });
-
-  return nodeInstanceId;
 };
 
 const getLastContentSyncTime = async (

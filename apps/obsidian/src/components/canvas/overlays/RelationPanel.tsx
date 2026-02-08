@@ -17,6 +17,12 @@ import { getFrontmatterForFile } from "~/components/canvas/shapes/discourseNodeS
 import { getRelationTypeById } from "~/utils/typeUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
 import { DEFAULT_TLDRAW_COLOR } from "~/utils/tldrawColors";
+import {
+  getNodeInstanceIdForFile,
+  getRelationsForNodeInstanceId,
+  getFileForNodeInstanceId,
+  addRelation,
+} from "~/utils/relationsStore";
 
 type GroupedRelation = {
   key: string;
@@ -184,7 +190,7 @@ export const RelationsPanel = ({
           setError("Linked file not found.");
           return;
         }
-        const g = computeRelations(plugin, file);
+        const g = await computeRelations(plugin, file);
         setGroups(g);
       } catch (e) {
         showToast({
@@ -346,9 +352,32 @@ export const RelationsPanel = ({
     isSource: boolean,
   ) => {
     try {
-      const targetNode = await ensureNodeShapeForFile(targetFile);
       const relationType = getRelationTypeById(plugin, relationTypeId);
       const relationLabel = relationType?.label ?? "";
+
+      const currentFile = await resolveLinkedFileFromSrc({
+        app: plugin.app,
+        canvasFile,
+        src: nodeShape.props.src ?? "",
+      });
+      if (!currentFile || !targetFile) return;
+
+      const sourceFile = isSource ? currentFile : targetFile;
+      const destFile = isSource ? targetFile : currentFile;
+      const sourceId = await getNodeInstanceIdForFile(plugin, sourceFile);
+      const destId = await getNodeInstanceIdForFile(plugin, destFile);
+      if (!sourceId || !destId) {
+        showToast({
+          severity: "error",
+          title: "Could Not Resolve Nodes",
+          description:
+            "Could not resolve node instance IDs for the selected files.",
+          targetCanvasId: canvasFile.path,
+        });
+        return;
+      }
+
+      const targetNode = await ensureNodeShapeForFile(targetFile);
 
       const id: TLShapeId = createShapeId();
 
@@ -416,6 +445,17 @@ export const RelationsPanel = ({
         isPrecise: false,
         isExact: false,
         snap: "none",
+      });
+
+      const { id: relationInstanceId } = await addRelation(plugin, {
+        type: relationTypeId,
+        source: sourceId,
+        destination: destId,
+      });
+      editor.updateShape({
+        id: shape.id,
+        type: shape.type,
+        meta: { ...shape.meta, relationInstanceId },
       });
     } catch (e) {
       console.error("Failed to create relation to file", e);
@@ -487,35 +527,36 @@ export const RelationsPanel = ({
   );
 };
 
-const computeRelations = (
+const computeRelations = async (
   plugin: DiscourseGraphPlugin,
   file: TFile,
-): GroupedRelation[] => {
+): Promise<GroupedRelation[]> => {
   const fileCache = plugin.app.metadataCache.getFileCache(file);
   if (!fileCache?.frontmatter) return [];
 
   const activeNodeTypeId = fileCache.frontmatter.nodeTypeId as string;
   if (!activeNodeTypeId) return [];
 
+  const nodeInstanceId = await getNodeInstanceIdForFile(plugin, file);
+  if (!nodeInstanceId) return [];
+
+  const relations = await getRelationsForNodeInstanceId(
+    plugin,
+    nodeInstanceId,
+  );
   const result = new Map<string, GroupedRelation>();
 
   for (const relationType of plugin.settings.relationTypes) {
-    const frontmatterLinks = fileCache.frontmatter[relationType.id] as unknown;
-    if (!frontmatterLinks) continue;
-
-    const links = Array.isArray(frontmatterLinks)
-      ? (frontmatterLinks as unknown[])
-      : [frontmatterLinks];
-
-    const relation = plugin.settings.discourseRelations.find(
+    const typeLevelRelation = plugin.settings.discourseRelations.find(
       (rel) =>
         (rel.sourceId === activeNodeTypeId ||
           rel.destinationId === activeNodeTypeId) &&
         rel.relationshipTypeId === relationType.id,
     );
-    if (!relation) continue;
+    if (!typeLevelRelation) continue;
 
-    const isSource = relation.sourceId === activeNodeTypeId;
+    const instanceRels = relations.filter((r) => r.type === relationType.id);
+    const isSource = typeLevelRelation.sourceId === activeNodeTypeId;
     const label = isSource ? relationType.label : relationType.complement;
     const key = `${relationType.id}-${isSource}`;
 
@@ -529,18 +570,11 @@ const computeRelations = (
       });
     }
 
-    for (const link of links) {
-      const match = String(link).match(/\[\[(.*?)\]\]/);
-      if (!match) continue;
-      const linkedFileName = match[1] ?? "";
-      const linked = plugin.app.metadataCache.getFirstLinkpathDest(
-        linkedFileName,
-        file.path,
-      );
-      if (!linked) continue;
-
-      const group = result.get(key);
-      if (group && !group.linkedFiles.some((f) => f.path === linked.path)) {
+    const group = result.get(key)!;
+    for (const r of instanceRels) {
+      const otherId = r.source === nodeInstanceId ? r.destination : r.source;
+      const linked = await getFileForNodeInstanceId(plugin, otherId);
+      if (linked && !group.linkedFiles.some((f) => f.path === linked.path)) {
         group.linkedFiles.push(linked);
       }
     }
@@ -548,4 +582,3 @@ const computeRelations = (
 
   return Array.from(result.values());
 };
-
