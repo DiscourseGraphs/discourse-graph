@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import type { Json } from "@repo/database/dbTypes";
 import matter from "gray-matter";
 import { App, TFile } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
@@ -38,6 +39,7 @@ export const getPublishedNodesForGroups = async ({
     text: string;
     createdAt: number;
     modifiedAt: number;
+    filePath: string | undefined;
   }>
 > => {
   if (groupIds.length === 0) {
@@ -48,7 +50,9 @@ export const getPublishedNodesForGroups = async ({
   // the latest last_modified per node and prefer "direct" for text (title).
   const { data, error } = await client
     .from("my_contents")
-    .select("source_local_id, space_id, text, created, last_modified, variant")
+    .select(
+      "source_local_id, space_id, text, created, last_modified, variant, metadata",
+    )
     .neq("space_id", currentSpaceId);
 
   if (error) {
@@ -67,6 +71,7 @@ export const getPublishedNodesForGroups = async ({
     created: string | null;
     last_modified: string | null;
     variant: string | null;
+    metadata: Json;
   };
 
   const key = (r: Row) => `${r.space_id ?? ""}\t${r.source_local_id ?? ""}`;
@@ -84,6 +89,7 @@ export const getPublishedNodesForGroups = async ({
     text: string;
     createdAt: number;
     modifiedAt: number;
+    filePath: string | undefined;
   }> = [];
 
   for (const rows of groups.values()) {
@@ -102,12 +108,19 @@ export const getPublishedNodesForGroups = async ({
     const modifiedAt = latest.last_modified
       ? new Date(latest.last_modified + "Z").valueOf()
       : 0;
+    const filePath: string | undefined =
+      direct &&
+      typeof direct.metadata === "object" &&
+      typeof (direct.metadata as Record<string, any>).filePath === "string"
+        ? (direct.metadata as Record<string, any>).filePath
+        : undefined;
     nodes.push({
       source_local_id: latest.source_local_id!,
       space_id: latest.space_id!,
       text,
       createdAt,
       modifiedAt,
+      filePath,
     });
   }
 
@@ -305,10 +318,11 @@ const fetchNodeContentForImport = async ({
   content: string;
   createdAt: number;
   modifiedAt: number;
+  filePath?: string;
 } | null> => {
   const { data, error } = await client
     .from("my_contents")
-    .select("text, created, last_modified, variant")
+    .select("text, created, last_modified, variant, metadata")
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
     .in("variant", ["direct", "full"]);
@@ -323,6 +337,7 @@ const fetchNodeContentForImport = async ({
     created: string | null;
     last_modified: string | null;
     variant: string | null;
+    metadata: Json;
   }>;
   const direct = rows.find((r) => r.variant === "direct");
   const full = rows.find((r) => r.variant === "full");
@@ -342,11 +357,17 @@ const fetchNodeContentForImport = async ({
     return null;
   }
 
+  const filePath: string | undefined =
+    typeof direct.metadata === "object" &&
+    typeof (direct.metadata as Record<string, any>).filePath === "string"
+      ? (direct.metadata as Record<string, any>).filePath
+      : undefined;
   return {
     fileName: direct.text,
     content: full.text,
     createdAt: new Date(full.created).valueOf(),
     modifiedAt: new Date(full.last_modified).valueOf(),
+    filePath,
   };
 };
 
@@ -444,8 +465,6 @@ const downloadFileFromStorage = async ({
     return null;
   }
 };
-
-
 
 /** Normalize path for lookup: strip leading "./", collapse slashes. Shared so pathMapping keys match link paths. */
 const normalizePathForLookup = (p: string): string =>
@@ -975,6 +994,7 @@ const processFileContent = async ({
   sourceSpaceId,
   sourceSpaceUri,
   rawContent,
+  originalFilePath,
   filePath,
   importedCreatedAt,
   importedModifiedAt,
@@ -984,6 +1004,7 @@ const processFileContent = async ({
   sourceSpaceId: number;
   sourceSpaceUri: string;
   rawContent: string;
+  originalFilePath?: string;
   filePath: string;
   importedCreatedAt?: number;
   importedModifiedAt?: number;
@@ -1094,8 +1115,6 @@ export const importSelectedNodes = async ({
       await plugin.app.vault.createFolder(importFolderPath);
     }
 
-
-
     // Process each node in this space
     for (const node of nodes) {
       try {
@@ -1120,7 +1139,13 @@ export const importSelectedNodes = async ({
           continue;
         }
 
-        const { fileName, content, createdAt: contentCreatedAt, modifiedAt: contentModifiedAt } = nodeContent;
+        const {
+          fileName,
+          content,
+          createdAt: contentCreatedAt,
+          modifiedAt: contentModifiedAt,
+          filePath,
+        } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
 
@@ -1151,6 +1176,7 @@ export const importSelectedNodes = async ({
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
           rawContent: content,
+          originalFilePath: filePath,
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
@@ -1255,21 +1281,44 @@ export const refreshImportedFile = async ({
       error: "Missing frontmatter: importedFromSpaceUri or nodeInstanceId",
     };
   }
+  if (
+    typeof frontmatter.importedFromSpaceUri !== "string" ||
+    typeof frontmatter.nodeInstanceId !== "string"
+  ) {
+    return {
+      success: false,
+      error: "Non-string frontmatter: importedFromSpaceUri or nodeInstanceId",
+    };
+  }
   const { spaceName, spaceId } = await getSpaceNameIdFromUri(
     supabaseClient,
-    frontmatter.importedFromSpaceUri as string,
+    frontmatter.importedFromSpaceUri,
   );
   if (spaceId === -1) {
     return { success: false, error: "Could not get the space Id" };
   }
+  const metadataResp = await supabaseClient
+    .from("Content")
+    .select("metadata")
+    .eq("space_id", spaceId)
+    .eq("source_local_id", frontmatter.nodeInstanceId)
+    .eq("variant", "direct")
+    .maybeSingle();
+  const metadata = metadataResp.data?.metadata;
+  const filePath: string | undefined =
+    typeof metadata === "object" &&
+    typeof (metadata as Record<string, any>).filePath === "string"
+      ? (metadata as Record<string, any>).filePath
+      : undefined;
   const result = await importSelectedNodes({
     plugin,
     selectedNodes: [
       {
-        nodeInstanceId: frontmatter.nodeInstanceId as string,
+        nodeInstanceId: frontmatter.nodeInstanceId,
         title: file.basename,
         spaceId,
         spaceName,
+        filePath,
         groupId:
           (frontmatter.publishedToGroups as string[] | undefined)?.[0] ?? "",
         selected: false,

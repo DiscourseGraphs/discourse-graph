@@ -71,6 +71,7 @@ export type ImportableNode = {
   /** From source Content (latest last_modified across variants). Set when loaded from getPublishedNodesForGroups. */
   createdAt?: number;
   modifiedAt?: number;
+  filePath?: string;
 };
 
 export type GroupWithNodes = {
