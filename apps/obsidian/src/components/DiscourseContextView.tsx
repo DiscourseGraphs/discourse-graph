@@ -74,6 +74,13 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
     }
 
     const isImported = !!frontmatter.importedFromSpaceUri;
+    const sourceDates =
+      isImported && activeFile?.stat
+        ? {
+            createdAt: new Date(activeFile.stat.ctime).toLocaleString(),
+            modifiedAt: new Date(activeFile.stat.mtime).toLocaleString(),
+          }
+        : null;
 
     return (
       <>
@@ -104,6 +111,13 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             <div className="mb-1">
               <span className="font-bold">Content: </span>
               {extractContentFromTitle(nodeType.format, activeFile.basename)}
+            </div>
+          )}
+
+          {isImported && sourceDates && (
+            <div className="mt-2 text-xs text-modifier-text">
+              <div>Created in source: {sourceDates.createdAt}</div>
+              <div>Last modified in source: {sourceDates.modifiedAt}</div>
             </div>
           )}
         </div>
