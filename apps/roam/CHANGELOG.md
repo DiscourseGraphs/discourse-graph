@@ -9,6 +9,32 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 - Minor version bumps are released on a regular cadence.
 - Patch version bumps are for bugfixes and hotfixes.
 
+## [0.17.0] – 2026-02-08
+
+### Added
+
+- **Create Node flow** — new consolidated node creation experience in Roam
+- **Canvas: paste references into canvas** — paste block or page references directly into the canvas
+- **Canvas: drag-and-drop blocks** — drag Roam blocks directly into the canvas
+- **Node colors in settings** — show node colors for nodes via settings
+
+### Changed
+
+- **Discourse Context placement** — move context panel to top of discourse node pages
+- Node Summoning Menu - collapse filter menu behavior after clicking "only"
+- **Canvas** — Upgrade tldraw to 2.4.0
+
+### Fixed
+
+- **Canvas**
+  - Fix incorrect image sizing after Canvas 2.3.0 upgrade
+  - Remove Discourse Overlay from `@source` titles where inappropriate
+- **Relations & nodes**
+  - Improve handling of incomplete or missing node definitions
+  - Improve character handling in node titles (bold, italic, namespaced, etc)
+- Misc
+  - Standardized terminology in settings and documentation
+
 ## [0.16.0] - 2026-01-11
 
 ### Added
