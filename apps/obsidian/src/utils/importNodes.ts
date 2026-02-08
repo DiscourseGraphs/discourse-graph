@@ -96,9 +96,11 @@ export const getPublishedNodesForGroups = async ({
     );
     const direct = rows.find((r) => r.variant === "direct");
     const text = direct?.text ?? latest.text ?? "";
-    const createdAt = latest.created ? new Date(latest.created).valueOf() : 0;
+    const createdAt = latest.created
+      ? new Date(latest.created + "Z").valueOf()
+      : 0;
     const modifiedAt = latest.last_modified
-      ? new Date(latest.last_modified).valueOf()
+      ? new Date(latest.last_modified + "Z").valueOf()
       : 0;
     nodes.push({
       source_local_id: latest.source_local_id!,
@@ -347,8 +349,8 @@ const fetchFileReferences = async ({
   return data.map(({ filepath, filehash, created, last_modified }) => ({
     filepath,
     filehash,
-    created: created ? new Date(created).valueOf() : 0,
-    last_modified: last_modified ? new Date(last_modified).valueOf() : 0,
+    created: created ? new Date(created + "Z").valueOf() : 0,
+    last_modified: last_modified ? new Date(last_modified + "Z").valueOf() : 0,
   }));
 };
 
@@ -580,6 +582,10 @@ const importAssetsForNode = async ({
 }> => {
   const pathMapping = new Map<string, string>();
   const errors: string[] = [];
+  const stat = {
+    ctime: targetMarkdownFile.stat.ctime,
+    mtime: targetMarkdownFile.stat.mtime,
+  };
 
   // Fetch FileReference records for the node
   const fileReferences = await fetchFileReferences({
@@ -682,6 +688,7 @@ const importAssetsForNode = async ({
                 assets[filehash] = targetPath;
                 (fm as Record<string, unknown>).importedAssets = assets;
               },
+              stat,
             );
             console.log(`Reusing existing file at path: ${targetPath}`);
             continue;
@@ -733,6 +740,7 @@ const importAssetsForNode = async ({
           assets[filehash] = targetPath;
           (fm as Record<string, unknown>).importedAssets = assets;
         },
+        stat,
       );
 
       // Track path mapping
@@ -926,13 +934,17 @@ const processFileContent = async ({
     });
   }
 
-  await plugin.app.fileManager.processFrontMatter(file, (fm) => {
-    const record = fm as Record<string, unknown>;
-    if (mappedNodeTypeId !== undefined) {
-      record.nodeTypeId = mappedNodeTypeId;
-    }
-    record.importedFromSpaceUri = sourceSpaceUri;
-  });
+  await plugin.app.fileManager.processFrontMatter(
+    file,
+    (fm) => {
+      const record = fm as Record<string, unknown>;
+      if (mappedNodeTypeId !== undefined) {
+        record.nodeTypeId = mappedNodeTypeId;
+      }
+      record.importedFromSpaceUri = sourceSpaceUri;
+    },
+    stat,
+  );
 
   return { file };
 };
