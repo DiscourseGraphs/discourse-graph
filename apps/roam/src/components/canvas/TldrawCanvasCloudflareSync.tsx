@@ -2,13 +2,13 @@ import { useSync } from "@tldraw/sync";
 import {
   TLAnyBindingUtilConstructor,
   TLAnyShapeUtilConstructor,
+  TLAssetStore,
   TLStoreWithStatus,
   defaultBindingUtils,
   defaultShapeUtils,
   MigrationSequence,
 } from "tldraw";
 import { useMemo } from "react";
-import { createCloudflareSyncAssetStore } from "./cloudflareSyncAssetStore";
 
 /** When true, newly created canvases (no Roam-persisted state) use tldraw sync via Cloudflare. PoC only. */
 export const TLDRAW_CLOUDFLARE_SYNC_ENABLED = true;
@@ -20,6 +20,21 @@ export type CloudflareCanvasStoreAdapterResult = {
   store: TLStoreWithStatus;
   error: Error | null;
   isLoading: boolean;
+};
+
+const parseRoamUploadResponse = (value: string): string => {
+  return value.replace(/^!\[\]\(/, "").replace(/\)$/, "");
+};
+
+const createRoamAssetStore = (): TLAssetStore => {
+  return {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    upload: async (_asset, file) => {
+      const response = await window.roamAlphaAPI.file.upload({ file });
+      return parseRoamUploadResponse(response);
+    },
+    resolve: (asset) => asset.props.src,
+  };
 };
 
 export const useCloudflareSyncStore = ({
@@ -37,10 +52,7 @@ export const useCloudflareSyncStore = ({
   customShapeTypes: string[];
   customBindingTypes: string[];
 }): CloudflareCanvasStoreAdapterResult => {
-  const assets = useMemo(
-    () => createCloudflareSyncAssetStore(TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL),
-    [],
-  );
+  const assets = useMemo(() => createRoamAssetStore(), []);
   const shapeUtils = useMemo(
     () => [...defaultShapeUtils, ...customShapeUtils],
     [customShapeUtils],
