@@ -10,7 +10,7 @@ import { envContents } from "@repo/database/dbDotEnv";
 export const updateSession = async (request: NextRequest) => {
   const dbEnv = envContents();
   const supabaseUrl = dbEnv.SUPABASE_URL;
-  const supabaseKey = dbEnv.SUPABASE_ANON_KEY;
+  const supabaseKey = dbEnv.SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error("Missing required Supabase environment variables");

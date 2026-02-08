@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { appendFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, writeFileSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
@@ -28,6 +28,10 @@ const getVercelToken = () => {
   return process.env["VERCEL_TOKEN"];
 };
 
+const makeFnEnv = (envTxt: string): string => {
+  return envTxt.split('\n').filter(l=>l.match(/^SUPABASE_\w+_KEY/)).map((l)=> l.replace('SUPABASE_', 'SB_')).join('\n');
+}
+
 const makeLocalEnv = () => {
   execSync("supabase start", {
     cwd: projectRoot, stdio: "inherit"
@@ -48,6 +52,10 @@ const makeLocalEnv = () => {
     join(projectRoot, ".env.local"),
     prefixed + '\nNEXT_API_ROOT="http://localhost:3000/api"\n',
   );
+  writeFileSync(
+    join(projectRoot, "supabase/functions/.env"),
+    makeFnEnv(prefixed)
+  )
 };
 
 const makeBranchEnv = async (vercel: Vercel, vercelToken: string) => {
@@ -86,6 +94,11 @@ const makeBranchEnv = async (vercel: Vercel, vercelToken: string) => {
     throw err;
   }
   appendFileSync(".env.branch", `NEXT_API_ROOT="https://${url}/api"\n`);
+  const fromVercel = readFileSync('.env.branch').toString();
+  writeFileSync(
+    join(projectRoot, "supabase/functions/.env"),
+    makeFnEnv(fromVercel)
+  )
 };
 
 const makeProductionEnv = async (vercel: Vercel, vercelToken: string) => {
@@ -104,6 +117,11 @@ const makeProductionEnv = async (vercel: Vercel, vercelToken: string) => {
     `vercel -t ${vercelToken} env pull --environment production .env.production`,
   );
   appendFileSync(".env.production", `NEXT_API_ROOT="https://${url}/api"\n`);
+  const fromVercel = readFileSync('.env.production').toString();
+  writeFileSync(
+    join(projectRoot, "supabase/functions/.env"),
+    makeFnEnv(fromVercel)
+  )
 };
 
 const main = async (variant: Variant) => {
@@ -118,7 +136,7 @@ const main = async (variant: Variant) => {
       );
       return;
     } catch (e) {
-      if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY)
+      if (process.env.SUPABASE_URL && process.env.SUPABASE_PUBLISHABLE_KEY)
         return;
       throw new Error("Could not get environment from site");
     }
