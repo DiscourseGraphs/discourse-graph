@@ -278,6 +278,8 @@ export default class DiscourseGraphPlugin extends Plugin {
             "importedFromSpaceUri",
             "nodeInstanceId",
             "publishedToGroups",
+            "lastModified",
+            "importedAssets",
           ],
         );
         keysToHide.push(...this.settings.relationTypes.map((rt) => rt.id));

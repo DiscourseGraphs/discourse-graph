@@ -74,11 +74,15 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
     }
 
     const isImported = !!frontmatter.importedFromSpaceUri;
+    const modifiedAt =
+      typeof frontmatter.modifiedAt === "number"
+        ? frontmatter.modifiedAt
+        : activeFile.stat.mtime;
     const sourceDates =
       isImported && activeFile?.stat
         ? {
             createdAt: new Date(activeFile.stat.ctime).toLocaleString(),
-            modifiedAt: new Date(activeFile.stat.mtime).toLocaleString(),
+            modifiedAt: new Date(modifiedAt).toLocaleString(),
           }
         : null;
 
@@ -115,7 +119,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
           )}
 
           {isImported && sourceDates && (
-            <div className="mt-2 text-xs text-modifier-text">
+            <div className="text-modifier-text mt-2 text-xs">
               <div>Created in source: {sourceDates.createdAt}</div>
               <div>Last modified in source: {sourceDates.modifiedAt}</div>
             </div>
