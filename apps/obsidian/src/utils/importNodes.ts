@@ -36,8 +36,8 @@ export const getPublishedNodesForGroups = async ({
     source_local_id: string;
     space_id: number;
     text: string;
-    createdAt: string;
-    modifiedAt: string;
+    createdAt: number;
+    modifiedAt: number;
   }>
 > => {
   if (groupIds.length === 0) {
@@ -64,8 +64,8 @@ export const getPublishedNodesForGroups = async ({
     source_local_id: string | null;
     space_id: number | null;
     text: string | null;
-    created: string | null;
-    last_modified: string | null;
+    created: number | null;
+    last_modified: number | null;
     variant: string | null;
   };
 
@@ -82,8 +82,8 @@ export const getPublishedNodesForGroups = async ({
     source_local_id: string;
     space_id: number;
     text: string;
-    createdAt: string;
-    modifiedAt: string;
+    createdAt: number;
+    modifiedAt: number;
   }> = [];
 
   for (const rows of groups.values()) {
@@ -96,8 +96,8 @@ export const getPublishedNodesForGroups = async ({
     );
     const direct = rows.find((r) => r.variant === "direct");
     const text = direct?.text ?? latest.text ?? "";
-    const createdAt = latest.created ?? new Date(0).toISOString();
-    const modifiedAt = latest.last_modified ?? new Date(0).toISOString();
+    const createdAt = latest.created ?? 0;
+    const modifiedAt = latest.last_modified ?? 0;
     nodes.push({
       source_local_id: latest.source_local_id!,
       space_id: latest.space_id!,
@@ -258,8 +258,8 @@ export const fetchNodeContentWithMetadata = async ({
   variant: "direct" | "full";
 }): Promise<{
   content: string;
-  createdAt: string;
-  modifiedAt: string;
+  createdAt: number;
+  modifiedAt: number;
 } | null> => {
   const { data, error } = await client
     .from("my_contents")
@@ -279,8 +279,8 @@ export const fetchNodeContentWithMetadata = async ({
 
   return {
     content: data.text,
-    createdAt: data.created ?? new Date(0).toISOString(),
-    modifiedAt: data.last_modified ?? new Date(0).toISOString(),
+    createdAt: new Date(data.created ?? 0).valueOf(),
+    modifiedAt: new Date(data.last_modified ?? 0).valueOf(),
   };
 };
 
@@ -883,8 +883,8 @@ const processFileContent = async ({
   sourceSpaceUri: string;
   rawContent: string;
   filePath: string;
-  importedCreatedAt?: string;
-  importedModifiedAt?: string;
+  importedCreatedAt?: number;
+  importedModifiedAt?: number;
 }): Promise<{ file: TFile; error?: string }> => {
   // 1. Create or update the file with the fetched content first.
   // On create, set file metadata (ctime/mtime) to original vault dates via vault adapter.
@@ -892,8 +892,8 @@ const processFileContent = async ({
   const stat =
     importedCreatedAt !== undefined && importedModifiedAt !== undefined
       ? {
-          ctime: new Date(importedCreatedAt).getTime(),
-          mtime: new Date(importedModifiedAt).getTime(),
+          ctime: importedCreatedAt,
+          mtime: importedModifiedAt,
         }
       : undefined;
   if (!file) {
@@ -980,7 +980,6 @@ export const importSelectedNodes = async ({
       }
       continue;
     }
-
 
     // Ensure the import folder exists
     const folderExists =
