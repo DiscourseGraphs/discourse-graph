@@ -598,15 +598,7 @@ const importAssetsForNode = async ({
     return { success: true, pathMapping, errors };
   }
 
-  const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
-  const assetsFolderPath = `${importFolderPath}/assets`;
-
-  // Ensure assets folder exists
-  const assetsFolderExists =
-    await plugin.app.vault.adapter.exists(assetsFolderPath);
-  if (!assetsFolderExists) {
-    await plugin.app.vault.createFolder(assetsFolderPath);
-  }
+  const importBasePath = `import/${sanitizeFileName(spaceName)}`;
 
   // Get existing asset mappings from frontmatter
   const cache = plugin.app.metadataCache.getFileCache(targetMarkdownFile);
@@ -624,7 +616,6 @@ const importAssetsForNode = async ({
   for (const fileRef of fileReferences) {
     try {
       const { filepath, filehash } = fileRef;
-      const { name, ext } = extractFileName(filepath);
 
       // Check if we already have a file for this hash
       const existingAssetPath: string | undefined = importedAssets[filehash];
@@ -655,12 +646,13 @@ const importAssetsForNode = async ({
         overwritePath = existingFile.path;
       }
 
-      // Determine target path (new file or overwrite of modified local file)
-      const sanitizedName = sanitizeFileName(name);
-      const sanitizedExt = ext ? `.${ext}` : "";
-      const sanitizedFileName = `${sanitizedName}${sanitizedExt}`;
+      // Determine target path: import/{vaultName}/{original asset filepath}
+      const sanitizedAssetPath = filepath
+        .split("/")
+        .map(sanitizeFileName)
+        .join("/");
       const targetPath =
-        overwritePath ?? `${assetsFolderPath}/${sanitizedFileName}`;
+        overwritePath ?? `${importBasePath}/${sanitizedAssetPath}`;
 
       // If local mtime is newer than fileRef.last_modified, overwrite with DB version.
       if (await plugin.app.vault.adapter.exists(targetPath)) {
@@ -991,7 +983,6 @@ export const importSelectedNodes = async ({
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
     const spaceName = await getSpaceNameFromId(client, spaceId);
     const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
-    const assetsFolderPath = `${importFolderPath}/assets`;
     const spaceUri = spaceUris.get(spaceId);
     if (!spaceUri) {
       console.warn(`Missing URI for space ${spaceId}`);
@@ -1010,12 +1001,7 @@ export const importSelectedNodes = async ({
       await plugin.app.vault.createFolder(importFolderPath);
     }
 
-    // Ensure the assets folder exists
-    const assetsFolderExists =
-      await plugin.app.vault.adapter.exists(assetsFolderPath);
-    if (!assetsFolderExists) {
-      await plugin.app.vault.createFolder(assetsFolderPath);
-    }
+
 
     // Process each node in this space
     for (const node of nodes) {
