@@ -654,6 +654,15 @@ const importAssetsForNode = async ({
       const targetPath =
         overwritePath ?? `${importBasePath}/${sanitizedAssetPath}`;
 
+      // Ensure all parent folders exist before writing
+      const pathParts = targetPath.split("/");
+      for (let i = 1; i < pathParts.length - 1; i++) {
+        const folderPath = pathParts.slice(0, i + 1).join("/");
+        if (!(await plugin.app.vault.adapter.exists(folderPath))) {
+          await plugin.app.vault.createFolder(folderPath);
+        }
+      }
+
       // If local mtime is newer than fileRef.last_modified, overwrite with DB version.
       if (await plugin.app.vault.adapter.exists(targetPath)) {
         const file = plugin.app.vault.getAbstractFileByPath(targetPath);
