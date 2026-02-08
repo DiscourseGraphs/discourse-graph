@@ -38,6 +38,8 @@ import {
   getHashForString,
   TLShapeId,
   TLShape,
+  TLStore,
+  TLStoreWithStatus,
   useToasts,
   useTranslation,
   DEFAULT_SUPPORTED_IMAGE_TYPES,
@@ -49,6 +51,9 @@ import {
   StateNode,
   DefaultSpinner,
   Box,
+  MigrationSequence,
+  TLAnyBindingUtilConstructor,
+  TLAnyShapeUtilConstructor,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
@@ -71,7 +76,7 @@ import { hasRoamPersistedCanvasData, useRoamStore } from "./useRoamStore";
 import {
   TLDRAW_CLOUDFLARE_SYNC_ENABLED,
   TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL,
-  TldrawCanvasCloudflareSync,
+  useCloudflareSyncStore,
 } from "./TldrawCanvasCloudflareSync";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
@@ -151,21 +156,117 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     !hasRoamPersistedCanvasData(pageUid);
 
   if (useCloudflareSync) {
-    return (
-      <div
-        className="roamjs-tldraw-canvas-container relative z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white"
-        tabIndex={-1}
-      >
-        <style>{tldrawStyles}</style>
-        <TldrawCanvasCloudflareSync pageUid={pageUid} />
-      </div>
-    );
+    return <TldrawCanvasCloudflare title={title} pageUid={pageUid} />;
   }
 
-  return <TldrawCanvasRoam title={title} />;
+  return <TldrawCanvasRoam title={title} pageUid={pageUid} />;
 };
 
-const TldrawCanvasRoam = ({ title }: { title: string }) => {
+type CanvasStoreAdapterArgs = {
+  pageUid: string;
+  migrations: MigrationSequence[];
+  customShapeUtils: readonly TLAnyShapeUtilConstructor[];
+  customBindingUtils: readonly TLAnyBindingUtilConstructor[];
+  customShapeTypes: string[];
+  customBindingTypes: string[];
+};
+
+type CanvasStoreAdapterResult = {
+  store: TLStore | TLStoreWithStatus | null;
+  needsUpgrade: boolean;
+  performUpgrade: () => void;
+  error: Error | null;
+  isLoading: boolean;
+};
+
+const useRoamCanvasStore = ({
+  pageUid,
+  migrations,
+  customShapeUtils,
+  customBindingUtils,
+}: CanvasStoreAdapterArgs): CanvasStoreAdapterResult => {
+  const { store, needsUpgrade, performUpgrade, error } = useRoamStore({
+    migrations,
+    customShapeUtils,
+    customBindingUtils,
+    pageUid,
+  });
+
+  return {
+    store,
+    needsUpgrade,
+    performUpgrade,
+    error,
+    isLoading: false,
+  };
+};
+
+const useCloudflareCanvasStore = ({
+  pageUid,
+  migrations,
+  customShapeUtils,
+  customBindingUtils,
+  customShapeTypes,
+  customBindingTypes,
+}: CanvasStoreAdapterArgs): CanvasStoreAdapterResult => {
+  const { store, error, isLoading } = useCloudflareSyncStore({
+    pageUid,
+    migrations,
+    customShapeUtils,
+    customBindingUtils,
+    customShapeTypes,
+    customBindingTypes,
+  });
+  return {
+    store,
+    error,
+    isLoading,
+    needsUpgrade: false,
+    performUpgrade: () => {},
+  };
+};
+
+const TldrawCanvasRoam = ({
+  title,
+  pageUid,
+}: {
+  title: string;
+  pageUid: string;
+}) => {
+  return (
+    <TldrawCanvasShared
+      title={title}
+      pageUid={pageUid}
+      useStoreAdapter={useRoamCanvasStore}
+    />
+  );
+};
+
+const TldrawCanvasCloudflare = ({
+  title,
+  pageUid,
+}: {
+  title: string;
+  pageUid: string;
+}) => {
+  return (
+    <TldrawCanvasShared
+      title={title}
+      pageUid={pageUid}
+      useStoreAdapter={useCloudflareCanvasStore}
+    />
+  );
+};
+
+const TldrawCanvasShared = ({
+  title,
+  pageUid,
+  useStoreAdapter,
+}: {
+  title: string;
+  pageUid: string;
+  useStoreAdapter: (args: CanvasStoreAdapterArgs) => CanvasStoreAdapterResult;
+}) => {
   const appRef = useRef<Editor | null>(null);
   const lastInsertRef = useRef<VecModel>();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -175,7 +276,7 @@ const TldrawCanvasRoam = ({ title }: { title: string }) => {
 
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
 
-  const updateViewportScreenBounds = (el: HTMLDivElement) => {
+  const updateViewportScreenBounds = useCallback((el: HTMLDivElement) => {
     // Use tldraw's built-in viewport bounds update with centering
     requestAnimationFrame(() => {
       const rect = el.getBoundingClientRect();
@@ -184,8 +285,8 @@ const TldrawCanvasRoam = ({ title }: { title: string }) => {
         true,
       );
     });
-  };
-  const handleMaximizedChange = () => {
+  }, []);
+  const handleMaximizedChange = useCallback(() => {
     // Direct DOM manipulation to avoid React re-renders
     if (!containerRef.current) return;
     const tldrawEl = containerRef.current;
@@ -204,7 +305,7 @@ const TldrawCanvasRoam = ({ title }: { title: string }) => {
       tldrawEl.classList.remove("absolute", "inset-0");
       updateViewportScreenBounds(tldrawEl);
     }
-  };
+  }, [updateViewportScreenBounds]);
 
   // Workaround to avoid a race condition when loading a canvas page directly
   // Start false to avoid noisy warnings on first render if timer isn't initialized yet
@@ -460,71 +561,140 @@ const TldrawCanvasRoam = ({ title }: { title: string }) => {
   };
 
   // COMPONENTS
-  const defaultEditorComponents: TLEditorComponents = {
-    Scribble: TldrawScribble,
-    CollaboratorScribble: TldrawScribble,
-    SelectionForeground: TldrawSelectionForeground,
-    SelectionBackground: TldrawSelectionBackground,
-    Handles: TldrawHandles,
-  };
-  const editorComponents: TLEditorComponents = {
-    ...defaultEditorComponents,
-    OnTheCanvas: ToastListener,
-  };
-  const customUiComponents: TLUiComponents = createUiComponents({
-    allNodes,
-    allRelationNames,
-    allAddReferencedNodeActions,
-  });
+  const defaultEditorComponents: TLEditorComponents = useMemo(
+    () => ({
+      Scribble: TldrawScribble,
+      CollaboratorScribble: TldrawScribble,
+      SelectionForeground: TldrawSelectionForeground,
+      SelectionBackground: TldrawSelectionBackground,
+      Handles: TldrawHandles,
+    }),
+    [],
+  );
+  const editorComponents: TLEditorComponents = useMemo(
+    () => ({
+      ...defaultEditorComponents,
+      OnTheCanvas: ToastListener,
+    }),
+    [defaultEditorComponents],
+  );
+  const customUiComponents: TLUiComponents = useMemo(
+    () =>
+      createUiComponents({
+        allNodes,
+        allRelationNames,
+        allAddReferencedNodeActions,
+      }),
+    [allNodes, allRelationNames, allAddReferencedNodeActions],
+  );
 
   // UTILS
-  const discourseNodeUtils = createNodeShapeUtils(allNodes);
-  const discourseRelationUtils = createAllRelationShapeUtils(allRelationIds);
-  const referencedNodeUtils = createAllReferencedNodeUtils(
-    allAddReferencedNodeByAction,
+  const discourseNodeUtils = useMemo(
+    () => createNodeShapeUtils(allNodes),
+    [allNodes],
   );
-  const customShapeUtils = [
-    ...discourseNodeUtils,
-    ...discourseRelationUtils,
-    ...referencedNodeUtils,
-  ];
+  const discourseRelationUtils = useMemo(
+    () => createAllRelationShapeUtils(allRelationIds),
+    [allRelationIds],
+  );
+  const referencedNodeUtils = useMemo(
+    () => createAllReferencedNodeUtils(allAddReferencedNodeByAction),
+    [allAddReferencedNodeByAction],
+  );
+  const customShapeUtils = useMemo(
+    () => [
+      ...discourseNodeUtils,
+      ...discourseRelationUtils,
+      ...referencedNodeUtils,
+    ],
+    [discourseNodeUtils, discourseRelationUtils, referencedNodeUtils],
+  );
 
   // TOOLS
-  const discourseGraphTool = class DiscourseGraphTool extends StateNode {
-    static override id = "discourse-tool";
-    static override initial = "idle";
-  };
-  const discourseNodeTools = createNodeShapeTools(allNodes);
-  const discourseRelationTools = createAllRelationShapeTools(allRelationNames);
-  const referencedNodeTools = createAllReferencedNodeTools(
-    allAddReferencedNodeByAction,
+  const discourseGraphTool = useMemo(
+    () =>
+      class DiscourseGraphTool extends StateNode {
+        static override id = "discourse-tool";
+        static override initial = "idle";
+      },
+    [],
   );
-  const customTools = [
-    discourseGraphTool,
-    ...discourseNodeTools,
-    ...discourseRelationTools,
-    ...referencedNodeTools,
-  ];
+  const discourseNodeTools = useMemo(
+    () => createNodeShapeTools(allNodes),
+    [allNodes],
+  );
+  const discourseRelationTools = useMemo(
+    () => createAllRelationShapeTools(allRelationNames),
+    [allRelationNames],
+  );
+  const referencedNodeTools = useMemo(
+    () => createAllReferencedNodeTools(allAddReferencedNodeByAction),
+    [allAddReferencedNodeByAction],
+  );
+  const customTools = useMemo(
+    () => [
+      discourseGraphTool,
+      ...discourseNodeTools,
+      ...discourseRelationTools,
+      ...referencedNodeTools,
+    ],
+    [
+      discourseGraphTool,
+      discourseNodeTools,
+      discourseRelationTools,
+      referencedNodeTools,
+    ],
+  );
 
   // BINDINGS
-  const relationBindings = createAllRelationBindings(allRelationIds);
-  const referencedNodeBindings = createAllReferencedNodeBindings(
-    allAddReferencedNodeByAction,
+  const relationBindings = useMemo(
+    () => createAllRelationBindings(allRelationIds),
+    [allRelationIds],
   );
-  const customBindingUtils = [...relationBindings, ...referencedNodeBindings];
+  const referencedNodeBindings = useMemo(
+    () => createAllReferencedNodeBindings(allAddReferencedNodeByAction),
+    [allAddReferencedNodeByAction],
+  );
+  const customBindingUtils = useMemo(
+    () => [...relationBindings, ...referencedNodeBindings],
+    [relationBindings, referencedNodeBindings],
+  );
+  const customShapeTypes = useMemo(
+    () =>
+      customShapeUtils
+        .map((s) => (s as unknown as { type?: string }).type)
+        .filter((t): t is string => !!t),
+    [customShapeUtils],
+  );
+  const customBindingTypes = useMemo(
+    () =>
+      customBindingUtils
+        .map((b) => (b as unknown as { type?: string }).type)
+        .filter((t): t is string => !!t),
+    [customBindingUtils],
+  );
 
   // UI OVERRIDES
-  const uiOverrides = createUiOverrides({
-    allNodes,
-    allRelationNames,
-    allAddReferencedNodeByAction,
-    toggleMaximized: handleMaximizedChange,
-    setConvertToDialogOpen,
-    discourseContext,
-  });
+  const uiOverrides = useMemo(
+    () =>
+      createUiOverrides({
+        allNodes,
+        allRelationNames,
+        allAddReferencedNodeByAction,
+        toggleMaximized: handleMaximizedChange,
+        setConvertToDialogOpen,
+        discourseContext,
+      }),
+    [
+      allNodes,
+      allRelationNames,
+      allAddReferencedNodeByAction,
+      handleMaximizedChange,
+      setConvertToDialogOpen,
+    ],
+  );
 
   // STORE
-  const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
   const arrowShapeMigrations = useMemo(
     () =>
       createMigrations({
@@ -535,13 +705,19 @@ const TldrawCanvasRoam = ({ title }: { title: string }) => {
     [allRelationIds, allAddReferencedNodeActions, allNodes],
   );
 
-  const migrations = [arrowShapeMigrations];
-  const { store, needsUpgrade, performUpgrade, error } = useRoamStore({
-    migrations,
-    customShapeUtils,
-    customBindingUtils,
-    pageUid,
-  });
+  const migrations = useMemo(
+    () => [arrowShapeMigrations],
+    [arrowShapeMigrations],
+  );
+  const { store, needsUpgrade, performUpgrade, error, isLoading } =
+    useStoreAdapter({
+      migrations,
+      customShapeUtils,
+      customBindingUtils,
+      customShapeTypes,
+      customBindingTypes,
+      pageUid,
+    });
 
   // ASSETS
   const assetLoading = usePreloadAssets(defaultEditorAssetUrls);
@@ -630,6 +806,43 @@ const TldrawCanvasRoam = ({ title }: { title: string }) => {
     };
   }, [title]);
 
+  const lastReportedStoreErrorRef = useRef<string>("");
+  useEffect(() => {
+    if (!error) return;
+    const errorKey = `${pageUid}:${error.message}`;
+    if (lastReportedStoreErrorRef.current === errorKey) return;
+    lastReportedStoreErrorRef.current = errorKey;
+
+    const isInvalidRecord = /invalidRecord/i.test(error.message);
+    console.error("[DG Canvas] Store error", {
+      title,
+      pageUid,
+      message: error.message,
+      stack: error.stack,
+      ...(isInvalidRecord
+        ? {
+            hint: "Cloudflare sync worker schema is rejecting one or more custom records.",
+            customShapeTypes,
+            customBindingTypes,
+          }
+        : {}),
+    });
+    internalError({
+      error,
+      type: "Canvas Store Error",
+      context: {
+        title,
+        pageUid,
+        ...(isInvalidRecord
+          ? {
+              customShapeTypes,
+              customBindingTypes,
+            }
+          : {}),
+      },
+    });
+  }, [error, pageUid, title, customShapeTypes, customBindingTypes]);
+
   return (
     <div
       className="roamjs-tldraw-canvas-container relative z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white"
@@ -665,7 +878,12 @@ const TldrawCanvasRoam = ({ title }: { title: string }) => {
             </button>
           </div>
         </div>
-      ) : !store || !assetLoading.done || !extensionAPI || !isPluginReady ? (
+      ) : isLoading ||
+        !!error ||
+        !store ||
+        !assetLoading.done ||
+        !extensionAPI ||
+        !isPluginReady ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
@@ -675,7 +893,12 @@ const TldrawCanvasRoam = ({ title }: { title: string }) => {
             </h2>
             <p className="mb-4 text-gray-600">
               {error || assetLoading.error ? (
-                "There was a problem loading the Tldraw canvas. Please try again later."
+                <span>
+                  {error?.message?.includes("invalidRecord")
+                    ? "Cloudflare sync rejected a custom Discourse Graph record (invalidRecord). The sync worker schema must include DG custom shapes and bindings."
+                    : "There was a problem loading the Tldraw canvas."}{" "}
+                  {error?.message ? `Details: ${error.message}` : ""}
+                </span>
               ) : (
                 <DefaultSpinner />
               )}
