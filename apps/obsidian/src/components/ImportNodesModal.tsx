@@ -74,11 +74,11 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       const grouped: Map<string, GroupWithNodes> = new Map();
 
       for (const node of importableNodes) {
-        const groupId = node.account_uid;
+        const groupId = String(node.space_id);
         if (!grouped.has(groupId)) {
           grouped.set(groupId, {
             groupId,
-            groupName: `Group ${groupId.slice(0, 8)}...`,
+            groupName: spaceNames.get(node.space_id) ?? `Space ${node.space_id}`,
             nodes: [],
           });
         }
@@ -89,8 +89,10 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
           title: node.text,
           spaceId: node.space_id,
           spaceName: spaceNames.get(node.space_id) ?? `Space ${node.space_id}`,
-          groupId: node.account_uid,
+          groupId,
           selected: false,
+          createdAt: node.createdAt,
+          modifiedAt: node.modifiedAt,
         });
       }
 

@@ -36,90 +36,75 @@ export const getPublishedNodesForGroups = async ({
     source_local_id: string;
     space_id: number;
     text: string;
-    account_uid: string;
+    createdAt: string;
+    modifiedAt: string;
   }>
 > => {
   if (groupIds.length === 0) {
     return [];
   }
 
-  // First get all ResourceAccess entries for these groups
-  const { data: resourceAccessData, error: raError } = await client
-    .from("ResourceAccess")
-    .select("source_local_id, space_id, account_uid")
-    .in("account_uid", groupIds)
+  // Query my_contents (RLS applied); exclude current space. Get both variants so we can use
+  // the latest last_modified per node and prefer "direct" for text (title).
+  const { data, error } = await client
+    .from("my_contents")
+    .select("source_local_id, space_id, text, created, last_modified, variant")
     .neq("space_id", currentSpaceId);
 
-  if (raError) {
-    console.error("Error fetching resource access:", raError);
-    throw new Error(`Failed to fetch resource access: ${raError.message}`);
+  if (error) {
+    console.error("Error fetching published nodes:", error);
+    throw new Error(`Failed to fetch published nodes: ${error.message}`);
   }
 
-  if (!resourceAccessData || resourceAccessData.length === 0) {
+  if (!data || data.length === 0) {
     return [];
   }
 
-  // Group unique (space_id, source_local_id) by space_id for batched queries.
-  // Build nodesBySpace directly so source_local_id can contain any character (e.g. colons).
-  const nodesBySpace = new Map<number, Set<string>>();
-  for (const ra of resourceAccessData) {
-    if (ra.source_local_id && ra.space_id != null) {
-      if (!nodesBySpace.has(ra.space_id)) {
-        nodesBySpace.set(ra.space_id, new Set<string>());
-      }
-      nodesBySpace.get(ra.space_id)!.add(ra.source_local_id);
-    }
+  type Row = {
+    source_local_id: string | null;
+    space_id: number | null;
+    text: string | null;
+    created: string | null;
+    last_modified: string | null;
+    variant: string | null;
+  };
+
+  const key = (r: Row) => `${r.space_id ?? ""}\t${r.source_local_id ?? ""}`;
+  const groups = new Map<string, Row[]>();
+  for (const row of data as Row[]) {
+    if (row.source_local_id == null || row.space_id == null) continue;
+    const k = key(row);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(row);
   }
 
-  // Fetch Content with variant "direct" for all nodes, batched by space
   const nodes: Array<{
     source_local_id: string;
     space_id: number;
     text: string;
-    account_uid: string;
+    createdAt: string;
+    modifiedAt: string;
   }> = [];
 
-  for (const [spaceId, sourceLocalIds] of nodesBySpace.entries()) {
-    const sourceLocalIdsArray = Array.from(sourceLocalIds);
-    if (sourceLocalIdsArray.length === 0) {
-      continue;
-    }
-
-    // Single query for all nodes in this space
-    const { data: contentDataArray } = await client
-      .from("Content")
-      .select("source_local_id, text")
-      .eq("space_id", spaceId)
-      .eq("variant", "direct")
-      .in("source_local_id", sourceLocalIdsArray);
-
-    if (!contentDataArray || contentDataArray.length === 0) {
-      continue;
-    }
-
-    // Create a map for quick lookup
-    const contentMap = new Map<string, string>();
-    for (const content of contentDataArray) {
-      if (content.source_local_id && content.text) {
-        contentMap.set(content.source_local_id, content.text);
-      }
-    }
-
-    // Match content with ResourceAccess entries
-    for (const ra of resourceAccessData) {
-      if (
-        ra.space_id === spaceId &&
-        ra.source_local_id &&
-        contentMap.has(ra.source_local_id)
-      ) {
-        nodes.push({
-          source_local_id: ra.source_local_id,
-          space_id: spaceId,
-          text: contentMap.get(ra.source_local_id)!,
-          account_uid: ra.account_uid,
-        });
-      }
-    }
+  for (const rows of groups.values()) {
+    const withDate = rows.filter(
+      (r) => r.last_modified != null && r.text != null,
+    );
+    if (withDate.length === 0) continue;
+    const latest = withDate.reduce((a, b) =>
+      (a.last_modified ?? "") >= (b.last_modified ?? "") ? a : b,
+    );
+    const direct = rows.find((r) => r.variant === "direct");
+    const text = direct?.text ?? latest.text ?? "";
+    const createdAt = latest.created ?? new Date(0).toISOString();
+    const modifiedAt = latest.last_modified ?? new Date(0).toISOString();
+    nodes.push({
+      source_local_id: latest.source_local_id!,
+      space_id: latest.space_id!,
+      text,
+      createdAt,
+      modifiedAt,
+    });
   }
 
   return nodes;
@@ -243,14 +228,14 @@ export const fetchNodeContent = async ({
   variant: "direct" | "full";
 }): Promise<string | null> => {
   const { data, error } = await client
-    .from("Content")
+    .from("my_contents")
     .select("text")
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
     .eq("variant", variant)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error || !data || data.text == null) {
     console.error(
       `Error fetching node content (${variant}):`,
       error || "No data",
@@ -277,14 +262,14 @@ export const fetchNodeContentWithMetadata = async ({
   modifiedAt: string;
 } | null> => {
   const { data, error } = await client
-    .from("Content")
+    .from("my_contents")
     .select("text, created, last_modified")
     .eq("source_local_id", nodeInstanceId)
     .eq("space_id", spaceId)
     .eq("variant", variant)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error || !data || data.text == null) {
     console.error(
       `Error fetching node content with metadata (${variant}):`,
       error || "No data",
@@ -294,6 +279,37 @@ export const fetchNodeContentWithMetadata = async ({
 
   return {
     content: data.text,
+    createdAt: data.created ?? new Date(0).toISOString(),
+    modifiedAt: data.last_modified ?? new Date(0).toISOString(),
+  };
+};
+
+/**
+ * Fetches created/last_modified from the source space Content (my_contents) for an imported node.
+ * Used by the discourse context view to show "last modified in original vault".
+ */
+export const getSourceContentDates = async ({
+  plugin,
+  nodeInstanceId,
+  spaceUri,
+}: {
+  plugin: DiscourseGraphPlugin;
+  nodeInstanceId: string;
+  spaceUri: string;
+}): Promise<{ createdAt: string; modifiedAt: string } | null> => {
+  const client = await getLoggedInClient(plugin);
+  if (!client) return null;
+  const { spaceId } = await getSpaceNameIdFromUri(client, spaceUri);
+  if (spaceId < 0) return null;
+  const { data, error } = await client
+    .from("my_contents")
+    .select("created, last_modified")
+    .eq("source_local_id", nodeInstanceId)
+    .eq("space_id", spaceId)
+    .eq("variant", "direct")
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
     createdAt: data.created ?? new Date(0).toISOString(),
     modifiedAt: data.last_modified ?? new Date(0).toISOString(),
   };
@@ -598,7 +614,7 @@ const importAssetsForNode = async ({
       const { name, ext } = extractFileName(filepath);
 
       // Check if we already have a file for this hash
-      let existingAssetPath: string | undefined = importedAssets[filehash];
+      const existingAssetPath: string | undefined = importedAssets[filehash];
       let existingFile: TFile | null = null;
 
       if (existingAssetPath) {
@@ -606,44 +622,6 @@ const importAssetsForNode = async ({
         const file = plugin.app.vault.getAbstractFileByPath(existingAssetPath);
         if (file && file instanceof TFile) {
           existingFile = file;
-        } else {
-          // File was moved/renamed - search for it in the assets folder
-          // Try to find a file with the same name in the assets folder
-          const { name: fileName, ext: fileExt } =
-            extractFileName(existingAssetPath);
-          const searchFileName = `${fileName}${fileExt ? `.${fileExt}` : ""}`;
-
-          // Search all files in the assets folder
-          const allFiles = plugin.app.vault.getFiles();
-          for (const vaultFile of allFiles) {
-            if (
-              vaultFile instanceof TFile &&
-              vaultFile.path.startsWith(assetsFolderPath) &&
-              vaultFile.basename === fileName &&
-              vaultFile.extension === fileExt
-            ) {
-              // Found a file with matching name in assets folder - likely the same file
-              existingFile = vaultFile;
-              existingAssetPath = vaultFile.path;
-              // Update frontmatter with new path
-              await plugin.app.fileManager.processFrontMatter(
-                targetMarkdownFile,
-                (fm) => {
-                  const assetsRaw = (fm as Record<string, unknown>)
-                    .importedAssets;
-                  const assets: Record<string, string> =
-                    assetsRaw &&
-                    typeof assetsRaw === "object" &&
-                    !Array.isArray(assetsRaw)
-                      ? (assetsRaw as Record<string, string>)
-                      : {};
-                  assets[filehash] = vaultFile.path;
-                  (fm as Record<string, unknown>).importedAssets = assets;
-                },
-              );
-              break;
-            }
-          }
         }
       }
 
@@ -718,7 +696,19 @@ const importAssetsForNode = async ({
       }
 
       // Save file to vault
-      await plugin.app.vault.createBinary(targetPath, fileContent);
+      const existingFileForOverwrite =
+        plugin.app.vault.getAbstractFileByPath(targetPath);
+      if (
+        existingFileForOverwrite &&
+        existingFileForOverwrite instanceof TFile
+      ) {
+        await plugin.app.vault.modifyBinary(
+          existingFileForOverwrite,
+          fileContent,
+        );
+      } else {
+        await plugin.app.vault.createBinary(targetPath, fileContent);
+      }
 
       // Update frontmatter to track this mapping
       await plugin.app.fileManager.processFrontMatter(
@@ -822,9 +812,9 @@ const mapNodeTypeIdToLocal = async ({
   sourceSpaceId: number;
   sourceNodeTypeId: string;
 }): Promise<string> => {
-  // Find the schema in the source space with this nodeTypeId
+  // Find the schema in the source space with this nodeTypeId (my_concepts applies RLS)
   const { data: schemaData } = await client
-    .from("Concept")
+    .from("my_concepts")
     .select("name, literal_content")
     .eq("space_id", sourceSpaceId)
     .eq("is_schema", true)
@@ -896,12 +886,20 @@ const processFileContent = async ({
   importedCreatedAt?: string;
   importedModifiedAt?: string;
 }): Promise<{ file: TFile; error?: string }> => {
-  // 1. Create or update the file with the fetched content first
+  // 1. Create or update the file with the fetched content first.
+  // On create, set file metadata (ctime/mtime) to original vault dates via vault adapter.
   let file: TFile | null = plugin.app.vault.getFileByPath(filePath);
+  const stat =
+    importedCreatedAt !== undefined && importedModifiedAt !== undefined
+      ? {
+          ctime: new Date(importedCreatedAt).getTime(),
+          mtime: new Date(importedModifiedAt).getTime(),
+        }
+      : undefined;
   if (!file) {
-    file = await plugin.app.vault.create(filePath, rawContent);
+    file = await plugin.app.vault.create(filePath, rawContent, stat);
   } else {
-    await plugin.app.vault.modify(file, rawContent);
+    await plugin.app.vault.modify(file, rawContent, stat);
   }
 
   // 2. Parse frontmatter from rawContent (metadataCache is updated async and is
@@ -925,12 +923,6 @@ const processFileContent = async ({
       record.nodeTypeId = mappedNodeTypeId;
     }
     record.importedFromSpaceUri = sourceSpaceUri;
-    if (importedCreatedAt !== undefined) {
-      record.importedCreatedAt = importedCreatedAt;
-    }
-    if (importedModifiedAt !== undefined) {
-      record.importedModifiedAt = importedModifiedAt;
-    }
   });
 
   return { file };
@@ -1042,7 +1034,9 @@ export const importSelectedNodes = async ({
           continue;
         }
 
-        const { content, createdAt, modifiedAt } = contentWithMeta;
+        const { content } = contentWithMeta;
+        const createdAt = node.createdAt ?? contentWithMeta.createdAt;
+        const modifiedAt = node.modifiedAt ?? contentWithMeta.modifiedAt;
 
         // Sanitize file name
         const sanitizedFileName = sanitizeFileName(fileName);
@@ -1168,8 +1162,8 @@ export const refreshImportedFile = async ({
     throw new Error("Cannot get Supabase client");
   }
   const cache = plugin.app.metadataCache.getFileCache(file);
-  const frontmatter = cache?.frontmatter as Record<string, unknown>;
-  if (!frontmatter.importedFromSpaceUri || !frontmatter.nodeInstanceId) {
+  const frontmatter = cache?.frontmatter as Record<string, unknown> | undefined;
+  if (!frontmatter?.importedFromSpaceUri || !frontmatter?.nodeInstanceId) {
     return {
       success: false,
       error: "Missing frontmatter: importedFromSpaceUri or nodeInstanceId",
