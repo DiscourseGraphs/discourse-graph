@@ -973,8 +973,14 @@ export const importSelectedNodes = async ({
     const spaceUri = spaceUris.get(spaceId);
     if (!spaceUri) {
       console.warn(`Missing URI for space ${spaceId}`);
+      for (const _node of nodes) {
+        failedCount++;
+        processedCount++;
+        onProgress?.(processedCount, totalNodes);
+      }
       continue;
     }
+
 
     // Ensure the import folder exists
     const folderExists =
