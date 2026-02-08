@@ -10,7 +10,6 @@
 		"check-types": "tsc --noEmit -p tsconfig.json"
 	},
 	"dependencies": {
-		"@cloudflare/types": "^6.29.0",
 		"@tldraw/sync-core": "2.4.6",
 		"@tldraw/tlschema": "2.4.6",
 		"cloudflare-workers-unfurl": "^0.0.7",
@@ -18,6 +17,7 @@
 		"lodash.throttle": "^4.1.1"
 	},
 	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20240208.0",
 		"@types/lodash.throttle": "^4",
 		"typescript": "^5.0.2",
 		"wrangler": "^3.64.0"
