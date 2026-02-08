@@ -289,6 +289,68 @@ export const fetchNodeContentWithMetadata = async ({
 };
 
 /**
+ * Fetches both direct (title) and full (body + dates) variants in one query.
+ * Used by importSelectedNodes to avoid two round-trips to the content table.
+ */
+const fetchNodeContentForImport = async ({
+  client,
+  spaceId,
+  nodeInstanceId,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  nodeInstanceId: string;
+}): Promise<{
+  fileName: string;
+  content: string;
+  createdAt: number;
+  modifiedAt: number;
+} | null> => {
+  const { data, error } = await client
+    .from("my_contents")
+    .select("text, created, last_modified, variant")
+    .eq("source_local_id", nodeInstanceId)
+    .eq("space_id", spaceId)
+    .in("variant", ["direct", "full"]);
+
+  if (error) {
+    console.error("Error fetching node content for import:", error);
+    return null;
+  }
+
+  const rows = (data ?? []) as Array<{
+    text: string | null;
+    created: string | null;
+    last_modified: string | null;
+    variant: string | null;
+  }>;
+  const direct = rows.find((r) => r.variant === "direct");
+  const full = rows.find((r) => r.variant === "full");
+
+  if (
+    !direct?.text ||
+    !full?.text ||
+    full.created == null ||
+    full.last_modified == null
+  ) {
+    if (!direct?.text) {
+      console.warn(`No direct variant found for node ${nodeInstanceId}`);
+    }
+    if (!full?.text) {
+      console.warn(`No full variant found for node ${nodeInstanceId}`);
+    }
+    return null;
+  }
+
+  return {
+    fileName: direct.text,
+    content: full.text,
+    createdAt: new Date(full.created).valueOf(),
+    modifiedAt: new Date(full.last_modified).valueOf(),
+  };
+};
+
+/**
  * Fetches created/last_modified from the source space Content (my_contents) for an imported node.
  * Used by the discourse context view to show "last modified in original vault".
  */
@@ -383,24 +445,11 @@ const downloadFileFromStorage = async ({
   }
 };
 
-const extractFileName = (filepath: string): { name: string; ext: string } => {
-  // Handle paths like "attachments/image.png" or "folder/subfolder/file.jpg"
-  // Extract just the filename with extension
-  const parts = filepath.split("/");
-  const fileName = parts[parts.length - 1] || filepath;
 
-  // Split filename and extension
-  const lastDotIndex = fileName.lastIndexOf(".");
-  if (lastDotIndex === -1 || lastDotIndex === fileName.length - 1) {
-    // No extension or extension is empty
-    return { name: fileName, ext: "" };
-  }
 
-  const name = fileName.slice(0, lastDotIndex);
-  const ext = fileName.slice(lastDotIndex + 1);
-
-  return { name, ext };
-};
+/** Normalize path for lookup: strip leading "./", collapse slashes. Shared so pathMapping keys match link paths. */
+const normalizePathForLookup = (p: string): string =>
+  p.replace(/^\.\//, "").replace(/\/+/g, "/").trim();
 
 const updateMarkdownAssetLinks = ({
   content,
@@ -417,32 +466,52 @@ const updateMarkdownAssetLinks = ({
     return content;
   }
 
-  // Create a set of all new paths for quick lookup
+  // Create a set of all new paths for quick lookup (used by findImportedAssetFile)
   const newPaths = new Set(oldPathToNewPath.values());
-
-  // Create a map of old paths to new files for quick lookup
-  const oldPathToNewFile = new Map<string, TFile>();
-  for (const [oldPath, newPath] of oldPathToNewPath.entries()) {
-    const newFile = app.metadataCache.getFirstLinkpathDest(
-      newPath,
-      targetFile.path,
-    );
-    if (newFile) {
-      oldPathToNewFile.set(oldPath, newFile);
-    }
-  }
 
   let updatedContent = content;
 
-  // Normalize path for comparison: strip leading "./", collapse repeated slashes.
-  // We match only by full path (exact after normalizing), not by filename alone,
-  // so that different paths with the same name (e.g. experiment1/result.jpg vs
-  // experiment2/result.jpg) are never treated as the same asset.
-  const normalizePathForMatch = (p: string): string =>
-    p.replace(/^\.\//, "").replace(/\/+/g, "/").trim();
+  const noteDir = targetFile.path.includes("/")
+    ? targetFile.path.replace(/\/[^/]*$/, "")
+    : "";
 
-  const matchesOldPath = (linkPath: string, oldPath: string): boolean =>
-    normalizePathForMatch(linkPath) === normalizePathForMatch(oldPath);
+  // Resolve a path with ".." and "." segments relative to a base directory (vault-relative).
+  const resolvePathRelativeToBase = (
+    baseDir: string,
+    relativePath: string,
+  ): string => {
+    const baseParts = baseDir ? baseDir.split("/").filter(Boolean) : [];
+    const pathParts = relativePath.replace(/\/+/g, "/").trim().split("/");
+    const result = [...baseParts];
+    for (const part of pathParts) {
+      if (part === "..") {
+        result.pop();
+      } else if (part !== "." && part !== "") {
+        result.push(part);
+      }
+    }
+    return result.join("/");
+  };
+
+  // Canonical form for matching link paths to oldPath (vault-relative, no import prefix).
+  const getLinkCanonicalForMatch = (linkPath: string): string => {
+    const resolved = resolvePathRelativeToBase(noteDir, linkPath);
+    if (resolved.startsWith("import/")) {
+      const segments = resolved.split("/");
+      return segments.length > 2 ? segments.slice(2).join("/") : resolved;
+    }
+    return resolved;
+  };
+
+  // Look up new path by link as written in content: use canonical form (resolve relative + strip import prefix).
+  const getNewPathForLink = (linkPath: string): string | undefined => {
+    const canonical = normalizePathForLookup(
+      getLinkCanonicalForMatch(linkPath),
+    );
+    const byCanonical = oldPathToNewPath.get(canonical);
+    if (byCanonical) return byCanonical;
+    return oldPathToNewPath.get(normalizePathForLookup(linkPath));
+  };
 
   // Helper to find file for a link path, checking if it's one of our imported assets
   const findImportedAssetFile = (linkPath: string): TFile | null => {
@@ -502,9 +571,14 @@ const updateMarkdownAssetLinks = ({
         return `[[${linkText}]]`;
       }
 
-      // Fallback: Find matching old path
-      for (const [oldPath, newFile] of oldPathToNewFile.entries()) {
-        if (matchesOldPath(linkPath, oldPath)) {
+      // Direct lookup from pathMapping (record built when we downloaded each asset)
+      const newPath = getNewPathForLink(linkPath);
+      if (newPath) {
+        const newFile = app.metadataCache.getFirstLinkpathDest(
+          newPath,
+          targetFile.path,
+        );
+        if (newFile) {
           const linkText = app.metadataCache.fileToLinktext(
             newFile,
             targetFile.path,
@@ -543,9 +617,14 @@ const updateMarkdownAssetLinks = ({
         return `![${alt}](${linkText})`;
       }
 
-      // Fallback: Find matching old path
-      for (const [oldPath, newFile] of oldPathToNewFile.entries()) {
-        if (matchesOldPath(cleanPath, oldPath)) {
+      // Direct lookup from pathMapping (record built when we downloaded each asset)
+      const newPath = getNewPathForLink(cleanPath);
+      if (newPath) {
+        const newFile = app.metadataCache.getFirstLinkpathDest(
+          newPath,
+          targetFile.path,
+        );
+        if (newFile) {
           const linkText = app.metadataCache.fileToLinktext(
             newFile,
             targetFile.path,
@@ -585,6 +664,11 @@ const importAssetsForNode = async ({
   const stat = {
     ctime: targetMarkdownFile.stat.ctime,
     mtime: targetMarkdownFile.stat.mtime,
+  };
+
+  const setPathMapping = (oldPath: string, newPath: string): void => {
+    pathMapping.set(oldPath, newPath);
+    pathMapping.set(normalizePathForLookup(oldPath), newPath);
   };
 
   // Fetch FileReference records for the node
@@ -637,7 +721,7 @@ const importAssetsForNode = async ({
         const localModifiedAfterRef =
           refLastModifiedMs > 0 && existingFile.stat.mtime > refLastModifiedMs;
         if (!localModifiedAfterRef) {
-          pathMapping.set(filepath, existingFile.path);
+          setPathMapping(filepath, existingFile.path);
           console.log(
             `Reusing existing asset: ${filehash} -> ${existingFile.path}`,
           );
@@ -674,7 +758,7 @@ const importAssetsForNode = async ({
           const localModifiedAfterRef =
             refLastModifiedMs > 0 && localMtimeMs > refLastModifiedMs;
           if (!localModifiedAfterRef) {
-            pathMapping.set(filepath, targetPath);
+            setPathMapping(filepath, targetPath);
             await plugin.app.fileManager.processFrontMatter(
               targetMarkdownFile,
               (fm) => {
@@ -744,8 +828,8 @@ const importAssetsForNode = async ({
         stat,
       );
 
-      // Track path mapping
-      pathMapping.set(filepath, targetPath);
+      // Track path mapping (raw + normalized key so updateMarkdownAssetLinks can lookup by link text)
+      setPathMapping(filepath, targetPath);
       console.log(`Imported asset: ${filepath} -> ${targetPath}`);
     } catch (error) {
       const errorMsg = `Error importing asset ${fileRef.filepath}: ${error}`;
@@ -1023,42 +1107,22 @@ export const importSelectedNodes = async ({
 
         console.log("existingFile", existingFile);
 
-        // Fetch the file name (direct variant) and content (full variant)
-        const fileName = await fetchNodeContent({
+        const nodeContent = await fetchNodeContentForImport({
           client,
           spaceId,
           nodeInstanceId: node.nodeInstanceId,
-          variant: "direct",
         });
 
-        if (!fileName) {
-          console.warn(
-            `No direct variant found for node ${node.nodeInstanceId}`,
-          );
+        if (!nodeContent) {
           failedCount++;
           processedCount++;
           onProgress?.(processedCount, totalNodes);
           continue;
         }
 
-        const contentWithMeta = await fetchNodeContentWithMetadata({
-          client,
-          spaceId,
-          nodeInstanceId: node.nodeInstanceId,
-          variant: "full",
-        });
-
-        if (contentWithMeta === null) {
-          console.warn(`No full variant found for node ${node.nodeInstanceId}`);
-          failedCount++;
-          processedCount++;
-          onProgress?.(processedCount, totalNodes);
-          continue;
-        }
-
-        const { content } = contentWithMeta;
-        const createdAt = node.createdAt ?? contentWithMeta.createdAt;
-        const modifiedAt = node.modifiedAt ?? contentWithMeta.modifiedAt;
+        const { fileName, content, createdAt: contentCreatedAt, modifiedAt: contentModifiedAt } = nodeContent;
+        const createdAt = node.createdAt ?? contentCreatedAt;
+        const modifiedAt = node.modifiedAt ?? contentModifiedAt;
 
         // Sanitize file name
         const sanitizedFileName = sanitizeFileName(fileName);
