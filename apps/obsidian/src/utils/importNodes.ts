@@ -64,8 +64,8 @@ export const getPublishedNodesForGroups = async ({
     source_local_id: string | null;
     space_id: number | null;
     text: string | null;
-    created: number | null;
-    last_modified: number | null;
+    created: string | null;
+    last_modified: string | null;
     variant: string | null;
   };
 
@@ -96,8 +96,10 @@ export const getPublishedNodesForGroups = async ({
     );
     const direct = rows.find((r) => r.variant === "direct");
     const text = direct?.text ?? latest.text ?? "";
-    const createdAt = latest.created ?? 0;
-    const modifiedAt = latest.last_modified ?? 0;
+    const createdAt = latest.created ? new Date(latest.created).valueOf() : 0;
+    const modifiedAt = latest.last_modified
+      ? new Date(latest.last_modified).valueOf()
+      : 0;
     nodes.push({
       source_local_id: latest.source_local_id!,
       space_id: latest.space_id!,
