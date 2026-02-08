@@ -22,6 +22,11 @@ export type CloudflareCanvasStoreAdapterResult = {
   isLoading: boolean;
 };
 
+const getSyncRoomId = ({ pageUid }: { pageUid: string }): string => {
+  const graphName = window.roamAlphaAPI.graph.name;
+  return `${graphName}/${pageUid}`;
+};
+
 const parseRoamUploadResponse = (value: string): string => {
   return value.replace(/^!\[\]\(/, "").replace(/\)$/, "");
 };
@@ -63,6 +68,7 @@ export const useCloudflareSyncStore = ({
   );
 
   const uri = useMemo(() => {
+    const roomId = encodeURIComponent(getSyncRoomId({ pageUid }));
     const query = new URLSearchParams();
     for (const shapeType of customShapeTypes) {
       query.append("shapeType", shapeType);
@@ -70,7 +76,7 @@ export const useCloudflareSyncStore = ({
     for (const bindingType of customBindingTypes) {
       query.append("bindingType", bindingType);
     }
-    return `${TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL}/connect/${pageUid}?${query.toString()}`;
+    return `${TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL}/connect/${roomId}?${query.toString()}`;
   }, [customShapeTypes, customBindingTypes, pageUid]);
 
   const store = useSync({

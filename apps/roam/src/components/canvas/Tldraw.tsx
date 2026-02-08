@@ -149,6 +149,8 @@ export const isPageUid = (uid: string) =>
   ];
 
 const TldrawCanvas = ({ title }: { title: string }) => {
+  // In Roam, canvas identity is currently keyed by the page UID.
+  // Room sync is graphName/uid
   const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
   const useCloudflareSync =
     TLDRAW_CLOUDFLARE_SYNC_ENABLED &&
