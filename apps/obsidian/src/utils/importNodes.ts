@@ -905,7 +905,6 @@ const processFileContent = async ({
           mtime: importedModifiedAt,
         }
       : undefined;
-  console.log(stat);
   if (!file) {
     file = await plugin.app.vault.create(filePath, rawContent, stat);
   } else {
