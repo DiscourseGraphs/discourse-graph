@@ -329,8 +329,8 @@ const fetchFileReferences = async ({
   Array<{
     filepath: string;
     filehash: string;
-    created: string;
-    last_modified: string;
+    created: number;
+    last_modified: number;
   }>
 > => {
   const { data, error } = await client
@@ -344,7 +344,12 @@ const fetchFileReferences = async ({
     return [];
   }
 
-  return data || [];
+  return data.map(({ filepath, filehash, created, last_modified }) => ({
+    filepath,
+    filehash,
+    created: created ? new Date(created).valueOf() : 0,
+    last_modified: last_modified ? new Date(last_modified).valueOf() : 0,
+  }));
 };
 
 const downloadFileFromStorage = async ({
@@ -697,6 +702,7 @@ const importAssetsForNode = async ({
         continue;
       }
 
+      const options = { mtime: fileRef.last_modified, ctime: fileRef.created };
       // Save file to vault
       const existingFileForOverwrite =
         plugin.app.vault.getAbstractFileByPath(targetPath);
@@ -707,9 +713,10 @@ const importAssetsForNode = async ({
         await plugin.app.vault.modifyBinary(
           existingFileForOverwrite,
           fileContent,
+          options,
         );
       } else {
-        await plugin.app.vault.createBinary(targetPath, fileContent);
+        await plugin.app.vault.createBinary(targetPath, fileContent, options);
       }
 
       // Update frontmatter to track this mapping
@@ -898,6 +905,7 @@ const processFileContent = async ({
           mtime: importedModifiedAt,
         }
       : undefined;
+  console.log(stat);
   if (!file) {
     file = await plugin.app.vault.create(filePath, rawContent, stat);
   } else {
