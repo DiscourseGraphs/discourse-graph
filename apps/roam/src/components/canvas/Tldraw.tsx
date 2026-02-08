@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
+import { Icon, Tooltip } from "@blueprintjs/core";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
 } from "roamjs-components/components/ExtensionApiContext";
@@ -240,6 +241,7 @@ const TldrawCanvasRoam = ({
       title={title}
       pageUid={pageUid}
       useStoreAdapter={useRoamCanvasStore}
+      isCloudflareSync={false}
     />
   );
 };
@@ -256,6 +258,7 @@ const TldrawCanvasCloudflare = ({
       title={title}
       pageUid={pageUid}
       useStoreAdapter={useCloudflareCanvasStore}
+      isCloudflareSync={true}
     />
   );
 };
@@ -264,10 +267,12 @@ const TldrawCanvasShared = ({
   title,
   pageUid,
   useStoreAdapter,
+  isCloudflareSync,
 }: {
   title: string;
   pageUid: string;
   useStoreAdapter: (args: CanvasStoreAdapterArgs) => CanvasStoreAdapterResult;
+  isCloudflareSync: boolean;
 }) => {
   const appRef = useRef<Editor | null>(null);
   const lastInsertRef = useRef<VecModel>();
@@ -853,6 +858,14 @@ const TldrawCanvasShared = ({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
+      {isCloudflareSync && (
+        <div
+          className="pointer-events-none absolute right-3 top-3 z-20 opacity-90"
+          title="Cloudflare Sync enabled"
+        >
+          <Icon icon="cloud" size={12} className="text-green-500" />
+        </div>
+      )}
       <style>{tldrawStyles}</style>
 
       {needsUpgrade ? (
