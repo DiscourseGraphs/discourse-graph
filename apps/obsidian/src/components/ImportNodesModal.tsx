@@ -78,7 +78,8 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         if (!grouped.has(groupId)) {
           grouped.set(groupId, {
             groupId,
-            groupName: spaceNames.get(node.space_id) ?? `Space ${node.space_id}`,
+            groupName:
+              spaceNames.get(node.space_id) ?? `Space ${node.space_id}`,
             nodes: [],
           });
         }
