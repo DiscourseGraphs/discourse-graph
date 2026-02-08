@@ -41,6 +41,7 @@ import {
   STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
+import { initSchema } from "./components/settings/utils/init";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -78,8 +79,6 @@ export default runExtension(async (onloadArgs) => {
   await initializeDiscourseNodes();
   refreshConfigTree();
 
-  // For testing purposes
-  // await initSchema();
   addGraphViewNodeStyling();
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
@@ -155,6 +154,9 @@ export default runExtension(async (onloadArgs) => {
         "Discourse Graph detected the Roam left sidebar script. Running both sidebars may cause issues. Please remove the Roam left sidebar script from your Roam instance, and reload the graph.",
     });
   }
+
+  // For testing purposes
+  await initSchema();
 
   return {
     elements: [
