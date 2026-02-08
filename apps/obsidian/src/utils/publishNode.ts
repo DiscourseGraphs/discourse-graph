@@ -60,6 +60,7 @@ export const publishNode = async ({
   plugin,
   file,
   frontmatter,
+  group,
 }: {
   plugin: DiscourseGraphPlugin;
   file: TFile;
@@ -72,14 +73,18 @@ export const publishNode = async ({
   const context = await getSupabaseContext(plugin);
   if (!context) throw new Error("Cannot get context");
   const spaceId = context.spaceId;
-  const myGroupResponse = await client
+  const myGroupsResponse = await client
     .from("group_membership")
     .select("group_id");
-  if (myGroupResponse.error) throw myGroupResponse.error;
-  const myGroup = myGroupResponse.data[0]?.group_id;
-  if (!myGroup) throw new Error("Cannot get group");
+  if (myGroupsResponse.error) throw myGroupsResponse.error;
+  const myGroups = new Set(
+    myGroupsResponse.data.map(({ group_id }) => group_id),
+  );
+  if (myGroups.size === 0) throw new Error("Cannot get group");
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];
+  const commonGroups = existingPublish.filter((g) => myGroups.has(g));
+  const myGroup = (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
   const idResponse = await client
     .from("Content")
     .select("last_modified")
@@ -112,7 +117,7 @@ export const publishNode = async ({
   );
 
   const skipPublishAccess =
-    existingPublish.includes(myGroup) && lastModified <= lastModifiedDb;
+    commonGroups.length > 0 && lastModified <= lastModifiedDb;
 
   if (!skipPublishAccess) {
     const publishSpaceResponse = await client.from("SpaceAccess").upsert(
@@ -186,7 +191,7 @@ export const publishNode = async ({
   // do not fail on cleanup
   if (cleanupResult.error) console.error(cleanupResult.error);
 
-  if (!existingPublish.includes(myGroup))
+  if (commonGroups.length === 0)
     await plugin.app.fileManager.processFrontMatter(
       file,
       (fm: Record<string, unknown>) => {
