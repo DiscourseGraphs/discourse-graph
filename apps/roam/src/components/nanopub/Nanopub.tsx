@@ -13,14 +13,13 @@ import {
   InputGroup,
   Classes,
 } from "@blueprintjs/core";
-import init, { KeyPair, Nanopub, NpProfile, getNpServer } from "@nanopub/sign";
-// import init, {
-// Nanopub,
-// NpProfile,
-// getNpServer,
-// KeyPair,
-// @ts-ignore
-// } from "https://unpkg.com/@nanopub/sign";
+import {
+  initNanopubSignWasm,
+  NANOPUB_REGISTRY_URLS,
+  sign,
+  TEST_NANOPUB_REGISTRY_URL,
+  verifySignature,
+} from "@nanopub/nanopub-js";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import { OnloadArgs } from "roamjs-components/types";
 import findDiscourseNode from "~/utils/findDiscourseNode";
@@ -40,13 +39,13 @@ import {
 import getBlockProps from "~/utils/getBlockProps";
 import getExportTypes from "~/utils/getExportTypes";
 import { DiscourseNode, NanopubConfig } from "~/utils/getDiscourseNodes";
-import apiPost from "roamjs-components/util/apiPost";
 import { getNodeEnv } from "roamjs-components/util/env";
 import runQuery from "~/utils/runQuery";
 import PreviewNanopub from "./PreviewNanopub";
 import SourceManager from "./SourceManager";
 import extractContentFromTitle from "~/utils/extractContentFromTitle";
 import matchDiscourseNode from "~/utils/matchDiscourseNode";
+import internalError from "~/utils/internalError";
 
 export type NanopubPage = {
   contributors: Contributor[];
@@ -421,29 +420,31 @@ const NanopubDialog = ({
   // setKeyPair(keypair);
   // console.log(keypair);
   // };
-  const checkNanopub = () => {
-    const np = new Nanopub(rdfString);
-    const checked = np.check();
-    console.log("Checked info dict:", checked.info());
-    console.log(checked);
-    setCheckedOutput(JSON.stringify(checked.info(), null, 2));
+  const checkNanopub = async () => {
+    try {
+      const isValid = await verifySignature(rdfString);
+      const checked = {
+        validSignature: isValid,
+      };
+      console.log("Checked info dict:", checked);
+      setCheckedOutput(JSON.stringify(checked, null, 2));
+    } catch (error) {
+      console.error("Error checking nanopub:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to check nanopub";
+      setCheckedOutput(JSON.stringify({ error: message }, null, 2));
+    }
   };
-  const signNanopub = () => {
-    const np = new Nanopub(rdfString);
-    console.log(np);
+  const signNanopub = async () => {
     try {
       console.log("signNanopub");
       console.log(PRIVATE_KEY);
-      const orcid = getCurrentUserOrcid();
       const name = getCurrentUserDisplayName();
-      console.log(orcid);
+      console.log(orcidUrl);
       console.log(name);
-      const profile = new NpProfile(PRIVATE_KEY, orcid, name, "");
-      console.log(profile);
-      const signed = np.sign(profile);
-      console.log("Signed info dict:", signed.info());
-      console.log(signed);
-      setSignedOutput(JSON.stringify(signed.info(), null, 2));
+      const signed = await sign(rdfString, PRIVATE_KEY, orcidUrl, name);
+      console.log("Signed info dict:", signed);
+      setSignedOutput(JSON.stringify(signed, null, 2));
     } catch (error) {
       console.error("Error signing nanopub:", error);
     }
@@ -514,7 +515,7 @@ const NanopubDialog = ({
             Sign
           </Button>
           <Button
-            onClick={() => publishNanopub({ isDev: "true" })}
+            onClick={() => publishNanopub({ useTestServer: true })}
             intent={"primary"}
           >
             Publish Test Server
@@ -557,10 +558,10 @@ const NanopubDialog = ({
   const orcidUrl = `https://orcid.org/${orcid}`;
 
   const publishNanopub = async ({
-    isDev = "",
+    useTestServer = isDev,
     isExample = false,
   }: {
-    isDev?: string;
+    useTestServer?: boolean;
     isExample?: boolean;
   }) => {
     if (!orcidUrl) {
@@ -589,16 +590,40 @@ const NanopubDialog = ({
       triples: templateTriples || [],
       isExample, // TEMP
     });
-    const serverUrl = isDev ? "" : getNpServer(false);
+    const serverUrl = useTestServer
+      ? TEST_NANOPUB_REGISTRY_URL
+      : NANOPUB_REGISTRY_URLS[1] || NANOPUB_REGISTRY_URLS[0];
     const currentUser = getCurrentUserDisplayName();
-    const profile = new NpProfile(PRIVATE_KEY, orcidUrl, currentUser, "");
-    const np = new Nanopub(rdfString);
     try {
-      const published = await np.publish(profile, serverUrl);
-      const url = published.info().published;
-      console.log("Published info dict:", published.info());
-      setPublishedOutput(JSON.stringify(published.info(), null, 2));
-      setRdfOutput(published.rdf());
+      const signed = await sign(rdfString, PRIVATE_KEY, orcidUrl, currentUser);
+      const publishResponse = await fetch(serverUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/trig",
+        },
+        body: signed.signedRdf,
+      });
+      if (!publishResponse.ok) {
+        const errorBody = await publishResponse.text().catch(() => "");
+        throw new Error(
+          `Nanopub publish failed: ${publishResponse.status} ${errorBody || publishResponse.statusText}`,
+        );
+      }
+      const url =
+        signed.sourceUri ||
+        publishResponse.headers.get("Location") ||
+        publishResponse.headers.get("location") ||
+        "";
+      const publishedInfo = {
+        uri: url,
+        server: serverUrl,
+        status: publishResponse.status,
+        statusText: publishResponse.statusText,
+        signature: signed.signature,
+      };
+      console.log("Published info dict:", publishedInfo);
+      setPublishedOutput(JSON.stringify(publishedInfo, null, 2));
+      setRdfOutput(signed.signedRdf);
       setPublishedURL(url);
       const props = getBlockProps(uid) as Record<string, unknown>;
       const nanopub = props["nanopub"] as NanopubPage;
@@ -616,28 +641,16 @@ const NanopubDialog = ({
       const error = e as Error;
       console.error("Error publishing the Nanopub:", error);
       setPublishedOutput(JSON.stringify({ error: error.message }, null, 2));
-      apiPost({
-        domain: "https://api.samepage.network",
-        path: "errors",
-        data: {
-          method: "extension-error",
-          type: "Nanopub Publish Failed",
-          message: error.message,
-          stack: error.stack,
-          version: process.env.VERSION,
-          data: {
-            templateTriples,
-            contributors,
-            rdfString,
-            orcidUrl,
-          },
-          notebookUuid: JSON.stringify({
-            owner: "DiscourseGraphs",
-            app: "discourse-graph",
-            workspace: window.roamAlphaAPI.graph.name,
-          }),
+      internalError({
+        error,
+        type: "Nanopub Publish Failed",
+        context: {
+          templateTriples,
+          contributors,
+          rdfString,
+          orcidUrl,
         },
-      }).catch(() => {});
+      });
     }
   };
 
@@ -763,14 +776,13 @@ const NanopubDialog = ({
 
   // Init WASM
   useEffect(() => {
-    try {
-      // @ts-ignore
-      init().then(() => {
-        console.log("WASM Initialized");
+    initNanopubSignWasm()
+      .then(() => {
+        console.log("Nanopub WASM initialized");
+      })
+      .catch((error) => {
+        console.error("Error initializing Nanopub WASM:", error);
       });
-    } catch (error) {
-      console.error("Error initializing WASM:", error);
-    }
   }, []);
   // Generate Initial RDF String
   useEffect(() => {
@@ -883,7 +895,7 @@ const NanopubDialog = ({
                 Preview
               </Button>
               <Button
-                onClick={publishNanopub}
+                onClick={() => publishNanopub({})}
                 intent={"primary"}
                 disabled={selectedTabId !== "nanopub-preview"}
                 // hidden={!!publishedURL}
