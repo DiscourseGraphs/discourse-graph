@@ -191,7 +191,7 @@ export class TldrawDurableObject {
 	}
 
 	// we throttle persistance so it only happens every 10 seconds
-	schedulePersistToR2 = throttle(async () => {
+	schedulePersistToR2: () => void = throttle(async () => {
 		if (!this.roomPromise || !this.roomId) return
 		const room = await this.getRoom()
 
