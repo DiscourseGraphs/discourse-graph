@@ -38,6 +38,31 @@ type getExportTypesProps = {
   isExportDiscourseGraph: boolean;
 };
 
+/* eslint-disable @typescript-eslint/naming-convention */
+type RoamImportUser = {
+  ":user/uid": string;
+};
+
+type RoamImportBlock = {
+  string: string;
+  uid?: string;
+  children?: RoamImportBlock[];
+  "create-time"?: number;
+  "edit-time"?: number;
+  "edit-user"?: RoamImportUser;
+  heading?: 0 | 1 | 2 | 3;
+  "text-align"?: "left" | "center" | "right" | "justify";
+};
+
+type RoamImportPage = {
+  title: string;
+  children?: RoamImportBlock[];
+  "create-time"?: number;
+  "edit-time"?: number;
+  "edit-user"?: RoamImportUser;
+};
+/* eslint-enable @typescript-eslint/naming-convention */
+
 const getExportTypes = ({
   results,
   exportId,
@@ -52,6 +77,49 @@ const getExportTypes = ({
 
   const getRelationData = () =>
     getRelationDataUtil({ allRelations, nodeLabelByType, local: true });
+
+  const getRoamImportUser = (): RoamImportUser | undefined => {
+    const userUid = window.roamAlphaAPI.user.uid();
+    if (!userUid) return undefined;
+    const user = {} as RoamImportUser;
+    user[":user/uid"] = userUid;
+    return user;
+  };
+
+  const toEpochMilliseconds = (value: Date): number | undefined => {
+    const time = value.getTime();
+    return Number.isFinite(time) && time > 0 ? time : undefined;
+  };
+
+  const toRoamHeading = (heading: number): 0 | 1 | 2 | 3 => {
+    if (heading === 1 || heading === 2 || heading === 3) return heading;
+    return 0;
+  };
+
+  const toRoamImportBlock = (
+    node: TreeNode,
+    editUser: RoamImportUser | undefined,
+  ): RoamImportBlock => {
+    const editTime = toEpochMilliseconds(node.editTime);
+    const heading = toRoamHeading(node.heading);
+    const children = node.children.map((child) =>
+      toRoamImportBlock(child, editUser),
+    );
+
+    const block: RoamImportBlock = {
+      string: node.text,
+      uid: node.uid || undefined,
+      children: children.length ? children : undefined,
+      heading,
+    };
+    block["create-time"] = editTime;
+    block["edit-time"] = editTime;
+    block["edit-user"] = editUser;
+    if (node.textAlign && node.textAlign !== "left") {
+      block["text-align"] = node.textAlign;
+    }
+    return block;
+  };
 
   const getJsonData = async (results: Result[]) => {
     const grammar = allRelations.map(({ label, destination, source }) => ({
@@ -77,6 +145,27 @@ const getExportTypes = ({
       );
       return { grammar, nodes, relations };
     });
+  };
+
+  const getRoamImportData = (results: Result[]): RoamImportPage[] => {
+    const editUser = getRoamImportUser();
+    return getPageData({ results, allNodes, isExportDiscourseGraph }).map(
+      ({ text, uid }) => {
+        const { children } = getFullTreeByParentUid(uid);
+        const { date, modified } = getPageMetadata(text);
+        const createTime = toEpochMilliseconds(date);
+        const editTime = toEpochMilliseconds(modified);
+
+        const page: RoamImportPage = {
+          title: text,
+          children: children.map((node) => toRoamImportBlock(node, editUser)),
+        };
+        page["create-time"] = createTime;
+        page["edit-time"] = editTime || createTime;
+        page["edit-user"] = editUser;
+        return page;
+      },
+    );
   };
 
   return [
@@ -143,6 +232,19 @@ const getExportTypes = ({
             content: JSON.stringify(data),
           },
         ];
+      },
+    },
+    {
+      name: "Roam Import JSON",
+      callback: ({ filename }) => {
+        if (!results) return Promise.resolve([]);
+        const data = getRoamImportData(results);
+        return Promise.resolve([
+          {
+            title: `${filename.replace(/\.json$/, "")}.json`,
+            content: JSON.stringify(data, undefined, 2),
+          },
+        ]);
       },
     },
     {
