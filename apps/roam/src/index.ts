@@ -120,7 +120,7 @@ export default runExtension(async (onloadArgs) => {
     text: "(BETA) Suggestive Mode Enabled",
   }).value;
 
-  if (isSuggestiveModeEnabled) {
+  if (isSuggestiveModeEnabled && process.env.SUPABASE_USE_DB !== "none") {
     initializeSupabaseSync();
   }
 
