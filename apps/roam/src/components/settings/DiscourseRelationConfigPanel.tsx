@@ -387,8 +387,9 @@ export const RelationEditPanel = ({
   );
   const saveCyToElementRef = useCallback(
     (t: number) => {
-      const nodes = cyRef.current?.nodes() || [];
-      const edges = cyRef.current?.edges() || [];
+      if (!cyRef.current) return;
+      const nodes = cyRef.current.nodes();
+      const edges = cyRef.current.edges();
       elementsRef.current[t] = [
         ...nodes.map((n) => ({ data: n.data(), position: n.position() })),
         ...edges.map((n) => ({ data: n.data() })),
@@ -713,9 +714,9 @@ export const RelationEditPanel = ({
           <MenuItemSelect
             activeItem={source}
             onItemSelect={(e) => {
+              unsavedChanges();
+              setSource(e);
               if (cyRef.current) {
-                unsavedChanges();
-                setSource(e);
                 (cyRef.current.nodes("#source") as cytoscape.NodeSingular).data(
                   "node",
                   nodes[e]?.label,
@@ -731,9 +732,9 @@ export const RelationEditPanel = ({
           <MenuItemSelect
             activeItem={destination}
             onItemSelect={(e) => {
+              unsavedChanges();
+              setDestination(e);
               if (cyRef.current) {
-                unsavedChanges();
-                setDestination(e);
                 (
                   cyRef.current.nodes("#destination") as cytoscape.NodeSingular
                 ).data("node", nodes[e]?.label);
