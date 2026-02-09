@@ -265,6 +265,7 @@ const NodeConfig = ({
                 description={`Describing what the ${node.text} node represents in your graph.`}
                 settingKeys={["description"]}
                 defaultValue={node.description}
+                order={1}
                 parentUid={node.type}
                 uid={descriptionUid}
               />
@@ -287,6 +288,7 @@ const NodeConfig = ({
                 placeholder={generateTagPlaceholder(node)}
                 validate={validateTag}
                 onChange={setTagValue}
+                order={2}
                 parentUid={node.type}
                 uid={tagUid}
               />
