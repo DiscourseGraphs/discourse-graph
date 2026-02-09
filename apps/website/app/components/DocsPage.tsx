@@ -51,36 +51,45 @@ export const DocsPage = async ({ params, directory }: DocsPageProps) => {
   }
 };
 
-export const generateDocsStaticParams = async (directory: string) => {
+const generateParamsForDirectory = async (directory: string) => {
+  const directoryExists = await fs
+    .stat(directory)
+    .then((stats) => stats.isDirectory())
+    .catch(() => false);
+
+  if (!directoryExists) {
+    console.log("No docs directory found");
+    return [];
+  }
+
+  const files = await fs.readdir(directory);
+  const mdFiles = files.filter((filename) => filename.endsWith(".md"));
+
+  const publishedFiles = await Promise.all(
+    mdFiles.map(async (filename) => {
+      const { published } = await getFileMetadata({
+        filename,
+        directory,
+      });
+      return { filename, published };
+    }),
+  );
+
+  return publishedFiles
+    .filter(({ published }) => published)
+    .map(({ filename }) => ({ slug: filename.replace(/\.md$/, "") }));
+};
+
+export const generateDocsStaticParams = async (
+  directories: string | string[],
+) => {
   try {
-    const directoryExists = await fs
-      .stat(directory)
-      .then((stats) => stats.isDirectory())
-      .catch(() => false);
-
-    if (!directoryExists) {
-      console.log("No docs directory found");
-      return [];
-    }
-
-    const files = await fs.readdir(directory);
-    const mdFiles = files.filter((filename) => filename.endsWith(".md"));
-
-    const publishedFiles = await Promise.all(
-      mdFiles.map(async (filename) => {
-        const { published } = await getFileMetadata({
-          filename,
-          directory,
-        });
-        return { filename, published };
-      }),
+    const dirs =
+      typeof directories === "string" ? [directories] : [...directories];
+    const results = await Promise.all(
+      dirs.map((dir) => generateParamsForDirectory(dir)),
     );
-
-    return publishedFiles
-      .filter(({ published }) => published)
-      .map(({ filename }) => ({
-        slug: filename.replace(/\.md$/, ""),
-      }));
+    return results.flat();
   } catch (error) {
     console.error("Error generating static params:", error);
     return [];

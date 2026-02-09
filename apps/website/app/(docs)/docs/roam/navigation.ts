@@ -48,7 +48,7 @@ export const navigation: NavigationList = [
     links: [
       {
         title: "What is a discourse graph?",
-        href: `${ROOT}/what-is-discourse-graph`,
+        href: `${ROOT}/what-is-a-discourse-graph`,
       },
       {
         title: "Grammar",
