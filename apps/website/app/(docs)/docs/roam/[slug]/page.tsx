@@ -22,7 +22,7 @@ const Page = async ({ params }: Params) => {
 export default Page;
 
 export const generateStaticParams = () =>
-  generateDocsStaticParams(docMap.default);
+  generateDocsStaticParams([...new Set(Object.values(docMap))]);
 
 export const generateMetadata = async ({
   params,

@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 // Shared paths
 export const SHARED_DOCS = "app/(docs)/docs/sharedPages";
 
 // Shared document mappings
 export const sharedDocMap = {
-  "what-is-discourse-graph": SHARED_DOCS,
+  "what-is-a-discourse-graph": SHARED_DOCS,
   "base-grammar": SHARED_DOCS,
   "literature-reviewing": SHARED_DOCS,
   "research-roadmapping": SHARED_DOCS,
@@ -15,4 +16,4 @@ export const sharedDocMap = {
 export type DocMapType = {
   default: string;
   [key: string]: string;
-}; 
+};
