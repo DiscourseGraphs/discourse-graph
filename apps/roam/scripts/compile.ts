@@ -159,7 +159,9 @@ export const compile = ({
       bundle: true,
       format,
       define: {
-        "process.env.SUPABASE_USE_DB": `"${process.env.SUPABASE_USE_DB}"`,
+        "process.env.SUPABASE_USE_DB": dbEnv.SUPABASE_USE_DB
+          ? `"${dbEnv.SUPABASE_USE_DB}"`
+          : "null",
         "process.env.SUPABASE_URL": dbEnv.SUPABASE_URL
           ? `"${dbEnv.SUPABASE_URL}"`
           : "null",
