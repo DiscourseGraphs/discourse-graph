@@ -125,9 +125,6 @@ const BaseTextPanel = ({
     setValue(newValue);
     setter(settingKeys, newValue);
     syncToBlock?.(newValue);
-    setTimeout(() => {
-      console.log(`[TextPanel] "${title}" after set, blockProp:`, getter(settingKeys));
-    }, 500);
   };
 
   return (
@@ -198,9 +195,6 @@ const BaseFlagPanel = ({
     setter(settingKeys, checked);
     await syncFlagToBlock(checked);
     onChange?.(checked);
-    setTimeout(() => {
-      console.log(`[FlagPanel] "${title}" after set, blockProp:`, getter(settingKeys));
-    }, 500);
   };
 
   return (
@@ -251,9 +245,6 @@ const BaseNumberPanel = ({
     setValue(valueAsNumber);
     setter(settingKeys, valueAsNumber);
     syncToBlock?.(valueAsNumber);
-    setTimeout(() => {
-      console.log(`[NumberPanel] "${title}" after set, blockProp:`, getter(settingKeys));
-    }, 500);
   };
 
   return (
@@ -303,9 +294,6 @@ const BaseSelectPanel = ({
     setValue(newValue);
     setter(settingKeys, newValue);
     syncToBlock?.(newValue);
-    setTimeout(() => {
-      console.log(`[SelectPanel] "${title}" after set, blockProp:`, getter(settingKeys));
-    }, 500);
   };
 
   return (
@@ -383,9 +371,6 @@ const BaseMultiTextPanel = ({
         });
         childUidsRef.current = [...childUidsRef.current, valueUid];
       }
-      setTimeout(() => {
-        console.log(`[MultiTextPanel] "${title}" after add, blockProp:`, getter(settingKeys));
-      }, 500);
     }
   };
 
@@ -405,9 +390,6 @@ const BaseMultiTextPanel = ({
         (_, i) => i !== index,
       );
     }
-    setTimeout(() => {
-      console.log(`[MultiTextPanel] "${title}" after remove, blockProp:`, getter(settingKeys));
-    }, 500);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
