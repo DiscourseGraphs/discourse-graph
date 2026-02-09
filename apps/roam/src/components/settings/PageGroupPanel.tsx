@@ -111,10 +111,10 @@ const PageGroupsPanel = ({
 
   return (
     <Label>
-      Page Groups
+      Page groups
       <Description
         description={
-          "Organize pages into named groups that will be can be selected when generating Discourse Suggestions."
+          "Organize pages into named groups that will be can be selected when generating discourse suggestions."
         }
       />
       <div className="flex flex-col gap-2">

@@ -410,7 +410,7 @@ const NodeConfig = ({
               <DiscourseNodeAttributes uid={attributeNode.uid} />
               <SelectPanel
                 title="Overlay"
-                description="Select which attribute is used for the Discourse Overlay"
+                description="Select which attribute is used for the discourse overlay"
                 order={0}
                 parentUid={node.type}
                 uid={overlayUid}
@@ -441,7 +441,7 @@ const NodeConfig = ({
         {settings.suggestiveModeEnabled.value && (
           <Tab
             id="suggestive-mode"
-            title="Suggestive Mode"
+            title="Suggestive mode"
             panel={
               <div className="flex flex-col gap-4 p-1">
                 <DiscourseNodeSuggestiveRules
