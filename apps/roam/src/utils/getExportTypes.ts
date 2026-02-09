@@ -110,12 +110,14 @@ const getExportTypes = ({
       string: node.text,
       uid: node.uid || undefined,
       children: children.length ? children : undefined,
-      heading: heading || undefined,
+      heading,
     };
     block["create-time"] = editTime;
     block["edit-time"] = editTime;
     block["edit-user"] = editUser;
-    block["text-align"] = node.textAlign || undefined;
+    if (node.textAlign && node.textAlign !== "left") {
+      block["text-align"] = node.textAlign;
+    }
     return block;
   };
 
