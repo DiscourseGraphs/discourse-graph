@@ -50,6 +50,7 @@ import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
+import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",
@@ -975,6 +976,18 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
     null,
   );
+  const shouldHideCanvasRelation = getSetting<boolean>(
+    USE_REIFIED_RELATIONS,
+    false,
+  );
+  const visibleRelations = useMemo(() => {
+    if (!shouldHideCanvasRelation) {
+      return relations;
+    }
+    // Deprecated: hide "canvas" relations; this will be removed in the future
+    // when the pattern -> stored relation migration is complete.
+    return relations.filter((relation) => relation.text !== "canvas");
+  }, [relations, shouldHideCanvasRelation]);
   const editingRelationInfo = useMemo(
     () =>
       editingRelation ? getFullTreeByParentUid(editingRelation) : undefined,
@@ -1093,7 +1106,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
           </tr>
         </thead>
         <tbody>
-          {relations.map((rel) => (
+          {visibleRelations.map((rel) => (
             <tr key={rel.uid} onClick={() => handleEdit(rel)}>
               <td style={{ verticalAlign: "middle" }}>
                 {nodes[rel.source || ""]?.label}
