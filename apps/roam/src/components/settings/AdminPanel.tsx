@@ -381,7 +381,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
         }}
         labelElement={
           <>
-            (BETA) Suggestive Mode Enabled
+            (BETA) Suggestive mode enabled
             <Description
               description={
                 "Whether or not to enable the suggestive mode, if this is first time enabling it, you will need to generate and upload all node embeddings to supabase. Go to Suggestive Mode -> Sync Config -> Click on 'Generate & Upload All Node Embeddings'"
@@ -453,7 +453,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
         }}
         labelElement={
           <>
-            Reified Relation Triples
+            Reified relation triples
             <Description
               description={
                 "When ON, relations are read/written as reifiedRelationUid in [[roam/js/discourse-graph/relations]]."
@@ -525,7 +525,7 @@ const AdminPanel = (): React.ReactElement => {
       {settings.suggestiveModeEnabled.value && (
         <Tab
           id="suggestive-mode-settings"
-          title="Suggestive Mode"
+          title="Suggestive mode"
           className="overflow-y-auto"
           panel={<SuggestiveModeSettings />}
         />

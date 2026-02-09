@@ -9,7 +9,6 @@ import {
   Tag,
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
-import idToTitle from "roamjs-components/util/idToTitle";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import {
@@ -120,7 +119,7 @@ const BaseTextPanel = ({
 
   return (
     <Label>
-      {idToTitle(title)}
+      {title}
       <Description description={description} />
       <InputGroup
         value={value}
@@ -194,7 +193,7 @@ const BaseFlagPanel = ({
       disabled={disabled}
       labelElement={
         <>
-          {idToTitle(title)}
+          {title}
           <Description description={description} />
         </>
       }
@@ -238,7 +237,7 @@ const BaseNumberPanel = ({
 
   return (
     <Label>
-      {idToTitle(title)}
+      {title}
       <Description description={description} />
       <NumericInput
         value={value}
@@ -284,7 +283,7 @@ const BaseSelectPanel = ({
 
   return (
     <Label>
-      {idToTitle(title)}
+      {title}
       <Description description={description} />
       <HTMLSelect
         value={value}
@@ -387,7 +386,7 @@ const BaseMultiTextPanel = ({
 
   return (
     <Label>
-      {idToTitle(title)}
+      {title}
       <Description description={description} />
       <div className="flex gap-2">
         <InputGroup

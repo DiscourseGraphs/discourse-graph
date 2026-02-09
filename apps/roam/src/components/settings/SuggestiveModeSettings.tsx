@@ -47,7 +47,7 @@ const SuggestiveModeSettings = () => {
       >
         <Tab
           id="page-groups"
-          title="Page Groups"
+          title="Page groups"
           panel={
             <div className="flex flex-col gap-4 p-1">
               <PageGroupsPanel
@@ -60,16 +60,16 @@ const SuggestiveModeSettings = () => {
         />
         <Tab
           id="sync-config"
-          title="Sync Config"
+          title="Sync config"
           panel={
             <div className="flex flex-col gap-4 p-1">
               <div className="sync-config-settings">
                 <GlobalFlagPanel
-                  title="Include Current Page Relations"
+                  title="Include current page relations"
                   description="Include relations from pages referenced on the current page"
                   settingKeys={[
-                    "Suggestive Mode",
-                    "Include Current Page Relations",
+                    "Suggestive mode",
+                    "Include current page relations",
                   ]}
                   initialValue={
                     settings.suggestiveMode.includePageRelations.value
@@ -81,15 +81,15 @@ const SuggestiveModeSettings = () => {
                 />
 
                 <GlobalFlagPanel
-                  title="Include Parent And Child Blocks"
+                  title="Include parent and child blocks"
                   description={
                     includePageRelations
                       ? "Include relations from parent and child blocks (automatically enabled when including page relations)"
                       : "Include relations from parent and child blocks"
                   }
                   settingKeys={[
-                    "Suggestive Mode",
-                    "Include Parent And Child Blocks",
+                    "Suggestive mode",
+                    "Include parent and child blocks",
                   ]}
                   initialValue={
                     settings.suggestiveMode.includeParentAndChildren.value
@@ -104,7 +104,7 @@ const SuggestiveModeSettings = () => {
               <div className="mt-4">
                 <Button
                   icon="cloud-upload"
-                  text={"Generate & Upload All Node Embeddings"}
+                  text={"Generate & upload all node embeddings"}
                   onClick={() =>
                     void (async () => {
                       renderToast({
