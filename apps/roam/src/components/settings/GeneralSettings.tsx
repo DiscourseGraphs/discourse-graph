@@ -18,7 +18,7 @@ const DiscourseGraphHome = () => {
   return (
     <div className="flex flex-col gap-4 p-1">
       <GlobalTextPanel
-        title="trigger"
+        title="Trigger"
         description="The trigger to create the node menu."
         settingKeys={["Trigger"]}
         initialValue={settings.trigger.value || "\\"}
@@ -27,9 +27,9 @@ const DiscourseGraphHome = () => {
         parentUid={settings.settingsUid}
       />
       <GlobalTextPanel
-        title="Canvas Page Format"
+        title="Canvas page format"
         description="The page format for canvas pages"
-        settingKeys={["Canvas Page Format"]}
+        settingKeys={["Canvas page format"]}
         initialValue={
           settings.canvasPageFormat.value || DEFAULT_CANVAS_PAGE_FORMAT
         }
@@ -38,10 +38,10 @@ const DiscourseGraphHome = () => {
         parentUid={settings.settingsUid}
       />
       <FeatureFlagPanel
-        title="(BETA) Left Sidebar"
+        title="(BETA) Left sidebar"
         description="Whether or not to enable the left sidebar."
-        featureKey="Enable Left Sidebar"
         initialValue={settings.leftSidebarEnabled.value}
+        featureKey="Enable left sidebar"
         order={2}
         uid={settings.leftSidebarEnabled.uid}
         parentUid={settings.settingsUid}

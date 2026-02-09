@@ -19,9 +19,9 @@ const QuerySettings = ({
   return (
     <div className="flex flex-col gap-4 p-1">
       <PersonalFlagPanel
-        title="Hide Query Metadata"
+        title="Hide query metadata"
         description="Hide the Roam blocks that are used to power each query"
-        settingKeys={["Query", "Hide Query Metadata"]}
+        settingKeys={["Query", "Hide query metadata"]}
         defaultValue={
           (extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean) ?? true
         }
@@ -30,9 +30,9 @@ const QuerySettings = ({
         }}
       />
       <PersonalNumberPanel
-        title="Default Page Size"
+        title="Default page size"
         description="The default page size used for query results"
-        settingKeys={["Query", "Default Page Size"]}
+        settingKeys={["Query", "Default page size"]}
         defaultValue={
           Number(extensionAPI.settings.get(DEFAULT_PAGE_SIZE_KEY)) || 10
         }
@@ -41,16 +41,16 @@ const QuerySettings = ({
         }}
       />
       <PersonalMultiTextPanel
-        title="Query Pages"
+        title="Query pages"
         description="The title formats of pages that you would like to serve as pages that generate queries"
-        settingKeys={["Query", "Query Pages"]}
+        settingKeys={["Query", "Query pages"]}
         defaultValue={getQueryPages(extensionAPI)}
         onChange={(values) => {
           void extensionAPI.settings.set("query-pages", values);
         }}
       />
       <Label>
-        Default Filters
+        Default filters
         <Description
           description={
             "Any filters that should be applied to your results by default"

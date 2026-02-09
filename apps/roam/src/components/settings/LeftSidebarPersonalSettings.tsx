@@ -417,7 +417,7 @@ const SectionItem = memo(
                               icon="settings"
                               small
                               onClick={() => setChildSettingsUid(child.uid)}
-                              title="Child Settings"
+                              title="Child settings"
                               className="opacity-0 transition-opacity group-hover:opacity-100"
                             />
                             <Button
@@ -701,7 +701,7 @@ const LeftSidebarPersonalSectionsContent = ({
             <div className="space-y-3">
               <div>
                 <label className="mb-1 flex items-center text-sm font-medium">
-                  Section Title
+                  Section title
                   <span
                     className="bp3-icon bp3-icon-info-sign ml-1"
                     title="Display name for this section"
