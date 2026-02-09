@@ -37,6 +37,7 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import posthog from "posthog-js";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -265,6 +266,9 @@ const MigrationTab = (): React.ReactElement => {
   const doMigrateRelations = async () => {
     setOngoing(true);
     try {
+      posthog.capture("Reified Relations: Migration Started", {
+        dryRun: useDryRun,
+      });
       const before = await countReifiedRelations();
       const numProcessed = await migrateRelations(useDryRun);
       const after = await countReifiedRelations();
@@ -273,11 +277,22 @@ const MigrationTab = (): React.ReactElement => {
           `${after - before} new relations created out of ${numProcessed} distinct relations processed`,
         );
       else setMigrationResults(`${numProcessed} new relations created`);
+      posthog.capture("Reified Relations: Migration Completed", {
+        dryRun: useDryRun,
+        processed: numProcessed,
+        before,
+        after,
+        created: after - before,
+      });
     } catch (e) {
       console.error("Relation migration failed", e);
       setMigrationResults(
         `Migration failed: ${(e as Error).message ?? "see console for details"}`,
       );
+      posthog.capture("Reified Relations: Migration Failed", {
+        dryRun: useDryRun,
+        error: (e as Error).message ?? "unknown error",
+      });
     } finally {
       setOngoing(false);
     }
@@ -432,6 +447,9 @@ const FeatureFlagsTab = (): React.ReactElement => {
           void setSetting(USE_REIFIED_RELATIONS, target.checked).catch(
             () => undefined,
           );
+          posthog.capture("Reified Relations: Toggled", {
+            enabled: target.checked,
+          });
         }}
         labelElement={
           <>
