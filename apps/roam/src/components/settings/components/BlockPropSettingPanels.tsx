@@ -115,6 +115,7 @@ const BaseTextPanel = ({
     setValue(newValue);
     setter(settingKeys, newValue);
     syncToBlock?.(newValue);
+    onChange?.(newValue);
   };
 
   return (
@@ -230,6 +231,7 @@ const BaseNumberPanel = ({
     setValue(valueAsNumber);
     setter(settingKeys, valueAsNumber);
     syncToBlock?.(valueAsNumber);
+    onChange?.(valueAsNumber);
   };
 
   return (
