@@ -877,7 +877,7 @@ export const RelationEditPanel = ({
                 />
               </Tooltip>
               {!!getSetting("discourse-relation-copy") && (
-                <Tooltip content={"Paste Relation"}>
+                <Tooltip content={"Paste relation"}>
                   <Button
                     minimal
                     icon={"clipboard"}
@@ -910,7 +910,7 @@ export const RelationEditPanel = ({
                   />
                 </Tooltip>
               )}
-              <Tooltip content={"Copy Relation"}>
+              <Tooltip content={"Copy relation"}>
                 <Button
                   minimal
                   icon={"duplicate"}
@@ -923,7 +923,7 @@ export const RelationEditPanel = ({
                     ).catch(() => undefined);
                     renderToast({
                       id: "relation-copy",
-                      content: "Copied Relation",
+                      content: "Copied relation",
                       intent: Intent.PRIMARY,
                     });
                   }}
@@ -1099,7 +1099,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
         className="mb-4 select-none"
         onClick={onNewRelation}
         icon={"plus"}
-        text={"Add Relation"}
+        text={"Add relation"}
         intent={Intent.PRIMARY}
       />
 

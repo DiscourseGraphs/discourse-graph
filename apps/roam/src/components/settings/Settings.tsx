@@ -156,7 +156,7 @@ export const SettingsDialog = ({
           />
           <Tab
             id="left-sidebar-personal-settings"
-            title="Left Sidebar"
+            title="Left sidebar"
             className="overflow-y-auto"
             panel={<LeftSidebarPersonalSections />}
           />
@@ -177,7 +177,7 @@ export const SettingsDialog = ({
           />
           <Tab
             id="left-sidebar-global-settings"
-            title="Left Sidebar"
+            title="Left sidebar"
             className="overflow-y-auto"
             panel={<LeftSidebarGlobalSections />}
           />

@@ -124,7 +124,7 @@ type PersonalSettingsHandlers = {
 export const personalSettingsHandlers: PersonalSettingsHandlers = {
   // "Left Sidebar" stub for testing with stubSetLeftSidebarPersonalSections() in accessors.ts
   /* eslint-disable @typescript-eslint/naming-convention */
-  "Left Sidebar": (newValue, oldValue) => {
+  "Left sidebar": (newValue, oldValue) => {
     const oldSections = Object.keys(oldValue || {});
     const newSections = Object.keys(newValue || {});
 

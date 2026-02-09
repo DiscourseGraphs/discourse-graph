@@ -63,8 +63,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       />
       <PersonalFlagPanel
         title="Overlay"
-        description="Whether or not to overlay Discourse Context information over Discourse Node references."
-        settingKeys={["Discourse Context Overlay"]}
+        description="Whether or not to overlay discourse context information over discourse node references."
+        settingKeys={["Discourse context overlay"]}
         defaultValue={getSetting<boolean>("discourse-context-overlay", false)}
         onChange={(checked) => {
           void setSetting("discourse-context-overlay", checked);
@@ -73,9 +73,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       />
       {settings.suggestiveModeEnabled?.value && (
         <PersonalFlagPanel
-          title="Suggestive Mode Overlay"
-          description="Whether or not to overlay Suggestive Mode button over Discourse Node references."
-          settingKeys={["Suggestive Mode Overlay"]}
+          title="Suggestive mode overlay"
+          description="Whether or not to overlay suggestive mode button over discourse node references."
+          settingKeys={["Suggestive mode overlay"]}
           defaultValue={getSetting<boolean>("suggestive-mode-overlay", false)}
           onChange={(checked) => {
             void setSetting("suggestive-mode-overlay", checked);
@@ -86,27 +86,27 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         />
       )}
       <PersonalFlagPanel
-        title="Text Selection Popup"
-        description="Whether or not to show the Discourse Node Menu when selecting text."
-        settingKeys={["Text Selection Popup"]}
+        title="Text selection popup"
+        description="Whether or not to show the discourse node menu when selecting text."
+        settingKeys={["Text selection popup"]}
         defaultValue={getSetting("text-selection-popup", true)}
         onChange={(checked) => {
           void setSetting("text-selection-popup", checked);
         }}
       />
       <PersonalFlagPanel
-        title="Disable Sidebar Open"
+        title="Disable sidebar open"
         description="Disable opening new nodes in the sidebar when created"
-        settingKeys={["Disable Sidebar Open"]}
+        settingKeys={["Disable sidebar open"]}
         defaultValue={getSetting<boolean>("disable-sidebar-open", false)}
         onChange={(checked) => {
           void setSetting("disable-sidebar-open", checked);
         }}
       />
       <PersonalFlagPanel
-        title="Preview"
+        title="Page preview"
         description="Whether or not to display page previews when hovering over page refs"
-        settingKeys={["Page Preview"]}
+        settingKeys={["Page preview"]}
         defaultValue={getSetting<boolean>("page-preview", false)}
         onChange={(checked) => {
           void setSetting("page-preview", checked);
@@ -114,9 +114,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }}
       />
       <PersonalFlagPanel
-        title="Hide Feedback Button"
+        title="Hide feedback button"
         description="Hide the 'Send feedback' button at the bottom right of the screen."
-        settingKeys={["Hide Feedback Button"]}
+        settingKeys={["Hide feedback button"]}
         defaultValue={getSetting<boolean>("hide-feedback-button", false)}
         onChange={(checked) => {
           void setSetting("hide-feedback-button", checked);
@@ -128,9 +128,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }}
       />
       <PersonalFlagPanel
-        title="Auto Canvas Relations"
+        title="Auto canvas relations"
         description="Automatically add discourse relations to canvas when a node is added"
-        settingKeys={["Auto Canvas Relations"]}
+        settingKeys={["Auto canvas relations"]}
         defaultValue={getSetting<boolean>(AUTO_CANVAS_RELATIONS_KEY, false)}
         onChange={(checked) => {
           void setSetting(AUTO_CANVAS_RELATIONS_KEY, checked);
@@ -138,18 +138,18 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       />
 
       <PersonalFlagPanel
-        title="(BETA) Overlay in Canvas"
-        description="Whether or not to overlay Discourse Context information over Canvas Nodes."
-        settingKeys={["Overlay in Canvas"]}
+        title="(BETA) Overlay in canvas"
+        description="Whether or not to overlay discourse context information over canvas nodes."
+        settingKeys={["Overlay in canvas"]}
         defaultValue={getSetting<boolean>(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, false)}
         onChange={(checked) => {
           void setSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, checked);
         }}
       />
       <PersonalFlagPanel
-        title="Streamline Styling"
+        title="Streamline styling"
         description="Apply streamlined styling to your personal graph for a cleaner appearance."
-        settingKeys={["Streamline Styling"]}
+        settingKeys={["Streamline styling"]}
         defaultValue={getSetting<boolean>(STREAMLINE_STYLING_KEY, false)}
         onChange={(checked) => {
           void setSetting(STREAMLINE_STYLING_KEY, checked);
@@ -165,9 +165,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         }}
       />
       <PersonalFlagPanel
-        title="Disable Product Diagnostics"
+        title="Disable product diagnostics"
         description="Disable sending usage signals and error reports that help us improve the product."
-        settingKeys={["Disable Product Diagnostics"]}
+        settingKeys={["Disable product diagnostics"]}
         defaultValue={getSetting<boolean>(DISALLOW_DIAGNOSTICS, false)}
         onChange={(checked) => {
           void setSetting(DISALLOW_DIAGNOSTICS, checked);

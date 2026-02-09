@@ -137,7 +137,7 @@ const DiscourseNodeSuggestiveRules = ({
       />
 
       <Button
-        text="Update Embeddings"
+        text="Update embeddings"
         intent={Intent.NONE}
         onClick={() => void handleUpdateEmbeddings()}
         loading={isUpdating}
