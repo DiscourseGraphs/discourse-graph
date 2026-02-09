@@ -50,6 +50,7 @@ import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
+import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",
@@ -100,6 +101,7 @@ export const RelationEditPanel = ({
       ),
     [nodes],
   );
+  const useReifiedRelations = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
   const containerRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
   const cyRef = useRef<cytoscape.Core>();
@@ -385,8 +387,9 @@ export const RelationEditPanel = ({
   );
   const saveCyToElementRef = useCallback(
     (t: number) => {
-      const nodes = cyRef.current?.nodes() || [];
-      const edges = cyRef.current?.edges() || [];
+      if (!cyRef.current) return;
+      const nodes = cyRef.current.nodes();
+      const edges = cyRef.current.edges();
       elementsRef.current[t] = [
         ...nodes.map((n) => ({ data: n.data(), position: n.position() })),
         ...edges.map((n) => ({ data: n.data() })),
@@ -399,6 +402,7 @@ export const RelationEditPanel = ({
   );
 
   const loadCytoscape = useCallback(async () => {
+    if (useReifiedRelations) return;
     cyRef.current?.destroy?.();
     const cytoscape = await window.RoamLazy?.Cytoscape();
     if (!cytoscape) return;
@@ -478,6 +482,7 @@ export const RelationEditPanel = ({
     setSelectedRelation,
     tab,
     unsavedChanges,
+    useReifiedRelations,
   ]);
   useEffect(() => {
     loadCytoscape();
@@ -709,9 +714,9 @@ export const RelationEditPanel = ({
           <MenuItemSelect
             activeItem={source}
             onItemSelect={(e) => {
+              unsavedChanges();
+              setSource(e);
               if (cyRef.current) {
-                unsavedChanges();
-                setSource(e);
                 (cyRef.current.nodes("#source") as cytoscape.NodeSingular).data(
                   "node",
                   nodes[e]?.label,
@@ -727,9 +732,9 @@ export const RelationEditPanel = ({
           <MenuItemSelect
             activeItem={destination}
             onItemSelect={(e) => {
+              unsavedChanges();
+              setDestination(e);
               if (cyRef.current) {
-                unsavedChanges();
-                setDestination(e);
                 (
                   cyRef.current.nodes("#destination") as cytoscape.NodeSingular
                 ).data("node", nodes[e]?.label);
@@ -740,191 +745,194 @@ export const RelationEditPanel = ({
           />
         </Label>
       </ControlGroup>
-      <Tabs
-        selectedTabId={tab}
-        onChange={(id) => {
-          saveCyToElementRef(tab);
-          setTab(id as number);
-        }}
-      >
-        {tabs.map((i) => (
-          <Tab key={i} id={i} title={i} />
-        ))}
-        <Button
-          icon={"plus"}
-          minimal
-          disabled={loading}
-          onClick={() => {
-            const newId = (tabs.slice(-1)[0] || 0) + 1;
-            saveCyToElementRef(tab);
-            elementsRef.current.push([
-              {
-                data: { id: "source", node: initialSource },
-                position: {
-                  x: 200,
-                  y: 50,
-                },
-              },
-              {
-                data: { id: "destination", node: initialDestination },
-                position: {
-                  x: 200,
-                  y: 350,
-                },
-              },
-            ]);
-            setTabs([...tabs, newId]);
-            setTab(newId);
-            unsavedChanges();
-          }}
-        />
-      </Tabs>
-      <div className={"roamjs-discourse-edit-relations"}>
-        <div
-          tabIndex={-1}
-          ref={containerRef}
-          style={{ height: "100%", display: isPreview ? "none" : "block" }}
-          onKeyDown={(e) => {
-            if (editingRef.current) {
-              if (e.key === "Enter") {
-                editingRef.current.style("border-width", 0);
-                editingRef.current.unlock();
-                editingRef.current = undefined;
-              } else if (e.key === "Backspace") {
-                editingRef.current.data(
-                  "node",
-                  editingRef.current.data("node").slice(0, -1),
-                );
-              } else if (/\w/.test(e.key) && e.key.length === 1) {
-                editingRef.current.data(
-                  "node",
-                  `${editingRef.current.data("node")}${e.key}`,
-                );
-              } else if (e.key === " ") {
-                e.preventDefault();
-              }
-              unsavedChanges();
-            }
-          }}
-        />
-        {isPreview && <RelationEditPreview previewUid={previewUid} />}
-        <Menu
-          style={{
-            position: "absolute",
-            ...selectedRelation,
-            zIndex: 1,
-            background: "#eeeeee",
-          }}
-        >
-          {translatorKeys
-            .filter((k) => k !== selectedRelation.relation)
-            .map((k) => (
-              <MenuItem
-                key={k}
-                text={k}
-                onMouseDown={() => (blockClickRef.current = true)}
-                onClick={(e: React.MouseEvent) => {
-                  if (cyRef.current) {
-                    blockClickRef.current = false;
-                    (
-                      cyRef.current.edges(
-                        `#${selectedRelation.id}`,
-                      ) as cytoscape.EdgeSingular
-                    ).data("relation", k);
-                    setSelectedRelation(DEFAULT_SELECTED_RELATION);
-                    e.stopPropagation();
-                  }
-                }}
-              />
+      {!useReifiedRelations && (
+        <>
+          <Tabs
+            selectedTabId={tab}
+            onChange={(id) => {
+              saveCyToElementRef(tab);
+              setTab(id as number);
+            }}
+          >
+            {tabs.map((i) => (
+              <Tab key={i} id={i} title={i} />
             ))}
-        </Menu>
-        <div style={{ zIndex: 1, position: "absolute", top: 8, right: 8 }}>
-          {tabs.length > 1 && (
-            <Tooltip content={"Delete"}>
-              <Button
-                minimal
-                icon={"trash"}
-                disabled={loading}
-                onClick={() => {
-                  const newTabs = tabs.filter((t) => t != tab);
-                  setTabs(newTabs);
-                  setTab(newTabs[0]);
-                  unsavedChanges();
-                }}
-                style={{ marginRight: 8 }}
-              />
-            </Tooltip>
-          )}
-          <Tooltip content={isPreview ? "Edit" : "Preview"}>
             <Button
+              icon={"plus"}
               minimal
-              icon={isPreview ? "edit" : "eye-open"}
-              onClick={() => {
-                if (!isPreview) {
-                  saveCyToElementRef(tab);
-                }
-                setIsPreview(!isPreview);
-              }}
-              disabled={loading}
-              style={{ marginRight: 8 }}
-            />
-          </Tooltip>
-          {!!getSetting("discourse-relation-copy") && (
-            <Tooltip content={"Paste Relation"}>
-              <Button
-                minimal
-                icon={"clipboard"}
-                disabled={loading}
-                style={{ marginRight: 8 }}
-                onClick={() => {
-                  elementsRef.current[tab] = JSON.parse(
-                    getSetting("discourse-relation-copy", "{}"),
-                  ).map((n: { data: { id: string } }) =>
-                    n.data.id === "source"
-                      ? {
-                          ...n,
-                          data: {
-                            ...n.data,
-                            node: source,
-                          },
-                        }
-                      : n.data.id === "destination"
-                        ? {
-                            ...n,
-                            data: {
-                              ...n.data,
-                              node: destination,
-                            },
-                          }
-                        : n,
-                  );
-                  loadCytoscape();
-                }}
-              />
-            </Tooltip>
-          )}
-          <Tooltip content={"Copy Relation"}>
-            <Button
-              minimal
-              icon={"duplicate"}
               disabled={loading}
               onClick={() => {
+                const newId = (tabs.slice(-1)[0] || 0) + 1;
                 saveCyToElementRef(tab);
-                void setSetting(
-                  "discourse-relation-copy",
-                  JSON.stringify(elementsRef.current[tab]),
-                ).catch(() => undefined);
-                renderToast({
-                  id: "relation-copy",
-                  content: "Copied Relation",
-                  intent: Intent.PRIMARY,
-                });
+                elementsRef.current.push([
+                  {
+                    data: { id: "source", node: initialSource },
+                    position: {
+                      x: 200,
+                      y: 50,
+                    },
+                  },
+                  {
+                    data: { id: "destination", node: initialDestination },
+                    position: {
+                      x: 200,
+                      y: 350,
+                    },
+                  },
+                ]);
+                setTabs([...tabs, newId]);
+                setTab(newId);
+                unsavedChanges();
               }}
             />
-          </Tooltip>
-        </div>
-      </div>
-
+          </Tabs>
+          <div className={"roamjs-discourse-edit-relations"}>
+            <div
+              tabIndex={-1}
+              ref={containerRef}
+              style={{ height: "100%", display: isPreview ? "none" : "block" }}
+              onKeyDown={(e) => {
+                if (editingRef.current) {
+                  if (e.key === "Enter") {
+                    editingRef.current.style("border-width", 0);
+                    editingRef.current.unlock();
+                    editingRef.current = undefined;
+                  } else if (e.key === "Backspace") {
+                    editingRef.current.data(
+                      "node",
+                      editingRef.current.data("node").slice(0, -1),
+                    );
+                  } else if (/\w/.test(e.key) && e.key.length === 1) {
+                    editingRef.current.data(
+                      "node",
+                      `${editingRef.current.data("node")}${e.key}`,
+                    );
+                  } else if (e.key === " ") {
+                    e.preventDefault();
+                  }
+                  unsavedChanges();
+                }
+              }}
+            />
+            {isPreview && <RelationEditPreview previewUid={previewUid} />}
+            <Menu
+              style={{
+                position: "absolute",
+                ...selectedRelation,
+                zIndex: 1,
+                background: "#eeeeee",
+              }}
+            >
+              {translatorKeys
+                .filter((k) => k !== selectedRelation.relation)
+                .map((k) => (
+                  <MenuItem
+                    key={k}
+                    text={k}
+                    onMouseDown={() => (blockClickRef.current = true)}
+                    onClick={(e: React.MouseEvent) => {
+                      if (cyRef.current) {
+                        blockClickRef.current = false;
+                        (
+                          cyRef.current.edges(
+                            `#${selectedRelation.id}`,
+                          ) as cytoscape.EdgeSingular
+                        ).data("relation", k);
+                        setSelectedRelation(DEFAULT_SELECTED_RELATION);
+                        e.stopPropagation();
+                      }
+                    }}
+                  />
+                ))}
+            </Menu>
+            <div style={{ zIndex: 1, position: "absolute", top: 8, right: 8 }}>
+              {tabs.length > 1 && (
+                <Tooltip content={"Delete"}>
+                  <Button
+                    minimal
+                    icon={"trash"}
+                    disabled={loading}
+                    onClick={() => {
+                      const newTabs = tabs.filter((t) => t != tab);
+                      setTabs(newTabs);
+                      setTab(newTabs[0]);
+                      unsavedChanges();
+                    }}
+                    style={{ marginRight: 8 }}
+                  />
+                </Tooltip>
+              )}
+              <Tooltip content={isPreview ? "Edit" : "Preview"}>
+                <Button
+                  minimal
+                  icon={isPreview ? "edit" : "eye-open"}
+                  onClick={() => {
+                    if (!isPreview) {
+                      saveCyToElementRef(tab);
+                    }
+                    setIsPreview(!isPreview);
+                  }}
+                  disabled={loading}
+                  style={{ marginRight: 8 }}
+                />
+              </Tooltip>
+              {!!getSetting("discourse-relation-copy") && (
+                <Tooltip content={"Paste Relation"}>
+                  <Button
+                    minimal
+                    icon={"clipboard"}
+                    disabled={loading}
+                    style={{ marginRight: 8 }}
+                    onClick={() => {
+                      elementsRef.current[tab] = JSON.parse(
+                        getSetting("discourse-relation-copy", "{}"),
+                      ).map((n: { data: { id: string } }) =>
+                        n.data.id === "source"
+                          ? {
+                              ...n,
+                              data: {
+                                ...n.data,
+                                node: source,
+                              },
+                            }
+                          : n.data.id === "destination"
+                            ? {
+                                ...n,
+                                data: {
+                                  ...n.data,
+                                  node: destination,
+                                },
+                              }
+                            : n,
+                      );
+                      loadCytoscape();
+                    }}
+                  />
+                </Tooltip>
+              )}
+              <Tooltip content={"Copy Relation"}>
+                <Button
+                  minimal
+                  icon={"duplicate"}
+                  disabled={loading}
+                  onClick={() => {
+                    saveCyToElementRef(tab);
+                    void setSetting(
+                      "discourse-relation-copy",
+                      JSON.stringify(elementsRef.current[tab]),
+                    ).catch(() => undefined);
+                    renderToast({
+                      id: "relation-copy",
+                      content: "Copied Relation",
+                      intent: Intent.PRIMARY,
+                    });
+                  }}
+                />
+              </Tooltip>
+            </div>
+          </div>
+        </>
+      )}
       {loading && <Spinner size={SpinnerSize.SMALL} />}
     </>
   );
@@ -975,6 +983,18 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
     null,
   );
+  const shouldHideCanvasRelation = getSetting<boolean>(
+    USE_REIFIED_RELATIONS,
+    false,
+  );
+  const visibleRelations = useMemo(() => {
+    if (!shouldHideCanvasRelation) {
+      return relations;
+    }
+    // Deprecated: hide "canvas" relations; this will be removed in the future
+    // when the pattern -> stored relation migration is complete.
+    return relations.filter((relation) => relation.text !== "canvas");
+  }, [relations, shouldHideCanvasRelation]);
   const editingRelationInfo = useMemo(
     () =>
       editingRelation ? getFullTreeByParentUid(editingRelation) : undefined,
@@ -1093,7 +1113,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
           </tr>
         </thead>
         <tbody>
-          {relations.map((rel) => (
+          {visibleRelations.map((rel) => (
             <tr key={rel.uid} onClick={() => handleEdit(rel)}>
               <td style={{ verticalAlign: "middle" }}>
                 {nodes[rel.source || ""]?.label}
