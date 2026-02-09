@@ -129,9 +129,7 @@ const BaseTextPanel = ({
     setValue(newValue);
     onChange?.(newValue);
 
-    const validationError = validate?.(newValue);
-    setError(validationError);
-    if (validationError) return;
+    if (validate?.(newValue)) return;
 
     window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {

@@ -97,7 +97,7 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
         title="Key Image"
         description="Add an image to the discourse node"
         settingKeys={["canvasSettings", "key-image"]}
-        defaultValue={false}
+        defaultValue={isKeyImage}
         onChange={(checked) => {
           setIsKeyImage(checked);
           if (checked && !keyImageOption) setKeyImageOption("first-image");
