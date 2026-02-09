@@ -475,13 +475,13 @@ const updateMarkdownAssetLinks = ({
   oldPathToNewPath,
   targetFile,
   app,
-  originalPath,
+  originalNodePath,
 }: {
   content: string;
   oldPathToNewPath: Map<string, string>;
   targetFile: TFile;
   app: App;
-  originalPath?: string;
+  originalNodePath?: string;
 }): string => {
   if (oldPathToNewPath.size === 0) {
     return content;
@@ -1150,7 +1150,7 @@ export const importSelectedNodes = async ({
         } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
-        const originalPath: string | undefined = node.filePath;
+        const originalNodePath: string | undefined = node.filePath;
 
         // Sanitize file name
         const sanitizedFileName = sanitizeFileName(fileName);
@@ -1216,7 +1216,7 @@ export const importSelectedNodes = async ({
             oldPathToNewPath: assetImportResult.pathMapping,
             targetFile: processedFile,
             app: plugin.app,
-            originalPath,
+            originalNodePath,
           });
 
           // Only update if content changed
