@@ -17,8 +17,10 @@ const DiscourseGraphHome = () => {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   return (
     <div className="flex flex-col gap-4 p-1">
+      {/* TODO: Titles kept as legacy casing to match readers in discourseConfigRef.ts and initializeObserversAndListeners.ts.
+          Update titles to Sentence case once read side is migrated to block props. */}
       <GlobalTextPanel
-        title="Trigger"
+        title="trigger"
         description="The trigger to create the node menu."
         settingKeys={["Trigger"]}
         initialValue={settings.trigger.value || "\\"}
@@ -27,7 +29,7 @@ const DiscourseGraphHome = () => {
         parentUid={settings.settingsUid}
       />
       <GlobalTextPanel
-        title="Canvas page format"
+        title="Canvas Page Format"
         description="The page format for canvas pages"
         settingKeys={["Canvas page format"]}
         initialValue={
@@ -38,7 +40,7 @@ const DiscourseGraphHome = () => {
         parentUid={settings.settingsUid}
       />
       <FeatureFlagPanel
-        title="(BETA) Left sidebar"
+        title="(BETA) Left Sidebar"
         description="Whether or not to enable the left sidebar."
         featureKey="Enable left sidebar"
         order={2}
