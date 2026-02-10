@@ -63,9 +63,11 @@ const SuggestiveModeSettings = () => {
           title="Sync config"
           panel={
             <div className="flex flex-col gap-4 p-1">
+              {/* TODO: Titles kept as Title Case to match legacy readers in getSuggestiveModeConfigSettings.ts.
+                  Update titles to Sentence case once read side is migrated to block props. */}
               <div className="sync-config-settings">
                 <GlobalFlagPanel
-                  title="Include current page relations"
+                  title="Include Current Page Relations"
                   description="Include relations from pages referenced on the current page"
                   settingKeys={[
                     "Suggestive mode",
@@ -81,7 +83,7 @@ const SuggestiveModeSettings = () => {
                 />
 
                 <GlobalFlagPanel
-                  title="Include parent and child blocks"
+                  title="Include Parent And Child Blocks"
                   description={
                     includePageRelations
                       ? "Include relations from parent and child blocks (automatically enabled when including page relations)"
