@@ -496,6 +496,24 @@ const updateMarkdownAssetLinks = ({
     ? targetFile.path.replace(/\/[^/]*$/, "")
     : "";
 
+  /** Path of targetFile relative to the current note, for use in links. Obsidian resolves relative links from the note's directory. */
+  const getRelativeLinkPath = (assetPath: string): string => {
+    const noteParts = noteDir ? noteDir.split("/").filter(Boolean) : [];
+    const targetParts = assetPath.split("/").filter(Boolean);
+    let i = 0;
+    while (
+      i < noteParts.length &&
+      i < targetParts.length &&
+      noteParts[i] === targetParts[i]
+    ) {
+      i++;
+    }
+    const ups = noteParts.length - i;
+    const down = targetParts.slice(i);
+    const segments = [...Array(ups).fill(".."), ...down];
+    return segments.join("/");
+  };
+
   // Resolve a path with ".." and "." segments relative to a base directory (vault-relative).
   const resolvePathRelativeToBase = (
     baseDir: string,
@@ -599,10 +617,7 @@ const updateMarkdownAssetLinks = ({
       // First, try to find if this link resolves to one of our imported assets
       const importedAssetFile = findImportedAssetFile(linkPath);
       if (importedAssetFile) {
-        const linkText = app.metadataCache.fileToLinktext(
-          importedAssetFile,
-          targetFile.path,
-        );
+        const linkText = getRelativeLinkPath(importedAssetFile.path);
         if (alias) {
           return `[[${linkText}|${alias}]]`;
         }
@@ -617,10 +632,7 @@ const updateMarkdownAssetLinks = ({
           targetFile.path,
         );
         if (newFile) {
-          const linkText = app.metadataCache.fileToLinktext(
-            newFile,
-            targetFile.path,
-          );
+          const linkText = getRelativeLinkPath(newFile.path);
           if (alias) {
             return `[[${linkText}|${alias}]]`;
           }
@@ -648,10 +660,7 @@ const updateMarkdownAssetLinks = ({
       // First, try to find if this link resolves to one of our imported assets
       const importedAssetFile = findImportedAssetFile(cleanPath);
       if (importedAssetFile) {
-        const linkText = app.metadataCache.fileToLinktext(
-          importedAssetFile,
-          targetFile.path,
-        );
+        const linkText = getRelativeLinkPath(importedAssetFile.path);
         return `![${alt}](${linkText})`;
       }
 
@@ -663,10 +672,7 @@ const updateMarkdownAssetLinks = ({
           targetFile.path,
         );
         if (newFile) {
-          const linkText = app.metadataCache.fileToLinktext(
-            newFile,
-            targetFile.path,
-          );
+          const linkText = getRelativeLinkPath(newFile.path);
           return `![${alt}](${linkText})`;
         }
       }
