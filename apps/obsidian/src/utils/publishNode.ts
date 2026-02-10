@@ -161,21 +161,41 @@ export const publishNode = async ({
 
   // Always sync non-text assets when node is published to this group
   const existingFiles: string[] = [];
+  const existingReferencesReq = await client
+    .from("FileReference")
+    .select("*")
+    .eq("space_id", spaceId)
+    .eq("source_local_id", nodeId);
+  if (existingReferencesReq.error) {
+    console.error(existingReferencesReq.error);
+    return;
+  }
+  const existingReferencesByPath = Object.fromEntries(
+    existingReferencesReq.data.map((ref) => [ref.filepath, ref]),
+  );
+
   for (const attachment of attachments) {
     const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
     if (mimetype.startsWith("text/")) continue;
     existingFiles.push(attachment.path);
-    const content = await plugin.app.vault.readBinary(attachment);
-    await addFile({
-      client,
-      spaceId,
-      sourceLocalId: nodeId,
-      fname: attachment.path,
-      mimetype,
-      created: new Date(attachment.stat.ctime),
-      lastModified: new Date(attachment.stat.mtime),
-      content,
-    });
+    const existingRef = existingReferencesByPath[attachment.path];
+    if (
+      !existingRef ||
+      new Date(existingRef.last_modified + "Z").valueOf() <
+        attachment.stat.mtime
+    ) {
+      const content = await plugin.app.vault.readBinary(attachment);
+      await addFile({
+        client,
+        spaceId,
+        sourceLocalId: nodeId,
+        fname: attachment.path,
+        mimetype,
+        created: new Date(attachment.stat.ctime),
+        lastModified: new Date(attachment.stat.mtime),
+        content,
+      });
+    }
   }
   let cleanupCommand = client
     .from("FileReference")
