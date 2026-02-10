@@ -60,7 +60,6 @@ export const publishNode = async ({
   plugin,
   file,
   frontmatter,
-  group,
 }: {
   plugin: DiscourseGraphPlugin;
   file: TFile;
