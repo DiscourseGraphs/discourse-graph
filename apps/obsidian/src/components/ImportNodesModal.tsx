@@ -94,6 +94,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
           selected: false,
           createdAt: node.createdAt,
           modifiedAt: node.modifiedAt,
+          filePath: node.filePath,
         });
       }
 

@@ -524,6 +524,19 @@ const updateMarkdownAssetLinks = ({
     return resolved;
   };
 
+  // Resolve link relative to the source note's directory (for "path from current file" when imported note is flattened).
+  const getCanonicalFromOriginalNote = (
+    linkPath: string,
+  ): string | undefined => {
+    if (!originalNodePath) return undefined;
+    const originalNoteDir = originalNodePath.includes("/")
+      ? originalNodePath.replace(/\/[^/]*$/, "")
+      : "";
+    return normalizePathForLookup(
+      resolvePathRelativeToBase(originalNoteDir, linkPath),
+    );
+  };
+
   // Look up new path by link as written in content: use canonical form (resolve relative + strip import prefix).
   const getNewPathForLink = (linkPath: string): string | undefined => {
     const canonical = normalizePathForLookup(
@@ -531,7 +544,11 @@ const updateMarkdownAssetLinks = ({
     );
     const byCanonical = oldPathToNewPath.get(canonical);
     if (byCanonical) return byCanonical;
-    return oldPathToNewPath.get(normalizePathForLookup(linkPath));
+    const byRaw = oldPathToNewPath.get(normalizePathForLookup(linkPath));
+    if (byRaw) return byRaw;
+    // "Path from current file" in source: link was relative to source note; pathMapping keys are source vault-relative.
+    const fromOriginal = getCanonicalFromOriginalNote(linkPath);
+    return fromOriginal ? oldPathToNewPath.get(fromOriginal) : undefined;
   };
 
   // Helper to find file for a link path, checking if it's one of our imported assets
@@ -661,6 +678,20 @@ const updateMarkdownAssetLinks = ({
   return updatedContent;
 };
 
+/** Path of an asset relative to the note's directory (vault-relative). If asset is not under note dir, returns full path. */
+const getAssetPathRelativeToNote = (
+  assetFilePath: string,
+  originalNodePath: string,
+): string => {
+  const noteDir = originalNodePath.includes("/")
+    ? originalNodePath.replace(/\/[^/]*$/, "")
+    : "";
+  if (!noteDir || !assetFilePath.startsWith(`${noteDir}/`)) {
+    return assetFilePath;
+  }
+  return assetFilePath.slice(noteDir.length + 1);
+};
+
 const importAssetsForNode = async ({
   plugin,
   client,
@@ -668,6 +699,7 @@ const importAssetsForNode = async ({
   nodeInstanceId,
   spaceName,
   targetMarkdownFile,
+  originalNodePath,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
@@ -675,6 +707,8 @@ const importAssetsForNode = async ({
   nodeInstanceId: string;
   spaceName: string;
   targetMarkdownFile: TFile;
+  /** Source vault path of the note (e.g. from Content metadata filePath). Used to place assets under import/{space}/ relative to note. */
+  originalNodePath?: string;
 }): Promise<{
   success: boolean;
   pathMapping: Map<string, string>; // old path -> new path
@@ -751,11 +785,20 @@ const importAssetsForNode = async ({
         overwritePath = existingFile.path;
       }
 
-      // Determine target path: import/{vaultName}/{original asset filepath}
-      const sanitizedAssetPath = filepath
+      // Target path: import/{spaceName}/{path relative to note}. If sourceNotePath is set and asset
+      // is under the note's directory, use that relative path so assets sit under import/{space}/.
+      console.log("sourceNotePath", originalNodePath);
+      console.log("filepath", filepath);
+      const pathForImport =
+        originalNodePath !== undefined
+          ? getAssetPathRelativeToNote(filepath, originalNodePath)
+          : filepath;
+      console.log("pathForImport", pathForImport);
+      const sanitizedAssetPath = pathForImport
         .split("/")
         .map(sanitizeFileName)
         .join("/");
+      console.log("sanitizedAssetPath", sanitizedAssetPath);
       const targetPath =
         overwritePath ?? `${importBasePath}/${sanitizedAssetPath}`;
 
@@ -1126,8 +1169,6 @@ export const importSelectedNodes = async ({
           spaceUri,
         );
 
-        console.log("existingFile", existingFile);
-
         const nodeContent = await fetchNodeContentForImport({
           client,
           spaceId,
@@ -1198,7 +1239,7 @@ export const importSelectedNodes = async ({
 
         const processedFile = result.file;
 
-        // Import assets for this node
+        // Import assets for this node (use originalNodePath so assets go under import/{space}/ relative to note)
         const assetImportResult = await importAssetsForNode({
           plugin,
           client,
@@ -1206,6 +1247,7 @@ export const importSelectedNodes = async ({
           nodeInstanceId: node.nodeInstanceId,
           spaceName,
           targetMarkdownFile: processedFile,
+          originalNodePath,
         });
 
         // Update markdown content with new asset paths if assets were imported
