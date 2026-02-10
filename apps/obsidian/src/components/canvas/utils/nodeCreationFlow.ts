@@ -8,7 +8,7 @@ import { addWikilinkBlockrefForFile } from "~/components/canvas/stores/assetStor
 import { showToast } from "./toastUtils";
 import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 import { getFirstImageSrcForFile } from "~/components/canvas/shapes/discourseNodeShapeUtils";
-import { addRelationToRelationsJson } from "./relationJsonUtils";
+import { addRelationIfRequested } from "./relationJsonUtils";
 
 export type CreateNodeAtArgs = {
   plugin: DiscourseGraphPlugin;
@@ -50,14 +50,10 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
 
         // Add relationship to frontmatter if specified
         if (relationshipTypeId && relationshipTargetFile) {
-          const [sourceFile, targetFile] = isCurrentFileSource
-            ? [relationshipTargetFile, fileToUse]
-            : [fileToUse, relationshipTargetFile];
-          await addRelationToRelationsJson({
-            plugin,
-            sourceFile,
-            targetFile,
-            relationTypeId: relationshipTypeId,
+          await addRelationIfRequested(plugin, fileToUse, {
+            relationshipTypeId,
+            relationshipTargetFile,
+            isCurrentFileSource,
           });
         }
 

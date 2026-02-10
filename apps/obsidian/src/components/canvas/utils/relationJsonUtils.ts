@@ -44,3 +44,31 @@ export const addRelationToRelationsJson = async ({
   });
   return { alreadyExisted, relationInstanceId: id };
 };
+
+type RelationParams = {
+  relationshipTypeId?: string;
+  relationshipTargetFile?: TFile;
+  isCurrentFileSource?: boolean;
+};
+
+export const addRelationIfRequested = async (
+  plugin: DiscourseGraphPlugin,
+  createdOrSelectedFile: TFile,
+  params: RelationParams,
+): Promise<void> => {
+  const { relationshipTypeId, relationshipTargetFile, isCurrentFileSource } =
+    params;
+  if (!relationshipTypeId || !relationshipTargetFile) return;
+  if (relationshipTargetFile === createdOrSelectedFile) return;
+
+  const [sourceFile, targetFile] =
+    isCurrentFileSource === true
+      ? [relationshipTargetFile, createdOrSelectedFile]
+      : [createdOrSelectedFile, relationshipTargetFile];
+  await addRelationToRelationsJson({
+    plugin,
+    sourceFile,
+    targetFile,
+    relationTypeId: relationshipTypeId,
+  });
+};

@@ -8,39 +8,9 @@ import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
 import { createOrUpdateDiscourseEmbedding } from "./syncDgNodesToSupabase";
 import { publishNode } from "./publishNode";
-import { addRelationToRelationsJson } from "~/components/canvas/utils/relationJsonUtils";
+import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 import type { DiscourseNode } from "~/types";
 
-type RelationParams = {
-  relationshipTypeId?: string;
-  relationshipTargetFile?: TFile;
-  isCurrentFileSource?: boolean;
-};
-
-const addRelationIfRequested = async (
-  plugin: DiscourseGraphPlugin,
-  createdOrSelectedFile: TFile,
-  params: RelationParams,
-): Promise<void> => {
-  const {
-    relationshipTypeId,
-    relationshipTargetFile,
-    isCurrentFileSource,
-  } = params;
-  if (!relationshipTypeId || !relationshipTargetFile) return;
-  if (relationshipTargetFile === createdOrSelectedFile) return;
-
-  const [sourceFile, targetFile] =
-    isCurrentFileSource === true
-      ? [relationshipTargetFile, createdOrSelectedFile]
-      : [createdOrSelectedFile, relationshipTargetFile];
-  await addRelationToRelationsJson({
-    plugin,
-    sourceFile,
-    targetFile,
-    relationTypeId: relationshipTypeId,
-  });
-};
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;

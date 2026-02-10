@@ -254,6 +254,7 @@ export const ModifyNodeForm = ({
       setQuery("");
       setTitle("");
     }
+    setSelectedRelationshipTypeId(undefined);
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
