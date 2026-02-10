@@ -1212,7 +1212,6 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
 
       const { alreadyExisted, relationInstanceId } =
         await addRelationToRelationsJson({
-          app: this.options.app,
           plugin: this.options.plugin,
           sourceFile,
           targetFile,
