@@ -77,7 +77,7 @@ const NodeSpecification = ({
     } else {
       const tree = getBasicTreeByParentUid(parentUid);
       const scratchNode = getSubTree({ tree, key: "scratch" });
-      Promise.all(scratchNode.children.map((c: { uid: string }) => deleteBlock(c.uid))).catch(
+      Promise.all(scratchNode.children.map((c) => deleteBlock(c.uid))).catch(
         (error) => {
           internalError({ error });
         },
