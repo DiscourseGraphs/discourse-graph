@@ -110,7 +110,13 @@ const initSingleDiscourseNode = async (
 
   if (!existingProps || Object.keys(existingProps).length === 0) {
     const nodeData = DiscourseNodeSchema.parse({
-      ...node,
+      text: node.text,
+      type: node.type,
+      format: node.format || "",
+      shortcut: node.shortcut || "",
+      tag: node.tag || "",
+      graphOverview: node.graphOverview ?? false,
+      canvasSettings: node.canvasSettings || {},
       backedBy: "default",
     });
 

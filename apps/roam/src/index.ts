@@ -36,12 +36,12 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "./utils/renderNodeConfigPage";
 import { getSetting } from "./utils/extensionSettings";
+import { initPostHog } from "./utils/posthog";
 import {
   STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
 import { initSchema } from "./components/settings/utils/init";
-import { initPostHog } from "./utils/posthog";
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
