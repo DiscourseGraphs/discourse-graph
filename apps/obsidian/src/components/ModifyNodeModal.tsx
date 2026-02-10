@@ -21,6 +21,7 @@ type ModifyNodeFormProps = {
     selectedExistingNode?: TFile;
     relationshipTypeId?: string;
     relationshipTargetFile?: TFile;
+    isCurrentFileSource?: boolean;
   }) => Promise<void>;
   onCancel: () => void;
   initialTitle?: string;
@@ -52,8 +53,9 @@ export const ModifyNodeForm = ({
   const [isFocused, setIsFocused] = useState(false);
   const [searchResults, setSearchResults] = useState<TFile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedRelationshipTypeId, setSelectedRelationshipTypeId] =
-    useState<string>("");
+  const [selectedRelationshipTypeId, setSelectedRelationshipTypeId] = useState<
+    string | undefined
+  >(undefined);
   const queryEngine = useRef(new QueryEngine(plugin.app));
   const titleInputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -188,7 +190,7 @@ export const ModifyNodeForm = ({
   }, [currentFile, selectedNodeType, isEditMode, plugin]);
 
   useEffect(() => {
-    if (!selectedRelationshipTypeId && availableRelationships[0]) {
+    if (selectedRelationshipTypeId === undefined && availableRelationships[0]) {
       setSelectedRelationshipTypeId(availableRelationships[0].relationTypeId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when availableRelationships changes
@@ -281,6 +283,11 @@ export const ModifyNodeForm = ({
 
     try {
       setIsSubmitting(true);
+      const selectedRel = selectedRelationshipTypeId
+        ? availableRelationships.find(
+            (r) => r.relationTypeId === selectedRelationshipTypeId,
+          )
+        : undefined;
       await onSubmit({
         nodeType: selectedNodeType,
         title: trimmedTitle,
@@ -288,6 +295,7 @@ export const ModifyNodeForm = ({
         selectedExistingNode: selectedExistingNode || undefined,
         relationshipTypeId: selectedRelationshipTypeId || undefined,
         relationshipTargetFile: currentFile || undefined,
+        isCurrentFileSource: selectedRel?.isCurrentFileSource,
       });
       onCancel();
     } catch (error) {
@@ -314,6 +322,7 @@ export const ModifyNodeForm = ({
     selectedExistingNode,
     selectedRelationshipTypeId,
     currentFile,
+    availableRelationships,
   ]);
 
   return (
@@ -495,6 +504,7 @@ type ModifyNodeModalProps = {
     selectedExistingNode?: TFile;
     relationshipTypeId?: string;
     relationshipTargetFile?: TFile;
+    isCurrentFileSource?: boolean;
   }) => Promise<void>;
   initialTitle?: string;
   initialNodeType?: DiscourseNode;
@@ -511,6 +521,7 @@ class ModifyNodeModal extends Modal {
     selectedExistingNode?: TFile;
     relationshipTypeId?: string;
     relationshipTargetFile?: TFile;
+    isCurrentFileSource?: boolean;
   }) => Promise<void>;
   private root: Root | null = null;
   private initialTitle?: string;

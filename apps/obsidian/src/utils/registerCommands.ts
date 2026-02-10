@@ -1,4 +1,4 @@
-import { Editor, MarkdownView, Notice } from "obsidian";
+import { Editor, MarkdownView, Notice, TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
@@ -9,6 +9,85 @@ import { createCanvas } from "~/components/canvas/utils/tldraw";
 import { createOrUpdateDiscourseEmbedding } from "./syncDgNodesToSupabase";
 import { publishNode } from "./publishNode";
 import { addRelationToRelationsJson } from "~/components/canvas/utils/relationJsonUtils";
+import type { DiscourseNode } from "~/types";
+
+type RelationParams = {
+  relationshipTypeId?: string;
+  relationshipTargetFile?: TFile;
+  isCurrentFileSource?: boolean;
+};
+
+const addRelationIfRequested = async (
+  plugin: DiscourseGraphPlugin,
+  createdOrSelectedFile: TFile,
+  params: RelationParams,
+): Promise<void> => {
+  const {
+    relationshipTypeId,
+    relationshipTargetFile,
+    isCurrentFileSource,
+  } = params;
+  if (!relationshipTypeId || !relationshipTargetFile) return;
+  if (relationshipTargetFile === createdOrSelectedFile) return;
+
+  const [sourceFile, targetFile] =
+    isCurrentFileSource === true
+      ? [relationshipTargetFile, createdOrSelectedFile]
+      : [createdOrSelectedFile, relationshipTargetFile];
+  await addRelationToRelationsJson({
+    plugin,
+    sourceFile,
+    targetFile,
+    relationTypeId: relationshipTypeId,
+  });
+};
+
+type ModifyNodeSubmitParams = {
+  nodeType: DiscourseNode;
+  title: string;
+  initialFile?: TFile;
+  selectedExistingNode?: TFile;
+  relationshipTypeId?: string;
+  relationshipTargetFile?: TFile;
+  isCurrentFileSource?: boolean;
+};
+
+const createModifyNodeModalSubmitHandler = (
+  plugin: DiscourseGraphPlugin,
+  editor: Editor,
+): ((params: ModifyNodeSubmitParams) => Promise<void>) => {
+  return async ({
+    nodeType,
+    title,
+    selectedExistingNode,
+    relationshipTypeId,
+    relationshipTargetFile,
+    isCurrentFileSource,
+  }: ModifyNodeSubmitParams) => {
+    if (selectedExistingNode) {
+      editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
+      await addRelationIfRequested(plugin, selectedExistingNode, {
+        relationshipTypeId,
+        relationshipTargetFile,
+        isCurrentFileSource,
+      });
+    } else {
+      const newFile = await createDiscourseNode({
+        plugin,
+        nodeType,
+        text: title,
+        editor,
+      });
+      if (newFile) {
+        await addRelationIfRequested(plugin, newFile, {
+          relationshipTypeId,
+          relationshipTargetFile,
+          isCurrentFileSource,
+        });
+      }
+    }
+  };
+};
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
@@ -21,42 +100,14 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       if (hasSelection) {
         new NodeTypeModal(editor, plugin.settings.nodeTypes, plugin).open();
       } else {
-        const activeView =
-          plugin.app.workspace.getActiveViewOfType(MarkdownView);
-        const currentFile = activeView?.file || undefined;
-
+        const currentFile =
+          plugin.app.workspace.getActiveViewOfType(MarkdownView)?.file ||
+          undefined;
         new ModifyNodeModal(plugin.app, {
           nodeTypes: plugin.settings.nodeTypes,
           plugin,
           currentFile,
-          onSubmit: async ({
-            nodeType,
-            title,
-            selectedExistingNode,
-            relationshipTypeId,
-            relationshipTargetFile,
-          }) => {
-            if (selectedExistingNode) {
-              editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
-            } else {
-              const newFile = await createDiscourseNode({
-                plugin,
-                nodeType,
-                text: title,
-                editor,
-              });
-
-              // Add relationship if specified
-              if (newFile && relationshipTypeId && relationshipTargetFile) {
-                await addRelationToRelationsJson({
-                  plugin,
-                  sourceFile: newFile,
-                  targetFile: relationshipTargetFile,
-                  relationTypeId: relationshipTypeId,
-                });
-              }
-            }
-          },
+          onSubmit: createModifyNodeModalSubmitHandler(plugin, editor),
         }).open();
       }
     },
@@ -66,42 +117,14 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "create-discourse-node",
     name: "Create discourse node",
     editorCallback: (editor: Editor) => {
-      const activeView =
-        plugin.app.workspace.getActiveViewOfType(MarkdownView);
-      const currentFile = activeView?.file || undefined;
-
+      const currentFile =
+        plugin.app.workspace.getActiveViewOfType(MarkdownView)?.file ||
+        undefined;
       new ModifyNodeModal(plugin.app, {
         nodeTypes: plugin.settings.nodeTypes,
         plugin,
         currentFile,
-        onSubmit: async ({
-          nodeType,
-          title,
-          selectedExistingNode,
-          relationshipTypeId,
-          relationshipTargetFile,
-        }) => {
-          if (selectedExistingNode) {
-            editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
-          } else {
-            const newFile = await createDiscourseNode({
-              plugin,
-              nodeType,
-              text: title,
-              editor,
-            });
-
-            // Add relationship if specified
-            if (newFile && relationshipTypeId && relationshipTargetFile) {
-              await addRelationToRelationsJson({
-                plugin,
-                sourceFile: newFile,
-                targetFile: relationshipTargetFile,
-                relationTypeId: relationshipTypeId,
-              });
-            }
-          }
-        },
+        onSubmit: createModifyNodeModalSubmitHandler(plugin, editor),
       }).open();
     },
   });

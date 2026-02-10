@@ -32,6 +32,7 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
       selectedExistingNode,
       relationshipTypeId,
       relationshipTargetFile,
+      isCurrentFileSource,
     }) => {
       try {
         // If user selected an existing node, use it instead of creating a new one
@@ -49,10 +50,13 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
 
         // Add relationship to frontmatter if specified
         if (relationshipTypeId && relationshipTargetFile) {
+          const [sourceFile, targetFile] = isCurrentFileSource
+            ? [relationshipTargetFile, fileToUse]
+            : [fileToUse, relationshipTargetFile];
           await addRelationToRelationsJson({
             plugin,
-            sourceFile: fileToUse,
-            targetFile: relationshipTargetFile,
+            sourceFile,
+            targetFile,
             relationTypeId: relationshipTypeId,
           });
         }

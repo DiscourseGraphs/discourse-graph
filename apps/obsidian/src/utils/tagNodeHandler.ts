@@ -43,6 +43,7 @@ type NodeCreationParams = {
   selectedExistingNode?: TFile;
   relationshipTypeId?: string;
   relationshipTargetFile?: TFile;
+  isCurrentFileSource?: boolean;
 };
 
 /**
@@ -287,6 +288,7 @@ export class TagNodeHandler {
         selectedExistingNode,
         relationshipTypeId,
         relationshipTargetFile,
+        isCurrentFileSource,
       }) => {
         await this.createNodeAndReplace({
           nodeType: selectedNodeType,
@@ -296,6 +298,7 @@ export class TagNodeHandler {
           selectedExistingNode,
           relationshipTypeId,
           relationshipTargetFile,
+          isCurrentFileSource,
         });
       },
     }).open();
@@ -315,6 +318,7 @@ export class TagNodeHandler {
       selectedExistingNode,
       relationshipTypeId,
       relationshipTargetFile,
+      isCurrentFileSource,
     } = params;
     try {
       let linkText: string;
@@ -347,10 +351,13 @@ export class TagNodeHandler {
 
       // Add relationship to frontmatter if specified
       if (relationshipTypeId && relationshipTargetFile) {
+        const [sourceFile, targetFile] = isCurrentFileSource
+          ? [relationshipTargetFile, createdOrSelectedFile]
+          : [createdOrSelectedFile, relationshipTargetFile];
         await addRelationToRelationsJson({
           plugin: this.plugin,
-          sourceFile: createdOrSelectedFile,
-          targetFile: relationshipTargetFile,
+          sourceFile,
+          targetFile,
           relationTypeId: relationshipTypeId,
         });
       }
