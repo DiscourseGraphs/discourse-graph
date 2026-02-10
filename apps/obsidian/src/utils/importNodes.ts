@@ -783,9 +783,6 @@ const importAssetsForNode = async ({
           refLastModifiedMs > 0 && existingFile.stat.mtime > refLastModifiedMs;
         if (!localModifiedAfterRef) {
           setPathMapping(filepath, existingFile.path);
-          console.log(
-            `Reusing existing asset: ${filehash} -> ${existingFile.path}`,
-          );
           continue;
         }
         overwritePath = existingFile.path;
@@ -793,18 +790,14 @@ const importAssetsForNode = async ({
 
       // Target path: import/{spaceName}/{path relative to note}. If sourceNotePath is set and asset
       // is under the note's directory, use that relative path so assets sit under import/{space}/.
-      console.log("sourceNotePath", originalNodePath);
-      console.log("filepath", filepath);
       const pathForImport =
         originalNodePath !== undefined
           ? getAssetPathRelativeToNote(filepath, originalNodePath)
           : filepath;
-      console.log("pathForImport", pathForImport);
       const sanitizedAssetPath = pathForImport
         .split("/")
         .map(sanitizeFileName)
         .join("/");
-      console.log("sanitizedAssetPath", sanitizedAssetPath);
       const targetPath =
         overwritePath ?? `${importBasePath}/${sanitizedAssetPath}`;
 
@@ -845,7 +838,6 @@ const importAssetsForNode = async ({
               },
               stat,
             );
-            console.log(`Reusing existing file at path: ${targetPath}`);
             continue;
           }
           // Local file was modified since fileRef's last_modified; overwrite with DB version
