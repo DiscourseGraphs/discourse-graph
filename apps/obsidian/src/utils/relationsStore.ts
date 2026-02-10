@@ -176,20 +176,45 @@ export const getRelationsForNodeInstanceId = async (
   );
 }
 
+const DEFAULT_CACHE_WAIT_MS = 500;
+const CACHE_POLL_INTERVAL_MS = 30;
+
+/**
+ * Waits for the metadata cache to contain frontmatter with nodeTypeId for the file
+ * (e.g. after a file was just created). Polls at a short interval up to a timeout.
+ */
+const waitForDiscourseFrontmatter = async (
+  plugin: DiscourseGraphPlugin,
+  file: TFile,
+  timeoutMs = DEFAULT_CACHE_WAIT_MS,
+): Promise<Record<string, unknown> | null> => {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const cache = plugin.app.metadataCache.getFileCache(file);
+    const fm = cache?.frontmatter;
+    if (fm?.nodeTypeId) return fm as Record<string, unknown>;
+    await new Promise((r) => setTimeout(r, CACHE_POLL_INTERVAL_MS));
+  }
+  return null;
+};
+
 export const getNodeInstanceIdForFile = async (
   plugin: DiscourseGraphPlugin,
   file: TFile,
 ): Promise<string | null> => {
-  const cache = plugin.app.metadataCache.getFileCache(file);
-  const frontmatter = cache?.frontmatter;
+  let frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter as
+    | Record<string, unknown>
+    | undefined;
+
+  if (!frontmatter?.nodeTypeId) {
+    frontmatter =
+      (await waitForDiscourseFrontmatter(plugin, file)) ?? undefined;
+  }
+
   if (!frontmatter?.nodeTypeId) {
     return null;
   }
-  return await ensureNodeInstanceId(
-    plugin,
-    file,
-    frontmatter as Record<string, unknown>,
-  );
+  return await ensureNodeInstanceId(plugin, file, frontmatter);
 }
 
 export const getFileForNodeInstanceId = async (

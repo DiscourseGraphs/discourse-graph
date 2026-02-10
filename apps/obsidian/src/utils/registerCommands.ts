@@ -8,7 +8,7 @@ import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
 import { createOrUpdateDiscourseEmbedding } from "./syncDgNodesToSupabase";
 import { publishNode } from "./publishNode";
-import { addRelationToFrontmatter } from "~/components/canvas/utils/frontmatterUtils";
+import { addRelationToRelationsJson } from "~/components/canvas/utils/relationJsonUtils";
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
@@ -48,8 +48,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
               // Add relationship if specified
               if (newFile && relationshipTypeId && relationshipTargetFile) {
-                await addRelationToFrontmatter({
-                  app: plugin.app,
+                await addRelationToRelationsJson({
                   plugin,
                   sourceFile: newFile,
                   targetFile: relationshipTargetFile,
@@ -94,8 +93,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
 
             // Add relationship if specified
             if (newFile && relationshipTypeId && relationshipTargetFile) {
-              await addRelationToFrontmatter({
-                app: plugin.app,
+              await addRelationToRelationsJson({
                 plugin,
                 sourceFile: newFile,
                 targetFile: relationshipTargetFile,

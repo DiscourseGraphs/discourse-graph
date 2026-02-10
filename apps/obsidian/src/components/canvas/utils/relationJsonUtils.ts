@@ -1,4 +1,4 @@
-import type { App, TFile } from "obsidian";
+import { Notice, type TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { addRelation, getNodeInstanceIdForFile } from "~/utils/relationsStore";
 
@@ -9,13 +9,11 @@ import { addRelation, getNodeInstanceIdForFile } from "~/utils/relationsStore";
  * @returns Object indicating whether the relation already existed and the relation instance id.
  */
 export const addRelationToRelationsJson = async ({
-  app,
   plugin,
   sourceFile,
   targetFile,
   relationTypeId,
 }: {
-  app: App;
   plugin: DiscourseGraphPlugin;
   sourceFile: TFile;
   targetFile: TFile;
@@ -23,8 +21,19 @@ export const addRelationToRelationsJson = async ({
 }): Promise<{ alreadyExisted: boolean; relationInstanceId?: string }> => {
   const sourceId = await getNodeInstanceIdForFile(plugin, sourceFile);
   const destId = await getNodeInstanceIdForFile(plugin, targetFile);
+
   if (!sourceId || !destId) {
-    console.warn("Could not resolve nodeInstanceIds for relation files");
+    const missing: string[] = [];
+    if (!sourceId) missing.push(`source (${sourceFile.basename})`);
+    if (!destId) missing.push(`target (${targetFile.basename})`);
+    console.warn(
+      "Could not resolve nodeInstanceIds for relation files:",
+      missing.join(", "),
+    );
+    new Notice(
+      "Could not create relation: one or both files are not discourse nodes or metadata is not ready.",
+      3000,
+    );
     return { alreadyExisted: false };
   }
 
