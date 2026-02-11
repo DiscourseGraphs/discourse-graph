@@ -508,7 +508,7 @@ const QueryEditor: QueryEditorComponent = ({
     blockPropSyncTimeoutRef.current = window.setTimeout(() => {
       setDiscourseNodeSetting(discourseNodeType, ["index"], result.data);
       lastSyncedIndexRef.current = serialized;
-    }, 500);
+    }, 250);
 
     return () => window.clearTimeout(blockPropSyncTimeoutRef.current);
   }, [conditions, selections, custom, discourseNodeType]);
