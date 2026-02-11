@@ -6,6 +6,7 @@ import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import QueryBuilder from "~/components/QueryBuilder";
 import parseQuery, { DEFAULT_RETURN_NODE } from "~/utils/parseQuery";
 import createBlock from "roamjs-components/writes/createBlock";
+import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 
 const NodeIndex = ({
   parentUid,
@@ -25,7 +26,7 @@ const NodeIndex = ({
   );
   useEffect(() => {
     if (!showQuery) {
-      createBlock({
+      void createBlock({
         parentUid: initialQueryArgs.conditionsNodesUid,
         node: {
           text: "clause",
@@ -48,12 +49,30 @@ const NodeIndex = ({
             },
           ],
         },
-      }).then(() => setShowQuery(true));
+      }).then(() => {
+        setDiscourseNodeSetting(node.type, ["index"], {
+          conditions: [
+            {
+              type: "clause",
+              source: DEFAULT_RETURN_NODE,
+              relation: "is a",
+              target: node.text,
+            },
+          ],
+          selections: [],
+        });
+
+        setShowQuery(true);
+      });
     }
-  }, [parentUid, initialQueryArgs, showQuery]);
+  }, [parentUid, initialQueryArgs, showQuery, node.text, node.type]);
   return (
     <ExtensionApiContextProvider {...onloadArgs}>
-      {showQuery ? <QueryBuilder pageUid={parentUid} /> : <Spinner />}
+      {showQuery ? (
+        <QueryBuilder pageUid={parentUid} discourseNodeType={node.type} />
+      ) : (
+        <Spinner />
+      )}
     </ExtensionApiContextProvider>
   );
 };
