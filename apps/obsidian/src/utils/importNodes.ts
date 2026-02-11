@@ -816,7 +816,9 @@ const importAssetsForNode = async ({
           const refLastModifiedMs = fileRef.last_modified || 0;
           const localModifiedAfterRef =
             refLastModifiedMs > 0 && localMtimeMs > refLastModifiedMs;
-          if (!localModifiedAfterRef) {
+          const remoteIsNewer =
+            refLastModifiedMs > 0 && refLastModifiedMs > localMtimeMs;
+          if (!localModifiedAfterRef && !remoteIsNewer) {
             setPathMapping(filepath, targetPath);
             await plugin.app.fileManager.processFrontMatter(
               targetMarkdownFile,
@@ -835,6 +837,8 @@ const importAssetsForNode = async ({
               stat,
             );
             continue;
+          }
+          // Local file was modified OR remote is newer; overwrite with DB version
           }
           // Local file was modified since fileRef's last_modified; overwrite with DB version
         }
