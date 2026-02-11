@@ -719,14 +719,11 @@ const importAssetsForNode = async ({
   targetMarkdownFile: TFile;
   /** Source vault path of the note (e.g. from Content metadata filePath). Used to place assets under import/{space}/ relative to note. */
   originalNodePath?: string;
-}): Promise<
-  | {
-      success: boolean;
-      pathMapping: Map<string, string>; // old path -> new path
-      errors: string[];
-    }
-  | undefined
-> => {
+}): Promise<{
+  success: boolean;
+  pathMapping: Map<string, string>; // old path -> new path
+  errors: string[];
+}> => {
   const pathMapping = new Map<string, string>();
   const errors: string[] = [];
   const stat = {
@@ -852,7 +849,7 @@ const importAssetsForNode = async ({
       // File doesn't exist, download it
       const fileContent = await downloadFileFromStorage({
         client,
-        filehash: fileRef.filehash,
+        filehash,
       });
 
       if (!fileContent) {
@@ -1254,7 +1251,7 @@ export const importSelectedNodes = async ({
         });
 
         // Update markdown content with new asset paths if assets were imported
-        if (assetImportResult && assetImportResult.pathMapping.size > 0) {
+        if (assetImportResult.pathMapping.size > 0) {
           const currentContent = await plugin.app.vault.read(processedFile);
           const updatedContent = updateMarkdownAssetLinks({
             content: currentContent,
@@ -1271,7 +1268,7 @@ export const importSelectedNodes = async ({
         }
 
         // Log asset import errors if any
-        if (assetImportResult && assetImportResult.errors.length > 0) {
+        if (assetImportResult.errors.length > 0) {
           console.warn(
             `Some assets failed to import for node ${node.nodeInstanceId}:`,
             assetImportResult.errors,
