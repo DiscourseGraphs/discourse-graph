@@ -181,6 +181,22 @@ const getLastSchemaSyncTime = async (
   return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
 };
 
+const getLastRelationSyncTime = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<Date> => {
+  const { data } = await supabaseClient
+    .from("Concept")
+    .select("last_modified")
+    .eq("space_id", spaceId)
+    .eq("is_schema", false)
+    .gt("arity", 0)
+    .order("last_modified", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
+};
+
 export type DiscourseNodeInVault = {
   file: TFile;
   frontmatter: Record<string, unknown>;
@@ -523,6 +539,9 @@ const convertDgToSupabaseConcepts = async ({
   const lastSchemaSync = (
     await getLastSchemaSyncTime(supabaseClient, context.spaceId)
   ).getTime();
+  const lastRelationsSync = (
+    await getLastRelationSyncTime(supabaseClient, context.spaceId)
+  ).getTime();
   const nodeTypes = plugin.settings.nodeTypes ?? [];
   const newNodeTypes = nodeTypes.filter((n) => n.modified > lastSchemaSync);
   const relationTypes = (plugin.settings.relationTypes ?? []).filter(
@@ -532,9 +551,6 @@ const convertDgToSupabaseConcepts = async ({
     (n) => n.modified > lastSchemaSync,
   );
   const allNodes = await collectDiscourseNodesFromVault(plugin);
-  const allNodesByName = Object.fromEntries(
-    allNodes.map((n) => [n.file.basename, n]),
-  );
   const allNodesById = Object.fromEntries(
     allNodes.map((n) => [n.frontmatter.nodeInstanceId as string, n]),
   );
@@ -543,13 +559,15 @@ const convertDgToSupabaseConcepts = async ({
     nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
   );
 
-  const nodesTypesToLocalConcepts = newNodeTypes.map((nodeType) =>
-    discourseNodeSchemaToLocalConcept({
-      context,
-      node: nodeType,
-      accountLocalId,
-    }),
-  );
+  const nodesTypesToLocalConcepts = newNodeTypes
+    .filter((nodeType) => nodeType.modified > lastSchemaSync)
+    .map((nodeType) =>
+      discourseNodeSchemaToLocalConcept({
+        context,
+        node: nodeType,
+        accountLocalId,
+      }),
+    );
 
   const relationTypesById = Object.fromEntries(
     relationTypes.map((relationType) => [relationType.id, relationType]),
@@ -561,23 +579,27 @@ const convertDgToSupabaseConcepts = async ({
     ]),
   );
 
-  const relationTypesToLocalConcepts = relationTypes.map((relationType) =>
-    discourseRelationTypeToLocalConcept({
-      context,
-      relationType,
-      accountLocalId,
-    }),
-  );
+  const relationTypesToLocalConcepts = relationTypes
+    .filter((relationType) => relationType.modified > lastSchemaSync)
+    .map((relationType) =>
+      discourseRelationTypeToLocalConcept({
+        context,
+        relationType,
+        accountLocalId,
+      }),
+    );
 
-  const discourseRelationsToLocalConcepts = discourseRelations.map((relation) =>
-    discourseRelationSchemaToLocalConcept({
-      context,
-      relation,
-      accountLocalId,
-      nodeTypesById,
-      relationTypesById,
-    }),
-  );
+  const discourseRelationsToLocalConcepts = discourseRelations
+    .filter((relationTriple) => relationTriple.modified > lastSchemaSync)
+    .map((relation) =>
+      discourseRelationSchemaToLocalConcept({
+        context,
+        relation,
+        accountLocalId,
+        nodeTypesById,
+        relationTypesById,
+      }),
+    );
 
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
     return discourseNodeInstanceToLocalConcept({
@@ -589,8 +611,11 @@ const convertDgToSupabaseConcepts = async ({
 
   const relationsData = await loadRelations(plugin);
   const relationsToLocalConcepts = Object.values(relationsData.relations)
-    .filter((relationData) => !relationData.importedFromSpaceId)
-    // todo: Filter by modified
+    .filter(
+      (relationData) =>
+        !relationData.importedFromSpaceId &&
+        (relationData.lastModified || relationData.created) > lastRelationsSync,
+    )
     .map((relationData) =>
       relationInstanceToLocalConcept({
         context,
