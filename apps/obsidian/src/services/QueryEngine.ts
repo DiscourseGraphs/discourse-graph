@@ -301,8 +301,13 @@ export class QueryEngine {
   ): TFile | null => {
     if (this.dc) {
       try {
-        const safeId = nodeInstanceId.replace(/"/g, '\\"');
-       const dcQuery = `@page and nodeInstanceId = "${safeId}" and importedFromSpaceUri = "${importedFromSpaceUri.replace(/"/g, '\\"')}"`;
+        const safeId = nodeInstanceId
+          .replace(/\\/g, "\\\\")
+          .replace(/"/g, '\\"');
+        const safeUri = importedFromSpaceUri
+          .replace(/\\/g, "\\\\")
+          .replace(/"/g, '\\"');
+        const dcQuery = `@page and nodeInstanceId = "${safeId}" and importedFromSpaceUri = "${safeUri}"`;
         const results = this.dc.query(dcQuery);
 
         for (const page of results) {

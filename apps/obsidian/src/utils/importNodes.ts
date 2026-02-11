@@ -296,8 +296,12 @@ export const fetchNodeContentWithMetadata = async ({
 
   return {
     content: data.text,
-    createdAt: new Date(data.created ?? 0).valueOf(),
-    modifiedAt: new Date(data.last_modified ?? 0).valueOf(),
+    createdAt: data.created
+      ? new Date(data.created + "Z").valueOf()
+      : 0,
+    modifiedAt: data.last_modified
+      ? new Date(data.last_modified + "Z").valueOf()
+      : 0,
   };
 };
 
@@ -365,8 +369,8 @@ const fetchNodeContentForImport = async ({
   return {
     fileName: direct.text,
     content: full.text,
-    createdAt: new Date(full.created).valueOf(),
-    modifiedAt: new Date(full.last_modified).valueOf(),
+    createdAt: new Date(full.created + "Z").valueOf(),
+    modifiedAt: new Date(full.last_modified + "Z").valueOf(),
     filePath,
   };
 };
