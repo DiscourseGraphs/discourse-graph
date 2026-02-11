@@ -843,8 +843,6 @@ const importAssetsForNode = async ({
             continue;
           }
           // Local file was modified OR remote is newer; overwrite with DB version
-          }
-          // Local file was modified since fileRef's last_modified; overwrite with DB version
         }
       }
 
