@@ -38,7 +38,7 @@ export const discourseNodeSchemaToLocalConcept = ({
     node;
   return {
     space_id: context.spaceId,
-    name: `${name}`,
+    name,
     source_local_id: id,
     is_schema: true,
     author_local_id: accountLocalId,
