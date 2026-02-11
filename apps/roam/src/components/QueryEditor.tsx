@@ -44,6 +44,8 @@ import {
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import { ALL_SELECTION_SUGGESTIONS } from "~/utils/predefinedSelections";
 import { getAlias } from "~/utils/parseResultSettings";
+import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import { IndexSchema } from "~/components/settings/utils/zodSchema";
 
 const getSourceCandidates = (cs: Condition[]): string[] =>
   cs.flatMap((c) =>
@@ -434,6 +436,7 @@ type QueryEditorComponent = (props: {
   setHasResults?: () => void;
   hideCustomSwitch?: boolean;
   showAlias?: boolean;
+  discourseNodeType?: string;
 }) => JSX.Element;
 
 const QueryEditor: QueryEditorComponent = ({
@@ -442,6 +445,7 @@ const QueryEditor: QueryEditorComponent = ({
   setHasResults,
   hideCustomSwitch,
   showAlias,
+  discourseNodeType,
 }) => {
   useEffect(() => {
     const previewQuery = ((e: CustomEvent) => {
@@ -476,6 +480,39 @@ const QueryEditor: QueryEditorComponent = ({
   const [conditions, _setConditions] = useState(initialConditions);
   const [selections, setSelections] = useState(initialSelections);
   const [custom, setCustom] = useState(initialCustom);
+
+  const blockPropSyncTimeoutRef = useRef(0);
+  const lastSyncedIndexRef = useRef("");
+  useEffect(() => {
+    return () => window.clearTimeout(blockPropSyncTimeoutRef.current);
+  }, []);
+  useEffect(() => {
+    if (!discourseNodeType) return;
+
+    const stripped: unknown = JSON.parse(
+      JSON.stringify({ conditions, selections, custom }, (key, value: unknown) =>
+        key === "uid" ? undefined : value,
+      ),
+    );
+
+    const serialized = JSON.stringify(stripped);
+    if (serialized === lastSyncedIndexRef.current) return;
+
+    const result = IndexSchema.safeParse(stripped);
+    if (!result.success) {
+      console.error("Index blockprop sync failed validation:", result.error);
+      return;
+    }
+
+    window.clearTimeout(blockPropSyncTimeoutRef.current);
+    blockPropSyncTimeoutRef.current = window.setTimeout(() => {
+      setDiscourseNodeSetting(discourseNodeType, ["index"], result.data);
+      lastSyncedIndexRef.current = serialized;
+    }, 500);
+
+    return () => window.clearTimeout(blockPropSyncTimeoutRef.current);
+  }, [conditions, selections, custom, discourseNodeType]);
+
   const customNodeOnChange = (value: string) => {
     window.clearTimeout(debounceRef.current);
     setCustom(value);
