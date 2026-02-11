@@ -543,13 +543,8 @@ const convertDgToSupabaseConcepts = async ({
     await getLastRelationSyncTime(supabaseClient, context.spaceId)
   ).getTime();
   const nodeTypes = plugin.settings.nodeTypes ?? [];
-  const newNodeTypes = nodeTypes.filter((n) => n.modified > lastSchemaSync);
-  const relationTypes = (plugin.settings.relationTypes ?? []).filter(
-    (n) => n.modified > lastSchemaSync,
-  );
-  const discourseRelations = (plugin.settings.discourseRelations ?? []).filter(
-    (n) => n.modified > lastSchemaSync,
-  );
+  const relationTypes = plugin.settings.relationTypes ?? [];
+  const relationTriples = plugin.settings.discourseRelations ?? [];
   const allNodes = await collectDiscourseNodesFromVault(plugin);
   const allNodesById = Object.fromEntries(
     allNodes.map((n) => [n.nodeInstanceId, n]),
@@ -559,7 +554,7 @@ const convertDgToSupabaseConcepts = async ({
     nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
   );
 
-  const nodesTypesToLocalConcepts = newNodeTypes
+  const nodesTypesToLocalConcepts = nodeTypes
     .filter((nodeType) => nodeType.modified > lastSchemaSync)
     .map((nodeType) =>
       discourseNodeSchemaToLocalConcept({
@@ -572,12 +567,6 @@ const convertDgToSupabaseConcepts = async ({
   const relationTypesById = Object.fromEntries(
     relationTypes.map((relationType) => [relationType.id, relationType]),
   );
-  const relationTriplesById = Object.fromEntries(
-    discourseRelations.map((relationTriple) => [
-      relationTriple.id,
-      relationTriple,
-    ]),
-  );
 
   const relationTypesToLocalConcepts = relationTypes
     .filter((relationType) => relationType.modified > lastSchemaSync)
@@ -589,7 +578,7 @@ const convertDgToSupabaseConcepts = async ({
       }),
     );
 
-  const discourseRelationsToLocalConcepts = discourseRelations
+  const discourseRelationsToLocalConcepts = relationTriples
     .filter((relationTriple) => relationTriple.modified > lastSchemaSync)
     .map((relation) =>
       discourseRelationSchemaToLocalConcept({
@@ -620,7 +609,7 @@ const convertDgToSupabaseConcepts = async ({
       relationInstanceToLocalConcept({
         context,
         relationTypesById,
-        relationTriplesById,
+        relationTriples,
         allNodesById,
         relationData,
       }),

@@ -162,36 +162,58 @@ export const discourseNodeInstanceToLocalConcept = ({
 export const relationInstanceToLocalConcept = ({
   context,
   relationTypesById,
-  relationTriplesById,
+  relationTriples,
   allNodesById,
   relationData,
 }: {
   context: SupabaseContext;
   relationTypesById: Record<string, DiscourseRelationType>;
-  relationTriplesById: Record<string, DiscourseRelation>;
+  relationTriples: DiscourseRelation[];
   allNodesById: Record<string, DiscourseNodeInVault>;
   relationData: RelationInstance;
 }): LocalConceptDataInput | null => {
-  const triple = relationTriplesById[relationData.type];
-
-  if (!triple) {
-    console.error("Missing triple id " + relationData.type);
-    return null;
-  }
-  const relationType = relationTypesById[triple.relationshipTypeId];
+  const relationType = relationTypesById[relationData.type];
   if (!relationType) {
-    console.error("Missing relation type " + triple.relationshipTypeId);
+    console.error("Missing relation type " + relationData.type);
     return null;
   }
   const sourceNode = allNodesById[relationData.source];
+  if (!sourceNode) {
+    console.error("Missing source node " + relationData.source);
+    return null;
+  }
   const destinationNode = allNodesById[relationData.destination];
+  if (!destinationNode) {
+    console.error("Missing destination node " + relationData.destination);
+    return null;
+  }
+  const sourceTypeId = sourceNode.nodeTypeId;
+  const destinationTypeId = destinationNode.nodeTypeId;
+  const triples = relationTriples.filter(
+    (triple) =>
+      triple.relationshipTypeId == relationData.type &&
+      triple.sourceId === sourceTypeId &&
+      triple.destinationId === destinationTypeId,
+  );
+  if (triples.length === 0) {
+    console.error(
+      `Missing destination triple for ${sourceTypeId}-${relationData.type}->${destinationTypeId}`,
+    );
+    return null;
+  }
+  if (triples.length > 1) {
+    console.warn(
+      `Multiple triples for ${sourceTypeId}-${relationData.type}->${destinationTypeId}`,
+    );
+  }
+  const triple = triples[0]!;
 
   return {
     space_id: context.spaceId,
-    name: `[[${sourceNode ? sourceNode.file.basename : relationData.source}]] -${relationType.label}-> [[${destinationNode ? destinationNode.file.basename : relationData.destination}]]`,
+    name: `[[${sourceNode.file.basename}]] -${relationType.label}-> [[${destinationNode.file.basename}]]`,
     source_local_id: relationData.id,
     author_local_id: relationData.author,
-    schema_represented_by_local_id: relationData.type,
+    schema_represented_by_local_id: triple.id,
     is_schema: false,
     created: new Date(relationData.created).toISOString(),
     last_modified: new Date(
