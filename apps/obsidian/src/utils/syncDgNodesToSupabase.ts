@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { Notice, TFile } from "obsidian";
+import { FrontMatterCache, Notice, TFile } from "obsidian";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json } from "@repo/database/dbTypes";
@@ -9,6 +9,7 @@ import {
   type SupabaseContext,
 } from "./supabaseContext";
 import { default as DiscourseGraphPlugin } from "~/index";
+import { publishNode } from "./publishNode";
 import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
 import {
   orderConceptsByDependency,
@@ -491,6 +492,9 @@ export const createOrUpdateDiscourseEmbedding = async (
       plugin,
     });
 
+    // When synced nodes are already published, ensure non-text assets are in storage.
+    await syncPublishedNodesAssets(plugin, allNodeInstances);
+
     console.debug("Sync completed successfully");
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
@@ -560,6 +564,35 @@ const convertDgToSupabaseConcepts = async ({
 };
 
 /**
+ * For nodes that are already published, ensure non-text assets are pushed to
+ * storage. Called after content sync so new embeds (e.g. images) get uploaded.
+ */
+const syncPublishedNodesAssets = async (
+  plugin: DiscourseGraphPlugin,
+  nodes: ObsidianDiscourseNodeData[],
+): Promise<void> => {
+  const published = nodes.filter(
+    (n) =>
+      ((n.frontmatter.publishedToGroups as string[] | undefined)?.length ?? 0) >
+      0,
+  );
+  for (const node of published) {
+    try {
+      await publishNode({
+        plugin,
+        file: node.file,
+        frontmatter: node.frontmatter as FrontMatterCache,
+      });
+    } catch (error) {
+      console.error(
+        `Failed to sync published node assets for ${node.file.path}:`,
+        error,
+      );
+    }
+  }
+};
+
+/**
  * Shared function to sync changed nodes to Supabase
  * Handles content/embedding upsert and concept upsert
  */
@@ -599,6 +632,10 @@ const syncChangedNodesToSupabase = async ({
     accountLocalId,
     plugin,
   });
+
+  // When file changes affect an already-published node, ensure new non-text
+  // assets (e.g. images) are pushed to storage.
+  await syncPublishedNodesAssets(plugin, changedNodes);
 };
 
 /**
