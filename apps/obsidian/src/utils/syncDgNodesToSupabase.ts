@@ -552,7 +552,7 @@ const convertDgToSupabaseConcepts = async ({
   );
   const allNodes = await collectDiscourseNodesFromVault(plugin);
   const allNodesById = Object.fromEntries(
-    allNodes.map((n) => [n.frontmatter.nodeInstanceId as string, n]),
+    allNodes.map((n) => [n.nodeInstanceId, n]),
   );
 
   const nodeTypesById = Object.fromEntries(
