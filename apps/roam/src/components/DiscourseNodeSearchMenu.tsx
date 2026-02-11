@@ -204,6 +204,7 @@ const NodeSearchMenu = ({
           }
           if (acc[result.type].length < MAX_ITEMS_PER_TYPE) {
             acc[result.type].push({
+              id: result.uid,
               text: result.text,
               uid: result.uid,
             });
@@ -246,10 +247,13 @@ const NodeSearchMenu = ({
       });
 
       const documentsToIndex: MinisearchResult[] = [];
+      const seenUids = new Set<string>();
 
       allNodeTypes.forEach((type) => {
         const nodes = allNodesCache[type.type] || [];
         nodes.forEach((node) => {
+          if (seenUids.has(node.uid)) return;
+          seenUids.add(node.uid);
           documentsToIndex.push({
             ...node,
             type: type.type,
