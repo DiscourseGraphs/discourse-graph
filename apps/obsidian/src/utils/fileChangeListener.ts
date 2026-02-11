@@ -80,7 +80,7 @@ export class FileChangeListener {
   /**
    * Check if a file is a DG node (has nodeTypeId in frontmatter that matches a node type in settings)
    */
-  private isDiscourseNode(file: TAbstractFile): boolean {
+  private shouldSyncFile(file: TAbstractFile): boolean {
     if (!(file instanceof TFile)) {
       return false;
     }
@@ -91,13 +91,17 @@ export class FileChangeListener {
     }
 
     const cache = this.plugin.app.metadataCache.getFileCache(file);
-    const nodeTypeId = cache?.frontmatter?.nodeTypeId as string | undefined;
+    const frontmatter = cache?.frontmatter;
+    const nodeTypeId = frontmatter?.nodeTypeId as string | undefined;
 
     if (!nodeTypeId || typeof nodeTypeId !== "string") {
       return false;
     }
 
-    // Verify that the nodeTypeId matches one of the node types in settings
+    if (frontmatter?.importedFromSpaceUri) {
+      return false;
+    }
+
     return !!getNodeTypeById(this.plugin, nodeTypeId);
   }
 
@@ -115,7 +119,7 @@ export class FileChangeListener {
 
     this.pendingCreates.add(file.path);
 
-    if (this.isDiscourseNode(file)) {
+    if (this.shouldSyncFile(file)) {
       this.queueChange(file.path, "title");
       this.queueChange(file.path, "content");
       this.pendingCreates.delete(file.path);
@@ -126,7 +130,7 @@ export class FileChangeListener {
    * Handle file modification event
    */
   private handleFileModify(file: TAbstractFile): void {
-    if (!this.isDiscourseNode(file)) {
+    if (!this.shouldSyncFile(file)) {
       return;
     }
 
@@ -151,6 +155,10 @@ export class FileChangeListener {
    * Handle file rename event
    */
   private handleFileRename(file: TAbstractFile, oldPath: string): void {
+    if (!this.shouldSyncFile(file)) {
+      return;
+    }
+
     console.log(`File renamed: ${oldPath} -> ${file.path}`);
     this.queueChange(file.path, "title", oldPath);
   }
@@ -159,7 +167,7 @@ export class FileChangeListener {
    * Handle metadata changes (placeholder for relation metadata)
    */
   private handleMetadataChange(file: TFile): void {
-    if (!this.isDiscourseNode(file)) {
+    if (!this.shouldSyncFile(file)) {
       return;
     }
 

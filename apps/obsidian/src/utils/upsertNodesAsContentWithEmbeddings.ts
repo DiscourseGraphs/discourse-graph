@@ -54,7 +54,6 @@ const createNodeContentEntries = async (
     created: node.created,
     last_modified: node.last_modified,
     scale: "document" as const,
-    metadata: node.frontmatter as Json,
   };
 
   const entries: LocalContentDataInput[] = [];
@@ -65,6 +64,7 @@ const createNodeContentEntries = async (
       ...baseEntry,
       text: node.file.basename,
       variant: "direct",
+      metadata: { filePath: node.file.path },
     });
   }
 
@@ -76,6 +76,7 @@ const createNodeContentEntries = async (
         ...baseEntry,
         text: fullContent,
         variant: "full",
+        metadata: node.frontmatter as Json,
       });
     } catch (error) {
       console.error(`Error reading file content for ${node.file.path}:`, error);
