@@ -75,8 +75,8 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
 
     const isImported = !!frontmatter.importedFromSpaceUri;
     const modifiedAt =
-      typeof frontmatter.modifiedAt === "number"
-        ? frontmatter.modifiedAt
+      typeof frontmatter.lastModified === "number"
+        ? frontmatter.lastModified
         : activeFile.stat.mtime;
     const sourceDates =
       isImported && activeFile?.stat

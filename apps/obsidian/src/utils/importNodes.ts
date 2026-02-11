@@ -776,9 +776,7 @@ const importAssetsForNode = async ({
 
       let overwritePath: string | undefined;
       if (existingFile) {
-        const refLastModifiedMs = fileRef.last_modified
-          ? new Date(fileRef.last_modified + "Z").getTime()
-          : 0;
+        const refLastModifiedMs = fileRef.last_modified || 0;
         const localModifiedAfterRef =
           refLastModifiedMs > 0 && existingFile.stat.mtime > refLastModifiedMs;
         if (!localModifiedAfterRef) {
@@ -815,9 +813,7 @@ const importAssetsForNode = async ({
         const file = plugin.app.vault.getAbstractFileByPath(targetPath);
         if (file && file instanceof TFile) {
           const localMtimeMs = file.stat.mtime;
-          const refLastModifiedMs = fileRef.last_modified
-            ? new Date(fileRef.last_modified + "Z").getTime()
-            : 0;
+          const refLastModifiedMs = fileRef.last_modified || 0;
           const localModifiedAfterRef =
             refLastModifiedMs > 0 && localMtimeMs > refLastModifiedMs;
           if (!localModifiedAfterRef) {
