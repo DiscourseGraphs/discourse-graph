@@ -45,14 +45,22 @@ const discourseNodeSettings: DiscourseNodeSettings = {
   shortcut: "C",
   tag: "#claim",
   description: "A statement or assertion that can be supported or refuted",
-  specification: [
-    {
-      type: "clause",
-      source: "Claim",
-      relation: "has title",
-      target: "/^\\[\\[CLM\\]\\]/",
+  specification: {
+    enabled: true,
+    query: {
+      conditions: [
+        {
+          type: "clause",
+          source: "Claim",
+          relation: "has title",
+          target: "/^\\[\\[CLM\\]\\]/",
+        },
+      ],
+      selections: [],
+      custom: "",
+      returnNode: "Claim",
     },
-  ],
+  },
   template: [
     { text: "Summary::", heading: 2 },
     { text: "Evidence::", heading: 2, children: [{ text: "" }] },
@@ -76,6 +84,7 @@ const discourseNodeSettings: DiscourseNodeSettings = {
     ],
     selections: [],
     custom: "",
+    returnNode: "node",
   },
   suggestiveRules,
   backedBy: "user",
