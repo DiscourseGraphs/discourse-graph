@@ -33,6 +33,18 @@ export type DiscourseRelation = {
   modified: number;
 };
 
+export type RelationInstance = {
+  id: string;
+  type: string;
+  source: string;
+  destination: string;
+  created: number;
+  author: string;
+  lastModified?: number;
+  importedFromSpaceId?: number;
+  publishedToGroupId?: string[];
+};
+
 export type Settings = {
   nodeTypes: DiscourseNode[];
   discourseRelations: DiscourseRelation[];

@@ -13,11 +13,13 @@ import { publishNode } from "./publishNode";
 import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
 import {
   orderConceptsByDependency,
-  discourseNodeInstanceToLocalConcepts,
+  discourseNodeInstanceToLocalConcept,
   discourseNodeSchemaToLocalConcept,
   discourseRelationSchemaToLocalConcept,
   discourseRelationTypeToLocalConcept,
+  relationInstanceToLocalConcept,
 } from "./conceptConversion";
+import { loadRelations } from "~/utils/relationsStore";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 
 const DEFAULT_TIME = "1970-01-01";
@@ -533,6 +535,9 @@ const convertDgToSupabaseConcepts = async ({
   const allNodesByName = Object.fromEntries(
     allNodes.map((n) => [n.file.basename, n]),
   );
+  const allNodesById = Object.fromEntries(
+    allNodes.map((n) => [n.frontmatter.nodeInstanceId as string, n]),
+  );
 
   const nodeTypesById = Object.fromEntries(
     nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
@@ -548,6 +553,12 @@ const convertDgToSupabaseConcepts = async ({
 
   const relationTypesById = Object.fromEntries(
     relationTypes.map((relationType) => [relationType.id, relationType]),
+  );
+  const relationTriplesById = Object.fromEntries(
+    discourseRelations.map((relationTriple) => [
+      relationTriple.id,
+      relationTriple,
+    ]),
   );
 
   const relationTypesToLocalConcepts = relationTypes.map((relationType) =>
@@ -568,23 +579,35 @@ const convertDgToSupabaseConcepts = async ({
     }),
   );
 
-  const nodeInstanceToLocalConcepts = nodesSince
-    .map((node) => {
-      return discourseNodeInstanceToLocalConcepts({
-        plugin,
-        allNodesByName,
+  const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
+    return discourseNodeInstanceToLocalConcept({
+      context,
+      nodeData: node,
+      accountLocalId,
+    });
+  });
+
+  const relationsData = await loadRelations(plugin);
+  const relationsToLocalConcepts = Object.values(relationsData.relations)
+    .filter((relationData) => !relationData.importedFromSpaceId)
+    // todo: Filter by modified
+    .map((relationData) =>
+      relationInstanceToLocalConcept({
         context,
-        nodeData: node,
-        accountLocalId,
-      });
-    })
-    .flat();
+        relationTypesById,
+        relationTriplesById,
+        allNodesById,
+        relationData,
+      }),
+    )
+    .filter((n) => !!n);
 
   const conceptsToUpsert: LocalConceptDataInput[] = [
     ...nodesTypesToLocalConcepts,
     ...relationTypesToLocalConcepts,
     ...discourseRelationsToLocalConcepts,
     ...nodeInstanceToLocalConcepts,
+    ...relationsToLocalConcepts,
   ];
 
   if (conceptsToUpsert.length > 0) {
