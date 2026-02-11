@@ -53,6 +53,7 @@ export const IndexSchema = z.object({
   conditions: z.array(ConditionSchema).default([]),
   selections: z.array(SelectionSchema).default([]),
   custom: z.string().default(""),
+  returnNode: z.string().default(""),
 });
 
 type RoamNode = {
@@ -103,10 +104,13 @@ export const DiscourseNodeSchema = z.object({
   tag: stringWithDefault(""),
   description: stringWithDefault(""),
   specification: z
-    .array(ConditionSchema)
+    .object({
+      enabled: z.boolean().default(false),
+      query: IndexSchema.default({}),
+    })
     .nullable()
     .optional()
-    .transform((val) => val ?? []),
+    .transform((val) => val ?? { enabled: false, query: { conditions: [], selections: [], custom: "", returnNode: "" } }),
   template: z
     .array(RoamNodeSchema)
     .nullable()
