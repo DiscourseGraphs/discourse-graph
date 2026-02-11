@@ -163,7 +163,7 @@ const NodeSearchMenu = ({
               filter: (result) =>
                 (result as unknown as MinisearchResult).type === type,
             }) as unknown as MinisearchResult[]
-          ).map((r) => ({
+          ).slice(0, MAX_ITEMS_PER_TYPE).map((r) => ({
             text: r.text,
             uid: r.uid,
           }));
