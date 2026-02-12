@@ -151,7 +151,9 @@ export const ModifyNodeForm = ({
     }
 
     const currentFileCache = plugin.app.metadataCache.getFileCache(currentFile);
-    const currentNodeTypeId = currentFileCache?.frontmatter?.nodeTypeId;
+    const currentNodeTypeId = currentFileCache?.frontmatter?.nodeTypeId as
+      | string
+      | undefined;
 
     if (!currentNodeTypeId) {
       return [];
@@ -166,7 +168,7 @@ export const ModifyNodeForm = ({
           relation.destinationId === currentNodeTypeId),
     );
 
-    return relevantRelations
+    const relations = relevantRelations
       .map((relation) => {
         const relationType = plugin.settings.relationTypes.find(
           (rt) => rt.id === relation.relationshipTypeId,
@@ -189,14 +191,30 @@ export const ModifyNodeForm = ({
       isCurrentFileSource: boolean;
       uniqueKey: string;
     }>;
+
+    return [
+      ...relations,
+      {
+        uniqueKey: "",
+        label: "No relation",
+        relationTypeId: "",
+        isCurrentFileSource: false,
+      },
+    ];
   }, [currentFile, selectedNodeType, isEditMode, plugin]);
 
+  // Default to first option when list appears or selection is no longer valid
   useEffect(() => {
-    if (selectedRelationshipKey === undefined && availableRelationships[0]) {
-      setSelectedRelationshipKey(availableRelationships[0].uniqueKey);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when availableRelationships changes
-  }, [availableRelationships]);
+    const first = availableRelationships[0];
+    if (!first) return;
+    const isValid =
+      selectedRelationshipKey !== undefined &&
+      availableRelationships.some(
+        (r) => r.uniqueKey === selectedRelationshipKey,
+      );
+    if (isValid) return;
+    setSelectedRelationshipKey(first.uniqueKey);
+  }, [availableRelationships, selectedRelationshipKey]);
 
   const isFormValid = title.trim() && selectedNodeType;
 
@@ -286,17 +304,17 @@ export const ModifyNodeForm = ({
 
     try {
       setIsSubmitting(true);
-      const selectedRel = selectedRelationshipKey
-        ? availableRelationships.find(
-            (r) => r.uniqueKey === selectedRelationshipKey,
-          )
+      const key =
+        selectedRelationshipKey ?? availableRelationships[0]?.uniqueKey ?? "";
+      const selectedRel = key
+        ? availableRelationships.find((r) => r.uniqueKey === key)
         : undefined;
       await onSubmit({
         nodeType: selectedNodeType,
         title: trimmedTitle,
         initialFile,
         selectedExistingNode: selectedExistingNode || undefined,
-        relationshipTypeId: selectedRel?.relationTypeId,
+        relationshipTypeId: selectedRel?.relationTypeId || undefined,
         relationshipTargetFile: currentFile || undefined,
         isCurrentFileSource: selectedRel?.isCurrentFileSource,
       });
@@ -330,9 +348,7 @@ export const ModifyNodeForm = ({
 
   return (
     <div>
-      <h2>
-        {isEditMode ? "Modify discourse node" : "Create discourse node"}
-      </h2>
+      <h2>{isEditMode ? "Modify discourse node" : "Create discourse node"}</h2>
       <div className="setting-item">
         <div className="setting-item-name">Type</div>
         <div className="setting-item-control">
@@ -447,23 +463,25 @@ export const ModifyNodeForm = ({
         </div>
       </div>
 
-      {availableRelationships.length > 0 && !isEditMode && (
+      {availableRelationships.length > 0 && !isEditMode && currentFile && (
         <div className="setting-item">
-          <div className="setting-item-name">Relationship</div>
+          <div className="setting-item-name">
+            Relationship with &quot;{currentFile.basename}&quot;
+          </div>
           <div className="setting-item-control">
             <select
-              value={selectedRelationshipKey ?? ""}
-              onChange={(e) =>
-                setSelectedRelationshipKey(e.target.value || undefined)
+              value={
+                selectedRelationshipKey ??
+                availableRelationships[0]?.uniqueKey ??
+                ""
               }
+              onChange={(e) => setSelectedRelationshipKey(e.target.value)}
               disabled={isSubmitting}
               className="w-full"
             >
-              <option value="">No relation</option>
               {availableRelationships.map((rel) => (
-                <option key={rel.uniqueKey} value={rel.uniqueKey}>
-                  {rel.label} &quot;{currentFile?.basename}
-                  &quot;
+                <option key={rel.uniqueKey || "none"} value={rel.uniqueKey}>
+                  {rel.label}
                 </option>
               ))}
             </select>

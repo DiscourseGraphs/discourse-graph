@@ -5,7 +5,7 @@ import generateUid from "~/utils/generateUid";
 const now = new Date().getTime();
 
 export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
-  Question: {
+  question: {
     id: generateUid("node"),
     name: "Question",
     format: "QUE - {content}",
@@ -13,7 +13,7 @@ export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
     created: now,
     modified: now,
   },
-  Claim: {
+  claim: {
     id: generateUid("node"),
     name: "Claim",
     format: "CLM - {content}",
@@ -22,7 +22,7 @@ export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
     created: now,
     modified: now,
   },
-  Evidence: {
+  evidence: {
     id: generateUid("node"),
     name: "Evidence",
     format: "EVD - {content}",
@@ -31,7 +31,7 @@ export const DEFAULT_NODE_TYPES: Record<string, DiscourseNode> = {
     created: now,
     modified: now,
   },
-  Source: {
+  source: {
     id: generateUid("node"),
     name: "Source",
     format: "SRC - {content}",
@@ -82,32 +82,32 @@ export const DEFAULT_SETTINGS: Settings = {
   discourseRelations: [
     {
       id: generateUid("rel3"),
-      sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
-      destinationId: DEFAULT_NODE_TYPES.Question!.id,
+      sourceId: DEFAULT_NODE_TYPES.evidence!.id,
+      destinationId: DEFAULT_NODE_TYPES.question!.id,
       relationshipTypeId: DEFAULT_RELATION_TYPES.informs!.id,
       created: now,
       modified: now,
     },
     {
       id: generateUid("rel3"),
-      sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
-      destinationId: DEFAULT_NODE_TYPES.Claim!.id,
+      sourceId: DEFAULT_NODE_TYPES.evidence!.id,
+      destinationId: DEFAULT_NODE_TYPES.claim!.id,
       relationshipTypeId: DEFAULT_RELATION_TYPES.supports!.id,
       created: now,
       modified: now,
     },
     {
       id: generateUid("rel3"),
-      sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
-      destinationId: DEFAULT_NODE_TYPES.Claim!.id,
+      sourceId: DEFAULT_NODE_TYPES.evidence!.id,
+      destinationId: DEFAULT_NODE_TYPES.claim!.id,
       relationshipTypeId: DEFAULT_RELATION_TYPES.opposes!.id,
       created: now,
       modified: now,
     },
     {
       id: generateUid("rel3"),
-      sourceId: DEFAULT_NODE_TYPES.Evidence!.id,
-      destinationId: DEFAULT_NODE_TYPES.Source!.id,
+      sourceId: DEFAULT_NODE_TYPES.evidence!.id,
+      destinationId: DEFAULT_NODE_TYPES.source!.id,
       relationshipTypeId: DEFAULT_RELATION_TYPES.derivedFrom!.id,
       created: now,
       modified: now,
