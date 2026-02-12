@@ -613,7 +613,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       tabIndex={-1}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
-      data-page-uid={pageUid}
     >
       <style>{tldrawStyles}</style>
 
