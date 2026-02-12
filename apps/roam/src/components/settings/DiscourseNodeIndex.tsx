@@ -71,7 +71,12 @@ const NodeIndex = ({
   return (
     <ExtensionApiContextProvider {...onloadArgs}>
       {showQuery ? (
-        <QueryBuilder pageUid={parentUid} discourseNodeType={node.type} settingKey="index" />
+        <QueryBuilder
+          pageUid={parentUid}
+          discourseNodeType={node.type}
+          settingKey="index"
+          returnNode={DEFAULT_RETURN_NODE}
+        />
       ) : (
         <Spinner />
       )}

@@ -438,6 +438,7 @@ type QueryEditorComponent = (props: {
   showAlias?: boolean;
   discourseNodeType?: string;
   settingKey?: "index" | "specification";
+  returnNode?: string;
 }) => JSX.Element;
 
 const QueryEditor: QueryEditorComponent = ({
@@ -448,6 +449,7 @@ const QueryEditor: QueryEditorComponent = ({
   showAlias,
   discourseNodeType,
   settingKey,
+  returnNode,
 }) => {
   useEffect(() => {
     const previewQuery = ((e: CustomEvent) => {
@@ -492,8 +494,9 @@ const QueryEditor: QueryEditorComponent = ({
     if (!discourseNodeType || !settingKey) return;
 
     const stripped: unknown = JSON.parse(
-      JSON.stringify({ conditions, selections, custom }, (key, value: unknown) =>
-        key === "uid" ? undefined : value,
+      JSON.stringify(
+        { conditions, selections, custom, returnNode },
+        (key, value: unknown) => (key === "uid" ? undefined : value),
       ),
     );
 
@@ -506,7 +509,8 @@ const QueryEditor: QueryEditorComponent = ({
       return;
     }
 
-    const path = settingKey === "index" ? ["index"] : ["specification", "query"];
+    const path =
+      settingKey === "index" ? ["index"] : ["specification", "query"];
 
     window.clearTimeout(blockPropSyncTimeoutRef.current);
     blockPropSyncTimeoutRef.current = window.setTimeout(() => {
@@ -515,7 +519,14 @@ const QueryEditor: QueryEditorComponent = ({
     }, 250);
 
     return () => window.clearTimeout(blockPropSyncTimeoutRef.current);
-  }, [conditions, selections, custom, discourseNodeType, settingKey]);
+  }, [
+    conditions,
+    selections,
+    custom,
+    discourseNodeType,
+    settingKey,
+    returnNode,
+  ]);
 
   const customNodeOnChange = (value: string) => {
     window.clearTimeout(debounceRef.current);

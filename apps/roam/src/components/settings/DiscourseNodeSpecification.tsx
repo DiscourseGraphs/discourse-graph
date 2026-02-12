@@ -143,6 +143,7 @@ const NodeSpecification = ({
           hideCustomSwitch
           discourseNodeType={node.type}
           settingKey="specification"
+          returnNode={node.text}
         />
       </div>
     </div>
