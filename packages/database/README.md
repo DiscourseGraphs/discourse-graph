@@ -101,7 +101,7 @@ But in most other cases, you will want your code to talk to the production datab
 
 ## JWT token management
 
-We are now using JWT Signing keys. See the Supabase [announcement](https://github.com/supabase/supabase/blob/037e5f90a5689c3d847bd2adf9c8ec3956a0e7a0/apps/docs/content/guides/functions/auth.mdx) and [documentation](https://github.com/supabase/supabase/blob/037e5f90a5689c3d847bd2adf9c8ec3956a0e7a0/docs/guides/auth/signing-keys).
+We are now using JWT Signing keys. See the Supabase [announcement](https://github.com/supabase/supabase/blob/037e5f90a5689c3d847bd2adf9c8ec3956a0e7a0/apps/docs/content/guides/functions/auth.mdx) and [documentation](https://supabase.com/docs/guides/auth/signing-keys).
 
 This allows for better key management in general, including key deprecation. One small downside is that the value of `SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY`, generated in `https://supabase.com/dashboard/project/<project>/settings/jwt` has to be manually transferred into the edge function secrets, under slightly different names (since the `SUPABASE_` prefix is reserved, we replace it with `SB_`.) This is done in `https://supabase.com/dashboard/project/<project>/functions/secrets`. The announcement says this may get automated at some point.
 
