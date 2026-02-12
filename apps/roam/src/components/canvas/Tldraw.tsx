@@ -127,6 +127,15 @@ export const MAX_WIDTH = "400px";
 
 const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
 
+/** Valid file size for asset props; undefined when unknown (e.g. Roam/file API not a real File) to avoid persisting null. */
+const getValidFileSize = (file: { size?: number }): number | undefined =>
+  typeof file.size === "number" && Number.isFinite(file.size) && file.size > 0
+    ? file.size
+    : undefined;
+
+const fileSizeProps = (size: number | undefined): { fileSize?: number } =>
+  size !== undefined ? { fileSize: size } : {};
+
 export const isPageUid = (uid: string) =>
   !!window.roamAlphaAPI.pull("[:node/title]", [":block/uid", uid])?.[
     ":node/title"
@@ -954,7 +963,7 @@ const InsideEditorAndUiContext = ({
             src: dataUrl,
             w: size.w,
             h: size.h,
-            fileSize: file.size,
+            ...fileSizeProps(getValidFileSize(file)),
             mimeType: file.type,
             isAnimated,
           },
@@ -1025,7 +1034,7 @@ const InsideEditorAndUiContext = ({
             src: dataUrl,
             w: width,
             h: height,
-            fileSize: file.size,
+            ...fileSizeProps(getValidFileSize(file)),
             mimeType: "image/svg+xml",
             isAnimated: false,
           },
