@@ -14,6 +14,7 @@ import {
   DefaultKeyboardShortcutsDialogContent,
   DefaultToolbarContent,
   TldrawUiMenuItem,
+  TldrawUiMenuCheckboxItem,
   DefaultMainMenu,
   DefaultMainMenuContent,
   TldrawUiMenuGroup,
