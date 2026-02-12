@@ -103,6 +103,6 @@ export const addRelationIfRequested = async (
     plugin,
     sourceFile,
     targetFile,
-    relationTypeId: relation.id,
+    relationTripletId: relation.id,
   });
 };
