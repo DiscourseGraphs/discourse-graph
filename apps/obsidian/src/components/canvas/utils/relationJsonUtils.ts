@@ -10,18 +10,19 @@ import {
  * Persists a relation between two files to the relations store (relations.json).
  * Uses addRelation (checks for existing relation by default).
  *
+ * @param relationTripletId - The relation triplet id (DiscourseRelation.id, typically has prefix rel3_)
  * @returns Object indicating whether the relation already existed and the relation instance id.
  */
 export const addRelationToRelationsJson = async ({
   plugin,
   sourceFile,
   targetFile,
-  relationTypeId,
+  relationTripletId,
 }: {
   plugin: DiscourseGraphPlugin;
   sourceFile: TFile;
   targetFile: TFile;
-  relationTypeId: string;
+  relationTripletId: string;
 }): Promise<{ alreadyExisted: boolean; relationInstanceId?: string }> => {
   const sourceId = await getNodeInstanceIdForFile(plugin, sourceFile);
   const destId = await getNodeInstanceIdForFile(plugin, targetFile);
@@ -42,7 +43,7 @@ export const addRelationToRelationsJson = async ({
   }
 
   const { id, alreadyExisted } = await addRelation(plugin, {
-    type: relationTypeId,
+    type: relationTripletId,
     source: sourceId,
     destination: destId,
   });
@@ -102,6 +103,6 @@ export const addRelationIfRequested = async (
     plugin,
     sourceFile,
     targetFile,
-    relationTypeId: relation.relationshipTypeId,
+    relationTypeId: relation.id,
   });
 };
