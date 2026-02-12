@@ -6,7 +6,7 @@ import type DiscourseGraphPlugin from "~/index";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { createDiscourseNodeFile, formatNodeName } from "./createNode";
 import { getNodeTagColors } from "./colorUtils";
-import { addRelationToRelationsJson } from "~/components/canvas/utils/relationJsonUtils";
+import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 
 const HOVER_DELAY = 200;
 const HIDE_DELAY = 100;
@@ -41,9 +41,8 @@ type NodeCreationParams = {
   editor: Editor;
   tagElement: HTMLElement;
   selectedExistingNode?: TFile;
-  relationshipTypeId?: string;
+  relationshipId?: string;
   relationshipTargetFile?: TFile;
-  isCurrentFileSource?: boolean;
 };
 
 /**
@@ -286,9 +285,8 @@ export class TagNodeHandler {
         nodeType: selectedNodeType,
         title,
         selectedExistingNode,
-        relationshipTypeId,
+        relationshipId,
         relationshipTargetFile,
-        isCurrentFileSource,
       }) => {
         await this.createNodeAndReplace({
           nodeType: selectedNodeType,
@@ -296,9 +294,8 @@ export class TagNodeHandler {
           editor,
           tagElement,
           selectedExistingNode,
-          relationshipTypeId,
+          relationshipId,
           relationshipTargetFile,
-          isCurrentFileSource,
         });
       },
     }).open();
@@ -316,9 +313,8 @@ export class TagNodeHandler {
       editor,
       tagElement,
       selectedExistingNode,
-      relationshipTypeId,
+      relationshipId,
       relationshipTargetFile,
-      isCurrentFileSource,
     } = params;
     try {
       let linkText: string;
@@ -349,16 +345,10 @@ export class TagNodeHandler {
         createdOrSelectedFile = newFile;
       }
 
-      // Add relationship to frontmatter if specified
-      if (relationshipTypeId && relationshipTargetFile) {
-        const [sourceFile, targetFile] = isCurrentFileSource
-          ? [relationshipTargetFile, createdOrSelectedFile]
-          : [createdOrSelectedFile, relationshipTargetFile];
-        await addRelationToRelationsJson({
-          plugin: this.plugin,
-          sourceFile,
-          targetFile,
-          relationTypeId: relationshipTypeId,
+      if (relationshipId && relationshipTargetFile) {
+        await addRelationIfRequested(this.plugin, createdOrSelectedFile, {
+          relationshipId,
+          relationshipTargetFile,
         });
       }
 

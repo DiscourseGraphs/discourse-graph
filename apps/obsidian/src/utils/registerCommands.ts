@@ -17,9 +17,8 @@ type ModifyNodeSubmitParams = {
   title: string;
   initialFile?: TFile;
   selectedExistingNode?: TFile;
-  relationshipTypeId?: string;
+  relationshipId?: string;
   relationshipTargetFile?: TFile;
-  isCurrentFileSource?: boolean;
 };
 
 const createModifyNodeModalSubmitHandler = (
@@ -30,16 +29,14 @@ const createModifyNodeModalSubmitHandler = (
     nodeType,
     title,
     selectedExistingNode,
-    relationshipTypeId,
+    relationshipId,
     relationshipTargetFile,
-    isCurrentFileSource,
   }: ModifyNodeSubmitParams) => {
     if (selectedExistingNode) {
       editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
       await addRelationIfRequested(plugin, selectedExistingNode, {
-        relationshipTypeId,
+        relationshipId,
         relationshipTargetFile,
-        isCurrentFileSource,
       });
     } else {
       const newFile = await createDiscourseNode({
@@ -50,9 +47,8 @@ const createModifyNodeModalSubmitHandler = (
       });
       if (newFile) {
         await addRelationIfRequested(plugin, newFile, {
-          relationshipTypeId,
+          relationshipId,
           relationshipTargetFile,
-          isCurrentFileSource,
         });
       }
     }

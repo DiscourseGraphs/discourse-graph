@@ -19,9 +19,9 @@ type ModifyNodeFormProps = {
     title: string;
     initialFile?: TFile; // for edit mode
     selectedExistingNode?: TFile;
-    relationshipTypeId?: string;
+    /** DiscourseRelation.id; when set, relation is created with currentFile as the other end. */
+    relationshipId?: string;
     relationshipTargetFile?: TFile;
-    isCurrentFileSource?: boolean;
   }) => Promise<void>;
   onCancel: () => void;
   initialTitle?: string;
@@ -314,9 +314,8 @@ export const ModifyNodeForm = ({
         title: trimmedTitle,
         initialFile,
         selectedExistingNode: selectedExistingNode || undefined,
-        relationshipTypeId: selectedRel?.relationTypeId || undefined,
+        relationshipId: selectedRel?.uniqueKey || undefined,
         relationshipTargetFile: currentFile || undefined,
-        isCurrentFileSource: selectedRel?.isCurrentFileSource,
       });
       onCancel();
     } catch (error) {
@@ -525,9 +524,8 @@ type ModifyNodeModalProps = {
     title: string;
     initialFile?: TFile;
     selectedExistingNode?: TFile;
-    relationshipTypeId?: string;
+    relationshipId?: string;
     relationshipTargetFile?: TFile;
-    isCurrentFileSource?: boolean;
   }) => Promise<void>;
   initialTitle?: string;
   initialNodeType?: DiscourseNode;
@@ -542,9 +540,8 @@ class ModifyNodeModal extends Modal {
     title: string;
     initialFile?: TFile;
     selectedExistingNode?: TFile;
-    relationshipTypeId?: string;
+    relationshipId?: string;
     relationshipTargetFile?: TFile;
-    isCurrentFileSource?: boolean;
   }) => Promise<void>;
   private root: Root | null = null;
   private initialTitle?: string;

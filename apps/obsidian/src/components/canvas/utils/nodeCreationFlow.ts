@@ -30,9 +30,8 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
       nodeType: selectedNodeType,
       title,
       selectedExistingNode,
-      relationshipTypeId,
+      relationshipId,
       relationshipTargetFile,
-      isCurrentFileSource,
     }) => {
       try {
         // If user selected an existing node, use it instead of creating a new one
@@ -48,12 +47,10 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
           throw new Error("Failed to get discourse node file");
         }
 
-        // Add relationship to frontmatter if specified
-        if (relationshipTypeId && relationshipTargetFile) {
+        if (relationshipId && relationshipTargetFile) {
           await addRelationIfRequested(plugin, fileToUse, {
-            relationshipTypeId,
+            relationshipId,
             relationshipTargetFile,
-            isCurrentFileSource,
           });
         }
 

@@ -1,6 +1,10 @@
 import { Notice, type TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
-import { addRelation, getNodeInstanceIdForFile } from "~/utils/relationsStore";
+import {
+  addRelation,
+  getNodeInstanceIdForFile,
+  getNodeTypeIdForFile,
+} from "~/utils/relationsStore";
 
 /**
  * Persists a relation between two files to the relations store (relations.json).
@@ -46,9 +50,9 @@ export const addRelationToRelationsJson = async ({
 };
 
 type RelationParams = {
-  relationshipTypeId?: string;
+  /** DiscourseRelation.id; when set, a relation is created between the two files. */
+  relationshipId?: string;
   relationshipTargetFile?: TFile;
-  isCurrentFileSource?: boolean;
 };
 
 export const addRelationIfRequested = async (
@@ -56,19 +60,48 @@ export const addRelationIfRequested = async (
   createdOrSelectedFile: TFile,
   params: RelationParams,
 ): Promise<void> => {
-  const { relationshipTypeId, relationshipTargetFile, isCurrentFileSource } =
-    params;
-  if (!relationshipTypeId || !relationshipTargetFile) return;
+  const { relationshipId, relationshipTargetFile } = params;
+  if (!relationshipId || !relationshipTargetFile) return;
   if (relationshipTargetFile === createdOrSelectedFile) return;
 
-  const [sourceFile, targetFile] =
-    isCurrentFileSource === true
-      ? [relationshipTargetFile, createdOrSelectedFile]
-      : [createdOrSelectedFile, relationshipTargetFile];
+  const relation = plugin.settings.discourseRelations.find(
+    (r) => r.id === relationshipId,
+  );
+  if (!relation) return;
+
+  const [typeA, typeB] = await Promise.all([
+    getNodeTypeIdForFile(plugin, createdOrSelectedFile),
+    getNodeTypeIdForFile(plugin, relationshipTargetFile),
+  ]);
+  if (!typeA || !typeB) {
+    console.warn(
+      "addRelationIfRequested: could not resolve node types for one or both files",
+    );
+    return;
+  }
+
+  let sourceFile: TFile;
+  let targetFile: TFile;
+  if (relation.sourceId === typeA && relation.destinationId === typeB) {
+    sourceFile = createdOrSelectedFile;
+    targetFile = relationshipTargetFile;
+  } else if (relation.sourceId === typeB && relation.destinationId === typeA) {
+    sourceFile = relationshipTargetFile;
+    targetFile = createdOrSelectedFile;
+  } else if (relation.sourceId === relation.destinationId) {
+    sourceFile = createdOrSelectedFile;
+    targetFile = relationshipTargetFile;
+  } else {
+    console.warn(
+      "addRelationIfRequested: file node types do not match relation definition",
+    );
+    return;
+  }
+
   await addRelationToRelationsJson({
     plugin,
     sourceFile,
     targetFile,
-    relationTypeId: relationshipTypeId,
+    relationTypeId: relation.relationshipTypeId,
   });
 };

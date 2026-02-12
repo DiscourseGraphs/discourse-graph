@@ -217,6 +217,27 @@ export const getNodeInstanceIdForFile = async (
   return await ensureNodeInstanceId(plugin, file, frontmatter);
 }
 
+/**
+ * Returns the node type id from a file's frontmatter (nodeTypeId).
+ * Waits for metadata cache if not yet available (e.g. after file creation).
+ */
+export const getNodeTypeIdForFile = async (
+  plugin: DiscourseGraphPlugin,
+  file: TFile,
+): Promise<string | null> => {
+  let frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter as
+    | Record<string, unknown>
+    | undefined;
+
+  if (!frontmatter?.nodeTypeId) {
+    frontmatter =
+      (await waitForDiscourseFrontmatter(plugin, file)) ?? undefined;
+  }
+
+  const nodeTypeId = frontmatter?.nodeTypeId;
+  return typeof nodeTypeId === "string" ? nodeTypeId : null;
+};
+
 export const getFileForNodeInstanceId = async (
   plugin: DiscourseGraphPlugin,
   nodeInstanceId: string,
