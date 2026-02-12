@@ -53,7 +53,7 @@ export const IndexSchema = z.object({
   conditions: z.array(ConditionSchema).default([]),
   selections: z.array(SelectionSchema).default([]),
   custom: z.string().default(""),
-  returnNode: z.string().default(""),
+  returnNode: z.string().default("node"),
 });
 
 type RoamNode = {
