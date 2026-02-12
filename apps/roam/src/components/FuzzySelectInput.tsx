@@ -21,7 +21,6 @@ type FuzzySelectInputProps<T extends Result = Result> = {
   placeholder?: string;
   autoFocus?: boolean;
   initialIsLocked?: boolean;
-  inputRef?: React.RefObject<HTMLInputElement>;
 };
 
 const FuzzySelectInput = <T extends Result = Result>({
@@ -34,7 +33,6 @@ const FuzzySelectInput = <T extends Result = Result>({
   placeholder = "Enter value",
   autoFocus,
   initialIsLocked,
-  inputRef,
 }: FuzzySelectInputProps<T>) => {
   const [isLocked, setIsLocked] = useState(initialIsLocked || false);
   const [query, setQuery] = useState<string>(() => value?.text || "");
@@ -218,7 +216,6 @@ const FuzzySelectInput = <T extends Result = Result>({
             setIsFocused(false);
             setTimeout(() => setIsOpen(false), 200);
           }}
-          inputRef={inputRef}
         />
       }
     />
