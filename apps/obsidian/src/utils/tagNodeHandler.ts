@@ -6,6 +6,7 @@ import type DiscourseGraphPlugin from "~/index";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { createDiscourseNodeFile, formatNodeName } from "./createNode";
 import { getNodeTagColors } from "./colorUtils";
+import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 
 const HOVER_DELAY = 200;
 const HIDE_DELAY = 100;
@@ -40,6 +41,8 @@ type NodeCreationParams = {
   editor: Editor;
   tagElement: HTMLElement;
   selectedExistingNode?: TFile;
+  relationshipId?: string;
+  relationshipTargetFile?: TFile;
 };
 
 /**
@@ -268,15 +271,22 @@ export class TagNodeHandler {
       extractedData.fullLineContent.replace(/#[^\s]+/g, ""),
     );
 
+    // Get the current file from the active view
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    const currentFile = activeView?.file || undefined;
+
     new ModifyNodeModal(this.app, {
       nodeTypes: this.plugin.settings.nodeTypes,
       plugin: this.plugin,
       initialTitle: cleanText,
       initialNodeType: nodeType,
+      currentFile,
       onSubmit: async ({
         nodeType: selectedNodeType,
         title,
         selectedExistingNode,
+        relationshipId,
+        relationshipTargetFile,
       }) => {
         await this.createNodeAndReplace({
           nodeType: selectedNodeType,
@@ -284,6 +294,8 @@ export class TagNodeHandler {
           editor,
           tagElement,
           selectedExistingNode,
+          relationshipId,
+          relationshipTargetFile,
         });
       },
     }).open();
@@ -295,13 +307,22 @@ export class TagNodeHandler {
   private async createNodeAndReplace(
     params: NodeCreationParams,
   ): Promise<void> {
-    const { nodeType, title, editor, tagElement, selectedExistingNode } =
-      params;
+    const {
+      nodeType,
+      title,
+      editor,
+      tagElement,
+      selectedExistingNode,
+      relationshipId,
+      relationshipTargetFile,
+    } = params;
     try {
       let linkText: string;
+      let createdOrSelectedFile: TFile;
 
       if (selectedExistingNode) {
         linkText = `[[${selectedExistingNode.basename}]]`;
+        createdOrSelectedFile = selectedExistingNode;
       } else {
         const formattedNodeName = formatNodeName(title, nodeType);
         if (!formattedNodeName) {
@@ -321,6 +342,14 @@ export class TagNodeHandler {
         }
 
         linkText = `[[${formattedNodeName}]]`;
+        createdOrSelectedFile = newFile;
+      }
+
+      if (relationshipId && relationshipTargetFile) {
+        await addRelationIfRequested(this.plugin, createdOrSelectedFile, {
+          relationshipId,
+          relationshipTargetFile,
+        });
       }
 
       const extractedData = this.extractContent(tagElement);

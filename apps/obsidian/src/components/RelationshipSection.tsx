@@ -74,7 +74,8 @@ const AddRelationship = ({
         : relation.sourceId,
     );
 
-    const compatibleNodeTypes = compatibleNodeTypeIds
+    const uniqueNodeTypeIds = [...new Set(compatibleNodeTypeIds)];
+    const compatibleNodeTypes = uniqueNodeTypeIds
       .map((id) => getNodeTypeById(plugin, id))
       .filter(Boolean) as DiscourseNode[];
 
@@ -367,11 +368,6 @@ const CurrentRelationships = ({
     const fileCache = plugin.app.metadataCache.getFileCache(activeFile);
     if (!fileCache?.frontmatter) return;
 
-    const activeNodeTypeId = fileCache.frontmatter.nodeTypeId as
-      | string
-      | undefined;
-    if (!activeNodeTypeId) return;
-
     const nodeInstanceId = await getNodeInstanceIdForFile(plugin, activeFile);
     if (!nodeInstanceId) return;
 
@@ -381,21 +377,17 @@ const CurrentRelationships = ({
     );
     const tempRelationships = new Map<string, GroupedRelation>();
 
-    for (const relationType of plugin.settings.relationTypes) {
-      const typeLevelRelation = plugin.settings.discourseRelations.find(
-        (rel) =>
-          (rel.sourceId === activeNodeTypeId ||
-            rel.destinationId === activeNodeTypeId) &&
-          rel.relationshipTypeId === relationType.id,
+    for (const r of relations) {
+      const relationType = plugin.settings.relationTypes.find(
+        (rt) => rt.id === r.type,
       );
-      if (!typeLevelRelation) continue;
+      if (!relationType) continue;
 
-      const instanceRels = relations.filter((r) => r.type === relationType.id);
-      const isSource = typeLevelRelation.sourceId === activeNodeTypeId;
+      const isSource = r.source === nodeInstanceId;
       const relationLabel = isSource
         ? relationType.label
         : relationType.complement;
-      const relationKey = `${relationType.id}-${isSource}`;
+      const relationKey = `${r.type}-${isSource ? "source" : "target"}`;
 
       if (!tempRelationships.has(relationKey)) {
         tempRelationships.set(relationKey, {
@@ -409,16 +401,13 @@ const CurrentRelationships = ({
       }
 
       const group = tempRelationships.get(relationKey)!;
-      for (const r of instanceRels) {
-        const otherId = r.source === nodeInstanceId ? r.destination : r.source;
-        const linkedFile = await getFileForNodeInstanceId(plugin, otherId);
-        if (!linkedFile) continue;
-        if (
-          linkedFile &&
-          !group.linkedFiles.some((f) => f.path === linkedFile.path)
-        ) {
-          group.linkedFiles.push(linkedFile);
-        }
+      const otherId = isSource ? r.destination : r.source;
+      const linkedFile = await getFileForNodeInstanceId(plugin, otherId);
+      if (
+        linkedFile &&
+        !group.linkedFiles.some((f) => f.path === linkedFile.path)
+      ) {
+        group.linkedFiles.push(linkedFile);
       }
     }
 

@@ -8,6 +8,7 @@ import { addWikilinkBlockrefForFile } from "~/components/canvas/stores/assetStor
 import { showToast } from "./toastUtils";
 import { calcDiscourseNodeSize } from "~/utils/calcDiscourseNodeSize";
 import { getFirstImageSrcForFile } from "~/components/canvas/shapes/discourseNodeShapeUtils";
+import { addRelationIfRequested } from "./relationJsonUtils";
 
 export type CreateNodeAtArgs = {
   plugin: DiscourseGraphPlugin;
@@ -24,10 +25,13 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
     nodeTypes: plugin.settings.nodeTypes,
     plugin,
     initialNodeType,
+    currentFile: canvasFile,
     onSubmit: async ({
       nodeType: selectedNodeType,
       title,
       selectedExistingNode,
+      relationshipId,
+      relationshipTargetFile,
     }) => {
       try {
         // If user selected an existing node, use it instead of creating a new one
@@ -41,6 +45,13 @@ export const openCreateDiscourseNodeAt = (args: CreateNodeAtArgs): void => {
 
         if (!fileToUse) {
           throw new Error("Failed to get discourse node file");
+        }
+
+        if (relationshipId && relationshipTargetFile) {
+          await addRelationIfRequested(plugin, fileToUse, {
+            relationshipId,
+            relationshipTargetFile,
+          });
         }
 
         const src = await addWikilinkBlockrefForFile({

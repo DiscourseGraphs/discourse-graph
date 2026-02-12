@@ -1,4 +1,4 @@
-import { Editor, MarkdownView, Notice } from "obsidian";
+import { Editor, MarkdownView, Notice, TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeTypeModal } from "~/components/NodeTypeModal";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
@@ -10,6 +10,52 @@ import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
 import { createOrUpdateDiscourseEmbedding } from "./syncDgNodesToSupabase";
 import { publishNode } from "./publishNode";
+import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
+import type { DiscourseNode } from "~/types";
+
+
+type ModifyNodeSubmitParams = {
+  nodeType: DiscourseNode;
+  title: string;
+  initialFile?: TFile;
+  selectedExistingNode?: TFile;
+  relationshipId?: string;
+  relationshipTargetFile?: TFile;
+};
+
+const createModifyNodeModalSubmitHandler = (
+  plugin: DiscourseGraphPlugin,
+  editor: Editor,
+): ((params: ModifyNodeSubmitParams) => Promise<void>) => {
+  return async ({
+    nodeType,
+    title,
+    selectedExistingNode,
+    relationshipId,
+    relationshipTargetFile,
+  }: ModifyNodeSubmitParams) => {
+    if (selectedExistingNode) {
+      editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
+      await addRelationIfRequested(plugin, selectedExistingNode, {
+        relationshipId,
+        relationshipTargetFile,
+      });
+    } else {
+      const newFile = await createDiscourseNode({
+        plugin,
+        nodeType,
+        text: title,
+        editor,
+      });
+      if (newFile) {
+        await addRelationIfRequested(plugin, newFile, {
+          relationshipId,
+          relationshipTargetFile,
+        });
+      }
+    }
+  };
+};
 
 export const registerCommands = (plugin: DiscourseGraphPlugin) => {
   plugin.addCommand({
@@ -22,21 +68,14 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       if (hasSelection) {
         new NodeTypeModal(editor, plugin.settings.nodeTypes, plugin).open();
       } else {
+        const currentFile =
+          plugin.app.workspace.getActiveViewOfType(MarkdownView)?.file ||
+          undefined;
         new ModifyNodeModal(plugin.app, {
           nodeTypes: plugin.settings.nodeTypes,
           plugin,
-          onSubmit: async ({ nodeType, title, selectedExistingNode }) => {
-            if (selectedExistingNode) {
-              editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
-            } else {
-              await createDiscourseNode({
-                plugin,
-                nodeType,
-                text: title,
-                editor,
-              });
-            }
-          },
+          currentFile,
+          onSubmit: createModifyNodeModalSubmitHandler(plugin, editor),
         }).open();
       }
     },
@@ -46,21 +85,14 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "create-discourse-node",
     name: "Create discourse node",
     editorCallback: (editor: Editor) => {
+      const currentFile =
+        plugin.app.workspace.getActiveViewOfType(MarkdownView)?.file ||
+        undefined;
       new ModifyNodeModal(plugin.app, {
         nodeTypes: plugin.settings.nodeTypes,
         plugin,
-        onSubmit: async ({ nodeType, title, selectedExistingNode }) => {
-          if (selectedExistingNode) {
-            editor.replaceSelection(`[[${selectedExistingNode.basename}]]`);
-          } else {
-            await createDiscourseNode({
-              plugin,
-              nodeType,
-              text: title,
-              editor,
-            });
-          }
-        },
+        currentFile,
+        onSubmit: createModifyNodeModalSubmitHandler(plugin, editor),
       }).open();
     },
   });
