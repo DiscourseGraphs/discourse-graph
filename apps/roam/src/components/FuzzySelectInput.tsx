@@ -41,6 +41,7 @@ const FuzzySelectInput = <T extends Result = Result>({
   const [isFocused, setIsFocused] = useState(false);
 
   const menuRef = useRef<HTMLUListElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const filteredItems = useMemo(() => {
     if (!query) return options;
@@ -61,6 +62,7 @@ const FuzzySelectInput = <T extends Result = Result>({
         setQuery(item.text);
         setValue(item);
         setIsOpen(false);
+        requestAnimationFrame(() => inputRef.current?.focus());
       }
     },
     [mode, initialUid, setValue, onLockedChange],
@@ -129,6 +131,12 @@ const FuzzySelectInput = <T extends Result = Result>({
     }
   }, [activeIndex, isOpen]);
 
+  useEffect(() => {
+    if (!autoFocus || mode !== "create" || isLocked) return;
+    const id = setTimeout(() => inputRef.current?.focus(), 150);
+    return () => clearTimeout(id);
+  }, [autoFocus, mode, isLocked]);
+
   if (mode === "edit") {
     return (
       <TextArea
@@ -195,6 +203,7 @@ const FuzzySelectInput = <T extends Result = Result>({
       target={
         <InputGroup
           fill
+          inputRef={inputRef}
           className="w-full"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
