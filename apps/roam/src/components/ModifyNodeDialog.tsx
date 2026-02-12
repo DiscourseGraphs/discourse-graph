@@ -101,8 +101,6 @@ const ModifyNodeDialog = ({
 
   const contentRequestIdRef = useRef(0);
   const referencedNodeRequestIdRef = useRef(0);
-  const confirmButtonRef = useRef<HTMLButtonElement>(null);
-  const prevContentLockedRef = useRef(isContentLocked);
   const [error, setError] = useState("");
 
   const discourseNodes = useMemo(() => {
@@ -133,13 +131,6 @@ const ModifyNodeDialog = ({
       nodeType: refNode.type,
     };
   }, [nodeFormat]);
-
-  useEffect(() => {
-    if (isContentLocked && !prevContentLockedRef.current) {
-      requestAnimationFrame(() => confirmButtonRef.current?.focus());
-    }
-    prevContentLockedRef.current = isContentLocked;
-  }, [isContentLocked]);
 
   useEffect(() => {
     setLoading(true);
@@ -574,7 +565,6 @@ const ModifyNodeDialog = ({
             className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
           >
             <Button
-              elementRef={confirmButtonRef}
               text="Confirm"
               intent={Intent.PRIMARY}
               onClick={() => void onSubmit()}
