@@ -67,6 +67,33 @@ import { getSetting } from "~/utils/extensionSettings";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { discourseContext, isPageUid } from "~/components/canvas/Tldraw";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+
+/**
+ * Get the canvas page UID from the DOM by finding the canvas container
+ * Uses the focused/active canvas when multiple are open
+ */
+const getCanvasPageUidFromDOM = (): string | null => {
+  // Find all canvas containers
+  const containers = document.querySelectorAll<HTMLElement>(
+    ".roamjs-tldraw-canvas-container[data-page-uid]",
+  );
+
+  if (containers.length === 0) return null;
+  if (containers.length === 1) {
+    return containers[0].getAttribute("data-page-uid");
+  }
+
+  // With multiple canvases, find the one that contains the currently focused element
+  // or has been recently interacted with (has :focus-within)
+  for (const container of containers) {
+    if (container.matches(":focus-within") || container.contains(document.activeElement)) {
+      return container.getAttribute("data-page-uid");
+    }
+  }
+
+  // Fallback: use the first container
+  return containers[0].getAttribute("data-page-uid");
+};
 import { InputTextNode } from "roamjs-components/types";
 import createBlock from "roamjs-components/writes/createBlock";
 import createPage from "roamjs-components/writes/createPage";
@@ -76,7 +103,6 @@ import {
   BaseDiscourseNodeUtil,
   DiscourseNodeShape,
 } from "~/components/canvas/DiscourseNodeUtil";
-import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
@@ -654,8 +680,12 @@ export const createAllRelationShapeUtils = (
               relation,
               target,
             }));
-          const parentUid = getCurrentPageUid();
-          const title = getPageTitleByPageUid(parentUid);
+          // Get canvas page UID from the DOM (supports multiple canvases)
+          const canvasPageUid = getCanvasPageUidFromDOM();
+          if (!canvasPageUid) {
+            return deleteAndWarn("No canvas page UID found");
+          }
+          const title = getPageTitleByPageUid(canvasPageUid);
           await triplesToBlocks({
             defaultPageTitle: `Auto generated from [[${title}]]`,
             toPage: async (title: string, blocks: InputTextNode[]) => {
