@@ -52,6 +52,7 @@ import {
   openFileInNewLeaf,
   resolveDiscourseNodeFile,
 } from "./utils/openFileUtils";
+import { handleCanvasDrop } from "./utils/dropHandler";
 type TldrawPreviewProps = {
   store: TLStore;
   file: TFile;
@@ -144,6 +145,40 @@ export const TldrawPreviewComponent = ({
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [isEditorMounted, file, plugin]);
+
+  // Add drag-and-drop event listeners when editor is mounted
+  useEffect(() => {
+    if (!isEditorMounted || !editorRef.current) return;
+
+    const editor = editorRef.current;
+    const container = editor.getContainer();
+    
+    const handleDragOver = (e: DragEvent) => {
+      // Prevent default to allow drop
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "copy";
+      }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      void handleCanvasDrop({
+        editor,
+        app: plugin.app,
+        plugin,
+        canvasFile: file,
+        event: e,
+      });
+    };
+
+    container.addEventListener("dragover", handleDragOver);
+    container.addEventListener("drop", handleDrop);
+
+    return () => {
+      container.removeEventListener("dragover", handleDragOver);
+      container.removeEventListener("drop", handleDrop);
     };
   }, [isEditorMounted, file, plugin]);
 
