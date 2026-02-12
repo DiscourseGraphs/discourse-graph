@@ -98,3 +98,11 @@ This should be used with extreme caution, as there is not currently adequate sec
 It may be appropriate if there is a problem in production that is due to corrupted data (vs schema issues), and it is somehow simpler to test code to repair it directly than to load the data locally.
 Again, if all your code is running through Vercel API endpoints, the simplest way is to set `NEXT_API_ROOT` to the url of the API of the production Vercel branch (`https://discoursegraphs.com/api`).
 But in most other cases, you will want your code to talk to the production database. set up vercel as above, and set `SUPABASE_USE_DB=production` in your console before running `turbo dev`.
+
+## JWT token management
+
+We are now using JWT Signing keys. See the Supabase [announcement](https://github.com/supabase/supabase/blob/037e5f90a5689c3d847bd2adf9c8ec3956a0e7a0/apps/docs/content/guides/functions/auth.mdx) and [documentation](https://github.com/supabase/supabase/blob/037e5f90a5689c3d847bd2adf9c8ec3956a0e7a0/docs/guides/auth/signing-keys).
+
+This allows for better key management in general, including key deprecation. One small downside is that the value of `SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY`, generated in `https://supabase.com/dashboard/project/<project>/settings/jwt` has to be manually transferred into the edge function secrets, under slightly different names (since the `SUPABASE_` prefix is reserved, we replace it with `SB_`.) This is done in `https://supabase.com/dashboard/project/<project>/functions/secrets`. The announcement says this may get automated at some point.
+
+We also need to transfer the `SUPABASE_PUBLISHABLE_KEY` to github secrets (without rename.) The vercel environment gets updated automaticaly.
