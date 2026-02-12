@@ -91,7 +91,7 @@ const getCanvasPageUidFromDOM = (): string | null => {
     }
   }
 
-  // Fallback: use the first container (shouldn't happen in practice)
+  // Fallback: use the first container
   return containers[0].getAttribute("data-page-uid");
 };
 import { InputTextNode } from "roamjs-components/types";
@@ -103,7 +103,6 @@ import {
   BaseDiscourseNodeUtil,
   DiscourseNodeShape,
 } from "~/components/canvas/DiscourseNodeUtil";
-import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
@@ -683,8 +682,10 @@ export const createAllRelationShapeUtils = (
             }));
           // Get canvas page UID from the DOM (supports multiple canvases)
           const canvasPageUid = getCanvasPageUidFromDOM();
-          const parentUid = canvasPageUid || getCurrentPageUid();
-          const title = getPageTitleByPageUid(parentUid);
+          if (!canvasPageUid) {
+            return deleteAndWarn("No canvas page UID found");
+          }
+          const title = getPageTitleByPageUid(canvasPageUid);
           await triplesToBlocks({
             defaultPageTitle: `Auto generated from [[${title}]]`,
             toPage: async (title: string, blocks: InputTextNode[]) => {
