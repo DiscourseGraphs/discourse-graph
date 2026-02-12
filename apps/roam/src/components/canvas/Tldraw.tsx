@@ -73,7 +73,7 @@ import {
   createNodeShapeTools,
   createNodeShapeUtils,
 } from "./DiscourseNodeUtil";
-import { hasRoamPersistedCanvasData, useRoamStore } from "./useRoamStore";
+import { useRoamStore } from "./useRoamStore";
 import {
   TLDRAW_CLOUDFLARE_SYNC_ENABLED,
   TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL,
@@ -115,6 +115,12 @@ import { TLRecord } from "@tldraw/tlschema";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { BLOCK_REF_REGEX } from "roamjs-components/dom";
 import { defaultHandleExternalTextContent } from "./defaultHandleExternalTextContent";
+import {
+  CanvasSyncMode,
+  ensureCanvasSyncMode,
+  getEffectiveCanvasSyncMode,
+  setCanvasSyncMode,
+} from "./canvasSyncMode";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -153,16 +159,48 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   // In Roam, canvas identity is currently keyed by the page UID.
   // Room sync is graph/page encoded as an opaque base64url token.
   const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
-  const useCloudflareSync =
+  const [canvasSyncMode, setCanvasSyncModeState] = useState<CanvasSyncMode>(
+    () => getEffectiveCanvasSyncMode({ pageUid }),
+  );
+  const isCloudflareSyncAvailable =
     TLDRAW_CLOUDFLARE_SYNC_ENABLED &&
-    !!TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL &&
-    !hasRoamPersistedCanvasData(pageUid);
+    !!TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL;
+  const useCloudflareSync =
+    canvasSyncMode === "sync" && isCloudflareSyncAvailable;
+
+  useEffect(() => {
+    setCanvasSyncModeState(ensureCanvasSyncMode({ pageUid }));
+  }, [pageUid]);
+
+  const onCanvasSyncModeChange = useCallback(
+    (mode: CanvasSyncMode) => {
+      setCanvasSyncMode({ pageUid, mode });
+      setCanvasSyncModeState(mode);
+    },
+    [pageUid],
+  );
 
   if (useCloudflareSync) {
-    return <TldrawCanvasCloudflare title={title} pageUid={pageUid} />;
+    return (
+      <TldrawCanvasCloudflare
+        title={title}
+        pageUid={pageUid}
+        canvasSyncMode={canvasSyncMode}
+        isCloudflareSyncAvailable={isCloudflareSyncAvailable}
+        onCanvasSyncModeChange={onCanvasSyncModeChange}
+      />
+    );
   }
 
-  return <TldrawCanvasRoam title={title} pageUid={pageUid} />;
+  return (
+    <TldrawCanvasRoam
+      title={title}
+      pageUid={pageUid}
+      canvasSyncMode={canvasSyncMode}
+      isCloudflareSyncAvailable={isCloudflareSyncAvailable}
+      onCanvasSyncModeChange={onCanvasSyncModeChange}
+    />
+  );
 };
 
 type CanvasStoreAdapterArgs = {
@@ -232,9 +270,15 @@ const useCloudflareCanvasStore = ({
 const TldrawCanvasRoam = ({
   title,
   pageUid,
+  canvasSyncMode,
+  isCloudflareSyncAvailable,
+  onCanvasSyncModeChange,
 }: {
   title: string;
   pageUid: string;
+  canvasSyncMode: CanvasSyncMode;
+  isCloudflareSyncAvailable: boolean;
+  onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
 }) => {
   return (
     <TldrawCanvasShared
@@ -242,6 +286,9 @@ const TldrawCanvasRoam = ({
       pageUid={pageUid}
       useStoreAdapter={useRoamCanvasStore}
       isCloudflareSync={false}
+      canvasSyncMode={canvasSyncMode}
+      isCloudflareSyncAvailable={isCloudflareSyncAvailable}
+      onCanvasSyncModeChange={onCanvasSyncModeChange}
     />
   );
 };
@@ -249,9 +296,15 @@ const TldrawCanvasRoam = ({
 const TldrawCanvasCloudflare = ({
   title,
   pageUid,
+  canvasSyncMode,
+  isCloudflareSyncAvailable,
+  onCanvasSyncModeChange,
 }: {
   title: string;
   pageUid: string;
+  canvasSyncMode: CanvasSyncMode;
+  isCloudflareSyncAvailable: boolean;
+  onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
 }) => {
   return (
     <TldrawCanvasShared
@@ -259,6 +312,9 @@ const TldrawCanvasCloudflare = ({
       pageUid={pageUid}
       useStoreAdapter={useCloudflareCanvasStore}
       isCloudflareSync={true}
+      canvasSyncMode={canvasSyncMode}
+      isCloudflareSyncAvailable={isCloudflareSyncAvailable}
+      onCanvasSyncModeChange={onCanvasSyncModeChange}
     />
   );
 };
@@ -268,11 +324,17 @@ const TldrawCanvasShared = ({
   pageUid,
   useStoreAdapter,
   isCloudflareSync,
+  canvasSyncMode,
+  isCloudflareSyncAvailable,
+  onCanvasSyncModeChange,
 }: {
   title: string;
   pageUid: string;
   useStoreAdapter: (args: CanvasStoreAdapterArgs) => CanvasStoreAdapterResult;
   isCloudflareSync: boolean;
+  canvasSyncMode: CanvasSyncMode;
+  isCloudflareSyncAvailable: boolean;
+  onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
 }) => {
   const appRef = useRef<Editor | null>(null);
   const lastInsertRef = useRef<VecModel>();
@@ -591,8 +653,18 @@ const TldrawCanvasShared = ({
         allNodes,
         allRelationNames,
         allAddReferencedNodeActions,
+        canvasSyncMode,
+        isCloudflareSyncAvailable,
+        onCanvasSyncModeChange,
       }),
-    [allNodes, allRelationNames, allAddReferencedNodeActions],
+    [
+      allNodes,
+      allRelationNames,
+      allAddReferencedNodeActions,
+      canvasSyncMode,
+      isCloudflareSyncAvailable,
+      onCanvasSyncModeChange,
+    ],
   );
 
   // UTILS
@@ -859,12 +931,14 @@ const TldrawCanvasShared = ({
       onDrop={handleDrop}
     >
       {isCloudflareSync && (
-        <div
-          className="pointer-events-none absolute right-3 top-3 z-20 opacity-90"
-          title="Cloudflare Sync enabled"
+        <Tooltip
+          content="Sync mode is enabled. Collaborators on older builds may still open this canvas in local mode."
+          hoverOpenDelay={100}
         >
-          <Icon icon="cloud" size={12} className="text-green-500" />
-        </div>
+          <div className="absolute right-3 top-3 z-20 opacity-90">
+            <Icon icon="cloud" size={12} className="text-green-500" />
+          </div>
+        </Tooltip>
       )}
       <style>{tldrawStyles}</style>
 
