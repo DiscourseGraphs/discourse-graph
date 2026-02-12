@@ -74,7 +74,8 @@ const AddRelationship = ({
         : relation.sourceId,
     );
 
-    const compatibleNodeTypes = compatibleNodeTypeIds
+    const uniqueNodeTypeIds = [...new Set(compatibleNodeTypeIds)];
+    const compatibleNodeTypes = uniqueNodeTypeIds
       .map((id) => getNodeTypeById(plugin, id))
       .filter(Boolean) as DiscourseNode[];
 
