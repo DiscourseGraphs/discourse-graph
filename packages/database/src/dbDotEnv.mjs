@@ -16,8 +16,6 @@ const findRoot = () => {
 };
 
 export const getVariant = () => {
-  const processHasVars =
-    !!process.env["SUPABASE_URL"] && !!process.env["SUPABASE_ANON_KEY"];
   const useDbArgPos = (process.argv || []).indexOf("--use-db");
   let variant =
     useDbArgPos > 0
@@ -25,8 +23,13 @@ export const getVariant = () => {
       : process.env["SUPABASE_USE_DB"];
   if (variant === undefined) {
     dotenv.config();
+    const dbGlobalEnv = join(findRoot(),'.env');
+    if (existsSync(dbGlobalEnv))
+      dotenv.config({path: dbGlobalEnv});
     variant = process.env["SUPABASE_USE_DB"];
   }
+  const processHasVars =
+    !!process.env["SUPABASE_URL"] && !!process.env["SUPABASE_ANON_KEY"];
 
   if (
     ["local", "branch", "production", "none", "implicit", undefined].indexOf(
