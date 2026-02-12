@@ -67,6 +67,33 @@ import { getSetting } from "~/utils/extensionSettings";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { discourseContext, isPageUid } from "~/components/canvas/Tldraw";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+
+/**
+ * Get the canvas page UID from the DOM by finding the canvas container
+ * Uses the focused/active canvas when multiple are open
+ */
+const getCanvasPageUidFromDOM = (): string | null => {
+  // Find all canvas containers
+  const containers = document.querySelectorAll<HTMLElement>(
+    ".roamjs-tldraw-canvas-container[data-page-uid]",
+  );
+
+  if (containers.length === 0) return null;
+  if (containers.length === 1) {
+    return containers[0].getAttribute("data-page-uid");
+  }
+
+  // With multiple canvases, find the one that contains the currently focused element
+  // or has been recently interacted with (has :focus-within)
+  for (const container of containers) {
+    if (container.matches(":focus-within") || container.contains(document.activeElement)) {
+      return container.getAttribute("data-page-uid");
+    }
+  }
+
+  // Fallback: use the first container (shouldn't happen in practice)
+  return containers[0].getAttribute("data-page-uid");
+};
 import { InputTextNode } from "roamjs-components/types";
 import createBlock from "roamjs-components/writes/createBlock";
 import createPage from "roamjs-components/writes/createPage";
@@ -654,10 +681,8 @@ export const createAllRelationShapeUtils = (
               relation,
               target,
             }));
-          // Ensure we use the correct canvas even when multiple are open
-          const canvasPageUid = discourseContext.editorToPageUid.get(
-            this.editor,
-          );
+          // Get canvas page UID from the DOM (supports multiple canvases)
+          const canvasPageUid = getCanvasPageUidFromDOM();
           const parentUid = canvasPageUid || getCurrentPageUid();
           const title = getPageTitleByPageUid(parentUid);
           await triplesToBlocks({
