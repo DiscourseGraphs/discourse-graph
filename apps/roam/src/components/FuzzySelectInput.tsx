@@ -20,9 +20,7 @@ type FuzzySelectInputProps<T extends Result = Result> = {
   options?: T[];
   placeholder?: string;
   autoFocus?: boolean;
-  disabled?: boolean;
   initialIsLocked?: boolean;
-  inputRef?: React.RefObject<HTMLInputElement>;
 };
 
 const FuzzySelectInput = <T extends Result = Result>({
@@ -34,9 +32,7 @@ const FuzzySelectInput = <T extends Result = Result>({
   options = [],
   placeholder = "Enter value",
   autoFocus,
-  disabled,
   initialIsLocked,
-  inputRef,
 }: FuzzySelectInputProps<T>) => {
   const [isLocked, setIsLocked] = useState(initialIsLocked || false);
   const [query, setQuery] = useState<string>(() => value?.text || "");
@@ -144,7 +140,6 @@ const FuzzySelectInput = <T extends Result = Result>({
         growVertically
         placeholder={placeholder}
         autoFocus={autoFocus}
-        disabled={disabled}
       />
     );
   }
@@ -179,6 +174,8 @@ const FuzzySelectInput = <T extends Result = Result>({
         preventOverflow: { enabled: false },
       }}
       className="fuzzy-select-input-popover w-full"
+      autoFocus={false}
+      enforceFocus={false}
       content={
         <Menu className="max-h-64 max-w-md overflow-auto" ulRef={menuRef}>
           {filteredItems.map((item, index) => (
@@ -199,7 +196,6 @@ const FuzzySelectInput = <T extends Result = Result>({
         <InputGroup
           fill
           className="w-full"
-          disabled={disabled}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -212,7 +208,6 @@ const FuzzySelectInput = <T extends Result = Result>({
             setIsFocused(false);
             setTimeout(() => setIsOpen(false), 200);
           }}
-          inputRef={inputRef}
         />
       }
     />

@@ -92,22 +92,6 @@ const ModifyNodeDialog = ({
     [referencedNodeValue.uid, initialReferencedNode?.uid],
   );
 
-  const contentInputRef = useRef<HTMLInputElement>(null);
-  const hasFocusedContentRef = useRef(false);
-
-  useEffect(() => {
-    if (!isOpen) {
-      hasFocusedContentRef.current = false;
-      return;
-    }
-    if (hasFocusedContentRef.current) return;
-    hasFocusedContentRef.current = true;
-    const id = window.setTimeout(() => {
-      contentInputRef.current?.focus();
-    }, 100);
-    return () => window.clearTimeout(id);
-  }, [isOpen]);
-
   const [options, setOptions] = useState<{
     content: Result[];
     referencedNode: Result[];
@@ -117,6 +101,8 @@ const ModifyNodeDialog = ({
 
   const contentRequestIdRef = useRef(0);
   const referencedNodeRequestIdRef = useRef(0);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const prevContentLockedRef = useRef(isContentLocked);
   const [error, setError] = useState("");
 
   const discourseNodes = useMemo(() => {
@@ -147,6 +133,13 @@ const ModifyNodeDialog = ({
       nodeType: refNode.type,
     };
   }, [nodeFormat]);
+
+  useEffect(() => {
+    if (isContentLocked && !prevContentLockedRef.current) {
+      requestAnimationFrame(() => confirmButtonRef.current?.focus());
+    }
+    prevContentLockedRef.current = isContentLocked;
+  }, [isContentLocked]);
 
   useEffect(() => {
     setLoading(true);
@@ -552,10 +545,9 @@ const ModifyNodeDialog = ({
                   ? "..."
                   : `Enter a ${selectedNodeType.text.toLowerCase()} ...`
               }
-              disabled={loading}
               mode={mode}
               initialUid={content.uid}
-              inputRef={contentInputRef}
+              autoFocus
             />
           </div>
 
@@ -568,10 +560,10 @@ const ModifyNodeDialog = ({
                 setValue={setReferencedNodeValueCallback}
                 options={options.referencedNode}
                 placeholder={loading ? "..." : "Select a referenced node"}
-                disabled={loading}
                 mode={"create"}
                 initialUid={referencedNodeValue.uid}
                 initialIsLocked={isReferencedNodeLocked}
+                autoFocus={false}
               />
             </div>
           )}
@@ -582,6 +574,7 @@ const ModifyNodeDialog = ({
             className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
           >
             <Button
+              elementRef={confirmButtonRef}
               text="Confirm"
               intent={Intent.PRIMARY}
               onClick={() => void onSubmit()}
