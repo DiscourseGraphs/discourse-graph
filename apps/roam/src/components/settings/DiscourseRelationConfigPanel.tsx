@@ -51,7 +51,10 @@ import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
-import { setGlobalSetting } from "~/components/settings/utils/accessors";
+import {
+  setGlobalSetting,
+  getGlobalSettings,
+} from "~/components/settings/utils/accessors";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",
@@ -1070,6 +1073,9 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   const handleDelete = (rel: Relation) => {
     deleteBlock(rel.uid);
     setRelations(relations.filter((r) => r.uid !== rel.uid));
+
+    const { [rel.uid]: _, ...remaining } = getGlobalSettings().Relations;
+    setGlobalSetting(["Relations"], remaining);
   };
   const handleDuplicate = (rel: Relation) => {
     const baseText = rel.text
@@ -1099,7 +1105,15 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
         text,
         children: stripUid(copyTree),
       },
-    }).then((newUid) =>
+    }).then((newUid) => {
+      const originalRelation = getGlobalSettings().Relations[rel.uid];
+      if (originalRelation) {
+        setGlobalSetting(["Relations", newUid], {
+          ...originalRelation,
+          label: text,
+        });
+      }
+
       setRelations([
         ...relations,
         {
@@ -1108,8 +1122,8 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
           destination: rel.destination,
           text,
         },
-      ]),
-    );
+      ]);
+    });
   };
   const handleBack = () => {
     setEditingRelation("");
