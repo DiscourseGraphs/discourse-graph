@@ -189,11 +189,11 @@ const isVercelPreviewUrl = (origin: string): boolean =>
   /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin);
 const isAllowedOrigin = (origin: string): boolean =>
   allowedOrigins.some((allowed) => origin.startsWith(allowed));
-console.log(`${origin} in ${allowedOrigins.join(', ')}: ${isAllowedOrigin} (${isVercelPreviewUrl(origin)})`)
 // @ts-ignore Deno is not visible to the IDE
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const originIsAllowed = origin && isAllowedOrigin(origin);
+  console.log(`${origin} in ${allowedOrigins.join(', ')}: ${isAllowedOrigin(origin)} (${isVercelPreviewUrl(origin)})`)
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
