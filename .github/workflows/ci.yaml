@@ -1,4 +1,8 @@
 name: CI
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -30,6 +34,119 @@ jobs:
       - name: Check TypeScript Types
         run: npx turbo check-types
 
-        # TODO: Add future linting, testing, style checks, etc.
-        # name: Lint
-        # run: pnpm run lint
+  lint-changed-files:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Reviewdog
+        uses: reviewdog/action-setup@v1
+
+      # Lint only files changed in the PR and annotate results in the PR check.
+      - name: Lint Changed Files
+        shell: bash
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # Compute a stable merge-base for the PR diff while keeping fetch depth bounded.
+          BASE_SHA=""
+          for fetch_depth in 1 10 50 200; do
+            git fetch origin "$BASE_REF" --depth="$fetch_depth"
+            BASE_SHA="$(git merge-base "origin/$BASE_REF" "$PR_HEAD_SHA" || true)"
+            if [ -n "$BASE_SHA" ]; then
+              break
+            fi
+          done
+
+          if [ -z "$BASE_SHA" ]; then
+            echo "Unable to determine merge-base within depth limit (max depth: 200) for base ref '$BASE_REF'."
+            echo "Increase the depth sequence in CI for unusually long-lived branches."
+            exit 1
+          fi
+
+          HEAD_SHA="$PR_HEAD_SHA"
+
+          mapfile -t changed_files < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA")
+
+          if [ ${#changed_files[@]} -eq 0 ]; then
+            echo "No files changed in this pull request."
+            exit 0
+          fi
+
+          # Keep only lintable files and group them by workspace so each file is linted
+          # from the directory that owns its ESLint flat config.
+          declare -A workspace_to_files
+          lintable_count=0
+
+          for file in "${changed_files[@]}"; do
+            case "$file" in
+              *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs) ;;
+              *) continue ;;
+            esac
+
+            if [ ! -f "$file" ]; then
+              continue
+            fi
+
+            IFS='/' read -r top_level workspace_name _ <<< "$file"
+            if [ -z "${top_level:-}" ] || [ -z "${workspace_name:-}" ]; then
+              continue
+            fi
+
+            workspace="${top_level}/${workspace_name}"
+            if [ ! -f "${workspace}/eslint.config.mjs" ]; then
+              continue
+            fi
+
+            relative_file="${file#${workspace}/}"
+            if [ "$relative_file" = "$file" ]; then
+              continue
+            fi
+
+            workspace_to_files["$workspace"]+="${relative_file}"$'\n'
+            lintable_count=$((lintable_count + 1))
+          done
+
+          if [ "$lintable_count" -eq 0 ]; then
+            echo "No changed lintable files in workspaces with ESLint configs."
+            exit 0
+          fi
+
+          # Lint every touched workspace and fail once at the end so all findings are reported.
+          lint_failed=0
+          for workspace in "${!workspace_to_files[@]}"; do
+            echo "Linting changed files in ${workspace}"
+            mapfile -t files < <(printf '%s' "${workspace_to_files[$workspace]}" | sed '/^$/d')
+            if ! pnpm --dir "$workspace" exec eslint --max-warnings 0 "${files[@]}" | reviewdog \
+              -f=eslint \
+              -name="eslint (${workspace})" \
+              -reporter=github-pr-check \
+              -filter-mode=added \
+              -level=warning; then
+              lint_failed=1
+            fi
+          done
+          exit $lint_failed
