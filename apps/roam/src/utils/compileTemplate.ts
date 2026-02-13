@@ -2,6 +2,9 @@ import type { Result } from "./types";
 
 const EACH_BLOCK = /\{\{\s*#each\s+results\s*\}\}([\s\S]*?)\{\{\s*\/each\s*\}\}/;
 const RESULT_KEY = /\{\{\s*result\.([\w-]+)\s*\}\}/g;
+const RESULT_IF_CHANGED = /\{\{\s*resultIfChanged\.([\w-]+)\s*\}\}/g;
+const IF_CHANGED_BLOCK =
+  /\{\{\s*#ifChanged\s+result\.([\w-]+)\s*\}\}([\s\S]*?)\{\{\s*\/ifChanged\s*\}\}/g;
 
 const escapeHtml = (value: unknown): string =>
   String(value ?? "")
@@ -13,13 +16,26 @@ const escapeHtml = (value: unknown): string =>
 const substituteResult = ({
   body,
   result,
+  previousResult,
 }: {
   body: string;
   result: Result;
+  previousResult?: Result;
 }): string =>
-  body.replace(RESULT_KEY, (_, key: string) => {
-    return escapeHtml(result[key]);
-  });
+  body
+    .replace(IF_CHANGED_BLOCK, (_, key: string, sectionBody: string) => {
+      const currentValue = String(result[key] ?? "");
+      const previousValue = String(previousResult?.[key] ?? "");
+      return currentValue === previousValue ? "" : sectionBody;
+    })
+    .replace(RESULT_IF_CHANGED, (_, key: string) => {
+      const currentValue = String(result[key] ?? "");
+      const previousValue = String(previousResult?.[key] ?? "");
+      return currentValue === previousValue ? "" : escapeHtml(result[key]);
+    })
+    .replace(RESULT_KEY, (_, key: string) => {
+      return escapeHtml(result[key]);
+    });
 
 export const compileTemplate = ({
   template,
@@ -34,7 +50,9 @@ export const compileTemplate = ({
   while (match) {
     const [fullMatch, body] = match;
     const replacement = results
-      .map((result) => substituteResult({ body, result }))
+      .map((result, index) =>
+        substituteResult({ body, result, previousResult: results[index - 1] }),
+      )
       .join("");
 
     output = output.replace(fullMatch, replacement);
@@ -68,4 +86,3 @@ export const sanitizeHtml = ({ html }: { html: string }): string => {
 
   return container.innerHTML;
 };
-

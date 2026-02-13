@@ -477,14 +477,24 @@ const ResultsView: ResultsViewComponent = ({
   <li>{{result.${exampleKey}}}</li>
 {{/each}}
 </ul>`;
+    const groupByExampleTemplate = `<table>
+{{#each results}}
+  <tr>
+    <td>{{resultIfChanged.${exampleKey}}}</td>
+    <td>{{result.text}}</td>
+  </tr>
+{{/each}}
+</table>`;
 
     return `Create a Custom HTML Layout for a query result renderer.
 
 Requirements:
 - Render with {{#each results}}...{{/each}}
 - Use interpolations like {{result.key}}
+- You can suppress repeated values with {{resultIfChanged.key}} or {{#ifChanged result.key}}...{{/ifChanged}}
 - Do not use JavaScript, window access, or side effects
 - Prefer simple, minimal CSS (avoid complex styling)
+- Emulate a "group by" row pattern: when looping each result, if "{enter field}" matches the previous row's value, do not render that field again for the current row.
 
 Available result keys:
 ${keyLines || "- text"}
@@ -494,6 +504,9 @@ ${DEFAULT_TEMPLATE}
 
 Selection-specific template example:
 ${exampleTemplate}
+
+Group-by style example (hide repeated values):
+${groupByExampleTemplate}
 
 Custom view description:`;
   }, [columns]);
@@ -828,7 +841,8 @@ Custom view description:`;
                       <div className="mb-1 flex items-center justify-between gap-2 pr-1">
                         <span>
                           Template (HTML + <code>{"{{#each results}}...{{/each}}"}</code>,{" "}
-                          <code>{"{{result.key}}"}</code>)
+                          <code>{"{{result.key}}"}</code>,{" "}
+                          <code>{"{{resultIfChanged.key}}"}</code>)
                         </span>
                         <Tooltip
                           content={"Copy Custom View Prompt"}
