@@ -180,8 +180,18 @@ CREATE TYPE public.account_local_input AS (
     -- local values
     email VARCHAR,
     email_trusted BOOLEAN,
-    space_editor BOOLEAN
+    space_editor BOOLEAN,
+    permissions public."SpaceAccessPermissions"
 );
+
+CREATE OR REPLACE FUNCTION public.my_permissions_in_space(
+    space_id_ BIGINT
+) RETURNS public."SpaceAccessPermissions"
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT permissions FROM public."SpaceAccess" WHERE space_id=space_id_ AND account_uid = auth.uid();
+$$;
 
 CREATE OR REPLACE FUNCTION public.upsert_account_in_space(
     space_id_ BIGINT,
@@ -195,6 +205,7 @@ DECLARE
     platform_ public."Platform";
     account_id_ BIGINT;
     user_uid UUID;
+    permissions_ public."SpaceAccessPermissions";
 BEGIN
     SELECT platform INTO STRICT platform_ FROM public."Space" WHERE id = space_id_;
     INSERT INTO public."PlatformAccount" AS pa (
@@ -205,14 +216,14 @@ BEGIN
             name = COALESCE(NULLIF(TRIM(EXCLUDED.name), ''), pa.name)
         RETURNING id, dg_account INTO STRICT account_id_, user_uid;
     IF user_uid IS NOT NULL THEN
+        permissions_ := max(
+            my_permissions_in_space(space_id_),
+            COALESCE(local_account.permissions,
+                CASE WHEN local_account.space_editor THEN 'editor' ELSE 'reader' END));
         INSERT INTO public."SpaceAccess" as sa (space_id, account_uid, permissions)
-            VALUES (space_id_, user_uid,
-                CASE WHEN COALESCE(local_account.space_editor, true) THEN 'editor'
-                ELSE 'reader' END)
+            VALUES (space_id_, user_uid, permissions_)
             ON CONFLICT (space_id, account_uid)
-            DO UPDATE SET permissions = CASE
-                WHEN COALESCE(local_account.space_editor, sa.editor, true) THEN 'editor'
-                ELSE 'reader' END;
+            DO UPDATE SET permissions = permissions_;
     END IF;
     INSERT INTO public."LocalAccess" (space_id, account_id) values (space_id_, account_id_)
         ON CONFLICT (space_id, account_id)
@@ -257,13 +268,13 @@ CREATE OR REPLACE FUNCTION public.create_account_in_space(
     name_ varchar,
     email_ varchar = null,
     email_trusted boolean = true,
-    editor_ boolean = true
+    permissions_ public."SpaceAccessPermissions" = 'editor'
 ) RETURNS BIGINT
 SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT public.upsert_account_in_space(space_id_, ROW(name_, account_local_id_ ,email_, email_trusted, editor_)::public.account_local_input);
+    SELECT public.upsert_account_in_space(space_id_, ROW(name_, account_local_id_ ,email_, email_trusted, null, permissions_)::public.account_local_input);
 $$;
 
 
