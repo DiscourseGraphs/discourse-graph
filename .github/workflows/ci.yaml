@@ -61,6 +61,7 @@ jobs:
       - name: Setup Reviewdog
         uses: reviewdog/action-setup@v1
 
+      # Lint only files changed in the PR and annotate results in the PR check.
       - name: Lint Changed Files
         shell: bash
         env:
@@ -70,6 +71,7 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Compute a stable merge-base for the PR diff while keeping fetch depth bounded.
           BASE_SHA=""
           for fetch_depth in 1 10 50 200; do
             git fetch origin "$BASE_REF" --depth="$fetch_depth"
@@ -94,6 +96,8 @@ jobs:
             exit 0
           fi
 
+          # Keep only lintable files and group them by workspace so each file is linted
+          # from the directory that owns its ESLint flat config.
           declare -A workspace_to_files
           lintable_count=0
 
@@ -131,6 +135,7 @@ jobs:
             exit 0
           fi
 
+          # Lint every touched workspace and fail once at the end so all findings are reported.
           lint_failed=0
           for workspace in "${!workspace_to_files[@]}"; do
             echo "Linting changed files in ${workspace}"
