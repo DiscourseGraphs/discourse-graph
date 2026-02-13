@@ -187,11 +187,9 @@ const allowedOrigins = ["https://roamresearch.com", "http://localhost:3000", "ap
 
 const isVercelPreviewUrl = (origin: string): boolean =>
   /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin);
-
 const isAllowedOrigin = (origin: string): boolean =>
-  allowedOrigins.some((allowed) => origin.startsWith(allowed)) ||
-  isVercelPreviewUrl(origin);
-
+  allowedOrigins.some((allowed) => origin.startsWith(allowed));
+console.log(`${origin} in ${allowedOrigins.join(', ')}: ${isAllowedOrigin}`)
 // @ts-ignore Deno is not visible to the IDE
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
