@@ -41,7 +41,7 @@ export const parseObsidianOpenUrl = (url: string): ParsedObsidianUrl | null => {
     if (!file) return null;
     return {
       vault,
-      filePath: decodeURIComponent(file),
+      filePath: file,
     };
   } catch {
     return null;
