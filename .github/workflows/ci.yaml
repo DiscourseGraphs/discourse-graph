@@ -117,13 +117,17 @@ jobs:
             exit 0
           fi
 
+          lint_failed=0
           for workspace in "${!workspace_to_files[@]}"; do
             echo "Linting changed files in ${workspace}"
             mapfile -t files < <(printf '%s' "${workspace_to_files[$workspace]}" | sed '/^$/d')
-            pnpm --dir "$workspace" exec eslint --max-warnings 0 "${files[@]}" | reviewdog \
+            if ! pnpm --dir "$workspace" exec eslint --max-warnings 0 "${files[@]}" | reviewdog \
               -f=eslint \
               -name="eslint (${workspace})" \
               -reporter=github-pr-check \
               -filter-mode=added \
-              -level=warning
+              -level=warning; then
+              lint_failed=1
+            fi
           done
+          exit $lint_failed
