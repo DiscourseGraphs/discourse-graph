@@ -37,6 +37,7 @@ import getUids from "roamjs-components/dom/getUids";
 import Charts from "./Charts";
 import Timeline from "./Timeline";
 import Kanban from "./Kanban";
+import CustomView, { DEFAULT_TEMPLATE } from "./CustomView";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import type { RoamBasicNode } from "roamjs-components/types/native";
 import { render as renderToast } from "roamjs-components/components/Toast";
@@ -224,6 +225,11 @@ const SUPPORTED_LAYOUTS = [
       { key: "display", label: "Display", options: "columns" },
       { key: "legend", label: "Show Legend", options: ["No", "Yes"] },
     ],
+  },
+  {
+    id: "custom",
+    icon: "code-block",
+    settings: [],
   },
 ] as const;
 const settingsById = Object.fromEntries(
@@ -778,6 +784,40 @@ const ResultsView: ResultsViewComponent = ({
                       </Label>
                     );
                   })}
+                  {layoutMode === "custom" && (
+                    <Label>
+                      Template (HTML + <code>{"{{#each results}}...{{/each}}"}</code>,{" "}
+                      <code>{"{{result.key}}"}</code>)
+                      <textarea
+                        className="bp3-input mt-1 w-full font-mono text-sm"
+                        rows={8}
+                        placeholder={DEFAULT_TEMPLATE}
+                        value={
+                          (Array.isArray(layout.template)
+                            ? layout.template[0]
+                            : layout.template) ?? ""
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setLayout({ ...layout, template: value });
+                          if (preventSavingSettings) return;
+                          const resultNode = getSubTree({
+                            key: "results",
+                            parentUid,
+                          });
+                          const layoutNode = getSubTree({
+                            parentUid: resultNode.uid,
+                            key: "layout",
+                          });
+                          setInputSetting({
+                            key: "template",
+                            value,
+                            blockUid: layoutNode.uid,
+                          });
+                        }}
+                      />
+                    </Label>
+                  )}
                 </div>
               ) : isEditColumnSort ? (
                 <div className="relative p-4">
@@ -1399,6 +1439,15 @@ const ResultsView: ResultsViewComponent = ({
                   page={page}
                   pageSizeTimeoutRef={pageSizeTimeoutRef}
                   setPageSize={setPageSize}
+                />
+              ) : layoutMode === "custom" ? (
+                <CustomView
+                  results={allProcessedResults}
+                  template={
+                    (Array.isArray(layout.template)
+                      ? layout.template[0]
+                      : layout.template) || DEFAULT_TEMPLATE
+                  }
                 />
               ) : (
                 <div style={{ padding: "16px 8px" }}>
