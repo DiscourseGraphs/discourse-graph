@@ -63,7 +63,11 @@ const EMBED_FOLD_VALUES = ["default", "open", "closed"];
 
 type EnglishQueryPart = { text: string; clickId?: string };
 
-const QueryUsed = ({ parentUid }: { parentUid: string }) => {
+const QueryUsed = ({
+  parentUid,
+}: {
+  parentUid: string;
+}) => {
   const { datalogQuery, englishQuery } = useMemo(() => {
     const args = parseQuery(parentUid);
     const { query: datalogQuery } = getDatalogQuery(args);
@@ -458,6 +462,40 @@ const ResultsView: ResultsViewComponent = ({
     () => views.filter((view) => view.mode !== "hidden").length,
     [views],
   );
+  const customViewPrompt = useMemo(() => {
+    const selectionKeys = Array.from(
+      new Set(
+        columns
+          .map((c) => c.key.trim())
+          .filter(Boolean),
+      ),
+    );
+    const keyLines = selectionKeys.map((k) => `- ${k}`).join("\n");
+    const exampleKey = selectionKeys.find((k) => k !== "text") || "text";
+    const exampleTemplate = `<ul>
+{{#each results}}
+  <li>{{result.${exampleKey}}}</li>
+{{/each}}
+</ul>`;
+
+    return `Create a Custom HTML Layout for a query result renderer.
+
+Requirements:
+- Render with {{#each results}}...{{/each}}
+- Use interpolations like {{result.key}}
+- Do not use JavaScript, window access, or side effects
+
+Available result keys:
+${keyLines || "- text"}
+
+Default template example:
+${DEFAULT_TEMPLATE}
+
+Selection-specific template example:
+${exampleTemplate}
+
+Custom view description:`;
+  }, [columns]);
 
   return (
     <div
@@ -786,8 +824,33 @@ const ResultsView: ResultsViewComponent = ({
                   })}
                   {layoutMode === "custom" && (
                     <Label>
-                      Template (HTML + <code>{"{{#each results}}...{{/each}}"}</code>,{" "}
-                      <code>{"{{result.key}}"}</code>)
+                      <div className="mb-1 flex items-center justify-between gap-2 pr-1">
+                        <span>
+                          Template (HTML + <code>{"{{#each results}}...{{/each}}"}</code>,{" "}
+                          <code>{"{{result.key}}"}</code>)
+                        </span>
+                        <Tooltip
+                          content={"Copy Custom View Prompt"}
+                          position={"top"}
+                          openOnTargetFocus={false}
+                          lazy={true}
+                          hoverOpenDelay={250}
+                          autoFocus={false}
+                        >
+                          <Button
+                            minimal
+                            icon={"duplicate"}
+                            onClick={() => {
+                              navigator.clipboard.writeText(customViewPrompt);
+                              renderToast({
+                                id: "custom-view-prompt-copy",
+                                content: "Copied Custom View Prompt",
+                                intent: Intent.PRIMARY,
+                              });
+                            }}
+                          />
+                        </Tooltip>
+                      </div>
                       <textarea
                         className="bp3-input mt-1 w-full font-mono text-sm"
                         rows={8}
