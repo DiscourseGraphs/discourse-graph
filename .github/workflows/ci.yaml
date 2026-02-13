@@ -65,13 +65,27 @@ jobs:
         shell: bash
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
 
-          git fetch origin "${{ github.base_ref }}" --depth=1
+          BASE_SHA=""
+          for fetch_depth in 1 10 50 200; do
+            git fetch origin "$BASE_REF" --depth="$fetch_depth"
+            BASE_SHA="$(git merge-base "origin/$BASE_REF" "$PR_HEAD_SHA" || true)"
+            if [ -n "$BASE_SHA" ]; then
+              break
+            fi
+          done
 
-          BASE_SHA="$(git merge-base "origin/${{ github.base_ref }}" "${{ github.event.pull_request.head.sha }}")"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          if [ -z "$BASE_SHA" ]; then
+            echo "Unable to determine merge-base within depth limit (max depth: 200) for base ref '$BASE_REF'."
+            echo "Increase the depth sequence in CI for unusually long-lived branches."
+            exit 1
+          fi
+
+          HEAD_SHA="$PR_HEAD_SHA"
 
           mapfile -t changed_files < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA")
 
