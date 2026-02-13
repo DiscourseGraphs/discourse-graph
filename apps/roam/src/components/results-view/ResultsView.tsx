@@ -484,6 +484,7 @@ Requirements:
 - Render with {{#each results}}...{{/each}}
 - Use interpolations like {{result.key}}
 - Do not use JavaScript, window access, or side effects
+- Prefer simple, minimal CSS (avoid complex styling)
 
 Available result keys:
 ${keyLines || "- text"}
