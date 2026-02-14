@@ -1542,10 +1542,10 @@ export type Database = {
       create_account_in_space: {
         Args: {
           account_local_id_: string
-          editor_?: boolean
           email_?: string
           email_trusted?: boolean
           name_: string
+          permissions_?: Database["public"]["Enums"]["SpaceAccessPermissions"]
           space_id_: number
         }
         Returns: number
@@ -1659,6 +1659,10 @@ export type Database = {
           similarity: number
           text_content: string
         }[]
+      }
+      my_permissions_in_space: {
+        Args: { space_id_: number }
+        Returns: Database["public"]["Enums"]["SpaceAccessPermissions"]
       }
       my_space_ids: {
         Args: {
@@ -1798,6 +1802,9 @@ export type Database = {
         email: string | null
         email_trusted: boolean | null
         space_editor: boolean | null
+        permissions:
+          | Database["public"]["Enums"]["SpaceAccessPermissions"]
+          | null
       }
       concept_local_input: {
         epistemic_status: Database["public"]["Enums"]["EpistemicStatus"] | null
