@@ -216,14 +216,18 @@ BEGIN
             name = COALESCE(NULLIF(TRIM(EXCLUDED.name), ''), pa.name)
         RETURNING id, dg_account INTO STRICT account_id_, user_uid;
     IF user_uid IS NOT NULL THEN
-        permissions_ := max(
-            my_permissions_in_space(space_id_),
-            COALESCE(local_account.permissions,
-                CASE WHEN local_account.space_editor THEN 'editor' ELSE 'reader' END));
+        -- is any permission specified in the input?
+        permissions_ := COALESCE(
+            local_account.permissions,
+            CASE WHEN local_account.space_editor IS true THEN 'editor'  -- legacy
+                 WHEN local_account.space_editor IS false THEN 'reader' END);
         INSERT INTO public."SpaceAccess" as sa (space_id, account_uid, permissions)
-            VALUES (space_id_, user_uid, permissions_)
+            VALUES (space_id_, user_uid, max(my_permissions_in_space(space_id_), COALESCE(permissions_, 'editor')))
             ON CONFLICT (space_id, account_uid)
-            DO UPDATE SET permissions = permissions_;
+            DO UPDATE SET permissions = CASE
+                WHEN permissions_ IS NULL THEN permissions
+                ELSE max(my_permissions_in_space(space_id_), permissions_)
+                END;
     END IF;
     INSERT INTO public."LocalAccess" (space_id, account_id) values (space_id_, account_id_)
         ON CONFLICT (space_id, account_id)
