@@ -18,7 +18,7 @@ import {
 } from "./conceptConversion";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 
-const DEFAULT_TIME = "1970-01-01";
+const DEFAULT_TIME = "1970-01-01Z";
 export type ChangeType = "title" | "content";
 
 export type ObsidianDiscourseNodeData = {
@@ -159,7 +159,7 @@ const getLastContentSyncTime = async (
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
+  return new Date(data?.last_modified || DEFAULT_TIME);
 };
 
 const getLastSchemaSyncTime = async (
@@ -174,7 +174,7 @@ const getLastSchemaSyncTime = async (
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
+  return new Date(data?.last_modified || DEFAULT_TIME);
 };
 
 type DiscourseNodeInVault = {
