@@ -13,6 +13,8 @@ import {
   defaultBindingUtils,
   TLPointerEventInfo,
   DefaultSharePanel,
+  type TLDefaultExternalContentHandlerOpts,
+  type TLUiToast,
 } from "tldraw";
 import "tldraw/tldraw.css";
 import {
@@ -27,7 +29,7 @@ import {
   TLDATA_DELIMITER_END,
   TLDATA_DELIMITER_START,
 } from "~/constants";
-import { TFile } from "obsidian";
+import { Notice, TFile } from "obsidian";
 import { ObsidianTLAssetStore } from "~/components/canvas/stores/assetStore";
 import {
   createDiscourseNodeUtil,
@@ -52,6 +54,7 @@ import {
   openFileInNewLeaf,
   resolveDiscourseNodeFile,
 } from "./utils/openFileUtils";
+import { handleExternalUrlContent } from "./utils/externalContentHandlers";
 type TldrawPreviewProps = {
   store: TLStore;
   file: TFile;
@@ -263,6 +266,28 @@ export const TldrawPreviewComponent = ({
   const handleMount = (editor: Editor) => {
     editorRef.current = editor;
     setIsEditorMounted(true);
+
+    editor.registerExternalContentHandler("url", (externalContent) => {
+      void handleExternalUrlContent({
+        editor,
+        url: externalContent.url,
+        point: externalContent.point,
+        plugin,
+        canvasFile: file,
+        defaultHandlerOpts: {
+          toasts: {
+            addToast: (t: Omit<TLUiToast, "id"> & { id?: string }) => {
+              new Notice(t.description ?? t.title ?? "Error");
+              return "";
+            },
+            removeToast: () => "",
+            clearToasts: () => {},
+            toasts: { get: () => [], update: () => {} },
+          },
+          msg: (key?: string) => key ?? "",
+        } as unknown as TLDefaultExternalContentHandlerOpts,
+      });
+    });
 
     editor.on("event", (event) => {
       // Handle pointer events
