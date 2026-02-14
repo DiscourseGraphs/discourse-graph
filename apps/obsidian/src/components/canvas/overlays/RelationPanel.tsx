@@ -14,11 +14,16 @@ import {
   getArrowBindings,
 } from "~/components/canvas/utils/relationUtils";
 import { getFrontmatterForFile } from "~/components/canvas/shapes/discourseNodeShapeUtils";
-import { getRelationTypeById } from "~/utils/typeUtils";
+import {
+  findRelationTripletId,
+  getRelationById,
+  getRelationTypeById,
+} from "~/utils/typeUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
 import { DEFAULT_TLDRAW_COLOR } from "~/utils/tldrawColors";
 import {
   getNodeInstanceIdForFile,
+  getNodeTypeIdForFile,
   getRelationsForNodeInstanceId,
   getFileForNodeInstanceId,
   addRelation,
@@ -377,6 +382,37 @@ export const RelationsPanel = ({
         return;
       }
 
+      // Get node type ids to find the relation triplet
+      const sourceNodeTypeId = await getNodeTypeIdForFile(plugin, sourceFile);
+      const destNodeTypeId = await getNodeTypeIdForFile(plugin, destFile);
+      if (!sourceNodeTypeId || !destNodeTypeId) {
+        showToast({
+          severity: "error",
+          title: "Could Not Resolve Node Types",
+          description: "Could not determine node types for the files.",
+          targetCanvasId: canvasFile.path,
+        });
+        return;
+      }
+
+      // Find the relation triplet id
+      const relationTripletId = findRelationTripletId(
+        plugin,
+        sourceNodeTypeId,
+        destNodeTypeId,
+        relationTypeId,
+      );
+      if (!relationTripletId) {
+        showToast({
+          severity: "error",
+          title: "Invalid Relation",
+          description:
+            "This relation type is not allowed between these node types.",
+          targetCanvasId: canvasFile.path,
+        });
+        return;
+      }
+
       const targetNode = await ensureNodeShapeForFile(targetFile);
 
       const id: TLShapeId = createShapeId();
@@ -448,7 +484,7 @@ export const RelationsPanel = ({
       });
 
       const { id: relationInstanceId } = await addRelation(plugin, {
-        type: relationTypeId,
+        type: relationTripletId,
         source: sourceId,
         destination: destId,
       });
@@ -555,7 +591,11 @@ const computeRelations = async (
     );
     if (!typeLevelRelation) continue;
 
-    const instanceRels = relations.filter((r) => r.type === relationType.id);
+    // r.type is now the relation triplet id, need to filter by matching triplet id
+    const instanceRels = relations.filter((r) => {
+      const relationTriplet = getRelationById(plugin, r.type);
+      return relationTriplet?.relationshipTypeId === relationType.id;
+    });
     const isSource = typeLevelRelation.sourceId === activeNodeTypeId;
     const label = isSource ? relationType.label : relationType.complement;
     const key = `${relationType.id}-${isSource}`;

@@ -60,6 +60,8 @@ import {
 import { RelationBindings } from "./DiscourseRelationBinding";
 import { DiscourseNodeShape, DiscourseNodeUtil } from "./DiscourseNodeShape";
 import { addRelationToRelationsJson } from "~/components/canvas/utils/relationJsonUtils";
+import { getNodeTypeIdForFile } from "~/utils/relationsStore";
+import { findRelationTripletId } from "~/utils/typeUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
 
 export enum ArrowHandles {
@@ -1210,12 +1212,62 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
         return;
       }
 
+      // Get node type ids to find the relation triplet
+      const sourceNodeTypeId = await getNodeTypeIdForFile(
+        this.options.plugin,
+        sourceFile,
+      );
+      const targetNodeTypeId = await getNodeTypeIdForFile(
+        this.options.plugin,
+        targetFile,
+      );
+
+      if (!sourceNodeTypeId || !targetNodeTypeId) {
+        console.warn(
+          "Could not resolve node type ids for relation files",
+          sourceFile.basename,
+          targetFile.basename,
+        );
+        showToast({
+          severity: "error",
+          title: "Failed to Save Relation",
+          description: "Could not determine node types for the connected files",
+          targetCanvasId: this.options.canvasFile.path,
+        });
+        return;
+      }
+
+      // Find the relation triplet id
+      const relationTripletId = findRelationTripletId(
+        this.options.plugin,
+        sourceNodeTypeId,
+        targetNodeTypeId,
+        shape.props.relationTypeId,
+      );
+
+      if (!relationTripletId) {
+        console.warn(
+          "Could not find relation triplet for",
+          sourceNodeTypeId,
+          targetNodeTypeId,
+          shape.props.relationTypeId,
+        );
+        showToast({
+          severity: "error",
+          title: "Failed to Save Relation",
+          description:
+            "This relation type is not allowed between these node types",
+          targetCanvasId: this.options.canvasFile.path,
+        });
+        return;
+      }
+
       const { alreadyExisted, relationInstanceId } =
         await addRelationToRelationsJson({
           plugin: this.options.plugin,
           sourceFile,
           targetFile,
-          relationTypeId: shape.props.relationTypeId,
+          relationTripletId,
         });
 
       if (relationInstanceId) {

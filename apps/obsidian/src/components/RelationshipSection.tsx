@@ -5,7 +5,11 @@ import SearchBar from "./SearchBar";
 import { DiscourseNode } from "~/types";
 import DropdownSelect from "./DropdownSelect";
 import { usePlugin } from "./PluginContext";
-import { getNodeTypeById } from "~/utils/typeUtils";
+import {
+  findRelationTripletId,
+  getNodeTypeById,
+  getRelationById,
+} from "~/utils/typeUtils";
 import {
   getNodeInstanceIdForFile,
   getRelationsForNodeInstanceId,
@@ -203,7 +207,7 @@ const AddRelationship = ({
   };
 
   const addRelationship = useCallback(async () => {
-    if (!selectedRelationType || !selectedNode) return;
+    if (!selectedRelationType || !selectedNode || !activeNodeTypeId) return;
 
     const relationType = plugin.settings.relationTypes.find(
       (r) => r.id === selectedRelationType,
@@ -220,8 +224,35 @@ const AddRelationship = ({
         return;
       }
 
+      // Get the node type id of the selected node
+      const selectedNodeTypeId = plugin.app.metadataCache.getFileCache(
+        selectedNode,
+      )?.frontmatter?.nodeTypeId as string | undefined;
+
+      if (!selectedNodeTypeId) {
+        new Notice(
+          "Could not determine node type for the selected file.",
+        );
+        return;
+      }
+
+      // Find the relation triplet id
+      const relationTripletId = findRelationTripletId(
+        plugin,
+        activeNodeTypeId,
+        selectedNodeTypeId,
+        selectedRelationType,
+      );
+
+      if (!relationTripletId) {
+        new Notice(
+          "This relation type is not allowed between these node types.",
+        );
+        return;
+      }
+
       const { alreadyExisted } = await addRelation(plugin, {
-        type: selectedRelationType,
+        type: relationTripletId,
         source: sourceId,
         destination: destId,
       });
@@ -378,8 +409,13 @@ const CurrentRelationships = ({
     const tempRelationships = new Map<string, GroupedRelation>();
 
     for (const r of relations) {
+      // r.type is now the relation triplet id, get the relation triplet first
+      const relationTriplet = getRelationById(plugin, r.type);
+      if (!relationTriplet) continue;
+
+      // Get the relation type from the triplet
       const relationType = plugin.settings.relationTypes.find(
-        (rt) => rt.id === r.type,
+        (rt) => rt.id === relationTriplet.relationshipTypeId,
       );
       if (!relationType) continue;
 
@@ -433,17 +469,52 @@ const CurrentRelationships = ({
           return;
         }
 
+        // Get node type ids to find the relation triplet
+        const activeNodeTypeId = plugin.app.metadataCache.getFileCache(
+          activeFile,
+        )?.frontmatter?.nodeTypeId as string | undefined;
+        const linkedNodeTypeId = plugin.app.metadataCache.getFileCache(
+          linkedFile,
+        )?.frontmatter?.nodeTypeId as string | undefined;
+
+        if (!activeNodeTypeId || !linkedNodeTypeId) {
+          new Notice("Could not determine node types for the files.");
+          return;
+        }
+
+        // Try both directions to find the relation triplet id
+        let relationTripletId = findRelationTripletId(
+          plugin,
+          activeNodeTypeId,
+          linkedNodeTypeId,
+          relationTypeId,
+        );
+
+        if (!relationTripletId) {
+          relationTripletId = findRelationTripletId(
+            plugin,
+            linkedNodeTypeId,
+            activeNodeTypeId,
+            relationTypeId,
+          );
+        }
+
+        if (!relationTripletId) {
+          new Notice("Could not find relation triplet to delete.");
+          return;
+        }
+
         await removeRelationBySourceDestinationType(
           plugin,
           activeId,
           linkedId,
-          relationTypeId,
+          relationTripletId,
         );
         await removeRelationBySourceDestinationType(
           plugin,
           linkedId,
           activeId,
-          relationTypeId,
+          relationTripletId,
         );
 
         new Notice(

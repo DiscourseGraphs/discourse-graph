@@ -4,6 +4,7 @@ import type DiscourseGraphPlugin from "~/index";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import { checkAndCreateFolder } from "~/utils/file";
 import { getVaultId } from "./supabaseContext";
+import { findRelationTripletId } from "./typeUtils";
 
 const RELATIONS_FILE_NAME = "relations.json";
 const RELATIONS_FILE_VERSION = 1;
@@ -401,6 +402,7 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
       file,
       frontmatter as Record<string, unknown>,
     );
+    const sourceNodeTypeId = frontmatter.nodeTypeId as string;
 
     for (const relationType of plugin.settings.relationTypes) {
       const raw = frontmatter[relationType.id] as unknown;
@@ -426,12 +428,27 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
           targetFile,
           targetFrontmatter as Record<string, unknown>,
         );
+        const destNodeTypeId = targetFrontmatter.nodeTypeId as string;
+
+        // Find the relation triplet id
+        const relationTripletId = findRelationTripletId(
+          plugin,
+          sourceNodeTypeId,
+          destNodeTypeId,
+          relationType.id,
+        );
+        if (!relationTripletId) {
+          console.warn(
+            `Could not find relation triplet for migration: ${sourceNodeTypeId} -> ${destNodeTypeId} (${relationType.id})`,
+          );
+          continue;
+        }
 
         const alreadyExists = findRelationBySourceDestinationType(
           data,
           sourceNodeInstanceId,
           destNodeInstanceId,
-          relationType.id,
+          relationTripletId,
         );
         if (alreadyExists) continue;
 
@@ -439,7 +456,7 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
           data,
           destNodeInstanceId,
           sourceNodeInstanceId,
-          relationType.id,
+          relationTripletId,
         );
         if (reverseExists) continue;
 
@@ -448,7 +465,7 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
         const author = plugin.settings.accountLocalId ?? getVaultId(plugin.app);
         data.relations[id] = {
           id,
-          type: relationType.id,
+          type: relationTripletId,
           source: sourceNodeInstanceId,
           destination: destNodeInstanceId,
           created: now,
