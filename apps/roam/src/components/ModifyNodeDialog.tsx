@@ -536,9 +536,9 @@ const ModifyNodeDialog = ({
                   ? "..."
                   : `Enter a ${selectedNodeType.text.toLowerCase()} ...`
               }
-              disabled={loading}
               mode={mode}
               initialUid={content.uid}
+              autoFocus
             />
           </div>
 
@@ -551,10 +551,10 @@ const ModifyNodeDialog = ({
                 setValue={setReferencedNodeValueCallback}
                 options={options.referencedNode}
                 placeholder={loading ? "..." : "Select a referenced node"}
-                disabled={loading}
                 mode={"create"}
                 initialUid={referencedNodeValue.uid}
                 initialIsLocked={isReferencedNodeLocked}
+                autoFocus={false}
               />
             </div>
           )}

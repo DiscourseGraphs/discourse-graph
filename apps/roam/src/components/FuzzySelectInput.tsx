@@ -20,7 +20,6 @@ type FuzzySelectInputProps<T extends Result = Result> = {
   options?: T[];
   placeholder?: string;
   autoFocus?: boolean;
-  disabled?: boolean;
   initialIsLocked?: boolean;
 };
 
@@ -33,7 +32,6 @@ const FuzzySelectInput = <T extends Result = Result>({
   options = [],
   placeholder = "Enter value",
   autoFocus,
-  disabled,
   initialIsLocked,
 }: FuzzySelectInputProps<T>) => {
   const [isLocked, setIsLocked] = useState(initialIsLocked || false);
@@ -64,6 +62,7 @@ const FuzzySelectInput = <T extends Result = Result>({
         setQuery(item.text);
         setValue(item);
         setIsOpen(false);
+        requestAnimationFrame(() => inputRef.current?.focus());
       }
     },
     [mode, initialUid, setValue, onLockedChange],
@@ -132,6 +131,12 @@ const FuzzySelectInput = <T extends Result = Result>({
     }
   }, [activeIndex, isOpen]);
 
+  useEffect(() => {
+    if (!autoFocus || mode !== "create" || isLocked) return;
+    const id = setTimeout(() => inputRef.current?.focus(), 150);
+    return () => clearTimeout(id);
+  }, [autoFocus, mode, isLocked]);
+
   if (mode === "edit") {
     return (
       <TextArea
@@ -143,7 +148,6 @@ const FuzzySelectInput = <T extends Result = Result>({
         growVertically
         placeholder={placeholder}
         autoFocus={autoFocus}
-        disabled={disabled}
       />
     );
   }
@@ -172,14 +176,14 @@ const FuzzySelectInput = <T extends Result = Result>({
     <Popover
       isOpen={isOpen}
       minimal
-      autoFocus={false}
-      enforceFocus={false}
       position={PopoverPosition.BOTTOM_LEFT}
       modifiers={{
         flip: { enabled: false },
         preventOverflow: { enabled: false },
       }}
       className="fuzzy-select-input-popover w-full"
+      autoFocus={false}
+      enforceFocus={false}
       content={
         <Menu className="max-h-64 max-w-md overflow-auto" ulRef={menuRef}>
           {filteredItems.map((item, index) => (
@@ -199,14 +203,13 @@ const FuzzySelectInput = <T extends Result = Result>({
       target={
         <InputGroup
           fill
+          inputRef={inputRef}
           className="w-full"
-          disabled={disabled}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           autoFocus={autoFocus}
           placeholder={placeholder}
-          inputRef={inputRef}
           onFocus={() => {
             setIsFocused(true);
           }}
