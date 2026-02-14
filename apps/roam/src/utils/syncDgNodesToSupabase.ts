@@ -28,10 +28,10 @@ import { FatalError } from "@repo/database/lib/contextFunctions";
 
 const SYNC_FUNCTION = "embedding";
 // Minimal interval between syncs of all clients for this task.
-const SYNC_INTERVAL = "45s";
+const SYNC_INTERVAL = "130s";
 // Interval between syncs for each client individually
 const BASE_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
-const SYNC_TIMEOUT = "20s";
+const SYNC_TIMEOUT = "60s"; // must be less than half the SYNC_INTERVAL.
 const BATCH_SIZE = 200;
 const DEFAULT_TIME = new Date("1970-01-01");
 
