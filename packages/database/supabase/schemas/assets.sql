@@ -23,11 +23,6 @@ CREATE INDEX file_reference_filehash_idx ON public."FileReference" USING btree (
 ALTER TABLE public."FileReference" OWNER TO "postgres";
 
 CREATE OR REPLACE VIEW public.my_file_references AS
-WITH ra AS (
-    SELECT DISTINCT space_id, source_local_id FROM public."ResourceAccess"
-        JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
-)
-
 SELECT
     source_local_id,
     space_id,
@@ -36,7 +31,7 @@ SELECT
     created,
     last_modified
 FROM public."FileReference"
-    LEFT OUTER JOIN ra USING (space_id, source_local_id)
+    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (
     space_id = any(public.my_space_ids('reader'))
     OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT NULL)

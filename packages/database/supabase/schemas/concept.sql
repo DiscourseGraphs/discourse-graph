@@ -110,11 +110,6 @@ GRANT ALL ON TABLE public."Concept" TO authenticated;
 GRANT ALL ON TABLE public."Concept" TO service_role;
 
 CREATE OR REPLACE VIEW public.my_concepts AS
-WITH ra AS (
-    SELECT DISTINCT space_id, source_local_id FROM public."ResourceAccess"
-        JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
-)
-
 SELECT
     id,
     epistemic_status,
@@ -132,7 +127,7 @@ SELECT
     is_schema,
     source_local_id
 FROM public."Concept"
-    LEFT OUTER JOIN ra USING (space_id, source_local_id)
+    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (
     space_id = any(public.my_space_ids('reader'))
     OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT null)
