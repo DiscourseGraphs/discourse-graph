@@ -91,7 +91,7 @@ export const renderNodeTagPopupButton = (
       nodeType: matchedNode.type,
       initialValue: { text: cleanedBlockText, uid: "" },
       initialReferencedNode,
-      onSuccess: async () => {
+      onSuccess: async ({ nodeType }) => {
         // Success is handled by the dialog itself
       },
       onClose: () => {},
