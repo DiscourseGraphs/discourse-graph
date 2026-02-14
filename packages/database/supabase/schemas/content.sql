@@ -218,8 +218,13 @@ SELECT
     author_id,
     contents
 FROM
-    public."Document" WHERE space_id = any(public.my_space_ids('reader'))
-OR public.can_view_specific_resource(space_id, source_local_id);
+    public."Document"
+LEFT OUTER JOIN public."ResourceAccess" AS ra USING (space_id, source_local_id)
+LEFT OUTER JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
+WHERE (
+    space_id = any(public.my_space_ids('reader'))
+    OR (space_id = any(public.my_space_ids('partial')) AND my_user_accounts IS NOT NULL)
+);
 
 CREATE OR REPLACE VIEW public.my_contents AS
 SELECT
@@ -237,9 +242,11 @@ SELECT
     last_modified,
     part_of_id
 FROM public."Content"
+LEFT OUTER JOIN public."ResourceAccess" AS ra USING (space_id, source_local_id)
+LEFT OUTER JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
 WHERE (
     space_id = any(public.my_space_ids('reader'))
-    OR public.can_view_specific_resource(space_id, source_local_id)
+    OR (space_id = any(public.my_space_ids('partial')) AND my_user_accounts IS NOT NULL)
 );
 
 CREATE OR REPLACE FUNCTION public.document_of_content(content public.my_contents)
