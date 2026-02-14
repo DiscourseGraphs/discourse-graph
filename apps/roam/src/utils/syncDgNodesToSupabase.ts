@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import posthog from "posthog-js";
 import {
   getAllDiscourseNodesSince,
   nodeTypeSince,
@@ -390,6 +391,7 @@ export const setSyncActivity = (active: boolean) => {
 export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
   if (!doSync) return;
   console.debug("starting createOrUpdateDiscourseEmbedding");
+  const startTime = new Date().valueOf();
   let success = true;
   let claimed = false;
   const worker = window.roamAlphaAPI.user.uid();
@@ -453,10 +455,14 @@ export const createOrUpdateDiscourseEmbedding = async (showToast = false) => {
     });
     await cleanupOrphanedNodes(supabaseClient, context);
     await endSyncTask(worker, "complete", showToast);
+    const duration = (new Date().valueOf() - startTime) / 1000.0;
+    posthog.capture("Sync complete", { duration });
   } catch (error) {
     console.error("createOrUpdateDiscourseEmbedding: Process failed:", error);
     success = false;
     if (worker && claimed) await endSyncTask(worker, "failed", showToast);
+    const duration = (new Date().valueOf() - startTime) / 1000.0;
+    posthog.capture("Sync error", { duration });
     if (error instanceof FatalError) {
       doSync = false;
       return;
