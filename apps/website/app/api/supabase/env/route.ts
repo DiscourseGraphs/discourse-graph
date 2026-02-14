@@ -8,7 +8,7 @@ export const GET = (request: NextRequest): NextResponse => {
   try {
     const { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_PUBLISHABLE_KEY } =
       process.env;
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_PUBLISHABLE_KEY)
+    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY)
       return new NextResponse("Missing variables", { status: 500 });
     return NextResponse.json(
       // eslint-disable-next-line @typescript-eslint/naming-convention
