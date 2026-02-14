@@ -38,11 +38,11 @@ BEGIN
             CASE WHEN local_account.space_editor IS true THEN 'editor'  -- legacy
                  WHEN local_account.space_editor IS false THEN 'reader' END);
         INSERT INTO public."SpaceAccess" as sa (space_id, account_uid, permissions)
-            VALUES (space_id_, user_uid, greatest(my_permissions_in_space(space_id_), COALESCE(permissions_, 'editor')))
+            VALUES (space_id_, user_uid, least(my_permissions_in_space(space_id_), COALESCE(permissions_, 'editor')))
             ON CONFLICT (space_id, account_uid)
             DO UPDATE SET permissions = CASE
                 WHEN permissions_ IS NULL THEN permissions
-                ELSE greatest(my_permissions_in_space(space_id_), permissions_)
+                ELSE least(my_permissions_in_space(space_id_), permissions_)
                 END;
     END IF;
     INSERT INTO public."LocalAccess" (space_id, account_id) values (space_id_, account_id_)
