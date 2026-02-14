@@ -28,14 +28,14 @@ if (getVariant() === "production") {
 config();
 
 const getAnonymousClient = () => {
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_PUBLISHABLE_KEY) {
     throw new Error(
-      "Missing required environment variables: SUPABASE_URL and SUPABASE_ANON_KEY",
+      "Missing required environment variables: SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY",
     );
   }
   return createClient<Database, "public">(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY,
+    process.env.SUPABASE_PUBLISHABLE_KEY,
   );
 };
 

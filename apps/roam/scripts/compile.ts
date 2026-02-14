@@ -162,8 +162,8 @@ export const compile = ({
         "process.env.SUPABASE_URL": dbEnv.SUPABASE_URL
           ? `"${dbEnv.SUPABASE_URL}"`
           : "null",
-        "process.env.SUPABASE_ANON_KEY": dbEnv.SUPABASE_ANON_KEY
-          ? `"${dbEnv.SUPABASE_ANON_KEY}"`
+        "process.env.SUPABASE_PUBLISHABLE_KEY": dbEnv.SUPABASE_PUBLISHABLE_KEY
+          ? `"${dbEnv.SUPABASE_PUBLISHABLE_KEY}"`
           : "null",
         "process.env.NEXT_API_ROOT": `"${dbEnv.NEXT_API_ROOT || ""}"`,
         "window.__DISCOURSE_GRAPH_VERSION__": `"${getVersion()}"`,

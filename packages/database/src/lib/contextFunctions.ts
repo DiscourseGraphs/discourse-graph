@@ -90,7 +90,7 @@ let lastStorageKey: string | undefined = undefined;
 // to ensure we never have conflict between multiple clients
 const createSingletonClient = (uniqueKey: string): DGSupabaseClient | null => {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
 
   if (!url || !key) {
     throw new FatalError("Missing required Supabase environment variables");

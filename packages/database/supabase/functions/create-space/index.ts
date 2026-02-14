@@ -1,7 +1,6 @@
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
-
 import "@supabase/functions-js/edge-runtime";
 import {
   createClient,
@@ -209,21 +208,45 @@ Deno.serve(async (req) => {
     });
   }
 
-  const input = await req.json();
   // @ts-ignore Deno is not visible to the IDE
-  const url = Deno.env.get("SUPABASE_URL");
+  const url = Deno.env.get("SUPABASE_URL") as string | undefined;
   // @ts-ignore Deno is not visible to the IDE
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const key = Deno.env.get("SB_SECRET_KEY") as string | undefined;
   if (!url || !key) {
-    return new Response("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY", {
+    return new Response("Missing SUPABASE_URL or SB_SECRET_KEY", {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  // check that we have at least a valid anonymous token with a dummy query.
+  // Unfortunately, this seems to be too permissive.
+  const authHeader = req.headers.get('Authorization') as string | undefined;
+  if (!authHeader) {
+    return Response.json(
+      { msg: 'Missing authorization headers' },
+      {
+        status: 401,
+      }
+    )
+  }
+  const token = authHeader.replace('Bearer ', '');
+  const supabaseAnonClient: DGSupabaseClient = createClient(
+    url, token, { global: { headers: { Authorization: authHeader } } });
+  {
+    const { error } = await supabaseAnonClient.from("Space").select("id").limit(1);
+    if (error?.code) return new Response(JSON.stringify(error), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   // note: If we wanted this to be bound by permissions, we'd set the following options:
-  // { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+  // { global: { headers: { Authorization: authHeader } } }
   // But the point here is to bypass RLS
   const supabase: DGSupabaseClient = createClient(url, key);
+
+  const input = await req.json();
 
   const { data, error } = await processAndGetOrCreateSpace(supabase, input);
   if (error) {

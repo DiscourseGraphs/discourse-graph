@@ -50,18 +50,26 @@ Deno.serve(async (req) => {
   // @ts-ignore Deno is not visible to the IDE
   const url = Deno.env.get("SUPABASE_URL");
   // @ts-ignore Deno is not visible to the IDE
-  const service_key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const service_key = Deno.env.get("SB_SECRET_KEY");
   // @ts-ignore Deno is not visible to the IDE
-  const anon_key = Deno.env.get("SUPABASE_ANON_KEY");
+  const anon_key = Deno.env.get("SB_PUBLISHABLE_KEY");
 
   if (!url || !anon_key || !service_key) {
-    return new Response("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY", {
+    return new Response("Missing SUPABASE_URL or SB_SECRET_KEY or SB_PUBLISHABLE_KEY", {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }
   const supabase = createClient(url, anon_key)
-  const authHeader = req.headers.get('Authorization')!
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return Response.json(
+      { msg: 'Missing authorization headers' },
+      {
+        status: 401,
+      }
+    )
+  }
   const token = authHeader.replace('Bearer ', '')
   const { data, error } = await supabase.auth.getClaims(token)
 
