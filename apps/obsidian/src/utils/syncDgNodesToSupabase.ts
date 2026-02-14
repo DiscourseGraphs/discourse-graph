@@ -15,7 +15,11 @@ import {
   orderConceptsByDependency,
   discourseNodeInstanceToLocalConcept,
   discourseNodeSchemaToLocalConcept,
+  discourseRelationSchemaToLocalConcept,
+  discourseRelationTypeToLocalConcept,
+  relationInstanceToLocalConcept,
 } from "./conceptConversion";
+import { loadRelations } from "~/utils/relationsStore";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 
 const DEFAULT_TIME = "1970-01-01";
@@ -177,7 +181,23 @@ const getLastSchemaSyncTime = async (
   return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
 };
 
-type DiscourseNodeInVault = {
+const getLastRelationSyncTime = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<Date> => {
+  const { data } = await supabaseClient
+    .from("Concept")
+    .select("last_modified")
+    .eq("space_id", spaceId)
+    .eq("is_schema", false)
+    .gt("arity", 0)
+    .order("last_modified", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
+};
+
+export type DiscourseNodeInVault = {
   file: TFile;
   frontmatter: Record<string, unknown>;
   nodeTypeId: string;
@@ -203,7 +223,7 @@ const mergeChangeTypes = (
  * Step 1: Collect all discourse nodes from the vault
  * Filters markdown files that have nodeTypeId in frontmatter
  */
-const collectDiscourseNodesFromVault = async (
+export const collectDiscourseNodesFromVault = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<DiscourseNodeInVault[]> => {
   const allFiles = plugin.app.vault.getMarkdownFiles();
@@ -514,33 +534,94 @@ const convertDgToSupabaseConcepts = async ({
   context: SupabaseContext;
   accountLocalId: string;
   plugin: DiscourseGraphPlugin;
+  convertRelations?: boolean;
 }): Promise<void> => {
   const lastSchemaSync = (
     await getLastSchemaSyncTime(supabaseClient, context.spaceId)
   ).getTime();
-  const newNodeTypes = (plugin.settings.nodeTypes ?? []).filter(
-    (n) => n.modified > lastSchemaSync,
+  const lastRelationsSync = (
+    await getLastRelationSyncTime(supabaseClient, context.spaceId)
+  ).getTime();
+  const nodeTypes = plugin.settings.nodeTypes ?? [];
+  const relationTypes = plugin.settings.relationTypes ?? [];
+  const relationTriples = plugin.settings.discourseRelations ?? [];
+  const allNodes = await collectDiscourseNodesFromVault(plugin);
+  const allNodesById = Object.fromEntries(
+    allNodes.map((n) => [n.nodeInstanceId, n]),
   );
 
-  const nodesTypesToLocalConcepts = newNodeTypes.map((nodeType) =>
-    discourseNodeSchemaToLocalConcept({
-      context,
-      node: nodeType,
-      accountLocalId,
-    }),
+  const nodeTypesById = Object.fromEntries(
+    nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
   );
 
-  const nodeInstanceToLocalConcepts = nodesSince.map((node) =>
-    discourseNodeInstanceToLocalConcept({
+  const nodesTypesToLocalConcepts = nodeTypes
+    .filter((nodeType) => nodeType.modified > lastSchemaSync)
+    .map((nodeType) =>
+      discourseNodeSchemaToLocalConcept({
+        context,
+        node: nodeType,
+        accountLocalId,
+      }),
+    );
+
+  const relationTypesById = Object.fromEntries(
+    relationTypes.map((relationType) => [relationType.id, relationType]),
+  );
+
+  const relationTypesToLocalConcepts = relationTypes
+    .filter((relationType) => relationType.modified > lastSchemaSync)
+    .map((relationType) =>
+      discourseRelationTypeToLocalConcept({
+        context,
+        relationType,
+        accountLocalId,
+      }),
+    );
+
+  const discourseRelationsToLocalConcepts = relationTriples
+    .filter((relationTriple) => relationTriple.modified > lastSchemaSync)
+    .map((relation) =>
+      discourseRelationSchemaToLocalConcept({
+        context,
+        relation,
+        accountLocalId,
+        nodeTypesById,
+        relationTypesById,
+      }),
+    );
+
+  const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
+    return discourseNodeInstanceToLocalConcept({
       context,
       nodeData: node,
       accountLocalId,
-    }),
-  );
+    });
+  });
+
+  const relationsData = await loadRelations(plugin);
+  const relationsToLocalConcepts = Object.values(relationsData.relations)
+    .filter(
+      (relationData) =>
+        !relationData.importedFromSpaceId &&
+        (relationData.lastModified || relationData.created) > lastRelationsSync,
+    )
+    .map((relationData) =>
+      relationInstanceToLocalConcept({
+        context,
+        relationTypesById,
+        relationTriples,
+        allNodesById,
+        relationData,
+      }),
+    )
+    .filter((n) => !!n);
 
   const conceptsToUpsert: LocalConceptDataInput[] = [
     ...nodesTypesToLocalConcepts,
+    ...relationTypesToLocalConcepts,
+    ...discourseRelationsToLocalConcepts,
     ...nodeInstanceToLocalConcepts,
+    ...relationsToLocalConcepts,
   ];
 
   if (conceptsToUpsert.length > 0) {

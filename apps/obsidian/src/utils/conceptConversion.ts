@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TFile } from "obsidian";
-import type { DiscourseNode } from "~/types";
+import type {
+  DiscourseNode,
+  DiscourseRelation,
+  DiscourseRelationType,
+  RelationInstance,
+} from "~/types";
 import type { SupabaseContext } from "./supabaseContext";
+import type { DiscourseNodeInVault } from "./syncDgNodesToSupabase";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { Json } from "@repo/database/dbTypes";
@@ -53,6 +59,78 @@ export const discourseNodeSchemaToLocalConcept = ({
   };
 };
 
+const STANDARD_ROLES = ["source", "destination"];
+
+export const discourseRelationTypeToLocalConcept = ({
+  context,
+  relationType,
+  accountLocalId,
+}: {
+  context: SupabaseContext;
+  relationType: DiscourseRelationType;
+  accountLocalId: string;
+}): LocalConceptDataInput => {
+  const { id, label, complement, created, modified, ...otherData } =
+    relationType;
+  return {
+    space_id: context.spaceId,
+    name: label,
+    source_local_id: id,
+    is_schema: true,
+    author_local_id: accountLocalId,
+    created: new Date(created).toISOString(),
+    last_modified: new Date(modified).toISOString(),
+    literal_content: {
+      label,
+      complement,
+      source_data: otherData,
+    } as unknown as Json,
+  };
+};
+
+export const discourseRelationSchemaToLocalConcept = ({
+  context,
+  relation,
+  accountLocalId,
+  nodeTypesById,
+  relationTypesById,
+}: {
+  context: SupabaseContext;
+  relation: DiscourseRelation;
+  accountLocalId: string;
+  nodeTypesById: Record<string, DiscourseNode>;
+  relationTypesById: Record<string, DiscourseRelationType>;
+}): LocalConceptDataInput => {
+  const { id, relationshipTypeId, sourceId, destinationId, created, modified } =
+    relation;
+  const sourceName = nodeTypesById[sourceId]?.name ?? sourceId;
+  const destinationName = nodeTypesById[destinationId]?.name ?? destinationId;
+  const relationType = relationTypesById[relationshipTypeId];
+  if (!relationType)
+    throw new Error(`missing relation type ${relationshipTypeId}`);
+  const { label, complement } = relationType;
+
+  return {
+    space_id: context.spaceId,
+    name: `${sourceName} -${label}-> ${destinationName}`,
+    source_local_id: id,
+    is_schema: true,
+    author_local_id: accountLocalId,
+    created: new Date(created).toISOString(),
+    last_modified: new Date(modified).toISOString(),
+    literal_content: {
+      roles: STANDARD_ROLES,
+      label,
+      complement,
+    },
+    local_reference_content: {
+      relation_type: relationshipTypeId,
+      source: sourceId,
+      destination: destinationId,
+    },
+  };
+};
+
 /**
  * Convert discourse node instance (file) to LocalConceptDataInput
  */
@@ -78,6 +156,73 @@ export const discourseNodeInstanceToLocalConcept = ({
       source_data: otherData as unknown as Json,
     },
     ...extraData,
+  };
+};
+
+export const relationInstanceToLocalConcept = ({
+  context,
+  relationTypesById,
+  relationTriples,
+  allNodesById,
+  relationData,
+}: {
+  context: SupabaseContext;
+  relationTypesById: Record<string, DiscourseRelationType>;
+  relationTriples: DiscourseRelation[];
+  allNodesById: Record<string, DiscourseNodeInVault>;
+  relationData: RelationInstance;
+}): LocalConceptDataInput | null => {
+  const relationType = relationTypesById[relationData.type];
+  if (!relationType) {
+    console.error("Missing relation type " + relationData.type);
+    return null;
+  }
+  const sourceNode = allNodesById[relationData.source];
+  if (!sourceNode) {
+    console.error("Missing source node " + relationData.source);
+    return null;
+  }
+  const destinationNode = allNodesById[relationData.destination];
+  if (!destinationNode) {
+    console.error("Missing destination node " + relationData.destination);
+    return null;
+  }
+  const sourceTypeId = sourceNode.nodeTypeId;
+  const destinationTypeId = destinationNode.nodeTypeId;
+  const triples = relationTriples.filter(
+    (triple) =>
+      triple.relationshipTypeId == relationData.type &&
+      triple.sourceId === sourceTypeId &&
+      triple.destinationId === destinationTypeId,
+  );
+  if (triples.length === 0) {
+    console.error(
+      `Missing destination triple for ${sourceTypeId}-${relationData.type}->${destinationTypeId}`,
+    );
+    return null;
+  }
+  if (triples.length > 1) {
+    console.warn(
+      `Multiple triples for ${sourceTypeId}-${relationData.type}->${destinationTypeId}`,
+    );
+  }
+  const triple = triples[0]!;
+
+  return {
+    space_id: context.spaceId,
+    name: `[[${sourceNode.file.basename}]] -${relationType.label}-> [[${destinationNode.file.basename}]]`,
+    source_local_id: relationData.id,
+    author_local_id: relationData.author,
+    schema_represented_by_local_id: triple.id,
+    is_schema: false,
+    created: new Date(relationData.created).toISOString(),
+    last_modified: new Date(
+      relationData.lastModified || relationData.created,
+    ).toISOString(),
+    local_reference_content: {
+      source: relationData.source,
+      destination: relationData.destination,
+    },
   };
 };
 
