@@ -161,3 +161,22 @@
 .fuzzy-select-input-popover .bp3-popover-target {
   width: 100%;
 }
+
+/* Dark mode overrides for query builder */
+.bp3-dark .roamjs-query-hightlighted-result {
+  background: #b8860b;
+}
+
+.bp3-dark .roamjs-query-results-view ul::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+.bp3-dark .roamjs-extra-row td {
+  background-color: #30404d;
+}
+
+.bp3-dark .sidebar-title-button:hover,
+.bp3-dark .sidebar-title-button-add:hover {
+  background-color: #f5f8fa;
+  color: #10161a;
+}

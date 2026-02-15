@@ -516,12 +516,7 @@ const ResultsView: ResultsViewComponent = ({
       )}
 
       {showSearchFilter && (
-        <div
-          className="w-full p-4"
-          style={{
-            background: "#eeeeee80",
-          }}
-        >
+        <div className="w-full p-4 bg-gray-200/50 dark:bg-gray-700/50">
           <InputGroup
             fill={true}
             placeholder="Search"
@@ -1035,22 +1030,22 @@ const ResultsView: ResultsViewComponent = ({
                     text="Column Views"
                   />
                   <HTMLTable className="min-w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
                       <tr>
-                        <th className="text-xs font-medium uppercase tracking-wider !text-gray-500">
+                        <th className="text-xs font-medium uppercase tracking-wider !text-gray-500 dark:!text-gray-400">
                           Column
                         </th>
-                        <th className="text-xs font-medium uppercase tracking-wider !text-gray-500">
+                        <th className="text-xs font-medium uppercase tracking-wider !text-gray-500 dark:!text-gray-400">
                           View
                         </th>
                         {showColumnViewOptions && (
-                          <th className="text-xs font-medium uppercase tracking-wider !text-gray-500">
+                          <th className="text-xs font-medium uppercase tracking-wider !text-gray-500 dark:!text-gray-400">
                             Options
                           </th>
                         )}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
                       {views.map(({ column, mode, value }, i) => (
                         <tr key={i}>
                           <td className="whitespace-nowrap">{column}</td>
@@ -1414,11 +1409,7 @@ const ResultsView: ResultsViewComponent = ({
               </div>
             )}
             <div
-              style={
-                !showInterface
-                  ? { display: "none" }
-                  : { background: "#eeeeee80" }
-              }
+              className={`bg-gray-200/50 dark:bg-gray-700/50 ${!showInterface ? "hidden" : ""}`}
             >
               <div
                 className="flex items-center justify-between px-1 text-xs"
