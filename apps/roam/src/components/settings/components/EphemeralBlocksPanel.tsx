@@ -61,7 +61,7 @@ const DualWriteBlocksPanel = ({
       void window.roamAlphaAPI.ui.components.renderBlock({ uid, el });
     }
 
-    const pattern = "[:block/string {:block/children ...}]";
+    const pattern = "[:block/string :block/order {:block/children ...}]";
     const entityId = `[:block/uid "${uid}"]`;
     const callback = () => handleChange();
     pullWatchArgsRef.current = [pattern, entityId, callback];
