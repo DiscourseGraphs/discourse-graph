@@ -55,7 +55,7 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
             value={color}
             onChange={(e) => {
               setColor(e.target.value);
-              setInputSetting({
+              void setInputSetting({
                 blockUid: uid,
                 key: "color",
                 value: e.target.value.replace("#", ""), // remove hash to not create roam link
@@ -68,7 +68,7 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
               icon={color ? "delete" : "info-sign"}
               onClick={() => {
                 setColor("");
-                setInputSetting({
+                void setInputSetting({
                   blockUid: uid,
                   key: "color",
                   value: "",
@@ -84,7 +84,7 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
           value={alias}
           onChange={(e) => {
             setAlias(e.target.value);
-            setInputSetting({
+            void setInputSetting({
               blockUid: uid,
               key: "alias",
               value: e.target.value,
@@ -101,7 +101,7 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
         onChange={(checked) => {
           setIsKeyImage(checked);
           if (checked && !keyImageOption) setKeyImageOption("first-image");
-          setInputSetting({
+          void setInputSetting({
             blockUid: uid,
             key: "key-image",
             value: checked ? "true" : "false",
@@ -115,7 +115,7 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
         onChange={(e) => {
           const value = (e.target as HTMLInputElement).value;
           setKeyImageOption(value);
-          setInputSetting({
+          void setInputSetting({
             blockUid: uid,
             key: "key-image-option",
             value,
@@ -140,7 +140,7 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
         value={queryBuilderAlias}
         onChange={(e) => {
           setQueryBuilderAlias(e.target.value);
-          setInputSetting({
+          void setInputSetting({
             blockUid: uid,
             key: "query-builder-alias",
             value: e.target.value,

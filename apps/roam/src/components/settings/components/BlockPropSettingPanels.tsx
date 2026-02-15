@@ -34,6 +34,8 @@ type FlagSetter = (keys: string[], value: boolean) => void;
 type NumberSetter = (keys: string[], value: number) => void;
 
 type MultiTextSetter = (keys: string[], value: string[]) => void;
+type ValidationError = string;
+type Validator<T> = (value: T) => ValidationError | undefined;
 
 type BaseTextPanelProps = {
   title: string;
@@ -42,7 +44,7 @@ type BaseTextPanelProps = {
   setter: TextSetter;
   initialValue?: string;
   placeholder?: string;
-  validate?: (value: string) => string | undefined;
+  getValidationError?: Validator<string>;
   onChange?: (value: string) => void;
 } & RoamBlockSyncProps;
 
@@ -87,7 +89,7 @@ type BaseMultiTextPanelProps = {
   onChange?: (values: string[]) => void;
 } & RoamBlockSyncProps;
 
-const DEBOUNCE_MS = 500;
+const DEBOUNCE_MS = 250;
 
 const BaseTextPanel = ({
   title,
@@ -96,16 +98,14 @@ const BaseTextPanel = ({
   setter,
   initialValue,
   placeholder,
-  validate,
+  getValidationError,
   onChange,
   parentUid,
   uid,
   order,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? "");
-  const [error, setError] = useState<string | undefined>(() =>
-    validate?.(value),
-  );
+  const error = getValidationError?.(value);
   const debounceRef = useRef(0);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
@@ -128,7 +128,7 @@ const BaseTextPanel = ({
     setValue(newValue);
     onChange?.(newValue);
 
-    if (validate?.(newValue)) return;
+    if (getValidationError?.(newValue)) return;
 
     window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
@@ -576,7 +576,12 @@ type DiscourseNodeBaseProps = {
 export const DiscourseNodeTextPanel = ({
   nodeType,
   ...props
-}: DiscourseNodeBaseProps & RoamBlockSyncProps & { defaultValue?: string; placeholder?: string; validate?: (value: string) => string | undefined; onChange?: (value: string) => void }) => (
+}: DiscourseNodeBaseProps & RoamBlockSyncProps & {
+  defaultValue?: string;
+  placeholder?: string;
+  getValidationError?: Validator<string>;
+  onChange?: (value: string) => void;
+}) => (
   <BaseTextPanel
     {...props}
     setter={createDiscourseNodeSetter(nodeType)}

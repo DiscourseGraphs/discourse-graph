@@ -148,11 +148,11 @@ const NodeConfig = ({
   const shortcutUid = getUid("Shortcut");
   const tagUid = getUid("Tag");
   const templateUid = getUid("Template");
+  const overlayUid = getUid("Overlay");
+  const canvasUid = getUid("Canvas");
+  const graphOverviewUid = getUid("Graph Overview");
   const specificationUid = getUid("Specification");
   const indexUid = getUid("Index");
-  const overlayUid = getUid("Overlay");
-  const graphOverviewUid = getUid("Graph Overview");
-  const canvasUid = getUid("Canvas");
   const suggestiveRulesUid = getUid("Suggestive Rules");
   const attributeNode = getSubTree({
     parentUid: node.type,
@@ -167,11 +167,7 @@ const NodeConfig = ({
     value: formatValue,
     handleChange: handleFormatChange,
     handleBlur: handleFormatBlurFromHook,
-  } = useDebouncedRoamUpdater(
-    formatUid,
-    node.format,
-    !formatError,
-  );
+  } = useDebouncedRoamUpdater(formatUid, node.format, !formatError);
 
   const validateTag = useCallback(
     (tag: string): string | undefined => {
@@ -193,9 +189,11 @@ const NodeConfig = ({
 
   const validateFormat = useCallback(
     ({
+      tag,
       format,
       isSpecificationEnabled,
     }: {
+      tag: string;
       format: string;
       isSpecificationEnabled?: boolean;
     }) => {
@@ -208,7 +206,7 @@ const NodeConfig = ({
         setFormatError("Error: you must set either a format or specification");
         return;
       }
-      const cleanTag = getCleanTagText(tagValue);
+      const cleanTag = getCleanTagText(tag);
 
       if (!cleanTag) {
         setFormatError("");
@@ -229,23 +227,23 @@ const NodeConfig = ({
 
       if (hasConflict) {
         setFormatError(
-          `The format references the node's tag "${tagValue}". Please use a different format or tag.`,
+          `The format references the node's tag "${tag}". Please use a different format or tag.`,
         );
       } else {
         setFormatError("");
       }
     },
-    [specificationUid, tagValue],
+    [specificationUid],
   );
 
   useEffect(() => {
-    validateFormat({ format: formatValue });
+    validateFormat({ tag: tagValue, format: formatValue });
   }, [tagValue, formatValue, validateFormat]);
 
   const handleFormatBlur = useCallback(() => {
     handleFormatBlurFromHook();
-    validateFormat({ format: formatValue });
-  }, [handleFormatBlurFromHook, formatValue, validateFormat]);
+    validateFormat({ tag: tagValue, format: formatValue });
+  }, [handleFormatBlurFromHook, tagValue, formatValue, validateFormat]);
 
   return (
     <>
@@ -286,7 +284,7 @@ const NodeConfig = ({
                 settingKeys={["tag"]}
                 defaultValue={node.tag}
                 placeholder={generateTagPlaceholder(node)}
-                validate={validateTag}
+                getValidationError={validateTag}
                 onChange={setTagValue}
                 order={2}
                 parentUid={node.type}
@@ -333,6 +331,7 @@ const NodeConfig = ({
                   parentUid={specificationUid}
                   parentSetEnabled={(isSpecificationEnabled) => {
                     validateFormat({
+                      tag: tagValue,
                       format: formatValue,
                       isSpecificationEnabled,
                     });
@@ -382,7 +381,10 @@ const NodeConfig = ({
           title="Canvas"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeCanvasSettings nodeType={node.type} uid={canvasUid} />
+              <DiscourseNodeCanvasSettings
+                nodeType={node.type}
+                uid={canvasUid}
+              />
               <DiscourseNodeFlagPanel
                 nodeType={node.type}
                 title="Graph Overview"
@@ -402,7 +404,10 @@ const NodeConfig = ({
             title="Suggestive mode"
             panel={
               <div className="flex flex-col gap-4 p-1">
-                <DiscourseNodeSuggestiveRules node={node} parentUid={suggestiveRulesUid} />
+                <DiscourseNodeSuggestiveRules
+                  node={node}
+                  parentUid={suggestiveRulesUid}
+                />
               </div>
             }
           />
