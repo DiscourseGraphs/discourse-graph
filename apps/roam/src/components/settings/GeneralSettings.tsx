@@ -18,7 +18,7 @@ const DiscourseGraphHome = () => {
         title="trigger"
         description="The trigger to create the node menu."
         settingKeys={["Trigger"]}
-        defaultValue={settings.trigger.value || "\\"}
+        initialValue={settings.trigger.value || "\\"}
         order={0}
         uid={settings.trigger.uid}
         parentUid={settings.settingsUid}
@@ -27,7 +27,7 @@ const DiscourseGraphHome = () => {
         title="Canvas Page Format"
         description="The page format for canvas pages"
         settingKeys={["Canvas Page Format"]}
-        defaultValue={settings.canvasPageFormat.value || DEFAULT_CANVAS_PAGE_FORMAT}
+        initialValue={settings.canvasPageFormat.value || DEFAULT_CANVAS_PAGE_FORMAT}
         order={1}
         uid={settings.canvasPageFormat.uid}
         parentUid={settings.settingsUid}
