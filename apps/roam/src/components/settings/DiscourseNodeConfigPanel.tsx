@@ -66,7 +66,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
           className={"roamjs-discourse-config-label"}
         />
         <Button
-          text={"Add Node"}
+          text={"Add node"}
           intent={Intent.PRIMARY}
           icon={"plus"}
           className="select-none"
@@ -167,10 +167,10 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                       (r) => r.source === n.type || r.destination === n.type,
                     );
 
-                    let dialogMessage = `Are you sure you want to delete the Node Type "${n.text}"?`;
+                    let dialogMessage = `Are you sure you want to delete the node type "${n.text}"?`;
 
                     if (affectedRelations.length > 0) {
-                      dialogMessage = `The Node Type "${n.text}" is used by the following relations, which will also be deleted:\n\n${affectedRelations
+                      dialogMessage = `The node type "${n.text}" is used by the following relations, which will also be deleted:\n\n${affectedRelations
                         .map((r) => {
                           const sourceNodeDetails = nodes.find(
                             (s) => s.type === r.source,

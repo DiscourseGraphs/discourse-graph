@@ -99,24 +99,24 @@ const discourseNodeSettings: DiscourseNodeSettings = {
 };
 
 const featureFlags: FeatureFlags = {
-  "Enable Left Sidebar": true,
-  "Suggestive Mode Enabled": true,
-  "Reified Relation Triples": false,
+  "Enable left sidebar": true,
+  "Suggestive mode enabled": true,
+  "Reified relation triples": false,
 };
 
 const defaultFeatureFlags: FeatureFlags = {
-  "Enable Left Sidebar": false,
-  "Suggestive Mode Enabled": false,
-  "Reified Relation Triples": false,
+  "Enable left sidebar": false,
+  "Suggestive mode enabled": false,
+  "Reified relation triples": false,
 };
 
 const exportSettings: ExportSettings = {
-  "Remove Special Characters": true,
-  "Resolve Block References": true,
-  "Resolve Block Embeds": false,
-  "Append Referenced Node": true,
-  "Link Type": "wikilinks",
-  "Max Filename Length": 128,
+  "Remove special characters": true,
+  "Resolve block references": true,
+  "Resolve block embeds": false,
+  "Append referenced node": true,
+  "Link type": "wikilinks",
+  "Max filename length": 128,
   Frontmatter: [
     "title: {{page-title}}",
     "date: {{date}}",
@@ -131,9 +131,9 @@ const pageGroup: PageGroup = {
 };
 
 const suggestiveModeGlobalSettings: SuggestiveModeGlobalSettings = {
-  "Include Current Page Relations": true,
-  "Include Parent And Child Blocks": true,
-  "Page Groups": [
+  "Include current page relations": true,
+  "Include parent and child blocks": true,
+  "Page groups": [
     {
       name: "Research Papers",
       pages: ["paper-1-uid", "paper-2-uid"],
@@ -155,8 +155,8 @@ const leftSidebarGlobalSettings: LeftSidebarGlobalSettings = {
 
 const globalSettings: GlobalSettings = {
   Trigger: ";;",
-  "Canvas Page Format": "Canvas - {date} - {title}",
-  "Left Sidebar": {
+  "Canvas page format": "Canvas - {date} - {title}",
+  "Left sidebar": {
     Children: ["daily-notes-uid", "quick-capture-uid", "inbox-uid"],
     Settings: {
       Collapsable: true,
@@ -164,18 +164,18 @@ const globalSettings: GlobalSettings = {
     },
   },
   Export: {
-    "Remove Special Characters": true,
-    "Resolve Block References": true,
-    "Resolve Block Embeds": false,
-    "Append Referenced Node": true,
-    "Link Type": "wikilinks",
-    "Max Filename Length": 128,
+    "Remove special characters": true,
+    "Resolve block references": true,
+    "Resolve block embeds": false,
+    "Append referenced node": true,
+    "Link type": "wikilinks",
+    "Max filename length": 128,
     Frontmatter: ["title: {{page-title}}", "date: {{date}}"],
   },
-  "Suggestive Mode": {
-    "Include Current Page Relations": true,
-    "Include Parent And Child Blocks": true,
-    "Page Groups": [
+  "Suggestive mode": {
+    "Include current page relations": true,
+    "Include parent and child blocks": true,
+    "Page groups": [
       {
         name: "Research",
         pages: ["research-uid-1", "research-uid-2"],
@@ -262,8 +262,8 @@ const globalSettings: GlobalSettings = {
 
 const defaultGlobalSettings: GlobalSettings = {
   Trigger: "",
-  "Canvas Page Format": "",
-  "Left Sidebar": {
+  "Canvas page format": "",
+  "Left sidebar": {
     Children: [],
     Settings: {
       Collapsable: false,
@@ -271,18 +271,18 @@ const defaultGlobalSettings: GlobalSettings = {
     },
   },
   Export: {
-    "Remove Special Characters": false,
-    "Resolve Block References": false,
-    "Resolve Block Embeds": false,
-    "Append Referenced Node": false,
-    "Link Type": "alias",
-    "Max Filename Length": 64,
+    "Remove special characters": false,
+    "Resolve block references": false,
+    "Resolve block embeds": false,
+    "Append referenced node": false,
+    "Link type": "alias",
+    "Max filename length": 64,
     Frontmatter: [],
   },
-  "Suggestive Mode": {
-    "Include Current Page Relations": false,
-    "Include Parent And Child Blocks": false,
-    "Page Groups": [],
+  "Suggestive mode": {
+    "Include current page relations": false,
+    "Include parent and child blocks": false,
+    "Page groups": [],
   },
   Relations: {},
 };
@@ -329,10 +329,10 @@ const storedFilters: StoredFilters = {
 };
 
 const querySettings: QuerySettings = {
-  "Hide Query Metadata": true,
-  "Default Page Size": 25,
-  "Query Pages": ["query-page-uid-1", "query-page-uid-2"],
-  "Default Filters": {
+  "Hide query metadata": true,
+  "Default page size": 25,
+  "Query pages": ["query-page-uid-1", "query-page-uid-2"],
+  "Default filters": {
     "node-type": {
       includes: { values: ["Claim"] },
       excludes: { values: [] },
@@ -345,7 +345,7 @@ const querySettings: QuerySettings = {
 };
 
 const personalSettings: PersonalSettings = {
-  "Left Sidebar": {
+  "Left sidebar": {
     "My Workspace": {
       Children: [
         { Page: "daily-notes-uid", Alias: "Daily Notes" },
@@ -367,24 +367,24 @@ const personalSettings: PersonalSettings = {
       },
     },
   },
-  "Personal Node Menu Trigger": ";;",
-  "Node Search Menu Trigger": "//",
-  "Discourse Tool Shortcut": "d",
-  "Discourse Context Overlay": true,
-  "Suggestive Mode Overlay": true,
-  "Overlay in Canvas": false,
-  "Text Selection Popup": true,
-  "Disable Sidebar Open": false,
-  "Page Preview": true,
-  "Hide Feedback Button": false,
-  "Streamline Styling": true,
-  "Auto Canvas Relations": true,
-  "Disable Product Diagnostics": false,
+  "Personal node menu trigger": ";;",
+  "Node search menu trigger": "//",
+  "Discourse tool shortcut": "d",
+  "Discourse context overlay": true,
+  "Suggestive mode overlay": true,
+  "Overlay in canvas": false,
+  "Text selection popup": true,
+  "Disable sidebar open": false,
+  "Page preview": true,
+  "Hide feedback button": false,
+  "Streamline styling": true,
+  "Auto canvas relations": true,
+  "Disable product diagnostics": false,
   Query: {
-    "Hide Query Metadata": true,
-    "Default Page Size": 25,
-    "Query Pages": ["query-page-uid-1"],
-    "Default Filters": {
+    "Hide query metadata": true,
+    "Default page size": 25,
+    "Query pages": ["query-page-uid-1"],
+    "Default filters": {
       "node-type": {
         includes: { values: ["Claim"] },
         excludes: { values: [] },
@@ -394,25 +394,25 @@ const personalSettings: PersonalSettings = {
 };
 
 const defaultPersonalSettings: PersonalSettings = {
-  "Left Sidebar": {},
-  "Personal Node Menu Trigger": "",
-  "Node Search Menu Trigger": "",
-  "Discourse Tool Shortcut": "",
-  "Discourse Context Overlay": false,
-  "Suggestive Mode Overlay": false,
-  "Overlay in Canvas": false,
-  "Text Selection Popup": true,
-  "Disable Sidebar Open": false,
-  "Page Preview": false,
-  "Hide Feedback Button": false,
-  "Streamline Styling": false,
-  "Auto Canvas Relations": false,
-  "Disable Product Diagnostics": false,
+  "Left sidebar": {},
+  "Personal node menu trigger": "",
+  "Node search menu trigger": "",
+  "Discourse tool shortcut": "",
+  "Discourse context overlay": false,
+  "Suggestive mode overlay": false,
+  "Overlay in canvas": false,
+  "Text selection popup": true,
+  "Disable sidebar open": false,
+  "Page preview": false,
+  "Hide feedback button": false,
+  "Streamline styling": false,
+  "Auto canvas relations": false,
+  "Disable product diagnostics": false,
   Query: {
-    "Hide Query Metadata": false,
-    "Default Page Size": 10,
-    "Query Pages": [],
-    "Default Filters": {},
+    "Hide query metadata": false,
+    "Default page size": 10,
+    "Query pages": [],
+    "Default filters": {},
   },
 };
 
