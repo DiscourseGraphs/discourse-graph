@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Button, Intent } from "@blueprintjs/core";
-import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
+import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import getSubTree from "roamjs-components/util/getSubTree";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import extractRef from "roamjs-components/util/extractRef";
@@ -82,13 +82,12 @@ const DiscourseNodeSuggestiveRules = ({
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <BlocksPanel
+      <DualWriteBlocksPanel
+        nodeType={node.type}
         title="Template"
         description={`The template that auto fills ${node.text} page when generated.`}
-        order={0}
-        parentUid={nodeUid}
+        settingKeys={["template"]}
         uid={templateUid}
-        defaultValue={node.template}
       />
 
       <DiscourseNodeTextPanel
