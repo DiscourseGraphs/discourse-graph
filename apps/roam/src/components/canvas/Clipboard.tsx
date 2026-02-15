@@ -16,8 +16,11 @@ import {
   Icon,
   Intent,
   NonIdealState,
+  Popover,
+  Position,
   Spinner,
   SpinnerSize,
+  Switch,
   Tag,
 } from "@blueprintjs/core";
 import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
@@ -67,17 +70,20 @@ export type ClipboardPage = {
 type ClipboardContextValue = {
   isOpen: boolean;
   pages: ClipboardPage[];
+  showNodesOnCanvas: boolean;
   openClipboard: () => void;
   closeClipboard: () => void;
   toggleClipboard: () => void;
   addPage: (page: ClipboardPage) => void;
   removePage: (uid: string) => void;
+  setShowNodesOnCanvas: (show: boolean) => void;
 };
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const ClipboardContext = createContext<ClipboardContextValue | null>(null);
 
 const CLIPBOARD_PROP_KEY = "pages";
+const CLIPBOARD_SHOW_NODES_ON_CANVAS_PROP_KEY = "showNodesOnCanvas";
 
 const getOrCreateClipboardBlock = async (
   canvasPageTitle: string,
@@ -130,6 +136,7 @@ export const ClipboardProvider = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [pages, setPages] = useState<ClipboardPage[]>([]);
+  const [showNodesOnCanvas, setShowNodesOnCanvas] = useState(true);
   const [clipboardBlockUid, setClipboardBlockUid] = useState<string | null>(
     null,
   );
@@ -166,6 +173,12 @@ export const ClipboardProvider = ({
         ) {
           setPages(storedPages as ClipboardPage[]);
         }
+
+        const storedShowNodesOnCanvas =
+          props[CLIPBOARD_SHOW_NODES_ON_CANVAS_PROP_KEY];
+        if (typeof storedShowNodesOnCanvas === "boolean") {
+          setShowNodesOnCanvas(storedShowNodesOnCanvas);
+        }
       } catch (error) {
         internalError({
           error,
@@ -186,15 +199,20 @@ export const ClipboardProvider = ({
     try {
       setBlockProps(clipboardBlockUid, {
         [CLIPBOARD_PROP_KEY]: pages,
+        [CLIPBOARD_SHOW_NODES_ON_CANVAS_PROP_KEY]: showNodesOnCanvas,
       });
     } catch (error) {
       internalError({
         error,
         type: "Canvas Clipboard: Failed to persist state",
-        context: { clipboardBlockUid, pageCount: pages.length },
+        context: {
+          clipboardBlockUid,
+          pageCount: pages.length,
+          showNodesOnCanvas,
+        },
       });
     }
-  }, [pages, clipboardBlockUid, isInitialized]);
+  }, [pages, clipboardBlockUid, isInitialized, showNodesOnCanvas]);
 
   const openClipboard = useCallback(() => setIsOpen(true), []);
   const closeClipboard = useCallback(() => setIsOpen(false), []);
@@ -216,19 +234,23 @@ export const ClipboardProvider = ({
     () => ({
       isOpen,
       pages,
+      showNodesOnCanvas,
       openClipboard,
       closeClipboard,
       toggleClipboard,
       addPage,
       removePage,
+      setShowNodesOnCanvas,
     }),
     [
       isOpen,
       pages,
+      showNodesOnCanvas,
       addPage,
       closeClipboard,
       openClipboard,
       removePage,
+      setShowNodesOnCanvas,
       toggleClipboard,
     ],
   );
@@ -395,9 +417,11 @@ type DragState =
 const ClipboardPageSection = ({
   page,
   onRemove,
+  showNodesOnCanvas,
 }: {
   page: ClipboardPage;
   onRemove: (uid: string) => void;
+  showNodesOnCanvas: boolean;
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [discourseNodes, setDiscourseNodes] = useState<
@@ -484,22 +508,28 @@ const ClipboardPageSection = ({
     };
   }, [editor.store]);
 
-  const findShapesByUid = useCallback(
-    (uid: string): DiscourseNodeShape[] => {
-      const allRecords = editor.store.allRecords();
-      const shapes = allRecords.filter((record) => {
-        if (record.typeName !== "shape") return false;
-        const shape = record as DiscourseNodeShape;
-        return shape.props?.uid === uid;
-      }) as DiscourseNodeShape[];
-      return shapes;
-    },
-    [editor.store],
-  );
+  const shapesByUid = useMemo(() => {
+    void storeVersion;
+    const groupedShapes = new Map<string, DiscourseNodeShape[]>();
+    const allRecords = editor.store.allRecords();
+    allRecords.forEach((record) => {
+      if (record.typeName !== "shape") return;
+      const shape = record as DiscourseNodeShape;
+      const uid = shape.props?.uid;
+      if (!uid) return;
+      const currentShapes = groupedShapes.get(uid);
+      if (currentShapes) {
+        currentShapes.push(shape);
+      } else {
+        groupedShapes.set(uid, [shape]);
+      }
+    });
+    return groupedShapes;
+  }, [editor.store, storeVersion]);
 
   const groupedNodes = useMemo(() => {
     const groups: NodeGroup[] = discourseNodes.map((node) => {
-      const shapes = findShapesByUid(node.uid);
+      const shapes = shapesByUid.get(node.uid) ?? [];
       return {
         uid: node.uid,
         text: node.text,
@@ -510,7 +540,15 @@ const ClipboardPageSection = ({
 
     return groups.sort((a, b) => a.text.localeCompare(b.text));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [discourseNodes, findShapesByUid, storeVersion]);
+  }, [discourseNodes, shapesByUid]);
+
+  const visibleGroupedNodes = useMemo(
+    () =>
+      groupedNodes.filter((group) =>
+        showNodesOnCanvas ? true : group.shapes.length === 0,
+      ),
+    [groupedNodes, showNodesOnCanvas],
+  );
 
   useEffect(() => {
     setOpenSections((prev) => {
@@ -586,6 +624,14 @@ const ClipboardPageSection = ({
   const handleDropNode = useCallback(
     async (node: { uid: string; text: string }, pagePoint: Vec) => {
       if (!extensionAPI) return;
+      if (!showNodesOnCanvas) {
+        const nodeExistsOnCanvas = editor.store.allRecords().some((record) => {
+          if (record.typeName !== "shape") return false;
+          const shape = record as DiscourseNodeShape;
+          return shape.props?.uid === node.uid;
+        });
+        if (nodeExistsOnCanvas) return;
+      }
 
       const nodeType = findDiscourseNode({ uid: node.uid });
       if (!nodeType) {
@@ -624,7 +670,7 @@ const ClipboardPageSection = ({
       editor.createShape<DiscourseNodeShape>(shape);
       editor.setCurrentTool("select");
     },
-    [editor, extensionAPI],
+    [editor, extensionAPI, showNodesOnCanvas],
   );
 
   // Drag and drop handlers
@@ -897,9 +943,14 @@ const ClipboardPageSection = ({
             <div className="rounded border border-dashed border-gray-200 p-2">
               No discourse nodes found on this page.
             </div>
+          ) : visibleGroupedNodes.length === 0 ? (
+            <div className="rounded border border-dashed border-gray-200 p-2">
+              All nodes from this page are already on canvas. Turn on &quot;Show
+              nodes on canvas&quot; to view them.
+            </div>
           ) : (
             <div className="space-y-1">
-              {groupedNodes.map((group) => {
+              {visibleGroupedNodes.map((group) => {
                 const nodeExistsInCanvas = group.shapes.length > 0;
                 const isGroupOpen = openSections[group.uid] ?? false;
 
@@ -1025,7 +1076,15 @@ const ClipboardPageSection = ({
 };
 
 export const ClipboardPanel = () => {
-  const { isOpen, pages, closeClipboard, addPage, removePage } = useClipboard();
+  const {
+    isOpen,
+    pages,
+    closeClipboard,
+    addPage,
+    removePage,
+    showNodesOnCanvas,
+    setShowNodesOnCanvas,
+  } = useClipboard();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -1076,9 +1135,35 @@ export const ClipboardPanel = () => {
       {!isCollapsed && (
         <>
           <div
-            className="max-h-96 overflow-y-auto p-4"
+            className="flex items-center justify-end px-2 py-1"
             style={{ borderTop: "1px solid hsl(0, 0%, 91%)" }}
           >
+            <Popover
+              position={Position.BOTTOM_RIGHT}
+              content={
+                <div
+                  className="p-3"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  style={{ pointerEvents: "all" }}
+                >
+                  <Switch
+                    checked={showNodesOnCanvas}
+                    alignIndicator="right"
+                    className="m-0 w-full"
+                    label="Show nodes on canvas"
+                    onChange={(e) =>
+                      setShowNodesOnCanvas(
+                        (e.target as HTMLInputElement).checked,
+                      )
+                    }
+                  />
+                </div>
+              }
+            >
+              <Button minimal small icon="menu" title="Clipboard options" />
+            </Popover>
+          </div>
+          <div className="max-h-96 overflow-y-auto px-4 pb-4">
             {pages.length === 0 ? (
               <NonIdealState
                 action={
@@ -1098,6 +1183,7 @@ export const ClipboardPanel = () => {
                     key={page.uid}
                     page={page}
                     onRemove={removePage}
+                    showNodesOnCanvas={showNodesOnCanvas}
                   />
                 ))}
               </div>
