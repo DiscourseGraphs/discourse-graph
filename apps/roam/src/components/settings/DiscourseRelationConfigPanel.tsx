@@ -51,6 +51,10 @@ import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import {
+  setGlobalSetting,
+  getGlobalSettings,
+} from "~/components/settings/utils/accessors";
 
 const DEFAULT_SELECTED_RELATION = {
   display: "none",
@@ -568,108 +572,147 @@ export const RelationEditPanel = ({
           className="select-none"
           onClick={() => {
             setLoading(true);
-            setTimeout(async () => {
-              const rootUid = editingRelationInfo.uid;
-              setInputSetting({
-                blockUid: rootUid,
-                key: "source",
-                value: source,
-              });
-              setInputSetting({
-                blockUid: rootUid,
-                key: "destination",
-                value: destination,
-                index: 1,
-              });
-              setInputSetting({
-                blockUid: rootUid,
-                key: "complement",
-                value: complement,
-                index: 2,
-              });
-              updateBlock({
-                uid: rootUid,
-                text: label,
-              });
-              const ifUid =
-                editingRelationInfo.children.find((t) =>
-                  toFlexRegex("if").test(t.text),
-                )?.uid ||
-                (await createBlock({
-                  node: { text: "If" },
-                  parentUid: rootUid,
-                  order: 3,
-                }));
-              saveCyToElementRef(tab);
-              const blocks = tabs
-                .map((t) => elementsRef.current[t])
-                .map((elements) => ({
-                  text: "And",
-                  children: elements
-                    .filter((e) => e.data.id.includes("-"))
-                    .map((e) => {
-                      const { source, target, relation } = e.data as {
-                        source: string;
-                        target: string;
-                        relation: string;
-                      };
-                      return {
-                        text: (
-                          elements.find((e) => e.data.id === source)?.data as {
-                            node: string;
-                          }
-                        )?.node,
-                        children: [
-                          {
-                            text: relation,
+            setTimeout(
+              () =>
+                void (async () => {
+                  const rootUid = editingRelationInfo.uid;
+                  setInputSetting({
+                    blockUid: rootUid,
+                    key: "source",
+                    value: source,
+                  });
+                  setInputSetting({
+                    blockUid: rootUid,
+                    key: "destination",
+                    value: destination,
+                    index: 1,
+                  });
+                  setInputSetting({
+                    blockUid: rootUid,
+                    key: "complement",
+                    value: complement,
+                    index: 2,
+                  });
+                  updateBlock({
+                    uid: rootUid,
+                    text: label,
+                  });
+                  const ifUid =
+                    editingRelationInfo.children.find((t) =>
+                      toFlexRegex("if").test(t.text),
+                    )?.uid ||
+                    (await createBlock({
+                      node: { text: "If" },
+                      parentUid: rootUid,
+                      order: 3,
+                    }));
+                  saveCyToElementRef(tab);
+                  const blocks = tabs
+                    .map((t) => elementsRef.current[t])
+                    .map((elements) => ({
+                      text: "And",
+                      children: elements
+                        .filter((e) => e.data.id.includes("-"))
+                        .map((e) => {
+                          const { source, target, relation } = e.data as {
+                            source: string;
+                            target: string;
+                            relation: string;
+                          };
+                          return {
+                            text: (
+                              elements.find((e) => e.data.id === source)
+                                ?.data as {
+                                node: string;
+                              }
+                            )?.node,
                             children: [
                               {
-                                text: ["source", "destination"].includes(target)
-                                  ? target
-                                  : (
-                                      elements.find((e) => e.data.id === target)
-                                        ?.data as { node: string }
-                                    )?.node,
+                                text: relation,
+                                children: [
+                                  {
+                                    text: ["source", "destination"].includes(
+                                      target,
+                                    )
+                                      ? target
+                                      : (
+                                          elements.find(
+                                            (e) => e.data.id === target,
+                                          )?.data as { node: string }
+                                        )?.node,
+                                  },
+                                ],
                               },
                             ],
+                          };
+                        })
+                        .concat([
+                          {
+                            text: "node positions",
+                            children: elements
+                              .filter(
+                                (
+                                  e,
+                                ): e is {
+                                  data: { id: string; node: unknown };
+                                  position: { x: number; y: number };
+                                } => Object.keys(e).includes("position"),
+                              )
+                              .map((e) => ({
+                                text: e.data.id,
+                                children: [
+                                  { text: `${e.position.x} ${e.position.y}` },
+                                ],
+                              })),
                           },
-                        ],
-                      };
-                    })
-                    .concat([
-                      {
-                        text: "node positions",
-                        children: elements
-                          .filter(
-                            (
-                              e,
-                            ): e is {
-                              data: { id: string; node: unknown };
-                              position: { x: number; y: number };
-                            } => Object.keys(e).includes("position"),
-                          )
-                          .map((e) => ({
-                            text: e.data.id,
-                            children: [
-                              { text: `${e.position.x} ${e.position.y}` },
-                            ],
-                          })),
-                      },
-                    ]),
-                }));
-              await Promise.all(
-                getShallowTreeByParentUid(ifUid).map(({ uid }) =>
-                  deleteBlock(uid),
-                ),
-              );
-              await Promise.all(
-                blocks.map((block, order) =>
-                  createBlock({ parentUid: ifUid, node: block, order }),
-                ),
-              );
-              refreshConfigTree();
-              back();
-            }, 1);
+                        ]),
+                    }));
+                  await Promise.all(
+                    getShallowTreeByParentUid(ifUid).map(({ uid }) =>
+                      deleteBlock(uid),
+                    ),
+                  );
+                  await Promise.all(
+                    blocks.map((block, order) =>
+                      createBlock({ parentUid: ifUid, node: block, order }),
+                    ),
+                  );
+                  refreshConfigTree();
+
+                  const ifConditions = blocks.map((block) => {
+                    const positionsChild = block.children.find(
+                      (c) => c.text === "node positions",
+                    );
+                    const triples = block.children
+                      .filter((c) => c.text !== "node positions")
+                      .map(
+                        (c) =>
+                          [
+                            c.text,
+                            c.children[0].text,
+                            c.children[0].children[0].text,
+                          ] as [string, string, string],
+                      );
+                    const nodePositions = Object.fromEntries(
+                      (positionsChild?.children ?? []).map((c) => [
+                        c.text,
+                        c.children[0].text,
+                      ]),
+                    );
+                    return { triples, nodePositions };
+                  });
+                  setGlobalSetting(["Relations", rootUid], {
+                    label,
+                    source,
+                    destination,
+                    complement,
+                    ifConditions,
+                  });
+
+                  back();
+                })(),
+              1,
+            );
           }}
         />
       </div>
@@ -1030,6 +1073,9 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   const handleDelete = (rel: Relation) => {
     deleteBlock(rel.uid);
     setRelations(relations.filter((r) => r.uid !== rel.uid));
+
+    const { [rel.uid]: _, ...remaining } = getGlobalSettings().Relations;
+    setGlobalSetting(["Relations"], remaining);
   };
   const handleDuplicate = (rel: Relation) => {
     const baseText = rel.text
@@ -1059,7 +1105,15 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
         text,
         children: stripUid(copyTree),
       },
-    }).then((newUid) =>
+    }).then((newUid) => {
+      const originalRelation = getGlobalSettings().Relations[rel.uid];
+      if (originalRelation) {
+        setGlobalSetting(["Relations", newUid], {
+          ...originalRelation,
+          label: text,
+        });
+      }
+
       setRelations([
         ...relations,
         {
@@ -1068,8 +1122,8 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
           destination: rel.destination,
           text,
         },
-      ]),
-    );
+      ]);
+    });
   };
   const handleBack = () => {
     setEditingRelation("");
