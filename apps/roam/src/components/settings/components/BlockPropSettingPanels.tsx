@@ -570,7 +570,7 @@ const createDiscourseNodeSetter =
   (keys: string[], value: json): void =>
     setDiscourseNodeSetting(nodeType, keys, value);
 
-type DiscourseNodeBaseProps = {
+export type DiscourseNodeBaseProps = {
   nodeType: string;
   title: string;
   description: string;
