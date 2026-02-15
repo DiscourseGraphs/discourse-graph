@@ -41,7 +41,7 @@ import {
   STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
-// import { initSchema } from "./components/settings/utils/init";
+import { initSchema } from "./components/settings/utils/init";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -155,8 +155,7 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-  // For testing purposes
-  // await initSchema();
+  await initSchema();
 
   return {
     elements: [
