@@ -27,6 +27,8 @@ import {
   DiscourseNodeFlagPanel,
 } from "./components/BlockPropSettingPanels";
 
+const TEMPLATE_SETTING_KEYS = ["template"];
+
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
 };
@@ -346,7 +348,7 @@ const NodeConfig = ({
                 nodeType={node.type}
                 title="Template"
                 description={`The template that auto fills ${node.text} page when generated.`}
-                settingKeys={["template"]}
+                settingKeys={TEMPLATE_SETTING_KEYS}
                 uid={templateUid}
               />
             </div>
