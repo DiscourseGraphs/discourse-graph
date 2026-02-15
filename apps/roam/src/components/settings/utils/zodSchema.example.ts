@@ -30,10 +30,6 @@ const canvasSettings: CanvasSettings = {
 };
 
 const suggestiveRules: SuggestiveRules = {
-  template: [
-    { text: "Summary::", heading: 2 },
-    { text: "Key Points::", heading: 2, children: [{ text: "" }] },
-  ],
   embeddingRef: "((block-uid-123))",
   isFirstChild: true,
 };
