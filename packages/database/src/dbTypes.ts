@@ -891,44 +891,6 @@ export type Database = {
           source_local_id: string | null
           space_id: number | null
         }
-        Insert: {
-          arity?: number | null
-          author_id?: number | null
-          created?: string | null
-          description?: string | null
-          epistemic_status?:
-            | Database["public"]["Enums"]["EpistemicStatus"]
-            | null
-          id?: number | null
-          is_schema?: boolean | null
-          last_modified?: string | null
-          literal_content?: Json | null
-          name?: string | null
-          reference_content?: Json | null
-          refs?: number[] | null
-          schema_id?: number | null
-          source_local_id?: string | null
-          space_id?: number | null
-        }
-        Update: {
-          arity?: number | null
-          author_id?: number | null
-          created?: string | null
-          description?: string | null
-          epistemic_status?:
-            | Database["public"]["Enums"]["EpistemicStatus"]
-            | null
-          id?: number | null
-          is_schema?: boolean | null
-          last_modified?: string | null
-          literal_content?: Json | null
-          name?: string | null
-          reference_content?: Json | null
-          refs?: number[] | null
-          schema_id?: number | null
-          source_local_id?: string | null
-          space_id?: number | null
-        }
         Relationships: [
           {
             foreignKeyName: "Concept_author_id_fkey"
@@ -989,36 +951,6 @@ export type Database = {
           space_id: number | null
           text: string | null
           variant: Database["public"]["Enums"]["ContentVariant"] | null
-        }
-        Insert: {
-          author_id?: number | null
-          created?: string | null
-          creator_id?: number | null
-          document_id?: number | null
-          id?: number | null
-          last_modified?: string | null
-          metadata?: Json | null
-          part_of_id?: number | null
-          scale?: Database["public"]["Enums"]["Scale"] | null
-          source_local_id?: string | null
-          space_id?: number | null
-          text?: string | null
-          variant?: Database["public"]["Enums"]["ContentVariant"] | null
-        }
-        Update: {
-          author_id?: number | null
-          created?: string | null
-          creator_id?: number | null
-          document_id?: number | null
-          id?: number | null
-          last_modified?: string | null
-          metadata?: Json | null
-          part_of_id?: number | null
-          scale?: Database["public"]["Enums"]["Scale"] | null
-          source_local_id?: string | null
-          space_id?: number | null
-          text?: string | null
-          variant?: Database["public"]["Enums"]["ContentVariant"] | null
         }
         Relationships: [
           {
@@ -1210,28 +1142,6 @@ export type Database = {
           space_id: number | null
           url: string | null
         }
-        Insert: {
-          author_id?: number | null
-          contents?: unknown
-          created?: string | null
-          id?: number | null
-          last_modified?: string | null
-          metadata?: Json | null
-          source_local_id?: string | null
-          space_id?: number | null
-          url?: string | null
-        }
-        Update: {
-          author_id?: number | null
-          contents?: unknown
-          created?: string | null
-          id?: number | null
-          last_modified?: string | null
-          metadata?: Json | null
-          source_local_id?: string | null
-          space_id?: number | null
-          url?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: "Document_author_id_fkey"
@@ -1271,22 +1181,6 @@ export type Database = {
           last_modified: string | null
           source_local_id: string | null
           space_id: number | null
-        }
-        Insert: {
-          created?: string | null
-          filehash?: string | null
-          filepath?: string | null
-          last_modified?: string | null
-          source_local_id?: string | null
-          space_id?: number | null
-        }
-        Update: {
-          created?: string | null
-          filehash?: string | null
-          filepath?: string | null
-          last_modified?: string | null
-          source_local_id?: string | null
-          space_id?: number | null
         }
         Relationships: []
       }
@@ -1660,6 +1554,16 @@ export type Database = {
           text_content: string
         }[]
       }
+      my_accessible_resources: {
+        Args: never
+        Returns: Database["public"]["CompositeTypes"]["accessible_resource"][]
+        SetofOptions: {
+          from: "*"
+          to: "accessible_resource"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       my_permissions_in_space: {
         Args: { space_id_: number }
         Returns: Database["public"]["Enums"]["SpaceAccessPermissions"]
@@ -1796,6 +1700,10 @@ export type Database = {
       task_status: "active" | "timeout" | "complete" | "failed"
     }
     CompositeTypes: {
+      accessible_resource: {
+        space_id: number | null
+        source_local_id: string | null
+      }
       account_local_input: {
         name: string | null
         account_local_id: string | null
@@ -2058,4 +1966,3 @@ export const Constants = {
     },
   },
 } as const
-
