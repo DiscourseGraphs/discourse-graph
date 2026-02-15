@@ -205,6 +205,13 @@ AS $$
         LIMIT 1);
 $$;
 
+CREATE OR REPLACE FUNCTION public.can_view_content(content_id BIGINT) RETURNS BOOLEAN
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT public.can_view_specific_resource(space_id, source_local_id) FROM public."Content" WHERE id=content_id;
+$$;
+
 CREATE TYPE public.accessible_resource AS (
     space_id bigint,
     source_local_id character varying

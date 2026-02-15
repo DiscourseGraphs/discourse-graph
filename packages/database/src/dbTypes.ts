@@ -1335,6 +1335,7 @@ export type Database = {
         }
       }
       can_access_account: { Args: { account_uid: string }; Returns: boolean }
+      can_view_content: { Args: { content_id: number }; Returns: boolean }
       can_view_specific_resource: {
         Args: { source_local_id_: string; space_id_: number }
         Returns: boolean
