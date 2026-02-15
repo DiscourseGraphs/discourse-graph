@@ -77,7 +77,6 @@ export const RoamNodeSchema: z.ZodType<RoamNode> = z.lazy(() =>
 );
 
 export const SuggestiveRulesSchema = z.object({
-  template: z.array(RoamNodeSchema).default([]),
   embeddingRef: z.string().default(""),
   isFirstChild: z.boolean().default(false),
 });
