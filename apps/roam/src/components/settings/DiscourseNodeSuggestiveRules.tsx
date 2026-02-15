@@ -12,6 +12,8 @@ import {
   DiscourseNodeTextPanel,
 } from "./components/BlockPropSettingPanels";
 
+const TEMPLATE_SETTING_KEYS = ["template"];
+
 const BlockRenderer = ({ uid }: { uid: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -86,7 +88,7 @@ const DiscourseNodeSuggestiveRules = ({
         nodeType={node.type}
         title="Template"
         description={`The template that auto fills ${node.text} page when generated.`}
-        settingKeys={["template"]}
+        settingKeys={TEMPLATE_SETTING_KEYS}
         uid={templateUid}
       />
 
