@@ -206,6 +206,7 @@ AS $$
 $$;
 
 CREATE OR REPLACE FUNCTION public.can_view_content(content_id BIGINT) RETURNS BOOLEAN
+STABLE
 SET search_path = ''
 LANGUAGE sql
 AS $$
