@@ -140,13 +140,30 @@ jobs:
           for workspace in "${!workspace_to_files[@]}"; do
             echo "Linting changed files in ${workspace}"
             mapfile -t files < <(printf '%s' "${workspace_to_files[$workspace]}" | sed '/^$/d')
-            if ! pnpm --dir "$workspace" exec eslint --max-warnings 0 "${files[@]}" | reviewdog \
+            eslint_output="$(mktemp)"
+            eslint_exit_code=0
+
+            # Capture ESLint output and let reviewdog decide pass/fail after diff filtering.
+            # This avoids failing a PR for pre-existing issues elsewhere in touched files.
+            pnpm --dir "$workspace" exec eslint --no-color --format stylish "${files[@]}" >"$eslint_output" 2>&1 || eslint_exit_code=$?
+
+            if [ "$eslint_exit_code" -ge 2 ]; then
+              cat "$eslint_output"
+              rm -f "$eslint_output"
+              lint_failed=1
+              continue
+            fi
+
+            if ! reviewdog \
               -f=eslint \
               -name="eslint (${workspace})" \
               -reporter=github-pr-check \
               -filter-mode=added \
-              -level=warning; then
+              -level=warning \
+              -fail-level=warning < "$eslint_output"; then
               lint_failed=1
             fi
+
+            rm -f "$eslint_output"
           done
           exit $lint_failed
