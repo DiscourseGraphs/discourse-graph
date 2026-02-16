@@ -21,11 +21,11 @@ const isAllowedOrigin = (origin: string): boolean =>
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const originIsAllowed = origin && isAllowedOrigin(origin);
-  corsHeaders["Access-Control-Allow-Origin"] = originIsAllowed? origin:'';
+  const myCorsHeaders = {...corsHeaders, "Access-Control-Allow-Origin": originIsAllowed? origin:''};
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: corsHeaders,
+      headers: myCorsHeaders,
     });
   }
   if (req.method !== "POST") {
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
   if (!url || !anon_key || !service_key) {
     return new Response("Missing SUPABASE_URL or SB_SECRET_KEY or SB_PUBLISHABLE_KEY", {
       status: 500,
-      headers: corsHeaders,
+      headers: myCorsHeaders,
     });
   }
   const supabase = createClient(url, anon_key)
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       { msg: 'Missing authorization headers' },
       {
         status: 401,
-        headers: corsHeaders,
+        headers: myCorsHeaders,
       }
     )
   }
@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       { msg: 'Invalid JWT' },
       {
         status: 401,
-        headers: corsHeaders,
+        headers: myCorsHeaders,
       }
     )
   }
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
         { msg: 'A group by this name exists' },
         {
           status: 400,
-          headers: corsHeaders,
+          headers: myCorsHeaders,
         });
     }
     return Response.json({ msg: 'Failed to create group user', error: error.message }, { status: 500 });
@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
       msg: `Failed to create membership for group ${group_id}`,
       error: membershipResponse.error.message
     },
-    { status: 500, headers: corsHeaders, });
+    { status: 500, headers: myCorsHeaders, });
 
-  return Response.json({group_id}, {headers: { "Content-Type": "application/json", ...corsHeaders }});
+  return Response.json({group_id}, {headers: { "Content-Type": "application/json", ...myCorsHeaders }});
 });

@@ -196,11 +196,11 @@ const isAllowedOrigin = (origin: string): boolean =>
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const originIsAllowed = origin && isAllowedOrigin(origin);
-  corsHeaders["Access-Control-Allow-Origin"] = originIsAllowed? origin:'';
+  const myCorsHeaders = {...corsHeaders, "Access-Control-Allow-Origin": originIsAllowed? origin:''};
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: corsHeaders,
+      headers: myCorsHeaders,
     });
   }
 
@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
   if (!url || !key) {
     return new Response("Missing SUPABASE_URL or SB_SECRET_KEY", {
       status: 500,
-      headers: corsHeaders,
+      headers: myCorsHeaders,
     });
   }
 
@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
       { msg: 'Missing authorization headers' },
       {
         status: 401,
-        headers: corsHeaders,
+        headers: myCorsHeaders,
       }
     )
   }
@@ -234,7 +234,7 @@ Deno.serve(async (req) => {
     const { error } = await supabaseAnonClient.from("Space").select("id").limit(1);
     if (error?.code) return new Response(JSON.stringify(error), {
       status: 401,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      headers: { "Content-Type": "application/json", ...myCorsHeaders },
     });
   }
 
@@ -250,11 +250,11 @@ Deno.serve(async (req) => {
     const status = error.code === "invalid space" ? 400 : 500;
     return new Response(JSON.stringify(error), {
       status,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      headers: { "Content-Type": "application/json", ...myCorsHeaders },
     });
   }
 
-  return Response.json(data, {headers: corsHeaders });
+  return Response.json(data, {headers: myCorsHeaders });
 });
 
 /* To invoke locally:
