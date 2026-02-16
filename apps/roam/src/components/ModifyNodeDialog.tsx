@@ -547,7 +547,6 @@ const ModifyNodeDialog = ({
                 options={options.referencedNode}
                 placeholder={loading ? "..." : "Select a referenced node"}
                 mode={"create"}
-                initialIsLocked={isReferencedNodeLocked}
                 autoFocus={false}
               />
             </div>
