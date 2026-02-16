@@ -2,6 +2,7 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 import "@supabase/functions-js/edge-runtime";
+import { corsHeaders } from '@supabase/supabase-js/cors'
 import {
   createClient,
   type User,
@@ -195,16 +196,11 @@ const isAllowedOrigin = (origin: string): boolean =>
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const originIsAllowed = origin && isAllowedOrigin(origin);
+  corsHeaders["Access-Control-Allow-Origin"] = originIsAllowed? origin:'';
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: {
-        ...(originIsAllowed ? { "Access-Control-Allow-Origin": origin } : {}),
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers":
-          "Content-Type, Authorization, x-vercel-protection-bypass, x-client-info, apikey",
-        "Access-Control-Max-Age": "86400",
-      },
+      headers: corsHeaders,
     });
   }
 
@@ -257,20 +253,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const res = new Response(JSON.stringify(data), {
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (originIsAllowed) {
-    res.headers.set("Access-Control-Allow-Origin", origin as string);
-    res.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.headers.set(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, x-vercel-protection-bypass, x-client-info, apikey",
-    );
-  }
-
-  return res;
+  return Response.json(data, {headers: { "Content-Type": "application/json", ...corsHeaders }});
 });
 
 /* To invoke locally:

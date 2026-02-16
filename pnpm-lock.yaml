@@ -7,17 +7,17 @@ settings:
 catalogs:
   default:
     '@supabase/auth-js':
-      specifier: 2.93.3
-      version: 2.93.3
+      specifier: 2.95.3
+      version: 2.95.3
     '@supabase/functions-js':
-      specifier: 2.93.3
-      version: 2.93.3
+      specifier: 2.95.3
+      version: 2.95.3
     '@supabase/storage-js':
-      specifier: 2.93.3
-      version: 2.93.3
+      specifier: 2.95.3
+      version: 2.95.3
     '@supabase/supabase-js':
-      specifier: 2.93.3
-      version: 2.93.3
+      specifier: 2.95.3
+      version: 2.95.3
     '@types/eslint':
       specifier: 8.56.12
       version: 8.56.12
@@ -111,7 +111,7 @@ importers:
         version: link:../../packages/utils
       '@supabase/supabase-js':
         specifier: 'catalog:'
-        version: 2.93.3
+        version: 2.95.3
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -223,10 +223,10 @@ importers:
         version: link:../../packages/utils
       '@supabase/functions-js':
         specifier: 'catalog:'
-        version: 2.93.3
+        version: 2.95.3
       '@supabase/supabase-js':
         specifier: 'catalog:'
-        version: 2.93.3
+        version: 2.95.3
       '@tldraw/editor':
         specifier: 2.4.6
         version: 2.4.6(patch_hash=88df41e89e43122c6a700d4917a83250639461079144bdbab7015f6b761e4582)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -313,7 +313,7 @@ importers:
         version: 3.5.2(react@18.2.0)
       roamjs-components:
         specifier: 0.86.4
-        version: 0.86.4(5b78e88b35a4681c3fec2bd59ab560ac)
+        version: 0.86.4(ad0016961dcdb2b46ced8f4d10229b4e)
       tldraw:
         specifier: 2.4.6
         version: 2.4.6(patch_hash=56e196052862c9a58a11b43e5e121384cd1d6548416afa0f16e9fbfbf0e4080d)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -365,7 +365,7 @@ importers:
         version: 0.17.14
       tailwindcss:
         specifier: ^3.4.17
-        version: 3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4))
+        version: 3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3))
       tsx:
         specifier: ^4.19.2
         version: 4.20.5
@@ -383,10 +383,10 @@ importers:
         version: 2.2.1
       '@supabase/ssr':
         specifier: ^0.8.0
-        version: 0.8.0(@supabase/supabase-js@2.93.3)
+        version: 0.8.0(@supabase/supabase-js@2.95.3)
       '@supabase/supabase-js':
         specifier: 'catalog:'
-        version: 2.93.3
+        version: 2.95.3
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -498,16 +498,16 @@ importers:
         version: link:../utils
       '@supabase/auth-js':
         specifier: 'catalog:'
-        version: 2.93.3
+        version: 2.95.3
       '@supabase/functions-js':
         specifier: 'catalog:'
-        version: 2.93.3
+        version: 2.95.3
       '@supabase/storage-js':
         specifier: 'catalog:'
-        version: 2.93.3
+        version: 2.95.3
       '@supabase/supabase-js':
         specifier: 'catalog:'
-        version: 2.93.3
+        version: 2.95.3
       tslib:
         specifier: 2.5.1
         version: 2.5.1
@@ -604,10 +604,10 @@ importers:
         version: link:../typescript-config
       tailwindcss:
         specifier: ^3.4.1
-        version: 3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4))
+        version: 3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3))
       tailwindcss-animate:
         specifier: ^1.0.7
-        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4)))
+        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3)))
 
   packages/types: {}
 
@@ -3726,20 +3726,20 @@ packages:
     resolution: {integrity: sha512-IUuj2zpGdeKaY5OdGnU83BUJsv7OA9uw3rNVSOuvzLMXMpBTU+W6V0SsQh6iI32lKUJArlnEU4BIzp83hghR/g==}
     engines: {node: '>=18.0.0'}
 
-  '@supabase/auth-js@2.93.3':
-    resolution: {integrity: sha512-JdnkHZPKexVGSNONtu89RHU4bxz3X9kxx+f5ZnR5osoCIX+vs/MckwWRPZEybAEvlJXt5xjomDb3IB876QCxWQ==}
+  '@supabase/auth-js@2.95.3':
+    resolution: {integrity: sha512-vD2YoS8E2iKIX0F7EwXTmqhUpaNsmbU6X2R0/NdFcs02oEfnHyNP/3M716f3wVJ2E5XHGiTFXki6lRckhJ0Thg==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/functions-js@2.93.3':
-    resolution: {integrity: sha512-qWO0gHNDm/5jRjROv/nv9L6sYabCWS1kzorOLUv3kqCwRvEJLYZga93ppJPrZwOgoZfXmJzvpjY8fODA4HQfBw==}
+  '@supabase/functions-js@2.95.3':
+    resolution: {integrity: sha512-uTuOAKzs9R/IovW1krO0ZbUHSJnsnyJElTXIRhjJTqymIVGcHzkAYnBCJqd7468Fs/Foz1BQ7Dv6DCl05lr7ig==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/postgrest-js@2.93.3':
-    resolution: {integrity: sha512-+iJ96g94skO2e4clsRSmEXg22NUOjh9BziapsJSAvnB1grOBf/BA8vGtCHjNOA+Z6lvKXL1jwBqcL9+fS1W/Lg==}
+  '@supabase/postgrest-js@2.95.3':
+    resolution: {integrity: sha512-LTrRBqU1gOovxRm1vRXPItSMPBmEFqrfTqdPTRtzOILV4jPSueFz6pES5hpb4LRlkFwCPRmv3nQJ5N625V2Xrg==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/realtime-js@2.93.3':
-    resolution: {integrity: sha512-gnYpcFzwy8IkezRP4CDbT5I8jOsiOjrWrqTY1B+7jIriXsnpifmlM6RRjLBm9oD7OwPG0/WksniGPdKW67sXOA==}
+  '@supabase/realtime-js@2.95.3':
+    resolution: {integrity: sha512-D7EAtfU3w6BEUxDACjowWNJo/ZRo7sDIuhuOGKHIm9FHieGeoJV5R6GKTLtga/5l/6fDr2u+WcW/m8I9SYmaIw==}
     engines: {node: '>=20.0.0'}
 
   '@supabase/ssr@0.8.0':
@@ -3747,12 +3747,12 @@ packages:
     peerDependencies:
       '@supabase/supabase-js': ^2.76.1
 
-  '@supabase/storage-js@2.93.3':
-    resolution: {integrity: sha512-cw4qXiLrx3apglDM02Tx/w/stvFlrkKocC6vCvuFAz3JtVEl1zH8MUfDQDTH59kJAQVaVdbewrMWSoBob7REnA==}
+  '@supabase/storage-js@2.95.3':
+    resolution: {integrity: sha512-4GxkJiXI3HHWjxpC3sDx1BVrV87O0hfX+wvJdqGv67KeCu+g44SPnII8y0LL/Wr677jB7tpjAxKdtVWf+xhc9A==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/supabase-js@2.93.3':
-    resolution: {integrity: sha512-paUqEqdBI9ztr/4bbMoCgeJ6M8ZTm2fpfjSOlzarPuzYveKFM20ZfDZqUpi9CFfYagYj5Iv3m3ztUjaI9/tM1w==}
+  '@supabase/supabase-js@2.95.3':
+    resolution: {integrity: sha512-Fukw1cUTQ6xdLiHDJhKKPu6svEPaCEDvThqCne3OaQyZvuq2qjhJAd91kJu3PXLG18aooCgYBaB6qQz35hhABg==}
     engines: {node: '>=20.0.0'}
 
   '@swc/helpers@0.5.15':
@@ -12964,22 +12964,22 @@ snapshots:
 
   '@rushstack/eslint-patch@1.12.0': {}
 
-  '@samepage/scripts@0.74.5(@aws-sdk/client-lambda@3.882.0)(@aws-sdk/client-s3@3.882.0)(@samepage/testing@0.74.5(@playwright/test@1.29.0)(@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(@types/jsdom@20.0.1)(c8@7.14.0)(debug@4.4.1)(dotenv@16.6.1)(jsdom@20.0.3)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4)))(archiver@5.3.2)(axios@0.27.2(debug@4.4.1))(debug@4.4.1)(dotenv@16.6.1)(esbuild@0.17.14)(patch-package@6.5.1)(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4)))(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4))(zod@3.25.76)':
+  '@samepage/scripts@0.74.5(@aws-sdk/client-lambda@3.882.0)(@aws-sdk/client-s3@3.882.0)(@samepage/testing@0.74.5(@playwright/test@1.29.0)(@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(@types/jsdom@20.0.1)(c8@7.14.0)(debug@4.4.1)(dotenv@16.6.1)(jsdom@20.0.3)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3)))(archiver@5.3.2)(axios@0.27.2(debug@4.4.1))(debug@4.4.1)(dotenv@16.6.1)(esbuild@0.17.14)(patch-package@6.5.1)(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3)))(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3))(zod@3.25.76)':
     dependencies:
       '@aws-sdk/client-lambda': 3.882.0
       '@aws-sdk/client-s3': 3.882.0
-      '@samepage/testing': 0.74.5(@playwright/test@1.29.0)(@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(@types/jsdom@20.0.1)(c8@7.14.0)(debug@4.4.1)(dotenv@16.6.1)(jsdom@20.0.3)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4))
+      '@samepage/testing': 0.74.5(@playwright/test@1.29.0)(@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(@types/jsdom@20.0.1)(c8@7.14.0)(debug@4.4.1)(dotenv@16.6.1)(jsdom@20.0.3)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3))
       archiver: 5.3.2
       axios: 0.27.2(debug@4.4.1)
       debug: 4.4.1(supports-color@8.1.1)
       dotenv: 16.6.1
       esbuild: 0.17.14
       patch-package: 6.5.1
-      tailwindcss: 3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4))
-      ts-node: 10.9.2(@types/node@20.19.13)(typescript@5.5.4)
+      tailwindcss: 3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3))
+      ts-node: 10.9.2(@types/node@20.19.13)(typescript@5.9.3)
       zod: 3.25.76
 
-  '@samepage/testing@0.74.5(@playwright/test@1.29.0)(@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(@types/jsdom@20.0.1)(c8@7.14.0)(debug@4.4.1)(dotenv@16.6.1)(jsdom@20.0.3)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4))':
+  '@samepage/testing@0.74.5(@playwright/test@1.29.0)(@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(@types/jsdom@20.0.1)(c8@7.14.0)(debug@4.4.1)(dotenv@16.6.1)(jsdom@20.0.3)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3))':
     dependencies:
       '@playwright/test': 1.29.0
       '@testing-library/react': 16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -12989,7 +12989,7 @@ snapshots:
       debug: 4.4.1(supports-color@8.1.1)
       dotenv: 16.6.1
       jsdom: 20.0.3
-      ts-node: 10.9.2(@types/node@20.19.13)(typescript@5.5.4)
+      ts-node: 10.9.2(@types/node@20.19.13)(typescript@5.9.3)
 
   '@selderee/plugin-htmlparser2@0.11.0':
     dependencies:
@@ -13343,19 +13343,19 @@ snapshots:
       '@smithy/types': 4.4.0
       tslib: 2.8.1
 
-  '@supabase/auth-js@2.93.3':
+  '@supabase/auth-js@2.95.3':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/functions-js@2.93.3':
+  '@supabase/functions-js@2.95.3':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/postgrest-js@2.93.3':
+  '@supabase/postgrest-js@2.95.3':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/realtime-js@2.93.3':
+  '@supabase/realtime-js@2.95.3':
     dependencies:
       '@types/phoenix': 1.6.6
       '@types/ws': 8.18.1
@@ -13365,23 +13365,23 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@supabase/ssr@0.8.0(@supabase/supabase-js@2.93.3)':
+  '@supabase/ssr@0.8.0(@supabase/supabase-js@2.95.3)':
     dependencies:
-      '@supabase/supabase-js': 2.93.3
+      '@supabase/supabase-js': 2.95.3
       cookie: 1.0.2
 
-  '@supabase/storage-js@2.93.3':
+  '@supabase/storage-js@2.95.3':
     dependencies:
       iceberg-js: 0.8.1
       tslib: 2.8.1
 
-  '@supabase/supabase-js@2.93.3':
+  '@supabase/supabase-js@2.95.3':
     dependencies:
-      '@supabase/auth-js': 2.93.3
-      '@supabase/functions-js': 2.93.3
-      '@supabase/postgrest-js': 2.93.3
-      '@supabase/realtime-js': 2.93.3
-      '@supabase/storage-js': 2.93.3
+      '@supabase/auth-js': 2.95.3
+      '@supabase/functions-js': 2.95.3
+      '@supabase/postgrest-js': 2.95.3
+      '@supabase/realtime-js': 2.95.3
+      '@supabase/storage-js': 2.95.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -18227,6 +18227,14 @@ snapshots:
       postcss: 8.5.6
       ts-node: 10.9.2(@types/node@20.19.13)(typescript@5.5.4)
 
+  postcss-load-config@4.0.2(postcss@8.5.6)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3)):
+    dependencies:
+      lilconfig: 3.1.3
+      yaml: 2.8.1
+    optionalDependencies:
+      postcss: 8.5.6
+      ts-node: 10.9.2(@types/node@20.19.13)(typescript@5.9.3)
+
   postcss-nested@6.2.0(postcss@8.5.6):
     dependencies:
       postcss: 8.5.6
@@ -18983,12 +18991,12 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
-  roamjs-components@0.86.4(5b78e88b35a4681c3fec2bd59ab560ac):
+  roamjs-components@0.86.4(ad0016961dcdb2b46ced8f4d10229b4e):
     dependencies:
       '@blueprintjs/core': 3.50.4(patch_hash=51c5847e0a73a1be0cc263036ff64d8fada46f3b65831ed938dbca5eecf3edc0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/datetime': 3.23.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@blueprintjs/select': 3.19.1(patch_hash=5b2821b0bf7274e9b64d7824648c596b9e73c61f421d699a6d4c494f12f62355)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
-      '@samepage/scripts': 0.74.5(@aws-sdk/client-lambda@3.882.0)(@aws-sdk/client-s3@3.882.0)(@samepage/testing@0.74.5(@playwright/test@1.29.0)(@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(@types/jsdom@20.0.1)(c8@7.14.0)(debug@4.4.1)(dotenv@16.6.1)(jsdom@20.0.3)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4)))(archiver@5.3.2)(axios@0.27.2(debug@4.4.1))(debug@4.4.1)(dotenv@16.6.1)(esbuild@0.17.14)(patch-package@6.5.1)(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4)))(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4))(zod@3.25.76)
+      '@samepage/scripts': 0.74.5(@aws-sdk/client-lambda@3.882.0)(@aws-sdk/client-s3@3.882.0)(@samepage/testing@0.74.5(@playwright/test@1.29.0)(@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(@types/jsdom@20.0.1)(c8@7.14.0)(debug@4.4.1)(dotenv@16.6.1)(jsdom@20.0.3)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3)))(archiver@5.3.2)(axios@0.27.2(debug@4.4.1))(debug@4.4.1)(dotenv@16.6.1)(esbuild@0.17.14)(patch-package@6.5.1)(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3)))(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3))(zod@3.25.76)
       '@types/crypto-js': 4.1.1
       '@types/cytoscape': 3.21.9
       '@types/file-saver': 2.0.5
@@ -19586,6 +19594,10 @@ snapshots:
     dependencies:
       tailwindcss: 3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4))
 
+  tailwindcss-animate@1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3))):
+    dependencies:
+      tailwindcss: 3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3))
+
   tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4)):
     dependencies:
       '@alloc/quick-lru': 5.2.0
@@ -19606,6 +19618,33 @@ snapshots:
       postcss-import: 15.1.0(postcss@8.5.6)
       postcss-js: 4.0.1(postcss@8.5.6)
       postcss-load-config: 4.0.2(postcss@8.5.6)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.5.4))
+      postcss-nested: 6.2.0(postcss@8.5.6)
+      postcss-selector-parser: 6.1.2
+      resolve: 1.22.10
+      sucrase: 3.35.0
+    transitivePeerDependencies:
+      - ts-node
+
+  tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3)):
+    dependencies:
+      '@alloc/quick-lru': 5.2.0
+      arg: 5.0.2
+      chokidar: 3.6.0
+      didyoumean: 1.2.2
+      dlv: 1.1.3
+      fast-glob: 3.3.3
+      glob-parent: 6.0.2
+      is-glob: 4.0.3
+      jiti: 1.21.7
+      lilconfig: 3.1.3
+      micromatch: 4.0.8
+      normalize-path: 3.0.0
+      object-hash: 3.0.0
+      picocolors: 1.1.1
+      postcss: 8.5.6
+      postcss-import: 15.1.0(postcss@8.5.6)
+      postcss-js: 4.0.1(postcss@8.5.6)
+      postcss-load-config: 4.0.2(postcss@8.5.6)(ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3))
       postcss-nested: 6.2.0(postcss@8.5.6)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.10
@@ -19856,6 +19895,24 @@ snapshots:
       diff: 4.0.2
       make-error: 1.3.6
       typescript: 5.5.4
+      v8-compile-cache-lib: 3.0.1
+      yn: 3.1.1
+
+  ts-node@10.9.2(@types/node@20.19.13)(typescript@5.9.3):
+    dependencies:
+      '@cspotcode/source-map-support': 0.8.1
+      '@tsconfig/node10': 1.0.11
+      '@tsconfig/node12': 1.0.11
+      '@tsconfig/node14': 1.0.3
+      '@tsconfig/node16': 1.0.4
+      '@types/node': 20.19.13
+      acorn: 8.15.0
+      acorn-walk: 8.3.4
+      arg: 4.1.3
+      create-require: 1.1.1
+      diff: 4.0.2
+      make-error: 1.3.6
+      typescript: 5.9.3
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
 
