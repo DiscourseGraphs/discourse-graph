@@ -3,7 +3,10 @@ import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 import { Alert, Intent } from "@blueprintjs/core";
-import { GlobalTextPanel, FeatureFlagPanel } from "./components/BlockPropSettingPanels";
+import {
+  GlobalTextPanel,
+  FeatureFlagPanel,
+} from "./components/BlockPropSettingPanels";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {
@@ -27,7 +30,9 @@ const DiscourseGraphHome = () => {
         title="Canvas Page Format"
         description="The page format for canvas pages"
         settingKeys={["Canvas Page Format"]}
-        initialValue={settings.canvasPageFormat.value || DEFAULT_CANVAS_PAGE_FORMAT}
+        initialValue={
+          settings.canvasPageFormat.value || DEFAULT_CANVAS_PAGE_FORMAT
+        }
         order={1}
         uid={settings.canvasPageFormat.uid}
         parentUid={settings.settingsUid}

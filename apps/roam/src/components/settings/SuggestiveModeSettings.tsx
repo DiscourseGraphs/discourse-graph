@@ -34,7 +34,7 @@ const SuggestiveModeSettings = () => {
   }, [suggestiveModeUid]);
 
   const effectiveSuggestiveModeUid =
-  suggestiveModeUid || settings.suggestiveMode.parentUid;
+    suggestiveModeUid || settings.suggestiveMode.parentUid;
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("page-groups");
 
@@ -67,8 +67,13 @@ const SuggestiveModeSettings = () => {
                 <GlobalFlagPanel
                   title="Include Current Page Relations"
                   description="Include relations from pages referenced on the current page"
-                  settingKeys={["Suggestive Mode", "Include Current Page Relations"]}
-                  initialValue={settings.suggestiveMode.includePageRelations.value}
+                  settingKeys={[
+                    "Suggestive Mode",
+                    "Include Current Page Relations",
+                  ]}
+                  initialValue={
+                    settings.suggestiveMode.includePageRelations.value
+                  }
                   order={0}
                   uid={settings.suggestiveMode.includePageRelations.uid}
                   parentUid={effectiveSuggestiveModeUid}
@@ -82,8 +87,13 @@ const SuggestiveModeSettings = () => {
                       ? "Include relations from parent and child blocks (automatically enabled when including page relations)"
                       : "Include relations from parent and child blocks"
                   }
-                  settingKeys={["Suggestive Mode", "Include Parent And Child Blocks"]}
-                  initialValue={settings.suggestiveMode.includeParentAndChildren.value}
+                  settingKeys={[
+                    "Suggestive Mode",
+                    "Include Parent And Child Blocks",
+                  ]}
+                  initialValue={
+                    settings.suggestiveMode.includeParentAndChildren.value
+                  }
                   value={includePageRelations ? true : undefined}
                   order={1}
                   uid={settings.suggestiveMode.includeParentAndChildren.uid}

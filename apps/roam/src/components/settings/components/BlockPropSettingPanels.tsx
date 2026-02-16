@@ -140,7 +140,9 @@ const BaseFlagPanel = ({
   uid: initialBlockUid,
   order,
 }: BaseFlagPanelProps) => {
-  const [internalValue, setInternalValue] = useState(() => initialValue ?? false);
+  const [internalValue, setInternalValue] = useState(
+    () => initialValue ?? false,
+  );
   const blockUidRef = useRef(initialBlockUid);
 
   const syncFlagToBlock = useCallback(
@@ -461,7 +463,6 @@ export const FeatureFlagPanel = ({
     ? async (checked) => {
         if (checked) {
           return onBeforeEnable();
-
         }
         return true;
       }
