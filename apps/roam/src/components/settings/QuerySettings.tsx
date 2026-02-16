@@ -22,7 +22,7 @@ const QuerySettings = ({
         title="Hide query metadata"
         description="Hide the Roam blocks that are used to power each query"
         settingKeys={["Query", "Hide query metadata"]}
-        defaultValue={
+        initialValue={
           (extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean) ?? true
         }
         onChange={(checked) => {
@@ -33,7 +33,7 @@ const QuerySettings = ({
         title="Default page size"
         description="The default page size used for query results"
         settingKeys={["Query", "Default page size"]}
-        defaultValue={
+        initialValue={
           Number(extensionAPI.settings.get(DEFAULT_PAGE_SIZE_KEY)) || 10
         }
         onChange={(value) => {
@@ -44,7 +44,7 @@ const QuerySettings = ({
         title="Query pages"
         description="The title formats of pages that you would like to serve as pages that generate queries"
         settingKeys={["Query", "Query pages"]}
-        defaultValue={getQueryPages(extensionAPI)}
+        initialValue={getQueryPages(extensionAPI)}
         onChange={(values) => {
           void extensionAPI.settings.set("query-pages", values);
         }}
