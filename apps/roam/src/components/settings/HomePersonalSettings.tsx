@@ -141,7 +141,10 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         title="(BETA) Overlay in canvas"
         description="Whether or not to overlay discourse context information over canvas nodes."
         settingKeys={["Overlay in canvas"]}
-        defaultValue={getSetting<boolean>(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, false)}
+        defaultValue={getSetting<boolean>(
+          DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
+          false,
+        )}
         onChange={(checked) => {
           void setSetting(DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY, checked);
         }}
