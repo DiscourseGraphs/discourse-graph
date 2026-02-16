@@ -50,6 +50,7 @@ import posthog from "posthog-js";
 import { Inputs } from "./Inputs";
 
 const existingLints = "adf";
+console.log(existingLints);
 
 const VIEWS: Record<string, { value: boolean }> = {
   link: { value: false },
