@@ -349,7 +349,7 @@ const getAllUsers = async (): Promise<AccountLocalInput[]> => {
     email: null,
     email_trusted: null,
     space_editor: null,
-    permissions: "editor",
+    permissions: null,
   }));
 };
 
