@@ -205,6 +205,28 @@ AS $$
         LIMIT 1);
 $$;
 
+CREATE OR REPLACE FUNCTION public.can_view_content(content_id BIGINT) RETURNS BOOLEAN
+STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT public.can_view_specific_resource(space_id, source_local_id) FROM public."Content" WHERE id=content_id;
+$$;
+
+CREATE TYPE public.accessible_resource AS (
+    space_id bigint,
+    source_local_id character varying
+);
+
+CREATE OR REPLACE FUNCTION public.my_accessible_resources() RETURNS SETOF public.accessible_resource
+STRICT STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT DISTINCT space_id, source_local_id FROM public."ResourceAccess"
+    JOIN public.my_user_accounts() ON (account_uid = my_user_accounts);
+$$;
+
 -- explicit fields require more maintenance, but respects declared table order.
 CREATE OR REPLACE VIEW public.my_documents AS
 SELECT
@@ -218,8 +240,12 @@ SELECT
     author_id,
     contents
 FROM
-    public."Document" WHERE space_id = any(public.my_space_ids('reader'))
-OR public.can_view_specific_resource(space_id, source_local_id);
+    public."Document"
+    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
+WHERE (
+    space_id = any(public.my_space_ids('reader'))
+    OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT NULL)
+);
 
 CREATE OR REPLACE VIEW public.my_contents AS
 SELECT
@@ -237,9 +263,10 @@ SELECT
     last_modified,
     part_of_id
 FROM public."Content"
+    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (
     space_id = any(public.my_space_ids('reader'))
-    OR public.can_view_specific_resource(space_id, source_local_id)
+    OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT NULL)
 );
 
 CREATE OR REPLACE FUNCTION public.document_of_content(content public.my_contents)

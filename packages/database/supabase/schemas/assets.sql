@@ -31,9 +31,10 @@ SELECT
     created,
     last_modified
 FROM public."FileReference"
+    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (
     space_id = any(public.my_space_ids('reader'))
-    OR public.can_view_specific_resource(space_id, source_local_id)
+    OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT NULL)
 );
 
 GRANT ALL ON TABLE public."FileReference" TO authenticated;
@@ -121,7 +122,7 @@ CREATE TRIGGER on_insert_file_reference_trigger AFTER INSERT ON public."FileRefe
 INSERT INTO storage.buckets
 (id, name, public)
 VALUES
-('assets', 'assets', false)
+('assets', 'assets', FALSE)
 ON CONFLICT (id) DO NOTHING;
 
 DROP POLICY IF EXISTS "storage_insert_assets_authenticated" ON storage.objects;
@@ -140,7 +141,7 @@ DROP POLICY IF EXISTS "storage_delete_assets_noref" ON storage.objects;
 CREATE POLICY "storage_delete_assets_noref"
 ON storage.objects FOR DELETE TO authenticated USING (
     bucket_id = 'assets' AND NOT EXISTS (
-        SELECT true FROM public."FileReference"
+        SELECT TRUE FROM public."FileReference"
         WHERE filehash = name LIMIT 1
     )
 );

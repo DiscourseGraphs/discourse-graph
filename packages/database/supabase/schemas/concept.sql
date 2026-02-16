@@ -127,9 +127,10 @@ SELECT
     is_schema,
     source_local_id
 FROM public."Concept"
+    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
 WHERE (
     space_id = any(public.my_space_ids('reader'))
-    OR public.can_view_specific_resource(space_id, source_local_id)
+    OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT null)
 );
 
 -- following https://docs.postgrest.org/en/v13/references/api/resource_embedding.html#recursive-relationships
