@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
   if (!url || !anon_key || !service_key) {
     return new Response("Missing SUPABASE_URL or SB_SECRET_KEY or SB_PUBLISHABLE_KEY", {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: corsHeaders,
     });
   }
   const supabase = createClient(url, anon_key)
@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
       { msg: 'Missing authorization headers' },
       {
         status: 401,
+        headers: corsHeaders,
       }
     )
   }
@@ -75,6 +76,7 @@ Deno.serve(async (req) => {
       { msg: 'Invalid JWT' },
       {
         status: 401,
+        headers: corsHeaders,
       }
     )
   }
@@ -101,6 +103,7 @@ Deno.serve(async (req) => {
         { msg: 'A group by this name exists' },
         {
           status: 400,
+          headers: corsHeaders,
         });
     }
     return Response.json({ msg: 'Failed to create group user', error: error.message }, { status: 500 });
@@ -110,7 +113,11 @@ Deno.serve(async (req) => {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const membershipResponse = await supabaseAdmin.from("group_membership").insert({group_id, member_id:data.claims.sub, admin:true});
   if (membershipResponse.error)
-    return Response.json({ msg: `Failed to create membership for group ${group_id}`, error: membershipResponse.error.message }, { status: 500 });
+    return Response.json({
+      msg: `Failed to create membership for group ${group_id}`,
+      error: membershipResponse.error.message
+    },
+    { status: 500, headers: corsHeaders, });
 
   return Response.json({group_id}, {headers: { "Content-Type": "application/json", ...corsHeaders }});
 });

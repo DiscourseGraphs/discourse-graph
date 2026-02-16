@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
   if (!url || !key) {
     return new Response("Missing SUPABASE_URL or SB_SECRET_KEY", {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: corsHeaders,
     });
   }
 
@@ -223,6 +223,7 @@ Deno.serve(async (req) => {
       { msg: 'Missing authorization headers' },
       {
         status: 401,
+        headers: corsHeaders,
       }
     )
   }
@@ -233,7 +234,7 @@ Deno.serve(async (req) => {
     const { error } = await supabaseAnonClient.from("Space").select("id").limit(1);
     if (error?.code) return new Response(JSON.stringify(error), {
       status: 401,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
@@ -249,11 +250,11 @@ Deno.serve(async (req) => {
     const status = error.code === "invalid space" ? 400 : 500;
     return new Response(JSON.stringify(error), {
       status,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
-  return Response.json(data, {headers: { "Content-Type": "application/json", ...corsHeaders }});
+  return Response.json(data, {headers: corsHeaders });
 });
 
 /* To invoke locally:
