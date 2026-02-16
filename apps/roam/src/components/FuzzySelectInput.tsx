@@ -68,6 +68,16 @@ const FuzzySelectInput = <T extends Result = Result>({
     setValue({ ...value, text: "", uid: "" } as T);
   }, [value, setValue]);
 
+  const handleInputChange = useCallback(
+    (text: string) => {
+      setQuery(text);
+      if (mode === "create" && !isLocked) {
+        setValue({ text, uid: "" } as T);
+      }
+    },
+    [mode, isLocked, setValue],
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "ArrowDown") {
@@ -93,10 +103,9 @@ const FuzzySelectInput = <T extends Result = Result>({
   );
 
   useEffect(() => {
-    if (mode === "create" && !isLocked) {
-      setValue({ text: query, uid: "" } as T);
-    }
-  }, [query, mode, isLocked, setValue]);
+    if (isLocked) return;
+    setQuery(value?.text ?? "");
+  }, [isLocked, value?.text]);
 
   useEffect(() => {
     if (isFocused && filteredItems.length > 0 && query) {
@@ -199,7 +208,7 @@ const FuzzySelectInput = <T extends Result = Result>({
           inputRef={inputRef}
           className="w-full"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
           autoFocus={autoFocus}
           placeholder={placeholder}
