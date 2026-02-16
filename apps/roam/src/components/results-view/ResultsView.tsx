@@ -49,8 +49,6 @@ import setInputSettings from "roamjs-components/util/setInputSettings";
 import posthog from "posthog-js";
 import { Inputs } from "./Inputs";
 
-const existingLints = "adf";
-
 const VIEWS: Record<string, { value: boolean }> = {
   link: { value: false },
   render: { value: false },
