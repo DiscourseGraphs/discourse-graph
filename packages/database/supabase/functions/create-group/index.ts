@@ -31,7 +31,9 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return Response.json(
       { msg: 'Method not allowed' },
-      { status: 405 }
+      { status: 405,
+        headers: myCorsHeaders,
+      }
     );
   }
 
@@ -40,7 +42,7 @@ Deno.serve(async (req) => {
   if (groupName === undefined) {
     return new Response("Missing group name", {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: myCorsHeaders,
     });
   }
   // @ts-ignore Deno is not visible to the IDE
@@ -106,7 +108,7 @@ Deno.serve(async (req) => {
           headers: myCorsHeaders,
         });
     }
-    return Response.json({ msg: 'Failed to create group user', error: error.message }, { status: 500 });
+    return Response.json({ msg: 'Failed to create group user', error: error.message }, { status: 500,  headers: myCorsHeaders });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const group_id = userResponse.data.user.id;
@@ -119,5 +121,5 @@ Deno.serve(async (req) => {
     },
     { status: 500, headers: myCorsHeaders, });
 
-  return Response.json({group_id}, {headers: { "Content-Type": "application/json", ...myCorsHeaders }});
+  return Response.json({group_id}, {headers: myCorsHeaders });
 });
