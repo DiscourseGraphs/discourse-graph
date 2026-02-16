@@ -184,14 +184,142 @@ CREATE TYPE public.account_local_input AS (
     permissions public."SpaceAccessPermissions"
 );
 
+
+CREATE OR REPLACE FUNCTION public.is_my_account(account_id BIGINT) RETURNS boolean
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM public."PlatformAccount"
+        WHERE id = account_id AND dg_account = auth.uid()
+        LIMIT 1
+    );
+$$;
+
+COMMENT ON FUNCTION public.is_my_account IS 'security utility: is this my own account?';
+
+CREATE OR REPLACE FUNCTION public.can_access_account(account_uid UUID) RETURNS boolean
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT account_uid = auth.uid() OR EXISTS (
+        SELECT 1 FROM public.group_membership
+        WHERE member_id = auth.uid() AND group_id=account_uid
+        LIMIT 1
+    );
+$$;
+
+COMMENT ON FUNCTION public.can_access_account IS 'security utility: Is this my account or one of my groups?';
+
+CREATE OR REPLACE FUNCTION public.my_user_accounts() RETURNS SETOF UUID
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT auth.uid() WHERE auth.uid() IS NOT NULL UNION
+    SELECT group_id FROM public.group_membership
+    WHERE member_id = auth.uid();
+$$;
+
+COMMENT ON FUNCTION public.my_user_accounts IS 'security utility: The uids which give me access, either as myself or as a group member.';
+
 CREATE OR REPLACE FUNCTION public.my_permissions_in_space(
     space_id_ BIGINT
 ) RETURNS public."SpaceAccessPermissions"
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT permissions FROM public."SpaceAccess" WHERE space_id=space_id_ AND account_uid = auth.uid();
+    SELECT max(permissions) FROM public."SpaceAccess"
+    JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
+    WHERE space_id=space_id_;
 $$;
+
+CREATE OR REPLACE FUNCTION public.in_group(group_id_ UUID) RETURNS BOOLEAN
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT EXISTS (SELECT true FROM public.group_membership
+        WHERE member_id = auth.uid() AND group_id = group_id_);
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_group_admin(group_id_ UUID) RETURNS BOOLEAN
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT EXISTS (SELECT true FROM public.group_membership
+        WHERE member_id = auth.uid() AND group_id = group_id_ AND admin);
+$$;
+
+CREATE OR REPLACE FUNCTION public.group_exists(group_id_ UUID) RETURNS BOOLEAN
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT EXISTS (SELECT true FROM public.group_membership WHERE group_id = group_id_ LIMIT 1);
+$$;
+
+CREATE OR REPLACE FUNCTION public.my_space_ids(access_level public."SpaceAccessPermissions" = 'reader') RETURNS BIGINT []
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT COALESCE(array_agg(distinct space_id), '{}') AS ids
+        FROM public."SpaceAccess"
+        JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
+        WHERE permissions >= access_level;
+$$;
+COMMENT ON FUNCTION public.my_space_ids IS 'security utility: all spaces the user has access to';
+
+CREATE OR REPLACE FUNCTION public.in_space(space_id BIGINT, access_level public."SpaceAccessPermissions" = 'reader') RETURNS boolean
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT EXISTS (SELECT 1 FROM public."SpaceAccess" AS sa
+        JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
+        WHERE sa.space_id = in_space.space_id AND sa.permissions >= access_level);
+$$;
+
+COMMENT ON FUNCTION public.in_space IS 'security utility: does current user have access to this space?';
+
+CREATE OR REPLACE FUNCTION public.account_in_shared_space(p_account_id BIGINT) RETURNS boolean
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql AS $$
+    SELECT EXISTS (
+      SELECT 1
+      FROM public."LocalAccess" AS la
+      JOIN public."SpaceAccess" AS sa USING (space_id)
+      JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
+      WHERE la.account_id = p_account_id
+      AND sa.permissions >= 'reader'
+    );
+$$;
+
+COMMENT ON FUNCTION public.account_in_shared_space IS 'security utility: does current user share a space with this account?';
+
+CREATE OR REPLACE FUNCTION public.unowned_account_in_shared_space(p_account_id BIGINT) RETURNS boolean
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql AS $$
+    SELECT EXISTS (
+        SELECT 1
+        FROM public."SpaceAccess" AS sa
+        JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
+        JOIN public."LocalAccess" AS la USING (space_id)
+        JOIN public."PlatformAccount" AS pa ON (pa.id=la.account_id)
+        WHERE la.account_id = p_account_id
+          AND pa.dg_account IS NULL
+          AND sa.permissions >= 'reader'
+    );
+$$;
+
+COMMENT ON FUNCTION public.unowned_account_in_shared_space IS 'security utility: does current user share a space with this unowned account?';
+
 
 CREATE OR REPLACE FUNCTION public.upsert_account_in_space(
     space_id_ BIGINT,
@@ -280,131 +408,6 @@ LANGUAGE sql
 AS $$
     SELECT public.upsert_account_in_space(space_id_, ROW(name_, account_local_id_ ,email_, email_trusted, null, permissions_)::public.account_local_input);
 $$;
-
-
-CREATE OR REPLACE FUNCTION public.is_my_account(account_id BIGINT) RETURNS boolean
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT EXISTS (
-        SELECT 1 FROM public."PlatformAccount"
-        WHERE id = account_id AND dg_account = auth.uid()
-        LIMIT 1
-    );
-$$;
-
-COMMENT ON FUNCTION public.is_my_account IS 'security utility: is this my own account?';
-
-CREATE OR REPLACE FUNCTION public.can_access_account(account_uid UUID) RETURNS boolean
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT account_uid = auth.uid() OR EXISTS (
-        SELECT 1 FROM public.group_membership
-        WHERE member_id = auth.uid() AND group_id=account_uid
-        LIMIT 1
-    );
-$$;
-
-COMMENT ON FUNCTION public.can_access_account IS 'security utility: Is this my account or one of my groups?';
-
-CREATE OR REPLACE FUNCTION public.my_user_accounts() RETURNS SETOF UUID
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT auth.uid() WHERE auth.uid() IS NOT NULL UNION
-    SELECT group_id FROM public.group_membership
-    WHERE member_id = auth.uid();
-$$;
-
-COMMENT ON FUNCTION public.my_user_accounts IS 'security utility: The uids which give me access, either as myself or as a group member.';
-
-CREATE OR REPLACE FUNCTION public.in_group(group_id_ UUID) RETURNS BOOLEAN
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT EXISTS (SELECT true FROM public.group_membership
-        WHERE member_id = auth.uid() AND group_id = group_id_);
-$$;
-
-CREATE OR REPLACE FUNCTION public.is_group_admin(group_id_ UUID) RETURNS BOOLEAN
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT EXISTS (SELECT true FROM public.group_membership
-        WHERE member_id = auth.uid() AND group_id = group_id_ AND admin);
-$$;
-
-CREATE OR REPLACE FUNCTION public.group_exists(group_id_ UUID) RETURNS BOOLEAN
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT EXISTS (SELECT true FROM public.group_membership WHERE group_id = group_id_ LIMIT 1);
-$$;
-
-CREATE OR REPLACE FUNCTION public.my_space_ids(access_level public."SpaceAccessPermissions" = 'reader') RETURNS BIGINT []
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT COALESCE(array_agg(distinct space_id), '{}') AS ids
-        FROM public."SpaceAccess"
-        JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
-        WHERE permissions >= access_level;
-$$;
-COMMENT ON FUNCTION public.my_space_ids IS 'security utility: all spaces the user has access to';
-
-CREATE OR REPLACE FUNCTION public.in_space(space_id BIGINT, access_level public."SpaceAccessPermissions" = 'reader') RETURNS boolean
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT EXISTS (SELECT 1 FROM public."SpaceAccess" AS sa
-        JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
-        WHERE sa.space_id = in_space.space_id AND sa.permissions >= access_level);
-$$;
-
-COMMENT ON FUNCTION public.in_space IS 'security utility: does current user have access to this space?';
-
-CREATE OR REPLACE FUNCTION public.account_in_shared_space(p_account_id BIGINT) RETURNS boolean
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql AS $$
-    SELECT EXISTS (
-      SELECT 1
-      FROM public."LocalAccess" AS la
-      JOIN public."SpaceAccess" AS sa USING (space_id)
-      JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
-      WHERE la.account_id = p_account_id
-      AND sa.permissions >= 'reader'
-    );
-$$;
-
-COMMENT ON FUNCTION public.account_in_shared_space IS 'security utility: does current user share a space with this account?';
-
-CREATE OR REPLACE FUNCTION public.unowned_account_in_shared_space(p_account_id BIGINT) RETURNS boolean
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql AS $$
-    SELECT EXISTS (
-        SELECT 1
-        FROM public."SpaceAccess" AS sa
-        JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
-        JOIN public."LocalAccess" AS la USING (space_id)
-        JOIN public."PlatformAccount" AS pa ON (pa.id=la.account_id)
-        WHERE la.account_id = p_account_id
-          AND pa.dg_account IS NULL
-          AND sa.permissions >= 'reader'
-    );
-$$;
-
-COMMENT ON FUNCTION public.unowned_account_in_shared_space IS 'security utility: does current user share a space with this unowned account?';
 
 -- Space: Allow anyone to insert, but only users who are members of the space can update or select
 

@@ -75,3 +75,14 @@ LANGUAGE sql
 AS $$
     SELECT public.upsert_account_in_space(space_id_, ROW(name_, account_local_id_ ,email_, email_trusted, null, permissions_)::public.account_local_input);
 $$;
+
+CREATE OR REPLACE FUNCTION public.my_permissions_in_space(
+    space_id_ BIGINT
+) RETURNS public."SpaceAccessPermissions"
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT max(permissions) FROM public."SpaceAccess"
+    JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
+    WHERE space_id=space_id_;
+$$;
