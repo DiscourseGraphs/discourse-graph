@@ -23,6 +23,10 @@ import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSetting
 
 export type GroupedShapes = Record<string, DiscourseNodeShape[]>;
 
+export function lintWarningProbe(): string {
+  return "lint-warning-probe";
+}
+
 type NodeGroup = {
   uid: string;
   title: string;
