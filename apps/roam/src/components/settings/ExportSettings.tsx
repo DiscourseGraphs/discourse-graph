@@ -7,7 +7,7 @@ import {
   GlobalSelectPanel,
 } from "./components/BlockPropSettingPanels";
 
-const DiscourseGraphExport = ({}: {}) => {
+const DiscourseGraphExport = () => {
   const settings = getFormattedConfigTree();
   const exportSettings = settings.export;
   const parentUid = settings.export.exportUid;
