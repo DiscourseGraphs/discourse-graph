@@ -84,12 +84,8 @@ const ModifyNodeDialog = ({
     [content.uid, initialValue.uid, mode],
   );
   const isReferencedNodeLocked = useMemo(
-    () =>
-      Boolean(
-        referencedNodeValue.uid &&
-          referencedNodeValue.uid !== initialReferencedNode?.uid,
-      ),
-    [referencedNodeValue.uid, initialReferencedNode?.uid],
+    () => Boolean(referencedNodeValue.uid),
+    [referencedNodeValue.uid],
   );
 
   const [options, setOptions] = useState<{
@@ -537,7 +533,6 @@ const ModifyNodeDialog = ({
                   : `Enter a ${selectedNodeType.text.toLowerCase()} ...`
               }
               mode={mode}
-              initialUid={content.uid}
               autoFocus
             />
           </div>
@@ -552,7 +547,6 @@ const ModifyNodeDialog = ({
                 options={options.referencedNode}
                 placeholder={loading ? "..." : "Select a referenced node"}
                 mode={"create"}
-                initialUid={referencedNodeValue.uid}
                 initialIsLocked={isReferencedNodeLocked}
                 autoFocus={false}
               />

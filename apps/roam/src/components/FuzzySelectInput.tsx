@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
 import {
   Button,
   TextArea,
@@ -16,7 +22,6 @@ type FuzzySelectInputProps<T extends Result = Result> = {
   setValue: (q: T) => void;
   onLockedChange?: (isLocked: boolean) => void;
   mode: "create" | "edit";
-  initialUid: string;
   options?: T[];
   placeholder?: string;
   autoFocus?: boolean;
@@ -28,7 +33,6 @@ const FuzzySelectInput = <T extends Result = Result>({
   setValue,
   onLockedChange,
   mode,
-  initialUid,
   options = [],
   placeholder = "Enter value",
   autoFocus,
@@ -52,7 +56,7 @@ const FuzzySelectInput = <T extends Result = Result>({
 
   const handleSelect = useCallback(
     (item: T) => {
-      if (mode === "create" && item.uid && item.uid !== initialUid) {
+      if (mode === "create" && item.uid) {
         setIsLocked(true);
         setQuery(item.text);
         setValue(item);
@@ -65,7 +69,7 @@ const FuzzySelectInput = <T extends Result = Result>({
         requestAnimationFrame(() => inputRef.current?.focus());
       }
     },
-    [mode, initialUid, setValue, onLockedChange],
+    [mode, setValue, onLockedChange],
   );
 
   const handleClear = useCallback(() => {
@@ -104,6 +108,12 @@ const FuzzySelectInput = <T extends Result = Result>({
       setValue({ text: query, uid: "" } as T);
     }
   }, [query, mode, isLocked, setValue]);
+
+  useEffect(() => {
+    if (typeof initialIsLocked === "boolean") {
+      setIsLocked(initialIsLocked);
+    }
+  }, [initialIsLocked]);
 
   useEffect(() => {
     if (isFocused && filteredItems.length > 0 && query) {
