@@ -27,6 +27,10 @@ import { getSetting } from "~/utils/extensionSettings";
 import { strictQueryForReifiedBlocks } from "~/utils/createReifiedBlock";
 import internalError from "~/utils/internalError";
 
+export function lintWarningProbe(): string {
+  return "lint-warning-probe";
+}
+
 const EXTRA_ROW_TYPES = ["context", "discourse"] as const;
 type ExtraRowType = (typeof EXTRA_ROW_TYPES)[number] | null;
 
