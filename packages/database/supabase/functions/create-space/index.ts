@@ -243,9 +243,19 @@ Deno.serve(async (req) => {
   // But the point here is to bypass RLS
   const supabase: DGSupabaseClient = createClient(url, key);
 
-  const input = await req.json();
+  let input: SpaceCreationInput | undefined = undefined;
+  try {
+    input = await req.json();
+    // TODO: Validate input
+    // For now, errors will be caught downstream
+  } catch (error) {
+    new Response(JSON.stringify(error), {
+      status: 400,
+      headers: { "Content-Type": "application/json", ...myCorsHeaders },
+    });
+  }
 
-  const { data, error } = await processAndGetOrCreateSpace(supabase, input);
+  const { data, error } = await processAndGetOrCreateSpace(supabase, input!);
   if (error) {
     const status = error.code === "invalid space" ? 400 : 500;
     return new Response(JSON.stringify(error), {
