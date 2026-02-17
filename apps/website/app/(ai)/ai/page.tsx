@@ -4,4 +4,5 @@ const AIPage = () => {
   return <ExtractionApp />;
 };
 
+
 export default AIPage;
