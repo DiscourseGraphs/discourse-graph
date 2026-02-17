@@ -25,7 +25,7 @@ import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { Result } from "~/utils/types";
 import { getSetting } from "~/utils/extensionSettings";
-import fuzzy from "fuzzy";
+import MiniSearch from "minisearch";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -33,6 +33,13 @@ type Props = {
   onClose: () => void;
   triggerText: string;
 };
+
+type MinisearchResult = Result & {
+  type: string;
+};
+
+const MIN_SEARCH_SCORE = 0.1;
+const MAX_ITEMS_PER_TYPE = 10;
 
 const waitForBlock = ({
   uid,
@@ -76,7 +83,6 @@ const NodeSearchMenu = ({
   const [discourseTypes, setDiscourseTypes] = useState<DiscourseNode[]>([]);
   const [checkedTypes, setCheckedTypes] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [allNodes, setAllNodes] = useState<Record<string, Result[]>>({});
   const [searchResults, setSearchResults] = useState<Record<string, Result[]>>(
     {},
   );
@@ -90,7 +96,8 @@ const NodeSearchMenu = ({
     [typeIds, checkedTypes],
   );
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const miniSearchRef = useRef<MiniSearch<MinisearchResult> | null>(null);
   const POPOVER_TOP_OFFSET = 30;
 
   const debouncedSearchTerm = useCallback((term: string) => {
@@ -135,16 +142,79 @@ const NodeSearchMenu = ({
     }
   };
 
-  const filterNodesLocally = useCallback(
-    (nodes: Result[], searchTerm: string): Result[] => {
-      if (!searchTerm.trim()) return nodes;
+  const searchWithMiniSearch = useCallback(
+    (searchTerm: string, typeFilter?: string[]): Record<string, Result[]> => {
+      if (!miniSearchRef.current) {
+        return {};
+      }
 
-      return fuzzy
-        .filter(searchTerm, nodes, {
-          extract: (node) => node.text,
-        })
-        .map((result) => result.original)
-        .filter((node): node is Result => !!node);
+      const search = miniSearchRef.current;
+
+      if (!searchTerm.trim()) {
+        if (!typeFilter) {
+          return {};
+        }
+
+        const allResults: Record<string, Result[]> = {};
+        typeFilter.forEach((type) => {
+          const results = (
+            search.search(MiniSearch.wildcard, {
+              filter: (result) =>
+                (result as unknown as MinisearchResult).type === type,
+            }) as unknown as MinisearchResult[]
+          )
+            .slice(0, MAX_ITEMS_PER_TYPE)
+            .map((r) => ({
+              text: r.text,
+              uid: r.uid,
+            }));
+          allResults[type] = results;
+        });
+
+        return allResults;
+      }
+
+      const rawSearchResults = search.search(searchTerm, {
+        fields: ["text"],
+        fuzzy: 0.2,
+        prefix: true,
+        combineWith: "AND",
+        filter: typeFilter
+          ? (result) =>
+              typeFilter.includes((result as unknown as MinisearchResult).type)
+          : undefined,
+      });
+
+      const filteredResults = rawSearchResults.filter(
+        (r) => r.score > MIN_SEARCH_SCORE,
+      );
+
+      const searchResults = (
+        filteredResults as unknown as MinisearchResult[]
+      ).map((r) => ({
+        text: r.text,
+        uid: r.uid,
+        type: r.type,
+      }));
+
+      const results = searchResults.reduce(
+        (acc, result) => {
+          if (!acc[result.type]) {
+            acc[result.type] = [];
+          }
+          if (acc[result.type].length < MAX_ITEMS_PER_TYPE) {
+            acc[result.type].push({
+              id: result.uid,
+              text: result.text,
+              uid: result.uid,
+            });
+          }
+          return acc;
+        },
+        {} as Record<string, Result[]>,
+      );
+
+      return results;
     },
     [],
   );
@@ -169,7 +239,30 @@ const NodeSearchMenu = ({
       allNodeTypes.forEach((type) => {
         allNodesCache[type.type] = searchNodesForType(type);
       });
-      setAllNodes(allNodesCache);
+
+      const miniSearch = new MiniSearch<MinisearchResult>({
+        fields: ["text"],
+        storeFields: ["text", "uid", "type"],
+        idField: "uid",
+      });
+
+      const documentsToIndex: MinisearchResult[] = [];
+      const seenUids = new Set<string>();
+
+      allNodeTypes.forEach((type) => {
+        const nodes = allNodesCache[type.type] || [];
+        nodes.forEach((node) => {
+          if (seenUids.has(node.uid)) return;
+          seenUids.add(node.uid);
+          documentsToIndex.push({
+            ...node,
+            type: type.type,
+          });
+        });
+      });
+
+      miniSearch.addAll(documentsToIndex);
+      miniSearchRef.current = miniSearch;
 
       const initialSearchResults = Object.fromEntries(
         allNodeTypes.map((type) => [type.type, []]),
@@ -183,17 +276,21 @@ const NodeSearchMenu = ({
   }, []);
 
   useEffect(() => {
-    if (isLoading || Object.keys(allNodes).length === 0) return;
+    if (isLoading || !miniSearchRef.current) return;
 
-    const newResults: Record<string, Result[]> = {};
+    const selectedTypes = discourseTypes
+      .filter((type) => checkedTypes[type.type])
+      .map((type) => type.type);
 
-    discourseTypes.forEach((type) => {
-      const cachedNodes = allNodes[type.type] || [];
-      newResults[type.type] = filterNodesLocally(cachedNodes, searchTerm);
-    });
-
+    const newResults = searchWithMiniSearch(searchTerm, selectedTypes);
     setSearchResults(newResults);
-  }, [searchTerm, isLoading, allNodes, discourseTypes, filterNodesLocally]);
+  }, [
+    searchTerm,
+    isLoading,
+    discourseTypes,
+    checkedTypes,
+    searchWithMiniSearch,
+  ]);
 
   const menuRef = useRef<HTMLUListElement>(null);
   const { ["block-uid"]: blockUid, ["window-id"]: windowId } = useMemo(
@@ -232,61 +329,61 @@ const NodeSearchMenu = ({
 
   const onSelect = useCallback(
     (item: Result) => {
-       if (!blockUid) {
-         onClose();
-         return;
-       }
-       void waitForBlock({ uid: blockUid, text: textarea.value })
-         .then(() => {
-           onClose();
+      if (!blockUid) {
+        onClose();
+        return;
+      }
+      void waitForBlock({ uid: blockUid, text: textarea.value })
+        .then(() => {
+          onClose();
 
-           setTimeout(() => {
-             const originalText = getTextByBlockUid(blockUid);
+          setTimeout(() => {
+            const originalText = getTextByBlockUid(blockUid);
 
-             const prefix = originalText.substring(0, triggerPosition);
-             const suffix = originalText.substring(textarea.selectionStart);
-             const pageRef = `[[${item.text}]]`;
+            const prefix = originalText.substring(0, triggerPosition);
+            const suffix = originalText.substring(textarea.selectionStart);
+            const pageRef = `[[${item.text}]]`;
 
-             const newText = `${prefix}${pageRef}${suffix}`;
-             void updateBlock({ uid: blockUid, text: newText }).then(() => {
-               const newCursorPosition = triggerPosition + pageRef.length;
+            const newText = `${prefix}${pageRef}${suffix}`;
+            void updateBlock({ uid: blockUid, text: newText }).then(() => {
+              const newCursorPosition = triggerPosition + pageRef.length;
 
-               if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
-                 void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
-                   location: {
-                     // eslint-disable-next-line @typescript-eslint/naming-convention
-                     "block-uid": blockUid,
-                     // eslint-disable-next-line @typescript-eslint/naming-convention
-                     "window-id": windowId,
-                   },
-                   selection: { start: newCursorPosition },
-                 });
-               } else {
-                 setTimeout(() => {
-                   const textareaElements =
-                     document.querySelectorAll("textarea");
-                   for (const el of textareaElements) {
-                     if (getUids(el).blockUid === blockUid) {
-                       el.focus();
-                       el.setSelectionRange(
-                         newCursorPosition,
-                         newCursorPosition,
-                       );
-                       break;
-                     }
-                   }
-                 }, 50);
-               }
-             });
-             posthog.capture("Discourse Node: Selected from Search Menu", {
-               id: item.id,
-               text: item.text,
-             });
-           }, 10);
-         })
-         .catch((error) => {
-           console.error("Error waiting for block:", error);
-         });
+              if (window.roamAlphaAPI.ui.setBlockFocusAndSelection) {
+                void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
+                  location: {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    "block-uid": blockUid,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    "window-id": windowId,
+                  },
+                  selection: { start: newCursorPosition },
+                });
+              } else {
+                setTimeout(() => {
+                  const textareaElements =
+                    document.querySelectorAll("textarea");
+                  for (const el of textareaElements) {
+                    if (getUids(el).blockUid === blockUid) {
+                      el.focus();
+                      el.setSelectionRange(
+                        newCursorPosition,
+                        newCursorPosition,
+                      );
+                      break;
+                    }
+                  }
+                }, 50);
+              }
+            });
+            posthog.capture("Discourse Node: Selected from Search Menu", {
+              id: item.id,
+              text: item.text,
+            });
+          }, 10);
+        })
+        .catch((error) => {
+          console.error("Error waiting for block:", error);
+        });
     },
     [blockUid, onClose, textarea, triggerPosition, windowId],
   );
