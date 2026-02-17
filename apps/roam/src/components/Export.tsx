@@ -154,15 +154,10 @@ const ExportDialog: ExportDialogComponent = ({
   const exportId = useMemo(() => nanoid(), []);
   useEffect(() => {
     setDialogOpen(isOpen);
-    if (isOpen) {
-      posthog.capture("Export Dialog: Opened", {
-        title,
-        resultCount: results.length,
-        initialPanel: initialPanel ?? "sendTo",
-        isExportDiscourseGraph,
-      });
-    }
-  }, [initialPanel, isExportDiscourseGraph, isOpen, results.length, title]);
+  }, [isOpen]);
+
+  // TODO: maybe add posthog capture here for isOpen
+
   const [dialogOpen, setDialogOpen] = useState(isOpen);
   const exportTypes = useMemo(
     () => getExportTypes({ results, exportId, isExportDiscourseGraph }),
