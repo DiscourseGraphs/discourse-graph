@@ -7,6 +7,7 @@ import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
 import { PluginProvider, usePlugin } from "~/components/PluginContext";
 import { getNodeTypeById } from "~/utils/typeUtils";
 import { refreshImportedFile } from "~/utils/importNodes";
+import { publishNode } from "~/utils/publishNode";
 import { useState } from "react";
 
 type DiscourseContextProps = {
@@ -16,6 +17,7 @@ type DiscourseContextProps = {
 const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const extractContentFromTitle = (format: string, title: string): string => {
     if (!format) return "";
@@ -45,6 +47,36 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
       console.error("Refresh failed:", error);
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!activeFile || isPublishing) return;
+
+    const fileMetadata = plugin.app.metadataCache.getFileCache(activeFile);
+    const frontmatter = fileMetadata?.frontmatter;
+
+    if (!frontmatter) {
+      new Notice("Cannot publish: No frontmatter found", 5000);
+      return;
+    }
+
+    if (!frontmatter.nodeInstanceId) {
+      new Notice("Please sync the node first", 5000);
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      await publishNode({ plugin, file: activeFile, frontmatter });
+      new Notice("Published successfully", 3000);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      new Notice(`Publish failed: ${errorMessage}`, 5000);
+      console.error("Publish failed:", error);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -86,6 +118,14 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
           }
         : null;
 
+    const isPublished =
+      !isImported &&
+      frontmatter.publishedToGroups &&
+      Array.isArray(frontmatter.publishedToGroups) &&
+      frontmatter.publishedToGroups.length > 0;
+    const canPublish =
+      plugin.settings.syncModeEnabled && !isImported && frontmatter.nodeTypeId;
+
     return (
       <>
         <div className="mb-6">
@@ -107,6 +147,26 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
                 title="Refresh from source"
               >
                 {isRefreshing ? "Refreshing..." : "🔄 Refresh"}
+              </button>
+            )}
+            {canPublish && (
+              <button
+                onClick={() => {
+                  void handlePublish();
+                }}
+                disabled={isPublishing}
+                className="ml-auto rounded border px-2 py-1 text-xs"
+                title={
+                  isPublished
+                    ? "Re-publish to lab space"
+                    : "Publish to lab space"
+                }
+              >
+                {isPublishing
+                  ? "Publishing..."
+                  : isPublished
+                    ? "Published"
+                    : "Publish"}
               </button>
             )}
           </div>
