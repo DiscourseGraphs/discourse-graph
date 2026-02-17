@@ -355,9 +355,9 @@ const personalSettings: PersonalSettings = {
       },
     },
   },
-  "Personal node menu trigger": ";;",
+  "Personal node menu trigger": { modifiers: 0, key: ";;" },
   "Node search menu trigger": "//",
-  "Discourse tool shortcut": "d",
+  "Discourse tool shortcut": { modifiers: 0, key: "d" },
   "Discourse context overlay": true,
   "Suggestive mode overlay": true,
   "Overlay in canvas": false,
@@ -383,9 +383,9 @@ const personalSettings: PersonalSettings = {
 
 const defaultPersonalSettings: PersonalSettings = {
   "Left sidebar": {},
-  "Personal node menu trigger": "",
+  "Personal node menu trigger": { modifiers: 0, key: "" },
   "Node search menu trigger": "",
-  "Discourse tool shortcut": "",
+  "Discourse tool shortcut": { modifiers: 0, key: "" },
   "Discourse context overlay": false,
   "Suggestive mode overlay": false,
   "Overlay in canvas": false,

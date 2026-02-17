@@ -57,6 +57,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       <KeyboardShortcutInput
         onloadArgs={onloadArgs}
         settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
+        blockPropKey="Discourse tool shortcut"
         label="Discourse tool keyboard shortcut"
         description="Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
         placeholder="Click to set single key"

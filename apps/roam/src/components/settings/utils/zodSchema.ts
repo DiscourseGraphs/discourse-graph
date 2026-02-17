@@ -230,9 +230,16 @@ export const QuerySettingsSchema = z.object({
 
 export const PersonalSettingsSchema = z.object({
   "Left sidebar": LeftSidebarPersonalSettingsSchema,
-  "Personal node menu trigger": z.string().default(""),
+  "Personal node menu trigger": z
+    .union([
+      z.object({ modifiers: z.number(), key: z.string() }),
+      z.literal(""),
+    ])
+    .default({ modifiers: 0, key: "" }),
   "Node search menu trigger": z.string().default("@"),
-  "Discourse tool shortcut": z.string().default(""),
+  "Discourse tool shortcut": z
+    .object({ modifiers: z.number(), key: z.string() })
+    .default({ modifiers: 0, key: "" }),
   "Discourse context overlay": z.boolean().default(false),
   "Suggestive mode overlay": z.boolean().default(false),
   "Overlay in canvas": z.boolean().default(false),
