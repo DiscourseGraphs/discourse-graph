@@ -27,6 +27,7 @@ import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
+import { setPersonalSetting } from "~/components/settings/utils/accessors";
 
 type Props = {
   textarea?: HTMLTextAreaElement;
@@ -406,6 +407,13 @@ export const getModifiersFromCombo = (comboKey: IKeyCombo) => {
   ].filter(Boolean);
 };
 
+export const comboToString = (combo: IKeyCombo): string => {
+  if (!combo.key) return "";
+  const modifiers = getModifiersFromCombo(combo);
+  const comboString = [...modifiers, combo.key].join("+");
+  return normalizeKeyCombo(comboString).join("+");
+};
+
 export const NodeMenuTriggerComponent = ({
   extensionAPI,
 }: {
@@ -427,19 +435,15 @@ export const NodeMenuTriggerComponent = ({
       const comboObj = getKeyCombo(e.nativeEvent);
       if (!comboObj.key) return;
 
-      setComboKey({ key: comboObj.key, modifiers: comboObj.modifiers });
-      extensionAPI.settings.set("personal-node-menu-trigger", comboObj);
+      const combo = { key: comboObj.key, modifiers: comboObj.modifiers };
+      setComboKey(combo);
+      void extensionAPI.settings.set("personal-node-menu-trigger", combo);
+      setPersonalSetting(["Personal node menu trigger"], combo);
     },
     [extensionAPI],
   );
 
-  const shortcut = useMemo(() => {
-    if (!comboKey.key) return "";
-
-    const modifiers = getModifiersFromCombo(comboKey);
-    const comboString = [...modifiers, comboKey.key].join("+");
-    return normalizeKeyCombo(comboString).join("+");
-  }, [comboKey]);
+  const shortcut = useMemo(() => comboToString(comboKey), [comboKey]);
 
   return (
     <InputGroup
@@ -455,7 +459,8 @@ export const NodeMenuTriggerComponent = ({
           icon={"remove"}
           onClick={() => {
             setComboKey({ modifiers: 0, key: "" });
-            extensionAPI.settings.set("personal-node-menu-trigger", "");
+            void extensionAPI.settings.set("personal-node-menu-trigger", "");
+            setPersonalSetting(["Personal node menu trigger"], "");
           }}
           minimal
         />
