@@ -480,12 +480,14 @@ const updateMarkdownAssetLinks = ({
   targetFile,
   app,
   originalNodePath,
+  spaceName,
 }: {
   content: string;
   oldPathToNewPath: Map<string, string>;
   targetFile: TFile;
   app: App;
   originalNodePath?: string;
+  spaceName: string;
 }): string => {
   if (oldPathToNewPath.size === 0) {
     return content;
@@ -644,7 +646,33 @@ const updateMarkdownAssetLinks = ({
         }
       }
 
-      return match;
+      // For non-asset wikilinks, rewrite them to point to the import folder
+      // This ensures files created by clicking these links are placed in the correct location
+      const importBasePath = `import/${sanitizeFileName(spaceName)}`;
+      
+      // Resolve the link path relative to the original note's directory
+      let resolvedLinkPath = linkPath;
+      if (originalNodePath && (linkPath.startsWith("../") || linkPath.startsWith("./"))) {
+        // Link is relative to the source note
+        const originalNoteDir = originalNodePath.includes("/")
+          ? originalNodePath.replace(/\/[^/]*$/, "")
+          : "";
+        resolvedLinkPath = resolvePathRelativeToBase(originalNoteDir, linkPath);
+      }
+      
+      // Remove .md extension if present for cleaner paths
+      const cleanedPath = resolvedLinkPath.replace(/\.md$/, "");
+      
+      // Construct the target path in the import folder
+      const targetPathInImport = `${importBasePath}/${cleanedPath}`;
+      
+      // Get relative path from current note to the target
+      const relativePath = getRelativeLinkPath(targetPathInImport);
+      
+      if (alias) {
+        return `[[${relativePath}|${alias}]]`;
+      }
+      return `[[${relativePath}]]`;
     },
   );
 
@@ -1250,21 +1278,21 @@ export const importSelectedNodes = async ({
           originalNodePath,
         });
 
-        // Update markdown content with new asset paths if assets were imported
-        if (assetImportResult.pathMapping.size > 0) {
-          const currentContent = await plugin.app.vault.read(processedFile);
-          const updatedContent = updateMarkdownAssetLinks({
-            content: currentContent,
-            oldPathToNewPath: assetImportResult.pathMapping,
-            targetFile: processedFile,
-            app: plugin.app,
-            originalNodePath,
-          });
+        // Update markdown content to translate all wikilinks to relative paths
+        // This includes both asset links and non-asset wikilinks
+        const currentContent = await plugin.app.vault.read(processedFile);
+        const updatedContent = updateMarkdownAssetLinks({
+          content: currentContent,
+          oldPathToNewPath: assetImportResult.pathMapping,
+          targetFile: processedFile,
+          app: plugin.app,
+          originalNodePath,
+          spaceName,
+        });
 
-          // Only update if content changed
-          if (updatedContent !== currentContent) {
-            await plugin.app.vault.modify(processedFile, updatedContent);
-          }
+        // Only update if content changed
+        if (updatedContent !== currentContent) {
+          await plugin.app.vault.modify(processedFile, updatedContent);
         }
 
         // Log asset import errors if any
