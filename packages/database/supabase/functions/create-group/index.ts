@@ -40,9 +40,11 @@ Deno.serve(async (req) => {
   try {
     input = await req.json();
   } catch (error) {
-    return new Response(JSON.stringify(error), {
+    return Response.json({
+      msg: 'Invalid JSON in request body', error: String(error?.message ?? error)
+    }, {
       status: 400,
-      headers: { "Content-Type": "application/json", ...myCorsHeaders },
+      headers: myCorsHeaders,
     });
   }
   const groupName = input.name;

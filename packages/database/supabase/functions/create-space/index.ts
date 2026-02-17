@@ -232,10 +232,13 @@ Deno.serve(async (req) => {
     url, token, { global: { headers: { Authorization: authHeader } } });
   {
     const { error } = await supabaseAnonClient.from("Space").select("id").limit(1);
-    if (error?.code) return new Response(JSON.stringify(error), {
-      status: 401,
-      headers: { "Content-Type": "application/json", ...myCorsHeaders },
-    });
+    if (error?.code) {
+      const {code, message, name} = error;
+      return Response.json({code, message, name}, {
+        status: 401,
+        headers: myCorsHeaders,
+      });
+    }
   }
 
   // note: If we wanted this to be bound by permissions, we'd set the following options:
@@ -249,18 +252,21 @@ Deno.serve(async (req) => {
     // TODO: Validate input
     // For now, errors will be caught downstream
   } catch (error) {
-    return new Response(JSON.stringify(error), {
+    return Response.json({
+      msg: 'Invalid JSON in request body', error: String(error?.message ?? error)
+    }, {
       status: 400,
-      headers: { "Content-Type": "application/json", ...myCorsHeaders },
+      headers: myCorsHeaders,
     });
   }
 
   const { data, error } = await processAndGetOrCreateSpace(supabase, input!);
   if (error) {
-    const status = error.code === "invalid space" ? 400 : 500;
-    return new Response(JSON.stringify(error), {
+    const {code, message, name} = error;
+    const status = code === "invalid space" ? 400 : 500;
+    return Response.json({code, message, name}, {
       status,
-      headers: { "Content-Type": "application/json", ...myCorsHeaders },
+      headers: myCorsHeaders,
     });
   }
 
