@@ -117,7 +117,7 @@ Alternatively, you can click "Refresh" button from the Discourse Context panel.
 
 - **Sync discourse nodes to Supabase**:  Manually sync all discourse nodes to the database
 - **Publish current node to lab space**: Publish the active discourse node to your group            
-- **Import nodes from another space**:Open the import modal to browse and import shared nodes    
+- **Import nodes from another space**: Open the import modal to browse and import shared nodes    
 - **Fetch latest content from imported nodes**: Refresh all imported nodes with the latest content         
 
 
