@@ -1,4 +1,10 @@
-import { ItemView, TFile, WorkspaceLeaf, Notice, FrontMatterCache } from "obsidian";
+import {
+  ItemView,
+  TFile,
+  WorkspaceLeaf,
+  Notice,
+  FrontMatterCache,
+} from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import DiscourseGraphPlugin from "~/index";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
