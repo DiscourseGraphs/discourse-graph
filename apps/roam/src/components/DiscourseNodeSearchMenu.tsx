@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import React, {
   useCallback,
   useEffect,
@@ -97,7 +96,7 @@ const NodeSearchMenu = ({
     [typeIds, checkedTypes],
   );
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const miniSearchRef = useRef<MiniSearch<MinisearchResult> | null>(null);
   const POPOVER_TOP_OFFSET = 30;
 
@@ -163,17 +162,18 @@ const NodeSearchMenu = ({
               filter: (result) =>
                 (result as unknown as MinisearchResult).type === type,
             }) as unknown as MinisearchResult[]
-          ).slice(0, MAX_ITEMS_PER_TYPE).map((r) => ({
-            text: r.text,
-            uid: r.uid,
-          }));
+          )
+            .slice(0, MAX_ITEMS_PER_TYPE)
+            .map((r) => ({
+              text: r.text,
+              uid: r.uid,
+            }));
           allResults[type] = results;
         });
 
         return allResults;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const rawSearchResults = search.search(searchTerm, {
         fields: ["text"],
         fuzzy: 0.2,
