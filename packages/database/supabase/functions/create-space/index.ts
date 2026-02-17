@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
     // TODO: Validate input
     // For now, errors will be caught downstream
   } catch (error) {
-    new Response(JSON.stringify(error), {
+    return new Response(JSON.stringify(error), {
       status: 400,
       headers: { "Content-Type": "application/json", ...myCorsHeaders },
     });
