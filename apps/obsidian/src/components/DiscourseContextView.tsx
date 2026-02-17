@@ -18,6 +18,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [, forceUpdate] = useState({});
 
   const extractContentFromTitle = (format: string, title: string): string => {
     if (!format) return "";
@@ -62,6 +63,8 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
     try {
       await publishNode({ plugin, file: activeFile, frontmatter });
       new Notice("Published successfully", 3000);
+      // Force re-render to update button state after frontmatter changes
+      forceUpdate({});
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -149,18 +152,24 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
                   void handlePublish(frontmatter);
                 }}
                 disabled={isPublishing}
-                className="ml-auto rounded border px-2 py-1 text-xs"
+                className={`ml-auto rounded px-2 py-1 text-xs ${
+                  isPublished
+                    ? "border-green-600 bg-green-600 text-white hover:bg-green-700"
+                    : "border hover:bg-gray-100"
+                }`}
                 title={
                   isPublished
                     ? "Re-publish to lab space"
                     : "Publish to lab space"
                 }
               >
-                {isPublishing
-                  ? "Publishing..."
-                  : isPublished
-                    ? "Published"
-                    : "Publish"}
+                {isPublishing ? (
+                  "Publishing..."
+                ) : isPublished ? (
+                  <>✓ Published</>
+                ) : (
+                  "Publish"
+                )}
               </button>
             )}
           </div>
