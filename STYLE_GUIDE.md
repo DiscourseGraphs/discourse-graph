@@ -25,7 +25,7 @@ This document outlines the coding standards and best practices for contributing 
   - camelCase for variables and functions
   - UPPERCASE for constants
 
-## Documentation
+## Code Documentation
 
 - Use Comments Strategically:
   - Add comments only when necessary. Well-written code with descriptive names should minimize the need for comments.
@@ -87,6 +87,10 @@ const processData = (data: Data) => {
   return formatForDisplay(transformedData);
 };
 ```
+
+## Documentation
+
+- Use sentence case by default in docs and UI copy. Capitalize official product/plugin names and exact UI labels, buttons, or page titles, but keep generic feature terms lowercase.
 
 ## Testing
 
