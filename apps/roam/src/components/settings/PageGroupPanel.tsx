@@ -10,7 +10,7 @@ import { setGlobalSetting } from "~/components/settings/utils/accessors";
 
 const syncPageGroupsToBlockProps = (groups: PageGroup[]) => {
   setGlobalSetting(
-    ["Suggestive Mode", "Page Groups"],
+    ["Suggestive mode", "Page groups"],
     groups.map((g) => ({ name: g.name, pages: g.pages.map((p) => p.name) })),
   );
 };
