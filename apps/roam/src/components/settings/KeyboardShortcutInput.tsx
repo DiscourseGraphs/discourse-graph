@@ -9,62 +9,22 @@ import {
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
+import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import { comboToString } from "~/components/DiscourseNodeMenu";
 
 type KeyboardShortcutInputProps = {
   onloadArgs: OnloadArgs;
   settingKey: string;
+  blockPropKey: string;
   label: string;
   description: string;
   placeholder?: string;
 };
 
-// Reuse the keyboard combo utilities from NodeMenuTriggerComponent
-const isMac = () => {
-  const platform =
-    typeof navigator !== "undefined" ? navigator.platform : undefined;
-  return platform == null ? false : /Mac|iPod|iPhone|iPad/.test(platform);
-};
-
-const MODIFIER_BIT_MASKS = {
-  alt: 1,
-  ctrl: 2,
-  meta: 4,
-  shift: 8,
-};
-
-const ALIASES: { [key: string]: string } = {
-  cmd: "meta",
-  command: "meta",
-  escape: "esc",
-  minus: "-",
-  mod: isMac() ? "meta" : "ctrl",
-  option: "alt",
-  plus: "+",
-  return: "enter",
-  win: "meta",
-};
-
-const normalizeKeyCombo = (combo: string) => {
-  const keys = combo.replace(/\s/g, "").split("+");
-  return keys.map((key) => {
-    const keyName = ALIASES[key] != null ? ALIASES[key] : key;
-    return keyName === "meta" ? (isMac() ? "cmd" : "win") : keyName;
-  });
-};
-
-const getModifiersFromCombo = (comboKey: IKeyCombo) => {
-  if (!comboKey) return [];
-  return [
-    comboKey.modifiers & MODIFIER_BIT_MASKS.alt && "alt",
-    comboKey.modifiers & MODIFIER_BIT_MASKS.ctrl && "ctrl",
-    comboKey.modifiers & MODIFIER_BIT_MASKS.shift && "shift",
-    comboKey.modifiers & MODIFIER_BIT_MASKS.meta && "meta",
-  ].filter(Boolean);
-};
-
 const KeyboardShortcutInput = ({
   onloadArgs,
   settingKey,
+  blockPropKey,
   label,
   description,
   placeholder = "Click to set shortcut",
@@ -104,6 +64,7 @@ const KeyboardShortcutInput = ({
           extensionAPI.settings
             .set(settingKey, comboObj)
             .catch(() => console.error("Failed to set setting"));
+          setPersonalSetting([blockPropKey], comboObj);
         }
         return;
       }
@@ -112,28 +73,26 @@ const KeyboardShortcutInput = ({
       const comboObj = getKeyCombo(e.nativeEvent);
       if (!comboObj.key) return;
 
-      setComboKey({ key: comboObj.key, modifiers: comboObj.modifiers });
+      const combo = { key: comboObj.key, modifiers: comboObj.modifiers };
+      setComboKey(combo);
       extensionAPI.settings
-        .set(settingKey, comboObj)
+        .set(settingKey, combo)
         .catch(() => console.error("Failed to set setting"));
+      setPersonalSetting([blockPropKey], combo);
     },
-    [extensionAPI, settingKey],
+    [extensionAPI, settingKey, blockPropKey],
   );
 
-  const shortcut = useMemo(() => {
-    if (!comboKey.key) return "";
-
-    const modifiers = getModifiersFromCombo(comboKey);
-    const comboString = [...modifiers, comboKey.key].join("+");
-    return normalizeKeyCombo(comboString).join("+");
-  }, [comboKey]);
+  const shortcut = useMemo(() => comboToString(comboKey), [comboKey]);
 
   const handleClear = useCallback(() => {
-    setComboKey({ modifiers: 0, key: "" });
+    const clearedCombo = { modifiers: 0, key: "" };
+    setComboKey(clearedCombo);
     extensionAPI.settings
-      .set(settingKey, { modifiers: 0, key: "" })
+      .set(settingKey, clearedCombo)
       .catch(() => console.error("Failed to set setting"));
-  }, [extensionAPI, settingKey]);
+    setPersonalSetting([blockPropKey], clearedCombo);
+  }, [extensionAPI, settingKey, blockPropKey]);
 
   return (
     <Label>
