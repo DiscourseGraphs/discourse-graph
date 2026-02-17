@@ -748,12 +748,12 @@ const ExportDialog: ExportDialogComponent = ({
       if (download) {
         const blob = new Blob([download], { type: "application/zip" });
         saveAs(blob, `${filename}.zip`);
-      }
       posthog.capture("Export Dialog: Export Completed", {
         exportType: "PDF",
         destination: activeExportDestination,
         fileCount: files.length,
       });
+
       onClose();
     } catch (e) {
       setError("Failed to export files.");
