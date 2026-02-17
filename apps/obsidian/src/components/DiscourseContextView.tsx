@@ -44,7 +44,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
       Array.isArray(publishedToGroups) &&
       publishedToGroups.length > 0;
     setIsPublished(published);
-  }, [activeFile?.path, plugin]);
+  }, [activeFile, plugin]);
 
   const extractContentFromTitle = (format: string, title: string): string => {
     if (!format) return "";
