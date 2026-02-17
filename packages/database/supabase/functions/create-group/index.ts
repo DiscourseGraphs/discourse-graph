@@ -36,8 +36,15 @@ Deno.serve(async (req) => {
       }
     );
   }
-
-  const input: {name?: string} = await req.json();
+  let input: {name?: string} = {}
+  try {
+    input = await req.json();
+  } catch (error) {
+    new Response(JSON.stringify(error), {
+      status: 400,
+      headers: { "Content-Type": "application/json", ...myCorsHeaders },
+    });
+  }
   const groupName = input.name;
   if (groupName === undefined) {
     return new Response("Missing group name", {
