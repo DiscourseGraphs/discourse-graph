@@ -8,7 +8,7 @@ import { PluginProvider, usePlugin } from "~/components/PluginContext";
 import { getNodeTypeById } from "~/utils/typeUtils";
 import { refreshImportedFile } from "~/utils/importNodes";
 import { publishNode } from "~/utils/publishNode";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type DiscourseContextProps = {
   activeFile: TFile | null;
@@ -18,7 +18,27 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
   const plugin = usePlugin();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [, forceUpdate] = useState({});
+  const [isPublished, setIsPublished] = useState(false);
+
+  useEffect(() => {
+    if (!activeFile || !plugin) {
+      setIsPublished(false);
+      return;
+    }
+    const fileMetadata = plugin.app.metadataCache.getFileCache(activeFile);
+    const frontmatter = fileMetadata?.frontmatter;
+    if (!frontmatter) {
+      setIsPublished(false);
+      return;
+    }
+    const isImported = !!frontmatter.importedFromSpaceUri;
+    const publishedToGroups = frontmatter.publishedToGroups as unknown;
+    const published =
+      !isImported &&
+      Array.isArray(publishedToGroups) &&
+      publishedToGroups.length > 0;
+    setIsPublished(published);
+  }, [activeFile?.path, plugin]);
 
   const extractContentFromTitle = (format: string, title: string): string => {
     if (!format) return "";
@@ -63,8 +83,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
     try {
       await publishNode({ plugin, file: activeFile, frontmatter });
       new Notice("Published successfully", 3000);
-      // Force re-render to update button state after frontmatter changes
-      forceUpdate({});
+      setIsPublished(true);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -113,11 +132,6 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
           }
         : null;
 
-    const publishedToGroups = frontmatter.publishedToGroups as unknown;
-    const isPublished =
-      !isImported &&
-      Array.isArray(publishedToGroups) &&
-      publishedToGroups.length > 0;
     const canPublish =
       plugin.settings.syncModeEnabled &&
       !isImported &&
@@ -154,8 +168,8 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
                 disabled={isPublishing}
                 className={`ml-auto rounded px-2 py-1 text-xs ${
                   isPublished
-                    ? "border-green-600 bg-green-600 text-white hover:bg-green-700"
-                    : "border hover:bg-gray-100"
+                    ? "border border-green-600 bg-green-200 text-green-800 dark:bg-green-900/60 dark:text-green-300"
+                    : "border border-gray-400 bg-gray-100 font-medium hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
                 }`}
                 title={
                   isPublished
@@ -163,13 +177,11 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
                     : "Publish to lab space"
                 }
               >
-                {isPublishing ? (
-                  "Publishing..."
-                ) : isPublished ? (
-                  <>✓ Published</>
-                ) : (
-                  "Publish"
-                )}
+                {isPublishing
+                  ? "Publishing..."
+                  : isPublished
+                    ? "✅ Published"
+                    : "Publish"}
               </button>
             )}
           </div>
