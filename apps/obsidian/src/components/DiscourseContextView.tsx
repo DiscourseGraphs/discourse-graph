@@ -1,4 +1,4 @@
-import { ItemView, TFile, WorkspaceLeaf, Notice } from "obsidian";
+import { ItemView, TFile, WorkspaceLeaf, Notice, FrontMatterCache } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import DiscourseGraphPlugin from "~/index";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
@@ -50,16 +50,8 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
     }
   };
 
-  const handlePublish = async () => {
+  const handlePublish = async (frontmatter: FrontMatterCache) => {
     if (!activeFile || isPublishing) return;
-
-    const fileMetadata = plugin.app.metadataCache.getFileCache(activeFile);
-    const frontmatter = fileMetadata?.frontmatter;
-
-    if (!frontmatter) {
-      new Notice("Cannot publish: No frontmatter found", 5000);
-      return;
-    }
 
     if (!frontmatter.nodeInstanceId) {
       new Notice("Please sync the node first", 5000);
@@ -118,13 +110,15 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
           }
         : null;
 
+    const publishedToGroups = frontmatter.publishedToGroups as unknown;
     const isPublished =
       !isImported &&
-      frontmatter.publishedToGroups &&
-      Array.isArray(frontmatter.publishedToGroups) &&
-      frontmatter.publishedToGroups.length > 0;
+      Array.isArray(publishedToGroups) &&
+      publishedToGroups.length > 0;
     const canPublish =
-      plugin.settings.syncModeEnabled && !isImported && frontmatter.nodeTypeId;
+      plugin.settings.syncModeEnabled &&
+      !isImported &&
+      !!frontmatter.nodeTypeId;
 
     return (
       <>
@@ -152,7 +146,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
             {canPublish && (
               <button
                 onClick={() => {
-                  void handlePublish();
+                  void handlePublish(frontmatter);
                 }}
                 disabled={isPublishing}
                 className="ml-auto rounded border px-2 py-1 text-xs"
