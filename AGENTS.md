@@ -58,6 +58,7 @@ This repository uses Turborepo.
 - Add comments only when necessary; descriptive names should minimize the need for comments
 - Explain the why, not the what, focusing on reasoning, trade-offs, and approaches
 - Document limitations, known bugs, or edge cases where behavior may not align with expectations
+- Prefer sentence case in documentation and feature descriptions; capitalize official product/plugin names and exact UI labels, buttons, or titles, but keep generic feature terms lowercase to emphasize user actions
 
 ### Testing
 
