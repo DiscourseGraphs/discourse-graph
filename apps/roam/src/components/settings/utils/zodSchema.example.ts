@@ -75,6 +75,7 @@ const discourseNodeSettings: DiscourseNodeSettings = {
       },
     ],
     selections: [],
+    custom: "",
   },
   suggestiveRules,
   backedBy: "user",
