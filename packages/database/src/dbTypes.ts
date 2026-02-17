@@ -1966,4 +1966,4 @@ export const Constants = {
       task_status: ["active", "timeout", "complete", "failed"],
     },
   },
-} as const;
+} as const
