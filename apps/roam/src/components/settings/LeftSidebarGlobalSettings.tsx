@@ -17,6 +17,7 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import posthog from "posthog-js";
 
 const PageItem = memo(
   ({
@@ -203,6 +204,9 @@ const LeftSidebarGlobalSectionsContent = ({
         setPages((prev) => [...prev, newPage]);
         setNewPageInput("");
         setAutocompleteKey((prev) => prev + 1);
+        posthog.capture("Left Sidebar Global Settings: Page Added", {
+          pageName,
+        });
         refreshAndNotify();
       } catch (error) {
         renderToast({

@@ -7,6 +7,7 @@ import {
   Collapse,
 } from "@blueprintjs/core";
 import React, { useState, useCallback, useEffect } from "react";
+import posthog from "posthog-js";
 import SuggestionsBody from "./SuggestionsBody";
 
 export const DiscourseSuggestionsPanel = ({
@@ -31,6 +32,9 @@ export const DiscourseSuggestionsPanel = ({
   const handleToggle = useCallback(() => {
     setIsOpen((prev) => {
       const next = !prev;
+      posthog.capture("Suggestive Mode Panel: Toggled", {
+        isOpen: next,
+      });
       onToggle(next);
       return next;
     });

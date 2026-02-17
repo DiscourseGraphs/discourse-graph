@@ -28,6 +28,7 @@ import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import streamlineStyling from "~/styles/streamlineStyling";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
+import posthog from "posthog-js";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
@@ -69,6 +70,9 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         onChange={(checked) => {
           void setSetting("discourse-context-overlay", checked);
           onPageRefObserverChange(overlayHandler)(checked);
+          posthog.capture("Personal Settings: Overlay Toggled", {
+            enabled: checked,
+          });
         }}
       />
       {settings.suggestiveModeEnabled?.value && (

@@ -9,6 +9,7 @@ import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { GlobalFlagPanel } from "./components/BlockPropSettingPanels";
+import posthog from "posthog-js";
 
 const SuggestiveModeSettings = () => {
   const settings = getFormattedConfigTree();
@@ -41,7 +42,12 @@ const SuggestiveModeSettings = () => {
   return (
     <>
       <Tabs
-        onChange={(id) => setSelectedTabId(id)}
+        onChange={(id) => {
+          setSelectedTabId(id);
+          posthog.capture("Suggestive Mode Settings: Tab Opened", {
+            tabId: String(id),
+          });
+        }}
         selectedTabId={selectedTabId}
         renderActiveTabPanelOnly={true}
       >

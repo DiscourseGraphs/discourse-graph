@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import { TextSelectionNodeMenu } from "~/components/DiscourseNodeMenu";
 import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import { OnloadArgs } from "roamjs-components/types";
+import posthog from "posthog-js";
 
 let currentPopupContainer: HTMLDivElement | null = null;
 
@@ -48,6 +49,7 @@ export const renderTextSelectionPopup = ({
   blockElement: Element;
   textarea: HTMLTextAreaElement;
 }) => {
+  posthog.capture("Text Selection Popup: Opened");
   removeTextSelectionPopup();
   const coords = getCoordsFromTextarea(textarea);
   currentPopupContainer = document.createElement("div");

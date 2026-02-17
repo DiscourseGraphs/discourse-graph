@@ -8,6 +8,7 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import extractContentFromTitle from "~/utils/extractContentFromTitle";
 import { handleTitleAdditions } from "~/utils/handleTitleAdditions";
+import posthog from "posthog-js";
 
 export const VectorDuplicateMatches = ({
   pageTitle,
@@ -108,7 +109,13 @@ export const VectorDuplicateMatches = ({
       <div
         className="flex cursor-pointer items-center justify-between p-2"
         onClick={() => {
-          setIsOpen(!isOpen);
+          setIsOpen((prev) => {
+            const next = !prev;
+            posthog.capture("Possible Duplicates: Toggled", {
+              isOpen: next,
+            });
+            return next;
+          });
         }}
       >
         <div className="flex items-center gap-2">

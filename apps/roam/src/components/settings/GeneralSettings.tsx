@@ -7,6 +7,7 @@ import {
   GlobalTextPanel,
   FeatureFlagPanel,
 } from "./components/BlockPropSettingPanels";
+import posthog from "posthog-js";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {
@@ -51,6 +52,9 @@ const DiscourseGraphHome = () => {
           if (checked) {
             setIsAlertOpen(true);
           }
+          posthog.capture("General Settings: Left Sidebar Toggled", {
+            enabled: checked,
+          });
         }}
       />
       <Alert

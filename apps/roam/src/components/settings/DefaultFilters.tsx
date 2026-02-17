@@ -2,6 +2,7 @@ import { Button, Intent, InputGroup } from "@blueprintjs/core";
 import React, { useEffect, useState } from "react";
 import type { OnloadArgs } from "roamjs-components/types";
 import type { Filters } from "roamjs-components/components/Filter";
+import posthog from "posthog-js";
 
 //
 // TODO - REWORK THIS COMPONENT
@@ -190,6 +191,9 @@ const DefaultFilters = ({
           minimal
           disabled={!newColumn}
           onClick={() => {
+            posthog.capture("Default Filters: Column Added", {
+              column: newColumn,
+            });
             const newFilters = {
               ...filters,
               [newColumn]: {

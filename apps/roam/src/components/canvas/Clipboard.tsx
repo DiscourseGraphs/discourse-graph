@@ -61,6 +61,7 @@ import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
 import { measureCanvasNodeText } from "~/utils/measureCanvasNodeText";
 import internalError from "~/utils/internalError";
+import posthog from "posthog-js";
 
 export type ClipboardPage = {
   uid: string;
@@ -216,7 +217,17 @@ export const ClipboardProvider = ({
 
   const openClipboard = useCallback(() => setIsOpen(true), []);
   const closeClipboard = useCallback(() => setIsOpen(false), []);
-  const toggleClipboard = useCallback(() => setIsOpen((prev) => !prev), []);
+  const toggleClipboard = useCallback(
+    () =>
+      setIsOpen((prev) => {
+        const next = !prev;
+        posthog.capture("Canvas Clipboard: Toggled", {
+          isOpen: next,
+        });
+        return next;
+      }),
+    [],
+  );
 
   const addPage = useCallback((page: ClipboardPage) => {
     setPages((prev) => {

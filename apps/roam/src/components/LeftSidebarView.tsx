@@ -42,6 +42,7 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
+import posthog from "posthog-js";
 
 const parseReference = (text: string) => {
   const extracted = extractRef(text);
@@ -61,6 +62,10 @@ const openTarget = async (e: React.MouseEvent, targetUid: string) => {
   e.preventDefault();
   e.stopPropagation();
   const target = parseReference(targetUid);
+  posthog.capture("Left Sidebar: Target Opened", {
+    targetType: target.type,
+    openInSidebar: e.shiftKey,
+  });
   if (target.type === "block") {
     if (e.shiftKey) {
       await openBlockInSidebar(target.uid);
