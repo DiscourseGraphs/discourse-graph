@@ -83,6 +83,7 @@ import getDiscourseRelations, {
   DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
 import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/DiscourseRelationTool";
+import posthog from "posthog-js";
 
 const ExportProgress = ({ id }: { id: string }) => {
   const [progress, setProgress] = useState(0);
@@ -153,7 +154,15 @@ const ExportDialog: ExportDialogComponent = ({
   const exportId = useMemo(() => nanoid(), []);
   useEffect(() => {
     setDialogOpen(isOpen);
-  }, [isOpen]);
+    if (isOpen) {
+      posthog.capture("Export Dialog: Opened", {
+        title,
+        resultCount: results.length,
+        initialPanel: initialPanel ?? "sendTo",
+        isExportDiscourseGraph,
+      });
+    }
+  }, [initialPanel, isExportDiscourseGraph, isOpen, results.length, title]);
   const [dialogOpen, setDialogOpen] = useState(isOpen);
   const exportTypes = useMemo(
     () => getExportTypes({ results, exportId, isExportDiscourseGraph }),
@@ -651,6 +660,8 @@ const ExportDialog: ExportDialogComponent = ({
       let toastContent: React.ReactNode;
       let uid = selectedPageUid;
       const title = selectedPageTitle;
+      const isCanvasDestination = !isSendToGraph && isCanvasPage;
+      const shouldCreatePage = !isSendToGraph && !isLiveBlock(uid);
 
       if (isSendToGraph) {
         addToGraphOverView();
@@ -686,6 +697,13 @@ const ExportDialog: ExportDialogComponent = ({
           </>
         );
       }
+
+      posthog.capture("Results View: Send To Destination", {
+        destination: isSendToGraph ? "graph" : "page",
+        isCanvasDestination,
+        createdPage: shouldCreatePage,
+        resultCount: results.length,
+      });
 
       renderToast({
         content: toastContent,
@@ -736,9 +754,19 @@ const ExportDialog: ExportDialogComponent = ({
         const blob = new Blob([download], { type: "application/zip" });
         saveAs(blob, `${filename}.zip`);
       }
+      posthog.capture("Export Dialog: Export Completed", {
+        exportType: "PDF",
+        destination: activeExportDestination,
+        fileCount: files.length,
+      });
       onClose();
     } catch (e) {
       setError("Failed to export files.");
+      posthog.capture("Export Dialog: Export Failed", {
+        exportType: "PDF",
+        destination: activeExportDestination,
+        error: (e as Error).message ?? "unknown error",
+      });
     }
   };
   const ExportPanel = (
@@ -838,6 +866,13 @@ const ExportDialog: ExportDialogComponent = ({
               setLoading(true);
               updateExportProgress({ progress: 0, id: exportId });
               setError("");
+              posthog.capture("Export Dialog: Export Started", {
+                exportType: activeExportType,
+                destination: activeExportDestination,
+                includeDiscourseContext,
+                resultCount: results.length,
+                isExportDiscourseGraph,
+              });
               // eslint-disable-next-line @typescript-eslint/no-misused-promises
               setTimeout(async () => {
                 try {
@@ -879,6 +914,11 @@ const ExportDialog: ExportDialogComponent = ({
                             content: "Upload Success",
                             intent: "success",
                           });
+                          posthog.capture("Export Dialog: Export Completed", {
+                            exportType: activeExportType,
+                            destination: activeExportDestination,
+                            fileCount: files.length,
+                          });
                           onClose();
                         }
                       } catch (error) {
@@ -894,6 +934,11 @@ const ExportDialog: ExportDialogComponent = ({
                         type: "text/plain;charset=utf-8",
                       });
                       saveAs(blob, title);
+                      posthog.capture("Export Dialog: Export Completed", {
+                        exportType: activeExportType,
+                        destination: activeExportDestination,
+                        fileCount: files.length,
+                      });
                       onClose();
                       return;
                     }
@@ -906,12 +951,22 @@ const ExportDialog: ExportDialogComponent = ({
                     );
                     void zip.generateAsync({ type: "blob" }).then((content) => {
                       saveAs(content, `${filename}.zip`);
+                      posthog.capture("Export Dialog: Export Completed", {
+                        exportType: activeExportType,
+                        destination: activeExportDestination,
+                        fileCount: files.length,
+                      });
                       onClose();
                     });
                   } else {
                     setError(`Unsupported export type: ${exportType}`);
                   }
                 } catch (e) {
+                  posthog.capture("Export Dialog: Export Failed", {
+                    exportType: activeExportType,
+                    destination: activeExportDestination,
+                    error: (e as Error).message ?? "unknown error",
+                  });
                   internalError({
                     error: e as Error,
                     type: "Export Dialog Failed",
@@ -1007,7 +1062,12 @@ const ExportDialog: ExportDialogComponent = ({
           id="export-tabs"
           large={true}
           selectedTabId={selectedTabId}
-          onChange={(newTabId: string) => setSelectedTabId(newTabId)}
+          onChange={(newTabId: string) => {
+            setSelectedTabId(newTabId);
+            posthog.capture("Export Dialog: Tab Opened", {
+              tabId: newTabId,
+            });
+          }}
         >
           <Tab id="sendto" title="Send To" panel={SendToPanel} />
           <Tab id="export" title="Export" panel={ExportPanel} />

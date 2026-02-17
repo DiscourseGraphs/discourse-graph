@@ -98,6 +98,7 @@ import { TLRecord } from "@tldraw/tlschema";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { BLOCK_REF_REGEX } from "roamjs-components/dom";
 import { defaultHandleExternalTextContent } from "./defaultHandleExternalTextContent";
+import posthog from "posthog-js";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -172,12 +173,14 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       if (wrapper) wrapper.classList.add("dg-tldraw-maximized");
       tldrawEl.classList.add("absolute", "inset-0");
       tldrawEl.classList.remove("relative");
+      posthog.capture("Canvas: Fullscreen Toggled", { maximized: true });
       updateViewportScreenBounds(tldrawEl);
     } else {
       // Going back to normal
       if (wrapper) wrapper.classList.remove("dg-tldraw-maximized");
       tldrawEl.classList.add("relative");
       tldrawEl.classList.remove("absolute", "inset-0");
+      posthog.capture("Canvas: Fullscreen Toggled", { maximized: false });
       updateViewportScreenBounds(tldrawEl);
     }
   };
@@ -347,6 +350,10 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
           // Check if we have a target shape
           if (shapeAtPoint && isDiscourseNodeShape(shapeAtPoint)) {
+            posthog.capture("Canvas: Relation Created", {
+              relationType: relationShape.type,
+              toolType: relationCreationRef.current.toolType || "",
+            });
             // We have a valid target, call the relation creation method
             const util = app.getShapeUtil(relationShape);
             if (
@@ -420,6 +427,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     const uid = e.dataTransfer.getData("application/x-roam-uid");
 
     if (!uid || !appRef.current || !extensionAPI) return;
+    posthog.capture("Canvas: Roam Block Dropped");
 
     // Use the text content handler to process ((uid)) - this will handle both
     // creating discourse nodes and falling back to text shapes
@@ -501,6 +509,12 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   // STORE
   const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
+  useEffect(() => {
+    posthog.capture("Canvas: Opened", {
+      pageUid,
+      inSidebar: !!containerRef.current?.closest(".rm-sidebar-outline"),
+    });
+  }, [pageUid]);
   const arrowShapeMigrations = useMemo(
     () =>
       createMigrations({
@@ -723,6 +737,9 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
                 if (e.shiftKey) {
                   if (app.getSelectedShapes().length > 1) return; // User is selecting multiple shapes
+                  posthog.capture("Canvas: Open Node", {
+                    source: "sidebar",
+                  });
                   void openBlockInSidebar(shapeUid);
                   app.selectNone();
                 }
@@ -732,6 +749,10 @@ const TldrawCanvas = ({ title }: { title: string }) => {
                   // || e.metaKey
                 ) {
                   const isPage = !!getPageTitleByPageUid(shapeUid);
+                  posthog.capture("Canvas: Open Node", {
+                    source: "main-window",
+                    isPage,
+                  });
                   if (isPage) {
                     void window.roamAlphaAPI.ui.mainWindow.openPage({
                       page: { uid: shapeUid },
@@ -904,6 +925,9 @@ const InsideEditorAndUiContext = ({
               nodeType: nodeType.type,
               content,
             });
+            posthog.capture("Canvas: Node Added from External Content", {
+              source: "page-reference",
+            });
             return;
           }
 
@@ -922,6 +946,9 @@ const InsideEditorAndUiContext = ({
             nodeText: blockText,
             nodeType: "blck-node",
             content,
+          });
+          posthog.capture("Canvas: Node Added from External Content", {
+            source: "block-reference",
           });
         } catch (error) {
           await callDefaultTextHandler(content);
@@ -977,6 +1004,10 @@ const InsideEditorAndUiContext = ({
           x: position.x - size.w / 2,
           y: position.y - size.h / 2,
           props: { assetId, w: size.w, h: size.h },
+        });
+        posthog.capture("Canvas: Asset Added", {
+          source: "file-drop",
+          mimeType: file.type,
         });
 
         return asset;
@@ -1053,6 +1084,10 @@ const InsideEditorAndUiContext = ({
           x: position.x - width / 2,
           y: position.y - height / 2,
           props: { assetId, w: width, h: height },
+        });
+        posthog.capture("Canvas: Asset Added", {
+          source: "svg-paste",
+          mimeType: "image/svg+xml",
         });
 
         return asset;
