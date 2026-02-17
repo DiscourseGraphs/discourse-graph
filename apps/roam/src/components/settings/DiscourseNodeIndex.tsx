@@ -60,6 +60,8 @@ const NodeIndex = ({
             },
           ],
           selections: [],
+          custom: "",
+          returnNode: DEFAULT_RETURN_NODE,
         });
 
         setShowQuery(true);
@@ -69,7 +71,12 @@ const NodeIndex = ({
   return (
     <ExtensionApiContextProvider {...onloadArgs}>
       {showQuery ? (
-        <QueryBuilder pageUid={parentUid} discourseNodeType={node.type} />
+        <QueryBuilder
+          pageUid={parentUid}
+          discourseNodeType={node.type}
+          settingKey="index"
+          returnNode={DEFAULT_RETURN_NODE}
+        />
       ) : (
         <Spinner />
       )}

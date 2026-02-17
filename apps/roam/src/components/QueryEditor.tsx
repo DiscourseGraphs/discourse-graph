@@ -437,6 +437,8 @@ type QueryEditorComponent = (props: {
   hideCustomSwitch?: boolean;
   showAlias?: boolean;
   discourseNodeType?: string;
+  settingKey?: "index" | "specification";
+  returnNode?: string;
 }) => JSX.Element;
 
 const QueryEditor: QueryEditorComponent = ({
@@ -446,6 +448,8 @@ const QueryEditor: QueryEditorComponent = ({
   hideCustomSwitch,
   showAlias,
   discourseNodeType,
+  settingKey,
+  returnNode,
 }) => {
   useEffect(() => {
     const previewQuery = ((e: CustomEvent) => {
@@ -487,11 +491,12 @@ const QueryEditor: QueryEditorComponent = ({
     return () => window.clearTimeout(blockPropSyncTimeoutRef.current);
   }, []);
   useEffect(() => {
-    if (!discourseNodeType) return;
+    if (!discourseNodeType || !settingKey) return;
 
     const stripped: unknown = JSON.parse(
-      JSON.stringify({ conditions, selections, custom }, (key, value: unknown) =>
-        key === "uid" ? undefined : value,
+      JSON.stringify(
+        { conditions, selections, custom, returnNode },
+        (key, value: unknown) => (key === "uid" ? undefined : value),
       ),
     );
 
@@ -500,18 +505,28 @@ const QueryEditor: QueryEditorComponent = ({
 
     const result = IndexSchema.safeParse(stripped);
     if (!result.success) {
-      console.error("Index blockprop sync failed validation:", result.error);
+      console.error(`${settingKey} blockprop sync failed validation:`, result.error);
       return;
     }
 
+    const path =
+      settingKey === "index" ? ["index"] : ["specification", "query"];
+
     window.clearTimeout(blockPropSyncTimeoutRef.current);
     blockPropSyncTimeoutRef.current = window.setTimeout(() => {
-      setDiscourseNodeSetting(discourseNodeType, ["index"], result.data);
+      setDiscourseNodeSetting(discourseNodeType, path, result.data);
       lastSyncedIndexRef.current = serialized;
     }, 250);
 
     return () => window.clearTimeout(blockPropSyncTimeoutRef.current);
-  }, [conditions, selections, custom, discourseNodeType]);
+  }, [
+    conditions,
+    selections,
+    custom,
+    discourseNodeType,
+    settingKey,
+    returnNode,
+  ]);
 
   const customNodeOnChange = (value: string) => {
     window.clearTimeout(debounceRef.current);
