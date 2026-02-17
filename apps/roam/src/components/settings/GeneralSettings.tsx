@@ -41,6 +41,7 @@ const DiscourseGraphHome = () => {
         title="(BETA) Left Sidebar"
         description="Whether or not to enable the left sidebar."
         featureKey="Enable Left Sidebar"
+        initialValue={settings.leftSidebarEnabled.value}
         order={2}
         uid={settings.leftSidebarEnabled.uid}
         parentUid={settings.settingsUid}

@@ -15,7 +15,6 @@ import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeB
 import {
   setGlobalSetting,
   setPersonalSetting,
-  getFeatureFlag,
   setFeatureFlag,
 } from "~/components/settings/utils/accessors";
 import type { FeatureFlags } from "~/components/settings/utils/zodSchema";
@@ -445,6 +444,7 @@ export const FeatureFlagPanel = ({
   title,
   description,
   featureKey,
+  initialValue,
   onBeforeEnable,
   onAfterChange,
   parentUid,
@@ -454,6 +454,7 @@ export const FeatureFlagPanel = ({
   title: string;
   description: string;
   featureKey: keyof FeatureFlags;
+  initialValue?: boolean;
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
 } & RoamBlockSyncProps) => {
@@ -474,7 +475,7 @@ export const FeatureFlagPanel = ({
       description={description}
       settingKeys={[featureKey as string]}
       setter={featureFlagSetter}
-      initialValue={getFeatureFlag(featureKey)}
+      initialValue={initialValue}
       onBeforeChange={handleBeforeChange}
       onChange={onAfterChange}
       parentUid={parentUid}
