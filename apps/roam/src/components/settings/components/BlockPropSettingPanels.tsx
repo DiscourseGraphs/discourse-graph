@@ -1,4 +1,10 @@
-import React, { type ChangeEvent, useState, useCallback, useRef, useEffect } from "react";
+import React, {
+  type ChangeEvent,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+} from "react";
 import {
   Checkbox,
   InputGroup,
@@ -15,7 +21,6 @@ import {
   setGlobalSetting,
   setPersonalSetting,
   setFeatureFlag,
-  getDiscourseNodeSetting,
   setDiscourseNodeSetting,
 } from "../utils/accessors";
 import type { FeatureFlags } from "../utils/zodSchema";
@@ -138,7 +143,6 @@ const BaseTextPanel = ({
   };
 
   return (
-
     <div className="flex flex-col">
       <Label>
         {title}
@@ -576,49 +580,45 @@ type DiscourseNodeBaseProps = {
 export const DiscourseNodeTextPanel = ({
   nodeType,
   ...props
-}: DiscourseNodeBaseProps & RoamBlockSyncProps & {
-  defaultValue?: string;
-  placeholder?: string;
-  getValidationError?: Validator<string>;
-  onChange?: (value: string) => void;
-}) => (
-  <BaseTextPanel
-    {...props}
-    setter={createDiscourseNodeSetter(nodeType)}
-  />
+}: DiscourseNodeBaseProps &
+  RoamBlockSyncProps & {
+    initialValue?: string;
+    placeholder?: string;
+    getValidationError?: Validator<string>;
+    onChange?: (value: string) => void;
+  }) => (
+  <BaseTextPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
 );
 
 export const DiscourseNodeFlagPanel = ({
   nodeType,
   ...props
-}: DiscourseNodeBaseProps & RoamBlockSyncProps & {
-  defaultValue?: boolean;
-  disabled?: boolean;
-  onBeforeChange?: (checked: boolean) => Promise<boolean>;
-  onChange?: (checked: boolean) => void;
-}) => (
-  <BaseFlagPanel
-    {...props}
-    setter={createDiscourseNodeSetter(nodeType)}
-  />
+}: DiscourseNodeBaseProps &
+  RoamBlockSyncProps & {
+    initialValue?: boolean;
+    disabled?: boolean;
+    onBeforeChange?: (checked: boolean) => Promise<boolean>;
+    onChange?: (checked: boolean) => void;
+  }) => (
+  <BaseFlagPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
 );
 
 export const DiscourseNodeSelectPanel = ({
   nodeType,
   ...props
-}: DiscourseNodeBaseProps & RoamBlockSyncProps & { options: string[]; defaultValue?: string }) => (
-  <BaseSelectPanel
-    {...props}
-    setter={createDiscourseNodeSetter(nodeType)}
-  />
+}: DiscourseNodeBaseProps &
+  RoamBlockSyncProps & { options: string[]; initialValue?: string }) => (
+  <BaseSelectPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
 );
 
 export const DiscourseNodeNumberPanel = ({
   nodeType,
   ...props
-}: DiscourseNodeBaseProps & RoamBlockSyncProps & { defaultValue?: number; min?: number; max?: number }) => (
-  <BaseNumberPanel
-    {...props}
-    setter={createDiscourseNodeSetter(nodeType)}
-  />
+}: DiscourseNodeBaseProps &
+  RoamBlockSyncProps & {
+    initialValue?: number;
+    min?: number;
+    max?: number;
+  }) => (
+  <BaseNumberPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
 );
