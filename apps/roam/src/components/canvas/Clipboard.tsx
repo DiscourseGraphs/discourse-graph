@@ -217,17 +217,10 @@ export const ClipboardProvider = ({
 
   const openClipboard = useCallback(() => setIsOpen(true), []);
   const closeClipboard = useCallback(() => setIsOpen(false), []);
-  const toggleClipboard = useCallback(
-    () =>
-      setIsOpen((prev) => {
-        const next = !prev;
-        posthog.capture("Canvas Clipboard: Toggled", {
-          isOpen: next,
-        });
-        return next;
-      }),
-    [],
-  );
+  const toggleClipboard = useCallback(() => {
+    setIsOpen((prev) => !prev);
+    posthog.capture("Canvas Clipboard: Toggled");
+  }, []);
 
   const addPage = useCallback((page: ClipboardPage) => {
     setPages((prev) => {

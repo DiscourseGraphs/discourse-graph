@@ -390,13 +390,8 @@ export const CanvasDrawerContent = ({
 export const CanvasDrawerPanel = () => {
   const editor = useEditor();
   const toggleDrawer = useCallback(() => {
-    setIsOpen((prev) => {
-      const next = !prev;
-      posthog.capture("Canvas Drawer: Toggled", {
-        isOpen: next,
-      });
-      return next;
-    });
+    setIsOpen((prev) => !prev);
+    posthog.capture("Canvas Drawer: Toggled");
   }, []);
   const [isOpen, setIsOpen] = useState(false);
   const pageUid = getCurrentPageUid();

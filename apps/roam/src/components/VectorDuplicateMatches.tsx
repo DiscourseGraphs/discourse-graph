@@ -109,13 +109,8 @@ export const VectorDuplicateMatches = ({
       <div
         className="flex cursor-pointer items-center justify-between p-2"
         onClick={() => {
-          setIsOpen((prev) => {
-            const next = !prev;
-            posthog.capture("Possible Duplicates: Toggled", {
-              isOpen: next,
-            });
-            return next;
-          });
+          setIsOpen(!isOpen);
+          posthog.capture("Possible Duplicates: Toggled");
         }}
       >
         <div className="flex items-center gap-2">
