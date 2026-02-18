@@ -533,6 +533,7 @@ const ModifyNodeDialog = ({
                   : `Enter a ${selectedNodeType.text.toLowerCase()} ...`
               }
               mode={mode}
+              isLocked={isContentLocked}
               autoFocus
             />
           </div>
@@ -547,6 +548,7 @@ const ModifyNodeDialog = ({
                 options={options.referencedNode}
                 placeholder={loading ? "..." : "Select a referenced node"}
                 mode={"create"}
+                isLocked={isReferencedNodeLocked}
                 autoFocus={false}
               />
             </div>
