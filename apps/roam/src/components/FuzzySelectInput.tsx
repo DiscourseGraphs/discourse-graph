@@ -24,7 +24,7 @@ type FuzzySelectInputProps<T extends Result = Result> = {
   options?: T[];
   placeholder?: string;
   autoFocus?: boolean;
-  isLocked?: boolean;
+  isLocked: boolean;
 };
 
 const FuzzySelectInput = <T extends Result = Result>({
@@ -34,13 +34,12 @@ const FuzzySelectInput = <T extends Result = Result>({
   options = [],
   placeholder = "Enter value",
   autoFocus,
-  isLocked: isLockedProp,
+  isLocked,
 }: FuzzySelectInputProps<T>) => {
   const [query, setQuery] = useState<string>(() => value?.text || "");
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
-  const isLocked = isLockedProp ?? (mode === "create" && Boolean(value?.uid));
 
   const menuRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
