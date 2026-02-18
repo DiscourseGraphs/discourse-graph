@@ -3,6 +3,7 @@
 // This enables autocomplete, go to definition, etc.
 
 import "@supabase/functions-js/edge-runtime";
+import { corsHeaders } from '@supabase/supabase-js/cors'
 import { createClient, type UserResponse } from "@supabase/supabase-js";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 
@@ -20,31 +21,37 @@ const isAllowedOrigin = (origin: string): boolean =>
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const originIsAllowed = origin && isAllowedOrigin(origin);
+  const myCorsHeaders = {...corsHeaders, "Access-Control-Allow-Origin": originIsAllowed? origin:''};
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: {
-        ...(originIsAllowed ? { "Access-Control-Allow-Origin": origin } : {}),
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers":
-          "Content-Type, Authorization, x-vercel-protection-bypass, x-client-info, apikey",
-        "Access-Control-Max-Age": "86400",
-      },
+      headers: myCorsHeaders,
     });
   }
   if (req.method !== "POST") {
     return Response.json(
       { msg: 'Method not allowed' },
-      { status: 405 }
+      { status: 405,
+        headers: myCorsHeaders,
+      }
     );
   }
-
-  const input: {name?: string} = await req.json();
+  let input: {name?: string} = {}
+  try {
+    input = await req.json();
+  } catch (error) {
+    return Response.json({
+      msg: 'Invalid JSON in request body', error: String(error?.message ?? error)
+    }, {
+      status: 400,
+      headers: myCorsHeaders,
+    });
+  }
   const groupName = input.name;
   if (groupName === undefined) {
     return new Response("Missing group name", {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: myCorsHeaders,
     });
   }
   // @ts-ignore Deno is not visible to the IDE
@@ -57,7 +64,7 @@ Deno.serve(async (req) => {
   if (!url || !anon_key || !service_key) {
     return new Response("Missing SUPABASE_URL or SB_SECRET_KEY or SB_PUBLISHABLE_KEY", {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: myCorsHeaders,
     });
   }
   const supabase = createClient(url, anon_key)
@@ -67,6 +74,7 @@ Deno.serve(async (req) => {
       { msg: 'Missing authorization headers' },
       {
         status: 401,
+        headers: myCorsHeaders,
       }
     )
   }
@@ -79,6 +87,7 @@ Deno.serve(async (req) => {
       { msg: 'Invalid JWT' },
       {
         status: 401,
+        headers: myCorsHeaders,
       }
     )
   }
@@ -105,27 +114,21 @@ Deno.serve(async (req) => {
         { msg: 'A group by this name exists' },
         {
           status: 400,
+          headers: myCorsHeaders,
         });
     }
-    return Response.json({ msg: 'Failed to create group user', error: error.message }, { status: 500 });
+    return Response.json({ msg: 'Failed to create group user', error: error.message }, { status: 500,  headers: myCorsHeaders });
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const group_id = userResponse.data.user.id;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const membershipResponse = await supabaseAdmin.from("group_membership").insert({group_id, member_id:data.claims.sub, admin:true});
   if (membershipResponse.error)
-    return Response.json({ msg: `Failed to create membership for group ${group_id}`, error: membershipResponse.error.message }, { status: 500 });
+    return Response.json({
+      msg: `Failed to create membership for group ${group_id}`,
+      error: membershipResponse.error.message
+    },
+    { status: 500, headers: myCorsHeaders, });
 
-  const res = Response.json({group_id});
-
-  if (originIsAllowed) {
-    res.headers.set("Access-Control-Allow-Origin", origin as string);
-    res.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.headers.set(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, x-vercel-protection-bypass, x-client-info, apikey",
-    );
-  }
-
-  return res;
+  return Response.json({group_id}, {headers: myCorsHeaders });
 });

@@ -2,6 +2,7 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 import "@supabase/functions-js/edge-runtime";
+import { corsHeaders } from '@supabase/supabase-js/cors'
 import {
   createClient,
   type User,
@@ -195,16 +196,11 @@ const isAllowedOrigin = (origin: string): boolean =>
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   const originIsAllowed = origin && isAllowedOrigin(origin);
+  const myCorsHeaders = {...corsHeaders, "Access-Control-Allow-Origin": originIsAllowed? origin:''};
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: {
-        ...(originIsAllowed ? { "Access-Control-Allow-Origin": origin } : {}),
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers":
-          "Content-Type, Authorization, x-vercel-protection-bypass, x-client-info, apikey",
-        "Access-Control-Max-Age": "86400",
-      },
+      headers: myCorsHeaders,
     });
   }
 
@@ -215,7 +211,7 @@ Deno.serve(async (req) => {
   if (!url || !key) {
     return new Response("Missing SUPABASE_URL or SB_SECRET_KEY", {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: myCorsHeaders,
     });
   }
 
@@ -227,6 +223,7 @@ Deno.serve(async (req) => {
       { msg: 'Missing authorization headers' },
       {
         status: 401,
+        headers: myCorsHeaders,
       }
     )
   }
@@ -235,10 +232,13 @@ Deno.serve(async (req) => {
     url, token, { global: { headers: { Authorization: authHeader } } });
   {
     const { error } = await supabaseAnonClient.from("Space").select("id").limit(1);
-    if (error?.code) return new Response(JSON.stringify(error), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+    if (error?.code) {
+      const {code, message, name} = error;
+      return Response.json({code, message, name}, {
+        status: 401,
+        headers: myCorsHeaders,
+      });
+    }
   }
 
   // note: If we wanted this to be bound by permissions, we'd set the following options:
@@ -246,31 +246,31 @@ Deno.serve(async (req) => {
   // But the point here is to bypass RLS
   const supabase: DGSupabaseClient = createClient(url, key);
 
-  const input = await req.json();
-
-  const { data, error } = await processAndGetOrCreateSpace(supabase, input);
-  if (error) {
-    const status = error.code === "invalid space" ? 400 : 500;
-    return new Response(JSON.stringify(error), {
-      status,
-      headers: { "Content-Type": "application/json" },
+  let input: SpaceCreationInput | undefined = undefined;
+  try {
+    input = await req.json();
+    // TODO: Validate input
+    // For now, errors will be caught downstream
+  } catch (error) {
+    return Response.json({
+      msg: 'Invalid JSON in request body', error: String(error?.message ?? error)
+    }, {
+      status: 400,
+      headers: myCorsHeaders,
     });
   }
 
-  const res = new Response(JSON.stringify(data), {
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (originIsAllowed) {
-    res.headers.set("Access-Control-Allow-Origin", origin as string);
-    res.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.headers.set(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, x-vercel-protection-bypass, x-client-info, apikey",
-    );
+  const { data, error } = await processAndGetOrCreateSpace(supabase, input!);
+  if (error) {
+    const {code, message, name} = error;
+    const status = code === "invalid space" ? 400 : 500;
+    return Response.json({code, message, name}, {
+      status,
+      headers: myCorsHeaders,
+    });
   }
 
-  return res;
+  return Response.json(data, {headers: myCorsHeaders });
 });
 
 /* To invoke locally:
