@@ -26,7 +26,7 @@ When you turn this on, you’ll be shown a migration step for your graph.
 
 After enabling the toggle, click:
 
-**Migrate all relations**
+`Migrate all relations`
 
 What to expect:
 
