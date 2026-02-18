@@ -26,6 +26,14 @@ export const navigation: NavigationList = [
         href: `${ROOT}/creating-discourse-relationships`,
       },
       {
+        title: "Stored relations",
+        href: `${ROOT}/stored-relations`,
+      },
+      {
+        title: "Migration to stored relations",
+        href: `${ROOT}/migration-to-stored-relations`,
+      },
+      {
         title: "Exploring",
         href: `${ROOT}/exploring-discourse-graph`,
       },
