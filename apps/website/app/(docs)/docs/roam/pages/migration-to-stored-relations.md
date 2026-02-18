@@ -5,9 +5,7 @@ author: ""
 published: true
 ---
 
-## Migrate relations to stored relations
-
-### Summary
+# Overview
 
 Stored relations make relations load faster and more reliably. To start using them, your graph needs a one-time migration that copies your existing relations into the new format.
 
