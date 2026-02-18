@@ -27,7 +27,7 @@ export const navigation: NavigationList = [
       },
       {
         title: "Stored relations",
-        href: `${ROOT}/reified-relations`,
+        href: `${ROOT}/stored-relations`,
       },
       {
         title: "Migration to stored relations",

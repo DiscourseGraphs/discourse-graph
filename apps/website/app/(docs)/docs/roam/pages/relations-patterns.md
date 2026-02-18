@@ -7,7 +7,7 @@ published: true
 
 ## Deprecation notice
 
-Pattern-based relations are being deprecated. Please plan to move to [**stored relations**](./reified-relations), which will be the recommended way to define and persist discourse relations. Migration guidance is available in [**Migration to stored relations**](./migration-to-stored-relations).
+Pattern-based relations are being deprecated. Please plan to move to [**stored relations**](./stored-relations), which will be the recommended way to define and persist discourse relations. Migration guidance is available in [**Migration to stored relations**](./migration-to-stored-relations).
 
 ## Stock Patterns
 

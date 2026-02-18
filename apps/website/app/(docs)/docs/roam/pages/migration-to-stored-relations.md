@@ -11,7 +11,7 @@ published: true
 
 Stored relations make relations load faster and more reliably. To start using them, your graph needs a one-time migration that copies your existing relations into the new format.
 
-This guide covers the migration flow from **Personal Settings**. If you’re new to stored relations, start with the [stored relations overview](./reified-relations).
+This guide covers the migration flow from **Personal Settings**. If you’re new to stored relations, start with the [stored relations overview](./stored-relations).
 
 ## Turn on stored relations
 

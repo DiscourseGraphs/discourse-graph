@@ -15,8 +15,6 @@ Instead of being inferred from patterns in your Roam graph, **stored relations a
 
 Stored relations are the foundation for improved performance and a more usable Discourse context overlay.
 
----
-
 ### What is a stored relation?
 
 A **stored relation** is an explicit relationship between two discourse nodes (for example, a claim supporting or opposing another claim).
@@ -26,8 +24,6 @@ A **stored relation** is an explicit relationship between two discourse nodes (f
 - Independent of page structure or pattern matching
 
 Once created, stored relations behave consistently across queries, canvases, and overlays.
-
----
 
 ### Why stored relations?
 
@@ -43,8 +39,6 @@ Stored relations provide several benefits over pattern-based relations:
   - Relations exist because you created them
   - Deleting a relation removes it explicitly
 
----
-
 ### Creating stored relations
 
 Stored relations are created from the [**Discourse context overlay**](./discourse-context-overlay).
@@ -58,8 +52,6 @@ Typical flow:
 
 The relation is immediately stored and available to all users who have enabled stored relations.
 
----
-
 ### Viewing stored relations
 
 When stored relations are enabled:
@@ -70,8 +62,6 @@ When stored relations are enabled:
 
 This ensures consistent and fast results.
 
----
-
 ### Editing and deleting stored relations
 
 - Stored relations can be **deleted explicitly** from the Discourse context overlay
@@ -80,8 +70,6 @@ This ensures consistent and fast results.
   - Creating a new one
 
 Relation labels are referenced by node identity, so renaming a relation label updates all associated relations automatically.
-
----
 
 ### Multi-user behavior
 
@@ -93,8 +81,6 @@ Stored relations are shared across the graph:
 
 For details on migrating and mixed-mode behavior, see the [**stored relations migration**](./migration-to-stored-relations) documentation.
 
----
-
 ### Current limitations and notes
 
 - Stored relations are **not inferred** from patterns
@@ -102,8 +88,6 @@ For details on migrating and mixed-mode behavior, see the [**stored relations mi
 - Stored relations are currently opt-in during the transition period
 
 These limitations will be removed once stored relations become the default.
-
----
 
 ### For the technically inclined
 
@@ -115,8 +99,6 @@ Stored relations are implemented as:
 - Source and destination nodes referenced by UID
 
 This structure allows fast lookup, consistent rendering, and future extensions (metadata, provenance, annotations).
-
----
 
 ### Future direction
 
