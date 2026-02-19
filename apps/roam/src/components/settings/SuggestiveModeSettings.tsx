@@ -2,13 +2,13 @@
 import React, { useEffect, useState } from "react";
 import { Button, Intent, Tabs, Tab, TabId } from "@blueprintjs/core";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import PageGroupsPanel from "./PageGroupPanel";
 import createBlock from "roamjs-components/writes/createBlock";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/utils/renderNodeConfigPage";
 import { createOrUpdateDiscourseEmbedding } from "~/utils/syncDgNodesToSupabase";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import { GlobalFlagPanel } from "./components/BlockPropSettingPanels";
 
 const SuggestiveModeSettings = () => {
   const settings = getFormattedConfigTree();
@@ -64,35 +64,40 @@ const SuggestiveModeSettings = () => {
           panel={
             <div className="flex flex-col gap-4 p-1">
               <div className="sync-config-settings">
-                <FlagPanel
+                <GlobalFlagPanel
                   title="Include Current Page Relations"
                   description="Include relations from pages referenced on the current page"
+                  settingKeys={[
+                    "Suggestive Mode",
+                    "Include Current Page Relations",
+                  ]}
+                  initialValue={
+                    settings.suggestiveMode.includePageRelations.value
+                  }
                   order={0}
                   uid={settings.suggestiveMode.includePageRelations.uid}
                   parentUid={effectiveSuggestiveModeUid}
-                  value={includePageRelations}
-                  options={{
-                    onChange: (checked: boolean) => {
-                      setIncludePageRelations(checked);
-                    },
-                  }}
+                  onChange={setIncludePageRelations}
                 />
 
-                <FlagPanel
+                <GlobalFlagPanel
                   title="Include Parent And Child Blocks"
                   description={
                     includePageRelations
                       ? "Include relations from parent and child blocks (automatically enabled when including page relations)"
                       : "Include relations from parent and child blocks"
                   }
+                  settingKeys={[
+                    "Suggestive Mode",
+                    "Include Parent And Child Blocks",
+                  ]}
+                  initialValue={
+                    settings.suggestiveMode.includeParentAndChildren.value
+                  }
+                  value={includePageRelations ? true : undefined}
                   order={1}
                   uid={settings.suggestiveMode.includeParentAndChildren.uid}
                   parentUid={effectiveSuggestiveModeUid}
-                  value={
-                    includePageRelations
-                      ? true
-                      : settings.suggestiveMode.includeParentAndChildren.value
-                  }
                   disabled={includePageRelations}
                 />
               </div>

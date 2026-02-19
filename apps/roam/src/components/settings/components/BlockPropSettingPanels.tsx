@@ -13,11 +13,8 @@ import idToTitle from "roamjs-components/util/idToTitle";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import {
-  getGlobalSetting,
   setGlobalSetting,
-  getPersonalSetting,
   setPersonalSetting,
-  getFeatureFlag,
   setFeatureFlag,
 } from "~/components/settings/utils/accessors";
 import type { FeatureFlags } from "~/components/settings/utils/zodSchema";
@@ -28,25 +25,20 @@ type RoamBlockSyncProps = {
   order?: number;
 };
 
-type TextGetter = (keys: string[]) => string | undefined;
 type TextSetter = (keys: string[], value: string) => void;
 
-type FlagGetter = (keys: string[]) => boolean | undefined;
 type FlagSetter = (keys: string[], value: boolean) => void;
 
-type NumberGetter = (keys: string[]) => number | undefined;
 type NumberSetter = (keys: string[], value: number) => void;
 
-type MultiTextGetter = (keys: string[]) => string[] | undefined;
 type MultiTextSetter = (keys: string[], value: string[]) => void;
 
 type BaseTextPanelProps = {
   title: string;
   description: string;
   settingKeys: string[];
-  getter: TextGetter;
   setter: TextSetter;
-  defaultValue?: string;
+  initialValue?: string;
   placeholder?: string;
 } & RoamBlockSyncProps;
 
@@ -54,9 +46,9 @@ type BaseFlagPanelProps = {
   title: string;
   description: string;
   settingKeys: string[];
-  getter: FlagGetter;
   setter: FlagSetter;
-  defaultValue?: boolean;
+  initialValue?: boolean;
+  value?: boolean;
   disabled?: boolean;
   onBeforeChange?: (checked: boolean) => Promise<boolean>;
   onChange?: (checked: boolean) => void;
@@ -66,9 +58,8 @@ type BaseNumberPanelProps = {
   title: string;
   description: string;
   settingKeys: string[];
-  getter: NumberGetter;
   setter: NumberSetter;
-  defaultValue?: number;
+  initialValue?: number;
   min?: number;
   max?: number;
 } & RoamBlockSyncProps;
@@ -77,41 +68,38 @@ type BaseSelectPanelProps = {
   title: string;
   description: string;
   settingKeys: string[];
-  getter: TextGetter;
   setter: TextSetter;
   options: string[];
-  defaultValue?: string;
+  initialValue?: string;
 } & RoamBlockSyncProps;
 
 type BaseMultiTextPanelProps = {
   title: string;
   description: string;
   settingKeys: string[];
-  getter: MultiTextGetter;
   setter: MultiTextSetter;
-  defaultValue?: string[];
+  initialValue?: string[];
 } & RoamBlockSyncProps;
 
 const BaseTextPanel = ({
   title,
   description,
   settingKeys,
-  getter,
   setter,
-  defaultValue = "",
+  initialValue,
   placeholder,
   parentUid,
   uid,
   order,
 }: BaseTextPanelProps) => {
-  const [value, setValue] = useState(() => getter(settingKeys) ?? defaultValue);
+  const [value, setValue] = useState(() => initialValue ?? "");
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
     title,
     parentUid: parentUid ?? "",
     order: order ?? 0,
     uid,
-    defaultValue,
+    defaultValue: initialValue ?? "",
     transform: (s: string) => s,
     toStr: (s: string) => s,
   });
@@ -131,7 +119,7 @@ const BaseTextPanel = ({
       <InputGroup
         value={value}
         onChange={handleChange}
-        placeholder={placeholder || defaultValue}
+        placeholder={placeholder || initialValue}
       />
     </Label>
   );
@@ -141,9 +129,9 @@ const BaseFlagPanel = ({
   title,
   description,
   settingKeys,
-  getter,
   setter,
-  defaultValue = false,
+  initialValue,
+  value,
   disabled = false,
   onBeforeChange,
   onChange,
@@ -151,7 +139,9 @@ const BaseFlagPanel = ({
   uid: initialBlockUid,
   order,
 }: BaseFlagPanelProps) => {
-  const [value, setValue] = useState(() => getter(settingKeys) ?? defaultValue);
+  const [internalValue, setInternalValue] = useState(
+    () => initialValue ?? false,
+  );
   const blockUidRef = useRef(initialBlockUid);
 
   const syncFlagToBlock = useCallback(
@@ -185,7 +175,7 @@ const BaseFlagPanel = ({
       if (!shouldProceed) return;
     }
 
-    setValue(checked);
+    setInternalValue(checked);
     setter(settingKeys, checked);
     await syncFlagToBlock(checked);
     onChange?.(checked);
@@ -193,7 +183,7 @@ const BaseFlagPanel = ({
 
   return (
     <Checkbox
-      checked={value}
+      checked={value ?? internalValue}
       onChange={(e) => void handleChange(e)}
       disabled={disabled}
       labelElement={
@@ -210,23 +200,22 @@ const BaseNumberPanel = ({
   title,
   description,
   settingKeys,
-  getter,
   setter,
-  defaultValue = 0,
+  initialValue,
   min,
   max,
   parentUid,
   uid,
   order,
 }: BaseNumberPanelProps) => {
-  const [value, setValue] = useState(() => getter(settingKeys) ?? defaultValue);
+  const [value, setValue] = useState(() => initialValue ?? 0);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
     title,
     parentUid: parentUid ?? "",
     order: order ?? 0,
     uid,
-    defaultValue,
+    defaultValue: initialValue ?? 0,
     transform: (s: string) => parseInt(s, 10),
     toStr: (v: number) => `${v}`,
   });
@@ -258,24 +247,21 @@ const BaseSelectPanel = ({
   title,
   description,
   settingKeys,
-  getter,
   setter,
   options,
-  defaultValue,
+  initialValue,
   parentUid,
   uid,
   order,
 }: BaseSelectPanelProps) => {
-  const [value, setValue] = useState(
-    () => getter(settingKeys) ?? defaultValue ?? options[0],
-  );
+  const [value, setValue] = useState(() => initialValue ?? options[0]);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
     title,
     parentUid: parentUid ?? "",
     order: order ?? 0,
     uid,
-    defaultValue: defaultValue ?? options[0] ?? "",
+    defaultValue: initialValue ?? options[0] ?? "",
     transform: (s: string) => s,
     toStr: (s: string) => s,
   });
@@ -306,16 +292,13 @@ const BaseMultiTextPanel = ({
   title,
   description,
   settingKeys,
-  getter,
   setter,
-  defaultValue = [],
+  initialValue,
   parentUid,
   uid: initialBlockUid,
   order,
 }: BaseMultiTextPanelProps) => {
-  const [values, setValues] = useState<string[]>(
-    () => getter(settingKeys) ?? defaultValue,
-  );
+  const [values, setValues] = useState<string[]>(() => initialValue ?? []);
   const [inputValue, setInputValue] = useState("");
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const blockUidRef = useRef(initialBlockUid);
@@ -422,17 +405,11 @@ const BaseMultiTextPanel = ({
   );
 };
 
-type TextWrapperProps = Omit<BaseTextPanelProps, "getter" | "setter">;
-type FlagWrapperProps = Omit<BaseFlagPanelProps, "getter" | "setter">;
-type NumberWrapperProps = Omit<BaseNumberPanelProps, "getter" | "setter">;
-type SelectWrapperProps = Omit<BaseSelectPanelProps, "getter" | "setter">;
-type MultiTextWrapperProps = Omit<BaseMultiTextPanelProps, "getter" | "setter">;
-
-const featureFlagGetter: FlagGetter = (keys) => {
-  const key = keys[0];
-  if (!key) return undefined;
-  return getFeatureFlag(key as keyof FeatureFlags);
-};
+type TextWrapperProps = Omit<BaseTextPanelProps, "setter">;
+type FlagWrapperProps = Omit<BaseFlagPanelProps, "setter">;
+type NumberWrapperProps = Omit<BaseNumberPanelProps, "setter">;
+type SelectWrapperProps = Omit<BaseSelectPanelProps, "setter">;
+type MultiTextWrapperProps = Omit<BaseMultiTextPanelProps, "setter">;
 
 const featureFlagSetter: FlagSetter = (keys, value) => {
   const key = keys[0];
@@ -440,45 +417,47 @@ const featureFlagSetter: FlagSetter = (keys, value) => {
   setFeatureFlag(key as keyof FeatureFlags, value);
 };
 
-type Getter<T> = (keys: string[]) => T | undefined;
 type Setter<T> = (keys: string[], value: T) => void;
-type Accessors<T> = { getter: Getter<T>; setter: Setter<T> };
+type Accessors<T> = { setter: Setter<T> };
 
 const createAccessors = <T,>(
-  getFn: <U>(keys: string[]) => U | undefined,
   setFn: (keys: string[], value: T) => void,
 ): Accessors<T> => ({
-  getter: (keys) => getFn<T>(keys),
   setter: setFn,
 });
 
 const globalAccessors = {
-  text: createAccessors<string>(getGlobalSetting, setGlobalSetting),
-  flag: createAccessors<boolean>(getGlobalSetting, setGlobalSetting),
-  number: createAccessors<number>(getGlobalSetting, setGlobalSetting),
-  multiText: createAccessors<string[]>(getGlobalSetting, setGlobalSetting),
+  text: createAccessors<string>(setGlobalSetting),
+  flag: createAccessors<boolean>(setGlobalSetting),
+  number: createAccessors<number>(setGlobalSetting),
+  multiText: createAccessors<string[]>(setGlobalSetting),
 };
 
 const personalAccessors = {
-  text: createAccessors<string>(getPersonalSetting, setPersonalSetting),
-  flag: createAccessors<boolean>(getPersonalSetting, setPersonalSetting),
-  number: createAccessors<number>(getPersonalSetting, setPersonalSetting),
-  multiText: createAccessors<string[]>(getPersonalSetting, setPersonalSetting),
+  text: createAccessors<string>(setPersonalSetting),
+  flag: createAccessors<boolean>(setPersonalSetting),
+  number: createAccessors<number>(setPersonalSetting),
+  multiText: createAccessors<string[]>(setPersonalSetting),
 };
 
 export const FeatureFlagPanel = ({
   title,
   description,
   featureKey,
+  initialValue,
   onBeforeEnable,
   onAfterChange,
+  parentUid,
+  uid,
+  order,
 }: {
   title: string;
   description: string;
   featureKey: keyof FeatureFlags;
+  initialValue?: boolean;
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
-}) => {
+} & RoamBlockSyncProps) => {
   const handleBeforeChange:
     | ((checked: boolean) => Promise<boolean>)
     | undefined = onBeforeEnable
@@ -495,10 +474,13 @@ export const FeatureFlagPanel = ({
       title={title}
       description={description}
       settingKeys={[featureKey as string]}
-      getter={featureFlagGetter}
       setter={featureFlagSetter}
+      initialValue={initialValue}
       onBeforeChange={handleBeforeChange}
       onChange={onAfterChange}
+      parentUid={parentUid}
+      uid={uid}
+      order={order}
     />
   );
 };

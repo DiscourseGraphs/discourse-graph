@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from "react";
-import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
 import { Alert, Intent } from "@blueprintjs/core";
+import {
+  GlobalTextPanel,
+  FeatureFlagPanel,
+} from "./components/BlockPropSettingPanels";
 
 const DiscourseGraphHome = () => {
   const settings = useMemo(() => {
@@ -13,39 +15,40 @@ const DiscourseGraphHome = () => {
   }, []);
 
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-
   return (
     <div className="flex flex-col gap-4 p-1">
-      <TextPanel
+      <GlobalTextPanel
         title="trigger"
         description="The trigger to create the node menu."
+        settingKeys={["Trigger"]}
+        initialValue={settings.trigger.value || "\\"}
         order={0}
         uid={settings.trigger.uid}
         parentUid={settings.settingsUid}
-        value={settings.trigger.value}
       />
-      <TextPanel
+      <GlobalTextPanel
         title="Canvas Page Format"
         description="The page format for canvas pages"
+        settingKeys={["Canvas Page Format"]}
+        initialValue={
+          settings.canvasPageFormat.value || DEFAULT_CANVAS_PAGE_FORMAT
+        }
         order={1}
         uid={settings.canvasPageFormat.uid}
         parentUid={settings.settingsUid}
-        value={settings.canvasPageFormat.value}
-        defaultValue={DEFAULT_CANVAS_PAGE_FORMAT}
       />
-      <FlagPanel
+      <FeatureFlagPanel
         title="(BETA) Left Sidebar"
         description="Whether or not to enable the left sidebar."
+        featureKey="Enable Left Sidebar"
+        initialValue={settings.leftSidebarEnabled.value}
         order={2}
         uid={settings.leftSidebarEnabled.uid}
         parentUid={settings.settingsUid}
-        value={settings.leftSidebarEnabled.value || false}
-        options={{
-          onChange: (checked: boolean) => {
-            if (checked) {
-              setIsAlertOpen(true);
-            }
-          },
+        onAfterChange={(checked: boolean) => {
+          if (checked) {
+            setIsAlertOpen(true);
+          }
         }}
       />
       <Alert
