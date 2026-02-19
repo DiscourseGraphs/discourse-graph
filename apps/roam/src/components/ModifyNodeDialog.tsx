@@ -491,6 +491,7 @@ const ModifyNodeDialog = ({
       onClose={onClose}
       canEscapeKeyClose
       autoFocus={false}
+      enforceFocus={false}
       className={"roamjs-canvas-dialog"}
     >
       <div

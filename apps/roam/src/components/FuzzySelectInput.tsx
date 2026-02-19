@@ -62,7 +62,6 @@ const FuzzySelectInput = <T extends Result = Result>({
         setQuery(item.text);
         setValue(item);
         setIsOpen(false);
-        requestAnimationFrame(() => inputRef.current?.focus());
       }
     },
     [mode, initialUid, setValue, onLockedChange],
