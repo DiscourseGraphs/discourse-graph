@@ -9,30 +9,35 @@ The Sync and Import feature allows you to synchronize your discourse nodes with 
 
 > **Note:** This feature is currently in **beta**. The sync functionality requires an active connection to the Discourse Graph database.
 
-## Enabling Sync Mode
+> **Warning:** When using sync and import:
+> - Don't edit the things you imported
+> - Don't click to create new files (from imported nodes)
+> - Don't delete imported node types
 
-### Step 1: Open Settings
+## Enabling sync mode
+
+### Step 1: Open settings
 
 Open the Discourse Graph plugin settings:
 
-1. Open **Obsidian Settings** (click the gear icon in the bottom-left corner, or press `Cmd/Ctrl + ,`)
-2. Scroll down in the left sidebar to **Community Plugins**
+1. Open **Obsidian settings** (click the gear icon in the bottom-left corner, or press `Cmd/Ctrl + ,`)
+2. Scroll down in the left sidebar to **community plugins**
 3. Find **Discourse Graph**
 
-### Step 2: Reveal the Admin Panel
+### Step 2: Reveal the admin panel
 
-The sync feature is located in a hidden **Admin Panel** tab that is not visible by default.
+The sync feature is located in a hidden **admin panel** tab that is not visible by default.
 
 1. While on the Discourse Graph settings page, press `Cmd + Shift + A` (Mac) or `Ctrl + Shift + A` (Windows/Linux)
-2. A new **Admin Panel** tab will appear in the settings tab bar
+2. A new **admin panel** tab will appear in the settings tab bar
 
-![Admin Panel tab revealed](/docs/obsidian/sync-setting.png)
+![Admin panel tab revealed](/docs/obsidian/sync-setting.png)
 
-### Step 3: Enable Sync Mode
+### Step 3: Enable sync mode
 
-1. In the **Admin Panel** tab, find the **(BETA) Sync mode enable** toggle
+1. In the **admin panel** tab, find the **(BETA) Sync mode enable** toggle
 2. Click the toggle to enable sync mode
-3. Click **Save Changes**
+3. Click **Save changes**
 4. A confirmation notice will appear: "Admin panel settings saved"
 5. The sync mode will initialize automatically, and you will see a notice: "Sync mode initialized successfully"
 
@@ -40,7 +45,7 @@ Once enabled, your discourse nodes will begin syncing automatically to the Disco
 
 ---
 
-## Publishing a Discourse Node
+## Publishing a discourse node
 
 Publishing makes a synced discourse node available to other members of your group. This is how you share your work with collaborators.
 
@@ -53,11 +58,11 @@ Before publishing, make sure:
 - The discourse node you want to publish has a `nodeTypeId` in its frontmatter
 - The discourse node has been **synced at least once** (it must have a `nodeInstanceId` in its frontmatter — this is assigned automatically after the first sync)
 
-### Steps to Publish
+### Steps to publish
 
 1. **Open the discourse node** you want to publish in the editor
 
-2. **Open the Command Palette** by pressing `Cmd/Ctrl + P`
+2. **Open the command palette** by pressing `Cmd/Ctrl + P`
 
 3. **Search for the publish command** by typing "Publish" and select **"Discourse Graph: Publish current node to lab space"**
 ![Publish command in palette](/docs/obsidian/publish-command.png)
@@ -70,23 +75,23 @@ Before publishing, make sure:
 5. A confirmation notice will appear: **"Published"**
 ![Node published successfully](/docs/obsidian/publish-success.png)
 
-> **Tip:** If you see the message "Please sync the node first", wait a moment for the automatic sync to complete, or manually trigger a sync via the Command Palette using **"Discourse Graph: Sync discourse nodes to Supabase"**.
+> **Tip:** If you see the message "Please sync the node first", wait a moment for the automatic sync to complete, or manually trigger a sync via the command palette using **"Discourse Graph: Sync discourse nodes to Supabase"**.
 ![Sync command](/docs/obsidian/sync-command.png)
 ---
 
-## Importing Discourse Nodes from Another Space
+## Importing discourse nodes from another space
 
 Importing allows you to bring published discourse nodes from other group members into your vault.
 
-### Steps to Import
+### Steps to import
 
-1. **Open the Command Palette** by pressing `Cmd/Ctrl + P`
+1. **Open the command palette** by pressing `Cmd/Ctrl + P`
 
 2. **Search for the import command** by typing "Import" and select **"Discourse Graph: Import nodes from another space"**
 
 ![Import command in palette](/docs/obsidian/import-command.png)
 
-3. The **Import Nodes** modal will open and begin loading available nodes from your groups. Once loaded, you will see a list of importable nodes **grouped by space**. Each space section shows the space name and available nodes.
+3. The **import nodes** modal will open and begin loading available nodes from your groups. Once loaded, you will see a list of importable nodes **grouped by space**. Each space section shows the space name and available nodes.
 
 ![Selecting nodes to import](/docs/obsidian/import-modal.png)
 
@@ -98,22 +103,22 @@ Imported nodes are saved in an `import/{spaceName}/` folder in your vault, prese
 
 ---
 
-## Refreshing Imported Nodes
+## Refreshing imported nodes
 
 After importing, you can fetch the latest content from the original sources to keep your imported nodes up to date.
 
-1. **Open the Command Palette** by pressing `Cmd/Ctrl + P`
+1. **Open the command palette** by pressing `Cmd/Ctrl + P`
 2. Search for "Fetch" and select **"Discourse Graph: Fetch latest content from imported nodes"**
 3. The plugin will check each imported node for updates and refresh any that have changed
 
 ![Refreshing imported nodes](/docs/obsidian/refresh-imported.png)
 
-Alternatively, you can click "Refresh" button from the Discourse Context panel.
+Alternatively, you can click the "Refresh" button in the Discourse Context panel.
 
 ![Refresh button](/docs/obsidian/refresh-button.png)
 ---
 
-## Summary of Commands
+## Summary of commands
 
 - **Sync discourse nodes to Supabase**:  Manually sync all discourse nodes to the database
 - **Publish current node to lab space**: Publish the active discourse node to your group            
@@ -123,7 +128,9 @@ Alternatively, you can click "Refresh" button from the Discourse Context panel.
 
 ## Troubleshooting
 
-- **"Sync mode is not enabled"** — You need to enable sync mode in the Admin Panel first (see [Enabling Sync Mode](#enabling-sync-mode) above)
+- **"Sync mode is not enabled"** — You need to enable sync mode in the admin panel first (see [Enabling sync mode](#enabling-sync-mode) above)
 - **"Please sync the node first"** — The node hasn't been synced yet. Wait for automatic sync or trigger a manual sync
 - **"You are not a member of any groups"** — You need to be added to a group before you can import nodes. Contact your team administrator
 - **No importable nodes found** — Either no nodes have been published to your groups, or you have already imported all available nodes
+- If you want to see more information about imported nodes, you can unhide frontmatter information in the setting panel
+![Show frontmatter](/docs/obsidian/show-frontmatter.png)
