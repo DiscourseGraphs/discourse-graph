@@ -230,15 +230,17 @@ const ModifyNodeDialog = ({
 
   const setValue = useCallback((r: Result) => {
     setContent(r);
-  }, []);
+    if (r.uid && r.uid !== initialValue.uid) {
+      confirmButtonRef.current?.focus();
+    }
+  }, [initialValue.uid]);
 
   const setReferencedNodeValueCallback = useCallback((r: Result) => {
     setReferencedNodeValue(r);
-  }, []);
-
-  const handleSelectComplete = useCallback(() => {
-    confirmButtonRef.current?.focus();
-  }, []);
+    if (r.uid && r.uid !== initialReferencedNode?.uid) {
+      confirmButtonRef.current?.focus();
+    }
+  }, [initialReferencedNode?.uid]);
 
   const onCancelClick = useCallback(() => {
     onClose();
@@ -545,7 +547,6 @@ const ModifyNodeDialog = ({
               mode={mode}
               initialUid={content.uid}
               autoFocus
-              onSelectComplete={handleSelectComplete}
             />
           </div>
 
@@ -562,7 +563,6 @@ const ModifyNodeDialog = ({
                 initialUid={referencedNodeValue.uid}
                 initialIsLocked={isReferencedNodeLocked}
                 autoFocus={false}
-                onSelectComplete={handleSelectComplete}
               />
             </div>
           )}
