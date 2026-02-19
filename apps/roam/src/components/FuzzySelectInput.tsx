@@ -21,6 +21,7 @@ type FuzzySelectInputProps<T extends Result = Result> = {
   placeholder?: string;
   autoFocus?: boolean;
   initialIsLocked?: boolean;
+  onSelectComplete?: () => void;
 };
 
 const FuzzySelectInput = <T extends Result = Result>({
@@ -33,6 +34,7 @@ const FuzzySelectInput = <T extends Result = Result>({
   placeholder = "Enter value",
   autoFocus,
   initialIsLocked,
+  onSelectComplete,
 }: FuzzySelectInputProps<T>) => {
   const [isLocked, setIsLocked] = useState(initialIsLocked || false);
   const [query, setQuery] = useState<string>(() => value?.text || "");
@@ -58,13 +60,15 @@ const FuzzySelectInput = <T extends Result = Result>({
         setValue(item);
         setIsOpen(false);
         onLockedChange?.(true);
+        onSelectComplete?.();
       } else {
         setQuery(item.text);
         setValue(item);
         setIsOpen(false);
+        onSelectComplete?.();
       }
     },
-    [mode, initialUid, setValue, onLockedChange],
+    [mode, initialUid, setValue, onLockedChange, onSelectComplete],
   );
 
   const handleClear = useCallback(() => {

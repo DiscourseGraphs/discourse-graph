@@ -102,6 +102,7 @@ const ModifyNodeDialog = ({
   const contentRequestIdRef = useRef(0);
   const referencedNodeRequestIdRef = useRef(0);
   const [error, setError] = useState("");
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
   const discourseNodes = useMemo(() => {
     const allNodes = getDiscourseNodes();
@@ -233,6 +234,10 @@ const ModifyNodeDialog = ({
 
   const setReferencedNodeValueCallback = useCallback((r: Result) => {
     setReferencedNodeValue(r);
+  }, []);
+
+  const handleSelectComplete = useCallback(() => {
+    confirmButtonRef.current?.focus();
   }, []);
 
   const onCancelClick = useCallback(() => {
@@ -540,6 +545,7 @@ const ModifyNodeDialog = ({
               mode={mode}
               initialUid={content.uid}
               autoFocus
+              onSelectComplete={handleSelectComplete}
             />
           </div>
 
@@ -556,6 +562,7 @@ const ModifyNodeDialog = ({
                 initialUid={referencedNodeValue.uid}
                 initialIsLocked={isReferencedNodeLocked}
                 autoFocus={false}
+                onSelectComplete={handleSelectComplete}
               />
             </div>
           )}
@@ -571,6 +578,7 @@ const ModifyNodeDialog = ({
               onClick={() => void onSubmit()}
               disabled={loading || !content.text.trim()}
               className="flex-shrink-0"
+              elementRef={confirmButtonRef}
             />
             <Button
               text="Cancel"
