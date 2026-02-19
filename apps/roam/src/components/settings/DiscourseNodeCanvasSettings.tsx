@@ -46,7 +46,7 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
   return (
     <div>
       <div className="mb-4">
-        <Label style={{ marginBottom: "4px" }}>Color Picker</Label>
+        <Label style={{ marginBottom: "4px" }}>Color picker</Label>
         <ControlGroup>
           <InputGroup
             style={{ width: 120 }}
@@ -78,7 +78,7 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
         </ControlGroup>
       </div>
       <Label style={{ width: 240 }}>
-        Display Alias
+        Display alias
         <InputGroup
           value={alias}
           onChange={(e) => {
@@ -113,7 +113,7 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
           }
         }}
       >
-        Key Image
+        Key image
         <Tooltip content={"Add an image to the discourse node"}>
           <Icon
             icon={"info-sign"}
@@ -126,7 +126,7 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
       <RadioGroup
         disabled={!isKeyImage}
         selectedValue={!!keyImageOption ? keyImageOption : "first-image"}
-        label="Key Image Location"
+        label="Key image location"
         onChange={(e) => {
           const target = e.target as HTMLInputElement;
           setKeyImageOption(target.value);
@@ -139,8 +139,8 @@ const DiscourseNodeCanvasSettings = ({ uid }: { uid: string }) => {
       >
         <Radio label="First image on page" value="first-image" />
         <Radio value="query-builder">
-          Query Builder reference
-          <Tooltip content={"Use a Query Builder alias or block reference"}>
+          Query builder reference
+          <Tooltip content={"Use a query builder alias or block reference"}>
             <Icon
               icon={"info-sign"}
               iconSize={12}

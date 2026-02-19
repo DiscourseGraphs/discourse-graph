@@ -159,18 +159,18 @@ export const DiscourseRelationSchema = z.object({
 });
 
 export const FeatureFlagsSchema = z.object({
-  "Enable Left Sidebar": z.boolean().default(false),
-  "Suggestive Mode Enabled": z.boolean().default(false),
-  "Reified Relation Triples": z.boolean().default(false),
+  "Enable left sidebar": z.boolean().default(false),
+  "Suggestive mode enabled": z.boolean().default(false),
+  "Reified relation triples": z.boolean().default(false),
 });
 
 export const ExportSettingsSchema = z.object({
-  "Remove Special Characters": z.boolean().default(false),
-  "Resolve Block References": z.boolean().default(false),
-  "Resolve Block Embeds": z.boolean().default(false),
-  "Append Referenced Node": z.boolean().default(false),
-  "Link Type": z.enum(["alias", "wikilinks", "roam url"]).default("alias"),
-  "Max Filename Length": z.number().default(64),
+  "Remove special characters": z.boolean().default(false),
+  "Resolve block references": z.boolean().default(false),
+  "Resolve block embeds": z.boolean().default(false),
+  "Append referenced node": z.boolean().default(false),
+  "Link type": z.enum(["alias", "wikilinks", "roam url"]).default("alias"),
+  "Max filename length": z.number().default(64),
   Frontmatter: z.array(z.string()).default([]),
 });
 
@@ -180,9 +180,9 @@ export const PageGroupSchema = z.object({
 });
 
 export const SuggestiveModeGlobalSettingsSchema = z.object({
-  "Include Current Page Relations": z.boolean().default(false),
-  "Include Parent And Child Blocks": z.boolean().default(false),
-  "Page Groups": z.array(PageGroupSchema).default([]),
+  "Include current page relations": z.boolean().default(false),
+  "Include parent and child blocks": z.boolean().default(false),
+  "Page groups": z.array(PageGroupSchema).default([]),
 });
 
 export const LeftSidebarGlobalSettingsSchema = z.object({
@@ -197,10 +197,10 @@ export const LeftSidebarGlobalSettingsSchema = z.object({
 
 export const GlobalSettingsSchema = z.object({
   Trigger: z.string().default("\\"),
-  "Canvas Page Format": z.string().default("Canvas/*"),
-  "Left Sidebar": LeftSidebarGlobalSettingsSchema.default({}),
+  "Canvas page format": z.string().default("Canvas/*"),
+  "Left sidebar": LeftSidebarGlobalSettingsSchema.default({}),
   Export: ExportSettingsSchema.default({}),
-  "Suggestive Mode": SuggestiveModeGlobalSettingsSchema.default({}),
+  "Suggestive mode": SuggestiveModeGlobalSettingsSchema.default({}),
   Relations: z
     .record(z.string(), DiscourseRelationSchema)
     .default(DEFAULT_RELATIONS_BLOCK_PROPS),
@@ -233,27 +233,27 @@ export const StoredFiltersSchema = z.object({
 });
 
 export const QuerySettingsSchema = z.object({
-  "Hide Query Metadata": z.boolean().default(false),
-  "Default Page Size": z.number().default(10),
-  "Query Pages": z.array(z.string()).default([]),
-  "Default Filters": z.record(z.string(), StoredFiltersSchema).default({}),
+  "Hide query metadata": z.boolean().default(false),
+  "Default page size": z.number().default(10),
+  "Query pages": z.array(z.string()).default([]),
+  "Default filters": z.record(z.string(), StoredFiltersSchema).default({}),
 });
 
 export const PersonalSettingsSchema = z.object({
-  "Left Sidebar": LeftSidebarPersonalSettingsSchema,
-  "Personal Node Menu Trigger": z.string().default(""),
-  "Node Search Menu Trigger": z.string().default("@"),
-  "Discourse Tool Shortcut": z.string().default(""),
-  "Discourse Context Overlay": z.boolean().default(false),
-  "Suggestive Mode Overlay": z.boolean().default(false),
-  "Overlay in Canvas": z.boolean().default(false),
-  "Text Selection Popup": z.boolean().default(true),
-  "Disable Sidebar Open": z.boolean().default(false),
-  "Page Preview": z.boolean().default(false),
-  "Hide Feedback Button": z.boolean().default(false),
-  "Streamline Styling": z.boolean().default(false),
-  "Auto Canvas Relations": z.boolean().default(false),
-  "Disable Product Diagnostics": z.boolean().default(false),
+  "Left sidebar": LeftSidebarPersonalSettingsSchema,
+  "Personal node menu trigger": z.string().default(""),
+  "Node search menu trigger": z.string().default("@"),
+  "Discourse tool shortcut": z.string().default(""),
+  "Discourse context overlay": z.boolean().default(false),
+  "Suggestive mode overlay": z.boolean().default(false),
+  "Overlay in canvas": z.boolean().default(false),
+  "Text selection popup": z.boolean().default(true),
+  "Disable sidebar open": z.boolean().default(false),
+  "Page preview": z.boolean().default(false),
+  "Hide feedback button": z.boolean().default(false),
+  "Streamline styling": z.boolean().default(false),
+  "Auto canvas relations": z.boolean().default(false),
+  "Disable product diagnostics": z.boolean().default(false),
   Query: QuerySettingsSchema.default({}),
 });
 

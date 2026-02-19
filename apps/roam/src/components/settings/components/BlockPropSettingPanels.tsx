@@ -9,7 +9,6 @@ import {
   Tag,
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
-import idToTitle from "roamjs-components/util/idToTitle";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import {
@@ -40,6 +39,7 @@ type BaseTextPanelProps = {
   setter: TextSetter;
   initialValue?: string;
   placeholder?: string;
+  onChange?: (value: string) => void;
 } & RoamBlockSyncProps;
 
 type BaseFlagPanelProps = {
@@ -62,6 +62,7 @@ type BaseNumberPanelProps = {
   initialValue?: number;
   min?: number;
   max?: number;
+  onChange?: (value: number) => void;
 } & RoamBlockSyncProps;
 
 type BaseSelectPanelProps = {
@@ -79,6 +80,7 @@ type BaseMultiTextPanelProps = {
   settingKeys: string[];
   setter: MultiTextSetter;
   initialValue?: string[];
+  onChange?: (values: string[]) => void;
 } & RoamBlockSyncProps;
 
 const BaseTextPanel = ({
@@ -88,6 +90,7 @@ const BaseTextPanel = ({
   setter,
   initialValue,
   placeholder,
+  onChange,
   parentUid,
   uid,
   order,
@@ -110,11 +113,12 @@ const BaseTextPanel = ({
     setValue(newValue);
     setter(settingKeys, newValue);
     syncToBlock?.(newValue);
+    onChange?.(newValue);
   };
 
   return (
     <Label>
-      {idToTitle(title)}
+      {title}
       <Description description={description} />
       <InputGroup
         value={value}
@@ -188,7 +192,7 @@ const BaseFlagPanel = ({
       disabled={disabled}
       labelElement={
         <>
-          {idToTitle(title)}
+          {title}
           <Description description={description} />
         </>
       }
@@ -204,6 +208,7 @@ const BaseNumberPanel = ({
   initialValue,
   min,
   max,
+  onChange,
   parentUid,
   uid,
   order,
@@ -226,11 +231,12 @@ const BaseNumberPanel = ({
     setValue(valueAsNumber);
     setter(settingKeys, valueAsNumber);
     syncToBlock?.(valueAsNumber);
+    onChange?.(valueAsNumber);
   };
 
   return (
     <Label>
-      {idToTitle(title)}
+      {title}
       <Description description={description} />
       <NumericInput
         value={value}
@@ -276,7 +282,7 @@ const BaseSelectPanel = ({
 
   return (
     <Label>
-      {idToTitle(title)}
+      {title}
       <Description description={description} />
       <HTMLSelect
         value={value}
@@ -294,6 +300,7 @@ const BaseMultiTextPanel = ({
   settingKeys,
   setter,
   initialValue,
+  onChange,
   parentUid,
   uid: initialBlockUid,
   order,
@@ -332,6 +339,7 @@ const BaseMultiTextPanel = ({
       setValues(newValues);
       setter(settingKeys, newValues);
       setInputValue("");
+      onChange?.(newValues);
 
       const parent = await ensureParentBlock();
       if (parent) {
@@ -354,6 +362,7 @@ const BaseMultiTextPanel = ({
     const newValues = values.filter((_, i) => i !== index);
     setValues(newValues);
     setter(settingKeys, newValues);
+    onChange?.(newValues);
 
     if (hasBlockSync) {
       const removedUid = childUidsRef.current[index];
@@ -376,7 +385,7 @@ const BaseMultiTextPanel = ({
 
   return (
     <Label>
-      {idToTitle(title)}
+      {title}
       <Description description={description} />
       <div className="flex gap-2">
         <InputGroup
