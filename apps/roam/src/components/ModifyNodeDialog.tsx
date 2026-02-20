@@ -137,21 +137,14 @@ const ModifyNodeDialog = ({
   useEffect(() => {
     if (isContentLocked) {
       suppressNextConfirmKeyRef.current = true;
-      const focusId = setTimeout(() => {
-        confirmButtonRef.current?.focus();
-      }, 0);
-      const clearSuppressId = setTimeout(() => {
+      confirmButtonRef.current?.focus();
+      const id = setTimeout(() => {
         suppressNextConfirmKeyRef.current = false;
       }, 150);
-      return () => {
-        clearTimeout(focusId);
-        clearTimeout(clearSuppressId);
-      };
+      return () => clearTimeout(id);
     }
   }, [isContentLocked]);
 
-  // Blueprint Button triggers click on keyUp, not keyDown. Intercept keyUp in capture
-  // so the Enter that locked content doesn't activate the button.
   const onConfirmButtonKeyUpCapture = useCallback(
     (e: React.KeyboardEvent) => {
       if (
