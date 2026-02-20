@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
 import { Button, ButtonGroup, Collapse } from "@blueprintjs/core";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
+import { GlobalFlagPanel } from "~/components/settings/components/BlockPropSettingPanels";
+import { setGlobalSetting } from "~/components/settings/utils/accessors";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import createBlock from "roamjs-components/writes/createBlock";
@@ -17,6 +18,9 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+
+const pagesToUids = (pages: RoamBasicNode[]) => pages.map((p) => p.text);
+
 
 const PageItem = memo(
   ({
@@ -159,6 +163,11 @@ const LeftSidebarGlobalSectionsContent = ({
       newPages.splice(newIndex, 0, removed);
 
       setPages(newPages);
+      setGlobalSetting(
+        ["Left sidebar", "Children"],
+        pagesToUids(newPages),
+      );
+
 
       if (childrenUid) {
         const order = direction === "down" ? newIndex + 1 : newIndex;
@@ -200,7 +209,13 @@ const LeftSidebarGlobalSectionsContent = ({
           children: [],
         };
 
-        setPages((prev) => [...prev, newPage]);
+        const updatedPages = [...pages, newPage];
+        setPages(updatedPages);
+        setGlobalSetting(
+          ["Left sidebar", "Children"],
+          pagesToUids(updatedPages),
+        );
+  
         setNewPageInput("");
         setAutocompleteKey((prev) => prev + 1);
         refreshAndNotify();
@@ -215,19 +230,28 @@ const LeftSidebarGlobalSectionsContent = ({
     [childrenUid, pages],
   );
 
-  const removePage = useCallback(async (page: RoamBasicNode) => {
-    try {
-      await deleteBlock(page.uid);
-      setPages((prev) => prev.filter((p) => p.uid !== page.uid));
-      refreshAndNotify();
-    } catch (error) {
-      renderToast({
-        content: "Failed to remove page",
-        intent: "danger",
-        id: "remove-page-error",
-      });
-    }
-  }, []);
+  const removePage = useCallback(
+    async (page: RoamBasicNode) => {
+      try {
+        await deleteBlock(page.uid);
+        const updatedPages = pages.filter((p) => p.uid !== page.uid);
+        setPages(updatedPages);
+        setGlobalSetting(
+          ["Left sidebar", "Children"],
+          pagesToUids(updatedPages),
+        );
+  
+        refreshAndNotify();
+      } catch (error) {
+        renderToast({
+          content: "Failed to remove page",
+          intent: "danger",
+          id: "remove-page-error",
+        });
+      }
+    },
+    [pages],
+  );
 
   const handlePageInputChange = useCallback((value: string) => {
     setNewPageInput(value);
@@ -259,21 +283,26 @@ const LeftSidebarGlobalSectionsContent = ({
           border: "1px solid rgba(51, 51, 51, 0.2)",
         }}
       >
-        <FlagPanel
+        <GlobalFlagPanel
           title="Folded"
           description="If children are present, start with global section collapsed in left sidebar"
+          settingKeys={["Left sidebar", "Settings", "Folded"]}
+          initialValue={globalSection.settings?.folded?.value || false}
           order={0}
           uid={globalSection.settings?.folded?.uid || ""}
           parentUid={globalSection.settings?.uid || ""}
           disabled={!globalSection.children?.length}
+
         />
-        <FlagPanel
+        <GlobalFlagPanel
           title="Collapsable"
           description="Make global section collapsable"
+          settingKeys={["Left sidebar", "Settings", "Collapsable"]}
+          initialValue={globalSection.settings?.collapsable?.value || false}
           order={1}
           uid={globalSection.settings?.collapsable?.uid || ""}
           parentUid={globalSection.settings?.uid || ""}
-          value={globalSection.settings?.collapsable?.value || false}
+
         />
       </div>
 
