@@ -13,7 +13,7 @@ import { Label, Tabs, Tab, TabId, InputGroup } from "@blueprintjs/core";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
-import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
+
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
@@ -23,9 +23,11 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
+  DiscourseNodeSelectPanel,
 } from "./components/BlockPropSettingPanels";
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
+import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 
 const TEMPLATE_SETTING_KEYS = ["template"];
 
@@ -67,11 +69,17 @@ const ValidatedInputPanel = ({
   </div>
 );
 
-const useDebouncedRoamUpdater = (
-  uid: string,
-  initialValue: string,
-  isValid: boolean,
-) => {
+const useDebouncedRoamUpdater = ({
+  uid,
+  initialValue,
+  isValid,
+  onSync,
+}: {
+  uid: string;
+  initialValue: string;
+  isValid: boolean;
+  onSync?: (text: string) => void;
+}) => {
   const [value, setValue] = useState(initialValue);
   const debounceRef = useRef(0);
   const isValidRef = useRef(isValid);
@@ -93,11 +101,12 @@ const useDebouncedRoamUpdater = (
           } else if (text) {
             void createBlock({ parentUid: uid, node: { text } });
           }
+          onSync?.(text);
         },
         timeout ? 500 : 0,
       );
     },
-    [uid],
+    [uid, onSync],
   );
 
   const handleChange = useCallback(
@@ -169,7 +178,12 @@ const NodeConfig = ({
     value: formatValue,
     handleChange: handleFormatChange,
     handleBlur: handleFormatBlurFromHook,
-  } = useDebouncedRoamUpdater(formatUid, node.format, !formatError);
+  } = useDebouncedRoamUpdater({
+    uid: formatUid,
+    initialValue: node.format,
+    isValid: !formatError,
+    onSync: (text) => setDiscourseNodeSetting(node.type, ["format"], text),
+  });
 
   const validateTag = useCallback(
     (tag: string): string | undefined => {
@@ -363,16 +377,17 @@ const NodeConfig = ({
           title="Attributes"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeAttributes uid={attributeNode.uid} />
-              <SelectPanel
+              <DiscourseNodeAttributes uid={attributeNode.uid} nodeType={node.type} />
+              <DiscourseNodeSelectPanel
+                nodeType={node.type}
                 title="Overlay"
                 description="Select which attribute is used for the discourse overlay"
+                settingKeys={["overlay"]}
+                options={attributeNode.children.map((c) => c.text)}
+                initialValue={getBasicTreeByParentUid(overlayUid)[0]?.text}
                 order={0}
                 parentUid={node.type}
                 uid={overlayUid}
-                options={{
-                  items: () => attributeNode.children.map((c) => c.text),
-                }}
               />
             </div>
           }
