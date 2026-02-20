@@ -13,7 +13,9 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import createPage from "roamjs-components/writes/createPage";
 import type { CustomField } from "roamjs-components/components/ConfigPanels/types";
 import posthog from "posthog-js";
-import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import getDiscourseRelations, {
+  type DiscourseRelation,
+} from "~/utils/getDiscourseRelations";
 import { deleteBlock } from "roamjs-components/writes";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import setBlockProps from "~/utils/setBlockProps";
@@ -41,7 +43,7 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
 
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
-  const [affectedRelations, setAffectedRelations] = useState<any[]>([]);
+  const [affectedRelations, setAffectedRelations] = useState<DiscourseRelation[]>([]);
   const [nodeTypeIdToDelete, setNodeTypeIdToDelete] = useState<string>("");
   const navigateToNode = (uid: string) => {
     if (isPopup) {
