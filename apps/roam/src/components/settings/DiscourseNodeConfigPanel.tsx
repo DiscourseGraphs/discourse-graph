@@ -16,6 +16,9 @@ import posthog from "posthog-js";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { deleteBlock } from "roamjs-components/writes";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
+import setBlockProps from "~/utils/setBlockProps";
+import { DiscourseNodeSchema } from "./utils/zodSchema";
+import { getGlobalSettings, setGlobalSetting } from "./utils/accessors";
 
 type DiscourseNodeConfigPanelProps = React.ComponentProps<
   CustomField["options"]["component"]
@@ -72,13 +75,15 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
           className="select-none"
           disabled={!label}
           onClick={() => {
+            const shortcut = label.slice(0, 1).toUpperCase();
+            const format = `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
             posthog.capture("Discourse Node: Type Created", { label: label });
-            createPage({
+            void createPage({
               title: `discourse-graph/nodes/${label}`,
               tree: [
                 {
                   text: "Shortcut",
-                  children: [{ text: label.slice(0, 1).toUpperCase() }],
+                  children: [{ text: shortcut }],
                 },
                 {
                   text: "Tag",
@@ -86,14 +91,17 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                 },
                 {
                   text: "Format",
-                  children: [
-                    {
-                      text: `[[${label.slice(0, 3).toUpperCase()}]] - {content}`,
-                    },
-                  ],
+                  children: [{ text: format }],
                 },
               ],
             }).then((valueUid) => {
+              setBlockProps(valueUid, DiscourseNodeSchema.parse({
+                text: label,
+                type: valueUid,
+                shortcut,
+                format,
+                backedBy: "user",
+              }));
               setNodes([
                 ...nodes,
                 {
@@ -222,6 +230,9 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                   throw error;
                 });
               }
+              const relations = { ...getGlobalSettings().Relations };
+              for (const rel of affectedRelations) delete relations[rel.id];
+              setGlobalSetting(["Relations"], relations);
               deleteNodeType(nodeTypeIdToDelete);
             } catch (error) {
               console.error(
