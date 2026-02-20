@@ -5,6 +5,7 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import getFirstChildUidByBlockUid from "roamjs-components/queries/getFirstChildUidByBlockUid";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
+import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 
 type Attribute = {
   uid: string;
@@ -18,7 +19,12 @@ const NodeAttribute = ({
   value,
   onChange,
   onDelete,
-}: Attribute & { onChange: (v: string) => void; onDelete: () => void }) => {
+  onSync,
+}: Attribute & {
+  onChange: (v: string) => void;
+  onDelete: () => void;
+  onSync?: () => void;
+}) => {
   const timeoutRef = useRef(0);
   return (
     <div
@@ -40,6 +46,7 @@ const NodeAttribute = ({
               text: e.target.value,
               uid: getFirstChildUidByBlockUid(uid),
             });
+            onSync?.();
           }, 500);
         }}
       />
@@ -53,7 +60,10 @@ const NodeAttribute = ({
   );
 };
 
-const NodeAttributes = ({ uid }: { uid: string }) => {
+const toRecord = (attrs: Attribute[]): Record<string, string> =>
+  Object.fromEntries(attrs.map((a) => [a.label, a.value]));
+
+const NodeAttributes = ({ uid, nodeType }: { uid: string; nodeType: string }) => {
   const [attributes, setAttributes] = useState<Attribute[]>(() =>
     getBasicTreeByParentUid(uid).map((t) => ({
       uid: t.uid,
@@ -61,6 +71,10 @@ const NodeAttributes = ({ uid }: { uid: string }) => {
       value: t.children[0]?.text,
     })),
   );
+  const attributesRef = useRef(attributes);
+  attributesRef.current = attributes;
+  const syncToBlockProps = () =>
+    setDiscourseNodeSetting(nodeType, ["attributes"], toRecord(attributesRef.current));
   const [newAttribute, setNewAttribute] = useState("");
   return (
     <div>
@@ -77,10 +91,13 @@ const NodeAttributes = ({ uid }: { uid: string }) => {
               )
             }
             onDelete={() =>
-              deleteBlock(a.uid).then(() =>
-                setAttributes(attributes.filter((aa) => a.uid !== aa.uid)),
-              )
+              deleteBlock(a.uid).then(() => {
+                const updated = attributes.filter((aa) => a.uid !== aa.uid);
+                setAttributes(updated);
+                setDiscourseNodeSetting(nodeType, ["attributes"], toRecord(updated));
+              })
             }
+            onSync={syncToBlockProps}
           />
         ))}
       </div>
@@ -105,11 +122,13 @@ const NodeAttributes = ({ uid }: { uid: string }) => {
                 parentUid: uid,
                 order: attributes.length,
               }).then((uid) => {
-                setAttributes([
+                const updated = [
                   ...attributes,
                   { uid, label: newAttribute, value: DEFAULT },
-                ]);
+                ];
+                setAttributes(updated);
                 setNewAttribute("");
+                setDiscourseNodeSetting(nodeType, ["attributes"], toRecord(updated));
               });
             }}
           />
