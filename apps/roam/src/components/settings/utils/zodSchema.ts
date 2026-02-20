@@ -202,10 +202,11 @@ export const GlobalSettingsSchema = z.object({
 });
 
 export const PersonalSectionSchema = z.object({
+  name: z.string(),
   Children: z
     .array(
       z.object({
-        Page: z.string(),
+        uid: z.string(),
         Alias: z.string().default(""),
       }),
     )
@@ -219,8 +220,8 @@ export const PersonalSectionSchema = z.object({
 });
 
 export const LeftSidebarPersonalSettingsSchema = z
-  .record(z.string(), PersonalSectionSchema)
-  .default({});
+  .array(PersonalSectionSchema)
+  .default([]);
 
 export const StoredFiltersSchema = z.object({
   includes: z.object({ values: z.array(z.string()).default([]) }).default({}),
