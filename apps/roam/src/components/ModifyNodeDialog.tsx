@@ -132,6 +132,40 @@ const ModifyNodeDialog = ({
     };
   }, [nodeFormat]);
 
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const suppressNextConfirmKeyRef = useRef(false);
+  useEffect(() => {
+    if (isContentLocked) {
+      suppressNextConfirmKeyRef.current = true;
+      const focusId = setTimeout(() => {
+        confirmButtonRef.current?.focus();
+      }, 0);
+      const clearSuppressId = setTimeout(() => {
+        suppressNextConfirmKeyRef.current = false;
+      }, 150);
+      return () => {
+        clearTimeout(focusId);
+        clearTimeout(clearSuppressId);
+      };
+    }
+  }, [isContentLocked]);
+
+  // Blueprint Button triggers click on keyUp, not keyDown. Intercept keyUp in capture
+  // so the Enter that locked content doesn't activate the button.
+  const onConfirmButtonKeyUpCapture = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (
+        suppressNextConfirmKeyRef.current &&
+        (e.key === "Enter" || e.key === " ")
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        suppressNextConfirmKeyRef.current = false;
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     setLoading(true);
 
@@ -564,13 +598,16 @@ const ModifyNodeDialog = ({
           <div
             className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
           >
-            <Button
-              text="Confirm"
-              intent={Intent.PRIMARY}
-              onClick={() => void onSubmit()}
-              disabled={loading || !content.text.trim()}
-              className="flex-shrink-0"
-            />
+            <div onKeyUpCapture={onConfirmButtonKeyUpCapture}>
+              <Button
+                text="Confirm"
+                intent={Intent.PRIMARY}
+                onClick={() => void onSubmit()}
+                disabled={loading || !content.text.trim()}
+                className="flex-shrink-0"
+                elementRef={confirmButtonRef}
+              />
+            </div>
             <Button
               text="Cancel"
               onClick={onCancelClick}

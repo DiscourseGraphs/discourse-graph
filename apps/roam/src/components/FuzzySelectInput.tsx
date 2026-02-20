@@ -14,7 +14,6 @@ import { Result } from "~/utils/types";
 type FuzzySelectInputProps<T extends Result = Result> = {
   value?: T;
   setValue: (q: T) => void;
-  onLockedChange?: (isLocked: boolean) => void;
   mode: "create" | "edit";
   initialUid: string;
   options?: T[];
@@ -26,7 +25,6 @@ type FuzzySelectInputProps<T extends Result = Result> = {
 const FuzzySelectInput = <T extends Result = Result>({
   value,
   setValue,
-  onLockedChange,
   mode,
   initialUid,
   options = [],
@@ -40,6 +38,7 @@ const FuzzySelectInput = <T extends Result = Result>({
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
 
+  const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
 
   const filteredItems = useMemo(() => {
@@ -56,7 +55,6 @@ const FuzzySelectInput = <T extends Result = Result>({
         setQuery(item.text);
         setValue(item);
         setIsOpen(false);
-        onLockedChange?.(true);
       } else {
         setQuery(item.text);
         setValue(item);
@@ -64,15 +62,14 @@ const FuzzySelectInput = <T extends Result = Result>({
         requestAnimationFrame(() => inputRef.current?.focus());
       }
     },
-    [mode, initialUid, setValue, onLockedChange],
+    [mode, initialUid, setValue],
   );
 
   const handleClear = useCallback(() => {
     setIsLocked(false);
     setQuery("");
     setValue({ ...value, text: "", uid: "" } as T);
-    onLockedChange?.(false);
-  }, [value, setValue, onLockedChange]);
+  }, [value, setValue]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
