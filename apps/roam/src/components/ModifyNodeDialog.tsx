@@ -132,6 +132,13 @@ const ModifyNodeDialog = ({
     };
   }, [nodeFormat]);
 
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (isContentLocked) {
+      confirmButtonRef.current?.focus();
+    }
+  }, [isContentLocked]);
+
   useEffect(() => {
     setLoading(true);
 
@@ -520,6 +527,7 @@ const ModifyNodeDialog = ({
                   }
                 }}
                 disabled={mode === "edit"}
+                popoverProps={{ openOnTargetFocus: false }}
               />
             </Label>
           </div>
@@ -570,6 +578,7 @@ const ModifyNodeDialog = ({
               onClick={() => void onSubmit()}
               disabled={loading || !content.text.trim()}
               className="flex-shrink-0"
+              elementRef={confirmButtonRef}
             />
             <Button
               text="Cancel"

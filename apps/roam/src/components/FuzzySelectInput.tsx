@@ -14,7 +14,6 @@ import { Result } from "~/utils/types";
 type FuzzySelectInputProps<T extends Result = Result> = {
   value?: T;
   setValue: (q: T) => void;
-  onLockedChange?: (isLocked: boolean) => void;
   mode: "create" | "edit";
   initialUid: string;
   options?: T[];
@@ -26,7 +25,6 @@ type FuzzySelectInputProps<T extends Result = Result> = {
 const FuzzySelectInput = <T extends Result = Result>({
   value,
   setValue,
-  onLockedChange,
   mode,
   initialUid,
   options = [],
@@ -57,7 +55,6 @@ const FuzzySelectInput = <T extends Result = Result>({
         setQuery(item.text);
         setValue(item);
         setIsOpen(false);
-        onLockedChange?.(true);
       } else {
         setQuery(item.text);
         setValue(item);
@@ -65,15 +62,14 @@ const FuzzySelectInput = <T extends Result = Result>({
         requestAnimationFrame(() => inputRef.current?.focus());
       }
     },
-    [mode, initialUid, setValue, onLockedChange],
+    [mode, initialUid, setValue],
   );
 
   const handleClear = useCallback(() => {
     setIsLocked(false);
     setQuery("");
     setValue({ ...value, text: "", uid: "" } as T);
-    onLockedChange?.(false);
-  }, [value, setValue, onLockedChange]);
+  }, [value, setValue]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -89,6 +85,19 @@ const FuzzySelectInput = <T extends Result = Result>({
         e.preventDefault();
         e.stopPropagation();
         if (isOpen && filteredItems[activeIndex]) {
+          // Suppress the upcoming keyup so it doesn't activate the next focused element
+          // (e.g. Blueprint buttons trigger click on keyup).
+          const keyUpHandler = (keyUpEvent: KeyboardEvent) => {
+            if (keyUpEvent.key === "Enter" || keyUpEvent.key === " ") {
+              keyUpEvent.preventDefault();
+              keyUpEvent.stopPropagation();
+              document.removeEventListener("keyup", keyUpHandler, true);
+            }
+          };
+          document.addEventListener("keyup", keyUpHandler, true);
+          setTimeout(() => {
+            document.removeEventListener("keyup", keyUpHandler, true);
+          }, 150);
           handleSelect(filteredItems[activeIndex]);
         }
       } else if (e.key === "Escape") {
