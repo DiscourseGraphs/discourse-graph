@@ -487,11 +487,7 @@ const updateMarkdownAssetLinks = ({
   app: App;
   originalNodePath?: string;
 }): string => {
-  if (oldPathToNewPath.size === 0) {
-    return content;
-  }
-
-  // Create a set of all new paths for quick lookup (used by findImportedAssetFile)
+  // Create a set of all new paths for quick lookup (used by findImportedAssetFile when pathMapping has entries)
   const newPaths = new Set(oldPathToNewPath.values());
 
   let updatedContent = content;
@@ -499,6 +495,13 @@ const updateMarkdownAssetLinks = ({
   const noteDir = targetFile.path.includes("/")
     ? targetFile.path.replace(/\/[^/]*$/, "")
     : "";
+
+  // When the note is under import/{spaceName}/, only treat wiki links as resolved if the target is in this folder (not some other vault file).
+  const pathParts = targetFile.path.split("/");
+  const importFolder =
+    pathParts[0] === "import" && pathParts.length >= 2
+      ? pathParts.slice(0, 2).join("/")
+      : null;
 
   /** Path of targetFile relative to the current note, for use in links. Obsidian resolves relative links from the note's directory. */
   const getRelativeLinkPath = (assetPath: string): string => {
@@ -644,6 +647,25 @@ const updateMarkdownAssetLinks = ({
         }
       }
 
+      // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files; leave other links unchanged so they resolve from this folder when the target is created
+      const resolvedFile = app.metadataCache.getFirstLinkpathDest(
+        linkPath,
+        targetFile.path,
+      );
+      const isInImportFolder =
+        importFolder &&
+        resolvedFile &&
+        (resolvedFile.path === importFolder ||
+          resolvedFile.path.startsWith(importFolder + "/"));
+      if (isInImportFolder && resolvedFile) {
+        const linkText = getRelativeLinkPath(resolvedFile.path);
+        if (alias) {
+          return `[[${linkText}|${alias}]]`;
+        }
+        return `[[${linkText}]]`;
+      }
+
+      // No resolved file in import folder: keep link as-is. Using ./ prefix breaks Obsidian (getParentPrefix null, "Folder already exists"); where new notes are created is controlled by app settings.
       return match;
     },
   );
@@ -1250,21 +1272,18 @@ export const importSelectedNodes = async ({
           originalNodePath,
         });
 
-        // Update markdown content with new asset paths if assets were imported
-        if (assetImportResult.pathMapping.size > 0) {
-          const currentContent = await plugin.app.vault.read(processedFile);
-          const updatedContent = updateMarkdownAssetLinks({
-            content: currentContent,
-            oldPathToNewPath: assetImportResult.pathMapping,
-            targetFile: processedFile,
-            app: plugin.app,
-            originalNodePath,
-          });
+        // Update markdown content: rewrite asset paths from pathMapping and normalize all wiki links to relative paths
+        const currentContent = await plugin.app.vault.read(processedFile);
+        const updatedContent = updateMarkdownAssetLinks({
+          content: currentContent,
+          oldPathToNewPath: assetImportResult.pathMapping,
+          targetFile: processedFile,
+          app: plugin.app,
+          originalNodePath,
+        });
 
-          // Only update if content changed
-          if (updatedContent !== currentContent) {
-            await plugin.app.vault.modify(processedFile, updatedContent);
-          }
+        if (updatedContent !== currentContent) {
+          await plugin.app.vault.modify(processedFile, updatedContent);
         }
 
         // Log asset import errors if any
