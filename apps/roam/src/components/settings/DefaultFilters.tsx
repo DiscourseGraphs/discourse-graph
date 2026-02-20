@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import type { OnloadArgs } from "roamjs-components/types";
 import type { Filters } from "roamjs-components/components/Filter";
 import posthog from "posthog-js";
+import { setPersonalSetting } from "~/components/settings/utils/accessors";
 
 //
 // TODO - REWORK THIS COMPONENT
@@ -124,28 +125,27 @@ const DefaultFilters = ({
   );
 
   useEffect(() => {
-    extensionAPI.settings.set(
-      "default-filters",
-      Object.fromEntries(
-        Object.entries(filters).map(([k, v]) => [
-          k,
-          {
-            includes: Object.fromEntries(
-              Object.entries(v.includes || {}).map(([k, v]) => [
-                k,
-                Array.from(v),
-              ]),
-            ),
-            excludes: Object.fromEntries(
-              Object.entries(v.excludes || {}).map(([k, v]) => [
-                k,
-                Array.from(v),
-              ]),
-            ),
-          },
-        ]),
-      ),
+    const serialized = Object.fromEntries(
+      Object.entries(filters).map(([k, v]) => [
+        k,
+        {
+          includes: Object.fromEntries(
+            Object.entries(v.includes || {}).map(([k, v]) => [
+              k,
+              Array.from(v),
+            ]),
+          ),
+          excludes: Object.fromEntries(
+            Object.entries(v.excludes || {}).map(([k, v]) => [
+              k,
+              Array.from(v),
+            ]),
+          ),
+        },
+      ]),
     );
+    void extensionAPI.settings.set("default-filters", serialized);
+    setPersonalSetting(["Query", "Default filters"], serialized);
   }, [filters]);
   return (
     <div
