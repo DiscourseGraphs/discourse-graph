@@ -620,7 +620,7 @@ const LeftSidebarPersonalSectionsContent = ({
   const addSection = useCallback(
     async (sectionName: string) => {
       if (!sectionName || !personalSectionUid) return;
-      if (sections.some((s) => s.text === sectionName)) return;
+      if (sectionsRef.current.some((s) => s.text === sectionName)) return;
 
       try {
         const newBlock = await createBlock({
@@ -636,7 +636,7 @@ const LeftSidebarPersonalSectionsContent = ({
           children: undefined,
           childrenUid: undefined,
         } as LeftSidebarPersonalSectionConfig;
-        const updatedSections = [...sections, newSection];
+        const updatedSections = [...sectionsRef.current, newSection];
         setSections(updatedSections);
         syncAllSectionsToBlockProps(updatedSections);
 
@@ -653,7 +653,7 @@ const LeftSidebarPersonalSectionsContent = ({
         });
       }
     },
-    [personalSectionUid, sections],
+    [personalSectionUid],
   );
 
   const handleNewSectionInputChange = useCallback((value: string) => {
