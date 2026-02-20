@@ -26,6 +26,7 @@ import {
 } from "./components/BlockPropSettingPanels";
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
+import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 
 const TEMPLATE_SETTING_KEYS = ["template"];
 
@@ -67,11 +68,17 @@ const ValidatedInputPanel = ({
   </div>
 );
 
-const useDebouncedRoamUpdater = (
-  uid: string,
-  initialValue: string,
-  isValid: boolean,
-) => {
+const useDebouncedRoamUpdater = ({
+  uid,
+  initialValue,
+  isValid,
+  onSync,
+}: {
+  uid: string;
+  initialValue: string;
+  isValid: boolean;
+  onSync?: (text: string) => void;
+}) => {
   const [value, setValue] = useState(initialValue);
   const debounceRef = useRef(0);
   const isValidRef = useRef(isValid);
@@ -93,11 +100,12 @@ const useDebouncedRoamUpdater = (
           } else if (text) {
             void createBlock({ parentUid: uid, node: { text } });
           }
+          onSync?.(text);
         },
         timeout ? 500 : 0,
       );
     },
-    [uid],
+    [uid, onSync],
   );
 
   const handleChange = useCallback(
@@ -169,7 +177,12 @@ const NodeConfig = ({
     value: formatValue,
     handleChange: handleFormatChange,
     handleBlur: handleFormatBlurFromHook,
-  } = useDebouncedRoamUpdater(formatUid, node.format, !formatError);
+  } = useDebouncedRoamUpdater({
+    uid: formatUid,
+    initialValue: node.format,
+    isValid: !formatError,
+    onSync: (text) => setDiscourseNodeSetting(node.type, ["format"], text),
+  });
 
   const validateTag = useCallback(
     (tag: string): string | undefined => {

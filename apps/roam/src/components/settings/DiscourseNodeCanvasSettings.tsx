@@ -11,7 +11,8 @@ import React, { useState, useMemo } from "react";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import setInputSetting from "roamjs-components/util/setInputSetting";
-import { DiscourseNodeFlagPanel } from "./components/BlockPropSettingPanels";
+import { DiscourseNodeFlagPanel, DiscourseNodeTextPanel } from "./components/BlockPropSettingPanels";
+import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 
 export const formatHexColor = (color: string) => {
   if (!color) return "";
@@ -31,9 +32,7 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
     const color = getSettingValueFromTree({ tree, key: "color" });
     return formatHexColor(color);
   });
-  const [alias, setAlias] = useState<string>(() =>
-    getSettingValueFromTree({ tree, key: "alias" }),
-  );
+  const alias = getSettingValueFromTree({ tree, key: "alias" });
   const [queryBuilderAlias, setQueryBuilderAlias] = useState<string>(() =>
     getSettingValueFromTree({ tree, key: "query-builder-alias" }),
   );
@@ -54,12 +53,14 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
             type={"color"}
             value={color}
             onChange={(e) => {
+              const colorValue = e.target.value.replace("#", ""); // remove hash to not create roam link
               setColor(e.target.value);
               void setInputSetting({
                 blockUid: uid,
                 key: "color",
-                value: e.target.value.replace("#", ""), // remove hash to not create roam link
+                value: colorValue,
               });
+              setDiscourseNodeSetting(nodeType, ["canvasSettings", "color"], colorValue);
             }}
           />
           <Tooltip content={color ? "Unset" : "Color not set"}>
@@ -73,25 +74,26 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
                   key: "color",
                   value: "",
                 });
+                setDiscourseNodeSetting(nodeType, ["canvasSettings", "color"], "");
               }}
             />
           </Tooltip>
         </ControlGroup>
       </div>
-      <Label style={{ width: 240 }}>
-        Display alias
-        <InputGroup
-          value={alias}
-          onChange={(e) => {
-            setAlias(e.target.value);
-            void setInputSetting({
-              blockUid: uid,
-              key: "alias",
-              value: e.target.value,
-            });
-          }}
-        />
-      </Label>
+      <DiscourseNodeTextPanel
+        nodeType={nodeType}
+        title="Display alias"
+        description=""
+        settingKeys={["canvasSettings", "alias"]}
+        initialValue={alias}
+        onChange={(val) => {
+          void setInputSetting({
+            blockUid: uid,
+            key: "alias",
+            value: val,
+          });
+        }}
+      />
       <DiscourseNodeFlagPanel
         nodeType={nodeType}
         title="Key Image"
@@ -120,6 +122,7 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
             key: "key-image-option",
             value,
           });
+          setDiscourseNodeSetting(nodeType, ["canvasSettings", "key-image-option"], value);
         }}
       >
         <Radio label="First image on page" value="first-image" />
@@ -139,12 +142,14 @@ const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid:
         disabled={keyImageOption !== "query-builder" || !isKeyImage}
         value={queryBuilderAlias}
         onChange={(e) => {
-          setQueryBuilderAlias(e.target.value);
+          const val = e.target.value;
+          setQueryBuilderAlias(val);
           void setInputSetting({
             blockUid: uid,
             key: "query-builder-alias",
-            value: e.target.value,
+            value: val,
           });
+          setDiscourseNodeSetting(nodeType, ["canvasSettings", "query-builder-alias"], val);
         }}
       />
     </div>
