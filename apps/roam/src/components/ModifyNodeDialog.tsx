@@ -133,31 +133,11 @@ const ModifyNodeDialog = ({
   }, [nodeFormat]);
 
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
-  const suppressNextConfirmKeyRef = useRef(false);
   useEffect(() => {
     if (isContentLocked) {
-      suppressNextConfirmKeyRef.current = true;
       confirmButtonRef.current?.focus();
-      const id = setTimeout(() => {
-        suppressNextConfirmKeyRef.current = false;
-      }, 150);
-      return () => clearTimeout(id);
     }
   }, [isContentLocked]);
-
-  const onConfirmButtonKeyUpCapture = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (
-        suppressNextConfirmKeyRef.current &&
-        (e.key === "Enter" || e.key === " ")
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        suppressNextConfirmKeyRef.current = false;
-      }
-    },
-    [],
-  );
 
   useEffect(() => {
     setLoading(true);
@@ -547,6 +527,7 @@ const ModifyNodeDialog = ({
                   }
                 }}
                 disabled={mode === "edit"}
+                popoverProps={{ openOnTargetFocus: false }}
               />
             </Label>
           </div>
@@ -591,16 +572,14 @@ const ModifyNodeDialog = ({
           <div
             className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
           >
-            <div onKeyUpCapture={onConfirmButtonKeyUpCapture}>
-              <Button
-                text="Confirm"
-                intent={Intent.PRIMARY}
-                onClick={() => void onSubmit()}
-                disabled={loading || !content.text.trim()}
-                className="flex-shrink-0"
-                elementRef={confirmButtonRef}
-              />
-            </div>
+            <Button
+              text="Confirm"
+              intent={Intent.PRIMARY}
+              onClick={() => void onSubmit()}
+              disabled={loading || !content.text.trim()}
+              className="flex-shrink-0"
+              elementRef={confirmButtonRef}
+            />
             <Button
               text="Cancel"
               onClick={onCancelClick}
