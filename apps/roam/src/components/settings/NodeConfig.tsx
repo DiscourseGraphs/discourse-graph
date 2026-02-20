@@ -25,6 +25,7 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
+  DiscourseNodeSelectPanel,
 } from "./components/BlockPropSettingPanels";
 
 const TEMPLATE_SETTING_KEYS = ["template"];
@@ -360,15 +361,16 @@ const NodeConfig = ({
           panel={
             <div className="flex flex-col gap-4 p-1">
               <DiscourseNodeAttributes uid={attributeNode.uid} />
-              <SelectPanel
+              <DiscourseNodeSelectPanel
+                nodeType={node.type}
                 title="Overlay"
                 description="Select which attribute is used for the discourse overlay"
+                settingKeys={["overlay"]}
+                options={attributeNode.children.map((c) => c.text)}
+                initialValue={getBasicTreeByParentUid(overlayUid)[0]?.text}
                 order={0}
                 parentUid={node.type}
                 uid={overlayUid}
-                options={{
-                  items: () => attributeNode.children.map((c) => c.text),
-                }}
               />
             </div>
           }
