@@ -266,10 +266,11 @@ const defaultGlobalSettings: GlobalSettings = {
 };
 
 const personalSection: PersonalSection = {
+  name: "My Workspace",
   Children: [
-    { Page: "daily-notes-uid", Alias: "Daily Notes" },
-    { Page: "inbox-uid", Alias: "Inbox" },
-    { Page: "projects-uid", Alias: "" },
+    { uid: "daily-notes-uid", Alias: "Daily Notes" },
+    { uid: "inbox-uid", Alias: "Inbox" },
+    { uid: "projects-uid", Alias: "" },
   ],
   Settings: {
     "Truncate-result?": 100,
@@ -277,29 +278,31 @@ const personalSection: PersonalSection = {
   },
 };
 
-const leftSidebarPersonalSettings: LeftSidebarPersonalSettings = {
-  "My Workspace": {
+const leftSidebarPersonalSettings: LeftSidebarPersonalSettings = [
+  {
+    name: "My Workspace",
     Children: [
-      { Page: "daily-notes-uid", Alias: "Daily Notes" },
-      { Page: "inbox-uid", Alias: "Inbox" },
+      { uid: "daily-notes-uid", Alias: "Daily Notes" },
+      { uid: "inbox-uid", Alias: "Inbox" },
     ],
     Settings: {
       "Truncate-result?": 75,
       Folded: false,
     },
   },
-  Research: {
+  {
+    name: "Research",
     Children: [
-      { Page: "papers-uid", Alias: "Papers" },
-      { Page: "notes-uid", Alias: "Notes" },
-      { Page: "ideas-uid", Alias: "Ideas" },
+      { uid: "papers-uid", Alias: "Papers" },
+      { uid: "notes-uid", Alias: "Notes" },
+      { uid: "ideas-uid", Alias: "Ideas" },
     ],
     Settings: {
       "Truncate-result?": 50,
       Folded: true,
     },
   },
-};
+];
 
 const storedFilters: StoredFilters = {
   includes: { values: ["Claim", "Evidence"] },
@@ -323,28 +326,30 @@ const querySettings: QuerySettings = {
 };
 
 const personalSettings: PersonalSettings = {
-  "Left sidebar": {
-    "My Workspace": {
+  "Left sidebar": [
+    {
+      name: "My Workspace",
       Children: [
-        { Page: "daily-notes-uid", Alias: "Daily Notes" },
-        { Page: "inbox-uid", Alias: "Inbox" },
+        { uid: "daily-notes-uid", Alias: "Daily Notes" },
+        { uid: "inbox-uid", Alias: "Inbox" },
       ],
       Settings: {
         "Truncate-result?": 75,
         Folded: false,
       },
     },
-    Research: {
+    {
+      name: "Research",
       Children: [
-        { Page: "papers-uid", Alias: "Papers" },
-        { Page: "notes-uid", Alias: "Notes" },
+        { uid: "papers-uid", Alias: "Papers" },
+        { uid: "notes-uid", Alias: "Notes" },
       ],
       Settings: {
         "Truncate-result?": 50,
         Folded: true,
       },
     },
-  },
+  ],
   "Personal node menu trigger": { modifiers: 0, key: ";;" },
   "Node search menu trigger": "//",
   "Discourse tool shortcut": { modifiers: 0, key: "d" },
@@ -372,7 +377,7 @@ const personalSettings: PersonalSettings = {
 };
 
 const defaultPersonalSettings: PersonalSettings = {
-  "Left sidebar": {},
+  "Left sidebar": [],
   "Personal node menu trigger": { modifiers: 0, key: "" },
   "Node search menu trigger": "",
   "Discourse tool shortcut": { modifiers: 0, key: "" },
