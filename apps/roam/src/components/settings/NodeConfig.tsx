@@ -13,7 +13,7 @@ import { Label, Tabs, Tab, TabId, InputGroup } from "@blueprintjs/core";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
-import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
+
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
@@ -23,6 +23,7 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
+  DiscourseNodeSelectPanel,
 } from "./components/BlockPropSettingPanels";
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
@@ -376,16 +377,17 @@ const NodeConfig = ({
           title="Attributes"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeAttributes uid={attributeNode.uid} />
-              <SelectPanel
+              <DiscourseNodeAttributes uid={attributeNode.uid} nodeType={node.type} />
+              <DiscourseNodeSelectPanel
+                nodeType={node.type}
                 title="Overlay"
                 description="Select which attribute is used for the discourse overlay"
+                settingKeys={["overlay"]}
+                options={attributeNode.children.map((c) => c.text)}
+                initialValue={getBasicTreeByParentUid(overlayUid)[0]?.text}
                 order={0}
                 parentUid={node.type}
                 uid={overlayUid}
-                options={{
-                  items: () => attributeNode.children.map((c) => c.text),
-                }}
               />
             </div>
           }
