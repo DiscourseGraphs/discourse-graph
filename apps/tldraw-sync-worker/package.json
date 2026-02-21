@@ -1,0 +1,25 @@
+{
+	"name": "@repo/tldraw-sync-worker",
+	"private": true,
+	"version": "0.1.0",
+	"license": "Apache-2.0",
+	"type": "module",
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy",
+		"check-types": "tsc --noEmit -p tsconfig.json"
+	},
+	"dependencies": {
+		"@tldraw/sync-core": "2.4.6",
+		"@tldraw/tlschema": "2.4.6",
+		"cloudflare-workers-unfurl": "^0.0.7",
+		"itty-router": "^5.0.17",
+		"lodash.throttle": "^4.1.1"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20240208.0",
+		"@types/lodash.throttle": "^4",
+		"typescript": "^5.0.2",
+		"wrangler": "^3.64.0"
+	}
+}

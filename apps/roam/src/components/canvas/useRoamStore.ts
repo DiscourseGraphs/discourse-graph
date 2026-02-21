@@ -38,6 +38,17 @@ export const isTLStoreSnapshot = (value: unknown): value is TLStoreSnapshot => {
   );
 };
 
+/** True if the canvas has existing tldraw state persisted in Roam (any format). */
+export const hasRoamPersistedCanvasData = (pageUid: string): boolean => {
+  const props = getBlockProps(pageUid) as Record<string, unknown>;
+  const rjsqb =
+    typeof props?.["roamjs-query-builder"] === "object"
+      ? (props["roamjs-query-builder"] as Record<string, unknown>)
+      : {};
+  const tldraw = rjsqb?.tldraw;
+  return tldraw !== undefined && tldraw !== null;
+};
+
 const fixShapeIndices = (
   data: SerializedStore<TLRecord>,
 ): SerializedStore<TLRecord> => {
