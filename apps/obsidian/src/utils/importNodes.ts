@@ -972,11 +972,13 @@ const mapNodeTypeIdToLocal = async ({
   plugin,
   client,
   sourceSpaceId,
+  sourceSpaceUri,
   sourceNodeTypeId,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
   sourceSpaceId: number;
+  sourceSpaceUri: string;
   sourceNodeTypeId: string;
 }): Promise<string> => {
   // Find the schema in the source space with this nodeTypeId (my_concepts applies RLS)
@@ -1028,6 +1030,7 @@ const mapNodeTypeIdToLocal = async ({
     keyImage: parsed.keyImage,
     created: now,
     modified: now,
+    importedFromRid: `${sourceSpaceUri}/${sourceNodeTypeId}`,
   };
   plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
   await plugin.saveSettings();
@@ -1089,6 +1092,7 @@ const processFileContent = async ({
     plugin,
     client,
     sourceSpaceId,
+    sourceSpaceUri,
     sourceNodeTypeId,
   });
 
