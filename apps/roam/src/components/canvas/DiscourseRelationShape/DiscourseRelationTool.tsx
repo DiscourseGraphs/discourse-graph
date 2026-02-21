@@ -363,14 +363,17 @@ export const createAllRelationShapeTools = (
           );
 
           const relation = discourseContext.relations[name].find(
-            (r) => r.source === target?.type,
+            (r) => r.source === target?.type || r.destination === target?.type,
           );
           if (relation) {
             this.shapeType = relation.id;
           } else {
-            const acceptableTypes = discourseContext.relations[name].map(
-              (r) => discourseContext.nodes[r.source].text,
-            );
+            const acceptableTypes = discourseContext.relations[name]
+              .flatMap((r) => [
+                discourseContext.nodes[r.source]?.text,
+                discourseContext.nodes[r.destination]?.text,
+              ])
+              .filter(Boolean);
             const uniqueTypes = [...new Set(acceptableTypes)];
             this.cancelAndWarn(
               `Starting node must be one of ${uniqueTypes.join(", ")}`,
