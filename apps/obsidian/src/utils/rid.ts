@@ -15,9 +15,13 @@ export const spaceUriAndLocalIdToRid = (
 export const ridToSpaceUriAndLocalId = (
   rid: string,
 ): { spaceUri: string; sourceLocalId: string } => {
-  const m = rid.match(/^orn:(\w+).(\w+):(.*)\/([^/]+)$/);
+  const m = rid.match(/^orn:(\w+)\.(\w+):(.*)\/([^/]+)$/);
   if (m) {
     return { spaceUri: `${m[1]}:${m[3]}`, sourceLocalId: m[4]! };
+  }
+  const m2 = rid.match(/^orn:(\w+):(.*)\/([^/]+)$/);
+  if (m2) {
+    return { spaceUri: `${m2[1]}:${m2[2]}`, sourceLocalId: m2[3]! };
   }
   const parts = rid.split("/");
   const sourceLocalId = parts.pop()!;
