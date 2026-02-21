@@ -62,7 +62,7 @@ export const getVaultId = (app: DiscourseGraphPlugin["app"]): string => {
 };
 
 const canonicalObsidianUrl = (vaultId: string): string => {
-  return `obsidian:${vaultId}`;
+  return `orn:obsidian.note:${vaultId}`;
 };
 
 export const getSupabaseContext = async (

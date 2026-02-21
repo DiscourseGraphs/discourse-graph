@@ -99,7 +99,7 @@ const RelationshipTypeSettings = () => {
 
   type EditableFieldKey = keyof Omit<
     DiscourseRelationType,
-    "id" | "modified" | "created"
+    "id" | "modified" | "created" | "importedFromRid"
   >;
 
   const handleRelationTypeChange = (
