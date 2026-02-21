@@ -1021,7 +1021,7 @@ const mapNodeTypeIdToLocal = async ({
   const importedFromRid = spaceUriAndLocalIdToRid(
     sourceSpaceUri,
     sourceNodeTypeId,
-    "note",
+    "nodeSchema",
   );
 
   const newNodeType: DiscourseNode = {
@@ -1180,7 +1180,11 @@ export const importSelectedNodes = async ({
     // Process each node in this space
     for (const node of nodes) {
       try {
-        const importedFromRid = `${spaceUri}/${node.nodeInstanceId}`;
+        const importedFromRid = spaceUriAndLocalIdToRid(
+          spaceUri,
+          node.nodeInstanceId,
+          "note",
+        );
         // Check if file already exists by nodeInstanceId + importedFromRid
         const existingFile = queryEngine.findExistingImportedFile(
           node.nodeInstanceId,
