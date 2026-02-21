@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
 import {
   Button,
   TextArea,
@@ -14,27 +20,22 @@ import { Result } from "~/utils/types";
 type FuzzySelectInputProps<T extends Result = Result> = {
   value?: T;
   setValue: (q: T) => void;
-  onLockedChange?: (isLocked: boolean) => void;
   mode: "create" | "edit";
-  initialUid: string;
   options?: T[];
   placeholder?: string;
   autoFocus?: boolean;
-  initialIsLocked?: boolean;
+  isLocked: boolean;
 };
 
 const FuzzySelectInput = <T extends Result = Result>({
   value,
   setValue,
-  onLockedChange,
   mode,
-  initialUid,
   options = [],
   placeholder = "Enter value",
   autoFocus,
-  initialIsLocked,
+  isLocked,
 }: FuzzySelectInputProps<T>) => {
-  const [isLocked, setIsLocked] = useState(initialIsLocked || false);
   const [query, setQuery] = useState<string>(() => value?.text || "");
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -52,28 +53,31 @@ const FuzzySelectInput = <T extends Result = Result>({
 
   const handleSelect = useCallback(
     (item: T) => {
-      if (mode === "create" && item.uid && item.uid !== initialUid) {
-        setIsLocked(true);
-        setQuery(item.text);
-        setValue(item);
-        setIsOpen(false);
-        onLockedChange?.(true);
-      } else {
-        setQuery(item.text);
-        setValue(item);
-        setIsOpen(false);
+      setQuery(item.text);
+      setValue(item);
+      setIsOpen(false);
+
+      if (!(mode === "create" && item.uid)) {
         requestAnimationFrame(() => inputRef.current?.focus());
       }
     },
-    [mode, initialUid, setValue, onLockedChange],
+    [mode, setValue],
   );
 
   const handleClear = useCallback(() => {
-    setIsLocked(false);
     setQuery("");
     setValue({ ...value, text: "", uid: "" } as T);
-    onLockedChange?.(false);
-  }, [value, setValue, onLockedChange]);
+  }, [value, setValue]);
+
+  const handleInputChange = useCallback(
+    (text: string) => {
+      setQuery(text);
+      if (mode === "create" && !isLocked) {
+        setValue({ text, uid: "" } as T);
+      }
+    },
+    [mode, isLocked, setValue],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -100,10 +104,9 @@ const FuzzySelectInput = <T extends Result = Result>({
   );
 
   useEffect(() => {
-    if (mode === "create" && !isLocked) {
-      setValue({ text: query, uid: "" } as T);
-    }
-  }, [query, mode, isLocked, setValue]);
+    if (isLocked) return;
+    setQuery(value?.text ?? "");
+  }, [isLocked, value?.text]);
 
   useEffect(() => {
     if (isFocused && filteredItems.length > 0 && query) {
@@ -206,7 +209,7 @@ const FuzzySelectInput = <T extends Result = Result>({
           inputRef={inputRef}
           className="w-full"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
           autoFocus={autoFocus}
           placeholder={placeholder}
