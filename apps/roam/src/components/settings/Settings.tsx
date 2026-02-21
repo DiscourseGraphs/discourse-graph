@@ -28,6 +28,7 @@ import { FeedbackWidget } from "~/components/BirdEatsBugs";
 import { getVersionWithDate } from "~/utils/getVersion";
 import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
 import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
+import posthog from "posthog-js";
 
 type SectionHeaderProps = {
   children: React.ReactNode;
@@ -48,6 +49,7 @@ export const SettingsPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     <div className="m-4">
       <Button
         onClick={() => {
+          posthog.capture("Settings: Opened from Roam Settings Panel");
           render({
             onloadArgs,
           });
@@ -81,12 +83,19 @@ export const SettingsDialog = ({
   );
 
   useEffect(() => {
+    posthog.capture("Settings: Dialog Opened", {
+      initialTabId: String(selectedTabId ?? "discourse-graph-home-personal"),
+    });
+  }, [selectedTabId]);
+
+  useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === "A") {
         e.stopPropagation();
         e.preventDefault();
         setShowAdminPanel(true);
         setActiveTabId("secret-admin-panel");
+        posthog.capture("Settings: Admin Panel Opened via Shortcut");
       }
     };
 
@@ -134,7 +143,12 @@ export const SettingsDialog = ({
         `}</style>
         <Tabs
           className="dg-settings-tabs flex h-full"
-          onChange={(id) => setActiveTabId(id)}
+          onChange={(id) => {
+            setActiveTabId(id);
+            posthog.capture("Settings: Tab Opened", {
+              tabId: String(id),
+            });
+          }}
           selectedTabId={activeTabId}
           vertical={true}
           renderActiveTabPanelOnly={true}
@@ -235,6 +249,7 @@ export const SettingsDialog = ({
           icon="send-message"
           intent={Intent.PRIMARY}
           onClick={() => {
+            posthog.capture("Feedback: Triggered from Settings");
             const birdeatsbug = window.birdeatsbug as FeedbackWidget;
             birdeatsbug.trigger?.();
           }}

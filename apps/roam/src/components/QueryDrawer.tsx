@@ -380,7 +380,7 @@ const QueryDrawer = ({
 );
 
 export const openQueryDrawer = (onloadArgs: OnloadArgs) => {
-  posthog.capture("Query Drawer: Opened", {});
+  posthog.capture("Query Drawer: Opened");
   return Promise.resolve(
     getPageUidByPageTitle("roam/js/query-builder/drawer") ||
       createPage({

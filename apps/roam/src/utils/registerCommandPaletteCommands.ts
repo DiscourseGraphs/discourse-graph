@@ -17,6 +17,7 @@ import {
   onPageRefObserverChange,
 } from "./pageRefObserverHandlers";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
+import posthog from "posthog-js";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
@@ -24,6 +25,9 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const createQueryBlock = async () => {
     {
       const uid = window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
+      posthog.capture("Query Block: Create Command Triggered", {
+        hasFocusedBlock: !!uid,
+      });
       if (!uid) {
         renderToast({
           id: "query-builder-create-block",
@@ -88,6 +92,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const exportCurrentPage = () => {
     const pageUid = getCurrentPageUid();
     const pageTitle = getPageTitleByPageUid(pageUid);
+    posthog.capture("Export: Current Page Command Triggered", {
+      pageUid,
+      pageTitle,
+    });
     exportRender({
       results: [
         {
@@ -101,6 +109,7 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   const exportDiscourseGraph = async () => {
+    posthog.capture("Export: Discourse Graph Command Triggered");
     const discourseNodes = getDiscourseNodes().filter(excludeDefaultNodes);
     const results = await Promise.all(
       discourseNodes.map(async (d) => {
@@ -132,12 +141,19 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const refreshCurrentQueryBuilder = () => {
     const target = document.activeElement as HTMLElement;
     const uid = getBlockUidFromTarget(target);
+    posthog.capture("Query Block: Refresh Command Triggered", {
+      uid: uid || "",
+      hasUid: !!uid,
+    });
     document.body.dispatchEvent(
       new CustomEvent("roamjs-query-builder:fire-query", { detail: uid }),
     );
   };
 
-  const renderSettingsPopup = () => renderSettings({ onloadArgs });
+  const renderSettingsPopup = () => {
+    posthog.capture("Settings: Open Command Triggered");
+    renderSettings({ onloadArgs });
+  };
 
   const toggleDiscourseContextOverlay = async () => {
     const currentValue =
@@ -156,6 +172,9 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     }
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(newValue);
+    posthog.capture("Discourse Context Overlay: Toggled via Command", {
+      enabled: newValue,
+    });
     renderToast({
       id: "discourse-context-overlay-toggle",
       content: `Discourse context overlay ${newValue ? "enabled" : "disabled"}`,
@@ -176,6 +195,9 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
       });
       return;
     }
+    posthog.capture("Query Metadata: Toggled via Command", {
+      hidden: newValue,
+    });
     renderToast({
       id: "query-metadata-toggle",
       content: `Query metadata ${newValue ? "hidden" : "shown"}`,

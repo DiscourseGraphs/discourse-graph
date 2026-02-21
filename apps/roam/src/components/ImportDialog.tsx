@@ -11,6 +11,7 @@ import React, { useMemo, useState } from "react";
 import createBlock from "roamjs-components/writes/createBlock";
 import getChildrenLengthByPageUid from "roamjs-components/queries/getChildrenLengthByPageUid";
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
+import posthog from "posthog-js";
 import importDiscourseGraph from "~/utils/importDiscourseGraph";
 
 const ImportDialog = ({ onClose }: { onClose: () => void }) => {
@@ -49,6 +50,10 @@ const ImportDialog = ({ onClose }: { onClose: () => void }) => {
             disabled={loading}
             onClick={() => {
               setLoading(true);
+              posthog.capture("Import Dialog: Import Started", {
+                hasFile: !!file,
+                title,
+              });
               setTimeout(() => {
                 const reader = new FileReader();
                 reader.onload = (event) => {

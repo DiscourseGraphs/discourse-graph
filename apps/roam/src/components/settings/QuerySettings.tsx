@@ -10,6 +10,7 @@ import {
   PersonalNumberPanel,
   PersonalMultiTextPanel,
 } from "./components/BlockPropSettingPanels";
+import posthog from "posthog-js";
 
 const QuerySettings = ({
   extensionAPI,
@@ -27,6 +28,9 @@ const QuerySettings = ({
         }
         onChange={(checked) => {
           void extensionAPI.settings.set(HIDE_METADATA_KEY, checked);
+          posthog.capture("Query Settings: Hide Metadata Toggled", {
+            hidden: checked,
+          });
         }}
       />
       <PersonalNumberPanel
@@ -38,6 +42,9 @@ const QuerySettings = ({
         }
         onChange={(value) => {
           void extensionAPI.settings.set(DEFAULT_PAGE_SIZE_KEY, value);
+          posthog.capture("Query Settings: Default Page Size Changed", {
+            value,
+          });
         }}
       />
       <PersonalMultiTextPanel

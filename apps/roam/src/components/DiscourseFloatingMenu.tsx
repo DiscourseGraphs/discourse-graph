@@ -12,6 +12,7 @@ import {
 } from "@blueprintjs/core";
 import { FeedbackWidget } from "./BirdEatsBugs";
 import { render as renderSettings } from "~/components/settings/Settings";
+import posthog from "posthog-js";
 
 type DiscourseFloatingMenuProps = {
   // CSS placement class
@@ -36,6 +37,7 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
             text="Send feedback"
             icon="send-message"
             onClick={() => {
+              posthog.capture("Floating Menu: Feedback Clicked");
               try {
                 (window.birdeatsbug as FeedbackWidget | undefined)?.trigger?.();
               } catch (error) {
@@ -46,6 +48,7 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
           <MenuItem
             text="Docs"
             icon="book"
+            onClick={() => posthog.capture("Floating Menu: Docs Clicked")}
             href="https://discoursegraphs.com/docs/roam"
             rel="noopener noreferrer"
             target="_blank"
@@ -53,6 +56,7 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
           <MenuItem
             text="Community"
             icon="social-media"
+            onClick={() => posthog.capture("Floating Menu: Community Clicked")}
             href="https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg"
             rel="noopener noreferrer"
             target="_blank"
@@ -60,12 +64,18 @@ export const DiscourseFloatingMenu = (props: DiscourseFloatingMenuProps) => (
           <MenuItem
             text="Settings"
             icon="cog"
-            onClick={() => renderSettings({ onloadArgs: props.onloadArgs! })}
+            onClick={() => {
+              posthog.capture("Floating Menu: Settings Clicked");
+              renderSettings({ onloadArgs: props.onloadArgs! });
+            }}
             rel="noopener noreferrer"
             target="_blank"
           />
         </Menu>
       }
+      onOpened={() => {
+        posthog.capture("Floating Menu: Opened");
+      }}
       onClosed={() => {
         document.getElementById("dg-floating-menu-button")?.blur();
       }}

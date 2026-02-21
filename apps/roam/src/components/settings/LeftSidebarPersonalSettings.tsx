@@ -35,6 +35,7 @@ import refreshConfigTree from "~/utils/refreshConfigTree";
 import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { memo, Dispatch, SetStateAction } from "react";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
+import posthog from "posthog-js";
 
 const SectionItem = memo(
   ({
@@ -586,6 +587,9 @@ const LeftSidebarPersonalSectionsContent = ({
           } as LeftSidebarPersonalSectionConfig,
         ]);
 
+        posthog.capture("Left Sidebar Personal Settings: Section Added", {
+          sectionName,
+        });
         setNewSectionInput("");
         refreshAndNotify();
       } catch (error) {

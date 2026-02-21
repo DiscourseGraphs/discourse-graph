@@ -20,6 +20,7 @@ import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { DiscourseNodeShape } from "./DiscourseNodeUtil";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
+import posthog from "posthog-js";
 
 export type GroupedShapes = Record<string, DiscourseNodeShape[]>;
 
@@ -390,6 +391,7 @@ export const CanvasDrawerPanel = () => {
   const editor = useEditor();
   const toggleDrawer = useCallback(() => {
     setIsOpen((prev) => !prev);
+    posthog.capture("Canvas Drawer: Toggled");
   }, []);
   const [isOpen, setIsOpen] = useState(false);
   const pageUid = getCurrentPageUid();

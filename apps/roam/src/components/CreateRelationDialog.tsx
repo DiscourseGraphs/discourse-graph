@@ -24,6 +24,7 @@ import type { Result } from "~/utils/types";
 import internalError from "~/utils/internalError";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import posthog from "posthog-js";
 
 export type CreateRelationDialogProps = {
   onClose: () => void;
@@ -162,6 +163,10 @@ const CreateRelationDialog = ({
   };
 
   const onCreateSync = (): void => {
+    posthog.capture("Create Relation Dialog: Create Triggered", {
+      relationName: selectedRelationName,
+      hasTarget: !!selectedTarget.uid,
+    });
     onCreate()
       .then((result: boolean) => {
         if (result) {

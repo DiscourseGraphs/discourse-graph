@@ -35,6 +35,7 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import resolveQueryBuilderRef from "~/utils/resolveQueryBuilderRef";
 import runQuery from "~/utils/runQuery";
+import posthog from "posthog-js";
 
 export type ModifyNodeDialogMode = "create" | "edit";
 export type ModifyNodeDialogProps = {
@@ -301,6 +302,10 @@ const ModifyNodeDialog = ({
 
   const onSubmit = async () => {
     if (!content.text.trim()) return;
+    posthog.capture("Modify Node Dialog: Submit Triggered", {
+      mode,
+      nodeType: selectedNodeType.type,
+    });
     try {
       if (mode === "create") {
         // If content is locked (user selected existing node), just insert it

@@ -4,6 +4,7 @@ import { Editor } from "tldraw";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { getOnSelectForShape } from "./uiOverrides";
 import { Dialog, Button, Classes } from "@blueprintjs/core";
+import posthog from "posthog-js";
 
 const ConvertToDialog = ({
   extensionAPI,
@@ -62,6 +63,13 @@ const ConvertToDialog = ({
                         className="flex-grow justify-start p-2 px-7 focus:bg-gray-300 focus:outline-none"
                         style={{ caretColor: "transparent" }}
                         onClick={() => {
+                          posthog.capture(
+                            "Canvas Convert To Dialog: Node Type Selected",
+                            {
+                              nodeType: node.type,
+                              shapeType: selectedShapes[0]?.type || "unknown",
+                            },
+                          );
                           getOnSelectForShape({
                             shape: selectedShapes[0],
                             nodeType: node.type,

@@ -4,6 +4,7 @@ import { Button, IconName } from "@blueprintjs/core";
 import getUids from "roamjs-components/dom/getUids";
 import NodeMenu from "~/components/DiscourseNodeMenu";
 import { OnloadArgs } from "roamjs-components/types";
+import posthog from "posthog-js";
 
 type ImageToolsMenuProps = {
   blockUid: string;
@@ -17,6 +18,7 @@ const ImageToolsMenu = ({
   const [menuKey, setMenuKey] = useState(0);
 
   const handleEditBlock = useCallback((): void => {
+    posthog.capture("Image Tools Menu: Edit Block Clicked");
     // eslint-disable-next-line @typescript-eslint/naming-convention
     void window.roamAlphaAPI.ui.setBlockFocusAndSelection({
       // eslint-disable-next-line @typescript-eslint/naming-convention
