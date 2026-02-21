@@ -647,7 +647,7 @@ const updateMarkdownAssetLinks = ({
         }
       }
 
-      // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files; leave other links unchanged so they resolve from this folder when the target is created
+      // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
       const resolvedFile = app.metadataCache.getFirstLinkpathDest(
         linkPath,
         targetFile.path,
@@ -665,7 +665,21 @@ const updateMarkdownAssetLinks = ({
         return `[[${linkText}]]`;
       }
 
-      // No resolved file in import folder: keep link as-is. Using ./ prefix breaks Obsidian (getParentPrefix null, "Folder already exists"); where new notes are created is controlled by app settings.
+      // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
+      if (importFolder && originalNodePath) {
+        // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
+        const canonicalSourcePath =
+          linkPath.includes("/") && !linkPath.startsWith(".") && !linkPath.startsWith("/")
+            ? normalizePathForLookup(linkPath)
+            : (getCanonicalFromOriginalNote(linkPath) ??
+                normalizePathForLookup(linkPath));
+        const linkUnderImport = `${importFolder}/${canonicalSourcePath}`;
+        if (alias) {
+          return `[[${linkUnderImport}|${alias}]]`;
+        }
+        return `[[${linkUnderImport}]]`;
+      }
+
       return match;
     },
   );
@@ -939,6 +953,15 @@ const sanitizeFileName = (fileName: string): string => {
     .trim();
 };
 
+/** Sanitize each path segment for use under import folder (preserves source vault folder structure). */
+const sanitizePathForImport = (path: string): string => {
+  return path
+    .split("/")
+    .map((segment) => sanitizeFileName(segment))
+    .filter(Boolean)
+    .join("/");
+};
+
 type ParsedFrontmatter = {
   nodeTypeId?: string;
   nodeInstanceId?: string;
@@ -1209,11 +1232,13 @@ export const importSelectedNodes = async ({
           content,
           createdAt: contentCreatedAt,
           modifiedAt: contentModifiedAt,
-          filePath,
+          filePath: contentFilePath,
         } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
-        const originalNodePath: string | undefined = node.filePath;
+        // Use source vault path from Content direct variant metadata for wikilink rewriting and asset placement
+        const originalNodePath: string | undefined =
+          contentFilePath ?? node.filePath;
 
         // Sanitize file name
         const sanitizedFileName = sanitizeFileName(fileName);
@@ -1223,13 +1248,29 @@ export const importSelectedNodes = async ({
           // Update existing file - use its current path
           finalFilePath = existingFile.path;
         } else {
-          // Create new file in the import folder
-          finalFilePath = `${importFolderPath}/${sanitizedFileName}.md`;
+          // Preserve source vault folder structure under import/{vaultName} when we have filePath from Content
+          const pathUnderImport =
+            contentFilePath && contentFilePath.includes("/")
+              ? sanitizePathForImport(contentFilePath)
+              : `${sanitizedFileName}.md`;
+          finalFilePath = `${importFolderPath}/${pathUnderImport}`;
+
+          // Ensure parent folder exists (e.g. import/VaultName/Discourse Nodes)
+          const parentDir = finalFilePath.replace(/\/[^/]*$/, "");
+          if (parentDir !== importFolderPath) {
+            const folderExists =
+              await plugin.app.vault.adapter.exists(parentDir);
+            if (!folderExists) {
+              await plugin.app.vault.createFolder(parentDir);
+            }
+          }
 
           // Check if file path already exists (edge case: same title but different nodeInstanceId)
           let counter = 1;
           while (await plugin.app.vault.adapter.exists(finalFilePath)) {
-            finalFilePath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
+            const baseWithoutExt = finalFilePath.replace(/\.md$/i, "");
+            const base = baseWithoutExt.replace(/\s*\(\d+\)$/, "");
+            finalFilePath = `${base} (${counter}).md`;
             counter++;
           }
         }
@@ -1242,7 +1283,7 @@ export const importSelectedNodes = async ({
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
           rawContent: content,
-          originalFilePath: filePath,
+          originalFilePath: contentFilePath,
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
