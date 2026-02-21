@@ -29,7 +29,11 @@ export const collectDiscourseNodesFromVault = async (
       continue;
     }
 
-    if (frontmatter.importedFromRid && includeImported !== true) {
+    if (
+      // note: importedFromSpaceUri is legacy
+      (frontmatter.importedFromRid || frontmatter.importedFromSpaceUri) &&
+      includeImported !== true
+    ) {
       continue;
     }
 
