@@ -29,6 +29,7 @@ import { render as renderToast } from "roamjs-components/components/Toast";
 import { getSetting } from "~/utils/extensionSettings";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
+import posthog from "posthog-js";
 
 export type DiscourseData = {
   results: Awaited<ReturnType<typeof getDiscourseContextResults>>;
@@ -369,6 +370,12 @@ const SuggestionsBody = ({
         node: { text: `[[${node.text}]]` },
       });
     }
+    posthog.capture("Suggestive Mode: Suggestion Adopted", {
+      tag,
+      nodeType: node.type,
+      nodeText: node.text,
+      useReifiedRelations: getSetting<boolean>(USE_REIFIED_RELATIONS, false),
+    });
     setHydeFilteredNodes((prev) => prev.filter((n) => n.uid !== node.uid));
   };
 
