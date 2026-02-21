@@ -37,6 +37,7 @@ import getUids from "roamjs-components/dom/getUids";
 import Charts from "./Charts";
 import Timeline from "./Timeline";
 import Kanban from "./Kanban";
+import CustomView, { DEFAULT_TEMPLATE } from "./CustomView";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import type { RoamBasicNode } from "roamjs-components/types/native";
 import { render as renderToast } from "roamjs-components/components/Toast";
@@ -62,7 +63,11 @@ const EMBED_FOLD_VALUES = ["default", "open", "closed"];
 
 type EnglishQueryPart = { text: string; clickId?: string };
 
-const QueryUsed = ({ parentUid }: { parentUid: string }) => {
+const QueryUsed = ({
+  parentUid,
+}: {
+  parentUid: string;
+}) => {
   const { datalogQuery, englishQuery } = useMemo(() => {
     const args = parseQuery(parentUid);
     const { query: datalogQuery } = getDatalogQuery(args);
@@ -224,6 +229,11 @@ const SUPPORTED_LAYOUTS = [
       { key: "display", label: "Display", options: "columns" },
       { key: "legend", label: "Show Legend", options: ["No", "Yes"] },
     ],
+  },
+  {
+    id: "custom",
+    icon: "code-block",
+    settings: [],
   },
 ] as const;
 const settingsById = Object.fromEntries(
@@ -452,6 +462,54 @@ const ResultsView: ResultsViewComponent = ({
     () => views.filter((view) => view.mode !== "hidden").length,
     [views],
   );
+  const customViewPrompt = useMemo(() => {
+    const selectionKeys = Array.from(
+      new Set(
+        columns
+          .map((c) => c.key.trim())
+          .filter(Boolean),
+      ),
+    );
+    const keyLines = selectionKeys.map((k) => `- ${k}`).join("\n");
+    const exampleKey = selectionKeys.find((k) => k !== "text") || "text";
+    const exampleTemplate = `<ul>
+{{#each results}}
+  <li>{{result.${exampleKey}}}</li>
+{{/each}}
+</ul>`;
+    const groupByExampleTemplate = `<table>
+{{#each results}}
+  <tr>
+    <td>{{resultIfChanged.${exampleKey}}}</td>
+    <td>{{result.text}}</td>
+  </tr>
+{{/each}}
+</table>`;
+
+    return `Create a Custom HTML Layout for a query result renderer.
+
+Requirements:
+- Render with {{#each results}}...{{/each}}
+- Use interpolations like {{result.key}}
+- You can suppress repeated values with {{resultIfChanged.key}} or {{#ifChanged result.key}}...{{/ifChanged}}
+- Do not use JavaScript, window access, or side effects
+- Prefer simple, minimal CSS (avoid complex styling)
+- Emulate a "group by" row pattern: when looping each result, if "{enter field}" matches the previous row's value, do not render that field again for the current row.
+
+Available result keys:
+${keyLines || "- text"}
+
+Default template example:
+${DEFAULT_TEMPLATE}
+
+Selection-specific template example:
+${exampleTemplate}
+
+Group-by style example (hide repeated values):
+${groupByExampleTemplate}
+
+Custom view description:`;
+  }, [columns]);
 
   return (
     <div
@@ -778,6 +836,66 @@ const ResultsView: ResultsViewComponent = ({
                       </Label>
                     );
                   })}
+                  {layoutMode === "custom" && (
+                    <Label>
+                      <div className="mb-1 flex items-center justify-between gap-2 pr-1">
+                        <span>
+                          Template (HTML + <code>{"{{#each results}}...{{/each}}"}</code>,{" "}
+                          <code>{"{{result.key}}"}</code>,{" "}
+                          <code>{"{{resultIfChanged.key}}"}</code>)
+                        </span>
+                        <Tooltip
+                          content={"Copy Custom View Prompt"}
+                          position={"top"}
+                          openOnTargetFocus={false}
+                          lazy={true}
+                          hoverOpenDelay={250}
+                          autoFocus={false}
+                        >
+                          <Button
+                            minimal
+                            icon={"duplicate"}
+                            onClick={() => {
+                              navigator.clipboard.writeText(customViewPrompt);
+                              renderToast({
+                                id: "custom-view-prompt-copy",
+                                content: "Copied Custom View Prompt",
+                                intent: Intent.PRIMARY,
+                              });
+                            }}
+                          />
+                        </Tooltip>
+                      </div>
+                      <textarea
+                        className="bp3-input mt-1 w-full font-mono text-sm"
+                        rows={8}
+                        placeholder={DEFAULT_TEMPLATE}
+                        value={
+                          (Array.isArray(layout.template)
+                            ? layout.template[0]
+                            : layout.template) ?? ""
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setLayout({ ...layout, template: value });
+                          if (preventSavingSettings) return;
+                          const resultNode = getSubTree({
+                            key: "results",
+                            parentUid,
+                          });
+                          const layoutNode = getSubTree({
+                            parentUid: resultNode.uid,
+                            key: "layout",
+                          });
+                          setInputSetting({
+                            key: "template",
+                            value,
+                            blockUid: layoutNode.uid,
+                          });
+                        }}
+                      />
+                    </Label>
+                  )}
                 </div>
               ) : isEditColumnSort ? (
                 <div className="relative p-4">
@@ -1399,6 +1517,15 @@ const ResultsView: ResultsViewComponent = ({
                   page={page}
                   pageSizeTimeoutRef={pageSizeTimeoutRef}
                   setPageSize={setPageSize}
+                />
+              ) : layoutMode === "custom" ? (
+                <CustomView
+                  results={allProcessedResults}
+                  template={
+                    (Array.isArray(layout.template)
+                      ? layout.template[0]
+                      : layout.template) || DEFAULT_TEMPLATE
+                  }
                 />
               ) : (
                 <div style={{ padding: "16px 8px" }}>
