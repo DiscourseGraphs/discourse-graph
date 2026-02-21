@@ -1057,7 +1057,9 @@ const processFileContent = async ({
   filePath: string;
   importedCreatedAt?: number;
   importedModifiedAt?: number;
-}): Promise<{ file: TFile } | { error: string }> => {
+}): Promise<
+  { file: TFile; error?: never } | { file?: never; error: string }
+> => {
   // 1. Create or update the file with the fetched content first.
   // On create, set file metadata (ctime/mtime) to original vault dates via vault adapter.
   let file: TFile | null = plugin.app.vault.getFileByPath(filePath);
@@ -1249,7 +1251,8 @@ export const importSelectedNodes = async ({
           continue;
         }
 
-        const processedFile = result.file;
+        // typescript should not need this assertion?
+        const processedFile = result.file!;
 
         // Import assets for this node (use originalNodePath so assets go under import/{space}/ relative to note)
         const assetImportResult = await importAssetsForNode({
