@@ -27,10 +27,8 @@ import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
 import generateUid from "~/utils/generateUid";
 import { migrateFrontmatterRelationsToRelationsJson } from "~/utils/relationsStore";
-import {
-  type DiscourseNodeInVault,
-  collectDiscourseNodesFromVault,
-} from "~/utils/getDiscourseNodes";
+import { collectDiscourseNodesFromVault } from "~/utils/getDiscourseNodes";
+import { spaceUriAndLocalIdToRid } from "~/utils/rid";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -410,7 +408,7 @@ export default class DiscourseGraphPlugin extends Plugin {
         await this.app.fileManager.processFrontMatter(
           node.file,
           (frontmatter: Record<string, unknown>) => {
-            const oldUri = frontmatter.importedFromSpaceUri as string;
+            const spaceUri = frontmatter.importedFromSpaceUri as string;
             // note: we fortunately reused the original Id here.
             const nodeId = frontmatter.nodeInstanceId;
             if (typeof nodeId !== "string") {
@@ -419,15 +417,13 @@ export default class DiscourseGraphPlugin extends Plugin {
               );
               return;
             }
-            if (!oldUri.startsWith("obsidian:")) {
-              console.error(
-                `error: unexpected value ${oldUri} for importedFromSpaceUri`,
-              );
-              return;
+            try {
+              const rid = spaceUriAndLocalIdToRid(spaceUri, nodeId, "note");
+              frontmatter.importedFromRid = rid;
+              delete frontmatter.importedFromSpaceUri;
+            } catch (error) {
+              console.error(error);
             }
-            const spaceUri = "orn:obsidian.note:" + oldUri.substring(9);
-            frontmatter.importedFromRid = `${spaceUri}/${nodeId}`;
-            delete frontmatter.importedFromSpaceUri;
           },
         );
       }
