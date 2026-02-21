@@ -27,6 +27,10 @@ import { initializeSupabaseSync } from "~/utils/syncDgNodesToSupabase";
 import { FileChangeListener } from "~/utils/fileChangeListener";
 import generateUid from "~/utils/generateUid";
 import { migrateFrontmatterRelationsToRelationsJson } from "~/utils/relationsStore";
+import {
+  type DiscourseNodeInVault,
+  collectDiscourseNodesFromVault,
+} from "~/utils/getDiscourseNodes";
 
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -41,6 +45,10 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     await migrateFrontmatterRelationsToRelationsJson(this).catch((error) => {
       console.error("Failed to migrate frontmatter relations:", error);
+    });
+
+    await this.migrateImportedFromFrontMatter().catch((error) => {
+      console.error("Failed to migrate frontmatter:", error);
     });
 
     if (this.settings.syncModeEnabled === true) {
@@ -275,7 +283,7 @@ export default class DiscourseGraphPlugin extends Plugin {
         keysToHide.push(
           ...[
             "nodeTypeId",
-            "importedFromSpaceUri",
+            "importedFromRid",
             "nodeInstanceId",
             "publishedToGroups",
             "lastModified",
@@ -393,6 +401,37 @@ export default class DiscourseGraphPlugin extends Plugin {
       }
     });
     this.currentViewActions = [];
+  }
+
+  async migrateImportedFromFrontMatter() {
+    const nodes = await collectDiscourseNodesFromVault(this, true);
+    for (const node of nodes) {
+      if (typeof node.frontmatter.importedFromSpaceUri === "string") {
+        await this.app.fileManager.processFrontMatter(
+          node.file,
+          (frontmatter: Record<string, unknown>) => {
+            const oldUri = frontmatter.importedFromSpaceUri as string;
+            // note: we fortunately reused the original Id here.
+            const nodeId = frontmatter.nodeInstanceId;
+            if (typeof nodeId !== "string") {
+              console.error(
+                `error: missing nodeInstanceId on node ${node.file.path}`,
+              );
+              return;
+            }
+            if (!oldUri.startsWith("obsidian:")) {
+              console.error(
+                `error: unexpected value ${oldUri} for importedFromSpaceUri`,
+              );
+              return;
+            }
+            const spaceUri = "orn:obsidian.note:" + oldUri.substring(9);
+            frontmatter.importedFromRid = `${spaceUri}/${nodeId}`;
+            delete frontmatter.importedFromSpaceUri;
+          },
+        );
+      }
+    }
   }
 
   async onunload() {

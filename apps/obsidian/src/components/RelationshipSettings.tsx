@@ -21,7 +21,7 @@ const RelationshipSettings = () => {
 
   type EditableFieldKey = keyof Omit<
     DiscourseRelation,
-    "id" | "modified" | "created"
+    "id" | "modified" | "created" | "importedFromRid"
   >;
 
   const handleRelationChange = async (

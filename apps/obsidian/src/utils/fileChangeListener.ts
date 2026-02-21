@@ -98,7 +98,7 @@ export class FileChangeListener {
       return false;
     }
 
-    if (frontmatter?.importedFromSpaceUri) {
+    if (frontmatter?.importedFromRid) {
       return false;
     }
 

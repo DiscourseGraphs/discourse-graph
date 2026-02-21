@@ -27,7 +27,7 @@ const generateTagPlaceholder = (format: string, nodeName?: string): string => {
 
 type EditableFieldKey = keyof Omit<
   DiscourseNode,
-  "id" | "shortcut" | "modified" | "created"
+  "id" | "shortcut" | "modified" | "created" | "importedFromRid"
 >;
 
 type BaseFieldConfig = {
