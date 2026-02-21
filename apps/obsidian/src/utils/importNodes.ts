@@ -1084,15 +1084,19 @@ const processFileContent = async ({
   //    often empty immediately after create/modify), then map nodeTypeId and update frontmatter.
   const { frontmatter } = parseFrontmatter(rawContent);
   const sourceNodeTypeId = frontmatter.nodeTypeId;
-  if (typeof sourceNodeTypeId !== "string")
+  if (typeof sourceNodeTypeId !== "string") {
+    await plugin.app.vault.delete(file);
     return {
       error: "importedNode missing sourceNodeTypeId",
     };
+  }
   const sourceNodeId = frontmatter.nodeInstanceId;
-  if (typeof sourceNodeId !== "string")
+  if (typeof sourceNodeId !== "string") {
+    await plugin.app.vault.delete(file);
     return {
       error: "importedNode missing nodeInstanceId",
     };
+  }
 
   const mappedNodeTypeId = await mapNodeTypeIdToLocal({
     plugin,
@@ -1109,7 +1113,11 @@ const processFileContent = async ({
       if (mappedNodeTypeId !== undefined) {
         record.nodeTypeId = mappedNodeTypeId;
       }
-      record.importedFromRid = `${sourceSpaceUri}/${sourceNodeId}`;
+      record.importedFromRid = spaceUriAndLocalIdToRid(
+        sourceSpaceUri,
+        sourceNodeId,
+        "note",
+      );
       record.lastModified = importedModifiedAt;
     },
     stat,
