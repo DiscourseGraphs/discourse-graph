@@ -1054,7 +1054,7 @@ const processFileContent = async ({
   filePath: string;
   importedCreatedAt?: number;
   importedModifiedAt?: number;
-}): Promise<{ file: TFile; error?: string }> => {
+}): Promise<{ file: TFile } | { error: string }> => {
   // 1. Create or update the file with the fetched content first.
   // On create, set file metadata (ctime/mtime) to original vault dates via vault adapter.
   let file: TFile | null = plugin.app.vault.getFileByPath(filePath);
@@ -1075,17 +1075,22 @@ const processFileContent = async ({
   //    often empty immediately after create/modify), then map nodeTypeId and update frontmatter.
   const { frontmatter } = parseFrontmatter(rawContent);
   const sourceNodeTypeId = frontmatter.nodeTypeId;
+  if (typeof sourceNodeTypeId !== "string")
+    return {
+      error: "importedNode missing sourceNodeTypeId",
+    };
   const sourceNodeId = frontmatter.nodeInstanceId;
+  if (typeof sourceNodeId !== "string")
+    return {
+      error: "importedNode missing nodeInstanceId",
+    };
 
-  let mappedNodeTypeId: string | undefined;
-  if (sourceNodeTypeId && typeof sourceNodeTypeId === "string") {
-    mappedNodeTypeId = await mapNodeTypeIdToLocal({
-      plugin,
-      client,
-      sourceSpaceId,
-      sourceNodeTypeId,
-    });
-  }
+  const mappedNodeTypeId = await mapNodeTypeIdToLocal({
+    plugin,
+    client,
+    sourceSpaceId,
+    sourceNodeTypeId,
+  });
 
   await plugin.app.fileManager.processFrontMatter(
     file,
@@ -1165,10 +1170,11 @@ export const importSelectedNodes = async ({
     // Process each node in this space
     for (const node of nodes) {
       try {
-        // Check if file already exists by nodeInstanceId + importedFromSpaceUri
+        const importedFromRid = `${spaceUri}/${node.nodeInstanceId}`;
+        // Check if file already exists by nodeInstanceId + importedFromRid
         const existingFile = queryEngine.findExistingImportedFile(
           node.nodeInstanceId,
-          spaceUri,
+          importedFromRid,
         );
 
         const nodeContent = await fetchNodeContentForImport({
