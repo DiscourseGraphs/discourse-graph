@@ -19,7 +19,8 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
-import NumberPanel from "roamjs-components/components/ConfigPanels/NumberPanel";
+import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import { PersonalNumberPanel } from "~/components/settings/components/BlockPropSettingPanels";
 import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import {
   LeftSidebarPersonalSectionConfig,
@@ -36,12 +37,34 @@ import { refreshAndNotify } from "~/components/LeftSidebarView";
 import { memo, Dispatch, SetStateAction } from "react";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 
+/* eslint-disable @typescript-eslint/naming-convention */
+const sectionsToBlockProps = (sections: LeftSidebarPersonalSectionConfig[]) =>
+  sections.map((s) => ({
+    name: s.text,
+    Children: (s.children || []).map((c) => ({
+      uid: c.text,
+      Alias: c.alias?.value || "",
+    })),
+    Settings: {
+      "Truncate-result?": s.settings?.truncateResult?.value ?? 75,
+      Folded: s.settings?.folded?.value ?? false,
+    },
+  }));
+/* eslint-enable @typescript-eslint/naming-convention */
+
+const syncAllSectionsToBlockProps = (
+  sections: LeftSidebarPersonalSectionConfig[],
+) => {
+  setPersonalSetting(["Left sidebar"], sectionsToBlockProps(sections));
+};
+
 const SectionItem = memo(
   ({
     section,
     setSettingsDialogSectionUid,
     pageNames,
     setSections,
+    sectionsRef,
     index,
     isFirst,
     isLast,
@@ -49,6 +72,7 @@ const SectionItem = memo(
   }: {
     section: LeftSidebarPersonalSectionConfig;
     setSections: Dispatch<SetStateAction<LeftSidebarPersonalSectionConfig[]>>;
+    sectionsRef: React.MutableRefObject<LeftSidebarPersonalSectionConfig[]>;
     setSettingsDialogSectionUid: (uid: string | null) => void;
     pageNames: string[];
     index: number;
@@ -61,6 +85,7 @@ const SectionItem = memo(
     const originalName = blockText || section.text;
     const [childInput, setChildInput] = useState("");
     const [childInputKey, setChildInputKey] = useState(0);
+    const aliasDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
     const [expandedChildLists, setExpandedChildLists] = useState<Set<string>>(
       new Set(),
@@ -124,6 +149,22 @@ const SectionItem = memo(
             }),
           );
 
+          syncAllSectionsToBlockProps(
+            sectionsRef.current.map((s) =>
+              s.uid === section.uid
+                ? {
+                    ...s,
+                    settings: {
+                      uid: settingsUid,
+                      folded: { uid: foldedUid, value: false },
+                      truncateResult: { uid: truncateSettingUid, value: 75 },
+                    },
+                    children: [],
+                  }
+                : s,
+            ),
+          );
+
           setExpandedChildLists((prev) => new Set([...prev, section.uid]));
           refreshAndNotify();
         } catch (error) {
@@ -134,7 +175,7 @@ const SectionItem = memo(
           });
         }
       },
-      [setSections],
+      [setSections, sectionsRef],
     );
 
     const removeSection = useCallback(
@@ -142,7 +183,11 @@ const SectionItem = memo(
         try {
           await deleteBlock(section.uid);
 
-          setSections((prev) => prev.filter((s) => s.uid !== section.uid));
+          const updatedSections = sectionsRef.current.filter(
+            (s) => s.uid !== section.uid,
+          );
+          setSections(updatedSections);
+          syncAllSectionsToBlockProps(updatedSections);
           refreshAndNotify();
         } catch (error) {
           renderToast({
@@ -152,7 +197,7 @@ const SectionItem = memo(
           });
         }
       },
-      [setSections],
+      [setSections, sectionsRef],
     );
 
     const addChildToSection = useCallback(
@@ -172,25 +217,25 @@ const SectionItem = memo(
             node: { text: targetUid },
           });
 
-          setSections((prev) =>
-            prev.map((s) => {
-              if (s.uid === section.uid) {
-                return {
-                  ...s,
-                  children: [
-                    ...(s.children || []),
-                    {
-                      text: targetUid,
-                      uid: newChild,
-                      children: [],
-                      alias: { value: "" },
-                    },
-                  ],
-                };
-              }
-              return s;
-            }),
-          );
+          const updatedSections = sectionsRef.current.map((s) => {
+            if (s.uid === section.uid) {
+              return {
+                ...s,
+                children: [
+                  ...(s.children || []),
+                  {
+                    text: targetUid,
+                    uid: newChild,
+                    children: [],
+                    alias: { value: "" },
+                  },
+                ],
+              };
+            }
+            return s;
+          });
+          setSections(updatedSections);
+          syncAllSectionsToBlockProps(updatedSections);
           refreshAndNotify();
         } catch (error) {
           renderToast({
@@ -200,7 +245,7 @@ const SectionItem = memo(
           });
         }
       },
-      [setSections],
+      [setSections, sectionsRef],
     );
     const removeChild = useCallback(
       async (
@@ -210,17 +255,17 @@ const SectionItem = memo(
         try {
           await deleteBlock(child.uid);
 
-          setSections((prev) =>
-            prev.map((s) => {
-              if (s.uid === section.uid) {
-                return {
-                  ...s,
-                  children: s.children?.filter((c) => c.uid !== child.uid),
-                };
-              }
-              return s;
-            }),
-          );
+          const updatedSections = sectionsRef.current.map((s) => {
+            if (s.uid === section.uid) {
+              return {
+                ...s,
+                children: s.children?.filter((c) => c.uid !== child.uid),
+              };
+            }
+            return s;
+          });
+          setSections(updatedSections);
+          syncAllSectionsToBlockProps(updatedSections);
           refreshAndNotify();
         } catch (error) {
           renderToast({
@@ -230,7 +275,7 @@ const SectionItem = memo(
           });
         }
       },
-      [setSections],
+      [setSections, sectionsRef],
     );
 
     const moveChild = useCallback(
@@ -249,17 +294,17 @@ const SectionItem = memo(
         const newIndex = direction === "up" ? index - 1 : index + 1;
         newChildren.splice(newIndex, 0, removed);
 
-        setSections((prev) =>
-          prev.map((s) => {
-            if (s.uid === section.uid) {
-              return {
-                ...s,
-                children: newChildren,
-              };
-            }
-            return s;
-          }),
-        );
+        const updatedSections = sectionsRef.current.map((s) => {
+          if (s.uid === section.uid) {
+            return {
+              ...s,
+              children: newChildren,
+            };
+          }
+          return s;
+        });
+        setSections(updatedSections);
+        syncAllSectionsToBlockProps(updatedSections);
 
         if (section.childrenUid) {
           const order = direction === "down" ? newIndex + 1 : newIndex;
@@ -275,7 +320,7 @@ const SectionItem = memo(
             });
         }
       },
-      [setSections],
+      [setSections, sectionsRef],
     );
 
     const handleAddChild = useCallback(async () => {
@@ -489,6 +534,12 @@ const SectionItem = memo(
                                         : s,
                                     ),
                                   );
+                                  clearTimeout(aliasDebounceRef.current);
+                                  aliasDebounceRef.current = setTimeout(() => {
+                                    syncAllSectionsToBlockProps(
+                                      sectionsRef.current,
+                                    );
+                                  }, 250);
                                 },
                               }}
                             />
@@ -531,6 +582,8 @@ const LeftSidebarPersonalSectionsContent = ({
     string | null
   >(null);
   const sectionTitleUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
 
   useEffect(() => {
     const initialize = async () => {
@@ -566,7 +619,7 @@ const LeftSidebarPersonalSectionsContent = ({
   const addSection = useCallback(
     async (sectionName: string) => {
       if (!sectionName || !personalSectionUid) return;
-      if (sections.some((s) => s.text === sectionName)) return;
+      if (sectionsRef.current.some((s) => s.text === sectionName)) return;
 
       try {
         const newBlock = await createBlock({
@@ -575,16 +628,16 @@ const LeftSidebarPersonalSectionsContent = ({
           node: { text: sectionName },
         });
 
-        setSections((prev) => [
-          ...prev,
-          {
-            text: sectionName,
-            uid: newBlock,
-            settings: undefined,
-            children: undefined,
-            childrenUid: undefined,
-          } as LeftSidebarPersonalSectionConfig,
-        ]);
+        const newSection = {
+          text: sectionName,
+          uid: newBlock,
+          settings: undefined,
+          children: undefined,
+          childrenUid: undefined,
+        } as LeftSidebarPersonalSectionConfig;
+        const updatedSections = [...sectionsRef.current, newSection];
+        setSections(updatedSections);
+        syncAllSectionsToBlockProps(updatedSections);
 
         setNewSectionInput("");
         refreshAndNotify();
@@ -596,7 +649,7 @@ const LeftSidebarPersonalSectionsContent = ({
         });
       }
     },
-    [personalSectionUid, sections],
+    [personalSectionUid],
   );
 
   const handleNewSectionInputChange = useCallback((value: string) => {
@@ -614,6 +667,7 @@ const LeftSidebarPersonalSectionsContent = ({
       newSections.splice(newIndex, 0, removed);
 
       setSections(newSections);
+      syncAllSectionsToBlockProps(newSections);
 
       if (personalSectionUid) {
         const order = direction === "down" ? newIndex + 1 : newIndex;
@@ -681,6 +735,7 @@ const LeftSidebarPersonalSectionsContent = ({
               setSettingsDialogSectionUid={setSettingsDialogSectionUid}
               pageNames={pageNames}
               setSections={setSections}
+              sectionsRef={sectionsRef}
               index={index}
               isFirst={index === 0}
               isLast={index === sections.length - 1}
@@ -693,7 +748,9 @@ const LeftSidebarPersonalSectionsContent = ({
       {activeDialogSection && activeDialogSection.settings && (
         <Dialog
           isOpen={true}
-          onClose={() => setSettingsDialogSectionUid(null)}
+          onClose={() => {
+            setSettingsDialogSectionUid(null);
+          }}
           title={`Settings for "${activeDialogSection.text}"`}
           style={{ width: "500px" }}
         >
@@ -725,17 +782,41 @@ const LeftSidebarPersonalSectionsContent = ({
                       }).then(() => {
                         refreshAndNotify();
                       });
+                      syncAllSectionsToBlockProps(sectionsRef.current);
                     }, 300);
                   }}
                 />
               </div>
-              <NumberPanel
+              <PersonalNumberPanel
                 title="Truncate-result?"
                 description="Maximum characters to display"
+                settingKeys={["Left sidebar"]}
+                initialValue={
+                  activeDialogSection.settings.truncateResult?.value ?? 75
+                }
                 order={1}
                 uid={activeDialogSection.settings.truncateResult?.uid}
-                parentUid={activeDialogSection.settings.uid}
-                value={activeDialogSection.settings.truncateResult?.value}
+                parentUid={activeDialogSection.settings.uid || ""}
+                setter={(_keys, value) => {
+                  const updatedSections = sectionsRef.current.map((s) =>
+                    s.uid === activeDialogSection.uid
+                      ? {
+                          ...s,
+                          settings: s.settings
+                            ? {
+                                ...s.settings,
+                                truncateResult: {
+                                  ...s.settings.truncateResult,
+                                  value,
+                                },
+                              }
+                            : s.settings,
+                        }
+                      : s,
+                  );
+                  setSections(updatedSections);
+                  syncAllSectionsToBlockProps(updatedSections);
+                }}
               />
             </div>
           </div>
