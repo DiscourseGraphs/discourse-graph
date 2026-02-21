@@ -7,6 +7,7 @@ import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
+import { spaceUriAndLocalIdToRid, ridToSpaceUriAndLocalId } from "./rid";
 
 export const getAvailableGroups = async (
   client: DGSupabaseClient,
@@ -167,9 +168,7 @@ export const getSpaceNameIdFromRid = async (
   client: DGSupabaseClient,
   rid: string,
 ): Promise<{ spaceName: string; spaceId: number }> => {
-  const parts = rid.split("/");
-  parts.pop();
-  const spaceUri = parts.join("/");
+  const { spaceUri } = ridToSpaceUriAndLocalId(rid);
   const { data, error } = await client
     .from("Space")
     .select("name, id")
@@ -1019,6 +1018,11 @@ const mapNodeTypeIdToLocal = async ({
   );
 
   const now = new Date().getTime();
+  const importedFromRid = spaceUriAndLocalIdToRid(
+    sourceSpaceUri,
+    sourceNodeTypeId,
+    "note",
+  );
 
   const newNodeType: DiscourseNode = {
     id: sourceNodeTypeId,
@@ -1030,7 +1034,7 @@ const mapNodeTypeIdToLocal = async ({
     keyImage: parsed.keyImage,
     created: now,
     modified: now,
-    importedFromRid: `${sourceSpaceUri}/${sourceNodeTypeId}`,
+    importedFromRid,
   };
   plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
   await plugin.saveSettings();
