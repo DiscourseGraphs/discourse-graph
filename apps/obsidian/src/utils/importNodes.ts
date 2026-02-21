@@ -487,11 +487,7 @@ const updateMarkdownAssetLinks = ({
   app: App;
   originalNodePath?: string;
 }): string => {
-  if (oldPathToNewPath.size === 0) {
-    return content;
-  }
-
-  // Create a set of all new paths for quick lookup (used by findImportedAssetFile)
+  // Create a set of all new paths for quick lookup (used by findImportedAssetFile when pathMapping has entries)
   const newPaths = new Set(oldPathToNewPath.values());
 
   let updatedContent = content;
@@ -499,6 +495,13 @@ const updateMarkdownAssetLinks = ({
   const noteDir = targetFile.path.includes("/")
     ? targetFile.path.replace(/\/[^/]*$/, "")
     : "";
+
+  // When the note is under import/{spaceName}/, only treat wiki links as resolved if the target is in this folder (not some other vault file).
+  const pathParts = targetFile.path.split("/");
+  const importFolder =
+    pathParts[0] === "import" && pathParts.length >= 2
+      ? pathParts.slice(0, 2).join("/")
+      : null;
 
   /** Path of targetFile relative to the current note, for use in links. Obsidian resolves relative links from the note's directory. */
   const getRelativeLinkPath = (assetPath: string): string => {
@@ -642,6 +645,39 @@ const updateMarkdownAssetLinks = ({
           }
           return `[[${linkText}]]`;
         }
+      }
+
+      // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
+      const resolvedFile = app.metadataCache.getFirstLinkpathDest(
+        linkPath,
+        targetFile.path,
+      );
+      const isInImportFolder =
+        importFolder &&
+        resolvedFile &&
+        (resolvedFile.path === importFolder ||
+          resolvedFile.path.startsWith(importFolder + "/"));
+      if (isInImportFolder && resolvedFile) {
+        const linkText = getRelativeLinkPath(resolvedFile.path);
+        if (alias) {
+          return `[[${linkText}|${alias}]]`;
+        }
+        return `[[${linkText}]]`;
+      }
+
+      // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
+      if (importFolder && originalNodePath) {
+        // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
+        const canonicalSourcePath =
+          linkPath.includes("/") && !linkPath.startsWith(".") && !linkPath.startsWith("/")
+            ? normalizePathForLookup(linkPath)
+            : (getCanonicalFromOriginalNote(linkPath) ??
+                normalizePathForLookup(linkPath));
+        const linkUnderImport = `${importFolder}/${canonicalSourcePath}`;
+        if (alias) {
+          return `[[${linkUnderImport}|${alias}]]`;
+        }
+        return `[[${linkUnderImport}]]`;
       }
 
       return match;
@@ -917,6 +953,15 @@ const sanitizeFileName = (fileName: string): string => {
     .trim();
 };
 
+/** Sanitize each path segment for use under import folder (preserves source vault folder structure). */
+const sanitizePathForImport = (path: string): string => {
+  return path
+    .split("/")
+    .map((segment) => sanitizeFileName(segment))
+    .filter(Boolean)
+    .join("/");
+};
+
 type ParsedFrontmatter = {
   nodeTypeId?: string;
   nodeInstanceId?: string;
@@ -1187,11 +1232,13 @@ export const importSelectedNodes = async ({
           content,
           createdAt: contentCreatedAt,
           modifiedAt: contentModifiedAt,
-          filePath,
+          filePath: contentFilePath,
         } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
-        const originalNodePath: string | undefined = node.filePath;
+        // Use source vault path from Content direct variant metadata for wikilink rewriting and asset placement
+        const originalNodePath: string | undefined =
+          contentFilePath ?? node.filePath;
 
         // Sanitize file name
         const sanitizedFileName = sanitizeFileName(fileName);
@@ -1201,13 +1248,29 @@ export const importSelectedNodes = async ({
           // Update existing file - use its current path
           finalFilePath = existingFile.path;
         } else {
-          // Create new file in the import folder
-          finalFilePath = `${importFolderPath}/${sanitizedFileName}.md`;
+          // Preserve source vault folder structure under import/{vaultName} when we have filePath from Content
+          const pathUnderImport =
+            contentFilePath && contentFilePath.includes("/")
+              ? sanitizePathForImport(contentFilePath)
+              : `${sanitizedFileName}.md`;
+          finalFilePath = `${importFolderPath}/${pathUnderImport}`;
+
+          // Ensure parent folder exists (e.g. import/VaultName/Discourse Nodes)
+          const parentDir = finalFilePath.replace(/\/[^/]*$/, "");
+          if (parentDir !== importFolderPath) {
+            const folderExists =
+              await plugin.app.vault.adapter.exists(parentDir);
+            if (!folderExists) {
+              await plugin.app.vault.createFolder(parentDir);
+            }
+          }
 
           // Check if file path already exists (edge case: same title but different nodeInstanceId)
           let counter = 1;
           while (await plugin.app.vault.adapter.exists(finalFilePath)) {
-            finalFilePath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
+            const baseWithoutExt = finalFilePath.replace(/\.md$/i, "");
+            const base = baseWithoutExt.replace(/\s*\(\d+\)$/, "");
+            finalFilePath = `${base} (${counter}).md`;
             counter++;
           }
         }
@@ -1220,7 +1283,7 @@ export const importSelectedNodes = async ({
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
           rawContent: content,
-          originalFilePath: filePath,
+          originalFilePath: contentFilePath,
           filePath: finalFilePath,
           importedCreatedAt: createdAt,
           importedModifiedAt: modifiedAt,
@@ -1250,21 +1313,18 @@ export const importSelectedNodes = async ({
           originalNodePath,
         });
 
-        // Update markdown content with new asset paths if assets were imported
-        if (assetImportResult.pathMapping.size > 0) {
-          const currentContent = await plugin.app.vault.read(processedFile);
-          const updatedContent = updateMarkdownAssetLinks({
-            content: currentContent,
-            oldPathToNewPath: assetImportResult.pathMapping,
-            targetFile: processedFile,
-            app: plugin.app,
-            originalNodePath,
-          });
+        // Update markdown content: rewrite asset paths from pathMapping and normalize all wiki links to relative paths
+        const currentContent = await plugin.app.vault.read(processedFile);
+        const updatedContent = updateMarkdownAssetLinks({
+          content: currentContent,
+          oldPathToNewPath: assetImportResult.pathMapping,
+          targetFile: processedFile,
+          app: plugin.app,
+          originalNodePath,
+        });
 
-          // Only update if content changed
-          if (updatedContent !== currentContent) {
-            await plugin.app.vault.modify(processedFile, updatedContent);
-          }
+        if (updatedContent !== currentContent) {
+          await plugin.app.vault.modify(processedFile, updatedContent);
         }
 
         // Log asset import errors if any
