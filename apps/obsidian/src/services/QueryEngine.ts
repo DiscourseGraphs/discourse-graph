@@ -291,7 +291,7 @@ export class QueryEngine {
   }
 
   /**
-   * Find an existing imported file by nodeInstanceId and importedFromSpaceUri
+   * Find an existing imported file by nodeInstanceId and importedFromRid
    * Uses DataCore when available; falls back to vault iteration otherwise
    * Returns the file if found, null otherwise
    */
