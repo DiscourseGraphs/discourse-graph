@@ -21,6 +21,7 @@ import {
   type DiscourseNodeInVault,
   collectDiscourseNodesFromVault,
 } from "./getDiscourseNodes";
+import { spaceUriAndLocalIdToRid } from "./rid";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -780,6 +781,35 @@ export const cleanupOrphanedNodes = async (
   }
 };
 
+const migrateImportedFromFrontMatter = async (plugin: DiscourseGraphPlugin) => {
+  const nodes = await collectDiscourseNodesFromVault(plugin, true);
+  for (const node of nodes) {
+    if (typeof node.frontmatter.importedFromSpaceUri === "string") {
+      await plugin.app.fileManager.processFrontMatter(
+        node.file,
+        (frontmatter: Record<string, unknown>) => {
+          const spaceUri = frontmatter.importedFromSpaceUri as string;
+          // note: we fortunately reused the original Id here.
+          const nodeId = frontmatter.nodeInstanceId;
+          if (typeof nodeId !== "string") {
+            console.error(
+              `error: missing nodeInstanceId on node ${node.file.path}`,
+            );
+            return;
+          }
+          try {
+            const rid = spaceUriAndLocalIdToRid(spaceUri, nodeId, "note");
+            frontmatter.importedFromRid = rid;
+            delete frontmatter.importedFromSpaceUri;
+          } catch (error) {
+            console.error(error);
+          }
+        },
+      );
+    }
+  }
+};
+
 export const initializeSupabaseSync = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<void> => {
@@ -789,6 +819,10 @@ export const initializeSupabaseSync = async (
       "Failed to initialize Supabase sync: could not create context",
     );
   }
+
+  await migrateImportedFromFrontMatter(plugin).catch((error) => {
+    console.error("Failed to migrate frontmatter:", error);
+  });
 
   await createOrUpdateDiscourseEmbedding(plugin, context).catch((error) => {
     new Notice(`Initial sync failed: ${error}`);
