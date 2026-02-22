@@ -117,7 +117,7 @@ const Timeline: React.FunctionComponent<TimelineProps> = ({
       selection.
     </p>
   ) : (
-    <VerticalTimeline layout={"2-columns"} className={"mt-1"}>
+    <><VerticalTimeline layout={"2-columns"} className={"mt-1"}>
       <style>{`.vertical-timeline-element-body > .rm-block > .rm-block-main {
   display: none;
 }
@@ -136,7 +136,7 @@ const Timeline: React.FunctionComponent<TimelineProps> = ({
           key={`${t.uid}-${t.date}`}
         />
       ))}
-    </VerticalTimeline>
+    </VerticalTimeline></>
   );
 };
 

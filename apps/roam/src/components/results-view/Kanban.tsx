@@ -1,11 +1,5 @@
 // Design inspiration from Trello
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, {  useCallback,  useEffect,  useMemo,  useRef,  useState} from "react";
 import { Column, Result } from "~/utils/types";
 import { Button, Icon, InputGroup, Popover } from "@blueprintjs/core";
 import Draggable, { DraggableData, DraggableEvent } from "react-draggable";
