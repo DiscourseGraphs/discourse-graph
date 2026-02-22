@@ -19,6 +19,10 @@ import Description from "roamjs-components/components/Description";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import {
+  getGlobalSetting,
+  getPersonalSetting,
+  getFeatureFlag,
+  getDiscourseNodeSetting,
   setGlobalSetting,
   setPersonalSetting,
   setFeatureFlag,
@@ -482,6 +486,18 @@ const createAccessors = <T,>(
   setter: setFn,
 });
 
+const readWithFallback = <T,>(
+  reader: () => T | undefined,
+  fallback?: T,
+): T | undefined => {
+  try {
+    const value = reader();
+    return value ?? fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 const globalAccessors = {
   text: createAccessors<string>(setGlobalSetting),
   flag: createAccessors<boolean>(setGlobalSetting),
@@ -531,7 +547,7 @@ export const FeatureFlagPanel = ({
       description={description}
       settingKeys={[featureKey as string]}
       setter={featureFlagSetter}
-      initialValue={initialValue}
+      initialValue={readWithFallback(() => getFeatureFlag(featureKey), initialValue)}
       onBeforeChange={handleBeforeChange}
       onChange={onAfterChange}
       parentUid={parentUid}
@@ -542,31 +558,80 @@ export const FeatureFlagPanel = ({
 };
 
 export const GlobalTextPanel = (props: TextWrapperProps) => (
-  <BaseTextPanel {...props} {...globalAccessors.text} />
+  <BaseTextPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getGlobalSetting<string>(props.settingKeys),
+      props.initialValue,
+    )}
+    {...globalAccessors.text}
+  />
 );
 
 export const GlobalFlagPanel = (props: FlagWrapperProps) => (
-  <BaseFlagPanel {...props} {...globalAccessors.flag} />
+  <BaseFlagPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getGlobalSetting<boolean>(props.settingKeys),
+      props.initialValue,
+    )}
+    {...globalAccessors.flag}
+  />
 );
 
 export const GlobalNumberPanel = (props: NumberWrapperProps) => (
-  <BaseNumberPanel {...props} {...globalAccessors.number} />
+  <BaseNumberPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getGlobalSetting<number>(props.settingKeys),
+      props.initialValue,
+    )}
+    {...globalAccessors.number}
+  />
 );
 
 export const GlobalSelectPanel = (props: SelectWrapperProps) => (
-  <BaseSelectPanel {...props} {...globalAccessors.text} />
+  <BaseSelectPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getGlobalSetting<string>(props.settingKeys),
+      props.initialValue,
+    )}
+    {...globalAccessors.text}
+  />
 );
 
 export const GlobalMultiTextPanel = (props: MultiTextWrapperProps) => (
-  <BaseMultiTextPanel {...props} {...globalAccessors.multiText} />
+  <BaseMultiTextPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getGlobalSetting<string[]>(props.settingKeys),
+      props.initialValue,
+    )}
+    {...globalAccessors.multiText}
+  />
 );
 
 export const PersonalTextPanel = ({ setter, ...props }: TextWrapperProps) => (
-  <BaseTextPanel {...props} setter={setter ?? personalAccessors.text.setter} />
+  <BaseTextPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getPersonalSetting<string>(props.settingKeys),
+      props.initialValue,
+    )}
+    setter={setter ?? personalAccessors.text.setter}
+  />
 );
 
 export const PersonalFlagPanel = (props: FlagWrapperProps) => (
-  <BaseFlagPanel {...props} {...personalAccessors.flag} />
+  <BaseFlagPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getPersonalSetting<boolean>(props.settingKeys),
+      props.initialValue,
+    )}
+    {...personalAccessors.flag}
+  />
 );
 
 export const PersonalNumberPanel = ({
@@ -575,16 +640,34 @@ export const PersonalNumberPanel = ({
 }: NumberWrapperProps) => (
   <BaseNumberPanel
     {...props}
+    initialValue={readWithFallback(
+      () => getPersonalSetting<number>(props.settingKeys),
+      props.initialValue,
+    )}
     setter={setter ?? personalAccessors.number.setter}
   />
 );
 
 export const PersonalSelectPanel = (props: SelectWrapperProps) => (
-  <BaseSelectPanel {...props} {...personalAccessors.text} />
+  <BaseSelectPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getPersonalSetting<string>(props.settingKeys),
+      props.initialValue,
+    )}
+    {...personalAccessors.text}
+  />
 );
 
 export const PersonalMultiTextPanel = (props: MultiTextWrapperProps) => (
-  <BaseMultiTextPanel {...props} {...personalAccessors.multiText} />
+  <BaseMultiTextPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getPersonalSetting<string[]>(props.settingKeys),
+      props.initialValue,
+    )}
+    {...personalAccessors.multiText}
+  />
 );
 
 const createDiscourseNodeSetter =
@@ -610,7 +693,14 @@ export const DiscourseNodeTextPanel = ({
     error?: string;
     onChange?: (value: string) => void;
   }) => (
-  <BaseTextPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
+  <BaseTextPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getDiscourseNodeSetting<string>(nodeType, props.settingKeys),
+      props.initialValue,
+    )}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
 );
 
 export const DiscourseNodeFlagPanel = ({
@@ -623,7 +713,14 @@ export const DiscourseNodeFlagPanel = ({
     onBeforeChange?: (checked: boolean) => Promise<boolean>;
     onChange?: (checked: boolean) => void;
   }) => (
-  <BaseFlagPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
+  <BaseFlagPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getDiscourseNodeSetting<boolean>(nodeType, props.settingKeys),
+      props.initialValue,
+    )}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
 );
 
 export const DiscourseNodeSelectPanel = ({
@@ -631,7 +728,14 @@ export const DiscourseNodeSelectPanel = ({
   ...props
 }: DiscourseNodeBaseProps &
   RoamBlockSyncProps & { options: string[]; initialValue?: string }) => (
-  <BaseSelectPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
+  <BaseSelectPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getDiscourseNodeSetting<string>(nodeType, props.settingKeys),
+      props.initialValue,
+    )}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
 );
 
 export const DiscourseNodeNumberPanel = ({
@@ -643,5 +747,12 @@ export const DiscourseNodeNumberPanel = ({
     min?: number;
     max?: number;
   }) => (
-  <BaseNumberPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
+  <BaseNumberPanel
+    {...props}
+    initialValue={readWithFallback(
+      () => getDiscourseNodeSetting<number>(nodeType, props.settingKeys),
+      props.initialValue,
+    )}
+    setter={createDiscourseNodeSetter(nodeType)}
+  />
 );
