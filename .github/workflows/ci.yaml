@@ -167,3 +167,90 @@ jobs:
             rm -f "$eslint_output"
           done
           exit $lint_failed
+
+  # Guardrail: fail PRs when files touched by the PR are not Prettier-formatted.
+  format-changed-files:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting on changed files
+        shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # Compute a stable merge-base for the PR diff while keeping fetch depth bounded.
+          BASE_SHA=""
+          for fetch_depth in 1 10 50 200; do
+            git fetch origin "$BASE_REF" --depth="$fetch_depth"
+            BASE_SHA="$(git merge-base "origin/$BASE_REF" "$PR_HEAD_SHA" || true)"
+            if [ -n "$BASE_SHA" ]; then
+              break
+            fi
+          done
+
+          if [ -z "$BASE_SHA" ]; then
+            echo "Unable to determine merge-base within depth limit (max depth: 200) for base ref '$BASE_REF'."
+            echo "Increase the depth sequence in CI for unusually long-lived branches."
+            exit 1
+          fi
+
+          HEAD_SHA="$PR_HEAD_SHA"
+          # Scope checks to files introduced or modified by the PR.
+          mapfile -t changed_files < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA")
+
+          if [ ${#changed_files[@]} -eq 0 ]; then
+            echo "No files changed in this pull request."
+            exit 0
+          fi
+
+          # Skip paths removed in the PR (deleted files cannot be formatted).
+          mapfile -t existing_changed_files < <(
+            for file in "${changed_files[@]}"; do
+              if [ -f "$file" ]; then
+                printf '%s\n' "$file"
+              fi
+            done
+          )
+
+          if [ ${#existing_changed_files[@]} -eq 0 ]; then
+            echo "No changed files exist in the checkout."
+            exit 0
+          fi
+
+          format_failed=0
+          # Chunk file lists to avoid command-line length limits on very large PRs.
+          chunk_size=100
+
+          for ((i=0; i<${#existing_changed_files[@]}; i+=chunk_size)); do
+            chunk=( "${existing_changed_files[@]:i:chunk_size}" )
+            # --ignore-unknown lets us pass all changed files safely; Prettier only checks supported types.
+            if ! pnpm exec prettier --check --ignore-unknown "${chunk[@]}"; then
+              format_failed=1
+            fi
+          done
+
+          # Exit non-zero if any chunk had formatting violations.
+          exit $format_failed
