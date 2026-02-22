@@ -12,6 +12,7 @@ import { OnloadArgs, RoamBasicNode } from "roamjs-components/types";
 import runQuery from "./runQuery";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import posthog from "posthog-js";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
 
 type Props = {
   text: string;
@@ -32,8 +33,8 @@ const createDiscourseNode = async ({
     text: text,
   });
   const handleOpenInSidebar = (uid: string) => {
-    if (extensionAPI?.settings.get("disable-sidebar-open")) return;
-    openBlockInSidebar(uid);
+    if (getPersonalSetting<boolean>(["Disable sidebar open"])) return;
+    void openBlockInSidebar(uid);
     setTimeout(() => {
       const sidebarTitle = document.querySelector(
         ".rm-sidebar-outline .rm-title-display",

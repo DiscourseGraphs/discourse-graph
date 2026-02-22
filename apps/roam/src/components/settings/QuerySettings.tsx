@@ -23,9 +23,6 @@ const QuerySettings = ({
         title="Hide query metadata"
         description="Hide the Roam blocks that are used to power each query"
         settingKeys={["Query", "Hide query metadata"]}
-        initialValue={
-          (extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean) ?? true
-        }
         onChange={(checked) => {
           void extensionAPI.settings.set(HIDE_METADATA_KEY, checked);
           posthog.capture("Query Settings: Hide Metadata Toggled", {
