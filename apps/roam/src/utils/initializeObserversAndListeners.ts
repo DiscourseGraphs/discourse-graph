@@ -187,11 +187,11 @@ export const initObservers = async ({
     }>,
   ) => {
     if (!/page/i.test(e.detail.action)) return;
-    window.roamAlphaAPI.ui.mainWindow
+    void window.roamAlphaAPI.ui.mainWindow
       .getOpenPageOrBlockUid()
       .then((u) => u || window.roamAlphaAPI.util.dateToPageUid(new Date()))
       .then((parentUid) => {
-        createBlock({
+        return createBlock({
           parentUid,
           order: Number.MAX_VALUE,
           node: { text: `[[${e.detail.val}]]` },
@@ -199,7 +199,7 @@ export const initObservers = async ({
       });
   }) as EventListener;
 
-  if (onloadArgs.extensionAPI.settings.get("suggestive-mode-overlay")) {
+  if (getPersonalSetting<boolean>(["Suggestive mode overlay"])) {
     addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
 
@@ -222,9 +222,9 @@ export const initObservers = async ({
     },
   });
 
-  if (onloadArgs.extensionAPI.settings.get("page-preview"))
+  if (getPersonalSetting<boolean>(["Page preview"]))
     addPageRefObserver(previewPageRefHandler);
-  if (onloadArgs.extensionAPI.settings.get("discourse-context-overlay")) {
+  if (getPersonalSetting<boolean>(["Discourse context overlay"])) {
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(true);
   }
@@ -373,7 +373,7 @@ export const initObservers = async ({
 
   const nodeCreationPopoverListener = debounce(() => {
     const isTextSelectionPopupEnabled =
-      onloadArgs.extensionAPI.settings.get("text-selection-popup") !== false;
+      getPersonalSetting<boolean>(["Text selection popup"]) !== false;
 
     if (!isTextSelectionPopupEnabled) return;
 
