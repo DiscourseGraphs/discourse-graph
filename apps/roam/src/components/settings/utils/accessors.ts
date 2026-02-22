@@ -3,9 +3,15 @@ import getBlockProps, {
   type json,
 } from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getBlockUidByTextOnPage from "roamjs-components/queries/getBlockUidByTextOnPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
+import { getSubTree } from "roamjs-components/util";
+import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import internalError from "~/utils/internalError";
+import { getSetting } from "~/utils/extensionSettings";
+import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import { roamNodeToCondition } from "~/utils/parseQuery";
 import { z } from "zod";
 
 import {
@@ -106,6 +112,23 @@ const getSchemaAtPath = (
 const formatSettingPath = (keys: string[]): string =>
   keys.length === 0 ? "(root)" : keys.join(" > ");
 
+const readPathValue = (root: unknown, keys: string[]): unknown =>
+  keys.reduce<unknown>((current, key) => {
+    if (!isRecord(current) || !(key in current)) return undefined;
+    return current[key];
+  }, root);
+
+const pathKey = (keys: string[]): string => keys.join("::");
+
+const getMissingSettingError = ({
+  context,
+  keys,
+}: {
+  context: string;
+  keys: string[];
+}): string =>
+  `[DG Accessor] Missing ${context} setting at path: ${formatSettingPath(keys)} (dual-read ON)`;
+
 const validateSettingValue = ({
   schema,
   keys,
@@ -140,6 +163,368 @@ const validateSettingValue = ({
   }
 
   return true;
+};
+
+const DEFAULT_PERSONAL_SETTINGS = PersonalSettingsSchema.parse({});
+const DEFAULT_GLOBAL_SETTINGS = GlobalSettingsSchema.parse({});
+const DEFAULT_LEGACY_QUERY = {
+  conditions: [],
+  selections: [],
+  custom: "",
+  returnNode: "node",
+};
+
+const PERSONAL_OLD_KEY_MAP = new Map<string, string>([
+  [pathKey(["Discourse context overlay"]), "discourse-context-overlay"],
+  [pathKey(["Suggestive mode overlay"]), "suggestive-mode-overlay"],
+  [pathKey(["Text selection popup"]), "text-selection-popup"],
+  [pathKey(["Disable sidebar open"]), "disable-sidebar-open"],
+  [pathKey(["Page preview"]), "page-preview"],
+  [pathKey(["Hide feedback button"]), "hide-feedback-button"],
+  [pathKey(["Auto canvas relations"]), "auto-canvas-relations"],
+  [pathKey(["Overlay in canvas"]), "discourse-context-overlay-in-canvas"],
+  [pathKey(["Streamline styling"]), "streamline-styling"],
+  [pathKey(["Disable product diagnostics"]), "disallow-diagnostics"],
+  [pathKey(["Discourse tool shortcut"]), "discourse-tool-shortcut"],
+  [pathKey(["Personal node menu trigger"]), "personal-node-menu-trigger"],
+  [pathKey(["Node search menu trigger"]), "node-search-trigger"],
+  [pathKey(["Query", "Hide query metadata"]), "hide-metadata"],
+  [pathKey(["Query", "Default page size"]), "default-page-size"],
+  [pathKey(["Query", "Query pages"]), "query-pages"],
+  [pathKey(["Query", "Default filters"]), "default-filters"],
+]);
+
+const PERSONAL_OLD_DEFAULT_OVERRIDES = new Map<string, unknown>([
+  [pathKey(["Query", "Hide query metadata"]), true],
+]);
+
+const getLegacyPersonalLeftSidebarSetting = (): Record<string, unknown> => {
+  const settings = getFormattedConfigTree();
+
+  /* eslint-disable @typescript-eslint/naming-convention */
+  return Object.fromEntries(
+    settings.leftSidebar.personal.sections.map((section) => [
+      section.text,
+      {
+        Children: (section.children || []).map((child) => ({
+          Page: child.text,
+          Alias: child.alias?.value || "",
+        })),
+        Settings: {
+          "Truncate-result?": section.settings?.truncateResult.value ?? 75,
+          Folded: section.settings?.folded.value ?? false,
+        },
+      },
+    ]),
+  );
+  /* eslint-enable @typescript-eslint/naming-convention */
+};
+
+const getLegacyPersonalSetting = (keys: string[]): unknown => {
+  const mappedOldKey = PERSONAL_OLD_KEY_MAP.get(pathKey(keys));
+  if (mappedOldKey) {
+    const path = pathKey(keys);
+    return getSetting<unknown>(
+      mappedOldKey,
+      PERSONAL_OLD_DEFAULT_OVERRIDES.has(path)
+        ? PERSONAL_OLD_DEFAULT_OVERRIDES.get(path)
+        : readPathValue(DEFAULT_PERSONAL_SETTINGS, keys),
+    );
+  }
+
+  if (keys.length === 1 && keys[0] === "Query") {
+    const querySettings: Record<string, unknown> = {};
+    querySettings["Hide query metadata"] = getLegacyPersonalSetting([
+      "Query",
+      "Hide query metadata",
+    ]);
+    querySettings["Default page size"] = getLegacyPersonalSetting([
+      "Query",
+      "Default page size",
+    ]);
+    querySettings["Query pages"] = getLegacyPersonalSetting([
+      "Query",
+      "Query pages",
+    ]);
+    querySettings["Default filters"] = getLegacyPersonalSetting([
+      "Query",
+      "Default filters",
+    ]);
+    return querySettings;
+  }
+
+  if (keys[0] === "Left sidebar") {
+    const leftSidebarSettings = getLegacyPersonalLeftSidebarSetting();
+    if (keys.length === 1) return leftSidebarSettings;
+    return readPathValue(leftSidebarSettings, keys.slice(1));
+  }
+
+  return undefined;
+};
+
+const getLegacyRelationsSetting = (): Record<string, unknown> => {
+  const settingsUid = getPageUidByPageTitle(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
+  if (!settingsUid) return DEFAULT_GLOBAL_SETTINGS.Relations;
+
+  const configTree = getBasicTreeByParentUid(settingsUid);
+  const grammarChildren = getSubTree({
+    tree: configTree,
+    key: "grammar",
+  }).children;
+  const relationNodes = getSubTree({
+    tree: grammarChildren,
+    key: "relations",
+  }).children;
+  if (relationNodes.length === 0) return DEFAULT_GLOBAL_SETTINGS.Relations;
+
+  return Object.fromEntries(
+    relationNodes.map((relationNode) => {
+      const relationTree = relationNode.children || [];
+      const ifBlocks = getSubTree({ tree: relationTree, key: "If" }).children;
+      const ifConditions = ifBlocks.map((ifBlock) => {
+        const blockChildren = ifBlock.children || [];
+        const nodePositionsNode = blockChildren.find((c) =>
+          /node positions/i.test(c.text),
+        );
+        const triples = blockChildren
+          .filter((c) => !/node positions/i.test(c.text))
+          .map(
+            (c) =>
+              [
+                c.text,
+                c.children?.[0]?.text || "",
+                c.children?.[0]?.children?.[0]?.text || "",
+              ] as [string, string, string],
+          );
+        const nodePositions = Object.fromEntries(
+          (nodePositionsNode?.children || []).map((c) => [
+            c.text,
+            c.children?.[0]?.text || "",
+          ]),
+        );
+        return { triples, nodePositions };
+      });
+
+      return [
+        relationNode.uid || relationNode.text,
+        {
+          label: relationNode.text,
+          source: getSettingValueFromTree({
+            tree: relationTree,
+            key: "Source",
+          }),
+          destination: getSettingValueFromTree({
+            tree: relationTree,
+            key: "Destination",
+          }),
+          complement: getSettingValueFromTree({
+            tree: relationTree,
+            key: "Complement",
+          }),
+          ifConditions,
+        },
+      ];
+    }),
+  );
+};
+
+const getLegacyGlobalSetting = (keys: string[]): unknown => {
+  if (keys.length === 0) return undefined;
+
+  const settings = getFormattedConfigTree();
+  const firstKey = keys[0];
+
+  if (firstKey === "Trigger") {
+    return settings.trigger.value || DEFAULT_GLOBAL_SETTINGS.Trigger;
+  }
+
+  if (firstKey === "Canvas page format") {
+    return (
+      settings.canvasPageFormat.value ||
+      DEFAULT_GLOBAL_SETTINGS["Canvas page format"]
+    );
+  }
+
+  if (firstKey === "Left sidebar") {
+    const leftSidebarSettings: Record<string, unknown> = {};
+    leftSidebarSettings["Children"] = settings.leftSidebar.global.children.map(
+      (c) => c.text,
+    );
+    const sidebarSettingValues: Record<string, unknown> = {};
+    sidebarSettingValues["Collapsable"] =
+      settings.leftSidebar.global.settings?.collapsable.value ??
+      DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Collapsable;
+    sidebarSettingValues["Folded"] =
+      settings.leftSidebar.global.settings?.folded.value ??
+      DEFAULT_GLOBAL_SETTINGS["Left sidebar"].Settings.Folded;
+    leftSidebarSettings["Settings"] = sidebarSettingValues;
+    if (keys.length === 1) return leftSidebarSettings;
+    return readPathValue(leftSidebarSettings, keys.slice(1));
+  }
+
+  if (firstKey === "Export") {
+    const exportSettings: Record<string, unknown> = {};
+    exportSettings["Remove special characters"] =
+      settings.export.removeSpecialCharacters.value ??
+      DEFAULT_GLOBAL_SETTINGS.Export["Remove special characters"];
+    exportSettings["Resolve block references"] =
+      settings.export.optsRefs.value ??
+      DEFAULT_GLOBAL_SETTINGS.Export["Resolve block references"];
+    exportSettings["Resolve block embeds"] =
+      settings.export.optsEmbeds.value ??
+      DEFAULT_GLOBAL_SETTINGS.Export["Resolve block embeds"];
+    exportSettings["Append referenced node"] =
+      settings.export.appendRefNodeContext.value ??
+      DEFAULT_GLOBAL_SETTINGS.Export["Append referenced node"];
+    exportSettings["Link type"] =
+      settings.export.linkType.value ||
+      DEFAULT_GLOBAL_SETTINGS.Export["Link type"];
+    exportSettings["Max filename length"] =
+      settings.export.maxFilenameLength.value ??
+      DEFAULT_GLOBAL_SETTINGS.Export["Max filename length"];
+    exportSettings["Frontmatter"] =
+      settings.export.frontmatter.values ??
+      DEFAULT_GLOBAL_SETTINGS.Export.Frontmatter;
+    if (keys.length === 1) return exportSettings;
+    return readPathValue(exportSettings, keys.slice(1));
+  }
+
+  if (firstKey === "Suggestive mode") {
+    const suggestiveModeSettings: Record<string, unknown> = {};
+    suggestiveModeSettings["Include current page relations"] =
+      settings.suggestiveMode.includePageRelations.value ??
+      DEFAULT_GLOBAL_SETTINGS["Suggestive mode"][
+        "Include current page relations"
+      ];
+    suggestiveModeSettings["Include parent and child blocks"] =
+      settings.suggestiveMode.includeParentAndChildren.value ??
+      DEFAULT_GLOBAL_SETTINGS["Suggestive mode"][
+        "Include parent and child blocks"
+      ];
+    suggestiveModeSettings["Page groups"] =
+      settings.suggestiveMode.pageGroups.groups.map((group) => ({
+        name: group.name,
+        pages: group.pages.map((page) => page.name),
+      }));
+    if (keys.length === 1) return suggestiveModeSettings;
+    return readPathValue(suggestiveModeSettings, keys.slice(1));
+  }
+
+  if (firstKey === "Relations") {
+    const relationsSettings = getLegacyRelationsSetting();
+    if (keys.length === 1) return relationsSettings;
+    return readPathValue(relationsSettings, keys.slice(1));
+  }
+
+  return undefined;
+};
+
+const getLegacyQuerySettingByParentUid = (parentUid: string) => {
+  const scratchNode = getSubTree({ parentUid, key: "scratch" });
+  const conditionsNode = getSubTree({
+    tree: scratchNode.children,
+    key: "conditions",
+  });
+  const selectionsNode = getSubTree({
+    tree: scratchNode.children,
+    key: "selections",
+  });
+  const customNode = getSubTree({ tree: scratchNode.children, key: "custom" });
+
+  return {
+    conditions: conditionsNode.children.map(roamNodeToCondition),
+    selections: selectionsNode.children.map((s) => ({
+      text: s.text,
+      label: s.children?.[0]?.text || "",
+    })),
+    custom: customNode.children[0]?.text || "",
+    returnNode: "node",
+  };
+};
+
+const getLegacyDiscourseNodeSetting = (
+  nodeType: string,
+  keys: string[],
+): unknown => {
+  let nodeUid = nodeType;
+  let tree = getBasicTreeByParentUid(nodeUid);
+
+  if (tree.length === 0) {
+    const lookedUpUid = getPageUidByPageTitle(
+      `${DISCOURSE_NODE_PAGE_PREFIX}${nodeType}`,
+    );
+    if (lookedUpUid) {
+      nodeUid = lookedUpUid;
+      tree = getBasicTreeByParentUid(nodeUid);
+    }
+  }
+
+  if (tree.length === 0) return undefined;
+
+  const canvasSettings = Object.fromEntries(
+    getSubTree({ tree, key: "canvas" }).children.map((c) => [
+      c.text,
+      c.children[0]?.text || "",
+    ]),
+  ) as Record<string, unknown>;
+  const attributes = Object.fromEntries(
+    getSubTree({ tree, key: "Attributes" }).children.map((c) => [
+      c.text,
+      c.children[0]?.text || "",
+    ]),
+  );
+  const overlayUid = getSubTree({ tree, key: "Overlay" }).uid;
+  const suggestiveRulesTree = getSubTree({
+    tree,
+    key: "Suggestive Rules",
+  }).children;
+  const indexUid = getSubTree({ tree, key: "Index" }).uid;
+  const specificationUid = getSubTree({ tree, key: "Specification" }).uid;
+  const keyImageRaw = canvasSettings["key-image"];
+  canvasSettings["color"] = (canvasSettings["color"] as string) || "";
+  canvasSettings["alias"] = (canvasSettings["alias"] as string) || "";
+  canvasSettings["key-image"] = keyImageRaw === "true";
+  canvasSettings["key-image-option"] =
+    (canvasSettings["key-image-option"] as string) || "first-image";
+  canvasSettings["query-builder-alias"] =
+    (canvasSettings["query-builder-alias"] as string) || "";
+
+  const legacySettings = {
+    type: nodeUid,
+    format: getSettingValueFromTree({ tree, key: "format" }),
+    shortcut: getSettingValueFromTree({ tree, key: "shortcut" }),
+    tag: getSettingValueFromTree({ tree, key: "tag" }),
+    graphOverview: tree.some((c) => c.text === "Graph Overview"),
+    description: getSettingValueFromTree({ tree, key: "description" }),
+    overlay: overlayUid
+      ? getBasicTreeByParentUid(overlayUid)[0]?.text || ""
+      : "",
+    attributes,
+    template: getSubTree({ tree, key: "template" }).children,
+    canvasSettings,
+    suggestiveRules: {
+      embeddingRef:
+        getSubTree({ tree: suggestiveRulesTree, key: "Embedding Block Ref" })
+          .children[0]?.text || "",
+      isFirstChild: !!getSubTree({
+        tree: suggestiveRulesTree,
+        key: "First Child",
+      }).uid,
+    },
+    index: indexUid
+      ? getLegacyQuerySettingByParentUid(indexUid)
+      : DEFAULT_LEGACY_QUERY,
+    specification: {
+      enabled: specificationUid
+        ? !!getSubTree({ parentUid: specificationUid, key: "enabled" }).uid
+        : false,
+      query: specificationUid
+        ? getLegacyQuerySettingByParentUid(specificationUid)
+        : DEFAULT_LEGACY_QUERY,
+    },
+  };
+
+  return readPathValue(legacySettings, keys);
 };
 
 const getBlockPropsByUid = (
@@ -312,12 +697,16 @@ export const getGlobalSettings = (): GlobalSettings => {
 export const getGlobalSetting = <T = unknown>(
   keys: string[],
 ): T | undefined => {
-  const settings = getGlobalSettings();
+  if (!isNewSettingsStoreEnabled()) {
+    return getLegacyGlobalSetting(keys) as T | undefined;
+  }
 
-  return keys.reduce<unknown>((current, key) => {
-    if (!isRecord(current) || !(key in current)) return undefined;
-    return current[key];
-  }, settings) as T | undefined;
+  const settings = getGlobalSettings();
+  const value = readPathValue(settings, keys) as T | undefined;
+  if (value === undefined) {
+    throw new Error(getMissingSettingError({ context: "Global", keys }));
+  }
+  return value;
 };
 
 export const setGlobalSetting = (keys: string[], value: json): void => {
@@ -368,12 +757,16 @@ export const getPersonalSettings = (): PersonalSettings => {
 export const getPersonalSetting = <T = unknown>(
   keys: string[],
 ): T | undefined => {
-  const settings = getPersonalSettings();
+  if (!isNewSettingsStoreEnabled()) {
+    return getLegacyPersonalSetting(keys) as T | undefined;
+  }
 
-  return keys.reduce<unknown>((current, key) => {
-    if (!isRecord(current) || !(key in current)) return undefined;
-    return current[key];
-  }, settings) as T | undefined;
+  const settings = getPersonalSettings();
+  const value = readPathValue(settings, keys) as T | undefined;
+  if (value === undefined) {
+    throw new Error(getMissingSettingError({ context: "Personal", keys }));
+  }
+  return value;
 };
 
 export const setPersonalSetting = (keys: string[], value: json): void => {
@@ -439,14 +832,23 @@ export const getDiscourseNodeSetting = <T = unknown>(
   nodeType: string,
   keys: string[],
 ): T | undefined => {
+  if (!isNewSettingsStoreEnabled()) {
+    return getLegacyDiscourseNodeSetting(nodeType, keys) as T | undefined;
+  }
+
   const settings = getDiscourseNodeSettings(nodeType);
-
-  if (!settings) return undefined;
-
-  return keys.reduce<unknown>((current, key) => {
-    if (!isRecord(current) || !(key in current)) return undefined;
-    return current[key];
-  }, settings) as T | undefined;
+  const value = settings
+    ? (readPathValue(settings, keys) as T | undefined)
+    : undefined;
+  if (value === undefined) {
+    throw new Error(
+      getMissingSettingError({
+        context: `Discourse Node (${nodeType})`,
+        keys,
+      }),
+    );
+  }
+  return value;
 };
 
 export const setDiscourseNodeSetting = (
@@ -539,4 +941,236 @@ export const getAllDiscourseNodes = (): DiscourseNodeSettings[] => {
   }
 
   return nodes;
+};
+
+type DualReadProbeCase = { keys: string[] };
+
+type DualReadProbeNodeCase = {
+  nodeType: string;
+  keys: string[];
+};
+
+type DualReadProbeItem = {
+  scope: "personal" | "global" | "discourseNode";
+  keys: string[];
+  nodeType?: string;
+  legacyValue?: unknown;
+  blockPropsValue?: unknown;
+  legacyError?: string;
+  blockPropsError?: string;
+  match: boolean;
+};
+
+const normalizeProbeError = (error: unknown): string => {
+  return error instanceof Error ? error.message : String(error);
+};
+
+const safeSerialize = (value: unknown): string => {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
+
+const normalizeForComparison = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(normalizeForComparison);
+  }
+  if (isRecord(value)) {
+    return Object.keys(value)
+      .sort()
+      .reduce<Record<string, unknown>>((acc, key) => {
+        acc[key] = normalizeForComparison(value[key]);
+        return acc;
+      }, {});
+  }
+  return value;
+};
+
+const runProbeRead = (
+  reader: () => unknown,
+): {
+  value?: unknown;
+  error?: string;
+} => {
+  try {
+    return { value: reader() };
+  } catch (error) {
+    return { error: normalizeProbeError(error) };
+  }
+};
+
+const hasProbeMatch = ({
+  legacyError,
+  blockPropsError,
+  legacyValue,
+  blockPropsValue,
+}: {
+  legacyError?: string;
+  blockPropsError?: string;
+  legacyValue?: unknown;
+  blockPropsValue?: unknown;
+}): boolean => {
+  if (legacyError || blockPropsError) return false;
+  return (
+    safeSerialize(normalizeForComparison(legacyValue)) ===
+    safeSerialize(normalizeForComparison(blockPropsValue))
+  );
+};
+
+const DEFAULT_DISCOURSE_NODE_PROBE_TYPE = "Claim";
+const DEFAULT_DISCOURSE_NODE_PROBE_KEYS: string[][] = [
+  ["description"],
+  ["shortcut"],
+  ["tag"],
+  ["index"],
+  ["format"],
+  ["specification", "enabled"],
+  ["specification", "query"],
+  ["template"],
+  ["attributes"],
+  ["overlay"],
+  ["canvasSettings", "color"],
+  ["canvasSettings", "alias"],
+  ["canvasSettings", "key-image"],
+  ["canvasSettings", "key-image-option"],
+  ["canvasSettings", "query-builder-alias"],
+  ["graphOverview"],
+  ["suggestiveRules", "embeddingRef"],
+  ["suggestiveRules", "isFirstChild"],
+];
+
+export const runDualReadProbe = ({
+  personalCases = [
+    { keys: ["Discourse context overlay"] },
+    { keys: ["Suggestive mode overlay"] },
+    { keys: ["Text selection popup"] },
+    { keys: ["Disable sidebar open"] },
+    { keys: ["Page preview"] },
+    { keys: ["Hide feedback button"] },
+    { keys: ["Auto canvas relations"] },
+    { keys: ["Overlay in canvas"] },
+    { keys: ["Streamline styling"] },
+    { keys: ["Disable product diagnostics"] },
+    { keys: ["Discourse tool shortcut"] },
+    { keys: ["Personal node menu trigger"] },
+    { keys: ["Node search menu trigger"] },
+    { keys: ["Query"] },
+    { keys: ["Query", "Hide query metadata"] },
+    { keys: ["Query", "Default page size"] },
+    { keys: ["Query", "Query pages"] },
+    { keys: ["Query", "Default filters"] },
+    { keys: ["Left sidebar"] },
+  ],
+  globalCases = [
+    { keys: ["Trigger"] },
+    { keys: ["Canvas page format"] },
+    { keys: ["Left sidebar"] },
+    { keys: ["Left sidebar", "Children"] },
+    { keys: ["Left sidebar", "Settings", "Collapsable"] },
+    { keys: ["Left sidebar", "Settings", "Folded"] },
+    { keys: ["Export"] },
+    { keys: ["Export", "Remove special characters"] },
+    { keys: ["Export", "Resolve block references"] },
+    { keys: ["Export", "Resolve block embeds"] },
+    { keys: ["Export", "Append referenced node"] },
+    { keys: ["Export", "Link type"] },
+    { keys: ["Export", "Max filename length"] },
+    { keys: ["Export", "Frontmatter"] },
+    { keys: ["Suggestive mode"] },
+    { keys: ["Suggestive mode", "Include current page relations"] },
+    { keys: ["Suggestive mode", "Include parent and child blocks"] },
+    { keys: ["Suggestive mode", "Page groups"] },
+    { keys: ["Relations"] },
+  ],
+  discourseNodeCases = DEFAULT_DISCOURSE_NODE_PROBE_KEYS.map((keys) => ({
+    nodeType: DEFAULT_DISCOURSE_NODE_PROBE_TYPE,
+    keys,
+  })),
+}: {
+  personalCases?: DualReadProbeCase[];
+  globalCases?: DualReadProbeCase[];
+  discourseNodeCases?: DualReadProbeNodeCase[];
+} = {}) => {
+  const rows: DualReadProbeItem[] = [];
+
+  personalCases.forEach(({ keys }) => {
+    const legacy = runProbeRead(() => getLegacyPersonalSetting(keys));
+    const blockProps = runProbeRead(() =>
+      readPathValue(getPersonalSettings(), keys),
+    );
+    rows.push({
+      scope: "personal",
+      keys,
+      legacyValue: legacy.value,
+      blockPropsValue: blockProps.value,
+      legacyError: legacy.error,
+      blockPropsError: blockProps.error,
+      match: hasProbeMatch({
+        legacyError: legacy.error,
+        blockPropsError: blockProps.error,
+        legacyValue: legacy.value,
+        blockPropsValue: blockProps.value,
+      }),
+    });
+  });
+
+  globalCases.forEach(({ keys }) => {
+    const legacy = runProbeRead(() => getLegacyGlobalSetting(keys));
+    const blockProps = runProbeRead(() =>
+      readPathValue(getGlobalSettings(), keys),
+    );
+    rows.push({
+      scope: "global",
+      keys,
+      legacyValue: legacy.value,
+      blockPropsValue: blockProps.value,
+      legacyError: legacy.error,
+      blockPropsError: blockProps.error,
+      match: hasProbeMatch({
+        legacyError: legacy.error,
+        blockPropsError: blockProps.error,
+        legacyValue: legacy.value,
+        blockPropsValue: blockProps.value,
+      }),
+    });
+  });
+
+  discourseNodeCases.forEach(({ nodeType, keys }) => {
+    const legacy = runProbeRead(() =>
+      getLegacyDiscourseNodeSetting(nodeType, keys),
+    );
+    const blockProps = runProbeRead(() =>
+      readPathValue(getDiscourseNodeSettings(nodeType), keys),
+    );
+    rows.push({
+      scope: "discourseNode",
+      nodeType,
+      keys,
+      legacyValue: legacy.value,
+      blockPropsValue: blockProps.value,
+      legacyError: legacy.error,
+      blockPropsError: blockProps.error,
+      match: hasProbeMatch({
+        legacyError: legacy.error,
+        blockPropsError: blockProps.error,
+        legacyValue: legacy.value,
+        blockPropsValue: blockProps.value,
+      }),
+    });
+  });
+
+  const mismatches = rows.filter((row) => !row.match);
+
+  return {
+    newSettingsStoreEnabled: isNewSettingsStoreEnabled(),
+    summary: {
+      total: rows.length,
+      matches: rows.filter((row) => row.match).length,
+      mismatches: mismatches.length,
+    },
+    rows,
+    mismatches,
+  };
 };
