@@ -39,6 +39,7 @@ import deleteBlock from "roamjs-components/writes/deleteBlock";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import posthog from "posthog-js";
 import { setFeatureFlag } from "~/components/settings/utils/accessors";
+import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -465,6 +466,12 @@ const FeatureFlagsTab = (): React.ReactElement => {
             />
           </>
         }
+      />
+
+      <FeatureFlagPanel
+        title="Enable dual read"
+        description="When enabled, accessor getters read from block props instead of the old system. Surfaces dual-write gaps during development."
+        featureKey="Enable dual read"
       />
 
       <Button

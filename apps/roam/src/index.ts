@@ -42,7 +42,7 @@ import {
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
 import { initSchema } from "./components/settings/utils/init";
-
+import { setupPullWatchOnSettingsPage } from "./components/settings/utils/pullWatchers";
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
@@ -155,7 +155,10 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-  await initSchema();
+
+  const { blockUids } = await initSchema();
+  const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
+
   return {
     elements: [
       style,
@@ -166,6 +169,7 @@ export default runExtension(async (onloadArgs) => {
     ],
     observers: observers,
     unload: () => {
+      cleanupPullWatchers();
       setSyncActivity(false);
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");
       // @ts-expect-error - tldraw throws a warning on multiple loads
