@@ -90,10 +90,13 @@ export const featureFlagHandlers: Partial<
     (newValue: boolean, oldValue: boolean, allFlags: FeatureFlags) => void
   >
 > = {
-  // Add handlers as needed:
-  // "Enable Left Sidebar": (newValue) => { ... },
-  // "Suggestive Mode Enabled": (newValue) => { ... },
-  // "Reified Relation Triples": (newValue) => { ... },
+  /* eslint-disable @typescript-eslint/naming-convention */
+  "Enable dual read": (newValue, oldValue) => {
+    console.log(
+      `[DG] Enable dual read: ${String(oldValue)} → ${String(newValue)}`,
+    );
+  },
+  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 type GlobalSettingsHandlers = {
