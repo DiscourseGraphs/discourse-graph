@@ -42,7 +42,6 @@ import {
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
 import { initSchema } from "./components/settings/utils/init";
-import { runDualReadProbe } from "./components/settings/utils/accessors";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
@@ -125,10 +124,6 @@ export default runExtension(async (onloadArgs) => {
   }
 
   const { extensionAPI } = onloadArgs;
-  const debugWindow = window as unknown as { [key: string]: unknown };
-  debugWindow["__DG_DEBUG__"] = {
-    runDualReadProbe,
-  };
   window.roamjs.extension.queryBuilder = {
     runQuery: (parentUid: string) =>
       runQuery({ parentUid, extensionAPI }).then(
