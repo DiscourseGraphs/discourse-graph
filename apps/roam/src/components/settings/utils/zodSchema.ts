@@ -117,9 +117,7 @@ export const DiscourseNodeSchema = z.object({
     .array(ConditionSchema)
     .nullable()
     .optional()
-    .transform(
-      (val) => val ?? { enabled: false, query: defaultNodeIndex() },
-    ),
+    .transform((val) => val ?? { enabled: false, query: defaultNodeIndex() }),
   template: z
     .array(RoamNodeSchema)
     .nullable()
