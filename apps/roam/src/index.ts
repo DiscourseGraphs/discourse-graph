@@ -35,22 +35,19 @@ import { getUidAndBooleanSetting } from "./utils/getExportSettings";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "./utils/renderNodeConfigPage";
-import { getSetting } from "./utils/extensionSettings";
 import { initPostHog } from "./utils/posthog";
-import {
-  STREAMLINE_STYLING_KEY,
-  DISALLOW_DIAGNOSTICS,
-} from "./data/userSettings";
 import { initSchema } from "./components/settings/utils/init";
 import { setupPullWatchOnSettingsPage } from "./components/settings/utils/pullWatchers";
-
+import { getPersonalSetting } from "./components/settings/utils/accessors";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
   const isEncrypted = window.roamAlphaAPI.graph.isEncrypted;
   const isOffline = window.roamAlphaAPI.graph.type === "offline";
-  const disallowDiagnostics = getSetting(DISALLOW_DIAGNOSTICS, false);
+  const disallowDiagnostics = getPersonalSetting<boolean>([
+    "Disable product diagnostics",
+  ]);
   if (!isEncrypted && !isOffline && !disallowDiagnostics) {
     initPostHog();
   }
@@ -93,7 +90,9 @@ export default runExtension(async (onloadArgs) => {
   const discourseFloatingMenuStyle = addStyle(discourseFloatingMenuStyles);
 
   // Add streamline styling only if enabled
-  const isStreamlineStylingEnabled = getSetting(STREAMLINE_STYLING_KEY, false);
+  const isStreamlineStylingEnabled = getPersonalSetting<boolean>([
+    "Streamline styling",
+  ]);
   let streamlineStyleElement: HTMLStyleElement | null = null;
   if (isStreamlineStylingEnabled) {
     streamlineStyleElement = addStyle(streamlineStyling);

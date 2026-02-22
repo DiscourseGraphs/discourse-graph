@@ -2,8 +2,7 @@ import getCurrentUserUid from "roamjs-components/queries/getCurrentUserUid";
 import { getVersionWithDate } from "./getVersion";
 import posthog from "posthog-js";
 import type { CaptureResult } from "posthog-js";
-import { getSetting } from "./extensionSettings";
-import { DISALLOW_DIAGNOSTICS } from "~/data/userSettings";
+import { getPersonalSetting } from "~/components/settings/utils/accessors";
 
 let initialized = false;
 
@@ -70,7 +69,7 @@ export const disablePostHog = (): void => {
 };
 
 export const initPostHog = (): void => {
-  const disabled = getSetting(DISALLOW_DIAGNOSTICS, false);
+  const disabled = getPersonalSetting<boolean>(["Disable product diagnostics"]);
   if (!disabled) {
     doInitPostHog();
   }

@@ -194,10 +194,6 @@ const PERSONAL_OLD_KEY_MAP = new Map<string, string>([
   [pathKey(["Query", "Default filters"]), "default-filters"],
 ]);
 
-const PERSONAL_OLD_DEFAULT_OVERRIDES = new Map<string, unknown>([
-  [pathKey(["Query", "Hide query metadata"]), true],
-]);
-
 const getLegacyPersonalLeftSidebarSetting = (): Record<string, unknown> => {
   const settings = getFormattedConfigTree();
 
@@ -223,12 +219,9 @@ const getLegacyPersonalLeftSidebarSetting = (): Record<string, unknown> => {
 const getLegacyPersonalSetting = (keys: string[]): unknown => {
   const mappedOldKey = PERSONAL_OLD_KEY_MAP.get(pathKey(keys));
   if (mappedOldKey) {
-    const path = pathKey(keys);
     return getSetting<unknown>(
       mappedOldKey,
-      PERSONAL_OLD_DEFAULT_OVERRIDES.has(path)
-        ? PERSONAL_OLD_DEFAULT_OVERRIDES.get(path)
-        : readPathValue(DEFAULT_PERSONAL_SETTINGS, keys),
+      readPathValue(DEFAULT_PERSONAL_SETTINGS, keys),
     );
   }
 
