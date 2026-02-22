@@ -151,6 +151,7 @@ export const FeatureFlagsSchema = z.object({
   "Enable left sidebar": z.boolean().default(false),
   "Suggestive mode enabled": z.boolean().default(false),
   "Reified relation triples": z.boolean().default(false),
+  "Enable dual read": z.boolean().default(false),
 });
 
 export const ExportSettingsSchema = z.object({
