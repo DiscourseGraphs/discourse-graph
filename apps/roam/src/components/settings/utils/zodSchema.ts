@@ -93,12 +93,18 @@ const booleanWithDefault = (defaultVal: boolean) =>
     .optional()
     .transform((val) => val ?? defaultVal);
 
-const defaultNodeIndexValue = {
-  conditions: [],
-  selections: [],
+const defaultNodeIndex = () => ({
+  conditions: [] as {
+    type: string;
+    relation: string;
+    source: string;
+    uid: string;
+    not: boolean;
+  }[],
+  selections: [] as { text: string; label: string }[],
   custom: "",
   returnNode: "node",
-};
+});
 
 export const DiscourseNodeSchema = z.object({
   text: z.string(),
@@ -111,7 +117,9 @@ export const DiscourseNodeSchema = z.object({
     .array(ConditionSchema)
     .nullable()
     .optional()
-    .transform((val) => val ?? { enabled: false, query: defaultNodeIndexValue }),
+    .transform(
+      (val) => val ?? { enabled: false, query: defaultNodeIndex() },
+    ),
   template: z
     .array(RoamNodeSchema)
     .nullable()
@@ -125,7 +133,9 @@ export const DiscourseNodeSchema = z.object({
     .optional()
     .transform((val) => val ?? {}),
   overlay: stringWithDefault(""),
-  index: IndexSchema.nullable().optional().transform((val) => val ?? defaultNodeIndexValue),
+  index: IndexSchema.nullable()
+    .optional()
+    .transform((val) => val ?? defaultNodeIndex()),
   suggestiveRules: SuggestiveRulesSchema.default({}),
   backedBy: z
     .enum(["user", "default", "relation"])
