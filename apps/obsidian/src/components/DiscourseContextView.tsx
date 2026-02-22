@@ -37,7 +37,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
       setIsPublished(false);
       return;
     }
-    const isImported = !!frontmatter.importedFromSpaceUri;
+    const isImported = !!frontmatter.importedFromRid;
     const publishedToGroups = frontmatter.publishedToGroups as unknown;
     const published =
       !isImported &&
@@ -125,7 +125,7 @@ const DiscourseContext = ({ activeFile }: DiscourseContextProps) => {
       return <div>Unknown node type: {frontmatter.nodeTypeId}</div>;
     }
 
-    const isImported = !!frontmatter.importedFromSpaceUri;
+    const isImported = !!frontmatter.importedFromRid;
     const modifiedAt =
       typeof frontmatter.lastModified === "number"
         ? frontmatter.lastModified

@@ -13,6 +13,7 @@ export type DiscourseNode = {
   keyImage?: boolean;
   created: number;
   modified: number;
+  importedFromRid?: string;
 };
 
 export type DiscourseRelationType = {
@@ -22,6 +23,7 @@ export type DiscourseRelationType = {
   color: TldrawColorName;
   created: number;
   modified: number;
+  importedFromRid?: string;
 };
 
 export type DiscourseRelation = {
@@ -31,6 +33,19 @@ export type DiscourseRelation = {
   relationshipTypeId: string;
   created: number;
   modified: number;
+  importedFromRid?: string;
+};
+
+export type RelationInstance = {
+  id: string;
+  type: string;
+  source: string;
+  destination: string;
+  created: number;
+  author: string;
+  lastModified?: number;
+  publishedToGroupId?: string[];
+  importedFromRid?: string;
 };
 
 export type Settings = {

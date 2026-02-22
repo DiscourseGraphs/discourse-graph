@@ -7,6 +7,7 @@ import type DiscourseGraphPlugin from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
+import { spaceUriAndLocalIdToRid, ridToSpaceUriAndLocalId } from "./rid";
 
 export const getAvailableGroups = async (
   client: DGSupabaseClient,
@@ -163,10 +164,11 @@ export const getSpaceNameFromId = async (
   return data.name;
 };
 
-export const getSpaceNameIdFromUri = async (
+export const getSpaceNameIdFromRid = async (
   client: DGSupabaseClient,
-  spaceUri: string,
+  rid: string,
 ): Promise<{ spaceName: string; spaceId: number }> => {
+  const { spaceUri } = ridToSpaceUriAndLocalId(rid);
   const { data, error } = await client
     .from("Space")
     .select("name, id")
@@ -296,9 +298,7 @@ export const fetchNodeContentWithMetadata = async ({
 
   return {
     content: data.text,
-    createdAt: data.created
-      ? new Date(data.created + "Z").valueOf()
-      : 0,
+    createdAt: data.created ? new Date(data.created + "Z").valueOf() : 0,
     modifiedAt: data.last_modified
       ? new Date(data.last_modified + "Z").valueOf()
       : 0,
@@ -382,15 +382,15 @@ const fetchNodeContentForImport = async ({
 export const getSourceContentDates = async ({
   plugin,
   nodeInstanceId,
-  spaceUri,
+  importedFromRid,
 }: {
   plugin: DiscourseGraphPlugin;
   nodeInstanceId: string;
-  spaceUri: string;
+  importedFromRid: string;
 }): Promise<{ createdAt: string; modifiedAt: string } | null> => {
   const client = await getLoggedInClient(plugin);
   if (!client) return null;
-  const { spaceId } = await getSpaceNameIdFromUri(client, spaceUri);
+  const { spaceId } = await getSpaceNameIdFromRid(client, importedFromRid);
   if (spaceId < 0) return null;
   const { data, error } = await client
     .from("my_contents")
@@ -971,11 +971,13 @@ const mapNodeTypeIdToLocal = async ({
   plugin,
   client,
   sourceSpaceId,
+  sourceSpaceUri,
   sourceNodeTypeId,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
   sourceSpaceId: number;
+  sourceSpaceUri: string;
   sourceNodeTypeId: string;
 }): Promise<string> => {
   // Find the schema in the source space with this nodeTypeId (my_concepts applies RLS)
@@ -1016,6 +1018,11 @@ const mapNodeTypeIdToLocal = async ({
   );
 
   const now = new Date().getTime();
+  const importedFromRid = spaceUriAndLocalIdToRid(
+    sourceSpaceUri,
+    sourceNodeTypeId,
+    "schema",
+  );
 
   const newNodeType: DiscourseNode = {
     id: sourceNodeTypeId,
@@ -1027,6 +1034,7 @@ const mapNodeTypeIdToLocal = async ({
     keyImage: parsed.keyImage,
     created: now,
     modified: now,
+    importedFromRid,
   };
   plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
   await plugin.saveSettings();
@@ -1053,7 +1061,9 @@ const processFileContent = async ({
   filePath: string;
   importedCreatedAt?: number;
   importedModifiedAt?: number;
-}): Promise<{ file: TFile; error?: string }> => {
+}): Promise<
+  { file: TFile; error?: never } | { file?: never; error: string }
+> => {
   // 1. Create or update the file with the fetched content first.
   // On create, set file metadata (ctime/mtime) to original vault dates via vault adapter.
   let file: TFile | null = plugin.app.vault.getFileByPath(filePath);
@@ -1074,16 +1084,27 @@ const processFileContent = async ({
   //    often empty immediately after create/modify), then map nodeTypeId and update frontmatter.
   const { frontmatter } = parseFrontmatter(rawContent);
   const sourceNodeTypeId = frontmatter.nodeTypeId;
-
-  let mappedNodeTypeId: string | undefined;
-  if (sourceNodeTypeId && typeof sourceNodeTypeId === "string") {
-    mappedNodeTypeId = await mapNodeTypeIdToLocal({
-      plugin,
-      client,
-      sourceSpaceId,
-      sourceNodeTypeId,
-    });
+  if (typeof sourceNodeTypeId !== "string") {
+    await plugin.app.vault.delete(file);
+    return {
+      error: "importedNode missing sourceNodeTypeId",
+    };
   }
+  const sourceNodeId = frontmatter.nodeInstanceId;
+  if (typeof sourceNodeId !== "string") {
+    await plugin.app.vault.delete(file);
+    return {
+      error: "importedNode missing nodeInstanceId",
+    };
+  }
+
+  const mappedNodeTypeId = await mapNodeTypeIdToLocal({
+    plugin,
+    client,
+    sourceSpaceId,
+    sourceSpaceUri,
+    sourceNodeTypeId,
+  });
 
   await plugin.app.fileManager.processFrontMatter(
     file,
@@ -1092,7 +1113,11 @@ const processFileContent = async ({
       if (mappedNodeTypeId !== undefined) {
         record.nodeTypeId = mappedNodeTypeId;
       }
-      record.importedFromSpaceUri = sourceSpaceUri;
+      record.importedFromRid = spaceUriAndLocalIdToRid(
+        sourceSpaceUri,
+        sourceNodeId,
+        "note",
+      );
       record.lastModified = importedModifiedAt;
     },
     stat,
@@ -1163,10 +1188,15 @@ export const importSelectedNodes = async ({
     // Process each node in this space
     for (const node of nodes) {
       try {
-        // Check if file already exists by nodeInstanceId + importedFromSpaceUri
+        const importedFromRid = spaceUriAndLocalIdToRid(
+          spaceUri,
+          node.nodeInstanceId,
+          "note",
+        );
+        // Check if file already exists by nodeInstanceId + importedFromRid
         const existingFile = queryEngine.findExistingImportedFile(
           node.nodeInstanceId,
-          spaceUri,
+          importedFromRid,
         );
 
         const nodeContent = await fetchNodeContentForImport({
@@ -1237,7 +1267,8 @@ export const importSelectedNodes = async ({
           continue;
         }
 
-        const processedFile = result.file;
+        // typescript should not need this assertion?
+        const processedFile = result.file!;
 
         // Import assets for this node (use originalNodePath so assets go under import/{space}/ relative to note)
         const assetImportResult = await importAssetsForNode({
@@ -1321,24 +1352,24 @@ export const refreshImportedFile = async ({
   }
   const cache = plugin.app.metadataCache.getFileCache(file);
   const frontmatter = cache?.frontmatter as Record<string, unknown> | undefined;
-  if (!frontmatter?.importedFromSpaceUri || !frontmatter?.nodeInstanceId) {
+  if (!frontmatter?.importedFromRid || !frontmatter?.nodeInstanceId) {
     return {
       success: false,
-      error: "Missing frontmatter: importedFromSpaceUri or nodeInstanceId",
+      error: "Missing frontmatter: importedFromRid or nodeInstanceId",
     };
   }
   if (
-    typeof frontmatter.importedFromSpaceUri !== "string" ||
+    typeof frontmatter.importedFromRid !== "string" ||
     typeof frontmatter.nodeInstanceId !== "string"
   ) {
     return {
       success: false,
-      error: "Non-string frontmatter: importedFromSpaceUri or nodeInstanceId",
+      error: "Non-string frontmatter: importedFromRid or nodeInstanceId",
     };
   }
-  const { spaceName, spaceId } = await getSpaceNameIdFromUri(
+  const { spaceName, spaceId } = await getSpaceNameIdFromRid(
     supabaseClient,
-    frontmatter.importedFromSpaceUri,
+    frontmatter.importedFromRid,
   );
   if (spaceId === -1) {
     return { success: false, error: "Could not get the space Id" };
@@ -1397,7 +1428,7 @@ export const refreshAllImportedFiles = async (
   for (const file of allFiles) {
     const cache = plugin.app.metadataCache.getFileCache(file);
     const frontmatter = cache?.frontmatter;
-    if (frontmatter?.importedFromSpaceUri && frontmatter?.nodeInstanceId) {
+    if (frontmatter?.importedFromRid && frontmatter?.nodeInstanceId) {
       importedFiles.push(file);
     }
   }

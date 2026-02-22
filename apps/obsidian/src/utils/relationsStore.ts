@@ -4,6 +4,7 @@ import type DiscourseGraphPlugin from "~/index";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import { checkAndCreateFolder } from "~/utils/file";
 import { getVaultId } from "./supabaseContext";
+import { RelationInstance } from "../types";
 
 const RELATIONS_FILE_NAME = "relations.json";
 const RELATIONS_FILE_VERSION = 1;
@@ -14,18 +15,6 @@ export const getRelationsFilePath = (plugin: DiscourseGraphPlugin): string => {
   return folderPath
     ? normalizePath(`${folderPath}/${RELATIONS_FILE_NAME}`)
     : normalizePath(RELATIONS_FILE_NAME);
-};
-
-export type RelationInstance = {
-  id: string;
-  type: string;
-  source: string;
-  destination: string;
-  created: number;
-  author: string;
-  lastModified?: number;
-  importedFromSpaceId?: number;
-  publishedToGroupId?: string[];
 };
 
 export type RelationsFile = {
@@ -96,7 +85,7 @@ export type AddRelationParams = {
   source: string;
   destination: string;
   author?: string;
-  importedFromSpaceId?: number;
+  importedFromRid?: string;
   publishedToGroupId?: string[];
 };
 
@@ -119,7 +108,7 @@ export const addRelationNoCheck = async (
     destination: params.destination,
     created: now,
     author,
-    importedFromSpaceId: params.importedFromSpaceId,
+    importedFromRid: params.importedFromRid,
     publishedToGroupId: params.publishedToGroupId,
   };
   const data = await loadRelations(plugin);
@@ -162,7 +151,7 @@ export const removeRelationById = async (
   delete data.relations[relationInstanceId];
   await saveRelations(plugin, data);
   return true;
-}
+};
 
 export const getRelationsForNodeInstanceId = async (
   plugin: DiscourseGraphPlugin,
@@ -174,7 +163,7 @@ export const getRelationsForNodeInstanceId = async (
   return Object.values(relations).filter(
     (r) => r.source === nodeInstanceId || r.destination === nodeInstanceId,
   );
-}
+};
 
 const DEFAULT_CACHE_WAIT_MS = 500;
 const CACHE_POLL_INTERVAL_MS = 30;
@@ -215,7 +204,7 @@ export const getNodeInstanceIdForFile = async (
     return null;
   }
   return await ensureNodeInstanceId(plugin, file, frontmatter);
-}
+};
 
 /**
  * Returns the node type id from a file's frontmatter (nodeTypeId).
@@ -252,7 +241,7 @@ export const getFileForNodeInstanceId = async (
     }
   }
   return null;
-}
+};
 
 /**
  * Find a relation instance by source, destination, and type. Returns the first match.
@@ -313,7 +302,11 @@ export const removeRelationBySourceDestinationType = async (
   const data = await loadRelations(plugin);
   let removed = 0;
   for (const [id, r] of Object.entries(data.relations)) {
-    if (r.source === source && r.destination === destination && r.type === type) {
+    if (
+      r.source === source &&
+      r.destination === destination &&
+      r.type === type
+    ) {
       delete data.relations[id];
       removed++;
     }
@@ -322,7 +315,7 @@ export const removeRelationBySourceDestinationType = async (
     await saveRelations(plugin, data);
   }
   return removed;
-}
+};
 
 /**
  * Returns true if the frontmatter link (e.g. "[[path]]" or "[[path.md]]") resolves to the same file as targetFile.
@@ -334,7 +327,9 @@ const frontmatterLinkPointsToFile = (
   sourceFilePath: string,
   targetFile: TFile,
 ): boolean => {
-  const match = String(linkStr).trim().match(/\[\[(.*?)\]\]/);
+  const match = String(linkStr)
+    .trim()
+    .match(/\[\[(.*?)\]\]/);
   const linkpath = match?.[1]?.trim();
   if (!linkpath) return false;
   const resolved = plugin.app.metadataCache.getFirstLinkpathDest(
@@ -476,4 +471,4 @@ export const migrateFrontmatterRelationsToRelationsJson = async (
       );
     }
   }
-}
+};

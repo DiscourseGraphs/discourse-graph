@@ -17,6 +17,11 @@ import {
   discourseNodeSchemaToLocalConcept,
 } from "./conceptConversion";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
+import {
+  type DiscourseNodeInVault,
+  collectDiscourseNodesFromVault,
+} from "./getDiscourseNodes";
+import { spaceUriAndLocalIdToRid } from "./rid";
 
 const DEFAULT_TIME = "1970-01-01";
 export type ChangeType = "title" | "content";
@@ -177,13 +182,6 @@ const getLastSchemaSyncTime = async (
   return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
 };
 
-type DiscourseNodeInVault = {
-  file: TFile;
-  frontmatter: Record<string, unknown>;
-  nodeTypeId: string;
-  nodeInstanceId: string;
-};
-
 type BuildChangedNodesOptions = {
   nodes: DiscourseNodeInVault[];
   supabaseClient: DGSupabaseClient;
@@ -197,51 +195,6 @@ const mergeChangeTypes = (
 ): ChangeType[] => {
   const merged = new Set<ChangeType>([...base, ...additional]);
   return Array.from(merged);
-};
-
-/**
- * Step 1: Collect all discourse nodes from the vault
- * Filters markdown files that have nodeTypeId in frontmatter
- */
-const collectDiscourseNodesFromVault = async (
-  plugin: DiscourseGraphPlugin,
-): Promise<DiscourseNodeInVault[]> => {
-  const allFiles = plugin.app.vault.getMarkdownFiles();
-  const dgNodes: DiscourseNodeInVault[] = [];
-
-  for (const file of allFiles) {
-    const cache = plugin.app.metadataCache.getFileCache(file);
-    const frontmatter = cache?.frontmatter;
-
-    // Not a discourse node
-    if (!frontmatter?.nodeTypeId) {
-      continue;
-    }
-
-    if (frontmatter.importedFromSpaceUri) {
-      continue;
-    }
-
-    const nodeTypeId = frontmatter.nodeTypeId as string;
-    if (!nodeTypeId) {
-      continue;
-    }
-
-    const nodeInstanceId = await ensureNodeInstanceId(
-      plugin,
-      file,
-      frontmatter as Record<string, unknown>,
-    );
-
-    dgNodes.push({
-      file,
-      frontmatter: frontmatter as Record<string, unknown>,
-      nodeTypeId,
-      nodeInstanceId,
-    });
-  }
-
-  return dgNodes;
 };
 
 const getOrphanedNodeInstanceIds = async ({
@@ -668,7 +621,7 @@ const collectDiscourseNodesFromPaths = async (
       continue;
     }
 
-    if (frontmatter.importedFromSpaceUri) {
+    if (frontmatter.importedFromRid) {
       console.debug(`Skipping imported file: ${filePath}`);
       continue;
     }
@@ -828,6 +781,35 @@ export const cleanupOrphanedNodes = async (
   }
 };
 
+const migrateImportedFromFrontMatter = async (plugin: DiscourseGraphPlugin) => {
+  const nodes = await collectDiscourseNodesFromVault(plugin, true);
+  for (const node of nodes) {
+    if (typeof node.frontmatter.importedFromSpaceUri === "string") {
+      await plugin.app.fileManager.processFrontMatter(
+        node.file,
+        (frontmatter: Record<string, unknown>) => {
+          const spaceUri = frontmatter.importedFromSpaceUri as string;
+          // note: we fortunately reused the original Id here.
+          const nodeId = frontmatter.nodeInstanceId;
+          if (typeof nodeId !== "string") {
+            console.error(
+              `error: missing nodeInstanceId on node ${node.file.path}`,
+            );
+            return;
+          }
+          try {
+            const rid = spaceUriAndLocalIdToRid(spaceUri, nodeId, "note");
+            frontmatter.importedFromRid = rid;
+            delete frontmatter.importedFromSpaceUri;
+          } catch (error) {
+            console.error(error);
+          }
+        },
+      );
+    }
+  }
+};
+
 export const initializeSupabaseSync = async (
   plugin: DiscourseGraphPlugin,
 ): Promise<void> => {
@@ -837,6 +819,10 @@ export const initializeSupabaseSync = async (
       "Failed to initialize Supabase sync: could not create context",
     );
   }
+
+  await migrateImportedFromFrontMatter(plugin).catch((error) => {
+    console.error("Failed to migrate frontmatter:", error);
+  });
 
   await createOrUpdateDiscourseEmbedding(plugin, context).catch((error) => {
     new Notice(`Initial sync failed: ${error}`);
