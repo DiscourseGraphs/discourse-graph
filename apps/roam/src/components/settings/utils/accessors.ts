@@ -285,6 +285,10 @@ export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
   return flags[key];
 };
 
+export const isDualReadEnabled = (): boolean => {
+  return getFeatureFlag("Enable dual read");
+};
+
 export const setFeatureFlag = (
   key: keyof FeatureFlags,
   value: boolean,
