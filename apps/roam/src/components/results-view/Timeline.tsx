@@ -117,9 +117,8 @@ const Timeline: React.FunctionComponent<TimelineProps> = ({
       selection.
     </p>
   ) : (
-    <>
-      <VerticalTimeline layout={"2-columns"} className={"mt-1"}>
-        <style>{`.vertical-timeline-element-body > .rm-block > .rm-block-main {
+    <VerticalTimeline layout={"2-columns"} className={"mt-1"}>
+      <style>{`.vertical-timeline-element-body > .rm-block > .rm-block-main {
   display: none;
 }
 
@@ -130,15 +129,14 @@ const Timeline: React.FunctionComponent<TimelineProps> = ({
 .vertical-timeline-element-body > .rm-block > .rm-block-children {
   margin-left: -32px;
 }`}</style>
-        {datedTimelineElements.map((t, i) => (
-          <TimelineElement
-            color={colors[i % colors.length]}
-            t={t}
-            key={`${t.uid}-${t.date}`}
-          />
-        ))}
-      </VerticalTimeline>
-    </>
+      {datedTimelineElements.map((t, i) => (
+        <TimelineElement
+          color={colors[i % colors.length]}
+          t={t}
+          key={`${t.uid}-${t.date}`}
+        />
+      ))}
+    </VerticalTimeline>
   );
 };
 
