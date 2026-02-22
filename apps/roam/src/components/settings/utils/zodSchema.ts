@@ -93,6 +93,13 @@ const booleanWithDefault = (defaultVal: boolean) =>
     .optional()
     .transform((val) => val ?? defaultVal);
 
+const defaultNodeIndexValue = {
+  conditions: [],
+  selections: [],
+  custom: "",
+  returnNode: "node",
+};
+
 export const DiscourseNodeSchema = z.object({
   text: z.string(),
   type: z.string(),
@@ -104,7 +111,7 @@ export const DiscourseNodeSchema = z.object({
     .array(ConditionSchema)
     .nullable()
     .optional()
-    .transform((val) => val ?? []),
+    .transform((val) => val ?? { enabled: false, query: defaultNodeIndexValue }),
   template: z
     .array(RoamNodeSchema)
     .nullable()
@@ -118,7 +125,7 @@ export const DiscourseNodeSchema = z.object({
     .optional()
     .transform((val) => val ?? {}),
   overlay: stringWithDefault(""),
-  index: IndexSchema.nullable().optional(),
+  index: IndexSchema.nullable().optional().transform((val) => val ?? defaultNodeIndexValue),
   suggestiveRules: SuggestiveRulesSchema.default({}),
   backedBy: z
     .enum(["user", "default", "relation"])
@@ -218,9 +225,9 @@ export const StoredFiltersSchema = z.object({
 });
 
 export const QuerySettingsSchema = z.object({
-  "Hide query metadata": z.boolean().default(false),
+  "Hide query metadata": z.boolean().default(true),
   "Default page size": z.number().default(10),
-  "Query pages": z.array(z.string()).default([]),
+  "Query pages": z.array(z.string()).default(["discourse-graph/queries/*"]),
   "Default filters": z.record(z.string(), StoredFiltersSchema).default({}),
 });
 
