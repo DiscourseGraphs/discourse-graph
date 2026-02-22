@@ -122,9 +122,7 @@ export const DiscourseNodeSchema = z.object({
     })
     .nullable()
     .optional()
-    .transform(
-      (val) => val ?? { enabled: false, query: defaultNodeIndex() },
-    ),
+    .transform((val) => val ?? { enabled: false, query: defaultNodeIndex() }),
   template: z
     .array(RoamNodeSchema)
     .nullable()
