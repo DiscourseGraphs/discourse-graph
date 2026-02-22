@@ -67,6 +67,14 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
                         </Link>
                       </li>
                     ))}
+                  <li>
+                    <Link
+                      href="/ai"
+                      className="text-neutral-dark hover:text-neutral-dark/60"
+                    >
+                      AI Extract
+                    </Link>
+                  </li>
                 </ul>
               </nav>
             </header>
