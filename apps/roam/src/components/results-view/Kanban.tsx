@@ -137,8 +137,8 @@ const KanbanCard = (card: {
           hidden={!isDragHandle}
         />
         <div
-          className={`mb-3 rounded-xl bg-white p-4 ${
-            isDragHandle ? "" : "cursor-pointer hover:bg-gray-200"
+          className={`mb-3 rounded-xl bg-white dark:bg-gray-800 p-4 ${
+            isDragHandle ? "" : "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
           }`}
         >
           <div className="card-display-value">
@@ -609,17 +609,12 @@ const Kanban = ({
           width: PSEUDO_CARD_WIDTH,
         }}
       >
-        <div className="mb-3 cursor-move rounded-xl bg-white p-4 shadow-lg">
-          <div className="font-semibold text-gray-800">Card</div>
+        <div className="mb-3 cursor-move rounded-xl bg-white dark:bg-gray-800 p-4 shadow-lg">
+          <div className="font-semibold text-gray-800 dark:text-gray-200">Card</div>
         </div>
       </div>
       {showLegend === "Yes" && (
-        <div
-          className="w-full p-4"
-          style={{
-            background: "#eeeeee80",
-          }}
-        >
+        <div className="w-full p-4 bg-gray-200/50 dark:bg-gray-700/50">
           <div className="mr-4 inline-block">
             <span className="font-bold">Group By:</span>
             <span> {columnKey}</span>
@@ -642,7 +637,7 @@ const Kanban = ({
             return (
               <div
                 key={col}
-                className="flex-shrink-1 roamjs-kanban-column flex max-w-2xl flex-col gap-2 rounded-2xl bg-gray-100 p-4"
+                className="flex-shrink-1 roamjs-kanban-column flex max-w-2xl flex-col gap-2 rounded-2xl bg-gray-100 dark:bg-gray-800 p-4"
                 data-column={col}
                 style={{ minWidth: "24rem" }}
               >
@@ -744,8 +739,7 @@ const Kanban = ({
         </div>
       </div>
       <div
-        className={`p-0 ${!showInterface ? "hidden" : ""}`}
-        style={{ background: "#eeeeee80" }}
+        className={`p-0 bg-gray-200/50 dark:bg-gray-700/50 ${!showInterface ? "hidden" : ""}`}
       >
         <div
           className="flex items-center gap-4"
