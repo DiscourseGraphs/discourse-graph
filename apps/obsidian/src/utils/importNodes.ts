@@ -1021,7 +1021,7 @@ const mapNodeTypeIdToLocal = async ({
   const importedFromRid = spaceUriAndLocalIdToRid(
     sourceSpaceUri,
     sourceNodeTypeId,
-    "nodeSchema",
+    "schema",
   );
 
   const newNodeType: DiscourseNode = {
