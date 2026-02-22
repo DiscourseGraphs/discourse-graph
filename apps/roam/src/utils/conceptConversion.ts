@@ -1,17 +1,24 @@
+import { InputTextNode } from "roamjs-components/types";
+import getBlockProps from "./getBlockProps";
 import { DiscourseNode } from "./getDiscourseNodes";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
 import type { SupabaseContext } from "~/utils/supabaseContext";
+import { DISCOURSE_GRAPH_PROP_NAME } from "~/utils/createReifiedBlock";
 
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
+import type { Json } from "@repo/database/dbTypes";
+import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 
 const getNodeExtraData = (
+  /* eslint-disable @typescript-eslint/naming-convention */
   node_uid: string,
 ): {
   author_uid: string;
   created: string;
   last_modified: string;
   page_uid: string;
+  /* eslint-enable @typescript-eslint/naming-convention */
 } => {
   const result = window.roamAlphaAPI.q(
     `[
@@ -35,6 +42,7 @@ const getNodeExtraData = (
   if (result.length !== 1 || result[0].length !== 4)
     throw new Error("Invalid result from Roam query");
 
+  /* eslint-disable @typescript-eslint/naming-convention */
   const [author_uid, page_uid, created_t, last_modified_t] = result[0] as [
     string,
     string,
@@ -49,20 +57,44 @@ const getNodeExtraData = (
     last_modified,
     page_uid,
   };
+  /* eslint-enable @typescript-eslint/naming-convention */
 };
+
+const indent = (s: string): string =>
+  s
+    .split("\n")
+    .map((l) => "   " + l)
+    .join("\n") + "\n";
+
+const templateToText = (template: InputTextNode[]): string =>
+  template
+    .filter((itn) => !itn.text.startsWith("{{"))
+    .map(
+      (itn) =>
+        `* ${itn.text}\n${itn.children?.length ? indent(templateToText(itn.children)) : ""}`,
+    )
+    .join("");
 
 export const discourseNodeSchemaToLocalConcept = (
   context: SupabaseContext,
   node: DiscourseNode,
 ): LocalConceptDataInput => {
   const titleParts = node.text.split("/");
-  return {
+  const result: LocalConceptDataInput = {
+    /* eslint-disable @typescript-eslint/naming-convention */
     space_id: context.spaceId,
-    name: titleParts[titleParts.length - 1],
+    name: node.text,
     source_local_id: node.type,
     is_schema: true,
+    /* eslint-enable @typescript-eslint/naming-convention */
     ...getNodeExtraData(node.type),
   };
+  if (node.template !== undefined)
+    result.literal_content = {
+      label: titleParts[titleParts.length - 1],
+      template: templateToText(node.template),
+    };
+  return result;
 };
 
 export const discourseNodeBlockToLocalConcept = (
@@ -78,47 +110,62 @@ export const discourseNodeBlockToLocalConcept = (
   },
 ): LocalConceptDataInput => {
   return {
+    /* eslint-disable @typescript-eslint/naming-convention */
     space_id: context.spaceId,
     name: text,
     source_local_id: nodeUid,
     schema_represented_by_local_id: schemaUid,
     is_schema: false,
+    /* eslint-enable @typescript-eslint/naming-convention */
     ...getNodeExtraData(nodeUid),
   };
 };
 
-const STANDARD_ROLES = ["source", "target"];
+const STANDARD_ROLES = ["source", "destination"];
 
 export const discourseRelationSchemaToLocalConcept = (
   context: SupabaseContext,
   relation: DiscourseRelation,
 ): LocalConceptDataInput => {
+  const { id, label, complement, source, destination, ...otherData } = relation;
   return {
+    /* eslint-disable @typescript-eslint/naming-convention */
     space_id: context.spaceId,
-    source_local_id: relation.id,
-    // Not using the label directly, because it is not unique and name should be unique
-    name: `${relation.id}-${relation.label}`,
+    source_local_id: id,
+    name: getPageTitleByPageUid(id),
     is_schema: true,
-    local_reference_content: Object.fromEntries(
-      Object.entries(relation).filter(([key, v]) =>
-        STANDARD_ROLES.includes(key),
-      ),
-    ) as { [key: string]: string },
-    literal_content: {
-      roles: STANDARD_ROLES,
-      label: relation.label,
-      complement: relation.complement,
-      representation: relation.triples.map((t) => t[0]),
+    local_reference_content: {
+      source,
+      destination,
     },
-    ...getNodeExtraData(relation.id),
+    literal_content: {
+      source_data: otherData as unknown as Json,
+      /* eslint-enable @typescript-eslint/naming-convention */
+      roles: STANDARD_ROLES,
+      label: label,
+      complement: complement,
+    },
+    ...getNodeExtraData(id),
   };
 };
 
 export const discourseRelationDataToLocalConcept = (
   context: SupabaseContext,
-  relationSchemaUid: string,
-  relationNodes: { [role: string]: string },
+  relationUid: string,
 ): LocalConceptDataInput => {
+  // assuming reified
+  const relationProps = getBlockProps(relationUid);
+  const relationSchemaData = relationProps[DISCOURSE_GRAPH_PROP_NAME] as Record<
+    string,
+    string
+  >;
+  if (!relationSchemaData) {
+    throw new Error(`Missing relation data for ${relationUid}`);
+  }
+  const relationSchemaUid = relationSchemaData.hasSchema;
+  if (!relationSchemaUid) {
+    throw new Error(`Missing relation schema uid for ${relationUid}`);
+  }
   const roamRelation = getDiscourseRelations().find(
     (r) => r.id === relationSchemaUid,
   );
@@ -126,15 +173,15 @@ export const discourseRelationDataToLocalConcept = (
     throw new Error(`Invalid roam relation id ${relationSchemaUid}`);
   }
   const relation = discourseRelationSchemaToLocalConcept(context, roamRelation);
-  const litContent = (relation.literal_content
-    ? relation.literal_content
-    : {}) as unknown as { [key: string]: any };
+  const litContent = (
+    relation.literal_content ? relation.literal_content : {}
+  ) as { [key: string]: Json };
   const roles = (litContent["roles"] as string[] | undefined) || STANDARD_ROLES;
-  const casting: { [role: string]: string } = Object.fromEntries(
+  const casting = Object.fromEntries(
     roles
-      .map((role) => [role, relationNodes[role]])
+      .map((role) => [role, relationSchemaData[role + "Uid"]])
       .filter(([, uid]) => uid !== undefined),
-  );
+  ) as { [role: string]: string };
   if (Object.keys(casting).length === 0) {
     throw new Error(
       `No valid node UIDs supplied for roles ${roles.join(", ")}`,
@@ -143,6 +190,7 @@ export const discourseRelationDataToLocalConcept = (
   // TODO: Also get the nodes from the representation, using QueryBuilder. That will likely give me the relation object
   const nodeData = Object.values(casting).map((v) => getNodeExtraData(v));
   // roundabout way to do a max from stringified dates
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const last_modified = new Date(
     Math.max(...nodeData.map((nd) => new Date(nd.last_modified).getTime())),
   ).toISOString();
@@ -151,19 +199,20 @@ export const discourseRelationDataToLocalConcept = (
   const created = new Date(
     Math.max(...nodeData.map((nd) => new Date(nd.created).getTime())),
   ).toISOString();
+  /* eslint-disable @typescript-eslint/naming-convention */
   const author_local_id: string = nodeData[0].author_uid; // take any one; again until I get the relation object
-  const source_local_id = casting["target"] || Object.values(casting)[0]; // This one is tricky. Prefer the target for now.
   return {
     space_id: context.spaceId,
-    source_local_id,
+    source_local_id: relationUid,
     author_local_id,
     created,
     last_modified,
-    name: `${relationSchemaUid}-${Object.values(casting).join("-")}`,
+    name: relationUid,
     is_schema: false,
     schema_represented_by_local_id: relationSchemaUid,
     local_reference_content: casting,
   };
+  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 export const relatedConcepts = (concept: LocalConceptDataInput): string[] => {
@@ -219,8 +268,9 @@ export const orderConceptsByDependency = (
   concepts: LocalConceptDataInput[],
 ): { ordered: LocalConceptDataInput[]; missing: string[] } => {
   if (concepts.length === 0) return { ordered: concepts, missing: [] };
-  const conceptById: { [key: string]: LocalConceptDataInput } =
-    Object.fromEntries(concepts.map((c) => [c.source_local_id, c]));
+  const conceptById = Object.fromEntries(
+    concepts.map((c) => [c.source_local_id, c]),
+  ) as { [key: string]: LocalConceptDataInput };
   const ordered: LocalConceptDataInput[] = [];
   let missing: Set<string> = new Set();
   while (Object.keys(conceptById).length > 0) {
