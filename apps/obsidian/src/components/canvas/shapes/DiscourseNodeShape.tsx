@@ -1,10 +1,12 @@
 import {
   BaseBoxShapeUtil,
+  Editor,
   HTMLContainer,
   resizeBox,
   T,
   TLBaseShape,
   TLResizeInfo,
+  TLShapeId,
   useEditor,
   useValue,
   DefaultSizeStyle,
@@ -52,6 +54,54 @@ export type DiscourseNodeUtilOptions = {
   canvasFile: TFile;
 };
 
+/** Default props for new discourse node shapes. Used by getDefaultProps and buildDiscourseNodeShapeRecord. */
+export const DEFAULT_DISCOURSE_NODE_PROPS: DiscourseNodeShape["props"] = {
+  w: 200,
+  h: 100,
+  src: null,
+  title: "",
+  nodeTypeId: "",
+  imageSrc: undefined,
+  size: "s",
+  fontFamily: "sans",
+};
+
+export type BuildDiscourseNodeShapeRecordParams = {
+  id: TLShapeId;
+  x: number;
+  y: number;
+  props: Partial<DiscourseNodeShape["props"]> &
+    Pick<DiscourseNodeShape["props"], "src" | "title" | "nodeTypeId">;
+};
+
+/**
+ * Build a full DiscourseNodeShape record for editor.createShape.
+ * Merges given props with DEFAULT_DISCOURSE_NODE_PROPS.
+ */
+export const buildDiscourseNodeShapeRecord = (
+  editor: Editor,
+  { id, x, y, props: propsPartial }: BuildDiscourseNodeShapeRecordParams,
+): DiscourseNodeShape => {
+  const props: DiscourseNodeShape["props"] = {
+    ...DEFAULT_DISCOURSE_NODE_PROPS,
+    ...propsPartial,
+  };
+  return {
+    id,
+    typeName: "shape",
+    type: "discourse-node",
+    x,
+    y,
+    rotation: 0,
+    index: editor.getHighestIndexForParent(editor.getCurrentPageId()),
+    parentId: editor.getCurrentPageId(),
+    isLocked: false,
+    opacity: 1,
+    meta: {},
+    props,
+  };
+};
+
 export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   static type = "discourse-node" as const;
   declare options: DiscourseNodeUtilOptions;
@@ -68,16 +118,7 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
   };
 
   getDefaultProps(): DiscourseNodeShape["props"] {
-    return {
-      w: 200,
-      h: 100,
-      src: null,
-      title: "",
-      nodeTypeId: "",
-      imageSrc: undefined,
-      size: "s",
-      fontFamily: "sans",
-    };
+    return { ...DEFAULT_DISCOURSE_NODE_PROPS };
   }
 
   override isAspectRatioLocked = () => false;
