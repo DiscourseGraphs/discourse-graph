@@ -499,7 +499,7 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
               : undefined,
           extensionAPI,
           includeDefaultNodes: true,
-          onSuccess: async ({ text, uid, action }) => {
+          onSuccess: async ({ text, uid, action, nodeType }) => {
             if (action === "edit") {
               if (isPageUid(shape.props.uid))
                 await window.roamAlphaAPI.updatePage({
@@ -511,7 +511,10 @@ export class BaseDiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> 
             // Node creation is handled by ModifyNodeDialog - no fallback needed here
 
             void setSizeAndImgPropsLocal({ text, uid });
-            this.updateProps(shape.id, shape.type, {
+            
+            // Update shape type if it has changed (e.g., user changed from Claim to Hypothesis during creation)
+            const finalShapeType = nodeType || shape.type;
+            this.updateProps(shape.id, finalShapeType, {
               title: text,
               uid,
             });

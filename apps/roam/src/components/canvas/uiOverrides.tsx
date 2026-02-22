@@ -74,9 +74,11 @@ export const getOnSelectForShape = ({
       extensionAPI,
       includeDefaultNodes: true,
       imageUrl,
-      onSuccess: async ({ text, uid }) => {
+      onSuccess: async ({ text, uid, nodeType: selectedNodeType }) => {
         editor.deleteShapes([shape.id]);
 
+        // Use the selected node type from the dialog, which may have changed during creation
+        const finalNodeType = selectedNodeType || nodeType;
         const {
           h,
           w,
@@ -84,12 +86,12 @@ export const getOnSelectForShape = ({
         } = await calcCanvasNodeSizeAndImg({
           nodeText: text,
           extensionAPI,
-          nodeType,
+          nodeType: finalNodeType,
           uid,
         });
         editor.createShapes([
           {
-            type: nodeType,
+            type: finalNodeType,
             id: createShapeId(),
             props: {
               uid,
