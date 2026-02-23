@@ -95,31 +95,6 @@ export class TldrawDurableObject {
 			return error(e)
 		},
 	})
-		// Read-only room probe used by the Roam UI toggle flow.
-		// The client calls this to decide whether enabling sync should warn that
-		// the room will start blank (only true when no sync room exists yet).
-		.get('/status/:roomId', async (request) => {
-			const requestedRoomId = request.params.roomId as string
-			// `roomId` can be absent in memory on a cold start, so also check DO storage.
-			const persistedRoomId =
-				this.roomId ?? ((await this.ctx.storage.get('roomId')) as string | null)
-			// A room also "exists" if there's already a persisted snapshot in R2.
-			const hasPersistedSnapshot = !!(await this.r2.get(`rooms/${requestedRoomId}`))
-			// Existence means either this DO has claimed the room id before,
-			// or the room has persisted data from prior sessions.
-			const exists =
-				persistedRoomId === requestedRoomId || hasPersistedSnapshot
-
-			return Response.json(
-				{ exists },
-				{
-					headers: {
-						// Status must be fresh; stale caches would cause incorrect UI warnings.
-						'Cache-Control': 'no-store',
-					},
-				}
-			)
-		})
 		// when we get a connection request, we stash the room id if needed and handle the connection
 		.get('/connect/:roomId', async (request) => {
 			if (!this.roomId) {

@@ -37,25 +37,6 @@ export const getSyncRoomId = ({ pageUid }: { pageUid: string }): string => {
     .replace(/=+$/g, "");
 };
 
-export const getCloudflareSyncRoomExists = async ({
-  pageUid,
-}: {
-  pageUid: string;
-}): Promise<boolean | null> => {
-  if (!TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL) return null;
-  try {
-    const roomId = getSyncRoomId({ pageUid });
-    const response = await fetch(
-      `${TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL}/room-status/${roomId}`,
-    );
-    if (!response.ok) return null;
-    const data = (await response.json()) as { exists?: unknown };
-    return typeof data.exists === "boolean" ? data.exists : null;
-  } catch {
-    return null;
-  }
-};
-
 const parseRoamUploadResponse = (value: string): string => {
   return value.replace(/^!\[\]\(/, "").replace(/\)$/, "");
 };
