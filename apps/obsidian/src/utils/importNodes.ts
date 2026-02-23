@@ -610,14 +610,15 @@ const updateMarkdownAssetLinks = ({
   const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
   updatedContent = updatedContent.replace(
     wikiLinkRegex,
-    (match, linkContent) => {
+    (match, linkContent: string) => {
       // Extract path and optional alias
       const [linkPath, alias] = linkContent
         .split("|")
         .map((s: string) => s.trim());
+      if (!linkPath) return match;
 
       // Skip external URLs
-      if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
+      if ((linkPath.startsWith("http://") || linkPath.startsWith("https://"))) {
         return match;
       }
 
@@ -655,8 +656,7 @@ const updateMarkdownAssetLinks = ({
       const isInImportFolder =
         importFolder &&
         resolvedFile &&
-        (resolvedFile.path === importFolder ||
-          resolvedFile.path.startsWith(importFolder + "/"));
+        resolvedFile.path.startsWith(importFolder + "/");
       if (isInImportFolder && resolvedFile) {
         const linkText = getRelativeLinkPath(resolvedFile.path);
         if (alias) {
@@ -666,13 +666,15 @@ const updateMarkdownAssetLinks = ({
       }
 
       // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
-      if (importFolder && originalNodePath) {
+      if (importFolder && originalNodePath && !resolvedFile) {
         // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
         const canonicalSourcePath =
-          linkPath.includes("/") && !linkPath.startsWith(".") && !linkPath.startsWith("/")
+          linkPath.includes("/") &&
+          !linkPath.startsWith(".") &&
+          !linkPath.startsWith("/")
             ? normalizePathForLookup(linkPath)
             : (getCanonicalFromOriginalNote(linkPath) ??
-                normalizePathForLookup(linkPath));
+              normalizePathForLookup(linkPath));
         const linkUnderImport = `${importFolder}/${canonicalSourcePath}`;
         if (alias) {
           return `[[${linkUnderImport}|${alias}]]`;
@@ -1303,6 +1305,12 @@ export const importSelectedNodes = async ({
             finalFilePath = `${base} (${counter}).md`;
             counter++;
           }
+
+           console.log(
+             "[DG import] original file path (source vault):",
+             originalNodePath ?? "(none)",
+           );
+           console.log("[DG import] imported file path:", finalFilePath);
         }
 
         // Process the file content (maps nodeTypeId, handles frontmatter, stores import timestamps)
