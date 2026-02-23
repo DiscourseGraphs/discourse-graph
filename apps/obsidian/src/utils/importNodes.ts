@@ -932,7 +932,6 @@ const importAssetsForNode = async ({
 
       // Track path mapping (raw + normalized key so updateMarkdownAssetLinks can lookup by link text)
       setPathMapping(filepath, targetPath);
-      console.log(`Imported asset: ${filepath} -> ${targetPath}`);
     } catch (error) {
       const errorMsg = `Error importing asset ${fileRef.filepath}: ${error}`;
       errors.push(errorMsg);
@@ -1296,11 +1295,6 @@ export const importSelectedNodes = async ({
               await plugin.app.vault.createFolder(parentDir);
             }
           }
-           console.log(
-             "[DG import] original file path (source vault):",
-             originalNodePath ?? "(none)",
-           );
-           console.log("[DG import] imported file path:", finalFilePath);
         }
 
         // Process the file content (maps nodeTypeId, handles frontmatter, stores import timestamps)
