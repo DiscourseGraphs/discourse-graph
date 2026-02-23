@@ -205,41 +205,6 @@ const RelationshipSettings = () => {
                     Delete
                   </button>
                 </div>
-
-                {relation.sourceId &&
-                  relation.relationshipTypeId &&
-                  relation.destinationId && (
-                    <div className="text-normal mt-2 p-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          {getNodeTypeById(plugin, relation.sourceId)?.name ||
-                            "Unknown Node"}
-                        </div>
-
-                        <div className="flex flex-1 flex-col items-center gap-2 px-4">
-                          <div className="flex items-center">
-                            <div className="text-accent-text text-sm">
-                              {findRelationTypeById(relation.relationshipTypeId)
-                                ?.label || "Unknown Relation"}
-                            </div>
-                            <div className="text-accent-text mx-1">→</div>
-                          </div>
-                          <div className="text-muted text-sm">
-                            ←{" "}
-                            <span className="text-accent-text">
-                              {findRelationTypeById(relation.relationshipTypeId)
-                                ?.complement || "Unknown Complement"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex-1 text-right">
-                          {getNodeTypeById(plugin, relation.destinationId)
-                            ?.name || "Unknown Node"}
-                        </div>
-                      </div>
-                    </div>
-                  )}
               </div>
             </div>
           ))}
