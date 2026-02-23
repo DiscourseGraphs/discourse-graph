@@ -26,10 +26,6 @@ import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpr
 import { Result } from "~/utils/types";
 import { getSetting } from "~/utils/extensionSettings";
 import MiniSearch from "minisearch";
-import {
-  getPersonalSetting,
-  setPersonalSetting,
-} from "~/components/settings/utils/accessors";
 
 type Props = {
   textarea: HTMLTextAreaElement;
