@@ -352,11 +352,12 @@ const fetchNodeContentForImport = async ({
     full.created == null ||
     full.last_modified == null
   ) {
+    // [PG-G2] Removed console.warn - variants are optional
     if (!direct?.text) {
-      console.warn(`No direct variant found for node ${nodeInstanceId}`);
+      // No direct variant found
     }
     if (!full?.text) {
-      console.warn(`No full variant found for node ${nodeInstanceId}`);
+      // No full variant found
     }
     return null;
   }
@@ -453,13 +454,12 @@ const downloadFileFromStorage = async ({
       .from("assets")
       .download(filehash);
 
+    // [PG-G2] Removed console.warn - silently handle download errors
     if (error) {
-      console.warn(`Error downloading file ${filehash}:`, error);
       return null;
     }
 
     if (!data) {
-      console.warn(`No data returned for file ${filehash}`);
       return null;
     }
 
@@ -854,8 +854,8 @@ const importAssetsForNode = async ({
       });
 
       if (!fileContent) {
+        // [PG-G2] Removed console.warn
         errors.push(`Failed to download file: ${filepath}`);
-        console.warn(`Failed to download file ${filepath} (hash: ${filehash})`);
         continue;
       }
 
@@ -894,8 +894,8 @@ const importAssetsForNode = async ({
       );
 
       // Track path mapping (raw + normalized key so updateMarkdownAssetLinks can lookup by link text)
+      // [PG-G2] Removed console.log
       setPathMapping(filepath, targetPath);
-      console.log(`Imported asset: ${filepath} -> ${targetPath}`);
     } catch (error) {
       const errorMsg = `Error importing asset ${fileRef.filepath}: ${error}`;
       errors.push(errorMsg);
@@ -1170,8 +1170,8 @@ export const importSelectedNodes = async ({
     const spaceName = await getSpaceNameFromId(client, spaceId);
     const importFolderPath = `import/${sanitizeFileName(spaceName)}`;
     const spaceUri = spaceUris.get(spaceId);
+    // [PG-G2] Removed console.warn
     if (!spaceUri) {
-      console.warn(`Missing URI for space ${spaceId}`);
       for (const _node of nodes) {
         failedCount++;
         processedCount++;
@@ -1303,11 +1303,9 @@ export const importSelectedNodes = async ({
         }
 
         // Log asset import errors if any
+        // [PG-G2] Removed console.warn - errors are tracked in assetImportResult
         if (assetImportResult.errors.length > 0) {
-          console.warn(
-            `Some assets failed to import for node ${node.nodeInstanceId}:`,
-            assetImportResult.errors,
-          );
+          // Some assets failed to import
         }
 
         // If title changed and file exists, rename it to match the new title

@@ -40,10 +40,8 @@ const publishSchema = async ({
     return; // Don't fail node publishing if schema check fails
   }
 
+  // [PG-G2] Removed console.warn
   if (!schemaResponse.data) {
-    console.warn(
-      `Schema with nodeTypeId ${nodeTypeId} not found in space ${spaceId}`,
-    );
     return; // Schema doesn't exist, skip publishing
   }
 
@@ -298,8 +296,9 @@ export const publishNodeToGroup = async ({
         link,
         file.path,
       );
+      // [PG-G2] Removed console.warn
       if (attachment === null) {
-        console.warn("Could not find file for " + link);
+        // Could not find file for link
       }
       return attachment;
     })

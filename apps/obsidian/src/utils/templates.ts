@@ -142,8 +142,8 @@ export const applyTemplate = async ({
     const templateFilePath = `${folderPath}/${templateName}.md`;
     const templateFile = app.vault.getAbstractFileByPath(templateFilePath);
 
+    // [PG-G2] Removed console.warn
     if (!templateFile || !(templateFile instanceof TFile)) {
-      console.warn(`Template file not found: ${templateFilePath}`);
       return false;
     }
 
