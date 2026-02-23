@@ -1289,11 +1289,6 @@ export const importSelectedNodes = async ({
               await plugin.app.vault.createFolder(parentDir);
             }
           }
-           console.log(
-             "[DG import] original file path (source vault):",
-             originalNodePath ?? "(none)",
-           );
-           console.log("[DG import] imported file path:", finalFilePath);
         }
 
         // Process the file content (maps nodeTypeId, handles frontmatter, stores import timestamps)
