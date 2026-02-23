@@ -79,12 +79,13 @@ const NodeAttributes = ({
   );
   const attributesRef = useRef(attributes);
   attributesRef.current = attributes;
-  const syncToBlockProps = () =>
+  const syncToBlockProps = () => {
     setDiscourseNodeSetting(
       nodeType,
       ["attributes"],
       toRecord(attributesRef.current),
     );
+  };
   const [newAttribute, setNewAttribute] = useState("");
   return (
     <div>
