@@ -233,6 +233,7 @@ const reconcileRelationKeys = (
   }
 
   if (changed) {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     setBlockProps(globalBlockUid, { Relations: reconciledRelations }, false);
   }
 };

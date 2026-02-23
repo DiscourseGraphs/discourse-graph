@@ -576,24 +576,24 @@ export const RelationEditPanel = ({
               () =>
                 void (async () => {
                   const rootUid = editingRelationInfo.uid;
-                  setInputSetting({
+                  await setInputSetting({
                     blockUid: rootUid,
                     key: "source",
                     value: source,
                   });
-                  setInputSetting({
+                  await setInputSetting({
                     blockUid: rootUid,
                     key: "destination",
                     value: destination,
                     index: 1,
                   });
-                  setInputSetting({
+                  await setInputSetting({
                     blockUid: rootUid,
                     key: "complement",
                     value: complement,
                     index: 2,
                   });
-                  updateBlock({
+                  await updateBlock({
                     uid: rootUid,
                     text: label,
                   });
@@ -1074,6 +1074,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
     deleteBlock(rel.uid);
     setRelations(relations.filter((r) => r.uid !== rel.uid));
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/naming-convention
     const { [rel.uid]: _, ...remaining } = getGlobalSettings().Relations;
     setGlobalSetting(["Relations"], remaining);
   };
