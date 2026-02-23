@@ -21,7 +21,8 @@ export class ConfirmationModal extends Modal {
   onOpen() {
     const { contentEl } = this;
 
-    contentEl.createEl("h2", { text: this.title });
+    // [PG-UI10] Use setHeading() instead of createEl("h2")
+    contentEl.createDiv().setHeading({ text: this.title, level: 2 });
     contentEl.createEl("p", { text: this.message });
 
     const buttonContainer = contentEl.createDiv({

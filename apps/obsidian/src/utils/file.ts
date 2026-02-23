@@ -7,7 +7,8 @@ export const checkAndCreateFolder = async (
   if (!folderpath) return;
   const normalizedPath = normalizePath(folderpath);
 
-  const existingFolder = await vault.adapter.exists(normalizedPath, false);
+  // [PG-V21] Use Vault API instead of Adapter API
+  const existingFolder = vault.getAbstractFileByPath(normalizedPath);
   if (existingFolder) return;
 
   try {

@@ -807,15 +807,16 @@ const importAssetsForNode = async ({
       const pathParts = targetPath.split("/");
       for (let i = 1; i < pathParts.length - 1; i++) {
         const folderPath = pathParts.slice(0, i + 1).join("/");
-        if (!(await plugin.app.vault.adapter.exists(folderPath))) {
+        // [PG-V21] Use Vault API instead of Adapter API
+        if (!plugin.app.vault.getAbstractFileByPath(folderPath)) {
           await plugin.app.vault.createFolder(folderPath);
         }
       }
 
       // If local mtime is newer than fileRef.last_modified, overwrite with DB version.
-      if (await plugin.app.vault.adapter.exists(targetPath)) {
-        const file = plugin.app.vault.getAbstractFileByPath(targetPath);
-        if (file && file instanceof TFile) {
+      // [PG-V21] Use Vault API instead of Adapter API
+      const file = plugin.app.vault.getAbstractFileByPath(targetPath);
+      if (file && file instanceof TFile) {
           const localMtimeMs = file.stat.mtime;
           const refLastModifiedMs = fileRef.last_modified || 0;
           const localModifiedAfterRef =
@@ -1077,7 +1078,8 @@ const processFileContent = async ({
   if (!file) {
     file = await plugin.app.vault.create(filePath, rawContent, stat);
   } else {
-    await plugin.app.vault.modify(file, rawContent, stat);
+    // [PG-V19] Use vault.process for background file modifications
+    await plugin.app.vault.process(file, () => rawContent, stat);
   }
 
   // 2. Parse frontmatter from rawContent (metadataCache is updated async and is
@@ -1179,8 +1181,8 @@ export const importSelectedNodes = async ({
     }
 
     // Ensure the import folder exists
-    const folderExists =
-      await plugin.app.vault.adapter.exists(importFolderPath);
+    // [PG-V21] Use Vault API instead of Adapter API
+    const folderExists = plugin.app.vault.getAbstractFileByPath(importFolderPath);
     if (!folderExists) {
       await plugin.app.vault.createFolder(importFolderPath);
     }
@@ -1236,7 +1238,8 @@ export const importSelectedNodes = async ({
 
           // Check if file path already exists (edge case: same title but different nodeInstanceId)
           let counter = 1;
-          while (await plugin.app.vault.adapter.exists(finalFilePath)) {
+          // [PG-V21] Use Vault API instead of Adapter API
+          while (plugin.app.vault.getAbstractFileByPath(finalFilePath)) {
             finalFilePath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
             counter++;
           }
@@ -1294,7 +1297,8 @@ export const importSelectedNodes = async ({
 
           // Only update if content changed
           if (updatedContent !== currentContent) {
-            await plugin.app.vault.modify(processedFile, updatedContent);
+            // [PG-V19] Use vault.process for background file modifications
+            await plugin.app.vault.process(processedFile, () => updatedContent);
           }
         }
 
@@ -1311,7 +1315,8 @@ export const importSelectedNodes = async ({
           const newPath = `${importFolderPath}/${sanitizedFileName}.md`;
           let targetPath = newPath;
           let counter = 1;
-          while (await plugin.app.vault.adapter.exists(targetPath)) {
+          // [PG-V21] Use Vault API instead of Adapter API
+          while (plugin.app.vault.getAbstractFileByPath(targetPath)) {
             targetPath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
             counter++;
           }

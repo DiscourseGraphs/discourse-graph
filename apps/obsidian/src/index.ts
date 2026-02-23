@@ -411,6 +411,6 @@ export default class DiscourseGraphPlugin extends Plugin {
       this.fileChangeListener = null;
     }
 
-    this.app.workspace.detachLeavesOfType(VIEW_TYPE_DISCOURSE_CONTEXT);
+    // [PG-RM13] Removed detachLeavesOfType - Obsidian handles cleanup automatically
   }
 }
