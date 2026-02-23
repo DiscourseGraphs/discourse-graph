@@ -1280,13 +1280,12 @@ export const importSelectedNodes = async ({
               : `${sanitizedFileName}.md`;
           finalFilePath = `${importFolderPath}/${pathUnderImport}`;
 
-          // Ensure parent folder exists (e.g. import/VaultName/Discourse Nodes)
-          const parentDir = finalFilePath.replace(/\/[^/]*$/, "");
-          if (parentDir !== importFolderPath) {
-            const folderExists =
-              await plugin.app.vault.adapter.exists(parentDir);
-            if (!folderExists) {
-              await plugin.app.vault.createFolder(parentDir);
+          // Ensure all parent folders exist (e.g. import/VaultName/Discourse Nodes/SubFolder)
+          const dirParts = finalFilePath.split("/");
+          for (let i = 1; i < dirParts.length - 1; i++) {
+            const folderPath = dirParts.slice(0, i + 1).join("/");
+            if (!(await plugin.app.vault.adapter.exists(folderPath))) {
+              await plugin.app.vault.createFolder(folderPath);
             }
           }
         }
