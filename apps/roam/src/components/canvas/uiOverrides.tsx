@@ -45,7 +45,6 @@ import { getSetting } from "~/utils/extensionSettings";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
-import renderToast from "roamjs-components/components/Toast";
 
 const SyncModeMenuSwitchItem = ({
   checked,
@@ -222,7 +221,6 @@ export const createUiComponents = ({
   canvasSyncMode,
   isCloudflareSyncAvailable,
   onCanvasSyncModeChange,
-  shouldWarnSyncModeStartsBlank,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
@@ -230,7 +228,6 @@ export const createUiComponents = ({
   canvasSyncMode: CanvasSyncMode;
   isCloudflareSyncAvailable: boolean;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
-  shouldWarnSyncModeStartsBlank: () => Promise<boolean>;
 }): TLUiComponents => {
   return {
     Toolbar: (props) => {
@@ -265,21 +262,10 @@ export const createUiComponents = ({
         const nextMode: CanvasSyncMode =
           canvasSyncMode === "sync" ? "local" : "sync";
         onCanvasSyncModeChange(nextMode);
-        if (nextMode !== "sync") return;
-
-        void (async () => {
-          const shouldWarn = await shouldWarnSyncModeStartsBlank();
-          if (!shouldWarn) return;
-          renderToast({
-            id: "tldraw-sync-mode-enabled-v0",
-            intent: "warning",
-            content: "Sync mode starts from a new blank sync canvas.",
-          });
-        })();
       };
       const syncModeLabel = isCloudflareSyncAvailable
-        ? "Sync mode"
-        : "Sync mode (backend unavailable)";
+        ? "Use cloud canvas"
+        : "Cloud canvas unavailable";
 
       return (
         <DefaultMainMenu>

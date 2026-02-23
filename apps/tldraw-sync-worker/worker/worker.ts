@@ -72,22 +72,6 @@ const router = AutoRouter<IRequest, [env: Environment, ctx: ExecutionContext]>({
   },
 })
   .options("*", handlePreflight)
-  // Lightweight read-only probe for the canvas sync-mode toggle UI.
-  // The client uses this to decide whether to show the "starts blank" warning.
-  .get("/room-status/:roomId", async (request, env) => {
-    const id = env.TLDRAW_DURABLE_OBJECT.idFromName(request.params.roomId);
-    const room = env.TLDRAW_DURABLE_OBJECT.get(id);
-    const statusUrl = new URL(request.url);
-    // Forward to the Durable Object's internal status route for this room.
-    statusUrl.pathname = `/status/${request.params.roomId}`;
-    // Drop client query params; status checks do not require session metadata.
-    statusUrl.search = "";
-
-    const response = await room.fetch(statusUrl.toString(), {
-      headers: request.headers,
-    });
-    return setCorsHeaders({ request, response });
-  })
   // requests to /connect are routed to the Durable Object, and handle realtime websocket syncing
   .get("/connect/:roomId", async (request, env) => {
     const id = env.TLDRAW_DURABLE_OBJECT.idFromName(request.params.roomId);

@@ -77,7 +77,6 @@ import { useRoamStore } from "./useRoamStore";
 import {
   TLDRAW_CLOUDFLARE_SYNC_ENABLED,
   TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL,
-  getCloudflareSyncRoomExists,
   useCloudflareSyncStore,
 } from "./TldrawCanvasCloudflareSync";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -179,13 +178,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     },
     [pageUid],
   );
-  const shouldWarnSyncModeStartsBlank =
-    useCallback(async (): Promise<boolean> => {
-      const hasExistingSyncRoom = await getCloudflareSyncRoomExists({
-        pageUid,
-      });
-      return hasExistingSyncRoom === false;
-    }, [pageUid]);
 
   if (useCloudflareSync) {
     return (
@@ -195,7 +187,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
         canvasSyncMode={canvasSyncMode}
         isCloudflareSyncAvailable={isCloudflareSyncAvailable}
         onCanvasSyncModeChange={onCanvasSyncModeChange}
-        shouldWarnSyncModeStartsBlank={shouldWarnSyncModeStartsBlank}
       />
     );
   }
@@ -207,7 +198,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
       canvasSyncMode={canvasSyncMode}
       isCloudflareSyncAvailable={isCloudflareSyncAvailable}
       onCanvasSyncModeChange={onCanvasSyncModeChange}
-      shouldWarnSyncModeStartsBlank={shouldWarnSyncModeStartsBlank}
     />
   );
 };
@@ -282,14 +272,12 @@ const TldrawCanvasRoam = ({
   canvasSyncMode,
   isCloudflareSyncAvailable,
   onCanvasSyncModeChange,
-  shouldWarnSyncModeStartsBlank,
 }: {
   title: string;
   pageUid: string;
   canvasSyncMode: CanvasSyncMode;
   isCloudflareSyncAvailable: boolean;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
-  shouldWarnSyncModeStartsBlank: () => Promise<boolean>;
 }) => {
   return (
     <TldrawCanvasShared
@@ -300,7 +288,6 @@ const TldrawCanvasRoam = ({
       canvasSyncMode={canvasSyncMode}
       isCloudflareSyncAvailable={isCloudflareSyncAvailable}
       onCanvasSyncModeChange={onCanvasSyncModeChange}
-      shouldWarnSyncModeStartsBlank={shouldWarnSyncModeStartsBlank}
     />
   );
 };
@@ -311,14 +298,12 @@ const TldrawCanvasCloudflare = ({
   canvasSyncMode,
   isCloudflareSyncAvailable,
   onCanvasSyncModeChange,
-  shouldWarnSyncModeStartsBlank,
 }: {
   title: string;
   pageUid: string;
   canvasSyncMode: CanvasSyncMode;
   isCloudflareSyncAvailable: boolean;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
-  shouldWarnSyncModeStartsBlank: () => Promise<boolean>;
 }) => {
   return (
     <TldrawCanvasShared
@@ -329,7 +314,6 @@ const TldrawCanvasCloudflare = ({
       canvasSyncMode={canvasSyncMode}
       isCloudflareSyncAvailable={isCloudflareSyncAvailable}
       onCanvasSyncModeChange={onCanvasSyncModeChange}
-      shouldWarnSyncModeStartsBlank={shouldWarnSyncModeStartsBlank}
     />
   );
 };
@@ -342,7 +326,6 @@ const TldrawCanvasShared = ({
   canvasSyncMode,
   isCloudflareSyncAvailable,
   onCanvasSyncModeChange,
-  shouldWarnSyncModeStartsBlank,
 }: {
   title: string;
   pageUid: string;
@@ -351,7 +334,6 @@ const TldrawCanvasShared = ({
   canvasSyncMode: CanvasSyncMode;
   isCloudflareSyncAvailable: boolean;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
-  shouldWarnSyncModeStartsBlank: () => Promise<boolean>;
 }) => {
   const appRef = useRef<Editor | null>(null);
   const lastInsertRef = useRef<VecModel>();
@@ -673,7 +655,6 @@ const TldrawCanvasShared = ({
         canvasSyncMode,
         isCloudflareSyncAvailable,
         onCanvasSyncModeChange,
-        shouldWarnSyncModeStartsBlank,
       }),
     [
       allNodes,
@@ -682,7 +663,6 @@ const TldrawCanvasShared = ({
       canvasSyncMode,
       isCloudflareSyncAvailable,
       onCanvasSyncModeChange,
-      shouldWarnSyncModeStartsBlank,
     ],
   );
 
@@ -951,8 +931,8 @@ const TldrawCanvasShared = ({
     >
       {isCloudflareSync && (
         <div
-          className="absolute right-3 top-3 z-20 opacity-90"
-          title="Cloudflare Sync enabled"
+          className="absolute bottom-3 right-3 z-20 opacity-90"
+          title="Using cloud canvas"
         >
           <Icon icon="cloud" size={12} className="text-green-500" />
         </div>
