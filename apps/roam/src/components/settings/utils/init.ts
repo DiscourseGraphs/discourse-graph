@@ -5,12 +5,8 @@ import setBlockProps from "~/utils/setBlockProps";
 import getBlockProps from "~/utils/getBlockProps";
 import type { json } from "~/utils/getBlockProps";
 import DEFAULT_RELATIONS_BLOCK_PROPS from "~/components/settings/data/defaultRelationsBlockProps";
-import {
-  getTopLevelBlockPropsConfig,
-} from "~/components/settings/utils/zodSchema";
-import {
-  DG_BLOCK_PROP_SETTINGS_PAGE_TITLE,
-} from "./zodSchema";
+import { getTopLevelBlockPropsConfig } from "~/components/settings/utils/zodSchema";
+import { DG_BLOCK_PROP_SETTINGS_PAGE_TITLE } from "./zodSchema";
 // TODO: Re-enable when initDiscourseNodePages is uncommented
 // import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
 // import { getAllDiscourseNodes } from "./accessors";
