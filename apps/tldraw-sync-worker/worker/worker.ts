@@ -26,6 +26,8 @@ const setCorsHeaders = ({
   request: IRequest;
   response: Response;
 }): Response => {
+  if (response.status === 101) return response; // WebSocket upgrade response; headers are immutable here, so skip CORS header mutation.
+
   const origin = request.headers.get("origin");
   if (origin && isAllowedOrigin(origin)) {
     response.headers.set("Access-Control-Allow-Origin", origin);
