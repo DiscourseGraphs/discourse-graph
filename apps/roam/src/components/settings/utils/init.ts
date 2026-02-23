@@ -74,7 +74,13 @@ const initializeSettingsBlockProps = (
     const uid = blockMap[key];
     if (uid) {
       const existingProps = getBlockProps(uid);
-      if (!existingProps || Object.keys(existingProps).length === 0) {
+      // TODO: Overwriting on safeParse failure is a temporary fix for schema shape changes
+      // (e.g. specification: [] -> {enabled, query}). Replace with proper versioned migrations.
+      if (
+        !existingProps ||
+        Object.keys(existingProps).length === 0 ||
+        !schema.safeParse(existingProps).success
+      ) {
         const defaults = schema.parse({});
         setBlockProps(uid, defaults, false);
       }
@@ -108,7 +114,12 @@ const initSingleDiscourseNode = async (
   );
   const existingProps = getBlockProps(pageUid);
 
-  if (!existingProps || Object.keys(existingProps).length === 0) {
+  // TODO: Same temporary fix as initializeSettingsBlockProps — replace with proper migrations.
+  if (
+    !existingProps ||
+    Object.keys(existingProps).length === 0 ||
+    !DiscourseNodeSchema.safeParse(existingProps).success
+  ) {
     const nodeData = DiscourseNodeSchema.parse({
       text: node.text,
       type: node.type,
