@@ -20,8 +20,10 @@ import deleteBlock from "roamjs-components/writes/deleteBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
 import { setPersonalSetting } from "~/components/settings/utils/accessors";
-import { PersonalNumberPanel } from "~/components/settings/components/BlockPropSettingPanels";
-import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
+import {
+  PersonalNumberPanel,
+  PersonalTextPanel,
+} from "~/components/settings/components/BlockPropSettingPanels";
 import {
   LeftSidebarPersonalSectionConfig,
   getLeftSidebarPersonalSectionConfig,
@@ -86,7 +88,6 @@ const SectionItem = memo(
     const originalName = blockText || section.text;
     const [childInput, setChildInput] = useState("");
     const [childInputKey, setChildInputKey] = useState(0);
-    const aliasDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
     const [expandedChildLists, setExpandedChildLists] = useState<Set<string>>(
       new Set(),
@@ -503,45 +504,36 @@ const SectionItem = memo(
                           style={{ width: "400px" }}
                         >
                           <div className="p-4">
-                            <TextPanel
+                            <PersonalTextPanel
                               title="Alias"
                               description="Display name for this item"
+                              settingKeys={["Left sidebar"]}
+                              initialValue={child.alias?.value ?? ""}
                               order={0}
                               uid={child.alias?.uid}
                               parentUid={child.uid}
-                              defaultValue=""
-                              options={{
-                                onChange: (
-                                  event: React.ChangeEvent<HTMLInputElement>,
-                                ) => {
-                                  const nextValue = event.target.value;
-                                  setSections((prev) =>
-                                    prev.map((s) =>
-                                      s.uid === section.uid
-                                        ? {
-                                            ...s,
-                                            children: s.children?.map((c) =>
-                                              c.uid === child.uid
-                                                ? {
-                                                    ...c,
-                                                    alias: {
-                                                      ...c.alias,
-                                                      value: nextValue,
-                                                    },
-                                                  }
-                                                : c,
-                                            ),
-                                          }
-                                        : s,
-                                    ),
-                                  );
-                                  clearTimeout(aliasDebounceRef.current);
-                                  aliasDebounceRef.current = setTimeout(() => {
-                                    syncAllSectionsToBlockProps(
-                                      sectionsRef.current,
-                                    );
-                                  }, 250);
-                                },
+                              setter={(_keys, value) => {
+                                const updatedSections = sectionsRef.current.map(
+                                  (s) =>
+                                    s.uid === section.uid
+                                      ? {
+                                          ...s,
+                                          children: s.children?.map((c) =>
+                                            c.uid === child.uid
+                                              ? {
+                                                  ...c,
+                                                  alias: {
+                                                    ...c.alias,
+                                                    value,
+                                                  },
+                                                }
+                                              : c,
+                                          ),
+                                        }
+                                      : s,
+                                );
+                                setSections(updatedSections);
+                                syncAllSectionsToBlockProps(updatedSections);
                               }}
                             />
                           </div>

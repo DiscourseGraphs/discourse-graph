@@ -22,7 +22,6 @@ import posthog from "posthog-js";
 
 const pagesToUids = (pages: RoamBasicNode[]) => pages.map((p) => p.text);
 
-
 const PageItem = memo(
   ({
     page,
@@ -164,11 +163,7 @@ const LeftSidebarGlobalSectionsContent = ({
       newPages.splice(newIndex, 0, removed);
 
       setPages(newPages);
-      setGlobalSetting(
-        ["Left sidebar", "Children"],
-        pagesToUids(newPages),
-      );
-
+      setGlobalSetting(["Left sidebar", "Children"], pagesToUids(newPages));
 
       if (childrenUid) {
         const order = direction === "down" ? newIndex + 1 : newIndex;
@@ -216,7 +211,7 @@ const LeftSidebarGlobalSectionsContent = ({
           ["Left sidebar", "Children"],
           pagesToUids(updatedPages),
         );
-  
+
         setNewPageInput("");
         setAutocompleteKey((prev) => prev + 1);
         posthog.capture("Left Sidebar Global Settings: Page Added", {
@@ -244,7 +239,7 @@ const LeftSidebarGlobalSectionsContent = ({
           ["Left sidebar", "Children"],
           pagesToUids(updatedPages),
         );
-  
+
         refreshAndNotify();
       } catch (error) {
         renderToast({
@@ -296,7 +291,6 @@ const LeftSidebarGlobalSectionsContent = ({
           uid={globalSection.settings?.folded?.uid || ""}
           parentUid={globalSection.settings?.uid || ""}
           disabled={!globalSection.children?.length}
-
         />
         <GlobalFlagPanel
           title="Collapsable"
@@ -306,7 +300,6 @@ const LeftSidebarGlobalSectionsContent = ({
           order={1}
           uid={globalSection.settings?.collapsable?.uid || ""}
           parentUid={globalSection.settings?.uid || ""}
-
         />
       </div>
 
