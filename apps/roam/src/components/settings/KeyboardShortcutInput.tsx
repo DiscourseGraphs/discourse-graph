@@ -10,6 +10,10 @@ import {
 import Description from "roamjs-components/components/Description";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 
+import {
+  getPersonalSetting
+} from "~/components/settings/utils/accessors";
+
 type KeyboardShortcutInputProps = {
   onloadArgs: OnloadArgs;
   settingKey: string;
@@ -74,7 +78,7 @@ const KeyboardShortcutInput = ({
   const [isActive, setIsActive] = useState(false);
   const [comboKey, setComboKey] = useState<IKeyCombo>(
     () =>
-      (extensionAPI.settings.get(settingKey) as IKeyCombo) || {
+      getPersonalSetting<IKeyCombo>([blockPropKey]) || {
         modifiers: 0,
         key: "",
       },

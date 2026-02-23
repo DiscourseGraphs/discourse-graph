@@ -51,7 +51,6 @@ import {
 import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { renderImageToolsMenu } from "./renderImageToolsMenu";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
-import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
@@ -263,12 +262,13 @@ export const initObservers = async ({
     key: "trigger",
     defaultValue: "\\",
   }).trim();
-  const personalTriggerCombo =
-    (onloadArgs.extensionAPI.settings.get(
-      "personal-node-menu-trigger",
-    ) as IKeyCombo) || undefined;
+  const personalTriggerCombo = getPersonalSetting<IKeyCombo>([
+    "Personal node menu trigger",
+  ]);
   const personalTrigger = personalTriggerCombo?.key;
-  const personalModifiers = getModifiersFromCombo(personalTriggerCombo);
+  const personalModifiers = personalTriggerCombo
+    ? getModifiersFromCombo(personalTriggerCombo)
+    : [];
 
   const leftSidebarObserver = createHTMLObserver({
     tag: "DIV",
@@ -330,7 +330,8 @@ export const initObservers = async ({
     }
   };
 
-  const customTrigger = getSetting("node-search-trigger", "@");
+  const customTrigger =
+    getPersonalSetting<string>(["Node search menu trigger"]) ?? "@";
 
   const discourseNodeSearchTriggerListener = (e: Event) => {
     const evt = e as KeyboardEvent;

@@ -27,6 +27,9 @@ import { getNewDiscourseNodeText } from "~/utils/formatUtils";
 import { OnloadArgs } from "roamjs-components/types";
 import { formatHexColor } from "./settings/DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
+import {
+  getPersonalSetting,
+} from "~/components/settings/utils/accessors";
 
 type Props = {
   textarea?: HTMLTextAreaElement;
@@ -415,9 +418,10 @@ export const NodeMenuTriggerComponent = ({
   const [isActive, setIsActive] = useState(false);
   const [comboKey, setComboKey] = useState<IKeyCombo>(
     () =>
-      (extensionAPI.settings.get(
-        "personal-node-menu-trigger",
-      ) as IKeyCombo) || { modifiers: 0, key: "" },
+      getPersonalSetting<IKeyCombo>(["Personal node menu trigger"]) || {
+        modifiers: 0,
+        key: "",
+      },
   );
 
   const handleKeyDown = useCallback(
