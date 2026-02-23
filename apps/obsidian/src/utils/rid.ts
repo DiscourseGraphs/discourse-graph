@@ -1,3 +1,10 @@
+// Functions to express a pair of spaceUri, sourceLocalId as a single string, and back.
+// We're following https://github.com/BlockScience/rid-lib:
+// Either a Web URL, with the last segment as the sourceLocalId;
+// OR the format `orn:<platform>.<subtype>:<source identifier>/<sourceLocalId>`
+// With the assumption that the sourceUri has the form <platform>:<source identifier>
+// The subtype may be omitted.
+
 export const spaceUriAndLocalIdToRid = (
   spaceUri: string,
   localId: string,
