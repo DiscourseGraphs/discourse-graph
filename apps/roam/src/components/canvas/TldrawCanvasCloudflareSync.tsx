@@ -14,7 +14,7 @@ import { useMemo } from "react";
 export const TLDRAW_CLOUDFLARE_SYNC_ENABLED = true;
 /** Base URL for tldraw-sync-cloudflare worker. Use https (not wss) - useSync upgrades to WebSocket. */
 export const TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL =
-  "https://multiplayer-dg-sync-poc.discoursegraphs.workers.dev";
+  "https://multiplayer-dg-sync.discoursegraphs.workers.dev";
 
 export type CloudflareCanvasStoreAdapterResult = {
   store: TLStoreWithStatus;
@@ -22,7 +22,7 @@ export type CloudflareCanvasStoreAdapterResult = {
   isLoading: boolean;
 };
 
-const getSyncRoomId = ({ pageUid }: { pageUid: string }): string => {
+export const getSyncRoomId = ({ pageUid }: { pageUid: string }): string => {
   const graphName = window.roamAlphaAPI.graph.name;
   const payload = JSON.stringify({ graphName, pageUid });
   const bytes = new TextEncoder().encode(payload);

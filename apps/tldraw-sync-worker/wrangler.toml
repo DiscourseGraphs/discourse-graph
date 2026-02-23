@@ -1,4 +1,4 @@
-name = "multiplayer-dg-sync-poc-2"
+name = "multiplayer-dg-sync"
 main = "worker/worker.ts"
 compatibility_date = "2024-07-01"
 
