@@ -951,14 +951,15 @@ const TldrawCanvasShared = ({
     });
   }, [error, pageUid, title, customShapeTypes, customBindingTypes]);
 
-  // hack for "cannot change atoms during reaction cycle" bug
-  const blockingStoreError = hasMountedEditor ? null : error;
+  // Keep the mounted editor alive through transient reconnect errors,
+  // but still surface errors when the store is unavailable.
+  const blockingStoreError = error && (!hasMountedEditor || !store) ? error : null;
   const isCanvasBlocked =
     !store ||
     !assetLoading.done ||
     !extensionAPI ||
     !isPluginReady ||
-    (!hasMountedEditor && (isLoading || !!blockingStoreError));
+    (!hasMountedEditor && (isLoading || !!error));
 
   return (
     <div
