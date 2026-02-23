@@ -448,8 +448,8 @@ const QueryEditor: QueryEditorComponent = ({
   hideCustomSwitch,
   showAlias,
   discourseNodeType,
-  settingKey,
-  returnNode,
+  settingKey, // eslint-disable-line react/prop-types
+  returnNode, // eslint-disable-line react/prop-types
 }) => {
   useEffect(() => {
     const previewQuery = ((e: CustomEvent) => {
@@ -505,7 +505,10 @@ const QueryEditor: QueryEditorComponent = ({
 
     const result = IndexSchema.safeParse(stripped);
     if (!result.success) {
-      console.error(`${settingKey} blockprop sync failed validation:`, result.error);
+      console.error(
+        `${settingKey} blockprop sync failed validation:`,
+        result.error,
+      );
       return;
     }
 
