@@ -150,6 +150,34 @@ export const MAX_WIDTH = "400px";
 
 const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
 
+// hack for "cannot change atoms during reaction cycle" bug
+const isAtomReactionCycleError = (error: unknown): error is Error =>
+  error instanceof Error &&
+  /cannot change atoms during reaction cycle/i.test(error.message);
+const installSafeHintingSetter = ({ app }: { app: Editor }): void => {
+  const originalSetHintingShapes = app.setHintingShapes.bind(app);
+
+  app.setHintingShapes = ((shapeIds: TLShapeId[]) => {
+    try {
+      return originalSetHintingShapes(shapeIds);
+    } catch (error) {
+      if (!isAtomReactionCycleError(error)) {
+        throw error;
+      }
+
+      app.timers.setTimeout(() => {
+        try {
+          originalSetHintingShapes(shapeIds);
+        } catch {
+          // Ignore deferred hinting updates if the editor is gone or still reacting.
+        }
+      }, 0);
+
+      return app;
+    }
+  }) as Editor["setHintingShapes"];
+};
+
 export const isPageUid = (uid: string) =>
   !!window.roamAlphaAPI.pull("[:node/title]", [":block/uid", uid])?.[
     ":node/title"
@@ -343,6 +371,8 @@ const TldrawCanvasShared = ({
   );
 
   const [isConvertToDialogOpen, setConvertToDialogOpen] = useState(false);
+  // hack for "cannot change atoms during reaction cycle" bug
+  const [hasMountedEditor, setHasMountedEditor] = useState(false);
 
   const updateViewportScreenBounds = useCallback((el: HTMLDivElement) => {
     // Use tldraw's built-in viewport bounds update with centering
@@ -921,6 +951,15 @@ const TldrawCanvasShared = ({
     });
   }, [error, pageUid, title, customShapeTypes, customBindingTypes]);
 
+  // hack for "cannot change atoms during reaction cycle" bug
+  const blockingStoreError = hasMountedEditor ? null : error;
+  const isCanvasBlocked =
+    !store ||
+    !assetLoading.done ||
+    !extensionAPI ||
+    !isPluginReady ||
+    (!hasMountedEditor && (isLoading || !!blockingStoreError));
+
   return (
     <div
       className="roamjs-tldraw-canvas-container relative z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white"
@@ -964,26 +1003,23 @@ const TldrawCanvasShared = ({
             </button>
           </div>
         </div>
-      ) : isLoading ||
-        !!error ||
-        !store ||
-        !assetLoading.done ||
-        !extensionAPI ||
-        !isPluginReady ? (
+      ) : isCanvasBlocked ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
-              {error || assetLoading.error
+              {blockingStoreError || assetLoading.error
                 ? "Error Loading Canvas"
                 : "Loading Canvas"}
             </h2>
             <p className="mb-4 text-gray-600">
-              {error || assetLoading.error ? (
+              {blockingStoreError || assetLoading.error ? (
                 <span>
-                  {error?.message?.includes("invalidRecord")
+                  {blockingStoreError?.message?.includes("invalidRecord")
                     ? "Cloudflare sync rejected a custom Discourse Graph record (invalidRecord). The sync worker schema must include DG custom shapes and bindings."
                     : "There was a problem loading the Tldraw canvas."}{" "}
-                  {error?.message ? `Details: ${error.message}` : ""}
+                  {blockingStoreError?.message
+                    ? `Details: ${blockingStoreError.message}`
+                    : ""}
                 </span>
               ) : (
                 <DefaultSpinner />
@@ -1017,6 +1053,10 @@ const TldrawCanvasShared = ({
               }
 
               appRef.current = app;
+
+              // hack for "cannot change atoms during reaction cycle" bug
+              installSafeHintingSetter({ app });
+              setHasMountedEditor(true);
 
               app.on("change", (entry) => {
                 lastActionsRef.current.push(entry);
