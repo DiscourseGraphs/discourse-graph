@@ -217,7 +217,8 @@ const getLegacyPersonalLeftSidebarSetting = (): Record<string, unknown> => {
 };
 
 const getLegacyPersonalSetting = (keys: string[]): unknown => {
-  const mappedOldKey = PERSONAL_OLD_KEY_MAP.get(pathKey(keys));
+  const path = pathKey(keys);
+  const mappedOldKey = PERSONAL_OLD_KEY_MAP.get(path);
   if (mappedOldKey) {
     return getSetting<unknown>(
       mappedOldKey,
