@@ -291,23 +291,23 @@ export class QueryEngine {
   }
 
   /**
-   * Find an existing imported file by nodeInstanceId and importedFromSpaceUri
+   * Find an existing imported file by nodeInstanceId and importedFromRid
    * Uses DataCore when available; falls back to vault iteration otherwise
    * Returns the file if found, null otherwise
    */
   findExistingImportedFile = (
     nodeInstanceId: string,
-    importedFromSpaceUri: string,
+    importedFromRid: string,
   ): TFile | null => {
     if (this.dc) {
       try {
         const safeId = nodeInstanceId
           .replace(/\\/g, "\\\\")
           .replace(/"/g, '\\"');
-        const safeUri = importedFromSpaceUri
+        const safeUri = importedFromRid
           .replace(/\\/g, "\\\\")
           .replace(/"/g, '\\"');
-        const dcQuery = `@page and nodeInstanceId = "${safeId}" and importedFromSpaceUri = "${safeUri}"`;
+        const dcQuery = `@page and nodeInstanceId = "${safeId}" and importedFromRid = "${safeUri}"`;
         const results = this.dc.query(dcQuery);
 
         for (const page of results) {
@@ -329,7 +329,7 @@ export class QueryEngine {
       const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
       if (
         fm?.nodeInstanceId === nodeInstanceId &&
-        fm.importedFromSpaceUri === importedFromSpaceUri
+        fm.importedFromRid === importedFromRid
       ) {
         return f;
       }
