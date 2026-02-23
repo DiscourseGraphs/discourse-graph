@@ -94,13 +94,17 @@ This document tracks all the changes made to address failed criteria from the [O
 
 #### [PG-S25] No hardcoded styling
 - **Issue**: ~70+ inline `style={{ }}` and `.style.` assignments in multiple files
-- **Fix**: Moved inline styles to CSS classes in `src/styles/style.css`
+- **Analysis**: Most inline styles are dynamic (positioning based on runtime element positions, using variable colors from node types). These are acceptable per Obsidian guidelines which prohibit *hardcoded* values, not dynamic styles.
+- **Fix**: Added CSS classes for truly hardcoded values like `cursor: pointer`. Dynamic styles (popover positioning, colors from variables, measurement elements) are kept as inline styles as they cannot be static.
 - **Files affected**: 
-  - `src/components/ModifyNodeModal.tsx`
-  - `src/components/canvas/DiscourseToolPanel.tsx`
-  - `src/utils/measureNodeText.ts`
-  - `src/utils/tagNodeHandler.ts`
-  - `src/styles/style.css`
+  - `src/styles/style.css` (added utility classes)
+  - `src/utils/tagNodeHandler.ts` (use CSS class for cursor)
+  
+**Note**: Dynamic inline styles that use:
+- Calculated positions (popover placement, tooltip positioning)
+- Runtime color variables (nodeType.color, relationType.color)
+- Temporary measurement elements (measureNodeText.ts)
+are considered acceptable and were not changed.
 
 ## Verification Checklist
 

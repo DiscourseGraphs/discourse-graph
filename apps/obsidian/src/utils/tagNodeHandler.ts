@@ -217,9 +217,10 @@ export class TagNodeHandler {
     );
     const colors = getNodeTagColors(nodeType, nodeIndex);
 
+    // [PG-S25] Use CSS class for cursor, inline styles for dynamic colors
     tagElement.style.backgroundColor = colors.backgroundColor;
     tagElement.style.color = colors.textColor;
-    tagElement.style.cursor = "pointer";
+    tagElement.classList.add("dg-cursor-pointer");
 
     if (!alreadyProcessed) {
       const editor = this.getActiveEditor();
@@ -496,20 +497,11 @@ export class TagNodeHandler {
 
       const rect = getClosestRect();
 
+      // [PG-S25] Use CSS class for static styles, inline for dynamic positioning
       this.currentTooltip = document.createElement("div");
       this.currentTooltip.className = "discourse-tag-popover";
-      this.currentTooltip.style.cssText = `
-        position: fixed;
-        top: ${rect.top - TOOLTIP_OFFSET}px;
-        left: ${rect.left + rect.width / 2}px;
-        transform: translateX(-50%);
-        border-radius: 6px;
-        padding: 6px;
-        z-index: 9999;
-        white-space: nowrap;
-        font-size: 12px;
-        pointer-events: auto;
-      `;
+      this.currentTooltip.style.top = `${rect.top - TOOLTIP_OFFSET}px`;
+      this.currentTooltip.style.left = `${rect.left + rect.width / 2}px`;
 
       const createButton = document.createElement("button");
       createButton.textContent = `Create ${nodeType.name}`;
@@ -681,11 +673,11 @@ export class TagNodeHandler {
       }
       tag.removeAttribute("data-discourse-tag-processed");
 
-      // Reset styles for the tag element
+      // [PG-S25] Reset styles for the tag element
       const htmlTag = tag as HTMLElement;
       htmlTag.style.backgroundColor = "";
       htmlTag.style.color = "";
-      htmlTag.style.cursor = "";
+      htmlTag.classList.remove("dg-cursor-pointer");
     });
   }
 
