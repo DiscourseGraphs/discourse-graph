@@ -614,7 +614,7 @@ const updateMarkdownAssetLinks = ({
       if (!linkPath) return match;
 
       // Skip external URLs
-      if ((linkPath.startsWith("http://") || linkPath.startsWith("https://"))) {
+      if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
         return match;
       }
 
