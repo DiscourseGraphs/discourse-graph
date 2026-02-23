@@ -1,9 +1,4 @@
-import React, {
-  useState,
-  useCallback,
-  useEffect,
-  useMemo,
-} from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import { getSubTree } from "roamjs-components/util";
@@ -261,7 +256,10 @@ const NodeConfig = ({
           title="Attributes"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeAttributes uid={attributeNode.uid} nodeType={node.type} />
+              <DiscourseNodeAttributes
+                uid={attributeNode.uid}
+                nodeType={node.type}
+              />
               <DiscourseNodeSelectPanel
                 nodeType={node.type}
                 title="Overlay"
