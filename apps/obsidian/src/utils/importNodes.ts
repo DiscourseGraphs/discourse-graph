@@ -1296,16 +1296,6 @@ export const importSelectedNodes = async ({
               await plugin.app.vault.createFolder(parentDir);
             }
           }
-
-          // Check if file path already exists (edge case: same title but different nodeInstanceId)
-          let counter = 1;
-          while (await plugin.app.vault.adapter.exists(finalFilePath)) {
-            const baseWithoutExt = finalFilePath.replace(/\.md$/i, "");
-            const base = baseWithoutExt.replace(/\s*\(\d+\)$/, "");
-            finalFilePath = `${base} (${counter}).md`;
-            counter++;
-          }
-
            console.log(
              "[DG import] original file path (source vault):",
              originalNodePath ?? "(none)",
