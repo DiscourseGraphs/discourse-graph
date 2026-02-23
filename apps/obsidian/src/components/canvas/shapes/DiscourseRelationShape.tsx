@@ -474,8 +474,13 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
 
     const bindings = getArrowBindings(this.editor, shape);
 
-    // If both ends are bound, convert translation to bend changes instead of moving the arrow
-    if (bindings.start && bindings.end) {
+    // Check if other shapes are also being translated
+    const selectedShapeIds = this.editor.getSelectedShapeIds();
+    const onlyRelationSelected = selectedShapeIds.length === 1 && selectedShapeIds[0] === shape.id;
+
+    // If both ends are bound AND only the relation is selected, convert translation to bend changes
+    // If other shapes are also selected, do a simple translation instead
+    if (bindings.start && bindings.end && onlyRelationSelected) {
       const shapePageTransform = this.editor.getShapePageTransform(shape.id);
       const pageDelta = Vec.Sub(
         shapePageTransform.applyToPoint(shape),
