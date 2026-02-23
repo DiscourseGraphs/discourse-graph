@@ -6,17 +6,19 @@ import React, {
   useMemo,
 } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
+import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
 import { Label, Tabs, Tab, TabId, InputGroup } from "@blueprintjs/core";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
-import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
+import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import createBlock from "roamjs-components/writes/createBlock";
+import updateBlock from "roamjs-components/writes/updateBlock";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
@@ -24,8 +26,6 @@ import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
 } from "./components/BlockPropSettingPanels";
-import createBlock from "roamjs-components/writes/createBlock";
-import updateBlock from "roamjs-components/writes/updateBlock";
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -65,7 +65,9 @@ const ValidatedInputPanel = ({
   </div>
 );
 
-const useDebouncedRoamUpdater = (
+const useDebouncedRoamUpdater = <
+  T extends HTMLInputElement | HTMLTextAreaElement,
+>(
   uid: string,
   initialValue: string,
   isValid: boolean,
@@ -99,7 +101,7 @@ const useDebouncedRoamUpdater = (
   );
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<T>) => {
       const newValue = e.target.value;
       setValue(newValue);
       saveToRoam(newValue, true);
@@ -160,34 +162,21 @@ const NodeConfig = ({
   });
 
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
+  const [tagError, setTagError] = useState("");
   const [formatError, setFormatError] = useState("");
-  const [tagValue, setTagValue] = useState(node.tag || "");
+  const isConfigurationValid = !tagError && !formatError;
 
+  const [tagValue, setTagValue] = useState(node.tag || "");
   const {
     value: formatValue,
     handleChange: handleFormatChange,
     handleBlur: handleFormatBlurFromHook,
-  } = useDebouncedRoamUpdater(formatUid, node.format, !formatError);
-
-  const validateTag = useCallback(
-    (tag: string): string | undefined => {
-      const cleanTag = getCleanTagText(tag);
-      if (!cleanTag) return undefined;
-      const roamTagRegex = /#?\[\[(.*?)\]\]|#(\S+)/g;
-      const formatTags: string[] = [];
-      for (const match of formatValue.matchAll(roamTagRegex)) {
-        const tagName = match[1] || match[2];
-        if (tagName) formatTags.push(tagName.toUpperCase());
-      }
-      if (formatTags.includes(cleanTag)) {
-        return `The tag "${tag}" is referenced in the format. Please use a different tag or format.`;
-      }
-      return undefined;
-    },
-    [formatValue],
+  } = useDebouncedRoamUpdater<HTMLInputElement>(
+    formatUid,
+    node.format,
+    isConfigurationValid,
   );
-
-  const validateFormat = useCallback(
+  const validate = useCallback(
     ({
       tag,
       format,
@@ -203,12 +192,14 @@ const NodeConfig = ({
           key: "enabled",
         })?.uid?.length;
       if (format.trim().length === 0 && !isSpecificationEnabled) {
+        setTagError("");
         setFormatError("Error: you must set either a format or specification");
         return;
       }
       const cleanTag = getCleanTagText(tag);
 
       if (!cleanTag) {
+        setTagError("");
         setFormatError("");
         return;
       }
@@ -229,7 +220,11 @@ const NodeConfig = ({
         setFormatError(
           `The format references the node's tag "${tag}". Please use a different format or tag.`,
         );
+        setTagError(
+          `The tag "${tag}" is referenced in the format. Please use a different tag or format.`,
+        );
       } else {
+        setTagError("");
         setFormatError("");
       }
     },
@@ -237,13 +232,13 @@ const NodeConfig = ({
   );
 
   useEffect(() => {
-    validateFormat({ tag: tagValue, format: formatValue });
-  }, [tagValue, formatValue, validateFormat]);
+    validate({ tag: tagValue, format: formatValue });
+  }, [tagValue, formatValue, validate]);
 
   const handleFormatBlur = useCallback(() => {
     handleFormatBlurFromHook();
-    validateFormat({ tag: tagValue, format: formatValue });
-  }, [handleFormatBlurFromHook, tagValue, formatValue, validateFormat]);
+    validate({ tag: tagValue, format: formatValue });
+  }, [handleFormatBlurFromHook, tagValue, formatValue, validate]);
 
   return (
     <>
@@ -263,6 +258,7 @@ const NodeConfig = ({
                 description={`Describing what the ${node.text} node represents in your graph.`}
                 settingKeys={["description"]}
                 initialValue={node.description}
+                multiline
                 order={1}
                 parentUid={node.type}
                 uid={descriptionUid}
@@ -284,7 +280,7 @@ const NodeConfig = ({
                 settingKeys={["tag"]}
                 initialValue={node.tag}
                 placeholder={generateTagPlaceholder(node)}
-                getValidationError={validateTag}
+                error={tagError}
                 onChange={setTagValue}
                 order={2}
                 parentUid={node.type}
@@ -330,7 +326,7 @@ const NodeConfig = ({
                   node={node}
                   parentUid={specificationUid}
                   parentSetEnabled={(isSpecificationEnabled) => {
-                    validateFormat({
+                    validate({
                       tag: tagValue,
                       format: formatValue,
                       isSpecificationEnabled,
@@ -388,7 +384,7 @@ const NodeConfig = ({
               <DiscourseNodeFlagPanel
                 nodeType={node.type}
                 title="Graph Overview"
-                description="Whether to color the node in the graph overview based on canvas color. This is based on the node's plain title as described by a `has title` condition in its specification."
+                description="Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification."
                 settingKeys={["graphOverview"]}
                 initialValue={node.graphOverview}
                 order={0}

@@ -13,6 +13,7 @@ import {
   HTMLSelect,
   Button,
   Tag,
+  TextArea,
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
@@ -39,9 +40,6 @@ type FlagSetter = (keys: string[], value: boolean) => void;
 type NumberSetter = (keys: string[], value: number) => void;
 
 type MultiTextSetter = (keys: string[], value: string[]) => void;
-type ValidationError = string;
-type Validator<T> = (value: T) => ValidationError | undefined;
-
 type BaseTextPanelProps = {
   title: string;
   description: string;
@@ -49,7 +47,8 @@ type BaseTextPanelProps = {
   setter: TextSetter;
   initialValue?: string;
   placeholder?: string;
-  getValidationError?: Validator<string>;
+  multiline?: boolean;
+  error?: string;
   onChange?: (value: string) => void;
 } & RoamBlockSyncProps;
 
@@ -103,14 +102,16 @@ const BaseTextPanel = ({
   setter,
   initialValue,
   placeholder,
-  getValidationError,
+  multiline,
+  error,
   onChange,
   parentUid,
   uid,
   order,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? "");
-  const error = getValidationError?.(value);
+  const errorRef = useRef(error);
+  errorRef.current = error;
   const debounceRef = useRef(0);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
@@ -128,15 +129,16 @@ const BaseTextPanel = ({
     return () => window.clearTimeout(debounceRef.current);
   }, []);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const newValue = e.target.value;
     setValue(newValue);
     onChange?.(newValue);
 
-    if (getValidationError?.(newValue)) return;
-
     window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
+      if (errorRef.current) return;
       setter(settingKeys, newValue);
       syncToBlock?.(newValue);
     }, DEBOUNCE_MS);
@@ -147,11 +149,21 @@ const BaseTextPanel = ({
       <Label>
         {title}
         <Description description={description} />
-        <InputGroup
-          value={value}
-          onChange={handleChange}
-          placeholder={placeholder || initialValue}
-        />
+        {multiline ? (
+          <TextArea
+            value={value}
+            onChange={handleChange}
+            placeholder={placeholder || initialValue}
+            className="w-full"
+            style={{ minHeight: 80, resize: "vertical" }}
+          />
+        ) : (
+          <InputGroup
+            value={value}
+            onChange={handleChange}
+            placeholder={placeholder || initialValue}
+          />
+        )}
       </Label>
       {error && (
         <div className="mt-1 text-sm font-medium text-red-600">{error}</div>
@@ -584,7 +596,8 @@ export const DiscourseNodeTextPanel = ({
   RoamBlockSyncProps & {
     initialValue?: string;
     placeholder?: string;
-    getValidationError?: Validator<string>;
+    multiline?: boolean;
+    error?: string;
     onChange?: (value: string) => void;
   }) => (
   <BaseTextPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />

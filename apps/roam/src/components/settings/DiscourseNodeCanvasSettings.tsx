@@ -25,7 +25,13 @@ export const formatHexColor = (color: string) => {
   return "";
 };
 
-const DiscourseNodeCanvasSettings = ({ nodeType, uid }: { nodeType: string; uid: string }) => {
+const DiscourseNodeCanvasSettings = ({
+  nodeType,
+  uid,
+}: {
+  nodeType: string;
+  uid: string;
+}) => {
   const tree = useMemo(() => getBasicTreeByParentUid(uid), [uid]);
   const [color, setColor] = useState<string>(() => {
     const color = getSettingValueFromTree({ tree, key: "color" });
