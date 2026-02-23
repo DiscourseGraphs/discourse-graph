@@ -127,7 +127,7 @@ export const discourseRelationTripleSchemaToLocalConcept = ({
   accountLocalId: string;
   nodeTypesById: Record<string, DiscourseNode>;
   relationTypesById: Record<string, DiscourseRelationType>;
-}): LocalConceptDataInput => {
+}): LocalConceptDataInput | null => {
   const {
     id,
     relationshipTypeId,
@@ -140,8 +140,7 @@ export const discourseRelationTripleSchemaToLocalConcept = ({
   const sourceName = nodeTypesById[sourceId]?.name ?? sourceId;
   const destinationName = nodeTypesById[destinationId]?.name ?? destinationId;
   const relationType = relationTypesById[relationshipTypeId];
-  if (!relationType)
-    throw new Error(`missing relation type ${relationshipTypeId}`);
+  if (!relationType) return null;
   const { label, complement } = relationType;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const literal_content: Record<string, Json> = {
@@ -227,9 +226,14 @@ export const relationInstanceToLocalConcept = ({
   }
   const sourceNode = allNodesById[source];
   const destinationNode = allNodesById[destination];
+  if (sourceNode === undefined || destinationNode === undefined) {
+    console.error("Cannot find the nodes");
+    return null;
+  }
+
   if (
-    sourceNode?.frontmatter.importedFromRid ||
-    destinationNode?.frontmatter.importedFromRid
+    sourceNode.frontmatter.importedFromRid ||
+    destinationNode.frontmatter.importedFromRid
   )
     return null; // punt relation to imported nodes for now.
   // otherwise put the importedFromRid in source, dest.
@@ -239,7 +243,7 @@ export const relationInstanceToLocalConcept = ({
   if (importedFromRid) literal_content.importedFromRid = importedFromRid;
   return {
     space_id: context.spaceId,
-    name: `[[${sourceNode ? sourceNode.file.basename : source}]] -${relationType.label}-> [[${destinationNode ? destinationNode.file.basename : destination}]]`,
+    name: `[[${sourceNode.file.basename}]] -${relationType.label}-> [[${destinationNode.file.basename}]]`,
     source_local_id: relationInstanceData.id,
     author_local_id: relationInstanceData.author,
     schema_represented_by_local_id: type,
