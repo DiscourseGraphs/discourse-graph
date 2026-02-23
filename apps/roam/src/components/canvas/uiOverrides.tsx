@@ -14,7 +14,6 @@ import {
   DefaultKeyboardShortcutsDialogContent,
   DefaultToolbarContent,
   TldrawUiMenuItem,
-  TldrawUiMenuCheckboxItem,
   DefaultMainMenu,
   DefaultMainMenuContent,
   TldrawUiMenuGroup,
@@ -222,6 +221,7 @@ export const createUiComponents = ({
   canvasSyncMode,
   isCloudflareSyncAvailable,
   onCanvasSyncModeChange,
+  shouldWarnSyncModeStartsBlank,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
@@ -229,6 +229,7 @@ export const createUiComponents = ({
   canvasSyncMode: CanvasSyncMode;
   isCloudflareSyncAvailable: boolean;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
+  shouldWarnSyncModeStartsBlank: () => Promise<boolean>;
 }): TLUiComponents => {
   return {
     Toolbar: (props) => {
