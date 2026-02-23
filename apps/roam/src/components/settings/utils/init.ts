@@ -4,8 +4,8 @@ import { createPage, createBlock } from "roamjs-components/writes";
 import setBlockProps from "~/utils/setBlockProps";
 import getBlockProps from "~/utils/getBlockProps";
 import type { json } from "~/utils/getBlockProps";
-import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
 import DEFAULT_RELATIONS_BLOCK_PROPS from "~/components/settings/data/defaultRelationsBlockProps";
+import INITIAL_NODE_VALUES from "~/data/defaultDiscourseNodes";
 import { getAllDiscourseNodes } from "./accessors";
 import {
   DiscourseNodeSchema,
