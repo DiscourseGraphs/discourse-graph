@@ -74,7 +74,7 @@ export class FileChangeListener {
     };
     this.plugin.app.metadataCache.on("changed", this.metadataChangeCallback);
 
-    console.debug("FileChangeListener initialized");
+    // [PG-G2] Removed console.debug
   }
 
   /**
@@ -134,7 +134,7 @@ export class FileChangeListener {
       return;
     }
 
-    console.log(`File modified: ${file.path}`);
+    // [PG-G2] Removed console.log
     this.queueChange(file.path, "content");
   }
 
@@ -146,7 +146,7 @@ export class FileChangeListener {
       return;
     }
 
-    console.log(`File deleted: ${file.path}`);
+    // [PG-G2] Removed console.log
     this.hasPendingOrphanCleanup = true;
     this.resetDebounceTimer();
   }
@@ -159,7 +159,7 @@ export class FileChangeListener {
       return;
     }
 
-    console.log(`File renamed: ${oldPath} -> ${file.path}`);
+    // [PG-G2] Removed console.log
     this.queueChange(file.path, "title", oldPath);
   }
 
@@ -186,9 +186,7 @@ export class FileChangeListener {
     // In the future, this can detect specific relation changes
     const cache = this.plugin.app.metadataCache.getFileCache(file);
     if (cache?.frontmatter) {
-      console.debug(
-        `Metadata changed for ${file.path} (relation metadata placeholder)`,
-      );
+      // [PG-G2] Removed console.debug
     }
   }
 
@@ -235,7 +233,7 @@ export class FileChangeListener {
    */
   private async processQueue(): Promise<void> {
     if (this.isProcessing) {
-      console.debug("Sync already in progress, skipping");
+      // [PG-G2] Removed console.debug
       return;
     }
 
@@ -283,30 +281,26 @@ export class FileChangeListener {
         }
       }
 
+      // [PG-G2] Removed console.debug
       if (processedFiles.length > 0) {
-        console.debug(
-          `Successfully processed ${processedFiles.length} file(s):`,
-          processedFiles,
-        );
+        // Successfully processed files
       }
 
+      // [PG-G2] Removed console.warn
       if (failedFiles.length > 0) {
-        console.warn(
-          `Failed to process ${failedFiles.length} file(s), will retry on next change:`,
-          failedFiles,
-        );
+        // Failed files will retry on next change
       }
 
       if (this.hasPendingOrphanCleanup) {
         const deletedCount = await cleanupOrphanedNodes(this.plugin);
         if (deletedCount > 0) {
-          console.debug(`Deleted ${deletedCount} orphaned node(s)`);
+          // [PG-G2] Removed console.debug
         }
         this.hasPendingOrphanCleanup = false;
       }
 
       if (processedFiles.length > 0 || failedFiles.length === 0) {
-        console.debug("Sync queue processed");
+        // [PG-G2] Removed console.debug
       }
     } catch (error) {
       console.error("Error processing sync queue:", error);
@@ -342,6 +336,6 @@ export class FileChangeListener {
     this.pendingCreates.clear();
     this.isProcessing = false;
 
-    console.debug("FileChangeListener cleaned up");
+    // [PG-G2] Removed console.debug
   }
 }

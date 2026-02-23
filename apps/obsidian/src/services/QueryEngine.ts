@@ -50,9 +50,7 @@ export class QueryEngine {
       return [];
     }
     if (!this.dc) {
-      console.warn(
-        "Datacore API not available. Search functionality is not available.",
-      );
+      // [PG-G2] Removed console.warn
       return [];
     }
 
@@ -125,9 +123,7 @@ export class QueryEngine {
       return [];
     }
     if (!this.dc) {
-      console.warn(
-        "Datacore API not available. Search functionality is not available.",
-      );
+      // [PG-G2] Removed console.warn
       return [];
     }
 
@@ -244,10 +240,8 @@ export class QueryEngine {
   ): Promise<BulkImportCandidate[]> {
     const candidates: BulkImportCandidate[] = [];
 
+    // [PG-G2] Removed console.warn - silently fall back to vault iteration
     if (!this.dc) {
-      console.warn(
-        "Datacore API not available. Falling back to vault iteration.",
-      );
       return this.fallbackScanVault(patterns, validNodeTypes);
     }
 
@@ -289,10 +283,8 @@ export class QueryEngine {
                 (nt) => nt.id === pattern.nodeTypeId,
               );
 
+              // [PG-G2] Removed console.warn - skip patterns without matching node types
               if (!matchedNodeType) {
-                console.warn(
-                  `No matching node type found for pattern with nodeTypeId: ${pattern.nodeTypeId}`,
-                );
                 continue;
               }
 
@@ -347,8 +339,9 @@ export class QueryEngine {
             }
           }
         }
+      // [PG-G2] Removed console.warn - silently handle DataCore query errors
       } catch (error) {
-        console.warn("Error querying DataCore for imported file:", error);
+        // Silently fail and continue
       }
     }
 
@@ -402,10 +395,8 @@ export class QueryEngine {
             (nt) => nt.id === pattern.nodeTypeId,
           );
 
+          // [PG-G2] Removed console.warn - skip patterns without matching node types
           if (!matchedNodeType) {
-            console.warn(
-              `No matching node type found for pattern with nodeTypeId: ${pattern.nodeTypeId}`,
-            );
             continue;
           }
 

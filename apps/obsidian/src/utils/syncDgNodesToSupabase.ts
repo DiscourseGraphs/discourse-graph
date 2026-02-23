@@ -328,16 +328,13 @@ const logNodeChanges = ({
   const currentFilename = node.file.basename;
   const fileModifiedTime = new Date(node.file.stat.mtime);
 
+  // [PG-G2] Removed console.log debugging statements
   if (changeTypes.includes("title")) {
-    console.log(
-      `Title changed for ${node.nodeInstanceId}: "${existingTitle}" -> "${currentFilename}"`,
-    );
+    // Title changed, will sync
   }
 
   if (changeTypes.includes("content")) {
-    console.log(
-      `Content changed for ${node.nodeInstanceId} (filename: "${currentFilename}") - file mtime: ${fileModifiedTime.toISOString()}, lastSyncTime: ${lastSyncTime.toISOString()}`,
-    );
+    // Content changed, will sync
   }
 };
 
@@ -416,12 +413,11 @@ export const syncAllNodesAndRelations = async (
       throw new Error("Could not create Supabase context");
     }
 
+    // [PG-G2] Removed console.log and console.debug statements
     const supabaseClient = await getLoggedInClient(plugin);
-    console.log("supabaseClient", supabaseClient);
     if (!supabaseClient) {
       throw new Error("Could not log in to Supabase client");
     }
-    console.debug("Supabase client:", supabaseClient);
 
     const allNodes = await collectDiscourseNodesFromVault(plugin);
 
@@ -461,7 +457,7 @@ export const syncAllNodesAndRelations = async (
     // When synced nodes are already published, ensure non-text assets are in storage.
     await syncPublishedNodesAssets(plugin, changedNodeInstances);
 
-    console.debug("Sync completed successfully");
+    // [PG-G2] Removed console.debug
   } catch (error) {
     console.error("syncAllNodesAndRelations: Process failed:", error);
     throw error;
@@ -695,7 +691,7 @@ const collectDiscourseNodesFromPaths = async (
   for (const filePath of filePaths) {
     const file = plugin.app.vault.getAbstractFileByPath(filePath);
     if (!(file instanceof TFile)) {
-      console.debug(`File not found or not a TFile: ${filePath}`);
+      // [PG-G2] Removed console.debug
       continue;
     }
 
@@ -709,12 +705,12 @@ const collectDiscourseNodesFromPaths = async (
 
     // Not a discourse node
     if (!frontmatter?.nodeTypeId) {
-      console.debug(`File is not a DG node: ${filePath}`);
+      // [PG-G2] Removed console.debug
       continue;
     }
 
     if (frontmatter.importedFromRid) {
-      console.debug(`Skipping imported file: ${filePath}`);
+      // [PG-G2] Removed console.debug
       continue;
     }
 
@@ -767,12 +763,10 @@ export const syncDiscourseNodeChanges = async (
   try {
     const filePaths = Array.from(changeTypesByPath.keys());
 
-    console.debug(
-      `Syncing ${filePaths.length} file change(s) with explicit types`,
-    );
+    // [PG-G2] Removed console.debug
 
     if (filePaths.length === 0) {
-      console.debug("No files to sync");
+      // [PG-G2] Removed console.debug
       return;
     }
 
@@ -792,7 +786,7 @@ export const syncDiscourseNodeChanges = async (
     );
 
     if (dgNodesInVault.length === 0) {
-      console.debug("No DG nodes found in specified files");
+      // [PG-G2] Removed console.debug
       return;
     }
 
@@ -816,7 +810,7 @@ export const syncDiscourseNodeChanges = async (
       accountLocalId,
     });
 
-    console.debug(`Successfully synced ${changedNodes.length} node(s)`);
+    // [PG-G2] Removed console.debug
   } catch (error) {
     console.error("syncDiscourseNodeChanges: Process failed:", error);
     throw error;
