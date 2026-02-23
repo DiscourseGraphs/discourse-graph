@@ -14,21 +14,18 @@ import {
   DefaultKeyboardShortcutsDialogContent,
   DefaultToolbarContent,
   TldrawUiMenuItem,
-  TldrawUiMenuCheckboxItem,
   DefaultMainMenu,
+  DefaultMainMenuContent,
   TldrawUiMenuGroup,
+  TldrawUiDropdownMenuItem,
+  TldrawUiButton,
+  TldrawUiButtonLabel,
+  TldrawUiIcon,
   useActions,
   DefaultContextMenu,
   DefaultContextMenuContent,
   TLUiComponents,
-  EditSubmenu,
-  ExportFileContentSubMenu,
-  ExtrasGroup,
-  PreferencesGroup,
   TldrawUiMenuSubmenu,
-  ZoomTo100MenuItem,
-  ZoomToFitMenuItem,
-  ZoomToSelectionMenuItem,
   useEditor,
   useValue,
   useToasts,
@@ -49,6 +46,40 @@ import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
 import renderToast from "roamjs-components/components/Toast";
+
+const SyncModeMenuSwitchItem = ({
+  checked,
+  disabled,
+  label,
+  onToggle,
+}: {
+  checked: boolean;
+  disabled: boolean;
+  label: string;
+  onToggle: () => void;
+}): React.ReactElement => {
+  return (
+    <TldrawUiDropdownMenuItem>
+      <TldrawUiButton
+        type="menu"
+        title={label}
+        disabled={disabled}
+        onClick={onToggle}
+      >
+        <TldrawUiButtonLabel>{label}</TldrawUiButtonLabel>
+        <span
+          style={{
+            marginLeft: "auto",
+            display: "inline-flex",
+            alignItems: "center",
+          }}
+        >
+          <TldrawUiIcon icon={checked ? "toggle-on" : "toggle-off"} small />
+        </span>
+      </TldrawUiButton>
+    </TldrawUiDropdownMenuItem>
+  );
+};
 
 export const getOnSelectForShape = ({
   shape,
@@ -191,6 +222,7 @@ export const createUiComponents = ({
   canvasSyncMode,
   isCloudflareSyncAvailable,
   onCanvasSyncModeChange,
+  shouldWarnSyncModeStartsBlank,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
@@ -198,6 +230,7 @@ export const createUiComponents = ({
   canvasSyncMode: CanvasSyncMode;
   isCloudflareSyncAvailable: boolean;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
+  shouldWarnSyncModeStartsBlank: () => Promise<boolean>;
 }): TLUiComponents => {
   return {
     Toolbar: (props) => {
@@ -228,32 +261,21 @@ export const createUiComponents = ({
       );
     },
     MainMenu: () => {
-      const CustomViewMenu = () => {
-        const actions = useActions();
-        return (
-          <TldrawUiMenuSubmenu id="view" label="menu.view">
-            <TldrawUiMenuGroup id="view-actions">
-              <TldrawUiMenuItem {...actions["zoom-in"]} />
-              <TldrawUiMenuItem {...actions["zoom-out"]} />
-              <ZoomTo100MenuItem />
-              <ZoomToFitMenuItem />
-              <ZoomToSelectionMenuItem />
-              <TldrawUiMenuItem {...actions["toggle-full-screen"]} />
-            </TldrawUiMenuGroup>
-          </TldrawUiMenuSubmenu>
-        );
-      };
       const onToggleSyncMode = (): void => {
         const nextMode: CanvasSyncMode =
           canvasSyncMode === "sync" ? "local" : "sync";
         onCanvasSyncModeChange(nextMode);
-        if (nextMode === "sync") {
+        if (nextMode !== "sync") return;
+
+        void (async () => {
+          const shouldWarn = await shouldWarnSyncModeStartsBlank();
+          if (!shouldWarn) return;
           renderToast({
             id: "tldraw-sync-mode-enabled-v0",
             intent: "warning",
             content: "Sync mode starts from a new blank sync canvas.",
           });
-        }
+        })();
       };
       const syncModeLabel = isCloudflareSyncAvailable
         ? "Sync mode"
@@ -261,21 +283,15 @@ export const createUiComponents = ({
 
       return (
         <DefaultMainMenu>
-          <EditSubmenu />
-          <CustomViewMenu /> {/* Replaced <ViewSubmenu /> */}
           <TldrawUiMenuGroup id="sync-mode">
-            <TldrawUiMenuCheckboxItem
-              id="toggle-sync-mode"
+            <SyncModeMenuSwitchItem
               label={syncModeLabel}
               checked={canvasSyncMode === "sync"}
-              readonlyOk
               disabled={!isCloudflareSyncAvailable}
-              onSelect={onToggleSyncMode}
+              onToggle={onToggleSyncMode}
             />
           </TldrawUiMenuGroup>
-          <ExportFileContentSubMenu />
-          <ExtrasGroup />
-          <PreferencesGroup />
+          <DefaultMainMenuContent />
         </DefaultMainMenu>
       );
     },
