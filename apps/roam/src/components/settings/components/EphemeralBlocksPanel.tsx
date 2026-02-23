@@ -20,6 +20,8 @@ const serializeBlockTree = (children: TreeNode[]): RoamNodeType[] =>
     .sort((a, b) => a.order - b.order)
     .map((child) => ({
       text: child.text,
+      ...(child.heading && { heading: child.heading as 0 | 1 | 2 | 3 }),
+      ...(child.open === false && { open: false }),
       ...(child.children.length > 0 && {
         children: serializeBlockTree(child.children),
       }),
@@ -49,23 +51,28 @@ const DualWriteBlocksPanel = ({
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el || !uid) return;
+
+    const pattern = "[:block/string :block/order {:block/children ...}]";
+    const entityId = `[:block/uid "${uid}"]`;
+    const callback = () => handleChange();
+
+    const registerPullWatch = () => {
+      pullWatchArgsRef.current = [pattern, entityId, callback];
+      window.roamAlphaAPI.data.addPullWatch(pattern, entityId, callback);
+    };
 
     if (!getFirstChildUidByBlockUid(uid)) {
       void createBlock({ node: { text: " " }, parentUid: uid }).then(() => {
         el.innerHTML = "";
         void window.roamAlphaAPI.ui.components.renderBlock({ uid, el });
+        registerPullWatch();
       });
     } else {
       el.innerHTML = "";
       void window.roamAlphaAPI.ui.components.renderBlock({ uid, el });
+      registerPullWatch();
     }
-
-    const pattern = "[:block/string :block/order {:block/children ...}]";
-    const entityId = `[:block/uid "${uid}"]`;
-    const callback = () => handleChange();
-    pullWatchArgsRef.current = [pattern, entityId, callback];
-    window.roamAlphaAPI.data.addPullWatch(pattern, entityId, callback);
 
     return () => {
       window.clearTimeout(debounceRef.current);
