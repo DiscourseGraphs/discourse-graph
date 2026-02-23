@@ -63,7 +63,13 @@ const NodeAttribute = ({
 const toRecord = (attrs: Attribute[]): Record<string, string> =>
   Object.fromEntries(attrs.map((a) => [a.label, a.value]));
 
-const NodeAttributes = ({ uid, nodeType }: { uid: string; nodeType: string }) => {
+const NodeAttributes = ({
+  uid,
+  nodeType,
+}: {
+  uid: string;
+  nodeType: string;
+}) => {
   const [attributes, setAttributes] = useState<Attribute[]>(() =>
     getBasicTreeByParentUid(uid).map((t) => ({
       uid: t.uid,
@@ -74,7 +80,11 @@ const NodeAttributes = ({ uid, nodeType }: { uid: string; nodeType: string }) =>
   const attributesRef = useRef(attributes);
   attributesRef.current = attributes;
   const syncToBlockProps = () =>
-    setDiscourseNodeSetting(nodeType, ["attributes"], toRecord(attributesRef.current));
+    setDiscourseNodeSetting(
+      nodeType,
+      ["attributes"],
+      toRecord(attributesRef.current),
+    );
   const [newAttribute, setNewAttribute] = useState("");
   return (
     <div>
@@ -94,7 +104,11 @@ const NodeAttributes = ({ uid, nodeType }: { uid: string; nodeType: string }) =>
               deleteBlock(a.uid).then(() => {
                 const updated = attributes.filter((aa) => a.uid !== aa.uid);
                 setAttributes(updated);
-                setDiscourseNodeSetting(nodeType, ["attributes"], toRecord(updated));
+                setDiscourseNodeSetting(
+                  nodeType,
+                  ["attributes"],
+                  toRecord(updated),
+                );
               })
             }
             onSync={syncToBlockProps}
@@ -128,7 +142,11 @@ const NodeAttributes = ({ uid, nodeType }: { uid: string; nodeType: string }) =>
                 ];
                 setAttributes(updated);
                 setNewAttribute("");
-                setDiscourseNodeSetting(nodeType, ["attributes"], toRecord(updated));
+                setDiscourseNodeSetting(
+                  nodeType,
+                  ["attributes"],
+                  toRecord(updated),
+                );
               });
             }}
           />

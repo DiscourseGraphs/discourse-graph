@@ -43,7 +43,9 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
 
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
-  const [affectedRelations, setAffectedRelations] = useState<DiscourseRelation[]>([]);
+  const [affectedRelations, setAffectedRelations] = useState<
+    DiscourseRelation[]
+  >([]);
   const [nodeTypeIdToDelete, setNodeTypeIdToDelete] = useState<string>("");
   const navigateToNode = (uid: string) => {
     if (isPopup) {
@@ -97,13 +99,16 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
                 },
               ],
             }).then((valueUid) => {
-              setBlockProps(valueUid, DiscourseNodeSchema.parse({
-                text: label,
-                type: valueUid,
-                shortcut,
-                format,
-                backedBy: "user",
-              }));
+              setBlockProps(
+                valueUid,
+                DiscourseNodeSchema.parse({
+                  text: label,
+                  type: valueUid,
+                  shortcut,
+                  format,
+                  backedBy: "user",
+                }),
+              );
               setNodes([
                 ...nodes,
                 {
