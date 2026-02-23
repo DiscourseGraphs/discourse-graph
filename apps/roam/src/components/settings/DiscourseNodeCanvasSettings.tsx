@@ -11,7 +11,10 @@ import React, { useState, useMemo } from "react";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import setInputSetting from "roamjs-components/util/setInputSetting";
-import { DiscourseNodeFlagPanel, DiscourseNodeTextPanel } from "./components/BlockPropSettingPanels";
+import {
+  DiscourseNodeFlagPanel,
+  DiscourseNodeTextPanel,
+} from "./components/BlockPropSettingPanels";
 import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 
 export const formatHexColor = (color: string) => {
@@ -66,7 +69,11 @@ const DiscourseNodeCanvasSettings = ({
                 key: "color",
                 value: colorValue,
               });
-              setDiscourseNodeSetting(nodeType, ["canvasSettings", "color"], colorValue);
+              setDiscourseNodeSetting(
+                nodeType,
+                ["canvasSettings", "color"],
+                colorValue,
+              );
             }}
           />
           <Tooltip content={color ? "Unset" : "Color not set"}>
@@ -80,7 +87,11 @@ const DiscourseNodeCanvasSettings = ({
                   key: "color",
                   value: "",
                 });
-                setDiscourseNodeSetting(nodeType, ["canvasSettings", "color"], "");
+                setDiscourseNodeSetting(
+                  nodeType,
+                  ["canvasSettings", "color"],
+                  "",
+                );
               }}
             />
           </Tooltip>
@@ -128,7 +139,11 @@ const DiscourseNodeCanvasSettings = ({
             key: "key-image-option",
             value,
           });
-          setDiscourseNodeSetting(nodeType, ["canvasSettings", "key-image-option"], value);
+          setDiscourseNodeSetting(
+            nodeType,
+            ["canvasSettings", "key-image-option"],
+            value,
+          );
         }}
       >
         <Radio label="First image on page" value="first-image" />
@@ -155,7 +170,11 @@ const DiscourseNodeCanvasSettings = ({
             key: "query-builder-alias",
             value: val,
           });
-          setDiscourseNodeSetting(nodeType, ["canvasSettings", "query-builder-alias"], val);
+          setDiscourseNodeSetting(
+            nodeType,
+            ["canvasSettings", "query-builder-alias"],
+            val,
+          );
         }}
       />
     </div>
