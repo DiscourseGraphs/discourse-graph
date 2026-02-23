@@ -490,8 +490,9 @@ const QueryEditor: QueryEditorComponent = ({
     if (!discourseNodeType) return;
 
     const stripped: unknown = JSON.parse(
-      JSON.stringify({ conditions, selections, custom }, (key, value: unknown) =>
-        key === "uid" ? undefined : value,
+      JSON.stringify(
+        { conditions, selections, custom },
+        (key, value: unknown) => (key === "uid" ? undefined : value),
       ),
     );
 
