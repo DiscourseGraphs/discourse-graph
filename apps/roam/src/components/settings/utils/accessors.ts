@@ -174,7 +174,7 @@ const DEFAULT_LEGACY_QUERY = {
   returnNode: "node",
 };
 
-const PERSONAL_OLD_KEY_MAP = new Map<string, string>([
+const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
   [pathKey(["Discourse context overlay"]), "discourse-context-overlay"],
   [pathKey(["Suggestive mode overlay"]), "suggestive-mode-overlay"],
   [pathKey(["Text selection popup"]), "text-selection-popup"],
@@ -192,10 +192,6 @@ const PERSONAL_OLD_KEY_MAP = new Map<string, string>([
   [pathKey(["Query", "Default page size"]), "default-page-size"],
   [pathKey(["Query", "Query pages"]), "query-pages"],
   [pathKey(["Query", "Default filters"]), "default-filters"],
-]);
-
-const PERSONAL_OLD_DEFAULT_OVERRIDES = new Map<string, unknown>([
-  [pathKey(["Query", "Hide query metadata"]), true],
 ]);
 
 const getLegacyPersonalLeftSidebarSetting = (): Record<string, unknown> => {
@@ -221,14 +217,13 @@ const getLegacyPersonalLeftSidebarSetting = (): Record<string, unknown> => {
 };
 
 const getLegacyPersonalSetting = (keys: string[]): unknown => {
-  const mappedOldKey = PERSONAL_OLD_KEY_MAP.get(pathKey(keys));
+  if (keys.length === 0) return undefined;
+
+  const mappedOldKey = PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY.get(pathKey(keys));
   if (mappedOldKey) {
-    const path = pathKey(keys);
     return getSetting<unknown>(
       mappedOldKey,
-      PERSONAL_OLD_DEFAULT_OVERRIDES.has(path)
-        ? PERSONAL_OLD_DEFAULT_OVERRIDES.get(path)
-        : readPathValue(DEFAULT_PERSONAL_SETTINGS, keys),
+      readPathValue(DEFAULT_PERSONAL_SETTINGS, keys),
     );
   }
 
@@ -284,10 +279,10 @@ const getLegacyRelationsSetting = (): Record<string, unknown> => {
 
   return Object.fromEntries(
     relationNodes.map((relationNode) => {
-      const relationTree = relationNode.children || [];
+      const relationTree = relationNode.children;
       const ifBlocks = getSubTree({ tree: relationTree, key: "If" }).children;
       const ifConditions = ifBlocks.map((ifBlock) => {
-        const blockChildren = ifBlock.children || [];
+        const blockChildren = ifBlock.children;
         const nodePositionsNode = blockChildren.find((c) =>
           /node positions/i.test(c.text),
         );
@@ -297,14 +292,14 @@ const getLegacyRelationsSetting = (): Record<string, unknown> => {
             (c) =>
               [
                 c.text,
-                c.children?.[0]?.text || "",
-                c.children?.[0]?.children?.[0]?.text || "",
+                c.children[0]?.text || "",
+                c.children[0]?.children[0]?.text || "",
               ] as [string, string, string],
           );
         const nodePositions = Object.fromEntries(
           (nodePositionsNode?.children || []).map((c) => [
             c.text,
-            c.children?.[0]?.text || "",
+            c.children[0]?.text || "",
           ]),
         );
         return { triples, nodePositions };
@@ -333,6 +328,7 @@ const getLegacyRelationsSetting = (): Record<string, unknown> => {
   );
 };
 
+// Reconstructs global settings from getFormattedConfigTree() shape to match block-props schema shape
 const getLegacyGlobalSetting = (keys: string[]): unknown => {
   if (keys.length === 0) return undefined;
 
@@ -447,6 +443,7 @@ const getLegacyQuerySettingByParentUid = (parentUid: string) => {
   };
 };
 
+// Reconstructs per-node settings from Roam tree structure to match block-props schema shape
 const getLegacyDiscourseNodeSetting = (
   nodeType: string,
   keys: string[],
@@ -466,12 +463,21 @@ const getLegacyDiscourseNodeSetting = (
 
   if (tree.length === 0) return undefined;
 
-  const canvasSettings = Object.fromEntries(
+  const rawCanvas = Object.fromEntries(
     getSubTree({ tree, key: "canvas" }).children.map((c) => [
       c.text,
       c.children[0]?.text || "",
     ]),
-  ) as Record<string, unknown>;
+  );
+  /* eslint-disable @typescript-eslint/naming-convention */
+  const canvasSettings = {
+    color: rawCanvas["color"] || "",
+    alias: rawCanvas["alias"] || "",
+    "key-image": rawCanvas["key-image"] === "true",
+    "key-image-option": rawCanvas["key-image-option"] || "first-image",
+    "query-builder-alias": rawCanvas["query-builder-alias"] || "",
+  };
+  /* eslint-enable @typescript-eslint/naming-convention */
   const attributes = Object.fromEntries(
     getSubTree({ tree, key: "Attributes" }).children.map((c) => [
       c.text,
@@ -485,14 +491,6 @@ const getLegacyDiscourseNodeSetting = (
   }).children;
   const indexUid = getSubTree({ tree, key: "Index" }).uid;
   const specificationUid = getSubTree({ tree, key: "Specification" }).uid;
-  const keyImageRaw = canvasSettings["key-image"];
-  canvasSettings["color"] = (canvasSettings["color"] as string) || "";
-  canvasSettings["alias"] = (canvasSettings["alias"] as string) || "";
-  canvasSettings["key-image"] = keyImageRaw === "true";
-  canvasSettings["key-image-option"] =
-    (canvasSettings["key-image-option"] as string) || "first-image";
-  canvasSettings["query-builder-alias"] =
-    (canvasSettings["query-builder-alias"] as string) || "";
 
   const legacySettings = {
     type: nodeUid,
