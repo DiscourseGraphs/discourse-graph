@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-import { DEFAULT_CANVAS_PAGE_FORMAT } from "~/index";
+
 import { Alert, Intent } from "@blueprintjs/core";
 import {
   GlobalTextPanel,
@@ -24,7 +24,6 @@ const DiscourseGraphHome = () => {
         title="trigger"
         description="The trigger to create the node menu."
         settingKeys={["Trigger"]}
-        initialValue={settings.trigger.value || "\\"}
         order={0}
         uid={settings.trigger.uid}
         parentUid={settings.settingsUid}
@@ -33,9 +32,6 @@ const DiscourseGraphHome = () => {
         title="Canvas Page Format"
         description="The page format for canvas pages"
         settingKeys={["Canvas page format"]}
-        initialValue={
-          settings.canvasPageFormat.value || DEFAULT_CANVAS_PAGE_FORMAT
-        }
         order={1}
         uid={settings.canvasPageFormat.uid}
         parentUid={settings.settingsUid}

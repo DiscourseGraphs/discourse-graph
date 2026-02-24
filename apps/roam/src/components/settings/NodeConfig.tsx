@@ -11,8 +11,7 @@ import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
-import refreshConfigTree from "~/utils/refreshConfigTree";
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
@@ -45,10 +44,6 @@ const NodeConfig = ({
   node: DiscourseNode;
   onloadArgs: OnloadArgs;
 }) => {
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,
@@ -296,7 +291,7 @@ const NodeConfig = ({
             </div>
           }
         />
-        {settings.suggestiveModeEnabled.value && (
+        {getFeatureFlag("Suggestive mode enabled") && (
           <Tab
             id="suggestive-mode"
             title="Suggestive mode"

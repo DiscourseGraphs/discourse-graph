@@ -24,10 +24,12 @@ import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import { type RelationDetails } from "~/utils/hyde";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { getSetting } from "~/utils/extensionSettings";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import {
+  getFeatureFlag,
+  getGlobalSetting,
+} from "~/components/settings/utils/accessors";
+import type { PageGroup } from "~/components/settings/utils/zodSchema";
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import posthog from "posthog-js";
 
@@ -310,7 +312,7 @@ const SuggestionsBody = ({
   };
 
   const handleCreateBlock = async (node: SuggestedNode) => {
-    if (getSetting<boolean>(USE_REIFIED_RELATIONS, false)) {
+    if (getFeatureFlag("Reified relation triples")) {
       if (discourseNode === false) {
         renderToast({
           id: "suggestions-create-block-error",
@@ -374,7 +376,7 @@ const SuggestionsBody = ({
       tag,
       nodeType: node.type,
       nodeText: node.text,
-      useReifiedRelations: getSetting<boolean>(USE_REIFIED_RELATIONS, false),
+      useReifiedRelations: getFeatureFlag("Reified relation triples"),
     });
     setHydeFilteredNodes((prev) => prev.filter((n) => n.uid !== node.uid));
   };
@@ -417,12 +419,12 @@ const SuggestionsBody = ({
   };
 
   useEffect(() => {
-    const config = getFormattedConfigTree();
-    const groups = config.suggestiveMode.pageGroups.groups;
+    const groups =
+      getGlobalSetting<PageGroup[]>(["Suggestive mode", "Page groups"]) ?? [];
 
     const groupsRecord = groups.reduce(
       (acc, group) => {
-        acc[group.name] = group.pages.map((p) => p.name);
+        acc[group.name] = group.pages;
         return acc;
       },
       {} as Record<string, string[]>,
