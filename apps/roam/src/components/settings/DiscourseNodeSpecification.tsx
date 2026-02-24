@@ -9,6 +9,9 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import QueryEditor from "~/components/QueryEditor";
 import internalError from "~/utils/internalError";
+import {
+  getDiscourseNodeSetting,
+} from "~/components/settings/utils/accessors";
 
 const NodeSpecification = ({
   parentUid,
@@ -20,11 +23,15 @@ const NodeSpecification = ({
   parentSetEnabled?: (enabled: boolean) => void;
 }) => {
   const [migrated, setMigrated] = React.useState(false);
-  const [enabled, setEnabled] = React.useState<string>(
+
+  const [enabled, setEnabled] = React.useState(
     () =>
-      getSubTree({ tree: getBasicTreeByParentUid(parentUid), key: "enabled" })
-        ?.uid,
+      getDiscourseNodeSetting<boolean>(node.type, [
+        "specification",
+        "enabled",
+      ]) ?? false,
   );
+
   React.useEffect(() => {
     if (enabled) {
       const scratchNode = getSubTree({ parentUid, key: "scratch" });
