@@ -44,6 +44,8 @@ import {
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import { ALL_SELECTION_SUGGESTIONS } from "~/utils/predefinedSelections";
 import { getAlias } from "~/utils/parseResultSettings";
+import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
+import { IndexSchema } from "~/components/settings/utils/zodSchema";
 
 const getSourceCandidates = (cs: Condition[]): string[] =>
   cs.flatMap((c) =>
@@ -434,6 +436,9 @@ type QueryEditorComponent = (props: {
   setHasResults?: () => void;
   hideCustomSwitch?: boolean;
   showAlias?: boolean;
+  discourseNodeType?: string;
+  settingKey?: "index" | "specification";
+  returnNode?: string;
 }) => JSX.Element;
 
 const QueryEditor: QueryEditorComponent = ({
@@ -442,6 +447,9 @@ const QueryEditor: QueryEditorComponent = ({
   setHasResults,
   hideCustomSwitch,
   showAlias,
+  discourseNodeType,
+  settingKey, // eslint-disable-line react/prop-types
+  returnNode, // eslint-disable-line react/prop-types
 }) => {
   useEffect(() => {
     const previewQuery = ((e: CustomEvent) => {
@@ -476,6 +484,53 @@ const QueryEditor: QueryEditorComponent = ({
   const [conditions, _setConditions] = useState(initialConditions);
   const [selections, setSelections] = useState(initialSelections);
   const [custom, setCustom] = useState(initialCustom);
+
+  const blockPropSyncTimeoutRef = useRef(0);
+  const lastSyncedIndexRef = useRef("");
+  useEffect(() => {
+    return () => window.clearTimeout(blockPropSyncTimeoutRef.current);
+  }, []);
+  useEffect(() => {
+    if (!discourseNodeType || !settingKey) return;
+
+    const stripped: unknown = JSON.parse(
+      JSON.stringify(
+        { conditions, selections, custom, returnNode },
+        (key, value: unknown) => (key === "uid" ? undefined : value),
+      ),
+    );
+
+    const serialized = JSON.stringify(stripped);
+    if (serialized === lastSyncedIndexRef.current) return;
+
+    const result = IndexSchema.safeParse(stripped);
+    if (!result.success) {
+      console.error(
+        `${settingKey} blockprop sync failed validation:`,
+        result.error,
+      );
+      return;
+    }
+
+    const path =
+      settingKey === "index" ? ["index"] : ["specification", "query"];
+
+    window.clearTimeout(blockPropSyncTimeoutRef.current);
+    blockPropSyncTimeoutRef.current = window.setTimeout(() => {
+      setDiscourseNodeSetting(discourseNodeType, path, result.data);
+      lastSyncedIndexRef.current = serialized;
+    }, 250);
+
+    return () => window.clearTimeout(blockPropSyncTimeoutRef.current);
+  }, [
+    conditions,
+    selections,
+    custom,
+    discourseNodeType,
+    settingKey,
+    returnNode,
+  ]);
+
   const customNodeOnChange = (value: string) => {
     window.clearTimeout(debounceRef.current);
     setCustom(value);

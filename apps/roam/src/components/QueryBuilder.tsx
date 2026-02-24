@@ -31,11 +31,21 @@ type QueryPageComponent = (props: {
   pageUid: string;
   isEditBlock?: boolean;
   showAlias?: boolean;
+  discourseNodeType?: string;
+  settingKey?: "index" | "specification";
+  returnNode?: string;
 }) => JSX.Element;
 
 type Props = Parameters<QueryPageComponent>[0];
 
-const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
+const QueryBuilder = ({
+  pageUid,
+  isEditBlock,
+  showAlias,
+  discourseNodeType,
+  settingKey,
+  returnNode,
+}: Props) => {
   const extensionAPI = useExtensionAPI();
   const hideMetadata = useMemo(
     () =>
@@ -158,6 +168,9 @@ const QueryBuilder = ({ pageUid, isEditBlock, showAlias }: Props) => {
           <>
             <QueryEditor
               parentUid={pageUid}
+              discourseNodeType={discourseNodeType}
+              settingKey={settingKey}
+              returnNode={returnNode}
               onQuery={() => {
                 setHasResults(true);
                 setIsEdit(false);
