@@ -170,7 +170,7 @@ const getLastContentSyncTime = async (
   return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
 };
 
-const getLastSchemaSyncTime = async (
+const getLastNodeSchemaSyncTime = async (
   supabaseClient: DGSupabaseClient,
   spaceId: number,
 ): Promise<Date> => {
@@ -179,6 +179,23 @@ const getLastSchemaSyncTime = async (
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
+    .eq("arity", 0)
+    .order("last_modified", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
+};
+
+const getLastRelationSchemaSyncTime = async (
+  supabaseClient: DGSupabaseClient,
+  spaceId: number,
+): Promise<Date> => {
+  const { data } = await supabaseClient
+    .from("Concept")
+    .select("last_modified")
+    .eq("space_id", spaceId)
+    .eq("is_schema", true)
+    .gt("arity", 0)
     .order("last_modified", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -487,8 +504,11 @@ const convertDgToSupabaseConcepts = async ({
   accountLocalId: string;
   plugin: DiscourseGraphPlugin;
 }): Promise<void> => {
-  const lastSchemaSync = (
-    await getLastSchemaSyncTime(supabaseClient, context.spaceId)
+  const lastNodeSchemaSync = (
+    await getLastNodeSchemaSyncTime(supabaseClient, context.spaceId)
+  ).getTime();
+  const lastRelationSchemaSync = (
+    await getLastRelationSchemaSyncTime(supabaseClient, context.spaceId)
   ).getTime();
   const lastRelationsSync = (
     await getLastRelationSyncTime(supabaseClient, context.spaceId)
@@ -506,7 +526,7 @@ const convertDgToSupabaseConcepts = async ({
   );
 
   const nodesTypesToLocalConcepts = nodeTypes
-    .filter((nodeType) => nodeType.modified > lastSchemaSync)
+    .filter((nodeType) => nodeType.modified > lastNodeSchemaSync)
     .map((nodeType) =>
       discourseNodeSchemaToLocalConcept({
         context,
@@ -520,7 +540,7 @@ const convertDgToSupabaseConcepts = async ({
   );
 
   const relationTypesToLocalConcepts = relationTypes
-    .filter((relationType) => relationType.modified > lastSchemaSync)
+    .filter((relationType) => relationType.modified > lastRelationSchemaSync)
     .map((relationType) =>
       discourseRelationTypeToLocalConcept({
         context,
@@ -532,15 +552,15 @@ const convertDgToSupabaseConcepts = async ({
   const discourseRelationTriplesToLocalConcepts = discourseRelations
     .filter(
       (relationTriple) =>
-        relationTriple.modified > lastSchemaSync ||
+        relationTriple.modified > lastRelationSchemaSync ||
         // resync if type was changed, to update labels in triple
         (relationTypesById[relationTriple.relationshipTypeId]?.modified ?? 0) >
-          lastSchemaSync ||
+          lastRelationSchemaSync ||
         // resync if source or destination node type was changed, to update names in triple
         (nodeTypesById[relationTriple.sourceId]?.modified ?? 0) >
-          lastSchemaSync ||
+          lastNodeSchemaSync ||
         (nodeTypesById[relationTriple.destinationId]?.modified ?? 0) >
-          lastSchemaSync,
+          lastNodeSchemaSync,
     )
     .map((relation) =>
       discourseRelationTripleSchemaToLocalConcept({
