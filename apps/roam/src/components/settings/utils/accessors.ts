@@ -262,6 +262,11 @@ const getLegacyPersonalSetting = (keys: string[]): unknown => {
   return undefined;
 };
 
+// NOTE(ENG-1469): This returns the block props schema shape (Record<uid, {label, source,
+// destination, complement, ifConditions}>). Runtime consumers use getDiscourseRelations()
+// which returns a flat DiscourseRelation[] with a different structure (one entry per
+// if-block, triples at top level, no nodePositions). When migrating getDiscourseRelations()
+// to read from block props, it will need a conversion from this shape to the flat array.
 const getLegacyRelationsSetting = (): Record<string, unknown> => {
   const settingsUid = getPageUidByPageTitle(DG_BLOCK_PROP_SETTINGS_PAGE_TITLE);
   if (!settingsUid) return DEFAULT_GLOBAL_SETTINGS.Relations;
