@@ -26,6 +26,7 @@ import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpr
 import { Result } from "~/utils/types";
 import { getSetting } from "~/utils/extensionSettings";
 import MiniSearch from "minisearch";
+import { setPersonalSetting } from "~/components/settings/utils/accessors";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -724,7 +725,8 @@ export const NodeSearchMenuTriggerSetting = ({
       .trim();
 
     setNodeSearchTrigger(trigger);
-    extensionAPI.settings.set("node-search-trigger", trigger);
+    void extensionAPI.settings.set("node-search-trigger", trigger);
+    setPersonalSetting(["Node search menu trigger"], trigger);
   };
   return (
     <InputGroup
