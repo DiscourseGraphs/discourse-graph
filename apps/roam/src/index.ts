@@ -155,7 +155,6 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-
   const { blockUids } = await initSchema();
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
 
