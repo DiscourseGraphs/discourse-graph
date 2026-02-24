@@ -1,4 +1,10 @@
-import React, { type ChangeEvent, useState, useCallback, useRef } from "react";
+import React, {
+  type ChangeEvent,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+} from "react";
 import {
   Checkbox,
   InputGroup,
@@ -7,6 +13,7 @@ import {
   HTMLSelect,
   Button,
   Tag,
+  TextArea,
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
@@ -15,8 +22,10 @@ import {
   setGlobalSetting,
   setPersonalSetting,
   setFeatureFlag,
+  setDiscourseNodeSetting,
 } from "~/components/settings/utils/accessors";
-import type { FeatureFlags } from "~/components/settings/utils/zodSchema";
+import type { FeatureFlags } from "../utils/zodSchema";
+import type { json } from "~/utils/getBlockProps";
 
 type RoamBlockSyncProps = {
   parentUid?: string;
@@ -31,7 +40,6 @@ type FlagSetter = (keys: string[], value: boolean) => void;
 type NumberSetter = (keys: string[], value: number) => void;
 
 type MultiTextSetter = (keys: string[], value: string[]) => void;
-
 type BaseTextPanelProps = {
   title: string;
   description: string;
@@ -39,6 +47,8 @@ type BaseTextPanelProps = {
   setter: TextSetter;
   initialValue?: string;
   placeholder?: string;
+  multiline?: boolean;
+  error?: string;
   onChange?: (value: string) => void;
 } & RoamBlockSyncProps;
 
@@ -83,6 +93,8 @@ type BaseMultiTextPanelProps = {
   onChange?: (values: string[]) => void;
 } & RoamBlockSyncProps;
 
+const DEBOUNCE_MS = 250;
+
 const BaseTextPanel = ({
   title,
   description,
@@ -90,12 +102,17 @@ const BaseTextPanel = ({
   setter,
   initialValue,
   placeholder,
+  multiline,
+  error,
   onChange,
   parentUid,
   uid,
   order,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? "");
+  const errorRef = useRef(error);
+  errorRef.current = error;
+  const debounceRef = useRef(0);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
   const { onChange: rawSyncToBlock } = useSingleChildValue({
     title,
@@ -108,24 +125,50 @@ const BaseTextPanel = ({
   });
   const syncToBlock = hasBlockSync ? rawSyncToBlock : undefined;
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    return () => window.clearTimeout(debounceRef.current);
+  }, []);
+
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const newValue = e.target.value;
     setValue(newValue);
-    setter(settingKeys, newValue);
-    syncToBlock?.(newValue);
     onChange?.(newValue);
+
+    window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      if (errorRef.current) return;
+      setter(settingKeys, newValue);
+      syncToBlock?.(newValue);
+    }, DEBOUNCE_MS);
   };
 
   return (
-    <Label>
-      {title}
-      <Description description={description} />
-      <InputGroup
-        value={value}
-        onChange={handleChange}
-        placeholder={placeholder || initialValue}
-      />
-    </Label>
+    <div className="flex flex-col">
+      <Label>
+        {title}
+        <Description description={description} />
+        {multiline ? (
+          <TextArea
+            value={value}
+            onChange={handleChange}
+            placeholder={placeholder || initialValue}
+            className="w-full"
+            style={{ minHeight: 80, resize: "vertical" }}
+          />
+        ) : (
+          <InputGroup
+            value={value}
+            onChange={handleChange}
+            placeholder={placeholder || initialValue}
+          />
+        )}
+      </Label>
+      {error && (
+        <div className="mt-1 text-sm font-medium text-red-600">{error}</div>
+      )}
+    </div>
   );
 };
 
@@ -532,4 +575,63 @@ export const PersonalSelectPanel = (props: SelectWrapperProps) => (
 
 export const PersonalMultiTextPanel = (props: MultiTextWrapperProps) => (
   <BaseMultiTextPanel {...props} {...personalAccessors.multiText} />
+);
+
+const createDiscourseNodeSetter =
+  (nodeType: string) =>
+  (keys: string[], value: json): void =>
+    setDiscourseNodeSetting(nodeType, keys, value);
+
+type DiscourseNodeBaseProps = {
+  nodeType: string;
+  title: string;
+  description: string;
+  settingKeys: string[];
+};
+
+export const DiscourseNodeTextPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeBaseProps &
+  RoamBlockSyncProps & {
+    initialValue?: string;
+    placeholder?: string;
+    multiline?: boolean;
+    error?: string;
+    onChange?: (value: string) => void;
+  }) => (
+  <BaseTextPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
+);
+
+export const DiscourseNodeFlagPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeBaseProps &
+  RoamBlockSyncProps & {
+    initialValue?: boolean;
+    disabled?: boolean;
+    onBeforeChange?: (checked: boolean) => Promise<boolean>;
+    onChange?: (checked: boolean) => void;
+  }) => (
+  <BaseFlagPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
+);
+
+export const DiscourseNodeSelectPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeBaseProps &
+  RoamBlockSyncProps & { options: string[]; initialValue?: string }) => (
+  <BaseSelectPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
+);
+
+export const DiscourseNodeNumberPanel = ({
+  nodeType,
+  ...props
+}: DiscourseNodeBaseProps &
+  RoamBlockSyncProps & {
+    initialValue?: number;
+    min?: number;
+    max?: number;
+  }) => (
+  <BaseNumberPanel {...props} setter={createDiscourseNodeSetter(nodeType)} />
 );

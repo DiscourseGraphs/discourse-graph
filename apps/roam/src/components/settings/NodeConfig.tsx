@@ -6,20 +6,11 @@ import React, {
   useMemo,
 } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import FlagPanel from "roamjs-components/components/ConfigPanels/FlagPanel";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
-import TextPanel from "roamjs-components/components/ConfigPanels/TextPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
-import {
-  Label,
-  Tabs,
-  Tab,
-  TabId,
-  InputGroup,
-  TextArea,
-} from "@blueprintjs/core";
+import { Label, Tabs, Tab, TabId, InputGroup } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
@@ -31,6 +22,10 @@ import updateBlock from "roamjs-components/writes/updateBlock";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
+import {
+  DiscourseNodeTextPanel,
+  DiscourseNodeFlagPanel,
+} from "./components/BlockPropSettingPanels";
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -67,37 +62,6 @@ const ValidatedInputPanel = ({
     {error && (
       <div className="mt-1 text-sm font-medium text-red-600">{error}</div>
     )}
-  </div>
-);
-
-const ValidatedTextareaPanel = ({
-  label,
-  description,
-  value,
-  onChange,
-  onBlur,
-  placeholder,
-}: {
-  label: string;
-  description: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onBlur: () => void;
-  placeholder?: string;
-}) => (
-  <div className="flex flex-col">
-    <Label>
-      {label}
-      <Description description={description} />
-      <TextArea
-        value={value}
-        onChange={onChange}
-        onBlur={onBlur}
-        placeholder={placeholder}
-        className="w-full"
-        style={{ minHeight: 80, resize: "vertical" }}
-      />
-    </Label>
   </div>
 );
 
@@ -202,15 +166,7 @@ const NodeConfig = ({
   const [formatError, setFormatError] = useState("");
   const isConfigurationValid = !tagError && !formatError;
 
-  const {
-    value: tagValue,
-    handleChange: handleTagChange,
-    handleBlur: handleTagBlurFromHook,
-  } = useDebouncedRoamUpdater<HTMLInputElement>(
-    tagUid,
-    node.tag || "",
-    isConfigurationValid,
-  );
+  const [tagValue, setTagValue] = useState(node.tag || "");
   const {
     value: formatValue,
     handleChange: handleFormatChange,
@@ -220,16 +176,6 @@ const NodeConfig = ({
     node.format,
     isConfigurationValid,
   );
-  const {
-    value: descriptionValue,
-    handleChange: handleDescriptionChange,
-    handleBlur: handleDescriptionBlur,
-  } = useDebouncedRoamUpdater<HTMLTextAreaElement>(
-    descriptionUid,
-    node.description || "",
-    true,
-  );
-
   const validate = useCallback(
     ({
       tag,
@@ -289,11 +235,6 @@ const NodeConfig = ({
     validate({ tag: tagValue, format: formatValue });
   }, [tagValue, formatValue, validate]);
 
-  const handleTagBlur = useCallback(() => {
-    handleTagBlurFromHook();
-    validate({ tag: tagValue, format: formatValue });
-  }, [handleTagBlurFromHook, tagValue, formatValue, validate]);
-
   const handleFormatBlur = useCallback(() => {
     handleFormatBlurFromHook();
     validate({ tag: tagValue, format: formatValue });
@@ -311,29 +252,39 @@ const NodeConfig = ({
           title="General"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <ValidatedTextareaPanel
-                label="Description"
+              <DiscourseNodeTextPanel
+                nodeType={node.type}
+                title="Description"
                 description={`Describing what the ${node.text} node represents in your graph.`}
-                value={descriptionValue}
-                onChange={handleDescriptionChange}
-                onBlur={handleDescriptionBlur}
+                settingKeys={["description"]}
+                initialValue={node.description}
+                multiline
+                order={1}
+                parentUid={node.type}
+                uid={descriptionUid}
               />
-              <TextPanel
+              <DiscourseNodeTextPanel
+                nodeType={node.type}
                 title="Shortcut"
                 description={`The trigger to quickly create a ${node.text} page from the node menu.`}
+                settingKeys={["shortcut"]}
+                initialValue={node.shortcut}
                 order={0}
                 parentUid={node.type}
                 uid={shortcutUid}
-                defaultValue={node.shortcut}
               />
-              <ValidatedInputPanel
-                label="Tag"
+              <DiscourseNodeTextPanel
+                nodeType={node.type}
+                title="Tag"
                 description={`Designate a hashtag for marking potential ${node.text}.`}
-                value={tagValue}
-                onChange={handleTagChange}
-                onBlur={handleTagBlur}
-                error={tagError}
+                settingKeys={["tag"]}
+                initialValue={node.tag}
                 placeholder={generateTagPlaceholder(node)}
+                error={tagError}
+                onChange={setTagValue}
+                order={2}
+                parentUid={node.type}
+                uid={tagUid}
               />
             </div>
           }
@@ -426,14 +377,19 @@ const NodeConfig = ({
           title="Canvas"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeCanvasSettings uid={canvasUid} />
-              <FlagPanel
+              <DiscourseNodeCanvasSettings
+                nodeType={node.type}
+                uid={canvasUid}
+              />
+              <DiscourseNodeFlagPanel
+                nodeType={node.type}
                 title="Graph Overview"
                 description="Whether to color the node in the graph overview based on canvas color.  This is based on the node's plain title as described by a \`has title\` condition in its specification."
+                settingKeys={["graphOverview"]}
+                initialValue={node.graphOverview}
                 order={0}
                 parentUid={node.type}
                 uid={graphOverviewUid}
-                value={node.graphOverview}
               />
             </div>
           }
