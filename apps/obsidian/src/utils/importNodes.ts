@@ -686,6 +686,75 @@ const updateMarkdownAssetLinks = ({
     },
   );
 
+  // Match markdown links (non-image): [text](path) — internal paths resolved like wikilinks, href kept URL-encoded
+  const markdownLinkRegex = /\[([^\]]*)\]\(([^)]+)\)/g;
+  updatedContent = updatedContent.replace(
+    markdownLinkRegex,
+    (match, linkText: string, linkPath: string) => {
+      // First, try to find if this link resolves to one of our imported assets
+      const importedAssetFile = findImportedAssetFile(linkPath);
+      if (importedAssetFile) {
+        const linkPath = getRelativeLinkPath(importedAssetFile.path);
+        if (linkText) {
+          return `[${linkText}](${encodePathForMarkdownLink(linkPath)})`;
+        }
+        return `[${linkPath}](${encodePathForMarkdownLink(linkPath)})`;
+      }
+
+      // Direct lookup from pathMapping (record built when we downloaded each asset)
+      const newPath = getNewPathForLink(linkPath);
+      if (newPath) {
+        const newFile = app.metadataCache.getFirstLinkpathDest(
+          newPath,
+          targetFile.path,
+        );
+        if (newFile) {
+          const linkPath = getRelativeLinkPath(newFile.path);
+          if (linkText) {
+            return `[${linkText}](${encodePathForMarkdownLink(linkPath)})`;
+          }
+          return `[${linkPath}](${encodePathForMarkdownLink(linkPath)})`;
+        }
+      }
+
+      // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
+      const resolvedFile = app.metadataCache.getFirstLinkpathDest(
+        linkPath,
+        targetFile.path,
+      );
+      const isInImportFolder =
+        importFolder &&
+        resolvedFile &&
+        resolvedFile.path.startsWith(importFolder + "/");
+      if (isInImportFolder && resolvedFile) {
+        const linkText = getRelativeLinkPath(resolvedFile.path);
+        if (linkText) {
+          return `[${linkText}](${encodePathForMarkdownLink(linkText)})`;
+        }
+        return `[[${linkText}]]`;
+      }
+
+      // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
+      if (importFolder && originalNodePath && !resolvedFile) {
+        // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
+        const canonicalSourcePath =
+          linkPath.includes("/") &&
+          !linkPath.startsWith(".") &&
+          !linkPath.startsWith("/")
+            ? normalizePathForLookup(linkPath)
+            : (getCanonicalFromOriginalNote(linkPath) ??
+              normalizePathForLookup(linkPath));
+        const linkUnderImport = `${importFolder}/${canonicalSourcePath}`;
+        if (linkText) {
+          return `[${linkText}](${encodePathForMarkdownLink(linkUnderImport)})`;
+        }
+        return `[${linkUnderImport}](${encodePathForMarkdownLink(linkUnderImport)})`;
+      }
+
+      return match;
+    },
+  );
+
   // Match markdown image links: ![alt](path) or ![alt](path "title")
   const markdownImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
   updatedContent = updatedContent.replace(
@@ -1507,4 +1576,18 @@ export const refreshAllImportedFiles = async (
   }
 
   return { success: successCount, failed: failedCount, errors };
+};
+
+const encodePathForMarkdownLink = (linkPath: string): string => {
+  // Decode the full path first so %2F becomes / and we split into real segments; then encode each segment (spaces → %20) but keep / as separator so we never emit %2F
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(linkPath);
+  } catch {
+    decoded = linkPath;
+  }
+  return decoded
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
 };
