@@ -5,8 +5,8 @@ import createBlock from "roamjs-components/writes/createBlock";
 import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParentUid";
 import getFirstChildUidByBlockUid from "roamjs-components/queries/getFirstChildUidByBlockUid";
 import type { TreeNode } from "roamjs-components/types";
-import type { RoamNodeType } from "../utils/zodSchema";
-import { setDiscourseNodeSetting } from "../utils/accessors";
+import type { RoamNodeType } from "~/components/settings/utils/zodSchema";
+import { setDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 import type { DiscourseNodeBaseProps } from "./BlockPropSettingPanels";
 
 const DEBOUNCE_MS = 250;
@@ -89,23 +89,18 @@ const DualWriteBlocksPanel = ({
         {title}
         <Description description={description} />
       </Label>
-      <style>{`.roamjs-dualwrite-blocks > div > .rm-block-main {
+      <style>{`.dg-dualwrite-blocks > div > .rm-block-main {
     display: none;
   }
-  .roamjs-dualwrite-blocks > div > .rm-block-children > .rm-multibar {
+  .dg-dualwrite-blocks > div > .rm-block-children > .rm-multibar {
     display: none;
   }
-  .roamjs-dualwrite-blocks > div > .rm-block-children {
+  .dg-dualwrite-blocks > div > .rm-block-children {
     margin-left: -4px;
   }`}</style>
       <div
         ref={containerRef}
-        style={{
-          border: "1px solid #33333333",
-          padding: "8px 0",
-          borderRadius: 4,
-        }}
-        className="roamjs-dualwrite-blocks"
+        className="dg-dualwrite-blocks rounded border border-gray-200 py-2"
       />
     </>
   );
