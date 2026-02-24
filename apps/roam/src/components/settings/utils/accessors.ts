@@ -114,6 +114,12 @@ const formatSettingPath = (keys: string[]): string =>
 
 const readPathValue = (root: unknown, keys: string[]): unknown =>
   keys.reduce<unknown>((current, key) => {
+    if (Array.isArray(current)) {
+      const index = Number(key);
+      return Number.isInteger(index) && index >= 0 && index < current.length
+        ? current[index]
+        : undefined;
+    }
     if (!isRecord(current) || !(key in current)) return undefined;
     return current[key];
   }, root);
