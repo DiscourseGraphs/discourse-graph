@@ -38,7 +38,6 @@ const DiscourseNodeSuggestiveRules = ({
   parentUid: string;
 }) => {
   const nodeUid = node.type;
-  const nodeType = node.type;
 
   const [embeddingRef, setEmbeddingRef] = useState(node.embeddingRef || "");
   const blockUidToRender = useMemo(
@@ -92,7 +91,7 @@ const DiscourseNodeSuggestiveRules = ({
       />
 
       <DiscourseNodeTextPanel
-        nodeType={nodeType}
+        nodeType={nodeUid}
         title="Embedding Block Ref"
         description="Copy block ref from template which you want to be embedded and ranked."
         settingKeys={["suggestiveRules", "embeddingRef"]}
@@ -112,7 +111,7 @@ const DiscourseNodeSuggestiveRules = ({
       )}
 
       <DiscourseNodeFlagPanel
-        nodeType={nodeType}
+        nodeType={nodeUid}
         title="First Child"
         description="If the block is the first child of the embedding block ref, it will be embedded and ranked."
         settingKeys={["suggestiveRules", "isFirstChild"]}

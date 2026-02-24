@@ -23,7 +23,7 @@ import {
   setPersonalSetting,
   setFeatureFlag,
   setDiscourseNodeSetting,
-} from "../utils/accessors";
+} from "~/components/settings/utils/accessors";
 import type { FeatureFlags } from "../utils/zodSchema";
 import type { json } from "~/utils/getBlockProps";
 

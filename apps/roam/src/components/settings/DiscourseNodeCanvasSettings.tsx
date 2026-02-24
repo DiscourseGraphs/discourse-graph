@@ -100,7 +100,7 @@ const DiscourseNodeCanvasSettings = ({
       </Label>
       <DiscourseNodeFlagPanel
         nodeType={nodeType}
-        title="Key Image"
+        title="Key image"
         description="Add an image to the discourse node"
         settingKeys={["canvasSettings", "key-image"]}
         initialValue={isKeyImage}
