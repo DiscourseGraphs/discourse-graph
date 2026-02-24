@@ -194,25 +194,21 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
   [pathKey(["Query", "Default filters"]), "default-filters"],
 ]);
 
-const getLegacyPersonalLeftSidebarSetting = (): Record<string, unknown> => {
+const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
   const settings = getFormattedConfigTree();
 
   /* eslint-disable @typescript-eslint/naming-convention */
-  return Object.fromEntries(
-    settings.leftSidebar.personal.sections.map((section) => [
-      section.text,
-      {
-        Children: (section.children || []).map((child) => ({
-          Page: child.text,
-          Alias: child.alias?.value || "",
-        })),
-        Settings: {
-          "Truncate-result?": section.settings?.truncateResult.value ?? 75,
-          Folded: section.settings?.folded.value ?? false,
-        },
-      },
-    ]),
-  );
+  return settings.leftSidebar.personal.sections.map((section) => ({
+    name: section.text,
+    Children: (section.children || []).map((child) => ({
+      uid: child.uid,
+      Alias: child.alias?.value || "",
+    })),
+    Settings: {
+      "Truncate-result?": section.settings?.truncateResult.value ?? 75,
+      Folded: section.settings?.folded.value ?? false,
+    },
+  }));
   /* eslint-enable @typescript-eslint/naming-convention */
 };
 
@@ -436,7 +432,7 @@ const getLegacyQuerySettingByParentUid = (parentUid: string) => {
     conditions: conditionsNode.children.map(roamNodeToCondition),
     selections: selectionsNode.children.map((s) => ({
       text: s.text,
-      label: s.children?.[0]?.text || "",
+      label: s.children[0]?.text || "",
     })),
     custom: customNode.children[0]?.text || "",
     returnNode: "node",
