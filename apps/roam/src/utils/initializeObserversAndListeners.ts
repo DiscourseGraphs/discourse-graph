@@ -34,8 +34,6 @@ import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { OnloadArgs } from "roamjs-components/types";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { render as renderGraphOverviewExport } from "~/components/ExportDiscourseContext";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import { getSettingValueFromTree } from "roamjs-components/util";
 import {
   getModifiersFromCombo,
   render as renderDiscourseNodeMenu,
@@ -52,7 +50,6 @@ import { renderNodeTagPopupButton } from "./renderNodeTagPopup";
 import { renderImageToolsMenu } from "./renderImageToolsMenu";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
-import { getUidAndBooleanSetting } from "./getExportSettings";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
@@ -60,7 +57,11 @@ import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import findDiscourseNode from "./findDiscourseNode";
-import { getPersonalSetting } from "~/components/settings/utils/accessors";
+import {
+  getPersonalSetting,
+  getFeatureFlag,
+  getGlobalSetting,
+} from "~/components/settings/utils/accessors";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -105,12 +106,9 @@ export const initObservers = async ({
       const { title, uid } = getTitleAndUidFromHeader(h1);
       const props = { title, h1, onloadArgs };
 
-      const isSuggestiveModeEnabled = getUidAndBooleanSetting({
-        tree: getBasicTreeByParentUid(
-          getPageUidByPageTitle(DISCOURSE_CONFIG_PAGE_TITLE),
-        ),
-        text: "(BETA) Suggestive Mode Enabled",
-      }).value;
+      const isSuggestiveModeEnabled = getFeatureFlag(
+        "Suggestive mode enabled",
+      );
 
       const node = findDiscourseNode({ uid, title });
       const isDiscourseNode = node && node.backedBy !== "default";
@@ -256,12 +254,9 @@ export const initObservers = async ({
     }
   };
 
-  const configTree = getBasicTreeByParentUid(configPageUid);
-  const globalTrigger = getSettingValueFromTree({
-    tree: configTree,
-    key: "trigger",
-    defaultValue: "\\",
-  }).trim();
+  const globalTrigger = (
+    getGlobalSetting<string>(["Trigger"]) ?? "\\"
+  ).trim();
   const personalTriggerCombo = getPersonalSetting<IKeyCombo>([
     "Personal node menu trigger",
   ]);
@@ -276,10 +271,7 @@ export const initObservers = async ({
     className: "starred-pages-wrapper",
     callback: (el) => {
       void (async () => {
-        const isLeftSidebarEnabled = getUidAndBooleanSetting({
-          tree: configTree,
-          text: "(BETA) Left Sidebar",
-        }).value;
+        const isLeftSidebarEnabled = getFeatureFlag("Enable left sidebar");
         const container = el as HTMLDivElement;
         if (isLeftSidebarEnabled) {
           container.style.padding = "0";

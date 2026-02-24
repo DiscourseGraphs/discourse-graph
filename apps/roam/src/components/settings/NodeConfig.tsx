@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-  useMemo,
-} from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
@@ -20,8 +14,7 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import createBlock from "roamjs-components/writes/createBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
-import refreshConfigTree from "~/utils/refreshConfigTree";
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
@@ -138,10 +131,6 @@ const NodeConfig = ({
   node: DiscourseNode;
   onloadArgs: OnloadArgs;
 }) => {
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,
@@ -395,7 +384,7 @@ const NodeConfig = ({
             </div>
           }
         />
-        {settings.suggestiveModeEnabled.value && (
+        {getFeatureFlag("Suggestive mode enabled") && (
           <Tab
             id="suggestive-mode"
             title="Suggestive mode"
