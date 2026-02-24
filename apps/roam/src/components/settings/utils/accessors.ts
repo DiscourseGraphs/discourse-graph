@@ -285,8 +285,8 @@ export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
   return flags[key];
 };
 
-export const isDualReadEnabled = (): boolean => {
-  return getFeatureFlag("Enable dual read");
+export const isNewSettingsStoreEnabled = (): boolean => {
+  return getFeatureFlag("Use new settings store");
 };
 
 export const setFeatureFlag = (
