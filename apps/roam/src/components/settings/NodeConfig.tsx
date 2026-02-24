@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
-import BlocksPanel from "roamjs-components/components/ConfigPanels/BlocksPanel";
+import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
 import { Label, Tabs, Tab, TabId, InputGroup } from "@blueprintjs/core";
@@ -26,6 +26,8 @@ import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
 } from "./components/BlockPropSettingPanels";
+
+const TEMPLATE_SETTING_KEYS = ["template"];
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -342,13 +344,12 @@ const NodeConfig = ({
           title="Template"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <BlocksPanel
+              <DualWriteBlocksPanel
+                nodeType={node.type}
                 title="Template"
                 description={`The template that auto fills ${node.text} page when generated.`}
-                order={0}
-                parentUid={node.type}
+                settingKeys={TEMPLATE_SETTING_KEYS}
                 uid={templateUid}
-                defaultValue={node.template}
               />
             </div>
           }
