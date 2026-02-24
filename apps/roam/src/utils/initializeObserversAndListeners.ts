@@ -106,9 +106,7 @@ export const initObservers = async ({
       const { title, uid } = getTitleAndUidFromHeader(h1);
       const props = { title, h1, onloadArgs };
 
-      const isSuggestiveModeEnabled = getFeatureFlag(
-        "Suggestive mode enabled",
-      );
+      const isSuggestiveModeEnabled = getFeatureFlag("Suggestive mode enabled");
 
       const node = findDiscourseNode({ uid, title });
       const isDiscourseNode = node && node.backedBy !== "default";
@@ -254,9 +252,7 @@ export const initObservers = async ({
     }
   };
 
-  const globalTrigger = (
-    getGlobalSetting<string>(["Trigger"]) ?? "\\"
-  ).trim();
+  const globalTrigger = (getGlobalSetting<string>(["Trigger"]) ?? "\\").trim();
   const personalTriggerCombo = getPersonalSetting<IKeyCombo>([
     "Personal node menu trigger",
   ]);
