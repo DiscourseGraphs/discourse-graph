@@ -243,6 +243,23 @@ export const getFileForNodeInstanceId = async (
   return null;
 };
 
+export const getFileForNodeInstanceIds = (
+  plugin: DiscourseGraphPlugin,
+  nodeInstanceIds: Set<string>,
+): Record<string, TFile> => {
+  const files = plugin.app.vault.getMarkdownFiles();
+  const result: Record<string, TFile> = {};
+  for (const file of files) {
+    const cache = plugin.app.metadataCache.getFileCache(file);
+    const id = (cache?.frontmatter as Record<string, unknown> | undefined)
+      ?.nodeInstanceId as string | undefined;
+    if (id && nodeInstanceIds.has(id)) {
+      result[id] = file;
+    }
+  }
+  return result;
+};
+
 /**
  * Find a relation instance by source, destination, and type. Returns the first match.
  */

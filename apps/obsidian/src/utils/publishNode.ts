@@ -3,7 +3,13 @@ import type { default as DiscourseGraphPlugin } from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import { addFile } from "@repo/database/lib/files";
 import mime from "mime-types";
-import { DGSupabaseClient } from "@repo/database/lib/client";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
+import {
+  getRelationsForNodeInstanceId,
+  getFileForNodeInstanceIds,
+  loadRelations,
+  saveRelations,
+} from "./relationsStore";
 
 const publishSchema = async ({
   client,
@@ -56,6 +62,88 @@ const publishSchema = async ({
   }
 };
 
+export const publishNodeRelations = async ({
+  plugin,
+  client,
+  nodeId,
+  myGroup,
+  spaceId,
+}: {
+  plugin: DiscourseGraphPlugin;
+  client: DGSupabaseClient;
+  nodeId: string;
+  myGroup: string;
+  spaceId: number;
+}): Promise<void> => {
+  const relations = await getRelationsForNodeInstanceId(plugin, nodeId);
+  const resourceIds: Set<string> = new Set();
+  const relationTriples = plugin.settings.discourseRelations ?? [];
+  const relevantNodeIds: Set<string> = new Set();
+  relations.map((relation) => {
+    relevantNodeIds.add(relation.source);
+    relevantNodeIds.add(relation.destination);
+  });
+  const relevantNodeFiles = getFileForNodeInstanceIds(plugin, relevantNodeIds);
+  const relevantNodeTypeById: Record<string, string | undefined> = {};
+  Object.entries(relevantNodeFiles).map(([id, file]: [string, TFile]) => {
+    const fm = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+    if (fm === undefined) return;
+    if (fm.nodeInstanceId !== nodeId) {
+      // check if published to same group.
+      // Note: current node's pub status not in cache yet!
+      if (!Array.isArray(fm.publishedToGroups)) return;
+      const publishedToGroups: string[] =
+        (fm.publishedToGroups as string[]) || [];
+      if (!publishedToGroups.includes(myGroup)) return;
+    }
+    if (fm.importedFromRid) return; // temporary, should be removed after eng-1475
+    relevantNodeTypeById[id] = fm.nodeTypeId as string;
+  });
+  relations.map((relation) => {
+    if ((relation.publishedToGroupId ?? []).includes(myGroup)) return;
+    const triple = relationTriples.find(
+      (triple) =>
+        triple.relationshipTypeId === relation.type &&
+        triple.sourceId === relevantNodeTypeById[relation.source] &&
+        triple.destinationId === relevantNodeTypeById[relation.destination],
+    );
+    if (triple) {
+      resourceIds.add(relation.id);
+      resourceIds.add(relation.type);
+      resourceIds.add(triple.id);
+    }
+  });
+  const publishResponse = await client.from("ResourceAccess").upsert(
+    [...resourceIds.values()].map((sourceLocalId: string) => ({
+      /* eslint-disable @typescript-eslint/naming-convention */
+      account_uid: myGroup,
+      source_local_id: sourceLocalId,
+      space_id: spaceId,
+      /* eslint-enable @typescript-eslint/naming-convention */
+    })),
+    { ignoreDuplicates: true },
+  );
+  if (publishResponse.error && publishResponse.error.code !== "23505")
+    throw publishResponse.error;
+  const relData = await loadRelations(plugin);
+  let dataChanged = false;
+  relations
+    .filter((rel) => resourceIds.has(rel.id))
+    .map((rel) => {
+      const savedRel = relData.relations[rel.id];
+      if (!savedRel) return;
+      const publishedTo = savedRel.publishedToGroupId;
+      if (!publishedTo) {
+        savedRel.publishedToGroupId = [myGroup];
+        dataChanged = true;
+      } else if (!publishedTo.includes(myGroup)) {
+        publishedTo.push(myGroup);
+        dataChanged = true;
+      }
+    });
+  if (dataChanged) await saveRelations(plugin, relData);
+};
+
 export const publishNode = async ({
   plugin,
   file,
@@ -65,13 +153,8 @@ export const publishNode = async ({
   file: TFile;
   frontmatter: FrontMatterCache;
 }): Promise<void> => {
-  const nodeId = frontmatter.nodeInstanceId as string | undefined;
-  if (!nodeId) throw new Error("Please sync the node first");
   const client = await getLoggedInClient(plugin);
   if (!client) throw new Error("Cannot get client");
-  const context = await getSupabaseContext(plugin);
-  if (!context) throw new Error("Cannot get context");
-  const spaceId = context.spaceId;
   const myGroupsResponse = await client
     .from("group_membership")
     .select("group_id");
@@ -83,7 +166,32 @@ export const publishNode = async ({
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];
   const commonGroups = existingPublish.filter((g) => myGroups.has(g));
+  // temporary single-group assumption
   const myGroup = (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
+  return await publishNodeToGroup({ plugin, file, frontmatter, myGroup });
+};
+
+export const publishNodeToGroup = async ({
+  plugin,
+  file,
+  frontmatter,
+  myGroup,
+}: {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+  frontmatter: FrontMatterCache;
+  myGroup: string;
+}): Promise<void> => {
+  const nodeId = frontmatter.nodeInstanceId as string | undefined;
+  if (!nodeId) throw new Error("Please sync the node first");
+  const context = await getSupabaseContext(plugin);
+  if (!context) throw new Error("Cannot get context");
+  const spaceId = context.spaceId;
+  const client = await getLoggedInClient(plugin);
+  if (!client) throw new Error("Cannot get client");
+  const existingPublish =
+    (frontmatter.publishedToGroups as undefined | string[]) || [];
+
   const idResponse = await client
     .from("Content")
     .select("last_modified")
@@ -97,6 +205,7 @@ export const publishNode = async ({
   const lastModifiedDb = new Date(
     idResponse.data.last_modified + "Z",
   ).getTime();
+  await publishNodeRelations({ plugin, client, nodeId, myGroup, spaceId });
   const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
   const attachments = embeds
     .map(({ link }) => {
@@ -116,7 +225,7 @@ export const publishNode = async ({
   );
 
   const skipPublishAccess =
-    commonGroups.length > 0 && lastModified <= lastModifiedDb;
+    existingPublish.includes(myGroup) && lastModified <= lastModifiedDb;
 
   if (!skipPublishAccess) {
     const publishSpaceResponse = await client.from("SpaceAccess").upsert(
@@ -210,7 +319,7 @@ export const publishNode = async ({
   // do not fail on cleanup
   if (cleanupResult.error) console.error(cleanupResult.error);
 
-  if (commonGroups.length === 0)
+  if (!existingPublish.includes(myGroup))
     await plugin.app.fileManager.processFrontMatter(
       file,
       (fm: Record<string, unknown>) => {
