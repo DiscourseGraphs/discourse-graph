@@ -4,6 +4,7 @@ import type { json } from "./getBlockProps";
 import setBlockProps from "./setBlockProps";
 import { getSetting, setSetting } from "./extensionSettings";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
+import internalError from "./internalError";
 import {
   createReifiedRelation,
   DISCOURSE_GRAPH_PROP_NAME,
@@ -11,10 +12,11 @@ import {
 
 const MIGRATION_PROP_NAME = "relation-migration";
 
-const migrateRelations = async (dryRun = false): Promise<number> => {
+const migrateRelations = async (dryRun = false): Promise<number | false> => {
   const authorized = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
   if (!authorized) return 0;
   let numProcessed = 0;
+  let didError = false;
   await setSetting(USE_REIFIED_RELATIONS, false); // so queries use patterns
   // wait for the settings to propagate
   await new Promise((resolve) => setTimeout(resolve, 150));
@@ -64,10 +66,11 @@ const migrateRelations = async (dryRun = false): Promise<number> => {
       }
       numProcessed++;
     }
-  } finally {
-    await setSetting(USE_REIFIED_RELATIONS, true);
+  } catch (error) {
+    internalError({ error });
+    didError = true;
   }
-  return numProcessed;
+  return didError ? false : numProcessed;
 };
 
 export default migrateRelations;

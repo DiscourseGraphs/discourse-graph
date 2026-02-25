@@ -1,6 +1,7 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
-import { Label } from "@blueprintjs/core";
+import { render as renderToast } from "roamjs-components/components/Toast";
+import { Label, Dialog, Button, Intent } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { addStyle } from "roamjs-components/dom";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
@@ -21,6 +22,7 @@ import {
   DISCOURSE_CONTEXT_OVERLAY_IN_CANVAS_KEY,
   STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
+  USE_REIFIED_RELATIONS,
 } from "~/data/userSettings";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import { enablePostHog, disablePostHog } from "~/utils/posthog";
@@ -28,13 +30,81 @@ import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import streamlineStyling from "~/styles/streamlineStyling";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
+import migrateRelations from "~/utils/migrateRelations";
+import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import posthog from "posthog-js";
+import internalError from "~/utils/internalError";
+
+const enum RelationMigrationDialog {
+  "none",
+  "activate",
+  "deactivate",
+  "reactivate",
+}
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
   const settings = useMemo(() => getFormattedConfigTree(), []);
-
+  const [activeRelationMigration, setActiveRelationMigration] =
+    useState<RelationMigrationDialog>(RelationMigrationDialog.none);
+  const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
+  const [isOngoing, setOngoing] = useState<boolean>(false);
+  const setStoredMigration = async (active: boolean) => {
+    await setSetting(USE_REIFIED_RELATIONS, active);
+    const panel = document.getElementById("stored-relation-flag");
+    const checkboxList = panel?.getElementsByTagName("input");
+    if (checkboxList && checkboxList.length > 0) {
+      const checkbox = checkboxList.item(0)!;
+      checkbox.checked = active;
+    }
+  };
+  const startMigration = async (): Promise<void> => {
+    const before = numExistingRelations;
+    try {
+      posthog.capture("Reified Relations: Migration Started");
+      const numProcessed = await migrateRelations();
+      if (numProcessed === false) {
+        renderToast({
+          content: "Reified Relations: Migration Failed",
+          intent: Intent.DANGER,
+          id: "migration-error",
+        });
+        await setStoredMigration(false);
+        return;
+      }
+      const after = await countReifiedRelations();
+      setNumExistingRelations(after);
+      if (before)
+        renderToast({
+          content: `${after - before} new relations created out of ${numProcessed} distinct relations processed`,
+          intent: Intent.SUCCESS,
+          id: "re-migration-success",
+        });
+      else
+        renderToast({
+          content: `${after} new relations created`,
+          intent: Intent.SUCCESS,
+          id: "migration-success",
+        });
+      posthog.capture("Reified Relations: Migration Completed", {
+        processed: numProcessed,
+        before,
+        after,
+        created: after - before,
+      });
+      await setStoredMigration(true);
+    } catch (error) {
+      internalError({
+        error,
+        userMessage: "Reified Relations: Migration Failed",
+      });
+      await setStoredMigration(false);
+    } finally {
+      setOngoing(false);
+      setActiveRelationMigration(RelationMigrationDialog.none);
+    }
+  };
   return (
     <div className="flex flex-col gap-4 p-1">
       <Label>
@@ -90,6 +160,35 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           }}
         />
       )}
+
+      <div id="stored-relation-flag">
+        <PersonalFlagPanel
+          title="Enable stored relations"
+          description="Transition to using stored relations instead of pattern-based relations"
+          settingKeys={["Reified relation triples"]}
+          initialValue={getSetting(USE_REIFIED_RELATIONS, true)}
+          onChange={(checked) => {
+            if (checked) {
+              countReifiedRelations()
+                .then((num: number) => {
+                  setNumExistingRelations(num);
+                  setActiveRelationMigration(
+                    num
+                      ? RelationMigrationDialog.reactivate
+                      : RelationMigrationDialog.activate,
+                  );
+                })
+                .catch((error) => {
+                  internalError({ error });
+                  setActiveRelationMigration(RelationMigrationDialog.none);
+                });
+            } else {
+              setActiveRelationMigration(RelationMigrationDialog.deactivate);
+            }
+          }}
+        />
+      </div>
+
       <PersonalFlagPanel
         title="Text selection popup"
         description="Whether or not to show the discourse node menu when selecting text."
@@ -186,6 +285,144 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           }
         }}
       />
+      <Dialog
+        isOpen={activeRelationMigration === RelationMigrationDialog.reactivate}
+        onClose={() => {
+          setActiveRelationMigration(RelationMigrationDialog.none);
+        }}
+      >
+        <div className="p-4">
+          {isOngoing ? (
+            <p>Migrating relations, please wait</p>
+          ) : (
+            <div>
+              <p>
+                Activating the faster relations system will migrate all
+                previously created relations and newly created relations will
+                use the new system. You can leactivate this setting to revert to
+                the old system, and your newly created elations will not be
+                deleted; however, they will not be accessible until you
+                reactivate the faster relation system.
+              </p>
+              <p>
+                <Label>Relations</Label> {numExistingRelations}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  small
+                  onClick={() => {
+                    void setStoredMigration(false);
+                    setActiveRelationMigration(RelationMigrationDialog.none);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  small
+                  intent={Intent.PRIMARY}
+                  onClick={() => {
+                    void setStoredMigration(true);
+                    setActiveRelationMigration(RelationMigrationDialog.none);
+                  }}
+                >
+                  Reactivate without Migration
+                </Button>
+                <Button
+                  small
+                  intent={Intent.PRIMARY}
+                  onClick={() => {
+                    setOngoing(true);
+                    void startMigration();
+                  }}
+                >
+                  Migrate again and Reactivate
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Dialog>
+      <Dialog
+        isOpen={activeRelationMigration === RelationMigrationDialog.deactivate}
+        onClose={() => {
+          setActiveRelationMigration(RelationMigrationDialog.none);
+        }}
+      >
+        <div className="p-4">
+          <p>
+            Deactivating the faster relations system will mean that any
+            relations created using it will no longer be accessible. The
+            discourse context overlay will still be usable with the previous
+            relations system. Any relations created with the faster system will
+            be accessible should you choose to reactivate.
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              small
+              onClick={() => {
+                void setStoredMigration(true);
+                setActiveRelationMigration(RelationMigrationDialog.none);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              small
+              intent={Intent.DANGER}
+              onClick={() => {
+                void setStoredMigration(false);
+                setActiveRelationMigration(RelationMigrationDialog.none);
+              }}
+            >
+              Deactivate
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+      <Dialog
+        isOpen={activeRelationMigration === RelationMigrationDialog.activate}
+        onClose={() => {
+          setActiveRelationMigration(RelationMigrationDialog.none);
+        }}
+      >
+        <div className="p-4">
+          {isOngoing ? (
+            <p>Migrating relations, please wait</p>
+          ) : (
+            <div>
+              <p>
+                Activating the stored relations system will migrate all
+                previously created relations and newly created relations will
+                use the new system. You can deactivate this setting to revert to
+                the old system, and your newly created relations will not be
+                deleted; however, they will not be accessible until you
+                reactivate the stored relation system.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  small
+                  onClick={() => {
+                    void setStoredMigration(false);
+                    setActiveRelationMigration(RelationMigrationDialog.none);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  small
+                  intent={Intent.PRIMARY}
+                  onClick={() => {
+                    setOngoing(true);
+                    void startMigration();
+                  }}
+                >
+                  Activate and Migrate
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Dialog>
     </div>
   );
 };
