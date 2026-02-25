@@ -40,7 +40,6 @@ import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import posthog from "posthog-js";
 import { setFeatureFlag } from "~/components/settings/utils/accessors";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
-import { getFeatureFlag } from "./utils/accessors";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -473,7 +472,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
         title="Use new settings store"
         description="When enabled, accessor getters read from block props instead of the old system. Surfaces dual-write gaps during development."
         featureKey="Use new settings store"
-        initialValue={getFeatureFlag("Use new settings store")}
       />
 
       <Button

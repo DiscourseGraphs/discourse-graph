@@ -43,7 +43,6 @@ const DiscourseGraphHome = () => {
       <FeatureFlagPanel
         title="(BETA) Left Sidebar"
         description="Whether or not to enable the left sidebar."
-        initialValue={settings.leftSidebarEnabled.value}
         featureKey="Enable left sidebar"
         order={2}
         uid={settings.leftSidebarEnabled.uid}
