@@ -486,18 +486,6 @@ const createAccessors = <T,>(
   setter: setFn,
 });
 
-const readWithFallback = <T,>(
-  reader: () => T | undefined,
-  fallback?: T,
-): T | undefined => {
-  try {
-    const value = reader();
-    return value ?? fallback;
-  } catch {
-    return fallback;
-  }
-};
-
 const globalAccessors = {
   text: createAccessors<string>(setGlobalSetting),
   flag: createAccessors<boolean>(setGlobalSetting),
@@ -516,7 +504,6 @@ export const FeatureFlagPanel = ({
   title,
   description,
   featureKey,
-  initialValue,
   onBeforeEnable,
   onAfterChange,
   parentUid,
@@ -526,7 +513,6 @@ export const FeatureFlagPanel = ({
   title: string;
   description: string;
   featureKey: keyof FeatureFlags;
-  initialValue?: boolean;
   onBeforeEnable?: () => Promise<boolean>;
   onAfterChange?: (checked: boolean) => void;
 } & RoamBlockSyncProps) => {
@@ -547,7 +533,7 @@ export const FeatureFlagPanel = ({
       description={description}
       settingKeys={[featureKey as string]}
       setter={featureFlagSetter}
-      initialValue={readWithFallback(() => getFeatureFlag(featureKey), initialValue)}
+      initialValue={getFeatureFlag(featureKey)}
       onBeforeChange={handleBeforeChange}
       onChange={onAfterChange}
       parentUid={parentUid}
@@ -560,10 +546,9 @@ export const FeatureFlagPanel = ({
 export const GlobalTextPanel = (props: TextWrapperProps) => (
   <BaseTextPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getGlobalSetting<string>(props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getGlobalSetting<string>(props.settingKeys) ?? props.initialValue
+    }
     {...globalAccessors.text}
   />
 );
@@ -571,10 +556,9 @@ export const GlobalTextPanel = (props: TextWrapperProps) => (
 export const GlobalFlagPanel = (props: FlagWrapperProps) => (
   <BaseFlagPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getGlobalSetting<boolean>(props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getGlobalSetting<boolean>(props.settingKeys) ?? props.initialValue
+    }
     {...globalAccessors.flag}
   />
 );
@@ -582,10 +566,9 @@ export const GlobalFlagPanel = (props: FlagWrapperProps) => (
 export const GlobalNumberPanel = (props: NumberWrapperProps) => (
   <BaseNumberPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getGlobalSetting<number>(props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getGlobalSetting<number>(props.settingKeys) ?? props.initialValue
+    }
     {...globalAccessors.number}
   />
 );
@@ -593,10 +576,9 @@ export const GlobalNumberPanel = (props: NumberWrapperProps) => (
 export const GlobalSelectPanel = (props: SelectWrapperProps) => (
   <BaseSelectPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getGlobalSetting<string>(props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getGlobalSetting<string>(props.settingKeys) ?? props.initialValue
+    }
     {...globalAccessors.text}
   />
 );
@@ -604,10 +586,9 @@ export const GlobalSelectPanel = (props: SelectWrapperProps) => (
 export const GlobalMultiTextPanel = (props: MultiTextWrapperProps) => (
   <BaseMultiTextPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getGlobalSetting<string[]>(props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getGlobalSetting<string[]>(props.settingKeys) ?? props.initialValue
+    }
     {...globalAccessors.multiText}
   />
 );
@@ -615,10 +596,9 @@ export const GlobalMultiTextPanel = (props: MultiTextWrapperProps) => (
 export const PersonalTextPanel = ({ setter, ...props }: TextWrapperProps) => (
   <BaseTextPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getPersonalSetting<string>(props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getPersonalSetting<string>(props.settingKeys) ?? props.initialValue
+    }
     setter={setter ?? personalAccessors.text.setter}
   />
 );
@@ -626,10 +606,9 @@ export const PersonalTextPanel = ({ setter, ...props }: TextWrapperProps) => (
 export const PersonalFlagPanel = (props: FlagWrapperProps) => (
   <BaseFlagPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getPersonalSetting<boolean>(props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getPersonalSetting<boolean>(props.settingKeys) ?? props.initialValue
+    }
     {...personalAccessors.flag}
   />
 );
@@ -640,10 +619,9 @@ export const PersonalNumberPanel = ({
 }: NumberWrapperProps) => (
   <BaseNumberPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getPersonalSetting<number>(props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getPersonalSetting<number>(props.settingKeys) ?? props.initialValue
+    }
     setter={setter ?? personalAccessors.number.setter}
   />
 );
@@ -651,10 +629,9 @@ export const PersonalNumberPanel = ({
 export const PersonalSelectPanel = (props: SelectWrapperProps) => (
   <BaseSelectPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getPersonalSetting<string>(props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getPersonalSetting<string>(props.settingKeys) ?? props.initialValue
+    }
     {...personalAccessors.text}
   />
 );
@@ -662,10 +639,9 @@ export const PersonalSelectPanel = (props: SelectWrapperProps) => (
 export const PersonalMultiTextPanel = (props: MultiTextWrapperProps) => (
   <BaseMultiTextPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getPersonalSetting<string[]>(props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getPersonalSetting<string[]>(props.settingKeys) ?? props.initialValue
+    }
     {...personalAccessors.multiText}
   />
 );
@@ -695,10 +671,10 @@ export const DiscourseNodeTextPanel = ({
   }) => (
   <BaseTextPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getDiscourseNodeSetting<string>(nodeType, props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getDiscourseNodeSetting<string>(nodeType, props.settingKeys) ??
+      props.initialValue
+    }
     setter={createDiscourseNodeSetter(nodeType)}
   />
 );
@@ -715,10 +691,10 @@ export const DiscourseNodeFlagPanel = ({
   }) => (
   <BaseFlagPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getDiscourseNodeSetting<boolean>(nodeType, props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getDiscourseNodeSetting<boolean>(nodeType, props.settingKeys) ??
+      props.initialValue
+    }
     setter={createDiscourseNodeSetter(nodeType)}
   />
 );
@@ -730,10 +706,10 @@ export const DiscourseNodeSelectPanel = ({
   RoamBlockSyncProps & { options: string[]; initialValue?: string }) => (
   <BaseSelectPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getDiscourseNodeSetting<string>(nodeType, props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getDiscourseNodeSetting<string>(nodeType, props.settingKeys) ??
+      props.initialValue
+    }
     setter={createDiscourseNodeSetter(nodeType)}
   />
 );
@@ -749,10 +725,10 @@ export const DiscourseNodeNumberPanel = ({
   }) => (
   <BaseNumberPanel
     {...props}
-    initialValue={readWithFallback(
-      () => getDiscourseNodeSetting<number>(nodeType, props.settingKeys),
-      props.initialValue,
-    )}
+    initialValue={
+      getDiscourseNodeSetting<number>(nodeType, props.settingKeys) ??
+      props.initialValue
+    }
     setter={createDiscourseNodeSetter(nodeType)}
   />
 );
