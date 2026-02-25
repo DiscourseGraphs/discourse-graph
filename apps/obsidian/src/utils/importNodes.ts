@@ -602,6 +602,59 @@ const updateMarkdownAssetLinks = ({
     return null;
   };
 
+  const processLink = (linkPath: string): string => {
+    // Skip external URLs
+    if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
+      return linkPath;
+    }
+
+    // First, try to find if this link resolves to one of our imported assets
+    const importedAssetFile = findImportedAssetFile(linkPath);
+    if (importedAssetFile) {
+      return getRelativeLinkPath(importedAssetFile.path);
+    }
+
+    // Direct lookup from pathMapping (record built when we downloaded each asset)
+    const newPath = getNewPathForLink(linkPath);
+    if (newPath) {
+      const newFile = app.metadataCache.getFirstLinkpathDest(
+        newPath,
+        targetFile.path,
+      );
+      if (newFile) {
+        return getRelativeLinkPath(newFile.path);
+      }
+    }
+
+    // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
+    const resolvedFile = app.metadataCache.getFirstLinkpathDest(
+      linkPath,
+      targetFile.path,
+    );
+    const isInImportFolder =
+      importFolder &&
+      resolvedFile &&
+      resolvedFile.path.startsWith(importFolder + "/");
+    if (isInImportFolder && resolvedFile) {
+      return getRelativeLinkPath(resolvedFile.path);
+    }
+
+    // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
+    if (importFolder && originalNodePath && !resolvedFile) {
+      // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
+      const canonicalSourcePath =
+        linkPath.includes("/") &&
+        !linkPath.startsWith(".") &&
+        !linkPath.startsWith("/")
+          ? normalizePathForLookup(linkPath)
+          : (getCanonicalFromOriginalNote(linkPath) ??
+            normalizePathForLookup(linkPath));
+      return `${importFolder}/${canonicalSourcePath}`;
+    }
+
+    return linkPath;
+  };
+
   // Match wiki links: [[path]] or [[path|alias]]
   const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
   updatedContent = updatedContent.replace(
@@ -612,73 +665,13 @@ const updateMarkdownAssetLinks = ({
         .split("|")
         .map((s: string) => s.trim());
       if (!linkPath) return match;
-
-      // Skip external URLs
-      if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
-        return match;
+      let processedPath = processLink(linkPath);
+      if (processedPath.endsWith(".md") && !linkPath.endsWith(".md"))
+        processedPath = processedPath.substring(0, processedPath.length - 3);
+      if (alias) {
+        return `[[${processedPath}|${alias}]]`;
       }
-
-      // First, try to find if this link resolves to one of our imported assets
-      const importedAssetFile = findImportedAssetFile(linkPath);
-      if (importedAssetFile) {
-        const linkText = getRelativeLinkPath(importedAssetFile.path);
-        if (alias) {
-          return `[[${linkText}|${alias}]]`;
-        }
-        return `[[${linkText}]]`;
-      }
-
-      // Direct lookup from pathMapping (record built when we downloaded each asset)
-      const newPath = getNewPathForLink(linkPath);
-      if (newPath) {
-        const newFile = app.metadataCache.getFirstLinkpathDest(
-          newPath,
-          targetFile.path,
-        );
-        if (newFile) {
-          const linkText = getRelativeLinkPath(newFile.path);
-          if (alias) {
-            return `[[${linkText}|${alias}]]`;
-          }
-          return `[[${linkText}]]`;
-        }
-      }
-
-      // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
-      const resolvedFile = app.metadataCache.getFirstLinkpathDest(
-        linkPath,
-        targetFile.path,
-      );
-      const isInImportFolder =
-        importFolder &&
-        resolvedFile &&
-        resolvedFile.path.startsWith(importFolder + "/");
-      if (isInImportFolder && resolvedFile) {
-        const linkText = getRelativeLinkPath(resolvedFile.path);
-        if (alias) {
-          return `[[${linkText}|${alias}]]`;
-        }
-        return `[[${linkText}]]`;
-      }
-
-      // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
-      if (importFolder && originalNodePath && !resolvedFile) {
-        // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
-        const canonicalSourcePath =
-          linkPath.includes("/") &&
-          !linkPath.startsWith(".") &&
-          !linkPath.startsWith("/")
-            ? normalizePathForLookup(linkPath)
-            : (getCanonicalFromOriginalNote(linkPath) ??
-              normalizePathForLookup(linkPath));
-        const linkUnderImport = `${importFolder}/${canonicalSourcePath}`;
-        if (alias) {
-          return `[[${linkUnderImport}|${alias}]]`;
-        }
-        return `[[${linkUnderImport}]]`;
-      }
-
-      return match;
+      return `[[${processedPath}|${linkPath}]]`;
     },
   );
 
@@ -687,67 +680,9 @@ const updateMarkdownAssetLinks = ({
   updatedContent = updatedContent.replace(
     markdownLinkRegex,
     (match, linkText: string, linkPath: string) => {
-      // First, try to find if this link resolves to one of our imported assets
-      const importedAssetFile = findImportedAssetFile(linkPath);
-      if (importedAssetFile) {
-        const linkPath = getRelativeLinkPath(importedAssetFile.path);
-        if (linkText) {
-          return `[${linkText}](${encodePathForMarkdownLink(linkPath)})`;
-        }
-        return `[${linkPath}](${encodePathForMarkdownLink(linkPath)})`;
-      }
-
-      // Direct lookup from pathMapping (record built when we downloaded each asset)
-      const newPath = getNewPathForLink(linkPath);
-      if (newPath) {
-        const newFile = app.metadataCache.getFirstLinkpathDest(
-          newPath,
-          targetFile.path,
-        );
-        if (newFile) {
-          const linkPath = getRelativeLinkPath(newFile.path);
-          if (linkText) {
-            return `[${linkText}](${encodePathForMarkdownLink(linkPath)})`;
-          }
-          return `[${linkPath}](${encodePathForMarkdownLink(linkPath)})`;
-        }
-      }
-
-      // Only resolve to files under import/{spaceName}/ so we don't point at the wrong vault's files
-      const resolvedFile = app.metadataCache.getFirstLinkpathDest(
-        linkPath,
-        targetFile.path,
-      );
-      const isInImportFolder =
-        importFolder &&
-        resolvedFile &&
-        resolvedFile.path.startsWith(importFolder + "/");
-      if (isInImportFolder && resolvedFile) {
-        const linkText = getRelativeLinkPath(resolvedFile.path);
-        if (linkText) {
-          return `[${linkText}](${encodePathForMarkdownLink(linkText)})`;
-        }
-        return `[[${linkText}]]`;
-      }
-
-      // Unresolved (dead) link from another vault: rewrite so that when the user creates the file from this link, it is created under import/{vaultName}/ in the same relative position as in the source vault
-      if (importFolder && originalNodePath && !resolvedFile) {
-        // Vault-relative link (e.g. "Discourse Nodes/EVD - no relation testing") -> use as-is. Path-from-current-file (e.g. "EVD - no relation testing") -> resolve relative to source note dir
-        const canonicalSourcePath =
-          linkPath.includes("/") &&
-          !linkPath.startsWith(".") &&
-          !linkPath.startsWith("/")
-            ? normalizePathForLookup(linkPath)
-            : (getCanonicalFromOriginalNote(linkPath) ??
-              normalizePathForLookup(linkPath));
-        const linkUnderImport = `${importFolder}/${canonicalSourcePath}`;
-        if (linkText) {
-          return `[${linkText}](${encodePathForMarkdownLink(linkUnderImport)})`;
-        }
-        return `[${linkUnderImport}](${encodePathForMarkdownLink(linkUnderImport)})`;
-      }
-
-      return match;
+      if (!linkPath) return match;
+      const processedPath = encodePathForMarkdownLink(processLink(linkPath));
+      return `[${linkText}](${processedPath})`;
     },
   );
 
