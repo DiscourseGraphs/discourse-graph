@@ -505,7 +505,7 @@ const ModifyNodeDialog = ({
         <div className={`${Classes.DIALOG_BODY} flex flex-col gap-4`}>
           {/* Node Type Selector */}
           <div className="flex w-full">
-            <Label>
+            <Label autoFocus={false}>
               Node Type
               <MenuItemSelect
                 items={discourseNodes.map((n) => n.type)}
@@ -521,6 +521,7 @@ const ModifyNodeDialog = ({
                   }
                 }}
                 disabled={mode === "edit"}
+                popoverProps={{ openOnTargetFocus: false }}
               />
             </Label>
           </div>
@@ -539,7 +540,7 @@ const ModifyNodeDialog = ({
               }
               mode={mode}
               isLocked={isContentLocked}
-              autoFocus
+              autoFocus={!isContentLocked}
             />
           </div>
 
@@ -565,11 +566,13 @@ const ModifyNodeDialog = ({
             className={`${Classes.DIALOG_FOOTER_ACTIONS} flex-row-reverse items-center`}
           >
             <Button
+              key={isContentLocked ? "confirm-locked" : "confirm-unlocked"}
               text="Confirm"
               intent={Intent.PRIMARY}
               onClick={() => void onSubmit()}
               disabled={loading || !content.text.trim()}
               className="flex-shrink-0"
+              autoFocus={isContentLocked}
             />
             <Button
               text="Cancel"
