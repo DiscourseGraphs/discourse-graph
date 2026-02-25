@@ -277,12 +277,17 @@ export const relatedConcepts = (concept: LocalConceptDataInput): string[] => {
  * schema_represented_by_local_id or local_reference_content — so that id
  * must equal some concept's source_local_id or it is reported as "missing".
  */
-const orderConceptsRec = (
-  ordered: LocalConceptDataInput[],
-  concept: LocalConceptDataInput,
-  remainder: { [key: string]: LocalConceptDataInput },
-  processed: Set<string>,
-): Set<string> => {
+const orderConceptsRec = ({
+  ordered,
+  concept,
+  remainder,
+  processed,
+}: {
+  ordered: LocalConceptDataInput[];
+  concept: LocalConceptDataInput;
+  remainder: { [key: string]: LocalConceptDataInput };
+  processed: Set<string>;
+}): Set<string> => {
   const relatedConceptIds = relatedConcepts(concept);
   let missing: Set<string> = new Set();
   while (relatedConceptIds.length > 0) {
@@ -294,7 +299,12 @@ const orderConceptsRec = (
     } else {
       missing = new Set([
         ...missing,
-        ...orderConceptsRec(ordered, relatedConcept, remainder, processed),
+        ...orderConceptsRec({
+          ordered,
+          concept: relatedConcept,
+          remainder,
+          processed,
+        }),
       ]);
       delete remainder[relatedConceptId];
     }
@@ -330,7 +340,12 @@ export const orderConceptsByDependency = (
     if (!first) break;
     missing = new Set([
       ...missing,
-      ...orderConceptsRec(ordered, first, conceptById, processed),
+      ...orderConceptsRec({
+        ordered,
+        concept: first,
+        remainder: conceptById,
+        processed,
+      }),
     ]);
     if (missing.size > 0) console.error(`missing: ${[...missing].join(", ")}`);
   }

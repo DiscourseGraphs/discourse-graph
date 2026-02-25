@@ -226,27 +226,40 @@ export const relatedConcepts = (concept: LocalConceptDataInput): string[] => {
   return [...new Set(relations)];
 };
 
-const orderConceptsRec = (
-  ordered: LocalConceptDataInput[],
-  concept: LocalConceptDataInput,
-  remainder: { [key: string]: LocalConceptDataInput },
-): Set<string> => {
+const orderConceptsRec = ({
+  ordered,
+  concept,
+  remainder,
+  processed,
+}: {
+  ordered: LocalConceptDataInput[];
+  concept: LocalConceptDataInput;
+  remainder: { [key: string]: LocalConceptDataInput };
+  processed: Set<string>;
+}): Set<string> => {
   const relatedConceptIds = relatedConcepts(concept);
   let missing: Set<string> = new Set();
   while (relatedConceptIds.length > 0) {
     const relatedConceptId = relatedConceptIds.shift()!;
+    if (processed.has(relatedConceptId)) continue;
     const relatedConcept = remainder[relatedConceptId];
     if (relatedConcept === undefined) {
       missing.add(relatedConceptId);
     } else {
       missing = new Set([
         ...missing,
-        ...orderConceptsRec(ordered, relatedConcept, remainder),
+        ...orderConceptsRec({
+          ordered,
+          concept: relatedConcept,
+          remainder,
+          processed,
+        }),
       ]);
       delete remainder[relatedConceptId];
     }
   }
   ordered.push(concept);
+  processed.add(concept.source_local_id!);
   delete remainder[concept.source_local_id!];
   return missing;
 };
@@ -273,11 +286,17 @@ export const orderConceptsByDependency = (
   ) as { [key: string]: LocalConceptDataInput };
   const ordered: LocalConceptDataInput[] = [];
   let missing: Set<string> = new Set();
+  const processed: Set<string> = new Set();
   while (Object.keys(conceptById).length > 0) {
     const first = Object.values(conceptById)[0];
     missing = new Set([
       ...missing,
-      ...orderConceptsRec(ordered, first, conceptById),
+      ...orderConceptsRec({
+        ordered,
+        concept: first,
+        remainder: conceptById,
+        processed,
+      }),
     ]);
   }
   return { ordered, missing: [...missing] };
