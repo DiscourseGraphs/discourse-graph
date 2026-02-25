@@ -285,6 +285,10 @@ export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
   return flags[key];
 };
 
+export const isNewSettingsStoreEnabled = (): boolean => {
+  return getFeatureFlag("Use new settings store");
+};
+
 export const setFeatureFlag = (
   key: keyof FeatureFlags,
   value: boolean,
