@@ -90,12 +90,14 @@ const featureFlags: FeatureFlags = {
   "Enable left sidebar": true,
   "Suggestive mode enabled": true,
   "Reified relation triples": false,
+  "Use new settings store": false,
 };
 
 const defaultFeatureFlags: FeatureFlags = {
   "Enable left sidebar": false,
   "Suggestive mode enabled": false,
   "Reified relation triples": false,
+  "Use new settings store": false,
 };
 
 const exportSettings: ExportSettings = {
