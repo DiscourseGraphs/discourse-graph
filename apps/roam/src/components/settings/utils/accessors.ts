@@ -126,15 +126,6 @@ const readPathValue = (root: unknown, keys: string[]): unknown =>
 
 const pathKey = (keys: string[]): string => keys.join("::");
 
-const getMissingSettingError = ({
-  context,
-  keys,
-}: {
-  context: string;
-  keys: string[];
-}): string =>
-  `[DG Accessor] Missing ${context} setting at path: ${formatSettingPath(keys)} (dual-read ON)`;
-
 const validateSettingValue = ({
   schema,
   keys,
@@ -706,19 +697,16 @@ export const getGlobalSetting = <T = unknown>(
     return getLegacyGlobalSetting(keys) as T | undefined;
   }
 
-  const { blockProps } = getBlockPropBasedSettings({
-    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.global],
-  });
-  const rawValue = readPathValue(blockProps || {}, keys);
-  if (rawValue === undefined) {
-    const legacyValue = getLegacyGlobalSetting(keys);
-    if (legacyValue !== undefined) {
-      throw new Error(getMissingSettingError({ context: "Global", keys }));
-    }
+  const settings = getGlobalSettings();
+  const blockPropsValue = readPathValue(settings, keys);
+  const legacyValue = getLegacyGlobalSetting(keys);
+  if (JSON.stringify(blockPropsValue) !== JSON.stringify(legacyValue)) {
+    console.warn(
+      `[DG Dual-Read] Mismatch at Global > ${formatSettingPath(keys)}`,
+      { blockProps: blockPropsValue, legacy: legacyValue },
+    );
   }
-
-  const settings = GlobalSettingsSchema.parse(blockProps || {});
-  return readPathValue(settings, keys) as T;
+  return blockPropsValue as T | undefined;
 };
 
 export const setGlobalSetting = (keys: string[], value: json): void => {
@@ -773,20 +761,16 @@ export const getPersonalSetting = <T = unknown>(
     return getLegacyPersonalSetting(keys) as T | undefined;
   }
 
-  const personalKey = getPersonalSettingsKey();
-  const { blockProps } = getBlockPropBasedSettings({
-    keys: [personalKey],
-  });
-  const rawValue = readPathValue(blockProps || {}, keys);
-  if (rawValue === undefined) {
-    const legacyValue = getLegacyPersonalSetting(keys);
-    if (legacyValue !== undefined) {
-      throw new Error(getMissingSettingError({ context: "Personal", keys }));
-    }
+  const settings = getPersonalSettings();
+  const blockPropsValue = readPathValue(settings, keys);
+  const legacyValue = getLegacyPersonalSetting(keys);
+  if (JSON.stringify(blockPropsValue) !== JSON.stringify(legacyValue)) {
+    console.warn(
+      `[DG Dual-Read] Mismatch at Personal > ${formatSettingPath(keys)}`,
+      { blockProps: blockPropsValue, legacy: legacyValue },
+    );
   }
-
-  const settings = PersonalSettingsSchema.parse(blockProps || {});
-  return readPathValue(settings, keys) as T;
+  return blockPropsValue as T | undefined;
 };
 
 export const setPersonalSetting = (keys: string[], value: json): void => {
@@ -861,24 +845,16 @@ export const getDiscourseNodeSetting = <T = unknown>(
     return getLegacyDiscourseNodeSetting(nodeType, keys) as T | undefined;
   }
 
-  const rawBlockProps = getRawDiscourseNodeBlockProps(nodeType);
-  const rawValue = rawBlockProps
-    ? readPathValue(rawBlockProps, keys)
-    : undefined;
-  if (rawValue === undefined) {
-    const legacyValue = getLegacyDiscourseNodeSetting(nodeType, keys);
-    if (legacyValue !== undefined) {
-      throw new Error(
-        getMissingSettingError({
-          context: `Discourse Node (${nodeType})`,
-          keys,
-        }),
-      );
-    }
-  }
-
   const settings = getDiscourseNodeSettings(nodeType);
-  return settings ? (readPathValue(settings, keys) as T) : undefined;
+  const blockPropsValue = settings ? readPathValue(settings, keys) : undefined;
+  const legacyValue = getLegacyDiscourseNodeSetting(nodeType, keys);
+  if (JSON.stringify(blockPropsValue) !== JSON.stringify(legacyValue)) {
+    console.warn(
+      `[DG Dual-Read] Mismatch at Discourse Node (${nodeType}) > ${formatSettingPath(keys)}`,
+      { blockProps: blockPropsValue, legacy: legacyValue },
+    );
+  }
+  return blockPropsValue as T | undefined;
 };
 
 export const setDiscourseNodeSetting = (
