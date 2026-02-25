@@ -447,7 +447,7 @@ const QueryEditor: QueryEditorComponent = ({
   setHasResults,
   hideCustomSwitch,
   showAlias,
-  discourseNodeType,// eslint-disable-line react/prop-types
+  discourseNodeType, // eslint-disable-line react/prop-types
   settingKey, // eslint-disable-line react/prop-types
   returnNode, // eslint-disable-line react/prop-types
 }) => {
