@@ -706,12 +706,19 @@ export const getGlobalSetting = <T = unknown>(
     return getLegacyGlobalSetting(keys) as T | undefined;
   }
 
-  const settings = getGlobalSettings();
-  const value = readPathValue(settings, keys) as T | undefined;
-  if (value === undefined) {
-    throw new Error(getMissingSettingError({ context: "Global", keys }));
+  const { blockProps } = getBlockPropBasedSettings({
+    keys: [TOP_LEVEL_BLOCK_PROP_KEYS.global],
+  });
+  const rawValue = readPathValue(blockProps || {}, keys);
+  if (rawValue === undefined) {
+    const legacyValue = getLegacyGlobalSetting(keys);
+    if (legacyValue !== undefined) {
+      throw new Error(getMissingSettingError({ context: "Global", keys }));
+    }
   }
-  return value;
+
+  const settings = GlobalSettingsSchema.parse(blockProps || {});
+  return readPathValue(settings, keys) as T;
 };
 
 export const setGlobalSetting = (keys: string[], value: json): void => {
@@ -766,12 +773,20 @@ export const getPersonalSetting = <T = unknown>(
     return getLegacyPersonalSetting(keys) as T | undefined;
   }
 
-  const settings = getPersonalSettings();
-  const value = readPathValue(settings, keys) as T | undefined;
-  if (value === undefined) {
-    throw new Error(getMissingSettingError({ context: "Personal", keys }));
+  const personalKey = getPersonalSettingsKey();
+  const { blockProps } = getBlockPropBasedSettings({
+    keys: [personalKey],
+  });
+  const rawValue = readPathValue(blockProps || {}, keys);
+  if (rawValue === undefined) {
+    const legacyValue = getLegacyPersonalSetting(keys);
+    if (legacyValue !== undefined) {
+      throw new Error(getMissingSettingError({ context: "Personal", keys }));
+    }
   }
-  return value;
+
+  const settings = PersonalSettingsSchema.parse(blockProps || {});
+  return readPathValue(settings, keys) as T;
 };
 
 export const setPersonalSetting = (keys: string[], value: json): void => {
@@ -802,9 +817,7 @@ export const setPersonalSetting = (keys: string[], value: json): void => {
   });
 };
 
-export const getDiscourseNodeSettings = (
-  nodeType: string,
-): DiscourseNodeSettings | undefined => {
+const getRawDiscourseNodeBlockProps = (nodeType: string): json | undefined => {
   let pageUid = nodeType;
   let blockProps = getBlockPropsByUid(pageUid, []);
 
@@ -818,6 +831,13 @@ export const getDiscourseNodeSettings = (
     }
   }
 
+  return blockProps;
+};
+
+export const getDiscourseNodeSettings = (
+  nodeType: string,
+): DiscourseNodeSettings | undefined => {
+  const blockProps = getRawDiscourseNodeBlockProps(nodeType);
   if (!blockProps) return undefined;
 
   const result = DiscourseNodeSchema.safeParse(blockProps);
@@ -841,19 +861,24 @@ export const getDiscourseNodeSetting = <T = unknown>(
     return getLegacyDiscourseNodeSetting(nodeType, keys) as T | undefined;
   }
 
-  const settings = getDiscourseNodeSettings(nodeType);
-  const value = settings
-    ? (readPathValue(settings, keys) as T | undefined)
+  const rawBlockProps = getRawDiscourseNodeBlockProps(nodeType);
+  const rawValue = rawBlockProps
+    ? readPathValue(rawBlockProps, keys)
     : undefined;
-  if (value === undefined) {
-    throw new Error(
-      getMissingSettingError({
-        context: `Discourse Node (${nodeType})`,
-        keys,
-      }),
-    );
+  if (rawValue === undefined) {
+    const legacyValue = getLegacyDiscourseNodeSetting(nodeType, keys);
+    if (legacyValue !== undefined) {
+      throw new Error(
+        getMissingSettingError({
+          context: `Discourse Node (${nodeType})`,
+          keys,
+        }),
+      );
+    }
   }
-  return value;
+
+  const settings = getDiscourseNodeSettings(nodeType);
+  return settings ? (readPathValue(settings, keys) as T) : undefined;
 };
 
 export const setDiscourseNodeSetting = (
