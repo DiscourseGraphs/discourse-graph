@@ -457,9 +457,13 @@ const BaseMultiTextPanel = ({
   );
 };
 
-type TextWrapperProps = Omit<BaseTextPanelProps, "setter">;
+type TextWrapperProps = Omit<BaseTextPanelProps, "setter"> & {
+  setter?: TextSetter;
+};
 type FlagWrapperProps = Omit<BaseFlagPanelProps, "setter">;
-type NumberWrapperProps = Omit<BaseNumberPanelProps, "setter">;
+type NumberWrapperProps = Omit<BaseNumberPanelProps, "setter"> & {
+  setter?: NumberSetter;
+};
 type SelectWrapperProps = Omit<BaseSelectPanelProps, "setter">;
 type MultiTextWrapperProps = Omit<BaseMultiTextPanelProps, "setter">;
 
@@ -557,16 +561,22 @@ export const GlobalMultiTextPanel = (props: MultiTextWrapperProps) => (
   <BaseMultiTextPanel {...props} {...globalAccessors.multiText} />
 );
 
-export const PersonalTextPanel = (props: TextWrapperProps) => (
-  <BaseTextPanel {...props} {...personalAccessors.text} />
+export const PersonalTextPanel = ({ setter, ...props }: TextWrapperProps) => (
+  <BaseTextPanel {...props} setter={setter ?? personalAccessors.text.setter} />
 );
 
 export const PersonalFlagPanel = (props: FlagWrapperProps) => (
   <BaseFlagPanel {...props} {...personalAccessors.flag} />
 );
 
-export const PersonalNumberPanel = (props: NumberWrapperProps) => (
-  <BaseNumberPanel {...props} {...personalAccessors.number} />
+export const PersonalNumberPanel = ({
+  setter,
+  ...props
+}: NumberWrapperProps) => (
+  <BaseNumberPanel
+    {...props}
+    setter={setter ?? personalAccessors.number.setter}
+  />
 );
 
 export const PersonalSelectPanel = (props: SelectWrapperProps) => (

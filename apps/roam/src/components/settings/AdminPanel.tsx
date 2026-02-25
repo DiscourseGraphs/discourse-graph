@@ -38,6 +38,7 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import posthog from "posthog-js";
+import { setFeatureFlag } from "~/components/settings/utils/accessors";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
   return (
@@ -377,6 +378,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
               setSuggestiveModeUid(undefined);
             }
             setSuggestiveModeEnabled(false);
+            setFeatureFlag("Suggestive mode enabled", false);
           }
         }}
         labelElement={
@@ -399,6 +401,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
           }).then((uid) => {
             setSuggestiveModeUid(uid);
             setSuggestiveModeEnabled(true);
+            setFeatureFlag("Suggestive mode enabled", true);
             setIsAlertOpen(false);
             setIsInstructionOpen(true);
           });
@@ -447,6 +450,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
           void setSetting(USE_REIFIED_RELATIONS, target.checked).catch(
             () => undefined,
           );
+          setFeatureFlag("Reified relation triples", target.checked);
           posthog.capture("Reified Relations: Toggled", {
             enabled: target.checked,
           });

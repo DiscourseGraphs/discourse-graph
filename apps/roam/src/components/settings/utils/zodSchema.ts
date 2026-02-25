@@ -52,6 +52,8 @@ export const SelectionSchema = z.object({
 export const IndexSchema = z.object({
   conditions: z.array(ConditionSchema).default([]),
   selections: z.array(SelectionSchema).default([]),
+  custom: z.string().default(""),
+  returnNode: z.string().default("node"),
 });
 
 type RoamNode = {
@@ -101,10 +103,19 @@ export const DiscourseNodeSchema = z.object({
   tag: stringWithDefault(""),
   description: stringWithDefault(""),
   specification: z
-    .array(ConditionSchema)
+    .object({
+      enabled: z.boolean().default(false),
+      query: IndexSchema.default({}),
+    })
     .nullable()
     .optional()
-    .transform((val) => val ?? []),
+    .transform(
+      (val) =>
+        val ?? {
+          enabled: false,
+          query: { conditions: [], selections: [], custom: "", returnNode: "" },
+        },
+    ),
   template: z
     .array(RoamNodeSchema)
     .nullable()
@@ -191,10 +202,11 @@ export const GlobalSettingsSchema = z.object({
 });
 
 export const PersonalSectionSchema = z.object({
+  name: z.string(),
   Children: z
     .array(
       z.object({
-        Page: z.string(),
+        uid: z.string(),
         Alias: z.string().default(""),
       }),
     )
@@ -208,8 +220,8 @@ export const PersonalSectionSchema = z.object({
 });
 
 export const LeftSidebarPersonalSettingsSchema = z
-  .record(z.string(), PersonalSectionSchema)
-  .default({});
+  .array(PersonalSectionSchema)
+  .default([]);
 
 export const StoredFiltersSchema = z.object({
   includes: z.object({ values: z.array(z.string()).default([]) }).default({}),
@@ -225,9 +237,16 @@ export const QuerySettingsSchema = z.object({
 
 export const PersonalSettingsSchema = z.object({
   "Left sidebar": LeftSidebarPersonalSettingsSchema,
-  "Personal node menu trigger": z.string().default(""),
+  "Personal node menu trigger": z
+    .union([
+      z.object({ modifiers: z.number(), key: z.string() }),
+      z.literal(""),
+    ])
+    .default({ modifiers: 0, key: "" }),
   "Node search menu trigger": z.string().default("@"),
-  "Discourse tool shortcut": z.string().default(""),
+  "Discourse tool shortcut": z
+    .object({ modifiers: z.number(), key: z.string() })
+    .default({ modifiers: 0, key: "" }),
   "Discourse context overlay": z.boolean().default(false),
   "Suggestive mode overlay": z.boolean().default(false),
   "Overlay in canvas": z.boolean().default(false),

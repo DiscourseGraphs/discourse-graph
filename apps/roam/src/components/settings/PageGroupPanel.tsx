@@ -6,6 +6,14 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import { type PageGroup } from "~/utils/getSuggestiveModeConfigSettings";
+import { setGlobalSetting } from "~/components/settings/utils/accessors";
+
+const syncPageGroupsToBlockProps = (groups: PageGroup[]) => {
+  setGlobalSetting(
+    ["Suggestive mode", "Page groups"],
+    groups.map((g) => ({ name: g.name, pages: g.pages.map((p) => p.name) })),
+  );
+};
 
 const PageGroupsPanel = ({
   uid,
@@ -31,7 +39,12 @@ const PageGroupsPanel = ({
         parentUid: uid,
         node: { text: name },
       });
-      setPageGroups([...pageGroups, { uid: newGroupUid, name, pages: [] }]);
+      const updatedGroups = [
+        ...pageGroups,
+        { uid: newGroupUid, name, pages: [] },
+      ];
+      setPageGroups(updatedGroups);
+      syncPageGroupsToBlockProps(updatedGroups);
       setNewGroupName("");
       setGroupKeys((prev) => prev + 1);
     } catch (e) {
@@ -42,7 +55,9 @@ const PageGroupsPanel = ({
   const removeGroup = async (groupUid: string) => {
     try {
       await deleteBlock(groupUid);
-      setPageGroups(pageGroups.filter((g) => g.uid !== groupUid));
+      const updatedGroups = pageGroups.filter((g) => g.uid !== groupUid);
+      setPageGroups(updatedGroups);
+      syncPageGroupsToBlockProps(updatedGroups);
     } catch (e) {
       console.error("Error removing group", e);
     }
@@ -58,13 +73,13 @@ const PageGroupsPanel = ({
         parentUid: groupUid,
         node: { text: page },
       });
-      setPageGroups(
-        pageGroups.map((g) =>
-          g.uid === groupUid
-            ? { ...g, pages: [...g.pages, { uid: newPageUid, name: page }] }
-            : g,
-        ),
+      const updatedGroups = pageGroups.map((g) =>
+        g.uid === groupUid
+          ? { ...g, pages: [...g.pages, { uid: newPageUid, name: page }] }
+          : g,
       );
+      setPageGroups(updatedGroups);
+      syncPageGroupsToBlockProps(updatedGroups);
       setNewPageInputs((prev) => ({
         ...prev,
         [groupUid]: "",
@@ -81,13 +96,13 @@ const PageGroupsPanel = ({
   const removePageFromGroup = async (groupUid: string, pageUid: string) => {
     try {
       await deleteBlock(pageUid);
-      setPageGroups(
-        pageGroups.map((g) =>
-          g.uid === groupUid
-            ? { ...g, pages: g.pages.filter((p) => p.uid !== pageUid) }
-            : g,
-        ),
+      const updatedGroups = pageGroups.map((g) =>
+        g.uid === groupUid
+          ? { ...g, pages: g.pages.filter((p) => p.uid !== pageUid) }
+          : g,
       );
+      setPageGroups(updatedGroups);
+      syncPageGroupsToBlockProps(updatedGroups);
     } catch (e) {
       console.error("Error removing page from group", e);
     }

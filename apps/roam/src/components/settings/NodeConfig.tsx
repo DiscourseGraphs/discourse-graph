@@ -1,121 +1,28 @@
-import React, {
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-  useMemo,
-} from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
-import SelectPanel from "roamjs-components/components/ConfigPanels/SelectPanel";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import { getSubTree } from "roamjs-components/util";
 import Description from "roamjs-components/components/Description";
-import { Label, Tabs, Tab, TabId, InputGroup } from "@blueprintjs/core";
+import { Label, Tabs, Tab, TabId } from "@blueprintjs/core";
 import DiscourseNodeSpecification from "./DiscourseNodeSpecification";
 import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
-import createBlock from "roamjs-components/writes/createBlock";
-import updateBlock from "roamjs-components/writes/updateBlock";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import {
   DiscourseNodeTextPanel,
   DiscourseNodeFlagPanel,
+  DiscourseNodeSelectPanel,
 } from "./components/BlockPropSettingPanels";
 
 const TEMPLATE_SETTING_KEYS = ["template"];
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
-};
-
-const ValidatedInputPanel = ({
-  label,
-  description,
-  value,
-  onChange,
-  onBlur,
-  error,
-  placeholder,
-}: {
-  label: string;
-  description: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur: () => void;
-  error: string;
-  placeholder?: string;
-}) => (
-  <div className="flex flex-col">
-    <Label>
-      {label}
-      <Description description={description} />
-      <InputGroup
-        value={value}
-        onChange={onChange}
-        onBlur={onBlur}
-        placeholder={placeholder}
-      />
-    </Label>
-    {error && (
-      <div className="mt-1 text-sm font-medium text-red-600">{error}</div>
-    )}
-  </div>
-);
-
-const useDebouncedRoamUpdater = <
-  T extends HTMLInputElement | HTMLTextAreaElement,
->(
-  uid: string,
-  initialValue: string,
-  isValid: boolean,
-) => {
-  const [value, setValue] = useState(initialValue);
-  const debounceRef = useRef(0);
-  const isValidRef = useRef(isValid);
-  isValidRef.current = isValid;
-
-  const saveToRoam = useCallback(
-    (text: string, timeout: boolean) => {
-      window.clearTimeout(debounceRef.current);
-      debounceRef.current = window.setTimeout(
-        () => {
-          if (!isValidRef.current) {
-            return;
-          }
-          const existingBlock = getBasicTreeByParentUid(uid)[0];
-          if (existingBlock) {
-            if (existingBlock.text !== text) {
-              void updateBlock({ uid: existingBlock.uid, text });
-            }
-          } else if (text) {
-            void createBlock({ parentUid: uid, node: { text } });
-          }
-        },
-        timeout ? 500 : 0,
-      );
-    },
-    [uid],
-  );
-
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<T>) => {
-      const newValue = e.target.value;
-      setValue(newValue);
-      saveToRoam(newValue, true);
-    },
-    [saveToRoam],
-  );
-
-  const handleBlur = useCallback(() => {
-    saveToRoam(value, false);
-  }, [value, saveToRoam]);
-
-  return { value, handleChange, handleBlur };
 };
 
 const generateTagPlaceholder = (node: DiscourseNode): string => {
@@ -166,18 +73,9 @@ const NodeConfig = ({
   const [selectedTabId, setSelectedTabId] = useState<TabId>("general");
   const [tagError, setTagError] = useState("");
   const [formatError, setFormatError] = useState("");
-  const isConfigurationValid = !tagError && !formatError;
 
   const [tagValue, setTagValue] = useState(node.tag || "");
-  const {
-    value: formatValue,
-    handleChange: handleFormatChange,
-    handleBlur: handleFormatBlurFromHook,
-  } = useDebouncedRoamUpdater<HTMLInputElement>(
-    formatUid,
-    node.format,
-    isConfigurationValid,
-  );
+  const [formatValue, setFormatValue] = useState(node.format || "");
   const validate = useCallback(
     ({
       tag,
@@ -236,11 +134,6 @@ const NodeConfig = ({
   useEffect(() => {
     validate({ tag: tagValue, format: formatValue });
   }, [tagValue, formatValue, validate]);
-
-  const handleFormatBlur = useCallback(() => {
-    handleFormatBlurFromHook();
-    validate({ tag: tagValue, format: formatValue });
-  }, [handleFormatBlurFromHook, tagValue, formatValue, validate]);
 
   return (
     <>
@@ -309,13 +202,17 @@ const NodeConfig = ({
           title="Format"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <ValidatedInputPanel
-                label="Format"
+              <DiscourseNodeTextPanel
+                nodeType={node.type}
+                title="Format"
                 description={`DEPRECATED - Use specification instead. The format ${node.text} pages should have.`}
-                value={formatValue}
-                onChange={handleFormatChange}
-                onBlur={handleFormatBlur}
+                settingKeys={["format"]}
+                initialValue={node.format}
                 error={formatError}
+                onChange={setFormatValue}
+                order={3}
+                parentUid={node.type}
+                uid={formatUid}
               />
               <Label>
                 Specification
@@ -359,16 +256,20 @@ const NodeConfig = ({
           title="Attributes"
           panel={
             <div className="flex flex-col gap-4 p-1">
-              <DiscourseNodeAttributes uid={attributeNode.uid} />
-              <SelectPanel
+              <DiscourseNodeAttributes
+                uid={attributeNode.uid}
+                nodeType={node.type}
+              />
+              <DiscourseNodeSelectPanel
+                nodeType={node.type}
                 title="Overlay"
                 description="Select which attribute is used for the discourse overlay"
+                settingKeys={["overlay"]}
+                options={attributeNode.children.map((c) => c.text)}
+                initialValue={getBasicTreeByParentUid(overlayUid)[0]?.text}
                 order={0}
                 parentUid={node.type}
                 uid={overlayUid}
-                options={{
-                  items: () => attributeNode.children.map((c) => c.text),
-                }}
               />
             </div>
           }
