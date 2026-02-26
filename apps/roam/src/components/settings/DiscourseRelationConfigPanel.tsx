@@ -32,7 +32,6 @@ import type {
   RoamBasicNode,
   TreeNode,
 } from "roamjs-components/types";
-import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import MenuItemSelect from "roamjs-components/components/MenuItemSelect";
 import setInputSetting from "roamjs-components/util/setInputSetting";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
@@ -52,6 +51,7 @@ import posthog from "posthog-js";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
 import {
   getFeatureFlag,
+  getGlobalSetting,
   setGlobalSetting,
   getGlobalSettings,
 } from "~/components/settings/utils/accessors";
@@ -139,10 +139,11 @@ export const RelationEditPanel = ({
   const [tab, setTab] = useState(0);
   const initialSourceUid = useMemo(
     () =>
-      getSettingValueFromTree({
-        tree: editingRelationInfo.children,
-        key: "source",
-      }),
+      getGlobalSetting<string>([
+        "Relations",
+        editingRelationInfo.uid,
+        "source",
+      ]) ?? "",
     [],
   );
   const initialSource = useMemo(
@@ -152,10 +153,11 @@ export const RelationEditPanel = ({
   const [source, setSource] = useState(initialSourceUid);
   const initialDestinationUid = useMemo(
     () =>
-      getSettingValueFromTree({
-        tree: editingRelationInfo.children,
-        key: "destination",
-      }),
+      getGlobalSetting<string>([
+        "Relations",
+        editingRelationInfo.uid,
+        "destination",
+      ]) ?? "",
     [],
   );
   const initialDestination = useMemo(
@@ -165,10 +167,12 @@ export const RelationEditPanel = ({
   const [destination, setDestination] = useState(initialDestinationUid);
   const [label, setLabel] = useState(editingRelationInfo.text);
   const [complement, setComplement] = useState(
-    getSettingValueFromTree({
-      tree: editingRelationInfo.children,
-      key: "complement",
-    }),
+    () =>
+      getGlobalSetting<string>([
+        "Relations",
+        editingRelationInfo.uid,
+        "complement",
+      ]) ?? "",
   );
 
   const edgeCallback = useCallback(

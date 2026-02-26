@@ -9,7 +9,7 @@ import DiscourseNodeAttributes from "./DiscourseNodeAttributes";
 import DiscourseNodeCanvasSettings from "./DiscourseNodeCanvasSettings";
 import DiscourseNodeIndex from "./DiscourseNodeIndex";
 import { OnloadArgs } from "roamjs-components/types";
-import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
+import { getDiscourseNodeSetting } from "~/components/settings/utils/accessors";
 import DiscourseNodeSuggestiveRules from "./DiscourseNodeSuggestiveRules";
 import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import {
@@ -82,10 +82,11 @@ const NodeConfig = ({
       isSpecificationEnabled?: boolean;
     }) => {
       if (isSpecificationEnabled === undefined)
-        isSpecificationEnabled = !!getSubTree({
-          tree: getBasicTreeByParentUid(specificationUid),
-          key: "enabled",
-        })?.uid?.length;
+        isSpecificationEnabled =
+          getDiscourseNodeSetting<boolean>(node.type, [
+            "specification",
+            "enabled",
+          ]) ?? false;
       if (format.trim().length === 0 && !isSpecificationEnabled) {
         setTagError("");
         setFormatError("Error: you must set either a format or specification");
@@ -123,7 +124,7 @@ const NodeConfig = ({
         setFormatError("");
       }
     },
-    [specificationUid],
+    [node.type],
   );
 
   useEffect(() => {
@@ -261,7 +262,9 @@ const NodeConfig = ({
                 description="Select which attribute is used for the discourse overlay"
                 settingKeys={["overlay"]}
                 options={attributeNode.children.map((c) => c.text)}
-                initialValue={getBasicTreeByParentUid(overlayUid)[0]?.text}
+                initialValue={
+                  getDiscourseNodeSetting<string>(node.type, ["overlay"]) ?? ""
+                }
                 order={0}
                 parentUid={node.type}
                 uid={overlayUid}
