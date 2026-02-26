@@ -5,6 +5,7 @@ import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import { checkAndCreateFolder } from "~/utils/file";
 import { getVaultId } from "./supabaseContext";
 import type { RelationInstance } from "~/types";
+import { QueryEngine } from "~/services/QueryEngine";
 
 const RELATIONS_FILE_NAME = "relations.json";
 const RELATIONS_FILE_VERSION = 1;
@@ -247,14 +248,24 @@ export const getFileForNodeInstanceIds = (
   plugin: DiscourseGraphPlugin,
   nodeInstanceIds: Set<string>,
 ): Record<string, TFile> => {
-  const files = plugin.app.vault.getMarkdownFiles();
   const result: Record<string, TFile> = {};
-  for (const file of files) {
-    const cache = plugin.app.metadataCache.getFileCache(file);
-    const id = (cache?.frontmatter as Record<string, unknown> | undefined)
-      ?.nodeInstanceId as string | undefined;
-    if (id && nodeInstanceIds.has(id)) {
-      result[id] = file;
+  if (nodeInstanceIds.size == 0) return result;
+  const queryEngine = new QueryEngine(plugin.app);
+  if (queryEngine.functional()) {
+    [...nodeInstanceIds.values()].map((nodeId) => {
+      const f = queryEngine.getDiscourseNodeById(nodeId);
+      if (f) result[nodeId] = f;
+    });
+  } else {
+    // query engine not available, fallback
+    const files = plugin.app.vault.getMarkdownFiles();
+    for (const file of files) {
+      const cache = plugin.app.metadataCache.getFileCache(file);
+      const id = (cache?.frontmatter as Record<string, unknown> | undefined)
+        ?.nodeInstanceId as string | undefined;
+      if (id && nodeInstanceIds.has(id)) {
+        result[id] = file;
+      }
     }
   }
   return result;

@@ -37,6 +37,8 @@ export class QueryEngine {
     this.app = app;
   }
 
+  functional = () => !!this.dc;
+
   /**
    * Search across all discourse nodes (files that have frontmatter nodeTypeId)
    */
@@ -78,6 +80,29 @@ export class QueryEngine {
     } catch (error) {
       console.error("Error in searchDiscourseNodesByTitle:", error);
       return [];
+    }
+  };
+
+  /**
+   * Search across all discourse nodes that have nodeInstanceId
+   */
+  getDiscourseNodeById = (nodeInstanceId: string): TFile | null => {
+    if (!this.dc) {
+      console.warn(
+        "Datacore API not available. Search functionality is not available.",
+      );
+      return null;
+    }
+
+    try {
+      const dcQuery = `@page and exists(nodeInstanceId) and nodeInstanceId = "${nodeInstanceId}"`;
+      const potentialNodes = this.dc.query(dcQuery);
+      const path = potentialNodes.at(0)?.$path;
+      if (!path) return null;
+      return this.app.vault.getFileByPath(path);
+    } catch (error) {
+      console.error("Error in searchDiscourseNodeById:", error);
+      return null;
     }
   };
 
