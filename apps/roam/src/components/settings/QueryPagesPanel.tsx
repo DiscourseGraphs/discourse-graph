@@ -2,19 +2,16 @@ import { Button, InputGroup } from "@blueprintjs/core";
 import posthog from "posthog-js";
 import React, { useState } from "react";
 import type { OnloadArgs } from "roamjs-components/types";
+import {
+  getPersonalSetting,
+  setPersonalSetting,
+} from "~/components/settings/utils/accessors";
 
-export const getQueryPages = (extensionAPI: OnloadArgs["extensionAPI"]) => {
-  const value = extensionAPI.settings.get("query-pages") as
-    | string[]
-    | string
-    | Record<string, string>;
-  return typeof value === "string"
-    ? [value]
-    : Array.isArray(value)
-      ? value
-      : typeof value === "object" && value !== null
-        ? Object.keys(value)
-        : ["queries/*"];
+export const getQueryPages = (
+  extensionAPI: OnloadArgs["extensionAPI"],
+): string[] => {
+  void extensionAPI;
+  return getPersonalSetting<string[]>(["Query", "Query pages"]) as string[];
 };
 
 const QueryPagesPanel = ({
@@ -24,6 +21,11 @@ const QueryPagesPanel = ({
 }) => {
   const [texts, setTexts] = useState(() => getQueryPages(extensionAPI));
   const [value, setValue] = useState("");
+  const persistQueryPages = (newTexts: string[]) => {
+    setPersonalSetting(["Query", "Query pages"], newTexts);
+    void extensionAPI.settings.set("query-pages", newTexts);
+  };
+
   return (
     <div
       className="flex flex-col"
@@ -45,7 +47,7 @@ const QueryPagesPanel = ({
           onClick={() => {
             const newTexts = [...texts, value];
             setTexts(newTexts);
-            extensionAPI.settings.set("query-pages", newTexts);
+            persistQueryPages(newTexts);
             setValue("");
             posthog.capture("Query Page: Page Format Added", {
               newType: value,
@@ -70,7 +72,7 @@ const QueryPagesPanel = ({
             onClick={() => {
               const newTexts = texts.filter((_, jndex) => index !== jndex);
               setTexts(newTexts);
-              extensionAPI.settings.set("query-pages", newTexts);
+              persistQueryPages(newTexts);
             }}
           />
         </div>

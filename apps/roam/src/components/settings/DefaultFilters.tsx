@@ -3,7 +3,10 @@ import React, { useEffect, useState } from "react";
 import type { OnloadArgs } from "roamjs-components/types";
 import type { Filters } from "roamjs-components/components/Filter";
 import posthog from "posthog-js";
-import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import {
+  getPersonalSetting,
+  setPersonalSetting,
+} from "~/components/settings/utils/accessors";
 
 //
 // TODO - REWORK THIS COMPONENT
@@ -106,10 +109,10 @@ const DefaultFilters = ({
   const [filters, setFilters] = useState(() =>
     Object.fromEntries(
       Object.entries(
-        (extensionAPI.settings.get("default-filters") as Record<
-          string,
-          StoredFilters
-        >) || {},
+        getPersonalSetting<Record<string, StoredFilters>>([
+          "Query",
+          "Default filters",
+        ]) as Record<string, StoredFilters>,
       ).map(([k, v]) => [
         k,
         {
