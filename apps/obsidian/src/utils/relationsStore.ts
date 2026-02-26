@@ -228,10 +228,10 @@ export const getNodeTypeIdForFile = async (
   return typeof nodeTypeId === "string" ? nodeTypeId : null;
 };
 
-export const getFileForNodeInstanceId = async (
+export const getFileForNodeInstanceId = (
   plugin: DiscourseGraphPlugin,
   nodeInstanceId: string,
-): Promise<TFile | null> => {
+): TFile | null => {
   const files = plugin.app.vault.getMarkdownFiles();
   for (const file of files) {
     const cache = plugin.app.metadataCache.getFileCache(file);
