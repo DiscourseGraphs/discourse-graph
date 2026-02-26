@@ -8,7 +8,11 @@ export default defineConfig({
   },
   retries: 0,
   workers: 1,
-  reporter: [["list"], ["html", { outputFolder: "html-report" }]],
+  reporter: [
+    ["list"],
+    ["html", { outputFolder: "html-report" }],
+    ["json", { outputFile: "test-results/report.json" }],
+  ],
   use: {
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
