@@ -38,7 +38,6 @@ import {
   getModifiersFromCombo,
   render as renderDiscourseNodeMenu,
 } from "~/components/DiscourseNodeMenu";
-import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { IKeyCombo } from "@blueprintjs/core";
 import { configPageTabs } from "~/utils/configPageTabs";
 import { renderDiscourseNodeSearchMenu } from "~/components/DiscourseNodeSearchMenu";

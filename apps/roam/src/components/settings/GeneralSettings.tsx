@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-
 import { Alert, Intent } from "@blueprintjs/core";
 import {
   GlobalTextPanel,

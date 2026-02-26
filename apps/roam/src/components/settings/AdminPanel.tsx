@@ -42,8 +42,6 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import posthog from "posthog-js";
-
-
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
