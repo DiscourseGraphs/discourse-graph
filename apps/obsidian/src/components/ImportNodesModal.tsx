@@ -45,14 +45,12 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         return;
       }
 
-      const groups = await getAvailableGroups(client);
-      if (groups.length === 0) {
+      const groupIds = await getAvailableGroups(client);
+      if (groupIds.length === 0) {
         new Notice("You are not a member of any groups");
         onClose();
         return;
       }
-
-      const groupIds = groups.map((g) => g.group_id);
 
       const publishedNodes = await getPublishedNodesForGroups({
         client,

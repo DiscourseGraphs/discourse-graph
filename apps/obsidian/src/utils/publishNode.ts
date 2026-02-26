@@ -6,10 +6,13 @@ import mime from "mime-types";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
   getRelationsForNodeInstanceId,
+  getFileForNodeInstanceId,
   getFileForNodeInstanceIds,
   loadRelations,
   saveRelations,
 } from "./relationsStore";
+import type { RelationInstance } from "~/types";
+import { getAvailableGroups } from "./importNodes";
 
 const publishSchema = async ({
   client,
@@ -60,6 +63,76 @@ const publishSchema = async ({
     console.error("Error publishing schema:", publishResponse.error);
     // Don't throw - schema publishing failure shouldn't block node publishing
   }
+};
+
+const intersection = <T>(set1: Set<T>, set2: Set<T>): Set<T> => {
+  // @ts-ignore-error
+  if (set1.intersection) return set1.intersection(set2);
+  const r: Set<T> = new Set();
+  for (const x of set1) {
+    if (set2.has(x)) r.add(x);
+  }
+  return r;
+};
+
+export const publishNewRelation = async (
+  plugin: DiscourseGraphPlugin,
+  relation: RelationInstance,
+) => {
+  const client = await getLoggedInClient(plugin);
+  if (!client) throw new Error("Cannot get client");
+  const context = await getSupabaseContext(plugin);
+  if (!context) throw new Error("Cannot get context");
+  const sourceFile = getFileForNodeInstanceId(plugin, relation.source);
+  const destinationFile = getFileForNodeInstanceId(
+    plugin,
+    relation.destination,
+  );
+  if (!sourceFile || !destinationFile) return;
+  const sourceFm =
+    plugin.app.metadataCache.getFileCache(sourceFile)?.frontmatter;
+  const destinationFm =
+    plugin.app.metadataCache.getFileCache(destinationFile)?.frontmatter;
+  if (!sourceFm || !destinationFm) return;
+
+  const sourceGroups = sourceFm.publishedToGroups;
+  const destinationGroups = destinationFm.publishedToGroups;
+  if (!Array.isArray(sourceGroups) || !Array.isArray(destinationGroups)) return;
+  const relationTriples = plugin.settings.discourseRelations ?? [];
+  const triple = relationTriples.find(
+    (triple) =>
+      triple.relationshipTypeId === relation.type &&
+      triple.sourceId === sourceFm.nodeTypeId &&
+      triple.destinationId === destinationFm.nodeTypeId,
+  );
+  if (!triple) return;
+  const resourceIds = [relation.id, relation.type, triple.id];
+  const myGroups = await getAvailableGroups(client);
+  const targetGroups = intersection(
+    new Set(myGroups),
+    intersection(
+      new Set<string>(sourceGroups),
+      new Set<string>(destinationGroups),
+    ),
+  );
+  if (!targetGroups.size) return;
+  const entries = [];
+  for (const group of targetGroups) {
+    for (const id of resourceIds) {
+      entries.push({
+        /* eslint-disable @typescript-eslint/naming-convention */
+        account_uid: group,
+        source_local_id: id,
+        space_id: context.spaceId,
+        /* eslint-enable @typescript-eslint/naming-convention */
+      });
+    }
+  }
+  const publishResponse = await client
+    .from("ResourceAccess")
+    .upsert(entries, { ignoreDuplicates: true });
+  if (publishResponse.error && publishResponse.error.code !== "23505")
+    throw publishResponse.error;
 };
 
 export const publishNodeRelations = async ({
@@ -155,13 +228,7 @@ export const publishNode = async ({
 }): Promise<void> => {
   const client = await getLoggedInClient(plugin);
   if (!client) throw new Error("Cannot get client");
-  const myGroupsResponse = await client
-    .from("group_membership")
-    .select("group_id");
-  if (myGroupsResponse.error) throw myGroupsResponse.error;
-  const myGroups = new Set(
-    myGroupsResponse.data.map(({ group_id }) => group_id),
-  );
+  const myGroups = new Set(await getAvailableGroups(client));
   if (myGroups.size === 0) throw new Error("Cannot get group");
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];

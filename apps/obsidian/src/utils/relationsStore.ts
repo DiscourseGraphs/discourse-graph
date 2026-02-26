@@ -6,6 +6,7 @@ import { checkAndCreateFolder } from "~/utils/file";
 import { getVaultId } from "./supabaseContext";
 import type { RelationInstance } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
+import { publishNewRelation } from "./publishNode";
 
 const RELATIONS_FILE_NAME = "relations.json";
 const RELATIONS_FILE_VERSION = 1;
@@ -115,6 +116,12 @@ export const addRelationNoCheck = async (
   const data = await loadRelations(plugin);
   data.relations[id] = instance;
   await saveRelations(plugin, data);
+  try {
+    await publishNewRelation(plugin, instance);
+  } catch (error) {
+    console.error(error);
+    // do not fail adding the relation; but we need a way to look at this later.
+  }
   return id;
 };
 
