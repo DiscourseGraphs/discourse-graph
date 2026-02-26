@@ -232,6 +232,9 @@ export const getFileForNodeInstanceId = (
   plugin: DiscourseGraphPlugin,
   nodeInstanceId: string,
 ): TFile | null => {
+  const queryEngine = new QueryEngine(plugin.app);
+  if (queryEngine.functional())
+    return queryEngine.getDiscourseNodeById(nodeInstanceId);
   const files = plugin.app.vault.getMarkdownFiles();
   for (const file of files) {
     const cache = plugin.app.metadataCache.getFileCache(file);
