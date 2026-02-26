@@ -34,6 +34,7 @@ import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import posthog from "posthog-js";
 import internalError from "~/utils/internalError";
+import { setPersonalSetting } from "./utils/accessors";
 
 const enum RelationMigrationDialog {
   "none",
@@ -50,13 +51,18 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
     useState<RelationMigrationDialog>(RelationMigrationDialog.none);
   const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
   const [isOngoing, setOngoing] = useState<boolean>(false);
-  const setStoredMigration = async (active: boolean) => {
-    await setSetting(USE_REIFIED_RELATIONS, active);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let settingStoredMigrationValue = false;
+  const setStoredRelations = (enabled: boolean) => {
     const panel = document.getElementById("stored-relation-flag");
     const checkboxList = panel?.getElementsByTagName("input");
     if (checkboxList && checkboxList.length > 0) {
       const checkbox = checkboxList.item(0)!;
-      checkbox.checked = active;
+      if (checkbox.checked !== enabled) {
+        settingStoredMigrationValue = true;
+        checkbox.click();
+        settingStoredMigrationValue = false;
+      }
     }
   };
   const startMigration = async (): Promise<void> => {
@@ -70,7 +76,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           intent: Intent.DANGER,
           id: "migration-error",
         });
-        await setStoredMigration(false);
+        setStoredRelations(false);
         return;
       }
       const after = await countReifiedRelations();
@@ -93,13 +99,13 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         after,
         created: after - before,
       });
-      await setStoredMigration(true);
+      setStoredRelations(true);
     } catch (error) {
       internalError({
         error,
         userMessage: "Reified Relations: Migration Failed",
       });
-      await setStoredMigration(false);
+      setStoredRelations(false);
     } finally {
       setOngoing(false);
       setActiveRelationMigration(RelationMigrationDialog.none);
@@ -166,25 +172,26 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           title="Enable stored relations"
           description="Transition to using stored relations instead of pattern-based relations"
           settingKeys={["Reified relation triples"]}
-          initialValue={getSetting(USE_REIFIED_RELATIONS, true)}
-          onChange={(checked) => {
+          initialValue={getSetting<boolean>(USE_REIFIED_RELATIONS, false)}
+          onBeforeChange={async (checked) => {
+            if (settingStoredMigrationValue) return true;
             if (checked) {
               countReifiedRelations()
                 .then((num: number) => {
                   setNumExistingRelations(num);
                   setActiveRelationMigration(
-                    num
+                    num > 0
                       ? RelationMigrationDialog.reactivate
                       : RelationMigrationDialog.activate,
                   );
                 })
                 .catch((error) => {
                   internalError({ error });
-                  setActiveRelationMigration(RelationMigrationDialog.none);
                 });
             } else {
               setActiveRelationMigration(RelationMigrationDialog.deactivate);
             }
+            return false;
           }}
         />
       </div>
@@ -299,8 +306,8 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
               <p>
                 Activating the faster relations system will migrate all
                 previously created relations and newly created relations will
-                use the new system. You can leactivate this setting to revert to
-                the old system, and your newly created elations will not be
+                use the new system. You can deactivate this setting to revert to
+                the old system, and your newly created relations will not be
                 deleted; however, they will not be accessible until you
                 reactivate the faster relation system.
               </p>
@@ -311,7 +318,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                 <Button
                   small
                   onClick={() => {
-                    void setStoredMigration(false);
                     setActiveRelationMigration(RelationMigrationDialog.none);
                   }}
                 >
@@ -321,7 +327,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                   small
                   intent={Intent.PRIMARY}
                   onClick={() => {
-                    void setStoredMigration(true);
+                    setStoredRelations(true);
                     setActiveRelationMigration(RelationMigrationDialog.none);
                   }}
                 >
@@ -360,7 +366,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
             <Button
               small
               onClick={() => {
-                void setStoredMigration(true);
                 setActiveRelationMigration(RelationMigrationDialog.none);
               }}
             >
@@ -370,7 +375,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
               small
               intent={Intent.DANGER}
               onClick={() => {
-                void setStoredMigration(false);
+                setStoredRelations(false);
                 setActiveRelationMigration(RelationMigrationDialog.none);
               }}
             >
@@ -402,7 +407,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                 <Button
                   small
                   onClick={() => {
-                    void setStoredMigration(false);
                     setActiveRelationMigration(RelationMigrationDialog.none);
                   }}
                 >
