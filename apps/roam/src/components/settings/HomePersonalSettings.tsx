@@ -54,6 +54,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const settingStoredMigrationValue = useRef<boolean>();
   const setStoredRelations = async (enabled: boolean) => {
+    await setSetting(USE_REIFIED_RELATIONS, enabled);
     const panel = document.getElementById("stored-relation-flag");
     const checkboxList = panel?.getElementsByTagName("input");
     if (checkboxList && checkboxList.length > 0) {
@@ -61,7 +62,6 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       if (checkbox.checked !== enabled) {
         settingStoredMigrationValue.current = true;
         checkbox.click();
-        await setSetting(USE_REIFIED_RELATIONS, enabled);
         settingStoredMigrationValue.current = false;
       }
     }
