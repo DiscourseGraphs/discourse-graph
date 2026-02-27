@@ -34,7 +34,6 @@ import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import posthog from "posthog-js";
 import internalError from "~/utils/internalError";
-import { setPersonalSetting } from "./utils/accessors";
 
 const enum RelationMigrationDialog {
   "none",
@@ -174,6 +173,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           description="Transition to using stored relations instead of pattern-based relations"
           settingKeys={["Reified relation triples"]}
           initialValue={getSetting<boolean>(USE_REIFIED_RELATIONS, false)}
+          // eslint-disable-next-line @typescript-eslint/require-await
           onBeforeChange={async (checked) => {
             if (settingStoredMigrationValue.current) return true;
             if (checked) {
