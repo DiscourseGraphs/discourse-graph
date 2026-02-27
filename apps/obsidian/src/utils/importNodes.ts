@@ -8,6 +8,8 @@ import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import type { DiscourseNode, ImportableNode } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
 import { spaceUriAndLocalIdToRid, ridToSpaceUriAndLocalId } from "./rid";
+import type { PostgrestResponse } from "@supabase/supabase-js";
+import type { Tables } from "@repo/database/dbTypes";
 
 export const getAvailableGroupIds = async (
   client: DGSupabaseClient,
@@ -191,10 +193,10 @@ export const getSpaceNameFromIds = async (
     return new Map();
   }
 
-  const { data, error } = await client
-    .from("Space")
+  const { data, error } = (await client
+    .from("my_spaces")
     .select("id, name")
-    .in("id", spaceIds);
+    .in("id", spaceIds)) as PostgrestResponse<Tables<"Space">>;
 
   if (error) {
     console.error("Error fetching space names:", error);
@@ -217,10 +219,10 @@ export const getSpaceUris = async (
     return new Map();
   }
 
-  const { data, error } = await client
-    .from("Space")
+  const { data, error } = (await client
+    .from("my_spaces")
     .select("id, url")
-    .in("id", spaceIds);
+    .in("id", spaceIds)) as PostgrestResponse<Tables<"Space">>;
 
   if (error) {
     console.error("Error fetching space urls:", error);
@@ -422,11 +424,13 @@ const fetchFileReferences = async ({
     last_modified: number;
   }>
 > => {
-  const { data, error } = await client
-    .from("FileReference")
+  const { data, error } = (await client
+    .from("my_file_references")
     .select("filepath, filehash, created, last_modified")
     .eq("space_id", spaceId)
-    .eq("source_local_id", nodeInstanceId);
+    .eq("source_local_id", nodeInstanceId)) as PostgrestResponse<
+    Tables<"FileReference">
+  >;
 
   if (error) {
     console.error("Error fetching file references:", error);

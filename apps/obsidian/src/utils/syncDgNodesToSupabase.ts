@@ -51,7 +51,7 @@ const getAllNodeInstanceIdsFromSupabase = async (
 ): Promise<string[]> => {
   try {
     const { data, error } = await supabaseClient
-      .from("Content")
+      .from("my_contents")
       .select("source_local_id")
       .eq("space_id", spaceId)
       .eq("scale", "document")
@@ -161,7 +161,7 @@ const getLastContentSyncTime = async (
   spaceId: number,
 ): Promise<Date> => {
   const { data } = await supabaseClient
-    .from("Content")
+    .from("my_contents")
     .select("last_modified")
     .eq("space_id", spaceId)
     .order("last_modified", { ascending: false })
@@ -175,7 +175,7 @@ const getLastNodeSchemaSyncTime = async (
   spaceId: number,
 ): Promise<Date> => {
   const { data } = await supabaseClient
-    .from("Concept")
+    .from("my_concepts")
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
@@ -191,7 +191,7 @@ const getLastRelationSchemaSyncTime = async (
   spaceId: number,
 ): Promise<Date> => {
   const { data } = await supabaseClient
-    .from("Concept")
+    .from("my_concepts")
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", true)
@@ -207,7 +207,7 @@ const getLastRelationSyncTime = async (
   spaceId: number,
 ): Promise<Date> => {
   const { data } = await supabaseClient
-    .from("Concept")
+    .from("my_concepts")
     .select("last_modified")
     .eq("space_id", spaceId)
     .eq("is_schema", false)
@@ -265,7 +265,7 @@ const getExistingTitlesFromDatabase = async (
 ): Promise<Map<string, string>> => {
   const { data: existingDirectContent, error: directError } =
     await supabaseClient
-      .from("Content")
+      .from("my_contents")
       .select("source_local_id, text")
       .eq("space_id", spaceId)
       .eq("variant", "direct")

@@ -273,7 +273,7 @@ export const publishNodeToGroup = async ({
     (frontmatter.publishedToGroups as undefined | string[]) || [];
 
   const idResponse = await client
-    .from("Content")
+    .from("my_contents")
     .select("last_modified")
     .eq("source_local_id", nodeId)
     .eq("space_id", spaceId)
@@ -356,7 +356,7 @@ export const publishNodeToGroup = async ({
   // Always sync non-text assets when node is published to this group
   const existingFiles: string[] = [];
   const existingReferencesReq = await client
-    .from("FileReference")
+    .from("my_file_references")
     .select("*")
     .eq("space_id", spaceId)
     .eq("source_local_id", nodeId);
