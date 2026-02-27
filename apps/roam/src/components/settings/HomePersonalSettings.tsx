@@ -328,8 +328,15 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                   small
                   intent={Intent.PRIMARY}
                   onClick={() => {
-                    void setStoredRelations(true); // awaitable
-                    setActiveRelationMigration(RelationMigrationDialog.none);
+                    setStoredRelations(true)
+                      .then(() => {
+                        setActiveRelationMigration(
+                          RelationMigrationDialog.none,
+                        );
+                      })
+                      .catch((error) => {
+                        internalError({ error });
+                      });
                   }}
                 >
                   Reactivate without Migration
@@ -376,8 +383,16 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
               small
               intent={Intent.DANGER}
               onClick={() => {
-                void setStoredRelations(false); // awaitable
-                setActiveRelationMigration(RelationMigrationDialog.none);
+                setStoredRelations(false)
+                  .then(() => {
+                    setActiveRelationMigration(
+                      RelationMigrationDialog.none,
+                    );
+                  })
+                  .catch((error) => {
+                    internalError({ error });
+                  });
+              }}
               }}
             >
               Deactivate
