@@ -94,6 +94,10 @@ export class QueryEngine {
       return null;
     }
 
+    if (!nodeInstanceId.match(/^[-.+\w]+$/)) {
+      console.error("Malformed id:", nodeInstanceId);
+      return null;
+    }
     try {
       const dcQuery = `@page and exists(nodeInstanceId) and nodeInstanceId = "${nodeInstanceId}"`;
       const potentialNodes = this.dc.query(dcQuery);

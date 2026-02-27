@@ -288,6 +288,8 @@ const orderConceptsRec = ({
   remainder: { [key: string]: LocalConceptDataInput };
   processed: Set<string>;
 }): Set<string> => {
+  // Add to processed at the start to prevent cycles
+  processed.add(concept.source_local_id!);
   const relatedConceptIds = relatedConcepts(concept);
   let missing: Set<string> = new Set();
   while (relatedConceptIds.length > 0) {
@@ -310,7 +312,6 @@ const orderConceptsRec = ({
     }
   }
   ordered.push(concept);
-  processed.add(concept.source_local_id!);
   delete remainder[concept.source_local_id!];
   return missing;
 };

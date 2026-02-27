@@ -67,8 +67,8 @@ const publishSchema = async ({
 };
 
 const intersection = <T>(set1: Set<T>, set2: Set<T>): Set<T> => {
-  // @ts-ignore-error
-  if (set1.intersection) return set1.intersection(set2);
+  // @ts-expect-error - Set.intersection is ES2025 feature
+  if (set1.intersection) return set1.intersection(set2); // eslint-disable-line
   const r: Set<T> = new Set();
   for (const x of set1) {
     if (set2.has(x)) r.add(x);
@@ -136,6 +136,13 @@ export const publishNewRelation = async (
     .upsert(entries, { ignoreDuplicates: true });
   if (publishResponse.error && publishResponse.error.code !== "23505")
     throw publishResponse.error;
+  relation.publishedToGroupId = [
+    ...new Set([
+      ...(relation.publishedToGroupId || []),
+      ...targetGroups.values(),
+    ]).values(),
+  ];
+  return relation;
 };
 
 export const publishNodeRelations = async ({
@@ -275,7 +282,12 @@ export const publishNodeToGroup = async ({
   const lastModifiedDb = new Date(
     idResponse.data.last_modified + "Z",
   ).getTime();
-  await publishNodeRelations({ plugin, client, nodeId, myGroup, spaceId });
+  try {
+    await publishNodeRelations({ plugin, client, nodeId, myGroup, spaceId });
+  } catch (error) {
+    // do not fail to publish node for that reason
+    console.error("Could not publish relations", error);
+  }
   const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
   const attachments = embeds
     .map(({ link }) => {
