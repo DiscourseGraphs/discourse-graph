@@ -7,11 +7,10 @@ import {
   setPersonalSetting,
 } from "~/components/settings/utils/accessors";
 
-export const getQueryPages = (
-  extensionAPI: OnloadArgs["extensionAPI"],
-): string[] => {
-  void extensionAPI;
-  return getPersonalSetting<string[]>(["Query", "Query pages"]) as string[];
+export const getQueryPages = (): string[] => {
+  return (
+    getPersonalSetting<string[]>(["Query", "Query pages"]) ?? ["queries/*"]
+  );
 };
 
 const QueryPagesPanel = ({
@@ -19,7 +18,7 @@ const QueryPagesPanel = ({
 }: {
   extensionAPI: OnloadArgs["extensionAPI"];
 }) => {
-  const [texts, setTexts] = useState(() => getQueryPages(extensionAPI));
+  const [texts, setTexts] = useState(() => getQueryPages());
   const [value, setValue] = useState("");
   const persistQueryPages = (newTexts: string[]) => {
     setPersonalSetting(["Query", "Query pages"], newTexts);

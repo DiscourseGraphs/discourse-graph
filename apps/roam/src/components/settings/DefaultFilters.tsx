@@ -112,7 +112,7 @@ const DefaultFilters = ({
         getPersonalSetting<Record<string, StoredFilters>>([
           "Query",
           "Default filters",
-        ]) as Record<string, StoredFilters>,
+        ]) ?? {},
       ).map(([k, v]) => [
         k,
         {

@@ -5,8 +5,8 @@ import {
 } from "~/components/settings/utils/accessors";
 
 export const setQueryPages = (onloadArgs: OnloadArgs) => {
-  const queryPages = getPersonalSetting<string[]>(["Query", "Query pages"]);
-  const queryPageArray = Array.isArray(queryPages) ? queryPages : [];
+  const queryPageArray =
+    getPersonalSetting<string[]>(["Query", "Query pages"]) ?? [];
   if (!queryPageArray.includes("discourse-graph/queries/*")) {
     const updated = [...queryPageArray, "discourse-graph/queries/*"];
     void onloadArgs.extensionAPI.settings.set("query-pages", updated);

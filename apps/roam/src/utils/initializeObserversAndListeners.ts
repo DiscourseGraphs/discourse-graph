@@ -128,7 +128,7 @@ export const initObservers = async ({
       }
 
       if (isNodeConfigPage(title)) renderNodeConfigPage(props);
-      else if (isQueryPage(props)) renderQueryPage(props);
+      else if (isQueryPage({ title })) renderQueryPage(props);
       else if (isCurrentPageCanvas(props)) renderTldrawCanvas(props);
       else if (isSidebarCanvas(props)) renderTldrawCanvasInSidebar(props);
     },

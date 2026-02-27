@@ -133,7 +133,7 @@ export default runExtension(async (onloadArgs) => {
       const queryArgs = parseQuery(parentUid);
       return fireQuerySync(queryArgs);
     },
-    listActiveQueries: () => listActiveQueries(extensionAPI),
+    listActiveQueries: () => listActiveQueries(),
     isDiscourseNode: isDiscourseNode,
     // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,
