@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { Label, Dialog, Button, Intent } from "@blueprintjs/core";
@@ -52,17 +52,17 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
   const [isOngoing, setOngoing] = useState<boolean>(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let settingStoredMigrationValue = false;
+  const settingStoredMigrationValue = useRef<boolean>();
   const setStoredRelations = async (enabled: boolean) => {
     const panel = document.getElementById("stored-relation-flag");
     const checkboxList = panel?.getElementsByTagName("input");
     if (checkboxList && checkboxList.length > 0) {
       const checkbox = checkboxList.item(0)!;
       if (checkbox.checked !== enabled) {
-        settingStoredMigrationValue = true;
+        settingStoredMigrationValue.current = true;
         checkbox.click();
         await setSetting(USE_REIFIED_RELATIONS, enabled);
-        settingStoredMigrationValue = false;
+        settingStoredMigrationValue.current = false;
       }
     }
   };
@@ -175,7 +175,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           settingKeys={["Reified relation triples"]}
           initialValue={getSetting<boolean>(USE_REIFIED_RELATIONS, false)}
           onBeforeChange={async (checked) => {
-            if (settingStoredMigrationValue) return true;
+            if (settingStoredMigrationValue.current) return true;
             if (checked) {
               countReifiedRelations()
                 .then((num: number) => {
