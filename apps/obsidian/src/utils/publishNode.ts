@@ -12,7 +12,7 @@ import {
   saveRelations,
 } from "./relationsStore";
 import type { RelationInstance } from "~/types";
-import { getAvailableGroups } from "./importNodes";
+import { getAvailableGroupIds } from "./importNodes";
 import { syncAllNodesAndRelations } from "./syncDgNodesToSupabase";
 
 const publishSchema = async ({
@@ -110,7 +110,7 @@ export const publishNewRelation = async (
   );
   if (!triple) return;
   const resourceIds = [relation.id, relation.type, triple.id];
-  const myGroups = await getAvailableGroups(client);
+  const myGroups = await getAvailableGroupIds(client);
   const targetGroups = intersection(
     new Set(myGroups),
     intersection(
@@ -240,7 +240,7 @@ export const publishNode = async ({
 }): Promise<void> => {
   const client = await getLoggedInClient(plugin);
   if (!client) throw new Error("Cannot get client");
-  const myGroups = new Set(await getAvailableGroups(client));
+  const myGroups = new Set(await getAvailableGroupIds(client));
   if (myGroups.size === 0) throw new Error("Cannot get group");
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];

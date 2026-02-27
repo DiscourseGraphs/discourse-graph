@@ -4,7 +4,7 @@ import { StrictMode, useState, useEffect, useCallback } from "react";
 import type DiscourseGraphPlugin from "../index";
 import type { ImportableNode, GroupWithNodes } from "~/types";
 import {
-  getAvailableGroups,
+  getAvailableGroupIds,
   getPublishedNodesForGroups,
   getLocalNodeInstanceIds,
   getSpaceNameFromIds,
@@ -45,7 +45,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         return;
       }
 
-      const groupIds = await getAvailableGroups(client);
+      const groupIds = await getAvailableGroupIds(client);
       if (groupIds.length === 0) {
         new Notice("You are not a member of any groups");
         onClose();

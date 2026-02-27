@@ -9,7 +9,7 @@ import type { DiscourseNode, ImportableNode } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
 import { spaceUriAndLocalIdToRid, ridToSpaceUriAndLocalId } from "./rid";
 
-export const getAvailableGroups = async (
+export const getAvailableGroupIds = async (
   client: DGSupabaseClient,
 ): Promise<string[]> => {
   const { data, error } = await client
