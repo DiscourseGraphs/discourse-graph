@@ -385,14 +385,11 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
               onClick={() => {
                 setStoredRelations(false)
                   .then(() => {
-                    setActiveRelationMigration(
-                      RelationMigrationDialog.none,
-                    );
+                    setActiveRelationMigration(RelationMigrationDialog.none);
                   })
                   .catch((error) => {
                     internalError({ error });
                   });
-              }}
               }}
             >
               Deactivate
