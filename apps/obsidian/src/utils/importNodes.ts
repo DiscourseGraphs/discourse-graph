@@ -680,11 +680,12 @@ const updateMarkdownAssetLinks = ({
   );
 
   // Match markdown links (non-image): [text](path) — internal paths resolved like wikilinks, href kept URL-encoded
-  const markdownLinkRegex = /\[([^\]]*)\]\(([^)]+)\)/g;
+  const markdownLinkRegex = /(?<!!)\[([^\]]*)\]\(([^)]+)\)/g;
   updatedContent = updatedContent.replace(
     markdownLinkRegex,
     (match, linkText: string, linkPath: string) => {
       if (!linkPath) return match;
+      linkPath = decodeURI(linkPath);
       const processedPath = encodePathForMarkdownLink(processLink(linkPath));
       return `[${linkText}](${processedPath})`;
     },
