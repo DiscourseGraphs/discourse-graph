@@ -96,8 +96,10 @@ export const publishNewRelation = async (
     plugin.app.metadataCache.getFileCache(destinationFile)?.frontmatter;
   if (!sourceFm || !destinationFm) return;
 
-  const sourceGroups = sourceFm.publishedToGroups;
-  const destinationGroups = destinationFm.publishedToGroups;
+  const sourceGroups = sourceFm.publishedToGroups as string[] | undefined;
+  const destinationGroups = destinationFm.publishedToGroups as
+    | string[]
+    | undefined;
   if (!Array.isArray(sourceGroups) || !Array.isArray(destinationGroups)) return;
   const relationTriples = plugin.settings.discourseRelations ?? [];
   const triple = relationTriples.find(
