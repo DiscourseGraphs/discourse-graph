@@ -53,7 +53,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const [isOngoing, setOngoing] = useState<boolean>(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let settingStoredMigrationValue = false;
-  const setStoredRelations = (enabled: boolean) => {
+  const setStoredRelations = async (enabled: boolean) => {
     const panel = document.getElementById("stored-relation-flag");
     const checkboxList = panel?.getElementsByTagName("input");
     if (checkboxList && checkboxList.length > 0) {
@@ -61,6 +61,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
       if (checkbox.checked !== enabled) {
         settingStoredMigrationValue = true;
         checkbox.click();
+        await setSetting(USE_REIFIED_RELATIONS, enabled);
         settingStoredMigrationValue = false;
       }
     }
@@ -76,7 +77,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           intent: Intent.DANGER,
           id: "migration-error",
         });
-        setStoredRelations(false);
+        await setStoredRelations(false);
         return;
       }
       const after = await countReifiedRelations();
@@ -99,13 +100,13 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
         after,
         created: after - before,
       });
-      setStoredRelations(true);
+      await setStoredRelations(true);
     } catch (error) {
       internalError({
         error,
         userMessage: "Reified Relations: Migration Failed",
       });
-      setStoredRelations(false);
+      await setStoredRelations(false);
     } finally {
       setOngoing(false);
       setActiveRelationMigration(RelationMigrationDialog.none);
@@ -327,7 +328,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
                   small
                   intent={Intent.PRIMARY}
                   onClick={() => {
-                    setStoredRelations(true);
+                    void setStoredRelations(true); // awaitable
                     setActiveRelationMigration(RelationMigrationDialog.none);
                   }}
                 >
@@ -375,7 +376,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
               small
               intent={Intent.DANGER}
               onClick={() => {
-                setStoredRelations(false);
+                void setStoredRelations(false); // awaitable
                 setActiveRelationMigration(RelationMigrationDialog.none);
               }}
             >
