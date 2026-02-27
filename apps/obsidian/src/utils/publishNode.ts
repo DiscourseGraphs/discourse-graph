@@ -13,6 +13,7 @@ import {
 } from "./relationsStore";
 import type { RelationInstance } from "~/types";
 import { getAvailableGroups } from "./importNodes";
+import { syncAllNodesAndRelations } from "./syncDgNodesToSupabase";
 
 const publishSchema = async ({
   client,
@@ -116,6 +117,8 @@ export const publishNewRelation = async (
     ),
   );
   if (!targetGroups.size) return;
+  // in that case, sync all relations (only) before publishing
+  await syncAllNodesAndRelations(plugin, context, true);
   const entries = [];
   for (const group of targetGroups) {
     for (const id of resourceIds) {
