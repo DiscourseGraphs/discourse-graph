@@ -167,12 +167,11 @@ export const RelationEditPanel = ({
   const [destination, setDestination] = useState(initialDestinationUid);
   const [label, setLabel] = useState(editingRelationInfo.text);
   const [complement, setComplement] = useState(
-    () =>
-      getGlobalSetting<string>([
-        "Relations",
-        editingRelationInfo.uid,
-        "complement",
-      ]) ?? "",
+    getGlobalSetting<string>([
+      "Relations",
+      editingRelationInfo.uid,
+      "complement",
+    ]) ?? "",
   );
 
   const edgeCallback = useCallback(
