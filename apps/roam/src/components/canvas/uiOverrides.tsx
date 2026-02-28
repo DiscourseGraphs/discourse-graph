@@ -53,7 +53,7 @@ const SyncModeMenuSwitchItem = ({
   onToggle,
 }: {
   checked: boolean;
-  disabled: boolean;
+  disabled?: boolean;
   label: string;
   onToggle: () => void;
 }): React.ReactElement => {
@@ -219,14 +219,12 @@ export const createUiComponents = ({
   allAddReferencedNodeActions,
   allRelationNames,
   canvasSyncMode,
-  isCloudflareSyncAvailable,
   onCanvasSyncModeChange,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
   allAddReferencedNodeActions: string[];
   canvasSyncMode: CanvasSyncMode;
-  isCloudflareSyncAvailable: boolean;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
 }): TLUiComponents => {
   return {
@@ -263,17 +261,18 @@ export const createUiComponents = ({
           canvasSyncMode === "sync" ? "local" : "sync";
         onCanvasSyncModeChange(nextMode);
       };
-      const syncModeLabel = isCloudflareSyncAvailable
-        ? "Use cloud canvas"
-        : "Cloud canvas unavailable";
+      // const syncModeLabel = isCloudflareSyncAvailable
+      //   ? "Use cloud canvas"
+      //   : "Cloud canvas unavailable";
 
       return (
         <DefaultMainMenu>
           <TldrawUiMenuGroup id="sync-mode">
             <SyncModeMenuSwitchItem
-              label={syncModeLabel}
+              // label={syncModeLabel}
+              label="Use cloud canvas"
               checked={canvasSyncMode === "sync"}
-              disabled={!isCloudflareSyncAvailable}
+              // disabled={!isCloudflareSyncAvailable}
               onToggle={onToggleSyncMode}
             />
           </TldrawUiMenuGroup>

@@ -10,8 +10,6 @@ import {
 } from "tldraw";
 import { useMemo } from "react";
 
-/** When true, newly created canvases (no Roam-persisted state) use tldraw sync via Cloudflare. PoC only. */
-export const TLDRAW_CLOUDFLARE_SYNC_ENABLED = true;
 /** Base URL for tldraw-sync-cloudflare worker. Use https (not wss) - useSync upgrades to WebSocket. */
 export const TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL =
   "https://multiplayer-dg-sync.discoursegraphs.workers.dev";
