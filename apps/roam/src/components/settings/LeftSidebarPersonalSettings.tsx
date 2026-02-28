@@ -19,7 +19,11 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import updateBlock from "roamjs-components/writes/updateBlock";
 import type { RoamBasicNode } from "roamjs-components/types";
-import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import {
+  setPersonalSetting,
+  getPersonalSetting,
+} from "~/components/settings/utils/accessors";
+import type { PersonalSection } from "~/components/settings/utils/zodSchema";
 import {
   PersonalNumberPanel,
   PersonalTextPanel,
@@ -599,6 +603,11 @@ const LeftSidebarPersonalSectionsContent = ({
         setSections([]);
       } else {
         setPersonalSectionUid(personalSection.uid);
+
+        // Dual-read: accessor validates values and logs mismatches when flag ON
+        getPersonalSetting<PersonalSection[]>(["Left sidebar"]);
+
+        // Use old system data (has UIDs needed for CRUD operations)
         const loadedSections = getLeftSidebarPersonalSectionConfig(
           leftSidebar.children,
         ).sections;

@@ -54,6 +54,7 @@ import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSetting
 import { getSetting } from "./extensionSettings";
 import { mountLeftSidebar } from "~/components/LeftSidebarView";
 import { getUidAndBooleanSetting } from "./getExportSettings";
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import { getCleanTagText } from "~/components/settings/NodeConfig";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { colord } from "colord";
@@ -275,10 +276,7 @@ export const initObservers = async ({
     className: "starred-pages-wrapper",
     callback: (el) => {
       void (async () => {
-        const isLeftSidebarEnabled = getUidAndBooleanSetting({
-          tree: configTree,
-          text: "(BETA) Left Sidebar",
-        }).value;
+        const isLeftSidebarEnabled = getFeatureFlag("Enable left sidebar");
         const container = el as HTMLDivElement;
         if (isLeftSidebarEnabled) {
           container.style.padding = "0";

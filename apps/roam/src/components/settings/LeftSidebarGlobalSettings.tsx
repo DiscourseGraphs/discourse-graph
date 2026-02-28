@@ -1,7 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
 import { Button, ButtonGroup, Collapse } from "@blueprintjs/core";
 import { GlobalFlagPanel } from "~/components/settings/components/BlockPropSettingPanels";
-import { setGlobalSetting } from "~/components/settings/utils/accessors";
+import {
+  setGlobalSetting,
+  getGlobalSetting,
+} from "~/components/settings/utils/accessors";
+import type { LeftSidebarGlobalSettings } from "~/components/settings/utils/zodSchema";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import createBlock from "roamjs-components/writes/createBlock";
@@ -98,6 +102,10 @@ const LeftSidebarGlobalSectionsContent = ({
     const initialize = async () => {
       setIsInitializing(true);
       const globalSectionText = "Global-Section";
+      // Dual-read: accessor validates values and logs mismatches when flag ON
+      getGlobalSetting<LeftSidebarGlobalSettings>(["Left sidebar"]);
+
+      // Use old system data (has UIDs needed for CRUD operations)
       const config = getLeftSidebarGlobalSectionConfig(leftSidebar.children);
 
       const existingGlobalSection = leftSidebar.children.find(
