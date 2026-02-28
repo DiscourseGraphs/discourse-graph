@@ -20,6 +20,7 @@ export type CloudflareCanvasStoreAdapterResult = {
   isLoading: boolean;
 };
 
+// TODO: this should be more secure, but using graphName/UID is probably fine for now
 export const getSyncRoomId = ({ pageUid }: { pageUid: string }): string => {
   const graphName = window.roamAlphaAPI.graph.name;
   const payload = JSON.stringify({ graphName, pageUid });
