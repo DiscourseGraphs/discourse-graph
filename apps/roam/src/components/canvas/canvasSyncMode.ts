@@ -10,9 +10,7 @@ const DEFAULT_CANVAS_SYNC_MODE: CanvasSyncMode = "local";
 const isCanvasSyncMode = (value: unknown): value is CanvasSyncMode =>
   value === "local" || value === "sync";
 
-const getRoamJsQueryBuilderProps = (
-  pageUid: string,
-): Record<string, json> => {
+const getRoamJsQueryBuilderProps = (pageUid: string): Record<string, json> => {
   const props = getBlockProps(pageUid);
   const value = props[QUERY_BUILDER_PROP_KEY];
   if (value && typeof value === "object" && !Array.isArray(value)) {
