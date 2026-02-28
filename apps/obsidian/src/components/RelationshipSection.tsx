@@ -65,12 +65,13 @@ const AddRelationship = ({
     const relations = plugin.settings.discourseRelations.filter(
       (relation) =>
         relation.relationshipTypeId === selectedRelationType.id &&
-        (relation.sourceId === activeNodeTypeId ||
-          relation.destinationId === activeNodeTypeId),
+        (selectedRelationType.isSource
+          ? relation.sourceId === activeNodeTypeId
+          : relation.destinationId === activeNodeTypeId),
     );
 
     const compatibleNodeTypeIds = relations.map((relation) =>
-      relation.sourceId === activeNodeTypeId
+      selectedRelationType.isSource
         ? relation.destinationId
         : relation.sourceId,
     );
