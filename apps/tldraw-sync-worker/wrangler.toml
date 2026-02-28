@@ -17,7 +17,7 @@ bindings = [
 tag = "v1"
 new_sqlite_classes = ["TldrawDurableObject"]
 
-# We store room snapshots (assest are stored in native apps) in an R2 bucket
+# We store room snapshots (assests are stored in native apps) in an R2 bucket
 [[r2_buckets]]
 binding = 'TLDRAW_BUCKET'
 bucket_name = 'tldraw-content'
