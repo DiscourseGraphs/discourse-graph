@@ -93,6 +93,17 @@ const FuzzySelectInput = <T extends Result = Result>({
         e.preventDefault();
         e.stopPropagation();
         if (isOpen && filteredItems[activeIndex]) {
+          const keyUpHandler = (keyUpEvent: KeyboardEvent) => {
+            if (keyUpEvent.key === "Enter" || keyUpEvent.key === " ") {
+              keyUpEvent.preventDefault();
+              keyUpEvent.stopPropagation();
+              document.removeEventListener("keyup", keyUpHandler, true);
+            }
+          };
+          document.addEventListener("keyup", keyUpHandler, true);
+          setTimeout(() => {
+            document.removeEventListener("keyup", keyUpHandler, true);
+          }, 150);
           handleSelect(filteredItems[activeIndex]);
         }
       } else if (e.key === "Escape") {
