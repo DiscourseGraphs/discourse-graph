@@ -193,10 +193,12 @@ export class TldrawDurableObject {
 	// we throttle persistance so it only happens every 10 seconds
 	schedulePersistToR2: () => void = throttle(async () => {
 		if (!this.roomPromise || !this.roomId) return
-		const room = await this.getRoom()
-
-		// convert the room to JSON and upload it to R2
-		const snapshot = JSON.stringify(room.getCurrentSnapshot())
-		await this.r2.put(`rooms/${this.roomId}`, snapshot)
+		try {
+			const room = await this.getRoom()
+			const snapshot = JSON.stringify(room.getCurrentSnapshot())
+			await this.r2.put(`rooms/${this.roomId}`, snapshot)
+		} catch (e) {
+			console.error('Failed to persist room to R2', { roomId: this.roomId, error: e })
+		}
 	}, 10_000)
 }
