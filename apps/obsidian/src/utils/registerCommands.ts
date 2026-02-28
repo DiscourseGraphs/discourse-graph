@@ -12,6 +12,7 @@ import { syncAllNodesAndRelations } from "./syncDgNodesToSupabase";
 import { publishNode } from "./publishNode";
 import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 import type { DiscourseNode } from "~/types";
+import { TldrawView } from "~/components/canvas/TldrawView";
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;
