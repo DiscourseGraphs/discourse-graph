@@ -115,13 +115,18 @@ export const addRelationNoCheck = async (
   };
   const data = await loadRelations(plugin);
   data.relations[id] = instance;
+  // save so it can be synced if needed
+  await saveRelations(plugin, data);
   try {
-    await publishNewRelation(plugin, instance);
+    const published = await publishNewRelation(plugin, instance);
+    if (published) {
+      // save again with publication data
+      await saveRelations(plugin, data);
+    }
   } catch (error) {
     console.error(error);
     // do not fail adding the relation; but we need a way to look at this later.
   }
-  await saveRelations(plugin, data);
   return id;
 };
 

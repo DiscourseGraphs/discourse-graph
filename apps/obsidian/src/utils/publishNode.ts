@@ -79,7 +79,7 @@ const intersection = <T>(set1: Set<T>, set2: Set<T>): Set<T> => {
 export const publishNewRelation = async (
   plugin: DiscourseGraphPlugin,
   relation: RelationInstance,
-) => {
+): Promise<boolean> => {
   const client = await getLoggedInClient(plugin);
   if (!client) throw new Error("Cannot get client");
   const context = await getSupabaseContext(plugin);
@@ -89,18 +89,19 @@ export const publishNewRelation = async (
     plugin,
     relation.destination,
   );
-  if (!sourceFile || !destinationFile) return;
+  if (!sourceFile || !destinationFile) return false;
   const sourceFm =
     plugin.app.metadataCache.getFileCache(sourceFile)?.frontmatter;
   const destinationFm =
     plugin.app.metadataCache.getFileCache(destinationFile)?.frontmatter;
-  if (!sourceFm || !destinationFm) return;
+  if (!sourceFm || !destinationFm) return false;
 
   const sourceGroups = sourceFm.publishedToGroups as string[] | undefined;
   const destinationGroups = destinationFm.publishedToGroups as
     | string[]
     | undefined;
-  if (!Array.isArray(sourceGroups) || !Array.isArray(destinationGroups)) return;
+  if (!Array.isArray(sourceGroups) || !Array.isArray(destinationGroups))
+    return false;
   const relationTriples = plugin.settings.discourseRelations ?? [];
   const triple = relationTriples.find(
     (triple) =>
@@ -108,7 +109,7 @@ export const publishNewRelation = async (
       triple.sourceId === sourceFm.nodeTypeId &&
       triple.destinationId === destinationFm.nodeTypeId,
   );
-  if (!triple) return;
+  if (!triple) return false;
   const resourceIds = [relation.id, relation.type, triple.id];
   const myGroups = await getAvailableGroupIds(client);
   const targetGroups = intersection(
@@ -118,7 +119,7 @@ export const publishNewRelation = async (
       new Set<string>(destinationGroups),
     ),
   );
-  if (!targetGroups.size) return;
+  if (!targetGroups.size) return false;
   // in that case, sync all relations (only) before publishing
   await syncAllNodesAndRelations(plugin, context, true);
   const entries = [];
@@ -144,7 +145,7 @@ export const publishNewRelation = async (
       ...targetGroups.values(),
     ]).values(),
   ];
-  return relation;
+  return true;
 };
 
 export const publishNodeRelations = async ({
