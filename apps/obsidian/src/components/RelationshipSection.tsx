@@ -34,7 +34,8 @@ const AddRelationship = ({
 }: AddRelationshipProps) => {
   const plugin = usePlugin();
 
-  const [selectedRelationType, setSelectedRelationType] = useState<string>("");
+  const [selectedRelationType, setSelectedRelationType] =
+    useState<RelationTypeOption | null>(null);
   const [selectedNode, setSelectedNode] = useState<TFile | null>(null);
   const [isAddingRelation, setIsAddingRelation] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -63,7 +64,7 @@ const AddRelationship = ({
 
     const relations = plugin.settings.discourseRelations.filter(
       (relation) =>
-        relation.relationshipTypeId === selectedRelationType &&
+        relation.relationshipTypeId === selectedRelationType.id &&
         (relation.sourceId === activeNodeTypeId ||
           relation.destinationId === activeNodeTypeId),
     );
@@ -131,7 +132,7 @@ const AddRelationship = ({
       !selectedRelationType &&
       availableRelationTypes[0]
     ) {
-      setSelectedRelationType(availableRelationTypes[0].id);
+      setSelectedRelationType(availableRelationTypes[0]);
     }
   }, [availableRelationTypes, selectedRelationType]);
 
@@ -168,7 +169,7 @@ const AddRelationship = ({
             query,
             compatibleNodeTypeIds: nodeTypeIdsToSearch,
             activeFile,
-            selectedRelationType,
+            selectedRelationType: selectedRelationType?.id || "",
           });
 
         if (results.length === 0 && query.length >= 2) {
@@ -206,22 +207,31 @@ const AddRelationship = ({
     if (!selectedRelationType || !selectedNode) return;
 
     const relationType = plugin.settings.relationTypes.find(
-      (r) => r.id === selectedRelationType,
+      (r) => r.id === selectedRelationType.id,
     );
     if (!relationType) return;
 
     try {
-      const sourceId = await getNodeInstanceIdForFile(plugin, activeFile);
-      const destId = await getNodeInstanceIdForFile(plugin, selectedNode);
-      if (!sourceId || !destId) {
+      const activeNodeId = await getNodeInstanceIdForFile(plugin, activeFile);
+      const selectedNodeId = await getNodeInstanceIdForFile(
+        plugin,
+        selectedNode,
+      );
+      if (!activeNodeId || !selectedNodeId) {
         new Notice(
           "Could not resolve node instance IDs for the selected files.",
         );
         return;
       }
+      const sourceId = selectedRelationType.isSource
+        ? activeNodeId
+        : selectedNodeId;
+      const destId = selectedRelationType.isSource
+        ? selectedNodeId
+        : activeNodeId;
 
       const { alreadyExisted } = await addRelation(plugin, {
-        type: selectedRelationType,
+        type: selectedRelationType.id,
         source: sourceId,
         destination: destId,
       });
@@ -254,7 +264,7 @@ const AddRelationship = ({
 
   const resetState = () => {
     setIsAddingRelation(false);
-    setSelectedRelationType("");
+    setSelectedRelationType(null);
     setSelectedNode(null);
     setSearchError(null);
   };
@@ -276,7 +286,7 @@ const AddRelationship = ({
         <label className="mb-2 block">Relationship Type:</label>
         <DropdownSelect<RelationTypeOption>
           options={availableRelationTypes}
-          onSelect={(option) => option && setSelectedRelationType(option.id)}
+          onSelect={(option) => option && setSelectedRelationType(option)}
           placeholder="Select relation type"
           getItemText={(option) => option.label}
         />
