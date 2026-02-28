@@ -15,8 +15,7 @@ const isVercelPreviewUrl = (origin: string): boolean =>
   /^https:\/\/.*-discourse-graph-[a-z0-9]+\.vercel\.app$/.test(origin);
 
 const isAllowedOrigin = (origin: string): boolean =>
-  ALLOWED_ORIGINS.includes(origin) ||
-  ALLOWED_ORIGINS.some((allowedOrigin) => origin.startsWith(allowedOrigin)) ||
+  ALLOWED_ORIGINS.some((allowedOrigin) => origin === allowedOrigin) ||
   isVercelPreviewUrl(origin);
 
 const setCorsHeaders = ({
