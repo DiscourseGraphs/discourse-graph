@@ -106,6 +106,7 @@ import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";
+import { syncCanvasNodeTitlesOnLoad } from "~/utils/syncCanvasNodeTitlesOnLoad";
 import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
@@ -932,6 +933,7 @@ const TldrawCanvasShared = ({
   return (
     <div
       className="roamjs-tldraw-canvas-container relative z-10 h-full w-full overflow-hidden rounded-md border border-gray-300 bg-white"
+      data-page-uid={pageUid ?? undefined}
       ref={containerRef}
       tabIndex={-1}
       onDragOver={handleDragOver}
@@ -1026,6 +1028,16 @@ const TldrawCanvasShared = ({
               // hack for "cannot change atoms during reaction cycle" bug
               installSafeHintingSetter({ app, title, pageUid });
               setHasMountedEditor(true);
+              void syncCanvasNodeTitlesOnLoad(
+                app,
+                allNodes.map((n) => n.type),
+                allRelationIds,
+              ).catch((err) => {
+                internalError({
+                  error: err instanceof Error ? err : new Error(String(err)),
+                  type: "Canvas: Sync node titles on load",
+                });
+              });
 
               app.on("change", (entry) => {
                 lastActionsRef.current.push(entry);
