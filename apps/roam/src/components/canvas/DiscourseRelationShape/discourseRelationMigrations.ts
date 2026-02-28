@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
@@ -33,6 +34,7 @@ export const createMigrations = ({
     ExtractBindings: 1,
     "2.3.0": 2,
     AddSizeAndFontFamily: 3,
+    RemoveNullAssetFileSize: 4,
   });
   return createMigrationSequence({
     sequenceId: `${SEQUENCE_ID_BASE}`,
@@ -141,6 +143,17 @@ export const createMigrations = ({
         up: (shape: any) => {
           shape.props.size = "m";
           shape.props.fontFamily = "draw";
+        },
+      },
+      {
+        id: versions["RemoveNullAssetFileSize"],
+        scope: "record",
+        filter: (r: any) =>
+          r.typeName === "asset" &&
+          (r.type === "image" || r.type === "video") &&
+          r.props?.fileSize === null,
+        up: (asset: any) => {
+          delete asset.props.fileSize;
         },
       },
     ],
