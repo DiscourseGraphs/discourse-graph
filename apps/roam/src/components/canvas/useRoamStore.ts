@@ -208,13 +208,7 @@ export const useRoamStore = ({
           typeof props["roamjs-query-builder"] === "object"
             ? (props["roamjs-query-builder"] as Record<string, unknown>)
             : {};
-        const propSchema = isTLStoreSnapshot(rjsqb.tldraw)
-          ? rjsqb.tldraw.schema
-          : {};
-        const schema =
-          Object.keys(propSchema).length === 0
-            ? _store.schema.serialize()
-            : propSchema;
+        const schema = _store.schema.serialize();
         await setInputSetting({
           blockUid: pageUid,
           key: "timestamp",
