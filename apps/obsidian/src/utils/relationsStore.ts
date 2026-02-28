@@ -5,6 +5,8 @@ import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import { checkAndCreateFolder } from "~/utils/file";
 import { getVaultId } from "./supabaseContext";
 import type { RelationInstance } from "~/types";
+import { QueryEngine } from "~/services/QueryEngine";
+import { publishNewRelation } from "./publishNode";
 
 const RELATIONS_FILE_NAME = "relations.json";
 const RELATIONS_FILE_VERSION = 1;
@@ -113,7 +115,18 @@ export const addRelationNoCheck = async (
   };
   const data = await loadRelations(plugin);
   data.relations[id] = instance;
+  // save so it can be synced if needed
   await saveRelations(plugin, data);
+  try {
+    const published = await publishNewRelation(plugin, instance);
+    if (published) {
+      // save again with publication data
+      await saveRelations(plugin, data);
+    }
+  } catch (error) {
+    console.error(error);
+    // do not fail adding the relation; but we need a way to look at this later.
+  }
   return id;
 };
 
@@ -227,10 +240,13 @@ export const getNodeTypeIdForFile = async (
   return typeof nodeTypeId === "string" ? nodeTypeId : null;
 };
 
-export const getFileForNodeInstanceId = async (
+export const getFileForNodeInstanceId = (
   plugin: DiscourseGraphPlugin,
   nodeInstanceId: string,
-): Promise<TFile | null> => {
+): TFile | null => {
+  const queryEngine = new QueryEngine(plugin.app);
+  if (queryEngine.functional())
+    return queryEngine.getDiscourseNodeById(nodeInstanceId);
   const files = plugin.app.vault.getMarkdownFiles();
   for (const file of files) {
     const cache = plugin.app.metadataCache.getFileCache(file);
@@ -241,6 +257,33 @@ export const getFileForNodeInstanceId = async (
     }
   }
   return null;
+};
+
+export const getFileForNodeInstanceIds = (
+  plugin: DiscourseGraphPlugin,
+  nodeInstanceIds: Set<string>,
+): Record<string, TFile> => {
+  const result: Record<string, TFile> = {};
+  if (nodeInstanceIds.size == 0) return result;
+  const queryEngine = new QueryEngine(plugin.app);
+  if (queryEngine.functional()) {
+    [...nodeInstanceIds.values()].map((nodeId) => {
+      const f = queryEngine.getDiscourseNodeById(nodeId);
+      if (f) result[nodeId] = f;
+    });
+  } else {
+    // query engine not available, fallback
+    const files = plugin.app.vault.getMarkdownFiles();
+    for (const file of files) {
+      const cache = plugin.app.metadataCache.getFileCache(file);
+      const id = (cache?.frontmatter as Record<string, unknown> | undefined)
+        ?.nodeInstanceId as string | undefined;
+      if (id && nodeInstanceIds.has(id)) {
+        result[id] = file;
+      }
+    }
+  }
+  return result;
 };
 
 /**

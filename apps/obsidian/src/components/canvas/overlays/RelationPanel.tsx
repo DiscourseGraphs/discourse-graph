@@ -540,10 +540,7 @@ const computeRelations = async (
   const nodeInstanceId = await getNodeInstanceIdForFile(plugin, file);
   if (!nodeInstanceId) return [];
 
-  const relations = await getRelationsForNodeInstanceId(
-    plugin,
-    nodeInstanceId,
-  );
+  const relations = await getRelationsForNodeInstanceId(plugin, nodeInstanceId);
   const result = new Map<string, GroupedRelation>();
 
   for (const relationType of plugin.settings.relationTypes) {
@@ -573,7 +570,7 @@ const computeRelations = async (
     const group = result.get(key)!;
     for (const r of instanceRels) {
       const otherId = r.source === nodeInstanceId ? r.destination : r.source;
-      const linked = await getFileForNodeInstanceId(plugin, otherId);
+      const linked = getFileForNodeInstanceId(plugin, otherId);
       if (linked && !group.linkedFiles.some((f) => f.path === linked.path)) {
         group.linkedFiles.push(linked);
       }

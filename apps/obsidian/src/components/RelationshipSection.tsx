@@ -402,7 +402,7 @@ const CurrentRelationships = ({
 
       const group = tempRelationships.get(relationKey)!;
       const otherId = isSource ? r.destination : r.source;
-      const linkedFile = await getFileForNodeInstanceId(plugin, otherId);
+      const linkedFile = getFileForNodeInstanceId(plugin, otherId);
       if (
         linkedFile &&
         !group.linkedFiles.some((f) => f.path === linkedFile.path)

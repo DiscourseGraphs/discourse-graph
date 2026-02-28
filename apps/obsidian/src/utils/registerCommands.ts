@@ -8,11 +8,10 @@ import { createDiscourseNode } from "./createNode";
 import { refreshAllImportedFiles } from "./importNodes";
 import { VIEW_TYPE_MARKDOWN, VIEW_TYPE_TLDRAW_DG_PREVIEW } from "~/constants";
 import { createCanvas } from "~/components/canvas/utils/tldraw";
-import { createOrUpdateDiscourseEmbedding } from "./syncDgNodesToSupabase";
+import { syncAllNodesAndRelations } from "./syncDgNodesToSupabase";
 import { publishNode } from "./publishNode";
 import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 import type { DiscourseNode } from "~/types";
-
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;
@@ -234,7 +233,7 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
         return false;
       }
       if (!checking) {
-        void createOrUpdateDiscourseEmbedding(plugin)
+        void syncAllNodesAndRelations(plugin)
           .then(() => {
             new Notice("Discourse nodes synced successfully", 3000);
           })

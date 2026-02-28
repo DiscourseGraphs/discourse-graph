@@ -3,7 +3,17 @@ import type { default as DiscourseGraphPlugin } from "~/index";
 import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
 import { addFile } from "@repo/database/lib/files";
 import mime from "mime-types";
-import { DGSupabaseClient } from "@repo/database/lib/client";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
+import {
+  getRelationsForNodeInstanceId,
+  getFileForNodeInstanceId,
+  getFileForNodeInstanceIds,
+  loadRelations,
+  saveRelations,
+} from "./relationsStore";
+import type { RelationInstance } from "~/types";
+import { getAvailableGroupIds } from "./importNodes";
+import { syncAllNodesAndRelations } from "./syncDgNodesToSupabase";
 
 const publishSchema = async ({
   client,
@@ -56,6 +66,170 @@ const publishSchema = async ({
   }
 };
 
+const intersection = <T>(set1: Set<T>, set2: Set<T>): Set<T> => {
+  // @ts-expect-error - Set.intersection is ES2025 feature
+  if (set1.intersection) return set1.intersection(set2); // eslint-disable-line
+  const r: Set<T> = new Set();
+  for (const x of set1) {
+    if (set2.has(x)) r.add(x);
+  }
+  return r;
+};
+
+export const publishNewRelation = async (
+  plugin: DiscourseGraphPlugin,
+  relation: RelationInstance,
+): Promise<boolean> => {
+  const client = await getLoggedInClient(plugin);
+  if (!client) throw new Error("Cannot get client");
+  const context = await getSupabaseContext(plugin);
+  if (!context) throw new Error("Cannot get context");
+  const sourceFile = getFileForNodeInstanceId(plugin, relation.source);
+  const destinationFile = getFileForNodeInstanceId(
+    plugin,
+    relation.destination,
+  );
+  if (!sourceFile || !destinationFile) return false;
+  const sourceFm =
+    plugin.app.metadataCache.getFileCache(sourceFile)?.frontmatter;
+  const destinationFm =
+    plugin.app.metadataCache.getFileCache(destinationFile)?.frontmatter;
+  if (!sourceFm || !destinationFm) return false;
+
+  const sourceGroups = sourceFm.publishedToGroups as string[] | undefined;
+  const destinationGroups = destinationFm.publishedToGroups as
+    | string[]
+    | undefined;
+  if (!Array.isArray(sourceGroups) || !Array.isArray(destinationGroups))
+    return false;
+  const relationTriples = plugin.settings.discourseRelations ?? [];
+  const triple = relationTriples.find(
+    (triple) =>
+      triple.relationshipTypeId === relation.type &&
+      triple.sourceId === sourceFm.nodeTypeId &&
+      triple.destinationId === destinationFm.nodeTypeId,
+  );
+  if (!triple) return false;
+  const resourceIds = [relation.id, relation.type, triple.id];
+  const myGroups = await getAvailableGroupIds(client);
+  const targetGroups = intersection(
+    new Set(myGroups),
+    intersection(
+      new Set<string>(sourceGroups),
+      new Set<string>(destinationGroups),
+    ),
+  );
+  if (!targetGroups.size) return false;
+  // in that case, sync all relations (only) before publishing
+  await syncAllNodesAndRelations(plugin, context, true);
+  const entries = [];
+  for (const group of targetGroups) {
+    for (const id of resourceIds) {
+      entries.push({
+        /* eslint-disable @typescript-eslint/naming-convention */
+        account_uid: group,
+        source_local_id: id,
+        space_id: context.spaceId,
+        /* eslint-enable @typescript-eslint/naming-convention */
+      });
+    }
+  }
+  const publishResponse = await client
+    .from("ResourceAccess")
+    .upsert(entries, { ignoreDuplicates: true });
+  if (publishResponse.error && publishResponse.error.code !== "23505")
+    throw publishResponse.error;
+  relation.publishedToGroupId = [
+    ...new Set([
+      ...(relation.publishedToGroupId || []),
+      ...targetGroups.values(),
+    ]).values(),
+  ];
+  return true;
+};
+
+export const publishNodeRelations = async ({
+  plugin,
+  client,
+  nodeId,
+  myGroup,
+  spaceId,
+}: {
+  plugin: DiscourseGraphPlugin;
+  client: DGSupabaseClient;
+  nodeId: string;
+  myGroup: string;
+  spaceId: number;
+}): Promise<void> => {
+  const relations = await getRelationsForNodeInstanceId(plugin, nodeId);
+  const resourceIds: Set<string> = new Set();
+  const relationTriples = plugin.settings.discourseRelations ?? [];
+  const relevantNodeIds: Set<string> = new Set();
+  relations.map((relation) => {
+    relevantNodeIds.add(relation.source);
+    relevantNodeIds.add(relation.destination);
+  });
+  const relevantNodeFiles = getFileForNodeInstanceIds(plugin, relevantNodeIds);
+  const relevantNodeTypeById: Record<string, string | undefined> = {};
+  Object.entries(relevantNodeFiles).map(([id, file]: [string, TFile]) => {
+    const fm = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+    if (fm === undefined) return;
+    if (fm.nodeInstanceId !== nodeId) {
+      // check if published to same group.
+      // Note: current node's pub status not in cache yet!
+      if (!Array.isArray(fm.publishedToGroups)) return;
+      const publishedToGroups: string[] =
+        (fm.publishedToGroups as string[]) || [];
+      if (!publishedToGroups.includes(myGroup)) return;
+    }
+    if (fm.importedFromRid) return; // temporary, should be removed after eng-1475
+    relevantNodeTypeById[id] = fm.nodeTypeId as string;
+  });
+  relations.map((relation) => {
+    if ((relation.publishedToGroupId ?? []).includes(myGroup)) return;
+    const triple = relationTriples.find(
+      (triple) =>
+        triple.relationshipTypeId === relation.type &&
+        triple.sourceId === relevantNodeTypeById[relation.source] &&
+        triple.destinationId === relevantNodeTypeById[relation.destination],
+    );
+    if (triple) {
+      resourceIds.add(relation.id);
+      resourceIds.add(relation.type);
+      resourceIds.add(triple.id);
+    }
+  });
+  const publishResponse = await client.from("ResourceAccess").upsert(
+    [...resourceIds.values()].map((sourceLocalId: string) => ({
+      /* eslint-disable @typescript-eslint/naming-convention */
+      account_uid: myGroup,
+      source_local_id: sourceLocalId,
+      space_id: spaceId,
+      /* eslint-enable @typescript-eslint/naming-convention */
+    })),
+    { ignoreDuplicates: true },
+  );
+  if (publishResponse.error && publishResponse.error.code !== "23505")
+    throw publishResponse.error;
+  const relData = await loadRelations(plugin);
+  let dataChanged = false;
+  relations
+    .filter((rel) => resourceIds.has(rel.id))
+    .map((rel) => {
+      const savedRel = relData.relations[rel.id];
+      if (!savedRel) return;
+      const publishedTo = savedRel.publishedToGroupId;
+      if (!publishedTo) {
+        savedRel.publishedToGroupId = [myGroup];
+        dataChanged = true;
+      } else if (!publishedTo.includes(myGroup)) {
+        publishedTo.push(myGroup);
+        dataChanged = true;
+      }
+    });
+  if (dataChanged) await saveRelations(plugin, relData);
+};
+
 export const publishNode = async ({
   plugin,
   file,
@@ -65,25 +239,39 @@ export const publishNode = async ({
   file: TFile;
   frontmatter: FrontMatterCache;
 }): Promise<void> => {
-  const nodeId = frontmatter.nodeInstanceId as string | undefined;
-  if (!nodeId) throw new Error("Please sync the node first");
   const client = await getLoggedInClient(plugin);
   if (!client) throw new Error("Cannot get client");
-  const context = await getSupabaseContext(plugin);
-  if (!context) throw new Error("Cannot get context");
-  const spaceId = context.spaceId;
-  const myGroupsResponse = await client
-    .from("group_membership")
-    .select("group_id");
-  if (myGroupsResponse.error) throw myGroupsResponse.error;
-  const myGroups = new Set(
-    myGroupsResponse.data.map(({ group_id }) => group_id),
-  );
+  const myGroups = new Set(await getAvailableGroupIds(client));
   if (myGroups.size === 0) throw new Error("Cannot get group");
   const existingPublish =
     (frontmatter.publishedToGroups as undefined | string[]) || [];
   const commonGroups = existingPublish.filter((g) => myGroups.has(g));
+  // temporary single-group assumption
   const myGroup = (commonGroups.length > 0 ? commonGroups : [...myGroups])[0]!;
+  return await publishNodeToGroup({ plugin, file, frontmatter, myGroup });
+};
+
+export const publishNodeToGroup = async ({
+  plugin,
+  file,
+  frontmatter,
+  myGroup,
+}: {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+  frontmatter: FrontMatterCache;
+  myGroup: string;
+}): Promise<void> => {
+  const nodeId = frontmatter.nodeInstanceId as string | undefined;
+  if (!nodeId) throw new Error("Please sync the node first");
+  const context = await getSupabaseContext(plugin);
+  if (!context) throw new Error("Cannot get context");
+  const spaceId = context.spaceId;
+  const client = await getLoggedInClient(plugin);
+  if (!client) throw new Error("Cannot get client");
+  const existingPublish =
+    (frontmatter.publishedToGroups as undefined | string[]) || [];
+
   const idResponse = await client
     .from("Content")
     .select("last_modified")
@@ -97,6 +285,12 @@ export const publishNode = async ({
   const lastModifiedDb = new Date(
     idResponse.data.last_modified + "Z",
   ).getTime();
+  try {
+    await publishNodeRelations({ plugin, client, nodeId, myGroup, spaceId });
+  } catch (error) {
+    // do not fail to publish node for that reason
+    console.error("Could not publish relations", error);
+  }
   const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
   const attachments = embeds
     .map(({ link }) => {
@@ -116,7 +310,7 @@ export const publishNode = async ({
   );
 
   const skipPublishAccess =
-    commonGroups.length > 0 && lastModified <= lastModifiedDb;
+    existingPublish.includes(myGroup) && lastModified <= lastModifiedDb;
 
   if (!skipPublishAccess) {
     const publishSpaceResponse = await client.from("SpaceAccess").upsert(
@@ -210,7 +404,7 @@ export const publishNode = async ({
   // do not fail on cleanup
   if (cleanupResult.error) console.error(cleanupResult.error);
 
-  if (commonGroups.length === 0)
+  if (!existingPublish.includes(myGroup))
     await plugin.app.fileManager.processFrontMatter(
       file,
       (fm: Record<string, unknown>) => {

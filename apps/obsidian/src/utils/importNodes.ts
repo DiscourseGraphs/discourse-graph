@@ -9,9 +9,9 @@ import type { DiscourseNode, ImportableNode } from "~/types";
 import { QueryEngine } from "~/services/QueryEngine";
 import { spaceUriAndLocalIdToRid, ridToSpaceUriAndLocalId } from "./rid";
 
-export const getAvailableGroups = async (
+export const getAvailableGroupIds = async (
   client: DGSupabaseClient,
-): Promise<{ group_id: string }[]> => {
+): Promise<string[]> => {
   const { data, error } = await client
     .from("group_membership")
     .select("group_id")
@@ -22,7 +22,7 @@ export const getAvailableGroups = async (
     throw new Error(`Failed to fetch groups: ${error.message}`);
   }
 
-  return data || [];
+  return (data || []).map((g) => g.group_id);
 };
 
 export const getPublishedNodesForGroups = async ({
