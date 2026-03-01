@@ -14,7 +14,11 @@ import {
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { Select } from "@blueprintjs/select";
-import { getSetting, setSetting } from "~/utils/extensionSettings";
+import { setSetting } from "~/utils/extensionSettings";
+import {
+  getFeatureFlag,
+  setFeatureFlag,
+} from "~/components/settings/utils/accessors";
 import {
   getSupabaseContext,
   getLoggedInClient,
@@ -38,7 +42,6 @@ import createBlock from "roamjs-components/writes/createBlock";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import posthog from "posthog-js";
-import { setFeatureFlag } from "~/components/settings/utils/accessors";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 
 const NodeRow = ({ node }: { node: PConceptFull }) => {
@@ -264,7 +267,7 @@ const MigrationTab = (): React.ReactElement => {
   const [useMigrationResults, setMigrationResults] = useState<string>("");
   const [useOngoing, setOngoing] = useState<boolean>(false);
   const [useDryRun, setDryRun] = useState<boolean>(false);
-  const enabled = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
+  const enabled = getFeatureFlag("Reified relation triples");
   const doMigrateRelations = async () => {
     setOngoing(true);
     try {
@@ -349,7 +352,7 @@ const MigrationTab = (): React.ReactElement => {
 
 const FeatureFlagsTab = (): React.ReactElement => {
   const [useReifiedRelations, setUseReifiedRelations] = useState<boolean>(
-    getSetting<boolean>(USE_REIFIED_RELATIONS, false),
+    getFeatureFlag("Reified relation triples"),
   );
   const settings = useMemo(() => {
     refreshConfigTree();

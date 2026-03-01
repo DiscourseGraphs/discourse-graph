@@ -50,8 +50,8 @@ import { getConditionLabels } from "~/utils/conditionToDatalog";
 import { formatHexColor } from "./DiscourseNodeCanvasSettings";
 import posthog from "posthog-js";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
-import { USE_REIFIED_RELATIONS } from "~/data/userSettings";
 import {
+  getFeatureFlag,
   setGlobalSetting,
   getGlobalSettings,
 } from "~/components/settings/utils/accessors";
@@ -105,7 +105,7 @@ export const RelationEditPanel = ({
       ),
     [nodes],
   );
-  const useReifiedRelations = getSetting<boolean>(USE_REIFIED_RELATIONS, false);
+  const useReifiedRelations = getFeatureFlag("Reified relation triples");
   const containerRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
   const cyRef = useRef<cytoscape.Core>();
@@ -1026,10 +1026,7 @@ const DiscourseRelationConfigPanel: CustomField["options"]["component"] = ({
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
     null,
   );
-  const shouldHideCanvasRelation = getSetting<boolean>(
-    USE_REIFIED_RELATIONS,
-    false,
-  );
+  const shouldHideCanvasRelation = getFeatureFlag("Reified relation triples");
   const visibleRelations = useMemo(() => {
     if (!shouldHideCanvasRelation) {
       return relations;

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { Label } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
@@ -26,14 +26,13 @@ import { getSetting, setSetting } from "~/utils/extensionSettings";
 import { enablePostHog, disablePostHog } from "~/utils/posthog";
 import KeyboardShortcutInput from "./KeyboardShortcutInput";
 import streamlineStyling from "~/styles/streamlineStyling";
-import { getFormattedConfigTree } from "~/utils/discourseConfigRef";
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
 import posthog from "posthog-js";
 
 const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const overlayHandler = getOverlayHandler(onloadArgs);
-  const settings = useMemo(() => getFormattedConfigTree(), []);
 
   return (
     <div className="flex flex-col gap-4 p-1">
@@ -76,7 +75,7 @@ const HomePersonalSettings = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           });
         }}
       />
-      {settings.suggestiveModeEnabled?.value && (
+      {getFeatureFlag("Suggestive mode enabled") && (
         <PersonalFlagPanel
           title="Suggestive mode overlay"
           description="Whether or not to overlay suggestive mode button over discourse node references."
