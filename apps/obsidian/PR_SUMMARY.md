@@ -1,6 +1,7 @@
 # Obsidian Plugin Store Submission - Changes Summary
 
 This PR addresses all failed criteria from the Obsidian Plugin Store submission checklist to prepare the Discourse Graph plugin for submission to the official Obsidian Community Plugin Store.
+* All the comments will be removed once we have finished reviewing this PR.*
 
 ## 📋 Tracking Document
 
