@@ -24,9 +24,11 @@ import { OnloadArgs } from "roamjs-components/types";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 import { Result } from "~/utils/types";
-import { getSetting } from "~/utils/extensionSettings";
 import MiniSearch from "minisearch";
-import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import {
+  getPersonalSetting,
+  setPersonalSetting,
+} from "~/components/settings/utils/accessors";
 
 type Props = {
   textarea: HTMLTextAreaElement;
@@ -711,7 +713,7 @@ export const NodeSearchMenuTriggerSetting = ({
 }) => {
   const extensionAPI = onloadArgs.extensionAPI;
   const [nodeSearchTrigger, setNodeSearchTrigger] = useState<string>(
-    getSetting("node-search-trigger", "@"),
+    getPersonalSetting<string>(["Node search menu trigger"]) ?? "@",
   );
 
   const handleNodeSearchTriggerChange = (

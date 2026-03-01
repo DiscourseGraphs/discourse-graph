@@ -13,7 +13,7 @@ import { listActiveQueries } from "./utils/listActiveQueries";
 import { registerSmartBlock } from "./utils/registerSmartBlock";
 import { initObservers } from "./utils/initializeObserversAndListeners";
 import { addGraphViewNodeStyling } from "./utils/graphViewNodeStyling";
-import { setQueryPages } from "./utils/setQueryPages";
+import { setInitialQueryPages } from "./utils/setQueryPages";
 import initializeDiscourseNodes from "./utils/initializeDiscourseNodes";
 import styles from "./styles/styles.css";
 import discourseFloatingMenuStyles from "./styles/discourseFloatingMenuStyles.css";
@@ -83,7 +83,7 @@ export default runExtension(async (onloadArgs) => {
   registerCommandPaletteCommands(onloadArgs);
   createSettingsPanel(onloadArgs);
   registerSmartBlock(onloadArgs);
-  setQueryPages(onloadArgs);
+  setInitialQueryPages(onloadArgs);
 
   const style = addStyle(styles);
   const discourseGraphStyle = addStyle(discourseGraphStyles);
@@ -133,7 +133,7 @@ export default runExtension(async (onloadArgs) => {
       const queryArgs = parseQuery(parentUid);
       return fireQuerySync(queryArgs);
     },
-    listActiveQueries: () => listActiveQueries(extensionAPI),
+    listActiveQueries: () => listActiveQueries(),
     isDiscourseNode: isDiscourseNode,
     // @ts-expect-error - we are still using roamjs-components global definition
     getDiscourseNodes: getDiscourseNodes,

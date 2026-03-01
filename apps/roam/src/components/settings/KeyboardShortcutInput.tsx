@@ -9,7 +9,10 @@ import {
 } from "@blueprintjs/core";
 import Description from "roamjs-components/components/Description";
 import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
-import { setPersonalSetting } from "~/components/settings/utils/accessors";
+import {
+  getPersonalSetting,
+  setPersonalSetting,
+} from "~/components/settings/utils/accessors";
 import { comboToString } from "~/components/DiscourseNodeMenu";
 
 type KeyboardShortcutInputProps = {
@@ -34,7 +37,7 @@ const KeyboardShortcutInput = ({
   const [isActive, setIsActive] = useState(false);
   const [comboKey, setComboKey] = useState<IKeyCombo>(
     () =>
-      (extensionAPI.settings.get(settingKey) as IKeyCombo) || {
+      getPersonalSetting<IKeyCombo>([blockPropKey]) || {
         modifiers: 0,
         key: "",
       },
