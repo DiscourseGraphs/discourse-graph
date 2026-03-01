@@ -4,7 +4,7 @@ import {
   setPersonalSetting,
 } from "~/components/settings/utils/accessors";
 
-export const setQueryPages = (onloadArgs: OnloadArgs) => {
+export const setInitialQueryPages = (onloadArgs: OnloadArgs) => {
   const queryPageArray =
     getPersonalSetting<string[]>(["Query", "Query pages"]) ?? [];
   if (!queryPageArray.includes("discourse-graph/queries/*")) {

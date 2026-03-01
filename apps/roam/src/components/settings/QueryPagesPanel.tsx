@@ -20,7 +20,7 @@ const QueryPagesPanel = ({
 }) => {
   const [texts, setTexts] = useState(() => getQueryPages());
   const [value, setValue] = useState("");
-  const persistQueryPages = (newTexts: string[]) => {
+  const setQueryPages = (newTexts: string[]) => {
     setPersonalSetting(["Query", "Query pages"], newTexts);
     void extensionAPI.settings.set("query-pages", newTexts);
   };
@@ -46,7 +46,7 @@ const QueryPagesPanel = ({
           onClick={() => {
             const newTexts = [...texts, value];
             setTexts(newTexts);
-            persistQueryPages(newTexts);
+            setQueryPages(newTexts);
             setValue("");
             posthog.capture("Query Page: Page Format Added", {
               newType: value,
@@ -71,7 +71,7 @@ const QueryPagesPanel = ({
             onClick={() => {
               const newTexts = texts.filter((_, jndex) => index !== jndex);
               setTexts(newTexts);
-              persistQueryPages(newTexts);
+              setQueryPages(newTexts);
             }}
           />
         </div>
