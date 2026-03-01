@@ -154,7 +154,15 @@ const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`
 const isAtomReactionCycleError = (error: unknown): error is Error =>
   error instanceof Error &&
   /cannot change atoms during reaction cycle/i.test(error.message);
-const installSafeHintingSetter = ({ app }: { app: Editor }): void => {
+const installSafeHintingSetter = ({
+  app,
+  title,
+  pageUid,
+}: {
+  app: Editor;
+  title?: string;
+  pageUid?: string;
+}): void => {
   const originalSetHintingShapes = app.setHintingShapes.bind(app);
 
   app.setHintingShapes = ((shapeIds: TLShapeId[]) => {
@@ -165,10 +173,34 @@ const installSafeHintingSetter = ({ app }: { app: Editor }): void => {
         throw error;
       }
 
+      internalError({
+        error,
+        type: "Canvas Atom Reaction Cycle Error",
+        context: {
+          phase: "setHintingShapes.sync",
+          title,
+          pageUid,
+        },
+        sendEmail: false,
+      });
+
       app.timers.setTimeout(() => {
         try {
           originalSetHintingShapes(shapeIds);
-        } catch {
+        } catch (deferredError) {
+          if (isAtomReactionCycleError(deferredError)) {
+            internalError({
+              error: deferredError,
+              type: "Canvas Atom Reaction Cycle Error",
+              context: {
+                phase: "setHintingShapes.deferred",
+                title,
+                pageUid,
+              },
+              sendEmail: false,
+            });
+            return;
+          }
           // Ignore deferred hinting updates if the editor is gone or still reacting.
         }
       }, 0);
@@ -1066,7 +1098,7 @@ const TldrawCanvasShared = ({
               appRef.current = app;
 
               // hack for "cannot change atoms during reaction cycle" bug
-              installSafeHintingSetter({ app });
+              installSafeHintingSetter({ app, title, pageUid });
               setHasMountedEditor(true);
 
               app.on("change", (entry) => {
