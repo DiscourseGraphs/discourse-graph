@@ -15,7 +15,6 @@ import {
   DefaultToolbarContent,
   TldrawUiMenuItem,
   DefaultMainMenu,
-  DefaultMainMenuContent,
   TldrawUiMenuGroup,
   TldrawUiDropdownMenuItem,
   TldrawUiButton,
@@ -29,6 +28,13 @@ import {
   useEditor,
   useValue,
   useToasts,
+  ZoomTo100MenuItem,
+  ZoomToFitMenuItem,
+  ZoomToSelectionMenuItem,
+  EditSubmenu,
+  ExportFileContentSubMenu,
+  ExtrasGroup,
+  PreferencesGroup,
 } from "tldraw";
 import { IKeyCombo } from "@blueprintjs/core";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
@@ -256,6 +262,21 @@ export const createUiComponents = ({
       );
     },
     MainMenu: () => {
+      const CustomViewMenu = () => {
+        const actions = useActions();
+        return (
+          <TldrawUiMenuSubmenu id="view" label="menu.view">
+            <TldrawUiMenuGroup id="view-actions">
+              <TldrawUiMenuItem {...actions["zoom-in"]} />
+              <TldrawUiMenuItem {...actions["zoom-out"]} />
+              <ZoomTo100MenuItem />
+              <ZoomToFitMenuItem />
+              <ZoomToSelectionMenuItem />
+              <TldrawUiMenuItem {...actions["toggle-full-screen"]} />
+            </TldrawUiMenuGroup>
+          </TldrawUiMenuSubmenu>
+        );
+      };
       const onToggleSyncMode = (): void => {
         const nextMode: CanvasSyncMode =
           canvasSyncMode === "sync" ? "local" : "sync";
@@ -276,7 +297,11 @@ export const createUiComponents = ({
               onToggle={onToggleSyncMode}
             />
           </TldrawUiMenuGroup>
-          <DefaultMainMenuContent />
+          <EditSubmenu />
+          <CustomViewMenu /> {/* Replaced <ViewSubmenu /> */}
+          <ExportFileContentSubMenu />
+          <ExtrasGroup />
+          <PreferencesGroup />
         </DefaultMainMenu>
       );
     },
