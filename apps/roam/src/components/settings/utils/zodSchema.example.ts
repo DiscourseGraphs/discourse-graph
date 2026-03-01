@@ -404,9 +404,9 @@ const defaultPersonalSettings: PersonalSettings = {
   "Auto canvas relations": false,
   "Disable product diagnostics": false,
   Query: {
-    "Hide query metadata": false,
+    "Hide query metadata": true,
     "Default page size": 10,
-    "Query pages": [],
+    "Query pages": ["discourse-graph/queries/*"],
     "Default filters": {},
   },
 };

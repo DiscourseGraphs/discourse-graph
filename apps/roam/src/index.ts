@@ -42,6 +42,7 @@ import {
   DISALLOW_DIAGNOSTICS,
 } from "./data/userSettings";
 import { initSchema } from "./components/settings/utils/init";
+
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
 
 export default runExtension(async (onloadArgs) => {
