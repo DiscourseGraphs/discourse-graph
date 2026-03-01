@@ -108,7 +108,7 @@ const main = async (): Promise<void> => {
 
     const email = groupEmail(groupName);
     const password = crypto.randomUUID();
-
+     await supabase.auth.admin.listUsers();
     const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,

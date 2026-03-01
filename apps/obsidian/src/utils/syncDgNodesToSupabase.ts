@@ -314,30 +314,6 @@ const detectNodeChanges = (
   return changeTypes;
 };
 
-const logNodeChanges = ({
-  node,
-  changeTypes,
-  existingTitle,
-  lastSyncTime,
-}: {
-  node: DiscourseNodeInVault;
-  changeTypes: ChangeType[];
-  existingTitle: string | undefined;
-  lastSyncTime: Date;
-}): void => {
-  const currentFilename = node.file.basename;
-  const fileModifiedTime = new Date(node.file.stat.mtime);
-
-  // [PG-G2] Removed console.log debugging statements
-  if (changeTypes.includes("title")) {
-    // Title changed, will sync
-  }
-
-  if (changeTypes.includes("content")) {
-    // Content changed, will sync
-  }
-};
-
 const buildChangedNodesFromNodes = async ({
   nodes,
   supabaseClient,
@@ -378,13 +354,6 @@ const buildChangedNodesFromNodes = async ({
     if (finalChangeTypes.length === 0) {
       continue;
     }
-
-    logNodeChanges({
-      node,
-      changeTypes: finalChangeTypes,
-      existingTitle,
-      lastSyncTime,
-    });
 
     changedNodes.push({
       file: node.file,

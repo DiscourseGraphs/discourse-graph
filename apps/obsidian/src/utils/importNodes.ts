@@ -353,12 +353,6 @@ const fetchNodeContentForImport = async ({
     full.last_modified == null
   ) {
     // [PG-G2] Removed console.warn - variants are optional
-    if (!direct?.text) {
-      // No direct variant found
-    }
-    if (!full?.text) {
-      // No full variant found
-    }
     return null;
   }
 
@@ -807,8 +801,7 @@ const importAssetsForNode = async ({
       const pathParts = targetPath.split("/");
       for (let i = 1; i < pathParts.length - 1; i++) {
         const folderPath = pathParts.slice(0, i + 1).join("/");
-        // [PG-V21] Use Vault API instead of Adapter API
-        if (!plugin.app.vault.getAbstractFileByPath(folderPath)) {
+        if (!(await plugin.app.vault.adapter.exists(folderPath))) {
           await plugin.app.vault.createFolder(folderPath);
         }
       }
@@ -817,34 +810,32 @@ const importAssetsForNode = async ({
       // [PG-V21] Use Vault API instead of Adapter API
       const file = plugin.app.vault.getAbstractFileByPath(targetPath);
       if (file && file instanceof TFile) {
-          const localMtimeMs = file.stat.mtime;
-          const refLastModifiedMs = fileRef.last_modified || 0;
-          const localModifiedAfterRef =
-            refLastModifiedMs > 0 && localMtimeMs > refLastModifiedMs;
-          const remoteIsNewer =
-            refLastModifiedMs > 0 && refLastModifiedMs > localMtimeMs;
-          if (!localModifiedAfterRef && !remoteIsNewer) {
-            setPathMapping(filepath, targetPath);
-            await plugin.app.fileManager.processFrontMatter(
-              targetMarkdownFile,
-              (fm) => {
-                const assetsRaw = (fm as Record<string, unknown>)
-                  .importedAssets;
-                const assets: Record<string, string> =
-                  assetsRaw &&
-                  typeof assetsRaw === "object" &&
-                  !Array.isArray(assetsRaw)
-                    ? (assetsRaw as Record<string, string>)
-                    : {};
-                assets[filehash] = targetPath;
-                (fm as Record<string, unknown>).importedAssets = assets;
-              },
-              stat,
-            );
-            continue;
-          }
-          // Local file was modified OR remote is newer; overwrite with DB version
+        const localMtimeMs = file.stat.mtime;
+        const refLastModifiedMs = fileRef.last_modified || 0;
+        const localModifiedAfterRef =
+          refLastModifiedMs > 0 && localMtimeMs > refLastModifiedMs;
+        const remoteIsNewer =
+          refLastModifiedMs > 0 && refLastModifiedMs > localMtimeMs;
+        if (!localModifiedAfterRef && !remoteIsNewer) {
+          setPathMapping(filepath, targetPath);
+          await plugin.app.fileManager.processFrontMatter(
+            targetMarkdownFile,
+            (fm) => {
+              const assetsRaw = (fm as Record<string, unknown>).importedAssets;
+              const assets: Record<string, string> =
+                assetsRaw &&
+                typeof assetsRaw === "object" &&
+                !Array.isArray(assetsRaw)
+                  ? (assetsRaw as Record<string, string>)
+                  : {};
+              assets[filehash] = targetPath;
+              (fm as Record<string, unknown>).importedAssets = assets;
+            },
+            stat,
+          );
+          continue;
         }
+        // Local file was modified OR remote is newer; overwrite with DB version
       }
 
       // File doesn't exist, download it
@@ -1181,8 +1172,8 @@ export const importSelectedNodes = async ({
     }
 
     // Ensure the import folder exists
-    // [PG-V21] Use Vault API instead of Adapter API
-    const folderExists = plugin.app.vault.getAbstractFileByPath(importFolderPath);
+    const folderExists =
+      await plugin.app.vault.adapter.exists(importFolderPath);
     if (!folderExists) {
       await plugin.app.vault.createFolder(importFolderPath);
     }
@@ -1238,8 +1229,7 @@ export const importSelectedNodes = async ({
 
           // Check if file path already exists (edge case: same title but different nodeInstanceId)
           let counter = 1;
-          // [PG-V21] Use Vault API instead of Adapter API
-          while (plugin.app.vault.getAbstractFileByPath(finalFilePath)) {
+          while (await plugin.app.vault.adapter.exists(finalFilePath)) {
             finalFilePath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
             counter++;
           }
@@ -1313,8 +1303,7 @@ export const importSelectedNodes = async ({
           const newPath = `${importFolderPath}/${sanitizedFileName}.md`;
           let targetPath = newPath;
           let counter = 1;
-          // [PG-V21] Use Vault API instead of Adapter API
-          while (plugin.app.vault.getAbstractFileByPath(targetPath)) {
+          while (await plugin.app.vault.adapter.exists(targetPath)) {
             targetPath = `${importFolderPath}/${sanitizedFileName} (${counter}).md`;
             counter++;
           }

@@ -296,10 +296,6 @@ export const publishNodeToGroup = async ({
         link,
         file.path,
       );
-      // [PG-G2] Removed console.warn
-      if (attachment === null) {
-        // Could not find file for link
-      }
       return attachment;
     })
     .filter((a) => !!a);

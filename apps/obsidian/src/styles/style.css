@@ -3792,20 +3792,3 @@ kbd.tlui-kbd {
 		transform: translateX(calc(100% + var(--space-3)));
 	}
 }
-
-/* [PG-S25] Discourse Graph plugin utility classes */
-.dg-cursor-pointer {
-	cursor: pointer;
-}
-
-.discourse-tag-popover {
-	position: fixed;
-	transform: translateX(-50%);
-	border-radius: 6px;
-	padding: 6px;
-	z-index: 9999;
-	white-space: nowrap;
-	font-size: 12px;
-	pointer-events: auto;
-}
-
