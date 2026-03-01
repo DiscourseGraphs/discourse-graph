@@ -282,18 +282,13 @@ export const createUiComponents = ({
           canvasSyncMode === "sync" ? "local" : "sync";
         onCanvasSyncModeChange(nextMode);
       };
-      // const syncModeLabel = isCloudflareSyncAvailable
-      //   ? "Use cloud canvas"
-      //   : "Cloud canvas unavailable";
 
       return (
         <DefaultMainMenu>
           <TldrawUiMenuGroup id="sync-mode">
             <SyncModeMenuSwitchItem
-              // label={syncModeLabel}
               label="Use cloud canvas"
               checked={canvasSyncMode === "sync"}
-              // disabled={!isCloudflareSyncAvailable}
               onToggle={onToggleSyncMode}
             />
           </TldrawUiMenuGroup>
