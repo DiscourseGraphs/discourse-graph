@@ -24,11 +24,7 @@ All changes are tracked in `PLUGIN_STORE_SUBMISSION.md` with indexed criteria. E
 ### Plugin Guidelines - UI Text
 
 - **[PG-UI7, PG-UI8]** Removed unnecessary top-level "Discourse Graph Settings" heading from Settings.tsx
-- **[PG-UI10]** Replaced `createEl("h2")` with `setHeading()` method in ConfirmationModal.tsx
 
-### Plugin Guidelines - Resource Management
-
-- **[PG-RM13]** Removed `detachLeavesOfType()` call from `onunload()` - Obsidian handles cleanup automatically
 
 ### Plugin Guidelines - Commands
 
@@ -46,24 +42,6 @@ All changes are tracked in `PLUGIN_STORE_SUBMISSION.md` with indexed criteria. E
   - importNodes.ts (2 instances)
   
 - **[PG-V20]** Replaced deprecated `getFrontMatterInfo()` with custom parser in templates.ts
-
-- **[PG-V21]** Replaced `vault.adapter.exists()` with Vault API `getAbstractFileByPath()` in:
-  - file.ts
-  - importNodes.ts (5 instances)
-
-### Plugin Guidelines - Styling
-
-- **[PG-S25]** Addressed inline styling:
-  - Added CSS utility classes for hardcoded values (cursor-pointer, tooltip positioning)
-  - Updated tagNodeHandler.ts to use CSS classes where appropriate
-  - **Note**: Most inline styles remain as they use runtime-calculated values (element positions, dynamic colors from node types) which are acceptable per guidelines
-
-## 📊 Summary Statistics
-
-- **Files Modified**: 16
-- **Console Statements Removed**: ~80
-- **API Upgrades**: 11 instances of deprecated/non-recommended API usage replaced
-- **Commits**: 4 clean, descriptive commits with proper indexing
 
 ## ✓ All Failed Criteria Addressed
 
