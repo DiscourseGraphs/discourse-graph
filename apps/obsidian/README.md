@@ -9,6 +9,7 @@
 Break down the research process into atomic units to augment the knowledge synthesis process. Create distinct objects for questions, claims, evidence, hypotheses or choose your own to suit your specific needs. These objects can then be related, resurfaced, and reused throughout your research journey to help you efficiently build arguments and create new knowledge.
 
 # Documentation
+
 For more information about Discourse Graphs, check out [our website](https://discoursegraphs.com) and [documentation](https://discoursegraphs.com/docs/obsidian/getting-started).
 
 # Installation
@@ -17,7 +18,7 @@ Follow the instructions below to install the plugin:
 
 ## Install BRAT
 
-To use the plugin prior to it's public release on Obsidian's community plugin browser, install BRAT (Beta Reviewer's Auto-update Tester).
+To use the plugin prior to its public release on Obsidian's community plugin browser, install BRAT (Beta Reviewer's Auto-update Tester).
 
 1. Open Obsidian Settings
 2. Go to Community Plugins and disable Restricted Mode
@@ -44,15 +45,15 @@ The Discourse Graphs plugin gives you the ability to add additional semantic str
 
 The plugin ships with several node types to provide a foundation for your scientific argumentation: Question, Claim, Evidence, and Source, as well as complementary relation types that can be used between them.
 
-To see the default settings or begin adding your own node and relation types, open the Discourse Graphs plugin settings menu by navigating to it in Obsidian's settings menu or using the command: "Open Discourse Graphs Settings"
+To see the default settings or begin adding your own node and relation types, open the Discourse Graphs plugin settings menu by navigating to it in Obsidian's settings menu or using the command: "Open Discourse Graphs settings"
 
 ## Defining node types
 
-To define a new node type for use in your vault navigate to the Node Types menu and click `Add Node Type`. Doing so will take you to an editing menu where you can choose the details of your new node type including it's title, a description, a template to use, a color to represent that type in your vault, and more.
+To define a new node type for use in your vault navigate to the Node Types menu and click `Add Node Type`. Doing so will take you to an editing menu where you can choose the details of your new node type including its title, a description, a template to use, a color to represent that type in your vault, and more.
 
 ## Defining relation types
 
-The Discourse Graphs plugin ships with three default relation types: `supports`, `opposes`, and `informs`. You can add your own in the Relation Types menu by clicking the `Add relation type` button and filling out the text fields that define your new type.
+The Discourse Graphs plugin ships with four default relation types: `supports`, `opposes`, `informs`, and `derivedFrom`. You can add your own in the Relation Types menu by clicking the `Add relation type` button and filling out the text fields that define your new type.
 
 ## Defining relations
 
@@ -72,7 +73,7 @@ With nodes and relation types ready, the last step is to connect them in the Dis
 
 There are three ways to create nodes in a note:
 
-_Turn text into a node with the node type text menu_
+_Turn text into a node with the node type selection menu_
 
 1. Highlight the text that you want to turn into a node
 2. Use the hotkey `⌘ + \` to open the node type selection menu
@@ -81,12 +82,12 @@ _Turn text into a node with the node type text menu_
 _Turn text into a node from the right click menu_
 
 1. Highlight the text that you want to turn into a node
-2. Right-click on the highlighted text and navigate to the menu option "Turn into Discourse Node"
+2. Right-click on the highlighted text and navigate to the menu option "Turn into discourse node"
 3. Choose your node type
 
-_Create Discourse Node command_
+_Create discourse node command_
 
-1. Search for and select "Create Discourse Node" from the command palette
+1. Search for and select "Create discourse node" from the command palette
 2. In the node creation dialog, choose your node type and the title of your new node then click confirm
 3. Your new node is created and a link to it is added to the location of your cursor
 
@@ -95,8 +96,8 @@ _Create Discourse Node command_
 To create a relation between nodes:
 
 1. Open the page of the node that you want to create the relation for
-2. Run the command "Toggle Discourse Context" which will open a widget in the right sidebar
-3. From there, click `Add new relation`, choose the desired relation type and the node to link with, then click `Confirm`
+2. Run the command "Toggle discourse context" which will open a widget in the right sidebar
+3. From there, click `Add a new relation`, choose the desired relation type and the node to link with, then click `Confirm`
 4. The relation is now created and can be viewed or removed from this Discourse Context panel
 
 ## On a canvas
@@ -126,14 +127,14 @@ The Discourse Graphs plugin uses [tldraw](https://tldraw.dev/) to create canvase
 
 | Name                                  | Description                                                                                |
 | ------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Bulk identify discourse nodes         | Scan vault to identify notes that follow the pattern to be a node                          |
-| Create discourse Node                 | Opens the node creation dialog modal                                                       |
+| Bulk identify discourse nodes         | Scan vault to identify notes that follow the title pattern to be a node                    |
+| Create discourse node                 | Opens the node creation dialog modal                                                       |
 | Create new Discourse Graph canvas     | Creates a tldraw canvas                                                                    |
 | Open Discourse Graphs settings        | Takes you to the plugin settings menu                                                      |
 | Open node type menu                   | Opens menu that allows you to choose the node type that you wish to apply to selected text |
 | Switch to Discourse Graph canvas view | Renders tldraw canvas if markdown is displayed                                             |
 | Switch to discourse markdown edit     | Displays markdown of a rendered tldraw canvas                                              |
-| Toggle Discourse Context              | Opens a widget in the sidebar which displays relations of the active node                  |
+| Toggle discourse context              | Opens a widget in the sidebar which displays relations of the active node                  |
 
 # Get involved
 
