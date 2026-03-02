@@ -118,5 +118,5 @@ The Discourse Graphs plugin uses [tldraw](https://tldraw.dev/) to create canvase
 # Get involved
 
 1. Join our growing community of academics, researchers, and thinkers on [Slack 💬](https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg) 
-2. Are you a lab or researcher interested in piloting the plugin with some guidance from the team? Send us [an email](https://discoursegraphs@homeworld.bio/) or DM on Slack!
+2. Are you a lab or researcher interested in piloting the plugin with some guidance from the team? Send us [an email](mailto:discoursegraphs@homeworld.bio) or DM on Slack!
 3. Discourse Graphs is [open source](https://en.wikipedia.org/wiki/Open_source) and open to contributions. If you have an idea for an improvement or identify a bug open an issue here on the repo to start the conversation.
