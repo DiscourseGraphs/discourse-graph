@@ -134,6 +134,64 @@ export const MAX_WIDTH = "400px";
 
 const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
 
+const isAtomReactionCycleError = (error: unknown): error is Error =>
+  error instanceof Error &&
+  /cannot change atoms during reaction cycle/i.test(error.message);
+
+const installSafeHintingSetter = ({
+  app,
+  title,
+  pageUid,
+}: {
+  app: Editor;
+  title?: string;
+  pageUid?: string;
+}): void => {
+  const originalSetHintingShapes = app.setHintingShapes.bind(app);
+
+  app.setHintingShapes = ((shapeIds: TLShapeId[]) => {
+    try {
+      return originalSetHintingShapes(shapeIds);
+    } catch (error) {
+      if (!isAtomReactionCycleError(error)) {
+        throw error;
+      }
+
+      internalError({
+        error,
+        type: "Canvas Atom Reaction Cycle Error",
+        context: {
+          phase: "setHintingShapes.sync",
+          title,
+          pageUid,
+        },
+        sendEmail: false,
+      });
+
+      app.timers.setTimeout(() => {
+        try {
+          originalSetHintingShapes(shapeIds);
+        } catch (deferredError) {
+          if (isAtomReactionCycleError(deferredError)) {
+            internalError({
+              error: deferredError,
+              type: "Canvas Atom Reaction Cycle Error",
+              context: {
+                phase: "setHintingShapes.deferred",
+                title,
+                pageUid,
+              },
+              sendEmail: false,
+            });
+          }
+        }
+      }, 0);
+
+      return app;
+    }
+  }) as Editor["setHintingShapes"];
+};
+
 /** Valid file size for asset props; undefined when unknown (e.g. Roam/file API not a real File) to avoid persisting null. */
 const getValidFileSize = (file: { size?: number }): number | undefined =>
   typeof file.size === "number" && Number.isFinite(file.size) && file.size > 0
@@ -704,6 +762,7 @@ const TldrawCanvas = ({ title }: { title: string }) => {
               }
 
               appRef.current = app;
+              installSafeHintingSetter({ app, title, pageUid });
 
               app.on("change", (entry) => {
                 lastActionsRef.current.push(entry);
