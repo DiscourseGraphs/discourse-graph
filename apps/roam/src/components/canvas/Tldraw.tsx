@@ -695,146 +695,76 @@ const TldrawCanvasShared = ({
   };
 
   // COMPONENTS
-  const defaultEditorComponents: TLEditorComponents = useMemo(
-    () => ({
-      Scribble: TldrawScribble,
-      CollaboratorScribble: TldrawScribble,
-      SelectionForeground: TldrawSelectionForeground,
-      SelectionBackground: TldrawSelectionBackground,
-      Handles: TldrawHandles,
-    }),
-    [],
-  );
-  const editorComponents: TLEditorComponents = useMemo(
-    () => ({
-      ...defaultEditorComponents,
-      OnTheCanvas: ToastListener,
-    }),
-    [defaultEditorComponents],
-  );
-  const customUiComponents: TLUiComponents = useMemo(
-    () =>
-      createUiComponents({
-        allNodes,
-        allRelationNames,
-        allAddReferencedNodeActions,
-        canvasSyncMode,
-        onCanvasSyncModeChange,
-      }),
-    [
-      allNodes,
-      allRelationNames,
-      allAddReferencedNodeActions,
-      canvasSyncMode,
-      onCanvasSyncModeChange,
-    ],
-  );
+  const defaultEditorComponents: TLEditorComponents = {
+    Scribble: TldrawScribble,
+    CollaboratorScribble: TldrawScribble,
+    SelectionForeground: TldrawSelectionForeground,
+    SelectionBackground: TldrawSelectionBackground,
+    Handles: TldrawHandles,
+  };
+  const editorComponents: TLEditorComponents = {
+    ...defaultEditorComponents,
+    OnTheCanvas: ToastListener,
+  };
+  const customUiComponents: TLUiComponents = createUiComponents({
+    allNodes,
+    allRelationNames,
+    allAddReferencedNodeActions,
+    canvasSyncMode,
+    onCanvasSyncModeChange,
+  });
 
   // UTILS
-  const discourseNodeUtils = useMemo(
-    () => createNodeShapeUtils(allNodes),
-    [allNodes],
+  const discourseNodeUtils = createNodeShapeUtils(allNodes);
+  const discourseRelationUtils = createAllRelationShapeUtils(allRelationIds);
+  const referencedNodeUtils = createAllReferencedNodeUtils(
+    allAddReferencedNodeByAction,
   );
-  const discourseRelationUtils = useMemo(
-    () => createAllRelationShapeUtils(allRelationIds),
-    [allRelationIds],
-  );
-  const referencedNodeUtils = useMemo(
-    () => createAllReferencedNodeUtils(allAddReferencedNodeByAction),
-    [allAddReferencedNodeByAction],
-  );
-  const customShapeUtils = useMemo(
-    () => [
-      ...discourseNodeUtils,
-      ...discourseRelationUtils,
-      ...referencedNodeUtils,
-    ],
-    [discourseNodeUtils, discourseRelationUtils, referencedNodeUtils],
-  );
+  const customShapeUtils = [
+    ...discourseNodeUtils,
+    ...discourseRelationUtils,
+    ...referencedNodeUtils,
+  ];
 
   // TOOLS
-  const discourseGraphTool = useMemo(
-    () =>
-      class DiscourseGraphTool extends StateNode {
-        static override id = "discourse-tool";
-        static override initial = "idle";
-      },
-    [],
+  const discourseGraphTool = class DiscourseGraphTool extends StateNode {
+    static override id = "discourse-tool";
+    static override initial = "idle";
+  };
+  const discourseNodeTools = createNodeShapeTools(allNodes);
+  const discourseRelationTools = createAllRelationShapeTools(allRelationNames);
+  const referencedNodeTools = createAllReferencedNodeTools(
+    allAddReferencedNodeByAction,
   );
-  const discourseNodeTools = useMemo(
-    () => createNodeShapeTools(allNodes),
-    [allNodes],
-  );
-  const discourseRelationTools = useMemo(
-    () => createAllRelationShapeTools(allRelationNames),
-    [allRelationNames],
-  );
-  const referencedNodeTools = useMemo(
-    () => createAllReferencedNodeTools(allAddReferencedNodeByAction),
-    [allAddReferencedNodeByAction],
-  );
-  const customTools = useMemo(
-    () => [
-      discourseGraphTool,
-      ...discourseNodeTools,
-      ...discourseRelationTools,
-      ...referencedNodeTools,
-    ],
-    [
-      discourseGraphTool,
-      discourseNodeTools,
-      discourseRelationTools,
-      referencedNodeTools,
-    ],
-  );
+  const customTools = [
+    discourseGraphTool,
+    ...discourseNodeTools,
+    ...discourseRelationTools,
+    ...referencedNodeTools,
+  ];
 
   // BINDINGS
-  const relationBindings = useMemo(
-    () => createAllRelationBindings(allRelationIds),
-    [allRelationIds],
+  const relationBindings = createAllRelationBindings(allRelationIds);
+  const referencedNodeBindings = createAllReferencedNodeBindings(
+    allAddReferencedNodeByAction,
   );
-  const referencedNodeBindings = useMemo(
-    () => createAllReferencedNodeBindings(allAddReferencedNodeByAction),
-    [allAddReferencedNodeByAction],
-  );
-  const customBindingUtils = useMemo(
-    () => [...relationBindings, ...referencedNodeBindings],
-    [relationBindings, referencedNodeBindings],
-  );
-  const customShapeTypes = useMemo(
-    () =>
-      customShapeUtils
-        .map((s) => (s as unknown as { type?: string }).type)
-        .filter((t): t is string => !!t),
-    [customShapeUtils],
-  );
-  const customBindingTypes = useMemo(
-    () =>
-      customBindingUtils
-        .map((b) => (b as unknown as { type?: string }).type)
-        .filter((t): t is string => !!t),
-    [customBindingUtils],
-  );
+  const customBindingUtils = [...relationBindings, ...referencedNodeBindings];
+  const customShapeTypes = customShapeUtils
+    .map((s) => (s as unknown as { type?: string }).type)
+    .filter((t): t is string => !!t);
+  const customBindingTypes = customBindingUtils
+    .map((b) => (b as unknown as { type?: string }).type)
+    .filter((t): t is string => !!t);
 
   // UI OVERRIDES
-  const uiOverrides = useMemo(
-    () =>
-      createUiOverrides({
-        allNodes,
-        allRelationNames,
-        allAddReferencedNodeByAction,
-        toggleMaximized: handleMaximizedChange,
-        setConvertToDialogOpen,
-        discourseContext,
-      }),
-    [
-      allNodes,
-      allRelationNames,
-      allAddReferencedNodeByAction,
-      handleMaximizedChange,
-      setConvertToDialogOpen,
-    ],
-  );
+  const uiOverrides = createUiOverrides({
+    allNodes,
+    allRelationNames,
+    allAddReferencedNodeByAction,
+    toggleMaximized: handleMaximizedChange,
+    setConvertToDialogOpen,
+    discourseContext,
+  });
 
   // STORE
   useEffect(() => {
@@ -853,10 +783,7 @@ const TldrawCanvasShared = ({
     [allRelationIds, allAddReferencedNodeActions, allNodes],
   );
 
-  const migrations = useMemo(
-    () => [arrowShapeMigrations],
-    [arrowShapeMigrations],
-  );
+  const migrations = [arrowShapeMigrations];
   const { store, needsUpgrade, performUpgrade, error, isLoading } =
     useStoreAdapter({
       migrations,
