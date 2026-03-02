@@ -1400,8 +1400,8 @@ export const refreshImportedFile = async ({
   const metadata = metadataResp.data?.metadata;
   const filePath: string | undefined =
     typeof metadata === "object" &&
-    typeof (metadata as Record<string, any>).filePath === "string"
-      ? ((metadata as Record<string, any>).filePath as string)
+    typeof (metadata as Record<string, unknown>).filePath === "string"
+      ? ((metadata as Record<string, unknown>).filePath as string)
       : undefined;
   const result = await importSelectedNodes({
     plugin,

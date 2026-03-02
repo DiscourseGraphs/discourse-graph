@@ -188,8 +188,9 @@ export const getRelationsForFile = async (
 ): Promise<RelationInstance[]> => {
   const nodeInstanceId = await getNodeInstanceIdForFile(plugin, file);
   const cache = plugin.app.metadataCache.getFileCache(file);
-  const importedFromRid = (cache?.frontmatter as Record<string, unknown> | undefined)
-    ?.importedFromRid as string | undefined;
+  const importedFromRid = (
+    cache?.frontmatter as Record<string, unknown> | undefined
+  )?.importedFromRid as string | undefined;
 
   const relationsFile = await loadRelations(plugin);
   const relations = relationsFile.relations ?? Object.create(null);
@@ -200,9 +201,7 @@ export const getRelationsForFile = async (
   if (importedFromRid) ids.add(importedFromRid);
   if (ids.size === 0) return [];
 
-  return all.filter(
-    (r) => ids.has(r.source) || ids.has(r.destination),
-  );
+  return all.filter((r) => ids.has(r.source) || ids.has(r.destination));
 };
 
 const DEFAULT_CACHE_WAIT_MS = 500;

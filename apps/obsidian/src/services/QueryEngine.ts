@@ -474,7 +474,9 @@ export const getImportedNodesInfo = async ({
 
   const files = queryEngine?.functional()
     ? queryEngine?.getImportedNodePages()
-    : plugin.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith("import/"));
+    : plugin.app.vault
+        .getMarkdownFiles()
+        .filter((f) => f.path.startsWith("import/"));
 
   for (const file of files) {
     const cache = plugin.app.metadataCache.getFileCache(file);
