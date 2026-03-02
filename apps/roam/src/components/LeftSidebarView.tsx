@@ -21,14 +21,13 @@ import {
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import extractRef from "roamjs-components/util/extractRef";
+import { getFormattedConfigTree, notify } from "~/utils/discourseConfigRef";
+import { onSettingChange } from "~/components/settings/utils/settingsEmitter";
 import {
-  getFormattedConfigTree,
-  notify,
-  subscribe,
-} from "~/utils/discourseConfigRef";
-import type {
-  LeftSidebarConfig,
-  LeftSidebarPersonalSectionConfig,
+  type LeftSidebarConfig,
+  type LeftSidebarPersonalSectionConfig,
+  mergeGlobalSectionWithAccessor,
+  mergePersonalSectionsWithAccessor,
 } from "~/utils/getLeftSidebarSettings";
 import {
   getGlobalSetting,
@@ -135,7 +134,6 @@ const toggleFoldedState = ({
     folded.value = true;
   }
 
-  // Dual-write to block props
   if (isGlobal) {
     setGlobalSetting(["Left sidebar", "Settings", "Folded"], newFolded);
   } else if (sectionIndex !== undefined) {
@@ -308,7 +306,8 @@ const GlobalSection = ({ config }: { config: LeftSidebarConfig["global"] }) => {
   );
 };
 
-// TODO(ENG-1471): Remove old-system merge when migration complete — just use accessor values directly
+// TODO(ENG-1471): Remove old-system merge when migration complete — just use accessor values directly.
+// See mergeGlobalSectionWithAccessor/mergePersonalSectionsWithAccessor for why the merge exists.
 const buildConfig = (): LeftSidebarConfig => {
   // Read VALUES from accessor (handles flag routing + mismatch detection)
   const globalValues = getGlobalSetting<LeftSidebarGlobalSettings>([
@@ -321,58 +320,17 @@ const buildConfig = (): LeftSidebarConfig => {
   // Read UIDs from old system (needed for fold CRUD during dual-write)
   const oldConfig = getFormattedConfigTree().leftSidebar;
 
-  // Merge: accessor values + old-system UIDs
   return {
     uid: oldConfig.uid,
     favoritesMigrated: oldConfig.favoritesMigrated,
     sidebarMigrated: oldConfig.sidebarMigrated,
-    global: {
-      uid: oldConfig.global.uid,
-      childrenUid: oldConfig.global.childrenUid,
-      children: oldConfig.global.children,
-      settings: oldConfig.global.settings
-        ? {
-            uid: oldConfig.global.settings.uid,
-            collapsable: {
-              uid: oldConfig.global.settings.collapsable.uid,
-              value:
-                globalValues?.Settings.Collapsable ??
-                oldConfig.global.settings.collapsable.value,
-            },
-            folded: {
-              uid: oldConfig.global.settings.folded.uid,
-              value:
-                globalValues?.Settings.Folded ??
-                oldConfig.global.settings.folded.value,
-            },
-          }
-        : undefined,
-    },
+    global: mergeGlobalSectionWithAccessor(oldConfig.global, globalValues),
     personal: {
       uid: oldConfig.personal.uid,
-      sections: oldConfig.personal.sections.map((oldSection, i) => {
-        const newSection = personalValues?.[i];
-        return {
-          ...oldSection,
-          settings: oldSection.settings
-            ? {
-                ...oldSection.settings,
-                truncateResult: {
-                  ...oldSection.settings.truncateResult,
-                  value:
-                    newSection?.Settings?.["Truncate-result?"] ??
-                    oldSection.settings.truncateResult.value,
-                },
-                folded: {
-                  ...oldSection.settings.folded,
-                  value:
-                    newSection?.Settings?.Folded ??
-                    oldSection.settings.folded.value,
-                },
-              }
-            : oldSection.settings,
-        };
-      }),
+      sections: mergePersonalSectionsWithAccessor(
+        oldConfig.personal.sections,
+        personalValues,
+      ),
     },
     allPersonalSections: oldConfig.allPersonalSections,
   };
@@ -384,14 +342,22 @@ export const useConfig = () => {
     const handleUpdate = () => {
       setConfig(buildConfig());
     };
-    const unsubscribe = subscribe(handleUpdate);
+    const unsubGlobal = onSettingChange("global:Left sidebar", handleUpdate);
+    const unsubPersonal = onSettingChange(
+      "personal:Left sidebar",
+      handleUpdate,
+    );
     return () => {
-      unsubscribe();
+      unsubGlobal();
+      unsubPersonal();
     };
   }, []);
   return { config, setConfig };
 };
 
+// TODO(ENG-1471): refreshAndNotify still needed for other subscribe() consumers
+// (PanelManager, Canvas). Left sidebar reactivity now uses emitter, but other
+// components still depend on notify(). Remove when all consumers migrate to emitter.
 export const refreshAndNotify = () => {
   refreshConfigTree();
   notify();

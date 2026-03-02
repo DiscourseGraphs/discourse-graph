@@ -31,6 +31,7 @@ import {
 import {
   LeftSidebarPersonalSectionConfig,
   getLeftSidebarPersonalSectionConfig,
+  mergePersonalSectionsWithAccessor,
   PersonalSectionChild,
 } from "~/utils/getLeftSidebarSettings";
 import { extractRef, getSubTree } from "roamjs-components/util";
@@ -604,14 +605,15 @@ const LeftSidebarPersonalSectionsContent = ({
       } else {
         setPersonalSectionUid(personalSection.uid);
 
-        // Dual-read: accessor validates values and logs mismatches when flag ON
-        getPersonalSetting<PersonalSection[]>(["Left sidebar"]);
-
-        // Use old system data (has UIDs needed for CRUD operations)
+        const personalValues = getPersonalSetting<PersonalSection[]>([
+          "Left sidebar",
+        ]);
         const loadedSections = getLeftSidebarPersonalSectionConfig(
           leftSidebar.children,
         ).sections;
-        setSections(loadedSections);
+        setSections(
+          mergePersonalSectionsWithAccessor(loadedSections, personalValues),
+        );
       }
     };
 

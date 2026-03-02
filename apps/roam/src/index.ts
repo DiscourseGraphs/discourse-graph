@@ -38,10 +38,8 @@ import {
   getFeatureFlag,
   getPersonalSetting,
 } from "./components/settings/utils/accessors";
-import {
-  setupPullWatchOnSettingsPage,
-  setLeftSidebarFlagHandler,
-} from "./components/settings/utils/pullWatchers";
+import { setupPullWatchOnSettingsPage } from "./components/settings/utils/pullWatchers";
+import { onSettingChange } from "./components/settings/utils/settingsEmitter";
 import { mountLeftSidebar } from "./components/LeftSidebarView";
 
 export const DEFAULT_CANVAS_PAGE_FORMAT = "Canvas/*";
@@ -155,26 +153,28 @@ export default runExtension(async (onloadArgs) => {
     });
   }
 
-  // Register left sidebar flag handler before pull watchers start
-  const handleLeftSidebarFlag = (enabled: boolean) => {
-    const wrapper = document.querySelector<HTMLDivElement>(
-      ".starred-pages-wrapper",
-    );
-    if (!wrapper) return;
-    if (enabled) {
-      wrapper.style.padding = "0";
-      void mountLeftSidebar(wrapper, onloadArgs);
-    } else {
-      const root = wrapper.querySelector("#dg-left-sidebar-root");
-      if (root) {
-        // eslint-disable-next-line react/no-deprecated
-        ReactDOM.unmountComponentAtNode(root);
-        root.remove();
+  const unsubLeftSidebarFlag = onSettingChange(
+    "Enable left sidebar",
+    (newValue) => {
+      const enabled = Boolean(newValue);
+      const wrapper = document.querySelector<HTMLDivElement>(
+        ".starred-pages-wrapper",
+      );
+      if (!wrapper) return;
+      if (enabled) {
+        wrapper.style.padding = "0";
+        void mountLeftSidebar(wrapper, onloadArgs);
+      } else {
+        const root = wrapper.querySelector("#dg-left-sidebar-root");
+        if (root) {
+          // eslint-disable-next-line react/no-deprecated
+          ReactDOM.unmountComponentAtNode(root);
+          root.remove();
+        }
+        wrapper.style.padding = "";
       }
-      wrapper.style.padding = "";
-    }
-  };
-  setLeftSidebarFlagHandler(handleLeftSidebarFlag);
+    },
+  );
 
   const { blockUids } = await initSchema();
   const cleanupPullWatchers = setupPullWatchOnSettingsPage(blockUids);
@@ -189,6 +189,7 @@ export default runExtension(async (onloadArgs) => {
     ],
     observers: observers,
     unload: () => {
+      unsubLeftSidebarFlag();
       cleanupPullWatchers();
       setSyncActivity(false);
       window.roamjs.extension?.smartblocks?.unregisterCommand("QUERYBUILDER");

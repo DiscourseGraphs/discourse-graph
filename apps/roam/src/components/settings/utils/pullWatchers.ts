@@ -12,6 +12,7 @@ import {
   type PersonalSettings,
   type DiscourseNodeSettings,
 } from "./zodSchema";
+import { emitSettingChange } from "./settingsEmitter";
 
 type PullWatchCallback = Parameters<AddPullWatch>[2];
 
@@ -84,13 +85,6 @@ const addPullWatch = (
   watches.push([pattern, entityId, callback]);
 };
 
-let leftSidebarFlagHandler: ((newValue: boolean) => void) | null = null;
-export const setLeftSidebarFlagHandler = (
-  handler: (newValue: boolean) => void,
-) => {
-  leftSidebarFlagHandler = handler;
-};
-
 export const featureFlagHandlers: Partial<
   Record<
     keyof FeatureFlags,
@@ -99,8 +93,7 @@ export const featureFlagHandlers: Partial<
 > = {
   /* eslint-disable @typescript-eslint/naming-convention */
   "Enable left sidebar": (newValue, oldValue) => {
-    if (newValue === oldValue) return;
-    leftSidebarFlagHandler?.(newValue);
+    emitSettingChange("Enable left sidebar", newValue, oldValue);
   },
   /* eslint-enable @typescript-eslint/naming-convention */
 };
@@ -114,12 +107,11 @@ type GlobalSettingsHandlers = {
 };
 
 export const globalSettingsHandlers: GlobalSettingsHandlers = {
-  // Add handlers as needed:
-  // "Trigger": (newValue) => { ... },
-  // "Canvas Page Format": (newValue) => { ... },
-  // "Left Sidebar": (newValue) => { ... },
-  // "Export": (newValue) => { ... },
-  // "Suggestive Mode": (newValue) => { ... },
+  /* eslint-disable @typescript-eslint/naming-convention */
+  "Left sidebar": (newValue, oldValue) => {
+    emitSettingChange("global:Left sidebar", newValue, oldValue);
+  },
+  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 type PersonalSettingsHandlers = {
@@ -131,8 +123,11 @@ type PersonalSettingsHandlers = {
 };
 
 export const personalSettingsHandlers: PersonalSettingsHandlers = {
-  // Add handlers as needed:
-  // "Left sidebar": (newValue) => { ... },
+  /* eslint-disable @typescript-eslint/naming-convention */
+  "Left sidebar": (newValue, oldValue) => {
+    emitSettingChange("personal:Left sidebar", newValue, oldValue);
+  },
+  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 export const discourseNodeHandlers: Array<
