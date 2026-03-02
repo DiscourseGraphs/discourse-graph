@@ -249,11 +249,9 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   if (useCloudflareSync) {
     return (
-      <TldrawCanvasShared
+      <TldrawCanvasCloudflare
         title={title}
         pageUid={pageUid}
-        useStoreAdapter={useCloudflareCanvasStore}
-        isCloudflareSync={true}
         canvasSyncMode={canvasSyncMode}
         onCanvasSyncModeChange={onCanvasSyncModeChange}
       />
@@ -261,11 +259,9 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   }
 
   return (
-    <TldrawCanvasShared
+    <TldrawCanvasRoam
       title={title}
       pageUid={pageUid}
-      useStoreAdapter={useRoamCanvasStore}
-      isCloudflareSync={false}
       canvasSyncMode={canvasSyncMode}
       onCanvasSyncModeChange={onCanvasSyncModeChange}
     />
@@ -334,6 +330,51 @@ const useCloudflareCanvasStore = ({
     needsUpgrade: false,
     performUpgrade: () => {},
   };
+};
+const TldrawCanvasRoam = ({
+  title,
+  pageUid,
+  canvasSyncMode,
+  onCanvasSyncModeChange,
+}: {
+  title: string;
+  pageUid: string;
+  canvasSyncMode: CanvasSyncMode;
+  onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
+}) => {
+  return (
+    <TldrawCanvasShared
+      title={title}
+      pageUid={pageUid}
+      useStoreAdapter={useRoamCanvasStore}
+      isCloudflareSync={false}
+      canvasSyncMode={canvasSyncMode}
+      onCanvasSyncModeChange={onCanvasSyncModeChange}
+    />
+  );
+};
+
+const TldrawCanvasCloudflare = ({
+  title,
+  pageUid,
+  canvasSyncMode,
+  onCanvasSyncModeChange,
+}: {
+  title: string;
+  pageUid: string;
+  canvasSyncMode: CanvasSyncMode;
+  onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
+}) => {
+  return (
+    <TldrawCanvasShared
+      title={title}
+      pageUid={pageUid}
+      useStoreAdapter={useCloudflareCanvasStore}
+      isCloudflareSync={true}
+      canvasSyncMode={canvasSyncMode}
+      onCanvasSyncModeChange={onCanvasSyncModeChange}
+    />
+  );
 };
 
 const TldrawCanvasShared = ({
