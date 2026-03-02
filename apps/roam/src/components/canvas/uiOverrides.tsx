@@ -16,6 +16,10 @@ import {
   TldrawUiMenuItem,
   DefaultMainMenu,
   TldrawUiMenuGroup,
+  TldrawUiDropdownMenuItem,
+  TldrawUiButton,
+  TldrawUiButtonLabel,
+  TldrawUiIcon,
   useActions,
   DefaultContextMenu,
   DefaultContextMenuContent,
@@ -46,6 +50,41 @@ import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
 import { getSetting } from "~/utils/extensionSettings";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
+import { CanvasSyncMode } from "./canvasSyncMode";
+
+const SyncModeMenuSwitchItem = ({
+  checked,
+  disabled,
+  label,
+  onToggle,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  label: string;
+  onToggle: () => void;
+}): React.ReactElement => {
+  return (
+    <TldrawUiDropdownMenuItem>
+      <TldrawUiButton
+        type="menu"
+        title={label}
+        disabled={disabled}
+        onClick={onToggle}
+      >
+        <TldrawUiButtonLabel>{label}</TldrawUiButtonLabel>
+        <span
+          style={{
+            marginLeft: "auto",
+            display: "inline-flex",
+            alignItems: "center",
+          }}
+        >
+          <TldrawUiIcon icon={checked ? "toggle-on" : "toggle-off"} small />
+        </span>
+      </TldrawUiButton>
+    </TldrawUiDropdownMenuItem>
+  );
+};
 
 export const getOnSelectForShape = ({
   shape,
@@ -185,10 +224,14 @@ export const createUiComponents = ({
   allNodes,
   allAddReferencedNodeActions,
   allRelationNames,
+  canvasSyncMode,
+  onCanvasSyncModeChange,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
   allAddReferencedNodeActions: string[];
+  canvasSyncMode: CanvasSyncMode;
+  onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
 }): TLUiComponents => {
   return {
     Toolbar: (props) => {
@@ -234,9 +277,21 @@ export const createUiComponents = ({
           </TldrawUiMenuSubmenu>
         );
       };
+      const onToggleSyncMode = (): void => {
+        const nextMode: CanvasSyncMode =
+          canvasSyncMode === "sync" ? "local" : "sync";
+        onCanvasSyncModeChange(nextMode);
+      };
 
       return (
         <DefaultMainMenu>
+          <TldrawUiMenuGroup id="sync-mode">
+            <SyncModeMenuSwitchItem
+              label="Use cloud canvas"
+              checked={canvasSyncMode === "sync"}
+              onToggle={onToggleSyncMode}
+            />
+          </TldrawUiMenuGroup>
           <EditSubmenu />
           <CustomViewMenu /> {/* Replaced <ViewSubmenu /> */}
           <ExportFileContentSubMenu />

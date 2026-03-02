@@ -104,6 +104,12 @@ import { TLRecord } from "@tldraw/tlschema";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { BLOCK_REF_REGEX } from "roamjs-components/dom";
 import { defaultHandleExternalTextContent } from "./defaultHandleExternalTextContent";
+import {
+  CanvasSyncMode,
+  ensureCanvasSyncMode,
+  getEffectiveCanvasSyncMode,
+  setCanvasSyncMode,
+} from "./canvasSyncMode";
 import posthog from "posthog-js";
 
 declare global {
@@ -507,6 +513,22 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     });
   };
 
+  const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
+  const [canvasSyncMode, setCanvasSyncModeState] = useState<CanvasSyncMode>(
+    () => getEffectiveCanvasSyncMode({ pageUid }),
+  );
+  useEffect(() => {
+    setCanvasSyncModeState(ensureCanvasSyncMode({ pageUid }));
+  }, [pageUid]);
+
+  const onCanvasSyncModeChange = useCallback(
+    (mode: CanvasSyncMode) => {
+      setCanvasSyncMode({ pageUid, mode });
+      setCanvasSyncModeState(mode);
+    },
+    [pageUid],
+  );
+
   // COMPONENTS
   const defaultEditorComponents: TLEditorComponents = {
     Scribble: TldrawScribble,
@@ -523,6 +545,8 @@ const TldrawCanvas = ({ title }: { title: string }) => {
     allNodes,
     allRelationNames,
     allAddReferencedNodeActions,
+    canvasSyncMode,
+    onCanvasSyncModeChange,
   });
 
   // UTILS
@@ -572,7 +596,6 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   });
 
   // STORE
-  const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
   useEffect(() => {
     posthog.capture("Canvas: Opened", {
       pageUid,
