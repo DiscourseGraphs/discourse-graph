@@ -285,13 +285,13 @@ export const createUiComponents = ({
 
       return (
         <DefaultMainMenu>
-          <TldrawUiMenuGroup id="sync-mode">
-            {/* <SyncModeMenuSwitchItem
+          {/* <TldrawUiMenuGroup id="sync-mode"> */}
+          {/* <SyncModeMenuSwitchItem
               label="(Beta) Use cloud canvas"
               checked={canvasSyncMode === "sync"}
               onToggle={onToggleSyncMode}
             /> */}
-          </TldrawUiMenuGroup>
+          {/* </TldrawUiMenuGroup> */}
           <EditSubmenu />
           <CustomViewMenu /> {/* Replaced <ViewSubmenu /> */}
           <ExportFileContentSubMenu />
