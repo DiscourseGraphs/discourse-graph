@@ -287,7 +287,7 @@ export const createUiComponents = ({
         <DefaultMainMenu>
           <TldrawUiMenuGroup id="sync-mode">
             <SyncModeMenuSwitchItem
-              label="Use cloud canvas"
+              label="(Beta) Use cloud canvas"
               checked={canvasSyncMode === "sync"}
               onToggle={onToggleSyncMode}
             />
