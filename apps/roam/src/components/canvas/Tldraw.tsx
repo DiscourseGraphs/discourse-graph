@@ -96,6 +96,8 @@ import ToastListener, { dispatchToastEvent } from "./ToastListener";
 import { CanvasDrawerPanel } from "./CanvasDrawer";
 import { ClipboardPanel, ClipboardProvider } from "./Clipboard";
 import internalError from "~/utils/internalError";
+import { AUTO_CANVAS_RELATIONS_KEY } from "~/data/userSettings";
+import { getSetting } from "~/utils/extensionSettings";
 import { isPluginTimerReady, waitForPluginTimer } from "~/utils/pluginTimer";
 import { HistoryEntry } from "@tldraw/store";
 import { TLRecord } from "@tldraw/tlschema";
@@ -103,7 +105,6 @@ import { WHITE_LOGO_SVG } from "~/icons";
 import { BLOCK_REF_REGEX } from "roamjs-components/dom";
 import { defaultHandleExternalTextContent } from "./defaultHandleExternalTextContent";
 import posthog from "posthog-js";
-import { getPersonalSetting } from "~/components/settings/utils/accessors";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -1131,9 +1132,10 @@ const InsideEditorAndUiContext = ({
         editor.sideEffects.registerAfterCreateHandler("shape", (shape) => {
           const util = editor.getShapeUtil(shape);
           if (util instanceof BaseDiscourseNodeUtil) {
-            const autoCanvasRelations = getPersonalSetting<boolean>([
-              "Auto canvas relations",
-            ]);
+            const autoCanvasRelations = getSetting<boolean>(
+              AUTO_CANVAS_RELATIONS_KEY,
+              false,
+            );
             if (autoCanvasRelations) {
               void util.createExistingRelations({
                 shape: shape as DiscourseNodeShape,

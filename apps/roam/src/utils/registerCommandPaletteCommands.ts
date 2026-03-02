@@ -18,10 +18,6 @@ import {
 } from "./pageRefObserverHandlers";
 import { HIDE_METADATA_KEY } from "~/data/userSettings";
 import posthog from "posthog-js";
-import {
-  getPersonalSetting,
-  setPersonalSetting,
-} from "~/components/settings/utils/accessors";
 
 export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   const { extensionAPI } = onloadArgs;
@@ -160,13 +156,12 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   const toggleDiscourseContextOverlay = async () => {
-    const currentValue = getPersonalSetting<boolean>([
-      "Discourse context overlay",
-    ]);
+    const currentValue =
+      (extensionAPI.settings.get("discourse-context-overlay") as boolean) ??
+      false;
     const newValue = !currentValue;
     try {
       await extensionAPI.settings.set("discourse-context-overlay", newValue);
-      setPersonalSetting(["Discourse context overlay"], newValue);
     } catch (error) {
       const e = error as Error;
       renderToast({
@@ -187,14 +182,11 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   };
 
   const toggleQueryMetadata = async () => {
-    const currentValue = getPersonalSetting<boolean>([
-      "Query",
-      "Hide query metadata",
-    ]);
+    const currentValue =
+      (extensionAPI.settings.get(HIDE_METADATA_KEY) as boolean) ?? true;
     const newValue = !currentValue;
     try {
       await extensionAPI.settings.set(HIDE_METADATA_KEY, newValue);
-      setPersonalSetting(["Query", "Hide query metadata"], newValue);
     } catch (error) {
       const e = error as Error;
       renderToast({

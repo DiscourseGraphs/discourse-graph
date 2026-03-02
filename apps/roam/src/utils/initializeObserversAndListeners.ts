@@ -61,7 +61,6 @@ import { renderPossibleDuplicates } from "~/components/VectorDuplicateMatches";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import findDiscourseNode from "./findDiscourseNode";
-import { getPersonalSetting } from "~/components/settings/utils/accessors";
 
 const debounce = (fn: () => void, delay = 250) => {
   let timeout: number;
@@ -192,11 +191,11 @@ export const initObservers = async ({
     }>,
   ) => {
     if (!/page/i.test(e.detail.action)) return;
-    void window.roamAlphaAPI.ui.mainWindow
+    window.roamAlphaAPI.ui.mainWindow
       .getOpenPageOrBlockUid()
       .then((u) => u || window.roamAlphaAPI.util.dateToPageUid(new Date()))
       .then((parentUid) => {
-        return createBlock({
+        createBlock({
           parentUid,
           order: Number.MAX_VALUE,
           node: { text: `[[${e.detail.val}]]` },
@@ -204,7 +203,7 @@ export const initObservers = async ({
       });
   }) as EventListener;
 
-  if (getPersonalSetting<boolean>(["Suggestive mode overlay"])) {
+  if (onloadArgs.extensionAPI.settings.get("suggestive-mode-overlay")) {
     addPageRefObserver(getSuggestiveOverlayHandler(onloadArgs));
   }
 
@@ -227,9 +226,9 @@ export const initObservers = async ({
     },
   });
 
-  if (getPersonalSetting<boolean>(["Page preview"]))
+  if (onloadArgs.extensionAPI.settings.get("page-preview"))
     addPageRefObserver(previewPageRefHandler);
-  if (getPersonalSetting<boolean>(["Discourse context overlay"])) {
+  if (onloadArgs.extensionAPI.settings.get("discourse-context-overlay")) {
     const overlayHandler = getOverlayHandler(onloadArgs);
     onPageRefObserverChange(overlayHandler)(true);
   }
@@ -384,7 +383,7 @@ export const initObservers = async ({
 
   const nodeCreationPopoverListener = debounce(() => {
     const isTextSelectionPopupEnabled =
-      getPersonalSetting<boolean>(["Text selection popup"]) !== false;
+      onloadArgs.extensionAPI.settings.get("text-selection-popup") !== false;
 
     if (!isTextSelectionPopupEnabled) return;
 

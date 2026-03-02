@@ -42,9 +42,10 @@ import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
+import { DISCOURSE_TOOL_SHORTCUT_KEY } from "~/data/userSettings";
+import { getSetting } from "~/utils/extensionSettings";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
-import { getPersonalSetting } from "~/components/settings/utils/accessors";
 
 export const getOnSelectForShape = ({
   shape,
@@ -270,12 +271,10 @@ export const createUiOverrides = ({
 }): TLUiOverrides => ({
   tools: (editor, tools) => {
     // Get the custom keyboard shortcut for the discourse tool
-    const discourseToolCombo = getPersonalSetting<IKeyCombo>([
-      "Discourse tool shortcut",
-    ]) || {
+    const discourseToolCombo = getSetting(DISCOURSE_TOOL_SHORTCUT_KEY, {
       key: "",
       modifiers: 0,
-    };
+    }) as IKeyCombo;
 
     // For discourse tool, just use the key directly since we don't allow modifiers
     const discourseToolShortcut = discourseToolCombo?.key?.toUpperCase() || "";

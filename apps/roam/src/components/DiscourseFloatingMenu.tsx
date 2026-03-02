@@ -13,7 +13,6 @@ import {
 import { FeedbackWidget } from "./BirdEatsBugs";
 import { render as renderSettings } from "~/components/settings/Settings";
 import posthog from "posthog-js";
-import { getPersonalSetting } from "./settings/utils/accessors";
 
 type DiscourseFloatingMenuProps = {
   // CSS placement class
@@ -129,7 +128,7 @@ export const installDiscourseFloatingMenu = (
     floatingMenuAnchor.id = ANCHOR_ID;
     document.getElementById("app")?.appendChild(floatingMenuAnchor);
   }
-  if (getPersonalSetting<boolean>(["Hide feedback button"])) {
+  if (onLoadArgs.extensionAPI.settings.get("hide-feedback-button") as boolean) {
     floatingMenuAnchor.classList.add("hidden");
   }
   ReactDOM.render(
