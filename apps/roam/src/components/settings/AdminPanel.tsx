@@ -360,7 +360,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
   }, []);
 
   const [suggestiveModeEnabled, setSuggestiveModeEnabled] = useState(
-    settings.suggestiveModeEnabled.value || false,
+    getFeatureFlag("Suggestive mode enabled"),
   );
   const [suggestiveModeUid, setSuggestiveModeUid] = useState(
     settings.suggestiveModeEnabled.uid,
@@ -498,10 +498,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
 
 const AdminPanel = (): React.ReactElement => {
   const [selectedTabId, setSelectedTabId] = useState<TabId>("admin");
-  const settings = useMemo(() => {
-    refreshConfigTree();
-    return getFormattedConfigTree();
-  }, []);
 
   return (
     <Tabs
@@ -536,7 +532,7 @@ const AdminPanel = (): React.ReactElement => {
           </div>
         }
       />
-      {settings.suggestiveModeEnabled.value && (
+      {getFeatureFlag("Suggestive mode enabled") && (
         <Tab
           id="suggestive-mode-settings"
           title="Suggestive mode"
