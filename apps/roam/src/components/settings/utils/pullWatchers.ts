@@ -84,16 +84,25 @@ const addPullWatch = (
   watches.push([pattern, entityId, callback]);
 };
 
+let leftSidebarFlagHandler: ((newValue: boolean) => void) | null = null;
+export const setLeftSidebarFlagHandler = (
+  handler: (newValue: boolean) => void,
+) => {
+  leftSidebarFlagHandler = handler;
+};
+
 export const featureFlagHandlers: Partial<
   Record<
     keyof FeatureFlags,
     (newValue: boolean, oldValue: boolean, allFlags: FeatureFlags) => void
   >
 > = {
-  // Add handlers as needed:
-  // "Enable Left Sidebar": (newValue) => { ... },
-  // "Suggestive Mode Enabled": (newValue) => { ... },
-  // "Reified Relation Triples": (newValue) => { ... },
+  /* eslint-disable @typescript-eslint/naming-convention */
+  "Enable left sidebar": (newValue, oldValue) => {
+    if (newValue === oldValue) return;
+    leftSidebarFlagHandler?.(newValue);
+  },
+  /* eslint-enable @typescript-eslint/naming-convention */
 };
 
 type GlobalSettingsHandlers = {
@@ -122,30 +131,8 @@ type PersonalSettingsHandlers = {
 };
 
 export const personalSettingsHandlers: PersonalSettingsHandlers = {
-  // "Left Sidebar" stub for testing with stubSetLeftSidebarPersonalSections() in accessors.ts
-  /* eslint-disable @typescript-eslint/naming-convention */
-  "Left sidebar": (newValue, oldValue) => {
-    const oldSections = Object.keys(oldValue || {});
-    const newSections = Object.keys(newValue || {});
-
-    if (newSections.length === 0 && oldSections.length === 0) return;
-
-    console.group("👤 [PullWatch] Personal Settings Changed: Left Sidebar");
-    console.log("Old value:", JSON.stringify(oldValue, null, 2));
-    console.log("New value:", JSON.stringify(newValue, null, 2));
-
-    const addedSections = newSections.filter((s) => !oldSections.includes(s));
-    const removedSections = oldSections.filter((s) => !newSections.includes(s));
-
-    if (addedSections.length > 0) {
-      console.log("  → Sections added:", addedSections);
-    }
-    if (removedSections.length > 0) {
-      console.log("  → Sections removed:", removedSections);
-    }
-    console.groupEnd();
-  },
-  /* eslint-enable @typescript-eslint/naming-convention */
+  // Add handlers as needed:
+  // "Left sidebar": (newValue) => { ... },
 };
 
 export const discourseNodeHandlers: Array<
