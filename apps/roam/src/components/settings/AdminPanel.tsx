@@ -424,6 +424,8 @@ const FeatureFlagsTab = (): React.ReactElement => {
         <p>Are you sure you want to proceed?</p>
       </Alert>
 
+      {/* TODO(ENG-1484): Add pull watcher reactivity so toggling suggestive mode
+          starts/stops sync and shows the tab without requiring a reload. */}
       <Alert
         isOpen={isInstructionOpen}
         onConfirm={() => window.location.reload()}
