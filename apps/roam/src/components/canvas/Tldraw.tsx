@@ -249,9 +249,11 @@ const TldrawCanvas = ({ title }: { title: string }) => {
 
   if (useCloudflareSync) {
     return (
-      <TldrawCanvasCloudflare
+      <TldrawCanvasShared
         title={title}
         pageUid={pageUid}
+        useStoreAdapter={useCloudflareCanvasStore}
+        isCloudflareSync={true}
         canvasSyncMode={canvasSyncMode}
         onCanvasSyncModeChange={onCanvasSyncModeChange}
       />
@@ -259,9 +261,11 @@ const TldrawCanvas = ({ title }: { title: string }) => {
   }
 
   return (
-    <TldrawCanvasRoam
+    <TldrawCanvasShared
       title={title}
       pageUid={pageUid}
+      useStoreAdapter={useRoamCanvasStore}
+      isCloudflareSync={false}
       canvasSyncMode={canvasSyncMode}
       onCanvasSyncModeChange={onCanvasSyncModeChange}
     />
@@ -330,52 +334,6 @@ const useCloudflareCanvasStore = ({
     needsUpgrade: false,
     performUpgrade: () => {},
   };
-};
-
-const TldrawCanvasRoam = ({
-  title,
-  pageUid,
-  canvasSyncMode,
-  onCanvasSyncModeChange,
-}: {
-  title: string;
-  pageUid: string;
-  canvasSyncMode: CanvasSyncMode;
-  onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
-}) => {
-  return (
-    <TldrawCanvasShared
-      title={title}
-      pageUid={pageUid}
-      useStoreAdapter={useRoamCanvasStore}
-      isCloudflareSync={false}
-      canvasSyncMode={canvasSyncMode}
-      onCanvasSyncModeChange={onCanvasSyncModeChange}
-    />
-  );
-};
-
-const TldrawCanvasCloudflare = ({
-  title,
-  pageUid,
-  canvasSyncMode,
-  onCanvasSyncModeChange,
-}: {
-  title: string;
-  pageUid: string;
-  canvasSyncMode: CanvasSyncMode;
-  onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
-}) => {
-  return (
-    <TldrawCanvasShared
-      title={title}
-      pageUid={pageUid}
-      useStoreAdapter={useCloudflareCanvasStore}
-      isCloudflareSync={true}
-      canvasSyncMode={canvasSyncMode}
-      onCanvasSyncModeChange={onCanvasSyncModeChange}
-    />
-  );
 };
 
 const TldrawCanvasShared = ({
@@ -1193,7 +1151,7 @@ const TldrawCanvasShared = ({
 
 // apps\examples\src\examples\exploded\ExplodedExample.tsx
 // We put these hooks into a component here so that they can run inside of the context provided by TldrawEditor and TldrawUi
-export const InsideEditorAndUiContext = ({
+const InsideEditorAndUiContext = ({
   extensionAPI,
   allNodes,
   // allRelationIds,
