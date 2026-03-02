@@ -691,6 +691,9 @@ const updateMarkdownAssetLinks = ({
           }
         })
         .join("/");
+      if (linkPath.startsWith("http://") || linkPath.startsWith("https://")) {
+        return match;
+      }
       const processedPath = encodePathForMarkdownLink(processLink(linkPath));
       return `[${linkText}](${processedPath})`;
     },
