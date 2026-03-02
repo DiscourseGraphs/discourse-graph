@@ -661,6 +661,7 @@ export const getFeatureFlags = (): FeatureFlags => {
   return FeatureFlagsSchema.parse(blockProps || {});
 };
 
+/* eslint-disable @typescript-eslint/naming-convention */
 const FEATURE_FLAG_LEGACY_MAP: Partial<
   Record<keyof FeatureFlags, () => boolean>
 > = {
@@ -669,6 +670,7 @@ const FEATURE_FLAG_LEGACY_MAP: Partial<
   "Enable left sidebar": () =>
     getFormattedConfigTree().leftSidebarEnabled.value,
 };
+/* eslint-enable @typescript-eslint/naming-convention */
 
 export const getFeatureFlag = (key: keyof FeatureFlags): boolean => {
   const legacyReader = FEATURE_FLAG_LEGACY_MAP[key];
