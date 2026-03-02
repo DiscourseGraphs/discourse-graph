@@ -151,9 +151,8 @@ export const getLocalNodeInstanceIds = (
 };
 
 /**
- * Returns info about imported nodes (from import/ folder only).
- * - nodeKeys: "spaceId:nodeInstanceId" for each imported node
- * - keyToRid: maps "spaceId:nodeInstanceId" -> importedFromRid
+ * Returns the space name for a given space ID.
+ * Falls back to "space-{id}" if the lookup fails.
  */
 export const getSpaceNameFromId = async (
   client: DGSupabaseClient,
